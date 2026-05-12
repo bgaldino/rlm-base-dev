@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**53 flows** across **5 groups**.
+**59 flows** across **6 groups**.
 
 ---
 
@@ -130,8 +130,9 @@ Load and activate Manufacturing billing seed data (LegalEntity, AccountingPeriod
    - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
 3. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
 4. **task** `activate_billing_records`  `when: project_config.project__custom__billing`
-5. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
-6. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
+5. **task** `deploy_billing_id_settings_mfg`  `when: project_config.project__custom__billing`
+6. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
+7. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
 
 ---
 
@@ -300,7 +301,54 @@ Deploy Manufacturing 3D Visualization metadata and load product configuration fl
 
 ---
 
+## RLM Administration
+
+### `stamp_git_commit`
+
+Stamp the git commit hash into the org
+
+**Steps:**
+
+1. **task** `stamp_git_commit`
+   - `flow_name`: `prepare_rlm_org`
+
+---
+
 ## Revenue Lifecycle Management
+
+### `assign_feature_permission_sets`
+
+Assign feature-gated permission sets after PSGs are updated
+
+**Steps:**
+
+1. **task** `assign_permission_sets`  `when: project_config.project__custom__tso and project_config.project__custom__psg_debug`
+   - `api_names`: `['IndustriesConfiguratorPlatformApi', 'ProductConfigurationRulesDesigner', 'ProductCatalogManagem...`
+2. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
+   - `api_names`: `['EinsteinGPTPromptTemplateManager']`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein and org_config.org_type != "Developer Edition"`
+   - `api_names`: `['SalesCloudEinsteinAll']`
+4. **task** `assign_permission_sets`  `when: project_config.project__custom__billing and project_config.project__custom__psg_debug`
+   - `api_names`: `['AnalyticsStoreUser', 'RevenueLifecycleManagementAccountingAdmin', 'RevenueLifecycleManagementBi...`
+
+---
+
+### `assign_feature_psls`
+
+Assign feature-gated permission set licenses after pre-deploy metadata is in place
+
+**Steps:**
+
+1. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__clm`
+   - `api_names`: `['AIAcceleratorPsl', 'ClauseManagementUser', 'CLMAnalyticsPsl', 'ContractManagementUser', 'Contra...`
+2. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__einstein`
+   - `api_names`: `['AgentforceServiceAgentBuilderPsl', 'EinsteinGPTCopilotPsl', 'EinsteinGPTPromptTemplatesPsl']`
+3. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__analytics`
+   - `api_names`: `['EinsteinAnalyticsPlusPsl']`
+4. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__tso`
+   - `api_names`: `['AutomatedActionsPsl', 'EinsteinAgentCWUPsl', 'EinsteinAgentPsl', 'EinsteinCopilotReviewMyDayPsl...`
+
+---
 
 ### `extend_context_definitions`
 
@@ -368,15 +416,21 @@ Extract rating and rates data from an org into CSV files
 
 **Steps:**
 
-1. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
-2. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3`
-3. **task** `activate_flow`  `when: project_config.project__custom__billing`
+1. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
+2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+3. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3`
+4. **task** `create_sequence_policies`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+5. **task** `activate_flow`  `when: project_config.project__custom__billing`
    - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
-4. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
-5. **task** `activate_billing_records`  `when: project_config.project__custom__billing`
-6. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
-7. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing and project_config.project__custom__qb`
-8. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
+6. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
+7. **task** `activate_billing_records`  `when: project_config.project__custom__billing`
+8. **task** `enable_timeline`  `when: project_config.project__custom__billing_ui`
+9. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing and not project_config.project__custom__manufacturing`
+10. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
+11. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
+12. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
+   - `api_names`: `['RLM_BillingUI']`
+13. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
 
 ---
 
@@ -405,12 +459,12 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 **Steps:**
 
-1. **task** `insert_qb_transactionprocessingtypes_data`  `when: project_config.project__custom__constraints`
+1. **task** `insert_qb_transactionprocessingtypes_data`  `when: project_config.project__custom__constraints and project_config.project__custom__quantumbit`
 2. **task** `deploy_post_constraints`  `when: project_config.project__custom__constraints`
-3. **task** `assign_permission_sets`  `when: project_config.project__custom__tso and project_config.project__custom__constraints`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__constraints`
    - `api_names`: `['RLM_Constraints']`
 4. **task** `apply_context_constraint_engine_node_status`  `when: project_config.project__custom__constraints`
-5. **task** `enable_constraints_settings`  `when: project_config.project__custom__constraints`
+5. **task** `enable_constraints_settings`  `when: project_config.project__custom__constraints_data`
 6. **task** `validate_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `cml_dir`: `scripts/cml`
    - `data_dir`: `datasets/constraints/qb/QuantumBitComplete`
@@ -437,31 +491,19 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 4. **task** `exclude_active_decision_tables`
 5. **task** `deploy_pre`
 6. **task** `restore_decision_tables`
-7. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__clm`
-   - `api_names`: `['AIAcceleratorPsl', 'ClauseManagementUser', 'CLMAnalyticsPsl', 'ContractManagementUser', 'Contra...`
-8. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__einstein`
-   - `api_names`: `['AgentforceServiceAgentBuilderPsl', 'EinsteinGPTCopilotPsl', 'EinsteinGPTPromptTemplatesPsl']`
-9. **task** `util_sleep`
-   - `seconds`: `30`
-10. **task** `assign_permission_set_licenses`
-   - `api_names`: `EinsteinAnalyticsPlusPsl`
-11. **task** `recalculate_permission_set_groups`
+7. **flow** `assign_feature_psls`
+8. **task** `recalculate_permission_set_groups`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-12. **task** `assign_permission_set_groups_tolerant`
+9. **task** `assign_permission_set_groups_tolerant`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-13. **task** `assign_permission_sets`  `when: project_config.project__custom__tso and project_config.project__custom__psg_debug`
-   - `api_names`: `['IndustriesConfiguratorPlatformApi', 'ProductConfigurationRulesDesigner', 'ProductCatalogManagem...`
-14. **flow** `extend_context_definitions`
-15. **task** `util_sleep`
-   - `seconds`: `30`
-16. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
-17. **task** `util_sleep`  `when: project_config.project__custom__breconfig`
-   - `seconds`: `30`
-18. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
-19. **task** `assign_permission_sets`  `when: project_config.project__custom__einstein`
-   - `api_names`: `['EinsteinGPTPromptTemplateManager', 'SalesCloudEinsteinAll']`
-20. **task** `assign_permission_sets`  `when: project_config.project__custom__billing and project_config.project__custom__psg_debug`
-   - `api_names`: `['AnalyticsStoreUser', 'RevenueLifecycleManagementAccountingAdmin', 'RevenueLifecycleManagementBi...`
+10. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
+   - `api_names`: `['RLM_TSO']`
+11. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
+   - `api_names`: `['RLM_TSO']`
+12. **flow** `extend_context_definitions`
+13. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
+14. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
+15. **flow** `assign_feature_permission_sets`
 
 ---
 
@@ -495,10 +537,13 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 **Steps:**
 
-1. **task** `insert_qb_dro_data`  `when: project_config.project__custom__dro and project_config.project__custom__qb`
-2. **task** `insert_q3_dro_data_scratch`  `when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
-3. **task** `insert_q3_dro_data_prod`  `when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
-4. **task** `update_product_fulfillment_decomp_rules`  `when: project_config.project__custom__dro`
+1. **task** `manage_fulfillment_scope_cnfg`  `when: project_config.project__custom__dro`
+   - `operation`: `upsert`
+   - `input_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
+2. **task** `insert_qb_dro_data`  `when: project_config.project__custom__dro and project_config.project__custom__qb`
+3. **task** `insert_q3_dro_data_scratch`  `when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
+4. **task** `insert_q3_dro_data_prod`  `when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3`
+5. **task** `update_product_fulfillment_decomp_rules`  `when: project_config.project__custom__dro`
 
 ---
 
@@ -757,7 +802,44 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 
 ---
 
+### `upsert_fulfillment_scope_cnfg`
+
+Upsert CustomFulfillmentScopeCnfg records from the standard input file. Run manually via 'cci flow run upsert_fulfillment_scope_cnfg --org <alias>'.
+
+**Steps:**
+
+1. **task** `manage_fulfillment_scope_cnfg`
+   - `operation`: `upsert`
+   - `input_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
+
+---
+
 ## UX Personalization
+
+### `apply_ux_drift`
+
+Writes back org-retrieved flexipages into base templates by reverse-applying active feature patches (new_base = org_state - patches), then re-assembles and diffs to verify zero drift. Run capture_ux_drift first to review drift, then run this flow to update templates/ automatically.
+
+**Steps:**
+
+1. **task** `writeback_ux_templates`
+   - `dry_run`: `False`
+2. **task** `assemble_and_deploy_ux`
+   - `deploy`: `False`
+3. **task** `diff_ux_templates`
+
+---
+
+### `capture_ux_drift`
+
+Retrieves live flexipages from the target org into unpackaged/post_ux/, then diffs them against what the assembler would produce from current templates/. Reports added, removed, modified, and repositioned flexiPageRegions and writes drift_report.json. Does not modify templates/. After reviewing the report, edit templates/ manually then run assemble_and_deploy_ux to deploy.
+
+**Steps:**
+
+1. **task** `retrieve_ux_from_org`
+2. **task** `diff_ux_templates`
+
+---
 
 ### `prepare_ux`
 

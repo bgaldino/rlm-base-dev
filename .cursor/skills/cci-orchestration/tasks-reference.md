@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**231 tasks** across **9 groups**.
+**249 tasks** across **10 groups**.
 
 ---
 
@@ -71,9 +71,41 @@
 
 ---
 
+## Data Management - Currency
+
+*2 task(s)*
+
+### `update_currency_rates`
+
+**Description:** Fetch live USD exchange rates from Open Exchange Rates (no auth required) and patch CurrencyType.ConversionRate for all active non-corporate currencies in a running org. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without updating.
+
+**Class:** `tasks.rlm_currency.UpdateCurrencyRates`
+
+---
+
+### `update_currency_rates_csv`
+
+**Description:** Fetch live USD exchange rates from Open Exchange Rates (no auth required) and update CurrencyType.csv in the qb-pricing SFDMU plan. Commit the result so future scratch org builds use current rates. Use iso_codes to restrict (e.g. 'EUR,GBP'). Use dry_run true to preview without writing.
+
+**Class:** `tasks.rlm_currency.UpdateCurrencyRatesCsv`
+
+---
+
 ## Data Management - Extract
 
-*13 task(s)*
+*17 task(s)*
+
+### `export_bre_rule_library`
+
+**Description:** Export BRE Rule Library hierarchy from org to CSV. Exports RuleLibraryDefinition, RuleLibraryDefVersion, RuleLibrary, and RuleLibraryVersion. Use api_name to filter (e.g. DRORuleLibraryGeneric) or omit to export all.
+
+**Class:** `tasks.rlm_bre.ExportBRE`
+
+**Options:**
+
+- `output_dir`: `datasets/bre/exports`
+
+---
 
 ### `extract_mfg_aaf_data`
 
@@ -96,6 +128,18 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-approvals`
+
+---
+
+### `extract_qb_billing_data`
+
+**Description:** Extract qb-billing (billing policies, treatments, payment terms) from org to CSV. Output in datasets/sfdmu/extractions/qb-billing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-billing`
 
 ---
 
@@ -207,6 +251,18 @@
 
 ---
 
+### `extract_qb_tax_data`
+
+**Description:** Extract qb-tax (tax policies and treatments) from org to CSV. Output in datasets/sfdmu/extractions/qb-tax/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
+
+---
+
 ### `extract_qb_transactionprocessingtypes_data`
 
 **Description:** Extract qb-transactionprocessingtypes from org to CSV. Output in datasets/sfdmu/extractions/qb-transactionprocessingtypes/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
@@ -216,6 +272,19 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes`
+
+---
+
+### `extract_scratch_data`
+
+**Description:** Extract scratch data (Account, Contact, BillingAccount) from org to CSV. Output in datasets/sfdmu/extractions/scratch-data/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/scratch_data`
+- `extractions_base_dir`: `datasets/sfdmu/extractions`
 
 ---
 
@@ -229,7 +298,7 @@
 
 ## Data Management - Idempotency
 
-*15 task(s)*
+*17 task(s)*
 
 ### `test_badger_dro_idempotency`
 
@@ -296,6 +365,19 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-approvals`
+- `use_extraction_roundtrip`: `False`
+
+---
+
+### `test_qb_billing_idempotency`
+
+**Description:** Idempotency test for qb-billing. Runs the 3-pass plan twice from source CSVs and asserts no record count increase. Extraction roundtrip is not used — Pass 2/3 filter on Status = 'Draft' so extracted CSVs would be empty after activation, breaking re-import.
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-billing`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -419,6 +501,19 @@
 
 ---
 
+### `test_qb_tax_idempotency`
+
+**Description:** Idempotency test for qb-tax (tax policies and treatments).
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
+- `use_extraction_roundtrip`: `False`
+
+---
+
 ### `test_qb_transactionprocessingtypes_idempotency`
 
 **Description:** Idempotency test for qb-transactionprocessingtypes.
@@ -507,7 +602,7 @@
 
 ## Manufacturing
 
-*35 task(s)*
+*36 task(s)*
 
 ### `activate_mfg_docgen_templates`
 
@@ -572,6 +667,19 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/mfg/en-US/mfg-aaf`
+
+---
+
+### `deploy_billing_id_settings_mfg`
+
+**Description:** Deploy Billing Settings with org-specific record IDs for Manufacturing orgs (TaxTreatment query uses MFG naming convention)
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_billing_id_settings`
+- `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//BillingSettings/defaultBillingTreatment[text()="...`
 
 ---
 
@@ -971,7 +1079,7 @@
 
 ## Revenue Lifecycle Management
 
-*125 task(s)*
+*131 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1118,6 +1226,22 @@
 **Options:**
 
 - `path`: `scripts/apex/activateTaxRecords.apex`
+
+---
+
+### `apply_context_billing_order`
+
+**Description:** Adds BillingArrangement__std and BillingProfile__std Order field mappings to the RLM_BillingContext context definition (OrderEntitiesMapping / BillingTransaction node). Maps to Order.RLM_Billing_Arrangement__c and Order.RLM_Billing_Profile__c. SavedPaymentMethod__std is excluded due to inherited mapping conflicts.
+
+**Class:** `tasks.rlm_context_service.ManageContextDefinition`
+
+**Options:**
+
+- `plan_file`: `datasets/context_plans/Billing/manifest.json`
+- `translate_plan`: `True`
+- `deactivate_before`: `False`
+- `activate`: `True`
+- `verify`: `True`
 
 ---
 
@@ -1342,6 +1466,14 @@
 
 ---
 
+### `create_sequence_policies`
+
+**Description:** Create SequencePolicy and SeqPolicySelectionCondition records via the Connect API (standard DML cannot create these objects)
+
+**Class:** `tasks.rlm_billing.CreateSequencePolicies`
+
+---
+
 ### `create_tax_engine`
 
 **Description:** Create Tax Engine
@@ -1488,6 +1620,19 @@
 
 ---
 
+### `deploy_billing_template_id_settings`
+
+**Description:** NOT USED IN FLOW — retained for manual use. Deploy Billing Settings with auto-generated template IDs (resolved after deploy_billing_template_settings triggers template auto-creation). Sets defaultEmailTemplate, defaultInvPreviewTemplate, and defaultInvoiceDocTemplate. Billing settings auto-default these values; explicit deployment is not required.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_billing_template_id_settings`
+- `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//BillingSettings/defaultEmailTemplate[text()="__D...`
+
+---
+
 ### `deploy_billing_template_settings`
 
 **Description:** Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3)
@@ -1586,6 +1731,18 @@
 
 ---
 
+### `deploy_post_billing_ui`
+
+**Description:** Deploy Billing UI metadata from unpackaged/post_billing_ui: 17 LWC components (rlmBillingCaseMetrics, rlmBillingScheduleGroupHierarchy, rlmBillingStatus, rlmBsgConsolidatedTimeline, rlmBsgSchedulesTimeline, rlmCollectionRuleBuilder, rlmCollectionsDashboard, rlmDisputeDetails, rlmInvoiceAging, rlmInvoiceAgingChart, rlmInvoiceHealth, rlmInvoiceProductSummary, rlmInvoiceTaxSummary, rlmInvoiceTransactionJournals, rlmPaymentsData, rlmSplitInvoicesCards, rlmSplitInvoicesView), 11 Apex controllers, 1 flow (RLM_Generate_Statement_of_Account), 2 Order custom fields (RLM_Billing_Arrangement__c, RLM_Billing_Profile__c), 2 InvoiceLine custom fields (RLM_Charge_Type__c formula, RLM_Attributes__c rich text), 2 quick actions (Account.RLM_Generate_Account_Statement, Invoice.RLM_Payment_Link), the RLM_InvoiceCardLogo static resource, and the RLM_BillingUI permission set (field access + Apex class access + RunFlow). Flexipages for billing_ui are deployed via assemble_and_deploy_ux (billing_ui feature flag).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_billing_ui`
+
+---
+
 ### `deploy_post_collections`
 
 **Description:** Deploy Collections metadata from unpackaged/post_collections (flows, objects, omniUiCard, permissionsets, queues, quickActions, tabs, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore.
@@ -1658,6 +1815,19 @@
 **Options:**
 
 - `suite`: `robot/rlm-base/tests/setup/enable_document_builder.robot`
+- `outputdir`: `robot/rlm-base/results`
+
+---
+
+### `enable_timeline`
+
+**Description:** Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium). Required before billing_ui flexipages that reference industries_common:timeline can be deployed. Once enabled, this toggle cannot be disabled.
+
+**Class:** `tasks.rlm_enable_timeline.EnableTimeline`
+
+**Options:**
+
+- `suite`: `robot/rlm-base/tests/setup/enable_timeline.robot`
 - `outputdir`: `robot/rlm-base/results`
 
 ---
@@ -2365,6 +2535,23 @@
 
 ---
 
+### `manage_fulfillment_scope_cnfg`
+
+**Description:** Manage CustomFulfillmentScopeCnfg records via Tooling API (DRO/Industries Fulfillment setup object; apiAccess="never", introduced API v65.0). Operations: 'list' (log to console), 'extract' (write to output_file as JSON array), 'upsert' (create/update from input_file JSON array).
+
+**Class:** `tasks.rlm_manage_fulfillment_scope_cnfg.ManageFulfillmentScopeCnfg`
+
+**Options:**
+
+- `operation`: `list`
+- `output_file`: `datasets/tooling/CustomFulfillmentScopeCnfg.json`
+- `input_file`: `None`
+- `key_field`: `DeveloperName`
+- `api_version`: `None`
+- `dry_run`: `False`
+
+---
+
 ### `manage_transaction_processing_types`
 
 **Description:** Manage TransactionProcessingType entries via Tooling API
@@ -2637,13 +2824,21 @@
 
 ## UX Personalization
 
-*2 task(s)*
+*5 task(s)*
 
 ### `assemble_and_deploy_ux`
 
 **Description:** Assembles feature-conditional UX metadata (flexipages, layouts, applications, app menus, profiles) from base templates and YAML patch files in templates/. Writes assembled SFDX-format output to unpackaged/post_ux/ (git-tracked) and deploys in a single sf project deploy start call. Supports granular invocation via metadata_type and metadata_name options for development and debugging.
 
 **Class:** `tasks.rlm_ux_assembly.AssembleAndDeployUX`
+
+---
+
+### `diff_ux_templates`
+
+**Description:** Compares unpackaged/post_ux/ (org state from retrieve_ux_from_org) against what the assembler would produce from current templates/. Reports added, removed, modified, and repositioned flexiPageRegions per page. Writes a drift_report.json to unpackaged/post_ux/. Does not modify any files.
+
+**Class:** `tasks.rlm_diff_ux.DiffUXTemplates`
 
 ---
 
@@ -2657,6 +2852,22 @@
 
 - `suite`: `robot/rlm-base/tests/setup/reorder_app_launcher.robot`
 - `outputdir`: `robot/rlm-base/results`
+
+---
+
+### `retrieve_ux_from_org`
+
+**Description:** Retrieves live UX metadata (flexipages) from the target org into unpackaged/post_ux/, replacing the assembled output with the org's current state. Use before diff_ux_templates to capture drift between the org and the assembler templates. Scope to a single page with the metadata_name option.
+
+**Class:** `tasks.rlm_retrieve_ux.RetrieveUXFromOrg`
+
+---
+
+### `writeback_ux_templates`
+
+**Description:** Reverse-applies active feature patches against org-retrieved flexipages and writes the result as updated base templates. Computes new_base = org_state - patches so the assembler reproduces org state without double-applying non-idempotent patches. Defaults to dry_run mode. Run retrieve_ux_from_org first to populate unpackaged/post_ux/.
+
+**Class:** `tasks.rlm_writeback_ux.WriteBackUXTemplates`
 
 ---
 
