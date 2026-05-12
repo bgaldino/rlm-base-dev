@@ -69,8 +69,17 @@ Each file does one job. No duplication.
 Must be **fast** (~70ms target). No interactive features.
 
 ```sh
-# Core PATH
-export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+# Homebrew — detect prefix on Apple Silicon (/opt/homebrew) and Intel (/usr/local).
+# Using `brew shellenv` here (rather than just adding bin to PATH) sets MANPATH,
+# INFOPATH, and HOMEBREW_* env vars too, so later `brew --prefix nvm` works
+# in non-login shells.
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
+
+# pipx-installed CLIs
 export PATH="$HOME/.local/bin:$PATH"
 
 # NVM — function definitions + default node bin on PATH (no slow `nvm use`).
@@ -104,7 +113,14 @@ command -v direnv >/dev/null 2>&1 && eval "$(direnv export zsh 2>/dev/null)"
 #### `~/.zprofile` — runs in **login** shells only
 
 ```sh
-eval "$(/opt/homebrew/bin/brew shellenv)"
+# Re-evaluate brew shellenv for login shells (idempotent — .zshenv already did
+# this for all shells; this line is here in case a contributor's .zshenv differs
+# or they're on a system where login is the only chance to set up Homebrew).
+if [ -x /opt/homebrew/bin/brew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+elif [ -x /usr/local/bin/brew ]; then
+  eval "$(/usr/local/bin/brew shellenv)"
+fi
 export PATH="$PATH:$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 ```
 
