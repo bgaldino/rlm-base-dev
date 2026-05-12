@@ -1,9 +1,13 @@
 # Modules 3, 4, 5 — Proposed LO Revisions v2
 
-**Status:** Updated 2026-05-08 to incorporate Mike Aaron's 30 comments on the v1 proposal.
+**Status:** Updated 2026-05-12 to incorporate Mike Aaron's second-pass review comments on the post-validation LO doc (Google Docs ID `19KU5T7S33nfryKg1pEn-hmdnTEeSkRRb9ZstiCVzpQs`). Mike's style direction: keep LO statements high-level and seller-facing; concrete object/field/product names go in the body content, not in the LO. Vary the verbs — "Describe" is overused. See `mike-comments-on-modules-3-4-5-los.md` and `mike-comments-resolution.md` for the full discussion thread.
+
+**⚠️ Pending Annie's input — agent naming.** Mike wants "Billing Agent" universally. The 262 Help portal documents the agent suite as "Agentforce for Revenue Management" with named subagents (Subagent: Billing Collections Management, Subagent: Invoice Line Explanation, etc.). Brian flagged this as a conversation to have with Annie — new Agentforce materials apparently use subagent + superagent vocabulary. Until Annie confirms direction, **agent naming in LOs and body drafts is on hold** — the LO statements below use neutral phrasing where agent names would otherwise appear, with the chosen terminology to be slotted in after Annie's call.
 
 **Companion documents:**
 - [`module-2-v2.md`](./module-2-v2.md) — the reference v2 for voice and structure
+- [`mike-comments-on-modules-3-4-5-los.md`](./mike-comments-on-modules-3-4-5-los.md) — Mike's 22 suggestions on the post-validation LO doc
+- [`mike-comments-resolution.md`](./mike-comments-resolution.md) — Mike's responses to the comment-resolution proposal + the agent-naming question Brian raised for Annie
 - v1 of this proposal (replaced) — see git history if needed
 
 **Terminology corrections applied after verification against project metadata** (`/Users/brian/Documents/GitHub/bgaldino/_bgaldino/rlm-base-dev/.sfdx/tools/sobjects/standardObjects/`):
@@ -42,20 +46,19 @@
 ## Proposed LO revisions (v2, incorporating Mike)
 
 **Unit 1: Map the Usage Data Model**
-- 1.1 Describe the key objects in the usage data model: `TransactionUsageEntitlement`, `AssetRateCardEntry`, `AssetRateAdjustment`, `UsageEntitlementAccount`, `UsageEntitlementBucket`, `UsageEntitlementEntry`.
-- 1.2 Explain how these objects are populated at Order Product activation for usage products.
-- 1.3 Describe the binding mechanism (`GrantBindingTargetId` on `TransactionUsageEntitlement` and `UsageEntitlementAccount`; the `UsagePrdGrantBindingPolicy` policy object) and how binding impacts what a Usage Entitlement Bucket can draw from.
+- 1.1 Identify the headline objects in the usage data model and the role each one plays.
+- 1.2 Explain how the usage data model is populated automatically at order activation for usage-based products.
+- 1.3 Map how the binding mechanism determines what a usage entitlement bucket can draw from.
 
 **Unit 2: Navigate the Usage Rating Pipeline**
-- 2.1 Identify the required fields on a usage record entering the Transaction Journal (External ID, Timestamp, Quantity, Unit of Measure, Matching Attribute).
-- 2.2 Map the flow of usage data through the pipeline: Transaction Journal → Usage Summary → **Usage Ratable Summary** → Liable Summary.
-- 2.3 Describe how **Rating Procedures** (Default Rating Procedure for volume-based pricing or Negotiable Rating Procedure for complex negotiations — both implemented as `ExpressionSetDefinition` metadata) consume Asset Rate Card Entries and Asset Rate Adjustments to produce Usage Ratable Summaries. Note that **Rating Discovery Procedures** are a distinct, complementary concept used by Quote and Order Capture and Asset Lifecycle to fetch the right rate cards for a sellable product.
-- 2.4 Recognize that mediation (cleaning and normalizing raw usage data before it reaches the Transaction Journal) is customer-side responsibility, not part of Revenue Cloud Billing.
+- 2.1 Identify the required fields on a usage record entering the Transaction Journal.
+- 2.2 Map the flow of usage data through the rating pipeline.
+- 2.3 Apply rating procedures to convert raw usage into invoice-ready summaries.
 
-**Unit 3: Apply the Usage Agent, Drawdown Policies, and Extensions**
-- 3.1 Describe the **Subagent: Consumption Management** (under the **Agentforce for Revenue Management** agent suite) — gets consumption details for accounts with resource overages AND generates quotes to remediate those overages. Pair it with the **Usage Overage Policy** (governance: what counts as chargeable overage) and the **Unified Usage Dashboard** (the monitoring surface) for the complete overage story.
-- 3.2 Describe the three Drawdown Policies (Expiring First, Granted First, Granted Last) and how the system applies them automatically to Usage Entitlement Buckets — they are not user-configured.
-- 3.3 Describe how to extend rating with third-party engines, including the m3ter ISV partner integration for high-volume scenarios.
+**Unit 3: Apply the Usage Subagent and Drawdown Policies**
+- 3.1 Apply the usage-management subagent to derive overage consumption insights and remediate them with generated quotes. (Agent-naming pending Annie — see status banner.)
+- 3.2 Apply Drawdown Policies and Rollover Policies to govern how usage entitlement buckets are consumed and renewed.
+- 3.3 Extend rating with third-party engines for high-volume scenarios.
 
 ## Rationale
 
@@ -123,16 +126,16 @@ The dedicated agents snapshot (`snapshot_agents_help_262`, root `ind.rev_agent_o
 ## Proposed LO revisions (v2, incorporating Mike)
 
 **Unit 1: Configure Billing Arrangements and Drive the Bill Run**
-- 1.1 Configure Billing Arrangements (`BillingArrangement` and `BillingArrangementLine`) to allocate invoice amounts across multiple billing accounts.
-- 1.2 Describe the role of Bill Cycle Day (`BillDayOfMonth`) and Next Billing Date (`NextBillingDate`) in Invoice execution.
-- 1.3 Map how the Bill Run (formal product name: **Invoice Batch Run**) picks up ready-to-bill Billing Schedules and produces Invoices and Invoice Lines.
-- 1.4 Describe how Debit Memo Lines convert to Invoice Lines based on Next Billing Date.
+- 1.1 Configure billing arrangements to allocate invoice amounts across multiple billing accounts.
+- 1.2 Identify the cadence fields that drive when the bill run picks up a billing schedule.
+- 1.3 Map how the bill run produces invoices from ready-to-bill billing schedules.
+- 1.4 Analyze the automated conversion of Debit Memo Lines into Invoice Lines, driven by NextBillingDate on the Debit Memo record.
 
-**Unit 2: Manage Invoice Delivery, Credit Memos, and the Invoice Line Explanation Agent**
-- 2.1 Configure the invoice delivery flow: the Invoice Scheduler creates the invoice data, the **Document Generation Service** (DocGen — based on OmniStudio) renders the PDF, and **Send Invoices Through Email** delivers it to the customer.
-- 2.2 Describe how Credit Memo Lines are auto-created from negative Invoice Lines (via the "Convert Negative Invoice Lines to Credit Memo Lines" feature in Billing Settings) and how Credit Memos are applied to outstanding invoices.
-- 2.3 Describe the Self-Service Portal as a customer-facing surface for viewing invoices.
-- 2.4 Explain how the Invoice Line Explanation Agent provides plain-language breakdowns of complex charges. (Available with both Revenue Cloud Advanced and Revenue Cloud Billing — Mike confirmed.)
+**Unit 2: Manage Invoice Delivery, Credit Memos, and the Invoice Line Explanation Subagent**
+- 2.1 Configure the invoice delivery flow from scheduled generation through document rendering to customer email.
+- 2.2 Apply the automatic conversion of negative invoice lines into credit memo lines, and the application of those credits to outstanding invoices.
+- 2.3 Position the Self-Service Billing Portal as the customer-facing surface for viewing invoices and downloading PDFs.
+- 2.4 Apply the invoice-line-explanation capability to give customers plain-language breakdowns of complex charges. (Agent-naming pending Annie — see status banner.)
 
 ## Rationale
 
@@ -180,18 +183,18 @@ Self-Service Portal coverage splits between Module 4 (invoice viewing) and Modul
 
 ## Proposed LO revisions (v2, incorporating Mike)
 
-**Unit 1: Configure Payment Gateways, Methods, and Smart Retries**
-- 1.1 Configure native payment gateway connections through **Salesforce Payments** to **Stripe** and **Adyen** — the two gateways natively supported by the Salesforce Payments service.
-- 1.2 Describe how additional third-party processors integrate through the **Payment Gateway Adapter** pattern (`PaymentGatewayProvider` record + Apex adapter class implementing the Commerce Payments namespace).
-- 1.3 Configure **Payment Retry Rules** and **Payment Retry Rule Sets** to retry failed payments by gateway error category, with **Fixed** (consistent intervals) or **Staggered** (varied intervals) retry timing.
-- 1.4 Set up a **Payment Scheduler** (a Billing Batch Scheduler with Job Type = Payment) to create **Payment Batch Runs** that automatically collect payments against connected gateways and apply them to posted invoices.
+**Unit 1: Configure Payment Gateways, Methods, and Payment Retry**
+- 1.1 Establish integrations between the billing system and payment gateways to enable secure payment processing.
+- 1.2 Extend payment processing to additional third-party gateways through a payment gateway adapter pattern.
+- 1.3 Set up Payment Runs to sweep posted invoices automatically against connected gateways.
+- 1.4 Implement a Payment Retry strategy that optimizes recovery rates by gateway error category.
 
 **Unit 2: Automate Collections, Disputes, and Customer Self-Service for Payments**
-- 2.1 Configure automated Dunning workflows to escalate aging invoices through email, SMS, and portal nudges.
-- 2.2 Describe how the **Subagent: Billing Collections Management** (under the **Agentforce for Revenue Management** agent suite, API name `BillingCollections`) helps collections teams assess account health through two named capabilities: **Get Account Billing Summary** (high-risk invoices, late payment history, open disputes) and **Get Dunning Strategy** (recommended dunning approach based on prior communications, payment history, and open disputes).
+- 2.1 Set up the Self-Service Portal's payment surface for customer-managed payments and updates.
+- 2.2 Execute automated Dunning workflows that reduce Days Sales Outstanding (DSO) by deploying tiered communications across multiple channels.
 - 2.3 Manage Billing Disputes — capture, validate, and resolve common billing requests from the Self-Service Portal or directly through the Collections workflow.
-- 2.4 Set up the Self-Service Portal's payment surface: Pay Now link, payment method updates, one-time payments.
-- 2.5 Articulate the Payments and Collections capability's impact on Days Sales Outstanding (DSO) for a Finance audience.
+- 2.4 Articulate the Payments and Collections capability's impact on Days Sales Outstanding (DSO) for a Finance audience.
+- 2.5 Apply the collections-management subagent to assess account health and recommend dunning strategies. (Agent-naming pending Annie — see status banner.)
 
 ## Rationale
 
