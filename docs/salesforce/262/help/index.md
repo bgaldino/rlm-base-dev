@@ -1,10 +1,11 @@
-# Summer '26 Salesforce Help Snapshot — Billing Area
+# Summer '26 Salesforce Help Snapshot
+
+Captures **10 functional areas** of Revenue Cloud Help: agents, approvals, billing, configurator, dro, pcm, pricing, rating, transaction_mgmt, usage.
 
 **Release:** Summer '26 (262)
-**Area root:** [ind.billing.htm](https://help.salesforce.com/s/articleView?id=ind.billing.htm&type=5)
 **Last updated:** 2026-05-12T00:40:54Z
 
-## Stats
+## Overall Stats
 
 | Metric | Value |
 |:--|--:|
@@ -14,7 +15,40 @@
 | Errored | 0 |
 | Total captured body chars | 1,996,158 |
 
-## Captured
+## Per-Area Coverage
+
+| Area | Root Article | Prefix | Captured | Last Updated |
+|:--|:--|:--|--:|:--|
+| **agents** | [ind.rev_agent_overview.htm](https://help.salesforce.com/s/articleView?id=ind.rev_agent_overview.htm&type=5) | `ind.rev_agent` | 13 | 2026-05-12T00:40:54Z |
+| **approvals** | [ind.approvals_advanced_approvals.htm](https://help.salesforce.com/s/articleView?id=ind.approvals_advanced_approvals.htm&type=5) | `ind.approvals` | 34 | 2026-05-12T00:40:54Z |
+| **billing** | [ind.billing.htm](https://help.salesforce.com/s/articleView?id=ind.billing.htm&type=5) | `ind.billing` | 171 | 2026-05-12T00:40:54Z |
+| **configurator** | [ind.product_configurator_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_configurator_introduction.htm&type=5) | `ind.product_configurator` | 76 | 2026-05-12T00:40:54Z |
+| **dro** | [ind.dro_dynamic_revenue_orchestrator.htm](https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5) | `ind.dro` | 70 | 2026-05-12T00:40:54Z |
+| **pcm** | [ind.product_catalog_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_catalog_introduction.htm&type=5) | `ind.product_catalog` | 107 | 2026-05-12T00:40:54Z |
+| **pricing** | [ind.pricing_salesforce_pricing.htm](https://help.salesforce.com/s/articleView?id=ind.pricing_salesforce_pricing.htm&type=5) | `ind.pricing` | 110 | 2026-05-12T00:40:54Z |
+| **rating** | [ind.rm_rate_management.htm](https://help.salesforce.com/s/articleView?id=ind.rm_rate_management.htm&type=5) | `ind.rm` | 35 | 2026-05-12T00:40:54Z |
+| **transaction_mgmt** | [ind.qocal_sales_transactions_rev_cloud.htm](https://help.salesforce.com/s/articleView?id=ind.qocal_sales_transactions_rev_cloud.htm&type=5) | `ind.qocal` | 170 | 2026-05-12T00:40:54Z |
+| **usage** | [ind.um_usage_management.htm](https://help.salesforce.com/s/articleView?id=ind.um_usage_management.htm&type=5) | `ind.um` | 52 | 2026-05-12T00:40:54Z |
+
+## Captured — agents (13)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Subagent: Invoice Line Explanation](./articles/ind.rev_agent_billing_topic_invoice_line_explanation.htm.md) | `ind.rev_agent_billing_topic_invoice_line_explanation.htm` | 1,933 |
+| [Agentforce for Revenue Management](./articles/ind.rev_agent_overview.htm.md) | `ind.rev_agent_overview.htm` | 3,313 |
+| [Subagent: Product Description Generation](./articles/ind.rev_agent_pcm_topic_product_description_generation.htm.md) | `ind.rev_agent_pcm_topic_product_description_generation.htm` | 863 |
+| [Subagent: Product Selection](./articles/ind.rev_agent_pcm_topic_product_selection.htm.md) | `ind.rev_agent_pcm_topic_product_selection.htm` | 2,062 |
+| [Use Case: Search and Filter Products with Agentforce](./articles/ind.rev_agent_pcm_use_case_search_and_filter_products_with_ai_in_the_quoting_agent.htm.md) | `ind.rev_agent_pcm_use_case_search_and_filter_products_with_ai_in_the_quoting_agent.htm` | 2,180 |
+| [Subagent: Quote Management](./articles/ind.rev_agent_qocal_topic_quote_management.htm.md) | `ind.rev_agent_qocal_topic_quote_management.htm` | 3,145 |
+| [Set Up Community and Partner Access for Agentforce in Revenue Management](./articles/ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm.md) | `ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm` | 5,088 |
+| [Set Up Agentforce for Revenue Management](./articles/ind.rev_agent_setup.htm.md) | `ind.rev_agent_setup.htm` | 1,617 |
+| [Agent Templates in Revenue Management](./articles/ind.rev_agent_templates.htm.md) | `ind.rev_agent_templates.htm` | 1,298 |
+| [Subagent: Billing Collections Management](./articles/ind.rev_agent_topic_billing_collections_management.htm.md) | `ind.rev_agent_topic_billing_collections_management.htm` | 1,848 |
+| [Subagent: Billing Inquiries](./articles/ind.rev_agent_topic_billing_inquiries.htm.md) | `ind.rev_agent_topic_billing_inquiries.htm` | 2,565 |
+| [Revenue Subagent Reference](./articles/ind.rev_agent_topic_reference.htm.md) | `ind.rev_agent_topic_reference.htm` | 575 |
+| [Subagent: Consumption Management](./articles/ind.rev_agent_usage_topic_consumption_management.htm.md) | `ind.rev_agent_usage_topic_consumption_management.htm` | 1,202 |
+
+## Captured — approvals (34)
 
 | Article | ID | Bytes |
 |:--|:--|--:|
@@ -52,6 +86,11 @@
 | [Turn On Smart Approvals](./articles/ind.approvals_turn_on_smart_approvals.htm.md) | `ind.approvals_turn_on_smart_approvals.htm` | 539 |
 | [Use Advanced Approvals in a Quote](./articles/ind.approvals_use_advanced_approvals_in_a_quote.htm.md) | `ind.approvals_use_advanced_approvals_in_a_quote.htm` | 3,671 |
 | [Use the Stage Exit Condition](./articles/ind.approvals_use_the_stage_exit_condition.htm.md) | `ind.approvals_use_the_stage_exit_condition.htm` | 1,896 |
+
+## Captured — billing (171)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
 | [Manage Billing in Agentforce Revenue Management](./articles/ind.billing.htm.md) | `ind.billing.htm` | 8,995 |
 | [Assign an Invoice Document Template to a Billing Profile](./articles/ind.billing_account_document_template.htm.md) | `ind.billing_account_document_template.htm` | 841 |
 | [Billing Account Overview](./articles/ind.billing_account_overview.htm.md) | `ind.billing_account_overview.htm` | 2,542 |
@@ -223,6 +262,92 @@
 | [Period Boundary and Proration in Billing Cycles](./articles/ind.billing_understand_period_boundries.htm.md) | `ind.billing_understand_period_boundries.htm` | 1,198 |
 | [Tax Interface Extension](./articles/ind.billing_understand_tax_interface_extension.htm.md) | `ind.billing_understand_tax_interface_extension.htm` | 2,225 |
 | [Generated Billing Schedule Details](./articles/ind.billing_view_billing_sched_group.htm.md) | `ind.billing_view_billing_sched_group.htm` | 8,777 |
+
+## Captured — configurator (76)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Rules and Constraints in Configurator With Constraint Rules Engine](./articles/ind.product_configurator_advanced.htm.md) | `ind.product_configurator_advanced.htm` | 1,439 |
+| [Configure Attribute Display on Product Option Cards](./articles/ind.product_configurator_attribute_display_flow.htm.md) | `ind.product_configurator_attribute_display_flow.htm` | 1,386 |
+| [Custom Configurator Development with First-Party Configurator APIs](./articles/ind.product_configurator_build_custom_configurator_using_first_party_configurator_api.htm.md) | `ind.product_configurator_build_custom_configurator_using_first_party_configurator_api.htm` | 1,099 |
+| [Clone and Customize the Default Product Configurator Flow](./articles/ind.product_configurator_clone_the_default_product_configurator_flow.htm.md) | `ind.product_configurator_clone_the_default_product_configurator_flow.htm` | 1,533 |
+| [Configuration Rules in Business Rules Engine](./articles/ind.product_configurator_configuration_rule_details.htm.md) | `ind.product_configurator_configuration_rule_details.htm` | 5,436 |
+| [Define Configuration Rules with Business Rules Engine](./articles/ind.product_configurator_configuration_rules.htm.md) | `ind.product_configurator_configuration_rules.htm` | 1,092 |
+| [Configure Bundled Products](./articles/ind.product_configurator_configure_bundled_products.htm.md) | `ind.product_configurator_configure_bundled_products.htm` | 3,667 |
+| [Configure Products with Product Configurator](./articles/ind.product_configurator_configure_products.htm.md) | `ind.product_configurator_configure_products.htm` | 3,598 |
+| [Configure Simple Products](./articles/ind.product_configurator_configure_simple_products.htm.md) | `ind.product_configurator_configure_simple_products.htm` | 1,624 |
+| [Considerations for Configuring Products with Ramp Deals](./articles/ind.product_configurator_considerations_configuring_products_with_ramp_deals.htm.md) | `ind.product_configurator_considerations_configuring_products_with_ramp_deals.htm` | 2,859 |
+| [Save and Reuse Configurations](./articles/ind.product_configurator_considerations_to_save_and_reuse_configurations.htm.md) | `ind.product_configurator_considerations_to_save_and_reuse_configurations.htm` | 1,690 |
+| [Use Constraint Builder With Constraint Rules Engine](./articles/ind.product_configurator_constraint_builder.htm.md) | `ind.product_configurator_constraint_builder.htm` | 1,904 |
+| [Variables, Relationships, and Associations in Constraint Models](./articles/ind.product_configurator_constraint_model_variables_relationships_associations.htm.md) | `ind.product_configurator_constraint_model_variables_relationships_associations.htm` | 3,593 |
+| [Configure Editable Context Fields for Product Option Cards](./articles/ind.product_configurator_context_fields_flow_setup.htm.md) | `ind.product_configurator_context_fields_flow_setup.htm` | 3,019 |
+| [Convert Rules from Business Rules Engine into CML Code](./articles/ind.product_configurator_convert_bre_rules_to_cml.htm.md) | `ind.product_configurator_convert_bre_rules_to_cml.htm` | 4,151 |
+| [Manage Configuration Rules with Business Rules Engine](./articles/ind.product_configurator_create_a_configuration_rule.htm.md) | `ind.product_configurator_create_a_configuration_rule.htm` | 3,588 |
+| [Create a Constraint Model](./articles/ind.product_configurator_create_a_constraint_model.htm.md) | `ind.product_configurator_create_a_constraint_model.htm` | 3,173 |
+| [Define Product Configuration Flows](./articles/ind.product_configurator_create_a_product_configuration_flow.htm.md) | `ind.product_configurator_create_a_product_configuration_flow.htm` | 3,336 |
+| [Data Types for Configurator User Interface](./articles/ind.product_configurator_data_types_for_configurator_user_interface.htm.md) | `ind.product_configurator_data_types_for_configurator_user_interface.htm` | 5,630 |
+| [Enable Product Configurator](./articles/ind.product_configurator_enable_product_configurator.htm.md) | `ind.product_configurator_enable_product_configurator.htm` | 627 |
+| [Product Configurator Essentials](./articles/ind.product_configurator_essentials.htm.md) | `ind.product_configurator_essentials.htm` | 9,346 |
+| [Explore the Product Configurator Flow](./articles/ind.product_configurator_explore_the_product_configurator_flow.htm.md) | `ind.product_configurator_explore_the_product_configurator_flow.htm` | 1,866 |
+| [Breadcrumbs](./articles/ind.product_configurator_flow_breadcrumbs.htm.md) | `ind.product_configurator_flow_breadcrumbs.htm` | 1,636 |
+| [Data Manager](./articles/ind.product_configurator_flow_data_manager.htm.md) | `ind.product_configurator_flow_data_manager.htm` | 9,463 |
+| [Footer](./articles/ind.product_configurator_flow_footer.htm.md) | `ind.product_configurator_flow_footer.htm` | 2,984 |
+| [Header](./articles/ind.product_configurator_flow_header.htm.md) | `ind.product_configurator_flow_header.htm` | 2,795 |
+| [Messages](./articles/ind.product_configurator_flow_messages.htm.md) | `ind.product_configurator_flow_messages.htm` | 1,182 |
+| [Option Groups](./articles/ind.product_configurator_flow_option_groups.htm.md) | `ind.product_configurator_flow_option_groups.htm` | 4,577 |
+| [Product Attributes](./articles/ind.product_configurator_flow_product_attributes.htm.md) | `ind.product_configurator_flow_product_attributes.htm` | 2,144 |
+| [Product Header](./articles/ind.product_configurator_flow_product_header.htm.md) | `ind.product_configurator_flow_product_header.htm` | 2,959 |
+| [Product Configurator Flow Screen Components](./articles/ind.product_configurator_flow_screen_components.htm.md) | `ind.product_configurator_flow_screen_components.htm` | 3,886 |
+| [Summary](./articles/ind.product_configurator_flow_summary.htm.md) | `ind.product_configurator_flow_summary.htm` | 1,515 |
+| [Transaction Header](./articles/ind.product_configurator_flow_transaction_header.htm.md) | `ind.product_configurator_flow_transaction_header.htm` | 1,354 |
+| [Get the Latest Pricing](./articles/ind.product_configurator_get_latest_pricing.htm.md) | `ind.product_configurator_get_latest_pricing.htm` | 1,662 |
+| [Get Started with Product Configurator](./articles/ind.product_configurator_get_started.htm.md) | `ind.product_configurator_get_started.htm` | 521 |
+| [Import Data from Salesforce Objects to Use in Constraint Models](./articles/ind.product_configurator_import_object_data.htm.md) | `ind.product_configurator_import_object_data.htm` | 2,359 |
+| [Third-Party Configurator UI Component Integration into First-Party Configurator](./articles/ind.product_configurator_integrate_third_party_configurator_ui_components_into_first_party_configurator.htm.md) | `ind.product_configurator_integrate_third_party_configurator_ui_components_into_first_party_configurator.htm` | 1,309 |
+| [Configure Your Products in Agentforce Revenue Management](./articles/ind.product_configurator_introduction.htm.md) | `ind.product_configurator_introduction.htm` | 4,452 |
+| [Use an Apex Call to Run the Run Config Rules Action](./articles/ind.product_configurator_invocable_action_apex_call.htm.md) | `ind.product_configurator_invocable_action_apex_call.htm` | 2,159 |
+| [Use an API Call to Run the Run Config Rules Action](./articles/ind.product_configurator_invocable_action_api_call.htm.md) | `ind.product_configurator_invocable_action_api_call.htm` | 1,096 |
+| [Use a Screen Flow to Run the Run Config Rules Action](./articles/ind.product_configurator_invocable_action_screen_flow.htm.md) | `ind.product_configurator_invocable_action_screen_flow.htm` | 991 |
+| [Run Rules with the Run Config Rules Action](./articles/ind.product_configurator_invocable_action_to_run_rules.htm.md) | `ind.product_configurator_invocable_action_to_run_rules.htm` | 1,519 |
+| [Product Configurator Limits](./articles/ind.product_configurator_limits.htm.md) | `ind.product_configurator_limits.htm` | 927 |
+| [Load Product Defaults from PCM to a Constraint Model](./articles/ind.product_configurator_load_product_defaults.htm.md) | `ind.product_configurator_load_product_defaults.htm` | 1,589 |
+| [Enable Non-Blocking Behavior in the Configurator](./articles/ind.product_configurator_non_blocking_enabled.htm.md) | `ind.product_configurator_non_blocking_enabled.htm` | 1,695 |
+| [Use Place Sales Transaction API for Data Transfer](./articles/ind.product_configurator_place_quote_api_for_data_transfer.htm.md) | `ind.product_configurator_place_quote_api_for_data_transfer.htm` | 984 |
+| [Preview the Product Configurator](./articles/ind.product_configurator_preview_the_product_configurator.htm.md) | `ind.product_configurator_preview_the_product_configurator.htm` | 844 |
+| [Product Configurator Permission Sets](./articles/ind.product_configurator_product_configurator_permissions.htm.md) | `ind.product_configurator_product_configurator_permissions.htm` | 2,913 |
+| [Validate Product Configuration](./articles/ind.product_configurator_product_validation_enable.htm.md) | `ind.product_configurator_product_validation_enable.htm` | 1,330 |
+| [Enable Constraint Rules Engine and Create Transaction Processing Types](./articles/ind.product_configurator_set_up_advanced_configurator.htm.md) | `ind.product_configurator_set_up_advanced_configurator.htm` | 1,255 |
+| [Set Up Business Rules Engine for Product Configurator](./articles/ind.product_configurator_set_up_business_rules_engine.htm.md) | `ind.product_configurator_set_up_business_rules_engine.htm` | 2,453 |
+| [Set Up Constraint Rules Engine for Product Configurator](./articles/ind.product_configurator_set_up_constraints_engine.htm.md) | `ind.product_configurator_set_up_constraints_engine.htm` | 767 |
+| [Set Up Your Product Configuration Flow](./articles/ind.product_configurator_set_up_flow.htm.md) | `ind.product_configurator_set_up_flow.htm` | 1,070 |
+| [Set Up Custom Labels for Run-Time Message Translation](./articles/ind.product_configurator_set_up_translation_labels.htm.md) | `ind.product_configurator_set_up_translation_labels.htm` | 2,693 |
+| [Set Up Product Configurator](./articles/ind.product_configurator_setup.htm.md) | `ind.product_configurator_setup.htm` | 1,010 |
+| [Sync Constraint Models with Product Definitions](./articles/ind.product_configurator_sync_cml_and_pcm.htm.md) | `ind.product_configurator_sync_cml_and_pcm.htm` | 2,170 |
+| [Third-Party Configurator](./articles/ind.product_configurator_third_party_configurator.htm.md) | `ind.product_configurator_third_party_configurator.htm` | 3,789 |
+| [Third-Party Configurator Lightning Flows](./articles/ind.product_configurator_third_party_configurator_lightning_flows.htm.md) | `ind.product_configurator_third_party_configurator_lightning_flows.htm` | 1,795 |
+| [Create a Third-Party Configurator UI Component](./articles/ind.product_configurator_third_party_configurator_ui_component_create.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_create.htm` | 1,614 |
+| [Third-Party Configurator UI Component Files](./articles/ind.product_configurator_third_party_configurator_ui_component_files.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_files.htm` | 973 |
+| [Third-Party Configurator UI Component HTML File](./articles/ind.product_configurator_third_party_configurator_ui_component_html_file.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_html_file.htm` | 606 |
+| [Third-Party Configurator UI Component JavaScript File](./articles/ind.product_configurator_third_party_configurator_ui_component_javascript_file.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_javascript_file.htm` | 5,854 |
+| [Lightning Message Service for Third-Party Configurator UI Components](./articles/ind.product_configurator_third_party_configurator_ui_component_lightning_message_service.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_lightning_message_service.htm` | 4,413 |
+| [Third-Party Configurator UI Component Metadata Configuration File](./articles/ind.product_configurator_third_party_configurator_ui_component_metadata_file.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_metadata_file.htm` | 11,222 |
+| [Use Code to Define Constraints and Rules in the CML Editor](./articles/ind.product_configurator_use_the_cml_editor.htm.md) | `ind.product_configurator_use_the_cml_editor.htm` | 2,900 |
+| [Define Constraints and Rules with the Visual Builder](./articles/ind.product_configurator_use_the_visual_builder.htm.md) | `ind.product_configurator_use_the_visual_builder.htm` | 2,946 |
+| [Use Third-Party Configurator for Specific Products or Classifications](./articles/ind.product_configurator_use_third_party_configurator_for_specific_products_or_classifications.htm.md) | `ind.product_configurator_use_third_party_configurator_for_specific_products_or_classifications.htm` | 625 |
+| [Validate Configuration Rules in Business Rules Engine](./articles/ind.product_configurator_validate_a_configuration_rule.htm.md) | `ind.product_configurator_validate_a_configuration_rule.htm` | 808 |
+| [Basic Logic Constraint in the Visual Builder](./articles/ind.product_configurator_visual_builder_basic_logic_constraint.htm.md) | `ind.product_configurator_visual_builder_basic_logic_constraint.htm` | 709 |
+| [Conditional Logic Constraint in the Visual Builder](./articles/ind.product_configurator_visual_builder_conditional_logic_constraint.htm.md) | `ind.product_configurator_visual_builder_conditional_logic_constraint.htm` | 996 |
+| [Constraint and Rule Types in the Visual Builder](./articles/ind.product_configurator_visual_builder_constraint_and_rule_types.htm.md) | `ind.product_configurator_visual_builder_constraint_and_rule_types.htm` | 6,224 |
+| [Dynamic Message Rule in the Visual Builder](./articles/ind.product_configurator_visual_builder_dynamic_message_rule.htm.md) | `ind.product_configurator_visual_builder_dynamic_message_rule.htm` | 1,559 |
+| [Exclude Rule](./articles/ind.product_configurator_visual_builder_exclude_rule.htm.md) | `ind.product_configurator_visual_builder_exclude_rule.htm` | 546 |
+| [Hide/Disable Rule](./articles/ind.product_configurator_visual_builder_hide_disable_rule.htm.md) | `ind.product_configurator_visual_builder_hide_disable_rule.htm` | 1,168 |
+| [Preference Rule](./articles/ind.product_configurator_visual_builder_preference_rule.htm.md) | `ind.product_configurator_visual_builder_preference_rule.htm` | 1,055 |
+| [Require Rule in the Visual Builder](./articles/ind.product_configurator_visual_builder_require_rule.htm.md) | `ind.product_configurator_visual_builder_require_rule.htm` | 1,081 |
+
+## Captured — dro (70)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
 | [Create Fulfillment Users for Order Orchestration](./articles/ind.dro_add_a_fulfillment_user.htm.md) | `ind.dro_add_a_fulfillment_user.htm` | 1,199 |
 | [Dynamic Revenue Orchestrator Advanced Setup](./articles/ind.dro_advanced_setup.htm.md) | `ind.dro_advanced_setup.htm` | 261 |
 | [Fulfillment Assets](./articles/ind.dro_assetization_in_dynamic_revenue_orchestrator.htm.md) | `ind.dro_assetization_in_dynamic_revenue_orchestrator.htm` | 1,416 |
@@ -293,6 +418,123 @@
 | [Unit Of Measure Inheritance and Rounding Values](./articles/ind.dro_unit_of_measure_inheritance_and_rounding_values.htm.md) | `ind.dro_unit_of_measure_inheritance_and_rounding_values.htm` | 1,091 |
 | [Turn On Context Definitions](./articles/ind.dro_use_context_definitions.htm.md) | `ind.dro_use_context_definitions.htm` | 1,335 |
 | [View Fulfillment Step History](./articles/ind.dro_view_fulfillment_step_history.htm.md) | `ind.dro_view_fulfillment_step_history.htm` | 736 |
+
+## Captured — pcm (107)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Activate a Decision Table in Agentforce Revenue Management](./articles/ind.product_catalog_activate_dt_for_a_product.htm.md) | `ind.product_catalog_activate_dt_for_a_product.htm` | 671 |
+| [Add Components to a Configurable Product Bundle](./articles/ind.product_catalog_add_components_to_a_configurable_product_bundle.htm.md) | `ind.product_catalog_add_components_to_a_configurable_product_bundle.htm` | 5,668 |
+| [Add Components to a Static Product Bundle](./articles/ind.product_catalog_add_components_to_a_static_product_bundle.htm.md) | `ind.product_catalog_add_components_to_a_static_product_bundle.htm` | 3,631 |
+| [Assign Products to Catalog Categories in Agentforce Revenue Management](./articles/ind.product_catalog_assign_products_to_catalog_cat_and_subcategories.htm.md) | `ind.product_catalog_assign_products_to_catalog_cat_and_subcategories.htm` | 1,073 |
+| [Working with Product Attribute Fields](./articles/ind.product_catalog_attribute_fields.htm.md) | `ind.product_catalog_attribute_fields.htm` | 5,039 |
+| [Attribute Mapping in Qualification Rule Procedures](./articles/ind.product_catalog_attribute_mapping_in_qualification_rule_procedures.htm.md) | `ind.product_catalog_attribute_mapping_in_qualification_rule_procedures.htm` | 2,318 |
+| [Begin Using Product Catalog Management](./articles/ind.product_catalog_begin_using_product_catalog_management.htm.md) | `ind.product_catalog_begin_using_product_catalog_management.htm` | 732 |
+| [Organize Your Products with Catalogs and Categories](./articles/ind.product_catalog_catalogs.htm.md) | `ind.product_catalog_catalogs.htm` | 1,875 |
+| [Change a Configurable Bundle Product to a Static Bundle Product](./articles/ind.product_catalog_change_a_configurable_bundle_product_to_a_static_bundle_product.htm.md) | `ind.product_catalog_change_a_configurable_bundle_product_to_a_static_bundle_product.htm` | 3,189 |
+| [Change a Static Bundle Product To a Configurable Bundle Product](./articles/ind.product_catalog_change_a_static_bundle_product_to_a_configurable_bundle_product.htm.md) | `ind.product_catalog_change_a_static_bundle_product_to_a_configurable_bundle_product.htm` | 1,573 |
+| [Configure Apex Hooks in a Product Discovery Procedure Plan](./articles/ind.product_catalog_configure_apex_hooks_in_a_product_discovery_procedure_plan.htm.md) | `ind.product_catalog_configure_apex_hooks_in_a_product_discovery_procedure_plan.htm` | 1,790 |
+| [Configure Dynamic Product Facets](./articles/ind.product_catalog_configure_dynamic_product_facets.htm.md) | `ind.product_catalog_configure_dynamic_product_facets.htm` | 527 |
+| [Configure Filterable Fields & Attributes](./articles/ind.product_catalog_configure_filterable_fields_attributes.htm.md) | `ind.product_catalog_configure_filterable_fields_attributes.htm` | 1,778 |
+| [Configure Product Attributes in Agentforce Revenue Management](./articles/ind.product_catalog_configure_product_attributes.htm.md) | `ind.product_catalog_configure_product_attributes.htm` | 2,241 |
+| [Configure Product Field Search](./articles/ind.product_catalog_configure_product_field_search.htm.md) | `ind.product_catalog_configure_product_field_search.htm` | 377 |
+| [Configure the Number of Facets Displayed](./articles/ind.product_catalog_configure_the_number_of_facets_displayed.htm.md) | `ind.product_catalog_configure_the_number_of_facets_displayed.htm` | 1,056 |
+| [Customize the Product Browsing Experience](./articles/ind.product_catalog_considerations_custom_flow_for_browsing_and_adding_products.htm.md) | `ind.product_catalog_considerations_custom_flow_for_browsing_and_adding_products.htm` | 1,127 |
+| [Configure a Context Definition for Qualification Rules](./articles/ind.product_catalog_context_definitions_for_product_catalog_management.htm.md) | `ind.product_catalog_context_definitions_for_product_catalog_management.htm` | 1,465 |
+| [Convert Static and Configurable Product Bundles](./articles/ind.product_catalog_conversion_of_bundle_products.htm.md) | `ind.product_catalog_conversion_of_bundle_products.htm` | 1,484 |
+| [Create a Catalog](./articles/ind.product_catalog_create_a_catalog.htm.md) | `ind.product_catalog_create_a_catalog.htm` | 1,053 |
+| [Create a Product Classification](./articles/ind.product_catalog_create_a_product_classification.htm.md) | `ind.product_catalog_create_a_product_classification.htm` | 912 |
+| [Create a Product Subclassification](./articles/ind.product_catalog_create_a_product_subclassification.htm.md) | `ind.product_catalog_create_a_product_subclassification.htm` | 1,059 |
+| [Create Qualification Rule Criteria](./articles/ind.product_catalog_create_a_qual_rule_for_product.htm.md) | `ind.product_catalog_create_a_qual_rule_for_product.htm` | 1,915 |
+| [Create a Variation Attribute Set in Product Catalog Management](./articles/ind.product_catalog_create_a_variation_attribute_set_in_product_catalog_management.htm.md) | `ind.product_catalog_create_a_variation_attribute_set_in_product_catalog_management.htm` | 1,775 |
+| [Create a Variation Parent](./articles/ind.product_catalog_create_a_variation_parent.htm.md) | `ind.product_catalog_create_a_variation_parent.htm` | 649 |
+| [Create a Variation Product](./articles/ind.product_catalog_create_a_variation_product.htm.md) | `ind.product_catalog_create_a_variation_product.htm` | 1,143 |
+| [Create and Deploy Requirement Assessment Forms for Guided Product Selection](./articles/ind.product_catalog_create_and_deploy_assessment_forms_guided_product_selection.htm.md) | `ind.product_catalog_create_and_deploy_assessment_forms_guided_product_selection.htm` | 2,986 |
+| [Create Bundled Products](./articles/ind.product_catalog_create_bundled_products.htm.md) | `ind.product_catalog_create_bundled_products.htm` | 5,813 |
+| [Create Catalog Categories and Subcategories](./articles/ind.product_catalog_create_catalog_categories_and_subcategories.htm.md) | `ind.product_catalog_create_catalog_categories_and_subcategories.htm` | 2,094 |
+| [Create a Decision Table That Uses a Custom Evaluation Object](./articles/ind.product_catalog_create_decision_table_that_uses_custom_evaluation_object.htm.md) | `ind.product_catalog_create_decision_table_that_uses_custom_evaluation_object.htm` | 4,870 |
+| [Create a Decision Table That Uses a Standard Evaluation Object](./articles/ind.product_catalog_create_dt_for_product.htm.md) | `ind.product_catalog_create_dt_for_product.htm` | 4,322 |
+| [Create Product Specification Type and Product Specification Record Type](./articles/ind.product_catalog_create_product_specification_type_and_product_specification_record_type.htm.md) | `ind.product_catalog_create_product_specification_type_and_product_specification_record_type.htm` | 2,847 |
+| [Create Product Variants in Agentforce Revenue Management](./articles/ind.product_catalog_create_product_variants_in_revenue_cloud.htm.md) | `ind.product_catalog_create_product_variants_in_revenue_cloud.htm` | 3,715 |
+| [Create a Qualification Rule Procedure](./articles/ind.product_catalog_create_qual_rule_procedure_for_product.htm.md) | `ind.product_catalog_create_qual_rule_procedure_for_product.htm` | 3,882 |
+| [Create Simple Products](./articles/ind.product_catalog_create_simple_products.htm.md) | `ind.product_catalog_create_simple_products.htm` | 3,294 |
+| [Create a Bundled Product Structure](./articles/ind.product_catalog_creation_of_a_bundled_product_structure.htm.md) | `ind.product_catalog_creation_of_a_bundled_product_structure.htm` | 2,919 |
+| [Customize and Extend the Product Catalog Management Home Page](./articles/ind.product_catalog_customize_and_extend_the_product_catalog_management_home_page.htm.md) | `ind.product_catalog_customize_and_extend_the_product_catalog_management_home_page.htm` | 2,019 |
+| [Customize Product Discovery in Lightning App Builder](./articles/ind.product_catalog_customize_products_list_view.htm.md) | `ind.product_catalog_customize_products_list_view.htm` | 1,923 |
+| [Translate Product Catalog Data](./articles/ind.product_catalog_data_translation.htm.md) | `ind.product_catalog_data_translation.htm` | 3,586 |
+| [Data Translation Limits](./articles/ind.product_catalog_data_translations_limitations.htm.md) | `ind.product_catalog_data_translations_limitations.htm` | 1,359 |
+| [Decision Tables for Qualification Rules](./articles/ind.product_catalog_decision_tables_for_product_catalog_management.htm.md) | `ind.product_catalog_decision_tables_for_product_catalog_management.htm` | 1,315 |
+| [Create Product Attributes in Agentforce Revenue Management](./articles/ind.product_catalog_dyn_create_attributes.htm.md) | `ind.product_catalog_dyn_create_attributes.htm` | 1,479 |
+| [Manage Dynamic Attributes in Agentforce Revenue Management](./articles/ind.product_catalog_dynamic_attributes.htm.md) | `ind.product_catalog_dynamic_attributes.htm` | 1,701 |
+| [Write Product Descriptions with Einstein Generative AI](./articles/ind.product_catalog_einstein_generate_product_description.htm.md) | `ind.product_catalog_einstein_generate_product_description.htm` | 2,104 |
+| [Enable Guided Product Selection](./articles/ind.product_catalog_enable_guided_product_selection.htm.md) | `ind.product_catalog_enable_guided_product_selection.htm` | 3,375 |
+| [Enable Semantic Search for Product Discovery](./articles/ind.product_catalog_enable_semantic_search_for_product_discovery.htm.md) | `ind.product_catalog_enable_semantic_search_for_product_discovery.htm` | 903 |
+| [Use Flow Metadata to Enable Translated Product Catalogs](./articles/ind.product_catalog_enable_translated_catalogs_flow_metadata.htm.md) | `ind.product_catalog_enable_translated_catalogs_flow_metadata.htm` | 3,335 |
+| [Explore Product Classification with an Example](./articles/ind.product_catalog_end_to_end_product_classification_example.htm.md) | `ind.product_catalog_end_to_end_product_classification_example.htm` | 5,296 |
+| [Enhanced Product Discovery Experience](./articles/ind.product_catalog_enhanced_product_discovery_experience.htm.md) | `ind.product_catalog_enhanced_product_discovery_experience.htm` | 4,773 |
+| [Enter Translations Manually in the Translations Tab](./articles/ind.product_catalog_enter_translations_manually.htm.md) | `ind.product_catalog_enter_translations_manually.htm` | 1,245 |
+| [Override Flow for Product Discovery](./articles/ind.product_catalog_example_create_custom_flow_for_browsing_and_adding_products.htm.md) | `ind.product_catalog_example_create_custom_flow_for_browsing_and_adding_products.htm` | 8,092 |
+| [Example: Provide a Localized French Buying Experience](./articles/ind.product_catalog_example_provide_a_localized_french_buying_experience.htm.md) | `ind.product_catalog_example_provide_a_localized_french_buying_experience.htm` | 3,281 |
+| [Example: Use Apex Hooks to Extend Pricing Logic](./articles/ind.product_catalog_example_use_apex_hooks_in_a_product_discovery_procedure_plan.htm.md) | `ind.product_catalog_example_use_apex_hooks_in_a_product_discovery_procedure_plan.htm` | 1,426 |
+| [Exclude Bundle Components From Product Selection at Run Time](./articles/ind.product_catalog_exclude_bundle_components.htm.md) | `ind.product_catalog_exclude_bundle_components.htm` | 2,203 |
+| [Explore Examples of Semantic Search](./articles/ind.product_catalog_explore_examples_of_semantic_search.htm.md) | `ind.product_catalog_explore_examples_of_semantic_search.htm` | 2,106 |
+| [Extend the ProductDiscoveryContext Context Definition](./articles/ind.product_catalog_extend_productdiscoverycontext_context_definition.htm.md) | `ind.product_catalog_extend_productdiscoverycontext_context_definition.htm` | 3,044 |
+| [Faceted Search](./articles/ind.product_catalog_faceted_search.htm.md) | `ind.product_catalog_faceted_search.htm` | 2,060 |
+| [Guided Product Selection](./articles/ind.product_catalog_guided_product_selection.htm.md) | `ind.product_catalog_guided_product_selection.htm` | 1,166 |
+| [Include or Exclude Picklist Values in a Product Attribute](./articles/ind.product_catalog_include_or_exclude_picklist_values_in_a_product_attribute.htm.md) | `ind.product_catalog_include_or_exclude_picklist_values_in_a_product_attribute.htm` | 1,274 |
+| [Include or Exclude Picklist Values in a Product Classification Attribute](./articles/ind.product_catalog_include_or_exclude_picklist_values_in_a_product_classification_attribute.htm.md) | `ind.product_catalog_include_or_exclude_picklist_values_in_a_product_classification_attribute.htm` | 1,232 |
+| [Include or Exclude Picklist Values in Overridden Product Attributes](./articles/ind.product_catalog_include_or_exclude_picklist_values_in_overridden_product_attributes.htm.md) | `ind.product_catalog_include_or_exclude_picklist_values_in_overridden_product_attributes.htm` | 1,276 |
+| [Product Index and Search in Product Catalog Management](./articles/ind.product_catalog_index_and_search_of_product_catalog.htm.md) | `ind.product_catalog_index_and_search_of_product_catalog.htm` | 1,558 |
+| [Manage Your Product Index](./articles/ind.product_catalog_index_products.htm.md) | `ind.product_catalog_index_products.htm` | 3,417 |
+| [Configure Search Index Localization](./articles/ind.product_catalog_index_settings.htm.md) | `ind.product_catalog_index_settings.htm` | 946 |
+| [Build the Product Index](./articles/ind.product_catalog_index_the_product_catalog.htm.md) | `ind.product_catalog_index_the_product_catalog.htm` | 1,558 |
+| [Product Catalog Index Errors and Troubleshooting](./articles/ind.product_catalog_index_troubleshooting.htm.md) | `ind.product_catalog_index_troubleshooting.htm` | 1,562 |
+| [Build Your Product Catalog in Agentforce Revenue Management](./articles/ind.product_catalog_introduction.htm.md) | `ind.product_catalog_introduction.htm` | 4,727 |
+| [Define Quantity Limits for Bundled Products](./articles/ind.product_catalog_local_cardinality_and_group_cardinality.htm.md) | `ind.product_catalog_local_cardinality_and_group_cardinality.htm` | 1,712 |
+| [Manage and View Constraints for a Product](./articles/ind.product_catalog_manage_and_view_constraints_for_a_product.htm.md) | `ind.product_catalog_manage_and_view_constraints_for_a_product.htm` | 812 |
+| [Product Catalog Management Essentials](./articles/ind.product_catalog_management_essentials.htm.md) | `ind.product_catalog_management_essentials.htm` | 11,547 |
+| [Override Product Component Attributes in Bundles](./articles/ind.product_catalog_override_product_component_attributes_in_bundles.htm.md) | `ind.product_catalog_override_product_component_attributes_in_bundles.htm` | 1,079 |
+| [Assign Product Discovery Permissions](./articles/ind.product_catalog_permissions_to_access_product_discovery.htm.md) | `ind.product_catalog_permissions_to_access_product_discovery.htm` | 3,037 |
+| [Plan Your Product Catalog](./articles/ind.product_catalog_plan_catalog.htm.md) | `ind.product_catalog_plan_catalog.htm` | 7,546 |
+| [Preview Transactions While Browsing the Catalog](./articles/ind.product_catalog_preview_transactions_while_browsing_the_catalog.htm.md) | `ind.product_catalog_preview_transactions_while_browsing_the_catalog.htm` | 953 |
+| [Product Catalog Management Limits](./articles/ind.product_catalog_product_catalog_management_limits.htm.md) | `ind.product_catalog_product_catalog_management_limits.htm` | 1,799 |
+| [Product Catalog Management Editions and Permission Sets](./articles/ind.product_catalog_product_catalog_management_permission_set_licenses.htm.md) | `ind.product_catalog_product_catalog_management_permission_set_licenses.htm` | 2,758 |
+| [Product Catalog Management Personas for Agentforce Revenue Management](./articles/ind.product_catalog_product_catalog_management_personas.htm.md) | `ind.product_catalog_product_catalog_management_personas.htm` | 2,392 |
+| [Create Product Templates Using Product Classifications](./articles/ind.product_catalog_product_classifications.htm.md) | `ind.product_catalog_product_classifications.htm` | 3,891 |
+| [Product Description Generation in Product Catalog Management](./articles/ind.product_catalog_product_description_generation.htm.md) | `ind.product_catalog_product_description_generation.htm` | 601 |
+| [Product Discovery and Guided Product Selection](./articles/ind.product_catalog_product_discovery.htm.md) | `ind.product_catalog_product_discovery.htm` | 2,475 |
+| [Product Discovery Component Properties](./articles/ind.product_catalog_product_discovery_component_properties.htm.md) | `ind.product_catalog_product_discovery_component_properties.htm` | 6,888 |
+| [Replace Deprecated Permissions Set for Product Discovery](./articles/ind.product_catalog_product_discovery_personas_and_permission_sets.htm.md) | `ind.product_catalog_product_discovery_personas_and_permission_sets.htm` | 1,251 |
+| [Product Field Search in Product Catalog Management](./articles/ind.product_catalog_product_field_search_in_product_catalog_management.htm.md) | `ind.product_catalog_product_field_search_in_product_catalog_management.htm` | 802 |
+| [Product Relationship Management in Agentforce Revenue Management](./articles/ind.product_catalog_product_relationships.htm.md) | `ind.product_catalog_product_relationships.htm` | 5,690 |
+| [Create Product Specifications in Agentforce Revenue Management](./articles/ind.product_catalog_product_specification.htm.md) | `ind.product_catalog_product_specification.htm` | 1,022 |
+| [Nodes and Attributes in the ProductDiscoveryContext Context Definition](./articles/ind.product_catalog_productdiscoverycontext_context_definition.htm.md) | `ind.product_catalog_productdiscoverycontext_context_definition.htm` | 4,152 |
+| [Create Products and Product Bundles in Agentforce Revenue Management](./articles/ind.product_catalog_products.htm.md) | `ind.product_catalog_products.htm` | 5,937 |
+| [Explore a Qualification Rule Example](./articles/ind.product_catalog_qual_rules_example.htm.md) | `ind.product_catalog_qual_rules_example.htm` | 7,061 |
+| [Manage Qualification Rules for Products in Agentforce Revenue Management](./articles/ind.product_catalog_qualification_rules.htm.md) | `ind.product_catalog_qualification_rules.htm` | 5,158 |
+| [Record Sharing in Product Catalog Management](./articles/ind.product_catalog_record_sharing_in_product_catalog_management.htm.md) | `ind.product_catalog_record_sharing_in_product_catalog_management.htm` | 956 |
+| [Record Sharing in Product Discovery](./articles/ind.product_catalog_record_sharing_in_product_discovery.htm.md) | `ind.product_catalog_record_sharing_in_product_discovery.htm` | 1,511 |
+| [Sample: Apex Class for Product Discovery External Pricing](./articles/ind.product_catalog_sample_apex_class_for_product_discovery_external_pricing.htm.md) | `ind.product_catalog_sample_apex_class_for_product_discovery_external_pricing.htm` | 9,736 |
+| [Search Considerations When Using Indexed Data](./articles/ind.product_catalog_search_considerations.htm.md) | `ind.product_catalog_search_considerations.htm` | 2,999 |
+| [Search Options in Product Catalog Management](./articles/ind.product_catalog_search_options_for_product_catalog_management.htm.md) | `ind.product_catalog_search_options_for_product_catalog_management.htm` | 2,855 |
+| [Semantic Search](./articles/ind.product_catalog_semantic_search.htm.md) | `ind.product_catalog_semantic_search.htm` | 1,735 |
+| [Set a Default Product Catalog](./articles/ind.product_catalog_set_default_catalog.htm.md) | `ind.product_catalog_set_default_catalog.htm` | 437 |
+| [Set the Display Order of Catalog Categories](./articles/ind.product_catalog_set_the_display_order_of_catalog_categories.htm.md) | `ind.product_catalog_set_the_display_order_of_catalog_categories.htm` | 760 |
+| [Set Up Data Translation in Product Catalog Management](./articles/ind.product_catalog_set_up_data_translation_in_product_catalog_management.htm.md) | `ind.product_catalog_set_up_data_translation_in_product_catalog_management.htm` | 943 |
+| [Set Up Enhanced Product Discovery Features](./articles/ind.product_catalog_set_up_enhanced_product_discovery_features.htm.md) | `ind.product_catalog_set_up_enhanced_product_discovery_features.htm` | 2,121 |
+| [Set Up Objects for Product Catalog Management](./articles/ind.product_catalog_set_up_objects_for_pcm.htm.md) | `ind.product_catalog_set_up_objects_for_pcm.htm` | 2,247 |
+| [Product Catalog Management Set Up](./articles/ind.product_catalog_set_up_product_catalog_management.htm.md) | `ind.product_catalog_set_up_product_catalog_management.htm` | 2,161 |
+| [Simulate and Activate a Qualification Rule Procedure](./articles/ind.product_catalog_simulate_and_activate_a_qualification_rule_procedure.htm.md) | `ind.product_catalog_simulate_and_activate_a_qualification_rule_procedure.htm` | 2,515 |
+| [Sort Categories in a Catalog](./articles/ind.product_catalog_sort_categories_in_a_catalog.htm.md) | `ind.product_catalog_sort_categories_in_a_catalog.htm` | 1,592 |
+| [Bulk Export and Import Translation Files](./articles/ind.product_catalog_translate_product2_and_productcategory_data.htm.md) | `ind.product_catalog_translate_product2_and_productcategory_data.htm` | 2,564 |
+| [Turn On Product Variants](./articles/ind.product_catalog_turn_on_product_variants.htm.md) | `ind.product_catalog_turn_on_product_variants.htm` | 470 |
+| [Verify the Facets on the Product Discovery Product List Page](./articles/ind.product_catalog_verify_the_facets_on_the_product_discovery_product_list_page.htm.md) | `ind.product_catalog_verify_the_facets_on_the_product_discovery_product_list_page.htm` | 748 |
+| [View Visibility Rule Outcomes During Product Discovery](./articles/ind.product_catalog_view_visibility_rule_outcomes_during_product_discovery.htm.md) | `ind.product_catalog_view_visibility_rule_outcomes_during_product_discovery.htm` | 4,570 |
+
+## Captured — pricing (110)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
 | [Access Your Pricing Information](./articles/ind.pricing_access_your_pricing_information.htm.md) | `ind.pricing_access_your_pricing_information.htm` | 1,372 |
 | [Calculate Aggregate Prices for Products](./articles/ind.pricing_add_aggregate_price_element.htm.md) | `ind.pricing_add_aggregate_price_element.htm` | 1,707 |
 | [Attribute-Based Discounts](./articles/ind.pricing_add_attribute_based_price_element.htm.md) | `ind.pricing_add_attribute_based_price_element.htm` | 1,664 |
@@ -403,189 +645,51 @@
 | [Use the Procedure Plan Framework](./articles/ind.pricing_use_the_procedure_plan_framework.htm.md) | `ind.pricing_use_the_procedure_plan_framework.htm` | 15,316 |
 | [Investigate and Analyze Pricing API Execution Logs](./articles/ind.pricing_view_pricing_api_execution_logs.htm.md) | `ind.pricing_view_pricing_api_execution_logs.htm` | 1,611 |
 | [View Pricing Data Using Lightning Components](./articles/ind.pricing_view_pricing_data.htm.md) | `ind.pricing_view_pricing_data.htm` | 1,353 |
-| [Activate a Decision Table in Agentforce Revenue Management](./articles/ind.product_catalog_activate_dt_for_a_product.htm.md) | `ind.product_catalog_activate_dt_for_a_product.htm` | 671 |
-| [Add Components to a Configurable Product Bundle](./articles/ind.product_catalog_add_components_to_a_configurable_product_bundle.htm.md) | `ind.product_catalog_add_components_to_a_configurable_product_bundle.htm` | 5,668 |
-| [Add Components to a Static Product Bundle](./articles/ind.product_catalog_add_components_to_a_static_product_bundle.htm.md) | `ind.product_catalog_add_components_to_a_static_product_bundle.htm` | 3,631 |
-| [Assign Products to Catalog Categories in Agentforce Revenue Management](./articles/ind.product_catalog_assign_products_to_catalog_cat_and_subcategories.htm.md) | `ind.product_catalog_assign_products_to_catalog_cat_and_subcategories.htm` | 1,073 |
-| [Working with Product Attribute Fields](./articles/ind.product_catalog_attribute_fields.htm.md) | `ind.product_catalog_attribute_fields.htm` | 5,039 |
-| [Attribute Mapping in Qualification Rule Procedures](./articles/ind.product_catalog_attribute_mapping_in_qualification_rule_procedures.htm.md) | `ind.product_catalog_attribute_mapping_in_qualification_rule_procedures.htm` | 2,318 |
-| [Begin Using Product Catalog Management](./articles/ind.product_catalog_begin_using_product_catalog_management.htm.md) | `ind.product_catalog_begin_using_product_catalog_management.htm` | 732 |
-| [Organize Your Products with Catalogs and Categories](./articles/ind.product_catalog_catalogs.htm.md) | `ind.product_catalog_catalogs.htm` | 1,875 |
-| [Change a Configurable Bundle Product to a Static Bundle Product](./articles/ind.product_catalog_change_a_configurable_bundle_product_to_a_static_bundle_product.htm.md) | `ind.product_catalog_change_a_configurable_bundle_product_to_a_static_bundle_product.htm` | 3,189 |
-| [Change a Static Bundle Product To a Configurable Bundle Product](./articles/ind.product_catalog_change_a_static_bundle_product_to_a_configurable_bundle_product.htm.md) | `ind.product_catalog_change_a_static_bundle_product_to_a_configurable_bundle_product.htm` | 1,573 |
-| [Configure Apex Hooks in a Product Discovery Procedure Plan](./articles/ind.product_catalog_configure_apex_hooks_in_a_product_discovery_procedure_plan.htm.md) | `ind.product_catalog_configure_apex_hooks_in_a_product_discovery_procedure_plan.htm` | 1,790 |
-| [Configure Dynamic Product Facets](./articles/ind.product_catalog_configure_dynamic_product_facets.htm.md) | `ind.product_catalog_configure_dynamic_product_facets.htm` | 527 |
-| [Configure Filterable Fields & Attributes](./articles/ind.product_catalog_configure_filterable_fields_attributes.htm.md) | `ind.product_catalog_configure_filterable_fields_attributes.htm` | 1,778 |
-| [Configure Product Attributes in Agentforce Revenue Management](./articles/ind.product_catalog_configure_product_attributes.htm.md) | `ind.product_catalog_configure_product_attributes.htm` | 2,241 |
-| [Configure Product Field Search](./articles/ind.product_catalog_configure_product_field_search.htm.md) | `ind.product_catalog_configure_product_field_search.htm` | 377 |
-| [Configure the Number of Facets Displayed](./articles/ind.product_catalog_configure_the_number_of_facets_displayed.htm.md) | `ind.product_catalog_configure_the_number_of_facets_displayed.htm` | 1,056 |
-| [Customize the Product Browsing Experience](./articles/ind.product_catalog_considerations_custom_flow_for_browsing_and_adding_products.htm.md) | `ind.product_catalog_considerations_custom_flow_for_browsing_and_adding_products.htm` | 1,127 |
-| [Configure a Context Definition for Qualification Rules](./articles/ind.product_catalog_context_definitions_for_product_catalog_management.htm.md) | `ind.product_catalog_context_definitions_for_product_catalog_management.htm` | 1,465 |
-| [Convert Static and Configurable Product Bundles](./articles/ind.product_catalog_conversion_of_bundle_products.htm.md) | `ind.product_catalog_conversion_of_bundle_products.htm` | 1,484 |
-| [Create a Catalog](./articles/ind.product_catalog_create_a_catalog.htm.md) | `ind.product_catalog_create_a_catalog.htm` | 1,053 |
-| [Create a Product Classification](./articles/ind.product_catalog_create_a_product_classification.htm.md) | `ind.product_catalog_create_a_product_classification.htm` | 912 |
-| [Create a Product Subclassification](./articles/ind.product_catalog_create_a_product_subclassification.htm.md) | `ind.product_catalog_create_a_product_subclassification.htm` | 1,059 |
-| [Create Qualification Rule Criteria](./articles/ind.product_catalog_create_a_qual_rule_for_product.htm.md) | `ind.product_catalog_create_a_qual_rule_for_product.htm` | 1,915 |
-| [Create a Variation Attribute Set in Product Catalog Management](./articles/ind.product_catalog_create_a_variation_attribute_set_in_product_catalog_management.htm.md) | `ind.product_catalog_create_a_variation_attribute_set_in_product_catalog_management.htm` | 1,775 |
-| [Create a Variation Parent](./articles/ind.product_catalog_create_a_variation_parent.htm.md) | `ind.product_catalog_create_a_variation_parent.htm` | 649 |
-| [Create a Variation Product](./articles/ind.product_catalog_create_a_variation_product.htm.md) | `ind.product_catalog_create_a_variation_product.htm` | 1,143 |
-| [Create and Deploy Requirement Assessment Forms for Guided Product Selection](./articles/ind.product_catalog_create_and_deploy_assessment_forms_guided_product_selection.htm.md) | `ind.product_catalog_create_and_deploy_assessment_forms_guided_product_selection.htm` | 2,986 |
-| [Create Bundled Products](./articles/ind.product_catalog_create_bundled_products.htm.md) | `ind.product_catalog_create_bundled_products.htm` | 5,813 |
-| [Create Catalog Categories and Subcategories](./articles/ind.product_catalog_create_catalog_categories_and_subcategories.htm.md) | `ind.product_catalog_create_catalog_categories_and_subcategories.htm` | 2,094 |
-| [Create a Decision Table That Uses a Custom Evaluation Object](./articles/ind.product_catalog_create_decision_table_that_uses_custom_evaluation_object.htm.md) | `ind.product_catalog_create_decision_table_that_uses_custom_evaluation_object.htm` | 4,870 |
-| [Create a Decision Table That Uses a Standard Evaluation Object](./articles/ind.product_catalog_create_dt_for_product.htm.md) | `ind.product_catalog_create_dt_for_product.htm` | 4,322 |
-| [Create Product Specification Type and Product Specification Record Type](./articles/ind.product_catalog_create_product_specification_type_and_product_specification_record_type.htm.md) | `ind.product_catalog_create_product_specification_type_and_product_specification_record_type.htm` | 2,847 |
-| [Create Product Variants in Agentforce Revenue Management](./articles/ind.product_catalog_create_product_variants_in_revenue_cloud.htm.md) | `ind.product_catalog_create_product_variants_in_revenue_cloud.htm` | 3,715 |
-| [Create a Qualification Rule Procedure](./articles/ind.product_catalog_create_qual_rule_procedure_for_product.htm.md) | `ind.product_catalog_create_qual_rule_procedure_for_product.htm` | 3,882 |
-| [Create Simple Products](./articles/ind.product_catalog_create_simple_products.htm.md) | `ind.product_catalog_create_simple_products.htm` | 3,294 |
-| [Create a Bundled Product Structure](./articles/ind.product_catalog_creation_of_a_bundled_product_structure.htm.md) | `ind.product_catalog_creation_of_a_bundled_product_structure.htm` | 2,919 |
-| [Customize and Extend the Product Catalog Management Home Page](./articles/ind.product_catalog_customize_and_extend_the_product_catalog_management_home_page.htm.md) | `ind.product_catalog_customize_and_extend_the_product_catalog_management_home_page.htm` | 2,019 |
-| [Customize Product Discovery in Lightning App Builder](./articles/ind.product_catalog_customize_products_list_view.htm.md) | `ind.product_catalog_customize_products_list_view.htm` | 1,923 |
-| [Translate Product Catalog Data](./articles/ind.product_catalog_data_translation.htm.md) | `ind.product_catalog_data_translation.htm` | 3,586 |
-| [Data Translation Limits](./articles/ind.product_catalog_data_translations_limitations.htm.md) | `ind.product_catalog_data_translations_limitations.htm` | 1,359 |
-| [Decision Tables for Qualification Rules](./articles/ind.product_catalog_decision_tables_for_product_catalog_management.htm.md) | `ind.product_catalog_decision_tables_for_product_catalog_management.htm` | 1,315 |
-| [Create Product Attributes in Agentforce Revenue Management](./articles/ind.product_catalog_dyn_create_attributes.htm.md) | `ind.product_catalog_dyn_create_attributes.htm` | 1,479 |
-| [Manage Dynamic Attributes in Agentforce Revenue Management](./articles/ind.product_catalog_dynamic_attributes.htm.md) | `ind.product_catalog_dynamic_attributes.htm` | 1,701 |
-| [Write Product Descriptions with Einstein Generative AI](./articles/ind.product_catalog_einstein_generate_product_description.htm.md) | `ind.product_catalog_einstein_generate_product_description.htm` | 2,104 |
-| [Enable Guided Product Selection](./articles/ind.product_catalog_enable_guided_product_selection.htm.md) | `ind.product_catalog_enable_guided_product_selection.htm` | 3,375 |
-| [Enable Semantic Search for Product Discovery](./articles/ind.product_catalog_enable_semantic_search_for_product_discovery.htm.md) | `ind.product_catalog_enable_semantic_search_for_product_discovery.htm` | 903 |
-| [Use Flow Metadata to Enable Translated Product Catalogs](./articles/ind.product_catalog_enable_translated_catalogs_flow_metadata.htm.md) | `ind.product_catalog_enable_translated_catalogs_flow_metadata.htm` | 3,335 |
-| [Explore Product Classification with an Example](./articles/ind.product_catalog_end_to_end_product_classification_example.htm.md) | `ind.product_catalog_end_to_end_product_classification_example.htm` | 5,296 |
-| [Enhanced Product Discovery Experience](./articles/ind.product_catalog_enhanced_product_discovery_experience.htm.md) | `ind.product_catalog_enhanced_product_discovery_experience.htm` | 4,773 |
-| [Enter Translations Manually in the Translations Tab](./articles/ind.product_catalog_enter_translations_manually.htm.md) | `ind.product_catalog_enter_translations_manually.htm` | 1,245 |
-| [Override Flow for Product Discovery](./articles/ind.product_catalog_example_create_custom_flow_for_browsing_and_adding_products.htm.md) | `ind.product_catalog_example_create_custom_flow_for_browsing_and_adding_products.htm` | 8,092 |
-| [Example: Provide a Localized French Buying Experience](./articles/ind.product_catalog_example_provide_a_localized_french_buying_experience.htm.md) | `ind.product_catalog_example_provide_a_localized_french_buying_experience.htm` | 3,281 |
-| [Example: Use Apex Hooks to Extend Pricing Logic](./articles/ind.product_catalog_example_use_apex_hooks_in_a_product_discovery_procedure_plan.htm.md) | `ind.product_catalog_example_use_apex_hooks_in_a_product_discovery_procedure_plan.htm` | 1,426 |
-| [Exclude Bundle Components From Product Selection at Run Time](./articles/ind.product_catalog_exclude_bundle_components.htm.md) | `ind.product_catalog_exclude_bundle_components.htm` | 2,203 |
-| [Explore Examples of Semantic Search](./articles/ind.product_catalog_explore_examples_of_semantic_search.htm.md) | `ind.product_catalog_explore_examples_of_semantic_search.htm` | 2,106 |
-| [Extend the ProductDiscoveryContext Context Definition](./articles/ind.product_catalog_extend_productdiscoverycontext_context_definition.htm.md) | `ind.product_catalog_extend_productdiscoverycontext_context_definition.htm` | 3,044 |
-| [Faceted Search](./articles/ind.product_catalog_faceted_search.htm.md) | `ind.product_catalog_faceted_search.htm` | 2,060 |
-| [Guided Product Selection](./articles/ind.product_catalog_guided_product_selection.htm.md) | `ind.product_catalog_guided_product_selection.htm` | 1,166 |
-| [Include or Exclude Picklist Values in a Product Attribute](./articles/ind.product_catalog_include_or_exclude_picklist_values_in_a_product_attribute.htm.md) | `ind.product_catalog_include_or_exclude_picklist_values_in_a_product_attribute.htm` | 1,274 |
-| [Include or Exclude Picklist Values in a Product Classification Attribute](./articles/ind.product_catalog_include_or_exclude_picklist_values_in_a_product_classification_attribute.htm.md) | `ind.product_catalog_include_or_exclude_picklist_values_in_a_product_classification_attribute.htm` | 1,232 |
-| [Include or Exclude Picklist Values in Overridden Product Attributes](./articles/ind.product_catalog_include_or_exclude_picklist_values_in_overridden_product_attributes.htm.md) | `ind.product_catalog_include_or_exclude_picklist_values_in_overridden_product_attributes.htm` | 1,276 |
-| [Product Index and Search in Product Catalog Management](./articles/ind.product_catalog_index_and_search_of_product_catalog.htm.md) | `ind.product_catalog_index_and_search_of_product_catalog.htm` | 1,558 |
-| [Manage Your Product Index](./articles/ind.product_catalog_index_products.htm.md) | `ind.product_catalog_index_products.htm` | 3,417 |
-| [Configure Search Index Localization](./articles/ind.product_catalog_index_settings.htm.md) | `ind.product_catalog_index_settings.htm` | 946 |
-| [Build the Product Index](./articles/ind.product_catalog_index_the_product_catalog.htm.md) | `ind.product_catalog_index_the_product_catalog.htm` | 1,558 |
-| [Product Catalog Index Errors and Troubleshooting](./articles/ind.product_catalog_index_troubleshooting.htm.md) | `ind.product_catalog_index_troubleshooting.htm` | 1,562 |
-| [Build Your Product Catalog in Agentforce Revenue Management](./articles/ind.product_catalog_introduction.htm.md) | `ind.product_catalog_introduction.htm` | 4,727 |
-| [Define Quantity Limits for Bundled Products](./articles/ind.product_catalog_local_cardinality_and_group_cardinality.htm.md) | `ind.product_catalog_local_cardinality_and_group_cardinality.htm` | 1,712 |
-| [Manage and View Constraints for a Product](./articles/ind.product_catalog_manage_and_view_constraints_for_a_product.htm.md) | `ind.product_catalog_manage_and_view_constraints_for_a_product.htm` | 812 |
-| [Product Catalog Management Essentials](./articles/ind.product_catalog_management_essentials.htm.md) | `ind.product_catalog_management_essentials.htm` | 11,547 |
-| [Override Product Component Attributes in Bundles](./articles/ind.product_catalog_override_product_component_attributes_in_bundles.htm.md) | `ind.product_catalog_override_product_component_attributes_in_bundles.htm` | 1,079 |
-| [Assign Product Discovery Permissions](./articles/ind.product_catalog_permissions_to_access_product_discovery.htm.md) | `ind.product_catalog_permissions_to_access_product_discovery.htm` | 3,037 |
-| [Plan Your Product Catalog](./articles/ind.product_catalog_plan_catalog.htm.md) | `ind.product_catalog_plan_catalog.htm` | 7,546 |
-| [Preview Transactions While Browsing the Catalog](./articles/ind.product_catalog_preview_transactions_while_browsing_the_catalog.htm.md) | `ind.product_catalog_preview_transactions_while_browsing_the_catalog.htm` | 953 |
-| [Product Catalog Management Limits](./articles/ind.product_catalog_product_catalog_management_limits.htm.md) | `ind.product_catalog_product_catalog_management_limits.htm` | 1,799 |
-| [Product Catalog Management Editions and Permission Sets](./articles/ind.product_catalog_product_catalog_management_permission_set_licenses.htm.md) | `ind.product_catalog_product_catalog_management_permission_set_licenses.htm` | 2,758 |
-| [Product Catalog Management Personas for Agentforce Revenue Management](./articles/ind.product_catalog_product_catalog_management_personas.htm.md) | `ind.product_catalog_product_catalog_management_personas.htm` | 2,392 |
-| [Create Product Templates Using Product Classifications](./articles/ind.product_catalog_product_classifications.htm.md) | `ind.product_catalog_product_classifications.htm` | 3,891 |
-| [Product Description Generation in Product Catalog Management](./articles/ind.product_catalog_product_description_generation.htm.md) | `ind.product_catalog_product_description_generation.htm` | 601 |
-| [Product Discovery and Guided Product Selection](./articles/ind.product_catalog_product_discovery.htm.md) | `ind.product_catalog_product_discovery.htm` | 2,475 |
-| [Product Discovery Component Properties](./articles/ind.product_catalog_product_discovery_component_properties.htm.md) | `ind.product_catalog_product_discovery_component_properties.htm` | 6,888 |
-| [Replace Deprecated Permissions Set for Product Discovery](./articles/ind.product_catalog_product_discovery_personas_and_permission_sets.htm.md) | `ind.product_catalog_product_discovery_personas_and_permission_sets.htm` | 1,251 |
-| [Product Field Search in Product Catalog Management](./articles/ind.product_catalog_product_field_search_in_product_catalog_management.htm.md) | `ind.product_catalog_product_field_search_in_product_catalog_management.htm` | 802 |
-| [Product Relationship Management in Agentforce Revenue Management](./articles/ind.product_catalog_product_relationships.htm.md) | `ind.product_catalog_product_relationships.htm` | 5,690 |
-| [Create Product Specifications in Agentforce Revenue Management](./articles/ind.product_catalog_product_specification.htm.md) | `ind.product_catalog_product_specification.htm` | 1,022 |
-| [Nodes and Attributes in the ProductDiscoveryContext Context Definition](./articles/ind.product_catalog_productdiscoverycontext_context_definition.htm.md) | `ind.product_catalog_productdiscoverycontext_context_definition.htm` | 4,152 |
-| [Create Products and Product Bundles in Agentforce Revenue Management](./articles/ind.product_catalog_products.htm.md) | `ind.product_catalog_products.htm` | 5,937 |
-| [Explore a Qualification Rule Example](./articles/ind.product_catalog_qual_rules_example.htm.md) | `ind.product_catalog_qual_rules_example.htm` | 7,061 |
-| [Manage Qualification Rules for Products in Agentforce Revenue Management](./articles/ind.product_catalog_qualification_rules.htm.md) | `ind.product_catalog_qualification_rules.htm` | 5,158 |
-| [Record Sharing in Product Catalog Management](./articles/ind.product_catalog_record_sharing_in_product_catalog_management.htm.md) | `ind.product_catalog_record_sharing_in_product_catalog_management.htm` | 956 |
-| [Record Sharing in Product Discovery](./articles/ind.product_catalog_record_sharing_in_product_discovery.htm.md) | `ind.product_catalog_record_sharing_in_product_discovery.htm` | 1,511 |
-| [Sample: Apex Class for Product Discovery External Pricing](./articles/ind.product_catalog_sample_apex_class_for_product_discovery_external_pricing.htm.md) | `ind.product_catalog_sample_apex_class_for_product_discovery_external_pricing.htm` | 9,736 |
-| [Search Considerations When Using Indexed Data](./articles/ind.product_catalog_search_considerations.htm.md) | `ind.product_catalog_search_considerations.htm` | 2,999 |
-| [Search Options in Product Catalog Management](./articles/ind.product_catalog_search_options_for_product_catalog_management.htm.md) | `ind.product_catalog_search_options_for_product_catalog_management.htm` | 2,855 |
-| [Semantic Search](./articles/ind.product_catalog_semantic_search.htm.md) | `ind.product_catalog_semantic_search.htm` | 1,735 |
-| [Set a Default Product Catalog](./articles/ind.product_catalog_set_default_catalog.htm.md) | `ind.product_catalog_set_default_catalog.htm` | 437 |
-| [Set the Display Order of Catalog Categories](./articles/ind.product_catalog_set_the_display_order_of_catalog_categories.htm.md) | `ind.product_catalog_set_the_display_order_of_catalog_categories.htm` | 760 |
-| [Set Up Data Translation in Product Catalog Management](./articles/ind.product_catalog_set_up_data_translation_in_product_catalog_management.htm.md) | `ind.product_catalog_set_up_data_translation_in_product_catalog_management.htm` | 943 |
-| [Set Up Enhanced Product Discovery Features](./articles/ind.product_catalog_set_up_enhanced_product_discovery_features.htm.md) | `ind.product_catalog_set_up_enhanced_product_discovery_features.htm` | 2,121 |
-| [Set Up Objects for Product Catalog Management](./articles/ind.product_catalog_set_up_objects_for_pcm.htm.md) | `ind.product_catalog_set_up_objects_for_pcm.htm` | 2,247 |
-| [Product Catalog Management Set Up](./articles/ind.product_catalog_set_up_product_catalog_management.htm.md) | `ind.product_catalog_set_up_product_catalog_management.htm` | 2,161 |
-| [Simulate and Activate a Qualification Rule Procedure](./articles/ind.product_catalog_simulate_and_activate_a_qualification_rule_procedure.htm.md) | `ind.product_catalog_simulate_and_activate_a_qualification_rule_procedure.htm` | 2,515 |
-| [Sort Categories in a Catalog](./articles/ind.product_catalog_sort_categories_in_a_catalog.htm.md) | `ind.product_catalog_sort_categories_in_a_catalog.htm` | 1,592 |
-| [Bulk Export and Import Translation Files](./articles/ind.product_catalog_translate_product2_and_productcategory_data.htm.md) | `ind.product_catalog_translate_product2_and_productcategory_data.htm` | 2,564 |
-| [Turn On Product Variants](./articles/ind.product_catalog_turn_on_product_variants.htm.md) | `ind.product_catalog_turn_on_product_variants.htm` | 470 |
-| [Verify the Facets on the Product Discovery Product List Page](./articles/ind.product_catalog_verify_the_facets_on_the_product_discovery_product_list_page.htm.md) | `ind.product_catalog_verify_the_facets_on_the_product_discovery_product_list_page.htm` | 748 |
-| [View Visibility Rule Outcomes During Product Discovery](./articles/ind.product_catalog_view_visibility_rule_outcomes_during_product_discovery.htm.md) | `ind.product_catalog_view_visibility_rule_outcomes_during_product_discovery.htm` | 4,570 |
-| [Rules and Constraints in Configurator With Constraint Rules Engine](./articles/ind.product_configurator_advanced.htm.md) | `ind.product_configurator_advanced.htm` | 1,439 |
-| [Configure Attribute Display on Product Option Cards](./articles/ind.product_configurator_attribute_display_flow.htm.md) | `ind.product_configurator_attribute_display_flow.htm` | 1,386 |
-| [Custom Configurator Development with First-Party Configurator APIs](./articles/ind.product_configurator_build_custom_configurator_using_first_party_configurator_api.htm.md) | `ind.product_configurator_build_custom_configurator_using_first_party_configurator_api.htm` | 1,099 |
-| [Clone and Customize the Default Product Configurator Flow](./articles/ind.product_configurator_clone_the_default_product_configurator_flow.htm.md) | `ind.product_configurator_clone_the_default_product_configurator_flow.htm` | 1,533 |
-| [Configuration Rules in Business Rules Engine](./articles/ind.product_configurator_configuration_rule_details.htm.md) | `ind.product_configurator_configuration_rule_details.htm` | 5,436 |
-| [Define Configuration Rules with Business Rules Engine](./articles/ind.product_configurator_configuration_rules.htm.md) | `ind.product_configurator_configuration_rules.htm` | 1,092 |
-| [Configure Bundled Products](./articles/ind.product_configurator_configure_bundled_products.htm.md) | `ind.product_configurator_configure_bundled_products.htm` | 3,667 |
-| [Configure Products with Product Configurator](./articles/ind.product_configurator_configure_products.htm.md) | `ind.product_configurator_configure_products.htm` | 3,598 |
-| [Configure Simple Products](./articles/ind.product_configurator_configure_simple_products.htm.md) | `ind.product_configurator_configure_simple_products.htm` | 1,624 |
-| [Considerations for Configuring Products with Ramp Deals](./articles/ind.product_configurator_considerations_configuring_products_with_ramp_deals.htm.md) | `ind.product_configurator_considerations_configuring_products_with_ramp_deals.htm` | 2,859 |
-| [Save and Reuse Configurations](./articles/ind.product_configurator_considerations_to_save_and_reuse_configurations.htm.md) | `ind.product_configurator_considerations_to_save_and_reuse_configurations.htm` | 1,690 |
-| [Use Constraint Builder With Constraint Rules Engine](./articles/ind.product_configurator_constraint_builder.htm.md) | `ind.product_configurator_constraint_builder.htm` | 1,904 |
-| [Variables, Relationships, and Associations in Constraint Models](./articles/ind.product_configurator_constraint_model_variables_relationships_associations.htm.md) | `ind.product_configurator_constraint_model_variables_relationships_associations.htm` | 3,593 |
-| [Configure Editable Context Fields for Product Option Cards](./articles/ind.product_configurator_context_fields_flow_setup.htm.md) | `ind.product_configurator_context_fields_flow_setup.htm` | 3,019 |
-| [Convert Rules from Business Rules Engine into CML Code](./articles/ind.product_configurator_convert_bre_rules_to_cml.htm.md) | `ind.product_configurator_convert_bre_rules_to_cml.htm` | 4,151 |
-| [Manage Configuration Rules with Business Rules Engine](./articles/ind.product_configurator_create_a_configuration_rule.htm.md) | `ind.product_configurator_create_a_configuration_rule.htm` | 3,588 |
-| [Create a Constraint Model](./articles/ind.product_configurator_create_a_constraint_model.htm.md) | `ind.product_configurator_create_a_constraint_model.htm` | 3,173 |
-| [Define Product Configuration Flows](./articles/ind.product_configurator_create_a_product_configuration_flow.htm.md) | `ind.product_configurator_create_a_product_configuration_flow.htm` | 3,336 |
-| [Data Types for Configurator User Interface](./articles/ind.product_configurator_data_types_for_configurator_user_interface.htm.md) | `ind.product_configurator_data_types_for_configurator_user_interface.htm` | 5,630 |
-| [Enable Product Configurator](./articles/ind.product_configurator_enable_product_configurator.htm.md) | `ind.product_configurator_enable_product_configurator.htm` | 627 |
-| [Product Configurator Essentials](./articles/ind.product_configurator_essentials.htm.md) | `ind.product_configurator_essentials.htm` | 9,346 |
-| [Explore the Product Configurator Flow](./articles/ind.product_configurator_explore_the_product_configurator_flow.htm.md) | `ind.product_configurator_explore_the_product_configurator_flow.htm` | 1,866 |
-| [Breadcrumbs](./articles/ind.product_configurator_flow_breadcrumbs.htm.md) | `ind.product_configurator_flow_breadcrumbs.htm` | 1,636 |
-| [Data Manager](./articles/ind.product_configurator_flow_data_manager.htm.md) | `ind.product_configurator_flow_data_manager.htm` | 9,463 |
-| [Footer](./articles/ind.product_configurator_flow_footer.htm.md) | `ind.product_configurator_flow_footer.htm` | 2,984 |
-| [Header](./articles/ind.product_configurator_flow_header.htm.md) | `ind.product_configurator_flow_header.htm` | 2,795 |
-| [Messages](./articles/ind.product_configurator_flow_messages.htm.md) | `ind.product_configurator_flow_messages.htm` | 1,182 |
-| [Option Groups](./articles/ind.product_configurator_flow_option_groups.htm.md) | `ind.product_configurator_flow_option_groups.htm` | 4,577 |
-| [Product Attributes](./articles/ind.product_configurator_flow_product_attributes.htm.md) | `ind.product_configurator_flow_product_attributes.htm` | 2,144 |
-| [Product Header](./articles/ind.product_configurator_flow_product_header.htm.md) | `ind.product_configurator_flow_product_header.htm` | 2,959 |
-| [Product Configurator Flow Screen Components](./articles/ind.product_configurator_flow_screen_components.htm.md) | `ind.product_configurator_flow_screen_components.htm` | 3,886 |
-| [Summary](./articles/ind.product_configurator_flow_summary.htm.md) | `ind.product_configurator_flow_summary.htm` | 1,515 |
-| [Transaction Header](./articles/ind.product_configurator_flow_transaction_header.htm.md) | `ind.product_configurator_flow_transaction_header.htm` | 1,354 |
-| [Get the Latest Pricing](./articles/ind.product_configurator_get_latest_pricing.htm.md) | `ind.product_configurator_get_latest_pricing.htm` | 1,662 |
-| [Get Started with Product Configurator](./articles/ind.product_configurator_get_started.htm.md) | `ind.product_configurator_get_started.htm` | 521 |
-| [Import Data from Salesforce Objects to Use in Constraint Models](./articles/ind.product_configurator_import_object_data.htm.md) | `ind.product_configurator_import_object_data.htm` | 2,359 |
-| [Third-Party Configurator UI Component Integration into First-Party Configurator](./articles/ind.product_configurator_integrate_third_party_configurator_ui_components_into_first_party_configurator.htm.md) | `ind.product_configurator_integrate_third_party_configurator_ui_components_into_first_party_configurator.htm` | 1,309 |
-| [Configure Your Products in Agentforce Revenue Management](./articles/ind.product_configurator_introduction.htm.md) | `ind.product_configurator_introduction.htm` | 4,452 |
-| [Use an Apex Call to Run the Run Config Rules Action](./articles/ind.product_configurator_invocable_action_apex_call.htm.md) | `ind.product_configurator_invocable_action_apex_call.htm` | 2,159 |
-| [Use an API Call to Run the Run Config Rules Action](./articles/ind.product_configurator_invocable_action_api_call.htm.md) | `ind.product_configurator_invocable_action_api_call.htm` | 1,096 |
-| [Use a Screen Flow to Run the Run Config Rules Action](./articles/ind.product_configurator_invocable_action_screen_flow.htm.md) | `ind.product_configurator_invocable_action_screen_flow.htm` | 991 |
-| [Run Rules with the Run Config Rules Action](./articles/ind.product_configurator_invocable_action_to_run_rules.htm.md) | `ind.product_configurator_invocable_action_to_run_rules.htm` | 1,519 |
-| [Product Configurator Limits](./articles/ind.product_configurator_limits.htm.md) | `ind.product_configurator_limits.htm` | 927 |
-| [Load Product Defaults from PCM to a Constraint Model](./articles/ind.product_configurator_load_product_defaults.htm.md) | `ind.product_configurator_load_product_defaults.htm` | 1,589 |
-| [Enable Non-Blocking Behavior in the Configurator](./articles/ind.product_configurator_non_blocking_enabled.htm.md) | `ind.product_configurator_non_blocking_enabled.htm` | 1,695 |
-| [Use Place Sales Transaction API for Data Transfer](./articles/ind.product_configurator_place_quote_api_for_data_transfer.htm.md) | `ind.product_configurator_place_quote_api_for_data_transfer.htm` | 984 |
-| [Preview the Product Configurator](./articles/ind.product_configurator_preview_the_product_configurator.htm.md) | `ind.product_configurator_preview_the_product_configurator.htm` | 844 |
-| [Product Configurator Permission Sets](./articles/ind.product_configurator_product_configurator_permissions.htm.md) | `ind.product_configurator_product_configurator_permissions.htm` | 2,913 |
-| [Validate Product Configuration](./articles/ind.product_configurator_product_validation_enable.htm.md) | `ind.product_configurator_product_validation_enable.htm` | 1,330 |
-| [Enable Constraint Rules Engine and Create Transaction Processing Types](./articles/ind.product_configurator_set_up_advanced_configurator.htm.md) | `ind.product_configurator_set_up_advanced_configurator.htm` | 1,255 |
-| [Set Up Business Rules Engine for Product Configurator](./articles/ind.product_configurator_set_up_business_rules_engine.htm.md) | `ind.product_configurator_set_up_business_rules_engine.htm` | 2,453 |
-| [Set Up Constraint Rules Engine for Product Configurator](./articles/ind.product_configurator_set_up_constraints_engine.htm.md) | `ind.product_configurator_set_up_constraints_engine.htm` | 767 |
-| [Set Up Your Product Configuration Flow](./articles/ind.product_configurator_set_up_flow.htm.md) | `ind.product_configurator_set_up_flow.htm` | 1,070 |
-| [Set Up Custom Labels for Run-Time Message Translation](./articles/ind.product_configurator_set_up_translation_labels.htm.md) | `ind.product_configurator_set_up_translation_labels.htm` | 2,693 |
-| [Set Up Product Configurator](./articles/ind.product_configurator_setup.htm.md) | `ind.product_configurator_setup.htm` | 1,010 |
-| [Sync Constraint Models with Product Definitions](./articles/ind.product_configurator_sync_cml_and_pcm.htm.md) | `ind.product_configurator_sync_cml_and_pcm.htm` | 2,170 |
-| [Third-Party Configurator](./articles/ind.product_configurator_third_party_configurator.htm.md) | `ind.product_configurator_third_party_configurator.htm` | 3,789 |
-| [Third-Party Configurator Lightning Flows](./articles/ind.product_configurator_third_party_configurator_lightning_flows.htm.md) | `ind.product_configurator_third_party_configurator_lightning_flows.htm` | 1,795 |
-| [Create a Third-Party Configurator UI Component](./articles/ind.product_configurator_third_party_configurator_ui_component_create.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_create.htm` | 1,614 |
-| [Third-Party Configurator UI Component Files](./articles/ind.product_configurator_third_party_configurator_ui_component_files.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_files.htm` | 973 |
-| [Third-Party Configurator UI Component HTML File](./articles/ind.product_configurator_third_party_configurator_ui_component_html_file.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_html_file.htm` | 606 |
-| [Third-Party Configurator UI Component JavaScript File](./articles/ind.product_configurator_third_party_configurator_ui_component_javascript_file.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_javascript_file.htm` | 5,854 |
-| [Lightning Message Service for Third-Party Configurator UI Components](./articles/ind.product_configurator_third_party_configurator_ui_component_lightning_message_service.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_lightning_message_service.htm` | 4,413 |
-| [Third-Party Configurator UI Component Metadata Configuration File](./articles/ind.product_configurator_third_party_configurator_ui_component_metadata_file.htm.md) | `ind.product_configurator_third_party_configurator_ui_component_metadata_file.htm` | 11,222 |
-| [Use Code to Define Constraints and Rules in the CML Editor](./articles/ind.product_configurator_use_the_cml_editor.htm.md) | `ind.product_configurator_use_the_cml_editor.htm` | 2,900 |
-| [Define Constraints and Rules with the Visual Builder](./articles/ind.product_configurator_use_the_visual_builder.htm.md) | `ind.product_configurator_use_the_visual_builder.htm` | 2,946 |
-| [Use Third-Party Configurator for Specific Products or Classifications](./articles/ind.product_configurator_use_third_party_configurator_for_specific_products_or_classifications.htm.md) | `ind.product_configurator_use_third_party_configurator_for_specific_products_or_classifications.htm` | 625 |
-| [Validate Configuration Rules in Business Rules Engine](./articles/ind.product_configurator_validate_a_configuration_rule.htm.md) | `ind.product_configurator_validate_a_configuration_rule.htm` | 808 |
-| [Basic Logic Constraint in the Visual Builder](./articles/ind.product_configurator_visual_builder_basic_logic_constraint.htm.md) | `ind.product_configurator_visual_builder_basic_logic_constraint.htm` | 709 |
-| [Conditional Logic Constraint in the Visual Builder](./articles/ind.product_configurator_visual_builder_conditional_logic_constraint.htm.md) | `ind.product_configurator_visual_builder_conditional_logic_constraint.htm` | 996 |
-| [Constraint and Rule Types in the Visual Builder](./articles/ind.product_configurator_visual_builder_constraint_and_rule_types.htm.md) | `ind.product_configurator_visual_builder_constraint_and_rule_types.htm` | 6,224 |
-| [Dynamic Message Rule in the Visual Builder](./articles/ind.product_configurator_visual_builder_dynamic_message_rule.htm.md) | `ind.product_configurator_visual_builder_dynamic_message_rule.htm` | 1,559 |
-| [Exclude Rule](./articles/ind.product_configurator_visual_builder_exclude_rule.htm.md) | `ind.product_configurator_visual_builder_exclude_rule.htm` | 546 |
-| [Hide/Disable Rule](./articles/ind.product_configurator_visual_builder_hide_disable_rule.htm.md) | `ind.product_configurator_visual_builder_hide_disable_rule.htm` | 1,168 |
-| [Preference Rule](./articles/ind.product_configurator_visual_builder_preference_rule.htm.md) | `ind.product_configurator_visual_builder_preference_rule.htm` | 1,055 |
-| [Require Rule in the Visual Builder](./articles/ind.product_configurator_visual_builder_require_rule.htm.md) | `ind.product_configurator_visual_builder_require_rule.htm` | 1,081 |
+
+## Captured — rating (35)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Clone the Default Rating Discovery Procedure](./articles/ind.rm_clone_the_default_rating_discovery_procedure.htm.md) | `ind.rm_clone_the_default_rating_discovery_procedure.htm` | 1,230 |
+| [Create a Rating Procedure by Cloning the Expression Set Template](./articles/ind.rm_clone_the_default_rating_procedure.htm.md) | `ind.rm_clone_the_default_rating_procedure.htm` | 1,202 |
+| [Commitment Rate Adjustment](./articles/ind.rm_commitment_rate_adjustment.htm.md) | `ind.rm_commitment_rate_adjustment.htm` | 1,895 |
+| [Configure Your Rating Discovery Procedure](./articles/ind.rm_configure_your_rating_discovery_procedure.htm.md) | `ind.rm_configure_your_rating_discovery_procedure.htm` | 1,469 |
+| [Create a Rate Card Entry for Base Rate Cards](./articles/ind.rm_create_a_base_rate_card_entry.htm.md) | `ind.rm_create_a_base_rate_card_entry.htm` | 1,355 |
+| [Create a Rate Card](./articles/ind.rm_create_a_rate_card.htm.md) | `ind.rm_create_a_rate_card.htm` | 734 |
+| [Create a Rate Card Entry For Tier Rate Cards](./articles/ind.rm_create_a_tier_rate_card_entry.htm.md) | `ind.rm_create_a_tier_rate_card_entry.htm` | 2,038 |
+| [Create Price Book Rate Cards](./articles/ind.rm_create_price_book_rate_cards.htm.md) | `ind.rm_create_price_book_rate_cards.htm` | 618 |
+| [Explore Rate Management in Agentforce Revenue Management](./articles/ind.rm_discover_and_explore.htm.md) | `ind.rm_discover_and_explore.htm` | 1,209 |
+| [Assignment](./articles/ind.rm_element_add_assignment.htm.md) | `ind.rm_element_add_assignment.htm` | 1,887 |
+| [Formula-Based Rating](./articles/ind.rm_element_formula_based_rating.htm.md) | `ind.rm_element_formula_based_rating.htm` | 819 |
+| [List Group and List Operation](./articles/ind.rm_element_list_group_list_operation.htm.md) | `ind.rm_element_list_group_list_operation.htm` | 1,886 |
+| [Negotiated Base Rate for Binding Object](./articles/ind.rm_element_negotiated_baserate_bindingobject.htm.md) | `ind.rm_element_negotiated_baserate_bindingobject.htm` | 1,832 |
+| [Negotiated Tier-Based Rate Adjustment for Binding Object](./articles/ind.rm_element_negotiated_tierbasedadjustment_bindingobject.htm.md) | `ind.rm_element_negotiated_tierbasedadjustment_bindingobject.htm` | 1,855 |
+| [Negotiated Rate Card Entries for Binding Object](./articles/ind.rm_element_negotiatedratecardentries_bindingobject.htm.md) | `ind.rm_element_negotiatedratecardentries_bindingobject.htm` | 2,056 |
+| [Negotiated Volume-Based Rate Adjustment for Binding Object](./articles/ind.rm_element_negotited_volumebasedadjustment_bindingobject.htm.md) | `ind.rm_element_negotited_volumebasedadjustment_bindingobject.htm` | 1,817 |
+| [Rating Setting](./articles/ind.rm_element_rating_setting.htm.md) | `ind.rm_element_rating_setting.htm` | 753 |
+| [Stop Rating](./articles/ind.rm_element_stop_rating.htm.md) | `ind.rm_element_stop_rating.htm` | 195 |
+| [Enable Rate Management](./articles/ind.rm_enable_rate_management.htm.md) | `ind.rm_enable_rate_management.htm` | 404 |
+| [Enable Rating Waterfall Persistence](./articles/ind.rm_enable_rating_waterfall_persistence.htm.md) | `ind.rm_enable_rating_waterfall_persistence.htm` | 1,505 |
+| [External Objects Used in Rate Management](./articles/ind.rm_external_objects_used_in_rate_management.htm.md) | `ind.rm_external_objects_used_in_rate_management.htm` | 2,307 |
+| [Implementation Considerations for Rate Management](./articles/ind.rm_implementation_considerations.htm.md) | `ind.rm_implementation_considerations.htm` | 1,986 |
+| [Key Roles in Rate Management](./articles/ind.rm_key_roles_in_rate_management.htm.md) | `ind.rm_key_roles_in_rate_management.htm` | 911 |
+| [Map Line Item](./articles/ind.rm_map_line_item.htm.md) | `ind.rm_map_line_item.htm` | 802 |
+| [Prerequisites for Building Rating Procedures](./articles/ind.rm_prereqs_to_build_rating_procedures.htm.md) | `ind.rm_prereqs_to_build_rating_procedures.htm` | 2,337 |
+| [Rate Card Entries](./articles/ind.rm_rate_card_entries.htm.md) | `ind.rm_rate_card_entries.htm` | 1,588 |
+| [Rate Cards and Rate Card Entries](./articles/ind.rm_rate_cards_and_rate_card_entries.htm.md) | `ind.rm_rate_cards_and_rate_card_entries.htm` | 1,414 |
+| [Configure Rate Pricing Calculations in Agentforce Revenue Management](./articles/ind.rm_rate_management.htm.md) | `ind.rm_rate_management.htm` | 2,198 |
+| [Rate Management Permission Set Licenses](./articles/ind.rm_rate_management_psls.htm.md) | `ind.rm_rate_management_psls.htm` | 1,636 |
+| [Rate Management Setup](./articles/ind.rm_rate_management_setup.htm.md) | `ind.rm_rate_management_setup.htm` | 2,811 |
+| [Rate Management Limits](./articles/ind.rm_rate_mngmnt_limits.htm.md) | `ind.rm_rate_mngmnt_limits.htm` | 1,913 |
+| [Rating Discovery Procedures](./articles/ind.rm_rating_discovery_procedures.htm.md) | `ind.rm_rating_discovery_procedures.htm` | 1,698 |
+| [Explore Available Rating Elements in Agentforce Revenue Management](./articles/ind.rm_rating_elements.htm.md) | `ind.rm_rating_elements.htm` | 2,907 |
+| [Rating Procedures](./articles/ind.rm_rating_procedures.htm.md) | `ind.rm_rating_procedures.htm` | 1,201 |
+| [Simulate and Activate Your Rating Procedure](./articles/ind.rm_simulate_activate_rating_procedure.htm.md) | `ind.rm_simulate_activate_rating_procedure.htm` | 1,832 |
+
+## Captured — transaction_mgmt (170)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
 | [Activate an Object State Definition](./articles/ind.qocal_activate_an_object_state_definition.htm.md) | `ind.qocal_activate_an_object_state_definition.htm` | 476 |
 | [Create and Add Custom Fields for Usage-Based Products](./articles/ind.qocal_add_custom_fields_for_usage_based_products.htm.md) | `ind.qocal_add_custom_fields_for_usage_based_products.htm` | 2,657 |
 | [Add the Contract Pricing Schedule Component to Lightning Record Pages](./articles/ind.qocal_add_the_contract_pricing_schedule_component_in_revenue_cloud.htm.md) | `ind.qocal_add_the_contract_pricing_schedule_component_in_revenue_cloud.htm` | 994 |
@@ -756,54 +860,11 @@
 | [Manage Assets in Agentforce Revenue Management](./articles/ind.qocal_view_and_manage_assets.htm.md) | `ind.qocal_view_and_manage_assets.htm` | 1,448 |
 | [View and Manage Assets in Agentforce Revenue Management](./articles/ind.qocal_view_and_manage_assets_in_revenue_cloud.htm.md) | `ind.qocal_view_and_manage_assets_in_revenue_cloud.htm` | 1,517 |
 | [View Rate Cards for Usage-Based Assets](./articles/ind.qocal_view_asset_usage_rate_cards.htm.md) | `ind.qocal_view_asset_usage_rate_cards.htm` | 969 |
-| [Subagent: Invoice Line Explanation](./articles/ind.rev_agent_billing_topic_invoice_line_explanation.htm.md) | `ind.rev_agent_billing_topic_invoice_line_explanation.htm` | 1,933 |
-| [Agentforce for Revenue Management](./articles/ind.rev_agent_overview.htm.md) | `ind.rev_agent_overview.htm` | 3,313 |
-| [Subagent: Product Description Generation](./articles/ind.rev_agent_pcm_topic_product_description_generation.htm.md) | `ind.rev_agent_pcm_topic_product_description_generation.htm` | 863 |
-| [Subagent: Product Selection](./articles/ind.rev_agent_pcm_topic_product_selection.htm.md) | `ind.rev_agent_pcm_topic_product_selection.htm` | 2,062 |
-| [Use Case: Search and Filter Products with Agentforce](./articles/ind.rev_agent_pcm_use_case_search_and_filter_products_with_ai_in_the_quoting_agent.htm.md) | `ind.rev_agent_pcm_use_case_search_and_filter_products_with_ai_in_the_quoting_agent.htm` | 2,180 |
-| [Subagent: Quote Management](./articles/ind.rev_agent_qocal_topic_quote_management.htm.md) | `ind.rev_agent_qocal_topic_quote_management.htm` | 3,145 |
-| [Set Up Community and Partner Access for Agentforce in Revenue Management](./articles/ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm.md) | `ind.rev_agent_set_up_community_and_partner_access_for_agentforce_in_revenue_cloud.htm` | 5,088 |
-| [Set Up Agentforce for Revenue Management](./articles/ind.rev_agent_setup.htm.md) | `ind.rev_agent_setup.htm` | 1,617 |
-| [Agent Templates in Revenue Management](./articles/ind.rev_agent_templates.htm.md) | `ind.rev_agent_templates.htm` | 1,298 |
-| [Subagent: Billing Collections Management](./articles/ind.rev_agent_topic_billing_collections_management.htm.md) | `ind.rev_agent_topic_billing_collections_management.htm` | 1,848 |
-| [Subagent: Billing Inquiries](./articles/ind.rev_agent_topic_billing_inquiries.htm.md) | `ind.rev_agent_topic_billing_inquiries.htm` | 2,565 |
-| [Revenue Subagent Reference](./articles/ind.rev_agent_topic_reference.htm.md) | `ind.rev_agent_topic_reference.htm` | 575 |
-| [Subagent: Consumption Management](./articles/ind.rev_agent_usage_topic_consumption_management.htm.md) | `ind.rev_agent_usage_topic_consumption_management.htm` | 1,202 |
-| [Clone the Default Rating Discovery Procedure](./articles/ind.rm_clone_the_default_rating_discovery_procedure.htm.md) | `ind.rm_clone_the_default_rating_discovery_procedure.htm` | 1,230 |
-| [Create a Rating Procedure by Cloning the Expression Set Template](./articles/ind.rm_clone_the_default_rating_procedure.htm.md) | `ind.rm_clone_the_default_rating_procedure.htm` | 1,202 |
-| [Commitment Rate Adjustment](./articles/ind.rm_commitment_rate_adjustment.htm.md) | `ind.rm_commitment_rate_adjustment.htm` | 1,895 |
-| [Configure Your Rating Discovery Procedure](./articles/ind.rm_configure_your_rating_discovery_procedure.htm.md) | `ind.rm_configure_your_rating_discovery_procedure.htm` | 1,469 |
-| [Create a Rate Card Entry for Base Rate Cards](./articles/ind.rm_create_a_base_rate_card_entry.htm.md) | `ind.rm_create_a_base_rate_card_entry.htm` | 1,355 |
-| [Create a Rate Card](./articles/ind.rm_create_a_rate_card.htm.md) | `ind.rm_create_a_rate_card.htm` | 734 |
-| [Create a Rate Card Entry For Tier Rate Cards](./articles/ind.rm_create_a_tier_rate_card_entry.htm.md) | `ind.rm_create_a_tier_rate_card_entry.htm` | 2,038 |
-| [Create Price Book Rate Cards](./articles/ind.rm_create_price_book_rate_cards.htm.md) | `ind.rm_create_price_book_rate_cards.htm` | 618 |
-| [Explore Rate Management in Agentforce Revenue Management](./articles/ind.rm_discover_and_explore.htm.md) | `ind.rm_discover_and_explore.htm` | 1,209 |
-| [Assignment](./articles/ind.rm_element_add_assignment.htm.md) | `ind.rm_element_add_assignment.htm` | 1,887 |
-| [Formula-Based Rating](./articles/ind.rm_element_formula_based_rating.htm.md) | `ind.rm_element_formula_based_rating.htm` | 819 |
-| [List Group and List Operation](./articles/ind.rm_element_list_group_list_operation.htm.md) | `ind.rm_element_list_group_list_operation.htm` | 1,886 |
-| [Negotiated Base Rate for Binding Object](./articles/ind.rm_element_negotiated_baserate_bindingobject.htm.md) | `ind.rm_element_negotiated_baserate_bindingobject.htm` | 1,832 |
-| [Negotiated Tier-Based Rate Adjustment for Binding Object](./articles/ind.rm_element_negotiated_tierbasedadjustment_bindingobject.htm.md) | `ind.rm_element_negotiated_tierbasedadjustment_bindingobject.htm` | 1,855 |
-| [Negotiated Rate Card Entries for Binding Object](./articles/ind.rm_element_negotiatedratecardentries_bindingobject.htm.md) | `ind.rm_element_negotiatedratecardentries_bindingobject.htm` | 2,056 |
-| [Negotiated Volume-Based Rate Adjustment for Binding Object](./articles/ind.rm_element_negotited_volumebasedadjustment_bindingobject.htm.md) | `ind.rm_element_negotited_volumebasedadjustment_bindingobject.htm` | 1,817 |
-| [Rating Setting](./articles/ind.rm_element_rating_setting.htm.md) | `ind.rm_element_rating_setting.htm` | 753 |
-| [Stop Rating](./articles/ind.rm_element_stop_rating.htm.md) | `ind.rm_element_stop_rating.htm` | 195 |
-| [Enable Rate Management](./articles/ind.rm_enable_rate_management.htm.md) | `ind.rm_enable_rate_management.htm` | 404 |
-| [Enable Rating Waterfall Persistence](./articles/ind.rm_enable_rating_waterfall_persistence.htm.md) | `ind.rm_enable_rating_waterfall_persistence.htm` | 1,505 |
-| [External Objects Used in Rate Management](./articles/ind.rm_external_objects_used_in_rate_management.htm.md) | `ind.rm_external_objects_used_in_rate_management.htm` | 2,307 |
-| [Implementation Considerations for Rate Management](./articles/ind.rm_implementation_considerations.htm.md) | `ind.rm_implementation_considerations.htm` | 1,986 |
-| [Key Roles in Rate Management](./articles/ind.rm_key_roles_in_rate_management.htm.md) | `ind.rm_key_roles_in_rate_management.htm` | 911 |
-| [Map Line Item](./articles/ind.rm_map_line_item.htm.md) | `ind.rm_map_line_item.htm` | 802 |
-| [Prerequisites for Building Rating Procedures](./articles/ind.rm_prereqs_to_build_rating_procedures.htm.md) | `ind.rm_prereqs_to_build_rating_procedures.htm` | 2,337 |
-| [Rate Card Entries](./articles/ind.rm_rate_card_entries.htm.md) | `ind.rm_rate_card_entries.htm` | 1,588 |
-| [Rate Cards and Rate Card Entries](./articles/ind.rm_rate_cards_and_rate_card_entries.htm.md) | `ind.rm_rate_cards_and_rate_card_entries.htm` | 1,414 |
-| [Configure Rate Pricing Calculations in Agentforce Revenue Management](./articles/ind.rm_rate_management.htm.md) | `ind.rm_rate_management.htm` | 2,198 |
-| [Rate Management Permission Set Licenses](./articles/ind.rm_rate_management_psls.htm.md) | `ind.rm_rate_management_psls.htm` | 1,636 |
-| [Rate Management Setup](./articles/ind.rm_rate_management_setup.htm.md) | `ind.rm_rate_management_setup.htm` | 2,811 |
-| [Rate Management Limits](./articles/ind.rm_rate_mngmnt_limits.htm.md) | `ind.rm_rate_mngmnt_limits.htm` | 1,913 |
-| [Rating Discovery Procedures](./articles/ind.rm_rating_discovery_procedures.htm.md) | `ind.rm_rating_discovery_procedures.htm` | 1,698 |
-| [Explore Available Rating Elements in Agentforce Revenue Management](./articles/ind.rm_rating_elements.htm.md) | `ind.rm_rating_elements.htm` | 2,907 |
-| [Rating Procedures](./articles/ind.rm_rating_procedures.htm.md) | `ind.rm_rating_procedures.htm` | 1,201 |
-| [Simulate and Activate Your Rating Procedure](./articles/ind.rm_simulate_activate_rating_procedure.htm.md) | `ind.rm_simulate_activate_rating_procedure.htm` | 1,832 |
+
+## Captured — usage (52)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
 | [Add Wallet Components to Record Pages](./articles/ind.um_add_wallet_components_to_record_pages.htm.md) | `ind.um_add_wallet_components_to_record_pages.htm` | 926 |
 | [Anchor Product Drawdowns](./articles/ind.um_anchor_product_drawdowns.htm.md) | `ind.um_anchor_product_drawdowns.htm` | 1,013 |
 | [Billing Schedules and Invoices for Usage-Based Products](./articles/ind.um_billing_schedules_for_usage_products.htm.md) | `ind.um_billing_schedules_for_usage_products.htm` | 3,671 |

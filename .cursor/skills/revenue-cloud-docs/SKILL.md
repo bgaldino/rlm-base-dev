@@ -188,7 +188,7 @@ Each functional area in Revenue Cloud has its own root Help article and ID prefi
 
 **Total 262 snapshot: 838 articles, ~4.3 MB markdown.** Complete coverage of all 9 RC data-model domains plus the cross-domain Agentforce-for-RC agent suite. Captured 2026-05-11 / 2026-05-12.
 
-**Known polish issue with the shared manifest.** The scraper writes a single `docs/salesforce/{release}/help/manifest.json` and `index.md` per release, and each task variant run overwrites the previous run's top-level metadata. The `area` / `root_article_id` fields in the manifest reflect only the **most recently run** snapshot, not all areas. The per-article frontmatter in each `.md` file correctly identifies its area, so this is cosmetic — but a future scraper improvement could maintain per-area sub-manifests under `manifest.json` (e.g., `{"areas": {"billing": {...}, "pricing": {...}}}`). For now, treat the article files as the source of truth and use `grep area:` on the frontmatter to filter.
+**Manifest structure (post-2026-05-12 polish).** The shared manifest at `docs/salesforce/{release}/help/manifest.json` carries a top-level `areas` array that accumulates per-area run metadata (root, prefix, snapshot dates, per-area stats). Each article entry in `manifest.articles` is tagged with its `area` for filtering. The `index.md` renders an overall stats table + a per-area coverage summary + per-area captured-articles sections when the manifest covers multiple areas, falling back to the original single-area layout when only one area is captured. Use `manifest.areas` (or `grep area:` on per-article frontmatter) to filter by functional area.
 
 ### Agent content is cross-cutting — grep across multiple snapshots
 

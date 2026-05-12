@@ -376,6 +376,14 @@ class SnapshotSalesforceHelp(BaseTask):
         # The required top-level keys this task writes and the index builder reads.
         # Older or hand-written manifests may be missing some of these — backfill
         # from the current options so we don't crash later.
+        #
+        # The top-level `area` / `root_article_id` / `article_id_prefix` fields
+        # reflect the MOST RECENT run that wrote to this manifest. When the same
+        # manifest is shared across multiple area snapshots (e.g., all RC
+        # functional areas under docs/salesforce/{release}/help/manifest.json),
+        # those top-level fields aren't authoritative — the `areas` array is.
+        # Per-article `area` tags are the source of truth for which run captured
+        # each article.
         required_defaults = {
             "release": self.options["release_version"],
             "release_name": self.options["release_name"],
@@ -385,6 +393,7 @@ class SnapshotSalesforceHelp(BaseTask):
             "article_id_prefix": self.options["article_id_prefix"],
             "snapshot_started": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             "capture_method": "tasks.rlm_snapshot_help.SnapshotSalesforceHelp (Playwright + shadow-DOM walker)",
+            "areas": [],   # accumulated per-area run metadata (this run + prior runs)
             "articles": [],
         }
 
@@ -398,6 +407,13 @@ class SnapshotSalesforceHelp(BaseTask):
                 # Backfill any missing required keys without clobbering existing values
                 for key, default in required_defaults.items():
                     existing.setdefault(key, default)
+                # Refresh the top-level pointers to reflect THIS run. The `areas`
+                # array preserves prior-run metadata; these top-level fields are
+                # just convenience pointers to the most recent run.
+                existing["area"] = self.options["area"]
+                existing["root_article_id"] = self.options["root_article_id"]
+                existing["article_id_prefix"] = self.options["article_id_prefix"]
+                existing["source_root_url"] = self._article_url(self.options["root_article_id"])
                 return existing
             except (json.JSONDecodeError, OSError) as e:
                 self.logger.warning(f"Could not load existing manifest: {e}. Starting fresh.")
@@ -406,9 +422,48 @@ class SnapshotSalesforceHelp(BaseTask):
     def _save_manifest(self, manifest_path: Path, manifest: Dict[str, Any]) -> None:
         manifest["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         manifest["stats"] = self._compute_stats(manifest)
+        self._update_area_entry(manifest)
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         with manifest_path.open("w") as f:
             json.dump(manifest, f, indent=2, ensure_ascii=False)
+
+    def _update_area_entry(self, manifest: Dict[str, Any]) -> None:
+        """Sync this run's per-area metadata into the manifest['areas'] array."""
+        current_area = self.options["area"]
+        articles = manifest.get("articles", [])
+        # Per-area stats: only count articles tagged with this area
+        area_articles = [a for a in articles if a.get("area") == current_area]
+        area_captured = [a for a in area_articles if a.get("status") == "captured"]
+        area_entry = {
+            "area": current_area,
+            "root_article_id": self.options["root_article_id"],
+            "article_id_prefix": self.options["article_id_prefix"],
+            "source_root_url": self._article_url(self.options["root_article_id"]),
+            "last_updated": manifest["last_updated"],
+            "stats": {
+                "discovered": len(area_articles),
+                "captured": len(area_captured),
+                "pending": len([a for a in area_articles if a.get("status") == "pending"]),
+                "errored": len([a for a in area_articles if a.get("status") == "error"]),
+                "total_captured_body_chars": sum(a.get("body_length", 0) for a in area_captured),
+            },
+        }
+        # Replace existing entry for this area, or append a new one
+        areas = manifest.setdefault("areas", [])
+        replaced = False
+        for i, existing in enumerate(areas):
+            if existing.get("area") == current_area:
+                # Preserve the original snapshot_started if it's there
+                if "snapshot_started" in existing:
+                    area_entry["snapshot_started"] = existing["snapshot_started"]
+                else:
+                    area_entry["snapshot_started"] = manifest.get("snapshot_started")
+                areas[i] = area_entry
+                replaced = True
+                break
+        if not replaced:
+            area_entry["snapshot_started"] = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            areas.append(area_entry)
 
     @staticmethod
     def _compute_stats(manifest: Dict[str, Any]) -> Dict[str, Any]:
@@ -433,6 +488,7 @@ class SnapshotSalesforceHelp(BaseTask):
         existing_by_id: Dict[str, Dict[str, Any]] = {
             a["article_id"]: a for a in manifest.get("articles", [])
         }
+        current_area = self.options["area"]
         for d in discovered:
             article_id = d["id"]
             title = d.get("title", "")
@@ -440,11 +496,16 @@ class SnapshotSalesforceHelp(BaseTask):
                 # Update title if the existing one is empty
                 if not existing_by_id[article_id].get("title"):
                     existing_by_id[article_id]["title"] = title
+                # Backfill area if missing (handles articles from older manifest
+                # versions that pre-date per-article area tagging)
+                if not existing_by_id[article_id].get("area"):
+                    existing_by_id[article_id]["area"] = current_area
             else:
                 existing_by_id[article_id] = {
                     "article_id": article_id,
                     "title": title,
                     "status": "pending",
+                    "area": current_area,
                 }
         manifest["articles"] = sorted(
             existing_by_id.values(), key=lambda a: a["article_id"]
@@ -654,26 +715,39 @@ class SnapshotSalesforceHelp(BaseTask):
 
     def _build_index(self, index_path: Path, manifest: Dict[str, Any]) -> None:
         stats = manifest.get("stats", {})
-        captured = [a for a in manifest.get("articles", []) if a.get("status") == "captured"]
-        pending = [a for a in manifest.get("articles", []) if a.get("status") == "pending"]
-        errored = [a for a in manifest.get("articles", []) if a.get("status") == "error"]
+        all_articles = manifest.get("articles", [])
+        captured = [a for a in all_articles if a.get("status") == "captured"]
+        pending = [a for a in all_articles if a.get("status") == "pending"]
+        errored = [a for a in all_articles if a.get("status") == "error"]
 
         # Use .get() with safe defaults throughout — a hand-written or older
         # manifest may be missing some top-level keys.
         release_name = manifest.get("release_name", self.options.get("release_name", "?"))
         release = manifest.get("release", self.options.get("release_version", "?"))
-        area = manifest.get("area", self.options.get("area", "?"))
-        root_id = manifest.get("root_article_id", self.options.get("root_article_id", "?"))
-        root_url = manifest.get("source_root_url", self._article_url(root_id))
+        areas = manifest.get("areas", [])
+        # Sort areas by name for stable rendering across runs
+        areas = sorted(areas, key=lambda x: x.get("area", ""))
 
         lines: List[str] = []
-        lines.append(f"# {release_name} Salesforce Help Snapshot — {area.title()} Area")
+        # Title: if manifest covers multiple areas, use the cross-area header;
+        # otherwise use the single-area header for backward compatibility.
+        if len(areas) > 1:
+            lines.append(f"# {release_name} Salesforce Help Snapshot")
+            lines.append("")
+            lines.append(
+                f"Captures **{len(areas)} functional areas** of Revenue Cloud "
+                f"Help: {', '.join(a.get('area', '?') for a in areas)}."
+            )
+        else:
+            single_area = (areas[0].get("area") if areas else manifest.get("area", "?"))
+            lines.append(f"# {release_name} Salesforce Help Snapshot — {single_area.title()} Area")
         lines.append("")
         lines.append(f"**Release:** {release_name} ({release})")
-        lines.append(f"**Area root:** [{root_id}]({root_url})")
         lines.append(f"**Last updated:** {manifest.get('last_updated', 'n/a')}")
         lines.append("")
-        lines.append("## Stats")
+
+        # Overall stats (across all areas)
+        lines.append("## Overall Stats")
         lines.append("")
         lines.append("| Metric | Value |")
         lines.append("|:--|--:|")
@@ -687,20 +761,62 @@ class SnapshotSalesforceHelp(BaseTask):
         )
         lines.append("")
 
-        if captured:
-            lines.append("## Captured")
+        # Per-area summary table (only renders when manifest covers multiple areas)
+        if len(areas) > 1:
+            lines.append("## Per-Area Coverage")
             lines.append("")
-            lines.append("| Article | ID | Bytes |")
-            lines.append("|:--|:--|--:|")
-            for a in sorted(captured, key=lambda a: a["article_id"]):
-                article_id = a["article_id"]
-                title = a.get("title", article_id)
-                file_path = a.get("file", f"articles/{article_id}.md")
-                body_len = a.get("body_length", 0)
+            lines.append("| Area | Root Article | Prefix | Captured | Last Updated |")
+            lines.append("|:--|:--|:--|--:|:--|")
+            for area_entry in areas:
+                a_name = area_entry.get("area", "?")
+                a_root = area_entry.get("root_article_id", "?")
+                a_url = area_entry.get("source_root_url", "")
+                a_prefix = area_entry.get("article_id_prefix", "?")
+                a_stats = area_entry.get("stats", {})
+                a_captured = a_stats.get("captured", 0)
+                a_updated = area_entry.get("last_updated", "n/a")
+                root_cell = f"[{a_root}]({a_url})" if a_url else f"`{a_root}`"
                 lines.append(
-                    f"| [{title}](./{file_path}) | `{article_id}` | {body_len:,} |"
+                    f"| **{a_name}** | {root_cell} | `{a_prefix}` | {a_captured} | {a_updated} |"
                 )
             lines.append("")
+
+        # Captured articles — group by area when multiple areas exist
+        if captured:
+            if len(areas) > 1:
+                # Group by area
+                captured_by_area: Dict[str, List[Dict[str, Any]]] = {}
+                for a in captured:
+                    captured_by_area.setdefault(a.get("area", "untagged"), []).append(a)
+                for area_name in sorted(captured_by_area.keys()):
+                    area_articles = captured_by_area[area_name]
+                    lines.append(f"## Captured — {area_name} ({len(area_articles)})")
+                    lines.append("")
+                    lines.append("| Article | ID | Bytes |")
+                    lines.append("|:--|:--|--:|")
+                    for a in sorted(area_articles, key=lambda x: x["article_id"]):
+                        article_id = a["article_id"]
+                        title = a.get("title", article_id)
+                        file_path = a.get("file", f"articles/{article_id}.md")
+                        body_len = a.get("body_length", 0)
+                        lines.append(
+                            f"| [{title}](./{file_path}) | `{article_id}` | {body_len:,} |"
+                        )
+                    lines.append("")
+            else:
+                lines.append("## Captured")
+                lines.append("")
+                lines.append("| Article | ID | Bytes |")
+                lines.append("|:--|:--|--:|")
+                for a in sorted(captured, key=lambda x: x["article_id"]):
+                    article_id = a["article_id"]
+                    title = a.get("title", article_id)
+                    file_path = a.get("file", f"articles/{article_id}.md")
+                    body_len = a.get("body_length", 0)
+                    lines.append(
+                        f"| [{title}](./{file_path}) | `{article_id}` | {body_len:,} |"
+                    )
+                lines.append("")
 
         if pending:
             lines.append(f"## Pending ({len(pending)})")
