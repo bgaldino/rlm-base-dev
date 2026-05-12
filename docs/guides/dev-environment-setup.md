@@ -32,7 +32,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **pyenv** | `brew install pyenv` | Python version manager | latest |
 | **Python** | `pyenv install 3.13.x` | Runtime for CumulusCI + scripts | major.minor line (`3.13`) |
 | **pipx** | `python -m pip install --user pipx` | Isolated CLI installs (CCI) | latest |
-| **CumulusCI** | `pipx install cumulusci` | Orchestration engine | latest; ensure `setuptools>=75.4` (snowfakery 4.x requirement) |
+| **CumulusCI** | `pipx install cumulusci` | Orchestration engine | latest; ensure `setuptools>=75.4,<77` (snowfakery 4.x requirement) |
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (built-in auto-updater) |
 | **SFDMU plugin** | `sf plugins install @forcedotcom/sfdmu` | Bulk data import/export | v5.x |
 | **gh, git, GCM** | `brew install gh git git-credential-manager` | Source control + PR workflow | latest |
@@ -210,7 +210,7 @@ The script handles:
 5. `pipx install --force cumulusci` (if Python patch bumped) **or**
    `pipx upgrade cumulusci` — required because patch upgrades break the
    venv's python symlink
-6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
+6. `pipx inject --force cumulusci "setuptools>=75.4,<77"` — snowfakery 4.x
    requires modern setuptools (the historical `<71` pin documented in
    earlier guides is **incompatible** with current CCI; see README's
    *Note on setuptools*)
@@ -279,7 +279,7 @@ patch the venv dies. The update script handles this; manually:
 
 ```bash
 pipx install --force cumulusci --python "$(pyenv prefix 3.13)/bin/python"
-pipx inject --force cumulusci "setuptools>=75.4"
+pipx inject --force cumulusci "setuptools>=75.4,<77"
 ```
 
 ### `python3` resolves to `/usr/bin/python3` instead of pyenv shim
