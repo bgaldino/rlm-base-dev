@@ -66,7 +66,7 @@ Revenue Cloud Billing changes this by sitting natively on the Salesforce platfor
 
 - Who to bill (the account record)
 - What was sold (the product catalog and Billing Schedules)
-- When to charge (the contract terms, Charge Frequency including one-time, recurring, milestone, and usage-based charge types, Start Dates, End Dates, Bill Dates)
+- When to charge — start and end dates, billing day of month, and the combination of **Charge Frequency** (One-Time or Recurring) and **Charge Type** (One-Time, Recurring, Usage-Based, or Milestone-Based). Different combinations support different revenue patterns: monthly recurring SaaS, quarterly usage overages, one-off implementation fees, milestone-billed services contracts.
 
 This native integration means Billing isn't just an accounting task — it's the completion of the customer relationship. In fact, the critical bridge is the Order to Billing Schedule flow: a core automation that stages order data for invoicing without any manual handoff.
 
@@ -79,9 +79,9 @@ The "Unified Customer Record" is the most powerful story you can tell. In a disc
 With Revenue Cloud Billing, every team sees the same Source of Truth:
 
 - Sales sees if a customer has outstanding balances before attempting to upsell.
-- Service uses the Invoice Explanation Agent to query Invoice Lines and Usage Summaries, while the Billing Inquiries topic pulls real-time data from the Payment and Credit Memo objects.
+- Service uses the **Subagent: Invoice Line Explanation** to retrieve plain-language explanations of individual invoice charges, while the **Subagent: Billing Inquiries** answers natural-language questions about account balances, payment plans, upcoming payment dates, invoice details, and downloadable invoice documents — both under the **Agentforce for Revenue Management** agent suite.
 - Finance sees real-time revenue reporting without waiting for a month-end sync from an external ERP.
-- Partners can access the full Quote-to-Cash lifecycle — including billing — directly through the Experience Cloud portal, extending the unified record beyond your four walls.
+- Partners and customers can access the full Quote-to-Cash lifecycle — including billing — directly through the Experience Cloud portal, supported by the **Agentforce for Billing Service Assistance Agent** that explains charges to authenticated community users in plain language. This extends the unified record beyond your four walls.
 
 | Note | Content |
 |:-:|:-:|
@@ -93,9 +93,9 @@ When you move to an agentic billing model, you aren't just buying new software �
 
 - **Revenue Leakage:** Many companies lose 1–5% of their earnings because they forget to bill for everything they deliver, especially in complex usage and milestone models. Because RCB is connected to actual order and usage data, it ensures no dollar is left behind — including through Consumption Management, which handles complex, high-volume, and multi-dimensional usage billing.
 - **Manual Reconciliation:** Legacy billing often requires teams to "swivel chair" — copying data from one system to another. This is slow and error-prone. Automation reduces billing errors by up to 50%. For high-volume scenarios (e.g., hundreds of thousands of invoices per month with complex billing lines), RCB's batch invoice generation and standalone API simplification scale to meet enterprise demands.
-- **Slow Cash Flow (High DSO):** Days Sales Outstanding (DSO) measures how long it takes to get paid. Disconnected systems lead to disputes and delayed payments. Agentforce actively works on your behalf to prioritize collections through the Agentforce Collections Agent — using Dunning Orchestration and automated refund workflows to resolve disputes faster and reduce DSO by 20–30%.
+- **Slow Cash Flow (High DSO):** Days Sales Outstanding (DSO) measures how long it takes to get paid. Disconnected systems lead to disputes and delayed payments. Revenue Cloud Billing automates the collections workflow through the **Subagent: Billing Collections Management** — combining Dunning Orchestration and refund orchestration to resolve disputes faster and reduce DSO by 20–30%.
 
-> **[Video Suggestion: The Power of Agentforce Revenue]** Insert a short (2-minute) demo video showing the "Invoice-to-Cash Reimagined" flow — from an activated Order to a generated Invoice to a Collections Agent resolving a dispute.
+> **[Video Suggestion: The Power of Agentforce Revenue]** Insert a short (2-minute) demo video showing the "Invoice-to-Cash Reimagined" flow — from an activated Order to a generated Invoice to the Subagent: Billing Collections Management resolving a dispute.
 
 | Note | Content |
 |:-:|:-:|
@@ -106,8 +106,8 @@ When you move to an agentic billing model, you aren't just buying new software �
 In this unit, you learned how Billing completes the Salesforce ecosystem by bridging the gap between sales and finance.
 
 - **The Connective Tissue:** Revenue Cloud Billing (RCB) — the billing component of Agentforce Revenue Management — is the final step in the Lead-to-Cash journey, bridging the Order to a Billing Schedule to an Invoice without manual intervention.
-- **The Unified Record:** Shared data across Sales, Service, Finance, and Partners reduces customer friction and powers agentic experiences like the Invoice Explanation Agent, the Billing Inquiries agent, and the Collections Agent.
-- **The Bottom Line:** By addressing revenue leakage, manual errors, and slow cash flow — through Consumption Management, batch processing, and Dunning Orchestration — organizations protect their margins and improve liquidity.
+- **The Unified Record:** Shared data across Sales, Service, Finance, and Partners reduces customer friction and powers the agentic experiences under the **Agentforce for Revenue Management** suite — Subagent: Invoice Line Explanation, Subagent: Billing Inquiries, and Subagent: Billing Collections Management — plus the customer-facing Agentforce for Billing Service Assistance Agent in Experience Cloud.
+- **The Bottom Line:** By addressing revenue leakage, manual errors, and slow cash flow — through Consumption Management, batch invoice runs, and Dunning Orchestration — organizations protect their margins and improve liquidity.
 
 ## Resources
 
@@ -195,7 +195,7 @@ In this unit, you learned how the data model automates the transition from Sales
 - **The Golden Path:** Data flows from the Order to the Billing Schedule (created by the Order to Billing Schedule flow) to the Invoice.
 - **Automation Over Manual Work:** Billing Schedules allow the system to "pre-plan" future revenue, eliminating the need for monthly manual intervention.
 - **Four Charge Types:** One-Time, Recurring, Usage-Based (Consumption Management), and Milestone charges give businesses the flexibility to monetize any model.
-- **Flexibility is King:** Objects like Billing Schedule Groups and Usage Summaries allow businesses to handle complex, modern revenue models at scale, including support for billing frequency changes at the BSG level.
+- **Flexibility is King:** Objects like Billing Schedule Groups and the Usage Entitlement chain (Account → Bucket → Entry) allow businesses to handle complex, modern revenue models at scale, including support for billing frequency changes at the BSG level.
 
 ## Quiz
 
@@ -216,17 +216,17 @@ When we talk about invoice production in Revenue Cloud Billing, we are talking a
 
 The system provides three primary ways to generate invoices, depending on the business need. Think of these as different "gears" in the billing engine:
 
-- **The Billing Preview:** Before creating an actual invoice, users can run a preview. This is a critical safety net. It allows Finance teams to see exactly what the system plans to bill without actually creating a permanent record. This is especially valuable for customer service inquiries and request for proforma invoices.
-- **"Bill Now" Functionality:** This is the manual "override." If a customer needs an invoice immediately — perhaps for a one-time service or a mid-month request — a user can trigger "Bill Now" directly from the Account.
-- **The Billing Batch Scheduler:** This is the automated high gear. It allows the system to run in the background, picking up thousands of Billing Schedules and converting them into Invoices based on a configured frequency.
+- **Preview Invoices:** Before generating an actual invoice, users can preview what billing will produce for the next two billing periods of an order, quote, account, or Billing Schedule Group. This is a critical safety net for Finance teams who want to verify amendments, cancellations, and tax calculations before posting. The same logic is exposed programmatically through the **Invoice Preview API** for headless preview generation.
+- **Generate Invoices (Quick Action):** The on-demand path. From an Account or Order record, users click the **Generate Invoices** quick action, select a target date and whether to produce Draft or Posted invoices, and the system creates invoices for all eligible billing schedules. Behind the scenes this invokes the Create Invoices By Using Billing Schedules API.
+- **The Billing Batch Scheduler:** The automated high gear. The system runs in the background, picking up thousands of Billing Schedules and converting them into Invoices based on a configured frequency. The formal product name is **Invoice Batch Run**.
 
 ## Powering the Backend: Scaling and Integration
 
 While the user sees an invoice, the Salesforce Platform is doing heavy lifting behind the scenes.
 
-- **Data Processing Engine (DPE):** In RCB the Data Processing Engine (DPE) acts as the high-performance orchestration layer that transforms complex billing schedule data into accurate invoices. While traditional billing systems often rely on rigid, pre-defined batch jobs, the DPE allows for highly scalable and customizable data aggregation. When the invoice generation process is triggered—either through a scheduled run or a manual "Bill Now" action—the system invokes a specific DPE definition. This engine queries relevant records, such as Billing Schedules, Usage Entitlement Accounts and Milestone Plan Items, applies logic to calculate the billable amounts creating Billing Period Items. The DPE creates invoice records and groups like BPIs into Invoice Lines.
+- **Data Processing Engine (DPE):** In RCB the Data Processing Engine (DPE) acts as the high-performance orchestration layer that transforms complex billing schedule data into accurate invoices. While traditional billing systems often rely on rigid, pre-defined batch jobs, the DPE allows for highly scalable and customizable data aggregation. When the invoice generation process is triggered—either through a scheduled Invoice Batch Run or a manual Generate Invoices action—the system invokes a specific DPE definition. This engine queries relevant records, such as Billing Schedules, Usage Entitlement Accounts and Milestone Plan Items, applies logic to calculate the billable amounts creating Billing Period Items. The DPE creates invoice records and groups Billing Period Items into Invoice Lines.
 - **Billing Period Items** serve as the granular execution records that bridge the gap between a Billing Schedule and the final Invoice. While a Billing Schedule outlines the broad plan for how an Order Product should be billed over time, the Billing Period Item represents the specific, individual charge.
-- **Tax Adapter:** Tax is complicated and ever-changing. While RCB does have standard tax tables for simple tax use cases, most customers will choose to utilize the tax adaptor. The Tax Adaptor allows customers to connect RCB's high scale bill run directly to the external tax engine of their choice (like Avalara or Vertex). The output of the tax adaptor is stored in the Invoice Line Taxes object and linked directly to the corresponding Invoice Line.
+- **Tax Adapter:** Tax is complicated and ever-changing. RCB ships a **Revenue Standard Tax Engine** for simple tax tables, but most customers connect to a third-party engine like Avalara or Vertex. Custom integrations extend the **TaxEngineAdapter Apex interface**. The adapter's output is stored in Invoice Line Tax records linked directly to the corresponding Invoice Lines.
 - **Document Generation:** The transition from raw invoice data to a customer-facing PDF is handled by the Document Generation Service. Unlike traditional systems that may require third-party add-ons, RCB leverages native Document Templates to define the layout, branding, and data mapping for the final document. Once the Data Processing Engine has finalized the Invoice and Invoice Line records, the actual PDF creation is triggered automatically.
 
 This process utilizes Omnistudio Document Generation capabilities to merge account, contact, and invoice data into predefined Word or HTML-based templates. When the generation process begins, the system creates a Document Generation Process record to track the progress; once this status moves to "Success," the finalized PDF is attached to the Invoice record. This architecture allows administrators to easily customize invoices—such as adding company logos or specific legal disclosures—using a "low-code" approach via the Document Builder, ensuring that the final output is professional, accurate, and ready for distribution.
@@ -249,7 +249,7 @@ Once the billing engine finishes its work, it leaves behind a clear trail of fin
 Trust is our number one value. By running billing on the Salesforce Platform, organizations benefit from enterprise-grade security:
 
 - **Encryption:** Protecting sensitive financial data at rest and in transit.
-- **Audit Trails:** Knowing exactly who triggered a "Bill Now," when a Batch Run was completed, or when a Dispute action was invoked.
+- **Audit Trails:** Knowing exactly who triggered a Generate Invoices action, when an Invoice Batch Run was completed, or when a Dispute resolution was invoked.
 - **Single Identity:** Users don't need a separate login for a billing tool — their Salesforce credentials provide secure, role-based access.
 - **Compliance:** The Tax Adapter integration and Invoice Tax Line objects ensure that billing outputs are legally compliant across jurisdictions — a critical proof point for global companies.
 
@@ -257,7 +257,7 @@ Trust is our number one value. By running billing on the Salesforce Platform, or
 
 In this unit, you learned how to move from a Billing Schedule to a finalized Invoice — and the backend services that make it scale.
 
-- **Multiple Gears:** Use Billing Previews for accuracy, "Bill Now" for speed, and the Batch Scheduler for scale, with holiday and weekend exclusions for smarter scheduling.
+- **Multiple Gears:** Use **Preview Invoices** for accuracy, the **Generate Invoices** quick action for speed, and the **Invoice Batch Run** for scale, with holiday and weekend exclusions for smarter scheduling.
 - **High Performance:** The DPE and Consumption Management handle complex usage at scale; the Tax Adapter handles global compliance; and the Document Generation Service handles document delivery.
 - **Agentic Upgrades:** High Scale Billing, Refunds Orchestration, and Dispute Management's automated resolution actions make invoice production more powerful and more agentic.
 - **Platform Power:** Running on Salesforce means billing operations are as secure, scalable, and trusted as your CRM.

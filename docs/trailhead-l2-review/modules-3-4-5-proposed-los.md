@@ -49,7 +49,7 @@
 **Unit 2: Navigate the Usage Rating Pipeline**
 - 2.1 Identify the required fields on a usage record entering the Transaction Journal (External ID, Timestamp, Quantity, Unit of Measure, Matching Attribute).
 - 2.2 Map the flow of usage data through the pipeline: Transaction Journal → Usage Summary → **Usage Ratable Summary** → Liable Summary.
-- 2.3 Describe how **Rating Procedures** (the customizable, ordered stacks of rating elements that calculate the final net rate) consume Asset Rate Card Entries and Asset Rate Adjustments to produce Usage Ratable Summaries. Note that **Rating Discovery Procedures** are a distinct, complementary concept used by Quote and Order Capture to fetch the right rate cards for a sellable product.
+- 2.3 Describe how **Rating Procedures** (Default Rating Procedure for volume-based pricing or Negotiable Rating Procedure for complex negotiations — both implemented as `ExpressionSetDefinition` metadata) consume Asset Rate Card Entries and Asset Rate Adjustments to produce Usage Ratable Summaries. Note that **Rating Discovery Procedures** are a distinct, complementary concept used by Quote and Order Capture and Asset Lifecycle to fetch the right rate cards for a sellable product.
 - 2.4 Recognize that mediation (cleaning and normalizing raw usage data before it reaches the Transaction Journal) is customer-side responsibility, not part of Revenue Cloud Billing.
 
 **Unit 3: Apply the Usage Agent, Drawdown Policies, and Extensions**
@@ -181,14 +181,14 @@ Self-Service Portal coverage splits between Module 4 (invoice viewing) and Modul
 ## Proposed LO revisions (v2, incorporating Mike)
 
 **Unit 1: Configure Payment Gateways, Methods, and Smart Retries**
-- 1.1 Configure connections to natively supported payment gateways: Salesforce Payments and Adyen.
-- 1.2 Describe how third-party processors like Stripe integrate through the Payment Gateway Adapter pattern (`PaymentGatewayProvider` with an Apex adapter class implementing the Payment Gateway Adapter interface).
-- 1.3 Configure Smart Retry rules to differentiate soft declines from hard declines.
-- 1.4 Set up Payment Runs to sweep posted invoices automatically against connected gateways.
+- 1.1 Configure native payment gateway connections through **Salesforce Payments** to **Stripe** and **Adyen** — the two gateways natively supported by the Salesforce Payments service.
+- 1.2 Describe how additional third-party processors integrate through the **Payment Gateway Adapter** pattern (`PaymentGatewayProvider` record + Apex adapter class implementing the Commerce Payments namespace).
+- 1.3 Configure **Payment Retry Rules** and **Payment Retry Rule Sets** to retry failed payments by gateway error category, with **Fixed** (consistent intervals) or **Staggered** (varied intervals) retry timing.
+- 1.4 Set up a **Payment Scheduler** (a Billing Batch Scheduler with Job Type = Payment) to create **Payment Batch Runs** that automatically collect payments against connected gateways and apply them to posted invoices.
 
 **Unit 2: Automate Collections, Disputes, and Customer Self-Service for Payments**
 - 2.1 Configure automated Dunning workflows to escalate aging invoices through email, SMS, and portal nudges.
-- 2.2 Describe how the **Billing Collections Management** subagent (under the **Agentforce for Billing Employee Assistance** parent agent) helps collections teams assess account health, highlight high-risk invoices based on payment history, disputes, and outstanding balances, and surface recommended next actions.
+- 2.2 Describe how the **Subagent: Billing Collections Management** (under the **Agentforce for Revenue Management** agent suite, API name `BillingCollections`) helps collections teams assess account health through two named capabilities: **Get Account Billing Summary** (high-risk invoices, late payment history, open disputes) and **Get Dunning Strategy** (recommended dunning approach based on prior communications, payment history, and open disputes).
 - 2.3 Manage Billing Disputes — capture, validate, and resolve common billing requests from the Self-Service Portal or directly through the Collections workflow.
 - 2.4 Set up the Self-Service Portal's payment surface: Pay Now link, payment method updates, one-time payments.
 - 2.5 Articulate the Payments and Collections capability's impact on Days Sales Outstanding (DSO) for a Finance audience.

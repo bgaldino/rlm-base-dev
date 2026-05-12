@@ -5,7 +5,26 @@
 **Source of truth:** `docs/salesforce/262/help/articles/*.md` (171 articles, Summer '26)
 **Companion source:** project metadata (qb-billing CSV headers, qb-tax README, erd-data.json)
 **Subject doc:** `docs/trailhead-l2-review/module-1-v2.md` (pulled from Mike Aaron's "Copy of Module 1 v2" Google Doc on 2026-05-11)
-**Status:** Draft for SME review. Findings recorded against 262 snapshot. No edits applied yet — pending Mike's direction on the open questions in Section 12.
+**Status:** Substantive edits applied to `module-1-v2.md` (2026-05-12, after the full 838-article 262 snapshot completed). The Agentforce product names are now grounded against the captured `ind.rev_agent_*` agent suite area — every subagent name in the doc maps to a verified 262 Help article. Open questions for Mike (Section 12) on unsourced terms (High Scale Billing, Spring Batch, m3ter, National Satellite Service) and the voice-checklist re-pass are still pending.
+
+## Edits applied — summary table
+
+| ID | Edit | Status | Module 1 v2 location |
+|---|---|---|---|
+| A | Agentforce product taxonomy: "Invoice Explanation Agent / Billing Inquiries topic / Agentforce Collections Agent" → the actual 262 subagent names under "Agentforce for Revenue Management." Added Agentforce for Billing Service Assistance Agent for the Experience Cloud customer-facing surface. Anthropomorphism "Agentforce actively works on your behalf" replaced. | ✅ Applied | Unit 1 body + Key Takeaways + Video suggestion |
+| B | "Bill Now" → "Generate Invoices" (quick action) | ✅ Applied | Unit 3 mechanics section + Key Takeaways + Audit Trails |
+| C | "Billing Preview" → "Preview Invoices" + Invoice Preview API | ✅ Applied | Unit 3 mechanics section + Key Takeaways |
+| D | "Usage Summaries" → Usage Entitlement chain (Account → Bucket → Entry) | ✅ Applied | Unit 1 body + Unit 2 Key Takeaways + Unit 3 DPE reference |
+| F | Charge Frequency vs Charge Type — separate the two concepts | ✅ Applied | Unit 1 "When to charge" bullet |
+| G | TaxEngineAdapter naming + Adapter/Adaptor spelling normalization | ✅ Applied | Unit 3 Tax Adapter bullet |
+| — | Invoice Batch Run formal name | ✅ Applied | Unit 3 Batch Scheduler bullet + Key Takeaways + DPE paragraph |
+| (evergreen) | Removed "Spring Batch removal," "now free of event consumption," "now with holiday/weekend exclusions" — prior commit | ✅ Applied | Unit 3 Key Takeaways |
+
+**Not yet applied — pending Mike's input:**
+- Edit E (Billing Profile / Billing Account framing) — optional precision, hold.
+- Edit H (Dispute Management "invocable actions" → "automated resolution actions") — already addressed by the prior evergreen pass.
+- Edit I (Unsourced terms: High Scale Billing, m3ter, National Satellite Service) — Mike's input on Section 12 Q5.
+- Edit J (Voice checklist re-pass after factual edits) — best done after Mike sees the post-edit doc.
 
 ## TL;DR
 

@@ -55,7 +55,7 @@ Module 3 LOs are **mostly accurate** against the 262 snapshots. The data model o
 
    `snapshot_agents_help_262` is queued in `cumulusci.yml` (root verified) so the dedicated agents area can be captured next.
 
-2. **"Default Rating Procedure" + "Negotiable Rating Procedure" naming (LO 2.3).** Per Section 2 above, "Default Rating Procedure" is real (there's a clone-the-default Help article) but "Negotiable Rating Procedure" doesn't appear. Did "Negotiable" come from project-metadata `ExpressionSetDefinition` filenames (e.g., `Negotiable_Rating_Procedure.expressionSetDefinition-meta.xml`)? If so, the LO should use Help-portal naming for learners (Rating Procedures) and reserve the file-name framing for developer-focused body content asides.
+2. **~~"Default Rating Procedure" + "Negotiable Rating Procedure" naming~~ RESOLVED.** A second pass through `ind.rm_rating_procedures.htm` confirms both **Default Rating Procedure** and **Negotiable Rating Procedure** are documented 262 terms: "Understanding the distinctions between Default Rating Procedure and Negotiable Rating Procedure is key to optimizing your billing processes in Salesforce. Each procedure caters to different scenarios, from straightforward volume-based pricing to complex, usage-driven negotiations." M3 v2 body draft uses both names. LO 2.3 references "Rating Procedures (Default Rating Procedure or Negotiable Rating Procedure) and Rating Discovery Procedures" — accurate against the snapshot.
 
 ## 262 details worth adding to Module 3 prose later
 
