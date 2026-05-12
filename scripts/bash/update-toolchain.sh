@@ -32,7 +32,7 @@ command -v pyenv >/dev/null || die "pyenv not found"
 
 LATEST_KNOWN="$(pyenv latest -k "$PY_LINE" 2>/dev/null || true)"
 LATEST_INSTALLED="$(pyenv latest "$PY_LINE" 2>/dev/null || true)"
-[ -n "$LATEST_KNOWN" ] || die "pyenv can't resolve latest Python $PY_LINE — run 'pyenv update' or upgrade pyenv"
+[ -n "$LATEST_KNOWN" ] || die "pyenv can't resolve latest Python $PY_LINE — run 'brew upgrade pyenv' to refresh python-build definitions"
 
 log "Python: latest known $PY_LINE = $LATEST_KNOWN ; installed = ${LATEST_INSTALLED:-none}"
 if [ "$LATEST_KNOWN" != "$LATEST_INSTALLED" ]; then

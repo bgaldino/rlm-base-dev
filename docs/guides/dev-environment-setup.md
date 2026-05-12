@@ -31,10 +31,10 @@ ends up with the same layered structure — not the same exact patch versions.
 | **Node.js** | `nvm install --lts` | JavaScript runtime for `sf` CLI | major LTS line (`lts/*`) |
 | **pyenv** | `brew install pyenv` | Python version manager | latest |
 | **Python** | `pyenv install 3.13.x` | Runtime for CumulusCI + scripts | major.minor line (`3.13`) |
-| **pipx** | `python -m pip install --user pipx` | Isolated CLI installs (CCI) | latest |
-| **CumulusCI** | `pipx install cumulusci` | Orchestration engine | latest; ensure `setuptools>=75.4,<77` (snowfakery 4.x requirement) |
+| **pipx** | `$(pyenv prefix)/bin/python3 -m pip install --user pipx` | Isolated CLI installs (CCI) | latest |
+| **CumulusCI** | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` | Orchestration engine | latest; ensure `setuptools>=75.4,<77` (snowfakery 4.x requirement) |
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (built-in auto-updater) |
-| **SFDMU plugin** | `sf plugins install @forcedotcom/sfdmu` | Bulk data import/export | v5.x |
+| **SFDMU plugin** | `sf plugins install sfdmu@5` | Bulk data import/export | v5.x (pin major) |
 | **gh, git, GCM** | `brew install gh git git-credential-manager` | Source control + PR workflow | latest |
 
 **Pin philosophy:**
@@ -297,8 +297,8 @@ the pyenv `python3` specifically, use `pyenv exec python3`.
 
 ## 7. Reference
 
-- Backup files (created during the 2026-05-12 refactor):
-  `~/.zshenv.bak.20260512`, `~/.zshrc.bak.20260512`, `~/.zprofile.bak.20260512`
+- Before editing shell configs, always save a dated backup:
+  `cp ~/.zshenv ~/.zshenv.bak.$(date +%Y%m%d)` (repeat for `~/.zshrc`, `~/.zprofile`)
 - Update script: `scripts/bash/update-toolchain.sh`
 - Project .envrc: `.envrc` at repo root
 - Validation: `cci task run validate_setup` (no org required)
