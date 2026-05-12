@@ -112,15 +112,11 @@ command -v direnv >/dev/null 2>&1 && eval "$(direnv export zsh 2>/dev/null)"
 
 #### `~/.zprofile` — runs in **login** shells only
 
+`.zshenv` already runs for every shell (including login), so it handles
+Homebrew setup. `.zprofile` is reserved for login-only extras.
+
 ```sh
-# Re-evaluate brew shellenv for login shells (idempotent — .zshenv already did
-# this for all shells; this line is here in case a contributor's .zshenv differs
-# or they're on a system where login is the only chance to set up Homebrew).
-if [ -x /opt/homebrew/bin/brew ]; then
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-elif [ -x /usr/local/bin/brew ]; then
-  eval "$(/usr/local/bin/brew shellenv)"
-fi
+# Login-only PATH additions (Homebrew + nvm + pyenv all live in .zshenv).
 export PATH="$PATH:$HOME/Library/Application Support/JetBrains/Toolbox/scripts"
 ```
 

@@ -23,6 +23,7 @@ warn() { printf '\n\033[1;33m[warn]\033[0m  %s\n' "$*" >&2; }
 die()  { printf '\n\033[1;31m[fail]\033[0m  %s\n' "$*" >&2; exit 1; }
 
 # ── 1. Homebrew ─────────────────────────────────────────────────────────────
+command -v brew >/dev/null || die "brew not found — install Homebrew from https://brew.sh first"
 log "Homebrew: update + upgrade"
 brew update
 brew upgrade
