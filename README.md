@@ -31,6 +31,13 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 
 > **Cursor users:** Open this README in [Cursor](https://www.cursor.com/), press `Cmd+L` to open the AI chat, and paste: *"Walk me through the macOS Environment Setup section of this README, running each command in the terminal."* The agent can execute each step interactively. Run the steps in order — each one builds on the previous.
 
+> **For the layered/canonical view** (shell config architecture, per-project
+> `.envrc` activation via direnv, major-line pin strategy, and the
+> `scripts/bash/update-toolchain.sh` maintenance routine), see
+> [`docs/guides/dev-environment-setup.md`](docs/guides/dev-environment-setup.md).
+> Steps 1–11 below are the first-time bootstrap; the guide describes the
+> target architecture and ongoing maintenance you'll move to after that.
+
 This section walks through a full, clean environment setup on macOS using [Homebrew](https://brew.sh/) for package management, [pyenv](https://github.com/pyenv/pyenv) for Python version management, and [nvm](https://github.com/nvm-sh/nvm) for Node.js version management. Using version managers (pyenv + nvm) keeps your tool installations isolated from the macOS system Python and Node, avoiding conflicts when multiple projects need different versions. Skip any step for tools you already have installed.
 
 ### Step 1 — Install Homebrew
@@ -294,6 +301,19 @@ node --version && sf --version && cci version && python --version
 If any command returns "not found", check that `~/.zshenv` contains the nvm and pyenv init blocks (see Steps 3 and 4), then **restart Claude Code** so it picks up the updated PATH.
 
 **After any PATH change** (new nvm version, new pyenv version, new pipx install), restart Claude Code — it inherits the PATH from the shell that launched it and does not reload `~/.zshenv` mid-session.
+
+### Ongoing toolchain maintenance
+
+Once the bootstrap above is complete, ongoing updates (new Python patches,
+Node LTS refreshes, sf/CCI/SFDMU upgrades) are handled by a single script:
+
+```bash
+scripts/bash/update-toolchain.sh
+```
+
+It walks `brew upgrade` → latest patch in your pinned Python line → latest LTS Node → `sf update` → CCI reinstall/upgrade → `sf plugins update` → `cci task run validate_setup`. Major-line pins (e.g. Python 3.13, Node `lts/*`) are configured at the top of the script.
+
+For the full architecture — shell config responsibilities, the per-project `.envrc` pattern via [direnv](https://direnv.net/), troubleshooting, and instructions for replicating on a new workstation — see [`docs/guides/dev-environment-setup.md`](docs/guides/dev-environment-setup.md).
 
 **Validating the full setup from Claude Code:** Ask Claude to run `cci task run validate_setup`. This checks all required tools and — when the relevant auto-fix options are enabled — can auto-fix missing robot deps (default on) and update the SFDMU version (default on). urllib3 is upgraded as a side-effect of the robot dep fix, or independently with `auto_fix_urllib3=true`. No org connection needed. It is the fastest way to confirm your environment is ready before running flows.
 
@@ -1028,6 +1048,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 
 | Document | Description |
 |----------|-------------|
+| [Dev Environment Setup](docs/guides/dev-environment-setup.md) | Canonical local toolchain architecture — shell config layout, direnv `.envrc` per-project pinning, major-line update strategy, replication on new workstations |
 | [Constraints Utility Guide](datasets/constraints/README.md) | CML constraint model export, import, validate -- architecture, workflows, polymorphic resolution |
 | [Constraints Setup](docs/guides/constraints-setup.md) | `prepare_constraints` flow order, feature flags, deployment phases |
 | [Decision Table Examples](docs/references/decision-table-examples.md) | Comprehensive examples for Decision Table management tasks |
