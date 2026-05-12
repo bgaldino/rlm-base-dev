@@ -48,12 +48,12 @@
 
 **Unit 2: Navigate the Usage Rating Pipeline**
 - 2.1 Identify the required fields on a usage record entering the Transaction Journal (External ID, Timestamp, Quantity, Unit of Measure, Matching Attribute).
-- 2.2 Map the flow of usage data through the pipeline: Transaction Journal → Usage Summary → Ratable Summary → Liable Summary.
-- 2.3 Describe how the Rating Procedure (Default Rating Procedure or Negotiable Rating Procedure, implemented as `ExpressionSetDefinition` metadata) consumes Asset Rate Card Entries and Asset Rate Adjustments to produce Ratable Summaries.
+- 2.2 Map the flow of usage data through the pipeline: Transaction Journal → Usage Summary → **Usage Ratable Summary** → Liable Summary.
+- 2.3 Describe how **Rating Procedures** (the customizable, ordered stacks of rating elements that calculate the final net rate) consume Asset Rate Card Entries and Asset Rate Adjustments to produce Usage Ratable Summaries. Note that **Rating Discovery Procedures** are a distinct, complementary concept used by Quote and Order Capture to fetch the right rate cards for a sellable product.
 - 2.4 Recognize that mediation (cleaning and normalizing raw usage data before it reaches the Transaction Journal) is customer-side responsibility, not part of Revenue Cloud Billing.
 
 **Unit 3: Apply the Usage Agent, Drawdown Policies, and Extensions**
-- 3.1 Describe the Usage Agent's role in reporting on overage status.
+- 3.1 Describe the **Subagent: Consumption Management** (under the **Agentforce for Revenue Management** agent suite) — gets consumption details for accounts with resource overages AND generates quotes to remediate those overages. Pair it with the **Usage Overage Policy** (governance: what counts as chargeable overage) and the **Unified Usage Dashboard** (the monitoring surface) for the complete overage story.
 - 3.2 Describe the three Drawdown Policies (Expiring First, Granted First, Granted Last) and how the system applies them automatically to Usage Entitlement Buckets — they are not user-configured.
 - 3.3 Describe how to extend rating with third-party engines, including the m3ter ISV partner integration for high-volume scenarios.
 
@@ -73,9 +73,38 @@
 
 ## Notes for v2 authoring
 
-The Rating Procedure is implemented as `ExpressionSetDefinition` metadata, not an SObject — files at `force-app/main/default/expressionSetDefinition/RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml` and `Negotiable_Rating_Procedure.expressionSetDefinition-meta.xml`. Worth flagging in the v2 prose since admins will look for it in the standard object browser and not find it.
+Rating Procedures and Rating Discovery Procedures are two distinct concepts in 262:
+- **Rating Procedures** — customizable, ordered stacks of rating elements that calculate the final net rate for a usage resource. Implemented as `ExpressionSetDefinition` metadata at `force-app/main/default/expressionSetDefinition/RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml`.
+- **Rating Discovery Procedures** — separate from rating procedures; their job is to fetch the binding objects, rate cards, rate card entries, and rate adjustments associated with sellable products. Used by Quote and Order Capture and Asset Lifecycle to get rate context for usage products. See `docs/salesforce/262/help/articles/ind.rm_rate_management.htm.md`.
+
+Worth flagging both in the v2 prose since admins will look for "Rating Procedure" in the standard object browser and not find it (it's metadata), and they may conflate the two procedure types. The 2026-05-11 validation against the 262 Rate Management snapshot also surfaced that the "Negotiable Rating Procedure" naming used in the FY27 outline doesn't appear in the Help docs — only "Default Rating Procedure" does. Use Help-portal naming in LO/body content and reserve the file-name framing for developer asides.
 
 Binding lives on `TransactionUsageEntitlement.GrantBindingTargetId` (the customer's per-product entitlement) and `UsageEntitlementAccount.GrantBindingTargetId` (the per-account binding). The Bucket inherits binding through `ParentId`. The `UsagePrdGrantBindingPolicy` object holds the policy itself. Mike's framing was close but the v2 prose should locate the binding accurately.
+
+**Help-portal validation status: complete coverage of all 10 RC functional areas (838 articles total, 4.3 MB).** Captured 2026-05-11 / 2026-05-12 across:
+
+- **Usage Management** (`ind.um_*`, 52 articles) — owns TransactionUsageEntitlement, Usage Entitlement Account / Bucket / Entry, ProductUsageResource / ProductUsageGrant, Drawdown Policies, Wallets. Covers Unit 1 + Unit 3 LOs.
+- **Rate Management** (`ind.rm_*`, 35 articles) — owns RateCard, RateCardEntry, AssetRateCardEntry, AssetRateAdjustment, Rating Procedures + Rating Discovery Procedures. Covers Unit 2 LOs.
+- **Agentforce for Revenue Management** (`ind.rev_agent_*`, 13 articles) — 7 subagents including Consumption Management. Covers Unit 3 LO 3.1.
+- Plus PCM, Pricing, Configurator, Transaction Mgmt, DRO, Billing, Approvals for cross-module validation.
+
+The Module 3 LOs above have been validated against the snapshots. See `module-3-262-lo-validation-report.md` for the per-LO findings. The three clear-cut corrections (Usage Ratable Summary naming, Rating Procedures vs Rating Discovery Procedures naming, Consumption Management subagent identification) are already applied to the LO list above. The Wallet Management question remains open for Mike.
+
+**LO 3.1 resolved against a previously-missing area: Agentforce for Revenue Management.** Mike pointed out the agent suite lives at `ind.rev_agent_overview.htm` — a Help-portal area I had missed in my initial sidebar walk. That area is the "Agentforce for Revenue Management" agent suite, which contains 7 subagents spanning every functional domain:
+
+- **Subagent: Product Selection** (PCM)
+- **Subagent: Product Description Generation** (PCM)
+- **Subagent: Quote Management** (Transaction Mgmt)
+- **Subagent: Consumption Management** (Usage) — this is the one M3 LO 3.1 cares about
+- **Subagent: Invoice Line Explanation** (Billing)
+- **Subagent: Billing Collections Management** (Billing)
+- **Subagent: Billing Inquiries** (Billing)
+
+Mike's "Consumption Agent" hint was directionally right — the actual product name is **Subagent: Consumption Management** under the **Agentforce for Revenue Management** parent. LO 3.1 is rewritten above to use the verified product names, pairing the subagent with the Usage Overage Policy (governance) and Unified Usage Dashboard (monitoring surface) for a complete overage story.
+
+The dedicated agents snapshot (`snapshot_agents_help_262`, root `ind.rev_agent_overview.htm`, prefix `ind.rev_agent`) is queued in `cumulusci.yml` and ready to run. Once captured, the body-content authoring pass for M3 Unit 3 can cite the agent's exact capabilities directly.
+
+**Agent content is cross-cutting** — the Billing snapshot already has 4 `ind.billing_agentforce_*` articles covering area-specific operating context for the Billing subagents. When Transaction Mgmt and PCM snapshots run, expect similar `ind.qocal_agentforce_*` and `ind.product_catalog_agentforce_*` how-to articles to surface. Grep across all snapshots when validating agent claims (see `revenue-cloud-docs` skill for the validation pattern).
 
 ---
 
@@ -96,11 +125,11 @@ Binding lives on `TransactionUsageEntitlement.GrantBindingTargetId` (the custome
 **Unit 1: Configure Billing Arrangements and Drive the Bill Run**
 - 1.1 Configure Billing Arrangements (`BillingArrangement` and `BillingArrangementLine`) to allocate invoice amounts across multiple billing accounts.
 - 1.2 Describe the role of Bill Cycle Day (`BillDayOfMonth`) and Next Billing Date (`NextBillingDate`) in Invoice execution.
-- 1.3 Map how the Bill Run picks up ready-to-bill Billing Schedules and produces Invoices and Invoice Lines.
+- 1.3 Map how the Bill Run (formal product name: **Invoice Batch Run**) picks up ready-to-bill Billing Schedules and produces Invoices and Invoice Lines.
 - 1.4 Describe how Debit Memo Lines convert to Invoice Lines based on Next Billing Date.
 
 **Unit 2: Manage Invoice Delivery, Credit Memos, and the Invoice Line Explanation Agent**
-- 2.1 Configure the invoice delivery flow: the Invoice Scheduler creates the invoice data, DocGen renders the PDF, and Send Invoices Through Email delivers it to the customer.
+- 2.1 Configure the invoice delivery flow: the Invoice Scheduler creates the invoice data, the **Document Generation Service** (DocGen — based on OmniStudio) renders the PDF, and **Send Invoices Through Email** delivers it to the customer.
 - 2.2 Describe how Credit Memo Lines are auto-created from negative Invoice Lines (via the "Convert Negative Invoice Lines to Credit Memo Lines" feature in Billing Settings) and how Credit Memos are applied to outstanding invoices.
 - 2.3 Describe the Self-Service Portal as a customer-facing surface for viewing invoices.
 - 2.4 Explain how the Invoice Line Explanation Agent provides plain-language breakdowns of complex charges. (Available with both Revenue Cloud Advanced and Revenue Cloud Billing — Mike confirmed.)
@@ -110,6 +139,8 @@ Binding lives on `TransactionUsageEntitlement.GrantBindingTargetId` (the custome
 **Drop Milestone Application.** Mike: "i dont think we need to cover milestones again, remove." Module 2 v2 covers both milestone configuration (on the BTI) and milestone runtime (`BillingMilestonePlan` and `BillingMilestonePlanItem`). Duplicating that coverage in Module 4 doesn't earn its space.
 
 **Correct the Bill Run terminology.** Mike: "This is the bill run and not the Order to BS pipeline. Where did that come from?" The v1 mistakenly referenced "the Order to Billing Schedule pipeline" as the mechanism for invoice production. The actual mechanism is the Bill Run (`BillingBatchScheduler` / `InvoiceScheduler`). Order to Billing Schedule is the flow that turns activated Orders into Billing Schedules; it doesn't produce Invoices.
+
+**Formal product name is "Invoice Batch Run."** Verified against the Salesforce Help portal (article `ind.billing_invoice_batch_run.htm`, titled "Invoice Batch Run Process"). "Bill Run" is acceptable seller-facing shorthand; body content should cite the formal name once for grounding.
 
 **Add Debit Memos.** Mike: "We should add debit memos here." Debit Memos exist as a first-class object (`DebitMemo`) and carry `NextBillingDate`, which "determines when Debit Memo Lines are converted to invoice lines." This is a real product behavior worth surfacing in the Bill Run unit.
 
@@ -129,7 +160,7 @@ Binding lives on `TransactionUsageEntitlement.GrantBindingTargetId` (the custome
 
 ## Notes for v2 authoring
 
-The invoice production chain is: **Invoice Scheduler → DocGen → Email**. Each link is a distinct feature with its own configuration. The Invoice Scheduler is `BillingBatchScheduler` / `InvoiceScheduler`; DocGen is OmniStudio DocGen; Send Invoices Through Email is a separate Billing feature. Worth naming all three explicitly so learners understand they're separate.
+The invoice production chain is: **Invoice Scheduler → Document Generation Service → Send Invoices Through Email**. Each link is a distinct feature with its own configuration. The Invoice Scheduler is `BillingBatchScheduler` / `InvoiceScheduler`; the formal product name for the PDF step is **Document Generation Service** (often shortened to DocGen, built on OmniStudio); Send Invoices Through Email is a separate Billing feature. Worth naming all three explicitly so learners understand they're separate.
 
 `DebitMemo.NextBillingDate` "determines when Debit Memo Lines are converted to invoice lines" — this is the connector between Debit Memos and the Bill Run.
 
@@ -157,7 +188,7 @@ Self-Service Portal coverage splits between Module 4 (invoice viewing) and Modul
 
 **Unit 2: Automate Collections, Disputes, and Customer Self-Service for Payments**
 - 2.1 Configure automated Dunning workflows to escalate aging invoices through email, SMS, and portal nudges.
-- 2.2 Describe the Collections Agent's role in producing **Account Billing Summaries** and **Dunning Strategy Recommendations**. (Note: the 262 release renames this to "Billing Agent.")
+- 2.2 Describe how the **Billing Collections Management** subagent (under the **Agentforce for Billing Employee Assistance** parent agent) helps collections teams assess account health, highlight high-risk invoices based on payment history, disputes, and outstanding balances, and surface recommended next actions.
 - 2.3 Manage Billing Disputes — capture, validate, and resolve common billing requests from the Self-Service Portal or directly through the Collections workflow.
 - 2.4 Set up the Self-Service Portal's payment surface: Pay Now link, payment method updates, one-time payments.
 - 2.5 Articulate the Payments and Collections capability's impact on Days Sales Outstanding (DSO) for a Finance audience.
@@ -166,7 +197,13 @@ Self-Service Portal coverage splits between Module 4 (invoice viewing) and Modul
 
 **Payment Gateway Adapter, not "tokenization APIs."** Mike's correction: the integration pattern is the Payment Gateway Adapter, identical in shape to the Tax Engine Adapter from Module 2. `PaymentGatewayProvider` is the SObject that holds the `ApexAdapterId` linking to the Apex implementation. Stripe-style integrations are explicit in the Help compendium as named examples ("Stripe3P" in retry-rule sample data). LO 1.2 reflects the real architectural pattern.
 
-**Collections Agent (not Collections and Dispute Agent or Billing Agent).** Mike said rename to "Billing Agent" — verified in the project: "Billing Agent(s)" appears in the 262 feature index, but the **260 GA naming is "Collections Agent"** with capabilities "Account Billing Summaries" and "Dunning Strategy Recommendations" (plural). Since this L2 mix is shipping against 260 GA per the FY27 outline, the LO uses "Collections Agent" with a forward-reference to the 262 rename. If the L2 mix slips to 262, the rename is mechanical.
+**Billing Collections Management subagent — corrected against the Salesforce Help portal.** The pre-GA naming Mike worked from ("Collections Agent → Billing Agent rename" with capabilities "Account Billing Summaries" and "Dunning Strategy Recommendations") doesn't match what actually shipped. The product taxonomy is a parent agent — **Agentforce for Billing Employee Assistance** (internal users, with a customer-facing counterpart called **Agentforce for Billing Service Assistance Agent** in the Experience Cloud portal) — with three subagents underneath:
+
+- **Subagent: Invoice Line Explanation** — explains individual invoice charges in plain language.
+- **Subagent: Billing Collections Management** — at-a-glance view of financial standing, highlights high-risk invoices based on payment history / disputes / outstanding balances, surfaces recommended next actions. This is the subagent the LO 2.2 covers.
+- **Subagent: Billing Inquiries** — answers natural-language questions about account balances, payment plans, upcoming payment dates, invoice details, and downloadable invoice documents.
+
+The LO is rewritten to use the verified product names. Per Mike's evergreen style rule, the body content shouldn't reference "260" or "262" — the agent is just the agent.
 
 **Add Manage Billing Disputes (moved from Module 4).** Per Mike's comment 23. Disputes use a service-process template-based intake/resolution workflow and are tightly coupled with Collections. Adding it as LO 2.3 keeps the dispute story adjacent to the Collections Agent.
 

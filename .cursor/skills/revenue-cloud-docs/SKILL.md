@@ -168,20 +168,57 @@ When a new release ships (e.g., Salesforce announces 264 GA):
 
 ## Per-area snapshots
 
-Each functional area in Revenue Cloud has its own root Help article and ID prefix. Add a task variant per area:
+Each functional area in Revenue Cloud has its own root Help article and ID prefix. The areas mirror the **9 data-model domains** documented in `revenue-cloud-data-model/SKILL.md`, but the mapping to Help-portal areas is **not strictly 1:1**. Two important observations from the 2026-05-11 sidebar walk:
 
-| Area | Root article ID (typical) | ID prefix | Notes |
-|---|---|---|---|
-| Billing | `ind.billing.htm` | `ind.billing` | ~170 articles in 262 |
-| Pricing | TBD | `ind.pricing` | not yet snapshotted |
-| Quoting / CPQ | TBD | TBD | not yet snapshotted |
-| Orders | TBD | TBD | not yet snapshotted |
-| Contracts | TBD | TBD | not yet snapshotted |
-| Assets | TBD | TBD | not yet snapshotted |
-| Usage | TBD | `ind.usage` (likely) | not yet snapshotted |
-| DRO / Fulfillment | TBD | TBD | not yet snapshotted |
+1. **Transaction Management is ONE Help area, not four.** Quote / Order / Contract / Asset / Lifecycle articles all share the `ind.qocal_*` prefix (Quote-Order-Contract-Asset-Lifecycle). One snapshot variant captures them all.
+2. **Help-portal prefixes are short and idiomatic, not the long domain names.** Rate Management uses `ind.rm_*`, Usage Management uses `ind.um_*`, etc. Always verify with the live sidebar before assuming.
 
-To add a new area, find the area's root URL in the Salesforce Help portal, note the article ID, identify the ID prefix that filters its child articles, and add a new task in `cumulusci.yml` following the Billing pattern. The same task class handles every area; only options differ.
+| Data-model domain | Help-portal area | Root article ID | ID prefix | Articles |
+|---|---|---|---|---|
+| PCM | Product Catalog Management | `ind.product_catalog_introduction.htm` | `ind.product_catalog` | 107 ✓ |
+| Pricing | Pricing (Salesforce Pricing) | `ind.pricing_salesforce_pricing.htm` | `ind.pricing` | 110 ✓ |
+| Rate Management | Rate Management | `ind.rm_rate_management.htm` | `ind.rm` | 35 ✓ |
+| Configurator | Product Configurator | `ind.product_configurator_introduction.htm` | `ind.product_configurator` | 76 ✓ |
+| Transaction Mgmt | Transaction Management (Q/O/C/A/L combined) | `ind.qocal_sales_transactions_rev_cloud.htm` | `ind.qocal` | 170 ✓ |
+| DRO | DRO / Fulfillment | `ind.dro_dynamic_revenue_orchestrator.htm` | `ind.dro` | 70 ✓ |
+| Usage Management | Usage Management | `ind.um_usage_management.htm` | `ind.um` | 52 ✓ |
+| Billing | Billing | `ind.billing.htm` | `ind.billing` | 171 ✓ |
+| **Cross-domain** | **Agentforce for Revenue Management** | `ind.rev_agent_overview.htm` | `ind.rev_agent` | 13 ✓ (topic-reference articles; functional-area how-to articles are captured under each area's prefix) |
+| Approvals | Advanced Approvals | `ind.approvals_advanced_approvals.htm` | `ind.approvals` | 34 ✓ |
+
+**Total 262 snapshot: 838 articles, ~4.3 MB markdown.** Complete coverage of all 9 RC data-model domains plus the cross-domain Agentforce-for-RC agent suite. Captured 2026-05-11 / 2026-05-12.
+
+**Known polish issue with the shared manifest.** The scraper writes a single `docs/salesforce/{release}/help/manifest.json` and `index.md` per release, and each task variant run overwrites the previous run's top-level metadata. The `area` / `root_article_id` fields in the manifest reflect only the **most recently run** snapshot, not all areas. The per-article frontmatter in each `.md` file correctly identifies its area, so this is cosmetic — but a future scraper improvement could maintain per-area sub-manifests under `manifest.json` (e.g., `{"areas": {"billing": {...}, "pricing": {...}}}`). For now, treat the article files as the source of truth and use `grep area:` on the frontmatter to filter.
+
+### Agent content is cross-cutting — grep across multiple snapshots
+
+The 7 subagents under **Agentforce for Revenue Management** operate inside specific functional areas, and their how-to documentation lives under each area's prefix — not under `ind.rev_agent_*`. Examples confirmed against the 262 snapshot:
+
+| Subagent | Topic-reference article (in `ind.rev_agent_*`) | How-to / use-case articles (in functional-area prefix) |
+|---|---|---|
+| Product Selection | `ind.rev_agent_pcm_topic_product_selection.htm` | `ind.product_catalog_agentforce_*` |
+| Product Description Generation | `ind.rev_agent_pcm_topic_product_description_generation.htm` | `ind.product_catalog_agentforce_*` |
+| Quote Management | `ind.rev_agent_qocal_topic_quote_management.htm` | `ind.qocal_agentforce_quote_mgmt.htm`, other `ind.qocal_agentforce_*` |
+| Consumption Management | `ind.rev_agent_usage_topic_consumption_management.htm` | likely `ind.um_agentforce_*` (verify when running Usage snapshot deltas) |
+| Invoice Line Explanation | `ind.rev_agent_billing_topic_invoice_line_explanation.htm` | `ind.billing_agentforce_billing_agent.htm`, `ind.billing_agentforce_billingagent_usecase.htm` (already captured) |
+| Billing Collections Management | `ind.rev_agent_topic_billing_collections_management.htm` | `ind.billing_agentforce_*` |
+| Billing Inquiries | `ind.rev_agent_topic_billing_inquiries.htm` | `ind.billing_agentforce_*` |
+
+**Implication for validation:** when grounding an agent claim, **grep across ALL captured snapshots**, not just the dedicated agents snapshot. The dedicated snapshot has the topic-reference; the functional-area snapshots have the operating context, setup steps, use cases, and Experience Cloud framing. Example:
+
+```bash
+# WRONG — misses ind.qocal_agentforce_quote_mgmt.htm and similar:
+grep -l "Quote Management" docs/salesforce/262/help/articles/ind.rev_agent_*.md
+
+# RIGHT — catches both topic-reference and how-to articles:
+grep -l "Quote Management" docs/salesforce/262/help/articles/*.md
+```
+
+To get full agent coverage you need: `snapshot_agents_help_262` (the dedicated area) **plus** every functional area's snapshot. Without the functional-area snapshots, you'll have agent topic descriptions but no how-to / use-case grounding.
+
+**IMPORTANT — don't conflate adjacent domains.** Usage Management (`ind.um_*`) and Rate Management (`ind.rm_*`) are two distinct data-model domains and two distinct Help-portal areas. Pricing (`ind.pricing_*`) and Rate Management (`ind.rm_*`) are similarly distinct. Configurator (`ind.product_configurator_*`) is its own domain — easy to skip past because it has only 4 objects, but the Help portal area is real and covers configuration rules / flows that affect Quote/Order configuration. The `article_id_prefix` filter is a single startswith match, so capturing each requires **its own task variant**. Module 3 of the L2 Billing Trailhead mix straddles Usage + Rating, which is why `cumulusci.yml` defines `snapshot_usage_help_262` AND `snapshot_rating_help_262` separately.
+
+To add a new area: walk the sidebar from the Revenue Lifecycle Management parent (`ind.revenue_lifecycle_management.htm`) using the `SIDEBAR_WALKER_JS` pattern from `tasks/rlm_snapshot_help.py`. Note the area's root article ID, identify the prefix that filters its child articles, and add a new task in `cumulusci.yml`. The same task class handles every area; only options differ. Always run `mode: discover` first — it fails loudly if the root ID is wrong, so verification is cheap.
 
 ## Known limitations
 
