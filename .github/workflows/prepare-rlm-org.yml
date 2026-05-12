@@ -28,16 +28,16 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Set up Node.js 22
+      - name: Set up Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Cache npm download cache
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: npm-cache-${{ runner.os }}-node22
+          key: npm-cache-${{ runner.os }}-node24
 
       - name: Install sf CLI and SFDMU plugin
         run: |
