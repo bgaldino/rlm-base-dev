@@ -47,9 +47,9 @@ If yes, what AI tool did you use? Gemini and Slackbot + TH Writer Gem and TH PMM
 
 After completing this unit, you'll be able to:
 
-- Describe the key objects in the usage data model: **Transaction Usage Entitlement**, **Asset Rate Card Entry**, **Asset Rate Adjustment**, **Usage Entitlement Account**, **Usage Entitlement Bucket**, and **Usage Entitlement Entry**.
-- Explain how these objects are populated at Order Product activation for usage-based products.
-- Describe the binding mechanism that determines what a Usage Entitlement Bucket can draw from.
+- Identify the headline objects in the usage data model and the role each one plays.
+- Explain how the usage data model is populated automatically at order activation for usage-based products.
+- Map how the binding mechanism determines what a usage entitlement bucket can draw from.
 
 In Modules 1 and 2, you saw the core billing data model — Order, Billing Schedule Group, Billing Schedule, Invoice. Module 3 extends that model to handle a different revenue pattern: consumption-based products, where a customer pays based on what they use rather than a fixed subscription. Usage Management is the part of Agentforce Revenue Management that defines, rates, tracks, and bills these products. Before any of that machinery can run, the right records have to exist in the right shape. Unit 1 lays out those records.
 
@@ -129,9 +129,10 @@ The usage data model has six headline objects: Usage Entitlement Account, Bucket
 After completing this unit, you'll be able to:
 
 - Identify the required fields on a usage record entering the Transaction Journal.
-- Map the flow of usage data through the rating pipeline: Transaction Journal → **Usage Summary** → **Usage Ratable Summary** → **Liable Summary**.
-- Describe how **Rating Procedures** (Default Rating Procedure or Negotiable Rating Procedure) and **Rating Discovery Procedures** consume Asset Rate Card Entries and Asset Rate Adjustments to produce Usage Ratable Summaries.
-- Recognize that mediation — cleaning and normalizing raw usage data — is customer-side responsibility, not part of Revenue Cloud Billing.
+- Map the flow of usage data through the rating pipeline.
+- Apply rating procedures to convert raw usage into invoice-ready summaries.
+
+> **Note on mediation:** The body section "Mediation is Customer-Side" remains in this unit to mark the boundary clearly for sellers in technical evals — but per Mike's direction, mediation no longer carries a dedicated learning objective. Module 3 doesn't list a learning outcome for something the system explicitly doesn't do; the body callout handles the framing.
 
 Unit 1 set up the data model. Unit 2 follows the data through the rating pipeline that turns raw usage records into invoice-ready summaries. The pipeline runs as a set of scheduled flows. Each stage produces a summary record. Each summary has a defined role.
 
@@ -202,10 +203,12 @@ Raw usage records enter the Transaction Journal with five required fields. The O
 
 After completing this unit, you'll be able to:
 
-- Describe the **Subagent: Consumption Management** (under the **Agentforce for Revenue Management** agent suite) and its role in deriving overage consumption insights and generating remediation quotes.
-- Describe the three Drawdown Policies (Expiring First, Granted First, Granted Last) and how Consumption Management applies them automatically to multiple Usage Entitlement Buckets.
-- Describe how the **Unified Usage Dashboard** consolidates wallet balances, rates, grants, and policies into a single source of truth.
-- Describe how to extend rating for high-volume scenarios using the m3ter ISV partnership.
+- Apply the usage-management subagent to derive overage consumption insights and remediate them with generated quotes.
+- Apply Drawdown Policies and Rollover Policies to govern how usage entitlement buckets are consumed and renewed.
+- Use the Unified Usage Dashboard to consolidate wallet balances, rates, grants, and policies into a single source of truth.
+- Extend rating with third-party engines for high-volume scenarios.
+
+> **Agent naming note:** The body content below refers to the **Subagent: Consumption Management** (per the current 262 Help portal naming under "Agentforce for Revenue Management"). Pending an Annie + Mike alignment on subagent vs. "Billing Agent" vocabulary, names may be revised. Content stays the same.
 
 The first two units explained what gets created and how it flows through the pipeline. Unit 3 turns to the daily operating experience — how the system applies grants when usage arrives, how the AI agent surfaces overage insights, and where to reach for help on extreme volumes.
 
@@ -224,21 +227,28 @@ The agent works alongside two other 262 features that together form the complete
 |:-:|:-:|
 | icon=true | **Seller Sidebar** A common technical-eval question: "How does the system tell us about overages before they become a customer support escalation?" Answer in three layers: (1) Usage Overage Policy defines what counts as chargeable overage. (2) Unified Usage Dashboard surfaces the current state. (3) Subagent: Consumption Management proactively offers a remediation quote when consumption is trending past the grant. Each layer is a distinct product capability, and customers can buy them as a stack. |
 
-## Apply Drawdown Policies to Multiple Buckets
+## Apply Drawdown Policies and Rollover Policies
 
-When a customer has multiple Usage Entitlement Buckets for the same resource — typically because they have a base plan plus add-on packs — Consumption Management has to decide which bucket to deduct from first. The **Drawdown Order** field on the associated **Product Usage Grant** record controls that decision. The field has three values:
+Two policy types govern how usage entitlement buckets behave over time. Both attach to the **Transaction Usage Entitlement** record at order activation, applied automatically by Consumption Management — neither is configured per-bucket.
+
+**Drawdown Policy** controls *which* bucket gets debited when a customer consumes a resource that has multiple buckets available. When a customer has both a base plan and add-on packs, Consumption Management chooses among the child buckets based on the **Drawdown Order** field on the associated **Product Usage Grant** record. The field has three values:
 
 - **Expiring First** — draws from the bucket closest to its expiration date. This is the default value.
 - **Granted First** — draws from the oldest bucket, based on the earliest start date.
 - **Granted Last** — draws from the newest bucket, based on the most recent start date.
 
-These policies apply automatically. The customer doesn't configure them per bucket — they're applied based on the Product Usage Grant configuration the admin set up when defining the grant.
+**Rollover Policy** controls *what happens to unused units* when a billing period ends. Some customers carry unused units forward into the next period (the units roll over). Others reset to zero each period (the units expire). The rollover policy on the Transaction Usage Entitlement record sets this behavior at the per-grant level, so the same customer can have different rollover rules for different resources — usage minutes might roll, data overage might reset.
+
+Together, Drawdown and Rollover answer two distinct customer questions:
+
+- *"When I consume a unit, which bucket gets debited first?"* — Drawdown Policy.
+- *"When my billing period ends, do unused units carry forward?"* — Rollover Policy.
 
 The Bucket structure that the drawdown policy navigates is itself a parent-child hierarchy. The **parent bucket** represents the combined total balance of a specific resource across the binding target. **Child buckets** represent the actual specific grants tied to individual grant actions — a new purchase, a grant renewal, a grant refresh, a grant rollover, or an amendment. The drawdown policy chooses among the child buckets when there's more than one option.
 
 | Note | Content |
 |:-:|:-:|
-| icon=true | **Seller Sidebar** Drawdown Policies are how you answer the customer question "what's the FIFO vs LIFO rule for our grants?" Expiring First is the default and the most customer-friendly — units that would otherwise expire get used first. Granted First and Granted Last are available for customers who want different accounting behavior. Mention the default explicitly: most customers don't need to think about this at all. |
+| icon=true | **Seller Sidebar** Drawdown and Rollover are how you answer two adjacent customer questions in one motion. Drawdown is FIFO-vs-LIFO for a given consumption event — Expiring First (the default) uses the bucket closest to expiration first. Rollover is what happens at period end — units carry forward or expire. Lead with Expiring First as the default and Rollover Policy as the period-end answer; most customers don't need to think about either after the initial configuration. |
 
 ## Use the Unified Usage Dashboard
 
@@ -262,7 +272,7 @@ The native Consumption Management capability handles most usage-based product pa
 
 ## Key Takeaways
 
-The Subagent: Consumption Management under Agentforce for Revenue Management surfaces overage insights and offers remediation quotes through a conversational interface. It works alongside the Usage Overage Policy (governance) and the Unified Usage Dashboard (monitoring surface) to form the complete overage story. The Drawdown Order field on Product Usage Grant — with values Expiring First (default), Granted First, and Granted Last — determines which child bucket the system debits when multiple buckets exist for the same resource. The Unified Usage Dashboard consolidates wallets, rates, grants, and policies into one source of truth, available to internal users in Lightning Experience and to customers in Experience Cloud. For extreme-volume scenarios, the m3ter ISV partnership extends the native rating capability.
+The Subagent: Consumption Management under Agentforce for Revenue Management surfaces overage insights and offers remediation quotes through a conversational interface. It works alongside the Usage Overage Policy (governance) and the Unified Usage Dashboard (monitoring surface) to form the complete overage story. The **Drawdown Order** field on Product Usage Grant — with values Expiring First (default), Granted First, and Granted Last — determines which child bucket the system debits when multiple buckets exist for the same resource. The **Rollover Policy** on Transaction Usage Entitlement decides whether unused units carry into the next billing period or expire. The Unified Usage Dashboard consolidates wallets, rates, grants, and policies into one source of truth, available to internal users in Lightning Experience and to customers in Experience Cloud. For extreme-volume scenarios, the m3ter ISV partnership extends the native rating capability.
 
 ## Resources
 

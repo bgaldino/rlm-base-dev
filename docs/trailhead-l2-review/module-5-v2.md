@@ -14,7 +14,7 @@
 
 | # | Name | Type | Word Count *(editors fill this out)* |
 |:--|:--|:--|:--|
-| 1 | Configure Payment Gateways, Methods, and Retry Rules | Quiz | |
+| 1 | Configure Payment Gateways, Methods, and Payment Retry | Quiz | |
 | 2 | Automate Collections, Disputes, and Customer Self-Service for Payments | Quiz | |
 
 ## AI Usage
@@ -40,16 +40,16 @@ If yes, what AI tool did you use? Gemini and Slackbot + TH Writer Gem and TH PMM
 
 ---
 
-# Unit 1: Configure Payment Gateways, Methods, and Retry Rules
+# Unit 1: Configure Payment Gateways, Methods, and Payment Retry
 
 ## Learning Objectives
 
 After completing this unit, you'll be able to:
 
-- Configure native payment gateway connections through **Salesforce Payments** to **Stripe** and **Adyen** — the two gateways natively supported by the Salesforce Payments service.
-- Describe how additional third-party processors integrate through the **Payment Gateway Adapter** pattern (`PaymentGatewayProvider` record + Apex adapter class implementing the Commerce Payments namespace).
-- Configure **Payment Retry Rules** and **Payment Retry Rule Sets** to retry failed payments by gateway error category, with **Fixed** or **Staggered** retry timing.
-- Set up a **Payment Scheduler** (a Billing Batch Scheduler with Job Type = Payment) to create **Payment Batch Runs** that automatically collect payments against connected gateways and apply them to posted invoices.
+- Establish integrations between the billing system and payment gateways to enable secure payment processing.
+- Extend payment processing to additional third-party gateways through a payment gateway adapter pattern.
+- Set up **Payment Runs** to sweep posted invoices automatically against connected gateways.
+- Implement a **Payment Retry** strategy that optimizes recovery rates by gateway error category.
 
 Modules 1 through 4 covered the contract, the data model, the rating pipeline, and invoice production. Module 5 closes the lifecycle: getting paid. Unit 1 starts with how payment gateways connect, how retry rules handle the inevitable failures, and how Payment Batch Runs sweep payments against posted invoices on a cadence.
 
@@ -86,9 +86,25 @@ The setup involves obtaining the adapter class from the gateway provider (or fro
 |:-:|:-:|
 | icon=true | **Seller Sidebar** When a customer says "we use [some other processor]," the Payment Gateway Adapter pattern is what to point at. The architectural answer is identical to the Tax Engine Adapter customers saw in Module 2 — a Provider record holds a reference to an Apex adapter class. If their processor has an AppExchange adapter, the integration is mostly configuration. If they need a custom adapter, the Apex interface is documented. Either way, Salesforce isn't trying to replace their gateway — it's giving them a documented integration point. |
 
-## Configure Payment Retry Rules
+## Set Up Payment Runs
 
-Payment processors fail for many reasons — insufficient funds, expired cards, gateway timeouts, fraud holds. **Payment Retry Rules** automate the recovery process so finance teams don't manually re-run failed payments. The configuration has two layers:
+A **Payment Run** sweeps payments against posted invoices on a cadence. Configure one through a **Payment Scheduler** — a Billing Batch Scheduler with Job Type = Payment. The pattern matches Module 4's Bill Run / Invoice Batch Run: a configuration record (the Scheduler) creates the execution records (the Payment Runs).
+
+You set up a Payment Scheduler from the App Launcher: find **Billing Batch Schedulers**, click **New Payment Scheduler**, and configure the cadence (Once, Daily, or Monthly). At the scheduled start time, the system creates a Payment Run record and processes the relevant payment schedule items in parallel.
+
+The matching criteria determine which payment schedule items get processed. By default, the run processes all payment schedule items with a target payment date at or before the job run date. Customers with more specific needs can configure custom matching criteria by Payment Schedule Item with a Payment Run Matching Value.
+
+The Payment Run record itself works like the Invoice Batch Run from Module 4: a parallel-processing engine that processes payment schedule items, applies them to invoices based on the configured payment application level, and reports a status (Completed or Failed) with detailed subtype tracking.
+
+> The formal product name behind "Payment Run" is **Payment Batch Run**. Both names refer to the same record. The Trailhead-facing voice across the L2 mix uses Payment Run; the body content cites Payment Batch Run once for grounding when admins are looking at the underlying record type.
+
+| Note | Content |
+|:-:|:-:|
+| icon=true | **Seller Sidebar** Payment Runs are the proof point for customers worried about manual collection effort at scale. Schedule the run, configure the retry rules, and the system sweeps payments against posted invoices automatically. The collections rep doesn't manually run retries — they handle the exception cases the rules can't recover. That's the right division of labor between automation and human judgment. |
+
+## Implement a Payment Retry Strategy
+
+Payment processors fail for many reasons — insufficient funds, expired cards, gateway timeouts, fraud holds. A **Payment Retry** strategy automates the recovery process so finance teams don't manually re-run failed payments. The configuration has two layers:
 
 - **Payment Retry Rule Set** — the parent record. Defines default values for retry interval type, interval unit, and interval values that all rules in the set inherit.
 - **Payment Retry Rule** — the child record, scoped to a specific gateway error category (with an optional error code). Can override the parent's default values.
@@ -106,25 +122,11 @@ Three operational rules to know:
 - Rules within a set inherit the set's defaults, but each rule can override them for its specific error category.
 - The **Use Alternate Payment Method** option, when enabled, tries an alternate payment method on the final retry attempt — a useful recovery mechanism when one payment method has clearly stopped working.
 
-After at least one default Payment Retry Rule Set is configured, the admin enables Retry Failed Payments on the Billing Settings page. From that point, the Payment Batch Run picks up failed payments according to the rules and retries them automatically.
-
-## Set Up Payment Schedulers and Payment Batch Runs
-
-A **Payment Scheduler** is a Billing Batch Scheduler with Job Type = Payment. It runs on a cadence and creates **Payment Batch Runs** that process payment schedules and payment schedule items in bulk. The pattern is the same shape as the Invoice Batch Run from Module 4 — a configuration record (the Scheduler) creates execution records (the Batch Runs).
-
-You set up a Payment Scheduler from the App Launcher: find **Billing Batch Schedulers**, click **New Payment Scheduler**, and configure the cadence (Once, Daily, or Monthly). At the start time, the Payment Batch Run record is created and processes the relevant payment schedule items.
-
-The matching criteria determine which payment schedule items get processed. By default, the run processes all payment schedule items with a target payment date at or before the job run date. Customers with more specific needs can configure custom matching criteria by Payment Schedule Item with a Payment Run Matching Value.
-
-The Payment Batch Run record itself works like the Invoice Batch Run from Module 4: a parallel-processing engine that processes payment schedule items, applies them to invoices based on the configured payment application level, and reports a status (Completed or Failed) with detailed subtype tracking.
-
-| Note | Content |
-|:-:|:-:|
-| icon=true | **Seller Sidebar** Payment Batch Runs are the proof point for customers worried about manual collection effort at scale. Schedule the run, configure the retry rules, and the system sweeps payments against posted invoices automatically. The collections rep doesn't manually run retries — they handle the exception cases the rules can't recover. That's the right division of labor between automation and human judgment. |
+After at least one default Payment Retry Rule Set is configured, the admin enables Retry Failed Payments on the Billing Settings page. From that point, the Payment Run picks up failed payments according to the rules and retries them automatically.
 
 ## Key Takeaways
 
-**Salesforce Payments** wraps native integrations to **Stripe** and **Adyen**. Additional third-party gateways integrate through the **Payment Gateway Adapter** pattern (`PaymentGatewayProvider` + Apex adapter class). **Payment Retry Rules** and **Payment Retry Rule Sets** automate failed payment recovery, scoped by gateway error category with Fixed or Staggered retry intervals. **Payment Schedulers** create **Payment Batch Runs** that sweep payments against posted invoices on a cadence — same shape as the Invoice Batch Run from Module 4, scoped to payment processing instead of invoice generation.
+**Salesforce Payments** wraps native integrations to **Stripe** and **Adyen**. Additional third-party gateways integrate through the **Payment Gateway Adapter** pattern (`PaymentGatewayProvider` + Apex adapter class). A **Payment Scheduler** creates **Payment Runs** that sweep payments against posted invoices on a cadence — same shape as the Invoice Batch Run from Module 4, scoped to payment processing instead of invoice generation. The **Payment Retry** strategy (configured through Payment Retry Rules and Payment Retry Rule Sets) automates recovery of failed payments by gateway error category with Fixed or Staggered retry intervals.
 
 ## Resources
 
@@ -138,7 +140,7 @@ The Payment Batch Run record itself works like the Invoice Batch Run from Module
 | Learning Objective | Question | Answers (correct answer underlined) |
 |:--|:--|:--|
 | **Configure native and third-party gateways.** | A customer wants to use a processor that isn't Stripe or Adyen. Which architectural pattern supports this? | They must migrate to Stripe or Adyen — no other processors are supported. / **They configure a Payment Gateway Adapter by creating a PaymentGatewayProvider record that references an Apex adapter class implementing the Commerce Payments namespace.** / They configure Salesforce Payments with custom credentials. / They use a third-party app from AppExchange instead of the native Billing engine. |
-| **Configure Payment Retry Rules.** | A customer wants to retry failed payments on day 2, day 4, and day 6 after the original failure. What retry interval type supports this pattern? | Fixed retry interval with max retries = 3 / **Staggered retry interval with interval values 2,4,6** / Custom retry rule with Apex / Manual retry through the Payment Operations User permission |
+| **Implement a Payment Retry strategy.** | A customer wants to retry failed payments on day 2, day 4, and day 6 after the original failure. What retry interval type supports this pattern? | Fixed retry interval with max retries = 3 / **Staggered retry interval with interval values 2,4,6** / Custom retry rule with Apex / Manual retry through the Payment Operations User permission |
 
 ---
 
@@ -148,15 +150,31 @@ The Payment Batch Run record itself works like the Invoice Batch Run from Module
 
 After completing this unit, you'll be able to:
 
-- Configure automated **Dunning** workflows to escalate aging invoices through email, SMS, and portal nudges using **Dunning Orchestration** templates.
-- Describe how the **Subagent: Billing Collections Management** under the **Agentforce for Revenue Management** suite helps collections teams assess account health through two named actions: **Get Account Billing Summary** and **Get Dunning Strategy**.
+- Set up the **Self-Service Billing Portal**'s payment surface for customer-managed payments and updates.
+- Execute automated **Dunning** workflows that reduce **Days Sales Outstanding (DSO)** by deploying tiered communications across multiple channels.
 - Manage **Billing Disputes** — capture, validate, and resolve common billing requests from the Self-Service Portal or directly through the Collections workflow.
-- Set up the **Self-Service Billing Portal**'s payment surface: **Pay Now** link, payment method updates, one-time payments.
 - Articulate the Payments and Collections capability's impact on **Days Sales Outstanding (DSO)** for a Finance audience.
+- Apply the collections-management subagent to assess account health and recommend dunning strategies through conversational interaction.
 
-Unit 1 handled payment processing. Unit 2 handles what happens when payments don't arrive on time. Collections and Disputes are the operational heart of recovering revenue without burning customer relationships. The Billing Collections Management subagent and the Self-Service Billing Portal are the tools that make that recovery scalable.
+> **Agent naming note:** The body content below uses **Subagent: Billing Collections Management** (per the current 262 Help portal naming under "Agentforce for Revenue Management"). Pending Annie + Mike alignment on subagent vs. "Billing Agent" vocabulary, names may be revised. Content stays the same.
 
-## Automate Dunning Workflows
+Unit 1 handled payment processing. Unit 2 handles what happens when payments don't arrive on time. Collections and Disputes are the operational heart of recovering revenue without burning customer relationships. The Self-Service Billing Portal, the Dunning Orchestration capability, and the collections-management subagent are the tools that make that recovery scalable.
+
+## Set Up the Self-Service Billing Portal Payment Surface
+
+Module 4 covered the **Self-Service Billing Portal** as the viewing surface. Module 5 covers the same portal as the *payment* surface. The same customer can use the same portal to view invoices and pay them, with consistent design and authentication. The payment-side capabilities include:
+
+- **Pay Invoices from the Portal** — customers log in, view unsettled invoices, and pay through supported payment methods. The Home tab shows settled, partially settled, and unsettled invoices.
+- **Pay Now Link** — a shareable, signed payment URL that customers can use without logging in. Generated by cloning the **Generate Payment Link** flow and configuring the business account ID and payment settings. Customers pay as a guest with a new payment method; the resulting payment is automatically associated with the correct business account.
+- **Saved Payment Methods** — customers can save a payment method for future use, supporting credit cards, debit cards, ACH, SEPA, BACS, BECS, digital wallets, buy now pay later (BNPL), and additional methods depending on the gateway.
+
+The Pay Now Link is particularly useful for invoice email delivery scenarios — the invoice email can include the link, the customer clicks once, completes payment, and finance has cash in the bank without a portal login or support call.
+
+| Note | Content |
+|:-:|:-:|
+| icon=true | **Seller Sidebar** The Pay Now Link is the highest-leverage feature in the Self-Service Portal. It removes the friction of portal authentication from the payment path. For customers with a Days-Sales-Outstanding (DSO) problem, every day of friction matters. Sending an invoice email with an embedded Pay Now Link is the fastest path from "invoice generated" to "cash in the bank." |
+
+## Execute Automated Dunning Workflows
 
 **Dunning** is the practice of sending a sequence of escalating reminders to a customer with overdue invoices. Agentforce Revenue Management Billing supports dunning at two levels of automation:
 
@@ -171,9 +189,43 @@ The data model underneath dunning has three records worth knowing:
 
 - **Collection Plan** — the per-account record tracking all overdue invoices and the dunning sequence applied to them.
 - **Collection Plan Item** — one per overdue invoice. The granular record collections reps work in.
-- **Payment Promise** — the customer's commitment to pay, with the agreed date and amount. Triggers a Payment Schedule that the Payment Batch Run will pick up automatically.
+- **Payment Promise** — the customer's commitment to pay, with the agreed date and amount. Triggers a Payment Schedule that the Payment Run will pick up automatically.
 
-## Apply the Billing Collections Management Subagent
+## Manage Billing Disputes
+
+**Billing Dispute Management** centralizes inquiries and disputes into a single automated system. The capability runs through:
+
+- **Unified Catalog** service process templates — pre-built workflows for the most common dispute types: Suspend Billing, Update Bill To Contact on Invoice, Extend Invoice Due Date, Incorrect Invoice Charge, and Other Billing Inquiries.
+- **Self-Service intake** — customers raise disputes directly from the Self-Service Billing Portal's Help Center tab. Each submission creates a Case the collections or service rep can resolve.
+- **Assisted Case Creation** — internal billing specialists initiate cases on behalf of customers directly from the Billing app. (This adds an internal-facing parallel to the customer-facing self-service flow.)
+- **Automated Resolution Actions** — the Resolve Case quick action runs the appropriate billing workflow automatically. For example, the Suspend Billing template auto-runs the suspension; the Extend Invoice Due Date template extends the due date; the Incorrect Invoice Charge template issues a credit memo.
+
+The customer experience is straightforward: log in to the portal, open the dispute template that matches the situation, submit. The service rep sees the case immediately, can validate the details, and resolves it through the Resolve Case action. Both the customer and the rep can track status from the Cases tab. Status updates flow to the customer through automated email notifications.
+
+The architectural integration with Collections matters: disputes affect the Collection Plan, the dunning strategy, and the collections-management subagent's recommendations. A customer with an open dispute on an invoice shouldn't receive an escalation email — and the subagent's recommendation accounts for that.
+
+## Articulate the DSO Impact for a Finance Audience
+
+**Days Sales Outstanding (DSO)** is the most common single metric finance leaders track for accounts receivable performance. DSO measures the average number of days between invoice issuance and payment receipt. Lower DSO means faster cash conversion, healthier working capital, and less time spent on collections.
+
+Each capability in Modules 4 and 5 lowers DSO through a specific mechanism:
+
+- **Automated Invoice Batch Runs** (Module 4) — invoices land on time, not delayed by manual generation.
+- **Send Invoices Through Email** (Module 4) — customers receive invoices the day they're generated.
+- **Pay Now Link** (this unit) — removes friction between invoice receipt and payment, often pulling DSO in by several days.
+- **Payment Retry strategy** (Unit 1) — recovers failed payments that would otherwise sit in collections for weeks.
+- **Payment Runs** (Unit 1) — collects payments automatically rather than waiting for manual handling.
+- **Dunning Orchestration** (this unit) — escalates aging invoices systematically rather than relying on collections rep memory.
+- **Collections-management subagent** (this unit) — gives collections reps an at-a-glance view of account health and a recommended next action, compressing investigation time.
+- **Self-Service Disputes** (this unit) — resolves common disputes through automated workflows rather than letting them age while a rep investigates manually.
+
+The combined impact pulls DSO in significantly. In Finance conversations, position the capabilities as a coordinated stack rather than a list of features. Each one chips away at the time between invoice and cash; together they compress the cycle measurably.
+
+| Note | Content |
+|:-:|:-:|
+| icon=true | **Seller Sidebar** When a CFO asks "what's the business case?", lead with DSO. It's the single metric every Finance organization tracks, and the Module 4 + Module 5 capabilities directly compress it. Pair the DSO story with a Reduce Bad Debt story (Dunning Orchestration + the collections subagent prevent invoices from aging into write-off territory) and an Operational Efficiency story (collections reps focus on judgment cases instead of data assembly). Three angles, one conversation. |
+
+## Apply the Collections-Management Subagent
 
 The **Subagent: Billing Collections Management** is one of seven subagents under the **Agentforce for Revenue Management** agent suite. It's the conversational interface that lets collections teams assess account health and choose the next move without navigating through multiple records.
 
@@ -192,59 +244,11 @@ The subagent requires the Agentforce Revenue Management Billing license with the
 
 | Note | Content |
 |:-:|:-:|
-| icon=true | **Seller Sidebar** The Billing Collections Management subagent is the way to reframe a collections team from a back-office function to a strategic function. Without the subagent, a collections rep spends hours per account piecing together the picture from invoice records, communications history, and dispute records. With the subagent, they ask a question and get an action-oriented recommendation. The pitch isn't "AI replaces the rep" — it's "AI replaces the data assembly so the rep can focus on customer judgment." |
-
-## Manage Billing Disputes
-
-**Billing Dispute Management** centralizes inquiries and disputes into a single automated system. The capability runs through:
-
-- **Unified Catalog** service process templates — pre-built workflows for the most common dispute types: Suspend Billing, Update Bill To Contact on Invoice, Extend Invoice Due Date, Incorrect Invoice Charge, and Other Billing Inquiries.
-- **Self-Service intake** — customers raise disputes directly from the Self-Service Billing Portal's Help Center tab. Each submission creates a Case the collections or service rep can resolve.
-- **Assisted Case Creation** — internal billing specialists initiate cases on behalf of customers directly from the Billing app. (This adds an internal-facing parallel to the customer-facing self-service flow.)
-- **Automated Resolution Actions** — the Resolve Case quick action runs the appropriate billing workflow automatically. For example, the Suspend Billing template auto-runs the suspension; the Extend Invoice Due Date template extends the due date; the Incorrect Invoice Charge template issues a credit memo.
-
-The customer experience is straightforward: log in to the portal, open the dispute template that matches the situation, submit. The service rep sees the case immediately, can validate the details, and resolves it through the Resolve Case action. Both the customer and the rep can track status from the Cases tab. Status updates flow to the customer through automated email notifications.
-
-The architectural integration with Collections matters: disputes affect the Collection Plan, the dunning strategy, and the agent's recommendations. A customer with an open dispute on an invoice shouldn't receive an escalation email — and the Subagent: Billing Collections Management's recommendation accounts for that.
-
-## Set Up the Self-Service Billing Portal Payment Surface
-
-Module 4 covered the **Self-Service Billing Portal** as the viewing surface. Module 5 covers the same portal as the *payment* surface. The same customer can use the same portal to view invoices and pay them, with consistent design and authentication. The payment-side capabilities include:
-
-- **Pay Invoices from the Portal** — customers log in, view unsettled invoices, and pay through supported payment methods. The Home tab shows settled, partially settled, and unsettled invoices.
-- **Pay Now Link** — a shareable, signed payment URL that customers can use without logging in. Generated by cloning the **Generate Payment Link** flow and configuring the business account ID and payment settings. Customers pay as a guest with a new payment method; the resulting payment is automatically associated with the correct business account.
-- **Saved Payment Methods** — customers can save a payment method for future use, supporting credit cards, debit cards, ACH, SEPA, BACS, BECS, digital wallets, buy now pay later (BNPL), and additional methods depending on the gateway.
-
-The Pay Now Link is particularly useful for invoice email delivery scenarios — the invoice email can include the link, the customer clicks once, completes payment, and finance has cash in the bank without a portal login or support call.
-
-| Note | Content |
-|:-:|:-:|
-| icon=true | **Seller Sidebar** The Pay Now Link is the highest-leverage feature in the Self-Service Portal. It removes the friction of portal authentication from the payment path. For customers with a Days-Sales-Outstanding (DSO) problem, every day of friction matters. Sending an invoice email with an embedded Pay Now Link is the fastest path from "invoice generated" to "cash in the bank." |
-
-## Articulate the DSO Impact for a Finance Audience
-
-**Days Sales Outstanding (DSO)** is the most common single metric finance leaders track for accounts receivable performance. DSO measures the average number of days between invoice issuance and payment receipt. Lower DSO means faster cash conversion, healthier working capital, and less time spent on collections.
-
-Each capability in Modules 4 and 5 lowers DSO through a specific mechanism:
-
-- **Automated Invoice Batch Runs** (Module 4) — invoices land on time, not delayed by manual generation.
-- **Send Invoices Through Email** (Module 4) — customers receive invoices the day they're generated.
-- **Pay Now Link** (this unit) — removes friction between invoice receipt and payment, often pulling DSO in by several days.
-- **Payment Retry Rules** (Unit 1) — recovers failed payments that would otherwise sit in collections for weeks.
-- **Payment Batch Runs** (Unit 1) — collects payments automatically rather than waiting for manual handling.
-- **Dunning Orchestration** (this unit) — escalates aging invoices systematically rather than relying on collections rep memory.
-- **Billing Collections Management subagent** (this unit) — gives collections reps an at-a-glance view of account health and a recommended next action, compressing investigation time.
-- **Self-Service Disputes** (this unit) — resolves common disputes through automated workflows rather than letting them age while a rep investigates manually.
-
-The combined impact pulls DSO in significantly. In Finance conversations, position the capabilities as a coordinated stack rather than a list of features. Each one chips away at the time between invoice and cash; together they compress the cycle measurably.
-
-| Note | Content |
-|:-:|:-:|
-| icon=true | **Seller Sidebar** When a CFO asks "what's the business case?", lead with DSO. It's the single metric every Finance organization tracks, and the Module 4 + Module 5 capabilities directly compress it. Pair the DSO story with a Reduce Bad Debt story (Dunning Orchestration + Collections Agent prevent invoices from aging into write-off territory) and an Operational Efficiency story (collections reps focus on judgment cases instead of data assembly). Three angles, one conversation. |
+| icon=true | **Seller Sidebar** The collections-management subagent is the way to reframe a collections team from a back-office function to a strategic function. Without the subagent, a collections rep spends hours per account piecing together the picture from invoice records, communications history, and dispute records. With the subagent, they ask a question and get an action-oriented recommendation. The pitch isn't "AI replaces the rep" — it's "AI replaces the data assembly so the rep can focus on customer judgment." |
 
 ## Key Takeaways
 
-**Dunning Orchestration** automates the full overdue-invoice escalation lifecycle using Dynamic Revenue Orchestrator templates, with multi-channel support through Marketing Cloud. The **Subagent: Billing Collections Management** under the Agentforce for Revenue Management suite exposes two named actions — **Get Account Billing Summary** and **Get Dunning Strategy** — that compress investigation time for collections reps. **Billing Dispute Management** centralizes common dispute types into self-service templates with automated resolution actions. The **Self-Service Billing Portal** payment surface includes the **Pay Now Link** for the lowest-friction path from invoice to cash. Together, these capabilities directly reduce **Days Sales Outstanding (DSO)** — the metric finance organizations track most closely.
+The **Self-Service Billing Portal** payment surface includes the **Pay Now Link** for the lowest-friction path from invoice to cash. **Dunning Orchestration** automates the full overdue-invoice escalation lifecycle using Dynamic Revenue Orchestrator templates, with multi-channel support through Marketing Cloud. **Billing Dispute Management** centralizes common dispute types into self-service templates with automated resolution actions. Together, these capabilities directly reduce **Days Sales Outstanding (DSO)** — the metric finance organizations track most closely. The **Subagent: Billing Collections Management** under the Agentforce for Revenue Management suite exposes two named actions — **Get Account Billing Summary** and **Get Dunning Strategy** — that compress investigation time for collections reps and recommend the next dunning step.
 
 ## Resources
 
@@ -258,16 +262,20 @@ The combined impact pulls DSO in significantly. In Finance conversations, positi
 
 | Learning Objective | Question | Answers (correct answer underlined) |
 |:--|:--|:--|
-| **Apply the Billing Collections Management subagent.** | A collections rep asks the subagent "What dunning strategy should I use for collection plan #CP-101?" Which of the subagent's two named actions answers this? | Get Account Billing Summary / **Get Dunning Strategy** / Get Invoice Line Records / Get Usage Details |
 | **Set up the Self-Service Portal's payment surface.** | A finance team wants to maximize the speed from invoice email to cash collection. Which feature best supports this? | The customer must log in to the Self-Service Portal to pay each invoice. / Email reminders configured through Dunning Orchestration. / **The Pay Now Link — a shareable URL that lets customers pay without logging in to the portal.** / Manual payment processing through the Payment Operations User permission. |
+| **Apply the collections-management subagent.** | A collections rep asks the subagent "What dunning strategy should I use for collection plan #CP-101?" Which of the subagent's two named actions answers this? | Get Account Billing Summary / **Get Dunning Strategy** / Get Invoice Line Records / Get Usage Details |
 
 ---
 
 # Appendix: Open Questions and Parking Lot
 
-## Open question for Mike
+## Open questions for Mike + Annie
 
-**"Smart Retry" branding.** The original L2 outline used "Smart Retry" as the feature name. The 262 Help portal calls this **Payment Retry Rules** with **Payment Retry Rule Sets**. The body draft above uses Payment Retry Rules throughout for accuracy. If Mike has a marketing reason to keep "Smart Retry" as a seller-facing branded name with "(formally: Payment Retry Rules)" as a parenthetical reference, that's a Bill-Run-style dual-name pattern we can apply. Otherwise, the current Payment Retry Rules naming holds.
+**Agent naming** (open — Annie's call). Module 5 uses "Subagent: Billing Collections Management" per the current 262 Help portal naming under "Agentforce for Revenue Management." Mike prefers "Billing Agent" universally. Brian has flagged this for Annie since new Agentforce materials apparently use subagent + superagent vocabulary. Body content stays the same regardless — only the name swaps once direction is set.
+
+**~~"Smart Retry" branding~~ RESOLVED.** Mike's second-pass review confirmed: use **Payment Retry**, not "Smart Retry." The body draft above uses "Payment Retry" as the strategy framing and cites **Payment Retry Rules** / **Payment Retry Rule Sets** as the underlying configuration records.
+
+**~~"Payment Batch Run" naming~~ RESOLVED.** Mike confirmed: use **Payment Run** globally as the seller-facing term. The formal record name **Payment Batch Run** is cited once in the body for grounding when admins look at the underlying record type, matching the Bill Run / Invoice Batch Run dual-name pattern from Module 4.
 
 ## Topics deliberately routed elsewhere
 

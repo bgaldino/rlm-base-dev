@@ -4,6 +4,7 @@
 **Reviewers:** Michael Aaron (SME), Trailhead editorial team
 **Source verifications:** Salesforce Help portal (Billing area), project metadata (qb-billing, qb-tax, ERD). See `module-1-v2-262-validation-report.md` for the per-claim citation log.
 **Style note:** This module describes the latest, generally-available capabilities. It deliberately avoids release-version notations (260, 262, Spring '26, Summer '26) so the content stays evergreen.
+**⚠️ Agent naming note:** The body content below uses **Subagent: X** naming under **Agentforce for Revenue Management** (per the current 262 Help portal). Pending Annie + Mike alignment on subagent vs. "Billing Agent" vocabulary, names may be revised. Content stays the same.
 
 **Badge Description:** Explore how Billing connects the revenue lifecycle to build an Agentic Enterprise.
 

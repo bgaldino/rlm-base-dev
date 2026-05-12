@@ -46,10 +46,10 @@ If yes, what AI tool did you use? Gemini and Slackbot + TH Writer Gem and TH PMM
 
 After completing this unit, you'll be able to:
 
-- Configure **Billing Arrangements** (`BillingArrangement` and `BillingArrangementLine`) to allocate invoice amounts across multiple billing accounts.
-- Describe the role of **Bill Cycle Day** (`BillDayOfMonth`) and **Next Billing Date** (`NextBillingDate`) in invoice execution.
-- Map how the **Bill Run** (formal product name: **Invoice Batch Run**) picks up ready-to-bill Billing Schedules and produces Invoices and Invoice Lines.
-- Describe how **Debit Memo Lines** convert to Invoice Lines based on the Next Billing Date.
+- Configure billing arrangements to allocate invoice amounts across multiple billing accounts.
+- Identify the cadence fields that drive when the bill run picks up a billing schedule.
+- Map how the bill run produces invoices from ready-to-bill billing schedules.
+- Analyze the automated conversion of Debit Memo Lines into Invoice Lines, driven by `NextBillingDate` on the Debit Memo record.
 
 Modules 1 through 3 set up the contracts, the data model, and the rating pipeline. Module 4 turns to the part of the lifecycle finance teams care about most: actually producing the invoice. Unit 1 covers the configuration that determines *who gets billed for what* and the mechanics of the recurring batch process that produces invoices at scale.
 
@@ -141,10 +141,12 @@ The connector between a Debit Memo and the Invoice Batch Run is the Debit Memo's
 
 After completing this unit, you'll be able to:
 
-- Configure the invoice delivery flow: the **Invoice Scheduler** creates the invoice data, the **Document Generation Service** renders the PDF, and **Send Invoices Through Email** delivers it to the customer.
-- Describe how **Credit Memo Lines** are auto-created from negative Invoice Lines via the **Convert Negative Invoice Lines to Credit Memo Lines** feature in Billing Settings.
-- Describe the **Self-Service Billing Portal** as a customer-facing surface for viewing invoices and downloading PDFs.
-- Explain how the **Subagent: Invoice Line Explanation** under the **Agentforce for Revenue Management** suite provides plain-language breakdowns of complex charges.
+- Configure the invoice delivery flow from scheduled generation through document rendering to customer email.
+- Apply the automatic conversion of negative invoice lines into credit memo lines, and the application of those credits to outstanding invoices.
+- Position the Self-Service Billing Portal as the customer-facing surface for viewing invoices and downloading PDFs.
+- Apply the invoice-line-explanation capability to give customers plain-language breakdowns of complex charges.
+
+> **Agent naming note:** The body content below uses **Subagent: Invoice Line Explanation** (per the current 262 Help portal naming under "Agentforce for Revenue Management"). Pending Annie + Mike alignment on subagent vs. "Billing Agent" vocabulary, names may be revised. Content stays the same.
 
 Unit 1 covered how invoices are *produced*. Unit 2 covers what happens after production: how the invoice gets to the customer, how negative charges turn into credit memos automatically, where the customer interacts with the invoice, and how an AI subagent explains complex charges in natural language.
 
