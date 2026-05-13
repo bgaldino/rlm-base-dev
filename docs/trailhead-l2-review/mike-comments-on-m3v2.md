@@ -4,6 +4,12 @@
 **Comments + suggestions captured:** 26
 **Status (2026-05-13):** Group A high-confidence items #1, #2, #3, #5, #7, #9, #12+13 applied to `module-3-v2.md`. Group A items #8 (Rating Discovery scope — applied strict reading) and #11 (Usage Overage Policy existence) plus Group B open questions still pending Mike's clarification.
 
+**Re-validation pass (2026-05-13, late):** Re-pulled the Google Doc state via DOM probe of the comment sidebar. Found that **all 15 of Mike's standalone track-change suggestions are marked "Suggestion was deleted"** — meaning Brian has processed each one in the doc. Also surfaced **three NEW comments** that came in after the initial capture (timestamps 12:33 PM, 12:39 PM, 12:41 PM Today):
+
+* **NEW #14 (12:33 PM):** "The bucket structure tracks the overall balance and the in period balance. Roll overs appear as Usage Entitlement Entries in that bucket. This needs to be rewritten to be clear." — Mike's mental-model correction on the bucket section. My v2 paragraph (treating child buckets as separate per-grant containers) misrepresents the structure. **Applied 2026-05-13.**
+* **NEW #15 (12:39 PM):** "This is really called the Digital Wallet. It shows what resources are accessible, how much is included, and how much is left. It allows customers to drill down into each resource and see the actual debits and credits being made. Can we rewrite it" — Customer-facing UI naming correction. The "Unified Usage Dashboard" terminology should reframe around **Digital Wallet** for seller content. **Applied 2026-05-13.**
+* **NEW #16 (12:41 PM):** "See my edits to that area" — Mike pointed Brian at inline track-change suggestions, all of which were accepted (the suggestion bubbles are marked "Suggestion was deleted"). The Google Docs editor is canvas-rendered, so the current accepted body text cannot be extracted via DOM. **Action: Brian to confirm M3v2.md matches the doc's current body, OR share the body via another path (export to .docx, copy/paste into a scratch file, etc.).**
+
 ## Group A — Applied (2026-05-13)
 
 | # | Change | Where applied |
