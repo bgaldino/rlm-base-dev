@@ -291,12 +291,16 @@ launch Claude Code from a terminal, **or** restart Claude Code after
 fixing `~/.zshenv`.
 
 ### `pipx` venv broken after Python patch bump
-The CCI venv's python is a symlink to `~/.pyenv/versions/3.13.12/bin/python`.
-Installing 3.13.13 doesn't replace 3.13.12, but if you uninstall the old
-patch the venv dies. The update script handles this; manually:
+The CCI venv's python is a symlink to a specific pyenv patch dir
+(`~/.pyenv/versions/<old-patch>/bin/python3`). Installing a newer patch
+doesn't replace the old one, but if you uninstall the old patch the venv
+dies. The update script handles this; manually:
 
 ```bash
-pipx install --force cumulusci --python "$(pyenv prefix 3.13)/bin/python3"
+# Refresh pipx under the new patch (in case pipx's own shebang was tied
+# to the old patch), then reinstall CCI under it.
+"$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3" -m pip install --user --upgrade pipx
+pipx install --force cumulusci --python "$(pyenv prefix "$(pyenv latest 3.13)")/bin/python3"
 pipx inject --force cumulusci "setuptools>=75.4"
 ```
 

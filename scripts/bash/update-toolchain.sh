@@ -74,18 +74,32 @@ else
 fi
 
 # ── 5. CCI (pipx) ───────────────────────────────────────────────────────────
-command -v pipx >/dev/null || die "pipx not found"
+# Re-bootstrap pipx under $PY_TARGET first. A Python patch bump can break the
+# existing pipx script's shebang (it pointed at the old patch's python3, which
+# may have been uninstalled). `command -v pipx` would still succeed in that
+# case but invocations would fail with a broken interpreter. Reinstalling pipx
+# under the current target Python (idempotent) repairs this proactively.
+PY_TARGET_BIN="$(pyenv prefix "$PY_TARGET")/bin/python3"
+[ -x "$PY_TARGET_BIN" ] || die "Target Python not found: $PY_TARGET_BIN"
+log "pipx: refresh under Python $PY_TARGET"
+"$PY_TARGET_BIN" -m pip install --user --upgrade pipx
+"$PY_TARGET_BIN" -m pipx ensurepath >/dev/null 2>&1 || true
+
+# Pin pipx invocation to the target Python so subsequent calls aren't subject
+# to PATH ordering surprises.
+PIPX=( "$PY_TARGET_BIN" -m pipx )
+command -v pipx >/dev/null || die "pipx still not found after refresh"
 
 cci_reinstall() {
   log "CCI: reinstalling under Python $PY_TARGET"
-  pipx install --force cumulusci --python "$(pyenv prefix "$PY_TARGET")/bin/python3"
+  "${PIPX[@]}" install --force cumulusci --python "$PY_TARGET_BIN"
 }
 
-if [ "$PY_UPGRADED" -eq 1 ] || ! pipx list --short 2>/dev/null | grep -q '^cumulusci'; then
+if [ "$PY_UPGRADED" -eq 1 ] || ! "${PIPX[@]}" list --short 2>/dev/null | grep -q '^cumulusci'; then
   cci_reinstall
 else
   log "CCI: upgrade in place"
-  if ! pipx upgrade cumulusci; then
+  if ! "${PIPX[@]}" upgrade cumulusci; then
     warn "pipx upgrade failed — reinstalling"
     cci_reinstall
   fi
@@ -99,7 +113,7 @@ fi
 # CCI 4.10+ (what this script installs) works with setuptools 77+, so we
 # don't enforce an upper bound here.
 log "CCI: ensuring setuptools>=75.4"
-pipx inject --force cumulusci "setuptools>=75.4"
+"${PIPX[@]}" inject --force cumulusci "setuptools>=75.4"
 
 # ── 6. sf plugins ───────────────────────────────────────────────────────────
 log "sf plugins: update"
