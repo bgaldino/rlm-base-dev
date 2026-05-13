@@ -32,7 +32,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **pyenv** | `brew install pyenv` | Python version manager | latest |
 | **Python** | `pyenv install $(pyenv latest -k 3.13)` | Runtime for CumulusCI + scripts | major.minor line (`3.13`) |
 | **pipx** | `$(pyenv prefix)/bin/python3 -m pip install --user pipx` | Isolated CLI installs (CCI) | latest |
-| **CumulusCI** | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` | Orchestration engine | latest; ensure `setuptools>=75.4,<77` (snowfakery 4.x requirement) |
+| **CumulusCI** | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` | Orchestration engine | latest; ensure `setuptools>=75.4` (snowfakery 4.x requirement) |
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (built-in auto-updater) |
 | **SFDMU plugin** | `sf plugins install sfdmu` | Bulk data import/export | v5+ required (enforced by `cci task run validate_setup`) |
 | **gh, git, GCM** | `brew install gh git git-credential-manager` | Source control + PR workflow | latest |
@@ -162,9 +162,13 @@ pins. For **rlm-base-dev** it lives at the repo root:
 # Python via pyenv — major.minor line, auto-resolve latest patch
 if command -v pyenv >/dev/null 2>&1; then
   _PY_RESOLVED="$(pyenv latest 3.13 2>/dev/null)"
-  export PYENV_VERSION="${_PY_RESOLVED:-3.13.12}"
+  if [ -n "$_PY_RESOLVED" ]; then
+    export PYENV_VERSION="$_PY_RESOLVED"
+    PATH_add "$(pyenv root)/shims"
+  else
+    echo ".envrc: no Python 3.13.x installed via pyenv. Run 'pyenv install \$(pyenv latest -k 3.13)' first." >&2
+  fi
   unset _PY_RESOLVED
-  PATH_add "$(pyenv root)/shims"
 fi
 
 # Node via nvm — track active LTS line. brew --prefix nvm resolves to
@@ -222,10 +226,12 @@ The script handles:
 5. `pipx install --force cumulusci` (if Python patch bumped) **or**
    `pipx upgrade cumulusci` — required because patch upgrades break the
    venv's python symlink
-6. `pipx inject --force cumulusci "setuptools>=75.4,<77"` — snowfakery 4.x
-   requires modern setuptools (the historical `<71` pin documented in
-   earlier guides is **incompatible** with current CCI; see README's
-   *Note on setuptools*)
+6. `pipx inject --force cumulusci "setuptools>=75.4"` — snowfakery 4.x
+   requires modern setuptools. The historical `<71` pin (older docs)
+   is **incompatible**; see README's *Note on setuptools*. Note CI
+   adds `<77` as well (`.github/workflows/prepare-rlm-org.yml`) because
+   it's pinned to CCI 4.8.1; modern CCI 4.10+ works with setuptools
+   77+ so this guide doesn't enforce the upper bound.
 7. `sf plugins update`
 8. `cci task run validate_setup` — verifies all 12 checks still pass
 
@@ -291,7 +297,7 @@ patch the venv dies. The update script handles this; manually:
 
 ```bash
 pipx install --force cumulusci --python "$(pyenv prefix 3.13)/bin/python3"
-pipx inject --force cumulusci "setuptools>=75.4,<77"
+pipx inject --force cumulusci "setuptools>=75.4"
 ```
 
 ### `python3` resolves to `/usr/bin/python3` instead of pyenv shim

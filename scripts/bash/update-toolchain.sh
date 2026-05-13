@@ -91,14 +91,15 @@ else
   fi
 fi
 
-# Modern CCI 4.8+ with snowfakery 4.x requires setuptools>=75.4,<77.
-# - Historical `<71` pin (older docs) is incompatible — see README ~line 219.
-# - Upper bound `<77` matches .github/workflows/prepare-rlm-org.yml: setuptools 77
-#   introduced license-metadata changes that broke CCI 4.8.1 transitive deps.
-#   Loosen when CI is bumped to a newer CCI.
+# Modern CCI 4.8+ with snowfakery 4.x requires setuptools>=75.4.
+# Historical `<71` pin (older docs) is incompatible — see README ~line 219.
 # Force-inject to repair any stale legacy install.
-log "CCI: ensuring setuptools>=75.4,<77"
-pipx inject --force cumulusci "setuptools>=75.4,<77"
+# Note: CI (.github/workflows/prepare-rlm-org.yml) adds `<77` because it's
+# pinned to CCI 4.8.1; setuptools 77+ broke transitive deps on that version.
+# CCI 4.10+ (what this script installs) works with setuptools 77+, so we
+# don't enforce an upper bound here.
+log "CCI: ensuring setuptools>=75.4"
+pipx inject --force cumulusci "setuptools>=75.4"
 
 # ── 6. sf plugins ───────────────────────────────────────────────────────────
 log "sf plugins: update"
