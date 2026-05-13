@@ -34,7 +34,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **pipx** | `$(pyenv prefix)/bin/python3 -m pip install --user pipx` | Isolated CLI installs (CCI) | latest |
 | **CumulusCI** | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` | Orchestration engine | latest; ensure `setuptools>=75.4,<77` (snowfakery 4.x requirement) |
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (built-in auto-updater) |
-| **SFDMU plugin** | `sf plugins install sfdmu@5` | Bulk data import/export | v5.x (pin major) |
+| **SFDMU plugin** | `sf plugins install sfdmu` | Bulk data import/export | v5+ required (enforced by `cci task run validate_setup`) |
 | **gh, git, GCM** | `brew install gh git git-credential-manager` | Source control + PR workflow | latest |
 
 **Pin philosophy:**
@@ -290,7 +290,7 @@ Installing 3.13.13 doesn't replace 3.13.12, but if you uninstall the old
 patch the venv dies. The update script handles this; manually:
 
 ```bash
-pipx install --force cumulusci --python "$(pyenv prefix 3.13)/bin/python"
+pipx install --force cumulusci --python "$(pyenv prefix 3.13)/bin/python3"
 pipx inject --force cumulusci "setuptools>=75.4,<77"
 ```
 

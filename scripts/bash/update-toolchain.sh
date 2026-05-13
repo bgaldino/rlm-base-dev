@@ -78,7 +78,7 @@ command -v pipx >/dev/null || die "pipx not found"
 
 cci_reinstall() {
   log "CCI: reinstalling under Python $PY_TARGET"
-  pipx install --force cumulusci --python "$(pyenv prefix "$PY_TARGET")/bin/python"
+  pipx install --force cumulusci --python "$(pyenv prefix "$PY_TARGET")/bin/python3"
 }
 
 if [ "$PY_UPGRADED" -eq 1 ] || ! pipx list --short 2>/dev/null | grep -q '^cumulusci'; then
