@@ -18,6 +18,11 @@ set -euo pipefail
 PY_LINE="3.13"
 NODE_LINE="lts/*"
 
+# Ensure pipx-managed bins (cci, sfdmu, etc.) are findable. pipx ensurepath
+# only updates shell rc files for future shells; we need PATH in *this* shell
+# so the final `cci task run validate_setup` works from a minimal env.
+export PATH="$HOME/.local/bin:$PATH"
+
 log()  { printf '\n\033[1;34m[update]\033[0m %s\n' "$*"; }
 warn() { printf '\n\033[1;33m[warn]\033[0m  %s\n' "$*" >&2; }
 die()  { printf '\n\033[1;31m[fail]\033[0m  %s\n' "$*" >&2; exit 1; }
@@ -86,9 +91,10 @@ log "pipx: refresh under Python $PY_TARGET"
 "$PY_TARGET_BIN" -m pipx ensurepath >/dev/null 2>&1 || true
 
 # Pin pipx invocation to the target Python so subsequent calls aren't subject
-# to PATH ordering surprises.
+# to PATH ordering surprises or shebang breakage from previous patch installs.
+# We never invoke bare `pipx` after this point, so no PATH check is needed —
+# this works even from a minimal env where ~/.local/bin isn't yet on PATH.
 PIPX=( "$PY_TARGET_BIN" -m pipx )
-command -v pipx >/dev/null || die "pipx still not found after refresh"
 
 cci_reinstall() {
   log "CCI: reinstalling under Python $PY_TARGET"

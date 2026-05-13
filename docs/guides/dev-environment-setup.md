@@ -42,7 +42,7 @@ ends up with the same layered structure — not the same exact patch versions.
   a major line (Python 3.13 → 3.14, Node 24 → 26) is a deliberate, tested
   change tracked in `scripts/bash/update-toolchain.sh`.
 - **pyenv and nvm are version managers, not version pickers.** Let them
-  resolve the latest installed patch via `pyenv latest 3.13` and `nvm use lts/*`.
+  resolve the latest installed patch via `pyenv latest 3.13` and `nvm use 'lts/*'` (quote the glob so zsh doesn't expand it).
 
 ---
 
