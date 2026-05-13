@@ -22,24 +22,30 @@ UX_KNOWN_FLAGS: List[str] = [
     "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
     "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
     "payments", "constraints", "analytics", "procedureplans",
-    "collections",
+    "collections", "manufacturing",
 ]
 
 #: Standalone flexipage dirs in deploy order (last writer wins).
 #: Each entry is (directory_name, flag_key).
 #: Order matches the prepare_rlm_org deploy sequence.
+#: Manufacturing is intentionally excluded here — it is only appended when
+#: manufacturing_mode=True is passed to resolve_flexipage_sources (i.e. when
+#: called from prepare_mfg_ux, which runs after manufacturing metadata is deployed).
 _STANDALONE_ORDER: List[Tuple[str, str]] = [
-    ("payments",    "payments"),
-    ("billing",     "billing"),
-    ("billing_ui",  "billing_ui"),
-    ("quantumbit",  "qb"),
-    ("tso",         "tso"),
-    ("constraints", "constraints"),
-    ("utils",       "qb"),        # utils deploys with qb flow
-    ("docgen",      "docgen"),
-    ("approvals",   "qb"),        # approvals deploys with qb flow
-    ("collections", "collections"),
+    ("payments",       "payments"),
+    ("billing",        "billing"),
+    ("billing_ui",     "billing_ui"),
+    ("quantumbit",     "qb"),
+    ("tso",            "tso"),
+    ("constraints",    "constraints"),
+    ("utils",          "qb"),           # utils deploys with qb flow
+    ("docgen",         "docgen"),
+    ("approvals",      "qb"),           # approvals deploys with qb flow
+    ("collections",    "collections"),
 ]
+
+#: Manufacturing standalone entry — appended only when manufacturing_mode=True.
+_MANUFACTURING_STANDALONE: Tuple[str, str] = ("manufacturing", "manufacturing")
 
 
 def get_ux_feature_flags(project_config) -> Dict[str, bool]:
@@ -56,19 +62,31 @@ def resolve_flexipage_sources(
     base_dir: Path,
     standalone_dir: Path,
     features: Dict[str, bool],
+    manufacturing_mode: bool = False,
 ) -> Dict[str, Path]:
     """
     Build a filename → source-path map for all active flexipages.
 
     Seeds from ``base_dir/``, then overlays each active standalone feature
     directory in deploy order (last writer wins, matching prepare_rlm_org).
+
+    Manufacturing standalone content is only included when ``manufacturing_mode=True``.
+    This flag is set exclusively by ``prepare_mfg_ux``, which runs inside
+    ``prepare_badger_flow`` after all manufacturing metadata has been deployed.
+    It must NOT be set when running ``prepare_ux`` (step 29 of ``prepare_rlm_org``),
+    because the SalesAgreement object, Order.SalesAgreementId field, and related
+    manufacturing resources do not exist yet at that point.
     """
     sources: Dict[str, Path] = {}
 
     for f in sorted(base_dir.glob("*.flexipage-meta.xml")):
         sources[f.name] = f
 
-    for feature_dir, flag_key in _STANDALONE_ORDER:
+    order = list(_STANDALONE_ORDER)
+    if manufacturing_mode:
+        order.append(_MANUFACTURING_STANDALONE)
+
+    for feature_dir, flag_key in order:
         if not features.get(flag_key, False):
             continue
         src_dir = standalone_dir / feature_dir

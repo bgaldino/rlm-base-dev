@@ -64,7 +64,6 @@ unpackaged/post_utils/flows/RLM_Event_Trigger.flow-meta.xml
 
 # TSO-only PSG: excluded from deploy_pre (which deploys all of unpackaged/pre/).
 # prepare_tso deploys this separately when tso=true.
-unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
 
 unpackaged/post_constraints/classes
 
@@ -75,6 +74,11 @@ unpackaged/post_docgen/omniDataTransforms/BillingDocumentGenerationGetInvoiceDet
 unpackaged/post_approvals/flexipages/RLM_Quote_Discount_Approval_Template.flexipage-meta.xml
 unpackaged/post_approvals/flexipages/RLM_Quote_Payment_Terms_Approval_Template.flexipage-meta.xml
 
+# post_manufacturing UX metadata — moved to templates/; deployed by prepare_mfg_ux. Guards prevent accidental deployment during post_manufacturing step deploys.
+unpackaged/post_manufacturing/5_initial_setup/flexipages
+unpackaged/post_manufacturing/5_initial_setup/layouts
+unpackaged/post_manufacturing/5_initial_setup/applications
+unpackaged/post_manufacturing/rebates/applications
 # force-app UX metadata — moved to templates/; deployed by prepare_ux (step 29). Guards prevent accidental re-introduction into deploy_full.
 force-app/main/default/flexipages
 force-app/main/default/layouts
