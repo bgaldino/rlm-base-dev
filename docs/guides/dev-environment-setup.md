@@ -30,7 +30,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **nvm** | `brew install nvm` | Node version manager | latest |
 | **Node.js** | `nvm install --lts` | JavaScript runtime for `sf` CLI | major LTS line (`lts/*`) |
 | **pyenv** | `brew install pyenv` | Python version manager | latest |
-| **Python** | `pyenv install 3.13.x` | Runtime for CumulusCI + scripts | major.minor line (`3.13`) |
+| **Python** | `pyenv install $(pyenv latest -k 3.13)` | Runtime for CumulusCI + scripts | major.minor line (`3.13`) |
 | **pipx** | `$(pyenv prefix)/bin/python3 -m pip install --user pipx` | Isolated CLI installs (CCI) | latest |
 | **CumulusCI** | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` | Orchestration engine | latest; ensure `setuptools>=75.4,<77` (snowfakery 4.x requirement) |
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (built-in auto-updater) |
