@@ -18,9 +18,11 @@ set -euo pipefail
 PY_LINE="3.13"
 NODE_LINE="lts/*"
 
-# Ensure pipx-managed bins (cci, sfdmu, etc.) are findable. pipx ensurepath
-# only updates shell rc files for future shells; we need PATH in *this* shell
-# so the final `cci task run validate_setup` works from a minimal env.
+# Ensure pipx-managed bins (cci, snowfakery, etc.) are findable. pipx
+# ensurepath only updates shell rc files for future shells; we need PATH in
+# *this* shell so the final `cci task run validate_setup` works from a
+# minimal env. (Note: sf CLI lives under nvm's node bin, not here, and the
+# sfdmu plugin lives inside sf's plugin tree — neither passes through pipx.)
 export PATH="$HOME/.local/bin:$PATH"
 
 log()  { printf '\n\033[1;34m[update]\033[0m %s\n' "$*"; }

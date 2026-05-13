@@ -166,7 +166,7 @@ if command -v pyenv >/dev/null 2>&1; then
     export PYENV_VERSION="$_PY_RESOLVED"
     PATH_add "$(pyenv root)/shims"
   else
-    echo ".envrc: no Python 3.13.x installed via pyenv. Run 'pyenv install \$(pyenv latest -k 3.13)' first." >&2
+    echo ".envrc: no Python 3.13.x installed via pyenv. Run scripts/bash/update-toolchain.sh or 'pyenv install \$(pyenv latest -k 3.13)' to install the latest patch." >&2
   fi
   unset _PY_RESOLVED
 fi
