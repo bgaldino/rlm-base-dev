@@ -55,23 +55,23 @@ Modules 1 through 4 covered the contract, the data model, the rating pipeline, a
 
 ## Configure Native Gateways Through Salesforce Payments
 
-**Salesforce Payments** is the native payment service inside Agentforce Revenue Management Billing. It's not a payment gateway itself — it's the wrapper that gives Billing direct, native integrations to two third-party gateways: **Stripe** and **Adyen**. Customers can create new Stripe merchant accounts or connect existing Adyen merchant accounts through Salesforce Payments.
+Agentforce Revenue Management Billing supports two **native payment gateways**: **Salesforce Payments** and **Adyen**. "Native" means the integration is built in — no developer work, no Apex adapter class. Customers can create a new Salesforce Payments merchant account or connect an existing Adyen merchant account through the guided setup.
 
 The setup flow runs through a guided configuration:
 
 1. From the Setup menu, find **Billing Settings** and enable Payments for the org.
 2. Set up an Experience Cloud site that will host the payment surfaces customers interact with.
-3. Use the guided setup to create a Stripe merchant account (or connect an existing Adyen one) and define the payment methods you want to accept.
+3. Use the guided setup to create a Salesforce Payments merchant account (or connect an existing Adyen one) and define the payment methods you want to accept.
 
-Native gateway integration is the path of least resistance for customers who haven't pre-committed to a third-party processor. Customers who already use Stripe or Adyen for other systems can connect their existing accounts. Customers who use a different processor go to the Payment Gateway Adapter path described next.
+Native gateway integration is the path of least resistance for customers who haven't pre-committed to a processor. Customers who already use Adyen can connect their existing merchant account. Customers who use a different processor go to the Payment Gateway Adapter path described next.
 
 | Note | Content |
 |:-:|:-:|
-| icon=true | **What's in a Name?** **Salesforce Payments** is the wrapping native payment *service*. **Stripe** and **Adyen** are the two gateways it natively integrates to. When a customer says "we want native payment support" they mean Salesforce Payments + Stripe or Salesforce Payments + Adyen. The full third-party gateway list lives behind the Payment Gateway Adapter (see next section). |
+| icon=true | **Seller Sidebar** "Native" is the word that carries weight in a technical eval. With Salesforce Payments or Adyen, there's no Apex adapter to write, no class to maintain, and setup is guided configuration rather than a development project. When a customer asks "how much engineering work is the payment integration?" the answer for the two native gateways is essentially none. The Payment Gateway Adapter (next section) is the answer for any other processor — and even that is a documented, repeatable pattern. |
 
 ## Configure Third-Party Gateways Through the Payment Gateway Adapter
 
-For customers who use a payment processor that isn't Stripe or Adyen, the **Payment Gateway Adapter** pattern lets them bring their own. The mechanism is intentionally similar to the Tax Engine Adapter pattern from Module 2 — same shape, different domain.
+For customers who use a payment processor that isn't Salesforce Payments or Adyen, the **Payment Gateway Adapter** pattern lets them bring their own. The mechanism is intentionally similar to the Tax Engine Adapter pattern from Module 2 — same shape, different domain.
 
 The pieces:
 
@@ -126,7 +126,7 @@ After at least one default Payment Retry Rule Set is configured, the admin enabl
 
 ## Key Takeaways
 
-**Salesforce Payments** wraps native integrations to **Stripe** and **Adyen**. Additional third-party gateways integrate through the **Payment Gateway Adapter** pattern (`PaymentGatewayProvider` + Apex adapter class). A **Payment Scheduler** creates **Payment Runs** that sweep payments against posted invoices on a cadence — same shape as the Invoice Batch Run from Module 4, scoped to payment processing instead of invoice generation. The **Payment Retry** strategy (configured through Payment Retry Rules and Payment Retry Rule Sets) automates recovery of failed payments by gateway error category with Fixed or Staggered retry intervals.
+**Salesforce Payments** and **Adyen** are the two native payment gateways — built-in integrations with no Apex adapter required. Additional third-party gateways integrate through the **Payment Gateway Adapter** pattern (`PaymentGatewayProvider` + Apex adapter class). A **Payment Scheduler** creates **Payment Runs** that sweep payments against posted invoices on a cadence — same shape as the Invoice Batch Run from Module 4, scoped to payment processing instead of invoice generation. The **Payment Retry** strategy (configured through Payment Retry Rules and Payment Retry Rule Sets) automates recovery of failed payments by gateway error category with Fixed or Staggered retry intervals.
 
 ## Resources
 
@@ -139,7 +139,7 @@ After at least one default Payment Retry Rule Set is configured, the admin enabl
 
 | Learning Objective | Question | Answers (correct answer underlined) |
 |:--|:--|:--|
-| **Configure native and third-party gateways.** | A customer wants to use a processor that isn't Stripe or Adyen. Which architectural pattern supports this? | They must migrate to Stripe or Adyen — no other processors are supported. / **They configure a Payment Gateway Adapter by creating a PaymentGatewayProvider record that references an Apex adapter class implementing the Commerce Payments namespace.** / They configure Salesforce Payments with custom credentials. / They use a third-party app from AppExchange instead of the native Billing engine. |
+| **Configure native and third-party gateways.** | A customer wants to use a processor that isn't Salesforce Payments or Adyen. Which architectural pattern supports this? | They must migrate to Salesforce Payments or Adyen — no other processors are supported. / **They configure a Payment Gateway Adapter by creating a PaymentGatewayProvider record that references an Apex adapter class implementing the Commerce Payments namespace.** / They configure Salesforce Payments with custom credentials. / They use a third-party app from AppExchange instead of the native Billing engine. |
 | **Implement a Payment Retry strategy.** | A customer wants to retry failed payments on day 2, day 4, and day 6 after the original failure. What retry interval type supports this pattern? | Fixed retry interval with max retries = 3 / **Staggered retry interval with interval values 2,4,6** / Custom retry rule with Apex / Manual retry through the Payment Operations User permission |
 
 ---
