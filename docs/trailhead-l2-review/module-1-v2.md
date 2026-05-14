@@ -80,9 +80,9 @@ The "Unified Customer Record" is the most powerful story you can tell. In a disc
 With Revenue Cloud Billing, every team sees the same Source of Truth:
 
 - Sales sees if a customer has outstanding balances before attempting to upsell.
-- Service uses the **Subagent: Invoice Line Explanation** to retrieve plain-language explanations of individual invoice charges, while the **Subagent: Billing Inquiries** answers natural-language questions about account balances, payment plans, upcoming payment dates, invoice details, and downloadable invoice documents — both under the **Agentforce for Revenue Management** agent suite.
+- Service uses the **Subagent: Invoice Line Explanation** to retrieve plain-language explanations of individual invoice charges, while the **Subagent: Billing Inquiries** answers natural-language questions about account balances, payment plans, upcoming payment dates, invoice details, and downloadable invoice documents.
 - Finance sees real-time revenue reporting without waiting for a month-end sync from an external ERP.
-- Partners and customers can access the full Quote-to-Cash lifecycle — including billing — directly through the Experience Cloud portal, supported by the **Agentforce for Billing Service Assistance Agent** that explains charges to authenticated community users in plain language. This extends the unified record beyond your four walls.
+- Partners and customers can access the full Quote-to-Cash lifecycle — including billing — directly through the Experience Cloud portal, supported by the **Agentforce for Billing Service Assistance Agent** that explains charges to authenticated community users in plain language. This extends the unified record beyond your internal teams to your partners and customers.
 
 | Note | Content |
 |:-:|:-:|
@@ -146,7 +146,7 @@ The data model isn't just a technical map — it is the blueprint for automation
 
 The journey from a deal to a dollar follows a specific path. In Revenue Cloud Billing, three core objects act as the bridge between the Sales team and the Finance team: Orders, Billing Schedules, and Invoices.
 
-- **The Order:** When a deal closes, an Order is activated. Think of the Order as the "Change Agent." It contains the details of what changed with your relationship. A new purchase, the price, and the start date.
+- **The Order:** When a deal closes, an Order is activated. The Order records what changed in the customer relationship — a new purchase, its price, and its start date.
 - **The Billing Schedule Group:** The Billing Schedule Group (BSG) represents what the customer owns. It establishes the billing relationship between an Account and a Product, and remains consistent throughout the lifecycle—even if the customer adds units or changes their plan. The BSG is what keeps a customer's history intact. If a customer doubles their licenses mid-contract, the BSG doesn't start over—it evolves.
 - **The Billing Schedule:** While the BSG is the "parent," the Billing Schedule contains the specific details of how we bill. One Order Item can create multiple Billing Schedules to handle complex scenarios like quantity increases, price changes, or renewals.
 
