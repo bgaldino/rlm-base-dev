@@ -83,18 +83,26 @@ A few operational details that matter in field deals:
 |:-:|:-:|
 | icon=true | **Seller Sidebar** Customers sometimes ask "I just want one invoice for the whole account" — and that's fine, it's a 100% Billing Arrangement Line. The deeper proof point is the opposite case: enterprises with subsidiaries, departments, or cross-charged services need split invoices that respect each billing account's payment terms, addresses, and templates. Billing Arrangements give them that without forcing seller-side workarounds. |
 
-## Describe Bill Cycle Day and Next Billing Date
+## Describe Billing Day of Month and Next Billing Date
 
 Two date fields drive when the Invoice Batch Run picks up a Billing Schedule:
 
-- **Bill Cycle Day** (`BillDayOfMonth` on `BillingSchedule`, `BillingScheduleGroup`, and `UsageEntitlementAccount`) — the day of the month the customer is configured to be billed. Most commonly 1, 15, or the order anniversary day. Inherited from the billing profile when the BSG is generated.
+- **Billing Day of Month** (`BillDayOfMonth` on `BillingSchedule`, `BillingScheduleGroup`, and `UsageEntitlementAccount`) — the day of the month the customer is configured to be billed. Most commonly 1, 15, or the order anniversary day. Inherited from the billing profile when the BSG is generated.
 - **Next Billing Date** (`NextBillingDate` on `BillingSchedule` and `DebitMemo`) — the next date on which the system expects to bill this schedule. The Invoice Batch Run uses Next Billing Date to decide whether the schedule is ready to bill.
 
-The Bill Cycle Day governs the *cadence*. The Next Billing Date governs *eligibility for the next run*. After an invoice is produced, the system advances the Next Billing Date by one billing period — so the schedule will be re-eligible the following cycle.
+The Billing Day of Month governs the *cadence*. The Next Billing Date governs *eligibility for the next run*. After an invoice is produced, the system advances the Next Billing Date by one billing period — so the schedule will be re-eligible the following cycle.
+
+The two fields are linked, which matters the moment a customer asks to change their billing day. You can't change the Billing Day of Month on a recurring Billing Schedule Group without it impacting the Next Billing Date — changing the billing day forces proration on the next invoice so the schedule realigns to the new billing cycle. It isn't a cosmetic field edit; it reshapes the next billing period.
 
 ## Map the Invoice Batch Run
 
-The recurring engine that turns Billing Schedules into Invoices is the **Invoice Batch Run** — also called the **Bill Run** in seller-facing conversation. The configuration record is the **Invoice Scheduler** (which Module 2 covered in detail). At run time, the system creates an Invoice Batch Run record that processes Billing Schedules in parallel through these stages:
+Three terms describe the batch machinery, and keeping them straight matters:
+
+- **Billing Batch Scheduler** — the configuration record that runs the show. It carries a **Job Type** field set to either Invoice or Payment, so the same record type schedules both invoice runs and payment runs. You create one from the App Launcher under Billing Batch Schedulers; the **New Invoice Scheduler** action creates a Billing Batch Scheduler with Job Type set to Invoice (Module 2 covered the invoice-scheduler configuration in detail). An org can have up to 30 active Billing Batch Schedulers.
+- **Invoice Batch Run** — a single instance of an invoice-type Billing Batch Scheduler firing. Also called the **Bill Run** in seller-facing conversation. The payment-side equivalent, the Payment Batch Run, is Module 5 territory.
+- **Billing Schedules** — the input each run processes.
+
+At its scheduled start time, an invoice-type Billing Batch Scheduler creates an Invoice Batch Run record that processes Billing Schedules in parallel through these stages:
 
 1. Identify Billing Schedules where Next Billing Date is at or before the target date and the schedule is Ready for Invoicing.
 2. Assign each eligible schedule a grouping key.
@@ -118,7 +126,7 @@ The connector between a Debit Memo and the Invoice Batch Run is the Debit Memo's
 
 ## Key Takeaways
 
-**Billing Arrangements** define how a transaction's billable amount is split across billing accounts. Each Billing Arrangement Line produces a separate invoice with its own billing profile and percentage allocation. **Bill Cycle Day** (`BillDayOfMonth`) and **Next Billing Date** (`NextBillingDate`) drive when the Invoice Batch Run picks up a Billing Schedule. The **Invoice Batch Run** processes ready-to-bill schedules in parallel through identification, grouping, tax calculation, invoice generation, and summarization stages. **Debit Memos** carry their own `NextBillingDate` so Debit Memo Lines flow into the next invoice automatically.
+**Billing Arrangements** define how a transaction's billable amount is split across billing accounts. Each Billing Arrangement Line produces a separate invoice with its own billing profile and percentage allocation. **Billing Day of Month** (`BillDayOfMonth`) and **Next Billing Date** (`NextBillingDate`) drive when the Invoice Batch Run picks up a Billing Schedule — and the two are linked, so changing the billing day on a recurring BSG forces proration on the next invoice. The **Billing Batch Scheduler** (Job Type = Invoice or Payment) is the configuration record; an invoice-type scheduler fires an **Invoice Batch Run** (aka Bill Run) that processes ready-to-bill schedules in parallel through identification, grouping, tax calculation, invoice generation, and summarization stages. **Debit Memos** carry their own `NextBillingDate` so Debit Memo Lines flow into the next invoice automatically.
 
 ## Resources
 
@@ -131,7 +139,7 @@ The connector between a Debit Memo and the Invoice Batch Run is the Debit Memo's
 | Learning Objective | Question | Answers (correct answer underlined) |
 |:--|:--|:--|
 | **Configure Billing Arrangements.** | An enterprise account has three subsidiaries. The customer wants each subsidiary to receive its own invoice for 30%, 30%, and 40% of the total billable amount. What object structure supports this? | A single Billing Schedule per subsidiary / **One Billing Arrangement with three Billing Arrangement Lines, each assigned a percentage** / Three separate Orders / Three separate Billing Accounts with no shared configuration |
-| **Map how the Invoice Batch Run works.** | A Billing Schedule has Next Billing Date set to July 1 and a target date filter of July 15. What happens during the next Invoice Batch Run? | The schedule is skipped because Next Billing Date is in the past. / **The schedule is included because Next Billing Date is at or before the target date.** / The schedule is included only if the customer's Bill Cycle Day is July 15. / The schedule is moved to error status. |
+| **Map how the Invoice Batch Run works.** | A Billing Schedule has Next Billing Date set to July 1 and a target date filter of July 15. What happens during the next Invoice Batch Run? | The schedule is skipped because Next Billing Date is in the past. / **The schedule is included because Next Billing Date is at or before the target date.** / The schedule is included only if the customer's Billing Day of Month is July 15. / The schedule is moved to error status. |
 
 ---
 
@@ -154,7 +162,7 @@ Unit 1 covered how invoices are *produced*. Unit 2 covers what happens after pro
 
 Invoice delivery has three distinct features that run in sequence. Each is configurable independently. Each owns one part of the chain:
 
-1. **Invoice Scheduler** — already configured in Module 2. Creates the invoice data on a cadence by running an Invoice Batch Run, producing Invoices and Invoice Lines.
+1. **Invoice Scheduler** — the invoice-job-type Billing Batch Scheduler, already configured in Module 2. Creates the invoice data on a cadence by running an Invoice Batch Run, producing Invoices and Invoice Lines.
 2. **Document Generation Service** — renders the invoice records into a customer-facing PDF document. Built on OmniStudio Document Generation. Uses Document Templates (Word or HTML based) to merge account, contact, and invoice data into the final PDF.
 3. **Send Invoices Through Email** — delivers the PDF to the customer's Bill to Contact at the cadence configured per Legal Entity, Billing Account, or scheduler.
 
