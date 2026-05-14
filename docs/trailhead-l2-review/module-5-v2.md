@@ -48,10 +48,12 @@ After completing this unit, you'll be able to:
 
 - Establish integrations between the billing system and payment gateways to enable secure payment processing.
 - Extend payment processing to additional third-party gateways through a payment gateway adapter pattern.
+- Attach Level 2 and Level 3 payment data to gateway requests for richer transaction detail.
+- Generate Payment Schedules and Payment Schedule Items — automatically from posted invoices or manually as a payment plan — and consolidate an account's invoices into a single payment request.
 - Set up **Payment Runs** to sweep posted invoices automatically against connected gateways.
 - Implement a **Payment Retry** strategy that optimizes recovery rates by gateway error category.
 
-Modules 1 through 4 covered the contract, the data model, the rating pipeline, and invoice production. Module 5 closes the lifecycle: getting paid. Unit 1 starts with how payment gateways connect, how retry rules handle the inevitable failures, and how Payment Batch Runs sweep payments against posted invoices on a cadence.
+Modules 1 through 4 covered the contract, the data model, the rating pipeline, and invoice production. Module 5 closes the lifecycle: getting paid. Unit 1 walks the payment path end to end — how payment gateways connect, how the records that represent collectible amounts get created, how Payment Runs sweep those amounts against posted invoices on a cadence, and how retry rules handle the inevitable failures.
 
 ## Configure Native Gateways Through Salesforce Payments
 
@@ -86,6 +88,52 @@ The setup involves obtaining the adapter class from the gateway provider (or fro
 |:-:|:-:|
 | icon=true | **Seller Sidebar** When a customer says "we use [some other processor]," the Payment Gateway Adapter pattern is what to point at. The architectural answer is identical to the Tax Engine Adapter customers saw in Module 2 — a Provider record holds a reference to an Apex adapter class. If their processor has an AppExchange adapter, the integration is mostly configuration. If they need a custom adapter, the Apex interface is documented. Either way, Salesforce isn't trying to replace their gateway — it's giving them a documented integration point. |
 
+## Send Level 2 and Level 3 Payment Data
+
+Card networks price transactions partly on how much context travels with the payment. A bare charge — amount, currency, card token, merchant — is **Level 1** data. Adding richer detail can qualify a business-to-business transaction for lower interchange rates, which is why finance teams ask about it.
+
+Billing can attach two higher tiers of metadata to the payment requests it sends:
+
+- **Level 2** — transaction-level detail layered on top of Level 1: tax amount, total discount amount, an invoice or purchase-order reference number, and customer postal code.
+- **Level 3** — line-item detail layered on top of Level 2: product code or SKU, quantity, unit price, line-level tax, commodity code, and unit of measure.
+
+To turn this on, an admin enables **Level 2 and Level 3 Data Support** on the Billing Settings page. One constraint to know: Billing sends Level 2 and Level 3 data only through **third-party payment gateways that use Apex adapters** — the data travels out through the adapter class. To confirm what actually reached the processor, check the payment gateway logs.
+
+| Note | Content |
+|:-:|:-:|
+| icon=true | **Seller Sidebar** Level 2 and Level 3 data is a CFO-grade talking point because it maps directly to interchange cost. For a customer running high B2B card volume, qualifying transactions for L2 and L3 rates is real money. The seller proof point is that Billing assembles the tax, reference, and line-item detail automatically from records it already has — the customer isn't hand-keying purchase-order numbers into a gateway console. |
+
+## Create Payment Schedules and Payment Schedule Items
+
+Before a Payment Run can collect anything, the amounts to collect have to exist as records. That's what the **Payment Schedule** and **Payment Schedule Item** objects hold. A Payment Schedule describes a set of payments a customer will make over time for a given record; it carries one or more **Payment Schedule Items**, where each item represents a single payment to be processed.
+
+There are two ways these records get created:
+
+- **Automatically, from posted invoices.** When an admin turns on **Create Payment Schedules and Payment Schedule Items** on the Billing Settings page, Billing generates a Payment Schedule and Payment Schedule Item for each posted invoice — so invoices produced by an Invoice Batch Run flow straight into collectible payment records with no manual step.
+- **Manually, as a payment plan.** A billing user can create Payment Schedules and Payment Schedule Items by hand to model a payment plan — for example, splitting a large invoice into several scheduled installments.
+
+The creation path also decides which payment method the gateway uses when the Payment Run collects:
+
+- For **automatically created** schedules and items, the gateway charges the account's **default saved payment method**.
+- For **manually created** schedules and items, the gateway charges the **most recently created saved payment method** for the account related to the invoice.
+
+A Payment Run processes Payment Schedule Items that are in **Ready for Processing** status and belong to a Payment Schedule in **Open** status — so the status of these records is what gates whether a run picks them up.
+
+## Consolidate Multiple Invoices into a Single Payment
+
+By default, the automatic creation described above produces one Payment Schedule and one Payment Schedule Item per posted invoice. For an account that receives many invoices, that means many separate gateway calls — and each call carries a transaction fee.
+
+Billing can group qualifying invoices for an account into **one** Payment Schedule and Payment Schedule Item, cutting the number of gateway calls and the fees that come with them. The configuration lives on the **Payment Schedule Treatment** record:
+
+- **Grouping Source** — set this to **Account** to group an account's invoices together. The default is **Invoice**, which produces one schedule per invoice.
+- **Due Date Window** — the number of days that defines the grouping window. Invoices whose payment due dates fall inside the window are eligible to be grouped.
+
+Three conditions decide whether two invoices group together: the same **currency**, the same **payment method**, and **payment due dates within the due date window**. When invoices qualify, the consolidated Payment Schedule carries the **sum** of the grouped invoice amounts, and the Payment Schedule Item's target payment processing date is the **earliest** due date among them. Any invoice that falls outside the window gets its own separate Payment Schedule and Item.
+
+| Note | Content |
+|:-:|:-:|
+| icon=true | **Seller Sidebar** Invoice consolidation is a quiet cost-savings story that resonates with operations buyers. A customer billing an account weekly might be paying a gateway fee on every one of those charges. Group them into a single payment request and the fee count drops accordingly. It's configuration, not custom development — Grouping Source and a Due Date Window. |
+
 ## Set Up Payment Runs
 
 A **Payment Run** sweeps payments against posted invoices on a cadence. Configure one through a **Payment Scheduler** — a Billing Batch Scheduler with Job Type = Payment. The pattern matches Module 4's Bill Run / Invoice Batch Run: a configuration record (the Scheduler) creates the execution records (the Payment Runs).
@@ -116,6 +164,8 @@ Each rule defines a **retry interval type**:
 
 The interval unit can be **Hours**, **Minutes**, or **Days**. The maximum retries on Fixed cap at 10. The maximum interval value caps at 60.
 
+Building a **Payment Retry Rule** starts with picking the failure it responds to. Each rule is scoped to a **payment gateway error category** — a value you *select* from a predefined list (insufficient funds, expired card, gateway error, and so on), not one you author. You can optionally narrow the rule further with a specific **payment gateway error code**. From there, the rule either sets its own retry interval type, interval unit, and interval values, or inherits those defaults from its parent Payment Retry Rule Set. The practical pattern is one rule per error category: a short, aggressive schedule for transient failures like a gateway timeout, and a longer, gentler schedule for an expired card the customer has to update on their own.
+
 Three operational rules to know:
 
 - A Payment Retry Rule Set can be marked as the default for the org. Only one default is active at a time.
@@ -126,12 +176,15 @@ After at least one default Payment Retry Rule Set is configured, the admin enabl
 
 ## Key Takeaways
 
-**Salesforce Payments** and **Adyen** are the two native payment gateways — built-in integrations with no Apex adapter required. Additional third-party gateways integrate through the **Payment Gateway Adapter** pattern (`PaymentGatewayProvider` + Apex adapter class). A **Payment Scheduler** creates **Payment Runs** that sweep payments against posted invoices on a cadence — same shape as the Invoice Batch Run from Module 4, scoped to payment processing instead of invoice generation. The **Payment Retry** strategy (configured through Payment Retry Rules and Payment Retry Rule Sets) automates recovery of failed payments by gateway error category with Fixed or Staggered retry intervals.
+**Salesforce Payments** and **Adyen** are the two native payment gateways — built-in integrations with no Apex adapter required. Additional third-party gateways integrate through the **Payment Gateway Adapter** pattern (`PaymentGatewayProvider` + Apex adapter class), which is also the path for sending **Level 2 and Level 3 payment data** — the transaction- and line-item-level metadata that can qualify B2B card transactions for better interchange rates. **Payment Schedules** and **Payment Schedule Items** — created automatically from posted invoices or manually as a payment plan — are the collectible records a run processes; an account's invoices can be consolidated into a single payment request through the **Payment Schedule Treatment** to cut gateway calls and fees. A **Payment Scheduler** creates **Payment Runs** that sweep payments against posted invoices on a cadence — same shape as the Invoice Batch Run from Module 4, scoped to payment processing instead of invoice generation. The **Payment Retry** strategy (configured through Payment Retry Rules and Payment Retry Rule Sets) automates recovery of failed payments by selected gateway error category with Fixed or Staggered retry intervals.
 
 ## Resources
 
 - [*Salesforce Help:* Set Up Payment Features for Agentforce Revenue Management](https://help.salesforce.com/s/articleView?id=ind.billing_setup_salesforce_payments_features.htm&type=5)
 - [*Salesforce Help:* Set Up Third-Party Payment Gateways](https://help.salesforce.com/s/articleView?id=ind.billing_setup_third_party_payments.htm&type=5)
+- [*Salesforce Help:* Send Level 2 and Level 3 Payment Data via Your Payment Gateways](https://help.salesforce.com/s/articleView?id=ind.billing_send_l2_l3_data.htm&type=5)
+- [*Salesforce Help:* Payment Schedules and Payment Schedule Items](https://help.salesforce.com/s/articleView?id=ind.billing_payment_schedules_and_payment_schedule_items_auto_manual.htm&type=5)
+- [*Salesforce Help:* Group Multiple Invoices into a Single Payment Request](https://help.salesforce.com/s/articleView?id=ind.billing_payments_consolidate_invoices.htm&type=5)
 - [*Salesforce Help:* Set Up Payment Retry Rules](https://help.salesforce.com/s/articleView?id=ind.billing_setup_payment_retry_rules.htm&type=5)
 - [*Salesforce Help:* Schedule Payment Batch Runs to Process Payments](https://help.salesforce.com/s/articleView?id=ind.billing_payment_runs_schedule.htm&type=5)
 
@@ -140,6 +193,7 @@ After at least one default Payment Retry Rule Set is configured, the admin enabl
 | Learning Objective | Question | Answers (correct answer underlined) |
 |:--|:--|:--|
 | **Configure native and third-party gateways.** | A customer wants to use a processor that isn't Salesforce Payments or Adyen. Which architectural pattern supports this? | They must migrate to Salesforce Payments or Adyen — no other processors are supported. / **They configure a Payment Gateway Adapter by creating a PaymentGatewayProvider record that references an Apex adapter class implementing the Commerce Payments namespace.** / They configure Salesforce Payments with custom credentials. / They use a third-party app from AppExchange instead of the native Billing engine. |
+| **Generate and consolidate Payment Schedules.** | An account receives 12 invoices a month — all in the same currency, with the same payment method, and due dates within a 30-day window. How can the customer reduce the number of payment gateway calls? | Manually cancel and re-create the invoices as one. / **Set the Payment Schedule Treatment's Grouping Source to Account with a Due Date Window, so qualifying invoices consolidate into one Payment Schedule and Payment Schedule Item.** / Disable automatic payment schedule creation. / Switch all invoices to a different currency. |
 | **Implement a Payment Retry strategy.** | A customer wants to retry failed payments on day 2, day 4, and day 6 after the original failure. What retry interval type supports this pattern? | Fixed retry interval with max retries = 3 / **Staggered retry interval with interval values 2,4,6** / Custom retry rule with Apex / Manual retry through the Payment Operations User permission |
 
 ---
