@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**42 flows** across **5 groups**.
+**41 flows** across **5 groups**.
 
 ---
 
@@ -171,7 +171,7 @@ Extract rating and rates data from an org into CSV files
    - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
 6. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
 7. **task** `activate_billing_records`  `when: project_config.project__custom__billing`
-8. **task** `enable_timeline`  `when: project_config.project__custom__billing_ui and not project_config.project__custom__tso`
+8. **task** `enable_timeline`  `when: project_config.project__custom__billing_ui`
 9. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing`
 10. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
 11. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
@@ -221,18 +221,9 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 8. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `data_dir`: `datasets/constraints/qb/Server2`
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-9. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
-   - `data_dir`: `datasets/constraints/qb/QuantumBitPCM`
-   - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-10. **task** `import_cml`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
-   - `data_dir`: `datasets/constraints/qb/QuantumBitBundle`
-   - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
-11. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
-   - `operation`: `deactivate_versions`
-   - `version_full_names`: `QuantumBitComplete_V1,QuantumBitPCM_V1`
-12. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
+9. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `activate_versions`
-   - `version_full_names`: `Server2_V1,QuantumBitBundle_V1`
+   - `version_full_names`: `QuantumBitComplete_V1,Server2_V1`
 
 ---
 
@@ -240,28 +231,26 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 **Steps:**
 
-1. **task** `fix_scratch_org_identity`  `when: org_config.scratch`
-2. **task** `set_scratch_org_password`  `when: org_config.scratch`
-3. **task** `validate_setup`
-4. **task** `assign_permission_set_licenses`
+1. **task** `validate_setup`
+2. **task** `assign_permission_set_licenses`
    - `api_names`: `['BREDesigner', 'BRERuntime', 'CorePricingDesignTime', 'DataProcessingEnginePsl', 'DecimalQuantit...`
-5. **task** `cleanup_settings_for_dev`
-6. **task** `exclude_active_decision_tables`
-7. **task** `deploy_pre`
-8. **task** `restore_decision_tables`
-9. **flow** `assign_feature_psls`
-10. **task** `recalculate_permission_set_groups`
+3. **task** `cleanup_settings_for_dev`
+4. **task** `exclude_active_decision_tables`
+5. **task** `deploy_pre`
+6. **task** `restore_decision_tables`
+7. **flow** `assign_feature_psls`
+8. **task** `recalculate_permission_set_groups`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-11. **task** `assign_permission_set_groups_tolerant`
+9. **task** `assign_permission_set_groups_tolerant`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-12. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
+10. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
    - `api_names`: `['RLM_TSO']`
-13. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
+11. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
    - `api_names`: `['RLM_TSO']`
-14. **flow** `extend_context_definitions`
-15. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
-16. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
-17. **flow** `assign_feature_permission_sets`
+12. **flow** `extend_context_definitions`
+13. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
+14. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
+15. **flow** `assign_feature_permission_sets`
 
 ---
 
@@ -328,17 +317,6 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 ---
 
-### `prepare_large_stx`
-
-**Steps:**
-
-1. **task** `deploy_post_large_stx`  `when: project_config.project__custom__large_stx`
-2. **task** `assign_permission_sets`  `when: project_config.project__custom__large_stx`
-   - `api_names`: `['RLM_LargeSalesTransaction']`
-3. **task** `seed_large_deal_billing_treatment`  `when: project_config.project__custom__large_stx and project_config.project__custom__billing`
-
----
-
 ### `prepare_payments`
 
 **Steps:**
@@ -359,21 +337,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 
 **Steps:**
 
-1. **task** `set_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
-2. **task** `deploy_post_personas`  `when: project_config.project__custom__personas`
-3. **task** `recalculate_personas_sales_rep_psg`  `when: project_config.project__custom__personas`
-4. **task** `create_personas_sales_rep_user`  `when: project_config.project__custom__personas`
-5. **task** `assign_personas_sales_rep_psg`  `when: project_config.project__custom__personas`
-6. **task** `assign_permission_sets`  `when: project_config.project__custom__personas`
-   - `api_names`: `['RLM_QuantumBit_Sales_Representative']`
-   - `user_alias`: `salesrep`
-7. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__large_stx`
-   - `api_names`: `['RLM_LargeSalesTransaction']`
-   - `user_alias`: `salesrep`
-8. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__ramps`
-   - `api_names`: `['RLM_RampSchedule']`
-   - `user_alias`: `salesrep`
-9. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+1. **task** `deploy_post_personas`
 
 ---
 
@@ -410,17 +374,17 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 1. **task** `create_partner_central`  `when: project_config.project__custom__prm`
 2. **task** `patch_network_email_for_deploy`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
 3. **task** `deploy_post_prm`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
+4. **task** `configure_pricing_recipe_table_mappings`  `when: project_config.project__custom__prm`
 5. **task** `revert_network_email_after_deploy`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
 6. **task** `publish_community`  `when: project_config.project__custom__prm`
    - `name`: `rlm`
-7. **task** `assign_permission_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
+7. **task** `deploy_sharing_rules`  `when: project_config.project__custom__prm and project_config.project__custom__sharingsettings`
+8. **task** `assign_permission_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
    - `api_names`: `['RLM_PRM']`
-8. **task** `insert_quantumbit_prm_data`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
-9. **task** `manage_context_definition`  `when: project_config.project__custom__prm`
-   - `plan_file`: `datasets/context_plans/PartnerAccount/manifest.json`
-   - `developer_name`: `RLM_SalesTransactionContext`
-   - `translate_plan`: `True`
-   - `activate`: `True`
+9. **task** `insert_quantumbit_prm_data`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
+10. **task** `activate_prm_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
+11. **task** `insert_prm_procedure_plan_data`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso and project_config.project__custom__procedureplans`
+12. **task** `apply_context_prm_pricing`  `when: project_config.project__custom__prm`
 
 ---
 
@@ -529,13 +493,10 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 24. **flow** `prepare_revenue_settings`
 25. **flow** `prepare_pricing_discovery`
 26. **flow** `prepare_ramp_builder`
-27. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
-28. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
-29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-30. **flow** `prepare_scratch`
-31. **flow** `refresh_all_decision_tables`
-32. **task** `rebuild_search_index`
-33. **flow** `stamp_git_commit`
+27. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
+28. **flow** `prepare_scratch`
+29. **flow** `refresh_all_decision_tables`
+30. **flow** `stamp_git_commit`
 
 ---
 
@@ -543,7 +504,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 
 **Steps:**
 
-1. **task** `insert_scratch_data`  `when: project_config.project__custom__sample_data`
+1. **task** `insert_scratch_data`  `when: org_config.scratch and not project_config.project__custom__tso`
 
 ---
 
@@ -625,7 +586,7 @@ Retrieves live flexipages from the target org into unpackaged/post_ux/, then dif
 
 ### `prepare_ux`
 
-Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 29 of prepare_rlm_org, after all feature provisioning (including personas at step 28) is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
+Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 27 of prepare_rlm_org, after all feature provisioning is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
 
 **Steps:**
 

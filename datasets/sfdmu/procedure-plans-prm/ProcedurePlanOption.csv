@@ -1,0 +1,2 @@
+$$ProcedurePlanSection.SubSectionType$Priority,CriteriaLogic,ExpressionSetDefinition.DeveloperName,Priority,ProcedurePlanSection.SubSectionType,ReadContextMapping,SaveContextMapping
+IFPartnerDistributorOnQuote;1,1,PRM_DISTI_Pricing_Procedure,1,IFPartnerDistributorOnQuote,QuoteEntitiesMapping,QuoteEntitiesMapping
