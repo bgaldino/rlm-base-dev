@@ -95,7 +95,7 @@ project:
 
     # ── Org Type & Mode ────────────────────────────────────────────────────────
     qbrix: false              # Use xDO base layer (disable for orgs without xDO licenses)
-    tso: false                # Trialforce Source Org (set true when targeting a TSO scratch org)
+    tso: true                # Trialforce Source Org (set true when targeting a TSO scratch org)
     pde: false                # Partner Development Environment (DE, no qbrix or custom UX)
     trial: false              # Public Trial org (EE, no qbrix or custom UX)
     refresh: false            # Data refresh mode — skips insert steps during re-runs
@@ -1442,15 +1442,6 @@ tasks:
       Restore the placeholder emailSenderAddress in rlm.network-meta.xml after
       deploy_post_prm so the repo never persists the target org's email.
     class_path: tasks.rlm_community.RevertNetworkEmailAfterDeploy
-
-  deploy_post_prm_tso:
-    group: Partner Relationship Management
-    description: >
-      Deploy TSO-only PRM experience overlay containing the View Vouchers page
-      (requires Referral and Voucher objects enabled in TSO orgs).
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_prm_tso
 
   create_partner_central:
     description: Create Partner Central Community

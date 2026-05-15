@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**203 tasks** across **9 groups**.
+**202 tasks** across **9 groups**.
 
 ---
 
@@ -514,19 +514,7 @@
 
 ## Partner Relationship Management
 
-*3 task(s)*
-
-### `deploy_post_prm_tso`
-
-**Description:** Deploy TSO-only PRM experience overlay containing the View Vouchers page (requires Referral and Voucher objects enabled in TSO orgs).
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_prm_tso`
-
----
+*2 task(s)*
 
 ### `patch_network_email_for_deploy`
 

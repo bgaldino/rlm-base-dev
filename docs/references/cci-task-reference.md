@@ -542,7 +542,6 @@ cci task info <task_name>
 
 | Task | Description |
 |---|---|
-| `deploy_post_prm_tso` | Deploy TSO-only PRM experience overlay containing the View Vouchers page (requires Referral and Voucher objects enabled in TSO orgs). |
 | `patch_network_email_for_deploy` | Replace the placeholder emailSenderAddress in rlm.network-meta.xml with the Network's actual current EmailSenderAddress (immutable after creation) so deploy_post_prm succeeds. Repo stores a non-PII placeholder; run revert_network_email_after_deploy after deploy. |
 | `revert_network_email_after_deploy` | Restore the placeholder emailSenderAddress in rlm.network-meta.xml after deploy_post_prm so the repo never persists the target org's email. |
 
