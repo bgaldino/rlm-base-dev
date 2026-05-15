@@ -48,7 +48,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `sharingsettings` | `False` | 1 flow step(s) |
 | `tax` | `True` | 4 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `True` | 17 flow step(s) |
+| `tso` | `True` | 11 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
 
 ---
@@ -346,12 +346,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_tso` step 2 → `deploy_post_utils`
 - `prepare_tso` step 3 → `deploy_post_tso`
 - `prepare_tso` step 4 → `assign_permission_sets`
-- `prepare_prm` step 2 → `patch_network_email_for_deploy`
-- `prepare_prm` step 3 → `deploy_post_prm`
-- `prepare_prm` step 5 → `revert_network_email_after_deploy`
-- `prepare_prm` step 8 → `assign_permission_sets`
-- `prepare_prm` step 10 → `activate_prm_expression_sets`
-- `prepare_prm` step 11 → `insert_prm_procedure_plan_data`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 
