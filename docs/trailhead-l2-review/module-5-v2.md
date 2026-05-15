@@ -82,7 +82,9 @@ The pieces:
 - **Named Credential** — secures and authenticates the API callouts to the third-party gateway.
 - **Salesforce Site** — exposes a webhook endpoint so the third-party gateway can push notifications back into Salesforce.
 
-The setup involves obtaining the adapter class from the gateway provider (or from AppExchange), creating the PaymentGatewayProvider record with that adapter referenced, and configuring a webhook URL in the third-party gateway's standard notification transport settings. The resulting connection processes payments, issues refunds, and supports multiple payment methods (credit cards, ACH, SEPA, BACS, BECS) through the `tokenizePaymentMethod` API.
+The setup involves obtaining the adapter class from the gateway provider (or from AppExchange), creating the PaymentGatewayProvider record with that adapter referenced, and configuring a webhook URL in the third-party gateway's standard notification transport settings. The resulting connection processes payments, issues refunds, and supports multiple payment methods — credit and debit cards, plus bank methods like ACH, SEPA, BACS, and BECS.
+
+To store a payment method for reuse, the gateway tokenizes the customer's card or bank details, and the token is saved to the **Saved Payment Method** object through the `tokenizePaymentMethod` API — using the `cardCategory` property for card methods or `bankType` for bank methods.
 
 | Note | Content |
 |:-:|:-:|
@@ -116,6 +118,8 @@ The creation path also decides which payment method the gateway uses when the Pa
 
 - For **automatically created** schedules and items, the gateway charges the account's **default saved payment method**.
 - For **manually created** schedules and items, the gateway charges the **most recently created saved payment method** for the account related to the invoice.
+
+A saved payment method also travels with the **Billing Schedule Group**: it's one of the attributes — alongside billing account, bill-to contact, currency, payment term, tax engine, and legal entity — that defines the BSG's default invoice group. That's what lets an enterprise customer carry different payment methods for different parts of the business while a single account-level default still backs everything up.
 
 A Payment Run processes Payment Schedule Items that are in **Ready for Processing** status and belong to a Payment Schedule in **Open** status — so the status of these records is what gates whether a run picks them up.
 
@@ -204,7 +208,7 @@ After at least one default Payment Retry Rule Set is configured, the admin enabl
 
 After completing this unit, you'll be able to:
 
-- Set up the **Self-Service Billing Portal**'s payment surface for customer-managed payments and updates.
+- Use the user-initiated payment surfaces — Pay Now links, manual payment creation, and the **Self-Service Billing Portal** — to collect payments outside the scheduled batch run.
 - Execute automated **Dunning** workflows that reduce **Days Sales Outstanding (DSO)** by deploying tiered communications across multiple channels.
 - Manage **Billing Disputes** — capture, validate, and resolve common billing requests from the Self-Service Portal or directly through the Collections workflow.
 - Articulate the Payments and Collections capability's impact on **Days Sales Outstanding (DSO)** for a Finance audience.
@@ -212,17 +216,17 @@ After completing this unit, you'll be able to:
 
 > **Agent naming note:** The body content below uses **Subagent: Billing Collections Management** (per the current 262 Help portal naming under "Agentforce for Revenue Management"). Pending Annie + Mike alignment on subagent vs. "Billing Agent" vocabulary, names may be revised. Content stays the same.
 
-Unit 1 handled payment processing. Unit 2 handles what happens when payments don't arrive on time. Collections and Disputes are the operational heart of recovering revenue without burning customer relationships. The Self-Service Billing Portal, the Dunning Orchestration capability, and the collections-management subagent are the tools that make that recovery scalable.
+Unit 1 handled payment processing. Unit 2 handles what happens when payments don't arrive on time. Collections and Disputes are the operational heart of recovering revenue without burning customer relationships. The user-initiated payment surfaces, the Dunning Orchestration capability, and the collections-management subagent are the tools that make that recovery scalable.
 
-## Set Up the Self-Service Billing Portal Payment Surface
+## Use Other Payment Surfaces
 
-Module 4 covered the **Self-Service Billing Portal** as the viewing surface. Module 5 covers the same portal as the *payment* surface. The same customer can use the same portal to view invoices and pay them, with consistent design and authentication. The payment-side capabilities include:
+Automated Payment Runs handle recurring, enterprise-scale cash collection. But not every payment fits a batch schedule — unique customer arrangements, collections escalations, and over-the-phone transactions all need a way to capture revenue on demand. Agentforce Revenue Management provides three user-initiated payment surfaces for exactly that:
 
-- **Pay Invoices from the Portal** — customers log in, view unsettled invoices, and pay through supported payment methods. The Home tab shows settled, partially settled, and unsettled invoices.
-- **Pay Now Link** — a shareable, signed payment URL that customers can use without logging in. Generated by cloning the **Generate Payment Link** flow and configuring the business account ID and payment settings. Customers pay as a guest with a new payment method; the resulting payment is automatically associated with the correct business account.
-- **Saved Payment Methods** — customers can save a payment method for future use, supporting credit cards, debit cards, ACH, SEPA, BACS, BECS, digital wallets, buy now pay later (BNPL), and additional methods depending on the gateway.
+- **Pay Now links** — an administrator generates a secure, shareable **Pay Now** link directly from a Salesforce record by cloning the **Generate Payment Link** flow and configuring the business account and payment settings. The link opens a guest checkout experience through the connected Salesforce Payments or Adyen gateway, so a customer can settle an outstanding balance with a digital wallet, bank debit, or card without logging in. The resulting payment is automatically associated with the correct business account, and a customer who saves the method has it tokenized for future bills.
+- **Manual payment creation** — when a customer provides payment details over the phone or your team is acting on a payment promise, a payment admin can create a payment manually instead of waiting for the next run. From **Payment Schedules**, the admin creates a payment record, maps it to the reference invoice or installment, selects a tokenized saved payment method, and enters the amount. Setting the payment schedule item to **Ready for Processing** collects the funds through the merchant account and applies them against the invoice balance.
+- **Self-Service Billing Portal** — Module 4 covered the portal as the *viewing* surface; it's also a *payment* surface. Customers log in, see settled, partially settled, and unsettled invoices on the Home tab, pay open invoices with a supported method, and can save a payment method for future use.
 
-The Pay Now Link is particularly useful for invoice email delivery scenarios — the invoice email can include the link, the customer clicks once, completes payment, and finance has cash in the bank without a portal login or support call.
+Together, these three surfaces let customer service and collections teams accelerate cash recovery outside the batch cycle while keeping the books in sync.
 
 | Note | Content |
 |:-:|:-:|
@@ -302,7 +306,7 @@ The subagent requires the Agentforce Revenue Management Billing license with the
 
 ## Key Takeaways
 
-The **Self-Service Billing Portal** payment surface includes the **Pay Now Link** for the lowest-friction path from invoice to cash. **Dunning Orchestration** automates the full overdue-invoice escalation lifecycle using Dynamic Revenue Orchestrator templates, with multi-channel support through Marketing Cloud. **Billing Dispute Management** centralizes common dispute types into self-service templates with automated resolution actions. Together, these capabilities directly reduce **Days Sales Outstanding (DSO)** — the metric finance organizations track most closely. The **Subagent: Billing Collections Management** under the Agentforce for Revenue Management suite exposes two named actions — **Get Account Billing Summary** and **Get Dunning Strategy** — that compress investigation time for collections reps and recommend the next dunning step.
+Beyond the scheduled Payment Run, three user-initiated surfaces — **Pay Now links**, manual payment creation, and the **Self-Service Billing Portal** — let teams collect payments on demand. **Dunning Orchestration** automates the full overdue-invoice escalation lifecycle using Dynamic Revenue Orchestrator templates, with multi-channel support through Marketing Cloud. **Billing Dispute Management** centralizes common dispute types into self-service templates with automated resolution actions. Together, these capabilities directly reduce **Days Sales Outstanding (DSO)** — the metric finance organizations track most closely. The **Subagent: Billing Collections Management** exposes two named actions — **Get Account Billing Summary** and **Get Dunning Strategy** — that compress investigation time for collections reps and recommend the next dunning step.
 
 ## Resources
 
