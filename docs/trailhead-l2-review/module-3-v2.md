@@ -78,9 +78,9 @@ A useful one-liner: **UEA holds the relationship. Buckets hold the balance. Entr
 
 The customer doesn't create most of these records manually. The system creates them as a side effect of order activation. The sequence is:
 
-1. The seller adds a usage-based product to a quote or order. The order is activated.
+1. An order with a usage-based product is activated.
 2. The system **assetizes** the order — creates an Asset record for each Order Product.
-3. For each usage-based Asset, the system creates a **Usage Entitlement Account** and the related **Usage Entitlement Buckets** for each resource the product grants.
+3. For each usage-based Asset, the system creates a **Usage Entitlement Account** and the related **Usage Entitlement Buckets** for each usage resource the product grants.
 4. The system creates the **Transaction Usage Entitlement** record that captures the binding policy, rollover policy, refresh policy, and drawdown order for the granted resources.
 5. **Asset Rate Card Entries** and **Asset Rate Adjustments** are populated based on what was negotiated during the quote step.
 
@@ -90,10 +90,10 @@ The admin doesn't configure individual buckets per customer — they configure t
 
 Binding is how usage products pool their resources together. A Transaction Usage Entitlement has a `GrantBindingTargetId` field that points at the target that owns the grant. A Usage Entitlement Account also has its own `GrantBindingTargetId`. The Bucket inherits its binding through `ParentId`.
 
-The binding target can be one of four things:
+The binding target for both anchor and add-on usage products can be one of four things:
 
 - **An Account** — the grant is shared across every relevant asset the account owns. Buy a corporate-wide quota and every business unit draws from the same pool.
-- **An Anchor Asset** — the grant is specific to a base product (the "anchor"). Add-on packs that bind to the anchor draw from the same pool.
+- **An Asset** — the grant is specific to a base product (the "anchor"). Add-on packs that bind to the anchor add to the same pool.
 - **A Contract** — the grant is scoped to a specific contract. Useful when one account has multiple contracts and each carries its own pool.
 - **A Custom Object** — for scenarios that don't fit the above three patterns.
 
@@ -103,7 +103,7 @@ The `UsagePrdGrantBindingPolicy` object holds the policy itself — admins creat
 
 | Note | Content |
 |:-:|:-:|
-| icon=true | **Seller Sidebar** Binding is what separates "a customer with multiple SKUs" from "a customer with a pooled allowance." When a prospect tells you they have a base subscription with add-on capacity packs, that's an Anchor Asset binding pattern. The base product is the Anchor. The packs bind to it. They all share one parent Usage Entitlement Bucket. This is a recurring pattern in telecom, infrastructure, and platform pricing. |
+| icon=true | **Seller Sidebar** Binding is what separates "a customer with multiple SKUs" from "a customer with a pooled allowance." When a prospect tells you they have a pooled usage use case, that's a binding pattern. The base product is the Anchor. The packs bind to it. They all share one parent Usage Entitlement Bucket. This is a recurring pattern in telecom, infrastructure, and platform pricing. |
 
 ## Key Takeaways
 
@@ -159,7 +159,7 @@ Records missing any of these don't flow through the pipeline. The customer's dat
 Usage data moves through four records as it gets rated and prepared for billing:
 
 1. **Transaction Journal** — the raw usage event. One row per consumption record from the source system.
-2. **Usage Summary** — the aggregated usage for a billing period or service period. Rolls up many Transaction Journal records into a single summary per resource per period.
+2. **Usage Summary** — rolls up many Transaction Journal records into a single Usage Summary per summarization period (Daily, Monthly).
 3. **Usage Ratable Summary** — the rated version of a Usage Summary. The rating engine applies the appropriate Asset Rate Card Entry and any Asset Rate Adjustments to calculate the net unit rate and the total chargeable amount.
 4. **Liable Summary** — the invoice-ready summary. Captures what Billing should actually charge for the period. The Liable Summary is what flows into the billing schedule for invoice generation.
 
@@ -169,7 +169,7 @@ The pipeline runs as schedule-triggered flows under the **Orchestrate Usage Mana
 
 A **Rating Procedure** is the ordered stack of rules that turns a Usage Summary into a Usage Ratable Summary. Each procedure is a sequence of **rating elements**, and each element performs one lookup or calculation against the rate context.
 
-Here's how the procedure executes on a single Usage Summary:
+Procedures are fully configurable by the user. Here's how the standard procedure executes on a single Usage Summary:
 
 1. The procedure receives the Usage Summary along with the rate context — the customer's **Asset Rate Card Entry** and any applicable **Asset Rate Adjustments**.
 2. The first rating element looks up the base rate from the Asset Rate Card Entry. This is the per-unit price the customer agreed to.
