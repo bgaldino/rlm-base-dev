@@ -48,7 +48,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `sharingsettings` | `False` | 1 flow step(s) |
 | `tax` | `True` | 4 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 17 flow step(s) |
+| `tso` | `True` | 17 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
 
 ---
@@ -335,7 +335,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_tax` step 4 → `activate_tax_records`
 
-### `tso` (default: `False`)
+### `tso` (default: `True`)
 
 - `prepare_core` step 10 → `recalculate_permission_set_groups`
 - `prepare_core` step 11 → `assign_permission_set_groups_tolerant`
