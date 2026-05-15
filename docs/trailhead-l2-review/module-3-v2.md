@@ -16,7 +16,7 @@
 |:--|:--|:--|:--|
 | 1 | Map the Usage Data Model | Quiz | |
 | 2 | Navigate the Usage Rating Pipeline | Quiz | |
-| 3 | Apply the Consumption Management Subagent, Drawdown Policies, and the Digital Wallet | Quiz | |
+| 3 | Apply the Consumption Management Subagent and Drawdown Policies | Quiz | |
 
 ## AI Usage
 
@@ -216,7 +216,7 @@ After completing this unit, you'll be able to:
 
 - Apply the usage-management subagent to derive overage consumption insights and remediate them with generated quotes.
 - Apply Drawdown Policies and Rollover Policies to govern how usage entitlement buckets are consumed and renewed.
-- Use the Digital Wallet to consolidate balances, rates, grants, and policies into a single source of truth.
+- Use the Unified Usage Dashboard to consolidate wallet balances, rates, grants, and policies into a single source of truth.
 - Extend rating with third-party engines for high-volume scenarios.
 
 > **Agent naming note:** The body content below refers to the **Subagent: Consumption Management** (per the current Help portal naming under "Agentforce for Revenue Management"). Pending an Annie + Mike alignment on subagent vs. "Billing Agent" vocabulary, names may be revised. Content stays the same.
@@ -232,11 +232,11 @@ The seller-facing benefit is conversational access to overage information withou
 The agent works alongside two other features that together form the complete overage story:
 
 - **Usage Overage Policy** — the governance object. Defines whether overage on a usage resource is chargeable. Admins create one policy per resource.
-- **Digital Wallet** — the monitoring surface. Shows the resources accessible to the customer, how much is included, how much is left, and the drill-down into the actual debits and credits per resource.
+- **Unified Usage Dashboard** — the monitoring surface. Shows the resources accessible to the customer, how much is included, how much is left, and the drill-down into the actual debits and credits per resource.
 
 | Note | Content |
 |:-:|:-:|
-| icon=true | **Seller Sidebar** A common technical-eval question: "How does the system tell us about overages before they become a customer support escalation?" Answer in three layers: (1) Usage Overage Policy defines what counts as chargeable overage. (2) Digital Wallet surfaces the current state for both seller and customer. (3) Subagent: Consumption Management proactively offers a remediation quote when consumption is trending past the grant. Each layer is a distinct product capability, and customers can buy them as a stack. |
+| icon=true | **Seller Sidebar** A common technical-eval question: "How does the system tell us about overages before they become a customer support escalation?" Answer in three layers: (1) Usage Overage Policy defines what counts as chargeable overage. (2) the Unified Usage Dashboard surfaces the current state for both seller and customer. (3) Subagent: Consumption Management proactively offers a remediation quote when consumption is trending past the grant. Each layer is a distinct product capability, and customers can buy them as a stack. |
 
 ## Apply Drawdown Policies and Rollover Policies
 
@@ -261,9 +261,9 @@ Together, Drawdown and Rollover answer two distinct customer questions:
 |:-:|:-:|
 | icon=true | **Seller Sidebar** Drawdown and Rollover are how you answer two adjacent customer questions in one motion. Drawdown is FIFO-vs-LIFO for a given consumption event — Expiring First (the default) uses the grant closest to expiration first. Rollover is what happens at period end — units carry forward or expire. Lead with Expiring First as the default and Rollover Policy as the period-end answer; most customers don't need to think about either after the initial configuration. |
 
-## Use the Digital Wallet
+## Use the Unified Usage Dashboard
 
-The **Digital Wallet** is the seller-and-customer-facing surface for consumption. It shows the resources accessible to the customer, how much is included, how much is left, and lets the customer drill into each resource to see the actual debits and credits being made. The Wallet runs from the Usage Management App and exposes its content through tabs accessible from either an account page or an asset page:
+The **Unified Usage Dashboard** is the seller-and-customer-facing surface for consumption. It shows the resources accessible to the customer, how much is included, how much is left, and lets the customer drill into each resource to see the actual debits and credits being made. The dashboard runs from the Usage Management App and exposes its content through tabs accessible from either an account page or an asset page:
 
 - **Usage Details** — lists all assets bound to the account, including assets, contracts, or custom objects.
 - **Grants** — shows the associated grants with rollover and refresh policy details and effective period dates.
@@ -271,7 +271,7 @@ The **Digital Wallet** is the seller-and-customer-facing surface for consumption
 - **Wallets** — shows balances per resource with visual indicators for percentage consumed. Drilling into a resource exposes the bucket's overall and in-period balances and the audit trail of Usage Entitlement Entries (the Wallet Statement).
 - **Rates** — shows the finalized winning rate for any consumption on the account or asset. The proration engine evaluates overlapping validity periods and shows the rate the rating engine actually uses.
 
-The Digital Wallet also extends to Experience Cloud, so customers can track their own balances, usage, and entitlements without opening a support case. The customer-facing view requires Customer Community or Partner Community licenses.
+The Wallet view also extends to Experience Cloud, so customers can track their own balances, usage, and entitlements without opening a support case. The Wallet view requires Customer Community or Partner Community licenses.
 
 ## Extend Rating for High-Volume Scenarios
 
@@ -283,13 +283,13 @@ The native Consumption Management capability handles most usage-based product pa
 
 ## Key Takeaways
 
-The Subagent: Consumption Management under Agentforce for Revenue Management surfaces overage insights and offers remediation quotes through a conversational interface. It works alongside the Usage Overage Policy (governance) and the Digital Wallet (monitoring surface) to form the complete overage story. The **Drawdown Order** field on Product Usage Grant — with values Expiring First (default), Granted First, and Granted Last — determines which grant the system debits when multiple grants exist for the same resource. The **Rollover Policy** on Transaction Usage Entitlement decides whether unused units carry into the next billing period or expire. The Digital Wallet consolidates balances, rates, grants, and policies into one source of truth, available to internal users in Lightning Experience and to customers in Experience Cloud. For extreme-volume scenarios, the m3ter ISV partnership extends the native rating capability.
+The Subagent: Consumption Management under Agentforce for Revenue Management surfaces overage insights and offers remediation quotes through a conversational interface. It works alongside the Usage Overage Policy (governance) and the Unified Usage Dashboard (monitoring surface) to form the complete overage story. The **Drawdown Order** field on Product Usage Grant — with values Expiring First (default), Granted First, and Granted Last — determines which grant the system debits when multiple grants exist for the same resource. The **Rollover Policy** on Transaction Usage Entitlement decides whether unused units carry into the next billing period or expire. The Unified Usage Dashboard consolidates wallet balances, rates, grants, and policies into one source of truth, available to internal users in Lightning Experience and to customers in Experience Cloud. For extreme-volume scenarios, the m3ter ISV partnership extends the native rating capability.
 
 ## Resources
 
 - [*Salesforce Help:* Subagent: Consumption Management](https://help.salesforce.com/s/articleView?id=ind.rev_agent_usage_topic_consumption_management.htm&type=5)
 - [*Salesforce Help:* Buckets and Drawdowns](https://help.salesforce.com/s/articleView?id=ind.um_buckets_and_drawdowns.htm&type=5)
-- [*Salesforce Help:* Digital Wallet (Unified Usage Dashboard)](https://help.salesforce.com/s/articleView?id=ind.um_wallet_management.htm&type=5)
+- [*Salesforce Help:* Unified Usage Dashboard](https://help.salesforce.com/s/articleView?id=ind.um_wallet_management.htm&type=5)
 - [*Salesforce Help:* Create a Usage Overage Policy](https://help.salesforce.com/s/articleView?id=ind.um_create_usage_overage_policy.htm&type=5)
 
 ## Quiz
@@ -305,7 +305,7 @@ The Subagent: Consumption Management under Agentforce for Revenue Management sur
 
 ## Open question for Mike
 
-**Wallet Management as a standalone LO.** The Help portal documents Wallet Management as a sub-pillar of Usage Management with its own dedicated Help area (the Digital Wallet, also documented as "Unified Usage Dashboard" in some places). This v2 draft folds it into Unit 3 as a body section under the umbrella LO 3.3. If Mike wants Wallet Management to land as its own LO (call it 3.4) — separating "consolidated view + Experience Cloud surface" from "Drawdown Policies + Consumption Management subagent" — it's a one-paragraph split. Mike, your call.
+**Wallet Management as a standalone LO.** The Help portal documents Wallet Management as a sub-pillar of Usage Management with its own dedicated Help area (the Unified Usage Dashboard). This v2 draft folds it into Unit 3 as a body section under the umbrella LO 3.3. If Mike wants Wallet Management to land as its own LO (call it 3.4) — separating "consolidated view + Experience Cloud surface" from "Drawdown Policies + Consumption Management subagent" — it's a one-paragraph split. Mike, your call.
 
 ## Topics deliberately routed elsewhere
 
