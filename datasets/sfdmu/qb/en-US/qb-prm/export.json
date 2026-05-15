@@ -6,7 +6,7 @@
       "name": "First Pass - Upsert Accounts and Channel Programs",
       "objects": [
         {
-          "query": "SELECT Id, Industry, Name, Phone, Type, BillingCity, BillingCountry, BillingState FROM Account WHERE Type = 'Partner' ORDER BY Name ASC",
+          "query": "SELECT Id, Industry, Name, Phone, Type, BillingCity, BillingCountry, BillingState, RLM_Primary_Reseller__c, RLM_Primary_Distributor__c FROM Account WHERE Type = 'Partner' ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name"
         },
