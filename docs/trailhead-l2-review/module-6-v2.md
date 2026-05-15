@@ -69,7 +69,7 @@ In the world of finance, **Financial Accounting** in Agentforce Revenue Manageme
 
 ## Define Your Corporate Structure
 
-Everything starts with a **Legal Entity**. A legal entity defines how your organization is structured — it's a specific company or branch that operates as a discrete financial unit. In Agentforce Revenue Management, you can create multiple legal entities, and each one governs the billing and tax information for the order products tied to it: its tax treatments, billing treatments, accounting periods, and finance books.
+Everything starts with a **Legal Entity**. A legal entity defines how your organization is structured — it's a specific company or branch that operates as a discrete financial unit. In Agentforce Revenue Management, you can create multiple legal entities, and each one governs the billing, tax, and accounting information for the order products tied to it: its tax treatments, billing treatments, accounting periods, and finance books.
 
 A legal entity also carries a **currency ISO code** — its reporting currency, such as US Dollars or Euros. The currency is set when the legal entity is created and can't be changed afterward, so it's a decision worth getting right up front.
 
@@ -126,7 +126,14 @@ Financial Accounting is most powerful when you see it inside the full billing li
 | 3. Invoice Created | The billing engine calculates and generates the invoice (invoice creation is not the same as invoice document generation). |
 | 4. Assignment Rule Applied | General Ledger Account Assignment Rules map the transaction to the correct general ledger accounts. |
 | 5. Transaction Journals Written | The system automatically generates dual transaction journals — a debit and a credit. |
-| 6. Legal Entity Accounting Period Closed | Balances are calculated and the period is closed, with the closing balance carried forward automatically. |
+| 6. Legal Entity Accounting Period Closed | Summaries are calculated and the period is closed, with the closing balance carried forward automatically. |
+
+## Other Inputs into Financial Accounting
+
+In today's global marketplace, managing multi-currency volatility seamlessly is a core competitive advantage. Aside from standard transaction sources such as an invoice transitioning to a Posted status, Agentforce Revenue Management provides sophisticated, touchless automation for corporate accounting through **Foreign Exchange Realized and Unrealized Gain/Loss Journal Entries**.
+
+- **Realized Gains and Losses:** The moment a cross-border payment or credit memo is applied to an invoice, the system instantly evaluates the exchange rate shift between the original invoice date and the payment effective date. If a variance exists, a dual transaction journal entry is automatically generated in real time to capture the localized financial impact directly in your corporate currency.
+- **Unrealized Gains and Losses:** For outstanding or partially settled foreign currency balances at month-end, you don't have to worry about manual calculations. During the Legal Entity Accounting Period closure process, the system automatically triggers a Data Processing Engine (DPE) job. This job evaluates open balances against period-end rates, automatically creates the required unrealized gain or loss transaction journals, and smartly pushes matching reversal journals to the first day of the next period to keep your ledger perfectly balanced for audit compliance.
 
 ## Key Takeaways
 
@@ -221,13 +228,26 @@ Legal entity accounting periods move through statuses — Open, Pending Closure,
 
 ## Connect to the ERP
 
-While Salesforce manages the subledger, the ERP typically remains the system of record for the entire company's consolidated financials. Integration is the final piece of the puzzle.
+While Salesforce manages the subledger, the ERP typically remains the system of record for the entire company's consolidated financials. Integration is the final piece of the puzzle. When deploying Salesforce Revenue Cloud Billing, architects can configure two structural communication patterns to interface with enterprise resource planning systems:
 
-Common integration points include:
+1. Detail Level Billing Data Synchronization
+2. Journals & General Ledger (GL) Account Summaries Synchronization
 
-- **Journal entry sync** — sending summarized general ledger totals from Salesforce to the ERP's general ledger.
-- **Payment information** — bringing payment status back into Salesforce so sales and service teams can see whether an invoice was paid.
-- **Tax calculations** — connecting to external tax engines such as Avalara or Vertex for global compliance.
+**Approach 1: Detailed Level Synchronization**
+
+In this framework, highly specific billing rows are continuously synchronized between Salesforce and the ERP database. This model ensures operational teams can view complete transactional realities inside either system infrastructure.
+
+The three major detailed-level sync options:
+
+- **Option A: Order to Invoice** — Salesforce manages the contract up to invoice delivery. Once generated, invoices are transferred downstream, and collection operations are completed entirely within the ERP environment.
+- **Option B: Order to Payment** — Salesforce controls the entire customer experience, including electronic payment collection and dunning. The settled transactional rows are sent to the ERP.
+- **Option C: Order to Recognition** — Salesforce integrations or verified ISV partners manage revenue schedules and waterfall assets internally. The final financial outputs are passed downstream directly to the corporate general ledger.
+
+**Approach 2: Summary Level Synchronization**
+
+Summary level synchronization completely isolates granular transactional data within Salesforce. Instead of moving millions of individual invoice rows downstream, Salesforce processes all micro-transactions locally and groups them into clean, compiled financial journal blocks before transmitting them to the ERP. This design prevents ERP system bloat and simplifies cross-platform data management.
+
+**[Graphic Suggestion: ERP Synchronization Patterns]** A diagram contrasting Detail Level Synchronization (Order to Invoice / Order to Payment / Order to Recognition) against Summary Level Synchronization. *(Replaces the broken `image1` placeholder carried over from the Google Doc.)*
 
 | Note | Content |
 |:-:|:-:|

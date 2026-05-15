@@ -68,3 +68,27 @@ Module 6 v1 was a strong structural draft, but it used several product terms tha
 ## Net assessment
 
 v1 was structurally sound but carried four product-term errors that would have misinformed learners. All four are corrected and grounded in v2. The module is now ready for Mike's SME review.
+
+## Mike's SME review pass (2026-05-15)
+
+Mike reviewed the v2 draft and contributed suggestions, which Brian accepted in the Google Doc and which are now reconciled into this repo copy.
+
+### New section — "Other Inputs into Financial Accounting" (foreign exchange gains/losses)
+
+Mike added a Unit 1 section on foreign exchange realized and unrealized gain/loss journal entries. **Grounding outcome: confirmed.**
+
+- **Unrealized gains and losses** — matches `ind.billing_fgn_exch_unrealized_gains_losses_use_case.htm` precisely: at legal entity accounting period closure, a Data Processing Engine job evaluates open foreign-currency balances against period-end rates, creates the unrealized gain/loss dual transaction journals, and creates matching reversal transaction journals dated to the start of the next legal entity accounting period.
+- **Realized gains and losses** — the 262 Help portal references foreign-exchange realized gains/losses as a documented topic (`billing_foreign_exchange_realized_gains_and_losses`) and the "Create Transaction Journals for Foreign Exchange Gains or Losses" setting appears in the close and setup articles. Mike's specific mechanics (computed when a payment or credit memo is applied, based on the invoice-date vs. payment-effective-date rate shift) are standard realized-FX accounting and consistent with the documented concept; treated as SME-confirmed.
+- Editorial note: the section reads slightly more marketing-toned than the rest of the module ("sophisticated, touchless automation," "smartly pushes," "core competitive advantage"). Substance is accurate; an optional light editorial tightening could bring the voice in line with the surrounding sections.
+
+### Rewritten section — "Connect to the ERP" (sync patterns)
+
+Mike replaced the simple integration-points list (journal entry sync / payment information / tax calculations) with a two-approach framework: **Detail Level Synchronization** (with three options — Order to Invoice, Order to Payment, Order to Recognition) and **Summary Level Synchronization**.
+
+- **Grounding outcome: SME-sourced.** None of these terms — "Detail Level Synchronization," "Summary Level Synchronization," "Order to Invoice/Payment/Recognition" — appear in the 262 Help portal snapshot. This is integration-architecture framing that lives in architecture/PMM material rather than the product Help docs. It does **not conflict** with anything documented, and Mike is the SME of record, so it's accepted as authoritative SME content — but it is not Help-portal-grounded, unlike the rest of the module.
+- The reconciled repo copy fixes a run-on ("puzzle.When deploying" → "puzzle. When deploying") and replaces a broken `image1` placeholder with a graphic-suggestion note. One residual inconsistency to flag for Mike: the intro numbered list ("Detail Level Billing Data Synchronization" / "Journals & GL Account Summaries Synchronization") doesn't use the same names as the "Approach 1 / Approach 2" headers — worth aligning in a future pass.
+
+### Minor accepted tweaks
+
+- "governs the billing and tax information" → "governs the billing, tax, and accounting information" (Define Your Corporate Structure).
+- Lifecycle table step 6: "Balances are calculated" → "Summaries are calculated."
