@@ -10,7 +10,7 @@ The PRM feature enables partner and distributor pricing workflows through:
 - Quote-level distributor pricing fields
 - Quote line item distributor and partner net pricing
 - Decision tables for channel program evaluation
-- Context definitions for sales transaction pricing
+- Additive context definition extensions for sales transaction pricing
 - Partner Central community site (rlm1)
 
 ## Contents
@@ -46,13 +46,27 @@ The PRM feature enables partner and distributor pricing workflows through:
 
 ### Pricing Components
 
-**Decision Tables (1):**
+**Decision Tables (1 PRM-owned):**
 - `Channel_Program_Level_Partner.decisionTable` - Evaluates channel program level and partner criteria
 
-**Context Definitions (1):**
-- `RLM_SalesTransactionContext.contextDefinition` - Maps PRM fields to sales transaction context for pricing engine
-  - Maps `RLM_Distributor_Account__c` and `PartnerAccount__c` to SalesTransaction
-  - Maps `RLM_Distributor_Unit_Price__c`, `RLM_Distributor_Discount_Percent__c`, `RLM_Partner_Net_Total_Price__c` to SalesTransactionItem
+**Expression Set Definitions (1 PRM-owned):**
+- `PRM_DISTI_Pricing_Procedure.expressionSetDefinition-meta.xml` - PRM-scoped pricing procedure metadata deployed from `post_prm`
+
+**Context Definition Extensions (additive):**
+- PRM context mappings are applied through Context Service plans (not full context replacement metadata)
+  - Plan: `datasets/context_plans/PrmPricing/contexts/prm_pricing.json`
+  - Task: `apply_context_prm_pricing`
+  - Adds/maps `RLM_Distributor_Account__c` and `PartnerAccount__c` on `SalesTransaction`
+  - Adds/maps `RLM_Distributor_Unit_Price__c`, `RLM_Distributor_Discount_Percent__c`, `RLM_Partner_Net_Total_Price__c` on `SalesTransactionItem`
+  - Adds `RLM_Transient_Distributor_Discount_Percent__c` as an input/output context attribute for transient PRM pricing handling
+
+**Pricing Recipe Table Mappings (Tooling API):**
+- PRM pricing recipe attachments are managed as Tooling API data, not recipe metadata files in this repo
+  - Payload: `datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json`
+  - Task: `configure_pricing_recipe_table_mappings`
+  - Ensures `NGPDefaultRecipe` mappings for:
+    - `RLM_CostBookEntries` (`ListPrice`)
+    - `Channel_Program_Level_Partner` (`PriceAdjustmentMatrix`)
 
 ### Permission Sets (2)
 
@@ -98,16 +112,19 @@ This task is automatically included in the `prepare_prm` flow:
 cci flow run prepare_prm --org <org-alias>
 ```
 
-The `prepare_prm` flow includes 9 steps:
+The `prepare_prm` flow includes 12 steps:
 1. Create Partner Central community
 2. Patch network metadata (email placeholder)
 3. Deploy post_prm metadata
-4. Revert network metadata
-5. Publish Partner Central community
-6. Deploy sharing rules
-7. Assign permission sets
-8. Load QuantumBit PRM data
-9. Apply context definitions
+4. Ensure PRM pricing recipe table mappings
+5. Revert network metadata
+6. Publish Partner Central community
+7. Deploy sharing rules
+8. Assign permission sets
+9. Load QuantumBit PRM data
+10. Activate PRM pricing expression sets
+11. Insert PRM procedure plan overlay data (when `procedureplans=true`)
+12. Apply PRM context extensions
 
 ## Data Loading
 
@@ -134,42 +151,16 @@ project_config:
     prm_exp_bundle: true         # Experience Cloud site content
 ```
 
-## Known Limitations & Follow-up Required
+## Pricing Integration Status
 
-### ⚠️ Pricing Procedures - REQUIRES FOLLOW-UP
+The PRM workbook (`Change Log.xlsx`) is now mapped to repository-owned artifacts using the hybrid ownership model:
 
-The design spreadsheet references the following pricing components that could **not be retrieved** via Metadata API:
+- **PRM-specific procedure:** `PRM_DISTI_Pricing_Procedure` is stored in `post_prm`.
+- **Shared/default procedures:** `RLM_DefaultPricingProcedure` remains in `force-app`, and `RLM_Price_Distribution_Procedure` remains in `post_procedureplans`.
+- **PRM decision table:** `Channel_Program_Level_Partner` remains PRM-scoped in `post_prm`.
+- **Cost matrix ownership:** Workbook entry `Cost` maps to shared/default pricing decision-table ownership (existing shared Cost/CostBook decision-table assets), not PRM-local metadata.
 
-**Pricing Procedures/Recipes:**
-- `PRM_DISTI_Pricing_Procedure`
-- `RLM_DefaultPricingProcedure`
-- `RLM_Price_Distribution_Procedure`
-
-**Price Adjustment Matrices:**
-- "Cost" adjustment matrix
-- "Channel Program Level Partner" adjustment matrix
-
-**Status:** These components exist in the source org `chrisRossPRM_may2026` but:
-1. `PricingProcedure` metadata type is not supported by the Metadata API in API v66.0
-2. `PriceAdjustmentMatrix` metadata type is not supported by the Metadata API in API v66.0
-3. Retrieved `PricingRecipe` metadata type only returned standard recipes (`NGPDefaultRecipe`, `CommerceDefaultRecipe`), not the custom procedures listed above
-
-**Possible Reasons:**
-- These may be custom Apex classes or helper methods (search for `PRM_DISTI_Pricing_Procedure` in Apex classes)
-- These may be OmniStudio Integration Procedures (use different retrieval mechanism)
-- These may be GraphQL calculation procedures embedded in another metadata type
-- These may be manually configured in the UI and not backed by metadata
-
-**Required Follow-up Actions:**
-1. Investigate the actual metadata type for these procedures in the source org
-2. Determine if they are Apex classes, OmniStudio IPs, or UI-only configurations
-3. Retrieve using the appropriate mechanism (Apex retrieval, OmniStudio export, etc.)
-4. Document any manual configuration steps if not metadata-backed
-5. Update this README and the deployment documentation once resolved
-
-**Impact:** The PRM feature will deploy and function with custom fields and flows, but **pricing automation may not work** until these procedures are added. Manual pricing may be required in the interim.
-
-**Tracking:** This limitation was documented on 2026-05-15 during integration of the PRM design spreadsheet from `chrisRossPRM_may2026` org.
+This aligns PRM-specific pricing behavior with feature-scoped metadata while avoiding duplication of shared pricing engine assets.
 
 ## Field Synchronization History
 
@@ -192,6 +183,15 @@ Validate PRM deployment:
 ```bash
 # Deploy metadata
 cci task run deploy_post_prm --org dev
+
+# Activate PRM pricing procedure version
+cci task run activate_prm_expression_sets --org dev
+
+# Apply additive PRM context mappings
+cci task run apply_context_prm_pricing --org dev
+
+# Ensure PRM pricing recipe table mappings on NGPDefaultRecipe
+cci task run configure_pricing_recipe_table_mappings --org dev
 
 # Verify fields exist
 sf data query --query "SELECT QualifiedApiName FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName IN ('Account','Quote','QuoteLineItem') AND QualifiedApiName LIKE 'RLM_%'" --target-org dev

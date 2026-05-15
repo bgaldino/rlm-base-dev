@@ -1,0 +1,58 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "useSeparatedCSVFiles": true,
+  "objectSets": [
+    {
+      "name": "First Pass - Upsert PRM ProcedurePlanSections",
+      "objects": [
+        {
+          "query": "SELECT DeveloperName FROM ProcedurePlanDefinitionVersion WHERE DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
+          "operation": "Readonly",
+          "externalId": "DeveloperName"
+        },
+        {
+          "query": "SELECT Description, Phase, ProcedurePlanVersionId, ResolutionType, SectionType, Sequence, SubSectionType FROM ProcedurePlanSection WHERE ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
+          "operation": "Upsert",
+          "externalId": "SubSectionType"
+        }
+      ]
+    },
+    {
+      "name": "Second Pass - Upsert PRM ProcedurePlanOptions",
+      "objects": [
+        {
+          "query": "SELECT SubSectionType, Sequence FROM ProcedurePlanSection WHERE ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
+          "operation": "Readonly",
+          "externalId": "SubSectionType"
+        },
+        {
+          "query": "SELECT DeveloperName, MasterLabel FROM ExpressionSetDefinition WHERE DeveloperName IN ('PRM_DISTI_Pricing_Procedure')",
+          "operation": "Readonly",
+          "externalId": "DeveloperName"
+        },
+        {
+          "query": "SELECT ProcedurePlanSectionId, ProcedurePlanSection.SubSectionType, ExpressionSetDefinitionId, Priority, CriteriaLogic, ReadContextMapping, SaveContextMapping FROM ProcedurePlanOption WHERE ProcedurePlanSection.ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
+          "operation": "Upsert",
+          "externalId": "ProcedurePlanSection.SubSectionType;Priority"
+        }
+      ]
+    },
+    {
+      "name": "Third Pass - Upsert PRM ProcedurePlanCriteria",
+      "objects": [
+        {
+          "query": "SELECT Priority, ProcedurePlanSection.SubSectionType FROM ProcedurePlanOption WHERE ProcedurePlanSection.ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
+          "operation": "Readonly",
+          "externalId": "ProcedurePlanSection.SubSectionType;Priority"
+        },
+        {
+          "query": "SELECT ProcedurePlanOptionId, ProcedurePlanOption.Priority, ProcedurePlanOption.ProcedurePlanSection.SubSectionType, Sequence, Operator, ObjectField, FieldPath, ActualValue, DataType FROM ProcedurePlanCriterion WHERE ProcedurePlanOption.ProcedurePlanSection.ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
+          "operation": "Upsert",
+          "externalId": "ProcedurePlanOption.ProcedurePlanSection.SubSectionType;ProcedurePlanOption.Priority;Sequence"
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

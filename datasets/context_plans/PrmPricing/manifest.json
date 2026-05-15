@@ -2,7 +2,7 @@
   "contexts": [
     {
       "developerName": "RLM_SalesTransactionContext",
-      "planFile": "contexts/partner_account.json"
+      "planFile": "contexts/prm_pricing.json"
     }
   ]
 }

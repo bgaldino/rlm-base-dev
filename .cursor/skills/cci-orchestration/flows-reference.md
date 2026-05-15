@@ -374,6 +374,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 1. **task** `create_partner_central`  `when: project_config.project__custom__prm`
 2. **task** `patch_network_email_for_deploy`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
 3. **task** `deploy_post_prm`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
+4. **task** `configure_pricing_recipe_table_mappings`  `when: project_config.project__custom__prm`
 5. **task** `revert_network_email_after_deploy`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
 6. **task** `publish_community`  `when: project_config.project__custom__prm`
    - `name`: `rlm`
@@ -381,11 +382,9 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 8. **task** `assign_permission_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
    - `api_names`: `['RLM_PRM']`
 9. **task** `insert_quantumbit_prm_data`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
-10. **task** `manage_context_definition`  `when: project_config.project__custom__prm`
-   - `plan_file`: `datasets/context_plans/PartnerAccount/manifest.json`
-   - `developer_name`: `RLM_SalesTransactionContext`
-   - `translate_plan`: `True`
-   - `activate`: `True`
+10. **task** `activate_prm_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso`
+11. **task** `insert_prm_procedure_plan_data`  `when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso and project_config.project__custom__procedureplans`
+12. **task** `apply_context_prm_pricing`  `when: project_config.project__custom__prm`
 
 ---
 

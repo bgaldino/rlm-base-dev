@@ -549,6 +549,7 @@ project:
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
+    prm_pricing_recipe_table_mappings: &prm_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json" # PRM pricing recipe table mapping payload
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
     q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3/en-US/q3-billing"                                     # Q3 billing data
@@ -721,6 +722,21 @@ tasks:
     options:
       developer_name: *sales_transaction_context_name
       plan_file: datasets/context_plans/ConstraintEngineNodeStatus/manifest.json
+      translate_plan: true
+      deactivate_before: false
+      activate: true
+      verify: true
+
+  apply_context_prm_pricing:
+    group: Revenue Lifecycle Management
+    description: >
+      Adds PRM pricing context attributes and Quote/QuoteLineItem mappings to
+      RLM_SalesTransactionContext (PartnerAccount, distributor account, and
+      partner/distributor pricing fields) using an additive Context Service plan.
+    class_path: tasks.rlm_context_service.ManageContextDefinition
+    options:
+      developer_name: *sales_transaction_context_name
+      plan_file: datasets/context_plans/PrmPricing/manifest.json
       translate_plan: true
       deactivate_before: false
       activate: true
@@ -1778,6 +1794,14 @@ tasks:
       operation: activate_versions
       metadata_path: force-app/main/default/expressionSetDefinition
 
+  activate_prm_expression_sets:
+    group: Revenue Lifecycle Management
+    description: Activate PRM pricing expression set versions via Tooling API
+    class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
+    options:
+      operation: activate_versions
+      version_full_names: PRM_DISTI_Pricing_Procedure_V1
+
   deactivate_expression_sets:
     group: Revenue Lifecycle Management
     description: Deactivate expression set versions via Tooling API
@@ -2391,6 +2415,20 @@ tasks:
       api_version: null
       dry_run: false
 
+  configure_pricing_recipe_table_mappings:
+    group: Revenue Lifecycle Management
+    description: >
+      Ensure required PricingRecipeTableMapping rows exist for PRM pricing on
+      NGPDefaultRecipe (RLM_CostBookEntries and Channel_Program_Level_Partner).
+      Uses Tooling API for idempotent create/update without metadata deploy.
+    class_path: tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings
+    options:
+      operation: ensure  # Options: 'ensure', 'list'
+      input_file: *prm_pricing_recipe_table_mappings
+      api_version: null
+      dry_run: false
+      skip_missing_tables: true
+
   manage_context_definition:
     group: Revenue Lifecycle Management
     description: Modify context definitions via Context Service (connect) endpoints
@@ -2442,6 +2480,16 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *procedure_plans_dataset
+
+  insert_prm_procedure_plan_data:
+    group: Revenue Lifecycle Management
+    description: >
+      Insert PRM-only Procedure Plan overlay data: adds IFPartnerDistributorOnQuote
+      rule-based section, PRM_DISTI_Pricing_Procedure option, and criteria condition
+      for RLM_Quote_Pricing_Procedure_Plan.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: datasets/sfdmu/procedure-plans-prm
 
   activate_procedure_plan_version:
     group: Revenue Lifecycle Management
@@ -2897,6 +2945,9 @@ flows:
       3:
         task: deploy_post_prm
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
+      4:
+        task: configure_pricing_recipe_table_mappings
+        when: project_config.project__custom__prm
       5:
         task: revert_network_email_after_deploy
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
@@ -2917,13 +2968,14 @@ flows:
         task: insert_quantumbit_prm_data
         when: project_config.project__custom__prm and project_config.project__custom__qb
       10:
-        task: manage_context_definition
+        task: activate_prm_expression_sets
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
+      11:
+        task: insert_prm_procedure_plan_data
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso and project_config.project__custom__procedureplans
+      12:
+        task: apply_context_prm_pricing
         when: project_config.project__custom__prm
-        options:
-          plan_file: datasets/context_plans/PartnerAccount/manifest.json
-          developer_name: RLM_SalesTransactionContext
-          translate_plan: true
-          activate: true
 
   prepare_billing_portal:
     group: Revenue Lifecycle Management

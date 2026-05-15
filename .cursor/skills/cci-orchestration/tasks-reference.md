@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**202 tasks** across **9 groups**.
+**203 tasks** across **9 groups**.
 
 ---
 
@@ -81,7 +81,7 @@
 
 ## Data Management - Extract
 
-*16 task(s)*
+*15 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -152,18 +152,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling`
-
----
-
-### `extract_qb_guidedselling_products_data`
-
-**Description:** Extract qb-guidedselling-products from org to CSV. Output in datasets/sfdmu/extractions/qb-guidedselling-products/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
-
-**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling-products`
 
 ---
 
@@ -278,7 +266,7 @@
 
 ## Data Management - Idempotency
 
-*14 task(s)*
+*13 task(s)*
 
 ### `test_qb_approvals_idempotency`
 
@@ -341,19 +329,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling`
-- `use_extraction_roundtrip`: `False`
-
----
-
-### `test_qb_guidedselling_products_idempotency`
-
-**Description:** Idempotency test for qb-guidedselling-products (Product2 guided selling field updates).
-
-**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling-products`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -571,7 +546,7 @@
 
 ## Revenue Lifecycle Management
 
-*126 task(s)*
+*128 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -657,6 +632,19 @@
 **Options:**
 
 - `path`: `scripts/apex/activatePriceAdjustmentSchedules.apex`
+
+---
+
+### `activate_prm_expression_sets`
+
+**Description:** Activate PRM pricing expression set versions via Tooling API
+
+**Class:** `tasks.rlm_manage_expression_sets.ManageExpressionSets`
+
+**Options:**
+
+- `operation`: `activate_versions`
+- `version_full_names`: `PRM_DISTI_Pricing_Procedure_V1`
 
 ---
 
@@ -770,6 +758,23 @@
 
 ---
 
+### `apply_context_prm_pricing`
+
+**Description:** Adds PRM pricing context attributes and Quote/QuoteLineItem mappings to RLM_SalesTransactionContext (PartnerAccount, distributor account, and partner/distributor pricing fields) using an additive Context Service plan.
+
+**Class:** `tasks.rlm_context_service.ManageContextDefinition`
+
+**Options:**
+
+- `developer_name`: `RLM_SalesTransactionContext`
+- `plan_file`: `datasets/context_plans/PrmPricing/manifest.json`
+- `translate_plan`: `True`
+- `deactivate_before`: `False`
+- `activate`: `True`
+- `verify`: `True`
+
+---
+
 ### `apply_context_ramp_mode`
 
 **Description:** Adds RampMode__c (SalesTransactionItem) and GroupRampMode__c (SalesTransactionGroup) context attributes to the Sales Transaction context definition and maps them to QuoteLineItem.RLM_RampMode__c and QuoteLineGroup.RLM_RampMode__c (QuoteEntitiesMapping) and OrderItem.RLM_RampMode__c and OrderItemGroup.RLM_RampMode__c (OrderEntitiesMapping).
@@ -824,6 +829,22 @@
 - `suite`: `robot/rlm-base/tests/setup/configure_core_pricing_setup.robot`
 - `outputdir`: `robot/rlm-base/results`
 - `pricing_procedure`: `RLM Revenue Management Default Pricing Procedure`
+
+---
+
+### `configure_pricing_recipe_table_mappings`
+
+**Description:** Ensure required PricingRecipeTableMapping rows exist for PRM pricing on NGPDefaultRecipe (RLM_CostBookEntries and Channel_Program_Level_Partner). Uses Tooling API for idempotent create/update without metadata deploy.
+
+**Class:** `tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings`
+
+**Options:**
+
+- `operation`: `ensure`
+- `input_file`: `datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json`
+- `api_version`: `None`
+- `dry_run`: `False`
+- `skip_missing_tables`: `True`
 
 ---
 
@@ -1230,18 +1251,6 @@
 
 ---
 
-### `deploy_post_guidedselling`
-
-**Description:** Deploy Guided Selling metadata
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_guidedselling`
-
----
-
 ### `deploy_post_personas`
 
 **Description:** Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
@@ -1620,6 +1629,18 @@
 
 ---
 
+### `insert_prm_procedure_plan_data`
+
+**Description:** Insert PRM-only Procedure Plan overlay data: adds IFPartnerDistributorOnQuote rule-based section, PRM_DISTI_Pricing_Procedure option, and criteria condition for RLM_Quote_Pricing_Procedure_Plan.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/procedure-plans-prm`
+
+---
+
 ### `insert_procedure_plan_data`
 
 **Description:** Insert Procedure Plan data (sections in pass 1, options with expression set links in pass 2)
@@ -1776,18 +1797,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling`
-
----
-
-### `insert_qb_guidedselling_products_data`
-
-**Description:** Update QuantumBit guided selling Product2 field values
-
-**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling-products`
 
 ---
 
@@ -2285,7 +2294,7 @@
 
 ## Uncategorized
 
-*27 task(s)*
+*28 task(s)*
 
 ### `create_partner_central`
 
@@ -2412,6 +2421,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_docgen`
+
+---
+
+### `deploy_post_guidedselling`
+
+**Description:** Deploy Guided Selling Metadata
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_guidedselling`
 
 ---
 

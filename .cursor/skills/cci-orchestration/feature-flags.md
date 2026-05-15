@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**37 feature flags**, **78 configuration values**, **32 YAML anchors** under `project.custom`.
+**37 feature flags**, **78 configuration values**, **30 YAML anchors** under `project.custom`.
 
 ---
 
@@ -30,13 +30,13 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
-| `guidedselling` | `True` | 4 flow step(s) |
+| `guidedselling` | `False` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
-| `prm` | `True` | 9 flow step(s) |
-| `prm_exp_bundle` | `True` | 4 flow step(s) |
+| `prm` | `True` | 12 flow step(s) |
+| `prm_exp_bundle` | `True` | 6 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
-| `procedureplans` | `True` | 5 flow step(s) |
+| `procedureplans` | `True` | 6 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
 | `qb` | `True` | 20 flow step(s) |
 | `qbrix` | `False` | — |
@@ -48,7 +48,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `sharingsettings` | `False` | 1 flow step(s) |
 | `tax` | `True` | 4 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 15 flow step(s) |
+| `tso` | `False` | 17 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
 
 ---
@@ -187,12 +187,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `assign_feature_permission_sets` step 2 → `assign_permission_sets`
 - `assign_feature_permission_sets` step 3 → `assign_permission_sets`
 
-### `guidedselling` (default: `True`)
+### `guidedselling` (default: `False`)
 
-- `prepare_guidedselling` step 1 → `assign_permission_sets`
+- `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
 - `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
-- `prepare_guidedselling` step 3 → `assign_permission_sets`
-- `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
 
 ### `payments` (default: `True`)
 
@@ -208,12 +206,15 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 1 → `create_partner_central`
 - `prepare_prm` step 2 → `patch_network_email_for_deploy`
 - `prepare_prm` step 3 → `deploy_post_prm`
+- `prepare_prm` step 4 → `configure_pricing_recipe_table_mappings`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 6 → `publish_community`
 - `prepare_prm` step 7 → `deploy_sharing_rules`
 - `prepare_prm` step 8 → `assign_permission_sets`
 - `prepare_prm` step 9 → `insert_quantumbit_prm_data`
-- `prepare_prm` step 10 → `manage_context_definition`
+- `prepare_prm` step 10 → `activate_prm_expression_sets`
+- `prepare_prm` step 11 → `insert_prm_procedure_plan_data`
+- `prepare_prm` step 12 → `apply_context_prm_pricing`
 
 ### `prm_exp_bundle` (default: `True`)
 
@@ -221,9 +222,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 3 → `deploy_post_prm`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 8 → `assign_permission_sets`
+- `prepare_prm` step 10 → `activate_prm_expression_sets`
+- `prepare_prm` step 11 → `insert_prm_procedure_plan_data`
 
 ### `procedureplans` (default: `True`)
 
+- `prepare_prm` step 11 → `insert_prm_procedure_plan_data`
 - `prepare_procedureplans` step 1 → `deploy_post_procedureplans`
 - `prepare_procedureplans` step 2 → `activate_procedure_plan_expression_sets`
 - `prepare_procedureplans` step 3 → `create_procedure_plan_definition`
@@ -260,7 +264,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 8 → `import_cml`
 - `prepare_constraints` step 9 → `manage_expression_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
-- `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
+- `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
 - `prepare_pricing_discovery` step 2 → `configure_product_discovery_settings`
 
 ### `quantumbit` (default: `True`)
@@ -346,6 +350,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 3 → `deploy_post_prm`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 8 → `assign_permission_sets`
+- `prepare_prm` step 10 → `activate_prm_expression_sets`
+- `prepare_prm` step 11 → `insert_prm_procedure_plan_data`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 
@@ -397,6 +403,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `fulfillment_asset_context_default_mapping` | `FulfillAssetEntitiesMapping` |
 | `fulfillment_asset_context_name` | `RLM_FulfillmentAssetContext` |
 | `locale` | `en_US` |
+| `prm_pricing_recipe_table_mappings` | `datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json` |
 | `procedure_plan_definition_description` | `Procedure Plan Definition for Quote Pricing` |
 | `procedure_plan_definition_developer_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_name` | `RLM_Quote_Pricing_Procedure_Plan` |
@@ -427,7 +434,6 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_constraints_product_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-product` |
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
 | `quantumbit_guidedselling_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling` |
-| `quantumbit_guidedselling_products_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling-products` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |
 | `quantumbit_prm_dataset` | `datasets/sfdmu/qb/en-US/qb-prm` |
 | `quantumbit_product_dataset` | `datasets/sfdmu/qb/en-US/qb-pcm` |
@@ -573,19 +579,6 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_DocGen`
-
-### `ps_guidedselling`
-
-*2 items:*
-
-- `OmniStudioAdmin`
-- `ProductCatalogManagementAdministrator`
-
-### `ps_guidedselling_metadata`
-
-*1 items:*
-
-- `RLM_Guided_Selling`
 
 ### `ps_prm`
 
