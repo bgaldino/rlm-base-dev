@@ -3,11 +3,11 @@
  *
  * Apex controller for the rlmUsageOrchestration Lightning Web Component.
  * Provides methods to trigger usage processing by invoking
- * the RLM_Orchestrate_Usage_Management flow.
+ * the RLM_OrchestrateUsageManagement flow.
  */
 public with sharing class RLM_UsageOrchestrationController {
 
-    private static final String ORCHESTRATION_FLOW_API_NAME = 'RLM_Orchestrate_Usage_Management';
+    private static final String ORCHESTRATION_FLOW_API_NAME = 'RLM_OrchestrateUsageManagement';
 
     /**
      * Starts the usage orchestration flow asynchronously.
@@ -17,7 +17,7 @@ public with sharing class RLM_UsageOrchestrationController {
      * flow API name via the Lightning App Builder property, allowing them to swap in
      * custom orchestration flows without code changes.
      *
-     * @param flowApiName The API name of the autolaunched flow to invoke (optional, defaults to RLM_Orchestrate_Usage_Management)
+     * @param flowApiName The API name of the autolaunched flow to invoke (optional, defaults to RLM_OrchestrateUsageManagement)
      * @return Non-empty token indicating start was successful
      */
     @AuraEnabled

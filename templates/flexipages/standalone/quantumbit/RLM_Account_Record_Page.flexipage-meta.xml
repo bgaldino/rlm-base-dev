@@ -1243,7 +1243,7 @@
             <componentInstance>
                 <componentInstanceProperties>
                     <name>orchestrationFlowApiName</name>
-                    <value>RLM_Orchestrate_Usage_Management</value>
+                    <value>RLM_OrchestrateUsageManagement</value>
                 </componentInstanceProperties>
                 <componentName>rlmUsageOrchestration</componentName>
                 <identifier>c_rlmUsageOrchestration</identifier>

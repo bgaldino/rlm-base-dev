@@ -79,8 +79,10 @@
             <targetReference>CreateUsageSummary</targetReference>
         </connector>
         <schedule>
+            <dayOfMonthToRun>0</dayOfMonthToRun>
             <frequency>Daily</frequency>
-            <startDate>2025-01-01</startDate>
+            <frequencyNumber>0</frequencyNumber>
+            <startDate>2026-05-17</startDate>
             <startTime>00:00:00.000Z</startTime>
         </schedule>
         <triggerType>Scheduled</triggerType>

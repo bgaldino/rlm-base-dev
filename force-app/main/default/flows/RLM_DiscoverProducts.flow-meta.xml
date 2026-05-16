@@ -142,6 +142,9 @@
         <label>Is Ramped Group?</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>productListView</targetReference>
+        </defaultConnector>
         <defaultConnectorLabel>No</defaultConnectorLabel>
         <rules>
             <name>IsRamped</name>
@@ -200,7 +203,7 @@
             <targetReference>SetSingleCatalogVariable</targetReference>
         </nextValueConnector>
         <noMoreValuesConnector>
-            <targetReference>productListView</targetReference>
+            <targetReference>IsRampedGroup</targetReference>
         </noMoreValuesConnector>
     </loops>
     <overriddenFlow>revenue_products__DiscoverProducts</overriddenFlow>
@@ -277,7 +280,7 @@
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
         <connector>
-            <targetReference>productListView</targetReference>
+            <targetReference>IsRampedGroup</targetReference>
         </connector>
         <fields>
             <name>pcDataTable</name>
@@ -377,7 +380,7 @@
         </fields>
         <fields>
             <name>noCatalogErrorDescription</name>
-            <fieldText>&lt;p&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;To use Browse Catalogs, choose or create a catalog to store the categories.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;</fieldText>
+            <fieldText>&lt;p&gt;&lt;span style=&quot;background-color: rgb(255, 255, 255);&quot;&gt;It looks like you don&apos;t have any catalogs to display. Please check if you have access to existing catalogs or create a new catalog to get started.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br&gt;&lt;/p&gt;</fieldText>
             <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
@@ -401,9 +404,6 @@
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
-        <connector>
-            <targetReference>IsRampedGroup</targetReference>
-        </connector>
         <fields>
             <name>plpContainer</name>
             <extensionName>runtime_revenue_products:prdLstContainer</extensionName>
@@ -450,7 +450,7 @@
                     <elementReference>discoverProductsContext</elementReference>
                 </value>
             </inputParameters>
-            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
+            <inputsOnNextNavToAssocScrn>ResetValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
             <outputParameters>
                 <assignToReference>discoverProductsContext</assignToReference>
@@ -469,14 +469,17 @@
         <showHeader>false</showHeader>
     </screens>
     <screens>
-        <description>Allows the flow user to select whether to add products to the current group ramp segment or to the current and subsequent segments. The component then adds the products to the selected segments.</description>
+        <description>Allows the flow user to select whether to add products to the current group ramp segment or to the current and subsequent segments.</description>
         <name>ScreenSelectRampSegmentsAddProducts</name>
-        <label>Select Ramp Segments and Add Products</label>
+        <label>Select Ramp Segments</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <allowBack>true</allowBack>
         <allowFinish>true</allowFinish>
         <allowPause>true</allowPause>
+        <connector>
+            <targetReference>productListView</targetReference>
+        </connector>
         <fields>
             <name>SelectRampSegmentsAddProducts</name>
             <extensionName>runtime_revenue_products:prdRampCont</extensionName>
@@ -499,8 +502,12 @@
                     <elementReference>recordId</elementReference>
                 </value>
             </inputParameters>
-            <inputsOnNextNavToAssocScrn>ResetValues</inputsOnNextNavToAssocScrn>
+            <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
+            <outputParameters>
+                <assignToReference>discoverProductsContext</assignToReference>
+                <name>discoverProductsContext</name>
+            </outputParameters>
             <styleProperties>
                 <verticalAlignment>
                     <stringValue>top</stringValue>
