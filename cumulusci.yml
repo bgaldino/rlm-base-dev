@@ -999,30 +999,35 @@ tasks:
       path: unpackaged/post_prm
 
   deploy_post_prm_pricing_objects:
+    group: Revenue Lifecycle Management
     description: Deploy PRM pricing custom fields (Account, Quote, QuoteLineItem, ChannelProgramLevel, ChannelProgramMember) from unpackaged/post_prm_pricing/objects.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/objects
 
   deploy_post_prm_pricing_decision_tables:
+    group: Revenue Lifecycle Management
     description: Deploy PRM pricing decision tables (Channel_Program_Level_Partner) from unpackaged/post_prm_pricing/decisionTables.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/decisionTables
 
   deploy_post_prm_pricing_expression_sets:
+    group: Revenue Lifecycle Management
     description: Deploy PRM pricing expression set definitions (PRM_DISTI_Pricing_Procedure) from unpackaged/post_prm_pricing/expressionSetDefinition.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/expressionSetDefinition
 
   deploy_post_prm_pricing_flows:
+    group: Revenue Lifecycle Management
     description: Deploy PRM pricing automation flows (RLM_Create_New_Quote, RLM_Update_Channel_Program_Member) from unpackaged/post_prm_pricing/flows.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/flows
 
   deploy_post_prm_pricing_permissionsets:
+    group: Revenue Lifecycle Management
     description: Deploy PRM pricing permission sets (RLM_PRM_Pricing) from unpackaged/post_prm_pricing/permissionsets.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
