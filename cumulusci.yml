@@ -1112,32 +1112,32 @@ tasks:
     options:
       org_wide_defaults: *persona_owd_defaults
 
-  deploy_post_prm_core_objects:
-    description: Deploy PRM core custom fields (non-site metadata)
+  deploy_post_prm_pricing_objects:
+    description: Deploy PRM pricing custom fields (Account, Quote, QuoteLineItem, ChannelProgramLevel, ChannelProgramMember) from unpackaged/post_prm_pricing/objects.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/objects
 
-  deploy_post_prm_core_decision_tables:
-    description: Deploy PRM decision tables (non-site metadata)
+  deploy_post_prm_pricing_decision_tables:
+    description: Deploy PRM pricing decision tables (Channel_Program_Level_Partner) from unpackaged/post_prm_pricing/decisionTables.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/decisionTables
 
-  deploy_post_prm_core_expression_sets:
-    description: Deploy PRM expression set definitions (non-site metadata)
+  deploy_post_prm_pricing_expression_sets:
+    description: Deploy PRM pricing expression set definitions (PRM_DISTI_Pricing_Procedure) from unpackaged/post_prm_pricing/expressionSetDefinition.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/expressionSetDefinition
 
-  deploy_post_prm_core_flows:
-    description: Deploy PRM automation flows (non-site metadata)
+  deploy_post_prm_pricing_flows:
+    description: Deploy PRM pricing automation flows (RLM_Create_New_Quote, RLM_Update_Channel_Program_Member) from unpackaged/post_prm_pricing/flows.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/flows
 
-  deploy_post_prm_core_permissionsets:
-    description: Deploy PRM permission sets (non-site metadata)
+  deploy_post_prm_pricing_permissionsets:
+    description: Deploy PRM pricing permission sets (RLM_PRM_Pricing) from unpackaged/post_prm_pricing/permissionsets.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/permissionsets
@@ -3584,20 +3584,20 @@ flows:
         flow: prepare_prm_pricing
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
 
-  deploy_post_prm_core:
+  deploy_post_prm_pricing:
     group: Revenue Lifecycle Management
-    description: Deploy PRM metadata excluding Partner Central site/ExperienceBundle assets.
+    description: Deploy the PRM pricing metadata bundle (unpackaged/post_prm_pricing/) in dependency order.
     steps:
       1:
-        task: deploy_post_prm_core_objects
+        task: deploy_post_prm_pricing_objects
       2:
-        task: deploy_post_prm_core_decision_tables
+        task: deploy_post_prm_pricing_decision_tables
       3:
-        task: deploy_post_prm_core_expression_sets
+        task: deploy_post_prm_pricing_expression_sets
       4:
-        task: deploy_post_prm_core_flows
+        task: deploy_post_prm_pricing_flows
       5:
-        task: deploy_post_prm_core_permissionsets
+        task: deploy_post_prm_pricing_permissionsets
 
   prepare_prm_pricing:
     group: Revenue Lifecycle Management
@@ -3606,7 +3606,7 @@ flows:
       1:
         task: deactivate_prm_expression_sets
       2:
-        flow: deploy_post_prm_core
+        flow: deploy_post_prm_pricing
       3:
         task: assign_permission_sets
         options:
