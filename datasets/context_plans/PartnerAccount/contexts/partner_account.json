@@ -1,0 +1,30 @@
+{
+  "planName": "PartnerAccount",
+  "developerName": "RLM_SalesTransactionContext",
+  "contextAttributesByName": [
+    {
+      "nodeName": "SalesTransaction",
+      "name": "PartnerAccount__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    }
+  ],
+  "mappingRules": [
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "PartnerAccount__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "PartnerAccountId"
+    }
+  ],
+  "contextTagsByName": [
+    {
+      "nodeName": "SalesTransaction",
+      "attributeName": "PartnerAccount__c",
+      "name": "PartnerAccount__c"
+    }
+  ],
+  "activate": true
+}
