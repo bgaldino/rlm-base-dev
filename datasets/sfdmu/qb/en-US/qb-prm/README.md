@@ -100,7 +100,7 @@ Custom fields are packaged under `force-app/main/default/objects/`:
 | Object                | Field                          | Type          | Label                |
 |-----------------------|--------------------------------|---------------|----------------------|
 | ChannelProgramLevel   | `RLM_Deal_Expiration_Days__c`  | Number(18,0)  | Deal Expiration Days |
-| ChannelProgramLevel   | `RLM_Discount_Rate__c`         | Percent(18,0) | Discount Rate        |
+| ChannelProgramLevel   | `RLM_Discount_Rate__c`         | Number(18,0)  | Discount Rate        |
 | ChannelProgramLevel   | `RLM_Minimum_Deal_Size__c`     | Currency(18,0)| Minimum Deal Size    |
 | ChannelProgramMember  | `RLM_Adjustment_Type__c`       | Text(255)     | Adjustment Type      |
 | ChannelProgramMember  | `RLM_Adjustment_Value__c`      | Number(18,2)  | Adjustment Value     |
