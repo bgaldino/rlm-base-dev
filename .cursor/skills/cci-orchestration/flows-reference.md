@@ -97,17 +97,17 @@ Assign feature-gated permission set licenses after pre-deploy metadata is in pla
 
 ---
 
-### `deploy_post_prm_core`
+### `deploy_post_prm_pricing`
 
-Deploy PRM metadata excluding Partner Central site/ExperienceBundle assets.
+Deploy the PRM pricing metadata bundle (unpackaged/post_prm_pricing/) in dependency order.
 
 **Steps:**
 
-1. **task** `deploy_post_prm_core_objects`
-2. **task** `deploy_post_prm_core_decision_tables`
-3. **task** `deploy_post_prm_core_expression_sets`
-4. **task** `deploy_post_prm_core_flows`
-5. **task** `deploy_post_prm_core_permissionsets`
+1. **task** `deploy_post_prm_pricing_objects`
+2. **task** `deploy_post_prm_pricing_decision_tables`
+3. **task** `deploy_post_prm_pricing_expression_sets`
+4. **task** `deploy_post_prm_pricing_flows`
+5. **task** `deploy_post_prm_pricing_permissionsets`
 
 ---
 
@@ -411,7 +411,7 @@ Deploy branch PRM pricing metadata/tasks behind prm_pricing.
 **Steps:**
 
 1. **task** `deactivate_prm_expression_sets`
-2. **flow** `deploy_post_prm_core`
+2. **flow** `deploy_post_prm_pricing`
 3. **task** `assign_permission_sets`
    - `api_names`: `['RLM_PRM_Pricing']`
 4. **task** `configure_pricing_recipe_table_mappings`
