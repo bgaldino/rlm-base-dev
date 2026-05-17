@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**37 feature flags**, **78 configuration values**, **30 YAML anchors** under `project.custom`.
+**38 feature flags**, **78 configuration values**, **31 YAML anchors** under `project.custom`.
 
 ---
 
@@ -33,10 +33,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `guidedselling` | `False` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
-| `prm` | `True` | 12 flow step(s) |
-| `prm_exp_bundle` | `True` | 6 flow step(s) |
+| `prm` | `True` | 10 flow step(s) |
+| `prm_exp_bundle` | `True` | 4 flow step(s) |
+| `prm_pricing` | `True` | 1 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
-| `procedureplans` | `True` | 6 flow step(s) |
+| `procedureplans` | `True` | 8 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
 | `qb` | `True` | 20 flow step(s) |
 | `qbrix` | `False` | — |
@@ -48,7 +49,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `sharingsettings` | `False` | 1 flow step(s) |
 | `tax` | `True` | 4 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `True` | 11 flow step(s) |
+| `tso` | `False` | 15 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
 
 ---
@@ -206,15 +207,13 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 1 → `create_partner_central`
 - `prepare_prm` step 2 → `patch_network_email_for_deploy`
 - `prepare_prm` step 3 → `deploy_post_prm`
-- `prepare_prm` step 4 → `configure_pricing_recipe_table_mappings`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 6 → `publish_community`
 - `prepare_prm` step 7 → `deploy_sharing_rules`
 - `prepare_prm` step 8 → `assign_permission_sets`
 - `prepare_prm` step 9 → `insert_quantumbit_prm_data`
-- `prepare_prm` step 10 → `activate_prm_expression_sets`
-- `prepare_prm` step 11 → `insert_prm_procedure_plan_data`
-- `prepare_prm` step 12 → `apply_context_prm_pricing`
+- `prepare_prm` step 10 → `manage_context_definition`
+- `prepare_prm` step 11 → `prepare_prm_pricing`
 
 ### `prm_exp_bundle` (default: `True`)
 
@@ -222,12 +221,16 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 3 → `deploy_post_prm`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 8 → `assign_permission_sets`
-- `prepare_prm` step 10 → `activate_prm_expression_sets`
-- `prepare_prm` step 11 → `insert_prm_procedure_plan_data`
+
+### `prm_pricing` (default: `True`)
+
+- `prepare_prm` step 11 → `prepare_prm_pricing`
 
 ### `procedureplans` (default: `True`)
 
-- `prepare_prm` step 11 → `insert_prm_procedure_plan_data`
+- `prepare_prm_pricing` step 6 → `deactivate_procedure_plan_version`
+- `prepare_prm_pricing` step 7 → `insert_prm_procedure_plan_data`
+- `prepare_prm_pricing` step 8 → `activate_procedure_plan_version`
 - `prepare_procedureplans` step 1 → `deploy_post_procedureplans`
 - `prepare_procedureplans` step 2 → `activate_procedure_plan_expression_sets`
 - `prepare_procedureplans` step 3 → `create_procedure_plan_definition`
@@ -335,7 +338,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_tax` step 4 → `activate_tax_records`
 
-### `tso` (default: `True`)
+### `tso` (default: `False`)
 
 - `prepare_core` step 10 → `recalculate_permission_set_groups`
 - `prepare_core` step 11 → `assign_permission_set_groups_tolerant`
@@ -346,6 +349,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_tso` step 2 → `deploy_post_utils`
 - `prepare_tso` step 3 → `deploy_post_tso`
 - `prepare_tso` step 4 → `assign_permission_sets`
+- `prepare_prm` step 2 → `patch_network_email_for_deploy`
+- `prepare_prm` step 3 → `deploy_post_prm`
+- `prepare_prm` step 5 → `revert_network_email_after_deploy`
+- `prepare_prm` step 8 → `assign_permission_sets`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 
@@ -579,6 +586,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_PRM`
+
+### `ps_prm_pricing`
+
+*1 items:*
+
+- `RLM_PRM_Pricing`
 
 ### `ps_quantumbit`
 

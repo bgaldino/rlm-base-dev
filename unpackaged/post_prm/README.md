@@ -106,25 +106,30 @@ Deploy this metadata bundle using:
 cci task run deploy_post_prm --org <org-alias>
 ```
 
-This task is automatically included in the `prepare_prm` flow:
+This task is automatically included in the baseline `prepare_prm` flow:
 
 ```bash
 cci flow run prepare_prm --org <org-alias>
 ```
 
-The `prepare_prm` flow includes 12 steps:
+The baseline `prepare_prm` flow (main-compatible) includes 10 steps:
 1. Create Partner Central community
-2. Patch network metadata (email placeholder)
-3. Deploy post_prm metadata
-4. Ensure PRM pricing recipe table mappings
-5. Revert network metadata
-6. Publish Partner Central community
-7. Deploy sharing rules
-8. Assign permission sets
-9. Load QuantumBit PRM data
-10. Activate PRM pricing expression sets
-11. Insert PRM procedure plan overlay data (when `procedureplans=true`)
-12. Apply PRM context extensions
+1. Patch network metadata (email placeholder)
+1. Deploy post_prm metadata
+1. Revert network metadata
+1. Publish Partner Central community
+1. Deploy sharing rules
+1. Assign permission sets
+1. Load QuantumBit PRM data
+1. Apply PartnerAccount context extension (`manage_context_definition`)
+
+When `prm_pricing=true`, `prepare_prm` also invokes `prepare_prm_pricing`, which runs
+branch PRM pricing tasks:
+- Deploy non-site PRM pricing metadata components from `unpackaged/post_prm_pricing/`
+- Ensure PRM pricing recipe table mappings
+- Activate PRM pricing expression set versions
+- Insert PRM procedure-plan overlay data (when `procedureplans=true`)
+- Apply additive PRM pricing context extensions
 
 ## Data Loading
 
@@ -149,6 +154,7 @@ project_config:
   project__custom__:
     prm: true                    # Core PRM feature
     prm_exp_bundle: true         # Experience Cloud site content
+    prm_pricing: false           # Branch PRM pricing metadata/tasks
 ```
 
 ## Pricing Integration Status
@@ -178,20 +184,14 @@ This aligns PRM-specific pricing behavior with feature-scoped metadata while avo
 
 ## Testing
 
-Validate PRM deployment:
+Validate baseline PRM deployment:
 
 ```bash
 # Deploy metadata
 cci task run deploy_post_prm --org dev
 
-# Activate PRM pricing procedure version
-cci task run activate_prm_expression_sets --org dev
-
-# Apply additive PRM context mappings
-cci task run apply_context_prm_pricing --org dev
-
-# Ensure PRM pricing recipe table mappings on NGPDefaultRecipe
-cci task run configure_pricing_recipe_table_mappings --org dev
+# Run baseline PRM flow
+cci flow run prepare_prm --org dev
 
 # Verify fields exist
 sf data query --query "SELECT QualifiedApiName FROM FieldDefinition WHERE EntityDefinition.QualifiedApiName IN ('Account','Quote','QuoteLineItem') AND QualifiedApiName LIKE 'RLM_%'" --target-org dev
@@ -204,6 +204,13 @@ sf data query --query "SELECT Name, RLM_Primary_Reseller__c, RLM_Primary_Distrib
 
 # Test idempotency
 cci task run test_qb_prm_idempotency --org dev
+```
+
+Validate branch PRM pricing extension (`prm_pricing=true`):
+
+```bash
+# Run pricing extension flow directly
+cci flow run prepare_prm_pricing --org dev
 ```
 
 ## References

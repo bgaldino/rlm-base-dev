@@ -95,7 +95,7 @@ project:
 
     # ── Org Type & Mode ────────────────────────────────────────────────────────
     qbrix: false              # Use xDO base layer (disable for orgs without xDO licenses)
-    tso: true                # Trialforce Source Org (set true when targeting a TSO scratch org)
+    tso: false                # Trialforce Source Org (set true when targeting a TSO scratch org)
     pde: false                # Partner Development Environment (DE, no qbrix or custom UX)
     trial: false              # Public Trial org (EE, no qbrix or custom UX)
     refresh: false            # Data refresh mode — skips insert steps during re-runs
@@ -123,6 +123,7 @@ project:
     # ── Partner & Commerce ─────────────────────────────────────────────────────
     prm: true                 # Partner Relationship Management
     prm_exp_bundle: true      # PRM Experience Bundle (post_prm site content)
+    prm_pricing: true        # Enable branch PRM pricing metadata/tasks (non-main behavior)
     commerce: false           # Commerce
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
@@ -358,6 +359,10 @@ project:
     ps_prm: &ps_prm
       # PRM-specific permission sets
       - RLM_PRM
+
+    ps_prm_pricing: &ps_prm_pricing
+      # PRM pricing-specific permission sets
+      - RLM_PRM_Pricing
 
 #-----------------#
 # DECISION TABLES #
@@ -992,6 +997,36 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm
+
+  deploy_post_prm_core_objects:
+    description: Deploy PRM core custom fields (non-site metadata)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_prm_pricing/objects
+
+  deploy_post_prm_core_decision_tables:
+    description: Deploy PRM decision tables (non-site metadata)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_prm_pricing/decisionTables
+
+  deploy_post_prm_core_expression_sets:
+    description: Deploy PRM expression set definitions (non-site metadata)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_prm_pricing/expressionSetDefinition
+
+  deploy_post_prm_core_flows:
+    description: Deploy PRM automation flows (non-site metadata)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_prm_pricing/flows
+
+  deploy_post_prm_core_permissionsets:
+    description: Deploy PRM permission sets (non-site metadata)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_prm_pricing/permissionsets
 
   deploy_post_personas:
     group: Revenue Lifecycle Management
@@ -1793,6 +1828,14 @@ tasks:
       operation: activate_versions
       version_full_names: PRM_DISTI_Pricing_Procedure_V1
 
+  deactivate_prm_expression_sets:
+    group: Revenue Lifecycle Management
+    description: Deactivate PRM pricing expression set versions via Tooling API
+    class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
+    options:
+      operation: deactivate_versions
+      version_full_names: PRM_DISTI_Pricing_Procedure_V1
+
   deactivate_expression_sets:
     group: Revenue Lifecycle Management
     description: Deactivate expression set versions via Tooling API
@@ -2489,6 +2532,13 @@ tasks:
     options:
       developerName: *procedure_plan_definition_developer_name
 
+  deactivate_procedure_plan_version:
+    group: Revenue Lifecycle Management
+    description: Deactivate the ProcedurePlanDefinitionVersion before inserting PRM procedure plan overlay data
+    class_path: tasks.rlm_create_procedure_plan_def.DeactivateProcedurePlanVersion
+    options:
+      developerName: *procedure_plan_definition_developer_name
+
   activate_procedure_plan_expression_sets:
     group: Revenue Lifecycle Management
     description: Activate Procedure Plan expression set versions (RLM_Price_Distribution_Procedure; RLM_DefaultPricingProcedure is activated by the main activate_expression_sets task)
@@ -2932,16 +2982,13 @@ flows:
         when: project_config.project__custom__prm
       2:
         task: patch_network_email_for_deploy
-        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
       3:
         task: deploy_post_prm
-        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle
-      4:
-        task: configure_pricing_recipe_table_mappings
-        when: project_config.project__custom__prm
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
       5:
         task: revert_network_email_after_deploy
-        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
       6:
         task: publish_community
         when: project_config.project__custom__prm
@@ -2952,21 +2999,66 @@ flows:
         when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
       8:
         task: assign_permission_sets
-        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle
+        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
         options:
           api_names: *ps_prm
       9:
         task: insert_quantumbit_prm_data
         when: project_config.project__custom__prm and project_config.project__custom__qb
       10:
-        task: activate_prm_expression_sets
-        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle
-      11:
-        task: insert_prm_procedure_plan_data
-        when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__procedureplans
-      12:
-        task: apply_context_prm_pricing
+        task: manage_context_definition
         when: project_config.project__custom__prm
+        options:
+          plan_file: datasets/context_plans/PartnerAccount/manifest.json
+          developer_name: RLM_SalesTransactionContext
+          translate_plan: true
+          activate: true
+      11:
+        flow: prepare_prm_pricing
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
+
+  deploy_post_prm_core:
+    group: Revenue Lifecycle Management
+    description: Deploy PRM metadata excluding Partner Central site/ExperienceBundle assets.
+    steps:
+      1:
+        task: deploy_post_prm_core_objects
+      2:
+        task: deploy_post_prm_core_decision_tables
+      3:
+        task: deploy_post_prm_core_expression_sets
+      4:
+        task: deploy_post_prm_core_flows
+      5:
+        task: deploy_post_prm_core_permissionsets
+
+  prepare_prm_pricing:
+    group: Revenue Lifecycle Management
+    description: Deploy branch PRM pricing metadata/tasks behind prm_pricing.
+    steps:
+      1:
+        task: deactivate_prm_expression_sets
+      2:
+        flow: deploy_post_prm_core
+      3:
+        task: assign_permission_sets
+        options:
+          api_names: *ps_prm_pricing
+      4:
+        task: configure_pricing_recipe_table_mappings
+      5:
+        task: activate_prm_expression_sets
+      6:
+        task: deactivate_procedure_plan_version
+        when: project_config.project__custom__procedureplans
+      7:
+        task: insert_prm_procedure_plan_data
+        when: project_config.project__custom__procedureplans
+      8:
+        task: activate_procedure_plan_version
+        when: project_config.project__custom__procedureplans
+      9:
+        task: apply_context_prm_pricing
 
   prepare_billing_portal:
     group: Revenue Lifecycle Management

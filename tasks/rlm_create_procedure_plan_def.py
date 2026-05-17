@@ -333,3 +333,74 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
                 f"Failed to activate ProcedurePlanDefinitionVersion: "
                 f"{patch_resp.status_code} {patch_resp.text}"
             )
+
+
+class DeactivateProcedurePlanVersion(BaseSalesforceTask):
+    """Deactivate a ProcedurePlanDefinitionVersion by its parent definition's DeveloperName.
+
+    Queries for the PPDV linked to the given DeveloperName and patches
+    IsActive = false via the sObject REST API. Idempotent: if already
+    inactive, logs and returns.
+    """
+
+    task_options = {
+        "developerName": {
+            "description": "DeveloperName of the parent ProcedurePlanDefinition",
+            "required": True,
+        },
+    }
+
+    @property
+    def _base_url(self):
+        return f"{self.org_config.instance_url}/services/data/v66.0"
+
+    @property
+    def _headers(self):
+        return {
+            "Authorization": f"Bearer {self.org_config.access_token}",
+            "Content-Type": "application/json",
+        }
+
+    def _run_task(self):
+        dev_name = self.options["developerName"]
+
+        query = (
+            "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
+            f"WHERE ProcedurePlanDefinition.DeveloperName = '{dev_name}'"
+        )
+        url = f"{self._base_url}/query/?q={requests.utils.requote_uri(query)}"
+        resp = requests.get(url, headers=self._headers)
+        resp.raise_for_status()
+        records = resp.json().get("records", [])
+
+        if not records:
+            raise TaskOptionsError(
+                f"No ProcedurePlanDefinitionVersion found for DeveloperName '{dev_name}'"
+            )
+
+        version = records[0]
+        version_id = version["Id"]
+
+        if not version.get("IsActive"):
+            self.logger.info(
+                "ProcedurePlanDefinitionVersion %s is already inactive. Skipping.",
+                version_id,
+            )
+            return
+
+        patch_url = f"{self._base_url}/sobjects/ProcedurePlanDefinitionVersion/{version_id}"
+        patch_resp = requests.patch(patch_url, headers=self._headers, json={"IsActive": False})
+
+        if patch_resp.ok or patch_resp.status_code == 204:
+            self.logger.info(
+                "ProcedurePlanDefinitionVersion %s deactivated successfully.", version_id
+            )
+        else:
+            self.logger.error(
+                "Failed to deactivate PPDV %s (%s): %s",
+                version_id, patch_resp.status_code, patch_resp.text,
+            )
+            raise TaskOptionsError(
+                f"Failed to deactivate ProcedurePlanDefinitionVersion: "
+                f"{patch_resp.status_code} {patch_resp.text}"
+            )

@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**202 tasks** across **9 groups**.
+**209 tasks** across **9 groups**.
 
 ---
 
@@ -534,7 +534,7 @@
 
 ## Revenue Lifecycle Management
 
-*128 task(s)*
+*130 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -992,6 +992,31 @@
 
 - `operation`: `deactivate_versions`
 - `metadata_path`: `force-app/main/default/expressionSetDefinition`
+
+---
+
+### `deactivate_prm_expression_sets`
+
+**Description:** Deactivate PRM pricing expression set versions via Tooling API
+
+**Class:** `tasks.rlm_manage_expression_sets.ManageExpressionSets`
+
+**Options:**
+
+- `operation`: `deactivate_versions`
+- `version_full_names`: `PRM_DISTI_Pricing_Procedure_V1`
+
+---
+
+### `deactivate_procedure_plan_version`
+
+**Description:** Deactivate the ProcedurePlanDefinitionVersion before inserting PRM procedure plan overlay data
+
+**Class:** `tasks.rlm_create_procedure_plan_def.DeactivateProcedurePlanVersion`
+
+**Options:**
+
+- `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
 
 ---
 
@@ -2282,7 +2307,7 @@
 
 ## Uncategorized
 
-*28 task(s)*
+*33 task(s)*
 
 ### `create_partner_central`
 
@@ -2469,6 +2494,66 @@
 **Options:**
 
 - `path`: `unpackaged/post_prm`
+
+---
+
+### `deploy_post_prm_core_decision_tables`
+
+**Description:** Deploy PRM decision tables (non-site metadata)
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_prm_pricing/decisionTables`
+
+---
+
+### `deploy_post_prm_core_expression_sets`
+
+**Description:** Deploy PRM expression set definitions (non-site metadata)
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_prm_pricing/expressionSetDefinition`
+
+---
+
+### `deploy_post_prm_core_flows`
+
+**Description:** Deploy PRM automation flows (non-site metadata)
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_prm_pricing/flows`
+
+---
+
+### `deploy_post_prm_core_objects`
+
+**Description:** Deploy PRM core custom fields (non-site metadata)
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_prm_pricing/objects`
+
+---
+
+### `deploy_post_prm_core_permissionsets`
+
+**Description:** Deploy PRM permission sets (non-site metadata)
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_prm_pricing/permissionsets`
 
 ---
 

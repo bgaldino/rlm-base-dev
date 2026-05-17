@@ -527,7 +527,8 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `einstein` | `true` | Use Einstein AI |
 | `agents` | `false` | Deploy Agentforce Agent configurations |
 | `prm` | `true` | Use Partner Relationship Management |
-| `prm_exp_bundle` | `false` | Use PRM Experience Bundle |
+| `prm_exp_bundle` | `true` | Use PRM Experience Bundle |
+| `prm_pricing` | `false` | Enable branch PRM pricing metadata/tasks (`prepare_prm_pricing`) |
 | `commerce` | `false` | Use Commerce |
 | `breconfig` | `false` | Business Rules Engine configuration |
 | `docgen` | `true` | Use Document Generation |
@@ -884,7 +885,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
-| `prepare_prm` | Create community, patch Network email (placeholder → Network's current EmailSenderAddress), deploy PRM metadata, revert Network email to placeholder, publish community, sharing rules, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `sharingsettings`, `qb` |
+| `prepare_prm` | Main-compatible PRM flow: create/publish community, deploy PRM bundle for TSO+experience-bundle path, sharing rules, PRM data load, and PartnerAccount context extension; optionally invokes `prepare_prm_pricing` when `prm_pricing=true` | `prm`, `prm_exp_bundle`, `prm_pricing`, `sharingsettings`, `qb` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
 | `extract_rating` | Extract rating and rates data from an org | -- |
