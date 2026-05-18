@@ -10,6 +10,7 @@ already exists, it logs a message and skips creation.
 Reference:
 https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_get_procedure_plan_definition_records.htm
 """
+import time
 from typing import Any, Dict, Optional
 
 import requests
@@ -294,8 +295,10 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
         dev_name = self.options["developerName"]
 
         query = (
-            "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
-            f"WHERE ProcedurePlanDefinition.DeveloperName = '{dev_name}'"
+            "SELECT Id, IsActive, Rank, EffectiveFrom FROM ProcedurePlanDefinitionVersion "
+            f"WHERE ProcedurePlanDefinition.DeveloperName = '{dev_name}' "
+            "ORDER BY IsActive DESC, Rank DESC, EffectiveFrom DESC "
+            "LIMIT 1"
         )
         url = f"{self._base_url}/query/?q={requests.utils.requote_uri(query)}"
         resp = requests.get(url, headers=self._headers)
@@ -348,6 +351,14 @@ class DeactivateProcedurePlanVersion(BaseSalesforceTask):
             "description": "DeveloperName of the parent ProcedurePlanDefinition",
             "required": True,
         },
+        "max_wait_seconds": {
+            "description": "Maximum seconds to wait for IsActive=false confirmation",
+            "required": False,
+        },
+        "poll_interval_seconds": {
+            "description": "Polling interval in seconds while waiting for deactivation",
+            "required": False,
+        },
     }
 
     @property
@@ -363,10 +374,14 @@ class DeactivateProcedurePlanVersion(BaseSalesforceTask):
 
     def _run_task(self):
         dev_name = self.options["developerName"]
+        max_wait_seconds = int(self.options.get("max_wait_seconds", 20))
+        poll_interval_seconds = int(self.options.get("poll_interval_seconds", 2))
 
         query = (
-            "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
-            f"WHERE ProcedurePlanDefinition.DeveloperName = '{dev_name}'"
+            "SELECT Id, IsActive, Rank, EffectiveFrom FROM ProcedurePlanDefinitionVersion "
+            f"WHERE ProcedurePlanDefinition.DeveloperName = '{dev_name}' "
+            "ORDER BY IsActive DESC, Rank DESC, EffectiveFrom DESC "
+            "LIMIT 1"
         )
         url = f"{self._base_url}/query/?q={requests.utils.requote_uri(query)}"
         resp = requests.get(url, headers=self._headers)
@@ -394,6 +409,26 @@ class DeactivateProcedurePlanVersion(BaseSalesforceTask):
         if patch_resp.ok or patch_resp.status_code == 204:
             self.logger.info(
                 "ProcedurePlanDefinitionVersion %s deactivated successfully.", version_id
+            )
+            # Confirm state transition before downstream SFDMU inserts.
+            waited = 0
+            while waited <= max_wait_seconds:
+                verify_resp = requests.get(url, headers=self._headers)
+                verify_resp.raise_for_status()
+                verify_records = verify_resp.json().get("records", [])
+                if verify_records and not verify_records[0].get("IsActive"):
+                    self.logger.info(
+                        "Confirmed PPDV %s is inactive after %ss.",
+                        version_id,
+                        waited,
+                    )
+                    return
+                time.sleep(poll_interval_seconds)
+                waited += poll_interval_seconds
+
+            raise TaskOptionsError(
+                f"PPDV {version_id} did not report IsActive=false within "
+                f"{max_wait_seconds}s after deactivation patch."
             )
         else:
             self.logger.error(

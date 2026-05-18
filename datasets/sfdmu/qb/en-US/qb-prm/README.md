@@ -143,8 +143,8 @@ qb-prm/
 │  Source CSVs
 ├── Account.csv                   # 1 record (Robot Resellers)
 ├── ChannelProgram.csv            # 1 record (Reseller Program)
-├── ChannelProgramLevel.csv       # 4 records (Platinum, Gold, Silver, Bronze)
-├── ChannelProgramMember.csv      # 1 record (Robot Resellers @ Gold)
+├── ChannelProgramLevel.csv       # 4 records (Platinum - Reseller, Gold - Reseller, Silver - Reseller, Bronze - Reseller)
+├── ChannelProgramMember.csv      # 1 record (Robot Resellers @ Silver - Reseller)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/

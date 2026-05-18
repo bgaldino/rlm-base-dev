@@ -7,6 +7,16 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>ChannelProgramLevel.RLM_Adjustment_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>ChannelProgramLevel.RLM_Adjustment_Value__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>ChannelProgramMember.RLM_Adjustment_Type__c</field>
         <readable>true</readable>
     </fieldPermissions>
