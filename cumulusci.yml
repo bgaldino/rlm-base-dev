@@ -446,6 +446,10 @@ project:
       - Range_Based_Adjustments_Commerce_V1
       - Slab_Based_Adjustments_Commerce_V1
 
+    dt_prm_pricing_decision_tables: &dt_prm_pricing_decision_tables
+      # PRM pricing decision tables (refresh when prm and prm_pricing are true)
+      - Channel_Program_Level_Partner
+
 #-----------------------------#
 # CONTEXT DEFINITION SETTINGS #
 #-----------------------------#
@@ -550,6 +554,7 @@ project:
     quantumbit_guidedselling_products_dataset: &quantumbit_guidedselling_products_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling-products"   # QuantumBit guided selling Product2 field values
     quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
     quantumbit_prm_dataset: &quantumbit_prm_dataset "datasets/sfdmu/qb/en-US/qb-prm"                                 # QuantumBit PRM data
+    quantumbit_prm_pricing_dataset: &quantumbit_prm_pricing_dataset "datasets/sfdmu/qb/en-US/qb-prm-pricing"         # QuantumBit PRM pricing overlay data
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
@@ -1132,6 +1137,40 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/expressionSetDefinition
+      transforms:
+        - transform: find_replace
+          options:
+            patterns:
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__ATTRIBUTEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Attribute Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__VOLUMEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Price Adjustment Tier' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
+                replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_INDEX_RATE_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Index_Rate_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_ATTRIBUTE_BASED_ADJUSTMENT_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Attribute_Based_Adjustment_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_BUNDLE_BASED_ADJUSTMENT_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Bundle_Based_Adjustment_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_CONTRACT_PRICING_VOLUME_TIERS__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Contract_Pricing_Volume_Tiers' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_PRICE_ADJUSTMENT_TIER_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Price_Adjustment_Tier_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_CONTRACT_PRICING_ENTRIES_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Contract_Pricing_Entries_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_PRICE_BOOK_ENTRY_DECISION_TABLE_V2__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Price_Book_Entry_Decision_Table_v2' LIMIT 1
+                api: rest
 
   deploy_post_prm_pricing_flows:
     group: Revenue Lifecycle Management
@@ -1573,6 +1612,9 @@ tasks:
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
                 api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_RLM_COSTBOOKENTRIES__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'RLM_CostBookEntries' LIMIT 1
+                api: rest
 
   activate_and_deploy_expression_sets:
     description: Activate and Deploy Expression Sets
@@ -1596,6 +1638,9 @@ tasks:
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
                 api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_RLM_COSTBOOKENTRIES__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'RLM_CostBookEntries' LIMIT 1
+                api: rest
 
   deploy_full:
     description: Deploy all metadata
@@ -1615,6 +1660,9 @@ tasks:
                 api: rest
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_RLM_COSTBOOKENTRIES__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'RLM_CostBookEntries' LIMIT 1
                 api: rest
 
   deploy_org_settings:
@@ -1730,6 +1778,16 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_prm_dataset
+
+  insert_quantumbit_prm_pricing_data:
+    group: Revenue Lifecycle Management
+    description: >
+      Insert QuantumBit PRM pricing overlay data using a 2-pass SFDMU plan. Pass 1
+      upserts scoped Accounts, ChannelProgram, and ChannelProgramLevel records. Pass 2
+      updates IsPartner state and upserts ChannelProgramMember records.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_prm_pricing_dataset
 
   insert_clm_data:
     group: Revenue Lifecycle Management
@@ -1988,7 +2046,7 @@ tasks:
     class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
     options:
       operation: activate_versions
-      version_full_names: PRM_DISTI_Pricing_Procedure_V1
+      metadata_path: unpackaged/post_prm_pricing/expressionSetDefinition
 
   deactivate_prm_expression_sets:
     group: Revenue Lifecycle Management
@@ -1996,7 +2054,7 @@ tasks:
     class_path: tasks.rlm_manage_expression_sets.ManageExpressionSets
     options:
       operation: deactivate_versions
-      version_full_names: PRM_DISTI_Pricing_Procedure_V1
+      metadata_path: unpackaged/post_prm_pricing/expressionSetDefinition
 
   deactivate_expression_sets:
     group: Revenue Lifecycle Management
@@ -2378,6 +2436,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_prm_dataset
 
+  extract_qb_prm_pricing_data:
+    group: Data Management - Extract
+    description: "Extract qb-prm-pricing (PRM pricing overlay) from org to CSV. Output in datasets/sfdmu/extractions/qb-prm-pricing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_prm_pricing_dataset
+
   extract_scratch_data:
     group: Data Management - Extract
     description: "Extract scratch data (Account, Contact, BillingAccount) from org to CSV. Output in datasets/sfdmu/extractions/scratch-data/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -2498,6 +2563,14 @@ tasks:
       pathtoexportjson: *quantumbit_prm_dataset
       use_extraction_roundtrip: false
 
+  test_qb_prm_pricing_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-prm-pricing (PRM pricing overlay).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_prm_pricing_dataset
+      use_extraction_roundtrip: false
+
   test_qb_billing_idempotency:
     group: Data Management - Idempotency
     description: "Idempotency test for qb-billing. Runs the 3-pass plan twice from source CSVs and asserts no record count increase. Extraction roundtrip is not used — Pass 2/3 filter on Status = 'Draft' so extracted CSVs would be empty after activation, breaking re-import."
@@ -2583,6 +2656,13 @@ tasks:
       Sets isScratch=true (when false or missing) only when a devHubUsername is
       present. Idempotent; warns and continues on failure unless raise_on_failure is set.
     class_path: tasks.rlm_fix_scratch_identity.FixScratchOrgIdentity
+
+  refresh_dt_prm_pricing:
+    group: Revenue Lifecycle Management
+    description: Refresh PRM Pricing Decision Tables (when prm and prm_pricing flags are true)
+    class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
+    options:
+      developerNames: *dt_prm_pricing_decision_tables
 
   manage_decision_tables:
     group: Revenue Lifecycle Management
@@ -2737,6 +2817,20 @@ tasks:
     class_path: tasks.rlm_create_procedure_plan_def.DeactivateProcedurePlanVersion
     options:
       developerName: *procedure_plan_definition_developer_name
+
+  verify_prm_procedure_plan_overlay:
+    group: Revenue Lifecycle Management
+    description: >
+      Verify PRM procedure-plan overlay records exist (IFPartnerDistributorOnQuote section,
+      PRM_DISTI_Pricing_Procedure option, and IsNotNull criterion) for
+      RLM_Quote_Pricing_Procedure_Plan.
+    class_path: tasks.rlm_verify_prm_procedure_plan_overlay.VerifyPrmProcedurePlanOverlay
+    options:
+      developerName: *procedure_plan_definition_developer_name
+      subSectionType: IFPartnerDistributorOnQuote
+      expressionSetDeveloperName: PRM_DISTI_Pricing_Procedure
+      criterionFieldPath: PartnerAccount.BillingAddress
+      criterionOperator: IsNotNull
 
   activate_procedure_plan_expression_sets:
     group: Revenue Lifecycle Management
@@ -3617,19 +3711,25 @@ flows:
         options:
           api_names: *ps_prm_pricing
       4:
-        task: configure_pricing_recipe_table_mappings
+        task: insert_quantumbit_prm_pricing_data
+        when: project_config.project__custom__qb
       5:
-        task: activate_prm_expression_sets
+        task: configure_pricing_recipe_table_mappings
       6:
+        task: activate_prm_expression_sets
+      7:
         task: deactivate_procedure_plan_version
         when: project_config.project__custom__procedureplans
-      7:
+      8:
         task: insert_prm_procedure_plan_data
         when: project_config.project__custom__procedureplans
-      8:
+      9:
+        task: verify_prm_procedure_plan_overlay
+        when: project_config.project__custom__procedureplans
+      10:
         task: activate_procedure_plan_version
         when: project_config.project__custom__procedureplans
-      9:
+      11:
         task: apply_context_prm_pricing
 
   prepare_billing_portal:
@@ -3742,6 +3842,9 @@ flows:
       6:
         task: refresh_dt_commerce
         when: project_config.project__custom__commerce
+      7:
+        task: refresh_dt_prm_pricing
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
 
   prepare_decision_tables:
     group: Revenue Lifecycle Management

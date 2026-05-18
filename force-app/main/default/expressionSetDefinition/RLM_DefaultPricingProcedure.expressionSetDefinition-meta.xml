@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <ExpressionSetDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
     <contextDefinitions>RLM_SalesTransactionContext</contextDefinitions>
     <description>Revenue Management Default Pricing Procedure</description>
@@ -397,14 +397,14 @@
                     <name>sectionJsonString1</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
+                    <value>{"whereConditions":[]}</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>sectionJsonString2</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;EvergreenPricingTermCountConstant&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;PricingTermCount&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                    <value>{"whereConditions":[{"field":{"dataType":"Currency","name":"section-0-input1","value":"EvergreenPricingTermCountConstant","allowCompatibleDataTypes":true},"value":{"dataType":"Currency","name":"section-0-output","value":"PricingTermCount","allowCompatibleDataTypes":true}}]}</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -448,14 +448,14 @@
                     <name>sectionJsonString1</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
+                    <value>{"whereConditions":[]}</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>sectionJsonString2</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;InclusivePriceConstant&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;TotalLineAmount&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                    <value>{"whereConditions":[{"field":{"dataType":"Currency","name":"section-0-input1","value":"InclusivePriceConstant","allowCompatibleDataTypes":true},"value":{"dataType":"Currency","name":"section-0-output","value":"TotalLineAmount","allowCompatibleDataTypes":true}}]}</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -499,14 +499,14 @@
                     <name>sectionJsonString1</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
+                    <value>{"whereConditions":[]}</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>sectionJsonString2</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;InputUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;NetUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                    <value>{"whereConditions":[{"field":{"dataType":"Currency","name":"section-0-input1","value":"InputUnitPrice","allowCompatibleDataTypes":true},"value":{"dataType":"Currency","name":"section-0-output","value":"NetUnitPrice","allowCompatibleDataTypes":true}}]}</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -550,14 +550,14 @@
                     <name>sectionJsonString1</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
+                    <value>{"whereConditions":[]}</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>sectionJsonString2</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;ItemContractPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;InputUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                    <value>{"whereConditions":[{"field":{"dataType":"Currency","name":"section-0-input1","value":"ItemContractPrice","allowCompatibleDataTypes":true},"value":{"dataType":"Currency","name":"section-0-output","value":"InputUnitPrice","allowCompatibleDataTypes":true}}]}</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -757,14 +757,14 @@
                     <name>sectionJsonString1</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
+                    <value>{"whereConditions":[]}</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>sectionJsonString2</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;ListPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;InputUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                    <value>{"whereConditions":[{"field":{"dataType":"Currency","name":"section-0-input1","value":"ListPrice","allowCompatibleDataTypes":true},"value":{"dataType":"Currency","name":"section-0-output","value":"InputUnitPrice","allowCompatibleDataTypes":true}}]}</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -808,14 +808,14 @@
                     <name>sectionJsonString1</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
+                    <value>{"whereConditions":[]}</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>sectionJsonString2</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;NetUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;InputUnitPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                    <value>{"whereConditions":[{"field":{"dataType":"Currency","name":"section-0-input1","value":"NetUnitPrice","allowCompatibleDataTypes":true},"value":{"dataType":"Currency","name":"section-0-output","value":"InputUnitPrice","allowCompatibleDataTypes":true}}]}</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -859,14 +859,14 @@
                     <name>sectionJsonString1</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
+                    <value>{"whereConditions":[]}</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>sectionJsonString2</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;OneTimePricingTermCountConstant&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;PricingTermCount&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                    <value>{"whereConditions":[{"field":{"dataType":"Currency","name":"section-0-input1","value":"OneTimePricingTermCountConstant","allowCompatibleDataTypes":true},"value":{"dataType":"Currency","name":"section-0-output","value":"PricingTermCount","allowCompatibleDataTypes":true}}]}</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -989,21 +989,21 @@
                     <name>sectionJsonString1</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
+                    <value>{"whereConditions":[]}</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>sectionJsonString2</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;TotalLineAmount&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;ItemSubtotal&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                    <value>{"whereConditions":[{"field":{"dataType":"Currency","name":"section-0-input1","value":"TotalLineAmount","allowCompatibleDataTypes":true},"value":{"dataType":"Currency","name":"section-0-output","value":"ItemSubtotal","allowCompatibleDataTypes":true}}]}</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>sectionJsonString3</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-1-input1&quot;,&quot;value&quot;:&quot;ItemNetTotalPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;Currency&quot;,&quot;name&quot;:&quot;section-1-output&quot;,&quot;value&quot;:&quot;ItemTotalPrice&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                    <value>{"whereConditions":[{"field":{"dataType":"Currency","name":"section-1-input1","value":"ItemNetTotalPrice","allowCompatibleDataTypes":true},"value":{"dataType":"Currency","name":"section-1-output","value":"ItemTotalPrice","allowCompatibleDataTypes":true}}]}</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -1136,14 +1136,14 @@
                     <name>sectionJsonString1</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
+                    <value>{"whereConditions":[]}</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>sectionJsonString2</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;EffectiveFrom&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;PricingDate&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                    <value>{"whereConditions":[{"field":{"dataType":"DateTime","name":"section-0-input1","value":"EffectiveFrom","allowCompatibleDataTypes":true},"value":{"dataType":"DateTime","name":"section-0-output","value":"PricingDate","allowCompatibleDataTypes":true}}]}</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -1186,14 +1186,14 @@
                     <name>sectionJsonString1</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[]}</value>
+                    <value>{"whereConditions":[]}</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>sectionJsonString2</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>{&quot;whereConditions&quot;:[{&quot;field&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-input1&quot;,&quot;value&quot;:&quot;EffectiveDate&quot;,&quot;allowCompatibleDataTypes&quot;:true},&quot;value&quot;:{&quot;dataType&quot;:&quot;DateTime&quot;,&quot;name&quot;:&quot;section-0-output&quot;,&quot;value&quot;:&quot;PricingDate&quot;,&quot;allowCompatibleDataTypes&quot;:true}}]}</value>
+                    <value>{"whereConditions":[{"field":{"dataType":"DateTime","name":"section-0-input1","value":"EffectiveDate","allowCompatibleDataTypes":true},"value":{"dataType":"DateTime","name":"section-0-output","value":"PricingDate","allowCompatibleDataTypes":true}}]}</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
@@ -3632,7 +3632,7 @@
                     <operator>Equals</operator>
                     <sequenceNumber>1</sequenceNumber>
                     <sourceFieldName>SellingModelType</sourceFieldName>
-                    <value>&apos;Evergreen&apos;</value>
+                    <value>'Evergreen'</value>
                     <valueType>Literal</valueType>
                 </criteria>
                 <criteria>
@@ -3666,7 +3666,7 @@
                     <operator>Equals</operator>
                     <sequenceNumber>1</sequenceNumber>
                     <sourceFieldName>SellingModelType</sourceFieldName>
-                    <value>&apos;Evergreen&apos;</value>
+                    <value>'Evergreen'</value>
                     <valueType>Literal</valueType>
                 </criteria>
                 <criteria>
@@ -3828,7 +3828,7 @@
                     <operator>NotEquals</operator>
                     <sequenceNumber>1</sequenceNumber>
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
-                    <value>&apos;LastTransaction&apos;</value>
+                    <value>'LastTransaction'</value>
                     <valueType>Literal</valueType>
                 </criteria>
                 <criteria>
@@ -3901,7 +3901,7 @@
                     <operator>Equals</operator>
                     <sequenceNumber>1</sequenceNumber>
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
-                    <value>&apos;LastTransaction&apos;</value>
+                    <value>'LastTransaction'</value>
                     <valueType>Literal</valueType>
                 </criteria>
             </advancedCondition>
@@ -3946,7 +3946,7 @@
                     <operator>NotEquals</operator>
                     <sequenceNumber>3</sequenceNumber>
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
-                    <value>&apos;LastTransaction&apos;</value>
+                    <value>'LastTransaction'</value>
                     <valueType>Literal</valueType>
                 </criteria>
             </advancedCondition>
@@ -3980,7 +3980,7 @@
                     <operator>NotEquals</operator>
                     <sequenceNumber>3</sequenceNumber>
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
-                    <value>&apos;LastTransaction&apos;</value>
+                    <value>'LastTransaction'</value>
                     <valueType>Literal</valueType>
                 </criteria>
             </advancedCondition>
@@ -4002,7 +4002,7 @@
                     <operator>NotEquals</operator>
                     <sequenceNumber>1</sequenceNumber>
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
-                    <value>&apos;LastTransaction&apos;</value>
+                    <value>'LastTransaction'</value>
                     <valueType>Literal</valueType>
                 </criteria>
                 <criteria>
@@ -4041,7 +4041,7 @@
                     <operator>NotEquals</operator>
                     <sequenceNumber>2</sequenceNumber>
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
-                    <value>&apos;LastTransaction&apos;</value>
+                    <value>'LastTransaction'</value>
                     <valueType>Literal</valueType>
                 </criteria>
                 <criteria>
@@ -4080,7 +4080,7 @@
                     <operator>NotEquals</operator>
                     <sequenceNumber>2</sequenceNumber>
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
-                    <value>&apos;LastTransaction&apos;</value>
+                    <value>'LastTransaction'</value>
                     <valueType>Literal</valueType>
                 </criteria>
                 <criteria>
@@ -4146,7 +4146,7 @@
                     <operator>NotEquals</operator>
                     <sequenceNumber>1</sequenceNumber>
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
-                    <value>&apos;LastTransaction&apos;</value>
+                    <value>'LastTransaction'</value>
                     <valueType>Literal</valueType>
                 </criteria>
             </advancedCondition>
@@ -4168,7 +4168,7 @@
                     <operator>NotEquals</operator>
                     <sequenceNumber>1</sequenceNumber>
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
-                    <value>&apos;LastTransaction&apos;</value>
+                    <value>'LastTransaction'</value>
                     <valueType>Literal</valueType>
                 </criteria>
             </advancedCondition>
@@ -4190,14 +4190,14 @@
                     <operator>NotEquals</operator>
                     <sequenceNumber>1</sequenceNumber>
                     <sourceFieldName>SellingModelType</sourceFieldName>
-                    <value>&apos;Evergreen&apos;</value>
+                    <value>'Evergreen'</value>
                     <valueType>Literal</valueType>
                 </criteria>
                 <criteria>
                     <operator>NotEquals</operator>
                     <sequenceNumber>2</sequenceNumber>
                     <sourceFieldName>SellingModelType</sourceFieldName>
-                    <value>&apos;TermDefined&apos;</value>
+                    <value>'TermDefined'</value>
                     <valueType>Literal</valueType>
                 </criteria>
             </advancedCondition>
@@ -4219,7 +4219,7 @@
                     <operator>Equals</operator>
                     <sequenceNumber>1</sequenceNumber>
                     <sourceFieldName>ItemPricingSource</sourceFieldName>
-                    <value>&apos;LastTransaction&apos;</value>
+                    <value>'LastTransaction'</value>
                     <valueType>Literal</valueType>
                 </criteria>
                 <criteria>
@@ -4243,7 +4243,7 @@
                     <operator>Equals</operator>
                     <sequenceNumber>5</sequenceNumber>
                     <sourceFieldName>SalesTransactionActionType</sourceFieldName>
-                    <value>&apos;Renew&apos;</value>
+                    <value>'Renew'</value>
                     <valueType>Literal</valueType>
                 </criteria>
                 <criteria>
@@ -4302,7 +4302,7 @@
                     <operator>NotEquals</operator>
                     <sequenceNumber>6</sequenceNumber>
                     <sourceFieldName>SalesTransactionActionType</sourceFieldName>
-                    <value>&apos;Cancel&apos;</value>
+                    <value>'Cancel'</value>
                     <valueType>Literal</valueType>
                 </criteria>
                 <criteria>
@@ -4331,14 +4331,14 @@
                     <operator>Equals</operator>
                     <sequenceNumber>1</sequenceNumber>
                     <sourceFieldName>SellingModelType</sourceFieldName>
-                    <value>&apos;TermDefined&apos;</value>
+                    <value>'TermDefined'</value>
                     <valueType>Literal</valueType>
                 </criteria>
                 <criteria>
                     <operator>Equals</operator>
                     <sequenceNumber>2</sequenceNumber>
                     <sourceFieldName>SellingModelType</sourceFieldName>
-                    <value>&apos;Evergreen&apos;</value>
+                    <value>'Evergreen'</value>
                     <valueType>Literal</valueType>
                 </criteria>
             </advancedCondition>
@@ -4360,7 +4360,7 @@
                     <operator>Equals</operator>
                     <sequenceNumber>1</sequenceNumber>
                     <sourceFieldName>SellingModelType</sourceFieldName>
-                    <value>&apos;TermDefined&apos;</value>
+                    <value>'TermDefined'</value>
                     <valueType>Literal</valueType>
                 </criteria>
             </advancedCondition>
@@ -4837,6 +4837,236 @@
             <shouldShowExplExternally>false</shouldShowExplExternally>
             <stepType>BusinessKnowledgeModel</stepType>
         </steps>
+        <steps>
+            <hasNestedExplainability>false</hasNestedExplainability>
+            <label>List Container</label>
+            <name>ListContainer</name>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>28</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>ListGroup</stepType>
+        </steps>
+        <steps>
+            <advancedCondition>
+                <conditionLogic>1</conditionLogic>
+                <criteria>
+                    <operator>IsNotNull</operator>
+                    <sequenceNumber>1</sequenceNumber>
+                    <sourceFieldName>ItemUnitCost__std</sourceFieldName>
+                </criteria>
+            </advancedCondition>
+            <hasNestedExplainability>false</hasNestedExplainability>
+            <label>List Operation</label>
+            <name>ListOperation</name>
+            <parentStep>ListContainer</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>1</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>AdvancedListFilter</stepType>
+        </steps>
+        <steps>
+            <actionType>FormulaBasedPricing</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>formula-section-0-input</name>
+                    <output>false</output>
+                    <type>Formula</type>
+                    <value>ItemUnitCost__std * LineItemQuantity</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>formula-section-2-input</name>
+                    <output>false</output>
+                    <type>Formula</type>
+                    <value>ItemNetTotalPrice - ( ItemUnitCost__std * LineItemQuantity )</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>selectedFunction</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Get</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>formula-section-1-input</name>
+                    <output>false</output>
+                    <type>Formula</type>
+                    <value>( ItemNetTotalPrice - ( ItemUnitCost__std * LineItemQuantity ) ) / ItemNetTotalPrice</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>formulaSectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>3</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>HideWaterfall</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>formula-section-0-output</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemTotalCost__std</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>formula-section-1-output</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemMargin__std</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>formula-section-2-output</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemMarginAmount__std</value>
+                </parameters>
+            </customElement>
+            <description>Formula Based Pricing</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
+            <label>Formula Based Pricing</label>
+            <name>FormulaBasedPricing</name>
+            <parentStep>ListContainer</parentStep>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>2</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
+        <steps>
+            <actionType>ListPrice</actionType>
+            <customElement>
+                <parameters>
+                    <input>true</input>
+                    <name>selectedFunction</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Get</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsRealTime</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpId</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>__LOOKUPID_RLM_COSTBOOKENTRIES__</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpApiName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>RLM_CostBookEntries</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsContractEnabled</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>false</input>
+                    <name>ListPrice</name>
+                    <output>true</output>
+                    <type>Parameter</type>
+                    <value>ItemUnitCost__std</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>ProductId</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Product</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>Quantity</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>LineItemQuantity</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>HideWaterfall</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>IsOutputResolutionEnabled</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>false</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>ListPriceField</name>
+                    <output>false</output>
+                    <type>Parameter</type>
+                    <value>Constant_UnitPrice_RLM_CostBookEntries_LP</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>LookUpName</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>Cost Book Entries</value>
+                </parameters>
+                <parameters>
+                    <input>true</input>
+                    <name>sectionCount</name>
+                    <output>false</output>
+                    <type>Literal</type>
+                    <value>0</value>
+                </parameters>
+            </customElement>
+            <description>List Price</description>
+            <hasNestedExplainability>false</hasNestedExplainability>
+            <label>List Price</label>
+            <name>ListPrice</name>
+            <resultIncluded>false</resultIncluded>
+            <sequenceNumber>3</sequenceNumber>
+            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
+            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
+            <shouldShowExplExternally>false</shouldShowExplExternally>
+            <stepType>BusinessKnowledgeModel</stepType>
+        </steps>
         <variables>
             <collection>false</collection>
             <dataType>Text</dataType>
@@ -5089,6 +5319,17 @@
             <output>false</output>
             <type>Constant</type>
             <value>__VOLUMEPasID__</value>
+        </variables>
+        <variables>
+            <collection>false</collection>
+            <dataType>Text</dataType>
+            <decimalPlaces>2</decimalPlaces>
+            <description>Constant_UnitPrice_RLM_CostBookEntries_LP</description>
+            <input>false</input>
+            <name>Constant_UnitPrice_RLM_CostBookEntries_LP</name>
+            <output>false</output>
+            <type>Constant</type>
+            <value>Cost</value>
         </variables>
         <versionNumber>1</versionNumber>
     </versions>

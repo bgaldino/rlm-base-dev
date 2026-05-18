@@ -1,2 +1,3 @@
 RLM_Adjustment_Type__c,RLM_Adjustment_Value__c,RLM_Discount_Rate__c,Level.Name,Partner.Name,Program.Name,$$Partner.Name$Program.Name
+Percentage,0,10,Gold - Distributor,Cloud Distributors,Distributor Program,Cloud Distributors;Distributor Program
 Percentage,0,5,Silver - Reseller,Robot Resellers,Reseller Program,Robot Resellers;Reseller Program

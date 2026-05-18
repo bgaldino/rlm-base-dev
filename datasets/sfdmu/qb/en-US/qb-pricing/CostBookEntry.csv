@@ -1,1 +1,7 @@
-$$CostBook.Name$Product.StockKeepingUnit$CurrencyIsoCode,Cost,CostBookId,EffectiveFrom,EffectiveTo,ProductId,Description,CurrencyIsoCode
+$$CostBook.Name$Product.StockKeepingUnit$CurrencyIsoCode,Cost,CostBook.$$Name$IsDefault,CurrencyIsoCode,Description,EffectiveFrom,EffectiveTo,Product.StockKeepingUnit
+Standard Cost Book;QB-API;USD,6000,Standard Cost Book;true,USD,,2026-01-01T17:00:00.000+0000,,QB-API
+Standard Cost Book;QB-API-MGMT;USD,7500,Standard Cost Book;true,USD,,2026-01-01T17:00:00.000+0000,,QB-API-MGMT
+Standard Cost Book;QB-API-REQT;USD,29,Standard Cost Book;true,USD,,2026-01-01T17:00:00.000+0000,,QB-API-REQT
+Standard Cost Book;QB-MSG-STRT;USD,19000,Standard Cost Book;true,USD,,2026-01-01T17:00:00.000+0000,,QB-MSG-STRT
+Standard Cost Book;QB-TRN-ESSNTLS;USD,5000,Standard Cost Book;true,USD,,2026-01-01T17:00:00.000+0000,,QB-TRN-ESSNTLS
+Standard Cost Book;QB-TRN-FUND;USD,4000,Standard Cost Book;true,USD,,2026-01-01T17:00:00.000+0000,,QB-TRN-FUND
