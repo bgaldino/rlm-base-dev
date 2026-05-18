@@ -22,7 +22,7 @@ UX_KNOWN_FLAGS: List[str] = [
     "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
     "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
     "payments", "constraints", "analytics", "procedureplans",
-    "collections",
+    "collections", "prm_pricing",
 ]
 
 #: Standalone flexipage dirs in deploy order (last writer wins).
@@ -39,6 +39,7 @@ _STANDALONE_ORDER: List[Tuple[str, str]] = [
     ("docgen",      "docgen"),
     ("approvals",   "qb"),        # approvals deploys with qb flow
     ("collections", "collections"),
+    ("prm_pricing", "prm_pricing"),
 ]
 
 

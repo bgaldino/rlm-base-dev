@@ -781,6 +781,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("constraints", "constraints"),
             ("ramps",       "ramp_builder"),
             ("collections", "collections"),
+            ("prm_pricing", "prm_pricing"),
         ]
 
         # Flexipage types that cannot be deployed via Metadata API (platform restriction)
@@ -959,7 +960,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
         # Inject new actionOverrides that aren't already present
         added = 0
-        for ao in patch_root.findall(f"{{{NS}}}actionOverrides"):
+        for ao in patch_root.findall(f".//{{{NS}}}actionOverrides"):
             sobjtype = (ao.findtext(f"{{{NS}}}pageOrSobjectType") or "").strip()
             ff = (ao.findtext(f"{{{NS}}}formFactor") or "").strip()
             if (sobjtype, ff) not in existing_keys:
@@ -1046,7 +1047,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 # TSO template already contains all overrides; patches only run for non-TSO builds.
                 patches_applied = []
                 if not features.get("tso"):
-                    patch_features = ["billing", "rates", "ramps"]
+                    patch_features = ["billing", "rates", "ramps", "prm_pricing"]
                     for pf in patch_features:
                         if not features.get(pf):
                             continue

@@ -225,6 +225,7 @@ class WriteBackUXTemplates(BaseTask):
             ("constraints", "constraints"),
             ("ramps", "ramp_builder"),
             ("collections", "collections"),
+            ("prm_pricing", "prm_pricing"),
         ]
 
         results = []
