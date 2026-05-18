@@ -227,6 +227,7 @@ class WriteBackUXTemplates(BaseTask):
             ("large_stx", "large_stx"),
             ("collections", "collections"),
             ("personas", "personas"),
+            ("prm_pricing", "prm_pricing"),
         ]
 
         results = []

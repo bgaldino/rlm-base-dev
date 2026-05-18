@@ -22,7 +22,7 @@ UX_KNOWN_FLAGS: List[str] = [
     "quantumbit", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
     "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
     "payments", "constraints", "analytics", "procedureplans", "large_stx",
-    "collections", "personas",
+    "collections", "personas", "prm_pricing",
 ]
 
 #: Profile templates only assembled when the personas feature flag is true.
@@ -44,6 +44,7 @@ _STANDALONE_ORDER: List[Tuple[str, str]] = [
     ("docgen",      "docgen"),
     ("approvals",   "quantumbit"),  # approvals deploys with quantumbit flow
     ("collections", "collections"),
+    ("prm_pricing", "prm_pricing"),
 ]
 
 
