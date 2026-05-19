@@ -6,7 +6,7 @@ This dataset is intentionally scoped to run **only when PRM is enabled**. It
 adds and configures the PRM conditional branch in the existing procedure plan:
 
 - Section `IFPartnerDistributorOnQuote` (`RuleBased`, sequence 2)
-- Option to run `PRM_DISTI_Pricing_Procedure` with `CriteriaLogic=1`
+- Option to run `RLM_PRM_DISTI_Pricing_Procedure` with `CriteriaLogic=1`
 - Criterion: `PartnerAccount.BillingAddress IsNotNull`
 - Reorders `HeaderDistribution` to sequence 3 for PRM parity with source org
 

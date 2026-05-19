@@ -863,7 +863,7 @@
 
 ### `configure_pricing_recipe_table_mappings`
 
-**Description:** Ensure required PricingRecipeTableMapping rows exist for PRM pricing on NGPDefaultRecipe (RLM_CostBookEntries and Channel_Program_Level_Partner). Uses Tooling API for idempotent create/update without metadata deploy.
+**Description:** Ensure required PricingRecipeTableMapping rows exist for PRM pricing on NGPDefaultRecipe (RLM_CostBookEntries and RLM_Channel_Program_Level_Partner). Uses Tooling API for idempotent create/update without metadata deploy.
 
 **Class:** `tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings`
 
@@ -1334,7 +1334,7 @@
 
 ### `deploy_post_prm_pricing_decision_tables`
 
-**Description:** Deploy PRM pricing decision tables (Channel_Program_Level_Partner) from unpackaged/post_prm_pricing/decisionTables.
+**Description:** Deploy PRM pricing decision tables (RLM_Channel_Program_Level_Partner) from unpackaged/post_prm_pricing/decisionTables.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1346,7 +1346,7 @@
 
 ### `deploy_post_prm_pricing_expression_sets`
 
-**Description:** Deploy PRM pricing expression set definitions (PRM_DISTI_Pricing_Procedure) from unpackaged/post_prm_pricing/expressionSetDefinition.
+**Description:** Deploy PRM pricing expression set definitions (RLM_PRM_DISTI_Pricing_Procedure) from unpackaged/post_prm_pricing/expressionSetDefinition.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1761,7 +1761,7 @@
 
 ### `insert_prm_procedure_plan_data`
 
-**Description:** Insert PRM-only Procedure Plan overlay data: adds IFPartnerDistributorOnQuote rule-based section, PRM_DISTI_Pricing_Procedure option, and criteria condition for RLM_Quote_Pricing_Procedure_Plan.
+**Description:** Insert PRM-only Procedure Plan overlay data: adds IFPartnerDistributorOnQuote rule-based section, RLM_PRM_DISTI_Pricing_Procedure option, and criteria condition for RLM_Quote_Pricing_Procedure_Plan.
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 
@@ -2283,7 +2283,7 @@
 
 **Options:**
 
-- `developerNames`: `['Channel_Program_Level_Partner']`
+- `developerNames`: `['RLM_Channel_Program_Level_Partner']`
 
 ---
 
@@ -2399,7 +2399,7 @@
 
 ### `verify_prm_procedure_plan_overlay`
 
-**Description:** Verify PRM procedure-plan overlay records exist (IFPartnerDistributorOnQuote section, PRM_DISTI_Pricing_Procedure option, and IsNotNull criterion) for RLM_Quote_Pricing_Procedure_Plan.
+**Description:** Verify PRM procedure-plan overlay records exist (IFPartnerDistributorOnQuote section, RLM_PRM_DISTI_Pricing_Procedure option, and IsNotNull criterion) for RLM_Quote_Pricing_Procedure_Plan.
 
 **Class:** `tasks.rlm_verify_prm_procedure_plan_overlay.VerifyPrmProcedurePlanOverlay`
 
@@ -2407,7 +2407,7 @@
 
 - `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
 - `subSectionType`: `IFPartnerDistributorOnQuote`
-- `expressionSetDeveloperName`: `PRM_DISTI_Pricing_Procedure`
+- `expressionSetDeveloperName`: `RLM_PRM_DISTI_Pricing_Procedure`
 - `criterionFieldPath`: `PartnerAccount.BillingAddress`
 - `criterionOperator`: `IsNotNull`
 

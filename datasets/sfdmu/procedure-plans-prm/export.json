@@ -42,7 +42,7 @@
           "externalId": "SubSectionType"
         },
         {
-          "query": "SELECT DeveloperName, MasterLabel FROM ExpressionSetDefinition WHERE DeveloperName IN ('PRM_DISTI_Pricing_Procedure')",
+          "query": "SELECT DeveloperName, MasterLabel FROM ExpressionSetDefinition WHERE DeveloperName IN ('RLM_PRM_DISTI_Pricing_Procedure')",
           "operation": "Readonly",
           "externalId": "DeveloperName"
         },

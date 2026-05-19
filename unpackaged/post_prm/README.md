@@ -47,10 +47,10 @@ The PRM feature enables partner and distributor pricing workflows through:
 ### Pricing Components
 
 **Decision Tables (1 PRM-owned):**
-- `Channel_Program_Level_Partner.decisionTable` - Evaluates channel program level and partner criteria
+- `RLM_Channel_Program_Level_Partner.decisionTable` - Evaluates channel program level and partner criteria
 
 **Expression Set Definitions (1 PRM-owned):**
-- `PRM_DISTI_Pricing_Procedure.expressionSetDefinition-meta.xml` - PRM-scoped pricing procedure metadata deployed from `post_prm`
+- `RLM_PRM_DISTI_Pricing_Procedure.expressionSetDefinition-meta.xml` - PRM-scoped pricing procedure metadata deployed from `post_prm_pricing`
 
 **Context Definition Extensions (additive):**
 - PRM context mappings are applied through Context Service plans (not full context replacement metadata)
@@ -66,7 +66,7 @@ The PRM feature enables partner and distributor pricing workflows through:
   - Task: `configure_pricing_recipe_table_mappings`
   - Ensures `NGPDefaultRecipe` mappings for:
     - `RLM_CostBookEntries` (`ListPrice`)
-    - `Channel_Program_Level_Partner` (`PriceAdjustmentMatrix`)
+    - `RLM_Channel_Program_Level_Partner` (`PriceAdjustmentMatrix`)
 
 ### Permission Sets (2)
 
@@ -162,18 +162,18 @@ project_config:
 
 The PRM workbook (`Change Log.xlsx`) is now mapped to repository-owned artifacts using the hybrid ownership model:
 
-- **PRM-specific procedure:** `PRM_DISTI_Pricing_Procedure` is stored in `post_prm`.
+- **PRM-specific procedure:** `RLM_PRM_DISTI_Pricing_Procedure` is stored in `post_prm_pricing`.
 - **Shared/default procedures:** `RLM_DefaultPricingProcedure` remains in `force-app`, and `RLM_Price_Distribution_Procedure` remains in `post_procedureplans`.
-- **PRM decision table:** `Channel_Program_Level_Partner` remains PRM-scoped in `post_prm`.
+- **PRM decision table:** `RLM_Channel_Program_Level_Partner` remains PRM-scoped in `post_prm_pricing`.
 - **Cost matrix ownership:** Workbook entry `Cost` maps to shared/default pricing decision-table ownership (existing shared Cost/CostBook decision-table assets), not PRM-local metadata.
 
 This aligns PRM-specific pricing behavior with feature-scoped metadata while avoiding duplication of shared pricing engine assets.
 
-**2026-05-18:** Synchronized `PRM_DISTI_Pricing_Procedure` from the active
+**2026-05-18:** Synchronized `RLM_PRM_DISTI_Pricing_Procedure` from the active
 version in source org `chrisRossPRM_may2026`. Source-org Price Adjustment
 Schedule and DecisionTable IDs are represented as deploy-time placeholders,
-including `__LOOKUPID_CHANNEL_PROGRAM_LEVEL_PARTNER__` for the PRM-scoped
-`Channel_Program_Level_Partner` matrix.
+including `__LOOKUPID_RLM_CHANNEL_PROGRAM_LEVEL_PARTNER__` for the PRM-scoped
+`RLM_Channel_Program_Level_Partner` matrix.
 
 ## Field Synchronization History
 

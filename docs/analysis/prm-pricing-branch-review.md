@@ -164,7 +164,7 @@ on the parent records:
 - `ProcedurePlanOption`, `ProcedurePlanCriterion` match by composite
   keys built from `SubSectionType` / `Priority` / `Sequence` only.
 - `ExpressionSetDefinition` is `Readonly`, queried by
-  `DeveloperName='PRM_DISTI_Pricing_Procedure'`.
+  `DeveloperName='RLM_PRM_DISTI_Pricing_Procedure'`.
 
 None of those touch `MasterLabel` or `EffectiveFrom`, and `DeveloperName`
 on the parent record is unchanged on both sides. Reverting is safe for
@@ -351,9 +351,9 @@ It claims `post_prm` owns content that is actually now in `post_prm_pricing`:
   in `post_prm_pricing`.
 - "Flows (2): `RLM_Update_Channel_Program_Member.flow`,
   `RLM_Create_New_Quote.flow`" → live in `post_prm_pricing`.
-- "Decision Tables (1 PRM-owned): `Channel_Program_Level_Partner.decisionTable`"
+- "Decision Tables (1 PRM-owned): `RLM_Channel_Program_Level_Partner.decisionTable`"
   → lives in `post_prm_pricing`.
-- "Expression Set Definitions: `PRM_DISTI_Pricing_Procedure` … deployed from
+- "Expression Set Definitions: `RLM_PRM_DISTI_Pricing_Procedure` … deployed from
   `post_prm`" → actually deployed from
   `post_prm_pricing/expressionSetDefinition/`.
 - "`RLM_PRM.permissionset-meta.xml` — Grants read/edit access to all 12 PRM

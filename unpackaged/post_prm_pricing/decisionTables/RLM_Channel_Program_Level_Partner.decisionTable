@@ -45,7 +45,7 @@
     <filterResultBy>OutputOrder</filterResultBy>
     <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
     <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
-    <setupName>Channel Program Level Partner</setupName>
+    <setupName>RLM Channel Program Level Partner</setupName>
     <sourceObject>ChannelProgramMember</sourceObject>
     <status>Active</status>
     <type>MediumVolume</type>
