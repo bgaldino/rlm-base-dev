@@ -4,7 +4,7 @@
   "useSeparatedCSVFiles": true,
   "objectSets": [
     {
-      "name": "First Pass - Upsert PRM ProcedurePlanSections",
+      "name": "First Pass - Move HeaderDistribution to Sequence 3",
       "objects": [
         {
           "query": "SELECT DeveloperName FROM ProcedurePlanDefinitionVersion WHERE DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
@@ -19,7 +19,22 @@
       ]
     },
     {
-      "name": "Second Pass - Upsert PRM ProcedurePlanOptions",
+      "name": "Second Pass - Insert PRM ProcedurePlanSection",
+      "objects": [
+        {
+          "query": "SELECT DeveloperName FROM ProcedurePlanDefinitionVersion WHERE DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
+          "operation": "Readonly",
+          "externalId": "DeveloperName"
+        },
+        {
+          "query": "SELECT Description, Phase, ProcedurePlanVersionId, ResolutionType, SectionType, Sequence, SubSectionType FROM ProcedurePlanSection WHERE ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
+          "operation": "Upsert",
+          "externalId": "SubSectionType"
+        }
+      ]
+    },
+    {
+      "name": "Third Pass - Upsert PRM ProcedurePlanOptions",
       "objects": [
         {
           "query": "SELECT SubSectionType, Sequence FROM ProcedurePlanSection WHERE ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",
@@ -39,7 +54,7 @@
       ]
     },
     {
-      "name": "Third Pass - Upsert PRM ProcedurePlanCriteria",
+      "name": "Fourth Pass - Upsert PRM ProcedurePlanCriteria",
       "objects": [
         {
           "query": "SELECT Priority, ProcedurePlanSection.SubSectionType FROM ProcedurePlanOption WHERE ProcedurePlanSection.ProcedurePlanVersion.DeveloperName = 'RLM_Quote_Pricing_Procedure_Plan'",

@@ -36,7 +36,8 @@
       "nodeName": "SalesTransactionItem",
       "name": "RLM_Transient_Distributor_Discount_Percent__c",
       "dataType": "NUMBER",
-      "fieldType": "INPUTOUTPUT"
+      "fieldType": "INPUTOUTPUT",
+      "isTransient": true
     }
   ],
   "mappingRules": [

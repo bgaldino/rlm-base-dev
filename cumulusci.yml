@@ -123,7 +123,7 @@ project:
     # ── Partner & Commerce ─────────────────────────────────────────────────────
     prm: true                 # Partner Relationship Management
     prm_exp_bundle: true      # PRM Experience Bundle (post_prm site content)
-    prm_pricing: true        # Enable branch PRM pricing metadata/tasks (non-main behavior)
+    prm_pricing: false        # Enable branch PRM pricing metadata/tasks (non-main behavior)
     commerce: false           # Commerce
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
@@ -559,6 +559,7 @@ project:
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
+    core_pricing_recipe_table_mappings: &core_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json" # Core pricing recipe mapping payload (costbook lookup prerequisite)
     prm_pricing_recipe_table_mappings: &prm_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json" # PRM pricing recipe table mapping payload
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
@@ -1056,6 +1057,9 @@ tasks:
                 api: rest
               - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_PRICE_BOOK_ENTRY_DECISION_TABLE_V2__"]
                 replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Price_Book_Entry_Decision_Table_v2' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_CHANNEL_PROGRAM_LEVEL_PARTNER__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Channel_Program_Level_Partner' LIMIT 1
                 api: rest
 
   deploy_post_prm_pricing_flows:
@@ -2534,6 +2538,19 @@ tasks:
       api_version: null
       dry_run: false
 
+  configure_core_pricing_recipe_table_mappings:
+    group: Revenue Lifecycle Management
+    description: >
+      Ensure core PricingRecipeTableMapping rows exist before expression set deploy
+      so ListPrice lookups (RLM_CostBookEntries) validate in clean orgs.
+    class_path: tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings
+    options:
+      operation: ensure  # Options: 'ensure', 'list'
+      input_file: *core_pricing_recipe_table_mappings
+      api_version: null
+      dry_run: false
+      skip_missing_tables: true
+
   configure_pricing_recipe_table_mappings:
     group: Revenue Lifecycle Management
     description: >
@@ -2876,6 +2893,8 @@ flows:
       2:
         task: ensure_pricing_schedules
       3:
+        task: configure_core_pricing_recipe_table_mappings
+      4:
         task: deploy_expression_sets
   
   prepare_product_data:
@@ -3118,18 +3137,29 @@ flows:
 
   deploy_post_prm_pricing:
     group: Revenue Lifecycle Management
-    description: Deploy the PRM pricing metadata bundle (unpackaged/post_prm_pricing/) in dependency order.
+    description: Deploy and configure the PRM pricing bundle in dependency order so context resources and recipe mappings exist before expression set deploy.
     steps:
       1:
         task: deploy_post_prm_pricing_objects
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       2:
         task: deploy_post_prm_pricing_decision_tables
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       3:
-        task: deploy_post_prm_pricing_expression_sets
+        task: configure_pricing_recipe_table_mappings
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       4:
-        task: deploy_post_prm_pricing_flows
+        task: apply_context_prm_pricing
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       5:
+        task: deploy_post_prm_pricing_expression_sets
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
+      6:
+        task: deploy_post_prm_pricing_flows
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
+      7:
         task: deploy_post_prm_pricing_permissionsets
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
 
   prepare_prm_pricing:
     group: Revenue Lifecycle Management
@@ -3137,33 +3167,33 @@ flows:
     steps:
       1:
         task: deactivate_prm_expression_sets
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       2:
         flow: deploy_post_prm_pricing
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       3:
         task: assign_permission_sets
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
         options:
           api_names: *ps_prm_pricing
       4:
         task: insert_quantumbit_prm_pricing_data
-        when: project_config.project__custom__qb
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
       5:
-        task: configure_pricing_recipe_table_mappings
-      6:
         task: activate_prm_expression_sets
-      7:
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
+      6:
         task: deactivate_procedure_plan_version
-        when: project_config.project__custom__procedureplans
-      8:
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans
+      7:
         task: insert_prm_procedure_plan_data
-        when: project_config.project__custom__procedureplans
-      9:
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans
+      8:
         task: verify_prm_procedure_plan_overlay
-        when: project_config.project__custom__procedureplans
-      10:
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans
+      9:
         task: activate_procedure_plan_version
-        when: project_config.project__custom__procedureplans
-      11:
-        task: apply_context_prm_pricing
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans
 
   prepare_billing_portal:
     group: Revenue Lifecycle Management

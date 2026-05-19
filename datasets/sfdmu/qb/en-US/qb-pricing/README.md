@@ -65,7 +65,7 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 13 | BundleBasedAdjustment        | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 2 |
 | 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 114     |
 | 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 2 |
-| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 6       |
+| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 87      |
 
 ¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CBE → PEDP → PBE → BBA → ABA → AAC → PAT). Workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components always inserts instead of matching existing records ([forcedotcom/SFDX-Data-Move-Utility #781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)).
 
@@ -107,6 +107,10 @@ One non-standard pricebook with 114 pricebook entries mapping products to sellin
 ### Derived Pricing (Object 15)
 
 PricebookEntryDerivedPrice records that compute prices from contributing products via formulas.
+
+### Cost Books (Objects 6, 16)
+
+CostBookEntry covers every SKU with a positive pricebook price. Costs are deterministically generated from the SKU's lowest positive `PricebookEntry.UnitPrice` using a SKU-seeded multiplier between 10% and 50%, so each cost remains below the lowest pricebook price for that SKU.
 
 ## Composite External IDs
 
@@ -200,7 +204,7 @@ qb-pricing/
 │
 │  Source CSVs — Cost Books
 ├── CostBook.csv                         # 1 record
-├── CostBookEntry.csv                    # 6 records
+├── CostBookEntry.csv                    # 87 records
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
@@ -209,7 +213,7 @@ qb-pricing/
 
 ## Idempotency
 
-**Validated ✅** — consecutive runs of `delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data` produce identical record counts (135 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 114 PBE, 2 PEDP, 6 CBE).
+**Validated ✅** — consecutive runs of `delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data` produce identical record counts (216 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 114 PBE, 2 PEDP, 87 CBE).
 
 The delete-then-insert pattern replaces the previous Upsert approach. `Readonly` objects ensure parent lookup resolution without modification. `Upsert` objects (`CurrencyType`, `CostBook`, `Pricebook2`, `AttributeBasedAdjRule`) are naturally idempotent via their direct-field externalIds.
 
@@ -327,6 +331,5 @@ This timestamp Name cascades to 2 dependent objects:
 3. **Investigate PriceAdjustmentTier key simplification**: Test whether a 4-5 field subset of the 9-field key is sufficient for uniqueness
 4. **Investigate PricebookEntryDerivedPrice key simplification**: Test whether fewer fields uniquely identify derived prices
 5. **Extraction available**: Use `extract_qb_pricing_data` (Data Management - Extract). Run all extracts: `cci flow run run_qb_extracts --org <org>`. Idempotency: `test_qb_pricing_idempotency` / `cci flow run run_qb_idempotency_tests --org <org>`.
-6. **Expand CostBook coverage**: Add additional CostBook/CostBookEntry rows as more pricing SKUs are templated
-7. **Consider activation flow integration**: The `prepare_price_adjustment_schedules` flow is separate from `prepare_pricing_data` — consider whether they should be combined
-8. **Consistency**: Uses `objectSets` wrapper — consider switching to flat `objects` array for consistency with qb-pcm
+6. **Consider activation flow integration**: The `prepare_price_adjustment_schedules` flow is separate from `prepare_pricing_data` — consider whether they should be combined
+7. **Consistency**: Uses `objectSets` wrapper — consider switching to flat `objects` array for consistency with qb-pcm

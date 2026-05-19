@@ -12,6 +12,7 @@ Salesforce environments for Revenue Lifecycle Management (RLM). It targets
 Salesforce Release 260 (Spring '26, API v66.0).
 
 Key technology stack:
+
 - **CumulusCI (CCI)** — orchestration engine for tasks and flows
 - **SFDMU v5** — data import/export (`sf sfdmu run`). **v5.0.0+ required.**
 - **Salesforce DX / `sf` CLI** — metadata deployment and org management
@@ -60,10 +61,10 @@ docs/                  # Documentation (lower-kebab-case filenames)
 
 CCI and `sf` CLI use **different alias registries**:
 
-| Context | Flag | Example |
-|---------|------|---------|
-| CCI task/flow | `--org <cci_alias>` | `cci task run insert_quantumbit_pricing_data --org beta` |
-| SF CLI command | `--target-org <sf_alias_or_username>` | `sf data query -q "..." --target-org rlm-base__beta` |
+| Context        | Flag                                  | Example                                                  |
+| -------------- | ------------------------------------- | -------------------------------------------------------- |
+| CCI task/flow  | `--org <cci_alias>`                   | `cci task run insert_quantumbit_pricing_data --org beta` |
+| SF CLI command | `--target-org <sf_alias_or_username>` | `sf data query -q "..." --target-org rlm-base__beta`     |
 
 CCI alias `beta` → SF CLI alias `rlm-base__beta`. Never mix them.
 
@@ -78,6 +79,7 @@ All data plans **must** comply with these rules. SFDMU v5 has breaking
 changes from v4.
 
 ### externalId Format
+
 - Use `;` delimiters: `Field1;Field2` (NOT `$$Field1$Field2`)
 - `$$` columns in CSVs are valid for Upsert target-record matching
 
@@ -93,7 +95,7 @@ changes from v4.
 **Bug 3 — Upsert with relationship-traversal externalId never matches**
 Creates duplicates on every run.
 **Fix:** Use `operation: Insert` + `deleteOldData: true`.
-*Upstream: [SFDX-Data-Move-Utility#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)*
+_Upstream: [SFDX-Data-Move-Utility#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)_
 
 **Bug 4 — `$$` composite key self-references fail on import**
 When a CSV uses `$$` composite notation for a self-referential lookup
@@ -112,7 +114,8 @@ whose only logical key is a composite of parent lookups.
 ### CRITICAL — Insert + deleteOldData requires explicit approval
 
 **Never propose changing `Upsert` to `Insert` + `deleteOldData: true` without:**
-1. Explaining *why* Upsert cannot work (which Bug applies)
+
+1. Explaining _why_ Upsert cannot work (which Bug applies)
 2. Confirming no direct-field externalId alternative exists
 3. Getting **explicit user approval**
 
@@ -120,6 +123,7 @@ whose only logical key is a composite of parent lookups.
 before inserting. When in doubt, keep Upsert.
 
 ### deleteOldData Deletion Order
+
 Objects delete in **reverse array order**. Always order parent → child
 in the array; deletions run child → parent.
 
@@ -198,19 +202,20 @@ Skills are detailed guides for specific tasks. They live in
 not Cursor-specific. Read the skill file when you need guidance on
 that topic.
 
-| I need to... | Skill File (relative to repo root) |
-|-------------|-------------------------------------|
-| Set up / replicate / update the local dev toolchain | `docs/guides/dev-environment-setup.md` |
-| Add new features, code placement | `.cursor/skills/repo-integration/SKILL.md` |
-| Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |
-| Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
-| Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
-| Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
-| Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
-| Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
-| Capture/apply UX drift from org | `docs/features/dynamic-ux-assembly.md` |
-| Review docs before merge | `.cursor/skills/doc-consistency/SKILL.md` |
-| Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
+| I need to...                                        | Skill File (relative to repo root)                          |
+| --------------------------------------------------- | ----------------------------------------------------------- |
+| Set up / replicate / update the local dev toolchain | `docs/guides/dev-environment-setup.md`                      |
+| Add new features, code placement                    | `.cursor/skills/repo-integration/SKILL.md`                  |
+| Work with CCI tasks, flows, CLI                     | `.cursor/skills/cci-orchestration/SKILL.md`                 |
+| Wire pricing recipes/procedures/plans               | `.cursor/skills/pricing-wiring/SKILL.md`                    |
+| Write a Python CCI task class                       | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
+| Create/modify SFDMU data plans                      | `.cursor/skills/sfdmu-data-plans/SKILL.md`                  |
+| Understand RLM objects/relationships                | `.cursor/skills/revenue-cloud-data-model/SKILL.md`          |
+| Use Revenue Cloud REST APIs                         | `.cursor/skills/rlm-business-apis/SKILL.md`                 |
+| Write Robot Framework tests                         | `.cursor/skills/robot-testing/SKILL.md`                     |
+| Capture/apply UX drift from org                     | `docs/features/dynamic-ux-assembly.md`                      |
+| Review docs before merge                            | `.cursor/skills/doc-consistency/SKILL.md`                   |
+| Debug a build/deploy failure                        | `.cursor/skills/troubleshooting/SKILL.md`                   |
 
 Each skill has a **Quick Rules** section at the top for fast reference,
 and a **DO NOT** section listing critical safety constraints for that area.
@@ -220,21 +225,21 @@ and a **DO NOT** section listing critical safety constraints for that area.
 Some skills split detail into sub-files to keep entry points small.
 Read the sub-file only when you need that specific detail:
 
-| Sub-file | Parent Skill | Contains |
-|----------|-------------|----------|
-| `repo-integration/new-feature-guide.md` | Repository Integration | Step-by-step code templates for adding a new feature |
-| `repo-integration/dependency-ordering.md` | Repository Integration | Metadata/data ordering, `prepare_rlm_org` step map |
-| `robot-testing/patterns.md` | Robot Testing | Shadow DOM code, keyword reference, test authoring |
-| `robot-testing/setup-ui-shadow-dom.md` | Robot Testing | Setup UI: shadow vs iframe, LWS, logging (companion to `patterns.md`) |
-| `repo-integration/ux-assembly-retrieve.md` | Repository Integration | Assembler vs retrieve, `post_ux` rules, drift workflow |
-| `cci-orchestration/custom-task-authoring.md` | CCI Orchestration | Python task class patterns and examples |
-| `cci-orchestration/tasks-reference.md` | CCI Orchestration | Auto-generated task listing (regenerate after edits) |
-| `cci-orchestration/flows-reference.md` | CCI Orchestration | Auto-generated flow listing |
-| `cci-orchestration/feature-flags.md` | CCI Orchestration | Auto-generated feature flag index |
-| `revenue-cloud-data-model/domains/*.md` | Data Model | Per-domain object/field/relationship details |
-| `revenue-cloud-data-model/cross-domain-relationships.md` | Data Model | Cross-domain FK mapping |
-| `sfdmu-data-plans/plan-dependency-graph.md` | SFDMU Data Plans | Load/deletion order across plans |
-| `sfdmu-data-plans/object-plan-mapping.md` | SFDMU Data Plans | Which objects belong to which plan |
+| Sub-file                                                 | Parent Skill           | Contains                                                              |
+| -------------------------------------------------------- | ---------------------- | --------------------------------------------------------------------- |
+| `repo-integration/new-feature-guide.md`                  | Repository Integration | Step-by-step code templates for adding a new feature                  |
+| `repo-integration/dependency-ordering.md`                | Repository Integration | Metadata/data ordering, `prepare_rlm_org` step map                    |
+| `robot-testing/patterns.md`                              | Robot Testing          | Shadow DOM code, keyword reference, test authoring                    |
+| `robot-testing/setup-ui-shadow-dom.md`                   | Robot Testing          | Setup UI: shadow vs iframe, LWS, logging (companion to `patterns.md`) |
+| `repo-integration/ux-assembly-retrieve.md`               | Repository Integration | Assembler vs retrieve, `post_ux` rules, drift workflow                |
+| `cci-orchestration/custom-task-authoring.md`             | CCI Orchestration      | Python task class patterns and examples                               |
+| `cci-orchestration/tasks-reference.md`                   | CCI Orchestration      | Auto-generated task listing (regenerate after edits)                  |
+| `cci-orchestration/flows-reference.md`                   | CCI Orchestration      | Auto-generated flow listing                                           |
+| `cci-orchestration/feature-flags.md`                     | CCI Orchestration      | Auto-generated feature flag index                                     |
+| `revenue-cloud-data-model/domains/*.md`                  | Data Model             | Per-domain object/field/relationship details                          |
+| `revenue-cloud-data-model/cross-domain-relationships.md` | Data Model             | Cross-domain FK mapping                                               |
+| `sfdmu-data-plans/plan-dependency-graph.md`              | SFDMU Data Plans       | Load/deletion order across plans                                      |
+| `sfdmu-data-plans/object-plan-mapping.md`                | SFDMU Data Plans       | Which objects belong to which plan                                    |
 
 ### File-Specific Rules (Cursor Only)
 
@@ -242,16 +247,16 @@ Cursor IDE auto-injects `.cursor/rules/*.mdc` files when editing matching
 file patterns. Non-Cursor agents can read these files directly for the
 same guidance, or use the parent skill which covers the same content:
 
-| Rule File | Triggers On | Equivalent Skill |
-|-----------|-------------|------------------|
-| `.cursor/rules/sfdmu-export-json.mdc` | `**/export.json` | `sfdmu-data-plans/SKILL.md` |
-| `.cursor/rules/sfdmu-csv-data.mdc` | `datasets/sfdmu/**/*.csv` | `sfdmu-data-plans/SKILL.md` |
-| `.cursor/rules/cci-task-definitions.mdc` | `cumulusci.yml` | `cci-orchestration/SKILL.md` |
-| `.cursor/rules/cci-python-tasks.mdc` | `tasks/**/*.py` | `cci-orchestration/custom-task-authoring.md` |
-| `.cursor/rules/apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` |
-| `.cursor/rules/ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
-| `.cursor/rules/robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
-| `.cursor/rules/doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
+| Rule File                                | Triggers On                                                                                                                                | Equivalent Skill                             |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| `.cursor/rules/sfdmu-export-json.mdc`    | `**/export.json`                                                                                                                           | `sfdmu-data-plans/SKILL.md`                  |
+| `.cursor/rules/sfdmu-csv-data.mdc`       | `datasets/sfdmu/**/*.csv`                                                                                                                  | `sfdmu-data-plans/SKILL.md`                  |
+| `.cursor/rules/cci-task-definitions.mdc` | `cumulusci.yml`                                                                                                                            | `cci-orchestration/SKILL.md`                 |
+| `.cursor/rules/cci-python-tasks.mdc`     | `tasks/**/*.py`                                                                                                                            | `cci-orchestration/custom-task-authoring.md` |
+| `.cursor/rules/apex-scripts.mdc`         | `scripts/apex/**/*.apex`                                                                                                                   | `troubleshooting/SKILL.md`                   |
+| `.cursor/rules/ux-templates.mdc`         | `templates/**`                                                                                                                             | `repo-integration/SKILL.md`                  |
+| `.cursor/rules/robot-tests.mdc`          | `robot/**/*.robot`                                                                                                                         | `robot-testing/SKILL.md`                     |
+| `.cursor/rules/doc-review.mdc`           | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md`                   |
 
 ### AI Utility Scripts
 
@@ -278,10 +283,10 @@ archive → `docs/archive/`, vendor PDFs → `docs/salesforce/`.
 
 This repository provides multiple entry points for different AI tools:
 
-| File | Tool | Purpose |
-|------|------|---------|
-| `AGENTS.md` | Any agent | Canonical source of truth (this file) |
-| `CLAUDE.md` | Claude Code, Cursor | Symlink to `AGENTS.md` |
-| `.github/copilot-instructions.md` | GitHub Copilot | Pointer to `AGENTS.md` |
+| File                              | Tool                | Purpose                               |
+| --------------------------------- | ------------------- | ------------------------------------- |
+| `AGENTS.md`                       | Any agent           | Canonical source of truth (this file) |
+| `CLAUDE.md`                       | Claude Code, Cursor | Symlink to `AGENTS.md`                |
+| `.github/copilot-instructions.md` | GitHub Copilot      | Pointer to `AGENTS.md`                |
 
 All entry points resolve to the same content. Edit `AGENTS.md` only.
