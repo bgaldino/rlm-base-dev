@@ -451,7 +451,7 @@ project:
 
     dt_prm_pricing_decision_tables: &dt_prm_pricing_decision_tables
       # PRM pricing decision tables (refresh when prm and prm_pricing are true)
-      - Channel_Program_Level_Partner
+      - RLM_Channel_Program_Level_Partner
 
 #-----------------------------#
 # CONTEXT DEFINITION SETTINGS #
@@ -1013,14 +1013,14 @@ tasks:
 
   deploy_post_prm_pricing_decision_tables:
     group: Revenue Lifecycle Management
-    description: Deploy PRM pricing decision tables (Channel_Program_Level_Partner) from unpackaged/post_prm_pricing/decisionTables.
+    description: Deploy PRM pricing decision tables (RLM_Channel_Program_Level_Partner) from unpackaged/post_prm_pricing/decisionTables.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/decisionTables
 
   deploy_post_prm_pricing_expression_sets:
     group: Revenue Lifecycle Management
-    description: Deploy PRM pricing expression set definitions (PRM_DISTI_Pricing_Procedure) from unpackaged/post_prm_pricing/expressionSetDefinition.
+    description: Deploy PRM pricing expression set definitions (RLM_PRM_DISTI_Pricing_Procedure) from unpackaged/post_prm_pricing/expressionSetDefinition.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_prm_pricing/expressionSetDefinition
@@ -1058,8 +1058,8 @@ tasks:
               - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_PRICE_BOOK_ENTRY_DECISION_TABLE_V2__"]
                 replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Price_Book_Entry_Decision_Table_v2' LIMIT 1
                 api: rest
-              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_CHANNEL_PROGRAM_LEVEL_PARTNER__"]
-                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Channel_Program_Level_Partner' LIMIT 1
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_RLM_CHANNEL_PROGRAM_LEVEL_PARTNER__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'RLM_Channel_Program_Level_Partner' LIMIT 1
                 api: rest
 
   deploy_post_prm_pricing_flows:
@@ -2555,7 +2555,7 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Ensure required PricingRecipeTableMapping rows exist for PRM pricing on
-      NGPDefaultRecipe (RLM_CostBookEntries and Channel_Program_Level_Partner).
+      NGPDefaultRecipe (RLM_CostBookEntries and RLM_Channel_Program_Level_Partner).
       Uses Tooling API for idempotent create/update without metadata deploy.
     class_path: tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings
     options:
@@ -2621,7 +2621,7 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Insert PRM-only Procedure Plan overlay data: adds IFPartnerDistributorOnQuote
-      rule-based section, PRM_DISTI_Pricing_Procedure option, and criteria condition
+      rule-based section, RLM_PRM_DISTI_Pricing_Procedure option, and criteria condition
       for RLM_Quote_Pricing_Procedure_Plan.
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
@@ -2645,13 +2645,13 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Verify PRM procedure-plan overlay records exist (IFPartnerDistributorOnQuote section,
-      PRM_DISTI_Pricing_Procedure option, and IsNotNull criterion) for
+      RLM_PRM_DISTI_Pricing_Procedure option, and IsNotNull criterion) for
       RLM_Quote_Pricing_Procedure_Plan.
     class_path: tasks.rlm_verify_prm_procedure_plan_overlay.VerifyPrmProcedurePlanOverlay
     options:
       developerName: *procedure_plan_definition_developer_name
       subSectionType: IFPartnerDistributorOnQuote
-      expressionSetDeveloperName: PRM_DISTI_Pricing_Procedure
+      expressionSetDeveloperName: RLM_PRM_DISTI_Pricing_Procedure
       criterionFieldPath: PartnerAccount.BillingAddress
       criterionOperator: IsNotNull
 

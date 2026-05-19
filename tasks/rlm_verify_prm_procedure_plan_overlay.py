@@ -4,7 +4,7 @@ Verify that the PRM procedure-plan overlay was applied.
 This task checks for the PRM-only conditional branch records on
 RLM_Quote_Pricing_Procedure_Plan:
 - Section: IFPartnerDistributorOnQuote
-- Option: PRM_DISTI_Pricing_Procedure (priority 1)
+- Option: RLM_PRM_DISTI_Pricing_Procedure (priority 1)
 - Criterion: IsNotNull on PartnerAccount.BillingAddress
 
 If any record is missing, the task fails with a clear message so the flow
@@ -79,7 +79,7 @@ class VerifyPrmProcedurePlanOverlay(BaseSalesforceTask):
         dev_name = self.options["developerName"]
         sub_section = self.options.get("subSectionType", "IFPartnerDistributorOnQuote")
         expr_set = self.options.get(
-            "expressionSetDeveloperName", "PRM_DISTI_Pricing_Procedure"
+            "expressionSetDeveloperName", "RLM_PRM_DISTI_Pricing_Procedure"
         )
         criterion_field = self.options.get(
             "criterionFieldPath", "PartnerAccount.BillingAddress"

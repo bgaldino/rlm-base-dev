@@ -6,7 +6,7 @@
   },
   {
     "pricingRecipeDeveloperName": "NGPDefaultRecipe",
-    "decisionTableDeveloperName": "Channel_Program_Level_Partner",
+    "decisionTableDeveloperName": "RLM_Channel_Program_Level_Partner",
     "pricingComponentType": "PriceAdjustmentMatrix"
   }
 ]

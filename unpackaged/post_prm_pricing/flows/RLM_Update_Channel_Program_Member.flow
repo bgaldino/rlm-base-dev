@@ -4,8 +4,8 @@
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>Used for Partner/Disti solution where the Channel Program Level update all of the info on the Channel Program Member for Decision Table Purposes</description>
     <environments>Default</environments>
-    <interviewLabel>Update Channel Program Member {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>Update Channel Program Member</label>
+    <interviewLabel>RLM Update Channel Program Member {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Update Channel Program Member</label>
     <processMetadataValues>
         <name>BuilderType</name>
         <value>

@@ -5,16 +5,16 @@
     <executionMode>Cloud</executionMode>
     <executionScale>Low</executionScale>
     <interfaceSourceType>PricingProcedure</interfaceSourceType>
-    <label>PRM DISTI Pricing Procedure</label>
+    <label>RLM PRM DISTI Pricing Procedure</label>
     <processType>DefaultPricing</processType>
     <template>false</template>
     <versions>
-        <fullName>PRM_DISTI_Pricing_Procedure_PRM_DISTI_Pricing_Procedure0</fullName>
+        <fullName>RLM_PRM_DISTI_Pricing_Procedure_V1</fullName>
         <decimalScale>2</decimalScale>
         <description>PRM and DISTI Pricing Procedure</description>
-        <expressionSetDefinition>PRM_DISTI_Pricing_Procedure</expressionSetDefinition>
+        <expressionSetDefinition>RLM_PRM_DISTI_Pricing_Procedure</expressionSetDefinition>
         <interfaceSourceType>PricingProcedure</interfaceSourceType>
-        <label>PRM DISTI Pricing Procedure</label>
+        <label>RLM PRM DISTI Pricing Procedure</label>
         <processType>DefaultPricing</processType>
         <rank>1</rank>
         <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3477,14 +3477,14 @@
                     <name>AdjustmentTypeField</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>Constant_AdjustmentType_Channel_Program_Level_Partner_PAM</value>
+                    <value>Constant_AdjustmentType_RLM_Channel_Program_Level_Partner_PAM</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>AdjustmentValueField</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>Constant_AdjustmentValue_Channel_Program_Level_Partner_PAM</value>
+                    <value>Constant_AdjustmentValue_RLM_Channel_Program_Level_Partner_PAM</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -3505,21 +3505,21 @@
                     <name>LookUpName</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>Channel Program Level Partner</value>
+                    <value>RLM Channel Program Level Partner</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>LookUpId</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>__LOOKUPID_CHANNEL_PROGRAM_LEVEL_PARTNER__</value>
+                    <value>__LOOKUPID_RLM_CHANNEL_PROGRAM_LEVEL_PARTNER__</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>Channel_Program_Level_Partner</value>
+                    <value>RLM_Channel_Program_Level_Partner</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -5066,7 +5066,7 @@
                     <name>LookUpApiName</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>Channel_Program_Level_Partner</value>
+                    <value>RLM_Channel_Program_Level_Partner</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -5080,14 +5080,14 @@
                     <name>AdjustmentTypeField</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>Constant_AdjustmentType_Channel_Program_Level_Partner_PAM</value>
+                    <value>Constant_AdjustmentType_RLM_Channel_Program_Level_Partner_PAM</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>AdjustmentValueField</name>
                     <output>false</output>
                     <type>Parameter</type>
-                    <value>Constant_AdjustmentValue_Channel_Program_Level_Partner_PAM</value>
+                    <value>Constant_AdjustmentValue_RLM_Channel_Program_Level_Partner_PAM</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -5108,14 +5108,14 @@
                     <name>LookUpName</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>Channel Program Level Partner</value>
+                    <value>RLM Channel Program Level Partner</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
                     <name>LookUpId</name>
                     <output>false</output>
                     <type>Literal</type>
-                    <value>__LOOKUPID_CHANNEL_PROGRAM_LEVEL_PARTNER__</value>
+                    <value>__LOOKUPID_RLM_CHANNEL_PROGRAM_LEVEL_PARTNER__</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -5401,9 +5401,9 @@
             <collection>false</collection>
             <dataType>Text</dataType>
             <decimalPlaces>2</decimalPlaces>
-            <description>Constant_AdjustmentType_Channel_Program_Level_Partner_PAM</description>
+            <description>Constant_AdjustmentType_RLM_Channel_Program_Level_Partner_PAM</description>
             <input>false</input>
-            <name>Constant_AdjustmentType_Channel_Program_Level_Partner_PAM</name>
+            <name>Constant_AdjustmentType_RLM_Channel_Program_Level_Partner_PAM</name>
             <output>false</output>
             <type>Constant</type>
             <value>RLM_Adjustment_Type__c</value>
@@ -5434,9 +5434,9 @@
             <collection>false</collection>
             <dataType>Text</dataType>
             <decimalPlaces>2</decimalPlaces>
-            <description>Constant_AdjustmentValue_Channel_Program_Level_Partner_PAM</description>
+            <description>Constant_AdjustmentValue_RLM_Channel_Program_Level_Partner_PAM</description>
             <input>false</input>
-            <name>Constant_AdjustmentValue_Channel_Program_Level_Partner_PAM</name>
+            <name>Constant_AdjustmentValue_RLM_Channel_Program_Level_Partner_PAM</name>
             <output>false</output>
             <type>Constant</type>
             <value>RLM_Adjustment_Value__c</value>

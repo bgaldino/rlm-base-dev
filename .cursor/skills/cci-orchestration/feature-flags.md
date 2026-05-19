@@ -555,7 +555,7 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 *1 items:*
 
-- `Channel_Program_Level_Partner`
+- `RLM_Channel_Program_Level_Partner`
 
 ### `dt_rating_decision_tables`
 
