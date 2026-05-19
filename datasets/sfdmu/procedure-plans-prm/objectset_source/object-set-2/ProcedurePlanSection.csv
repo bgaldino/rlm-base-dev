@@ -1,2 +1,2 @@
 SubSectionType,Description,Phase,ProcedurePlanVersion.DeveloperName,ResolutionType,SectionType,Sequence
-HeaderDistribution,,0,RLM_Quote_Pricing_Procedure_Plan,Default,PricingProcedure,3
+IFPartnerDistributorOnQuote,,0,RLM_Quote_Pricing_Procedure_Plan,RuleBased,PricingProcedure,2

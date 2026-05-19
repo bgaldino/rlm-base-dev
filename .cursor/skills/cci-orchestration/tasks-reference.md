@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**209 tasks** across **9 groups**.
+**215 tasks** across **9 groups**.
 
 ---
 
@@ -81,7 +81,7 @@
 
 ## Data Management - Extract
 
-*15 task(s)*
+*16 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -191,6 +191,18 @@
 
 ---
 
+### `extract_qb_prm_pricing_data`
+
+**Description:** Extract qb-prm-pricing (PRM pricing overlay) from org to CSV. Output in datasets/sfdmu/extractions/qb-prm-pricing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
+
+---
+
 ### `extract_qb_product_images_data`
 
 **Description:** Extract qb-product-images from org to CSV. Output in datasets/sfdmu/extractions/qb-product-images/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
@@ -266,7 +278,7 @@
 
 ## Data Management - Idempotency
 
-*13 task(s)*
+*14 task(s)*
 
 ### `test_qb_approvals_idempotency`
 
@@ -369,6 +381,19 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm`
+- `use_extraction_roundtrip`: `False`
+
+---
+
+### `test_qb_prm_pricing_idempotency`
+
+**Description:** Idempotency test for qb-prm-pricing (PRM pricing overlay).
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -534,7 +559,7 @@
 
 ## Revenue Lifecycle Management
 
-*135 task(s)*
+*139 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -632,7 +657,7 @@
 **Options:**
 
 - `operation`: `activate_versions`
-- `version_full_names`: `PRM_DISTI_Pricing_Procedure_V1`
+- `metadata_path`: `unpackaged/post_prm_pricing/expressionSetDefinition`
 
 ---
 
@@ -803,6 +828,22 @@
 
 - `path`: `unpackaged/pre`
 - `remove_for_scratch`: `True`
+
+---
+
+### `configure_core_pricing_recipe_table_mappings`
+
+**Description:** Ensure core PricingRecipeTableMapping rows exist before expression set deploy so ListPrice lookups (RLM_CostBookEntries) validate in clean orgs.
+
+**Class:** `tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings`
+
+**Options:**
+
+- `operation`: `ensure`
+- `input_file`: `datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json`
+- `api_version`: `None`
+- `dry_run`: `False`
+- `skip_missing_tables`: `True`
 
 ---
 
@@ -1019,7 +1060,7 @@
 **Options:**
 
 - `operation`: `deactivate_versions`
-- `version_full_names`: `PRM_DISTI_Pricing_Procedure_V1`
+- `metadata_path`: `unpackaged/post_prm_pricing/expressionSetDefinition`
 
 ---
 
@@ -1312,6 +1353,7 @@
 **Options:**
 
 - `path`: `unpackaged/post_prm_pricing/expressionSetDefinition`
+- `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//ExpressionSetDefinition/versions/variables/value...`
 
 ---
 
@@ -1960,6 +2002,18 @@
 
 ---
 
+### `insert_quantumbit_prm_pricing_data`
+
+**Description:** Insert QuantumBit PRM pricing overlay data using a 2-pass SFDMU plan. Pass 1 upserts scoped Accounts, ChannelProgram, and ChannelProgramLevel records. Pass 2 updates IsPartner state and upserts ChannelProgramMember records.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
+
+---
+
 ### `insert_quantumbit_product_image_data`
 
 **Description:** Insert QuantumBit Product Image Data
@@ -2221,6 +2275,18 @@
 
 ---
 
+### `refresh_dt_prm_pricing`
+
+**Description:** Refresh PRM Pricing Decision Tables (when prm and prm_pricing flags are true)
+
+**Class:** `tasks.rlm_refresh_decision_table.RefreshDecisionTable`
+
+**Options:**
+
+- `developerNames`: `['Channel_Program_Level_Partner']`
+
+---
+
 ### `refresh_dt_rating`
 
 **Description:** Refresh Rating Decision Tables
@@ -2328,6 +2394,22 @@
 - `auto_fix`: `True`
 - `required_sfdmu_version`: `5.0.0`
 - `fail_on_error`: `True`
+
+---
+
+### `verify_prm_procedure_plan_overlay`
+
+**Description:** Verify PRM procedure-plan overlay records exist (IFPartnerDistributorOnQuote section, PRM_DISTI_Pricing_Procedure option, and IsNotNull criterion) for RLM_Quote_Pricing_Procedure_Plan.
+
+**Class:** `tasks.rlm_verify_prm_procedure_plan_overlay.VerifyPrmProcedurePlanOverlay`
+
+**Options:**
+
+- `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
+- `subSectionType`: `IFPartnerDistributorOnQuote`
+- `expressionSetDeveloperName`: `PRM_DISTI_Pricing_Procedure`
+- `criterionFieldPath`: `PartnerAccount.BillingAddress`
+- `criterionOperator`: `IsNotNull`
 
 ---
 

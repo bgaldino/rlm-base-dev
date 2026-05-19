@@ -58,7 +58,7 @@ The PRM feature enables partner and distributor pricing workflows through:
   - Task: `apply_context_prm_pricing`
   - Adds/maps `RLM_Distributor_Account__c` and `PartnerAccount__c` on `SalesTransaction`
   - Adds/maps `RLM_Distributor_Unit_Price__c`, `RLM_Distributor_Discount_Percent__c`, `RLM_Partner_Net_Total_Price__c` on `SalesTransactionItem`
-  - Adds `RLM_Transient_Distributor_Discount_Percent__c` as an input/output context attribute for transient PRM pricing handling
+  - Adds `RLM_Transient_Distributor_Discount_Percent__c` as an input/output, transient context attribute for PRM pricing handling
 
 **Pricing Recipe Table Mappings (Tooling API):**
 - PRM pricing recipe attachments are managed as Tooling API data, not recipe metadata files in this repo
@@ -129,6 +129,7 @@ branch PRM pricing tasks:
 - Ensure PRM pricing recipe table mappings
 - Activate PRM pricing expression set versions
 - Insert PRM procedure-plan overlay data (when `procedureplans=true`)
+- Verify the PRM conditional section/option/criterion were applied
 - Apply additive PRM pricing context extensions
 
 ## Data Loading
@@ -168,9 +169,16 @@ The PRM workbook (`Change Log.xlsx`) is now mapped to repository-owned artifacts
 
 This aligns PRM-specific pricing behavior with feature-scoped metadata while avoiding duplication of shared pricing engine assets.
 
+**2026-05-18:** Synchronized `PRM_DISTI_Pricing_Procedure` from the active
+version in source org `chrisRossPRM_may2026`. Source-org Price Adjustment
+Schedule and DecisionTable IDs are represented as deploy-time placeholders,
+including `__LOOKUPID_CHANNEL_PROGRAM_LEVEL_PARTNER__` for the PRM-scoped
+`Channel_Program_Level_Partner` matrix.
+
 ## Field Synchronization History
 
 **2026-05-15:** Synchronized existing PRM fields with source org `chrisRossPRM_may2026`:
+
 - Fixed `ChannelProgramLevel.RLM_Discount_Rate__c` from type Percent → Number (scale 0)
 - Added `trackHistory: false` to all 6 existing fields on ChannelProgramLevel and ChannelProgramMember
 - All field definitions now match source org exactly

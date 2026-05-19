@@ -23,8 +23,18 @@ To avoid silent partial overlays, the flow now:
 1. deactivates the Procedure Plan version
 2. waits until deactivation is confirmed (`IsActive=false`)
 3. runs `insert_prm_procedure_plan_data`
+   - pass 1 moves `HeaderDistribution` from sequence 2 to 3
+   - pass 2 inserts `IFPartnerDistributorOnQuote` at sequence 2
+   - pass 3 wires the PRM procedure option
+   - pass 4 wires the PRM criterion
 4. runs `verify_prm_procedure_plan_overlay` (fails loudly if records are missing)
 5. reactivates the Procedure Plan version
+
+The section move and insert are intentionally split into separate passes. On a
+clean org, the shared procedure-plan dataset creates `HeaderDistribution` at
+sequence 2. The PRM branch must move that existing section before inserting the
+new PRM section at sequence 2, otherwise the first run can partially apply and
+only succeed on a rerun.
 
 If verification fails, rerun `insert_prm_procedure_plan_data` and inspect
 SFDMU reports under this dataset directory to identify the missing record(s).

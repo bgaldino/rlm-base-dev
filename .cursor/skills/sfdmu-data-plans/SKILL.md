@@ -134,6 +134,40 @@ Objects in the `objects` array must be ordered **parent → child**. SFDMU delet
 - Empty CSVs: must have `excluded: true` in export.json to prevent destructive delete
 - After extraction, run `scripts/post_process_extraction.py` to add `$$` columns (SFDMU v5 doesn't write them during extraction)
 
+## Self-Lookup Edge Case (Generic)
+
+For self-referential lookups (`Object.LookupToSameObject__c`), updates may be skipped when
+the plan uses only traversal columns (`LookupToSameObject__r.Name`) in an `Update` pass.
+SFDMU can reduce runtime source columns and treat rows as unchanged.
+
+### Proven Working Pattern
+
+For the update pass, include BOTH:
+- the lookup ID field(s) (`LookupToSameObject__c`)
+- the traversal reference field(s) (`LookupToSameObject__r.<ExternalIdField>`)
+
+This combination helps SFDMU compute deltas and apply updates reliably for
+self-referential lookups.
+
+Example (Account self-lookups):
+- `RLM_Primary_Distributor__c` + `RLM_Primary_Distributor__r.Name`
+- `RLM_Primary_Reseller__c` + `RLM_Primary_Reseller__r.Name`
+
+### Diagnostics
+
+If lookup updates are unexpectedly skipped:
+1. Check `source/*_source.csv` after a run. If expected lookup columns are missing there,
+   SFDMU dropped them before processing.
+2. Run with `simulation: true` to inspect pass-level behavior safely.
+3. Compare SOURCE/TARGET query lines in task logs to confirm the effective field list.
+
+### Related SFDMU Docs
+
+- Basic examples (self-reference / circular references): https://help.sfdmu.com/examples/basic-examples
+- Fields Mapping: https://help.sfdmu.com/full-documentation/advanced-features/fields-mapping
+  - Important: field mapping applies only to direct fields and does not extend to
+    reference-traversal query fields.
+
 ## Multi-Pass Architecture
 
 Some plans use multiple objectSets (passes) to handle circular dependencies or activation ordering:
