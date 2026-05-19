@@ -67,7 +67,8 @@ templates/
 │   │   ├── payments/                   # RLM_Account_Record_Page (payments override) + 1 other
 │   │   ├── quantumbit/                 # 19 QB-specific pages (billing schedules, usage, etc.)
 │   │   ├── tso/                        # 6 TSO-specific overrides
-│   │   └── utils/                      # RLM_Home_Page_Default
+│   │   ├── utils/                      # RLM_Home_Page_Default
+│   │   └── prm_pricing/                # Channel Program record pages
 │   └── patches/                        # YAML patch files for additive/positional changes
 │       ├── approvals/
 │       │   └── RLM_Quote_Record_Page.yml
@@ -81,8 +82,11 @@ templates/
 │       ├── ramp_builder/
 │       │   └── RLM_Quote_Record_Page.yml
 │       ├── tso/
-│       └── utils/
-│           └── RLM_Account_Record_Page.yml
+│       ├── utils/
+│       │   └── RLM_Account_Record_Page.yml
+│       └── prm_pricing/
+│           ├── RLM_Account_Record_Page.yml
+│           └── RLM_Quote_Record_Page.yml
 ├── layouts/
 │   ├── base/                           # 17 base layouts (moved from force-app/main/default/layouts/)
 │   ├── billing/                        # 3 billing-specific layouts
@@ -129,11 +133,11 @@ templates/
 **Source resolution** (last write wins):
 1. Base pages from `templates/flexipages/base/`
 2. Feature standalone overrides applied in deploy order:
-   `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections`
+   `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`
    *(Canonical order defined in `tasks/rlm_ux_utils._STANDALONE_ORDER`; all three tasks — assembly, retrieve, writeback — use this shared constant)*
 
 **Patch application** (additive, in deploy order):
-`quantumbit → utils → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections`
+`quantumbit → utils → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections → prm_pricing`
 
 **Skip rule**: `EmailTemplatePage` type flexipages cannot be deployed via Metadata API
 (platform restriction). During assembly, these pages are skipped, each skip is logged as a
@@ -160,6 +164,12 @@ patches:
 
   - type: add_display_field
     field: "QuoteLineItem.RLM_Approval__c"   # Adds to the displayedFields component
+
+  - type: add_sales_txn_line_editor_field
+    property: displayFields                   # Targets runtime_rca_salesTxnLineTable by default
+    after: "QuoteLineItem.DiscountAmount"     # Optional; omit to append
+    fields:
+      - "QuoteLineItem.RLM_Distributor_Discount_Percent__c"
 
   - type: add_facet_field
     facet: "Quote Information"           # Label of the target facet region

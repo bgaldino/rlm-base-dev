@@ -67,6 +67,9 @@
                             <value>Rank</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>RLM_Discount_Rate__c</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>RLM_Adjustment_Type__c</value>
                         </valueListItems>
                         <valueListItems>
