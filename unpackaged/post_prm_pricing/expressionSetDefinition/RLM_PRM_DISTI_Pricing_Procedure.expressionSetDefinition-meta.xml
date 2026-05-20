@@ -159,7 +159,7 @@
             </customElement>
             <description>Price Revision</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>AdjustNetUnitPriceandSubtotalbyusingpricerevision</label>
+            <label>Adjust Net Unit Price and Subtotal Using Price Revision</label>
             <name>AdjustNetUnitPriceandSubtotalbyusingpricerevision</name>
             <parentStep>Applypricerevisionforlineswithsubscriptionandwithoutderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -171,7 +171,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Applyamountbasedandpercentagebaseddiscounts</label>
+            <label>Apply amount-based and percentage-based discounts</label>
             <name>Applyamountbasedandpercentagebaseddiscounts</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>20</sequenceNumber>
@@ -182,7 +182,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Applybundlebasedadjustments</label>
+            <label>Apply bundle-based adjustments</label>
             <name>Applybundlebasedadjustments</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>16</sequenceNumber>
@@ -193,7 +193,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Applymanualdiscountstolineswithoutderivedpricing</label>
+            <label>Apply manual discounts to lines without derived pricing</label>
             <name>Applymanualdiscountstolineswithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>19</sequenceNumber>
@@ -204,7 +204,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Applynonproratedpricingforlineswithouttermdefinedorevergreenpricing</label>
+            <label>Apply non-prorated pricing for lines without term-defined or evergreen pricing</label>
             <name>Applynonproratedpricingforlineswithouttermdefinedorevergreenpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>28</sequenceNumber>
@@ -215,7 +215,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Applynonproratedpricingtotermdefinedandevergreenlines</label>
+            <label>Apply non-prorated pricing to term-defined and evergreen lines</label>
             <name>Applynonproratedpricingtotermdefinedandevergreenlines</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>30</sequenceNumber>
@@ -226,7 +226,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Applypricerevisionforlineswithsubscriptionandwithoutderivedpricing</label>
+            <label>Apply price revision for lines with subscription and without derived pricing</label>
             <name>Applypricerevisionforlineswithsubscriptionandwithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>23</sequenceNumber>
@@ -237,7 +237,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Applyproratedpricingtoevergreenlines</label>
+            <label>Apply prorated pricing to evergreen lines</label>
             <name>Applyproratedpricingtoevergreenlines</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>27</sequenceNumber>
@@ -248,7 +248,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Applyproratedpricingtotermdefinedlines</label>
+            <label>Apply prorated pricing to term-defined lines</label>
             <name>Applyproratedpricingtotermdefinedlines</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>26</sequenceNumber>
@@ -259,7 +259,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Applyupliftstorampedsubscriptionsitemsduringamendment</label>
+            <label>Apply uplifts to ramped subscriptions items during amendment</label>
             <name>Applyupliftstorampedsubscriptionsitemsduringamendment</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>24</sequenceNumber>
@@ -270,7 +270,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Applyvolumebaseddiscountstolineswithcontractandwithoutderivedpricing</label>
+            <label>Apply volume-based discounts to lines with contract and without derived pricing</label>
             <name>Applyvolumebaseddiscountstolineswithcontractandwithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>17</sequenceNumber>
@@ -281,7 +281,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Applyvolumebaseddiscountstolineswithoutcontractorlasttrxnpricing</label>
+            <label>Apply volume-based discounts to lines without contract or last-trxn pricing</label>
             <name>Applyvolumebaseddiscountstolineswithoutcontractorlasttrxnpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>18</sequenceNumber>
@@ -331,7 +331,7 @@
             </customElement>
             <description>Assignment</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>AssignEvergreenPricingTermCountConstanttoPricingTermCount</label>
+            <label>Assign Evergreen Pricing Term Count to Pricing Term Count</label>
             <name>AssignEvergreenPricingTermCountConstanttoPricingTermCount</name>
             <parentStep>Assignpricingtermcounttoevergreenlineswithnonproratedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -382,7 +382,7 @@
             </customElement>
             <description>Assignment</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>AssignInclusivePriceConstanttoTotalLineAmount</label>
+            <label>Assign Inclusive Price to Total Line Amount</label>
             <name>AssignInclusivePriceConstanttoTotalLineAmount</name>
             <parentStep>Assigntotallineamountforlineswithinclusiveprice</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -433,7 +433,7 @@
             </customElement>
             <description>Assignment</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>AssignInputUnitPricetoNetUnitPrice</label>
+            <label>Assign Input Unit Price to Net Unit Price</label>
             <name>AssignInputUnitPricetoNetUnitPrice</name>
             <parentStep>Calculateitemnettotalpriceforlineswithoutderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -484,7 +484,7 @@
             </customElement>
             <description>Assignment</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>AssignItemContractPricetoInputUnitPrice</label>
+            <label>Assign Item Contract Price to Input Unit Price</label>
             <name>AssignItemContractPricetoInputUnitPrice</name>
             <parentStep>Setinputunitpriceforlineswithcontractpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -647,7 +647,7 @@
             </customElement>
             <description>List Price</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>AssignItemContractPricetoListPrice</label>
+            <label>Assign Item Contract Price to List Price</label>
             <name>AssignItemContractPricetoListPrice</name>
             <parentStep>Setlistpriceforlineswithcontractpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -698,7 +698,7 @@
             </customElement>
             <description>Assignment</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>AssignListPricetoInputUnitPrice</label>
+            <label>Assign List Price to Input Unit Price</label>
             <name>AssignListPricetoInputUnitPrice</name>
             <parentStep>Setinputunitpriceforlineswithoutderivedpricingorlasttrxnpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -749,7 +749,7 @@
             </customElement>
             <description>Assignment</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>AssignNetUnitPricetoInputUnitPrice</label>
+            <label>Assign Net Unit Price to Input Unit Price</label>
             <name>AssignNetUnitPricetoInputUnitPrice</name>
             <parentStep>Setthenetunitpriceforlineswithderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -800,7 +800,7 @@
             </customElement>
             <description>Assignment</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>AssignOneTimePricingTermCountConstanttoPricingTermConstant</label>
+            <label>Assign One-Time Pricing Term Count to Pricing Term Count</label>
             <name>AssignOneTimePricingTermCountConstanttoPricingTermConstant</name>
             <parentStep>Applynonproratedpricingforlineswithouttermdefinedorevergreenpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -872,7 +872,7 @@
             </customElement>
             <description>Assignment</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>AssignTotalLineAmounttoItemSubtotalandItemNetTotalPricetoItemTotalPrice</label>
+            <label>Assign Total Line Amount to Item Subtotal and Item Total Price</label>
             <name>AssignTotalLineAmounttoItemSubtotalandItemNetTotalPricetoItemTotalPrice</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>36</sequenceNumber>
@@ -883,7 +883,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Assignpricingtermcounttoevergreenlineswithnonproratedpricing</label>
+            <label>Assign pricing term count to evergreen lines with non-prorated pricing</label>
             <name>Assignpricingtermcounttoevergreenlineswithnonproratedpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>29</sequenceNumber>
@@ -933,7 +933,7 @@
             </customElement>
             <description>Assignment</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>AssigntheEffectiveFromdatetoPricingDate</label>
+            <label>Assign Effective From Date to Pricing Date</label>
             <name>AssigntheEffectiveFromdatetoPricingDate</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>7</sequenceNumber>
@@ -983,7 +983,7 @@
             </customElement>
             <description>Assignment</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Assignthepricingdatevariable</label>
+            <label>Assign Pricing Date Variable</label>
             <name>Assignthepricingdatevariable</name>
             <parentStep>Setpricingdateforlineswithcontractpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -995,7 +995,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Assigntotallineamountforlineswithinclusiveprice</label>
+            <label>Assign total line amount for lines with inclusive price</label>
             <name>Assigntotallineamountforlineswithinclusiveprice</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>31</sequenceNumber>
@@ -1171,7 +1171,7 @@
             </customElement>
             <description>Attribute-Based Price</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calcnetunitnettotalandcontractpricesafterattributebaseddiscounts</label>
+            <label>Calculate Net Unit, Net Total, and Contract Prices after Attribute Discounts</label>
             <name>Calcnetunitnettotalandcontractpricesafterattributebaseddiscounts</name>
             <parentStep>Setattributebasedpricingforlineswithoutderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -1341,7 +1341,7 @@
             </customElement>
             <description>Attribute-Based Price</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculateattributebasedpricesforlineswithoutcontractpricing</label>
+            <label>Calculate Attribute-Based Prices for Lines without Contract Pricing</label>
             <name>Calculateattributebasedpricesforlineswithoutcontractpricing</name>
             <parentStep>Setattributebasedpricingforlineswithoutcontractpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -1511,7 +1511,7 @@
             </customElement>
             <description>Aggregate Price</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculateitemgroupsubtotalbyaddingitemnettotalpricesofallthelines</label>
+            <label>Calculate Item Group Subtotal from Item Net Total Prices</label>
             <name>Calculateitemgroupsubtotalbyaddingitemnettotalpricesofallthelines</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>35</sequenceNumber>
@@ -1582,7 +1582,7 @@
             </customElement>
             <description>Formula Based Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculateitemnettotalpriceforlineswithlasttransactionpricing</label>
+            <label>Calculate Item Net Total Price for Lines with Last-Transaction Pricing</label>
             <name>Calculateitemnettotalpriceforlineswithlasttransactionpricing</name>
             <parentStep>Filterlineswithlasttransactionpricingandassignnettotalprice</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -1654,7 +1654,7 @@
             </customElement>
             <description>Formula Based Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculateitemnettotalpriceforlineswithoutderivedorlasttrxnpricing</label>
+            <label>Calculate Item Net Total Price for Lines without Derived or Last-Trxn Pricing</label>
             <name>Calculateitemnettotalpriceforlineswithoutderivedorlasttrxnpricing</name>
             <parentStep>Calculateitemnettotalpriceforlineswithoutderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -1666,7 +1666,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculateitemnettotalpriceforlineswithoutderivedpricing</label>
+            <label>Calculate item net total price for lines without derived pricing</label>
             <name>Calculateitemnettotalpriceforlineswithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>13</sequenceNumber>
@@ -1849,7 +1849,7 @@
             </customElement>
             <description>Bundle-Based Price</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculatenettotalpriceafterbundlebasedadjustments</label>
+            <label>Calculate Net Total Price after Bundle-Based Adjustments</label>
             <name>Calculatenettotalpriceafterbundlebasedadjustments</name>
             <parentStep>Applybundlebasedadjustments</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -1935,7 +1935,7 @@
             </customElement>
             <description>Manual Discount</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculatenetunitanditemnettotalpricesafteramountbaseddiscount</label>
+            <label>Calculate Net Unit and Item Net Total Prices after Amount-Based Discount</label>
             <name>Calculatenetunitanditemnettotalpricesafteramountbaseddiscount</name>
             <parentStep>Applyamountbasedandpercentagebaseddiscounts</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -2021,7 +2021,7 @@
             </customElement>
             <description>Manual Discount</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculatenetunitanditemnettotalpricesaftermanualdiscount</label>
+            <label>Calculate Net Unit and Item Net Total Prices after Manual Discount</label>
             <name>Calculatenetunitanditemnettotalpricesaftermanualdiscount</name>
             <parentStep>Applymanualdiscountstolineswithoutderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -2107,7 +2107,7 @@
             </customElement>
             <description>Manual Discount</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculatenetunitanditemnettotalpricesafterpercentagebaseddiscount</label>
+            <label>Calculate Net Unit and Item Net Total Prices after Percentage-Based Discount</label>
             <name>Calculatenetunitanditemnettotalpricesafterpercentagebaseddiscount</name>
             <parentStep>Applyamountbasedandpercentagebaseddiscounts</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -2277,7 +2277,7 @@
             </customElement>
             <description>Volume Discount</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculatenetunitnettotalandcontractpricesaftervolumebaseddiscounts</label>
+            <label>Calculate Net Unit, Net Total, and Contract Prices after Volume-Based Discounts</label>
             <name>Calculatenetunitnettotalandcontractpricesaftervolumebaseddiscounts</name>
             <parentStep>Applyvolumebaseddiscountstolineswithcontractandwithoutderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -2440,7 +2440,7 @@
             </customElement>
             <description>Volume Discount</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculatenetunitpriceandnettotalpriceaftervolumebaseddiscount</label>
+            <label>Calculate Net Unit Price and Net Total Price after Volume-Based Discount</label>
             <name>Calculatenetunitpriceandnettotalpriceaftervolumebaseddiscount</name>
             <parentStep>Applyvolumebaseddiscountstolineswithoutcontractorlasttrxnpricing</parentStep>
             <resultIncluded>true</resultIncluded>
@@ -2519,7 +2519,7 @@
             </customElement>
             <description>Subscription Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculateproratedpriceforevergreenlines</label>
+            <label>Calculate Prorated Price for Evergreen Lines</label>
             <name>Calculateproratedpriceforevergreenlines</name>
             <parentStep>Applyproratedpricingtoevergreenlines</parentStep>
             <resultIncluded>true</resultIncluded>
@@ -2598,7 +2598,7 @@
             </customElement>
             <description>Subscription Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculateproratedpricefortermdefinedlines</label>
+            <label>Calculate Prorated Price for Term-Defined Lines</label>
             <name>Calculateproratedpricefortermdefinedlines</name>
             <parentStep>Applyproratedpricingtotermdefinedlines</parentStep>
             <resultIncluded>true</resultIncluded>
@@ -2712,7 +2712,7 @@
             </customElement>
             <description>Proration</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculateprorationmultiplierforevergreenlines</label>
+            <label>Calculate Proration Multiplier for Evergreen Lines</label>
             <name>Calculateprorationmultiplierforevergreenlines</name>
             <parentStep>Applyproratedpricingtoevergreenlines</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -2826,7 +2826,7 @@
             </customElement>
             <description>Proration</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculateprorationmultiplierfortermdefinedlines</label>
+            <label>Calculate Proration Multiplier for Term-Defined Lines</label>
             <name>Calculateprorationmultiplierfortermdefinedlines</name>
             <parentStep>Applyproratedpricingtotermdefinedlines</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -2905,7 +2905,7 @@
             </customElement>
             <description>Subscription Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculatesubscriptionpriceforlineswithouttermdefinedorevergreenpricing</label>
+            <label>Calculate Subscription Price for Lines without Term-Defined or Evergreen Pricing</label>
             <name>Calculatesubscriptionpriceforlineswithouttermdefinedorevergreenpricing</name>
             <parentStep>Applynonproratedpricingforlineswithouttermdefinedorevergreenpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -2984,7 +2984,7 @@
             </customElement>
             <description>Subscription Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculatesubscriptionpricefortermdefinedandevergreenlines</label>
+            <label>Calculate Subscription Price for Term-Defined and Evergreen Lines</label>
             <name>Calculatesubscriptionpricefortermdefinedandevergreenlines</name>
             <parentStep>Applynonproratedpricingtotermdefinedandevergreenlines</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3140,7 +3140,7 @@
             </customElement>
             <description>Aggregate Price</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculatesubtotalbyaddingtotallineamountsofallthelines</label>
+            <label>Calculate Subtotal from Total Line Amounts</label>
             <name>Calculatesubtotalbyaddingtotallineamountsofallthelines</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>34</sequenceNumber>
@@ -3267,7 +3267,7 @@
             </customElement>
             <description>Derived Price</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculatethenetunitpricebasedonthepriceofanotherproductorasset</label>
+            <label>Calculate Net Unit Price from Related Product or Asset</label>
             <name>Calculatethenetunitpricebasedonthepriceofanotherproductorasset</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>3</sequenceNumber>
@@ -3422,7 +3422,7 @@
             </customElement>
             <description>Aggregate Price</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculatetotalamountbyaddingitemnettotalpricesofallthelines</label>
+            <label>Calculate Total Amount from Item Net Total Prices</label>
             <name>Calculatetotalamountbyaddingitemnettotalpricesofallthelines</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>33</sequenceNumber>
@@ -3433,8 +3433,8 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Copy 1 of List Container</label>
-            <name>Copy1ofListContainer</name>
+            <label>Get Distributor Program Discount</label>
+            <name>GetDistributorProgramDiscount</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>4</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -3452,9 +3452,9 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Copy 1 of List Operation</label>
-            <name>Copy1ofListOperation</name>
-            <parentStep>Copy1ofListContainer</parentStep>
+            <label>Filter Lines with Distributor Account</label>
+            <name>FilterLineswithDistributorAccount</name>
+            <parentStep>GetDistributorProgramDiscount</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -3580,9 +3580,9 @@
             </customElement>
             <description>Price Adjustment Matrix</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Copy 1 of Price Adjustment Matrix</label>
-            <name>Copy1ofPriceAdjustmentMatrix</name>
-            <parentStep>Copy1ofListContainer</parentStep>
+            <label>Lookup Distributor Program Discount</label>
+            <name>LookupDistributorProgramDiscount</name>
+            <parentStep>GetDistributorProgramDiscount</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -3614,7 +3614,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterevergreenlineswithoutpartialprorationorsubscriptionenddate</label>
+            <label>Filter evergreen lines without partial proration or subscription end date</label>
             <name>Filterevergreenlineswithoutpartialprorationorsubscriptionenddate</name>
             <parentStep>Assignpricingtermcounttoevergreenlineswithnonproratedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3648,7 +3648,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterevergreenlineswithpartialprorationandsubscriptionenddate</label>
+            <label>Filter evergreen lines with partial proration and subscription end date</label>
             <name>Filterevergreenlineswithpartialprorationandsubscriptionenddate</name>
             <parentStep>Applyproratedpricingtoevergreenlines</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3680,7 +3680,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithcontractpricingbutnopricingdate</label>
+            <label>Filter lines with contract pricing but no pricing date</label>
             <name>Filterlineswithcontractpricingbutnopricingdate</name>
             <parentStep>Setpricingdateforlineswithcontractpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3717,7 +3717,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithcontractpricingforwhichinputunitpricemustbeset</label>
+            <label>Filter lines with contract pricing for which input unit price must be set</label>
             <name>Filterlineswithcontractpricingforwhichinputunitpricemustbeset</name>
             <parentStep>Setinputunitpriceforlineswithcontractpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3749,7 +3749,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithcontractpricingforwhichlistpricemustbeset</label>
+            <label>Filter lines with contract pricing for which list price must be set</label>
             <name>Filterlineswithcontractpricingforwhichlistpricemustbeset</name>
             <parentStep>Setlistpriceforlineswithcontractpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3776,7 +3776,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithderivedpricing</label>
+            <label>Filter lines with derived pricing</label>
             <name>Filterlineswithderivedpricing</name>
             <parentStep>Setthenetunitpriceforlineswithderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3822,7 +3822,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithderivedpricingandwithoutcontractorlasttrxnpricing</label>
+            <label>Filter Derived Pricing Lines without Contract or Last Transaction</label>
             <name>Filterlineswithderivedpricingandwithoutcontractorlasttrxnpricing</name>
             <parentStep>Applyvolumebaseddiscountstolineswithcontractandwithoutderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3849,7 +3849,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithinclusiveprice</label>
+            <label>Filter lines with inclusive price</label>
             <name>Filterlineswithinclusiveprice</name>
             <parentStep>Assigntotallineamountforlineswithinclusiveprice</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3871,7 +3871,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithlasttransactionpricing</label>
+            <label>Filter lines with last-transaction pricing</label>
             <name>Filterlineswithlasttransactionpricing</name>
             <parentStep>Filterlineswithlasttransactionpricingandassignnettotalprice</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3883,7 +3883,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithlasttransactionpricingandassignnettotalprice</label>
+            <label>Filter lines with last-transaction pricing and assign net total price</label>
             <name>Filterlineswithlasttransactionpricingandassignnettotalprice</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>25</sequenceNumber>
@@ -3916,7 +3916,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithoutcontractorlasttransactionpricing</label>
+            <label>Filter lines without contract or last-transaction pricing</label>
             <name>Filterlineswithoutcontractorlasttransactionpricing</name>
             <parentStep>Setattributebasedpricingforlineswithoutcontractpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3950,7 +3950,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithoutcontractorlasttransactionpricing37</label>
+            <label>Filter lines without contract or last-transaction pricing</label>
             <name>Filterlineswithoutcontractorlasttransactionpricing37</name>
             <parentStep>Applyvolumebaseddiscountstolineswithoutcontractorlasttrxnpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -3984,7 +3984,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithoutderivedorlasttransactionpricing</label>
+            <label>Filter lines without derived or last-transaction pricing</label>
             <name>Filterlineswithoutderivedorlasttransactionpricing</name>
             <parentStep>Calculateitemnettotalpriceforlineswithoutderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -4028,7 +4028,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithoutderivedorlasttransactionpricingoraninputunitprice</label>
+            <label>Filter lines without derived or last-transaction pricing, or an input unit price</label>
             <name>Filterlineswithoutderivedorlasttransactionpricingoraninputunitprice</name>
             <parentStep>Setinputunitpriceforlineswithoutderivedpricingorlasttrxnpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -4067,7 +4067,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithoutderivedorlasttrxnpricingandwithpriceadjschedule</label>
+            <label>Filter lines without derived or last-trxn pricing, and with price adj schedule</label>
             <name>Filterlineswithoutderivedorlasttrxnpricingandwithpriceadjschedule</name>
             <parentStep>Setattributebasedpricingforlineswithoutderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -4099,7 +4099,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithoutderivedpricingandwithdiscount</label>
+            <label>Filter lines without derived pricing and with discount</label>
             <name>Filterlineswithoutderivedpricingandwithdiscount</name>
             <parentStep>Applymanualdiscountstolineswithoutderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -4121,7 +4121,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithoutlasttransactionpricing</label>
+            <label>Filter lines without last-transaction pricing</label>
             <name>Filterlineswithoutlasttransactionpricing</name>
             <parentStep>Applyamountbasedandpercentagebaseddiscounts</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -4143,7 +4143,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithoutlasttransactionpricingtoapplybundlebasedadjustments</label>
+            <label>Filter lines without last-transaction pricing to apply bundle-based adjustments</label>
             <name>Filterlineswithoutlasttransactionpricingtoapplybundlebasedadjustments</name>
             <parentStep>Applybundlebasedadjustments</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -4172,7 +4172,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithouttermdefinedorevergreenpricing</label>
+            <label>Filter lines without term-defined or evergreen pricing</label>
             <name>Filterlineswithouttermdefinedorevergreenpricing</name>
             <parentStep>Applynonproratedpricingforlineswithouttermdefinedorevergreenpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -4228,7 +4228,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filterlineswithsubscriptionpricingandwithoutderivedpricing</label>
+            <label>Filter lines with subscription pricing and without derived pricing</label>
             <name>Filterlineswithsubscriptionpricingandwithoutderivedpricing</name>
             <parentStep>Applypricerevisionforlineswithsubscriptionandwithoutderivedpricing</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -4284,7 +4284,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>FilterrampedlineswithupliftandwithouttheCancelactiontype</label>
+            <label>Filter ramped lines with uplift and without the Cancel action type</label>
             <name>FilterrampedlineswithupliftandwithouttheCancelactiontype</name>
             <parentStep>Applyupliftstorampedsubscriptionsitemsduringamendment</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -4313,7 +4313,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filtertermdefinedandevergreenlines</label>
+            <label>Filter term-defined and evergreen lines</label>
             <name>Filtertermdefinedandevergreenlines</name>
             <parentStep>Applynonproratedpricingtotermdefinedandevergreenlines</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -4335,7 +4335,7 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filtertermdefinedlines</label>
+            <label>Filter term-defined lines</label>
             <name>Filtertermdefinedlines</name>
             <parentStep>Applyproratedpricingtotermdefinedlines</parentStep>
             <resultIncluded>false</resultIncluded>
@@ -4400,9 +4400,9 @@
             </customElement>
             <description>Formula Based Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Formula Based Pricing</label>
-            <name>FormulaBasedPricing</name>
-            <parentStep>ListContainer1</parentStep>
+            <label>Calculate Partner Unit Price</label>
+            <name>CalculatePartnerUnitPrice</name>
+            <parentStep>AssignPartnerUnitPrice</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4465,9 +4465,9 @@
             </customElement>
             <description>Formula Based Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Formula Based Pricing 1</label>
-            <name>FormulaBasedPricing1</name>
-            <parentStep>ListContainer4</parentStep>
+            <label>Calculate Distributor Unit Price</label>
+            <name>CalculateDistributorUnitPrice</name>
+            <parentStep>AssignDistributorUnitPrice</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4530,9 +4530,9 @@
             </customElement>
             <description>Formula Based Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Formula Based Pricing 2</label>
-            <name>FormulaBasedPricing2</name>
-            <parentStep>ListContainer2</parentStep>
+            <label>Convert Distributor Discount Percent to Decimal</label>
+            <name>ConvertDistributorDiscountPercenttoDecimal</name>
+            <parentStep>NormalizeDistributorDiscountPercent</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4623,9 +4623,9 @@
             </customElement>
             <description>Formula Based Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Formula Based Pricing 3</label>
-            <name>FormulaBasedPricing3</name>
-            <parentStep>ListContainer3</parentStep>
+            <label>Calculate Margin from Partner Total Price</label>
+            <name>CalculateMarginfromPartnerTotalPrice</name>
+            <parentStep>AssignPartnerTotalCostandMargin</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>3</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4688,9 +4688,9 @@
             </customElement>
             <description>Formula Based Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Formula Based Pricing 4</label>
-            <name>FormulaBasedPricing4</name>
-            <parentStep>ListContainer3</parentStep>
+            <label>Calculate Partner Net Total Price</label>
+            <name>CalculatePartnerNetTotalPrice</name>
+            <parentStep>AssignPartnerTotalCostandMargin</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4809,7 +4809,7 @@
             </customElement>
             <description>List Price</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Getbasepricesfrompricebook</label>
+            <label>Get Base Prices from Price Book</label>
             <name>Getbasepricesfrompricebook</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
@@ -4820,8 +4820,8 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Container</label>
-            <name>ListContainer</name>
+            <label>Get Partner Program Discount</label>
+            <name>GetPartnerProgramDiscount</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>6</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4831,8 +4831,8 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Container 1</label>
-            <name>ListContainer1</name>
+            <label>Assign Partner Unit Price</label>
+            <name>AssignPartnerUnitPrice</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>22</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4842,8 +4842,8 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Container 2</label>
-            <name>ListContainer2</name>
+            <label>Normalize Distributor Discount Percent</label>
+            <name>NormalizeDistributorDiscountPercent</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>5</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4853,8 +4853,8 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Container 3</label>
-            <name>ListContainer3</name>
+            <label>Assign Partner Total Cost and Margin</label>
+            <name>AssignPartnerTotalCostandMargin</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>32</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4864,8 +4864,8 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Container 4</label>
-            <name>ListContainer4</name>
+            <label>Assign Distributor Unit Price</label>
+            <name>AssignDistributorUnitPrice</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>21</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4883,9 +4883,9 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Operation</label>
-            <name>ListOperation</name>
-            <parentStep>ListContainer</parentStep>
+            <label>Filter Lines with Partner Account</label>
+            <name>FilterLineswithPartnerAccount</name>
+            <parentStep>GetPartnerProgramDiscount</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4903,9 +4903,9 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Operation 1</label>
-            <name>ListOperation1</name>
-            <parentStep>ListContainer1</parentStep>
+            <label>Filter Lines with Partner Account for Unit Price</label>
+            <name>FilterLineswithPartnerAccountforUnitPrice</name>
+            <parentStep>AssignPartnerUnitPrice</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4923,9 +4923,9 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Operation 2</label>
-            <name>ListOperation2</name>
-            <parentStep>ListContainer2</parentStep>
+            <label>Filter Lines with Distributor Discount Percent</label>
+            <name>FilterLineswithDistributorDiscountPercent</name>
+            <parentStep>NormalizeDistributorDiscountPercent</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4943,9 +4943,9 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Operation 3</label>
-            <name>ListOperation3</name>
-            <parentStep>ListContainer3</parentStep>
+            <label>Filter Products with Cost</label>
+            <name>FilterProductswithCost</name>
+            <parentStep>AssignPartnerTotalCostandMargin</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4963,9 +4963,9 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Operation 4</label>
-            <name>ListOperation4</name>
-            <parentStep>ListContainer4</parentStep>
+            <label>Filter Lines with Distributor Account for Unit Price</label>
+            <name>FilterLineswithDistributorAccountforUnitPrice</name>
+            <parentStep>AssignDistributorUnitPrice</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -5049,7 +5049,7 @@
             </customElement>
             <description>Pricing Setting</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Mapcontexttagstocommonpricingvariables</label>
+            <label>Map Context Tags to Common Pricing Variables</label>
             <name>Mapcontexttagstocommonpricingvariables</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
@@ -5176,9 +5176,9 @@
             </customElement>
             <description>Price Adjustment Matrix</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Price Adjustment Matrix</label>
-            <name>PriceAdjustmentMatrix</name>
-            <parentStep>ListContainer</parentStep>
+            <label>Lookup Partner Program Discount</label>
+            <name>LookupPartnerProgramDiscount</name>
+            <parentStep>GetPartnerProgramDiscount</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -5188,7 +5188,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Setattributebasedpricingforlineswithoutcontractpricing</label>
+            <label>Set attribute-based pricing for lines without contract pricing</label>
             <name>Setattributebasedpricingforlineswithoutcontractpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>15</sequenceNumber>
@@ -5199,7 +5199,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Setattributebasedpricingforlineswithoutderivedpricing</label>
+            <label>Set attribute-based pricing for lines without derived pricing</label>
             <name>Setattributebasedpricingforlineswithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>14</sequenceNumber>
@@ -5210,7 +5210,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Setinputunitpriceforlineswithcontractpricing</label>
+            <label>Set input unit price for lines with contract pricing</label>
             <name>Setinputunitpriceforlineswithcontractpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>11</sequenceNumber>
@@ -5221,7 +5221,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Setinputunitpriceforlineswithoutderivedpricingorlasttrxnpricing</label>
+            <label>Set input unit price for lines without derived pricing or last-trxn pricing</label>
             <name>Setinputunitpriceforlineswithoutderivedpricingorlasttrxnpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>12</sequenceNumber>
@@ -5232,7 +5232,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Setlistpriceforlineswithcontractpricing</label>
+            <label>Set list price for lines with contract pricing</label>
             <name>Setlistpriceforlineswithcontractpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>10</sequenceNumber>
@@ -5243,7 +5243,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Setpricingdateforlineswithcontractpricing</label>
+            <label>Set pricing date for lines with contract pricing</label>
             <name>Setpricingdateforlineswithcontractpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>8</sequenceNumber>
@@ -5254,7 +5254,7 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Setthenetunitpriceforlineswithderivedpricing</label>
+            <label>Set the net unit price for lines with derived pricing</label>
             <name>Setthenetunitpriceforlineswithderivedpricing</name>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>9</sequenceNumber>
