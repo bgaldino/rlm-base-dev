@@ -4,13 +4,13 @@ feature_flag: prm_pricing
 patches:
   - type: add_sales_txn_line_editor_field
     property: displayFields
-    after: "QuoteLineItem.NetUnitPrice"
+    after: 'QuoteLineItem.TotalPrice'
     fields:
-      - "QuoteLineItem.RLM_Distributor_Discount_Percent__c"
-      - "QuoteLineItem.PartnerDiscountPercent"
-      - "QuoteLineItem.RLM_Partner_Net_Total_Price__c"
-      - "QuoteLineItem.RLM_Distributor_Unit_Price__c"
-      - "QuoteLineItem.PartnerUnitPrice"
-      - "QuoteLineItem.Margin"
-      - "QuoteLineItem.MarginAmount"
-      - "QuoteLineItem.UnitCost"
+      - 'QuoteLineItem.RLM_Distributor_Discount_Percent__c'
+      - 'QuoteLineItem.RLM_Distributor_Unit_Price__c'
+      - 'QuoteLineItem.PartnerDiscountPercent'
+      - 'QuoteLineItem.PartnerUnitPrice'
+      - 'QuoteLineItem.RLM_Partner_Net_Total_Price__c'
+      - 'QuoteLineItem.TotalCost'
+      - 'QuoteLineItem.Margin'
+      - 'QuoteLineItem.MarginAmount'

@@ -4839,10 +4839,10 @@
         </steps>
         <steps>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Container</label>
-            <name>ListContainer</name>
+            <label>Assign Total Cost and Margin</label>
+            <name>AssignTotalCostandMargin</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>28</sequenceNumber>
+            <sequenceNumber>30</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -4858,9 +4858,9 @@
                 </criteria>
             </advancedCondition>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Operation</label>
-            <name>ListOperation</name>
-            <parentStep>ListContainer</parentStep>
+            <label>Filter Products with Cost</label>
+            <name>FilterProductswithCost</name>
+            <parentStep>AssignTotalCostandMargin</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>1</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -4951,9 +4951,9 @@
             </customElement>
             <description>Formula Based Pricing</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Formula Based Pricing</label>
-            <name>FormulaBasedPricing</name>
-            <parentStep>ListContainer</parentStep>
+            <label>Calculate Total Cost and Margin</label>
+            <name>CalculateTotalCostandMargin</name>
+            <parentStep>AssignTotalCostandMargin</parentStep>
             <resultIncluded>false</resultIncluded>
             <sequenceNumber>2</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
@@ -5058,10 +5058,10 @@
             </customElement>
             <description>List Price</description>
             <hasNestedExplainability>false</hasNestedExplainability>
-            <label>List Price</label>
-            <name>ListPrice</name>
+            <label>Get Costs from Cost Book</label>
+            <name>GetCostsfromCostBook</name>
             <resultIncluded>false</resultIncluded>
-            <sequenceNumber>3</sequenceNumber>
+            <sequenceNumber>29</sequenceNumber>
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
