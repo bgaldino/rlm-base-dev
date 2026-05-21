@@ -28,26 +28,7 @@ Configure Core Pricing Setup
     Capture Page Screenshot
     # Reload and re-verify to confirm the value was saved server-side
     Open Setup Page    /lightning/setup/CorePricingSetup/home
-    ${verified}=    Execute JavaScript
-    ...    return (function(targetValue) {
-    ...        var pills = [];
-    ...        (function findAll(root, d) {
-    ...            if (d > 6) return;
-    ...            root.querySelectorAll('.slds-pill__label').forEach(function(el){pills.push(el);});
-    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,d+1);});
-    ...        })(document, 0);
-    ...        var pillValues = [];
-    ...        for (var i=0; i<pills.length; i++) {
-    ...            var pillValue = pills[i].textContent.trim();
-    ...            pillValues.push(pillValue);
-    ...            if (pillValue === targetValue) return targetValue;
-    ...        }
-    ...        if (pillValues.length > 0) return pillValues.join(', ');
-    ...        return 'not_set';
-    ...    })(arguments[0])
-    ...    ARGUMENTS    ${PRICING_PROCEDURE}
-    Should Be Equal    ${verified}    ${PRICING_PROCEDURE}
-    ...    msg=Pricing Procedure not persisted after page reload: expected "${PRICING_PROCEDURE}", got "${verified}"
+    Wait Until Keyword Succeeds    30s    3s    _Verify Core Pricing Procedure Selected    ${PRICING_PROCEDURE}
     Log    CorePricingSetup: Pricing Procedure confirmed as "${PRICING_PROCEDURE}" after reload.
 
 *** Keywords ***
@@ -126,3 +107,25 @@ _Open Pricing Procedure Combobox
     Should Not Be Equal    ${result}    page_not_ready
     ...    msg=Page LWC components not yet rendered; retrying...
     RETURN    ${result}
+
+_Verify Core Pricing Procedure Selected
+    [Documentation]    Waits for the selected Pricing Procedure pill to render after reload and verifies its value.
+    [Arguments]    ${target_value}
+    ${verified}=    Execute JavaScript
+    ...    return (function(targetValue) {
+    ...        var matches = [];
+    ...        (function findAll(root, d) {
+    ...            if (d > 8) return;
+    ...            root.querySelectorAll('.slds-pill__label, .slds-pill__action[title]').forEach(function(el){matches.push(el);});
+    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,d+1);});
+    ...        })(document, 0);
+    ...        var values = matches.map(function(el){return (el.getAttribute('title') || el.textContent || '').trim();}).filter(Boolean);
+    ...        for (var i=0; i<values.length; i++) {
+    ...            if (values[i] === targetValue) return targetValue;
+    ...        }
+    ...        if (values.length > 0) return values.join(', ');
+    ...        return 'not_set';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${target_value}
+    Should Be Equal    ${verified}    ${target_value}
+    ...    msg=Pricing Procedure not persisted after page reload: expected "${target_value}", got "${verified}"
