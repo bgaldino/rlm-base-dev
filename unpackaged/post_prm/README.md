@@ -58,15 +58,25 @@ The PRM feature enables partner and distributor pricing workflows through:
   - Task: `apply_context_prm_pricing`
   - Adds/maps `RLM_Distributor_Account__c` and `PartnerAccount__c` on `SalesTransaction`
   - Adds/maps `RLM_Distributor_Unit_Price__c`, `RLM_Distributor_Discount_Percent__c`, `RLM_Partner_Net_Total_Price__c` on `SalesTransactionItem`
-  - Adds `RLM_Transient_Distributor_Discount_Percent__c` as an input/output, transient context attribute for PRM pricing handling
+  - Adds `RLM_Transient_Distributor_Discount_Percent__c` as an input/output, transient context attribute for PRM pricing handling and maps it to the `QuoteLineItem` node without source-field hydration
 
 **Pricing Recipe Table Mappings (Tooling API):**
-- PRM pricing recipe attachments are managed as Tooling API data, not recipe metadata files in this repo
+
+- Recipe attachments are managed as Tooling API data, not recipe metadata files
+  in this repo.
+- Shared/default pricing owns the cost-book mapping:
+  - Payload: `datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json`
+  - Task: `configure_core_pricing_recipe_table_mappings`
+  - Flow: `prepare_expression_sets`
+  - Ensures `NGPDefaultRecipe` maps `RLM_CostBookEntries` as `ListPrice`
+- PRM pricing adds PRM-specific mappings:
   - Payload: `datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json`
   - Task: `configure_pricing_recipe_table_mappings`
-  - Ensures `NGPDefaultRecipe` mappings for:
-    - `RLM_CostBookEntries` (`ListPrice`)
-    - `RLM_Channel_Program_Level_Partner` (`PriceAdjustmentMatrix`)
+  - Flow: `deploy_post_prm_pricing`
+  - Ensures `NGPDefaultRecipe` maps `RLM_Channel_Program_Level_Partner` as
+    `PriceAdjustmentMatrix`
+  - Also includes the shared cost-book mapping idempotently so direct
+    `prepare_prm_pricing` runs remain self-healing.
 
 ### Permission Sets (2)
 
@@ -125,8 +135,10 @@ The baseline `prepare_prm` flow (main-compatible) includes 10 steps:
 
 When `prm_pricing=true`, `prepare_prm` also invokes `prepare_prm_pricing`, which runs
 branch PRM pricing tasks:
+
 - Deploy non-site PRM pricing metadata components from `unpackaged/post_prm_pricing/`
-- Ensure PRM pricing recipe table mappings
+- Ensure PRM pricing recipe table mappings; shared cost-book mapping is owned by
+  the core `prepare_expression_sets` path
 - Activate PRM pricing expression set versions
 - Insert PRM procedure-plan overlay data (when `procedureplans=true`)
 - Verify the PRM conditional section/option/criterion were applied

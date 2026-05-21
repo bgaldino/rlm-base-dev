@@ -65,6 +65,14 @@ Repo implementation pattern:
 - Data payloads:
   - `datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json`
   - `datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json`
+- Core task: `configure_core_pricing_recipe_table_mappings`
+  - Runs in `prepare_expression_sets` before `deploy_expression_sets`
+  - Ensures `NGPDefaultRecipe` is mapped to `RLM_CostBookEntries` as
+    `ListPrice`
+- Feature task: `configure_pricing_recipe_table_mappings`
+  - Runs in `deploy_post_prm_pricing` behind `prm` + `prm_pricing`
+  - Ensures PRM-specific table mappings, plus idempotent coverage for shared
+    cost-book mapping when the PRM pricing flow is run directly
 
 ### B) Pricing Procedures (Expression Sets)
 
@@ -127,6 +135,12 @@ Contract:
   context plan update and wire its apply task in the same feature flow.
 - Context updates should run before end-to-end pricing validation and before
   declaring the feature deploy complete.
+- To create a node-level `ContextAttributeMapping` without source-field
+  hydration, add an SObject `mappingRules` entry with `sObject` but no
+  `sObjectField`. This is intentional for transient/runtime attributes such as
+  `RLM_Transient_Distributor_Discount_Percent__c`; do not add a source field
+  unless the target org behavior confirms a `ContextAttrHydrationDetail` should
+  exist.
 
 ---
 
@@ -145,8 +159,10 @@ Use this generic sequencing rule:
 
 In this repo today:
 
-- Core mapping runs in `prepare_expression_sets` before `deploy_expression_sets`
-- Feature mapping runs in `prepare_prm_pricing`
+- Core mapping runs in `prepare_expression_sets` before core pricing procedure
+  deploy.
+- Feature mapping runs in `deploy_post_prm_pricing` before PRM pricing
+  procedure deploy.
 
 Future feature packs should mirror this split.
 
@@ -174,11 +190,11 @@ Use these checks after wiring changes:
 # Core path
 cci flow run prepare_expression_sets --org <cci_alias>
 
-# Verify core mapping prerequisites
-sf data query -q "SELECT PricingComponentType FROM PricingRecipeTableMapping WHERE PricingRecipeId IN (SELECT Id FROM PricingRecipe WHERE DeveloperName = '<CoreRecipeName>') AND LookupTableId IN (SELECT Id FROM DecisionTable WHERE DeveloperName = '<CoreLookupTable>')" --target-org rlm-base__<cci_alias>
+# Verify core mapping prerequisites (Tooling API)
+sf data query --use-tooling-api -q "SELECT Id, PricingComponentType FROM PricingRecipeTableMapping WHERE PricingRecipeId IN (SELECT Id FROM PricingRecipe WHERE DeveloperName = 'NGPDefaultRecipe') AND LookupTableId IN (SELECT Id FROM DecisionTable WHERE DeveloperName = 'RLM_CostBookEntries')" --target-org rlm-base__<cci_alias>
 
 # Feature path
-cci task run configure_pricing_recipe_table_mappings --org <cci_alias>
+cci flow run prepare_prm_pricing --org <cci_alias>
 
 # Idempotency rerun
 cci flow run prepare_expression_sets --org <cci_alias>
