@@ -558,7 +558,7 @@ project:
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
-    core_pricing_recipe_table_mappings: &core_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json" # Core pricing recipe mapping payload (costbook lookup prerequisite)
+    core_pricing_recipe_table_mappings: &core_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json" # Core pricing recipe table mapping payload
     prm_pricing_recipe_table_mappings: &prm_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json" # PRM pricing recipe table mapping payload
 
     q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
@@ -1175,6 +1175,9 @@ tasks:
               - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_RLM_CHANNEL_PROGRAM_LEVEL_PARTNER__"]
                 replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'RLM_Channel_Program_Level_Partner' LIMIT 1
                 api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_RLM_COSTBOOKENTRIES__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'RLM_CostBookEntries' LIMIT 1
+                api: rest
 
   deploy_post_prm_pricing_flows:
     group: Revenue Lifecycle Management
@@ -1616,6 +1619,27 @@ tasks:
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
                 api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_INDEX_RATE_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Index_Rate_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_ATTRIBUTE_BASED_ADJUSTMENT_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Attribute_Based_Adjustment_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_BUNDLE_BASED_ADJUSTMENT_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Bundle_Based_Adjustment_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_CONTRACT_PRICING_VOLUME_TIERS__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Contract_Pricing_Volume_Tiers' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_PRICE_ADJUSTMENT_TIER_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Price_Adjustment_Tier_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_CONTRACT_PRICING_ENTRIES_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Contract_Pricing_Entries_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_PRICE_BOOK_ENTRY_DECISION_TABLE_V2__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Price_Book_Entry_Decision_Table_v2' LIMIT 1
+                api: rest
               - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_RLM_COSTBOOKENTRIES__"]
                 replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'RLM_CostBookEntries' LIMIT 1
                 api: rest
@@ -1642,6 +1666,27 @@ tasks:
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
                 api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_INDEX_RATE_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Index_Rate_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_ATTRIBUTE_BASED_ADJUSTMENT_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Attribute_Based_Adjustment_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_BUNDLE_BASED_ADJUSTMENT_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Bundle_Based_Adjustment_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_CONTRACT_PRICING_VOLUME_TIERS__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Contract_Pricing_Volume_Tiers' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_PRICE_ADJUSTMENT_TIER_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Price_Adjustment_Tier_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_CONTRACT_PRICING_ENTRIES_DECISION_TABLE__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Contract_Pricing_Entries_Decision_Table' LIMIT 1
+                api: rest
+              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_PRICE_BOOK_ENTRY_DECISION_TABLE_V2__"]
+                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'Price_Book_Entry_Decision_Table_v2' LIMIT 1
+                api: rest
               - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_RLM_COSTBOOKENTRIES__"]
                 replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'RLM_CostBookEntries' LIMIT 1
                 api: rest
@@ -1664,9 +1709,6 @@ tasks:
                 api: rest
               - xpath: //ExpressionSetDefinition/versions/variables/value[text()="__BUNDLEPasID__"]
                 replace_record_id_query: SELECT Id from PriceAdjustmentSchedule WHERE name = 'Standard Bundle Based Adjustment' LIMIT 1
-                api: rest
-              - xpath: //ExpressionSetDefinition/versions/steps/customElement/parameters/value[text()="__LOOKUPID_RLM_COSTBOOKENTRIES__"]
-                replace_record_id_query: SELECT Id from DecisionTable WHERE DeveloperName = 'RLM_CostBookEntries' LIMIT 1
                 api: rest
 
   deploy_org_settings:
@@ -2732,29 +2774,31 @@ tasks:
       api_version: null
       dry_run: false
 
-  configure_core_pricing_recipe_table_mappings:
-    group: Revenue Lifecycle Management
-    description: >
-      Ensure core PricingRecipeTableMapping rows exist before expression set deploy
-      so ListPrice lookups (RLM_CostBookEntries) validate in clean orgs.
-    class_path: tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings
-    options:
-      operation: ensure  # Options: 'ensure', 'list'
-      input_file: *core_pricing_recipe_table_mappings
-      api_version: null
-      dry_run: false
-      skip_missing_tables: true
-
   configure_pricing_recipe_table_mappings:
     group: Revenue Lifecycle Management
     description: >
-      Ensure required PricingRecipeTableMapping rows exist for PRM pricing on
-      NGPDefaultRecipe (RLM_CostBookEntries and RLM_Channel_Program_Level_Partner).
-      Uses Tooling API for idempotent create/update without metadata deploy.
+      Ensure PRM PricingRecipeTableMapping rows exist for NGPDefaultRecipe:
+      RLM_Channel_Program_Level_Partner as PriceAdjustmentMatrix, plus
+      idempotent coverage for the shared RLM_CostBookEntries ListPrice mapping.
+      Uses Tooling API for create/update without metadata deploy.
     class_path: tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings
     options:
       operation: ensure  # Options: 'ensure', 'list'
       input_file: *prm_pricing_recipe_table_mappings
+      api_version: null
+      dry_run: false
+      skip_missing_tables: true
+
+  configure_core_pricing_recipe_table_mappings:
+    group: Revenue Lifecycle Management
+    description: >
+      Ensure core PricingRecipeTableMapping rows exist for NGPDefaultRecipe
+      (RLM_CostBookEntries as a ListPrice table). Uses Tooling API for
+      idempotent create/update without metadata deploy.
+    class_path: tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings
+    options:
+      operation: ensure  # Options: 'ensure', 'list'
+      input_file: *core_pricing_recipe_table_mappings
       api_version: null
       dry_run: false
       skip_missing_tables: true

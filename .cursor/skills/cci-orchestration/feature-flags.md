@@ -35,7 +35,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `pde` | `False` | — |
 | `prm` | `True` | 27 flow step(s) |
 | `prm_exp_bundle` | `True` | 4 flow step(s) |
-| `prm_pricing` | `False` | 18 flow step(s) |
+| `prm_pricing` | `True` | 18 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 9 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
@@ -239,7 +239,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 8 → `assign_permission_sets`
 
-### `prm_pricing` (default: `False`)
+### `prm_pricing` (default: `True`)
 
 - `prepare_prm` step 11 → `prepare_prm_pricing`
 - `deploy_post_prm_pricing` step 1 → `deploy_post_prm_pricing_objects`

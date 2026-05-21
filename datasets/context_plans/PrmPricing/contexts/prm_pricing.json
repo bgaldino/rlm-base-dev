@@ -80,6 +80,13 @@
       "mappingType": "SOBJECT",
       "sObject": "QuoteLineItem",
       "sObjectField": "RLM_Partner_Net_Total_Price__c"
+    },
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Transient_Distributor_Discount_Percent__c",
+      "mappingType": "SOBJECT",
+      "sObject": "QuoteLineItem"
     }
   ],
   "contextTagsByName": [

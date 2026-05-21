@@ -833,7 +833,7 @@
 
 ### `configure_core_pricing_recipe_table_mappings`
 
-**Description:** Ensure core PricingRecipeTableMapping rows exist before expression set deploy so ListPrice lookups (RLM_CostBookEntries) validate in clean orgs.
+**Description:** Ensure core PricingRecipeTableMapping rows exist for NGPDefaultRecipe (RLM_CostBookEntries as a ListPrice table). Uses Tooling API for idempotent create/update without metadata deploy.
 
 **Class:** `tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings`
 
@@ -863,7 +863,7 @@
 
 ### `configure_pricing_recipe_table_mappings`
 
-**Description:** Ensure required PricingRecipeTableMapping rows exist for PRM pricing on NGPDefaultRecipe (RLM_CostBookEntries and RLM_Channel_Program_Level_Partner). Uses Tooling API for idempotent create/update without metadata deploy.
+**Description:** Ensure PRM PricingRecipeTableMapping rows exist for NGPDefaultRecipe: RLM_Channel_Program_Level_Partner as PriceAdjustmentMatrix, plus idempotent coverage for the shared RLM_CostBookEntries ListPrice mapping. Uses Tooling API for create/update without metadata deploy.
 
 **Class:** `tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings`
 
