@@ -182,11 +182,28 @@ _VerifyToggleByEnabledTextOneCheck
 
 _VerifyDocumentBuilderEnabled
     [Arguments]    ${section}    ${label}
-    ${ok}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    6s    2s    _SectionShouldContainEnabled    ${section}
-    Run Keyword If    ${ok}    Log    Toggle "${label}" verified ON via section text.
+    ${ok}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    6s    2s    _Document Builder Toggle Should Be On
+    Run Keyword If    ${ok}    Log    Toggle "${label}" verified ON via shadow DOM JS.
     Run Keyword If    not ${ok}    Run Keywords
     ...    Capture Page Screenshot    filename=document_builder_toggle_verification_failed.png
-    ...    AND    Log    WARNING: Toggle "${label}" section still shows Disabled after click. If deploy_post_docgen fails, enable Document Builder manually in Setup → Revenue Settings and re-run deploy_post_docgen.    WARN
+    ...    AND    Log    WARNING: Toggle "${label}" could not be verified as enabled via shadow DOM. If deploy_post_docgen fails, enable Document Builder manually in Setup → Revenue Settings and re-run deploy_post_docgen.    WARN
+
+_Document Builder Toggle Should Be On
+    ${state}=    _Get Document Builder Toggle State
+    Should Be Equal    ${state}    on
+    ...    msg=Document Builder toggle is not on (got: ${state})
+
+_Get Document Builder Toggle State
+    ${state}=    Execute JavaScript
+    ...    return (function() {
+    ...        function findInShadows(root) { var el = root.querySelector('input[name="documentBuilderEnabled"]'); if (el) return el; var list = root.querySelectorAll('*'); for (var i = 0; i < list.length; i++) { if (list[i].shadowRoot) { var found = findInShadows(list[i].shadowRoot); if (found) return found; } } return null; }
+    ...        var el = document.querySelector('input[name="documentBuilderEnabled"]') || findInShadows(document.body);
+    ...        if (!el) return 'not_found';
+    ...        return el.checked ? 'on' : 'off';
+    ...    })()
+    Should Not Be Equal    ${state}    not_found
+    ...    msg=Document Builder input[name="documentBuilderEnabled"] not yet rendered
+    RETURN    ${state}
 
 _SectionShouldContainEnabled
     [Arguments]    ${section}
@@ -319,22 +336,20 @@ _EnsureToggleByLabel
     Run Keyword If    not ${turn_on} and ${is_on}    Sleep    1s    reason=Allow toggle to update
 
 _EnsureDocumentBuilderToggle
-    [Documentation]    For Document Builder: check section text to see if already Enabled/Disabled, then click ONCE via JS only if needed. Avoids the multiple-click problem that toggles it back off.
+    [Documentation]    For Document Builder: read the shadow-DOM input state, then click ONCE via JS only if needed. Avoids the multiple-click problem that toggles it back off.
     [Arguments]    ${turn_on}=True
     ${section}=    Set Variable    xpath=//*[normalize-space(.)='Document Builder']/ancestor::*[.//*[@role='switch'] or .//input[@type='checkbox']][1]
     Wait Until Keyword Succeeds    15s    2s    Get WebElement    ${section}
     Sleep    1s    reason=Allow section to render
-    ${section_text}=    Get Text    ${section}
-    ${has_enabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Enabled
-    ${has_disabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Disabled
+    ${state}=    Wait Until Keyword Succeeds    15s    2s    _Get Document Builder Toggle State
     # Already in desired state -- do nothing
-    Run Keyword If    ${turn_on} and ${has_enabled}    Log    Document Builder is already Enabled. No click needed.
-    Return From Keyword If    ${turn_on} and ${has_enabled}
-    Run Keyword If    not ${turn_on} and ${has_disabled}    Log    Document Builder is already Disabled. No click needed.
-    Return From Keyword If    not ${turn_on} and ${has_disabled}
+    Run Keyword If    ${turn_on} and "${state}" == "on"    Log    Document Builder is already Enabled. No click needed.
+    Return From Keyword If    ${turn_on} and "${state}" == "on"
+    Run Keyword If    not ${turn_on} and "${state}" == "off"    Log    Document Builder is already Disabled. No click needed.
+    Return From Keyword If    not ${turn_on} and "${state}" == "off"
     # Need to toggle -- click exactly once via JS (pierces shadow DOM)
-    Log    Document Builder is currently ${{" Enabled" if ${has_enabled} else "Disabled"}}. Clicking once to toggle.
-    Execute JavaScript    (function(){ function findInShadows(root){ var el=root.querySelector("input[name=documentBuilderEnabled]"); if(el)return el; var list=root.querySelectorAll("*"); for(var i=0;i<list.length;i++){ if(list[i].shadowRoot){ var r=findInShadows(list[i].shadowRoot); if(r)return r; } } return null; } var el=document.querySelector("input[name=documentBuilderEnabled]")||findInShadows(document.body); if(el)el.click(); })()
+    Log    Document Builder is currently ${state}. Clicking once to toggle.
+    Execute JavaScript    (function(){ function findInShadows(root){ var el=root.querySelector('input[name="documentBuilderEnabled"]'); if(el)return el; var list=root.querySelectorAll('*'); for(var i=0;i<list.length;i++){ if(list[i].shadowRoot){ var r=findInShadows(list[i].shadowRoot); if(r)return r; } } return null; } var el=document.querySelector('input[name="documentBuilderEnabled"]')||findInShadows(document.body); if(el)(el.closest('label')||el).click(); })()
     Sleep    3s    reason=Allow toggle state to update after JS click
 
 _EnsureShadowDOMToggle
