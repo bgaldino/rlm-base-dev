@@ -18,7 +18,7 @@ data loading, metadata deployment, or local environment setup.
 
 ## Quick Diagnosis: Which Step Failed?
 
-The `prepare_rlm_org` flow runs 33 steps. Identify the failing step from
+The `prepare_rlm_org` flow runs 30 steps. Identify the failing step from
 CCI output, then jump to the relevant section below.
 
 | Step Range | Category | Section |
@@ -26,15 +26,15 @@ CCI output, then jump to the relevant section below.
 | 1 (prepare_core) | PSLs, PSGs, context defs, deploy_pre | [Permission & PSG Errors](#permission--psg-errors), [Context Definition Errors](#context-definition-errors) |
 | 2–3 | Decision tables, expression sets | [Decision Table Errors](#decision-table-errors), [Expression Set Errors](#expression-set-errors) |
 | 5 (deploy_full) | Metadata deploy (force-app) | [Metadata Deploy Errors](#metadata-deploy-errors) |
-| 9–11 | Product/pricing data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
-| 12 (prepare_docgen) | DocGen | [DocGen Errors](#docgen-errors) |
-| 13 (prepare_dro) | DRO data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
-| 14–15 | Tax/billing data + activation | [Billing & Tax Errors](#billing--tax-errors) |
-| 18 (prepare_rating) | Rating/rates data + activation | [Rating & Rates Errors](#rating--rates-errors) |
-| 22 (prepare_prm) | PRM community + data | [PRM & Community Errors](#prm--community-errors) |
-| 24 (prepare_constraints) | Constraints + CML import | [Constraints / CML Errors](#constraints--cml-errors) |
-| 29 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
-| 30 | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
+| 8–9 | Product/pricing data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
+| 10 (prepare_docgen) | DocGen | [DocGen Errors](#docgen-errors) |
+| 11 (prepare_dro) | DRO data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
+| 12–13 | Tax/billing data + activation | [Billing & Tax Errors](#billing--tax-errors) |
+| 16 (prepare_rating) | Rating/rates data + activation | [Rating & Rates Errors](#rating--rates-errors) |
+| 20 (prepare_prm) | PRM community + data | [PRM & Community Errors](#prm--community-errors) |
+| 22 (prepare_constraints) | Constraints + CML import | [Constraints / CML Errors](#constraints--cml-errors) |
+| 27 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
+| 29 | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
 
 ---
 
@@ -46,7 +46,7 @@ Run this first — it checks everything:
 
 | Check | Fix |
 |-------|-----|
-| Python < 3.10 | Install Python 3.12 or 3.13 via `pyenv` (3.10 is the repo floor; 3.12/3.13 are recommended for CumulusCI) |
+| Python < 3.8 | Install Python 3.12 or 3.13 via `pyenv` |
 | CumulusCI not found | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` |
 | SF CLI < v2 | `npm install -g @salesforce/cli` (NOT `brew install sf`) |
 | SFDMU plugin missing/outdated | Auto-fixed by default (`auto_fix=true`). Manual: `sf plugins install sfdmu` |
@@ -87,33 +87,6 @@ cci org list              # shows CCI aliases
 sf org list               # shows sf aliases (rlm-base__* prefix)
 cci org info beta         # shows username, instance URL
 ```
-
-### `NonScratchOrgError` ("This command works with only scratch orgs")
-
-**Symptom:** a scratch-only SF CLI command — most often `sf org create user`
-(the `create_personas_sales_rep_user` task in `prepare_personas`), but also
-`sf org generate password` — fails with `NonScratchOrgError` against an org you
-created as a scratch org. Common on **Enterprise-Edition / "ent"** shapes
-(e.g. `orgs/internal/ent-r1.json`).
-
-**Cause:** an SF CLI bug — EE scratch orgs created via the DevHub API get
-`"isScratch": false` written to the local auth file
-(`~/.sfdx/<username>.json`) even though they are real scratch orgs (valid
-`devHubUsername`, listed under `scratchOrgs` in `sf org list`). The CLI then
-refuses scratch-only commands. CCI's own `org_config.scratch` is unaffected, so
-**`prepare_rlm_org` self-heals** — `prepare_core` step 1 runs
-`fix_scratch_org_identity` before any scratch-only CLI command.
-
-**Fix (standalone, when running CLI commands outside the flow):**
-
-```bash
-cci org default ent-r1                      # this CCI build uses the default org (no --org)
-cci task run fix_scratch_org_identity        # sets isScratch=true (when false or missing) if devHubUsername is present
-```
-
-The task is idempotent (no-op when already correct) and only sets
-`isScratch=true` (when it is false or missing) when the auth file has a
-`devHubUsername` (so it never mis-tags a real non-scratch org).
 
 ---
 
@@ -371,7 +344,7 @@ the Metadata API can't validate.
 
 **Fix:** Edit the source templates, then re-assemble:
 ```bash
-cci task run assemble_and_deploy_ux -o deploy false
+cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
 ```
 Inspect `unpackaged/post_ux/` to verify, then deploy.
 
@@ -471,7 +444,7 @@ cci task run manage_decision_tables -o operation list --org beta
 cci task run manage_expression_sets -o operation list --org beta
 
 # UX dry-run (assemble without deploy)
-cci task run assemble_and_deploy_ux -o deploy false
+cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
 
 # Clear source tracking corruption
 rm -rf .sf/orgs/<org-id>/localSourceTracking
@@ -479,40 +452,3 @@ rm -rf .sf/orgs/<org-id>/localSourceTracking
 # Validate CML constraint model
 cci task run validate_cml -o data_dir datasets/constraints/qb/QuantumBitComplete --org beta
 ```
-
----
-
-## Live-Org Evidence Capture (RLM async / pricing / preprocess failures)
-
-RLM async failures (Place Sales Transaction, preprocess, assetize, rating) leave their
-root cause in **records, not stdout** — and that evidence is **destroyed by an account/
-data reset**. So when a UI flow fails (e.g. "Preprocessing failed", "prices aren't
-updated", an activation/repricing error):
-
-1. **Capture before any reset.** Note the record id from the URL/UI, then query the
-   error logs + async trackers + the record's calc state immediately:
-
-```bash
-# The actual failure reason (message + code + category)
-sf data query --target-org $ORG -q "SELECT Category, ErrorCode, Severity, ErrorMessage, ConfiguratorErrorMessage, PrimaryRecordId, CreatedDate FROM RevenueTransactionErrorLog ORDER BY CreatedDate DESC LIMIT 15"
-# Async job outcomes (PSTBaseJob/PSTPrice/PSTPersist/PreprocessOrder/AssetizationAsyncJob/QuoteToOrderJob)
-sf data query --target-org $ORG -q "SELECT JobType, Status, ReferenceEntityId, CreatedDate FROM AsyncOperationTracker ORDER BY CreatedDate DESC LIMIT 25"
-# The record's pricing/preprocess state (Order example)
-sf data query --target-org $ORG -q "SELECT Status, CalculationStatus, ValidationResult, PreprocessingStatus FROM Order WHERE Id='<id>'"
-```
-
-2. **Interpret the signals.** `RevenueTransactionErrorLog.ErrorMessage` is usually the
-   real reason; `CalculationStatus` is the pricing lifecycle; `ValidationResult != null`
-   means "prices not current"; `AsyncOperationTracker.Status=Failure` pinpoints the failed
-   async job. Settings/config live in metadata, not SOQL — retrieve them (see below), do
-   not expect them in a query.
-
-3. **Settings caution.** `sf project retrieve start -m Settings:RevenueManagement`
-   decomposes org settings back into **existing** source paths (it can clobber
-   `unpackaged/pre/1_settings/…` and other tracked copies). Retrieve to a throwaway, or
-   `git checkout` the clobbered files afterward. Settings deploys **merge** field-by-field.
-
-For the large-deal "Prepare for Activation" (reprice → preprocess → activate) flow
-specifically — the `CalculationStatus` enum, the `ValidationResult` gate, async pricing
-behavior, the `PreprocessingStatus` decode, and tax-skip — read
-**`troubleshooting/large-deal-preprocess-reference.md`**.
