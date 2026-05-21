@@ -122,7 +122,7 @@ Several objects use complex multi-field composite keys:
 | Pricebook2                   | Name + IsStandard | Yes            |
 | CostBook                     | Name + IsDefault | Yes             |
 | PriceAdjustmentTier          | 9-field composite | Yes            |
-| PriceAdjustmentSchedule      | Name + CurrencyIsoCode + Pricebook2.Name | Yes |
+| PriceAdjustmentSchedule      | Name + CurrencyIsoCode | Yes |
 | AttributeAdjustmentCondition | 3-field composite | Yes            |
 | AttributeBasedAdjustment     | 5-field composite | Yes            |
 | BundleBasedAdjustment        | 8-field composite | Yes            |
@@ -213,7 +213,12 @@ qb-pricing/
 
 ## Idempotency
 
-**Validated ✅** — consecutive runs of `delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data` produce identical record counts (216 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 114 PBE, 2 PEDP, 87 CBE).
+**Org-backed idempotency validated** — consecutive runs of
+`delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data` produce
+identical record counts (216 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 114 PBE,
+2 PEDP, 87 CBE). The static SFDMU validator may still flag extraction-safety
+issues for relationship traversal fields in this plan; treat those as follow-up
+items before relying on extraction round-trips.
 
 The delete-then-insert pattern replaces the previous Upsert approach. `Readonly` objects ensure parent lookup resolution without modification. `Upsert` objects (`CurrencyType`, `CostBook`, `Pricebook2`, `AttributeBasedAdjRule`) are naturally idempotent via their direct-field externalIds.
 

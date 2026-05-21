@@ -157,7 +157,7 @@ cci org connect my-sandbox
 
 ## Project Configuration (`cumulusci.yml`)
 
-This project's `cumulusci.yml` (~3275 lines) is organized into these sections:
+This project's `cumulusci.yml` is organized into these sections:
 
 ### 1. Scratch Org Definitions (`orgs.scratch`)
 
@@ -180,7 +180,7 @@ project:
 
 ### 3. Feature Flags (`project.custom`)
 
-36 boolean flags control which features are deployed. Common flags:
+38 boolean flags control which features are deployed. Common flags:
 
 | Flag | Default | Purpose |
 |------|---------|---------|
@@ -222,7 +222,7 @@ These anchors are referenced with `*name` in task/flow options.
 
 ### 5. Tasks (`tasks`)
 
-~197 custom task definitions using this naming convention:
+215 task definitions use this naming convention:
 - `insert_qb_{plan}_data` / `insert_quantumbit_{plan}_data` — load a data plan
 - `delete_qb_{plan}_data` / `delete_quantumbit_{plan}_data` — delete plan data
 - `extract_qb_{plan}_data` — extract from org to CSV
@@ -240,8 +240,8 @@ either a built-in CCI class or a custom class in `tasks/`.
 
 ### 6. Flows (`flows`)
 
-41 flows organized as a hierarchy. The main entry point is `prepare_rlm_org`
-(31 steps), which calls sub-flows:
+43 flows are organized as a hierarchy. The main entry point is `prepare_rlm_org`
+(30 steps), which calls sub-flows:
 
 ```
 prepare_rlm_org
@@ -251,31 +251,30 @@ prepare_rlm_org
 ├── 4. prepare_payments
 ├── 5. deploy_full (force-app/main/default)
 ├── 6. prepare_price_adjustment_schedules
-├── 7. prepare_payments (re-run)
-├── 8. prepare_quantumbit (utils, approvals, QB metadata)
-├── 9. prepare_product_data (PCM, Q3, product images)
-├── 10. prepare_pricing_data (pricing delete + insert)
-├── 11. prepare_docgen
-├── 12. prepare_dro
-├── 13. prepare_tax
-├── 14. prepare_billing
-├── 15. prepare_analytics
-├── 16. prepare_clm
-├── 17. prepare_rating (delete, insert, activate for rating+rates)
-├── 18. activate_and_deploy_expression_sets
-├── 19. prepare_tso (TSO-specific PSLs, PSGs, deploy)
-├── 20. prepare_procedureplans
-├── 21. prepare_prm
-├── 22. prepare_agents
-├── 23. prepare_constraints
-├── 24. prepare_guidedselling
-├── 25. prepare_revenue_settings
-├── 26. prepare_pricing_discovery
-├── 27. prepare_ramp_builder
-├── 28. prepare_ux (when: ux=true)
-├── 29. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
-├── 30. refresh_all_decision_tables
-└── 31. stamp_git_commit
+├── 7. prepare_quantumbit (utils, approvals, QB metadata)
+├── 8. prepare_product_data (PCM, Q3, product images)
+├── 9. prepare_pricing_data (pricing delete + insert)
+├── 10. prepare_docgen
+├── 11. prepare_dro
+├── 12. prepare_tax
+├── 13. prepare_billing
+├── 14. prepare_analytics
+├── 15. prepare_clm
+├── 16. prepare_rating (delete, insert, activate for rating+rates)
+├── 17. activate_and_deploy_expression_sets
+├── 18. prepare_tso (TSO-specific PSLs, PSGs, deploy)
+├── 19. prepare_procedureplans
+├── 20. prepare_prm
+├── 21. prepare_agents
+├── 22. prepare_constraints
+├── 23. prepare_guidedselling
+├── 24. prepare_revenue_settings
+├── 25. prepare_pricing_discovery
+├── 26. prepare_ramp_builder
+├── 27. prepare_ux (when: ux=true)
+├── 28. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
+├── 29. refresh_all_decision_tables
+└── 30. stamp_git_commit
 ```
 
 > For the complete flow listing with all steps and `when:` conditions, read
@@ -307,7 +306,7 @@ when: "not (project_config.project__custom__quantumbit or project_config.project
 
 ## Custom Task Classes (`tasks/`)
 
-This project has 40 Python files in `tasks/` defining 49+ custom CCI task
+This project has 45 Python files in `tasks/` defining custom CCI task
 classes. They fall into these categories:
 
 | Category | Classes | Base Class |
@@ -316,7 +315,7 @@ classes. They fall into these categories:
 | REST/Connect API | `RefreshDecisionTable`, `ExtendStandardContext`, `ManageContextDefinition`, `ManageDecisionTables`, `ManageExpressionSets`, `ManageFlows`, `ManageTransactionProcessingTypes` | `SFDXBaseTask` / `BaseTask` |
 | Metadata deploy | `AssembleAndDeployUX`, `StampGitCommit`, `CleanupSettingsForDev`, `FixDocumentTemplateBinaries` | `SFDXBaseTask` |
 | UX drift/writeback | `RetrieveUXFromOrg`, `DiffUXTemplates`, `WriteBackUXTemplates` | `BaseSalesforceTask` / `BaseTask` |
-| Robot Framework | `RunE2ETests`, `ReorderAppLauncher`, `EnableAnalyticsReplication`, `ConfigureRevenueSettings`, `EnableDocumentBuilderToggle`, `EnableConstraintsSettings` | `BaseTask` |
+| Robot Framework | `RunE2ETests`, `ReorderAppLauncher`, `EnableAnalyticsReplication`, `ConfigureRevenueSettings`, `ConfigureCorePricingSetup`, `ConfigureProductDiscoverySettings`, `EnableDocumentBuilderToggle`, `EnableConstraintsSettings`, `EnableTimeline` | `BaseTask` |
 | Local-only (no org) | `ValidateSetup` | `BaseTask` |
 | Community/PRM | `PatchNetworkEmailForDeploy`, `RevertNetworkEmailAfterDeploy`, `PatchPaymentsSiteForDeploy`, `RevertPaymentsSiteAfterDeploy` | varies |
 | CML (Constraints) | `ExportCML`, `ImportCML`, `ValidateCML` | `SFDXBaseTask` |

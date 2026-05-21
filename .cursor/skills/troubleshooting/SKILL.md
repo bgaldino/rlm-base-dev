@@ -18,7 +18,7 @@ data loading, metadata deployment, or local environment setup.
 
 ## Quick Diagnosis: Which Step Failed?
 
-The `prepare_rlm_org` flow runs 31 steps. Identify the failing step from
+The `prepare_rlm_org` flow runs 30 steps. Identify the failing step from
 CCI output, then jump to the relevant section below.
 
 | Step Range | Category | Section |
@@ -26,15 +26,15 @@ CCI output, then jump to the relevant section below.
 | 1 (prepare_core) | PSLs, PSGs, context defs, deploy_pre | [Permission & PSG Errors](#permission--psg-errors), [Context Definition Errors](#context-definition-errors) |
 | 2–3 | Decision tables, expression sets | [Decision Table Errors](#decision-table-errors), [Expression Set Errors](#expression-set-errors) |
 | 5 (deploy_full) | Metadata deploy (force-app) | [Metadata Deploy Errors](#metadata-deploy-errors) |
-| 9–11 | Product/pricing data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
-| 12 (prepare_docgen) | DocGen | [DocGen Errors](#docgen-errors) |
-| 13 (prepare_dro) | DRO data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
-| 14–15 | Tax/billing data + activation | [Billing & Tax Errors](#billing--tax-errors) |
-| 18 (prepare_rating) | Rating/rates data + activation | [Rating & Rates Errors](#rating--rates-errors) |
-| 22 (prepare_prm) | PRM community + data | [PRM & Community Errors](#prm--community-errors) |
-| 24 (prepare_constraints) | Constraints + CML import | [Constraints / CML Errors](#constraints--cml-errors) |
-| 29 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
-| 30 | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
+| 8–9 | Product/pricing data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
+| 10 (prepare_docgen) | DocGen | [DocGen Errors](#docgen-errors) |
+| 11 (prepare_dro) | DRO data load | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
+| 12–13 | Tax/billing data + activation | [Billing & Tax Errors](#billing--tax-errors) |
+| 16 (prepare_rating) | Rating/rates data + activation | [Rating & Rates Errors](#rating--rates-errors) |
+| 20 (prepare_prm) | PRM community + data | [PRM & Community Errors](#prm--community-errors) |
+| 22 (prepare_constraints) | Constraints + CML import | [Constraints / CML Errors](#constraints--cml-errors) |
+| 27 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
+| 29 | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
 
 ---
 

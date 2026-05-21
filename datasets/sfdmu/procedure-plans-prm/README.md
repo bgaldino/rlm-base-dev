@@ -15,8 +15,8 @@ unchanged and continues to run by default in `prepare_procedureplans`.
 
 ## Flow behavior and guardrails
 
-The PRM overlay runs in `prepare_prm_pricing` when both `prm=true` and
-`procedureplans=true`.
+The PRM overlay runs in `prepare_prm_pricing` when `prm=true`,
+`prm_pricing=true`, and `procedureplans=true`.
 
 To avoid silent partial overlays, the flow now:
 
@@ -38,3 +38,31 @@ only succeed on a rerun.
 
 If verification fails, rerun `insert_prm_procedure_plan_data` and inspect
 SFDMU reports under this dataset directory to identify the missing record(s).
+
+## Object Sets
+
+| Pass | Object | Operation | External ID | Records |
+| ---- | ------ | --------- | ----------- | ------- |
+| 1 | `ProcedurePlanDefinitionVersion` | Readonly | `DeveloperName` | 1 |
+| 1 | `ProcedurePlanSection` | Upsert | `SubSectionType` | 1 |
+| 2 | `ProcedurePlanDefinitionVersion` | Readonly | `DeveloperName` | 1 |
+| 2 | `ProcedurePlanSection` | Upsert | `SubSectionType` | 1 |
+| 3 | `ProcedurePlanSection` | Readonly | `SubSectionType` | 1 |
+| 3 | `ExpressionSetDefinition` | Readonly | `DeveloperName` | 1 |
+| 3 | `ProcedurePlanOption` | Upsert | `ProcedurePlanSection.SubSectionType;Priority` | 1 |
+| 4 | `ProcedurePlanOption` | Readonly | `ProcedurePlanSection.SubSectionType;Priority` | 1 |
+| 4 | `ProcedurePlanCriterion` | Upsert | `ProcedurePlanOption.ProcedurePlanSection.SubSectionType;ProcedurePlanOption.Priority;Sequence` | 1 |
+
+## Known SFDMU v5 Constraints
+
+`python scripts/validate_sfdmu_v5_datasets.py` currently reports medium-risk
+nested relationship warnings for the `ProcedurePlanCriterion` external ID
+(`ProcedurePlanOption.ProcedurePlanSection.SubSectionType;ProcedurePlanOption.Priority;Sequence`).
+The plan also uses traversal keys for `ProcedurePlanOption` because the stable
+business key is the parent section plus priority, not an autonumbered direct
+field.
+
+These Upserts are accepted here because the overlay is tiny, feature-owned, and
+guarded by the deactivate/load/verify/reactivate flow above. If SFDMU fails to
+resolve one of the traversal keys, `verify_prm_procedure_plan_overlay` fails
+loudly before the procedure plan is reactivated.

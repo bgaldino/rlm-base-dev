@@ -95,7 +95,8 @@ Currently mitigated by `skipExistingRecords: true`, but this is not a reliable f
 
 ### Custom Field Metadata
 
-Custom fields are packaged under `force-app/main/default/objects/`:
+Custom fields are packaged under `unpackaged/post_prm/force-app/main/default/objects/`
+and deployed by the baseline `deploy_post_prm` task:
 
 | Object                | Field                          | Type          | Label                |
 |-----------------------|--------------------------------|---------------|----------------------|

@@ -10,6 +10,8 @@ Robot Framework tests that configure Salesforce Setup page options that cannot b
 | `enable_constraints_settings.robot` | `enable_constraints_settings` | Set Default Transaction Type, Asset Context picklist, and enable Constraints Engine toggle |
 | `configure_revenue_settings.robot` | `configure_revenue_settings` | Set Pricing Procedure, Usage Rating Procedure, enable Instant Pricing toggle, set Create Orders Flow |
 | `configure_core_pricing_setup.robot` | `configure_core_pricing_setup` | Set default Pricing Procedure on Salesforce Pricing Setup page (CorePricingSetup) |
+| `configure_product_discovery_settings.robot` | `configure_product_discovery_settings` | Set Default Catalog on Product Discovery Settings |
+| `enable_timeline.robot` | `enable_timeline` | Enable the Timeline feature toggle required by billing UI pages |
 
 ## Prerequisites
 
@@ -34,6 +36,8 @@ cci task run enable_document_builder_toggle --org my-scratch
 cci task run enable_constraints_settings --org my-scratch
 cci task run configure_revenue_settings --org my-scratch
 cci task run configure_core_pricing_setup --org my-scratch
+cci task run configure_product_discovery_settings --org my-scratch
+cci task run enable_timeline --org my-scratch
 
 # As part of the full org build
 cci flow run prepare_rlm_org --org my-scratch
@@ -53,6 +57,12 @@ robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/configure_revenue_setti
 
 # Salesforce Pricing Setup (CorePricingSetup default Pricing Procedure)
 robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/configure_core_pricing_setup.robot
+
+# Product Discovery Settings (default catalog)
+robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/configure_product_discovery_settings.robot
+
+# Timeline feature toggle
+robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/enable_timeline.robot
 ```
 
 If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, log in within the configured wait (default 90s); the test will then reload the target Setup page.
@@ -97,6 +107,18 @@ If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, l
 |----------|-------------|
 | `PRICING_PROCEDURE` | Default pricing procedure name for CorePricingSetup (default: "RLM Revenue Management Default Pricing Procedure"). |
 
+### configure_product_discovery_settings.robot
+
+| Variable | Description |
+|----------|-------------|
+| `PRODUCT_DISCOVERY_URL` | Full Product Discovery Settings URL when not using `ORG_ALIAS`. |
+| `DEFAULT_CATALOG` | Default catalog to select (default: "QuantumBit Software"). |
+
+### enable_timeline.robot
+
+Uses `ORG_ALIAS` and opens `/lightning/setup/Timeline/home`. The Timeline
+toggle is one-way; once enabled, it cannot be disabled.
+
 ## Implementation Notes
 
 ### Shadow DOM Toggles
@@ -140,6 +162,8 @@ All tests detect current state before making changes:
 | `enable_constraints_settings` | `prepare_constraints` | Step 5 (when `constraints_data` is true) |
 | `configure_revenue_settings` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`) |
 | `configure_core_pricing_setup` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`, step 3) |
+| `configure_product_discovery_settings` | `prepare_rlm_org` | Step 25 (via `prepare_pricing_discovery`, step 2 when `qb=true`) |
+| `enable_timeline` | `prepare_billing` | Runs before billing UI metadata that references Timeline |
 
 ## Generated Output
 
