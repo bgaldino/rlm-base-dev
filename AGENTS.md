@@ -31,8 +31,10 @@ templates/             # Source-of-truth for UX assembly (step 27)
 datasets/sfdmu/        # SFDMU data plans (export.json + CSVs)
 datasets/context_plans/# Context definition plans
 datasets/constraints/  # Configurator constraint rule data
-datasets/bre/          # Business Rule Engine exports
 datasets/tooling/      # Tooling API metadata exports
+# Runtime-only output dirs (created by extract_* tasks; not tracked):
+#   datasets/bre/        — Business Rule Engine exports (extract_bre)
+#   datasets/dx/         — DX-format metadata snapshots (extract_dx_*)
 scripts/apex/          # Apex activation/deletion scripts
 scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
 scripts/cml/           # CML export/import/validation utilities

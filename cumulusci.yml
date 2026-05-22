@@ -2599,15 +2599,18 @@ tasks:
   #   AssetRateAdjustment, Rating Procedure (ExpressionSetDefinition), the
   #   Ratable Summary / Liable Summary part of the rating pipeline.
   #
-  # ROOT ARTICLE IDS NEED VERIFICATION before first discover run.
-  # Candidates that 404'd in 262: ind.usage_management.htm, ind.usage.htm
-  # To find the correct roots: from the Revenue Lifecycle Management parent
-  # (ind.revenue_lifecycle_management.htm), find the relevant sidebar links
-  # and copy the id= param from each. Then update root_article_id and
-  # article_id_prefix below before running:
-  #   cci task run snapshot_usage_help_262 -o mode discover
-  #   cci task run snapshot_rating_help_262 -o mode discover
-  # The discover phase fails loudly if the root ID is wrong.
+  # Root IDs for both wrappers were verified during the 2026-05-11 sidebar
+  # walk and the tasks have captured successfully — see the AREA SNAPSHOT
+  # VARIANTS header below for the verified inventory. Troubleshooting note
+  # for future releases: Help-portal article IDs are not stable across
+  # release reorgs. During 262 capture, the candidates ind.usage_management.htm
+  # and ind.usage.htm both 404'd before ind.um_usage_management.htm /
+  # ind.rm_rate_management.htm were confirmed as the real roots. If the
+  # discover phase fails on a future release, start from the Revenue
+  # Lifecycle Management parent (ind.revenue_lifecycle_management.htm),
+  # find the relevant sidebar links, and copy the id= param into
+  # root_article_id / article_id_prefix below. The discover phase fails
+  # loudly if the root ID is wrong.
 
   # =====================================================================
   # AREA SNAPSHOT VARIANTS — Salesforce Help portal, Summer '26 (262)

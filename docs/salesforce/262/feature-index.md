@@ -76,7 +76,7 @@ Per-area inventory of features in Summer '26 / Release 262, extracted from the S
 | **Advanced Approvals for Contracts** | New | Multi-stakeholder serial-approval workflows on Contracts (now leveraging the Approvals framework). | (TBD) |
 | **DocGen Client-Side LWC** | Enhanced | (per highlights — details TBD) | (TBD) |
 | **DocGen Context-DPE Transformations** | Enhanced | (per highlights — details TBD) | (TBD) |
-| **Dynamic Watermarks** | (per highlights) | Create watermarks using tokens. | (TBD) |
+| **Dynamic Watermarks** | Enhanced | Create watermarks using tokens (per release highlights — exact scope TBD). | (TBD) |
 
 ---
 
