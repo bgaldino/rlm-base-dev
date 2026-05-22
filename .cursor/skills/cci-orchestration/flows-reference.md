@@ -353,7 +353,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 6. **task** `assign_permission_sets`  `when: project_config.project__custom__personas`
    - `api_names`: `['RLM_QuantumBit_Sales_Representative']`
    - `user_alias`: `salesrep`
-7. **task** `assign_permission_sets`  `when: project_config.project__custom__personas`
+7. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__large_stx`
    - `api_names`: `['RLM_LargeSalesTransaction']`
    - `user_alias`: `salesrep`
 

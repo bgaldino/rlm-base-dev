@@ -305,11 +305,16 @@
         <field>Quote.ExpirationDate</field>
         <readable>true</readable>
     </fieldPermissions>
-    <fieldPermissions>
-        <editable>true</editable>
-        <field>Quote.IsLargeDeal</field>
-        <readable>true</readable>
-    </fieldPermissions>
+    <!--
+        Quote.IsLargeDeal is a STANDARD field gated by the Large Transaction
+        Scale pilot, which is only available in internal Salesforce org shapes
+        (not standard scratches). It is granted to the persona via the
+        RLM_LargeSalesTransaction PermissionSet (unpackaged/post_large_stx),
+        which is deployed AND assigned to the salesrep user only when both
+        feature flags `personas` and `large_stx` are on. Do NOT add it back
+        here — it would break deploy on every standard scratch (personas=true,
+        large_stx=false).
+    -->
     <fieldPermissions>
         <editable>true</editable>
         <field>Quote.PartnerAccountId</field>
