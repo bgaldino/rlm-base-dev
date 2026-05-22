@@ -26,7 +26,7 @@ sources:
 
 # Revenue Cloud — Transaction Management
 
-**Enablement Exercises** · Version 0.1 (draft), Spring '26
+**Enablement Exercises** · Version 0.3 (draft), Spring '26
 
 > **Branding note:** Salesforce has rebranded *Revenue Cloud* as *Agentforce Revenue Management* in Spring '26. This exercise series continues to use "Revenue Cloud" throughout 260 to match what users see in the product UI.
 
