@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**39 feature flags**, **78 configuration values**, **30 YAML anchors** under `project.custom`.
+**37 feature flags**, **77 configuration values**, **30 YAML anchors** under `project.custom`.
 
 ---
 
@@ -25,18 +25,15 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `clm` | `True` | 4 flow step(s) |
 | `clm_data` | `False` | 1 flow step(s) |
 | `commerce` | `False` | 2 flow step(s) |
-| `constraints` | `True` | 10 flow step(s) |
-| `constraints_data` | `True` | 6 flow step(s) |
-| `dev_ed` | `False` | 1 flow step(s) |
+| `constraints` | `True` | 9 flow step(s) |
+| `constraints_data` | `True` | 5 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
 | `guidedselling` | `False` | 2 flow step(s) |
-| `large_stx` | `True` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
-| `personas` | `True` | 7 flow step(s) |
-| `prm` | `True` | 8 flow step(s) |
+| `prm` | `True` | 9 flow step(s) |
 | `prm_exp_bundle` | `True` | 4 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 5 flow step(s) |
@@ -48,6 +45,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `rates` | `True` | 5 flow step(s) |
 | `rating` | `True` | 13 flow step(s) |
 | `refresh` | `False` | 11 flow step(s) |
+| `sharingsettings` | `False` | 1 flow step(s) |
 | `tax` | `True` | 4 flow step(s) |
 | `trial` | `False` | — |
 | `tso` | `False` | 15 flow step(s) |
@@ -150,8 +148,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 6 → `validate_cml`
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
-- `prepare_constraints` step 9 → `import_cml`
-- `prepare_constraints` step 10 → `manage_expression_sets`
+- `prepare_constraints` step 9 → `manage_expression_sets`
 
 ### `constraints_data` (default: `True`)
 
@@ -159,12 +156,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 6 → `validate_cml`
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
-- `prepare_constraints` step 9 → `import_cml`
-- `prepare_constraints` step 10 → `manage_expression_sets`
-
-### `dev_ed` (default: `False`)
-
-- `assign_feature_permission_sets` step 3 → `assign_permission_sets`
+- `prepare_constraints` step 9 → `manage_expression_sets`
 
 ### `docgen` (default: `True`)
 
@@ -200,11 +192,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
 - `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
 
-### `large_stx` (default: `True`)
-
-- `prepare_rlm_org` step 27 → `prepare_large_stx`
-- `prepare_large_stx` step 1 → `deploy_post_large_stx`
-
 ### `payments` (default: `True`)
 
 - `prepare_payments` step 1 → `create_payments_webhook`
@@ -214,16 +201,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_payments` step 5 → `publish_community`
 - `prepare_payments` step 6 → `deploy_post_payments_settings`
 
-### `personas` (default: `True`)
-
-- `prepare_rlm_org` step 28 → `prepare_personas`
-- `prepare_personas` step 1 → `set_personas_org_wide_defaults`
-- `prepare_personas` step 2 → `deploy_post_personas`
-- `prepare_personas` step 3 → `recalculate_personas_sales_rep_psg`
-- `prepare_personas` step 4 → `create_personas_sales_rep_user`
-- `prepare_personas` step 5 → `assign_personas_sales_rep_psg`
-- `prepare_personas` step 6 → `assign_permission_sets`
-
 ### `prm` (default: `True`)
 
 - `prepare_prm` step 1 → `create_partner_central`
@@ -231,16 +208,17 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 3 → `deploy_post_prm`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 6 → `publish_community`
-- `prepare_prm` step 7 → `assign_permission_sets`
-- `prepare_prm` step 8 → `insert_quantumbit_prm_data`
-- `prepare_prm` step 9 → `manage_context_definition`
+- `prepare_prm` step 7 → `deploy_sharing_rules`
+- `prepare_prm` step 8 → `assign_permission_sets`
+- `prepare_prm` step 9 → `insert_quantumbit_prm_data`
+- `prepare_prm` step 10 → `manage_context_definition`
 
 ### `prm_exp_bundle` (default: `True`)
 
 - `prepare_prm` step 2 → `patch_network_email_for_deploy`
 - `prepare_prm` step 3 → `deploy_post_prm`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
-- `prepare_prm` step 7 → `assign_permission_sets`
+- `prepare_prm` step 8 → `assign_permission_sets`
 
 ### `procedureplans` (default: `True`)
 
@@ -269,7 +247,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_dro` step 2 → `insert_qb_dro_data`
 - `prepare_billing` step 2 → `insert_billing_data`
 - `prepare_billing` step 4 → `create_sequence_policies`
-- `prepare_prm` step 8 → `insert_quantumbit_prm_data`
+- `prepare_prm` step 9 → `insert_quantumbit_prm_data`
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_rating` step 1 → `delete_qb_rates_data`
 - `prepare_rating` step 2 → `delete_qb_rating_data`
@@ -278,10 +256,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 6 → `validate_cml`
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
-- `prepare_constraints` step 9 → `import_cml`
-- `prepare_constraints` step 10 → `manage_expression_sets`
+- `prepare_constraints` step 9 → `manage_expression_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
 - `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
+- `prepare_pricing_discovery` step 2 → `configure_product_discovery_settings`
 
 ### `quantumbit` (default: `True`)
 
@@ -340,6 +318,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_rating` step 5 → `insert_qb_rates_data`
 - `prepare_rating` step 6 → `insert_q3_rates_data`
 
+### `sharingsettings` (default: `False`)
+
+- `prepare_prm` step 7 → `deploy_sharing_rules`
+
 ### `tax` (default: `True`)
 
 - `prepare_tax` step 1 → `create_tax_engine`
@@ -361,13 +343,13 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 2 → `patch_network_email_for_deploy`
 - `prepare_prm` step 3 → `deploy_post_prm`
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
-- `prepare_prm` step 7 → `assign_permission_sets`
+- `prepare_prm` step 8 → `assign_permission_sets`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 29 → `prepare_ux`
+- `prepare_rlm_org` step 27 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
 
@@ -443,7 +425,6 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_constraints_product_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-product` |
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
 | `quantumbit_guidedselling_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling` |
-| `quantumbit_pcm_constraints_data_dir` | `datasets/constraints/qb/QuantumBitPCM` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |
 | `quantumbit_prm_dataset` | `datasets/sfdmu/qb/en-US/qb-prm` |
 | `quantumbit_product_dataset` | `datasets/sfdmu/qb/en-US/qb-pcm` |

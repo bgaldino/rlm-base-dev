@@ -10,7 +10,7 @@ Use this skill when writing, modifying, or debugging Robot Framework tests.
 4. Use `composed: true` on dispatched events to cross shadow DOM boundaries.
 5. Use `self.org_config.username` in Python wrappers for `sf org open -o`.
 6. Gate E2E tests with `Skip If "${QB}" == "false"` on the relevant feature flag.
-7. For Setup UI + shadow DOM: read `setup-ui-shadow-dom.md` before adding new keywords (LWS, `composed`, Lightning DOM traversal).
+7. For Setup UI + shadow DOM vs iframe: read `setup-ui-shadow-dom.md` before adding new keywords (LWS, `composed`, VF frames).
 
 ## DO NOT
 
@@ -36,6 +36,8 @@ Use this skill when writing, modifying, or debugging Robot Framework tests.
 | Robot File | What | Why Robot? |
 |-----------|------|-----------|
 | `configure_revenue_settings` | Pricing Procedure, Usage Rating, Instant Pricing, flows | Shadow DOM controls, no API |
+| `configure_core_pricing_setup` | Default Pricing Procedure on CorePricingSetup page | Shadow DOM combobox, no API |
+| `configure_product_discovery_settings` | Default Catalog on Product Discovery Settings page | Shadow DOM combobox, no API |
 | `enable_analytics` | CRM Analytics + Data Sync toggle | VF iframe, no API |
 | `enable_document_builder` | Document Builder toggle | Shadow DOM, no API |
 | `enable_constraints_settings` | Transaction Type, Asset Context, Constraints Engine | Shadow DOM, no API |
