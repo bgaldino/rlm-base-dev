@@ -61,24 +61,37 @@ Set Default Catalog
     ...    option text read from lightning-base-combobox-item shadow roots). Clears any existing
     ...    selection first if a different catalog is already selected. Auto-saves on selection.
     ...
-    ...    Uses Wait Until Keyword Succeeds to retry when the combobox is not yet rendered —
-    ...    reconfigure_pricing_discovery triggers background processing that delays LWC render.
+    ...    Wraps the entire open+select cycle in Wait Until Keyword Succeeds so that
+    ...    transient mid-render LWC states retry the whole sequence — not just the
+    ...    state check. The previous structure failed terminally on `not_found:[]`
+    ...    (combobox opened but options hadn't loaded yet because the LWC's parent
+    ...    was still server-fetching). Each retry now closes any open dropdown
+    ...    (Escape) before re-checking state, so the second pass either sees the
+    ...    pill (already_set) or gets a freshly-clicked combobox with populated
+    ...    options.
     [Arguments]    ${target_value}
-    # Step 1: check current state; clear wrong selection; open dropdown (retry on combobox_not_found)
-    ${open_result}=    Wait Until Keyword Succeeds    30s    3s
-    ...    _Open Default Catalog Combobox    ${target_value}
+    Wait Until Keyword Succeeds    90s    5s    _Try Set Default Catalog    ${target_value}
+
+_Try Set Default Catalog
+    [Documentation]    One attempt at configuring the Default Catalog. Returns
+    ...    normally on success or already_set; fails (triggering the outer
+    ...    Wait Until Keyword Succeeds retry) on any transient mid-render state.
+    ...    Closes any open dropdown with Escape before the outer retry re-invokes
+    ...    so the next attempt starts from a clean state.
+    [Arguments]    ${target_value}
+    # Step 1: check current state; clear wrong selection; open dropdown
+    ${open_result}=    _Open Default Catalog Combobox    ${target_value}
     IF    "${open_result}" == "already_set"
         Log    Default Catalog already set to "${target_value}". No change needed.
         RETURN
     END
-    # If a selection was cleared, wait for the combobox to reappear then re-open it
-    # with retry — the pill-removal re-render is asynchronous and may exceed the initial sleep.
+    # If a selection was cleared, give the pill-removal re-render a beat then re-open
     IF    "${open_result}" == "cleared"
-        Sleep    2s    reason=Allow pill removal to start before polling for combobox
-        ${open_result}=    Wait Until Keyword Succeeds    30s    3s
-        ...    _Open Default Catalog Dropdown
+        Sleep    2s    reason=Allow pill removal to settle before re-opening
+        ${open_result}=    _Open Default Catalog Dropdown
     END
-    Should Be Equal    ${open_result}    opened    msg=Could not prepare/open Default Catalog combobox: ${open_result}
+    Should Be Equal    ${open_result}    opened
+    ...    msg=Could not prepare/open Default Catalog combobox: ${open_result}
     Sleep    1s    reason=Allow dropdown options to populate
     # Step 2: click the matching option (text is inside each option's shadow root)
     ${select_result}=    Execute JavaScript
@@ -96,10 +109,26 @@ Set Default Catalog
     ...        return 'not_found:[' + opts.map(function(o){return o.shadowRoot?o.shadowRoot.textContent.trim():'?';}).join(',') + ']';
     ...    })(arguments[0])
     ...    ARGUMENTS    ${target_value}
-    Should Be Equal    ${select_result}    clicked
-    ...    msg=Option "${target_value}" not found in dropdown. ${select_result}
-    Sleep    2s    reason=Allow selection to auto-save
-    Log    Default Catalog set to "${target_value}".
+    IF    "${select_result}" == "clicked"
+        Sleep    2s    reason=Allow selection to auto-save
+        Log    Default Catalog set to "${target_value}".
+        RETURN
+    END
+    # Empty / unmatched dropdown — close it (Esc) and let the outer retry try again.
+    # Most commonly empty: LWC parent's options-fetch hasn't completed yet, so the
+    # opened dropdown rendered zero options. By the next retry the parent should
+    # have either fully loaded (giving us a populated dropdown OR already_set pill).
+    _Close Default Catalog Dropdown
+    Fail    msg=Default Catalog dropdown returned "${select_result}"; closing and retrying open+select cycle...
+
+_Close Default Catalog Dropdown
+    [Documentation]    Dispatches Escape on document.body to close any open
+    ...    lightning-combobox dropdown. Used between retry attempts in
+    ...    _Try Set Default Catalog so a stale-open dropdown doesn't interfere
+    ...    with the next state check.
+    Execute JavaScript
+    ...    document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true}));
+    Sleep    0.5s    reason=Allow dropdown close animation to complete
 
 _Read Default Catalog State
     [Documentation]    Reads the current selected catalog text from [data-id="selectedCatalog"]
