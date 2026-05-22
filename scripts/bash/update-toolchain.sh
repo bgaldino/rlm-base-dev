@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+# update-toolchain.sh — refresh the local dev toolchain for rlm-base-dev.
+#
+# Updates, in order:
+#   1. Homebrew packages (direnv, nvm, pyenv, pipx, etc.)
+#   2. Python — latest patch in the 3.13 line (via pyenv)
+#   3. Node — latest LTS (via nvm), carrying npm globals forward
+#   4. sf CLI — npm-installed under the active nvm Node
+#   5. CCI — pipx (reinstall is required after any Python patch bump)
+#   6. sf plugins (SFDMU, etc.)
+#   7. cci task run validate_setup
+#
+# Designed to be idempotent. Re-run after any tool emits a "new version" notice.
+# Major-line pins live in this script (PY_LINE, NODE_LINE) — edit them to bump.
+
+set -euo pipefail
+
+PY_LINE="3.13"
+NODE_LINE="lts/*"
+
+# Ensure pipx-managed bins (cci, snowfakery, etc.) are findable. pipx
+# ensurepath only updates shell rc files for future shells; we need PATH in
+# *this* shell so the final `cci task run validate_setup` works from a
+# minimal env. (Note: sf CLI lives under nvm's node bin, not here, and the
+# sfdmu plugin lives inside sf's plugin tree — neither passes through pipx.)
+export PATH="$HOME/.local/bin:$PATH"
+
+log()  { printf '\n\033[1;34m[update]\033[0m %s\n' "$*"; }
+warn() { printf '\n\033[1;33m[warn]\033[0m  %s\n' "$*" >&2; }
+die()  { printf '\n\033[1;31m[fail]\033[0m  %s\n' "$*" >&2; exit 1; }
+
+# ── 1. Homebrew ─────────────────────────────────────────────────────────────
+command -v brew >/dev/null || die "brew not found — install Homebrew from https://brew.sh first"
+log "Homebrew: update + upgrade"
+brew update
+brew upgrade
+
+# ── 2. Python (pyenv) ───────────────────────────────────────────────────────
+command -v pyenv >/dev/null || die "pyenv not found"
+
+LATEST_KNOWN="$(pyenv latest -k "$PY_LINE" 2>/dev/null || true)"
+LATEST_INSTALLED="$(pyenv latest "$PY_LINE" 2>/dev/null || true)"
+[ -n "$LATEST_KNOWN" ] || die "pyenv can't resolve latest Python $PY_LINE — run 'brew upgrade pyenv' to refresh python-build definitions"
+
+log "Python: latest known $PY_LINE = $LATEST_KNOWN ; installed = ${LATEST_INSTALLED:-none}"
+if [ "$LATEST_KNOWN" != "$LATEST_INSTALLED" ]; then
+  log "Installing Python $LATEST_KNOWN"
+  pyenv install --skip-existing "$LATEST_KNOWN"
+  PY_UPGRADED=1
+else
+  log "Python $LATEST_INSTALLED already latest"
+  PY_UPGRADED=0
+fi
+PY_TARGET="$(pyenv latest "$PY_LINE")"
+export PYENV_VERSION="$PY_TARGET"
+
+# ── 3. Node (nvm) ───────────────────────────────────────────────────────────
+export NVM_DIR="$HOME/.nvm"
+NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
+[ -n "$NVM_PREFIX" ] && [ -s "$NVM_PREFIX/nvm.sh" ] || die "nvm.sh not found via 'brew --prefix nvm' — is nvm installed?"
+# shellcheck disable=SC1091
+. "$NVM_PREFIX/nvm.sh"
+
+OLD_NODE="$(nvm current 2>/dev/null || echo none)"
+log "Node: installing $NODE_LINE (current: $OLD_NODE)"
+# Drive install from NODE_LINE so changes at the top of this script take effect.
+# `lts/*` resolves to the active LTS line; explicit majors (e.g. `24`) also work.
+# --reinstall-packages-from=current carries `sf` and other globals forward.
+nvm install "$NODE_LINE" --reinstall-packages-from=current --latest-npm
+nvm alias default "$NODE_LINE" >/dev/null
+NEW_NODE="$(nvm current)"
+log "Node: now on $NEW_NODE"
+
+# ── 4. sf CLI ───────────────────────────────────────────────────────────────
+log "sf CLI: update channel"
+if command -v sf >/dev/null 2>&1; then
+  sf update || warn "sf update failed — try: npm install -g @salesforce/cli@latest"
+else
+  warn "sf not found on PATH for $NEW_NODE — installing"
+  npm install -g @salesforce/cli@latest
+fi
+
+# ── 5. CCI (pipx) ───────────────────────────────────────────────────────────
+# Re-bootstrap pipx under $PY_TARGET first. A Python patch bump can break the
+# existing pipx script's shebang (it pointed at the old patch's python3, which
+# may have been uninstalled). `command -v pipx` would still succeed in that
+# case but invocations would fail with a broken interpreter. Reinstalling pipx
+# under the current target Python (idempotent) repairs this proactively.
+PY_TARGET_BIN="$(pyenv prefix "$PY_TARGET")/bin/python3"
+[ -x "$PY_TARGET_BIN" ] || die "Target Python not found: $PY_TARGET_BIN"
+log "pipx: refresh under Python $PY_TARGET"
+"$PY_TARGET_BIN" -m pip install --user --upgrade pipx
+"$PY_TARGET_BIN" -m pipx ensurepath >/dev/null 2>&1 || true
+
+# Pin pipx invocation to the target Python so subsequent calls aren't subject
+# to PATH ordering surprises or shebang breakage from previous patch installs.
+# We never invoke bare `pipx` after this point, so no PATH check is needed —
+# this works even from a minimal env where ~/.local/bin isn't yet on PATH.
+PIPX=( "$PY_TARGET_BIN" -m pipx )
+
+cci_reinstall() {
+  log "CCI: reinstalling under Python $PY_TARGET"
+  "${PIPX[@]}" install --force cumulusci --python "$PY_TARGET_BIN"
+}
+
+if [ "$PY_UPGRADED" -eq 1 ] || ! "${PIPX[@]}" list --short 2>/dev/null | grep -q '^cumulusci'; then
+  cci_reinstall
+else
+  log "CCI: upgrade in place"
+  if ! "${PIPX[@]}" upgrade cumulusci; then
+    warn "pipx upgrade failed — reinstalling"
+    cci_reinstall
+  fi
+fi
+
+# Modern CCI 4.8+ with snowfakery 4.x requires setuptools>=75.4.
+# Historical `<71` pin (older docs) is incompatible — see README ~line 219.
+# Force-inject to repair any stale legacy install.
+# Note: CI (.github/workflows/prepare-rlm-org.yml) adds `<77` because it's
+# pinned to CCI 4.8.1; setuptools 77+ broke transitive deps on that version.
+# CCI 4.10+ (what this script installs) works with setuptools 77+, so we
+# don't enforce an upper bound here.
+log "CCI: ensuring setuptools>=75.4"
+"${PIPX[@]}" inject --force cumulusci "setuptools>=75.4"
+
+# ── 6. sf plugins ───────────────────────────────────────────────────────────
+log "sf plugins: update"
+sf plugins update || warn "sf plugins update failed"
+
+# ── 7. Verify ───────────────────────────────────────────────────────────────
+log "Running validate_setup"
+cci task run validate_setup
+
+log "Done."
