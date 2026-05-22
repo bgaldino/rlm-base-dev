@@ -41,7 +41,10 @@ The catalog has **two complementary artifact types**, both authored in this repo
 ## DO NOT
 
 1. **DO NOT edit `docs/enablement/{248,252,254,256,258}/`** — frozen historical artifacts.
-2. **DO NOT** edit per-release extract files (`docs/enablement/260/...`) directly when the same content lives in master. Master is the source; extracts are derivatives. Edit master, regenerate.
+2. **DO NOT** edit per-release extracts (`docs/enablement/260/...`) and silently diverge from master.
+   - **Intended steady state (once render task ships):** master is the only editable source — extracts are regenerated, never hand-edited.
+   - **Current reality (until then):** if a fix is faster to apply directly to the extract (typo, version-header sync, frontmatter normalization), edit the extract **and** mirror the same change back to the corresponding master file in the same PR. The “Authoring workflow → Step 5 (Carry-back to master)” section enforces this.
+   - In either era, never let an extract drift from master without explicit, recorded justification.
 3. **DO NOT** commit confidential internal decks (Solution Overview is marked `CONFIDENTIAL - Internal Only`) without confirming distribution rights. They live in `docs/salesforce/{version}/` for internal authoring use; they should not be linked from public-facing exercise PDFs.
 4. **DO NOT** invent feature details. If the source material doesn't have configuration steps for a feature, mark `[NEEDS REVIEW]` and ask — don't fill gaps with plausible-sounding guesses.
 5. **DO NOT** invent customer or product names in walkthroughs. All data references must come from QuantumBit (`datasets/sfdmu/qb/`) and `scratch_data` (customer accounts).

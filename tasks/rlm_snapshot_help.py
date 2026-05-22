@@ -218,9 +218,30 @@ ARTICLE_BODY_JS = """
 
 
 PLAYWRIGHT_INSTALL_HINT = """
-Playwright is required for this task. Install with:
+Playwright is required for this task. Install it into the SAME Python
+environment that runs CCI — a plain `pip install playwright` only works
+if CCI was installed via `pip` in that environment.
+
+For the recommended pipx-installed CCI (per the project README, which
+uses the standard ~/.local/pipx/venvs/cumulusci/ path):
+
+    pipx inject cumulusci playwright
+    ~/.local/pipx/venvs/cumulusci/bin/python -m playwright install chromium
+
+On Windows the equivalent path is
+%USERPROFILE%\\pipx\\venvs\\cumulusci\\Scripts\\python.exe. If your pipx
+install lives somewhere non-standard, `pipx environment --value
+PIPX_LOCAL_VENVS` prints the actual base directory containing the
+cumulusci venv.
+
+For a pip-installed CCI in the active venv:
+
     pip install playwright
-    playwright install chromium
+    python -m playwright install chromium
+
+See the `snapshot_*_help_*` task comment block in `cumulusci.yml` for the
+canonical, copy-pasteable install instructions kept in lockstep with this
+hint.
 """
 
 
