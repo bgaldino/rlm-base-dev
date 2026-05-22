@@ -52,7 +52,7 @@ Understanding where truth lives prevents duplication drift.
 | Layer | Location | How to keep current |
 | ----- | -------- | ------------------- |
 | Generated CCI refs | `.cursor/skills/cci-orchestration/tasks-reference.md`, `.cursor/skills/cci-orchestration/flows-reference.md`, `.cursor/skills/cci-orchestration/feature-flags.md` | `python scripts/ai/generate_cci_reference.py` |
-| SFDMU plan READMEs | `datasets/sfdmu/**/README.md` (plan directory README next to `export.json`) | Manual — must match `export.json` |
+| SFDMU plan READMEs | `datasets/sfdmu/**/README.md` (e.g. `datasets/sfdmu/qb/en-US/*/README.md`, `datasets/sfdmu/mfg/README.md`, `datasets/sfdmu/procedure-plans/README.md`) | Manual — must match the plan's `export.json` |
 | Agent instructions | `AGENTS.md` (`CLAUDE.md` is a symlink) | Single source; edit `AGENTS.md` only |
 | Human setup / reference | `README.md` | Manual — task tables, flag tables, troubleshooting |
 | Skill files | `.cursor/skills/*/SKILL.md` + sub-files | Manual — cross-references to task names, paths |
@@ -86,3 +86,7 @@ git add .cursor/skills/cci-orchestration/tasks-reference.md \
 - **SFDMU Data Plans** — `.cursor/skills/sfdmu-data-plans/SKILL.md`
 - **Repository Integration** — `.cursor/skills/repo-integration/SKILL.md`
 - **Robot Testing** — `.cursor/skills/robot-testing/SKILL.md`
+- **Release Enablement** — `.cursor/skills/release-enablement/SKILL.md`
+- **Revenue Cloud Docs** — `.cursor/skills/revenue-cloud-docs/SKILL.md`
+- **Revenue Cloud Data Model** — `.cursor/skills/revenue-cloud-data-model/SKILL.md`
+- **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`
