@@ -124,7 +124,7 @@ project:
     approvals: true           # Approvals
     tax: true                 # Tax engine
     calmdelete: true          # CALM Delete
-    large_stx: true          # Large Sales Transaction
+    large_stx: false          # Large Sales Transaction
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────
     dro: true                 # Dynamic Revenue Orchestration
@@ -3676,8 +3676,13 @@ flows:
           api_names: *ps_persona_sales_rep
           user_alias: salesrep
       7:
+        # Assign the large_stx PermissionSet to the salesrep user only when
+        # large_stx is also on — RLM_LargeSalesTransaction lives in
+        # unpackaged/post_large_stx and is only deployed when large_stx=true,
+        # so assigning it on a personas=true / large_stx=false build would
+        # fail trying to reference a PermissionSet that wasn't deployed.
         task: assign_permission_sets
-        when: project_config.project__custom__personas
+        when: project_config.project__custom__personas and project_config.project__custom__large_stx
         options:
           api_names: *ps_large_stx
           user_alias: salesrep
