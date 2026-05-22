@@ -84,15 +84,19 @@ Set Default Catalog
         ${attempt}=    Evaluate    ${attempt} + 1
         ${status}    ${error}=    Run Keyword And Ignore Error    _Try Set Default Catalog    ${target_value}
         IF    "${status}" == "PASS"    RETURN
-        # Terminal sentinel: `not_found:[<non-empty-non-?-content>]` — options are
-        # loaded and the target is genuinely absent. The regex below requires at
-        # least one char between the brackets that is neither `?` nor `]`, so
-        # `not_found:[]`, `not_found:[?]`, and `not_found:[Cat,?]` all fall through
-        # to the retry path (transient render).
-        ${terminal}=    Run Keyword And Return Status
-        ...    Should Match Regexp    ${error}    not_found:\\[[^?\\]]+\\]
-        IF    ${terminal}
-            Fail    msg=Default Catalog "${target_value}" not present in visible options after ${attempt} attempt(s). ${error} — verify QB PCM data load (qb-pcm plan) completed and the catalog name matches exactly.
+        # Extract the raw `not_found:[...]` sentinel from _Try Set Default Catalog's
+        # Fail message. A non-empty match list whose contents include any char other
+        # than `?` or `]` means the dropdown options finished loading and the target
+        # is genuinely absent — terminal. `not_found:[]`, `not_found:[?]`, and mixed
+        # `not_found:[Cat,?]` cases yield no match and fall through to the retry
+        # path (transient render). Reformatting the failure message from the bare
+        # sentinel (rather than interpolating ${error}) avoids leaking the
+        # "closing and retrying open+select cycle..." wording from the per-attempt
+        # Fail message into a context where we are explicitly NOT retrying.
+        ${terminal_match}=    Get Regexp Matches    ${error}    not_found:\\[[^?\\]]+\\]
+        IF    ${terminal_match}
+            ${sentinel}=    Set Variable    ${terminal_match}[0]
+            Fail    msg=Default Catalog "${target_value}" not present in dropdown after ${attempt} attempt(s). Visible options: ${sentinel}. Verify QB PCM data load (qb-pcm plan) completed and the catalog name matches exactly.
         END
         ${now}=    Evaluate    time.time()    modules=time
         IF    ${now} >= ${deadline}
