@@ -143,7 +143,7 @@ The Spring '26 Price Propagation enhancements deliver:
 3. In the Pricing Setting element, under **Propagation Setting**, select **Configure Propagation Rules**.
 4. In the Configure Propagation Table window, choose:
    - **Configure a new table** — define nodes, joins, and formulas from scratch, OR
-   - **Select a template** — *Map sales SalesTransactionItem to SalesTransactionGroup*, which pre-maps SalesTransactionItem records to SalesTransactionGroup using the predefined Sales Transaction Context.
+   - **Select a template** — *Map SalesTransactionItem to SalesTransactionGroup*, which pre-maps SalesTransactionItem records to SalesTransactionGroup using the predefined Sales Transaction Context.
 5. **Add Nodes** — add `SalesTransactionItem` and `SalesTransactionGroup` with their attributes (e.g., `ItemDiscountPercentage`, `ListPrice`, `ItemUnitCost__std`, `ItemNetTotalPrice`, `ItemTotalMarginAmount__std`, `SalesTransactionItemGroup` from items; `GroupDiscount__std`, `SummarySubtotal`, `GroupTotalMarginAmount__std`, `GroupSource` from groups).
 6. **Join Nodes** — define parent-child relationships:
    - Mapping Type: `Parent-Child`

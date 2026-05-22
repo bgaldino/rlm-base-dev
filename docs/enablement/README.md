@@ -60,11 +60,11 @@ For the canonical reference of what's in QB orgs by default — including bundle
 | **[`master/`](master/)** | The two-tier model's source of truth — master exercises + scenario reference | 🚧 **Pilot** (PCM + Pricing drafted; 8 areas pending) |
 | **[`260/`](260/)** | Per-release extracts for 260 (Spring '26, prior GA reference on the 262 branch) | ✅ All 10 area drafts complete |
 | `262/` (planned) | Per-release extracts for 262 (Summer '26, current development cycle on the 262 branch) | ⏳ Pending — drafted as 262 stabilizes (see *Branch context* above) |
-| **[`248/`](248/), [`252/`](252/), [`254/`](254/), [`256/`](256/), [`258/`](258/)** | **Read-only historical** — prior published exercise PDFs | Frozen reference. Never edit. |
+| `248/`, `252/`, `254/`, `256/`, `258/` *(not in repo)* | **Read-only historical labels** — used in exercise files to point at prior published exercise PDFs (e.g. ``docs/enablement/258/Salesforce Pricing - Winter '26 Revenue Cloud - External.pdf``). The PDFs themselves live outside git (see the *External dependencies* table below); these path labels exist only as textual references in carry-forward sections. | Frozen labels. Never created in-repo. |
 | **[`coverage-matrix.md`](coverage-matrix.md)** | Cross-release inventory of what's drafted where | Keep current as drafts complete |
 | **[`_template/`](_template/)** | Per-release-extract scaffold template | Stable |
 
-The historical PDFs (248–258) are not in git but are referenced from carry-forward sections in master exercises. If you need them for review, they were uploaded earlier in the authoring process — contact Brian.
+The historical PDFs (248–258) are not in git but are referenced by `docs/enablement/{release}/{filename}.pdf` path labels in carry-forward sections of master exercises and the 260 per-area extracts. Those labels are intentionally non-clickable — they identify the source PDF, not a real directory in this checkout. If you need the PDFs for review, they were uploaded earlier in the authoring process — contact Brian.
 
 External dependencies (also gitignored / external):
 
