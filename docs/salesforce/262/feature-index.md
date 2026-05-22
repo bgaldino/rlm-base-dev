@@ -1,6 +1,6 @@
 # Release 262 (Summer '26) — Feature Index
 
-Per-area inventory of features in Summer '26 / Release 262, extracted from the Solution Overview decks, the public preview release notes, and the captured Salesforce Help portal snapshot. **Status: Active — Summer '26 in development.** Help snapshot captured 2026-05-11 / 2026-05-12 across all 10 RC functional areas (838 articles, ~4.3 MB markdown — see [`help/`](help/)).
+Per-area inventory of features in Summer '26 / Release 262, extracted from the Solution Overview decks, the public preview release notes, and the captured Salesforce Help portal snapshot. **Status: Preview — Summer '26 in development (not yet GA).** Help snapshot captured 2026-05-11 / 2026-05-12 across all 10 RC functional areas (838 articles, ~4.3 MB markdown — see [`help/`](help/)).
 
 > **Preview status reminder:** Per Salesforce Release Notes preamble — "Features described in this document don't become generally available until the latest general availability date that Salesforce announces for this release. Before then, and where features are noted as beta, pilot, or developer preview, we can't guarantee general availability within any particular time frame or at all."
 

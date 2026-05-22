@@ -50,12 +50,21 @@ This project uses pyenv + a project-local `.venv` and pipx-installed CumulusCI
 whichever Python environment runs the task — CCI's interpreter, not the
 calling shell's.
 
-If CCI is installed via pipx (the README-recommended path):
+If CCI is installed via pipx (the README-recommended path, which uses
+the standard ~/.local/pipx/venvs/cumulusci/ location):
 
     pipx inject cumulusci playwright
     # Playwright isn't exposed as a pipx app by default, so run its CLI via
     # the cumulusci venv's Python directly:
-    $(pipx environment --value PIPX_LOCAL_VENVS)/cumulusci/bin/python -m playwright install chromium
+    ~/.local/pipx/venvs/cumulusci/bin/python -m playwright install chromium
+
+On Windows the equivalent path is
+%USERPROFILE%\\pipx\\venvs\\cumulusci\\Scripts\\python.exe.
+
+If your pipx install lives somewhere non-standard (custom PIPX_HOME, etc.),
+`pipx environment --value PIPX_LOCAL_VENVS` returns the base directory
+that contains the cumulusci venv; substitute it for `~/.local/pipx/venvs`
+above.
 
     # Or, if you'd rather have `playwright` on your PATH:
     #   pipx inject cumulusci playwright --include-apps --force
@@ -66,7 +75,7 @@ venv (the alternative path in the README):
 
     source .venv/bin/activate
     python -m pip install playwright
-    playwright install chromium
+    python -m playwright install chromium
 
 The browser runs headless by default. Set headless=false to watch it work.
 
