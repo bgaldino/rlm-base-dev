@@ -187,7 +187,7 @@ The Billing Solution Overview deck includes a comparison matrix:
 
 ## Items still pending master-PDF arrival
 
-When the 262 master Help compendium becomes available (expected ~mid-May 2026), use it to fill in:
+When the 262 master Help compendium PDF becomes available (not yet published by Salesforce as of 2026-05-22), use it to fill in:
 
 - All `(TBD)` feature descriptions and configuration steps
 - Demo URLs for every feature row
@@ -196,3 +196,5 @@ When the 262 master Help compendium becomes available (expected ~mid-May 2026), 
 - Detailed configuration for items currently described only by their high-level highlight
 
 The structure of this index is set; the gaps are content-only. Once the master arrives, this becomes the authoring input for `docs/enablement/262/` exercises.
+
+> **Partial substitute available now:** the per-article Help snapshot at `docs/salesforce/262/help/articles/` (838 articles, captured 2026-05-11 / 2026-05-12 — see `.cursor/skills/revenue-cloud-docs/SKILL.md`) covers most of what the compendium PDF will eventually consolidate. Where a `(TBD)` row in this index has an obvious matching Help article, agents grounding new content should cite the snapshot article rather than waiting for the PDF.

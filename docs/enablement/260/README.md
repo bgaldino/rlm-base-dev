@@ -26,7 +26,7 @@ Each functional area listed in the journey map gets one Markdown source-of-truth
 
 1. Use the template at [`../_template/exercise-template.md`](../_template/exercise-template.md) for every new file.
 2. Frontmatter is the source of truth — auto-gen reads it for cover page, headers, footers, and version stamping.
-3. Reference data **by name** from the QuantumBit catalog (`datasets/sfdmu/qb/`), not the legacy `scratch_data` plan.
+3. Reference **product / catalog records** (products, SKUs, bundles, CML constraint models, attribute definitions, pricing entries) **by name** from the QuantumBit catalog (`datasets/sfdmu/qb/`, `datasets/constraints/qb/`) — do **not** invent product data or pull it from `scratch_data`. **Customer accounts and contacts**, by contrast, come from `scratch_data` (Infinitech is the primary, Global Media is the secondary, Robot Resellers is the partner channel — see rule 6 in `.cursor/skills/release-enablement/SKILL.md`). This split keeps QB as the canonical *catalog* and `scratch_data` as the canonical *customer* dataset.
 4. Each release exercise covers **only net-new features for that release**. Stable features carry forward by reference (the "carry-forward" callout in the Release Overview points readers to prior-release exercise PDFs in `docs/enablement/258/` and earlier).
 5. Historical artifacts in `docs/enablement/{248, 252, 254, 256, 258}/` are **read-only**. Do not edit them.
 
