@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**39 feature flags**, **78 configuration values**, **30 YAML anchors** under `project.custom`.
+**39 feature flags**, **78 configuration values**, **32 YAML anchors** under `project.custom`.
 
 ---
 
@@ -27,30 +27,30 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `commerce` | `False` | 2 flow step(s) |
 | `constraints` | `True` | 10 flow step(s) |
 | `constraints_data` | `True` | 6 flow step(s) |
-| `dev_ed` | `False` | 1 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
 | `guidedselling` | `False` | 2 flow step(s) |
-| `large_stx` | `True` | 2 flow step(s) |
+| `large_stx` | `True` | 3 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
-| `personas` | `True` | 7 flow step(s) |
+| `personas` | `True` | 8 flow step(s) |
 | `prm` | `True` | 8 flow step(s) |
-| `prm_exp_bundle` | `True` | 4 flow step(s) |
+| `prm_exp_bundle` | `False` | 4 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 5 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
-| `qb` | `True` | 20 flow step(s) |
+| `qb` | `True` | 21 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
 | `ramps` | `True` | 3 flow step(s) |
 | `rates` | `True` | 5 flow step(s) |
 | `rating` | `True` | 13 flow step(s) |
 | `refresh` | `False` | 11 flow step(s) |
+| `sample_data` | `True` | 1 flow step(s) |
 | `tax` | `True` | 4 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 15 flow step(s) |
+| `tso` | `False` | 14 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
 
 ---
@@ -162,10 +162,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 9 → `import_cml`
 - `prepare_constraints` step 10 → `manage_expression_sets`
 
-### `dev_ed` (default: `False`)
-
-- `assign_feature_permission_sets` step 3 → `assign_permission_sets`
-
 ### `docgen` (default: `True`)
 
 - `prepare_docgen` step 1 → `create_docgen_library`
@@ -204,6 +200,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 - `prepare_rlm_org` step 27 → `prepare_large_stx`
 - `prepare_large_stx` step 1 → `deploy_post_large_stx`
+- `prepare_large_stx` step 2 → `assign_permission_sets`
 
 ### `payments` (default: `True`)
 
@@ -223,6 +220,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_personas` step 4 → `create_personas_sales_rep_user`
 - `prepare_personas` step 5 → `assign_personas_sales_rep_psg`
 - `prepare_personas` step 6 → `assign_permission_sets`
+- `prepare_personas` step 7 → `assign_permission_sets`
 
 ### `prm` (default: `True`)
 
@@ -235,7 +233,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 8 → `insert_quantumbit_prm_data`
 - `prepare_prm` step 9 → `manage_context_definition`
 
-### `prm_exp_bundle` (default: `True`)
+### `prm_exp_bundle` (default: `False`)
 
 - `prepare_prm` step 2 → `patch_network_email_for_deploy`
 - `prepare_prm` step 3 → `deploy_post_prm`
@@ -282,6 +280,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 10 → `manage_expression_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
 - `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
+- `prepare_pricing_discovery` step 2 → `configure_product_discovery_settings`
 
 ### `quantumbit` (default: `True`)
 
@@ -340,6 +339,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_rating` step 5 → `insert_qb_rates_data`
 - `prepare_rating` step 6 → `insert_q3_rates_data`
 
+### `sample_data` (default: `True`)
+
+- `prepare_scratch` step 1 → `insert_scratch_data`
+
 ### `tax` (default: `True`)
 
 - `prepare_tax` step 1 → `create_tax_engine`
@@ -353,7 +356,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_core` step 11 → `assign_permission_set_groups_tolerant`
 - `assign_feature_psls` step 4 → `assign_permission_set_licenses`
 - `assign_feature_permission_sets` step 1 → `assign_permission_sets`
-- `prepare_scratch` step 1 → `insert_scratch_data`
 - `prepare_tso` step 1 → `assign_permission_set_groups`
 - `prepare_tso` step 2 → `deploy_post_utils`
 - `prepare_tso` step 3 → `deploy_post_tso`
@@ -373,7 +375,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `org_config.scratch` (runtime)
 
-- `prepare_scratch` step 1 → `insert_scratch_data`
 - `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
 - `prepare_dro` step 4 → `insert_q3_dro_data_prod`
 
@@ -589,6 +590,18 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_DocGen`
+
+### `ps_large_stx`
+
+*1 items:*
+
+- `RLM_LargeSalesTransaction`
+
+### `ps_persona_sales_rep`
+
+*1 items:*
+
+- `RLM_QuantumBit_Sales_Representative`
 
 ### `ps_prm`
 

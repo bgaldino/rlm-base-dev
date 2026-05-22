@@ -11,6 +11,10 @@ Library           ${EXECDIR}/robot/rlm-base/resources/ChromeOptionsHelper.py
 # Default timeout for waiting for setup page and toggle elements
 ${SETUP_PAGE_LOAD_TIMEOUT}    20s
 ${TOGGLE_CLICK_TIMEOUT}       10s
+# Shared JS helper — pierces lightning-input → lightning-primitive-input-toggle → input.
+# Prepended to both _EnsureShadowDOMToggle and _VerifyToggleViaShadowDOM JS blocks so
+# the implementation lives in one place.
+${_JS_GET_INPUT_FROM_TOGGLE}    function getInputFromToggle(li){if(!li.shadowRoot)return null;var inp=li.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');if(inp)return inp;var n=li.shadowRoot.querySelector('lightning-primitive-input-toggle');if(n&&n.shadowRoot)return n.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');return null;}
 
 *** Keywords ***
 Get Authenticated Setup Page Url
@@ -150,6 +154,7 @@ _VerifyToggleViaShadowDOM
     ...    lightning-input toggle, reads the checked state from the shadow root.
     [Arguments]    ${label}    ${expected_on}=True
     ${state}=    Execute Javascript
+    ...    ${_JS_GET_INPUT_FROM_TOGGLE}
     ...    return (function(label) {
     ...        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     ...        var headingEl = null;
@@ -165,13 +170,15 @@ _VerifyToggleViaShadowDOM
     ...            section = section.parentElement;
     ...            if (!section || section === document.body) return 'section_not_found';
     ...            var toggles = section.querySelectorAll('lightning-input');
-    ...            for (var j = 0; j < toggles.length; j++) {
-    ...                if (!toggles[j].shadowRoot) continue;
-    ...                var inp = toggles[j].shadowRoot.querySelector(
-    ...                    'input[role="switch"],input[type="checkbox"]');
-    ...                if (!inp) continue;
-    ...                return inp.checked ? 'on' : 'off';
+    ...            if (toggles.length > 0) {
+    ...                for (var j = 0; j < toggles.length; j++) {
+    ...                    var inp = getInputFromToggle(toggles[j]);
+    ...                    if (inp) return inp.checked ? 'on' : 'off';
+    ...                }
+    ...                continue;
     ...            }
+    ...            var plainInputs = section.querySelectorAll('input[type="checkbox"],input[role="switch"]');
+    ...            if (plainInputs.length > 0) return plainInputs[0].checked ? 'on' : 'off';
     ...        }
     ...        return 'not_found';
     ...    })(arguments[0])
@@ -286,13 +293,16 @@ _EnsureDocumentBuilderToggle
     Sleep    3s    reason=Allow toggle state to update after JS click
 
 _EnsureShadowDOMToggle
-    [Documentation]    For LWC shadow-DOM toggles where aria-checked/checked are inaccessible.
-    ...    Uses pure JavaScript to find the label heading, walk up to the nearest
-    ...    ancestor that contains a lightning-input toggle, pierce its shadow root,
-    ...    check the input's checked state, and click only if needed.
-    ...    This avoids XPath-based section scoping which cannot see into shadow DOM.
+    [Documentation]    For LWC toggles where aria-checked/checked attributes are inaccessible.
+    ...    Uses pure JavaScript to find the label heading via a text walker, then walks up
+    ...    ancestor elements looking for the toggle at the narrowest possible scope.
+    ...    At each depth, lightning-input elements are checked first (piercing nested shadow
+    ...    roots via getInputFromToggle). Plain input[type="checkbox"] (light DOM, e.g.
+    ...    MetadataPreference) are only checked at depths where no lightning-input exists,
+    ...    preventing cross-row interference in cards that contain both toggle types.
     [Arguments]    ${label}    ${toggle_locator}    ${turn_on}=True
     ${result}=    Execute Javascript
+    ...    ${_JS_GET_INPUT_FROM_TOGGLE}
     ...    return (function(label, shouldEnable) {
     ...        var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     ...        var headingEl = null;
@@ -308,14 +318,23 @@ _EnsureShadowDOMToggle
     ...            section = section.parentElement;
     ...            if (!section || section === document.body) return 'section_not_found';
     ...            var toggles = section.querySelectorAll('lightning-input');
-    ...            for (var j = 0; j < toggles.length; j++) {
-    ...                if (!toggles[j].shadowRoot) continue;
-    ...                var inp = toggles[j].shadowRoot.querySelector(
-    ...                    'input[role="switch"],input[type="checkbox"]');
-    ...                if (!inp) continue;
-    ...                if (shouldEnable && inp.checked) return 'already_enabled';
-    ...                if (!shouldEnable && !inp.checked) return 'already_disabled';
-    ...                inp.click();
+    ...            if (toggles.length > 0) {
+    ...                for (var j = 0; j < toggles.length; j++) {
+    ...                    var inp = getInputFromToggle(toggles[j]);
+    ...                    if (!inp) continue;
+    ...                    if (shouldEnable && inp.checked) return 'already_enabled';
+    ...                    if (!shouldEnable && !inp.checked) return 'already_disabled';
+    ...                    (inp.closest('label') || inp).click();
+    ...                    return 'clicked';
+    ...                }
+    ...                continue;
+    ...            }
+    ...            var plainInputs = section.querySelectorAll('input[type="checkbox"],input[role="switch"]');
+    ...            if (plainInputs.length > 0) {
+    ...                var pi = plainInputs[0];
+    ...                if (shouldEnable && pi.checked) return 'already_enabled';
+    ...                if (!shouldEnable && !pi.checked) return 'already_disabled';
+    ...                (pi.closest('label') || pi).click();
     ...                return 'clicked';
     ...            }
     ...        }
