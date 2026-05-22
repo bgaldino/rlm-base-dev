@@ -57,20 +57,40 @@ Enable Document Templates Export On General Settings
         ...    msg=Document Templates Export could not be clicked (got: ${click_result})
     END
     Sleep    3s    reason=Allow toggle change to reach Salesforce server
-    # Reload and re-verify server-side persistence
+    # Reload and re-verify server-side persistence. The reload-and-verify
+    # path needs the same "wait for setup_industries_docgen-preference-toggle
+    # LWC to mount" pause as the pre-click path (the suite's first `Sleep 5s`
+    # above). Open Setup Page only sleeps 2s for generic Lightning rendering,
+    # which is not long enough for the docgen LWC to wire on a second visit
+    # — without the retry below the JS lookup returns 'not_found' even when
+    # the toggle is genuinely persisted. Wait Until Keyword Succeeds polls
+    # the JS lookup up to 30s/2s, treating 'not_found' as a retry signal and
+    # only succeeding when the toggle is in the DOM and reads 'on'.
     Open Setup Page    ${GENERAL_SETTINGS_PATH}
-    ${verified}=    Execute JavaScript
+    ${verified}=    Wait Until Keyword Succeeds    30s    2s    _Read Document Templates Export State
+    Should Be Equal    ${verified}    on
+    ...    msg=Document Templates Export toggle not persisted after page reload (got: ${verified})
+    Log    Document Templates Export toggle enabled and confirmed.
+
+*** Keywords ***
+_Read Document Templates Export State
+    [Documentation]    Reads the current checked state of the Document Templates
+    ...    Export toggle (input[data-name="MetadataPreference"]) via findEl
+    ...    shadow-DOM traversal. Returns 'on' or 'off' when the toggle has
+    ...    mounted; fails with 'not_found' to drive Wait Until Keyword Succeeds
+    ...    retry (the LWC takes longer than Open Setup Page's 2s default sleep
+    ...    to wire on the post-reload visit). Caller asserts the final state.
+    ${state}=    Execute JavaScript
     ...    ${_JS_FIND_EL}
     ...    return (function() {
     ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
     ...        if (!pi) return 'not_found';
     ...        return pi.checked ? 'on' : 'off';
     ...    })()
-    Should Be Equal    ${verified}    on
-    ...    msg=Document Templates Export toggle not persisted after page reload (got: ${verified})
-    Log    Document Templates Export toggle enabled and confirmed.
+    Should Not Be Equal    ${state}    not_found
+    ...    msg=Document Templates Export input[data-name="MetadataPreference"] not yet rendered post-reload; retrying...
+    RETURN    ${state}
 
-*** Keywords ***
 _Click Document Templates Export Toggle
     [Documentation]    Directly clicks input[data-name="MetadataPreference"] inside
     ...    setup_industries_docgen-preference-toggle's shadow root, bypassing Enable Toggle By Label
