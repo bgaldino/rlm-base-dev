@@ -73,13 +73,16 @@ _Click Document Templates Export Toggle
     ...    setup_industries_docgen-preference-toggle's shadow root, bypassing Enable Toggle By Label
     ...    which uses querySelectorAll / createTreeWalker (neither pierce shadow DOM). Returns
     ...    'clicked', 'already_on', or fails with 'not_found' to trigger Wait Until Keyword Succeeds retry.
+    ...    Targets the wrapping label when present (consistent with the SetupToggles.robot pattern
+    ...    introduced in PR #139 for lightning-input toggles, where label clicks fire the LWC save
+    ...    handler reliably and raw input clicks may not) and falls back to the input click otherwise.
     ${result}=    Execute JavaScript
     ...    return (function() {
     ...        function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
     ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
     ...        if (!pi) return 'not_found';
     ...        if (pi.checked) return 'already_on';
-    ...        pi.click();
+    ...        (pi.closest('label') || pi).click();
     ...        return 'clicked';
     ...    })()
     Should Not Be Equal    ${result}    not_found

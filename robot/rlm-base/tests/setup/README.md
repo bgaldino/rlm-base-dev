@@ -10,6 +10,7 @@ Robot Framework tests that configure Salesforce Setup page options that cannot b
 | `enable_constraints_settings.robot` | `enable_constraints_settings` | Set Default Transaction Type, Asset Context picklist, and enable Constraints Engine toggle |
 | `configure_revenue_settings.robot` | `configure_revenue_settings` | Set Pricing Procedure, Usage Rating Procedure, enable Instant Pricing toggle, set Create Orders Flow |
 | `configure_core_pricing_setup.robot` | `configure_core_pricing_setup` | Set default Pricing Procedure on Salesforce Pricing Setup page (CorePricingSetup) |
+| `configure_product_discovery_settings.robot` | `configure_product_discovery_settings` | Set the Default Catalog on Product Discovery Settings (`/lightning/setup/ProductDiscoverySettings/home`) via JS shadow-DOM traversal; gated by `project__custom__qb` in `prepare_pricing_discovery` |
 
 ## Prerequisites
 
@@ -34,6 +35,7 @@ cci task run enable_document_builder_toggle --org my-scratch
 cci task run enable_constraints_settings --org my-scratch
 cci task run configure_revenue_settings --org my-scratch
 cci task run configure_core_pricing_setup --org my-scratch
+cci task run configure_product_discovery_settings --org my-scratch
 
 # As part of the full org build
 cci flow run prepare_rlm_org --org my-scratch
@@ -53,6 +55,9 @@ robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/configure_revenue_setti
 
 # Salesforce Pricing Setup (CorePricingSetup default Pricing Procedure)
 robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/configure_core_pricing_setup.robot
+
+# Product Discovery Settings (Default Catalog)
+robot -v ORG_ALIAS:my-scratch robot/rlm-base/tests/setup/configure_product_discovery_settings.robot
 ```
 
 If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, log in within the configured wait (default 90s); the test will then reload the target Setup page.
@@ -97,6 +102,12 @@ If you don't set `ORG_ALIAS` and the browser opens on a Salesforce login page, l
 |----------|-------------|
 | `PRICING_PROCEDURE` | Default pricing procedure name for CorePricingSetup (default: "RLM Revenue Management Default Pricing Procedure"). |
 
+### configure_product_discovery_settings.robot
+
+| Variable | Description |
+|----------|-------------|
+| `DEFAULT_CATALOG` | Catalog name to set as the Default Catalog on Product Discovery Settings (default: "QuantumBit Software"). |
+
 ## Implementation Notes
 
 ### Shadow DOM Toggles
@@ -140,6 +151,7 @@ All tests detect current state before making changes:
 | `enable_constraints_settings` | `prepare_constraints` | Step 5 (when `constraints_data` is true) |
 | `configure_revenue_settings` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`) |
 | `configure_core_pricing_setup` | `prepare_rlm_org` | Step 24 (via `prepare_revenue_settings`, step 3) |
+| `configure_product_discovery_settings` | `prepare_rlm_org` | Via `prepare_pricing_discovery`, step 2 (gated by `project__custom__qb`) |
 
 ## Generated Output
 
