@@ -6,14 +6,16 @@ Working document tracking what enablement artifacts exist across releases, what'
 
 | Folder | Package | Release | Status |
 |---|---|---|---|
-| 248 | 248 | Spring '24 | Reference only — oldest, sparse |
+| `248/` *(label only)* | 248 | Spring '24 | Reference only — oldest, sparse |
 | (none) | 250 | Summer '24 | Missing entirely |
-| 252 | 252 | Winter '25 | Exercises only (PDF) |
-| 254 | 254 | Spring '25 | Exercises only (PDF) |
-| 256 | 256 | Summer '25 | Exercises only (PDF) |
-| 258 | 258 | Winter '26 | Exercise drafts (some incomplete, PDF) |
-| 260 | 260 | Spring '26 | **Prior GA** — 10 per-release `.md` drafts complete |
-| 262 | 262 | Summer '26 | **Current development cycle** — feature index + Help snapshot landed; per-release `.md` extracts pending master sign-off |
+| `252/` *(label only)* | 252 | Winter '25 | Exercises only (PDF) |
+| `254/` *(label only)* | 254 | Spring '25 | Exercises only (PDF) |
+| `256/` *(label only)* | 256 | Summer '25 | Exercises only (PDF) |
+| `258/` *(label only)* | 258 | Winter '26 | Exercise drafts (some incomplete, PDF) |
+| `260/` | 260 | Spring '26 | **Prior GA** — 10 per-release `.md` drafts complete |
+| `262/` *(planned)* | 262 | Summer '26 | **Current development cycle** — feature index + Help snapshot landed; per-release `.md` extracts pending master sign-off |
+
+> *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. Only `260/` (and eventually `262/`) exist as real per-release extract folders.
 
 Most "Overview" links in the journey map point out to Salesforce Help; we author **Hands-On Exercises only**.
 

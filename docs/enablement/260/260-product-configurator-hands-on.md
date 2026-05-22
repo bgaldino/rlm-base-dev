@@ -11,7 +11,7 @@ authors:
 data_shape: qb
 prerequisites:
   - "`cci flow run prepare_rlm_org` completed against the target org"
-  - "QuantumBit catalog loaded (`qb=true` feature flag) — bundles configured (e.g., QB Complete, QB Starter)"
+  - "QuantumBit catalog loaded (`qb=true` feature flag) — bundles configured (e.g., `QB-COMPLETE`, `QB-BDL-STND`)"
   - "Product Configurator enabled (Setup → Product Configurator → confirm enablement)"
   - "Product Discovery flow available (or custom Configurator flow in place if customized)"
 sources:
@@ -28,13 +28,23 @@ sources:
 
 > **Branding note:** Salesforce has rebranded *Revenue Cloud* as *Agentforce Revenue Management* in Spring '26. This exercise series continues to use "Revenue Cloud" throughout 260 to match what users see in the product UI.
 
-> Org / data shape: QuantumBit (`qb`). These exercises assume an org provisioned by `rlm-base-dev`'s `prepare_rlm_org` flow with the QuantumBit catalog loaded — including bundles (QB Complete, QB Starter, Professional Services Bundle) and 39 attribute definitions across 18 product classifications.
+> Org / data shape: QuantumBit (`qb`). These exercises assume an org provisioned by `rlm-base-dev`'s `prepare_rlm_org` flow with the QuantumBit catalog loaded — including bundles (`QB-COMPLETE`, `QB-BDL-STND`, `QB-BDL-SRVC`, `QB-QRack-750`) and 39 attribute definitions across 18 product classifications.
+
+> **QB bundle reference.** Exercises in this doc cite QB bundles by their canonical SKUs. See `docs/enablement/master/qb-scenario-reference.md` for the full catalog. Quick reference:
+>
+> | SKU | Product2.Name | Notes |
+> |---|---|---|
+> | `QB-COMPLETE` | QuantumBit Complete Solution | Flagship multi-domain bundle (7 component groups) |
+> | `QB-BDL-STND` | QuantumBit Starter | Entry-tier bundle (2 component groups) |
+> | `QB-BDL-ENTR` | QuantumBit Enterprise | Enterprise-tier bundle |
+> | `QB-BDL-SRVC` | QuantumBit Services Project | Professional services bundle |
+> | `QB-QRack-750` | QuantumBit Q-Rack 750 | Hardware (rack server) bundle |
 
 ---
 
 ## Status of this document
 
-🚧 **DRAFT — features verified against Spring '26 release notes, Solution Overview deck, and master Help PDF.** Configuration Logs detailed setup is complete. UI Enhancement and Flexible Configuration features capture business intent and use cases; many configuration steps are flagged `[NEEDS REVIEW]` pending walkthrough in a 260 org with screenshots. Author should validate UI changes by configuring a QB bundle (e.g., QB Complete) and capturing screenshots before flipping `status: draft` → `status: review`.
+🚧 **DRAFT — features verified against Spring '26 release notes, Solution Overview deck, and master Help PDF.** Configuration Logs detailed setup is complete. UI Enhancement and Flexible Configuration features capture business intent and use cases; many configuration steps are flagged `[NEEDS REVIEW]` pending walkthrough in a 260 org with screenshots. Author should validate UI changes by configuring a QB bundle (e.g., `QB-COMPLETE`) and capturing screenshots before flipping `status: draft` → `status: review`.
 
 > **Configurator-specific authoring note:** This area is screenshot-heavy. Several UI features (Compact Layout, Sticky Errors, Inline Attribute Configuration) are best demonstrated visually rather than narratively. The exercise structure below preserves the standard four-part sections, but readers should expect screenshot-driven walkthroughs once the doc reaches `status: review`.
 
@@ -110,8 +120,8 @@ The compact mode toggle introduces a denser, more efficient layout for large bun
 
 **Sales Rep persona:**
 
-- **Compare options across a 10+ component bundle** — open the QB Complete bundle in compact mode and quickly scan all components without losing track of which products are selected vs. which are still pending review.
-- **Configure a multi-tier server bundle** — toggle compact mode on the QB Server bundle (with 5+ component categories: CPU, Memory, Storage, Network Adapter, Cables) and assess each option's quantity and price side-by-side.
+- **Compare options across a 10+ component bundle** — open the `QB-COMPLETE` bundle in compact mode and quickly scan all components without losing track of which products are selected vs. which are still pending review.
+- **Configure a multi-tier server bundle** — toggle compact mode on the `QB-QRack-750` bundle (with 5+ component categories: CPU, Memory, Storage, Network Adapter, Cables) and assess each option's quantity and price side-by-side.
 
 ### Design Time Configuration
 
@@ -140,7 +150,7 @@ Spring '26 introduces a persistent Error Message component, displayed at the top
 
 **Sales Rep persona:**
 
-- **Configure a constrained bundle** — when configuring the QB Complete bundle with active constraint rules (Require Rules, Preference Rules), see all triggered errors without scrolling back to the top.
+- **Configure a constrained bundle** — when configuring the `QB-COMPLETE` bundle with active constraint rules (Require Rules, Preference Rules), see all triggered errors without scrolling back to the top.
 - **Understand multi-message resolutions** — when several rules fire simultaneously (e.g., a Require Rule firing alongside a Hide Attribute Values Rule), see severity-grouped messages so the most important issues are addressed first.
 
 ### Design Time Configuration
@@ -216,7 +226,7 @@ Best for bundles with several components and a small number of attributes per co
 
 **Sales Rep persona:**
 
-- **Configure a bundle with attribute-rich components** — when configuring QB Server bundle, set processor speed, memory size, and storage type for each component without navigating to separate attribute screens.
+- **Configure a bundle with attribute-rich components** — when configuring `QB-QRack-750` bundle, set processor speed, memory size, and storage type for each component without navigating to separate attribute screens.
 
 ### Design Time Configuration
 
@@ -233,7 +243,7 @@ Use inline attribute configuration when components have **fewer than 5 attribute
 
 ### QuantumBit walkthrough scenario
 
-1. From the QB catalog, select **QB Complete** bundle (or another QB bundle with attribute-rich components).
+1. From the QB catalog, select **`QB-COMPLETE`** bundle (or another QB bundle with attribute-rich components).
 2. Enable inline attribute configuration in the configurator flow for this bundle's option groups.
 3. Open the configurator at runtime — verify that selected components display their attribute editors directly in the option card.
 4. Configure a component's attributes inline; save; verify attribute values persist on the resulting Quote Line Item.
@@ -259,8 +269,8 @@ Sales Reps previously needed to add and configure each product instance individu
 
 **Sales Rep persona:**
 
-- **Deploy QB Server to 5 office locations** — create 5 instances at once, then customize per-location attributes (location name, network configuration).
-- **Clone a complex bundle configuration** — configure a QB Complete bundle for the first office, clone it to apply to the next 4 offices, and adjust per-office details.
+- **Deploy `QB-QRack-750` to 5 office locations** — create 5 instances at once, then customize per-location attributes (location name, network configuration).
+- **Clone a complex bundle configuration** — configure a `QB-COMPLETE` bundle for the first office, clone it to apply to the next 4 offices, and adjust per-office details.
 
 ### Design Time Configuration
 
@@ -280,7 +290,7 @@ Enabled in the **option groups section** of the product configurator flow setup:
 
 ### QuantumBit walkthrough scenario
 
-1. From the QB catalog, navigate to a multi-instance-suitable product (e.g., QuantumShell rack accessories or QB Servers for a multi-site deployment scenario).
+1. From the QB catalog, navigate to a multi-instance-suitable product (e.g., QuantumShell rack accessories or `QB-QRack-750` units for a multi-site deployment scenario).
 2. Enable Instance Selection + Cloning for the relevant option group.
 3. At runtime, create 5 instances at once.
 4. Configure the first instance; clone to instance 2; adjust one attribute.
@@ -321,7 +331,7 @@ Approximate flow (based on the existing Translation Workbench pattern from 258):
 
 ### QuantumBit walkthrough scenario
 
-1. Configure a Constraint Rule with a Message Rule (existing 256 capability) that fires when invalid component combinations are selected on QB Complete bundle.
+1. Configure a Constraint Rule with a Message Rule (existing 256 capability) that fires when invalid component combinations are selected on `QB-COMPLETE` bundle.
 2. Add a French translation for the rule's message text via Translation Workbench.
 3. Switch user locale to French.
 4. Reproduce the constraint violation; verify the French translation displays.
@@ -344,7 +354,7 @@ Customers troubleshooting configurator behavior previously had limited visibilit
 
 **Configurator Designer / Configuration Admin persona:**
 
-- **Diagnose unexpected runtime behavior** — when a constraint rule fires unexpectedly during configuration of QB Complete, enable Configuration Logs to capture the decision path and identify which rule conditions evaluated truthy.
+- **Diagnose unexpected runtime behavior** — when a constraint rule fires unexpectedly during configuration of `QB-COMPLETE`, enable Configuration Logs to capture the decision path and identify which rule conditions evaluated truthy.
 - **Performance analysis on complex bundles** — when a 50+ component bundle takes longer than expected to configure, capture timing data via Configuration Logs to isolate slow rule evaluations.
 
 ### Design Time Configuration
@@ -399,7 +409,7 @@ After setup, configuration logs become available in the **Revenue Cloud Operatio
 ### QuantumBit walkthrough scenario
 
 1. Complete the 6-step setup above against your dev/sandbox org.
-2. Open the QB Complete bundle in the configurator at runtime.
+2. Open the `QB-COMPLETE` bundle in the configurator at runtime.
 3. Trigger a complex configuration that exercises Constraint Rules + Hide Attribute Values + Require Rules.
 4. Save the configuration.
 5. Open Revenue Cloud Operations Console → Configuration Logs section → find the captured log for the just-saved configuration → review the decision path.
@@ -422,11 +432,11 @@ Suggested canonical bundles for each feature:
 
 | Feature | Suggested QB bundle |
 |---|---|
-| Compact Layout | QB Complete (multi-component infrastructure bundle) |
-| Sticky Errors | QB Complete with active Constraint Rules |
-| Inline Attribute Configuration | QB Server (CPU + Memory + Storage + NIC) |
+| Compact Layout | `QB-COMPLETE` (multi-component infrastructure bundle) |
+| Sticky Errors | `QB-COMPLETE` with active Constraint Rules |
+| Inline Attribute Configuration | `QB-QRack-750` (CPU + Memory + Storage + NIC) |
 | Enhanced Instance Selection | QuantumShell rack accessories (multi-instance use case) |
-| Configuration Logs | Any complex bundle — QB Complete or QB Server |
+| Configuration Logs | Any complex bundle — `QB-COMPLETE` or `QB-QRack-750` |
 
 ### QB Constraint Rules
 

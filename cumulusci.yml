@@ -2570,7 +2570,8 @@ tasks:
     group: Documentation
     description: >
       Snapshot the 262 (Summer '26) Billing area of Salesforce Help.
-      ~170 articles. Default headless run takes ~10-15 minutes.
+      ~171 articles (matches the captured inventory below). Default
+      headless run takes ~10-15 minutes.
     class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
     options:
       release_version: "262"
