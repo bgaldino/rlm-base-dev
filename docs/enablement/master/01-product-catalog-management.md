@@ -223,7 +223,7 @@ Pre-256, a single classification could only hold **200 products**. **Spring '25 
 5. The subclassification inherits all attributes; add tower-specific attributes (chassis type)
 6. Create a Product2 record classified as `PC-QB-EnterpriseServer-Tower` and observe both inherited and unique attributes are available
 
-> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter'26 Revenue Cloud - External.pdf` § Product Classification Hierarchy.
+> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter '26 Revenue Cloud - External.pdf` § Product Classification Hierarchy.
 
 ---
 
@@ -388,7 +388,7 @@ QB-QRack-750 (Bundle)
 
 **Cross-area pointer:** detailed constraint authoring lives in the **master Configurator exercise** (`docs/enablement/master/03-product-configurator.md`). This section in PCM covers the *visibility* of constraints in the product record context.
 
-> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter'26 Revenue Cloud - External.pdf` § Product Centric Constraint Rules UX.
+> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter '26 Revenue Cloud - External.pdf` § Product Centric Constraint Rules UX.
 
 ---
 
@@ -534,7 +534,7 @@ For Infinitech: bulk-add 50+ Software products from a saved filter to a quote in
 
 258 added the ability to surface relevant facets in Product Discovery **based on the selected category**. When a sales rep navigates into Hardware → Server, the filter panel shows facets specific to Server (rack U, processor, memory) — not generic facets for all categories.
 
-> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter'26 Revenue Cloud - External.pdf` § Category Based Faceted Search.
+> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter '26 Revenue Cloud - External.pdf` § Category Based Faceted Search.
 
 ---
 
@@ -544,7 +544,7 @@ For Infinitech: bulk-add 50+ Software products from a saved filter to a quote in
 
 258 added **dynamic facet selection** — instead of a fixed list of facets, the system picks the most relevant facets based on the current search results. This streamlines navigation when catalogs grow.
 
-> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter'26 Revenue Cloud - External.pdf` § Dynamic Product Facets and Higher Limit.
+> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter '26 Revenue Cloud - External.pdf` § Dynamic Product Facets and Higher Limit.
 
 ---
 
@@ -554,7 +554,7 @@ For Infinitech: bulk-add 50+ Software products from a saved filter to a quote in
 
 258 added **predictable category sorting** for the product discovery navigation. QB software catalog already uses this — Bundle (10), API (20), Maintenance (50), Subscription (100), etc.
 
-> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter'26 Revenue Cloud - External.pdf` § Display order of categories.
+> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter '26 Revenue Cloud - External.pdf` § Display order of categories.
 
 ---
 
@@ -601,7 +601,7 @@ When a user requests product details:
 1. System checks the cache. If present, returns instantly.
 2. If absent, fetches from database and writes back to cache.
 
-> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter'26 Revenue Cloud - External.pdf` § Faster product detail retrieval with cache (258 base) + `docs/enablement/260/260-product-catalog-management-hands-on.md` § Feature 1 (260 enhancement).
+> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter '26 Revenue Cloud - External.pdf` § Faster product detail retrieval with cache (258 base) + `docs/enablement/260/260-product-catalog-management-hands-on.md` § Feature 1 (260 enhancement).
 
 ---
 
@@ -623,7 +623,7 @@ For Infinitech's UK and EU offices: translate QB-COMPLETE component names and de
 4. For attribute picklists: Setup → Attribute Definitions → translate picklist values.
 5. For bulk translation: Translation Workbench → Export → translate offline → Import.
 
-> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter'26 Revenue Cloud - External.pdf` § Data translation - Multilingual Search.
+> **Detailed walkthrough:** `docs/enablement/258/Product Catalog Management - Winter '26 Revenue Cloud - External.pdf` § Data translation - Multilingual Search.
 
 ---
 

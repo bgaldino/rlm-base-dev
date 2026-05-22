@@ -51,8 +51,8 @@ The following Configurator features were introduced in 256 (Su'25) or 258 (W'26)
 | Conditional Logic Constraints | 256 | same | ✅ no change |
 | Message Rule | 256 | same | ✅ no change |
 | Require Rule | 256 | same | ✅ no change |
-| Preference Rule | 256 | same | 🔄 **enhanced** in 258 — see Preference Rule with Expression Grouping in `258/Product Configurator - Winter'26 Revenue Cloud - External.pdf` |
-| Admin UI — Constraint Template Enhancements (flexible expression-building) | 258 | `docs/enablement/258/Product Configurator - Winter'26 Revenue Cloud - External.pdf` | ✅ no change |
+| Preference Rule | 256 | same | 🔄 **enhanced** in 258 — see Preference Rule with Expression Grouping in `docs/enablement/258/Product Configurator - Winter '26 Revenue Cloud - External.pdf` |
+| Admin UI — Constraint Template Enhancements (flexible expression-building) | 258 | `docs/enablement/258/Product Configurator - Winter '26 Revenue Cloud - External.pdf` | ✅ no change |
 | Support Product Component Groups in CML | 258 | same | ✅ no change |
 | Visual Builder — new rule templates | 258 | same | ✅ no change |
 | Dynamic Loader/Table Constraints | 258 | same | ✅ no change |

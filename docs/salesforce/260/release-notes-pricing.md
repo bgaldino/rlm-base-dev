@@ -1,5 +1,9 @@
 # Spring '26 Salesforce Pricing — Release Notes
 
+> **Source attribution and limited-use note.** This file is a captured snapshot of publicly-readable Salesforce Help release-note content (URL below). © Salesforce, Inc. The content is reproduced here **solely to ground AI agents authoring internal enablement material in this repository** against the exact phrasing of the published release notes. It is **not** intended as a redistribution of, or substitute for, the canonical published release notes. Readers and downstream tooling should treat the **source URL** as the system of record. If any wording diverges from the live page (Salesforce periodically edits release notes after GA), the live page wins. Do not re-publish this file's body text outside this repository's internal-grounding workflow without confirming Salesforce's redistribution terms.
+>
+> The same posture applies to the per-article Help snapshot under `docs/salesforce/{release}/help/articles/` — see `.cursor/skills/revenue-cloud-docs/SKILL.md` for the broader policy.
+
 **Source:** https://help.salesforce.com/s/articleView?id=release-notes.rn_salesforce_pricing.htm&release=260&type=5
 **Captured:** 2026-05-06 (via Chrome MCP)
 **Release:** Spring '26 / 260 / API v66.0

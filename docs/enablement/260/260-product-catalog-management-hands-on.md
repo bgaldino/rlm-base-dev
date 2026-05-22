@@ -53,7 +53,7 @@ The following features were introduced in 256 (Su'25) or 258 (W'26). They remain
 | Simplified Quote Bundles (hide non-essential children) | 256 | same | ✅ no change |
 | Auto-Renewals for Term-Based Products | 256 | same | ✅ no change |
 | Agentforce — Generate Product Description | 256 | same | ✅ no change |
-| Category Based Faceted Search | 258 | `docs/enablement/258/Product Catalog Management - Winter'26 Revenue Cloud - External.pdf` | ✅ no change |
+| Category Based Faceted Search | 258 | `docs/enablement/258/Product Catalog Management - Winter '26 Revenue Cloud - External.pdf` | ✅ no change |
 | Dynamic Product Facets | 258 | same | ✅ no change |
 | Display Order of Categories | 258 | same | ✅ no change |
 | Data Translation — Multilingual Search | 258 | same | ✅ no change |
