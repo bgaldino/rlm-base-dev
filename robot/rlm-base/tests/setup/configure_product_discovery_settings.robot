@@ -104,10 +104,17 @@ Set Default Catalog
 
 _Try Set Default Catalog
     [Documentation]    One attempt at configuring the Default Catalog. Returns
-    ...    normally on success or already_set; fails (triggering the outer
-    ...    Wait Until Keyword Succeeds retry) on any transient mid-render state.
-    ...    Closes any open dropdown with Escape before the outer retry re-invokes
-    ...    so the next attempt starts from a clean state.
+    ...    normally on success or already_set; on any other state, closes any
+    ...    open dropdown with Escape and fails with a message containing the
+    ...    raw `select_result` sentinel (e.g. `not_found:[]` or
+    ...    `not_found:[Cat A,Cat B]`). The caller — `Set Default Catalog` — wraps
+    ...    this in a manual WHILE loop with `Run Keyword And Ignore Error`,
+    ...    inspects the sentinel to classify the failure as transient (retry)
+    ...    or terminal (fail fast with the visible-options list), and re-invokes
+    ...    after a 5s sleep on the transient path. The dropdown close-on-fail
+    ...    here is what guarantees the next outer attempt starts from a clean
+    ...    state, so this keyword should not be called standalone outside that
+    ...    loop.
     [Arguments]    ${target_value}
     # Step 1: check current state; clear wrong selection; open dropdown
     ${open_result}=    _Open Default Catalog Combobox    ${target_value}
@@ -144,10 +151,12 @@ _Try Set Default Catalog
         Log    Default Catalog set to "${target_value}".
         RETURN
     END
-    # Empty / unmatched dropdown — close it (Esc) and let the outer retry try again.
-    # Most commonly empty: LWC parent's options-fetch hasn't completed yet, so the
-    # opened dropdown rendered zero options. By the next retry the parent should
-    # have either fully loaded (giving us a populated dropdown OR already_set pill).
+    # Close the dropdown (Esc) and fail with the raw select_result sentinel.
+    # The caller's WHILE loop (in Set Default Catalog) inspects the sentinel and
+    # decides retry-vs-fail: `not_found:[]` and `not_found:[?...]` are transient
+    # (parent's options-fetch hasn't completed or shadow roots still binding)
+    # and get retried; `not_found:[Cat A,Cat B]` means options are loaded and
+    # the target is genuinely missing — caller fails fast with the options list.
     _Close Default Catalog Dropdown
     Fail    msg=Default Catalog dropdown returned "${select_result}"; closing and retrying open+select cycle...
 
@@ -186,12 +195,17 @@ _Read Default Catalog State
 
 _Open Default Catalog Dropdown
     [Documentation]    Re-opens the Default Catalog combobox after a pill clear. Used by
-    ...    Set Default Catalog when the cleared-path needs to wait for the LWC to re-render
-    ...    the combobox button (pill removal is asynchronous and can take longer than the
-    ...    fixed sleep). Returns 'page_not_ready' for any transient render miss
-    ...    (combobox / lightning-base-combobox / button not yet present) so
-    ...    Wait Until Keyword Succeeds retries until the re-render settles —
-    ...    canonical pattern matching configure_core_pricing_setup.robot.
+    ...    _Try Set Default Catalog when the cleared-path needs to wait for the LWC to
+    ...    re-render the combobox button (pill removal is asynchronous and can take longer
+    ...    than the fixed sleep). Returns 'opened' on success, or fails the caller's
+    ...    Should Be Equal with 'page_not_ready' for any transient render miss (combobox
+    ...    / lightning-base-combobox / button not yet present). The caller's failure
+    ...    propagates up into `Set Default Catalog`'s manual WHILE loop, which retries
+    ...    the whole open+select cycle from scratch (this file uses a manual loop for
+    ...    that path so terminal-vs-transient classification can short-circuit retries;
+    ...    `configure_core_pricing_setup.robot` still uses `Wait Until Keyword Succeeds`
+    ...    for the analogous pattern because its inner helper takes a target value and
+    ...    bakes the equality check into the JS).
     ${result}=    Execute JavaScript
     ...    ${_JS_FIND_EL}
     ...    return (function() {
@@ -215,9 +229,13 @@ _Open Default Catalog Combobox
     ...    assertion), or 'page_not_ready' (any transient render miss — combobox /
     ...    lightning-base-combobox / button not yet present, OR the LWC has a saved value
     ...    that hasn't been swapped to a pill yet). Salesforce background processing after
-    ...    reconfigure_pricing_discovery delays LWC render; Wait Until Keyword Succeeds
-    ...    retries on the page_not_ready sentinel — canonical pattern matching
-    ...    configure_core_pricing_setup.robot.
+    ...    reconfigure_pricing_discovery delays LWC render; transient sentinels propagate
+    ...    via `_Try Set Default Catalog`'s Fail into `Set Default Catalog`'s manual WHILE
+    ...    loop, which re-invokes the whole open+select cycle (this file uses a manual
+    ...    loop for that path so terminal-vs-transient classification can short-circuit
+    ...    retries; `configure_core_pricing_setup.robot` still uses `Wait Until Keyword
+    ...    Succeeds` for the analogous pattern because its inner helper takes a target
+    ...    value and bakes the equality check into the JS).
     ...
     ...    When the LWC has a saved value (e.g. on a re-run where Default Catalog is already
     ...    set), it briefly renders the empty-state combobox before swapping to the pill.
