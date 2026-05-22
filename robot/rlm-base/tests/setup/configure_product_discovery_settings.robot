@@ -28,11 +28,16 @@ Configure Product Discovery Default Catalog
     Set Default Catalog    ${DEFAULT_CATALOG}
     Dismiss Toast If Present
     Capture Page Screenshot
-    # Reload and re-verify to confirm the value was saved server-side
+    # Reload and re-verify to confirm the value was saved server-side.
+    # Open Setup Page sleeps 2s for generic Lightning rendering, but the
+    # Product Discovery Settings LWC + its [data-id="selectedCatalog"]
+    # pill take longer than that to wire on the post-reload visit. Without
+    # a retry the read returns 'not_set' even when the catalog is genuinely
+    # persisted server-side. Wait Until Keyword Succeeds polls
+    # _Read Default Catalog State (which treats 'not_set' as a retry signal)
+    # until the pill renders.
     Open Product Discovery Settings Page
-    ${verified}=    Execute JavaScript
-    ...    ${_JS_FIND_EL}
-    ...    return findEl(document, '[data-id="selectedCatalog"]', 0)?.textContent.trim() || 'not_set'
+    ${verified}=    Wait Until Keyword Succeeds    30s    2s    _Read Default Catalog State
     Should Be Equal    ${verified}    ${DEFAULT_CATALOG}
     ...    msg=Default Catalog not persisted after page reload: expected "${DEFAULT_CATALOG}", got "${verified}"
     Log    Product Discovery Settings: Default Catalog confirmed as "${DEFAULT_CATALOG}" after reload.
@@ -95,6 +100,19 @@ Set Default Catalog
     ...    msg=Option "${target_value}" not found in dropdown. ${select_result}
     Sleep    2s    reason=Allow selection to auto-save
     Log    Default Catalog set to "${target_value}".
+
+_Read Default Catalog State
+    [Documentation]    Reads the current selected catalog text from [data-id="selectedCatalog"]
+    ...    after a Product Discovery Settings reload. Returns the catalog name when the pill
+    ...    has rendered, or fails with 'not_set' to drive Wait Until Keyword Succeeds retry —
+    ...    the LWC routinely takes longer than Open Setup Page's 2s default sleep to wire on
+    ...    the post-reload visit. Caller asserts the final state.
+    ${state}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
+    ...    return findEl(document, '[data-id="selectedCatalog"]', 0)?.textContent.trim() || 'not_set'
+    Should Not Be Equal    ${state}    not_set
+    ...    msg=Default Catalog pill not yet rendered post-reload; retrying...
+    RETURN    ${state}
 
 _Open Default Catalog Dropdown
     [Documentation]    Re-opens the Default Catalog combobox after a pill clear. Used by
