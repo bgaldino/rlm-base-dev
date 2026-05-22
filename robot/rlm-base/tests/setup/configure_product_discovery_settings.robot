@@ -61,16 +61,46 @@ Set Default Catalog
     ...    option text read from lightning-base-combobox-item shadow roots). Clears any existing
     ...    selection first if a different catalog is already selected. Auto-saves on selection.
     ...
-    ...    Wraps the entire open+select cycle in Wait Until Keyword Succeeds so that
-    ...    transient mid-render LWC states retry the whole sequence — not just the
-    ...    state check. The previous structure failed terminally on `not_found:[]`
-    ...    (combobox opened but options hadn't loaded yet because the LWC's parent
-    ...    was still server-fetching). Each retry now closes any open dropdown
-    ...    (Escape) before re-checking state, so the second pass either sees the
-    ...    pill (already_set) or gets a freshly-clicked combobox with populated
-    ...    options.
+    ...    Uses a manual retry loop (rather than Wait Until Keyword Succeeds) so it can
+    ...    distinguish transient mid-render LWC states from terminal data errors. The
+    ...    inner JS returns one of three sentinels via `_Try Set Default Catalog`:
+    ...      • `not_found:[]`            — dropdown opened before options finished
+    ...                                    server-fetching (transient → retry)
+    ...      • `not_found:[?,...]`       — options present but shadow roots still
+    ...                                    binding (transient → retry)
+    ...      • `not_found:[Cat A,...]`   — options fully loaded and target is
+    ...                                    genuinely missing (terminal → fail fast
+    ...                                    with the visible-options list)
+    ...    The terminal case used to mask as a 90s timeout under the previous
+    ...    Wait Until Keyword Succeeds wrapper; now it surfaces in one attempt so a
+    ...    missing catalog (e.g. QB PCM data load didn't run) or a mistyped name is
+    ...    obvious from the failure message instead of a generic timeout. Total
+    ...    budget for the transient/retry path stays ~90s with 5s between attempts
+    ...    to match the prior wrapper semantics.
     [Arguments]    ${target_value}
-    Wait Until Keyword Succeeds    90s    5s    _Try Set Default Catalog    ${target_value}
+    ${deadline}=    Evaluate    time.time() + 90    modules=time
+    ${attempt}=    Set Variable    ${0}
+    WHILE    True    limit=30
+        ${attempt}=    Evaluate    ${attempt} + 1
+        ${status}    ${error}=    Run Keyword And Ignore Error    _Try Set Default Catalog    ${target_value}
+        IF    "${status}" == "PASS"    RETURN
+        # Terminal sentinel: `not_found:[<non-empty-non-?-content>]` — options are
+        # loaded and the target is genuinely absent. The regex below requires at
+        # least one char between the brackets that is neither `?` nor `]`, so
+        # `not_found:[]`, `not_found:[?]`, and `not_found:[Cat,?]` all fall through
+        # to the retry path (transient render).
+        ${terminal}=    Run Keyword And Return Status
+        ...    Should Match Regexp    ${error}    not_found:\\[[^?\\]]+\\]
+        IF    ${terminal}
+            Fail    msg=Default Catalog "${target_value}" not present in visible options after ${attempt} attempt(s). ${error} — verify QB PCM data load (qb-pcm plan) completed and the catalog name matches exactly.
+        END
+        ${now}=    Evaluate    time.time()    modules=time
+        IF    ${now} >= ${deadline}
+            Fail    msg=Default Catalog "${target_value}" could not be set within 90s (${attempt} attempts). Last error: ${error}
+        END
+        Log    Default Catalog attempt ${attempt} transient — retrying: ${error}    INFO
+        Sleep    5s    reason=Wait before next open+select cycle
+    END
 
 _Try Set Default Catalog
     [Documentation]    One attempt at configuring the Default Catalog. Returns
