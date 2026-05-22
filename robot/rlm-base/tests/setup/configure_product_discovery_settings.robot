@@ -122,12 +122,23 @@ _Try Set Default Catalog
     Fail    msg=Default Catalog dropdown returned "${select_result}"; closing and retrying open+select cycle...
 
 _Close Default Catalog Dropdown
-    [Documentation]    Dispatches Escape on document.body to close any open
-    ...    lightning-combobox dropdown. Used between retry attempts in
-    ...    _Try Set Default Catalog so a stale-open dropdown doesn't interfere
-    ...    with the next state check.
+    [Documentation]    Closes any open lightning-combobox dropdown between retry
+    ...    attempts in _Try Set Default Catalog so a stale-open dropdown doesn't
+    ...    interfere with the next state check. Primary path is SeleniumLibrary
+    ...    Press Keys ESCAPE sent through the native WebDriver channel — this is
+    ...    more reliable than a JS-dispatched KeyboardEvent for LWCs because the
+    ...    event reaches whichever element actually has focus inside the shadow
+    ...    tree (matches the pattern in enable_constraints_settings.robot and
+    ...    configure_revenue_settings.robot). Fallback is a composed/cancelable
+    ...    KeyboardEvent dispatched to document.activeElement so the event still
+    ...    crosses any shadow boundary if Selenium can't locate a focused input.
+    Run Keyword And Ignore Error    Press Keys    ${NONE}    ESCAPE
     Execute JavaScript
-    ...    document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true}));
+    ...    (function(){
+    ...        var ev = new KeyboardEvent('keydown', {key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true, cancelable: true, composed: true});
+    ...        var target = document.activeElement || document.body;
+    ...        target.dispatchEvent(ev);
+    ...    })();
     Sleep    0.5s    reason=Allow dropdown close animation to complete
 
 _Read Default Catalog State

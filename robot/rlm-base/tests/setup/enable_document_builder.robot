@@ -64,8 +64,13 @@ Enable Document Templates Export On General Settings
     # which is not long enough for the docgen LWC to wire on a second visit
     # — without the retry below the JS lookup returns 'not_found' even when
     # the toggle is genuinely persisted. Wait Until Keyword Succeeds polls
-    # the JS lookup up to 30s/2s, treating 'not_found' as a retry signal and
-    # only succeeding when the toggle is in the DOM and reads 'on'.
+    # the JS lookup up to 30s/2s, treating 'not_found' as a retry signal so
+    # the wait only completes once the toggle is rendered in the DOM. The
+    # subsequent Should Be Equal then asserts the persisted value ('on'); a
+    # persistent 'off' is intentionally not retried so we fail fast and surface
+    # a real persistence problem instead of waiting out a 30s timeout (the 3s
+    # pre-reload sleep plus reload time give the server-side state binding
+    # plenty of headroom).
     Open Setup Page    ${GENERAL_SETTINGS_PATH}
     ${verified}=    Wait Until Keyword Succeeds    30s    2s    _Read Document Templates Export State
     Should Be Equal    ${verified}    on
