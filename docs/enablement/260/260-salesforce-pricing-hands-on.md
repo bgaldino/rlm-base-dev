@@ -22,7 +22,7 @@ sources:
 
 # Revenue Cloud — Salesforce Pricing
 
-**Enablement Exercises** · Version 0.2 (draft), Spring '26
+**Enablement Exercises** · Version 0.5 (draft), Spring '26
 
 > **Branding note:** Salesforce has rebranded *Revenue Cloud* as *Agentforce Revenue Management* in the Spring '26 release. The Help portal uses both names interchangeably during the transition. This exercise series will continue to say "Revenue Cloud" for the 260 cycle to match what users see in the product UI; we'll re-evaluate per-release.
 

@@ -5,8 +5,8 @@ release_version: 260           # RCA package version (e.g. 260, 262)
 release_name: "Spring '26"      # Seasonal name
 api_version: 66.0               # Salesforce API version
 area: "Salesforce Pricing"      # Functional area name (must match journey map label)
-document_version: 1.0           # Increment when content changes within a release cycle
-status: draft                   # draft | review | final
+document_version: 0.1           # Semver-ish; increment as the doc matures (0.1 outline → 0.2 research applied → 0.3 review-ready → 1.0 final)
+status: outline                 # outline | draft | review | final  (matches document_version progression)
 last_updated: 2026-05-06
 authors:
   - Brian Galdino

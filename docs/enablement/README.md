@@ -58,8 +58,8 @@ For the canonical reference of what's in QB orgs by default — including bundle
 | Path | What's there | Status |
 |---|---|---|
 | **[`master/`](master/)** | The two-tier model's source of truth — master exercises + scenario reference | 🚧 **Pilot** (PCM + Pricing drafted; 8 areas pending) |
-| **[`260/`](260/)** | Per-release extracts for 260 (Spring '26, current GA) | ✅ All 10 area drafts complete |
-| `262/` (planned) | Per-release extracts for 262 (Summer '26, preview) | ⏳ Pending — drafted when 262 promotes to main |
+| **[`260/`](260/)** | Per-release extracts for 260 (Spring '26, prior GA reference on the 262 branch) | ✅ All 10 area drafts complete |
+| `262/` (planned) | Per-release extracts for 262 (Summer '26, current development cycle on the 262 branch) | ⏳ Pending — drafted as 262 stabilizes (see *Branch context* above) |
 | **[`248/`](248/), [`252/`](252/), [`254/`](254/), [`256/`](256/), [`258/`](258/)** | **Read-only historical** — prior published exercise PDFs | Frozen reference. Never edit. |
 | **[`coverage-matrix.md`](coverage-matrix.md)** | Cross-release inventory of what's drafted where | Keep current as drafts complete |
 | **[`_template/`](_template/)** | Per-release-extract scaffold template | Stable |
