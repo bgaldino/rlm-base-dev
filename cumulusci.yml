@@ -990,9 +990,14 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Sets Organization-Wide Defaults for standard Sales Cloud objects to support
-      the Sales Rep persona. Account/Asset/Contact/Contract/Order → Public Read/Write
+      the Sales Rep persona. Account/Asset/Contract/Order → Public Read/Write
       (all internal users can see and edit). Opportunity stays Private (reps own
-      their pipeline).
+      their pipeline). ProductCatalog is intentionally omitted — it already defaults
+      to Read/Read in RLM-enabled orgs, and CCI's SetOrgWideDefaults does a full
+      retrieve-modify-deploy round-trip on each listed object, which for
+      ProductCatalog hits a Salesforce 262 Metadata API quirk where the retrieve
+      returns duplicate <listViews> entries (including All_ProductCatalogs), making
+      the redeploy fail with "Duplicate name 'ProductCatalog.All_ProductCatalogs'".
     class_path: cumulusci.tasks.metadata_etl.SetOrgWideDefaults
     options:
       org_wide_defaults:
@@ -1011,9 +1016,8 @@ tasks:
         - api_name: Order
           internal_sharing_model: ReadWrite
           external_sharing_model: Private
-        - api_name: ProductCatalog
-          internal_sharing_model: Read
-          external_sharing_model: Read
+        # ProductCatalog intentionally omitted — see description above.
+        # Default OWD in RLM-enabled orgs is already Read/Read.
 
   deploy_post_personas:
     group: Revenue Lifecycle Management
