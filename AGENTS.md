@@ -22,6 +22,7 @@ Key technology stack:
 
 ```
 cumulusci.yml          # Task/flow definitions, feature flags, org defs
+config/                # Scratch org definition JSON (project-scratch-def.json)
 force-app/             # Core SFDX metadata (deployed at step 5)
 unpackaged/pre/        # Pre-deploy metadata (fields, settings, PSGs, DTs)
 unpackaged/post_*/     # Feature-specific metadata bundles
@@ -29,11 +30,19 @@ unpackaged/post_ux/    # ⚠ AUTO-GENERATED — never edit directly
 templates/             # Source-of-truth for UX assembly (step 27)
 datasets/sfdmu/        # SFDMU data plans (export.json + CSVs)
 datasets/context_plans/# Context definition plans
+datasets/constraints/  # Configurator constraint rule data
+datasets/bre/          # Business Rule Engine exports
+datasets/tooling/      # Tooling API metadata exports
+datasets/dx/           # DX-format metadata snapshots
 scripts/apex/          # Apex activation/deletion scripts
 scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
+scripts/cml/           # CML export/import/validation utilities
+scripts/soql/          # Reusable SOQL query files
 tasks/                 # Custom Python CCI task classes
+tests/                 # Shell-based integration test scripts
 robot/rlm-base/        # Robot Framework tests (setup + E2E)
 orgs/                  # Scratch org definition JSON files
+postman/               # Postman collections for RLM APIs (v66.0)
 docs/                  # Documentation (lower-kebab-case filenames)
 ```
 
@@ -207,7 +216,7 @@ that topic.
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
 | Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
-| Capture/apply UX drift from org | `docs/features/dynamic-ux-assembly.md` |
+| Capture/apply UX drift from org | `.cursor/skills/repo-integration/ux-assembly-retrieve.md` |
 | Review docs before merge | `.cursor/skills/doc-consistency/SKILL.md` |
 | Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
 | Author/update enablement exercises per release | `.cursor/skills/release-enablement/SKILL.md` |
@@ -241,6 +250,7 @@ Read the sub-file only when you need that specific detail:
 | `docs/enablement/coverage-matrix.md` | Release Enablement | Cross-release inventory of which exercise artifacts exist where |
 | `release-enablement/authoring-patterns.md` | Release Enablement | Edge-case patterns: upgrade guidance, known issues, sub-features, cross-area features, recordings placeholders, QB walkthrough handling |
 | `release-enablement/resume-enablement-work.md` | Release Enablement | Cross-workstation handoff — read when picking up enablement work in a fresh conversation. 4-step re-orientation + tool grants + restart prompt template |
+| `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
 
 ### File-Specific Rules (Cursor Only)
 
@@ -274,9 +284,21 @@ python scripts/ai/generate_cci_reference.py                 # Regenerate CCI doc
 ## Documentation Conventions
 
 All `.md` files under `docs/` use **lower-kebab-case** filenames.
-Placement: guides → `docs/guides/`, references → `docs/references/`,
-analysis → `docs/analysis/`, features → `docs/features/`,
-archive → `docs/archive/`, vendor PDFs → `docs/salesforce/`.
+Placement:
+
+| Directory | Content |
+|-----------|---------|
+| `docs/guides/` | How-to guides (constraints setup, docgen, build guides) |
+| `docs/references/` | Reference material (CCI tasks, permissions, decision tables) |
+| `docs/analysis/` | Technical analysis documents |
+| `docs/features/` | Feature design docs (UX assembly, E2E framework, etc.) |
+| `docs/archive/` | Historical/superseded documents |
+| `docs/api/` | API documentation and interactive viewers |
+| `docs/enablement/` | Hands-on exercises: `master/` (living source), `{version}/` (release extracts), `_template/` |
+| `docs/erds/` | ERD diagrams (Mermaid source + HTML viewer) |
+| `docs/salesforce/{version}/` | Per-release feature indexes and Help portal snapshots |
+| `docs/trailhead-l2-review/` | Trailhead module review artifacts (L2 editorial) |
+| `docs/integration/` | Integration-related documentation |
 
 ---
 

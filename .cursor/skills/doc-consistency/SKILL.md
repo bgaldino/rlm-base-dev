@@ -86,3 +86,7 @@ git add .cursor/skills/cci-orchestration/tasks-reference.md \
 - **SFDMU Data Plans** — `.cursor/skills/sfdmu-data-plans/SKILL.md`
 - **Repository Integration** — `.cursor/skills/repo-integration/SKILL.md`
 - **Robot Testing** — `.cursor/skills/robot-testing/SKILL.md`
+- **Release Enablement** — `.cursor/skills/release-enablement/SKILL.md`
+- **Revenue Cloud Docs** — `.cursor/skills/revenue-cloud-docs/SKILL.md`
+- **Revenue Cloud Data Model** — `.cursor/skills/revenue-cloud-data-model/SKILL.md`
+- **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`
