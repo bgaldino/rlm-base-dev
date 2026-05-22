@@ -67,20 +67,11 @@ Set Default Catalog
         RETURN
     END
     # If a selection was cleared, wait for the combobox to reappear then re-open it
+    # with retry — the pill-removal re-render is asynchronous and may exceed the initial sleep.
     IF    "${open_result}" == "cleared"
-        Sleep    2s    reason=Allow pill removal to complete and combobox to reappear
-        ${open_result}=    Execute JavaScript
-        ...    ${_JS_FIND_EL}
-        ...    return (function() {
-        ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
-        ...        if (!lc) return 'combobox_not_found';
-        ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
-        ...        if (!lbc) return 'lbc_not_found';
-        ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
-        ...        if (!btn) return 'btn_not_found';
-        ...        btn.click();
-        ...        return 'opened';
-        ...    })()
+        Sleep    2s    reason=Allow pill removal to start before polling for combobox
+        ${open_result}=    Wait Until Keyword Succeeds    30s    3s
+        ...    _Open Default Catalog Dropdown
     END
     Should Be Equal    ${open_result}    opened    msg=Could not prepare/open Default Catalog combobox: ${open_result}
     Sleep    1s    reason=Allow dropdown options to populate
@@ -104,6 +95,28 @@ Set Default Catalog
     ...    msg=Option "${target_value}" not found in dropdown. ${select_result}
     Sleep    2s    reason=Allow selection to auto-save
     Log    Default Catalog set to "${target_value}".
+
+_Open Default Catalog Dropdown
+    [Documentation]    Re-opens the Default Catalog combobox after a pill clear. Used by
+    ...    Set Default Catalog when the cleared-path needs to wait for the LWC to re-render
+    ...    the combobox button (pill removal is asynchronous and can take longer than the
+    ...    fixed sleep). Fails with a retry-triggering message on any lookup miss so
+    ...    Wait Until Keyword Succeeds can poll until the re-render settles.
+    ${result}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
+    ...    return (function() {
+    ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
+    ...        if (!lc) return 'combobox_not_found';
+    ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
+    ...        if (!lbc) return 'lbc_not_found';
+    ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
+    ...        if (!btn) return 'btn_not_found';
+    ...        btn.click();
+    ...        return 'opened';
+    ...    })()
+    Should Be Equal    ${result}    opened
+    ...    msg=Default Catalog combobox not yet re-rendered after clear; retrying... (got: ${result})
+    RETURN    ${result}
 
 _Open Default Catalog Combobox
     [Documentation]    Runs the state-check JS for Set Default Catalog.
