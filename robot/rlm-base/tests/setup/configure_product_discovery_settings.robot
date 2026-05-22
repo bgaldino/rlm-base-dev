@@ -143,10 +143,18 @@ _Open Default Catalog Combobox
     ...    Returns 'opened' (combobox clicked open), 'already_set' (correct value present),
     ...    'cleared' (wrong pill removed), 'remove_btn_not_found' (terminal — fails caller
     ...    assertion), or 'page_not_ready' (any transient render miss — combobox /
-    ...    lightning-base-combobox / button not yet present). Salesforce background
-    ...    processing after reconfigure_pricing_discovery delays LWC render;
-    ...    Wait Until Keyword Succeeds retries on the page_not_ready sentinel —
-    ...    canonical pattern matching configure_core_pricing_setup.robot.
+    ...    lightning-base-combobox / button not yet present, OR the LWC has a saved value
+    ...    that hasn't been swapped to a pill yet). Salesforce background processing after
+    ...    reconfigure_pricing_discovery delays LWC render; Wait Until Keyword Succeeds
+    ...    retries on the page_not_ready sentinel — canonical pattern matching
+    ...    configure_core_pricing_setup.robot.
+    ...
+    ...    When the LWC has a saved value (e.g. on a re-run where Default Catalog is already
+    ...    set), it briefly renders the empty-state combobox before swapping to the pill.
+    ...    The JS used to misinterpret that mid-render window as "no value set" and click
+    ...    the (empty) dropdown. We now sniff the lightning-combobox's `value` property
+    ...    before deciding: if it's non-empty and the pill hasn't rendered yet, treat as
+    ...    page_not_ready so we wait for the pill to land.
     [Arguments]    ${target_value}
     ${result}=    Execute JavaScript
     ...    ${_JS_FIND_EL}
@@ -161,6 +169,7 @@ _Open Default Catalog Combobox
     ...        }
     ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
     ...        if (!lc) return 'page_not_ready';
+    ...        if (lc.value) return 'page_not_ready';
     ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
     ...        if (!lbc) return 'page_not_ready';
     ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
@@ -170,7 +179,7 @@ _Open Default Catalog Combobox
     ...    })(arguments[0])
     ...    ARGUMENTS    ${target_value}
     Should Not Be Equal    ${result}    page_not_ready
-    ...    msg=Product Discovery combobox or inner shadow elements not yet rendered; retrying...
+    ...    msg=Product Discovery combobox or inner shadow elements not yet rendered (or pill is pending render); retrying...
     RETURN    ${result}
 
 Dismiss Toast If Present
