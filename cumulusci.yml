@@ -2505,6 +2505,301 @@ tasks:
     options:
       flow_name: manual
 
+  # ----------------------------------------------------------------------
+  # Documentation / AI grounding
+  # ----------------------------------------------------------------------
+  # snapshot_salesforce_help walks a Salesforce Help portal area and emits
+  # one markdown file per article, plus a manifest.json and index.md.
+  # See tasks/rlm_snapshot_help.py for full docstring.
+  #
+  # Playwright must be installed into the same Python environment that runs
+  # CCI. With pipx-installed CCI (recommended per the project README):
+  #
+  #   pipx inject cumulusci playwright
+  #   $(pipx environment --value PIPX_LOCAL_VENVS)/cumulusci/bin/python -m playwright install chromium
+  #
+  # (pipx doesn't expose Playwright's CLI by default; running via the venv's
+  # Python is the cleanest path. Alternatively, re-inject with --include-apps
+  # to put `playwright` on your PATH:
+  #   pipx inject cumulusci playwright --include-apps --force
+  #   playwright install chromium)
+  #
+  # With pip-installed CCI in the project .venv:
+  #
+  #   source .venv/bin/activate
+  #   python -m pip install playwright
+  #   playwright install chromium
+
+  snapshot_salesforce_help:
+    group: Documentation
+    description: >
+      Generic snapshot task. Walks a Salesforce Help portal area from a root
+      article ID, captures every article whose ID starts with the given prefix,
+      and writes markdown files with YAML frontmatter to
+      docs/salesforce/{release_version}/help/articles/. Also produces
+      manifest.json and index.md.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    # All options must be provided at invocation time. See the area-specific
+    # variants below for ready-to-run examples.
+
+  snapshot_billing_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 (Summer '26) Billing area of Salesforce Help.
+      ~170 articles. Default headless run takes ~10-15 minutes.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: billing
+      root_article_id: ind.billing.htm
+      article_id_prefix: ind.billing
+      mode: all
+
+  snapshot_billing_help_260:
+    group: Documentation
+    description: >
+      Snapshot the 260 (Spring '26) Billing area of Salesforce Help.
+      For diff-against-262 verification work.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "260"
+      release_name: "Spring '26"
+      area: billing
+      root_article_id: ind.billing.htm
+      article_id_prefix: ind.billing
+      mode: all
+
+  # Module 3 (Usage, Rating, and Consumption Agents) requires TWO snapshot
+  # areas because the Revenue Cloud data model treats Usage Management and
+  # Rate Management as separate domains (see .cursor/skills/revenue-cloud-data-model/SKILL.md).
+  # - Usage Management owns: TransactionUsageEntitlement, UsageEntitlementAccount,
+  #   UsageEntitlementBucket, UsageEntitlementEntry, ProductUsageResource (PUR),
+  #   ProductUsageGrant (PUG), UsageResource, UsageSummary, TransactionJournal,
+  #   Usage Agent, Drawdown Policies, Digital Wallets.
+  # - Rate Management owns: RateCard, RateCardEntry, AssetRateCardEntry,
+  #   AssetRateAdjustment, Rating Procedure (ExpressionSetDefinition), the
+  #   Ratable Summary / Liable Summary part of the rating pipeline.
+  #
+  # ROOT ARTICLE IDS NEED VERIFICATION before first discover run.
+  # Candidates that 404'd in 262: ind.usage_management.htm, ind.usage.htm
+  # To find the correct roots: from the Revenue Lifecycle Management parent
+  # (ind.revenue_lifecycle_management.htm), find the relevant sidebar links
+  # and copy the id= param from each. Then update root_article_id and
+  # article_id_prefix below before running:
+  #   cci task run snapshot_usage_help_262 -o mode discover
+  #   cci task run snapshot_rating_help_262 -o mode discover
+  # The discover phase fails loudly if the root ID is wrong.
+
+  # =====================================================================
+  # AREA SNAPSHOT VARIANTS — Salesforce Help portal, Summer '26 (262)
+  # =====================================================================
+  # All 10 RC functional areas captured 2026-05-11 / 2026-05-12.
+  # 838 articles total, ~4.3 MB markdown. Roots verified via the
+  # Revenue Lifecycle Management parent sidebar walk.
+  #
+  # Captured (article counts as of capture date):
+  #   ✓ snapshot_pcm_help_262                — 107 articles
+  #   ✓ snapshot_pricing_help_262            — 110 articles
+  #   ✓ snapshot_rating_help_262             —  35 articles
+  #   ✓ snapshot_configurator_help_262       —  76 articles
+  #   ✓ snapshot_transaction_mgmt_help_262   — 170 articles
+  #   ✓ snapshot_dro_help_262                —  70 articles
+  #   ✓ snapshot_usage_help_262              —  52 articles
+  #   ✓ snapshot_billing_help_262            — 171 articles
+  #   ✓ snapshot_agents_help_262             —  13 articles (topic-reference;
+  #                                              area-specific agent how-to
+  #                                              articles live under each
+  #                                              area's prefix — see the
+  #                                              revenue-cloud-docs skill)
+  #   ✓ snapshot_approvals_help_262          —  34 articles
+  #
+  # NOTE — the Help portal uses short-prefix conventions that differ from
+  # data-model domain names. For example: Rate Management → `ind.rm_*`,
+  # Usage Management → `ind.um_*`, Transaction Management → `ind.qocal_*`
+  # (Quote/Order/Contract/Asset/Lifecycle all combined under one prefix).
+  #
+  # To refresh any area (e.g., when a new release ships):
+  #   cci task run snapshot_{area}_help_262 -o mode refresh
+  #
+  # To validate a root_article_id change without doing a full capture:
+  #   cci task run snapshot_{area}_help_262 -o mode discover
+  #
+  # Ordered to mirror the data-model domain flow:
+  # Catalog → Pricing → Rating → Configuration → Transaction lifecycle
+  # → Fulfillment → Usage → Billing → Agents → Approvals.
+
+  snapshot_pcm_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 (Summer '26) Product Catalog Management area of
+      Salesforce Help. Covers Product2, ProductCategory, AttributeDefinition,
+      ProductRelatedComponent. Root verified via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: pcm
+      root_article_id: ind.product_catalog_introduction.htm
+      article_id_prefix: ind.product_catalog
+      mode: all
+
+  snapshot_pricing_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Pricing area of Salesforce Help. Covers PriceBook2,
+      PriceBookEntry, PriceAdjustmentSchedule, ProductSellingModel, proration.
+      Distinct from Rate Management. Root verified via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: pricing
+      root_article_id: ind.pricing_salesforce_pricing.htm
+      article_id_prefix: ind.pricing
+      mode: all
+
+  snapshot_rating_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Rate Management area of Salesforce Help. Required for
+      Module 3 Unit 2 LO validation (Rate Card, Rate Card Entry, Asset Rate
+      Card Entry, Asset Rate Adjustment, Rating Procedure, the Transaction
+      Journal → Usage Summary → Ratable Summary → Liable Summary pipeline).
+      Root verified via RLM sidebar walk. Prefix `ind.rm_*` (NOT `ind.rate_*`).
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: rating
+      root_article_id: ind.rm_rate_management.htm
+      article_id_prefix: ind.rm
+      mode: all
+
+  snapshot_configurator_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Product Configurator area of Salesforce Help. Covers
+      ProductConfigurationFlow, ProductConfigurationRule. Small data-model
+      domain (4 objects) but the Help area covers configuration rules and
+      flow assignments that affect Quote/Order configuration. Root verified
+      via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: configurator
+      root_article_id: ind.product_configurator_introduction.htm
+      article_id_prefix: ind.product_configurator
+      mode: all
+
+  # The Transaction Management data-model domain corresponds to a SINGLE
+  # Help-portal area in 262 — not four seller-facing splits. Quote, Order,
+  # Contract, Asset, and Lifecycle articles all share the `ind.qocal_*`
+  # prefix (Quote-Order-Contract-Asset-Lifecycle). One snapshot variant
+  # covers all of them.
+  snapshot_transaction_mgmt_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Transaction Management area of Salesforce Help. Covers
+      Quote, QuoteLineItem, Order, OrderItem, Contract, Asset, AssetAction,
+      AssetStatePeriod, AssetRelationship, and quote/order/asset lifecycle
+      management. ONE combined area with prefix `ind.qocal_*` — not four
+      separate areas. Root verified via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: transaction_mgmt
+      root_article_id: ind.qocal_sales_transactions_rev_cloud.htm
+      article_id_prefix: ind.qocal
+      mode: all
+
+  snapshot_dro_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 DRO (Dynamic Revenue Orchestration) / Fulfillment area
+      of Salesforce Help. Covers FulfillmentPlan, FulfillmentStep,
+      FulfillmentStepDefinition, ProductFulfillmentDecompRule. Root verified
+      via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: dro
+      root_article_id: ind.dro_dynamic_revenue_orchestrator.htm
+      article_id_prefix: ind.dro
+      mode: all
+
+  snapshot_usage_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Usage Management area of Salesforce Help. Required for
+      Module 3 Unit 1 + Unit 3 LO validation (data model, Usage Agent,
+      Drawdown Policies, Digital Wallets, TransactionUsageEntitlement, Usage
+      Entitlement Account / Bucket / Entry). Root verified via RLM sidebar
+      walk. Prefix `ind.um_*` (NOT `ind.usage_*`).
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: usage
+      root_article_id: ind.um_usage_management.htm
+      article_id_prefix: ind.um
+      mode: all
+
+  snapshot_approvals_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Advanced Approvals area of Salesforce Help (~34 articles
+      per the sidebar walk). Covers Advanced Approval Objects, approval
+      workflow design, Smart Approvals, approval previews, Slack notifications,
+      auto-approval rules. Note: the data-model domain is thin (1 object,
+      ApprovalSubmission) but the Help area is rich. Root and prefix verified
+      via sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: approvals
+      root_article_id: ind.approvals_advanced_approvals.htm
+      article_id_prefix: ind.approvals
+      mode: all
+
+  # Agentforce for Revenue Management — the AI-agent suite that spans every
+  # functional domain (PCM, Quote/Order, Usage, Billing). 7 subagents per the
+  # 2026-05-11 sidebar walk:
+  #   - Subagent: Product Selection (PCM)
+  #   - Subagent: Product Description Generation (PCM)
+  #   - Subagent: Quote Management (Transaction Mgmt)
+  #   - Subagent: Consumption Management (Usage) — answers Module 3 LO 3.1
+  #   - Subagent: Invoice Line Explanation (Billing)
+  #   - Subagent: Billing Collections Management (Billing)
+  #   - Subagent: Billing Inquiries (Billing)
+  # This is the missing area that resolves the "Usage Agent / Consumption
+  # Agent" question for Module 3 — the subagent is named "Consumption
+  # Management" and lives in this area, not in the Usage Management area.
+  # Also relevant for Module 1 v2 voice corrections (the M1v2 validation
+  # report flagged Invoice Explanation / Billing Inquiries / Collections
+  # naming, all of which actually live here).
+  snapshot_agents_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Agentforce for Revenue Management area of Salesforce
+      Help. Covers the 7 revenue-management subagents (Product Selection,
+      Product Description Generation, Quote Management, Consumption
+      Management, Invoice Line Explanation, Billing Collections Management,
+      Billing Inquiries) plus agent templates and setup. Root and prefix
+      verified via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: agents
+      root_article_id: ind.rev_agent_overview.htm
+      article_id_prefix: ind.rev_agent
+      mode: all
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
