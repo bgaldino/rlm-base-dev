@@ -2531,16 +2531,22 @@ tasks:
   # See tasks/rlm_snapshot_help.py for full docstring.
   #
   # Playwright must be installed into the same Python environment that runs
-  # CCI. With pipx-installed CCI (recommended per the project README):
+  # CCI. With pipx-installed CCI (recommended per the project README, which
+  # uses the standard ~/.local/pipx/venvs/cumulusci/ path):
   #
   #   pipx inject cumulusci playwright
-  #   $(pipx environment --value PIPX_LOCAL_VENVS)/cumulusci/bin/python -m playwright install chromium
+  #   ~/.local/pipx/venvs/cumulusci/bin/python -m playwright install chromium
   #
-  # (pipx doesn't expose Playwright's CLI by default; running via the venv's
+  # On Windows, the equivalent path is %USERPROFILE%\pipx\venvs\cumulusci\Scripts\python.exe.
+  # If your pipx install lives somewhere non-standard (custom PIPX_HOME, etc.),
+  # `pipx environment --value PIPX_LOCAL_VENVS` returns the actual base
+  # directory containing the cumulusci venv.
+  #
+  # pipx doesn't expose Playwright's CLI by default; running via the venv's
   # Python is the cleanest path. Alternatively, re-inject with --include-apps
   # to put `playwright` on your PATH:
   #   pipx inject cumulusci playwright --include-apps --force
-  #   playwright install chromium)
+  #   playwright install chromium
   #
   # With pip-installed CCI in the project .venv:
   #

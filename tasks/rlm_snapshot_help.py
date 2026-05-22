@@ -694,6 +694,16 @@ class SnapshotSalesforceHelp(BaseTask):
 
                 async with manifest_lock:
                     record = articles_by_id.get(article_id, {})
+                    # Backfill required fields for legacy records that
+                    # pre-date per-article tagging (area, article_id).
+                    # setdefault preserves any existing value, so this is
+                    # safe to run on every capture — only fills gaps.
+                    # Without this, per-area stats / filtering / future
+                    # area-scoped refreshes would silently skip legacy
+                    # records (whose frontmatter still gets the current
+                    # area via render_article_markdown below).
+                    record.setdefault("area", self.options["area"])
+                    record.setdefault("article_id", article_id)
                     if captured.get("error"):
                         record["status"] = "error"
                         record["error"] = captured["error"]

@@ -2,7 +2,7 @@
 release_version: 260
 release_name: "Spring '26"
 api_version: 66.0
-area: "Advanced Approval"
+area: "Advanced Approvals"
 document_version: 0.1
 status: draft
 last_updated: 2026-05-06
@@ -21,13 +21,13 @@ sources:
   - ".cursor/skills/release-enablement/authoring-patterns.md"
 ---
 
-# Revenue Cloud — Advanced Approval
+# Revenue Cloud — Advanced Approvals
 
 **Enablement Exercises** · Version 0.1 (draft), Spring '26
 
 > **Branding note:** Salesforce has rebranded *Revenue Cloud* as *Agentforce Revenue Management* in Spring '26. This exercise series continues to use "Revenue Cloud" throughout 260 to match what users see in the product UI.
 
-> **Positioning of this exercise:** Per the Revenue Cloud journey map convention, **Advanced Approval is an "Additional Topic"** rather than a primary functional area. 260 Approval features are built on top of Transaction Management workflows, so the **primary configuration walkthroughs live in `260-transaction-management-hands-on.md` Features 5 + 6**. This exercise serves as the entry point for readers coming via the Approvals path: it summarizes 260 Approval features, surfaces carry-forward inventory from prior releases, and cross-references TM for full walkthroughs.
+> **Positioning of this exercise:** Per the Revenue Cloud journey map convention, **Advanced Approvals is an "Additional Topic"** rather than a primary functional area. 260 Approval features are built on top of Transaction Management workflows, so the **primary configuration walkthroughs live in `260-transaction-management-hands-on.md` Features 5 + 6**. This exercise serves as the entry point for readers coming via the Approvals path: it summarizes 260 Approval features, surfaces carry-forward inventory from prior releases, and cross-references TM for full walkthroughs.
 
 > Org / data shape: QuantumBit (`qb`). These exercises assume an org provisioned by `rlm-base-dev`'s `prepare_rlm_org` flow.
 

@@ -18,7 +18,7 @@ Each functional area listed in the journey map gets one Markdown source-of-truth
 | Usage Management | `260-usage-management-hands-on.md` | 🚧 draft |
 | Invoice Management | `260-invoice-management-hands-on.md` | 🚧 draft |
 | Context Service | `260-context-service-hands-on.md` | 🚧 draft |
-| Advanced Approval | `260-advanced-approval-hands-on.md` | 🚧 draft |
+| Advanced Approvals | `260-advanced-approval-hands-on.md` | 🚧 draft |
 | Revenue Cloud Billing | `260-revenue-cloud-billing-hands-on.md` | 🚧 draft |
 | Journey Map | `260-journey-map.md` | ⏳ pending (built last) |
 

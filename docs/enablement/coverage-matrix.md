@@ -34,7 +34,7 @@ Legend: ✅ have it · ⚠️ partial/draft · ❌ missing · — not in journey
 | Usage Management             | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft | ✅ | ✅ | ✅ | — |
 | Invoice Management           | ⏳ pending | ⚠️ draft v0.1 | ⚠️ draft (placeholder header) | ✅ | ✅ | ✅ | — |
 | Revenue Cloud Billing        | ⏳ pending | ⚠️ draft v0.1 | ❌ | ✅ | ✅ | — | — |
-| Advanced Approval            | ⏳ pending | ⚠️ draft v0.1 | ❌ in 258 (journey map shows it) | — (overview-only in Su'25) | ✅ Release Overview only | ✅ | — |
+| Advanced Approvals           | ⏳ pending | ⚠️ draft v0.1 | ❌ in 258 (journey map shows it) | — (overview-only in Su'25) | ✅ Release Overview only | ✅ | — |
 | CLM / Contracts              | — (dropped in W'26 and later) | — | — (dropped in W'26) | — | ✅ | ✅ | — |
 
 ### Notes on draft state of 258 PDFs
@@ -98,7 +98,7 @@ Sorts cleanly by version, area is unambiguous, type suffix lets both kinds coexi
    - (b) update QuantumBit-aligned exercises to reflect changes within QB itself (new products, restructured bundles, renamed fields)?
    - (c) both?
 2. ~~**Target release** — Is Winter '26 (258) the deliverable…~~ — **Resolved 2026-05-22.** 262 (Summer '26) is the current development cycle; 260 (Spring '26) is the prior GA reference. Master exercises target 262; 260 per-release extracts remain in the catalog as the prior-release authoring output.
-3. **Advanced Approval** for 258 — needs to be authored from scratch? The journey map includes it, but no draft exists in the 258 folder. (Lower priority now that 260 has a `.md` draft.)
+3. **Advanced Approvals** for 258 — needs to be authored from scratch? The journey map includes it, but no draft exists in the 258 folder. (Lower priority now that 260 has a `.md` draft.)
 4. **Recordings** — Winter '26 page in the journey map omits the "Recording" links every prior release had. Intentional (no recordings this cycle), or TODO?
 
 ---
