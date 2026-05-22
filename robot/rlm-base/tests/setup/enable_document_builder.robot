@@ -15,6 +15,9 @@ ${DOCUMENT_BUILDER_TOGGLE_LABEL}          Document Builder
 ${GENERAL_SETTINGS_PATH}                  /lightning/setup/GeneralSettings/home
 ${DOC_TEMPLATES_EXPORT_LABEL}             Document Templates Export
 ${DESIGN_DOC_TEMPLATES_LABEL}             Design Document Templates in Salesforce
+# Shared shadow-DOM traversal helper prepended to Execute JavaScript blocks that need findEl.
+# Same canonical pattern used in configure_core_pricing_setup.robot and configure_product_discovery_settings.robot.
+${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
 
 *** Test Cases ***
 Enable Document Builder Toggle On Revenue Settings
@@ -57,8 +60,8 @@ Enable Document Templates Export On General Settings
     # Reload and re-verify server-side persistence
     Open Setup Page    ${GENERAL_SETTINGS_PATH}
     ${verified}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
     ...    return (function() {
-    ...        function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
     ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
     ...        if (!pi) return 'not_found';
     ...        return pi.checked ? 'on' : 'off';
@@ -77,8 +80,8 @@ _Click Document Templates Export Toggle
     ...    introduced in PR #139 for lightning-input toggles, where label clicks fire the LWC save
     ...    handler reliably and raw input clicks may not) and falls back to the input click otherwise.
     ${result}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
     ...    return (function() {
-    ...        function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
     ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
     ...        if (!pi) return 'not_found';
     ...        if (pi.checked) return 'already_on';
