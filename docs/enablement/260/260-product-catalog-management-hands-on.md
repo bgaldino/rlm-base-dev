@@ -52,7 +52,7 @@ The following features were introduced in 256 (Su'25) or 258 (W'26). They remain
 | Search Products in Large Catalogs (up to 20M) | 256 | same | 🔄 **enhanced** in 260 — Filterable/Searchable Field limits expanded (Feature 2) |
 | Simplified Quote Bundles (hide non-essential children) | 256 | same | ✅ no change |
 | Auto-Renewals for Term-Based Products | 256 | same | ✅ no change |
-| AgentForce — Generate Product Description | 256 | same | ✅ no change |
+| Agentforce — Generate Product Description | 256 | same | ✅ no change |
 | Category Based Faceted Search | 258 | `docs/enablement/258/Product Catalog Management - Winter'26 Revenue Cloud - External.pdf` | ✅ no change |
 | Dynamic Product Facets | 258 | same | ✅ no change |
 | Display Order of Categories | 258 | same | ✅ no change |
@@ -360,7 +360,7 @@ Selected by family — pick representative products for the type of demonstratio
 5. **Spring '26 Discover Products flow update** — should the 260 PCM exercise include the `discoverProductsContext` Apex-Defined variable migration as a "First time you see this org after upgrade" callout? It's upgrade guidance, not a feature, but readers will hit it if they're upgrading from W'26.
 6. **Permission Set Group recalculation** — same upgrade guidance question. Worth a callout?
 7. **Attribute Picklist values data** — the QB catalog has 87 picklist values; should the exercise demonstrate Filterable Field Configuration against attribute picklists specifically, or just any custom field?
-8. **AgentForce features for PCM in 260** — Solution Overview Salesforce Go section mentions Agent support. Is there a 260 PCM-specific Agentforce capability we should call out, or do we wait for 262 (which has Constraint Rules in Product Discovery and Product Variants as headline items)?
+8. **Agentforce features for PCM in 260** — Solution Overview Salesforce Go section mentions Agent support. Is there a 260 PCM-specific Agentforce capability we should call out, or do we wait for 262 (which has Constraint Rules in Product Discovery and Product Variants as headline items)?
 
 ---
 

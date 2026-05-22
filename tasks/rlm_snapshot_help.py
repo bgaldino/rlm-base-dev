@@ -117,6 +117,36 @@ SIDEBAR_WALKER_JS = """
         });
         return out;
     }
+
+    // Best-effort parent extraction from the sidebar tree structure.
+    // The Help portal sidebar typically uses <li><a>parent</a><ul><li><a>child</a>...
+    // nesting, so for each link we walk up to its enclosing <li>, then
+    // up the parent chain looking for the next ancestor <li>. The first
+    // articleView <a> in that ancestor LI's label area is the parent
+    // article. Returns null when no enclosing LI / parent link can be
+    // identified (flat sidebar, cross-shadow nesting, or top-level
+    // articles) — preserves any pre-existing parent_article values via
+    // _merge_discovered (Python side), so partial extraction never
+    // regresses manually-curated parents.
+    function findParentArticleId(link) {
+        if (!link.closest) return null;
+        const selfLi = link.closest('li');
+        if (!selfLi) return null;
+        let p = selfLi.parentElement;
+        while (p) {
+            if (p.tagName === 'LI') {
+                const candidate =
+                    p.querySelector && p.querySelector('a[href*="articleView"]');
+                if (candidate && candidate !== link) {
+                    const m = candidate.href.match(/id=([^&]+)/);
+                    if (m) return m[1];
+                }
+            }
+            p = p.parentElement;
+        }
+        return null;
+    }
+
     const links = walk(document, el =>
         el.tagName === 'A' &&
         el.href &&
@@ -132,7 +162,11 @@ SIDEBAR_WALKER_JS = """
         const id = m[1];
         if (seen.has(id)) return;
         seen.add(id);
-        result.push({ id: id, title: a.innerText.trim().slice(0, 200) });
+        result.push({
+            id: id,
+            title: a.innerText.trim().slice(0, 200),
+            parent_id: findParentArticleId(a) || null,
+        });
     });
     return result;
 }
@@ -492,6 +526,7 @@ class SnapshotSalesforceHelp(BaseTask):
         for d in discovered:
             article_id = d["id"]
             title = d.get("title", "")
+            parent_id = d.get("parent_id")
             if article_id in existing_by_id:
                 # Update title if the existing one is empty
                 if not existing_by_id[article_id].get("title"):
@@ -500,13 +535,22 @@ class SnapshotSalesforceHelp(BaseTask):
                 # versions that pre-date per-article area tagging)
                 if not existing_by_id[article_id].get("area"):
                     existing_by_id[article_id]["area"] = current_area
+                # Backfill parent_article if the discovery walker found one
+                # and the existing record doesn't already have it. Never
+                # overwrite — preserves manually-set or previously-extracted
+                # values across re-runs.
+                if parent_id and not existing_by_id[article_id].get("parent_article"):
+                    existing_by_id[article_id]["parent_article"] = parent_id
             else:
-                existing_by_id[article_id] = {
+                record = {
                     "article_id": article_id,
                     "title": title,
                     "status": "pending",
                     "area": current_area,
                 }
+                if parent_id:
+                    record["parent_article"] = parent_id
+                existing_by_id[article_id] = record
         manifest["articles"] = sorted(
             existing_by_id.values(), key=lambda a: a["article_id"]
         )

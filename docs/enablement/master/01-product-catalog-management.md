@@ -46,7 +46,7 @@ sections:
   - {id: catalog-caching, introduced: 258, available: "258+", enhanced_in: [260], scenario_step: "Caching 1"}
   - {id: data-translation-multilingual, introduced: 258, available: "258+", scenario_step: "Localization 1"}
   - {id: auto-renewals-term, introduced: 256, available: "256+", scenario_step: "Subscription 1"}
-  - {id: agentforce-product-description, introduced: 256, available: "256+", scenario_step: "AgentForce 1"}
+  - {id: agentforce-product-description, introduced: 256, available: "256+", scenario_step: "Agentforce 1"}
   - {id: b2b-commerce-interop, introduced: 260, available: "260+", scenario_step: "Cross-Area 1"}
   - {id: end-to-end-synthesis, introduced: foundational, available: all, scenario_step: "Synthesis"}
 ---
@@ -641,17 +641,17 @@ For Infinitech: their QB-COMPLETE software subscriptions auto-renew at end of te
 
 ---
 
-# Part 7: AgentForce in PCM
+# Part 7: Agentforce in PCM
 
-## Section 28: AgentForce — Generate Product Description {#agentforce-product-description}
+## Section 28: Agentforce — Generate Product Description {#agentforce-product-description}
 
-> **Version:** introduced 256 (Summer '25) · available 256+ · *Scenario step: AgentForce 1*
+> **Version:** introduced 256 (Summer '25) · available 256+ · *Scenario step: Agentforce 1*
 
 256 introduced an Agentforce-powered feature for catalog admins: **AI-generated product descriptions** based on product name, classification, and attributes. Saves time for catalogs with thousands of products that need rich descriptions.
 
 For QuantumBit: when adding a new product (e.g., `QB-Server-XYZ-2027`), the catalog admin uses Agentforce to generate a draft description that mentions the rack form factor, processor compatibility, and target use case. The admin reviews and refines.
 
-> **Detailed walkthrough:** `docs/enablement/256/Summer '25 - Product Catalog Management.pdf` § AgentForce - Generate Product Description.
+> **Detailed walkthrough:** `docs/enablement/256/Summer '25 - Product Catalog Management.pdf` § Agentforce - Generate Product Description.
 
 ---
 
@@ -689,7 +689,7 @@ The capstone exercise of this master. Set up the QuantumBit catalog so it's read
 4. **Configure QB-COMPLETE bundle** — for Pre-Prod environment, choose Software components, Add-Ons, Services, Maintenance, Training, exactly 1 Usage product (QB-DB).
 5. **Configure QB-QRack-750 server** — exercise nested groups (Computing → Cooling, Storage → Hard Drives, PCIe → GPUs/I/O/Networking) per the Server2 CML.
 6. **Translate select product names** to French and German for Infinitech's EU office.
-7. **Generate product descriptions** for 5 new internal products via AgentForce.
+7. **Generate product descriptions** for 5 new internal products via Agentforce.
 8. **Set Auto-Renewal default** on QB-COMPLETE.
 9. **Inspect the cache** — clear and re-generate after the catalog updates.
 
@@ -725,5 +725,5 @@ The capstone exercise of this master. Set up the QuantumBit catalog so it's read
 3. **Demo URLs** — three confirmed demos for 260 PCM (Product Detail Caching, Filterable & Searchable Field, Enhanced Multi-Selection). Need actual URLs.
 4. **B2B Commerce inclusion** — currently a single section pointer. Is that sufficient, or should it have an inline summary table of each feature's PCM impact?
 5. **Constraint Rules in PCM (Section 11)** — currently a thin pointer to Configurator master. Should it have a small in-line walkthrough showing the Constraint tab in PCM?
-6. **AgentForce section** — only 1 PCM-specific Agentforce feature in 256. Will more land in 262? Worth a forward-look note.
+6. **Agentforce section** — only 1 PCM-specific Agentforce feature in 256. Will more land in 262? Worth a forward-look note.
 7. **Pre-built starter Quote with QB-COMPLETE pre-configured** — would shorten the catalog-setup synthesis step significantly. Same gap as master Pricing's open question.

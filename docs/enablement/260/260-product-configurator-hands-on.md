@@ -46,7 +46,7 @@ The following Configurator features were introduced in 256 (Su'25) or 258 (W'26)
 
 | Feature | Introduced in | Reference | 260 status |
 |---|---|---|---|
-| Add Product from Catalog into Constraint Builder | 256 | `docs/enablement/256/Summer ' 25 - Configuration.pdf` | ✅ no change |
+| Add Product from Catalog into Constraint Builder | 256 | `docs/enablement/256/Summer '25 - Configuration.pdf` | ✅ no change |
 | Basic Logic Constraint | 256 | same | ✅ no change |
 | Conditional Logic Constraints | 256 | same | ✅ no change |
 | Message Rule | 256 | same | ✅ no change |
