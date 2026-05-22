@@ -518,6 +518,22 @@ class SnapshotSalesforceHelp(BaseTask):
         mode: str,
     ) -> List[Dict[str, Any]]:
         articles = manifest.get("articles", [])
+
+        # Per-area scoping: the shared manifest accumulates articles across
+        # every area that has ever been run against this release directory.
+        # An area-specific task (e.g. snapshot_pricing_help_262) must only
+        # operate on its own area — otherwise mode=refresh would silently
+        # re-capture other areas' articles (and re-tag them with the wrong
+        # `area` value via render_article_markdown). Articles with no `area`
+        # field still pass through so legacy single-area manifests captured
+        # before per-article area tagging continue to work.
+        current_area = self.options.get("area")
+        if current_area:
+            articles = [
+                a for a in articles
+                if not a.get("area") or a.get("area") == current_area
+            ]
+
         if mode == "refresh":
             return [a for a in articles if a.get("article_id")]
         return [a for a in articles if a.get("status") != "captured"]

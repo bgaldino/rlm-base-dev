@@ -164,7 +164,7 @@ When a new release ships (e.g., Salesforce announces 264 GA):
    grep -l "^You are here:" docs/salesforce/264/help/articles/*.md | wc -l
    ```
 
-5. **Commit**. The full snapshot is typically under 1 MB and commits cleanly.
+5. **Commit**. A single-area snapshot is typically 100–500 KB; the full multi-area snapshot for one release lands around 4–5 MB (the 262 snapshot is **~4.3 MB across 838 articles** — see the *Per-area snapshots* table below). Mark the directory as generated in `.gitattributes` (`docs/salesforce/*/help/** linguist-generated=true`) so GitHub auto-collapses the diff on refresh PRs.
 
 ## Per-area snapshots
 

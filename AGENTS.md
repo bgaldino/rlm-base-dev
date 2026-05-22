@@ -33,7 +33,6 @@ datasets/context_plans/# Context definition plans
 datasets/constraints/  # Configurator constraint rule data
 datasets/bre/          # Business Rule Engine exports
 datasets/tooling/      # Tooling API metadata exports
-datasets/dx/           # DX-format metadata snapshots
 scripts/apex/          # Apex activation/deletion scripts
 scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
 scripts/cml/           # CML export/import/validation utilities
