@@ -85,20 +85,22 @@ export PATH="$HOME/.local/bin:$PATH"
 # NVM — function definitions + default node bin on PATH (no slow `nvm use`).
 # `brew --prefix nvm` resolves to /opt/homebrew/opt/nvm (Apple Silicon)
 # or /usr/local/opt/nvm (Intel) — works on both architectures.
+#
+# We skip the full `nvm use default` activation cycle (slow) and just resolve
+# `default` to a concrete vX.Y.Z via nvm's public API, then prepend that bin
+# dir. `nvm version default` handles any alias chain — including glob aliases
+# like `lts/*` (which `update-toolchain.sh` and `nvm install --lts` set) —
+# without depending on nvm's internal alias-cache file layout.
 export NVM_DIR="$HOME/.nvm"
 _NVM_PREFIX="$(brew --prefix nvm 2>/dev/null || true)"
 if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
   . "$_NVM_PREFIX/nvm.sh" --no-use
-  if [ -s "$NVM_DIR/alias/default" ]; then
-    _NVM_DEF="$(cat "$NVM_DIR/alias/default")"
-    while [ -s "$NVM_DIR/alias/$_NVM_DEF" ]; do
-      _NVM_DEF="$(cat "$NVM_DIR/alias/$_NVM_DEF")"
-    done
-    _NVM_VER="v${_NVM_DEF#v}"
-    [ -d "$NVM_DIR/versions/node/$_NVM_VER/bin" ] && \
-      export PATH="$NVM_DIR/versions/node/$_NVM_VER/bin:$PATH"
-    unset _NVM_DEF _NVM_VER
+  _NVM_VER="$(nvm version default 2>/dev/null)"
+  if [ -n "$_NVM_VER" ] && [ "$_NVM_VER" != "N/A" ] && \
+     [ -d "$NVM_DIR/versions/node/$_NVM_VER/bin" ]; then
+    export PATH="$NVM_DIR/versions/node/$_NVM_VER/bin:$PATH"
   fi
+  unset _NVM_VER
 fi
 unset _NVM_PREFIX
 
