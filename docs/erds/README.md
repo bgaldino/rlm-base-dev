@@ -1,6 +1,6 @@
-# Revenue Cloud v66.0 Entity Relationship Diagrams
+# Revenue Cloud Entity Relationship Diagrams
 
-This directory contains comprehensive entity relationship diagrams (ERDs) for the Revenue Cloud Base Foundations project, generated from the RLM JSON schema files.
+This directory contains comprehensive entity relationship diagrams (ERDs) for the Revenue Cloud Base Foundations project, generated from the RLM JSON schema files. Object/field counts reflect the v66.0 (Release 260) baseline; per-object 262 schema changes are tracked in `docs/upgrades/262-upgrade-plan.md` (e.g. `RateCard.Status` removed). Regenerate from `erd-data.json` after material 262 schema changes are confirmed.
 
 ## Generated Files
 
@@ -148,6 +148,6 @@ To regenerate:
 
 ---
 
-**Generated:** 2026-03-26  
-**Revenue Cloud Version:** v66.0 (Spring '26)  
-**API Version:** v66.0
+**Generated:** 2026-03-26 (v66.0 / Release 260 baseline)
+**Revenue Cloud Version:** v66.0 baseline; 262 deltas tracked in `docs/upgrades/262-upgrade-plan.md`
+**API Version:** v67.0 in current `cumulusci.yml`; ERD extraction pending refresh

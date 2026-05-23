@@ -174,7 +174,7 @@ project:
   name: rlm-base
   package:
     name: rlm-base
-    api_version: "66.0"    # Spring '26
+    api_version: "67.0"    # Summer '26 (Release 262)
   source_format: sfdx
 ```
 

@@ -1,11 +1,11 @@
 # Revenue Cloud Base Foundations
 
-**Salesforce Release:** 260 (Spring '26)
-**API Version:** 66.0
+**Salesforce Release:** 262 (Summer '26)
+**API Version:** 67.0
 
 This repository automates the creation and configuration of Salesforce environments that require Revenue Cloud (formerly Revenue Lifecycle Management) functionality.
 
-The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches exist for different release scenarios.
+The `262` branch targets Salesforce Release 262 (Summer '26). The `main` branch tracks the prior GA target, Release 260 (Spring '26). See `docs/upgrades/262-upgrade-plan.md` for the upgrade workstream.
 
 ## Table of Contents
 
@@ -1465,7 +1465,8 @@ When contributing to this project:
 
 ## Branch Information
 
-- **main**: Salesforce Release 260 (Spring '26, GA)
+- **`262`**: Salesforce Release 262 (Summer '26) — current development branch (this branch)
+- **`main`**: Salesforce Release 260 (Spring '26, GA) — prior GA reference
 - Other branches exist for different release scenarios and preview features
 
 ## Additional Resources
@@ -1473,10 +1474,11 @@ When contributing to this project:
 - [CumulusCI Documentation](https://cumulusci.readthedocs.io/)
 - [Salesforce CLI Documentation](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/)
 - [SFDMU Documentation](https://help.sfdmu.com/)
-- [Revenue Cloud Developer Guide (Release 260)](https://developer.salesforce.com/docs/atlas.en-us.260.0.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm)
+- [Revenue Cloud Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (latest)
+- [Revenue Cloud Developer Guide (Release 260)](https://developer.salesforce.com/docs/atlas.en-us.260.0.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (prior GA reference)
 - [Revenue Cloud Help Documentation](https://help.salesforce.com/s/articleView?id=ind.revenue_lifecycle_management_get_started.htm&type=5)
 
-**Note:** This project works with all Revenue Cloud capabilities documented in both the Developer Guide and Help Documentation for Release 260 (Spring '26).
+**Note:** This project works with the Revenue Cloud capabilities documented for Release 262 (Summer '26). Release 260 (Spring '26) is the prior GA reference; pre-release-freeze 262 schema/behavior changes are tracked in `docs/upgrades/262-upgrade-plan.md`.
 
 ## License
 

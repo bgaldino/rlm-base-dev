@@ -45,7 +45,7 @@ Instead of `headlessConfigLoad(quoteId)`, query the `QuoteEntitiesMapping` conte
 ### How `headlessConfigSet` works
 
 ```
-POST /services/data/v66.0/connect/cpq/configurator/set
+POST /services/data/v67.0/connect/cpq/configurator/set
 {
   "contextMappingId": "<QuoteEntitiesMapping ID>",
   "transaction": "{\"Quote\":[{\"businessObjectType\":\"Quote\",\"id\":\"<quoteId>\"}]}"
