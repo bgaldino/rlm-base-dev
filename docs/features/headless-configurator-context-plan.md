@@ -44,8 +44,10 @@ Instead of `headlessConfigLoad(quoteId)`, query the `QuoteEntitiesMapping` conte
 
 ### How `headlessConfigSet` works
 
+> Path shorthand: `/connect/...` is the relative form of `/services/data/v67.0/connect/...` on the 262 branch. The architecture table above and the example below use the shorthand for brevity.
+
 ```
-POST /services/data/v67.0/connect/cpq/configurator/set
+POST /connect/cpq/configurator/set
 {
   "contextMappingId": "<QuoteEntitiesMapping ID>",
   "transaction": "{\"Quote\":[{\"businessObjectType\":\"Quote\",\"id\":\"<quoteId>\"}]}"

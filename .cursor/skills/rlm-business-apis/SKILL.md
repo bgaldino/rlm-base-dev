@@ -22,6 +22,8 @@ API v67.0 (Summer '26 / Release 262). All endpoints use `/services/data/v67.0/co
 
 ## API Domain Index
 
+> `Base Path` values below are relative to `/services/data/v67.0` — i.e. `/connect/pcm/` is actually `/services/data/v67.0/connect/pcm/`. The shorthand is used for table compactness; full prefix per Quick Rule #1 above.
+
 | Domain | Base Path | Key Operations | Reference Doc |
 |--------|-----------|---------------|---------------|
 | **PCM** | `/connect/pcm/` | Catalogs, categories, products, attributes, bundles, classifications | [pcm-business-apis-reference.md](../../postman/docs/pcm-business-apis-reference.md) |

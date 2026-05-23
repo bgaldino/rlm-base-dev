@@ -1,7 +1,8 @@
 # Revenue Cloud API Reference Viewer
 
 Self-contained HTML viewer for the Revenue Cloud Business API reference documentation.
-Currently extracted from the Release 260 (v66.0) developer guide; substitute v67.0 paths when calling against a 262 (Summer '26) org until a 262 extraction lands.
+
+The reference content is currently extracted from the Release 260 (v66.0) developer guide; substitute v67.0 paths when calling against a 262 (Summer '26) org until a 262 extraction lands.
 
 ## Usage
 
