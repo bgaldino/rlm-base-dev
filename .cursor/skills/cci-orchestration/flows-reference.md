@@ -170,13 +170,12 @@ Extract rating and rates data from an org into CSV files
    - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
 6. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
 7. **task** `activate_billing_records`  `when: project_config.project__custom__billing`
-8. **task** `enable_timeline`  `when: project_config.project__custom__billing_ui`
-9. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing`
-10. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
-11. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
-12. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
+8. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing`
+9. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
+10. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
+11. **task** `assign_permission_sets`  `when: project_config.project__custom__billing_ui`
    - `api_names`: `['RLM_BillingUI']`
-13. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
+12. **task** `apply_context_billing_order`  `when: project_config.project__custom__billing and project_config.project__custom__billing_ui`
 
 ---
 

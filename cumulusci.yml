@@ -2831,9 +2831,6 @@ flows:
         task: activate_billing_records
         when: project_config.project__custom__billing
       8:
-        task: enable_timeline
-        when: project_config.project__custom__billing_ui
-      9:
         task: deploy_billing_id_settings
         when: project_config.project__custom__billing
       10:
