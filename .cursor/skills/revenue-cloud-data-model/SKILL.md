@@ -10,7 +10,7 @@ description: >-
 
 # Revenue Cloud Data Model
 
-Revenue Cloud v66.0 (Spring '26, API v66.0 / Release 260) — 263 objects, 4,919 fields across 9 domains.
+Revenue Cloud v67.0 (Summer '26 / Release 262) — 263 objects, 4,919 fields across 9 domains. Object/field counts reflect the 260 baseline; per-object 262 schema changes are tracked in `docs/upgrades/262-upgrade-plan.md` (e.g. `RateCard.Status` removed, `ProductUsageResource` overlap validation enforced on activation).
 
 ## Quick Rules
 

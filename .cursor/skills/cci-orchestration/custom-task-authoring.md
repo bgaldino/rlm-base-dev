@@ -125,7 +125,7 @@ class ManageDecisionTables(BaseTask):
         }
 
         # REST API call
-        url = f"{instance_url}/services/data/v66.0/query/"
+        url = f"{instance_url}/services/data/v67.0/query/"
         params = {"q": "SELECT Id, DeveloperName FROM DecisionTable"}
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
@@ -234,7 +234,7 @@ tso_mode = self.project_config.project__custom__tso
 custom = dict(self.project_config.config.get("project", {}).get("custom", {}))
 
 # API version
-api_version = self.project_config.project__package__api_version  # "66.0"
+api_version = self.project_config.project__package__api_version  # "67.0" on the 262 branch
 ```
 
 ---
@@ -260,7 +260,7 @@ cmd = ["sf", "data", "query", "--target-org", self.org_config.access_token]  # F
 ```python
 # CORRECT — use access_token + instance_url directly
 headers = {"Authorization": f"Bearer {self.org_config.access_token}"}
-url = f"{self.org_config.instance_url}/services/data/v66.0/query/"
+url = f"{self.org_config.instance_url}/services/data/v67.0/query/"
 ```
 
 ### `org_config` properties reference
@@ -301,7 +301,7 @@ the username always works.
 
 ```python
 headers = {"Authorization": f"Bearer {self.org_config.access_token}"}
-url = f"{self.org_config.instance_url}/services/data/v66.0/query/"
+url = f"{self.org_config.instance_url}/services/data/v67.0/query/"
 resp = requests.get(url, headers=headers, params={"q": soql})
 resp.raise_for_status()
 records = resp.json().get("records", [])
@@ -310,14 +310,14 @@ records = resp.json().get("records", [])
 ### Tooling API
 
 ```python
-url = f"{self.org_config.instance_url}/services/data/v66.0/tooling/query/"
+url = f"{self.org_config.instance_url}/services/data/v67.0/tooling/query/"
 resp = requests.get(url, headers=headers, params={"q": tooling_soql})
 ```
 
 ### Connect API
 
 ```python
-url = f"{self.org_config.instance_url}/services/data/v66.0/connect/..."
+url = f"{self.org_config.instance_url}/services/data/v67.0/connect/..."
 resp = requests.post(url, headers=headers, json=payload)
 ```
 

@@ -155,9 +155,9 @@ The auto-gen reads frontmatter to populate the cover page, headers, footers, and
 
 ```yaml
 ---
-release_version: 260            # int — RCA package version
-release_name: "Spring '26"      # str — seasonal name
-api_version: 66.0               # float — Salesforce API version
+release_version: 262            # int — RCA package version (current cycle; 260 = Spring '26 = prior GA)
+release_name: "Summer '26"      # str — seasonal name
+api_version: 67.0               # float — Salesforce API version
 area: "Salesforce Pricing"      # str — must match journey map label
 document_version: 0.3           # str — semver-ish, increment within a release cycle
 status: draft                   # outline | draft | review | final

@@ -1,6 +1,6 @@
 # Release 262 (Summer '26) Upgrade Plan
 
-**Branch:** `262-test`
+**Branch:** `262` (originally `262-test`; upgrade work consolidated onto `262` — see Section 1)
 **Target API Version:** 67.0
 **Status:** In Progress
 
@@ -35,7 +35,7 @@ Two workstations with distinct capabilities are used in combination:
 | 4 — UI Validation | Validate UI-only settings and toggles in 262 org via Chrome extension | Personal | Parallel with Phase 3 |
 | 5 — Implementation | Data plan fixes, Apex updates, build verification | Either | Blocked on Phases 3–4 |
 
-The `262-test` branch and this document are the shared source of truth across both workstations. Pull before starting any phase; commit and push at the end of each phase before switching workstations.
+The `262` branch and this document are the shared source of truth across both workstations. Pull before starting any phase; commit and push at the end of each phase before switching workstations.
 
 ### Org Setup Required Before Phase 1
 
@@ -49,10 +49,10 @@ See Section 1 (Infrastructure) and Section 2 (Scratch Org Definitions) for prere
 
 ## 1. Infrastructure & Tooling
 
-- [x] Create `262-test` branch from `main`
+- [x] Create `262` upgrade branch from `main` (originally created as `262-test`; primary upgrade work consolidated onto `262`)
 - [x] Update `sfdx-project.json` → `sourceApiVersion: 67.0`
 - [x] Update `cumulusci.yml` → `api_version: 67.0`
-- [x] `sfdcLoginUrl`: set to internal test pod (`login.test1.pc-rnd.salesforce.com`) on `262-test` branch; set to `https://login.salesforce.com` on feature branches working against production orgs
+- [x] `sfdcLoginUrl`: set to internal test pod (`login.test1.pc-rnd.salesforce.com`) on `262` branch; set to `https://login.salesforce.com` on feature branches working against production orgs
 - [x] Bulk-update all `<apiVersion>` in `-meta.xml` files to 67.0
 - [x] Bulk-update all `"apiVersion"` in SFDMU `export.json` files to 67.0
 - [x] Update `manifest/package.xml` version to 67.0
@@ -169,7 +169,7 @@ Run SFDMU v5 dataset compliance check after any schema-driven updates.
 - [ ] Verify `prepare_prm` sub-flow succeeds (when `prm=true`)
 - [ ] Verify `prepare_approvals` sub-flow succeeds (when `approvals=true`)
 - [x] Verify Robot Framework tasks pass — `enable_analytics_replication` rewritten for 262 (see Known Issues #262-1)
-- [ ] Trigger GitHub Actions workflow (`prepare-rlm-org.yml`) on `262-test` branch
+- [ ] Trigger GitHub Actions workflow (`prepare-rlm-org.yml`) on `262` branch
 
 ---
 
@@ -188,7 +188,7 @@ Review `project__custom__*` flags in `cumulusci.yml` against 262 capabilities.
 | # | Item | Status |
 |---|------|--------|
 | #76 | `enableSeparateSalesforceAndSiteLogin` — correct metadata API mechanism unknown; Security.settings-meta.xml approach invalid | Open |
-| — | Dev Hub configuration for 262-test | Pending |
+| — | Dev Hub configuration for 262 | Pending |
 | #262-1 | **`InsightsSetupSettings` VF page removed** — Analytics Setup VF iframe (`waveSetupSettings.apexp`) removed in 262. Old robot test failed with "Analytics Settings VF iframe not found". **Fixed:** `enable_analytics.robot` and `AnalyticsSetupHelper.py` rewritten to click "Enable CRM Analytics" on `/lightning/setup/InsightsSetupGettingStarted/home`. Full CRM Analytics enablement (not the lightweight Data Sync toggle) is now required. `enableAnalytics` is not a valid `AnalyticsSettings` metadata field in v67 — robot/UI approach is the only path. | Resolved |
 | #262-2 | **`RateCardEntry` DML via SOAP/Apex Execute Anonymous raises `UNKNOWN_EXCEPTION` (500)** — Platform regression in 262. Both `AnonymousApexTask` and `sf apex run` against `RateCardEntry` fail. REST API works correctly. **Fixed:** `activate_rates` task replaced with new `tasks/rlm_activate_rates.py` Python class using REST Composite API (25 records per request). | Resolved |
 | #262-3 | **`RateCard.Status` field removed** — The `Status` field on `RateCard` was completely removed in 262. Any Apex or SOQL referencing `RateCard.Status` must be removed. `activateRatingRecords.apex` already does not reference it (only `RateCardEntry.Status` is used). Review any custom scripts if porting from pre-262. | Resolved (no change needed in current scripts) |

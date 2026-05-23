@@ -1,6 +1,6 @@
 # Ramp Schedule Builder — Feature Documentation
 
-> **Target release:** API v66.0 (Spring '26)
+> **Target release:** API v67.0 (Summer '26 / Release 262); originally introduced for API v66.0 (Spring '26 / Release 260)
 > **Deployment path:** `unpackaged/post_ramp_builder`
 
 ---

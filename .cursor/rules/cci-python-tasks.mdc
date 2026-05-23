@@ -70,7 +70,7 @@ def _run_task(self):
         "Authorization": f"Bearer {self.org_config.access_token}",
         "Content-Type": "application/json",
     }
-    url = f"{self.org_config.instance_url}/services/data/v66.0/query/"
+    url = f"{self.org_config.instance_url}/services/data/v67.0/query/"
     resp = requests.get(url, headers=headers, params={"q": soql})
     resp.raise_for_status()
 ```
@@ -99,7 +99,7 @@ tso = self.project_config.project__custom__tso
 - **Logging** — `self.logger.info()`, `.warning()`, `.error()`
 - **Errors** — `TaskOptionsError` for config, `CommandException` for runtime
 - **Non-fatal tasks** — catch + `self.logger.warning()` (see `StampGitCommit`)
-- **API version** — use `v66.0` (Spring '26) in REST URLs
+- **API version** — use `v67.0` (Summer '26 / Release 262) in REST URLs. The branch's `cumulusci.yml` `api_version` is the source of truth; sync REST URL examples to it on each release upgrade.
 
 ## Registration in cumulusci.yml
 
