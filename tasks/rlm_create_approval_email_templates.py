@@ -175,29 +175,49 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
         return template_id_by_name
 
     def _link_alerts(self, base_url, session, alerts, template_id_by_name):
-        """Link ApprovalAlertContentDef records to their EmailTemplates."""
-        # Build alert_name → template_id from the CSV's EmailTemplate.Name column
-        alert_to_template_id = {}
+        """Link ApprovalAlertContentDef records to their EmailTemplates.
+
+        Salesforce auto-creates ApprovalAlertContentDef records when an Active
+        approval flow is deployed, but their Name values are system-generated and
+        don't match the human-readable names in the CSV.  We therefore match on
+        the business key (ApprovalFlowApiName + ApprovalStepApiName +
+        NotificationReason) instead of Name.
+        """
+        # Build (flow, step, reason) → template_id from the CSV
+        key_to_template_id = {}
         for row in alerts:
-            alert_name = row.get("Name", "").strip()
             template_name = row.get("EmailTemplate.Name", "").strip()
-            if alert_name and template_name and template_name in template_id_by_name:
-                alert_to_template_id[alert_name] = template_id_by_name[template_name]
+            flow_name = row.get("ApprovalFlowApiName", "").strip()
+            step_name = row.get("ApprovalStepApiName", "").strip()
+            reason = row.get("NotificationReason", "").strip()
+            if flow_name and step_name and reason and template_name in template_id_by_name:
+                key = (flow_name, step_name, reason)
+                key_to_template_id[key] = template_id_by_name[template_name]
             elif template_name and template_name not in template_id_by_name:
                 self.logger.warning(
-                    "Template '%s' not found for alert '%s'", template_name, alert_name
+                    "Template '%s' not found for alert '%s'",
+                    template_name,
+                    row.get("Name", ""),
                 )
 
-        if not alert_to_template_id:
+        if not key_to_template_id:
             self.logger.info("No alert→template mappings to process.")
             return
 
-        alert_names_soql = ", ".join(
-            f"'{n.replace(chr(39), chr(92) + chr(39))}'" for n in alert_to_template_id
-        )
+        def _esc(s):
+            return s.replace("'", "\\'")
+
+        conditions = [
+            f"(ApprovalFlowApiName = '{_esc(f)}'"
+            f" AND ApprovalStepApiName = '{_esc(s)}'"
+            f" AND NotificationReason = '{_esc(r)}')"
+            for (f, s, r) in key_to_template_id
+        ]
         soql = (
-            f"SELECT Id, Name, EmailTemplateId FROM ApprovalAlertContentDef"
-            f" WHERE Name IN ({alert_names_soql})"
+            "SELECT Id, Name, ApprovalFlowApiName, ApprovalStepApiName,"
+            " NotificationReason, EmailTemplateId"
+            " FROM ApprovalAlertContentDef"
+            f" WHERE {' OR '.join(conditions)}"
         )
         resp = session.get(
             f"{base_url}/query",
@@ -205,18 +225,24 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
             timeout=self._TIMEOUT,
         )
         resp.raise_for_status()
-        org_alerts = {r["Name"]: r for r in resp.json()["records"]}
+        org_alerts = {
+            (r["ApprovalFlowApiName"], r["ApprovalStepApiName"], r["NotificationReason"]): r
+            for r in resp.json()["records"]
+        }
 
         updated = 0
-        for alert_name, template_id in alert_to_template_id.items():
-            alert = org_alerts.get(alert_name)
+        for key, template_id in key_to_template_id.items():
+            alert = org_alerts.get(key)
             if not alert:
+                flow, step, reason = key
                 self.logger.warning(
-                    "ApprovalAlertContentDef not found in org: %s", alert_name
+                    "ApprovalAlertContentDef not found in org:"
+                    " ApprovalFlowApiName=%s ApprovalStepApiName=%s NotificationReason=%s",
+                    flow, step, reason,
                 )
                 continue
             if alert.get("EmailTemplateId") == template_id:
-                self.logger.info("Already linked: %s", alert_name)
+                self.logger.info("Already linked: %s", alert["Name"])
                 continue
 
             resp = session.patch(
@@ -225,11 +251,11 @@ class CreateApprovalEmailTemplates(BaseSalesforceTask):
                 timeout=self._TIMEOUT,
             )
             if resp.status_code == 204:
-                self.logger.info("Linked: %s", alert_name)
+                self.logger.info("Linked: %s (Id: %s)", alert["Name"], alert["Id"])
                 updated += 1
             else:
                 raise RuntimeError(
-                    f"Failed to link ApprovalAlertContentDef '{alert_name}': {resp.text}"
+                    f"Failed to link ApprovalAlertContentDef '{alert['Name']}': {resp.text}"
                 )
 
         self.logger.info(

@@ -17,7 +17,7 @@
         {
           "query": "SELECT Name, ApprovalFlowApiName, ApprovalStepApiName, NotificationReason, EmailTemplate.Name FROM ApprovalAlertContentDef",
           "operation": "Upsert",
-          "externalId": "Name",
+          "externalId": "ApprovalFlowApiName;ApprovalStepApiName;NotificationReason",
           "excluded": false
         }
       ]
