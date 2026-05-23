@@ -44,7 +44,7 @@ Instead of `headlessConfigLoad(quoteId)`, query the `QuoteEntitiesMapping` conte
 
 ### How `headlessConfigSet` works
 
-> Path shorthand: `/connect/...` is the relative form of `/services/data/v67.0/connect/...` on the 262 branch. The architecture table above and the example below use the shorthand for brevity.
+> Path shorthand: `/connect/...` in this doc is the relative form of the full REST path `/services/data/v67.0/connect/...` (i.e. relative to the Salesforce REST API base, **not** the instance root). The architecture table above and the example below use this shorthand for brevity; prepend `/services/data/v67.0` when invoking against a 262 org.
 
 ```
 POST /connect/cpq/configurator/set
