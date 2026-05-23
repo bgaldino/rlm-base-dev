@@ -593,6 +593,13 @@ class SFDMUValidator:
         if not external_id or external_id == "Id":
             return
 
+        # Resolve operation once — both downstream externalId checks (nested-path
+        # traversal, SELECT-coverage) need to skip Insert mode, where externalId
+        # is used for CSV composite-key matching within the dataset rather than
+        # SOQL behavior.
+        operation = obj_config.get("operation", "Upsert")
+        is_insert = operation.lower() == "insert"
+
         # Check for legacy $$ notation in externalId definition
         if "$$" in external_id:
             result.add_issue(Issue(
@@ -605,8 +612,7 @@ class SFDMUValidator:
         # Skip for Insert operations: externalId is only used for CSV composite key
         # matching, not for SOQL traversal, so nested paths do not cause runtime errors.
         fields = external_id.split(";")
-        operation = obj_config.get("operation", "Upsert")
-        if operation.lower() != "insert":
+        if not is_insert:
             for field in fields:
                 # Count dots (more than 1 = nested relationship)
                 dot_count = field.count(".")
@@ -621,8 +627,7 @@ class SFDMUValidator:
         # Skip for Insert operations: externalId is used only for CSV composite key
         # matching within the dataset, not for SOQL record matching, so the fields
         # do not need to appear in the SELECT clause.
-        operation = obj_config.get("operation", "Upsert")
-        if ";" in external_id and operation.lower() != "insert":
+        if ";" in external_id and not is_insert:
             query_fields = set(obj_config.get("fields", []))
             for field in fields:
                 # Require that each externalId component is explicitly present in the query
