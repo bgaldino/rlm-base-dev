@@ -7,6 +7,8 @@ Suite Teardown    Close Browser After Setup
 *** Variables ***
 # Set ORG_ALIAS to use sf org open --url-only for authenticated login (recommended). Example: robot -v ORG_ALIAS:my-scratch ...
 ${ORG_ALIAS}             ${EMPTY}
+# Shared shadow-DOM traversal helper (same pattern as configure_core_pricing_setup and configure_product_discovery_settings).
+${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
 ${REVENUE_SETTINGS_URL}   https://river-playground-9279.scratch.my.salesforce-setup.com/lightning/setup/RevenueSettings/home
 ${MANUAL_LOGIN_WAIT}      90s
 # Set to a label (e.g. Revenue Management) to enable that toggle first; set to ${EMPTY} when prerequisites are already on.
@@ -57,8 +59,8 @@ Enable Document Templates Export On General Settings
     # Reload and re-verify server-side persistence
     Open Setup Page    ${GENERAL_SETTINGS_PATH}
     ${verified}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
     ...    return (function() {
-    ...        function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
     ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
     ...        if (!pi) return 'not_found';
     ...        return pi.checked ? 'on' : 'off';
@@ -74,12 +76,12 @@ _Click Document Templates Export Toggle
     ...    which uses querySelectorAll / createTreeWalker (neither pierce shadow DOM). Returns
     ...    'clicked', 'already_on', or fails with 'not_found' to trigger Wait Until Keyword Succeeds retry.
     ${result}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
     ...    return (function() {
-    ...        function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
     ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
     ...        if (!pi) return 'not_found';
     ...        if (pi.checked) return 'already_on';
-    ...        pi.click();
+    ...        (pi.closest('label') || pi).click();
     ...        return 'clicked';
     ...    })()
     Should Not Be Equal    ${result}    not_found

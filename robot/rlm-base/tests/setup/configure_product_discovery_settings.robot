@@ -68,19 +68,8 @@ Set Default Catalog
     END
     # If a selection was cleared, wait for the combobox to reappear then re-open it
     IF    "${open_result}" == "cleared"
-        Sleep    2s    reason=Allow pill removal to complete and combobox to reappear
-        ${open_result}=    Execute JavaScript
-        ...    ${_JS_FIND_EL}
-        ...    return (function() {
-        ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
-        ...        if (!lc) return 'combobox_not_found';
-        ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
-        ...        if (!lbc) return 'lbc_not_found';
-        ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
-        ...        if (!btn) return 'btn_not_found';
-        ...        btn.click();
-        ...        return 'opened';
-        ...    })()
+        ${open_result}=    Wait Until Keyword Succeeds    30s    3s
+        ...    _Open Default Catalog Dropdown
     END
     Should Be Equal    ${open_result}    opened    msg=Could not prepare/open Default Catalog combobox: ${open_result}
     Sleep    1s    reason=Allow dropdown options to populate
@@ -109,8 +98,9 @@ _Open Default Catalog Combobox
     [Documentation]    Runs the state-check JS for Set Default Catalog.
     ...    Returns 'opened' (combobox clicked open), 'already_set' (correct value present),
     ...    'cleared' (wrong pill removed), or an error string. Fails with a retry-triggering
-    ...    message when 'combobox_not_found' — Salesforce background processing after
+    ...    message when 'page_not_ready' — Salesforce background processing after
     ...    reconfigure_pricing_discovery delays LWC render; Wait Until Keyword Succeeds retries.
+    ...    'remove_btn_not_found' is terminal (pill clear button genuinely absent) — not retried.
     [Arguments]    ${target_value}
     ${result}=    Execute JavaScript
     ...    ${_JS_FIND_EL}
@@ -124,17 +114,38 @@ _Open Default Catalog Combobox
     ...            return 'cleared';
     ...        }
     ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
-    ...        if (!lc) return 'combobox_not_found';
+    ...        if (!lc) return 'page_not_ready';
     ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
-    ...        if (!lbc) return 'lbc_not_found';
+    ...        if (!lbc) return 'page_not_ready';
     ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
-    ...        if (!btn) return 'btn_not_found';
+    ...        if (!btn) return 'page_not_ready';
     ...        btn.click();
     ...        return 'opened';
     ...    })(arguments[0])
     ...    ARGUMENTS    ${target_value}
-    Should Not Be Equal    ${result}    combobox_not_found
+    Should Not Be Equal    ${result}    page_not_ready
     ...    msg=Product Discovery combobox not yet rendered; retrying...
+    RETURN    ${result}
+
+_Open Default Catalog Dropdown
+    [Documentation]    Clicks the Default Catalog combobox button open. Fails (triggering
+    ...    Wait Until Keyword Succeeds retry) on any non-'opened' result so asynchronous
+    ...    pill-removal re-render is handled safely. Used for the cleared-path re-open only;
+    ...    the initial-open path uses _Open Default Catalog Combobox (full state-check branches).
+    ${result}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
+    ...    return (function() {
+    ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
+    ...        if (!lc) return 'page_not_ready';
+    ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
+    ...        if (!lbc) return 'page_not_ready';
+    ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
+    ...        if (!btn) return 'page_not_ready';
+    ...        btn.click();
+    ...        return 'opened';
+    ...    })()
+    Should Be Equal    ${result}    opened
+    ...    msg=Default Catalog combobox not yet re-rendered after pill removal; retrying...
     RETURN    ${result}
 
 Dismiss Toast If Present
