@@ -9,8 +9,9 @@ patches:
     action: "Quote.RLM_Create_Proposal"
     ignore_missing: true
 
-  # Insert proposal action right after BrowseCatalog
+  # Insert proposal action after CreateRampSchedule (standard action in base),
+  # preserving the order: BrowseCatalog → CreateRampSchedule → RLM_Create_Proposal
   - type: insert_action
-    after: "BrowseCatalog"
+    after: "CreateRampSchedule"
     actions:
       - "Quote.RLM_Create_Proposal"
