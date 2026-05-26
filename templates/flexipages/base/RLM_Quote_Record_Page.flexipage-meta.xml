@@ -10,6 +10,9 @@
                             <value>BrowseCatalog</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>CreateRampSchedule</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>CreateOrder</value>
                         </valueListItems>
                         <valueListItems>
@@ -67,6 +70,10 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>hideChatterActions</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>hideSlackAction</name>
                     <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
