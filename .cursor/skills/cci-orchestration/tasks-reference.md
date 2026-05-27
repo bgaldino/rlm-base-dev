@@ -49,7 +49,7 @@
 
 ### `delete_quantumbit_pricing_data`
 
-**Description:** Delete all Insert-operation records from the qb-pricing plan (PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic: clears all records of each type regardless of which data shape populated them. Run before insert_quantumbit_pricing_data when layering multiple pricing shapes. Note: CostBookEntry is currently excluded (empty CSV) and will not be deleted.
+**Description:** Delete all Insert-operation records from the qb-pricing plan (CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic: clears all records of each type regardless of which data shape populated them. Run before insert_quantumbit_pricing_data when layering multiple pricing shapes.
 
 **Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
 
@@ -2004,7 +2004,7 @@
 
 ### `insert_quantumbit_prm_pricing_data`
 
-**Description:** Insert QuantumBit PRM pricing overlay data using a 2-pass SFDMU plan. Pass 1 upserts scoped Accounts, ChannelProgram, and ChannelProgramLevel records. Pass 2 updates IsPartner state and upserts ChannelProgramMember records.
+**Description:** Insert QuantumBit PRM pricing overlay data using a 3-pass SFDMU plan. Pass 1 upserts scoped Accounts, ChannelProgram, and ChannelProgramLevel records. Pass 2 updates IsPartner state and upserts ChannelProgramMember records. Pass 3 updates Account self-lookups after both sides of the relationship exist.
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 

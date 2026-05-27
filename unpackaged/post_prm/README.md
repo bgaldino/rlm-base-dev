@@ -107,15 +107,17 @@ the optional PRM pricing extension when `prm_pricing=true`.
 1. Apply PartnerAccount context extension (`manage_context_definition`)
 
 When `prm_pricing=true`, `prepare_prm` also invokes `prepare_prm_pricing`, which runs
-branch PRM pricing tasks:
+PRM pricing tasks:
 
 - Deploy non-site PRM pricing metadata components from `unpackaged/post_prm_pricing/`
 - Ensure PRM pricing recipe table mappings; shared cost-book mapping is owned by
   the core `prepare_expression_sets` path
-- Activate PRM pricing expression set versions
-- Insert PRM procedure-plan overlay data (when `procedureplans=true`)
-- Verify the PRM conditional section/option/criterion were applied
 - Apply additive PRM pricing context extensions
+- Assign `RLM_PRM_Pricing`
+- Insert `qb-prm-pricing` overlay data when `qb=true`
+- Activate PRM pricing expression set versions
+- Deactivate, load, verify, and reactivate PRM procedure-plan overlay data when
+  `procedureplans=true`
 
 ## Data Loading
 
@@ -202,7 +204,7 @@ sf data query --query "SELECT Name, IsPartner FROM Account WHERE Type='Partner'"
 cci task run test_qb_prm_idempotency --org dev
 ```
 
-Validate branch PRM pricing extension (`prm_pricing=true`):
+Validate PRM pricing extension (`prm_pricing=true`):
 
 ```bash
 # Run pricing extension flow directly
@@ -214,7 +216,6 @@ cci flow run prepare_prm_pricing --org dev
 - Design source: Google Sheets document (file ID: 1L3O40ManpD9ppox1CCBxw62e91YmI41yMTl5oEpbA9E)
 - Source org: `chrisRossPRM_may2026` (`trailsignup.0616730547a2ce@salesforce.com`)
 - Integration date: 2026-05-15
-- Branch: feature/prm
 
 ## Related Documentation
 

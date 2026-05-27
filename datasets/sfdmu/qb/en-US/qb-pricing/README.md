@@ -73,6 +73,7 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 - `ProrationPolicy`: `Update` (not Upsert) — records are always pre-provisioned by the platform; SFDMU v5 TARGET SELECT fails for this managed object
 - `PriceAdjustmentSchedule`: `Update` with `WHERE ContractId = NULL` — only updates non-contract schedules auto-created by the platform when the pricebook is provisioned
 - `CostBook` is ordered before `Pricebook2` — `Pricebook2` has a `CostBookId` FK; processing it first produced `#N/A` in the target result
+- `CostBookEntry` references `CostBook.Name` instead of the composite `CostBook.$$Name$IsDefault` CSV key. The plan seeds only one CostBook, so the simple lookup avoids an unnecessary composite relationship reference while still resolving deterministically.
 
 ## Apex Activation Script
 
@@ -219,6 +220,11 @@ identical record counts (216 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 114 PBE,
 2 PEDP, 87 CBE). The static SFDMU validator may still flag extraction-safety
 issues for relationship traversal fields in this plan; treat those as follow-up
 items before relying on extraction round-trips.
+
+The `CostBookEntry` rows are part of the validated delete-then-insert set. The
+CSV now resolves the parent CostBook through `CostBook.Name`; this preserves the
+same 87-row idempotent load behavior while avoiding an unnecessary composite
+lookup reference to the single seeded CostBook.
 
 The delete-then-insert pattern replaces the previous Upsert approach. `Readonly` objects ensure parent lookup resolution without modification. `Upsert` objects (`CurrencyType`, `CostBook`, `Pricebook2`, `AttributeBasedAdjRule`) are naturally idempotent via their direct-field externalIds.
 

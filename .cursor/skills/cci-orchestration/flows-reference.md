@@ -409,7 +409,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 
 ### `prepare_prm_pricing`
 
-Deploy branch PRM pricing metadata/tasks behind prm_pricing.
+Deploy PRM pricing metadata/tasks behind prm_pricing.
 
 **Steps:**
 

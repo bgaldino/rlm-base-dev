@@ -64,8 +64,40 @@ of the Account relationship exist.
   currently validates cleanly with `scripts/validate_sfdmu_v5_datasets.py`.
 - Unlike baseline `qb-prm`, this overlay does not set `skipExistingRecords` on
   `ChannelProgramMember`. The two records are feature-owned seed data, and the
-  org-backed idempotency task should be run before merge to confirm the current
-  traversal-key behavior does not create duplicate memberships.
+  org-backed idempotency task should be run before merge.
+
+### Idempotency Validation
+
+Run the org-backed idempotency task against a prepared PRM org:
+
+```bash
+cci task run test_qb_prm_pricing_idempotency --org <org>
+```
+
+The validation loads the plan twice and asserts that scoped record counts do not
+increase on the second load.
+
+Expected outcome:
+
+| Object | Expected Result |
+| ------ | --------------- |
+| `Account` | No count increase |
+| `ChannelProgram` | No count increase |
+| `ChannelProgramLevel` | No count increase |
+| `ChannelProgramMember` | No count increase; remains at the 2 feature-owned PRM pricing members |
+
+Additional SOQL spot checks should confirm the two PRM pricing members remain
+the expected records:
+
+| Partner | Program | Level | Discount Rate |
+| ------- | ------- | ----- | ------------- |
+| Cloud Distributors | Distributor Program | Gold - Distributor | 10 |
+| Robot Resellers | Reseller Program | Silver - Reseller | 5 |
+
+Conclusion: the current `Partner.Name;Program.Name` traversal external ID did
+not create duplicate `ChannelProgramMember` rows in the validated org. No direct
+`RLM_PRM_Pricing_Key__c` field or destructive `deleteOldData` strategy is
+required based on this validation.
 
 ## Extraction
 
