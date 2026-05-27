@@ -532,7 +532,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `breconfig` | `false` | Business Rules Engine configuration |
 | `docgen` | `true` | Use Document Generation |
 | `constraints` | `true` | Use Constraint Builder (metadata setup) |
-| `guidedselling` | `false` | Use Guided Selling |
+| `guidedselling` | `true` | Use Guided Selling |
 | `procedureplans` | `true` | Use Procedure Plans |
 
 ### Deployment Flags
