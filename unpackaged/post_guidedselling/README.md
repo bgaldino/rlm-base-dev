@@ -12,8 +12,12 @@ The connected org fields were renamed to the repo-standard `RLM_` API names befo
 
 Product values are loaded separately by `datasets/sfdmu/qb/en-US/qb-guidedselling-products` after this metadata deploy. `RLM_Guided_Selling` grants Product2 object access and field-level access for the three guided-selling fields, and is assigned after this bundle deploys.
 
+## Product Discovery Settings
+
+This bundle deploys only `enableGuidedSelling: true` via `settings/ProductDiscovery.settings-meta.xml`. The remaining Product Discovery settings (qualification procedure, pricing procedure, context definition, default catalog) are managed by `unpackaged/pre/2_settings` and the `configure_product_discovery_settings` Robot task. They are not part of this bundle.
+
 ## Follow-Up Work
 
-- Product Discovery settings were not changed in this pass. The connected org differs from the current metadata: `prodDiscQualificationOrgValue` is `RLM Product Discovery Qualification Procedure`, `promoContextMappingNameOrgValue` is `ProductDiscoveryPromoMapping`, and `prodDiscDefaultCatalogOrgValue` contains the org-specific record Id `0ZSHn000000xTT5OAM` that must not be committed directly.
+- The connected org has additional Product Discovery setting values (`prodDiscQualificationOrgValue`, `promoContextMappingNameOrgValue`, `prodDiscDefaultCatalogOrgValue`) that differ from what's currently deployed. These require either Robot-based configuration or a non-hardcoded approach (the default catalog contains an org-specific record Id).
 - Cleanup or replacement of older guided selling artifacts is intentionally deferred.
 - Retrieved OmniStudio SFDMU data was not integrated into `qb-guidedselling`; any data-plan redesign should be handled separately.

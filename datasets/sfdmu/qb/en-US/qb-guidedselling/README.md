@@ -18,18 +18,18 @@ The CSVs in this directory may be stale relative to the current metadata. A futu
 
 ## Objects
 
-| # | Object | Operation | External ID | Notes |
-|---|--------|-----------|-------------|-------|
-| 1 | AssessmentQuestionConfig | `DeveloperName` | Upsert | |
-| 2 | AssessmentQuestion | `UniqueIndex` | Upsert | |
-| 3 | AssessmentQuestionSet | `DeveloperName` | Upsert | |
-| 4 | AssessmentQuestionSetConfig | `DeveloperName` | Upsert | |
-| 5 | AssessmentQuestionVersion | traversal composite | **Insert** + deleteOldData | Bug 3 |
-| 6 | AssessmentQuestionAssignment | traversal composite | **Insert** + deleteOldData | Bug 3 |
-| 7 | OmniScriptConfig | `DeveloperName` | Upsert | |
-| 8 | OmniProcess | `UniqueName` | Upsert | |
-| 9 | OmniProcessElement | traversal composite | **Insert** + deleteOldData | Bug 3 |
-| 10 | OmniProcessAsmtQuestionVer | traversal composite | **Insert** + deleteOldData | Bug 3 |
+| # | Object | Operation | externalId | Notes |
+|---|--------|-----------|------------|-------|
+| 1 | AssessmentQuestionConfig | Upsert | `DeveloperName` | |
+| 2 | AssessmentQuestionSetConfig | Upsert | `DeveloperName` | |
+| 3 | AssessmentQuestion | Upsert | `UniqueIndex` | |
+| 4 | AssessmentQuestionSet | Upsert | `UniqueIndex` | |
+| 5 | AssessmentQuestionAssignment | **Insert** + deleteOldData | `AssessmentQuestion.UniqueIndex;AssessmentQuestionSet.UniqueIndex` | Traversal composite |
+| 6 | AssessmentQuestionVersion | **Insert** + deleteOldData | `Name` | |
+| 7 | OmniProcess | Upsert | `UniqueName` | |
+| 8 | OmniScriptConfig | Upsert | `DeveloperName` | |
+| 9 | OmniProcessElement | **Insert** + deleteOldData | `OmniProcess.UniqueName;Name` | Traversal composite |
+| 10 | OmniProcessAsmtQuestionVer | **Insert** + deleteOldData | `AssessmentQuestionVersion.Name;OmniProcessElement.Name` | Traversal composite |
 
 ## Dependencies
 
