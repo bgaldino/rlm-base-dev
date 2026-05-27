@@ -7,8 +7,9 @@ RLM_Quote_Pricing_Procedure_Plan:
 - Option: RLM_PRM_DISTI_Pricing_Procedure (priority 1)
 - Criterion: IsNotNull on PartnerAccount.BillingAddress
 
-If any record is missing, the task fails with a clear message so the flow
-does not silently succeed with incomplete PRM pricing behavior.
+If any record is missing or duplicated, the task fails with a clear message so
+the flow does not silently succeed with incomplete or non-idempotent PRM pricing
+behavior.
 """
 
 import time
@@ -118,7 +119,7 @@ class VerifyPrmProcedurePlanOverlay(BaseSalesforceTask):
             option_count = self._query_count(option_q)
             criterion_count = self._query_count(criterion_q)
 
-            if section_count >= 1 and option_count >= 1 and criterion_count >= 1:
+            if section_count == 1 and option_count == 1 and criterion_count == 1:
                 break
 
             if attempt < attempts:
@@ -141,20 +142,24 @@ class VerifyPrmProcedurePlanOverlay(BaseSalesforceTask):
             criterion_count,
         )
 
-        missing = []
-        if section_count < 1:
-            missing.append("section")
-        if option_count < 1:
-            missing.append("option")
-        if criterion_count < 1:
-            missing.append("criterion")
+        invalid_counts = {
+            "section": section_count,
+            "option": option_count,
+            "criterion": criterion_count,
+        }
+        invalid_counts = {
+            name: count for name, count in invalid_counts.items() if count != 1
+        }
 
-        if missing:
-            missing_items = ", ".join(missing)
+        if invalid_counts:
+            count_details = ", ".join(
+                f"{name}={count}" for name, count in invalid_counts.items()
+            )
             raise TaskOptionsError(
-                "PRM procedure-plan overlay is incomplete "
-                f"(missing: {missing_items}) for {dev_name}/{sub_section}. "
-                "Re-run insert_prm_procedure_plan_data and inspect SFDMU reports."
+                "PRM procedure-plan overlay must have exactly one section, "
+                f"option, and criterion for {dev_name}/{sub_section}; found "
+                f"{count_details}. Re-run insert_prm_procedure_plan_data and "
+                "inspect SFDMU reports for missing records or duplicate inserts."
             )
 
         self.logger.info("PRM procedure-plan overlay verification passed.")

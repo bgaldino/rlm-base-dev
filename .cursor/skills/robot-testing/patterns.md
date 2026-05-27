@@ -21,6 +21,7 @@ robot/rlm-base/
 │       ├── enable_analytics.robot
 │       ├── enable_document_builder.robot
 │       ├── enable_constraints_settings.robot
+│       ├── enable_timeline.robot
 │       └── reorder_app_launcher.robot
 ├── resources/
 │   ├── E2ECommon.robot               # ~1250 lines — main E2E keywords
@@ -50,6 +51,7 @@ robot/rlm-base/
 | `enable_analytics_replication` | `EnableAnalyticsReplication` | `tests/setup/enable_analytics.robot` |
 | `enable_document_builder_toggle` | `EnableDocumentBuilderToggle` | `tests/setup/enable_document_builder.robot` |
 | `enable_constraints_settings` | `EnableConstraintsSettings` | `tests/setup/enable_constraints_settings.robot` |
+| `enable_timeline` | `EnableTimeline` | `tests/setup/enable_timeline.robot` |
 | `reorder_app_launcher` | `ReorderAppLauncher` | `tests/setup/reorder_app_launcher.robot` |
 
 ### E2E tasks (run on demand)

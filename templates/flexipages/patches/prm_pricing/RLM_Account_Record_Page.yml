@@ -1,6 +1,6 @@
 feature: prm_pricing
 feature_flag: prm_pricing
-# Adds the Partner Info field section from the branch PRM pricing Account page.
+# Adds the Partner Info field section for PRM pricing.
 patches:
   - type: insert_after_xml
     anchor: |-

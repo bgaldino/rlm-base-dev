@@ -27,7 +27,8 @@ To avoid silent partial overlays, the flow now:
    - pass 2 inserts `IFPartnerDistributorOnQuote` at sequence 2
    - pass 3 wires the PRM procedure option
    - pass 4 wires the PRM criterion
-4. runs `verify_prm_procedure_plan_overlay` (fails loudly if records are missing)
+4. runs `verify_prm_procedure_plan_overlay` (fails loudly if records are missing
+   or duplicated)
 5. reactivates the Procedure Plan version
 
 The section move and insert are intentionally split into separate passes. On a
@@ -63,6 +64,32 @@ business key is the parent section plus priority, not an autonumbered direct
 field.
 
 These Upserts are accepted here because the overlay is tiny, feature-owned, and
-guarded by the deactivate/load/verify/reactivate flow above. If SFDMU fails to
-resolve one of the traversal keys, `verify_prm_procedure_plan_overlay` fails
-loudly before the procedure plan is reactivated.
+guarded by the deactivate/load/verify/reactivate flow above. The verifier checks
+for exactly one section, option, and criterion, so missing records and duplicate
+inserts fail before the procedure plan is reactivated.
+
+### Idempotency Validation
+
+Run the guarded overlay sequence twice against a prepared PRM org:
+
+```bash
+cci task run deactivate_procedure_plan_version --org <org>
+cci task run insert_prm_procedure_plan_data --org <org>
+cci task run verify_prm_procedure_plan_overlay --org <org>
+cci task run activate_procedure_plan_version --org <org>
+```
+
+After the second run, SOQL spot checks should confirm the same expected rows
+still exist exactly once.
+
+| Record Type | Query Scope | Expected Result |
+| ----------- | ----------- | --------------- |
+| `ProcedurePlanSection` | `SubSectionType = 'IFPartnerDistributorOnQuote'` on `RLM_Quote_Pricing_Procedure_Plan` | Exactly 1 |
+| `ProcedurePlanOption` | Priority 1 option for `RLM_PRM_DISTI_Pricing_Procedure` under the PRM section | Exactly 1 |
+| `ProcedurePlanCriterion` | Sequence 1 `PartnerAccount.BillingAddress IsNotNull` criterion under the PRM option | Exactly 1 |
+
+`verify_prm_procedure_plan_overlay` enforces those exact counts and logs
+`section=1 option=1 criterion=1` on success. The static validator still reports
+medium nested-relationship warnings for the criterion external ID, but the
+org-backed validation confirms this controlled overlay is idempotent when those
+exact counts hold after repeated guarded loads.

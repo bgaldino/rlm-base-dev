@@ -123,7 +123,7 @@ project:
     # ── Partner & Commerce ─────────────────────────────────────────────────────
     prm: true                 # Partner Relationship Management
     prm_exp_bundle: true      # PRM Experience Bundle (post_prm site content)
-    prm_pricing: true        # Enable branch PRM pricing metadata/tasks (non-main behavior)
+    prm_pricing: true        # Enable PRM pricing metadata/tasks
     commerce: false           # Commerce
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
@@ -1671,9 +1671,10 @@ tasks:
   insert_quantumbit_prm_pricing_data:
     group: Revenue Lifecycle Management
     description: >
-      Insert QuantumBit PRM pricing overlay data using a 2-pass SFDMU plan. Pass 1
+      Insert QuantumBit PRM pricing overlay data using a 3-pass SFDMU plan. Pass 1
       upserts scoped Accounts, ChannelProgram, and ChannelProgramLevel records. Pass 2
-      updates IsPartner state and upserts ChannelProgramMember records.
+      updates IsPartner state and upserts ChannelProgramMember records. Pass 3 updates
+      Account self-lookups after both sides of the relationship exist.
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_prm_pricing_dataset
@@ -2161,13 +2162,12 @@ tasks:
   delete_quantumbit_pricing_data:
     group: Data Maintenance
     description: >
-      Delete all Insert-operation records from the qb-pricing plan (PricebookEntryDerivedPrice,
-      PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment,
-      AttributeAdjustmentCondition, PriceAdjustmentTier)
+      Delete all Insert-operation records from the qb-pricing plan (CostBookEntry,
+      PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment,
+      AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier)
       in reverse plan order (children first). Shape-agnostic: clears all records of
       each type regardless of which data shape populated them. Run before
       insert_quantumbit_pricing_data when layering multiple pricing shapes.
-      Note: CostBookEntry is currently excluded (empty CSV) and will not be deleted.
     class_path: tasks.rlm_sfdmu.DeleteSFDMUData
     options:
       pathtoexportjson: *quantumbit_pricing_dataset
@@ -3207,7 +3207,7 @@ flows:
 
   prepare_prm_pricing:
     group: Revenue Lifecycle Management
-    description: Deploy branch PRM pricing metadata/tasks behind prm_pricing.
+    description: Deploy PRM pricing metadata/tasks behind prm_pricing.
     steps:
       1:
         task: deactivate_prm_expression_sets

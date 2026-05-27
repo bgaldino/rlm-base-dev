@@ -4,8 +4,8 @@
     <deleteConstraint>SetNull</deleteConstraint>
     <label>Distributor Account</label>
     <referenceTo>Account</referenceTo>
-    <relationshipLabel>Quotes</relationshipLabel>
-    <relationshipName>Quotes</relationshipName>
+    <relationshipLabel>Distributor Quotes</relationshipLabel>
+    <relationshipName>DistributorQuotes</relationshipName>
     <required>false</required>
     <trackHistory>false</trackHistory>
     <type>Lookup</type>

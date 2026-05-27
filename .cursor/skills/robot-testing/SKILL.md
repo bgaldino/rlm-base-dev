@@ -39,8 +39,9 @@ Use this skill when writing, modifying, or debugging Robot Framework tests.
 | `configure_core_pricing_setup` | Default Pricing Procedure on CorePricingSetup page | Shadow DOM combobox, no API |
 | `configure_product_discovery_settings` | Default Catalog on Product Discovery Settings page | Shadow DOM combobox, no API |
 | `enable_analytics` | CRM Analytics + Data Sync toggle | VF iframe, no API |
-| `enable_document_builder` | Document Builder toggle | Shadow DOM, no API |
+| `enable_document_builder_toggle` | Document Builder, Design Document Templates, Document Templates Export toggles | Shadow DOM, no API |
 | `enable_constraints_settings` | Transaction Type, Asset Context, Constraints Engine | Shadow DOM, no API |
+| `enable_timeline` | Timeline feature toggle | Setup UI toggle, no metadata API |
 | `reorder_app_launcher` | App Launcher ordering | SortOrder is platform read-only |
 
 ### E2E tests — what they validate
