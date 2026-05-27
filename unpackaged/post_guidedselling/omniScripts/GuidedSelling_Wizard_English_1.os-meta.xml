@@ -493,7 +493,7 @@
             <isActive>true</isActive>
             <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
             <level>1.0</level>
-            <name>Implemention</name>
+            <name>Implementation</name>
             <omniProcessVersionNumber>0.0</omniProcessVersionNumber>
             <propertySetConfig>{
   &quot;controlWidth&quot; : 12.0,
@@ -545,7 +545,7 @@
 }</propertySetConfig>
             <sequenceNumber>0.0</sequenceNumber>
             <type>Radio</type>
-            <uniqueIndex>Implemention</uniqueIndex>
+            <uniqueIndex>Implementation</uniqueIndex>
         </childElements>
         <childElements>
             <designerCustomizationType>Discovery Framework</designerCustomizationType>

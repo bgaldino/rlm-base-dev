@@ -5,7 +5,7 @@ Implementation_Options;1,USD,Radio,,Implementation_Options,Implementation Option
 Industry;1,USD,Radio,,Industry,Industry,Demographic,Industry,,false,false,Industry
 Support_and_Maintenance;1,USD,Radio,,Support_and_Maintenance,Support and Maintenance,Demographic,Do you need built-in support and maintenance?,,false,false,Support_and_Maintenance
 API_Management;1,USD,Select,,API_Management,API Management,Demographic,Do you need API management or integration capabilities?,,false,false,API_Management
-Implemention;1,USD,Radio,,Implemention,Implemention,Demographic,How would you like to handle implementation?,,false,false,Implemention
+Implementation;1,USD,Radio,,Implementation,Implementation,Demographic,How would you like to handle implementation?,,false,false,Implementation
 Organization_Description;1,USD,Radio,,Organization_Description,Organization Description,Demographic,Which best describes your organization?,,false,false,Organization_Description
 Platform_Control;1,USD,Select,,Platform_Control,Platform Control,Demographic,What level of platform control do you need?,,false,false,Platform_Control
 Primary_Goal;1,USD,Multiselect,,Primary_Goal,Primary Goal,Demographic,What's your primary goal today?,,false,false,Primary_Goal

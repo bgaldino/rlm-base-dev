@@ -25,7 +25,7 @@ No - I just need the hardware",Active,1
 API_Management;1,,API_Management,USD,Select,,,,,,true,false,API Management,Do you need API management or integration capabilities?,"Yes - we manage many APIs and microservices
 Somewhat - we have some integration needs
 No - not a priority right now",Active,1
-Implemention;1,,Implemention,USD,Radio,,,,,,true,false,Implemention,How would you like to handle implementation?,"We have an internal IT team - we'll do it ourselves
+Implementation;1,,Implementation,USD,Radio,,,,,,true,false,Implementation,How would you like to handle implementation?,"We have an internal IT team - we'll do it ourselves
 We want QuantumBit's team to handle setup end-to-end
 We'd like a hybrid - some help, some self-service",Active,1
 Primary_Goal;1,,Primary_Goal,USD,Multiselect,,,,,,true,false,Primary Goal,What's your primary goal today?,"Deploy a complete on-premise server infrastructure solution
