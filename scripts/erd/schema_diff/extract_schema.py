@@ -2,9 +2,20 @@
 """
 Extract Revenue Cloud schema from a Salesforce org for cross-release comparison.
 
-Queries EntityDefinition and FieldDefinition via the Tooling API to capture
-every RLM-related object and field. Outputs a normalized JSON snapshot that
-can be diffed between releases (e.g., 260 vs 262).
+Source of object list:
+  - Default: reads `docs/erds/erd-data.json` for the canonical RLM object set
+  - `--all-objects`: queries `EntityDefinition` via the Tooling API for every
+    queryable object in the org (`SELECT QualifiedApiName FROM EntityDefinition
+    WHERE IsQueryable = true`)
+  - `--objects <file>`: reads object names line-by-line from the file
+
+Source of field metadata:
+  - For each object, calls `sf sobject describe --sobject <name>` (NOT
+    `FieldDefinition`). This is what populates the per-field `type`,
+    `picklistValues`, `referenceTo`, etc. in the output JSON.
+
+Outputs a normalized JSON snapshot that can be diffed between releases (e.g.,
+260 vs 262) by `diff_schemas.py`.
 
 Usage:
     python scripts/erd/schema_diff/extract_schema.py --org rlm-base__262buildtest --output scripts/erd/schema_diff/262-schema.json

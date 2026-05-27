@@ -49,7 +49,7 @@ A cross-repo skill manifest that lets agents in either repo discover and consume
 
 ### Manifest (this repo)
 
-`/Users/bgaldino/Documents/GitHub/bgaldino/_bgaldino/rlm-base-dev/.claude/skill-manifest.yml`
+`.claude/skill-manifest.yml` (repo-relative; resolve via `$FOUNDATIONS_REPO_ROOT` env var or the sibling-directory fallback documented in `scripts/ai/skill_manifest.py`).
 
 Declares:
 - Foundations skills available to PMOS consumers (id, path, brief)

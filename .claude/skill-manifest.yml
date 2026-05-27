@@ -52,9 +52,7 @@ foundations:
       purpose: "Revenue Cloud object/field schema reference; backed by erd-data.json"
       consumed_by_pmos: [spec, technical-review, prd]
       provenance: hand-curated + erd-data.json
-      caveats:
-        - "Object count discrepancy unresolved: skill claims 263 / viewer shows 213"
-        - "v66.0 baseline; v67 refresh pending"
+      caveats: []  # 213-vs-263 discrepancy resolved (refresh in feat/262-erd-refresh-and-schema-diff-tooling — both report 263); v67.0 baseline aligned
 
     - id: rlm-business-apis
       path: .cursor/skills/rlm-business-apis/SKILL.md
@@ -62,7 +60,7 @@ foundations:
       consumed_by_pmos: [spec, technical-review, prd]
       provenance: manual extraction from per-release PDF
       caveats:
-        - "v66.0 baseline; v67 refresh pending"
+        - "Skill banner is v67.0 / Release 262 (PR #176), but underlying Postman collections at postman/docs/ were extracted from v66.0 — payload examples should be re-extracted from v67.0 collections before being cited verbatim"
         - "Skill self-describes as 'reference, not source of truth'"
 
     - id: revenue-cloud-docs
@@ -180,14 +178,17 @@ foundations:
       release: "260"
 
     erd_data:
-      path: .cursor/skills/revenue-cloud-data-model/erd-data.json
+      path: docs/erds/erd-data.json
       query_cli: scripts/ai/query_erd.py
-      object_count_claim: 263
-      field_count_claim: 4919
-      reconciliation_status: open  # see ssot-comparison.md §3
+      object_count: 263
+      field_count: 4190
+      relationship_count: 674
+      api_version: v67.0
+      release: "262"
+      refresh_pr: "feat/262-erd-refresh-and-schema-diff-tooling (PR #179)"
 
     qb_scenario:
-      path: .cursor/skills/release-enablement/qb-scenario-reference.md
+      path: docs/enablement/master/qb-scenario-reference.md
       purpose: "Canonical QB demo data (Infinitech, Global Media, QB-COMPLETE, QB-QRack-750)"
       shape: qb/en-US
       line_count: 486

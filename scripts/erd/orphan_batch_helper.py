@@ -4,13 +4,13 @@ Helper for orphan ERD field cleanup batch workflow.
 
 Usage:
   # Prepare next batch input from current orphan state
-  python scripts/orphan_batch_helper.py prepare --batch 4 --size 20
+  python scripts/erd/orphan_batch_helper.py prepare --batch 4 --size 20
 
   # Apply ownership findings (after researcher returns batch JSON merged into orphan-field-ownership.json)
-  python scripts/orphan_batch_helper.py apply --orphan-report docs/erds/orphan-candidates-after-batch3.md
+  python scripts/erd/orphan_batch_helper.py apply --orphan-report docs/erds/orphan-candidates-after-batch3.md
 
   # Re-validate against both orgs and produce next orphan report
-  python scripts/orphan_batch_helper.py validate --batch 4
+  python scripts/erd/orphan_batch_helper.py validate --batch 4
 
 This script consolidates the manual steps used in batches 1-3 into one place.
 """
@@ -133,14 +133,23 @@ def cmd_prepare(args):
         "batch_coverage": sum(r["count"] for r in next_batch),
         "objects": next_batch,
     }
-    out_path = REPO / ".agents" / "artifacts" / f"orphan-fields-batch{args.batch}-input.json"
+    # Default output dir lives under .agents/ (intentionally untracked); create
+    # parents so this works on fresh clones where .agents/artifacts/ doesn't
+    # exist yet. Override via --output-dir for CI or alternate staging.
+    out_dir = Path(args.output_dir) if args.output_dir else REPO / ".agents" / "artifacts"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"orphan-fields-batch{args.batch}-input.json"
     with open(out_path, "w") as f:
         json.dump(output, f, indent=2)
 
     print(f"\nRemaining unverified entities: {len(remaining)}")
     print(f"Remaining unverified fields: {output['total_remaining_fields']}")
     print(f"Batch {args.batch} coverage: {output['batch_coverage']} fields across {len(next_batch)} entities")
-    print(f"\nWrote {out_path.relative_to(REPO)}")
+    try:
+        rel = out_path.relative_to(REPO)
+    except ValueError:
+        rel = out_path
+    print(f"\nWrote {rel}")
     if next_batch:
         print(f"\nFirst 10 entities:")
         for r in next_batch[:10]:
@@ -262,6 +271,11 @@ def main():
                         help=f"Path to ownership findings JSON "
                              f"(default: {DEFAULT_OWNERSHIP_JSON.relative_to(REPO)}; "
                              f"missing-file is non-fatal for prepare).")
+    p_prep.add_argument("--output-dir",
+                        help="Directory to write the batch input JSON into "
+                             "(default: .agents/artifacts/; the directory is "
+                             "auto-created so fresh clones work without "
+                             "manually mkdir-ing .agents/artifacts/).")
     p_prep.set_defaults(func=cmd_prepare)
 
     p_apply = sub.add_parser("apply", help="Apply removals from current ownership JSON")
