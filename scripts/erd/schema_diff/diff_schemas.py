@@ -9,10 +9,10 @@ Compares two JSON snapshots produced by extract_schema.py and reports:
 - Relationship changes
 
 Usage:
-    python scripts/schema_diff/diff_schemas.py \
-        --baseline scripts/schema_diff/260-schema.json \
-        --target scripts/schema_diff/262-schema.json \
-        --report scripts/schema_diff/260-vs-262-diff.md
+    python scripts/erd/schema_diff/diff_schemas.py \
+        --baseline scripts/erd/schema_diff/260-schema.json \
+        --target scripts/erd/schema_diff/262-schema.json \
+        --report scripts/erd/schema_diff/260-vs-262-diff.md
 
 Options:
     --baseline PATH   The older (baseline) schema JSON
@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 
 def load_schema(path: str) -> dict:
@@ -120,41 +120,49 @@ def diff_schemas(baseline: dict, target: dict) -> dict:
     }
 
 
+def _extract_object_name(obj_def: dict) -> str:
+    """Pull SObject name from an SFDMU object entry (either explicit
+    ``objectName`` or parsed from a ``query`` clause)."""
+    obj_name = obj_def.get("objectName") or ""
+    if not obj_name:
+        query = obj_def.get("query", "") or ""
+        if "FROM " in query:
+            obj_name = query.split("FROM ")[1].split()[0].strip()
+    return obj_name
+
+
 def find_impacted_plans(diff: dict) -> dict:
-    """Cross-reference schema changes against SFDMU data plans."""
+    """Cross-reference schema changes against SFDMU data plans.
+
+    Plans live under nested paths (e.g. ``datasets/sfdmu/qb/en-US/qb-pcm/
+    export.json``) — walk recursively rather than only scanning the
+    immediate children of ``datasets/sfdmu/``.
+
+    Objects can be declared at the plan's top level (``plan.objects[]``)
+    or under one or more ``objectSets[].objects[]`` entries. Collect
+    from both.
+    """
     sfdmu_dir = REPO_ROOT / "datasets" / "sfdmu"
     impacts = {}
 
-    # Build a map of object -> plans that use it
     object_to_plans = {}
-    for plan_dir in sfdmu_dir.iterdir():
-        if not plan_dir.is_dir():
-            continue
-        export_json = plan_dir / "export.json"
-        if not export_json.exists():
-            continue
+    for export_json in sorted(sfdmu_dir.rglob("export.json")):
+        # Use the path relative to sfdmu_dir as a stable plan identifier
+        plan_id = str(export_json.parent.relative_to(sfdmu_dir))
         try:
             with open(export_json) as f:
                 plan = json.load(f)
-            for obj_def in plan.get("objects", []):
-                obj_name = obj_def.get("objectName", obj_def.get("query", "").split(" ")[-1])
-                # Extract object name from query if needed
-                if "FROM" in obj_name:
-                    parts = obj_name.split("FROM")
-                    if len(parts) > 1:
-                        obj_name = parts[1].strip().split()[0]
-                elif " " in obj_name:
-                    # Try to get from query field
-                    query = obj_def.get("query", "")
-                    if "FROM " in query:
-                        obj_name = query.split("FROM ")[1].split()[0].strip()
-
-                if obj_name:
-                    if obj_name not in object_to_plans:
-                        object_to_plans[obj_name] = []
-                    object_to_plans[obj_name].append(plan_dir.name)
-        except (json.JSONDecodeError, KeyError):
+        except (json.JSONDecodeError, OSError):
             continue
+
+        obj_defs = list(plan.get("objects", []) or [])
+        for obj_set in plan.get("objectSets", []) or []:
+            obj_defs.extend(obj_set.get("objects", []) or [])
+
+        for obj_def in obj_defs:
+            obj_name = _extract_object_name(obj_def)
+            if obj_name:
+                object_to_plans.setdefault(obj_name, []).append(plan_id)
 
     # Map changes to impacted plans
     all_changed = set(diff["objects_removed"]) | set(diff["object_diffs"].keys())

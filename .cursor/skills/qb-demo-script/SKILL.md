@@ -59,7 +59,7 @@ and without the cross-repo manifest being live in PMOS.
 
 | Input | Path | Resolved via | Required? |
 |---|---|---|---|
-| QB scenario reference | `.cursor/skills/release-enablement/qb-scenario-reference.md` | manifest `foundations.grounding.qb_scenario` | Required |
+| QB scenario reference | `docs/enablement/master/qb-scenario-reference.md` | manifest `foundations.grounding.qb_scenario` | Required |
 | Feature index for target release | `docs/salesforce/{release}/feature-index.md` | manifest `foundations.grounding.feature_index_active` | Required |
 | Help portal mirror for target release | `docs/salesforce/{release}/help/articles/` + `manifest.json` | manifest `foundations.grounding.help_corpus_active` | Required |
 | Capability roadmap (PMOS-side) | `context/CAPABILITIES.md` | manifest `pmos.context_files.capabilities` | Optional but recommended for "what's new" framing |

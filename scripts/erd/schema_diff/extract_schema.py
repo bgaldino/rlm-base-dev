@@ -7,8 +7,8 @@ every RLM-related object and field. Outputs a normalized JSON snapshot that
 can be diffed between releases (e.g., 260 vs 262).
 
 Usage:
-    python scripts/schema_diff/extract_schema.py --org rlm-base__262buildtest --output scripts/schema_diff/262-schema.json
-    python scripts/schema_diff/extract_schema.py --org techido-260 --output scripts/schema_diff/260-schema.json
+    python scripts/erd/schema_diff/extract_schema.py --org rlm-base__262buildtest --output scripts/erd/schema_diff/262-schema.json
+    python scripts/erd/schema_diff/extract_schema.py --org techido-260 --output scripts/erd/schema_diff/260-schema.json
 
 Options:
     --org ALIAS       sf CLI target org alias (required)
@@ -31,7 +31,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 ERD_DATA = REPO_ROOT / "docs" / "erds" / "erd-data.json"
 
 # System fields to exclude from comparison (noise)

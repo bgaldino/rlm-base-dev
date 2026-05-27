@@ -28,7 +28,25 @@ from typing import Dict, List, Set, Tuple
 
 REPO = Path(__file__).resolve().parent.parent.parent
 ERD_DATA = REPO / "docs" / "erds" / "erd-data.json"
-OWNERSHIP_JSON = REPO / ".agents" / "artifacts" / "orphan-field-ownership.json"
+# Ownership tracking lives in .agents/ by default (intentionally untracked —
+# accumulates iterative researcher findings during a cleanup campaign). The
+# default path is configurable via --ownership-json so this script works on
+# fresh clones and in CI without requiring the .agents/ artifacts to exist.
+DEFAULT_OWNERSHIP_JSON = REPO / ".agents" / "artifacts" / "orphan-field-ownership.json"
+
+
+def _load_ownership(path: Path) -> Tuple[dict, bool]:
+    """Load the ownership JSON, returning (data, was_bootstrapped).
+
+    If the file is missing, return an empty bootstrap structure rather
+    than raising. Callers can decide whether to error or proceed with
+    zero already-verified entities (which is the correct behavior on a
+    fresh clone or when starting a new cleanup campaign).
+    """
+    if not path.exists():
+        return {"by_entity": {}}, True
+    with open(path) as f:
+        return json.load(f), False
 
 
 def parse_orphan_report(report_path: Path) -> Dict[str, Set[str]]:
@@ -80,9 +98,12 @@ def cmd_prepare(args):
     print(f"Reading {report_path.name}...")
     orphans = parse_orphan_report(report_path)
 
-    # Load already-verified entities
-    with open(OWNERSHIP_JSON) as f:
-        own = json.load(f)
+    ownership_path = Path(args.ownership_json) if args.ownership_json else DEFAULT_OWNERSHIP_JSON
+    own, bootstrapped = _load_ownership(ownership_path)
+    if bootstrapped:
+        print(f"NOTE: ownership file {ownership_path} not present — treating "
+              f"all entities as unverified. Use --ownership-json to point at a "
+              f"persisted file once the cleanup campaign accumulates findings.")
     already_verified = set(own["by_entity"].keys())
 
     # Load ERD for domain
@@ -137,8 +158,14 @@ def cmd_apply(args):
 
     orphans = parse_orphan_report(report_path)
 
-    with open(OWNERSHIP_JSON) as f:
-        own = json.load(f)
+    ownership_path = Path(args.ownership_json) if args.ownership_json else DEFAULT_OWNERSHIP_JSON
+    own, bootstrapped = _load_ownership(ownership_path)
+    if bootstrapped:
+        print(f"ERROR: ownership file {ownership_path} not present and `apply` "
+              f"needs concrete findings to act on. Run `prepare` first, gather "
+              f"researcher findings into the ownership JSON, then re-run "
+              f"`apply --ownership-json <path>`.")
+        return 1
 
     # Build removal set: ALL remove_all entities + C-classified fields from partial entities
     remove_set: Set[Tuple[str, str]] = set()
@@ -161,15 +188,6 @@ def cmd_apply(args):
     with open(ERD_DATA) as f:
         erd = json.load(f)
 
-    removed = 0
-    for obj_data in erd["objects"].values():
-        fields = obj_data.get("fields", {})
-        if not isinstance(fields, dict):
-            continue
-        for fname in list(fields.keys()):
-            obj_name = obj_data.get("name") or [k for k, v in erd["objects"].items() if v is obj_data][0]
-            # cheaper: find by iteration key
-        # actually the loop above doesn't have obj_name; fix:
     removed = 0
     for obj_name, obj_data in erd["objects"].items():
         fields = obj_data.get("fields", {})
@@ -240,11 +258,19 @@ def main():
     p_prep = sub.add_parser("prepare", help="Prepare next batch input JSON")
     p_prep.add_argument("--batch", type=int, required=True)
     p_prep.add_argument("--size", type=int, default=20)
+    p_prep.add_argument("--ownership-json",
+                        help=f"Path to ownership findings JSON "
+                             f"(default: {DEFAULT_OWNERSHIP_JSON.relative_to(REPO)}; "
+                             f"missing-file is non-fatal for prepare).")
     p_prep.set_defaults(func=cmd_prepare)
 
     p_apply = sub.add_parser("apply", help="Apply removals from current ownership JSON")
     p_apply.add_argument("--orphan-report", help="Path to orphan-candidates-*.md (default: latest)")
     p_apply.add_argument("--batch", type=int)
+    p_apply.add_argument("--ownership-json",
+                        help=f"Path to ownership findings JSON "
+                             f"(default: {DEFAULT_OWNERSHIP_JSON.relative_to(REPO)}; "
+                             f"required for apply — errors out if missing).")
     p_apply.set_defaults(func=cmd_apply)
 
     p_val = sub.add_parser("validate", help="Run validator + regenerate HTML")

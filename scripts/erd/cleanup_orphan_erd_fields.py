@@ -29,18 +29,18 @@ reliably. This utility supports two safety modes:
 
 Usage:
     # Show candidates without modifying anything
-    python scripts/cleanup_orphan_erd_fields.py --org rlm-base__ent-sb0 --dry-run
+    python scripts/erd/cleanup_orphan_erd_fields.py --org rlm-base__ent-sb0 --dry-run
 
     # Show only the safe-to-remove candidates
-    python scripts/cleanup_orphan_erd_fields.py --org rlm-base__ent-sb0 \\
+    python scripts/erd/cleanup_orphan_erd_fields.py --org rlm-base__ent-sb0 \\
         --safe-only --dry-run
 
     # Apply safe-only removal
-    python scripts/cleanup_orphan_erd_fields.py --org rlm-base__ent-sb0 \\
+    python scripts/erd/cleanup_orphan_erd_fields.py --org rlm-base__ent-sb0 \\
         --safe-only --apply
 
     # Cross-validate against multiple orgs before aggressive removal
-    python scripts/cleanup_orphan_erd_fields.py --orgs ent-r1,rlm-base__ent-sb0 \\
+    python scripts/erd/cleanup_orphan_erd_fields.py --orgs ent-r1,rlm-base__ent-sb0 \\
         --aggressive --dry-run
 
 Outputs a candidates.md report listing every orphan and its classification.
@@ -151,14 +151,21 @@ def classify_orphan(field_data: dict) -> str:
       - 'documented'      : has a description (legitimate-looking, needs review)
       - 'documented_rel'  : has a refersTo (relationship, needs review)
       - 'malformed'       : couldn't parse the structure
+
+    Safety contract: a field is only ``pdf_artifact`` (auto-removable
+    under ``--safe-only``) when it has BOTH an empty description AND no
+    ``refersTo``. Relationship orphans (``refersTo`` present) always
+    stay in ``documented_rel`` regardless of description — Core-side
+    verification is required before removal because relationship
+    metadata that ``sf sobject describe`` doesn't surface can mean the
+    field exists but is feature-gated, not that it's a PDF artifact.
     """
     if not isinstance(field_data, dict):
         return "malformed"
     desc = (field_data.get("description") or "").strip()
     rt = field_data.get("refersTo")
     if rt:
-        # If has both refersTo AND description, lean documented
-        return "documented_rel" if desc else "pdf_artifact"
+        return "documented_rel"
     if desc:
         return "documented"
     return "pdf_artifact"

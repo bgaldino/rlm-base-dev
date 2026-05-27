@@ -112,7 +112,12 @@ selenium-screenshot*.png
 **/*.tsbuildinfo
 agents256*/**
 unpackaged/*bak/**
-.claude/
+# Cross-repo skill manifest is a tracked artifact (PMOS ↔ Foundations contract);
+# everything else under .claude/ (settings.local.json, worktrees/, launch.json)
+# stays local. Pattern is .claude/* (not .claude/) so the negation below works —
+# git refuses to re-include a file whose parent directory itself is ignored.
+.claude/*
+!.claude/skill-manifest.yml
 datasets/sfdmu/reconcile/**
 datasets/sfdmu/extractions/**
 datasets/sfdmu/**/*.csv.bak
