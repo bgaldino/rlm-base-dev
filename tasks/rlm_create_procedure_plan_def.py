@@ -23,6 +23,11 @@ except ImportError:
     TaskOptionsError = Exception
 
 
+def _soql_escape(value: str) -> str:
+    """Escape a string for use in a SOQL literal (single-quoted value)."""
+    return value.replace("\\", "\\\\").replace("'", "\\'")
+
+
 class CreateProcedurePlanDefinition(BaseSalesforceTask):
     """Create a Procedure Plan Definition + Version via the RLM Connect API.
 
@@ -281,8 +286,15 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
     }
 
     @property
+    def _api_version(self) -> str:
+        return (
+            getattr(self.org_config, "api_version", None)
+            or getattr(self.project_config, "project__package__api_version", "67.0")
+        )
+
+    @property
     def _base_url(self):
-        return f"{self.org_config.instance_url}/services/data/v67.0"
+        return f"{self.org_config.instance_url}/services/data/v{self._api_version}"
 
     @property
     def _headers(self):
@@ -293,10 +305,11 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
 
     def _run_task(self):
         dev_name = self.options["developerName"]
+        safe_dev_name = _soql_escape(dev_name)
 
         query = (
             "SELECT Id, IsActive, Rank, EffectiveFrom FROM ProcedurePlanDefinitionVersion "
-            f"WHERE ProcedurePlanDefinition.DeveloperName = '{dev_name}' "
+            f"WHERE ProcedurePlanDefinition.DeveloperName = '{safe_dev_name}' "
             "ORDER BY IsActive DESC, Rank DESC, EffectiveFrom DESC "
             "LIMIT 1"
         )
@@ -362,8 +375,15 @@ class DeactivateProcedurePlanVersion(BaseSalesforceTask):
     }
 
     @property
+    def _api_version(self) -> str:
+        return (
+            getattr(self.org_config, "api_version", None)
+            or getattr(self.project_config, "project__package__api_version", "67.0")
+        )
+
+    @property
     def _base_url(self):
-        return f"{self.org_config.instance_url}/services/data/v66.0"
+        return f"{self.org_config.instance_url}/services/data/v{self._api_version}"
 
     @property
     def _headers(self):
@@ -374,12 +394,13 @@ class DeactivateProcedurePlanVersion(BaseSalesforceTask):
 
     def _run_task(self):
         dev_name = self.options["developerName"]
+        safe_dev_name = _soql_escape(dev_name)
         max_wait_seconds = int(self.options.get("max_wait_seconds", 20))
         poll_interval_seconds = int(self.options.get("poll_interval_seconds", 2))
 
         query = (
             "SELECT Id, IsActive, Rank, EffectiveFrom FROM ProcedurePlanDefinitionVersion "
-            f"WHERE ProcedurePlanDefinition.DeveloperName = '{dev_name}' "
+            f"WHERE ProcedurePlanDefinition.DeveloperName = '{safe_dev_name}' "
             "ORDER BY IsActive DESC, Rank DESC, EffectiveFrom DESC "
             "LIMIT 1"
         )
