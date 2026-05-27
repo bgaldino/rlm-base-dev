@@ -1,4 +1,4 @@
-StockKeepingUnit,Name,RLM_Primary_Goal__c,RLM_Timeline__c,RLM_Platform_Control__c
-QB-BDL-STND,QuantumBit Starter,Deploy a complete on-premise server infrastructure solution;Integrate and manage APIs or cloud services;Automate business processes and workflows,We need to be live ASAP (days/weeks),Basic - core features are enough for now
-QB-COMPLETE,QuantumBit Complete Solution,Deploy a complete on-premise server infrastructure solution;Integrate and manage APIs or cloud services;Automate business processes and workflows,No hard deadline - we're exploring options,Advanced - need specialized features for sensitive/regulated data
-QB-QRack-750,QuantumBit Q-Rack 750,Deploy a complete on-premise server infrastructure solution;Store and manage large volumes of data,We have a few months to plan,Intermediate - need enterprise controls and granular access
+StockKeepingUnit,RLM_Primary_Goal__c,RLM_Timeline__c,RLM_Platform_Control__c
+QB-BDL-STND,Deploy a complete on-premise server infrastructure solution;Integrate and manage APIs or cloud services;Automate business processes and workflows,We need to be live ASAP (days/weeks),Basic - core features are enough for now
+QB-COMPLETE,Deploy a complete on-premise server infrastructure solution;Integrate and manage APIs or cloud services;Automate business processes and workflows,No hard deadline - we're exploring options,Advanced - need specialized features for sensitive/regulated data
+QB-QRack-750,Deploy a complete on-premise server infrastructure solution;Store and manage large volumes of data,We have a few months to plan,Intermediate - need enterprise controls and granular access

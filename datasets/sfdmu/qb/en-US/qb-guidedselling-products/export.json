@@ -5,7 +5,7 @@
     {
       "objects": [
         {
-          "query": "SELECT StockKeepingUnit, Name, RLM_Primary_Goal__c, RLM_Timeline__c, RLM_Platform_Control__c FROM Product2 ORDER BY StockKeepingUnit ASC",
+          "query": "SELECT StockKeepingUnit, RLM_Primary_Goal__c, RLM_Timeline__c, RLM_Platform_Control__c FROM Product2 ORDER BY StockKeepingUnit ASC",
           "operation": "Update",
           "externalId": "StockKeepingUnit",
           "excluded": false
