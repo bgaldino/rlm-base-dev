@@ -277,7 +277,14 @@ def resolve_skill(
 
 
 def _cli_check(manifest: dict[str, Any]) -> int:
-    """Verify both repos can be located; print a status report."""
+    """Verify both repos can be located; print a status report.
+
+    A repo section may declare ``optional: true`` in the manifest. Absent
+    optional clones are reported as ``[INFO]`` lines and DO NOT fail the
+    check (exit 0); only absent required clones fail. This matches the
+    PMOS-as-optional contract documented in ``pmos-integration/SKILL.md``
+    and the manifest's PMOS section header.
+    """
     print(f"Manifest: {manifest['_manifest_path']}")
     print(f"Manifest version: {manifest.get('manifest_version', '?')}")
     print(f"Last verified: {manifest.get('last_verified', '?')}")
@@ -286,19 +293,33 @@ def _cli_check(manifest: dict[str, Any]) -> int:
     overall_ok = True
     for key in ("foundations", "pmos"):
         section = manifest.get(key, {})
-        resolved: RepoLocation = section.get("_resolved")
+        resolved: RepoLocation | None = section.get("_resolved")
+        is_optional = bool(section.get("optional", False))
         if resolved is None:
+            # Section missing entirely. Always fatal even for "optional" repos,
+            # because the manifest itself is malformed.
             print(f"  [ERROR] {key}: section missing in manifest")
             overall_ok = False
             continue
         if resolved.path is None:
-            print(f"  [WARN]  {key} ({resolved.name}): clone not found")
-            print(f"          tried: {[str(p) for p in resolved.candidates_tried]}")
-            if resolved.env_var:
-                print(f"          consider setting env var: {resolved.env_var}")
-            overall_ok = False
+            if is_optional:
+                print(
+                    f"  [INFO]  {key} ({resolved.name}): clone not found "
+                    f"(optional — degrading gracefully)"
+                )
+                print(f"          tried: {[str(p) for p in resolved.candidates_tried]}")
+                if resolved.env_var:
+                    print(f"          to enable, set env var: {resolved.env_var}")
+                # Do not flip overall_ok for optional misses.
+            else:
+                print(f"  [ERROR] {key} ({resolved.name}): required clone not found")
+                print(f"          tried: {[str(p) for p in resolved.candidates_tried]}")
+                if resolved.env_var:
+                    print(f"          consider setting env var: {resolved.env_var}")
+                overall_ok = False
         else:
-            print(f"  [OK]    {key}: {resolved.path}")
+            tag = "OK-OPT" if is_optional else "OK"
+            print(f"  [{tag:6s}] {key}: {resolved.path}")
     return 0 if overall_ok else 1
 
 

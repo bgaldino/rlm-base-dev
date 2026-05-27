@@ -189,8 +189,13 @@ def cmd_apply(args):
                     if ent_name in orphans and fname in orphans[ent_name]:
                         remove_set.add((ent_name, fname))
 
-    # Backup ERD
-    backup = ERD_DATA.with_suffix(f".json.bak.batch{args.batch or 'X'}")
+    # Backup ERD. Suffix order keeps `.bak` LAST so the repo-wide `*.bak`
+    # gitignore rule catches it. Earlier versions used `.bak.batchN` which
+    # fell *outside* the `*.bak` glob and left untracked working-tree files
+    # despite the PR documenting these as local-only artifacts. The
+    # equivalent legacy pattern is covered defensively by the
+    # `docs/erds/erd-data.json.bak*` entry in .gitignore.
+    backup = ERD_DATA.with_suffix(f".json.batch{args.batch or 'X'}.bak")
     shutil.copy(ERD_DATA, backup)
 
     # Apply

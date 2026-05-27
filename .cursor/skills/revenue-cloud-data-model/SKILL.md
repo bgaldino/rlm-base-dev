@@ -20,7 +20,7 @@ The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields
 - Core UDD source at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch`
 - 127 entities individually verified against canonical entity XMLs
 
-**260 → 262 delta:** 45 fields added, 0 removed, 0 type changes, 0 SFDMU plan impact. Full diff at `scripts/erd/schema_diff/260-vs-262-diff.md`.
+**260 → 262 delta:** 45 fields added, 0 removed, 0 type changes, 2 polymorphic-reference targets expanded (e.g. `Invoice.ReferenceEntityId` now also accepts `Opportunity`/`Quote`). Nine objects with additive deltas appear in existing SFDMU plans per `scripts/erd/schema_diff/260-vs-262-diff.md` `--impact` output, but **no SFDMU remediation is required** — new fields cannot break existing CSV imports; they remain unpopulated until a plan intentionally adopts them. Full diff at `scripts/erd/schema_diff/260-vs-262-diff.md`.
 
 **Common misconceptions resolved (DO NOT propagate):**
 - The Revenue Cloud "PUG" entity is `ProductUsageGrant`, NOT `ProductUsageGroup` (which doesn't exist in core source)

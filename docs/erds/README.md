@@ -6,7 +6,7 @@ This directory contains comprehensive entity relationship diagrams (ERDs) for th
 
 The ERD reflects **canonical Revenue Cloud platform schema only** — custom fields (any `__c` suffix, including project `RLM_*__c` and managed packages) are excluded by validation tooling. Verified via dual-org cross-validation (260 baseline `ent-r1` and 262 target `rlm-base__ent-sb0`) plus 127 entities individually checked against Core UDD source at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch`.
 
-Per-object 262 schema changes are tracked in `docs/upgrades/262-upgrade-plan.md`. The 260 → 262 delta is purely additive: 45 fields added, 0 removed, 0 type changes, 0 SFDMU plan impact.
+Per-object 262 schema changes are tracked in `docs/upgrades/262-upgrade-plan.md`. The 260 → 262 delta is purely additive: 45 fields added, 0 removed, 0 type changes, 2 polymorphic-reference targets expanded (e.g. `Invoice.ReferenceEntityId` now also accepts `Opportunity`/`Quote`). Nine objects with additive deltas do appear in existing SFDMU plans per `scripts/erd/schema_diff/260-vs-262-diff.md`, but **no SFDMU remediation is required** — new fields can't break existing CSV imports; they remain unpopulated until a plan intentionally adopts them.
 
 To refresh the ERD against a new release or different org configuration, see `.cursor/skills/schema-validation/SKILL.md`.
 

@@ -194,6 +194,18 @@ foundations:
       line_count: 486
       consumed_by_pmos: [demo-script, demo-flow, demo-data, presentation, sales-enablement]
 
+    # Per-release outputs of the qb-demo-script skill. Registered here so
+    # consumers can resolve a release-specific canvas via
+    # `resolve_grounding(..., 'qb_demo_script_{release}')`. Add a new entry
+    # each release when the corresponding markdown file is generated.
+    qb_demo_script_262:
+      path: docs/enablement/262/qb-demo-script.md
+      purpose: "QuantumBit demo-script canvas, Release 262 (Summer '26)"
+      produced_by_skill: qb-demo-script
+      release: "262"
+      status: draft  # awaits SME pass for Setup-UI, Known Bugs, image capture, Slack publish
+      consumed_by_pmos: []  # PMOS narrative-polish pass is Phase 6.3+, opt-in
+
     feature_index_active:
       path: docs/salesforce/262/feature-index.md
       release: "262"
@@ -215,11 +227,20 @@ foundations:
     postman_v67_status: needs_refresh
 
 # ─── PMOS (sibling repo; this section will be authored/maintained by Sandy) ──
+#
+# Discovery is OPTIONAL: most Foundations workflows do not need a local PMOS
+# clone. The cross-repo manifest exists so PMOS-aware skills (release-enablement,
+# qb-demo-script's future PMOS narrative-polish pass) can degrade gracefully
+# when PMOS is absent, rather than failing hard. `--check` reports a missing
+# PMOS clone as an INFO line and exits 0; only an absent FOUNDATIONS clone is
+# treated as a hard failure (you can't sanely operate this manifest if the
+# repo containing it can't be located).
 pmos:
   name: pmos-revenue-cloud
   repo_url: https://git.soma.salesforce.com/s-varadharajan/pmos-revenue-cloud
   role: author
   maintainer: Santhanagopalan Varadharajan
+  optional: true   # discovery may legitimately fail on Foundations-only clones
   local_path_hints:
     - "$PMOS_REPO_ROOT"
     - "$RC_WORKSPACE/pmos"

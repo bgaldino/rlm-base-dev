@@ -42,8 +42,13 @@ mechanically per Salesforce release rather than hand-edited.
 - **DO NOT** scrape the existing Slack canvas at runtime. Read the saved source
   at `.agents/artifacts/qb-canvas-{release}-source.md` if present, or the
   `qb-scenario-reference.md` directly.
-- **DO NOT** invent customer accounts, products, SKUs, or personas. Pull from
-  `qb-scenario-reference.md`.
+- **DO NOT** invent customer accounts, products, SKUs, bundles, or constraint
+  models. Pull them from `docs/enablement/master/qb-scenario-reference.md`.
+- **DO NOT** invent personas. Pull the 6-persona inventory (name + role + bio)
+  from `.agents/artifacts/qb-canvas-{prior_release}-source.md` (see Quick
+  Rule 4 — the canonical scenario reference does not yet contain personas;
+  migration is tracked separately). If the prior-canvas source is absent,
+  omit the Demo Personas section rather than fabricate one.
 - **DO NOT** reference `Solutions Workspace` URLs that don't exist for the
   target release. The DOT/TFID identifiers are release-specific.
 - **DO NOT** copy talk-track narrative verbatim from the prior release without
@@ -152,7 +157,7 @@ The canvas covers 10 main sections. Generation must keep them in this order:
 |---|---|---|---|
 | 1 | Demo Setup [required] | Help: enable RC + setup; CCI feature flags | n/a (admin) |
 | 2 | Known Bugs & Issues to Avoid | Hand-curated; SME pass | n/a |
-| 3 | Demo Personas | qb-scenario-reference (6 personas) | n/a |
+| 3 | Demo Personas | `.agents/artifacts/qb-canvas-{prior_release}-source.md` (6 personas; migration into `qb-scenario-reference.md` is a tracked follow-up — see Quick Rule 4) | n/a |
 | 4 | Opportunity to Order | Includes Configuration sub-sections, Pricing, Ramping & Grouping, Document Generation, Advanced Approvals, Quoting Agent | Kristen O'Reilly (AE) |
 | 5 | Usage Management & Rating | Help: Usage + Rating; QB DataBase product | Anne Wei (SalesOps) |
 | 6 | Order Entry, Fulfillment, & DRO | Help: DRO; QB pre-staged ramped order | Beth Henderson (Order Mgmt) |

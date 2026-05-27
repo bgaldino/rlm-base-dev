@@ -124,6 +124,10 @@ datasets/sfdmu/**/*.csv.bak
 datasets/bre/exports/**
 # Writeback/drift artifacts
 *.bak
+# ERD orphan-cleanup local backups — covers both the current naming
+# (erd-data.json.batchN.bak, caught by *.bak above) and legacy variants
+# (.bak2, .bak.batchN) produced by earlier helper versions.
+docs/erds/erd-data.json.bak*
 unpackaged/post_ux/drift_report.json
 tmp-metadata/
 .cursor/plans/**
