@@ -3,12 +3,3 @@ solution_type_looking_for;1,USD,Radio,,solution_type_looking_for,What type of So
 Security_Monitoring;1,USD,Radio,,Security_Monitoring,Security Monitoring,Demographic,Is Security Monitoring required as part of the solution?,,false,false,Security_Monitoring
 Implementation_Options;1,USD,Radio,,Implementation_Options,Implementation Options,Demographic,Implementation Options,,false,false,Implementation_Options
 Industry;1,USD,Radio,,Industry,Industry,Demographic,Industry,,false,false,Industry
-Support_and_Maintenance;1,USD,Radio,,Support_and_Maintenance,Support and Maintenance,Demographic,Do you need built-in support and maintenance?,,false,false,Support_and_Maintenance
-API_Management;1,USD,Select,,API_Management,API Management,Demographic,Do you need API management or integration capabilities?,,false,false,API_Management
-Implementation;1,USD,Radio,,Implementation,Implementation,Demographic,How would you like to handle implementation?,,false,false,Implementation
-Organization_Description;1,USD,Radio,,Organization_Description,Organization Description,Demographic,Which best describes your organization?,,false,false,Organization_Description
-Platform_Control;1,USD,Select,,Platform_Control,Platform Control,Demographic,What level of platform control do you need?,,false,false,Platform_Control
-Primary_Goal;1,USD,Multiselect,,Primary_Goal,Primary Goal,Demographic,What's your primary goal today?,,false,false,Primary_Goal
-Deployment_Size;1,USD,Select,,Deployment_Size,Deployment Size,Demographic,How large is your deployment?,,false,false,Deployment_Size
-Time;1,USD,Select,,Time,Time,Demographic,What's your timeline?,,false,false,Time
-Services;1,USD,Multiselect,,Services,Services,Demographic,What services do you need most?,,false,false,Services
