@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <OmniScript xmlns="http://soap.sforce.com/2006/04/metadata">
     <designerCustomizationType>Discovery Framework</designerCustomizationType>
-    <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+    <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
     <elementTypeComponentMapping>{&quot;ElementTypeToHTMLTemplateList&quot;:[]}</elementTypeComponentMapping>
     <isActive>true</isActive>
     <isIntegrationProcedure>false</isIntegrationProcedure>
@@ -31,7 +31,7 @@
     <omniProcessElements>
         <childElements>
             <designerCustomizationType>Discovery Framework</designerCustomizationType>
-            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
             <isActive>true</isActive>
             <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
             <level>1.0</level>
@@ -85,7 +85,7 @@
         </childElements>
         <childElements>
             <designerCustomizationType>Discovery Framework</designerCustomizationType>
-            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
             <isActive>true</isActive>
             <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
             <level>1.0</level>
@@ -146,7 +146,7 @@
         </childElements>
         <childElements>
             <designerCustomizationType>Discovery Framework</designerCustomizationType>
-            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
             <isActive>true</isActive>
             <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
             <level>1.0</level>
@@ -205,7 +205,7 @@
             <uniqueIndex>Support_and_Maintenance</uniqueIndex>
         </childElements>
         <designerCustomizationType>Discovery Framework</designerCustomizationType>
-        <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+        <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
         <isActive>true</isActive>
         <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
         <level>0.0</level>
@@ -261,7 +261,7 @@
     <omniProcessElements>
         <childElements>
             <designerCustomizationType>Discovery Framework</designerCustomizationType>
-            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
             <isActive>true</isActive>
             <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
             <level>1.0</level>
@@ -315,7 +315,7 @@
         </childElements>
         <childElements>
             <designerCustomizationType>Discovery Framework</designerCustomizationType>
-            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
             <isActive>true</isActive>
             <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
             <level>1.0</level>
@@ -380,7 +380,7 @@
         </childElements>
         <childElements>
             <designerCustomizationType>Discovery Framework</designerCustomizationType>
-            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
             <isActive>true</isActive>
             <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
             <level>1.0</level>
@@ -433,7 +433,7 @@
             <uniqueIndex>Platform_Control</uniqueIndex>
         </childElements>
         <designerCustomizationType>Discovery Framework</designerCustomizationType>
-        <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+        <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
         <isActive>true</isActive>
         <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
         <level>0.0</level>
@@ -489,7 +489,7 @@
     <omniProcessElements>
         <childElements>
             <designerCustomizationType>Discovery Framework</designerCustomizationType>
-            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
             <isActive>true</isActive>
             <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
             <level>1.0</level>
@@ -549,7 +549,7 @@
         </childElements>
         <childElements>
             <designerCustomizationType>Discovery Framework</designerCustomizationType>
-            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
             <isActive>true</isActive>
             <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
             <level>1.0</level>
@@ -610,7 +610,7 @@
         </childElements>
         <childElements>
             <designerCustomizationType>Discovery Framework</designerCustomizationType>
-            <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+            <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
             <isActive>true</isActive>
             <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
             <level>1.0</level>
@@ -663,7 +663,7 @@
             <uniqueIndex>Time</uniqueIndex>
         </childElements>
         <designerCustomizationType>Discovery Framework</designerCustomizationType>
-        <discoveryFrameworkUsageType>2</discoveryFrameworkUsageType>
+        <discoveryFrameworkUsageType>GsUsageType</discoveryFrameworkUsageType>
         <isActive>true</isActive>
         <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
         <level>0.0</level>
