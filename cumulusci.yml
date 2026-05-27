@@ -1206,8 +1206,6 @@ tasks:
     options:
       path: unpackaged/post_guidedselling
 
-
-
   assemble_and_deploy_ux:
     group: UX Personalization
     description: >
