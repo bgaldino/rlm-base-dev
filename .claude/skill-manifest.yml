@@ -127,6 +127,28 @@ foundations:
       purpose: "Pre-merge doc-consistency review"
       consumed_by_pmos: []
 
+    - id: schema-validation
+      path: .cursor/skills/schema-validation/SKILL.md
+      purpose: "Validate/refresh/certify erd-data.json against live orgs + Core UDD source; covers orphan-field cleanup, schema-diff tooling, dual-org cross-validation"
+      consumed_by_pmos: []
+      grounding_inputs:
+        - foundations.grounding.erd_data
+      tooling:
+        - scripts/erd/validate_erd_against_org.py
+        - scripts/erd/cleanup_orphan_erd_fields.py
+        - scripts/erd/orphan_batch_helper.py
+        - scripts/erd/schema_diff/extract_schema.py
+        - scripts/erd/schema_diff/diff_schemas.py
+        - scripts/erd/build_erds.py
+
+    - id: pmos-integration
+      path: .cursor/skills/pmos-integration/SKILL.md
+      purpose: "Cross-repo skill-manifest pattern connecting Foundations and PMOS; explains the temporal split (PMOS = future state, Foundations = current state), resolver mechanics, and per-skill opt-in"
+      consumed_by_pmos: []  # PMOS-side mirror authored by Sandy when PMOS adopts the manifest (Phase 6.3+)
+      tooling:
+        - scripts/ai/skill_manifest.py
+      governs: .claude/skill-manifest.yml
+
   # CCI tasks that Foundations exposes for cross-repo workflows
   cci_tasks:
     - id: snapshot_salesforce_help

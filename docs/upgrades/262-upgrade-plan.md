@@ -39,7 +39,7 @@ Two workstations with distinct capabilities are used in combination:
 | 2 — Data Collection | Run `FieldDefinition`/`EntityDefinition` queries against both orgs; commit diff output | Personal | ✅ Complete — `scripts/erd/schema_diff/{260,262}-schema.json` and `260-vs-262-diff.md` |
 | 3 — Deep Analysis | Cross-reference schema diffs against data plans, Apex scripts, export.json files | Salesforce (Opus) | ✅ Complete — Core source research at `.agents/artifacts/262-vs-260-core-schema-research.md`; cross-validation at `.agents/artifacts/262-org-vs-core-cross-validation.md` |
 | 4 — UI Validation | Validate UI-only settings and toggles in 262 org via Chrome extension | Personal | Parallel with Phase 3 |
-| 5 — Implementation | Data plan fixes, Apex updates, build verification | Either | Schema delta is additive only (45 fields added, 0 removed, 0 type changes, 2 polymorphic targets expanded, 0 plan impact). No mandatory implementation changes identified. |
+| 5 — Implementation | Data plan fixes, Apex updates, build verification | Either | Schema delta is additive only (45 fields added, 0 removed, 0 type changes, 2 polymorphic targets expanded). Nine objects with additive deltas appear in maintained SFDMU plans per `--impact`, but no remediation is required because new fields can't break existing CSV imports. No mandatory implementation changes identified. |
 
 The `262` branch and this document are the shared source of truth across both workstations. Pull before starting any phase; commit and push at the end of each phase before switching workstations.
 
@@ -156,7 +156,7 @@ Review Salesforce release notes and metadata API changelog for 262. UI-only sett
 
 Run SFDMU v5 dataset compliance check after any schema-driven updates.
 
-**Schema delta confirmed at 0 plan impact** via `scripts/erd/schema_diff/diff_schemas.py --impact` on 2026-05-27 (45 fields added, 0 removed, 0 type changes — none of the additions appear in any plan's CSV headers).
+**Schema delta confirmed as remediation-free** via `scripts/erd/schema_diff/diff_schemas.py --impact` on 2026-05-27. The delta is 45 fields added, 0 removed, 0 type changes, 2 polymorphic-reference targets expanded. Nine objects with additive deltas (`EmailTemplate`, `FulfillmentStepDefinition`/`Group`, `FulfillmentTaskAssignmentRule`, `ObjectStateDefinition`, `OmniProcessElement`, `ProductFulfillmentScenario`, `ProductRampSegment`, `ValTfrmGrp`) do appear in maintained SFDMU plans, but no plan changes are required: adding fields to a SObject doesn't break a SFDMU plan whose CSVs simply don't populate them, so the new columns remain unpopulated until a plan intentionally adopts them. Full machine-readable details in `scripts/erd/schema_diff/260-vs-262-diff.{md,json}`.
 
 - [x] Run `python scripts/validate_sfdmu_v5_datasets.py` — zero violations
 - [x] Verify `qb-pcm` plan loads cleanly on 262 scratch org (`rlm-base__ent-sb0`)

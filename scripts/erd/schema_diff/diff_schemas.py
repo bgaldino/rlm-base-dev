@@ -24,6 +24,7 @@ Options:
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -161,6 +162,39 @@ def _extract_object_name(obj_def: dict) -> str:
     return obj_name
 
 
+def _list_tracked_export_jsons(sfdmu_dir: Path) -> list[Path] | None:
+    """Return the list of `export.json` files that git is tracking under
+    ``datasets/sfdmu/``, or ``None`` if git isn't available / this isn't a
+    repo.
+
+    The impact analysis must only consider plans that ship in the repo —
+    not contributor-local artifacts under ``datasets/sfdmu/extractions/``,
+    ``datasets/sfdmu/reconcile/``, or ad-hoc ``test/qb-dro.bak/`` workspaces
+    that .gitignore explicitly excludes. Without this filter, the
+    ``--impact`` report leaks paths that don't exist on a fresh clone and
+    overstates maintained-plan coverage.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--full-name", "-z", "datasets/sfdmu"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            check=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+    tracked = []
+    for raw in result.stdout.split(b"\x00"):
+        if not raw:
+            continue
+        rel = raw.decode("utf-8", "replace")
+        if rel.endswith("/export.json") or rel.endswith("export.json"):
+            # ls-files returns paths relative to the git toplevel (REPO_ROOT)
+            tracked.append(REPO_ROOT / rel)
+    return tracked
+
+
 def find_impacted_plans(diff: dict) -> dict:
     """Cross-reference schema changes against SFDMU data plans.
 
@@ -171,14 +205,37 @@ def find_impacted_plans(diff: dict) -> dict:
     Objects can be declared at the plan's top level (``plan.objects[]``)
     or under one or more ``objectSets[].objects[]`` entries. Collect
     from both.
+
+    Only MAINTAINED (git-tracked) ``export.json`` files are considered. Local
+    artifacts under ``datasets/sfdmu/extractions/`` and ``datasets/sfdmu/
+    reconcile/`` (both .gitignored) and ad-hoc ``test/qb-dro.bak/`` workspaces
+    are excluded so the impact report is reproducible from a clean clone. If
+    git is unavailable (non-repo, no git binary), fall back to ``rglob`` and
+    print a warning that the report may include local-only paths.
     """
     sfdmu_dir = REPO_ROOT / "datasets" / "sfdmu"
     impacts = {}
 
+    tracked = _list_tracked_export_jsons(sfdmu_dir)
+    if tracked is not None:
+        export_jsons = sorted(tracked)
+    else:
+        print(
+            "  [WARN] git not available — impact analysis is scanning every "
+            "export.json under datasets/sfdmu/ including .gitignored "
+            "extractions/. Results may not be reproducible from a clean clone.",
+            file=sys.stderr,
+        )
+        export_jsons = sorted(sfdmu_dir.rglob("export.json"))
+
     object_to_plans = {}
-    for export_json in sorted(sfdmu_dir.rglob("export.json")):
+    for export_json in export_jsons:
         # Use the path relative to sfdmu_dir as a stable plan identifier
-        plan_id = str(export_json.parent.relative_to(sfdmu_dir))
+        try:
+            plan_id = str(export_json.parent.relative_to(sfdmu_dir))
+        except ValueError:
+            # File is outside sfdmu_dir (shouldn't happen, but be defensive)
+            continue
         try:
             with open(export_json) as f:
                 plan = json.load(f)

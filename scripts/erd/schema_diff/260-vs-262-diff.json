@@ -1824,7 +1824,6 @@
     "EmailTemplate": {
       "change": "modified",
       "plans": [
-        "extractions/qb-approvals/2026-04-06T213638/processed",
         "qb/en-US/qb-approvals"
       ],
       "fields_removed": [],
@@ -1834,17 +1833,8 @@
     "FulfillmentStepDefinition": {
       "change": "modified",
       "plans": [
-        "extractions/qb-dro/2026-04-02T152608/processed",
-        "extractions/qb-dro/2026-04-02T154252/processed",
-        "extractions/qb-dro/2026-04-02T155702/processed",
-        "extractions/qb-dro/2026-04-02T171632/processed",
-        "extractions/qb-dro/2026-04-06T213636/processed",
-        "extractions/qb-dro/2026-04-06T215151/processed",
         "q3/en-US/q3-dro",
-        "qb/en-US/qb-dro",
-        "test/qb-dro.bak",
-        "test/qb-dro_scratch.bak",
-        "test/test-qb-dro-merge"
+        "qb/en-US/qb-dro"
       ],
       "fields_removed": [],
       "fields_added": [
@@ -1855,17 +1845,8 @@
     "FulfillmentStepDefinitionGroup": {
       "change": "modified",
       "plans": [
-        "extractions/qb-dro/2026-04-02T152608/processed",
-        "extractions/qb-dro/2026-04-02T154252/processed",
-        "extractions/qb-dro/2026-04-02T155702/processed",
-        "extractions/qb-dro/2026-04-02T171632/processed",
-        "extractions/qb-dro/2026-04-06T213636/processed",
-        "extractions/qb-dro/2026-04-06T215151/processed",
         "q3/en-US/q3-dro",
-        "qb/en-US/qb-dro",
-        "test/qb-dro.bak",
-        "test/qb-dro_scratch.bak",
-        "test/test-qb-dro-merge"
+        "qb/en-US/qb-dro"
       ],
       "fields_removed": [],
       "fields_added": [],
@@ -1874,15 +1855,7 @@
     "FulfillmentTaskAssignmentRule": {
       "change": "modified",
       "plans": [
-        "extractions/qb-dro/2026-04-02T152608/processed",
-        "extractions/qb-dro/2026-04-02T154252/processed",
-        "extractions/qb-dro/2026-04-02T155702/processed",
-        "extractions/qb-dro/2026-04-02T171632/processed",
-        "extractions/qb-dro/2026-04-06T213636/processed",
-        "extractions/qb-dro/2026-04-06T215151/processed",
-        "qb/en-US/qb-dro",
-        "test/qb-dro.bak",
-        "test/test-qb-dro-merge"
+        "qb/en-US/qb-dro"
       ],
       "fields_removed": [],
       "fields_added": [],
@@ -1891,7 +1864,6 @@
     "ObjectStateDefinition": {
       "change": "modified",
       "plans": [
-        "extractions/qb-clm/2026-04-06T213635/processed",
         "qb/en-US/qb-clm"
       ],
       "fields_removed": [],
@@ -1901,7 +1873,6 @@
     "OmniProcessElement": {
       "change": "modified",
       "plans": [
-        "extractions/qb-guidedselling/2026-04-06T213639/processed",
         "qb/en-US/qb-guidedselling"
       ],
       "fields_removed": [],
@@ -1911,17 +1882,8 @@
     "ProductFulfillmentScenario": {
       "change": "modified",
       "plans": [
-        "extractions/qb-dro/2026-04-02T152608/processed",
-        "extractions/qb-dro/2026-04-02T154252/processed",
-        "extractions/qb-dro/2026-04-02T155702/processed",
-        "extractions/qb-dro/2026-04-02T171632/processed",
-        "extractions/qb-dro/2026-04-06T213636/processed",
-        "extractions/qb-dro/2026-04-06T215151/processed",
         "q3/en-US/q3-dro",
-        "qb/en-US/qb-dro",
-        "test/qb-dro.bak",
-        "test/qb-dro_scratch.bak",
-        "test/test-qb-dro-merge"
+        "qb/en-US/qb-dro"
       ],
       "fields_removed": [],
       "fields_added": [],
@@ -1930,39 +1892,10 @@
     "ProductRampSegment": {
       "change": "modified",
       "plans": [
-        "extractions/qb-pcm/2026-02-27T154537",
-        "extractions/qb-pcm/2026-02-27T154537/processed",
-        "extractions/qb-pcm/2026-02-27T155330",
-        "extractions/qb-pcm/2026-02-27T155330/processed",
-        "extractions/qb-pcm/2026-03-05T173612/processed",
-        "extractions/qb-pcm/2026-04-02T155701/processed",
-        "extractions/qb-pcm/2026-04-02T161123/processed",
-        "extractions/qb-pcm/2026-04-02T161943/processed",
-        "extractions/qb-pcm/2026-04-02T162330",
-        "extractions/qb-pcm/2026-04-02T162330/processed",
-        "extractions/qb-pcm/2026-04-02T163856/processed",
-        "extractions/qb-pcm/2026-04-02T164257",
-        "extractions/qb-pcm/2026-04-02T164257/processed",
-        "extractions/qb-pcm/2026-04-06T213839/processed",
-        "extractions/qb-pcm/2026-04-06T215018/processed",
-        "extractions/qb-pcm/2026-05-23T022217",
-        "extractions/qb-pcm/2026-05-23T022217/processed",
         "mfg/en-US/mfg-multicurrency",
         "q3/en-US/q3-multicurrency",
         "qb/en-US/qb-pcm",
-        "qb/ja/qb-pcm",
-        "test/ac-multicurrency",
-        "test/qb-multicurrency",
-        "test/qb-pcm",
-        "test/test-ac-multicurrency",
-        "test/test-mfg-multicurrency",
-        "test/test-qb-multicurrency-258",
-        "test/test-qb-multicurrency2",
-        "test/test-qb-pcm",
-        "test/test-qb-pcm-1000",
-        "test/test-qb-pcm-1000 copy",
-        "test/test-qb-pcm-cloudera",
-        "test/test-qb-pcm-dro"
+        "qb/ja/qb-pcm"
       ],
       "fields_removed": [],
       "fields_added": [],
@@ -1971,15 +1904,7 @@
     "ValTfrmGrp": {
       "change": "modified",
       "plans": [
-        "extractions/qb-dro/2026-04-02T152608/processed",
-        "extractions/qb-dro/2026-04-02T154252/processed",
-        "extractions/qb-dro/2026-04-02T155702/processed",
-        "extractions/qb-dro/2026-04-02T171632/processed",
-        "extractions/qb-dro/2026-04-06T213636/processed",
-        "extractions/qb-dro/2026-04-06T215151/processed",
-        "qb/en-US/qb-dro",
-        "test/qb-dro.bak",
-        "test/test-qb-dro-merge"
+        "qb/en-US/qb-dro"
       ],
       "fields_removed": [],
       "fields_added": [],
