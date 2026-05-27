@@ -93,16 +93,15 @@ Search for "Asset" in the HTML viewer; nodes directly connected are immediate de
 
 ## Regenerating ERDs
 
-If source JSON files change, regenerate all diagrams:
+If `erd-data.json` changes, regenerate the HTML viewer:
 
 ```bash
-python3 postman/build_erds.py
+python3 scripts/erd/build_erds.py
 ```
 
-This will update:
-- All domain `.mermaid` files
-- `master.mermaid`
-- `revenue-cloud-erd.html`
+This rebuilds `revenue-cloud-erd.html` from current `erd-data.json` data. The Mermaid `.mermaid` files are relationship-focused summaries that may need manual updates if domain structure shifts significantly.
+
+To refresh `erd-data.json` itself against a fresh org or new release, see `.cursor/skills/schema-validation/SKILL.md` for the full workflow.
 
 ---
 

@@ -10,7 +10,23 @@ description: >-
 
 # Revenue Cloud Data Model
 
-Revenue Cloud v67.0 (Summer '26 / Release 262) — 263 objects, 4,919 fields across 9 domains. Object/field counts reflect the 260 baseline; per-object 262 schema changes are tracked in `docs/upgrades/262-upgrade-plan.md` (e.g. `RateCard.Status` removed, `ProductUsageResource` overlap validation enforced on activation).
+Revenue Cloud v67.0 (Summer '26 / Release 262) — **263 objects, 4,190 platform fields, 674 relationships** across 9 domains.
+
+The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields (any `__c` suffix, including project-deployed `RLM_*__c` and managed-package fields) are excluded by validation tooling so the schema stays platform-pure.
+
+**Verified 2026-05-27 against:**
+- 260 baseline scratch org `ent-r1` (Spring '26, API v66)
+- 262 target scratch org `rlm-base__ent-sb0` (Summer '26, API v67)
+- Core UDD source at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch`
+- 127 entities individually verified against canonical entity XMLs
+
+**260 → 262 delta:** 45 fields added, 0 removed, 0 type changes, 0 SFDMU plan impact. Full diff at `scripts/erd/schema_diff/260-vs-262-diff.md`.
+
+**Common misconceptions resolved (DO NOT propagate):**
+- The Revenue Cloud "PUG" entity is `ProductUsageGrant`, NOT `ProductUsageGroup` (which doesn't exist in core source)
+- `RateCard.Status` does not exist in any Salesforce release. The Status field is on `RateCardEntry` (slot=10, identical 260 vs 262)
+- The 262 `RateCardEntry` SOAP DML failure (#262-2) is a runtime platform regression, not a schema change
+- The 262 PUR overlap validation enforcement (#262-4) is runtime-gated, not a schema/validator code change
 
 ## Quick Rules
 
@@ -19,6 +35,8 @@ Revenue Cloud v67.0 (Summer '26 / Release 262) — 263 objects, 4,919 fields acr
 3. Cross-domain FKs are documented in `cross-domain-relationships.md`.
 4. Product2 is the central object — most domains reference it.
 5. Standard fields often have API names without `__c` suffix.
+6. To validate ERD against an org or refresh from a new release, see `.cursor/skills/schema-validation/SKILL.md`.
+7. Custom fields are NOT in the ERD by design. To verify a `__c` field exists, query the org directly with `sf sobject describe`.
 
 ## Domain Overview
 
@@ -136,7 +154,11 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 
 ## Source Data
 
-- `docs/erds/erd-data.json` — complete machine-readable schema (263 objects, all fields and relationships)
+- `docs/erds/erd-data.json` — canonical machine-readable schema (263 objects, 4,190 fields, 674 relationships, custom fields excluded)
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer
-- `docs/erds/validation-report.md` — ERD vs org schema gap analysis
+- `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis
+- `docs/erds/orphan-candidates-after-batch7.md` — final orphan classification report (38 explicitly-documented feature-gated/cross-cloud fields kept as informational)
+- `scripts/erd/schema_diff/{260,262}-schema.json` — fresh-org schema snapshots for 260 and 262
+- `scripts/erd/schema_diff/260-vs-262-diff.md` — verified release delta
+- `.agents/artifacts/orphan-field-ownership.json` — per-entity ownership classification for 127 verified entities

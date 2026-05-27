@@ -206,7 +206,7 @@ def verify(html_path: str):
 
 
 def main():
-    base = Path(__file__).parent.parent.parent  # repo root
+    base = Path(__file__).resolve().parent.parent.parent  # repo root (scripts/erd/build_erds.py → /)
     data_file = base / "docs" / "erds" / "erd-data.json"
     html_file = base / "docs" / "erds" / "revenue-cloud-erd.html"
 

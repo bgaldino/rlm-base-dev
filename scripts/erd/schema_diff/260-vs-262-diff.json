@@ -1,0 +1,884 @@
+{
+  "baseline": {
+    "extracted_at": "2026-05-27T01:53:29Z",
+    "object_count": 254,
+    "org_alias": "ent-r1",
+    "source": "sf sobject describe",
+    "total_fields": 3806
+  },
+  "target": {
+    "extracted_at": "2026-05-27T01:53:35Z",
+    "object_count": 254,
+    "org_alias": "rlm-base__ent-sb0",
+    "source": "sf sobject describe",
+    "total_fields": 3851
+  },
+  "summary": {
+    "objects_added": 0,
+    "objects_removed": 0,
+    "objects_changed": 41,
+    "objects_unchanged": 213,
+    "total_fields_added": 45,
+    "total_fields_removed": 0,
+    "total_type_changes": 0
+  },
+  "objects_added": [],
+  "objects_removed": [],
+  "object_diffs": {
+    "AssetFulfillmentDecomp": {
+      "added": [
+        "EndTime",
+        "StartTime"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "AssetStatePeriod": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "SegmentType",
+          "added": [
+            "Prorated"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "BillingBatchScheduler": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "TimeZone",
+          "added": [
+            "America/Argentina/Catamarca",
+            "America/Argentina/Cordoba",
+            "America/Argentina/Jujuy",
+            "America/Argentina/Mendoza",
+            "America/Ciudad_Juarez",
+            "America/Coyhaique",
+            "America/Kentucky/Louisville",
+            "America/Nuuk",
+            "Asia/Yangon",
+            "Atlantic/Faroe",
+            "Europe/Kyiv",
+            "Pacific/Kanton",
+            "Pacific/Pohnpei"
+          ],
+          "removed": [
+            "America/Catamarca",
+            "America/Cordoba",
+            "America/Godthab",
+            "America/Jujuy",
+            "America/Louisville",
+            "America/Mendoza",
+            "Asia/Rangoon",
+            "Atlantic/Faeroe",
+            "Europe/Kiev",
+            "Pacific/Enderbury",
+            "Pacific/Ponape"
+          ]
+        }
+      ]
+    },
+    "BillingPeriodItem": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "InvoiceStatus",
+          "added": [
+            "Processing"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "BillingSchedule": {
+      "added": [
+        "ProcessingOrder",
+        "SubCategory"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "CollectionPlan": {
+      "added": [
+        "OverdueRiskIndicator"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "CreditMemoInvApplication": {
+      "added": [
+        "LegalEntityAccountingPeriodId",
+        "LegalEntityId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "Dispute": {
+      "added": [
+        "AccountId",
+        "ApprovedAmount",
+        "CaseId",
+        "Description",
+        "DisputeSubtype",
+        "DisputeType",
+        "DisputedAmount",
+        "InvoiceId",
+        "ResolutionAction",
+        "ResolutionActionStatus",
+        "UsageType"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "DisputeItem": {
+      "added": [
+        "ApprovedAmount",
+        "DisputedAmount",
+        "InvoiceLineId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "EmailTemplate": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "RelatedEntityType",
+          "added": [
+            "BuyerAccount",
+            "CartAction",
+            "CartItemDetail",
+            "CaseServiceProcessExtension",
+            "CommerceConfigRelatedRecord",
+            "ContactCenterBulkOp",
+            "ContextParamMap",
+            "ConvEntryRelatedRecord",
+            "ConvEntryRelatedRecordCopy",
+            "ConvMessageSendRequest",
+            "ConvMsgSessionAuthResult",
+            "ConvMsgSessionHandlerRequest",
+            "ConvMsgSessionHandlerResult",
+            "Conversation",
+            "ConversationApiLog",
+            "ConversationApiLogObjSum",
+            "ConversationChannel",
+            "ConversationDefinitionSessionEngagement",
+            "ConversationEntry",
+            "ConversationEntryCopy",
+            "ConversationParticipant",
+            "ConversationTranscriptSendRequest",
+            "ExtlRecShrStagedRecord",
+            "FlowVersionMilestone",
+            "FulfillmentAssetStatePeriod",
+            "MessagingEndUser",
+            "MessagingSession",
+            "MessagingSessionMetrics",
+            "Participant",
+            "ParticipantDevice",
+            "ReportHierarchyObjectField",
+            "SearchRecentQuery",
+            "TenantConsumptionAlert",
+            "TenantPvsnLicConsumption",
+            "VoiceCall",
+            "VoiceCallRecording",
+            "VoiceChnlInteractionEvent",
+            "VoiceChnlIntrctnDtlEvent",
+            "VoiceProvisioningJob"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "ExpressionSet": {
+      "added": [
+        "Type"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "InterfaceSourceType",
+          "added": [
+            "IntelligentDecisionStudio"
+          ],
+          "removed": []
+        },
+        {
+          "field": "UsageSubtype",
+          "added": [
+            "RevenueCloud"
+          ],
+          "removed": []
+        },
+        {
+          "field": "UsageType",
+          "added": [
+            "FulfillmentCondition"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "FlowOrchestration": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "OrchestrationType",
+          "added": [
+            "AgxDataRetrieval",
+            "ApiEventFlow",
+            "CadenceStpRvwCrtr",
+            "CampaignMember",
+            "EnterpriseScaleExternalSystemChange",
+            "List",
+            "RecordQuery"
+          ],
+          "removed": [
+            "AgxScreenData",
+            "ScheduledHighScale"
+          ]
+        },
+        {
+          "field": "TriggerType",
+          "added": [
+            "ApiEventTrigger",
+            "CampaignMember",
+            "EnterpriseScaleExternalSystemChange",
+            "List",
+            "RecordQuery"
+          ],
+          "removed": [
+            "ScheduledHighScale"
+          ]
+        }
+      ]
+    },
+    "FulfillmentAsset": {
+      "added": [
+        "IsTimeAware",
+        "StateEndTime",
+        "StateStartTime"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "FulfillmentAssetRelationship": {
+      "added": [
+        "EndTime",
+        "StartTime"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "FulfillmentLineSourceRel": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "Action",
+          "added": [
+            "Amend",
+            "Renew"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "FulfillmentOrderLineItem": {
+      "added": [
+        "FulfillmentAssetEndQuantity",
+        "FulfillmentAssetReference",
+        "FulfillmentAssetStartQuantity"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "FulfillmentPlan": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [],
+          "removed": [
+            "InsuranceRuleAction",
+            "StageManagement"
+          ]
+        }
+      ]
+    },
+    "FulfillmentStep": {
+      "added": [
+        "CustomConfigParameter"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [],
+          "removed": [
+            "InsuranceRuleAction",
+            "StageManagement"
+          ]
+        }
+      ]
+    },
+    "FulfillmentStepDefinition": {
+      "added": [
+        "CustomConfigParameter"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [],
+          "removed": [
+            "InsuranceRuleAction",
+            "StageManagement"
+          ]
+        }
+      ]
+    },
+    "FulfillmentStepDefinitionGroup": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [],
+          "removed": [
+            "InsuranceRuleAction",
+            "StageManagement"
+          ]
+        }
+      ]
+    },
+    "FulfillmentTaskAssignmentRule": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [],
+          "removed": [
+            "InsuranceRuleAction",
+            "StageManagement"
+          ]
+        }
+      ]
+    },
+    "InvBatchDraftToPostedRun": {
+      "added": [
+        "BatchJobId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "Invoice": {
+      "added": [
+        "CreditInvoiceTaxDocNumber",
+        "DebitInvoiceTaxDocNumber",
+        "PaymentScheduleId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "Status",
+          "added": [
+            "Processing"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "InvoiceBatchRun": {
+      "added": [
+        "BatchJobId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "StatusSubtype",
+          "added": [
+            "Billing Schedules Filtering Completed",
+            "Billing Schedules Filtering In Progress",
+            "Invoice Generation Completed",
+            "Invoice Generation In Progress"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "InvoiceBatchRunRecovery": {
+      "added": [
+        "BatchJobId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "ObjectStateDefinition": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "ReferenceObject",
+          "added": [
+            "AgenticCtxtDecorDefinition",
+            "AgenticCtxtDecorRetriever",
+            "AgenticCtxtDecorRtvrParm",
+            "AiTestConvCritPersonaDef",
+            "AnalyticsBotSession",
+            "AppAnalyticsInfraPvsngSt",
+            "BatchCalcJobHierarchyPathAggregateField",
+            "BuyerAccount",
+            "CallCenterRoutingMap",
+            "CartAction",
+            "CartItemDetail",
+            "CaseServiceProcessExtension",
+            "CdsChangeEvent",
+            "ChoiceList",
+            "ChoiceListValue",
+            "ChoiceListValueDependency",
+            "CommerceConfigRelatedRecord",
+            "ConfigurableSolutionInstallStatusEvent",
+            "ContactCenterBulkOp",
+            "ContactCenterChannel",
+            "ContextDefinitionTfrm",
+            "ContextParamMap",
+            "ConvEntryRelatedRecord",
+            "ConvEntryRelatedRecordCopy",
+            "ConvIntelligenceSignalRule",
+            "ConvIntelligenceSignalSubRule",
+            "ConvMessageSendRequest",
+            "ConvMsgExternalTemplateVersion",
+            "ConvMsgSessionAuthResult",
+            "ConvMsgSessionHandlerRequest",
+            "ConvMsgSessionHandlerResult",
+            "Conversation",
+            "ConversationApiLog",
+            "ConversationApiLogObjSum",
+            "ConversationChannel",
+            "ConversationChannelDefinition",
+            "ConversationDefinitionSessionEngagement",
+            "ConversationEntry",
+            "ConversationEntryCopy",
+            "ConversationMessageConstant",
+            "ConversationMessageConstantValue",
+            "ConversationMessageDefinition",
+            "ConversationMessageDefinitionHandler",
+            "ConversationMessageLayout",
+            "ConversationMessageLayoutItem",
+            "ConversationMessageLayoutValue",
+            "ConversationMessageMergeField",
+            "ConversationMessageParameterDefinition",
+            "ConversationParticipant",
+            "ConversationTranscriptSendRequest",
+            "ConversationVendorInfo",
+            "ConversationalCapability",
+            "DecisionTableFileImportVersion",
+            "DeployExtensionResult",
+            "EmbdMsgChannelInvitationCondition",
+            "EmbeddedMessagingChannel",
+            "EmbeddedMessagingChannelHandler",
+            "EmbeddedServiceForm",
+            "EmbeddedServiceFormField",
+            "EmbeddedServiceMessagingChannel",
+            "EmbeddedServiceMobilePlatform",
+            "ExternalSrvRgstrEnumType",
+            "ExtlRecShrStagedRecord",
+            "FlowVersionMilestone",
+            "FulfillmentAssetStatePeriod",
+            "FulfmtAssetStatePeriodAttr",
+            "InteractionCollFltrCond",
+            "InteractionExitEventParam",
+            "LightningOutAppDeployment",
+            "LiveChatSensitiveDataRule",
+            "MessagingChannel",
+            "MessagingChannelActionParameterMapping",
+            "MessagingChannelAuthorization",
+            "MessagingChannelAutoResponse",
+            "MessagingChannelEmailTemplate",
+            "MessagingChannelParameter",
+            "MessagingChannelParameterValueMapping",
+            "MessagingChannelUsage",
+            "MessagingEndUser",
+            "MessagingSession",
+            "MessagingSessionMetrics",
+            "MobilePushNotificationCredential",
+            "MsgChannelAvailability",
+            "MsgChannelLanguageKeyword",
+            "MsgChannelUsageExternalOrg",
+            "MsgSessStatusChangedEvent",
+            "NetworkSelfServiceExtension",
+            "OrderItemSummaryChngEvent",
+            "Participant",
+            "ParticipantDevice",
+            "PersonalizedMsgGeneratorDef",
+            "PlatformEventMigration",
+            "PresenceUserConfigTransferDestination",
+            "PreviewOrgInfo",
+            "PublicKeyCertificate",
+            "PublicKeyCertificateSet",
+            "PublicKeyCertificateSetKey",
+            "ReportHierarchyObjectField",
+            "SearchRecentQuery",
+            "SecurityShieldJobRun",
+            "SelfSvcPortalTopic",
+            "SelfSvcPortalTopicItem",
+            "SelfSvcPortalTopicProfile",
+            "TenantConsumptionAlert",
+            "TenantPvsnLicConsumption",
+            "VendorCallCenterStatusMap",
+            "VoiceCall",
+            "VoiceCallMetrics",
+            "VoiceCallRecording",
+            "VoiceChnlInteractionEvent",
+            "VoiceChnlIntrctnDtlEvent",
+            "VoiceProvisioningJob",
+            "VoiceVendorInfo",
+            "WorkItemEvent"
+          ],
+          "removed": [
+            "AiTestConvPersonaDef"
+          ]
+        }
+      ]
+    },
+    "OmniProcessElement": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "ParentElementType",
+          "added": [
+            "Offline Data Action",
+            "Offline Data Mutation Action"
+          ],
+          "removed": []
+        },
+        {
+          "field": "Type",
+          "added": [
+            "Offline Data Action",
+            "Offline Data Mutation Action"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "OrderItem": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "EstimatedDeliveryTimeZone",
+          "added": [
+            "America/Argentina/Catamarca",
+            "America/Argentina/Cordoba",
+            "America/Argentina/Jujuy",
+            "America/Argentina/Mendoza",
+            "America/Ciudad_Juarez",
+            "America/Coyhaique",
+            "America/Kentucky/Louisville",
+            "America/Nuuk",
+            "Asia/Yangon",
+            "Atlantic/Faroe",
+            "Europe/Kyiv",
+            "Pacific/Kanton",
+            "Pacific/Pohnpei"
+          ],
+          "removed": [
+            "America/Catamarca",
+            "America/Cordoba",
+            "America/Godthab",
+            "America/Jujuy",
+            "America/Louisville",
+            "America/Mendoza",
+            "Asia/Rangoon",
+            "Atlantic/Faeroe",
+            "Europe/Kiev",
+            "Pacific/Enderbury",
+            "Pacific/Ponape"
+          ]
+        },
+        {
+          "field": "SegmentType",
+          "added": [
+            "Prorated"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "OrderItemGroup": {
+      "added": [
+        "UnitPriceUplift"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "SegmentType",
+          "added": [
+            "FreeTrial",
+            "Prorated"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "PaymentScheduleItem": {
+      "added": [
+        "PaymentInitiationSourceId"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "PaymentScheduleTreatment": {
+      "added": [
+        "DueDateWindow",
+        "GroupingSource"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "ProductFulfillmentScenario": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [],
+          "removed": [
+            "InsuranceRuleAction",
+            "StageManagement"
+          ]
+        }
+      ]
+    },
+    "ProductRampSegment": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "SegmentType",
+          "added": [
+            "Prorated"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "QuoteLineGroup": {
+      "added": [
+        "UnitPriceUplift"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "SegmentType",
+          "added": [
+            "FreeTrial",
+            "Prorated"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "QuoteLineItem": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "SegmentType",
+          "added": [
+            "Prorated"
+          ],
+          "removed": []
+        },
+        {
+          "field": "StartEndTimeZone",
+          "added": [
+            "America/Argentina/Catamarca",
+            "America/Argentina/Cordoba",
+            "America/Argentina/Jujuy",
+            "America/Argentina/Mendoza",
+            "America/Ciudad_Juarez",
+            "America/Coyhaique",
+            "America/Kentucky/Louisville",
+            "America/Nuuk",
+            "Asia/Yangon",
+            "Atlantic/Faroe",
+            "Europe/Kyiv",
+            "Pacific/Kanton",
+            "Pacific/Pohnpei"
+          ],
+          "removed": [
+            "America/Catamarca",
+            "America/Cordoba",
+            "America/Godthab",
+            "America/Jujuy",
+            "America/Louisville",
+            "America/Mendoza",
+            "Asia/Rangoon",
+            "Atlantic/Faeroe",
+            "Europe/Kiev",
+            "Pacific/Enderbury",
+            "Pacific/Ponape"
+          ]
+        }
+      ]
+    },
+    "SalesTransactionFulfillReq": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "SalesTransactionType",
+          "added": [
+            "StandardOrderSummary"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "SequencePolicy": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "TimeZone",
+          "added": [
+            "America/Argentina/Catamarca",
+            "America/Argentina/Cordoba",
+            "America/Argentina/Jujuy",
+            "America/Argentina/Mendoza",
+            "America/Ciudad_Juarez",
+            "America/Coyhaique",
+            "America/Kentucky/Louisville",
+            "America/Nuuk",
+            "Asia/Yangon",
+            "Atlantic/Faroe",
+            "Europe/Kyiv",
+            "Pacific/Kanton",
+            "Pacific/Pohnpei"
+          ],
+          "removed": [
+            "America/Catamarca",
+            "America/Cordoba",
+            "America/Godthab",
+            "America/Jujuy",
+            "America/Louisville",
+            "America/Mendoza",
+            "Asia/Rangoon",
+            "Atlantic/Faeroe",
+            "Europe/Kiev",
+            "Pacific/Enderbury",
+            "Pacific/Ponape"
+          ]
+        }
+      ]
+    },
+    "TaxEngineInteractionLog": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "RequestContentType",
+          "added": [
+            "text/markdown"
+          ],
+          "removed": []
+        },
+        {
+          "field": "ResponseContentType",
+          "added": [
+            "text/markdown"
+          ],
+          "removed": []
+        }
+      ]
+    },
+    "TransactionJournal": {
+      "added": [
+        "CreationSourceType"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "TransactionUsageEntitlement": {
+      "added": [
+        "OriginalEndDate"
+      ],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": []
+    },
+    "ValTfrmGrp": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "DestinationPrimitiveType",
+          "added": [],
+          "removed": [
+            "Picklist"
+          ]
+        },
+        {
+          "field": "SourcePrimitiveType",
+          "added": [],
+          "removed": [
+            "Picklist"
+          ]
+        }
+      ]
+    }
+  }
+}

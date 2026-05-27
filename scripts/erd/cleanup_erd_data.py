@@ -23,7 +23,7 @@ import re
 import sys
 from pathlib import Path
 
-ERD_DATA_PATH = Path(__file__).resolve().parent.parent / "docs" / "erds" / "erd-data.json"
+ERD_DATA_PATH = Path(__file__).resolve().parent.parent.parent / "docs" / "erds" / "erd-data.json"
 
 # ---------------------------------------------------------------------------
 # Domain mapping — mirrors build_erds.py DOMAIN_MAP

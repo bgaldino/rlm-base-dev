@@ -1,0 +1,347 @@
+#!/usr/bin/env python3
+"""
+skill_manifest.py — Cross-repo skill-manifest resolver.
+
+Loads .claude/skill-manifest.yml from the current repo, resolves the local
+filesystem paths for both Foundations and PMOS clones (via env vars or
+sibling-directory fallback), and exposes lookup helpers for skills and
+grounding artifacts that need to read across the repo boundary.
+
+Design references:
+  - Schema: .claude/skill-manifest.yml (this repo)
+  - Pattern: .agents/artifacts/skills-consolidation-plan.md §3
+  - SSOT contract: .agents/artifacts/ssot-comparison.md §6
+  - Phase: 6.3 (per pmos-integration.md roadmap)
+
+Usage:
+    from scripts.ai.skill_manifest import (
+        load_manifest, resolve_path, resolve_grounding,
+    )
+
+    m = load_manifest()
+    qb = resolve_grounding(m, repo='foundations', key='qb_scenario')
+    # qb is a Path object (or None if the Foundations clone can't be found)
+
+    if qb:
+        text = qb.read_text()
+
+CLI usage (for diagnostics):
+    python scripts/ai/skill_manifest.py --check
+    python scripts/ai/skill_manifest.py --list-skills foundations
+    python scripts/ai/skill_manifest.py --resolve foundations/grounding/qb_scenario
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Iterable
+
+try:
+    import yaml
+except ImportError:  # pragma: no cover
+    sys.stderr.write(
+        "skill_manifest.py requires PyYAML. Install via "
+        "`pipx inject cumulusci PyYAML` (CCI venv) or `pip install pyyaml`.\n"
+    )
+    sys.exit(2)
+
+
+MANIFEST_FILENAME = ".claude/skill-manifest.yml"
+
+
+# ─── Repo discovery ─────────────────────────────────────────────────────────
+
+
+@dataclass
+class RepoLocation:
+    """Resolved local clone of one repo declared in the manifest."""
+
+    name: str
+    role: str
+    path: Path | None
+    candidates_tried: list[Path]
+    env_var: str | None  # which env var was tried first (if any)
+
+
+def _discover_repo(repo_section: dict[str, Any]) -> RepoLocation:
+    """Resolve a manifest repo entry to a local Path, trying candidates in order."""
+    hints: list[str] = repo_section.get("local_path_hints", []) or []
+    candidates: list[Path] = []
+    env_var: str | None = None
+
+    for hint in hints:
+        # Expand env vars and ~. If the var is unset, expandvars leaves "$FOO"
+        # as-is; we filter those out below.
+        expanded = os.path.expandvars(os.path.expanduser(hint))
+        if "$" in expanded:
+            # Unresolved var; remember which one so the diagnostic is helpful
+            if env_var is None and hint.startswith("$"):
+                env_var = hint.split("/")[0].lstrip("$")
+            continue
+        candidates.append(Path(expanded))
+
+    # Phase 6.3 transition: only Foundations ships the manifest today.
+    # For the OTHER repo (the one whose clone we're trying to find from
+    # this one's manifest), accept a directory that looks like the right repo
+    # even without the manifest file — we'll know it's the right repo because
+    # the manifest declared its repo name, and we can sanity-check via a
+    # well-known marker (.claude/ or .cursor/).
+    repo_name = repo_section.get("name", "")
+    for cand in candidates:
+        if not cand.is_dir():
+            continue
+        # Strict match: manifest already shipped here
+        if (cand / MANIFEST_FILENAME).is_file():
+            return RepoLocation(
+                name=repo_name or "<unknown>",
+                role=repo_section.get("role", "<unknown>"),
+                path=cand,
+                candidates_tried=candidates,
+                env_var=env_var,
+            )
+        # Lenient match: directory exists with the expected agent surface.
+        # Foundations ships .cursor/skills/; PMOS ships .claude/skills/.
+        # If either is present at this candidate, treat it as the clone.
+        looks_like_pmos = (cand / ".claude" / "skills").is_dir()
+        looks_like_foundations = (cand / ".cursor" / "skills").is_dir()
+        if (repo_name == "pmos-revenue-cloud" and looks_like_pmos) or (
+            repo_name == "rlm-base-dev" and looks_like_foundations
+        ):
+            return RepoLocation(
+                name=repo_name or "<unknown>",
+                role=repo_section.get("role", "<unknown>"),
+                path=cand,
+                candidates_tried=candidates,
+                env_var=env_var,
+            )
+
+    return RepoLocation(
+        name=repo_section.get("name", "<unknown>"),
+        role=repo_section.get("role", "<unknown>"),
+        path=None,
+        candidates_tried=candidates,
+        env_var=env_var,
+    )
+
+
+# ─── Manifest loading ───────────────────────────────────────────────────────
+
+
+def find_manifest(start: Path | None = None) -> Path:
+    """Walk up from `start` (default: cwd) looking for .claude/skill-manifest.yml."""
+    cwd = (start or Path.cwd()).resolve()
+    for d in [cwd, *cwd.parents]:
+        candidate = d / MANIFEST_FILENAME
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(
+        f"No {MANIFEST_FILENAME} found walking up from {cwd}. "
+        "Run this from inside a Foundations or PMOS clone, or set "
+        "FOUNDATIONS_REPO_ROOT / PMOS_REPO_ROOT explicitly."
+    )
+
+
+def load_manifest(path: Path | None = None) -> dict[str, Any]:
+    """Load and lightly normalize the manifest. Discovers repo locations."""
+    manifest_path = path or find_manifest()
+    with manifest_path.open("r") as f:
+        data: dict[str, Any] = yaml.safe_load(f) or {}
+
+    # Stash where we found it so callers can debug
+    data["_manifest_path"] = str(manifest_path)
+    data["_self_repo_root"] = str(manifest_path.parent.parent)
+
+    # Discover both repos' clones
+    for key in ("foundations", "pmos"):
+        if key in data:
+            data[key]["_resolved"] = _discover_repo(data[key])
+
+    return data
+
+
+# ─── Lookup helpers ─────────────────────────────────────────────────────────
+
+
+def resolve_repo_root(manifest: dict[str, Any], repo: str) -> Path | None:
+    """Return the local Path for the named repo's clone, or None if not found."""
+    section = manifest.get(repo)
+    if not section:
+        return None
+    resolved: RepoLocation | None = section.get("_resolved")
+    if resolved is None or resolved.path is None:
+        return None
+    return resolved.path
+
+
+def resolve_path(
+    manifest: dict[str, Any], repo: str, relative_path: str
+) -> Path | None:
+    """Resolve a manifest-relative path to an absolute Path, if the clone exists."""
+    root = resolve_repo_root(manifest, repo)
+    if root is None:
+        return None
+    return root / relative_path
+
+
+def resolve_grounding(
+    manifest: dict[str, Any], repo: str, key: str
+) -> Path | None:
+    """Look up a grounding artifact by key (e.g. 'qb_scenario') and resolve it."""
+    section = manifest.get(repo, {})
+    grounding = section.get("grounding") or section.get("context_files") or {}
+    entry = grounding.get(key)
+    if entry is None:
+        return None
+    if isinstance(entry, str):
+        rel = entry
+    elif isinstance(entry, dict) and "path" in entry:
+        rel = entry["path"]
+    else:
+        return None
+    return resolve_path(manifest, repo, rel)
+
+
+def list_skills(manifest: dict[str, Any], repo: str) -> list[dict[str, Any]]:
+    """Return the list of skill entries for a given repo."""
+    return list(manifest.get(repo, {}).get("skills", []) or [])
+
+
+def find_skill(
+    manifest: dict[str, Any], repo: str, skill_id: str
+) -> dict[str, Any] | None:
+    """Find a skill entry by id within the named repo."""
+    for entry in list_skills(manifest, repo):
+        if entry.get("id") == skill_id:
+            return entry
+    return None
+
+
+def resolve_skill(
+    manifest: dict[str, Any], repo: str, skill_id: str
+) -> Path | None:
+    """Resolve a skill SKILL.md to an absolute Path."""
+    entry = find_skill(manifest, repo, skill_id)
+    if entry is None:
+        return None
+    rel = entry.get("path")
+    if not rel:
+        return None
+    return resolve_path(manifest, repo, rel)
+
+
+# ─── Diagnostics CLI ────────────────────────────────────────────────────────
+
+
+def _cli_check(manifest: dict[str, Any]) -> int:
+    """Verify both repos can be located; print a status report."""
+    print(f"Manifest: {manifest['_manifest_path']}")
+    print(f"Manifest version: {manifest.get('manifest_version', '?')}")
+    print(f"Last verified: {manifest.get('last_verified', '?')}")
+    print()
+
+    overall_ok = True
+    for key in ("foundations", "pmos"):
+        section = manifest.get(key, {})
+        resolved: RepoLocation = section.get("_resolved")
+        if resolved is None:
+            print(f"  [ERROR] {key}: section missing in manifest")
+            overall_ok = False
+            continue
+        if resolved.path is None:
+            print(f"  [WARN]  {key} ({resolved.name}): clone not found")
+            print(f"          tried: {[str(p) for p in resolved.candidates_tried]}")
+            if resolved.env_var:
+                print(f"          consider setting env var: {resolved.env_var}")
+            overall_ok = False
+        else:
+            print(f"  [OK]    {key}: {resolved.path}")
+    return 0 if overall_ok else 1
+
+
+def _cli_list_skills(manifest: dict[str, Any], repo: str) -> int:
+    skills = list_skills(manifest, repo)
+    if not skills:
+        print(f"No skills declared for repo '{repo}'", file=sys.stderr)
+        return 1
+    for entry in skills:
+        sid = entry.get("id", "<unnamed>")
+        purpose = entry.get("purpose", "")
+        path_rel = entry.get("path", "")
+        resolved = resolve_skill(manifest, repo, sid)
+        status = "OK" if resolved and resolved.is_file() else "MISSING"
+        print(f"  [{status:7s}] {sid:30s} {purpose}")
+        print(f"             {path_rel}")
+    return 0
+
+
+def _cli_resolve(manifest: dict[str, Any], spec: str) -> int:
+    """Resolve a path spec: {repo}/{kind}/{key}.
+
+    e.g. foundations/grounding/qb_scenario
+         foundations/skills/release-enablement
+         pmos/context_files/capabilities
+    """
+    parts = spec.split("/", 2)
+    if len(parts) < 3:
+        print(
+            "spec must be {repo}/{kind}/{key} (e.g. foundations/grounding/qb_scenario)",
+            file=sys.stderr,
+        )
+        return 2
+    repo, kind, key = parts
+    if kind in ("grounding", "context_files"):
+        path = resolve_grounding(manifest, repo, key)
+    elif kind == "skills":
+        path = resolve_skill(manifest, repo, key)
+    elif kind == "path":
+        path = resolve_path(manifest, repo, key)
+    else:
+        print(f"unknown kind '{kind}'; use grounding|skills|path", file=sys.stderr)
+        return 2
+    if path is None:
+        print(f"could not resolve {spec}", file=sys.stderr)
+        return 1
+    print(path)
+    return 0 if path.exists() else 1
+
+
+def main(argv: Iterable[str] | None = None) -> int:
+    p = argparse.ArgumentParser(
+        description="Cross-repo skill-manifest resolver (Foundations side)."
+    )
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument("--check", action="store_true", help="verify clone discovery")
+    g.add_argument(
+        "--list-skills",
+        choices=["foundations", "pmos"],
+        help="list declared skills for a repo",
+    )
+    g.add_argument(
+        "--resolve",
+        metavar="SPEC",
+        help="resolve a path spec, e.g. foundations/grounding/qb_scenario",
+    )
+    p.add_argument(
+        "--manifest",
+        type=Path,
+        help="explicit manifest path (default: walk up from cwd)",
+    )
+    args = p.parse_args(list(argv) if argv is not None else None)
+
+    manifest = load_manifest(args.manifest)
+
+    if args.check:
+        return _cli_check(manifest)
+    if args.list_skills:
+        return _cli_list_skills(manifest, args.list_skills)
+    if args.resolve:
+        return _cli_resolve(manifest, args.resolve)
+    return 1
+
+
+if __name__ == "__main__":  # pragma: no cover
+    sys.exit(main())
