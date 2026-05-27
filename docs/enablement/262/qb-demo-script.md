@@ -5,7 +5,8 @@
 > **Salesforce Release:** 262 (Summer '26) · API v67.0
 > **Status:** DRAFT — preview release, not yet GA. Requires SME pass for Setup-UI verification, Known-Bugs population, image capture, and Slack canvas publish.
 > **Grounded on:**
-> - `qb-scenario-reference.md` (canonical demo data — 6 personas, Infinitech / Global Media accounts, QB-COMPLETE / QB-QRack-750 SKUs, QB Q-Rack 750 / QB Complete Solution / QB Services Project bundles)
+> - `docs/enablement/master/qb-scenario-reference.md` (canonical demo data — Infinitech / Global Media accounts, QB-COMPLETE / QB-QRack-750 SKUs, QB Q-Rack 750 / QB Complete Solution / QB Services Project bundles)
+> - `.agents/artifacts/qb-canvas-260-source.md` (prior-release Slack canvas — source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on the local-only canvas source)
 > - `docs/salesforce/262/feature-index.md` (262 feature inventory)
 > - `docs/salesforce/262/help/articles/` (838-article Help portal mirror)
 > - `cumulusci.yml` `project.custom` (39 active feature flags)
@@ -255,7 +256,7 @@ Select 'Quick Quote'.
 
 ## Demo Personas
 
-> Sourced verbatim from `qb-scenario-reference.md` — these 6 personas are stable across releases unless the scenario reference is updated.
+> Sourced verbatim from the prior-release canvas at `.agents/artifacts/qb-canvas-260-source.md` (lines 199–225). Personas are stable across releases. Migration of the persona inventory into `docs/enablement/master/qb-scenario-reference.md` is tracked as a follow-up so future regenerations don't depend on a local-only artifact.
 
 ::: {.layout}
 ::: {.column}

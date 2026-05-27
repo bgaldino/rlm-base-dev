@@ -67,8 +67,17 @@ class RepoLocation:
     env_var: str | None  # which env var was tried first (if any)
 
 
-def _discover_repo(repo_section: dict[str, Any]) -> RepoLocation:
-    """Resolve a manifest repo entry to a local Path, trying candidates in order."""
+def _discover_repo(
+    repo_section: dict[str, Any], manifest_root: Path | None = None
+) -> RepoLocation:
+    """Resolve a manifest repo entry to a local Path, trying candidates in order.
+
+    Relative hints (e.g. ``../pmos-revenue-cloud``) anchor against
+    ``manifest_root`` (the directory containing ``.claude/skill-manifest.yml``),
+    NOT the process cwd. This keeps ``--check`` and the documented sibling-
+    directory fallback stable regardless of which subdirectory the caller is
+    in (``docs/``, ``scripts/``, etc.).
+    """
     hints: list[str] = repo_section.get("local_path_hints", []) or []
     candidates: list[Path] = []
     env_var: str | None = None
@@ -82,7 +91,10 @@ def _discover_repo(repo_section: dict[str, Any]) -> RepoLocation:
             if env_var is None and hint.startswith("$"):
                 env_var = hint.split("/")[0].lstrip("$")
             continue
-        candidates.append(Path(expanded))
+        p = Path(expanded)
+        if not p.is_absolute() and manifest_root is not None:
+            p = (manifest_root / p).resolve()
+        candidates.append(p)
 
     # Phase 6.3 transition: only Foundations ships the manifest today.
     # For the OTHER repo (the one whose clone we're trying to find from
@@ -153,12 +165,14 @@ def load_manifest(path: Path | None = None) -> dict[str, Any]:
 
     # Stash where we found it so callers can debug
     data["_manifest_path"] = str(manifest_path)
-    data["_self_repo_root"] = str(manifest_path.parent.parent)
+    manifest_root = manifest_path.parent.parent  # .claude/skill-manifest.yml -> repo root
+    data["_self_repo_root"] = str(manifest_root)
 
-    # Discover both repos' clones
+    # Discover both repos' clones, anchoring relative hints to the manifest's
+    # repo root (NOT process cwd) so discovery is stable from any subdirectory.
     for key in ("foundations", "pmos"):
         if key in data:
-            data[key]["_resolved"] = _discover_repo(data[key])
+            data[key]["_resolved"] = _discover_repo(data[key], manifest_root)
 
     return data
 
@@ -189,20 +203,46 @@ def resolve_path(
 
 def resolve_grounding(
     manifest: dict[str, Any], repo: str, key: str
-) -> Path | None:
-    """Look up a grounding artifact by key (e.g. 'qb_scenario') and resolve it."""
+) -> Path | dict[str, Path] | None:
+    """Look up a grounding artifact by key (e.g. 'qb_scenario') and resolve it.
+
+    Returns a single ``Path`` for entries with a single ``path:`` value (or a
+    bare string). Returns a ``dict[str, Path]`` for STRUCTURED entries that
+    expose multiple paths under named sub-keys (e.g.
+    ``cci_reference: {tasks: ..., flows: ..., flags: ...}``) — the dict maps
+    each sub-key whose value looks like a filesystem path to its resolved
+    absolute ``Path``. Returns ``None`` if the key is missing or the entry
+    contains no resolvable paths.
+
+    Callers expecting a single Path should check ``isinstance(result, Path)``
+    before treating it as one.
+    """
     section = manifest.get(repo, {})
     grounding = section.get("grounding") or section.get("context_files") or {}
     entry = grounding.get(key)
     if entry is None:
         return None
     if isinstance(entry, str):
-        rel = entry
-    elif isinstance(entry, dict) and "path" in entry:
-        rel = entry["path"]
-    else:
-        return None
-    return resolve_path(manifest, repo, rel)
+        return resolve_path(manifest, repo, entry)
+    if isinstance(entry, dict):
+        if "path" in entry and isinstance(entry["path"], str):
+            return resolve_path(manifest, repo, entry["path"])
+        # Structured entry: collect every value that looks like a relative
+        # filesystem path (string containing '/' or ending in a known
+        # extension). Skip metadata fields (counts, status, etc.).
+        resolved: dict[str, Path] = {}
+        for sub_key, sub_val in entry.items():
+            if not isinstance(sub_val, str):
+                continue
+            if "/" not in sub_val and not sub_val.endswith((
+                ".md", ".json", ".yml", ".yaml", ".py", ".txt"
+            )):
+                continue
+            p = resolve_path(manifest, repo, sub_val)
+            if p is not None:
+                resolved[sub_key] = p
+        return resolved or None
+    return None
 
 
 def list_skills(manifest: dict[str, Any], repo: str) -> list[dict[str, Any]]:
@@ -294,19 +334,28 @@ def _cli_resolve(manifest: dict[str, Any], spec: str) -> int:
         return 2
     repo, kind, key = parts
     if kind in ("grounding", "context_files"):
-        path = resolve_grounding(manifest, repo, key)
+        result = resolve_grounding(manifest, repo, key)
     elif kind == "skills":
-        path = resolve_skill(manifest, repo, key)
+        result = resolve_skill(manifest, repo, key)
     elif kind == "path":
-        path = resolve_path(manifest, repo, key)
+        result = resolve_path(manifest, repo, key)
     else:
         print(f"unknown kind '{kind}'; use grounding|skills|path", file=sys.stderr)
         return 2
-    if path is None:
+    if result is None:
         print(f"could not resolve {spec}", file=sys.stderr)
         return 1
-    print(path)
-    return 0 if path.exists() else 1
+    if isinstance(result, dict):
+        # Structured grounding entry — print one line per sub-key, exit
+        # non-zero if any of them don't exist.
+        all_exist = True
+        for sub_key, sub_path in sorted(result.items()):
+            exists = sub_path.exists()
+            all_exist = all_exist and exists
+            print(f"{sub_key}: {sub_path}{'' if exists else '  (MISSING)'}")
+        return 0 if all_exist else 1
+    print(result)
+    return 0 if result.exists() else 1
 
 
 def main(argv: Iterable[str] | None = None) -> int:

@@ -16,15 +16,893 @@
   "summary": {
     "objects_added": 0,
     "objects_removed": 0,
-    "objects_changed": 41,
-    "objects_unchanged": 213,
+    "objects_changed": 42,
+    "objects_unchanged": 212,
     "total_fields_added": 45,
     "total_fields_removed": 0,
-    "total_type_changes": 0
+    "total_type_changes": 0,
+    "total_relationship_changes": 2
   },
   "objects_added": [],
   "objects_removed": [],
   "object_diffs": {
+    "ApprovalSubmission": {
+      "added": [],
+      "removed": [],
+      "type_changed": [],
+      "picklist_changed": [],
+      "relationship_changed": [
+        {
+          "field": "RelatedRecordId",
+          "from_refersTo": [
+            "Account",
+            "AccountBillingAccount",
+            "AccountingPeriod",
+            "AdAvailabilityViewConfig",
+            "Address",
+            "AgentWork",
+            "AiJobRun",
+            "AiJobRunItem",
+            "AnalyticsUserAttrFuncTkn",
+            "ApprovalSubmission",
+            "ApprovalSubmissionDetail",
+            "ApprovalWorkItem",
+            "ApprovalWorkItemCondition",
+            "ApprovalWorkItemCriteria",
+            "Assessment",
+            "AssessmentDefinition",
+            "AssessmentEnvelope",
+            "AssessmentEnvelopeItem",
+            "AssessmentQuestion",
+            "AssessmentQuestionAssignment",
+            "AssessmentQuestionResponse",
+            "AssessmentQuestionSet",
+            "AssessmentQuestionVersion",
+            "AssessmentSavedSession",
+            "AssessmentSignature",
+            "Asset",
+            "AssetAction",
+            "AssetActionSource",
+            "AssetActionSrcPriceAdjustment",
+            "AssetContractRelationship",
+            "AssetRateAdjustment",
+            "AssetRateCardEntry",
+            "AssetRelationship",
+            "AssetStatePeriod",
+            "AssociatedLocation",
+            "AsyncOperationTracker",
+            "AttrPicklistExcludedValue",
+            "AttributeAdjustmentCondition",
+            "AttributeBasedAdjRule",
+            "AttributeBasedAdjustment",
+            "AttributeCategory",
+            "AttributeCategoryAttribute",
+            "AttributeDefinition",
+            "AttributePicklist",
+            "AttributePicklistValue",
+            "AuditTrailFileExport",
+            "AuthorizationForm",
+            "AuthorizationFormConsent",
+            "AuthorizationFormDataUse",
+            "AuthorizationFormText",
+            "BatchJob",
+            "BatchJobPart",
+            "BatchJobPartFailedRecord",
+            "BillingAccount",
+            "BillingArrangement",
+            "BillingArrangementLine",
+            "BillingMilestonePlan",
+            "BillingMilestonePlanItem",
+            "BillingPolicy",
+            "BillingSchedule",
+            "BillingScheduleGroup",
+            "BillingTreatment",
+            "BillingTreatmentItem",
+            "BindingObjUsageRsrcPlcy",
+            "BindingObjectCustomExt",
+            "BindingObjectRateAdjustment",
+            "BindingObjectRateCardEntry",
+            "BsgRelationship",
+            "BundleBasedAdjustment",
+            "BusinessBrand",
+            "BusinessProfile",
+            "BuyerGroup",
+            "BuyerGroupMember",
+            "CalculatedInsightRangeBound",
+            "CalculationMatrixActionLog",
+            "Campaign",
+            "CartDeliveryGroupMethodAdj",
+            "CartItem",
+            "CartItemPriceAdjustment",
+            "CartRelatedItem",
+            "CartTax",
+            "CartValidationOutput",
+            "Case",
+            "CaseComment",
+            "CaseProceeding",
+            "CaseProceedingParticipant",
+            "CaseProceedingResult",
+            "ChannelProgram",
+            "ChannelProgramLevel",
+            "ChannelProgramMember",
+            "CollaborationGroup",
+            "CollectionPlan",
+            "CollectionPlanItem",
+            "CollectionPlanReason",
+            "CommSubscription",
+            "CommSubscriptionChannelType",
+            "CommSubscriptionConsent",
+            "CommSubscriptionTiming",
+            "Contact",
+            "ContactPointAddress",
+            "ContactPointConsent",
+            "ContactPointEmail",
+            "ContactPointPhone",
+            "ContactPointTypeConsent",
+            "ContactRequest",
+            "ContentDocument",
+            "ContentLink",
+            "ContentSource",
+            "ContentVersion",
+            "ContextDefinitionSync",
+            "Contract",
+            "ContractDocVerContentDoc",
+            "ContractDocVersionSection",
+            "ContractDocumentReview",
+            "ContractDocumentVersion",
+            "ContractItemPrice",
+            "ContractItemPriceAdjTier",
+            "ContractLineItem",
+            "CostBook",
+            "CostBookEntry",
+            "Coupon",
+            "CouponCodeRedemption",
+            "CreditMemo",
+            "CreditMemoInvApplication",
+            "CreditMemoLine",
+            "CreditMemoLineTax",
+            "Customer",
+            "DataUseLegalBasis",
+            "DataUsePurpose",
+            "DebitMemo",
+            "DebitMemoLine",
+            "DebitMemoLineTax",
+            "DecisionTblFileImportData",
+            "DelegatedAccount",
+            "DeliveryEstimationSetup",
+            "DevopsActivityLog",
+            "DevopsEnvironment",
+            "DevopsRequestInfo",
+            "DigitalSignature",
+            "Dispute",
+            "DisputeItem",
+            "DocGenerationBatchProcess",
+            "DocGenerationQueryResult",
+            "DocTemplateSectionCondition",
+            "DocumentAuthoredContent",
+            "DocumentClause",
+            "DocumentClauseSet",
+            "DocumentEnvelope",
+            "DocumentGenerationProcess",
+            "DocumentRecipient",
+            "DocumentTemplate",
+            "DocumentTemplateContentDoc",
+            "DocumentTemplateSection",
+            "DocumentTemplateToken",
+            "DuplicateRecordItem",
+            "DuplicateRecordSet",
+            "EmailMessage",
+            "EmpUserProvisionProcessErr",
+            "EngagementAttendee",
+            "EngagementChannelType",
+            "EngagementInteraction",
+            "EngagementTopic",
+            "Entitlement",
+            "EntitlementContact",
+            "EntityMilestone",
+            "ExpressionFilter",
+            "ExpressionFilterCriteria",
+            "ExpressionSetConstraintObj",
+            "ExternalEventMapping",
+            "FlowOrchestrationInstance",
+            "FlowOrchestrationVersion",
+            "FulfillmentFalloutRule",
+            "FulfillmentOrder",
+            "FulfillmentOrderItemAdjustment",
+            "FulfillmentOrderItemTax",
+            "FulfillmentOrderLineItem",
+            "FulfillmentStep",
+            "FulfillmentStepDefinition",
+            "FulfillmentStepDefinitionGroup",
+            "FulfillmentStepDependencyDef",
+            "FulfillmentStepJeopardyRule",
+            "FulfillmentTaskAssignmentRule",
+            "FulfillmentWorkspace",
+            "FulfillmentWorkspaceItem",
+            "GeneralLdgrAcctPrdSummary",
+            "GeneralLedgerAccount",
+            "GeneralLedgerAcctAsgntRule",
+            "GeneralLedgerJrnlEntryRule",
+            "GeneratedDocument",
+            "GeneratedDocumentSection",
+            "GeoCountry",
+            "GeoState",
+            "GoalAssignment",
+            "GoalDefinition",
+            "Idea",
+            "Image",
+            "IndexRate",
+            "Individual",
+            "IntegrationProviderDcsnRqmt",
+            "IntegrationProviderExecution",
+            "InvBatchDraftToPostedRun",
+            "InventoryItemReservation",
+            "InventoryReservation",
+            "Invoice",
+            "InvoiceBatchRun",
+            "InvoiceBatchRunCriteria",
+            "InvoiceBatchRunRecovery",
+            "InvoiceDocument",
+            "InvoiceLine",
+            "InvoiceLineRelationship",
+            "InvoiceLineTax",
+            "Knowledge__ka",
+            "Knowledge__kav",
+            "Lead",
+            "LegalEntyAccountingPeriod",
+            "LinkedArticle",
+            "Location",
+            "LocationGroup",
+            "LocationGroupAssignment",
+            "LocationShippingCarrierMethod",
+            "LocationTrustMeasure",
+            "Macro",
+            "MacroInstruction",
+            "MacroUsage",
+            "ManagedContentVariant",
+            "MerchAccPaymentMethodSet",
+            "MerchAccPaymentMethodType",
+            "MerchantAccount",
+            "ObjectStateActionDefinition",
+            "ObjectStateDefinition",
+            "ObjectStateTransition",
+            "ObjectStateTransitionAction",
+            "ObjectStateValue",
+            "Obligation",
+            "OmniComponentErrorLog",
+            "OmniGlobalAutoNumber",
+            "OmniProcessAsmtQuestionVer",
+            "Opportunity",
+            "OpportunityRelatedDeleteLog",
+            "Order",
+            "OrderAction",
+            "OrderAdjustmentGroup",
+            "OrderChgReasonCategMap",
+            "OrderDeliveryGroup",
+            "OrderDeliveryMethod",
+            "OrderItem",
+            "OrderItemAdjustmentLineItem",
+            "OrderItemDetail",
+            "OrderItemGroup",
+            "OrderItemRateAdjustment",
+            "OrderItemRateCardEntry",
+            "OrderItemRecipient",
+            "OrderItemRelationship",
+            "OrderItemTaxLineItem",
+            "OrderItemUsageRsrcGrant",
+            "OrderItemUsageRsrcPlcy",
+            "OrderSummary",
+            "OrderSummaryAdditionalInfo",
+            "OrderSummaryRoutingSchedule",
+            "OrgMetricScanSummary",
+            "Organization",
+            "PartnerFundAllocation",
+            "PartnerFundClaim",
+            "PartnerFundRequest",
+            "PartnerMarketingBudget",
+            "PartyConsent",
+            "PaymentCreditLinePayment",
+            "PaymentCreditTransaction",
+            "PaymentLink",
+            "PaymentSchedule",
+            "PaymentScheduleItem",
+            "PendingServiceRouting",
+            "PickTicket",
+            "PickTicketAssignment",
+            "PickTicketProduct",
+            "PriceBookEntryDerivedPrice",
+            "PriceBookRateCard",
+            "PriceRevisionPolicy",
+            "PricingAdjBatchJob",
+            "PricingAdjBatchJobLog",
+            "PricingApiExecution",
+            "PricingProcessExecution",
+            "ProcessException",
+            "ProdtAttrMappedScope",
+            "ProdtAttrScope",
+            "Product2",
+            "ProductAttributeDefinition",
+            "ProductCatalog",
+            "ProductCategory",
+            "ProductCategoryDisqual",
+            "ProductCategoryMedia",
+            "ProductCategoryProduct",
+            "ProductCategoryQualification",
+            "ProductClassification",
+            "ProductClassificationAttr",
+            "ProductComponentGroup",
+            "ProductComponentGrpOverride",
+            "ProductConfigFlowAssignment",
+            "ProductConfigurationFlow",
+            "ProductConfigurationRule",
+            "ProductDecompEnrichmentRule",
+            "ProductDisqualification",
+            "ProductFulfillmentDecompRule",
+            "ProductFulfillmentScenario",
+            "ProductQualification",
+            "ProductRampSegment",
+            "ProductRelComponentOverride",
+            "ProductUsageGrant",
+            "ProductUsageResource",
+            "ProductUsageResourcePolicy",
+            "Promotion",
+            "PromotionLineItemRule",
+            "PromotionMarketSegment",
+            "PromotionQualifier",
+            "PromotionSegment",
+            "PromotionSegmentBuyerGroup",
+            "PromotionSegmentSalesStore",
+            "PromotionTarget",
+            "PromotionTier",
+            "PromptAction",
+            "PromptError",
+            "QuickText",
+            "QuickTextUsage",
+            "QuotLineItmUsageRsrcPlcy",
+            "QuotLineItmUseRsrcGrant",
+            "Quote",
+            "QuoteLineDetail",
+            "QuoteLineGroup",
+            "QuoteLineItem",
+            "QuoteLineItemRecipient",
+            "QuoteLineRateAdjustment",
+            "QuoteLineRateCardEntry",
+            "QuoteRecipientGroup",
+            "QuoteRecipientGroupMember",
+            "RateAdjustmentByAttribute",
+            "RateAdjustmentByTier",
+            "RateCard",
+            "RateCardEntry",
+            "RatingFrequencyPolicy",
+            "RecordActnSelItemExtrc",
+            "RecordAlert",
+            "RecordAlertActionableTarget",
+            "ReturnOrder",
+            "ReturnOrderItemAdjustment",
+            "ReturnOrderItemTax",
+            "ReturnOrderLineItem",
+            "SalesChannel",
+            "SalesContractLine",
+            "SalesTransactionType",
+            "SavedPaymentMethod",
+            "SecurityHealthCheckAlertRecipient",
+            "SecurityHealthCheckResult",
+            "Seller",
+            "SeqPolicySelectionCondition",
+            "SequenceGapReconciliation",
+            "SequencePolicy",
+            "ServiceContract",
+            "ServiceResource",
+            "SetupDataSynchronization",
+            "SfdcPartnerSbscrOffer",
+            "SfdcPartnerSbscrOfferItem",
+            "Shipment",
+            "ShipmentItem",
+            "ShippingCarrier",
+            "ShippingCarrierMethod",
+            "ShippingConfigurationSet",
+            "ShippingRateArea",
+            "ShippingRateGroup",
+            "Site",
+            "SlackChannelRelatedRecord",
+            "SocialPersona",
+            "SocialPost",
+            "Solution",
+            "StandardShippingRate",
+            "StreamingChannel",
+            "SvcProcProdCatgProdExtrc",
+            "TableauHostMapping",
+            "TaxRate",
+            "TaxTreatmentItem",
+            "Topic",
+            "TransactionJournal",
+            "TransactionUsageEntitlement",
+            "UnitOfMeasure",
+            "UnitOfMeasureClass",
+            "UnstructuredStorageSpace",
+            "UsageBillingPeriodItem",
+            "UsageCmtAssetRelatedObj",
+            "UsageCommitmentPolicy",
+            "UsageEntitlementAccount",
+            "UsageEntitlementBucket",
+            "UsageEntitlementEntry",
+            "UsageGrantRenewalPolicy",
+            "UsageGrantRolloverPolicy",
+            "UsageOveragePolicy",
+            "UsageRatableSumCmtAssetRt",
+            "UsageRatableSummary",
+            "UsageResource",
+            "UsageResourceBillingPolicy",
+            "UsageResourcePolicy",
+            "UsageSummary",
+            "User",
+            "UserEsignVendorIdentifier",
+            "UserLicense",
+            "UserLocalWebServerIdentity",
+            "UserLocationAssignment",
+            "UserPrioritizedRecord",
+            "UserProvisioningRequest",
+            "UserServicePresence",
+            "ValTfrm",
+            "ValTfrmGrp",
+            "VideoCall",
+            "VideoCallParticipant",
+            "VideoCallRecording",
+            "WebCart",
+            "WebCartAdjustmentBasis",
+            "WebCartAdjustmentGroup",
+            "WebCartCredit",
+            "WebStore",
+            "WebStoreBuyerGroup",
+            "WebStoreCatalog",
+            "WebStoreInventorySource",
+            "WebStoreNetwork",
+            "WorkOrder",
+            "WorkOrderLineItem"
+          ],
+          "to_refersTo": [
+            "Account",
+            "AccountBillingAccount",
+            "AccountingPeriod",
+            "AdAvailabilityViewConfig",
+            "Address",
+            "AgentWork",
+            "AiJobRun",
+            "AiJobRunItem",
+            "AnalyticsUserAttrFuncTkn",
+            "ApprovalSubmission",
+            "ApprovalSubmissionDetail",
+            "ApprovalWorkItem",
+            "ApprovalWorkItemCondition",
+            "ApprovalWorkItemCriteria",
+            "Assessment",
+            "AssessmentDefinition",
+            "AssessmentEnvelope",
+            "AssessmentEnvelopeItem",
+            "AssessmentQuestion",
+            "AssessmentQuestionAssignment",
+            "AssessmentQuestionResponse",
+            "AssessmentQuestionSet",
+            "AssessmentQuestionVersion",
+            "AssessmentSavedSession",
+            "AssessmentSignature",
+            "Asset",
+            "AssetAction",
+            "AssetActionSource",
+            "AssetActionSrcPriceAdjustment",
+            "AssetContractRelationship",
+            "AssetRateAdjustment",
+            "AssetRateCardEntry",
+            "AssetRelationship",
+            "AssetStatePeriod",
+            "AssociatedLocation",
+            "AsyncOperationTracker",
+            "AttrPicklistExcludedValue",
+            "AttributeAdjustmentCondition",
+            "AttributeBasedAdjRule",
+            "AttributeBasedAdjustment",
+            "AttributeCategory",
+            "AttributeCategoryAttribute",
+            "AttributeDefinition",
+            "AttributePicklist",
+            "AttributePicklistValue",
+            "AuditTrailFileExport",
+            "AuthorizationForm",
+            "AuthorizationFormConsent",
+            "AuthorizationFormDataUse",
+            "AuthorizationFormText",
+            "BatchJob",
+            "BatchJobPart",
+            "BatchJobPartFailedRecord",
+            "BillingAccount",
+            "BillingArrangement",
+            "BillingArrangementLine",
+            "BillingMilestonePlan",
+            "BillingMilestonePlanItem",
+            "BillingPolicy",
+            "BillingSchedule",
+            "BillingScheduleGroup",
+            "BillingTreatment",
+            "BillingTreatmentItem",
+            "BindingObjUsageRsrcPlcy",
+            "BindingObjectCustomExt",
+            "BindingObjectRateAdjustment",
+            "BindingObjectRateCardEntry",
+            "BsgRelationship",
+            "BundleBasedAdjustment",
+            "BusinessBrand",
+            "BusinessProfile",
+            "BuyerAccount",
+            "BuyerGroup",
+            "BuyerGroupMember",
+            "CalculatedInsightRangeBound",
+            "CalculationMatrixActionLog",
+            "Campaign",
+            "CartAction",
+            "CartDeliveryGroupMethodAdj",
+            "CartItem",
+            "CartItemDetail",
+            "CartItemPriceAdjustment",
+            "CartRelatedItem",
+            "CartTax",
+            "CartValidationOutput",
+            "Case",
+            "CaseComment",
+            "CaseProceeding",
+            "CaseProceedingParticipant",
+            "CaseProceedingResult",
+            "CaseServiceProcessExtension",
+            "ChannelProgram",
+            "ChannelProgramLevel",
+            "ChannelProgramMember",
+            "CollaborationGroup",
+            "CollectionPlan",
+            "CollectionPlanItem",
+            "CollectionPlanReason",
+            "CommSubscription",
+            "CommSubscriptionChannelType",
+            "CommSubscriptionConsent",
+            "CommSubscriptionTiming",
+            "CommerceConfigRelatedRecord",
+            "Contact",
+            "ContactPointAddress",
+            "ContactPointConsent",
+            "ContactPointEmail",
+            "ContactPointPhone",
+            "ContactPointTypeConsent",
+            "ContactRequest",
+            "ContentDocument",
+            "ContentLink",
+            "ContentSource",
+            "ContentVersion",
+            "ContextDefinitionSync",
+            "Contract",
+            "ContractDocVerContentDoc",
+            "ContractDocVersionSection",
+            "ContractDocumentReview",
+            "ContractDocumentVersion",
+            "ContractItemPrice",
+            "ContractItemPriceAdjTier",
+            "ContractLineItem",
+            "ConvEntryRelatedRecordCopy",
+            "ConversationApiLog",
+            "ConversationApiLogObjSum",
+            "ConversationEntryCopy",
+            "CostBook",
+            "CostBookEntry",
+            "Coupon",
+            "CouponCodeRedemption",
+            "CreditMemo",
+            "CreditMemoInvApplication",
+            "CreditMemoLine",
+            "CreditMemoLineTax",
+            "Customer",
+            "DataUseLegalBasis",
+            "DataUsePurpose",
+            "DebitMemo",
+            "DebitMemoLine",
+            "DebitMemoLineTax",
+            "DelegatedAccount",
+            "DeliveryEstimationSetup",
+            "DevopsActivityLog",
+            "DevopsEnvironment",
+            "DevopsRequestInfo",
+            "DigitalSignature",
+            "Dispute",
+            "DisputeItem",
+            "DocGenerationBatchProcess",
+            "DocGenerationQueryResult",
+            "DocTemplateSectionCondition",
+            "DocumentAuthoredContent",
+            "DocumentClause",
+            "DocumentClauseSet",
+            "DocumentEnvelope",
+            "DocumentGenerationProcess",
+            "DocumentRecipient",
+            "DocumentTemplate",
+            "DocumentTemplateContentDoc",
+            "DocumentTemplateSection",
+            "DocumentTemplateToken",
+            "DuplicateRecordItem",
+            "DuplicateRecordSet",
+            "EmailMessage",
+            "EmpUserProvisionProcessErr",
+            "EngagementAttendee",
+            "EngagementChannelType",
+            "EngagementInteraction",
+            "EngagementTopic",
+            "Entitlement",
+            "EntitlementContact",
+            "EntityMilestone",
+            "ExpressionFilter",
+            "ExpressionFilterCriteria",
+            "ExpressionSetConstraintObj",
+            "ExternalEventMapping",
+            "ExtlRecShrStagedRecord",
+            "FlowOrchestrationInstance",
+            "FlowOrchestrationVersion",
+            "FulfillmentFalloutRule",
+            "FulfillmentOrder",
+            "FulfillmentOrderItemAdjustment",
+            "FulfillmentOrderItemTax",
+            "FulfillmentOrderLineItem",
+            "FulfillmentStep",
+            "FulfillmentStepDefinition",
+            "FulfillmentStepDefinitionGroup",
+            "FulfillmentStepDependencyDef",
+            "FulfillmentStepJeopardyRule",
+            "FulfillmentTaskAssignmentRule",
+            "FulfillmentWorkspace",
+            "FulfillmentWorkspaceItem",
+            "GeneralLdgrAcctPrdSummary",
+            "GeneralLedgerAccount",
+            "GeneralLedgerAcctAsgntRule",
+            "GeneralLedgerJrnlEntryRule",
+            "GeneratedDocument",
+            "GeneratedDocumentSection",
+            "GeoCountry",
+            "GeoState",
+            "GoalAssignment",
+            "GoalDefinition",
+            "Idea",
+            "Image",
+            "IndexRate",
+            "Individual",
+            "IntegrationProviderDcsnRqmt",
+            "IntegrationProviderExecution",
+            "InvBatchDraftToPostedRun",
+            "InventoryItemReservation",
+            "InventoryReservation",
+            "Invoice",
+            "InvoiceBatchRun",
+            "InvoiceBatchRunCriteria",
+            "InvoiceBatchRunRecovery",
+            "InvoiceDocument",
+            "InvoiceLine",
+            "InvoiceLineRelationship",
+            "InvoiceLineTax",
+            "Knowledge__ka",
+            "Knowledge__kav",
+            "Lead",
+            "LegalEntyAccountingPeriod",
+            "LinkedArticle",
+            "Location",
+            "LocationGroup",
+            "LocationGroupAssignment",
+            "LocationShippingCarrierMethod",
+            "LocationTrustMeasure",
+            "Macro",
+            "MacroInstruction",
+            "MacroUsage",
+            "ManagedContentVariant",
+            "MerchAccPaymentMethodSet",
+            "MerchAccPaymentMethodType",
+            "MerchantAccount",
+            "ObjectStateActionDefinition",
+            "ObjectStateDefinition",
+            "ObjectStateTransition",
+            "ObjectStateTransitionAction",
+            "ObjectStateValue",
+            "Obligation",
+            "OmniComponentErrorLog",
+            "OmniGlobalAutoNumber",
+            "OmniProcessAsmtQuestionVer",
+            "Opportunity",
+            "OpportunityRelatedDeleteLog",
+            "Order",
+            "OrderAction",
+            "OrderAdjustmentGroup",
+            "OrderChgReasonCategMap",
+            "OrderDeliveryGroup",
+            "OrderDeliveryMethod",
+            "OrderItem",
+            "OrderItemAdjustmentLineItem",
+            "OrderItemDetail",
+            "OrderItemGroup",
+            "OrderItemRateAdjustment",
+            "OrderItemRateCardEntry",
+            "OrderItemRecipient",
+            "OrderItemRelationship",
+            "OrderItemTaxLineItem",
+            "OrderItemUsageRsrcGrant",
+            "OrderItemUsageRsrcPlcy",
+            "OrderSummary",
+            "OrderSummaryAdditionalInfo",
+            "OrderSummaryRoutingSchedule",
+            "OrgMetricScanSummary",
+            "Organization",
+            "PartnerFundAllocation",
+            "PartnerFundClaim",
+            "PartnerFundRequest",
+            "PartnerMarketingBudget",
+            "PartyConsent",
+            "PaymentCreditLinePayment",
+            "PaymentCreditTransaction",
+            "PaymentLink",
+            "PaymentSchedule",
+            "PaymentScheduleItem",
+            "PendingServiceRouting",
+            "PickTicket",
+            "PickTicketAssignment",
+            "PickTicketProduct",
+            "PriceBookEntryDerivedPrice",
+            "PriceBookRateCard",
+            "PriceRevisionPolicy",
+            "PricingAdjBatchJob",
+            "PricingAdjBatchJobLog",
+            "PricingApiExecution",
+            "PricingProcessExecution",
+            "ProcessException",
+            "ProdtAttrMappedScope",
+            "ProdtAttrScope",
+            "Product2",
+            "ProductAttributeDefinition",
+            "ProductCatalog",
+            "ProductCategory",
+            "ProductCategoryDisqual",
+            "ProductCategoryMedia",
+            "ProductCategoryProduct",
+            "ProductCategoryQualification",
+            "ProductClassification",
+            "ProductClassificationAttr",
+            "ProductComponentGroup",
+            "ProductComponentGrpOverride",
+            "ProductConfigFlowAssignment",
+            "ProductConfigurationFlow",
+            "ProductConfigurationRule",
+            "ProductDecompEnrichmentRule",
+            "ProductDisqualification",
+            "ProductFulfillmentDecompRule",
+            "ProductFulfillmentScenario",
+            "ProductQualification",
+            "ProductRampSegment",
+            "ProductRelComponentOverride",
+            "ProductUsageGrant",
+            "ProductUsageResource",
+            "ProductUsageResourcePolicy",
+            "Promotion",
+            "PromotionLineItemRule",
+            "PromotionMarketSegment",
+            "PromotionQualifier",
+            "PromotionSegment",
+            "PromotionSegmentBuyerGroup",
+            "PromotionSegmentSalesStore",
+            "PromotionTarget",
+            "PromotionTier",
+            "PromptAction",
+            "PromptError",
+            "QuickText",
+            "QuickTextUsage",
+            "QuotLineItmUsageRsrcPlcy",
+            "QuotLineItmUseRsrcGrant",
+            "Quote",
+            "QuoteItemTaxItem",
+            "QuoteLineDetail",
+            "QuoteLineGroup",
+            "QuoteLineItem",
+            "QuoteLineItemRecipient",
+            "QuoteLineRateAdjustment",
+            "QuoteLineRateCardEntry",
+            "QuoteRecipientGroup",
+            "QuoteRecipientGroupMember",
+            "RateAdjustmentByAttribute",
+            "RateAdjustmentByTier",
+            "RateCard",
+            "RateCardEntry",
+            "RatingFrequencyPolicy",
+            "RecordActnSelItemExtrc",
+            "RecordAlert",
+            "RecordAlertActionableTarget",
+            "ReportHierarchyObjectField",
+            "ReturnOrder",
+            "ReturnOrderItemAdjustment",
+            "ReturnOrderItemTax",
+            "ReturnOrderLineItem",
+            "SalesChannel",
+            "SalesContractLine",
+            "SalesTransactionType",
+            "SavedPaymentMethod",
+            "SecurityHealthCheckAlertRecipient",
+            "SecurityHealthCheckResult",
+            "Seller",
+            "SeqPolicySelectionCondition",
+            "SequenceGapReconciliation",
+            "SequencePolicy",
+            "ServiceContract",
+            "ServiceResource",
+            "SetupDataSynchronization",
+            "SfdcPartnerSbscrOffer",
+            "SfdcPartnerSbscrOfferItem",
+            "Shipment",
+            "ShipmentItem",
+            "ShippingCarrier",
+            "ShippingCarrierMethod",
+            "ShippingConfigurationSet",
+            "ShippingRateArea",
+            "ShippingRateGroup",
+            "Site",
+            "SlackChannelRelatedRecord",
+            "SocialPersona",
+            "SocialPost",
+            "Solution",
+            "StandardShippingRate",
+            "StreamingChannel",
+            "SvcProcProdCatgProdExtrc",
+            "TableauHostMapping",
+            "TaxRate",
+            "TaxTreatmentItem",
+            "TenantConsumptionAlert",
+            "Topic",
+            "TransactionJournal",
+            "TransactionUsageEntitlement",
+            "UnitOfMeasure",
+            "UnitOfMeasureClass",
+            "UnstructuredStorageSpace",
+            "UsageBillingPeriodItem",
+            "UsageCmtAssetRelatedObj",
+            "UsageCommitmentPolicy",
+            "UsageEntitlementAccount",
+            "UsageEntitlementBucket",
+            "UsageEntitlementEntry",
+            "UsageGrantRenewalPolicy",
+            "UsageGrantRolloverPolicy",
+            "UsageOveragePolicy",
+            "UsageRatableSumCmtAssetRt",
+            "UsageRatableSummary",
+            "UsageResource",
+            "UsageResourceBillingPolicy",
+            "UsageResourcePolicy",
+            "UsageSummary",
+            "User",
+            "UserEsignVendorIdentifier",
+            "UserLicense",
+            "UserLocalWebServerIdentity",
+            "UserLocationAssignment",
+            "UserPrioritizedRecord",
+            "UserProvisioningRequest",
+            "UserServicePresence",
+            "ValTfrm",
+            "ValTfrmGrp",
+            "VideoCall",
+            "VideoCallParticipant",
+            "VideoCallRecording",
+            "WebCart",
+            "WebCartAdjustmentBasis",
+            "WebCartAdjustmentGroup",
+            "WebCartCredit",
+            "WebStore",
+            "WebStoreBuyerGroup",
+            "WebStoreCatalog",
+            "WebStoreInventorySource",
+            "WebStoreNetwork",
+            "WorkOrder",
+            "WorkOrderLineItem"
+          ],
+          "from_relationship_name": "RelatedRecord",
+          "to_relationship_name": "RelatedRecord"
+        }
+      ]
+    },
     "AssetFulfillmentDecomp": {
       "added": [
         "EndTime",
@@ -32,7 +910,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "AssetStatePeriod": {
       "added": [],
@@ -46,7 +925,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "BillingBatchScheduler": {
       "added": [],
@@ -84,7 +964,8 @@
             "Pacific/Ponape"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "BillingPeriodItem": {
       "added": [],
@@ -98,7 +979,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "BillingSchedule": {
       "added": [
@@ -107,7 +989,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "CollectionPlan": {
       "added": [
@@ -115,7 +998,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "CreditMemoInvApplication": {
       "added": [
@@ -124,7 +1008,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "Dispute": {
       "added": [
@@ -142,7 +1027,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "DisputeItem": {
       "added": [
@@ -152,7 +1038,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "EmailTemplate": {
       "added": [],
@@ -204,7 +1091,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "ExpressionSet": {
       "added": [
@@ -234,7 +1122,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "FlowOrchestration": {
       "added": [],
@@ -270,7 +1159,8 @@
             "ScheduledHighScale"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "FulfillmentAsset": {
       "added": [
@@ -280,7 +1170,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "FulfillmentAssetRelationship": {
       "added": [
@@ -289,7 +1180,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "FulfillmentLineSourceRel": {
       "added": [],
@@ -304,7 +1196,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "FulfillmentOrderLineItem": {
       "added": [
@@ -314,7 +1207,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "FulfillmentPlan": {
       "added": [],
@@ -329,7 +1223,8 @@
             "StageManagement"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "FulfillmentStep": {
       "added": [
@@ -346,7 +1241,8 @@
             "StageManagement"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "FulfillmentStepDefinition": {
       "added": [
@@ -363,7 +1259,8 @@
             "StageManagement"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "FulfillmentStepDefinitionGroup": {
       "added": [],
@@ -378,7 +1275,8 @@
             "StageManagement"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "FulfillmentTaskAssignmentRule": {
       "added": [],
@@ -393,7 +1291,8 @@
             "StageManagement"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "InvBatchDraftToPostedRun": {
       "added": [
@@ -401,7 +1300,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "Invoice": {
       "added": [
@@ -418,6 +1318,27 @@
             "Processing"
           ],
           "removed": []
+        }
+      ],
+      "relationship_changed": [
+        {
+          "field": "ReferenceEntityId",
+          "from_refersTo": [
+            "CreditMemo",
+            "DebitMemo",
+            "Order",
+            "OrderSummary"
+          ],
+          "to_refersTo": [
+            "CreditMemo",
+            "DebitMemo",
+            "Opportunity",
+            "Order",
+            "OrderSummary",
+            "Quote"
+          ],
+          "from_relationship_name": "ReferenceEntity",
+          "to_relationship_name": "ReferenceEntity"
         }
       ]
     },
@@ -438,7 +1359,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "InvoiceBatchRunRecovery": {
       "added": [
@@ -446,7 +1368,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "ObjectStateDefinition": {
       "added": [],
@@ -575,7 +1498,8 @@
             "AiTestConvPersonaDef"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "OmniProcessElement": {
       "added": [],
@@ -598,7 +1522,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "OrderItem": {
       "added": [],
@@ -643,7 +1568,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "OrderItemGroup": {
       "added": [
@@ -660,7 +1586,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "PaymentScheduleItem": {
       "added": [
@@ -668,7 +1595,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "PaymentScheduleTreatment": {
       "added": [
@@ -677,7 +1605,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "ProductFulfillmentScenario": {
       "added": [],
@@ -692,7 +1621,8 @@
             "StageManagement"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "ProductRampSegment": {
       "added": [],
@@ -706,7 +1636,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "QuoteLineGroup": {
       "added": [
@@ -723,7 +1654,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "QuoteLineItem": {
       "added": [],
@@ -768,7 +1700,8 @@
             "Pacific/Ponape"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "SalesTransactionFulfillReq": {
       "added": [],
@@ -782,7 +1715,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "SequencePolicy": {
       "added": [],
@@ -820,7 +1754,8 @@
             "Pacific/Ponape"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "TaxEngineInteractionLog": {
       "added": [],
@@ -841,7 +1776,8 @@
           ],
           "removed": []
         }
-      ]
+      ],
+      "relationship_changed": []
     },
     "TransactionJournal": {
       "added": [
@@ -849,7 +1785,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "TransactionUsageEntitlement": {
       "added": [
@@ -857,7 +1794,8 @@
       ],
       "removed": [],
       "type_changed": [],
-      "picklist_changed": []
+      "picklist_changed": [],
+      "relationship_changed": []
     },
     "ValTfrmGrp": {
       "added": [],
@@ -878,7 +1816,8 @@
             "Picklist"
           ]
         }
-      ]
+      ],
+      "relationship_changed": []
     }
   },
   "impacts": {

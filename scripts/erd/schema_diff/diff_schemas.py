@@ -20,7 +20,6 @@ Options:
     --report PATH     Output markdown report (default: stdout)
     --json PATH       Output structured JSON diff
     --impact          Cross-reference against data plans and show impact
-    --verbose         Show unchanged objects too
 """
 
 import argparse
@@ -38,17 +37,31 @@ def load_schema(path: str) -> dict:
         return json.load(f)
 
 
+def _rel_signature(field: dict) -> tuple:
+    """Normalize a field's relationship metadata for comparison.
+
+    `referenceTo` is a list of parent SObjects; `relationshipName` is the
+    forward-rel name used in SOQL. Returning a tuple of (sorted referenceTo,
+    relationshipName) lets `==` compare order-insensitively while still
+    detecting any structural change.
+    """
+    refs = tuple(sorted(field.get("referenceTo") or []))
+    rel_name = field.get("relationshipName") or ""
+    return (refs, rel_name)
+
+
 def diff_fields(baseline_fields: dict, target_fields: dict) -> dict:
-    """Compare fields between baseline and target."""
+    """Compare fields between baseline and target — names, types, picklist
+    values, and relationship metadata (`referenceTo` + `relationshipName`)."""
     baseline_names = set(baseline_fields.keys())
     target_names = set(target_fields.keys())
 
     added = sorted(target_names - baseline_names)
     removed = sorted(baseline_names - target_names)
 
-    # Check for type changes and picklist changes on common fields
     type_changed = []
     picklist_changed = []
+    relationship_changed = []
     for name in sorted(baseline_names & target_names):
         b = baseline_fields[name]
         t = target_fields[name]
@@ -58,7 +71,6 @@ def diff_fields(baseline_fields: dict, target_fields: dict) -> dict:
                 "from_type": b["type"],
                 "to_type": t["type"],
             })
-        # Picklist value changes
         if b.get("picklistValues") or t.get("picklistValues"):
             b_vals = set(b.get("picklistValues", []))
             t_vals = set(t.get("picklistValues", []))
@@ -68,12 +80,26 @@ def diff_fields(baseline_fields: dict, target_fields: dict) -> dict:
                     "added": sorted(t_vals - b_vals),
                     "removed": sorted(b_vals - t_vals),
                 })
+        # Relationship metadata changes (extract_schema.py captures both
+        # referenceTo and relationshipName per field; without this check
+        # the report would silently miss new/removed/retargeted lookups).
+        b_rel = _rel_signature(b)
+        t_rel = _rel_signature(t)
+        if b_rel != t_rel and (b_rel != ((), "") or t_rel != ((), "")):
+            relationship_changed.append({
+                "field": name,
+                "from_refersTo": list(b_rel[0]),
+                "to_refersTo": list(t_rel[0]),
+                "from_relationship_name": b_rel[1],
+                "to_relationship_name": t_rel[1],
+            })
 
     return {
         "added": added,
         "removed": removed,
         "type_changed": type_changed,
         "picklist_changed": picklist_changed,
+        "relationship_changed": relationship_changed,
     }
 
 
@@ -93,7 +119,8 @@ def diff_schemas(baseline: dict, target: dict) -> dict:
 
         # Only include if there are actual changes
         if (field_diff["added"] or field_diff["removed"] or
-                field_diff["type_changed"] or field_diff["picklist_changed"]):
+                field_diff["type_changed"] or field_diff["picklist_changed"] or
+                field_diff["relationship_changed"]):
             object_diffs[obj_name] = field_diff
 
     return {
@@ -112,6 +139,9 @@ def diff_schemas(baseline: dict, target: dict) -> dict:
             ),
             "total_type_changes": sum(
                 len(d["type_changed"]) for d in object_diffs.values()
+            ),
+            "total_relationship_changes": sum(
+                len(d["relationship_changed"]) for d in object_diffs.values()
             ),
         },
         "objects_added": objects_added,
@@ -208,6 +238,7 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
     lines.append(f"| Total fields added | {summary['total_fields_added']} |")
     lines.append(f"| Total fields removed | {summary['total_fields_removed']} |")
     lines.append(f"| Total type changes | {summary['total_type_changes']} |")
+    lines.append(f"| Total relationship changes | {summary.get('total_relationship_changes', 0)} |")
     lines.append("")
 
     # Objects added
@@ -256,6 +287,18 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
                     if pc["removed"]:
                         lines.append(f"- `{pc['field']}` removed: {', '.join(pc['removed'])} **REVIEW**")
                 lines.append("")
+            if field_diff.get("relationship_changed"):
+                lines.append("**Relationship changes:** (referenceTo and/or relationshipName)")
+                for rc in field_diff["relationship_changed"]:
+                    from_refs = ", ".join(rc["from_refersTo"]) or "(none)"
+                    to_refs = ", ".join(rc["to_refersTo"]) or "(none)"
+                    from_rel = rc["from_relationship_name"] or "(none)"
+                    to_rel = rc["to_relationship_name"] or "(none)"
+                    lines.append(
+                        f"- `{rc['field']}`: refersTo {from_refs} → {to_refs}; "
+                        f"relName {from_rel} → {to_rel} **REVIEW**"
+                    )
+                lines.append("")
 
     # Impact analysis
     if impacts:
@@ -290,7 +333,6 @@ def main():
     parser.add_argument("--json", help="Output JSON diff path", dest="json_output")
     parser.add_argument("--impact", action="store_true",
                         help="Cross-reference against data plans")
-    parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
 
     # Load schemas
@@ -314,6 +356,7 @@ def main():
     print(f"  Fields added: {summary['total_fields_added']}")
     print(f"  Fields removed: {summary['total_fields_removed']}")
     print(f"  Type changes: {summary['total_type_changes']}")
+    print(f"  Relationship changes: {summary.get('total_relationship_changes', 0)}")
 
     # Impact analysis
     impacts = None

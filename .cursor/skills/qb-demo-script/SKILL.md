@@ -12,14 +12,21 @@ mechanically per Salesforce release rather than hand-edited.
    (260, 262, 264, …). The previous-release version is a starting template, not
    a derivative — content WILL change as features change.
 2. **Ground every record reference in `qb-scenario-reference.md`.** Never invent
-   accounts, products, SKUs, or personas. If the scenario reference doesn't
-   list it, it doesn't exist in the demo. (Exception: optional features like
-   Billing Portal that the user opts into.)
+   accounts, products, SKUs, bundles, or constraint models. If the scenario
+   reference doesn't list it, it doesn't exist in the demo. (Personas are an
+   exception today — see Quick Rule 4 for the second source. Optional features
+   like Billing Portal that the user opts into are also exceptions.)
 3. **Per-section structure is locked.** Header → image marker → 3-column
    click-path/talk-track/screenshot table. Existing canvas sections are the
    template; don't redesign them.
-4. **Personas are stable across releases** unless the persona inventory in
-   `qb-scenario-reference.md` changes.
+4. **Personas are stable across releases.** The 6-persona inventory (names,
+   roles, bios) is currently sourced from the prior-release canvas at
+   `.agents/artifacts/qb-canvas-{prior_release}-source.md` because the
+   canonical `docs/enablement/master/qb-scenario-reference.md` doesn't yet
+   include personas. Migrating personas into the scenario reference is a
+   tracked follow-up so future regenerations don't depend on a local-only
+   artifact. Until that lands, treat the prior canvas as authoritative for
+   persona text.
 5. **Image markers are placeholders.** Generated content uses
    `![placeholder][img-PLACEHOLDER-{slug}]` markers; real Slack file IDs are
    substituted at canvas-publish time, not at generation time.
@@ -101,8 +108,7 @@ images and substitutes the placeholder markers with real Slack file IDs.
 2. **Resolve prior canvas source** — if `.agents/artifacts/qb-canvas-{prior}-source.md`
    exists, use it as a structural template. Otherwise generate from scratch
    using the canonical section order.
-3. **Read `qb-scenario-reference.md`** — extract:
-   - 6 personas with their roles and one-line summaries
+3. **Read `docs/enablement/master/qb-scenario-reference.md`** — extract:
    - 3 customer accounts (Infinitech, Global Media, plus default)
    - Bundles (QB Complete Solution, QB Q-Rack 750, QB Services Project, QB
      Complete Solution Plus, QB Software Bundle)
@@ -110,6 +116,12 @@ images and substitutes the placeholder markers with real Slack file IDs.
    - Pricing-feature wiring (Software Maintenance derivation, API quantity
      auto-add, etc.)
    - Constraint models (QuantumBitComplete, Server2)
+3a. **Read `.agents/artifacts/qb-canvas-{prior_release}-source.md`** — extract
+    the 6-persona inventory (name + role + bio). This is intentionally a
+    second source today; see Quick Rule 4 for the migration note. If the
+    prior-canvas source is absent, skip the Demo Personas section rather
+    than fabricate it (a missing persona section is preferable to invented
+    text in a canonical artifact).
 4. **Read target-release `feature-index.md`** — extract:
    - GA features new in this release (annotate "new in {release}" in talk-track)
    - Preview/Beta features (annotate "preview/beta")
