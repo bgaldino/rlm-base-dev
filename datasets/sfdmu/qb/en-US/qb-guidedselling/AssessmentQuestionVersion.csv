@@ -15,3 +15,33 @@ Tech
 Communications
 Media
 Public Sector",Active,1
+Services;1,,Services,USD,Multiselect,,,,,,true,false,Services,What services do you need most?,"Hardware setup and rack installation
+Software configuration and integration
+Training for my team
+Ongoing support and success management",Active,1
+Support_and_Maintenance;1,,Support_and_Maintenance,USD,Radio,,,,,,true,false,Support and Maintenance,Do you need built-in support and maintenance?,"Yes - I want everything managed (hardware + services)
+Yes - but I'll handle installation myself
+No - I just need the hardware",Active,1
+API_Management;1,,API_Management,USD,Select,,,,,,true,false,API Management,Do you need API management or integration capabilities?,"Yes - we manage many APIs and microservices
+Somewhat - we have some integration needs
+No - not a priority right now",Active,1
+Implemention;1,,Implemention,USD,Radio,,,,,,true,false,Implemention,How would you like to handle implementation?,"We have an internal IT team - we'll do it ourselves
+We want QuantumBit's team to handle setup end-to-end
+We'd like a hybrid - some help, some self-service",Active,1
+Primary_Goal;1,,Primary_Goal,USD,Multiselect,,,,,,true,false,Primary Goal,What's your primary goal today?,"Deploy a complete on-premise server infrastructure solution
+Integrate and manage APIs or cloud services
+Automate business processes and workflows
+Store and manage large volumes of data",Active,1
+Platform_Control;1,,Platform_Control,USD,Select,,,,,,true,false,Platform Control,What level of platform control do you need?,"Basic - core features are enough for now
+Intermediate - need enterprise controls and granular access
+Advanced - need specialized features for sensitive/regulated data",Active,1
+Organization_Description;1,,Organization_Description,USD,Radio,,,,,,true,false,Organization Description,Which best describes your organization?,"Startup or small team getting started
+Mid-size company with growing data needs
+Large enterprise with strict compliance requirements
+Highly regulated industry (finance, healthcare, government)",Active,1
+Deployment_Size;1,,Deployment_Size,USD,Select,,,,,,true,false,Deployment Size,How large is your deployment?,"Small (1–5 servers, limited rack space)
+Medium (6–20 servers, single rack)
+Large (20+ servers, mission-critical uptime required)",Active,1
+Time;1,,Time,USD,Select,,,,,,true,false,Time,What's your timeline?,"We need to be live ASAP (days/weeks)
+We have a few months to plan
+No hard deadline - we're exploring options",Active,1

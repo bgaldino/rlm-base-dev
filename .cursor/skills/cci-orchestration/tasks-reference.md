@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**199 tasks** across **9 groups**.
+**202 tasks** across **9 groups**.
 
 ---
 
@@ -81,7 +81,7 @@
 
 ## Data Management - Extract
 
-*15 task(s)*
+*16 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -152,6 +152,18 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling`
+
+---
+
+### `extract_qb_guidedselling_products_data`
+
+**Description:** Extract qb-guidedselling-products from org to CSV. Output in datasets/sfdmu/extractions/qb-guidedselling-products/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling-products`
 
 ---
 
@@ -266,7 +278,7 @@
 
 ## Data Management - Idempotency
 
-*13 task(s)*
+*14 task(s)*
 
 ### `test_qb_approvals_idempotency`
 
@@ -329,6 +341,19 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling`
+- `use_extraction_roundtrip`: `False`
+
+---
+
+### `test_qb_guidedselling_products_idempotency`
+
+**Description:** Idempotency test for qb-guidedselling-products (Product2 guided selling field updates).
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling-products`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -546,7 +571,7 @@
 
 ## Revenue Lifecycle Management
 
-*124 task(s)*
+*126 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1205,6 +1230,18 @@
 
 ---
 
+### `deploy_post_guidedselling`
+
+**Description:** Deploy Guided Selling metadata
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_guidedselling`
+
+---
+
 ### `deploy_post_personas`
 
 **Description:** Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
@@ -1742,6 +1779,18 @@
 
 ---
 
+### `insert_qb_guidedselling_products_data`
+
+**Description:** Update QuantumBit guided selling Product2 field values
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling-products`
+
+---
+
 ### `insert_qb_rates_data`
 
 **Description:** Insert QuantumBit Rates Data
@@ -2236,7 +2285,7 @@
 
 ## Uncategorized
 
-*28 task(s)*
+*27 task(s)*
 
 ### `create_partner_central`
 
@@ -2363,18 +2412,6 @@
 **Options:**
 
 - `path`: `unpackaged/post_docgen`
-
----
-
-### `deploy_post_guidedselling`
-
-**Description:** Deploy Guided Selling Metadata
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_guidedselling`
 
 ---
 

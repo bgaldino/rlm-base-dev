@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Timeline__c</fullName>
+    <description>Product qualification timeline used by the guided selling process.</description>
+    <inlineHelpText>Used by guided selling to match products to the customer&apos;s implementation timeline.</inlineHelpText>
+    <label>Timeline</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>We need to be live ASAP (days/weeks)</fullName>
+                <default>false</default>
+                <label>We need to be live ASAP (days/weeks)</label>
+            </value>
+            <value>
+                <fullName>We have a few months to plan</fullName>
+                <default>false</default>
+                <label>We have a few months to plan</label>
+            </value>
+            <value>
+                <fullName>No hard deadline - we&apos;re exploring options</fullName>
+                <default>false</default>
+                <label>No hard deadline - we&apos;re exploring options</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>
