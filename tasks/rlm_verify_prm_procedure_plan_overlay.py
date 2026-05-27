@@ -60,8 +60,15 @@ class VerifyPrmProcedurePlanOverlay(BaseSalesforceTask):
     }
 
     @property
+    def _api_version(self) -> str:
+        return (
+            getattr(self.org_config, "api_version", None)
+            or getattr(self.project_config, "project__package__api_version", "66.0")
+        )
+
+    @property
     def _base_url(self):
-        return f"{self.org_config.instance_url}/services/data/v66.0"
+        return f"{self.org_config.instance_url}/services/data/v{self._api_version}"
 
     @property
     def _headers(self):
@@ -69,6 +76,10 @@ class VerifyPrmProcedurePlanOverlay(BaseSalesforceTask):
             "Authorization": f"Bearer {self.org_config.access_token}",
             "Content-Type": "application/json",
         }
+
+    @staticmethod
+    def _soql_escape(value: str) -> str:
+        return value.replace("\\", "\\\\").replace("'", "\\'")
 
     def _query_count(self, soql: str) -> int:
         url = f"{self._base_url}/query/?q={requests.utils.requote_uri(soql)}"
@@ -89,26 +100,32 @@ class VerifyPrmProcedurePlanOverlay(BaseSalesforceTask):
         max_wait_seconds = int(self.options.get("maxWaitSeconds", 45))
         poll_interval_seconds = int(self.options.get("pollIntervalSeconds", 3))
 
+        safe_dev_name = self._soql_escape(dev_name)
+        safe_sub_section = self._soql_escape(sub_section)
+        safe_expr_set = self._soql_escape(expr_set)
+        safe_criterion_field = self._soql_escape(criterion_field)
+        safe_criterion_operator = self._soql_escape(criterion_operator)
+
         section_q = (
             "SELECT Id FROM ProcedurePlanSection "
-            f"WHERE ProcedurePlanVersion.DeveloperName = '{dev_name}' "
-            f"AND SubSectionType = '{sub_section}'"
+            f"WHERE ProcedurePlanVersion.DeveloperName = '{safe_dev_name}' "
+            f"AND SubSectionType = '{safe_sub_section}'"
         )
         option_q = (
             "SELECT Id FROM ProcedurePlanOption "
-            f"WHERE ProcedurePlanSection.ProcedurePlanVersion.DeveloperName = '{dev_name}' "
-            f"AND ProcedurePlanSection.SubSectionType = '{sub_section}' "
+            f"WHERE ProcedurePlanSection.ProcedurePlanVersion.DeveloperName = '{safe_dev_name}' "
+            f"AND ProcedurePlanSection.SubSectionType = '{safe_sub_section}' "
             "AND Priority = 1 "
-            f"AND ExpressionSetDefinition.DeveloperName = '{expr_set}'"
+            f"AND ExpressionSetDefinition.DeveloperName = '{safe_expr_set}'"
         )
         criterion_q = (
             "SELECT Id FROM ProcedurePlanCriterion "
-            f"WHERE ProcedurePlanOption.ProcedurePlanSection.ProcedurePlanVersion.DeveloperName = '{dev_name}' "
-            f"AND ProcedurePlanOption.ProcedurePlanSection.SubSectionType = '{sub_section}' "
+            f"WHERE ProcedurePlanOption.ProcedurePlanSection.ProcedurePlanVersion.DeveloperName = '{safe_dev_name}' "
+            f"AND ProcedurePlanOption.ProcedurePlanSection.SubSectionType = '{safe_sub_section}' "
             "AND ProcedurePlanOption.Priority = 1 "
             "AND Sequence = 1 "
-            f"AND FieldPath = '{criterion_field}' "
-            f"AND Operator = '{criterion_operator}'"
+            f"AND FieldPath = '{safe_criterion_field}' "
+            f"AND Operator = '{safe_criterion_operator}'"
         )
 
         attempts = max(1, (max_wait_seconds // max(1, poll_interval_seconds)) + 1)

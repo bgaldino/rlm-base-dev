@@ -14,10 +14,10 @@ from typing import Any, Dict, List, Tuple
 import requests
 
 try:
-    from cumulusci.core.tasks import BaseTask
+    from cumulusci.tasks.salesforce import BaseSalesforceTask
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
-    BaseTask = object
+    BaseSalesforceTask = object
     TaskOptionsError = Exception
 
 
@@ -25,7 +25,7 @@ OBJECT_NAME = "PricingRecipeTableMapping"
 DEFAULT_INPUT_FILE = "datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json"
 
 
-class ConfigurePricingRecipeTableMappings(BaseTask):
+class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
     task_options = {
         "operation": {
             "description": "Operation to perform: 'ensure' (default) or 'list'.",
@@ -126,8 +126,6 @@ class ConfigurePricingRecipeTableMappings(BaseTask):
         return normalized
 
     def _get_api_context(self) -> Tuple[str, str, str]:
-        if not hasattr(self, "org_config") or not self.org_config:
-            raise TaskOptionsError("No org_config available — pass --org <alias>")
 
         access_token = self.org_config.access_token
         instance_url = self.org_config.instance_url
