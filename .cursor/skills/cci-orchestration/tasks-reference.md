@@ -3,13 +3,13 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**216 tasks** across **9 groups**.
+**217 tasks** across **9 groups**.
 
 ---
 
 ## Data Maintenance
 
-*4 task(s)*
+*5 task(s)*
 
 ### `delete_draft_billing_records`
 
@@ -56,6 +56,18 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-pricing`
+
+---
+
+### `delete_quantumbit_prm_pricing_data`
+
+**Description:** Delete all records from the qb-prm-pricing plan (ChannelProgramMember, ChannelProgramLevel, ChannelProgram, Account) in reverse plan order (children first). Run before insert_quantumbit_prm_pricing_data when resetting PRM pricing overlay data.
+
+**Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
 
 ---
 

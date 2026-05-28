@@ -2351,6 +2351,17 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_pricing_dataset
 
+  delete_quantumbit_prm_pricing_data:
+    group: Data Maintenance
+    description: >
+      Delete all records from the qb-prm-pricing plan (ChannelProgramMember,
+      ChannelProgramLevel, ChannelProgram, Account) in reverse plan order
+      (children first). Run before insert_quantumbit_prm_pricing_data when
+      resetting PRM pricing overlay data.
+    class_path: tasks.rlm_sfdmu.DeleteSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_prm_pricing_dataset
+
   delete_qb_rates_data:
     group: Data Maintenance
     description: Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running insert_qb_rates_data or test_qb_rates_idempotency to clear duplicates.
