@@ -33,8 +33,7 @@
         {
           "query": "SELECT RLM_Adjustment_Type__c, RLM_Adjustment_Value__c, RLM_Discount_Rate__c, Id, Level.Name, LevelId, Name, Partner.Name, PartnerId, Program.Name, ProgramId FROM ChannelProgramMember WHERE Partner.Name IN ('Cloud Distributors', 'Robot Resellers') AND Program.Name IN ('Distributor Program', 'Reseller Program') ORDER BY Program.Name ASC, Partner.Name ASC",
           "operation": "Upsert",
-          "externalId": "Partner.Name;Program.Name",
-          "skipExistingRecords": true
+          "externalId": "Partner.Name;Program.Name"
         }
       ]
     },
