@@ -48,8 +48,8 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
         },
         "skip_missing_tables": {
             "description": (
-                "If true (default), warn and skip mappings whose DecisionTable "
-                "DeveloperName is not found in the org."
+                "If true, warn and skip mappings whose DecisionTable DeveloperName "
+                "is not found in the org. Defaults to false so flow prerequisites fail fast."
             ),
             "required": False,
         },
@@ -320,7 +320,7 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
     ):
         dry_run = str(self.options.get("dry_run", "")).lower() in {"1", "true", "yes"}
         skip_missing_tables = (
-            str(self.options.get("skip_missing_tables", "true")).lower()
+            str(self.options.get("skip_missing_tables", "false")).lower()
             in {"1", "true", "yes"}
         )
 

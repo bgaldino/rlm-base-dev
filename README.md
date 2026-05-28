@@ -704,7 +704,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `reconfigure_pricing_discovery` | `rlm_reconfigure_expression_set.py` | Reconfigure autoproc `Salesforce_Default_Pricing_Discovery_Procedure`: fix context definition, rank, start date | See `cumulusci.yml` |
 | `create_procedure_plan_definition` | `rlm_create_procedure_plan_def.py` | Create Procedure Plan Definition + inactive Version via Connect API (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
 | `activate_procedure_plan_version` | `rlm_create_procedure_plan_def.py` | Activate ProcedurePlanDefinitionVersion after data load (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
-| `verify_prm_procedure_plan_overlay` | `rlm_verify_prm_procedure_plan_overlay.py` | Verify the PRM procedure-plan overlay has exactly one expected section, option, and criterion | [procedure-plans-prm README](datasets/sfdmu/procedure-plans-prm/README.md) |
+| `apply_procedure_plan_overlay` | `rlm_apply_procedure_plan_overlay.py` | Apply and verify a procedure-plan overlay with a guarded deactivate/reactivate boundary | [procedure plan overlays README](datasets/procedure_plan_overlays/README.md) |
 | `deploy_billing_id_settings` | (CCI Deploy) | Deploy Billing Settings with org-specific record IDs resolved via XPath transform SOQL queries | See `cumulusci.yml` |
 | `deploy_billing_template_settings` | (CCI Deploy) | Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3) | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
@@ -1035,7 +1035,10 @@ datasets/sfdmu/
 | Data Plan | Directory | Description | Documentation |
 |-----------|-----------|-------------|---------------|
 | procedure-plans | `datasets/sfdmu/procedure-plans/` | Procedure Plan sections and options with expression set links (2-pass upsert + Connect API + activation) | [README](datasets/sfdmu/procedure-plans/README.md) |
-| procedure-plans-prm | `datasets/sfdmu/procedure-plans-prm/` | PRM procedure-plan overlay for `RLM_Quote_Pricing_Procedure_Plan` | [README](datasets/sfdmu/procedure-plans-prm/README.md) |
+
+Procedure-plan overlays that require resolved parent IDs live under
+`datasets/procedure_plan_overlays/` and are applied by dedicated CCI tasks
+rather than SFDMU.
 
 #### Archived Data Plans
 
@@ -1096,7 +1099,6 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 - [qb-prm README](datasets/sfdmu/qb/en-US/qb-prm/README.md) -- Partner Relationship Management
 - [qb-prm-pricing README](datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) -- PRM Pricing Overlay
 - [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) -- Procedure Plans
-- [procedure-plans-prm README](datasets/sfdmu/procedure-plans-prm/README.md) -- PRM Procedure Plan Overlay
 - [mfg README](datasets/sfdmu/mfg/README.md) -- Manufacturing data shape (add plans under mfg/en-US/; same patterns as qb)
 
 ### Robot Framework

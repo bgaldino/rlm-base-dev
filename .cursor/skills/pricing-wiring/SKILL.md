@@ -74,6 +74,10 @@ Repo implementation pattern:
   - Ensures PRM-specific table mappings, plus idempotent coverage for shared
     cost-book mapping when the PRM pricing flow is run directly
 
+Mapping tasks fail fast when a required `DecisionTable` is missing. Keep
+`skip_missing_tables: false` for flow usage; use `skip_missing_tables: true`
+only for explicit diagnostic/manual runs.
+
 ### B) Pricing Procedures (Expression Sets)
 
 Keep procedure metadata deploy-safe with placeholders and runtime transforms in
@@ -87,31 +91,60 @@ baseline structure.
 
 ### C) Procedure Plans and Overlays
 
-Any overlay to active plan-driven behavior should follow:
+Procedure-plan overlays should be JSON-driven and reusable across feature
+packs. Treat the JSON as the behavioral contract and keep the task generic.
 
-1. deactivate plan version
-2. insert/update overlay data in dependency-safe passes
-3. verify overlay invariants
-4. reactivate plan version
+Runtime contract:
+
+1. deactivate plan version inside the same task that applies the overlay
+2. create or patch declared sections
+3. compute final section order from the current org state
+4. resequence sections through a collision-safe temporary range
+5. resolve parent IDs with SOQL instead of relying on traversal upsert keys
+6. create or patch options, then criteria if present
+7. verify exact overlay invariants
+8. reactivate the plan version in a guarded `finally` path
 
 When an overlay changes section order and adds a new section into an existing
-sequence, split the move and insert into separate SFDMU object sets:
+sequence, declare placement by anchor (`placement.afterSubSectionType`) rather
+than hard-coding the final numeric sequence:
 
-1. move the existing section out of the target sequence
-2. insert the new section into the freed sequence
-3. wire child options
-4. wire child criteria or other dependents
+```json
+{
+  "subSectionType": "MyFeatureSection",
+  "placement": {
+    "afterSubSectionType": "DefaultPricing"
+  }
+}
+```
 
-Do not rely on a single object set to update the existing row and insert the new
-row in the right order. SFDMU may insert before update on a clean org, causing a
-partial first run that appears fixed only because a rerun starts from the
-partially moved state.
+The task verifies dynamically from the JSON:
+
+- sections: exactly one row per declared `subSectionType`
+- placement: placed sections appear immediately after their declared anchor
+- options: exactly one row per resolved section ID plus `priority`, with the
+  expected expression set
+- criteria: exactly one row per resolved option ID plus `sequence`, `fieldPath`,
+  and `operator`
+
+Criteria are optional. Omit the `criteria` array, or set it to `[]`, for
+overlays that only add sections/options.
+
+Avoid SFDMU relationship-traversal upserts for procedure-plan children unless
+that exact traversal key has already been validated as idempotent in target
+orgs.
+
+Independent overlays that target the same anchor still need an ordering
+convention if their relative order matters. Without a shared ordering key or a
+single combined overlay declaration, run order is the only available signal.
+If order matters across independently shipped overlays, add a stable ordering
+model before relying on arbitrary execution order.
 
 Repo examples:
 
 - `tasks/rlm_create_procedure_plan_def.py`
-- `tasks/rlm_verify_prm_procedure_plan_overlay.py`
-- `datasets/sfdmu/procedure-plans-prm/`
+- `tasks/rlm_apply_procedure_plan_overlay.py`
+- `datasets/procedure_plan_overlays/`
 
 ### D) Context Definitions and Context Plans
 
@@ -224,11 +257,12 @@ Confirm deactivate step runs before deploy and targets correct versions.
 
 ### procedure-plan overlay succeeds only on rerun
 
-Check for section sequence collisions. If the base plan already has a section at
-the target sequence, move that section in an earlier object set before inserting
-the overlay section. A first run that moves the existing section but fails to
-insert the overlay can make the second run look healthy, masking the sequencing
-bug.
+Check whether the overlay is still using fixed numeric sequences or separate
+manual move steps. Rework it to use `placement.afterSubSectionType` so the task
+creates/patches sections first, computes the full target order from the org, and
+resequences with a temporary high-sequence pass. A first run that partially moves
+sections and only succeeds on rerun usually means sequencing is not owned by the
+overlay task.
 
 ### feature flow fails before mapping step
 

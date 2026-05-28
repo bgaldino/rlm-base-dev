@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**215 tasks** across **9 groups**.
+**213 tasks** across **9 groups**.
 
 ---
 
@@ -559,7 +559,7 @@
 
 ## Revenue Lifecycle Management
 
-*139 task(s)*
+*137 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -805,6 +805,21 @@
 
 ---
 
+### `apply_procedure_plan_overlay`
+
+**Description:** Apply a Procedure Plan overlay from JSON with resolved IDs and a guarded deactivate/apply/verify/reactivate sequence.
+
+**Class:** `tasks.rlm_apply_procedure_plan_overlay.ApplyProcedurePlanOverlay`
+
+**Options:**
+
+- `overlay_file`: `datasets/procedure_plan_overlays/prm_pricing.json`
+- `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
+- `verify`: `True`
+- `activate_after_apply`: `True`
+
+---
+
 ### `assign_permission_set_groups_tolerant`
 
 **Description:** Assign Permission Set Groups with tolerance for permission warnings
@@ -843,7 +858,7 @@
 - `input_file`: `datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json`
 - `api_version`: `None`
 - `dry_run`: `False`
-- `skip_missing_tables`: `True`
+- `skip_missing_tables`: `False`
 
 ---
 
@@ -873,7 +888,7 @@
 - `input_file`: `datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json`
 - `api_version`: `None`
 - `dry_run`: `False`
-- `skip_missing_tables`: `True`
+- `skip_missing_tables`: `False`
 
 ---
 
@@ -1061,18 +1076,6 @@
 
 - `operation`: `deactivate_versions`
 - `metadata_path`: `unpackaged/post_prm_pricing/expressionSetDefinition`
-
----
-
-### `deactivate_procedure_plan_version`
-
-**Description:** Deactivate the ProcedurePlanDefinitionVersion before inserting PRM procedure plan overlay data
-
-**Class:** `tasks.rlm_create_procedure_plan_def.DeactivateProcedurePlanVersion`
-
-**Options:**
-
-- `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
 
 ---
 
@@ -1759,18 +1762,6 @@
 
 ---
 
-### `insert_prm_procedure_plan_data`
-
-**Description:** Insert PRM-only Procedure Plan overlay data: adds IFPartnerDistributorOnQuote rule-based section, RLM_PRM_DISTI_Pricing_Procedure option, and criteria condition for RLM_Quote_Pricing_Procedure_Plan.
-
-**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/procedure-plans-prm`
-
----
-
 ### `insert_procedure_plan_data`
 
 **Description:** Insert Procedure Plan data (sections in pass 1, options with expression set links in pass 2)
@@ -2394,22 +2385,6 @@
 - `auto_fix`: `True`
 - `required_sfdmu_version`: `5.0.0`
 - `fail_on_error`: `True`
-
----
-
-### `verify_prm_procedure_plan_overlay`
-
-**Description:** Verify PRM procedure-plan overlay records exist (IFPartnerDistributorOnQuote section, RLM_PRM_DISTI_Pricing_Procedure option, and IsNotNull criterion) for RLM_Quote_Pricing_Procedure_Plan.
-
-**Class:** `tasks.rlm_verify_prm_procedure_plan_overlay.VerifyPrmProcedurePlanOverlay`
-
-**Options:**
-
-- `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
-- `subSectionType`: `IFPartnerDistributorOnQuote`
-- `expressionSetDeveloperName`: `RLM_PRM_DISTI_Pricing_Procedure`
-- `criterionFieldPath`: `PartnerAccount.BillingAddress`
-- `criterionOperator`: `IsNotNull`
 
 ---
 

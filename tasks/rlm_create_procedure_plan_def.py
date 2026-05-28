@@ -10,7 +10,6 @@ already exists, it logs a message and skips creation.
 Reference:
 https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_get_procedure_plan_definition_records.htm
 """
-import time
 from typing import Any, Dict, Optional
 
 import requests

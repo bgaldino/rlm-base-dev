@@ -79,18 +79,23 @@ idempotently. In a full org-prep run it is already created by
 `prepare_prm_pricing` runs repair the prerequisite before deploying the PRM
 pricing procedure.
 
+Missing decision tables are treated as hard prerequisite failures by default.
+Use `skip_missing_tables: true` only for explicit diagnostic runs where warning
+and skip behavior is intentional.
+
 ## Data and Procedure Plan Overlays
 
 `prepare_prm_pricing` also loads feature-scoped data after metadata deployment:
 
 - `datasets/sfdmu/qb/en-US/qb-prm-pricing/` seeds PRM pricing partner data and
   Account self-lookups when `qb=true`.
-- `datasets/sfdmu/procedure-plans-prm/` adds the PRM conditional branch to
-  `RLM_Quote_Pricing_Procedure_Plan` when `procedureplans=true`.
+- `datasets/procedure_plan_overlays/prm_pricing.json` adds the PRM conditional
+  branch to `RLM_Quote_Pricing_Procedure_Plan` when `procedureplans=true`.
 
-The procedure-plan overlay runs through a guarded
-deactivate/load/verify/reactivate sequence so partial imports fail before the
-plan is reactivated.
+The procedure-plan overlay is applied by `apply_procedure_plan_overlay`,
+which resolves parent IDs directly and runs through a guarded
+deactivate/apply/verify/reactivate sequence so failures do not strand the plan
+inactive.
 
 ## UX Sources
 

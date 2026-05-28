@@ -392,7 +392,7 @@ tasks:
 | `rlm_docgen.py` | `FixDocumentTemplateBinaries` | Fix DocumentTemplate content binaries |
 | `rlm_create_approval_email_templates.py` | `CreateApprovalEmailTemplates` | Create Lightning Email Templates via REST |
 | `rlm_create_procedure_plan_def.py` | `CreateProcedurePlanDefinition`, `ActivateProcedurePlanVersion` | Procedure Plan via Connect API |
-| `rlm_verify_prm_procedure_plan_overlay.py` | `VerifyPrmProcedurePlanOverlay` | PRM procedure-plan overlay exact-count verification |
+| `rlm_apply_procedure_plan_overlay.py` | `ApplyProcedurePlanOverlay` | JSON-driven procedure-plan overlays with guarded activation |
 | `rlm_repair_pricing_schedules.py` | `EnsurePricingSchedules` | Ensure pricing schedules exist |
 | `rlm_recalculate_permission_set_groups.py` | `RecalculatePermissionSetGroups` | PSG recalculation + polling |
 | `rlm_assign_permission_set_groups.py` | `AssignPermissionSetGroupsTolerant` | PSG assignment with warning tolerance |

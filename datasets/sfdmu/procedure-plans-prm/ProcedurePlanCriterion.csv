@@ -1,2 +1,0 @@
-$$ProcedurePlanOption.ProcedurePlanSection.SubSectionType$ProcedurePlanOption.Priority$Sequence,ActualValue,DataType,FieldPath,ObjectField,Operator,ProcedurePlanOption.$$ProcedurePlanSection.SubSectionType$Priority,Sequence
-IFPartnerDistributorOnQuote;1;1,,Text,PartnerAccount.BillingAddress,BillingAddress,IsNotNull,IFPartnerDistributorOnQuote;1,1

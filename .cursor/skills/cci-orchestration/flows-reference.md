@@ -419,10 +419,7 @@ Deploy PRM pricing metadata/tasks behind prm_pricing.
    - `api_names`: `['RLM_PRM_Pricing']`
 4. **task** `insert_quantumbit_prm_pricing_data`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
 5. **task** `activate_prm_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
-6. **task** `deactivate_procedure_plan_version`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans`
-7. **task** `insert_prm_procedure_plan_data`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans`
-8. **task** `verify_prm_procedure_plan_overlay`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans`
-9. **task** `activate_procedure_plan_version`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans`
+6. **task** `apply_procedure_plan_overlay`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans`
 
 ---
 

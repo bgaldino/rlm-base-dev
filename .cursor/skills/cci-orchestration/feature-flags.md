@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**38 feature flags**, **80 configuration values**, **32 YAML anchors** under `project.custom`.
+**38 feature flags**, **81 configuration values**, **32 YAML anchors** under `project.custom`.
 
 ---
 
@@ -33,11 +33,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `guidedselling` | `False` | 2 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
-| `prm` | `True` | 27 flow step(s) |
+| `prm` | `True` | 24 flow step(s) |
 | `prm_exp_bundle` | `True` | 4 flow step(s) |
-| `prm_pricing` | `False` | 18 flow step(s) |
+| `prm_pricing` | `False` | 15 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
-| `procedureplans` | `True` | 9 flow step(s) |
+| `procedureplans` | `True` | 6 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
 | `qb` | `True` | 21 flow step(s) |
 | `qbrix` | `False` | — |
@@ -226,10 +226,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm_pricing` step 3 → `assign_permission_sets`
 - `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
 - `prepare_prm_pricing` step 5 → `activate_prm_expression_sets`
-- `prepare_prm_pricing` step 6 → `deactivate_procedure_plan_version`
-- `prepare_prm_pricing` step 7 → `insert_prm_procedure_plan_data`
-- `prepare_prm_pricing` step 8 → `verify_prm_procedure_plan_overlay`
-- `prepare_prm_pricing` step 9 → `activate_procedure_plan_version`
+- `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
 - `refresh_all_decision_tables` step 7 → `refresh_dt_prm_pricing`
 
 ### `prm_exp_bundle` (default: `True`)
@@ -254,18 +251,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm_pricing` step 3 → `assign_permission_sets`
 - `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
 - `prepare_prm_pricing` step 5 → `activate_prm_expression_sets`
-- `prepare_prm_pricing` step 6 → `deactivate_procedure_plan_version`
-- `prepare_prm_pricing` step 7 → `insert_prm_procedure_plan_data`
-- `prepare_prm_pricing` step 8 → `verify_prm_procedure_plan_overlay`
-- `prepare_prm_pricing` step 9 → `activate_procedure_plan_version`
+- `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
 - `refresh_all_decision_tables` step 7 → `refresh_dt_prm_pricing`
 
 ### `procedureplans` (default: `True`)
 
-- `prepare_prm_pricing` step 6 → `deactivate_procedure_plan_version`
-- `prepare_prm_pricing` step 7 → `insert_prm_procedure_plan_data`
-- `prepare_prm_pricing` step 8 → `verify_prm_procedure_plan_overlay`
-- `prepare_prm_pricing` step 9 → `activate_procedure_plan_version`
+- `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
 - `prepare_procedureplans` step 1 → `deploy_post_procedureplans`
 - `prepare_procedureplans` step 2 → `activate_procedure_plan_expression_sets`
 - `prepare_procedureplans` step 3 → `create_procedure_plan_definition`
@@ -441,6 +432,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `fulfillment_asset_context_default_mapping` | `FulfillAssetEntitiesMapping` |
 | `fulfillment_asset_context_name` | `RLM_FulfillmentAssetContext` |
 | `locale` | `en_US` |
+| `prm_pricing_procedure_plan_overlay` | `datasets/procedure_plan_overlays/prm_pricing.json` |
 | `prm_pricing_recipe_table_mappings` | `datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json` |
 | `procedure_plan_definition_description` | `Procedure Plan Definition for Quote Pricing` |
 | `procedure_plan_definition_developer_name` | `RLM_Quote_Pricing_Procedure_Plan` |
