@@ -33,14 +33,14 @@ Do **not** use this skill when:
 
 ## Quick Rules
 
-1. Use stable harness commands from repo root: `run`, `resume`, `report`.
+1. Use stable harness commands from repo root: `python scripts/build_harness/harness.py run|resume|report`.
 2. Prefer scenario-based runs from `scripts/build_harness/scenarios.json`.
 3. For resume, keep scenario id and flags consistent with checkpoint.
 4. Use JSON mode (`--format json`) when another agent or script needs structured output.
 5. Run focused harness tests after implementation changes: `.harness/tui-venv/bin/python -m pytest tests/build_harness/`.
 6. For end-user org creation, default to shape `ent`, days `30`, alias auto-generated.
 7. **Before creating the org, ask the user to confirm or override all three defaults** (shape, days, alias).
-8. Cleanup semantics differ by entrypoint: harness CLI keeps failed orgs for resume; TUI auto-deletes on failure only if the org was created in the current run.
+8. Cleanup semantics differ by entrypoint: harness CLI keeps failed orgs for resume; TUI auto-deletes on failure by default only if the org was created in the current run. Set `delete_org_on_failure: false` in `scripts/build_harness/tui/settings.local.json` to preserve failed TUI orgs.
 
 ## DO NOT
 
@@ -141,6 +141,8 @@ python -m venv .harness/tui-venv
 
 ## Run Artifacts to Inspect
 
+CLI harness runs:
+
 - `.harness/runs/<run_id>/run_manifest.json`
 - `.harness/runs/<run_id>/run_summary.json`
 - `.harness/runs/<run_id>/report.md`
@@ -153,6 +155,13 @@ python -m venv .harness/tui-venv
 - `.harness/runs/<run_id>/scenarios/<scenario_id>/checkpoint.json`
 - `.harness/runs/<run_id>/scenarios/<scenario_id>/build_provenance.json`
 - `.harness/runs/<run_id>/scenarios/<scenario_id>/scenario.log`
+
+TUI runs, when `persistent_logging` is enabled:
+
+- `.harness/tui-runs/<run_id>/run_manifest.json`
+- `.harness/tui-runs/<run_id>/events.jsonl`
+- `.harness/tui-runs/<run_id>/command-output.log`
+- `.harness/tui-runs/<run_id>/run_summary.json`
 
 ## Resume and Failure Policy
 
@@ -256,6 +265,7 @@ Always share the generated alias with the user before creation.
   - failed run orgs are kept for resume
 - TUI behavior:
   - failed runs trigger scratch delete only if the org was created in that same TUI run
+  - `delete_org_on_failure` defaults to `true`; set it to `false` in `scripts/build_harness/tui/settings.local.json` to preserve the org for inspection
   - alias defaults use `<shape>-tui-<4char>` and retry on collisions
 - Use `--keep-orgs` when you need to retain successful orgs for debugging.
 - Resume is blocked when checkpoint prerequisites are missing or flags changed; perform a full re-run after fixing blockers.
@@ -294,6 +304,8 @@ for interactive TTY launches when `TERM` is missing or `dumb`, and always
 - `tests/build_harness/test_provenance.py` - stamp parsing and provenance extraction
 - `tests/build_harness/test_reporting.py` - report composition and analysis artifact generation
 - `tests/build_harness/test_scenario_runner.py` - policy recommendations and scenario orchestration behavior
+- `tests/build_harness/test_tui_app.py` - TUI pure helpers and app-level behavior
+- `tests/build_harness/test_tui_launcher.py` - `tui-cci` launcher behavior
 - `tests/build_harness/test_tui_runner.py` - TUI build runner wiring and flag-group parser behavior
 - `tests/build_harness/test_harness_cli.py` - run/resume/report CLI guardrails and path safety
 
@@ -302,10 +314,11 @@ Use tests first for parser, evaluator, cleanup, and resume-safety changes. Mock 
 ## Known Follow-Ups
 
 - Operational hygiene: keep `.harness/runs/` pruning opt-in; avoid automatic deletion without explicit operator intent.
-- Larger refactors should stay separate: `tui/app.py` decomposition, `print()` to `logging`, and logger locking changes.
+- Larger refactors should stay separate: `tui/app.py` decomposition and replacing remaining CLI `print()` calls with structured logging if that becomes useful.
 
 ## Related Docs
 
+- `README.md` - human-facing quick entry point for the build harness and TUI
 - `docs/guides/build-harness.md`
 - `scripts/build_harness/tui/README.md`
 - `.cursor/skills/cci-orchestration/SKILL.md`
