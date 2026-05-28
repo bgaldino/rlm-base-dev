@@ -559,6 +559,7 @@ project:
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
+    prm_pricing_procedure_plan_overlay: &prm_pricing_procedure_plan_overlay "datasets/procedure_plan_overlays/prm_pricing.json" # PRM pricing Procedure Plan overlay
     core_pricing_recipe_table_mappings: &core_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json" # Core pricing recipe table mapping payload
     prm_pricing_recipe_table_mappings: &prm_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json" # PRM pricing recipe table mapping payload
 
@@ -2593,7 +2594,7 @@ tasks:
       input_file: *prm_pricing_recipe_table_mappings
       api_version: null
       dry_run: false
-      skip_missing_tables: true
+      skip_missing_tables: false
 
   configure_core_pricing_recipe_table_mappings:
     group: Revenue Lifecycle Management
@@ -2607,7 +2608,7 @@ tasks:
       input_file: *core_pricing_recipe_table_mappings
       api_version: null
       dry_run: false
-      skip_missing_tables: true
+      skip_missing_tables: false
 
   manage_context_definition:
     group: Revenue Lifecycle Management
@@ -2661,15 +2662,17 @@ tasks:
     options:
       pathtoexportjson: *procedure_plans_dataset
 
-  insert_prm_procedure_plan_data:
+  apply_procedure_plan_overlay:
     group: Revenue Lifecycle Management
     description: >
-      Insert PRM-only Procedure Plan overlay data: adds IFPartnerDistributorOnQuote
-      rule-based section, RLM_PRM_DISTI_Pricing_Procedure option, and criteria condition
-      for RLM_Quote_Pricing_Procedure_Plan.
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+      Apply a Procedure Plan overlay from JSON with resolved IDs and a guarded
+      deactivate/apply/verify/reactivate sequence.
+    class_path: tasks.rlm_apply_procedure_plan_overlay.ApplyProcedurePlanOverlay
     options:
-      pathtoexportjson: datasets/sfdmu/procedure-plans-prm
+      overlay_file: *prm_pricing_procedure_plan_overlay
+      developerName: *procedure_plan_definition_developer_name
+      verify: true
+      activate_after_apply: true
 
   activate_procedure_plan_version:
     group: Revenue Lifecycle Management
@@ -2677,27 +2680,6 @@ tasks:
     class_path: tasks.rlm_create_procedure_plan_def.ActivateProcedurePlanVersion
     options:
       developerName: *procedure_plan_definition_developer_name
-
-  deactivate_procedure_plan_version:
-    group: Revenue Lifecycle Management
-    description: Deactivate the ProcedurePlanDefinitionVersion before inserting PRM procedure plan overlay data
-    class_path: tasks.rlm_create_procedure_plan_def.DeactivateProcedurePlanVersion
-    options:
-      developerName: *procedure_plan_definition_developer_name
-
-  verify_prm_procedure_plan_overlay:
-    group: Revenue Lifecycle Management
-    description: >
-      Verify PRM procedure-plan overlay records exist (IFPartnerDistributorOnQuote section,
-      RLM_PRM_DISTI_Pricing_Procedure option, and IsNotNull criterion) for
-      RLM_Quote_Pricing_Procedure_Plan.
-    class_path: tasks.rlm_verify_prm_procedure_plan_overlay.VerifyPrmProcedurePlanOverlay
-    options:
-      developerName: *procedure_plan_definition_developer_name
-      subSectionType: IFPartnerDistributorOnQuote
-      expressionSetDeveloperName: RLM_PRM_DISTI_Pricing_Procedure
-      criterionFieldPath: PartnerAccount.BillingAddress
-      criterionOperator: IsNotNull
 
   activate_procedure_plan_expression_sets:
     group: Revenue Lifecycle Management
@@ -3227,16 +3209,7 @@ flows:
         task: activate_prm_expression_sets
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
       6:
-        task: deactivate_procedure_plan_version
-        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans
-      7:
-        task: insert_prm_procedure_plan_data
-        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans
-      8:
-        task: verify_prm_procedure_plan_overlay
-        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans
-      9:
-        task: activate_procedure_plan_version
+        task: apply_procedure_plan_overlay
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans
 
   prepare_billing_portal:

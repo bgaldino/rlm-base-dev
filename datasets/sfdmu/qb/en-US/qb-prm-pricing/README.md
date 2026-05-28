@@ -57,14 +57,16 @@ of the Account relationship exist.
 
 ## Idempotency and SFDMU Notes
 
-- `ChannelProgramMember` uses traversal-based externalId (`Partner.Name;Program.Name`) to
-  stay aligned with `qb-prm`.
-- As with `qb-prm`, this is subject to SFDMU v5 traversal externalId behavior.
-  The dataset is intended for controlled overlay usage behind `prm_pricing` and
-  currently validates cleanly with `scripts/validate_sfdmu_v5_datasets.py`.
-- Unlike baseline `qb-prm`, this overlay does not set `skipExistingRecords` on
-  `ChannelProgramMember`. The two records are feature-owned seed data, and the
-  org-backed idempotency task should be run before merge.
+- `ChannelProgramMember` uses traversal-based externalId
+  (`Partner.Name;Program.Name`) to stay aligned with `qb-prm`.
+- This is a narrow, org-verified exception to the general SFDMU v5
+  relationship-traversal Upsert guidance. The overlay has been validated
+  against target environments and does not require an external key field.
+- The plan must not use `Insert` + `deleteOldData: true`; these records are
+  feature-owned seed data, but broad deletion would still be too destructive for
+  rerunnable PRM setup.
+- Rerun validation remains part of the PR checklist for any change that touches
+  this plan or its `ChannelProgramMember` records.
 
 ### Idempotency Validation
 
