@@ -3329,6 +3329,8 @@ flows:
       8:
         task: test_qb_transactionprocessingtypes_idempotency
       9:
+        # Intentional exclusion: legacy qb-guidedselling idempotency remains standalone
+        # because that plan is preservation-only until CSVs are regenerated from a canonical org.
         task: test_qb_guidedselling_products_idempotency
 
   stamp_git_commit:
