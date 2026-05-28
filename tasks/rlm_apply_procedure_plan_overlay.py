@@ -47,9 +47,9 @@ class ApplyProcedurePlanOverlay(BaseSalesforceTask):
         },
         "activate_after_apply": {
             "description": (
-                "If true (default), activate the target version after apply. This "
-                "preserves the previous behavior of prepare_prm_pricing while the "
-                "try/finally guard still restores active plans after failures."
+                "If true (default), activate the target ProcedurePlanDefinitionVersion "
+                "after overlay is applied. The try/finally block restores the original "
+                "activation state on failure regardless of this setting."
             ),
             "required": False,
         },
