@@ -145,7 +145,7 @@ project_config:
   project__custom__:
     prm: true                    # Core PRM feature
     prm_exp_bundle: true         # Experience Cloud site content
-    prm_pricing: true            # Branch PRM pricing metadata/tasks
+    prm_pricing: false           # Set true to include PRM pricing metadata/tasks
 ```
 
 ## Pricing Integration Status

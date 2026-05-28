@@ -49,7 +49,7 @@ The most commonly used flags and their defaults:
 - **rates: true** — Rate cards and rate card entries
 - **clm: true** — Enables CLM permission set licenses and CLM context definition extensions; CLM reference data additionally requires `clm_data: true` (defaults to `false`)
 - **prm: true** — Partner Relationship Management
-- **prm_pricing: true** — PRM pricing metadata, data, and procedure-plan overlay
+- **prm_pricing: false** — PRM pricing metadata, data, and procedure-plan overlay
 - **docgen: true** — Document Generation templates
 - **constraints: true** — Constraint Builder / product configuration rules
 - **procedureplans: true** — Procedure Plan definition, sections, options, and activation
