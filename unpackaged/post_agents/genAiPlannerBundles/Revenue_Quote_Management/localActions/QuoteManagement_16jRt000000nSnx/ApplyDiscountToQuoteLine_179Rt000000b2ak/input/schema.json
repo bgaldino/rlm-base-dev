@@ -1,5 +1,5 @@
 {
-  "required" : [ "discountPercentage", "quoteId", "quoteLineItemId" ],
+  "required" : [ "DiscountPercentage", "QuoteId", "QuoteLineItemId" ],
   "unevaluatedProperties" : false,
   "properties" : {
     "discountPercentage" : {

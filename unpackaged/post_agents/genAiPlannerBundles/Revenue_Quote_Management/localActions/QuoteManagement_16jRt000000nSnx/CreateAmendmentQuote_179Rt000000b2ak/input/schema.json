@@ -1,5 +1,5 @@
 {
-  "required" : [ "assetIds", "quantityChange" ],
+  "required" : [ "AccountId", "AssetIds", "QuantityChange" ],
   "unevaluatedProperties" : false,
   "properties" : {
     "amendmentDate" : {

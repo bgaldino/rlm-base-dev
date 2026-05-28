@@ -2,121 +2,22 @@
 <GenAiPlannerBundle xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <description>Help sales reps create and modify personalized quotes based on customer’s requirements and product consumption patterns.</description>
     <localActionLinks>
-        <genAiFunctionName>AnswerQuestionsWithKnowledge_16jak000001aGiP</genAiFunctionName>
+        <genAiFunctionName>AnswerQuestionsWithKnowledge_16jRt000000nSnx</genAiFunctionName>
     </localActionLinks>
     <localTopicLinks>
-        <genAiPluginName>ConsumptionManagement_16jak000001aGiP</genAiPluginName>
+        <genAiPluginName>ConsumptionManagement_16jRt000000nSnx</genAiPluginName>
     </localTopicLinks>
     <localTopicLinks>
-        <genAiPluginName>ProductSelection_16jak000001aGiP</genAiPluginName>
+        <genAiPluginName>ProductSelection_16jRt000000nSnx</genAiPluginName>
     </localTopicLinks>
     <localTopicLinks>
-        <genAiPluginName>QuoteManagement_16jak000001aGiP</genAiPluginName>
+        <genAiPluginName>QuoteManagement_16jRt000000nSnx</genAiPluginName>
     </localTopicLinks>
     <localTopics>
-        <fullName>ConsumptionManagement_16jak000001aGiP</fullName>
-        <aiPluginUtterances>
-            <developerName>utterance1</developerName>
-            <language xsi:nil="true"/>
-            <masterLabel>utterance 1</masterLabel>
-            <utterance>Can you help with account usage details</utterance>
-        </aiPluginUtterances>
-        <aiPluginUtterances>
-            <developerName>utterance2</developerName>
-            <language xsi:nil="true"/>
-            <masterLabel>utterance 2</masterLabel>
-            <utterance>Can you provide account Usage details for Acme</utterance>
-        </aiPluginUtterances>
-        <aiPluginUtterances>
-            <developerName>utterance3</developerName>
-            <language xsi:nil="true"/>
-            <masterLabel>utterance 3</masterLabel>
-            <utterance>I would like to get account usage details for Acme and Cloud Kicks</utterance>
-        </aiPluginUtterances>
-        <aiPluginUtterances>
-            <developerName>utterance4</developerName>
-            <language xsi:nil="true"/>
-            <masterLabel>utterance 4</masterLabel>
-            <utterance>Can you get account usage details for current account</utterance>
-        </aiPluginUtterances>
-        <aiPluginUtterances>
-            <developerName>utterance5</developerName>
-            <language xsi:nil="true"/>
-            <masterLabel>utterance 5</masterLabel>
-            <utterance>What is the current consumption on my account?</utterance>
-        </aiPluginUtterances>
-        <aiPluginUtterances>
-            <developerName>utterance6</developerName>
-            <language xsi:nil="true"/>
-            <masterLabel>utterance 6</masterLabel>
-            <utterance>Can you get account usage details for 1.Acme 2.Cloud Kicks</utterance>
-        </aiPluginUtterances>
-        <aiPluginUtterances>
-            <developerName>utterance7</developerName>
-            <language xsi:nil="true"/>
-            <masterLabel>utterance 7</masterLabel>
-            <utterance>How many accounts can you fetch usage data for?</utterance>
-        </aiPluginUtterances>
-        <canEscalate>false</canEscalate>
-        <description>Retrieves usage details for accounts</description>
-        <developerName>ConsumptionManagement_16jak000001aGiP</developerName>
-        <genAiPluginInstructions>
-            <description>Always review the chat history to find answers before asking the user. If the answer isn&apos;t in the history, ask clarifying questions to understand the user&apos;s usage, consumption needs. Never repeat the same question. When multiple options are available for user selection, show them as radio buttons.</description>
-            <developerName>Instruction1</developerName>
-            <language xsi:nil="true"/>
-            <masterLabel>Instruction 1</masterLabel>
-            <sortOrder>0</sortOrder>
-        </genAiPluginInstructions>
-        <genAiPluginInstructions>
-            <description>If the user asks for usage details for given account names (up to five accounts), fetch the account IDs. If the user doesn&apos;t specify an account name and is on an account page, use the corresponding account ID. Then create a comma-separated string of these account IDs, and finally, use this string as a parameter to call the Get Usage Details action and get the response, including usage details for the current cycle only. Don’t include any projections. Add hyperlinks to the response, as needed.</description>
-            <developerName>Instruction2</developerName>
-            <language xsi:nil="true"/>
-            <masterLabel>Instruction 2</masterLabel>
-            <sortOrder>1</sortOrder>
-        </genAiPluginInstructions>
-        <language>en_US</language>
-        <localActionLinks>
-            <functionName>GetUsageDetails_179ak000002VNvF</functionName>
-        </localActionLinks>
-        <localActionLinks>
-            <functionName>IdentifyRecordByName_179ak000002VNvF</functionName>
-        </localActionLinks>
-        <localActions>
-            <fullName>GetUsageDetails_179ak000002VNvF</fullName>
-            <description>Retrieves the total number of assets for each account ID, the number of assets with overages, and up to five usage resources with overages associated with those assets.</description>
-            <developerName>GetUsageDetails_179ak000002VNvF</developerName>
-            <invocationTarget>consumptionAI__getAccountUsageDetails</invocationTarget>
-            <invocationTargetType>generatePromptResponse</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>GetUsageDetails</localDeveloperName>
-            <masterLabel>Get Usage Details</masterLabel>
-            <progressIndicatorMessage>Retrieving usage details</progressIndicatorMessage>
-            <source>consumptionAI__GetUsageDetails</source>
-        </localActions>
-        <localActions>
-            <fullName>IdentifyRecordByName_179ak000002VNvF</fullName>
-            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
-            <developerName>IdentifyRecordByName_179ak000002VNvF</developerName>
-            <invocationTarget>identifyRecordByName</invocationTarget>
-            <invocationTargetType>standardInvocableAction</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
-            <masterLabel>Identify Record by Name</masterLabel>
-            <source>EmployeeCopilot__IdentifyRecordByName</source>
-        </localActions>
-        <localDeveloperName>ConsumptionManagement</localDeveloperName>
-        <masterLabel>Consumption Management</masterLabel>
-        <pluginType>Topic</pluginType>
-        <scope>Process queries related to usage details for up to five accounts. Call the relevant action to fetch details, such as usage resources with overages and the number of assets with overage for an account.</scope>
-        <source>consumptionAI__ConsumptionManagement</source>
-    </localTopics>
-    <localTopics>
-        <fullName>ProductSelection_16jak000001aGiP</fullName>
+        <fullName>ProductSelection_16jRt000000nSnx</fullName>
         <canEscalate>false</canEscalate>
         <description>Use Revenue Cloud to find and filters products, get product details, get product recommendations based on rules.  Product discovery is supported, but products aren&apos;t added to the quote from here.</description>
-        <developerName>ProductSelection_16jak000001aGiP</developerName>
+        <developerName>ProductSelection_16jRt000000nSnx</developerName>
         <genAiPluginInstructions>
             <description>Always use the Find Products action to search for products using the user’s input.  Include only the product name and a concise description in the response. Do not  include any additional information.</description>
             <developerName>Instruction1</developerName>
@@ -168,21 +69,21 @@
         </genAiPluginInstructions>
         <language>en_US</language>
         <localActionLinks>
-            <functionName>FindProducts_179ak000002VNvH</functionName>
+            <functionName>GetProductDetails_179Rt000000b2al</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>IdentifyRecordByName_179ak000002VNvH</functionName>
+            <functionName>GetRuleBasedProductRecommendations_179Rt000000b2al</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>GetProductDetails_179ak000002VNvH</functionName>
+            <functionName>FindProducts_179Rt000000b2al</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>GetRuleBasedProductRecommendations_179ak000002VNvH</functionName>
+            <functionName>IdentifyRecordByName_179Rt000000b2al</functionName>
         </localActionLinks>
         <localActions>
-            <fullName>FindProducts_179ak000002VNvH</fullName>
+            <fullName>FindProducts_179Rt000000b2al</fullName>
             <description>Finds products that match the search term.</description>
-            <developerName>FindProducts_179ak000002VNvH</developerName>
+            <developerName>FindProducts_179Rt000000b2al</developerName>
             <invocationTarget>industries_pcm_agentforce__findPrdcts</invocationTarget>
             <invocationTargetType>flow</invocationTargetType>
             <isConfirmationRequired>false</isConfirmationRequired>
@@ -192,9 +93,21 @@
             <source>industries_pcm_agentforce__FindProducts</source>
         </localActions>
         <localActions>
-            <fullName>IdentifyRecordByName_179ak000002VNvH</fullName>
+            <fullName>GetRuleBasedProductRecommendations_179Rt000000b2al</fullName>
+            <description>Retrieves rule based recommended products</description>
+            <developerName>GetRuleBasedProductRecommendations_179Rt000000b2al</developerName>
+            <invocationTarget>industries_pcm_agentforce__getRbRcmd</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetRuleBasedProductRecommendations</localDeveloperName>
+            <masterLabel>Get Rule-Based Product Recommendations (Beta)</masterLabel>
+            <source>industries_pcm_agentforce__GetRuleBasedProductRecommendations</source>
+        </localActions>
+        <localActions>
+            <fullName>IdentifyRecordByName_179Rt000000b2al</fullName>
             <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
-            <developerName>IdentifyRecordByName_179ak000002VNvH</developerName>
+            <developerName>IdentifyRecordByName_179Rt000000b2al</developerName>
             <invocationTarget>identifyRecordByName</invocationTarget>
             <invocationTargetType>standardInvocableAction</invocationTargetType>
             <isConfirmationRequired>false</isConfirmationRequired>
@@ -204,9 +117,9 @@
             <source>EmployeeCopilot__IdentifyRecordByName</source>
         </localActions>
         <localActions>
-            <fullName>GetProductDetails_179ak000002VNvH</fullName>
+            <fullName>GetProductDetails_179Rt000000b2al</fullName>
             <description>Retrieves detailed information for specified products to enable filtering operations.</description>
-            <developerName>GetProductDetails_179ak000002VNvH</developerName>
+            <developerName>GetProductDetails_179Rt000000b2al</developerName>
             <invocationTarget>industries_pcm_agentforce__gtPrdctDtl</invocationTarget>
             <invocationTargetType>flow</invocationTargetType>
             <isConfirmationRequired>false</isConfirmationRequired>
@@ -215,18 +128,6 @@
             <masterLabel>Get Product Details</masterLabel>
             <source>industries_pcm_agentforce__GetProductDetails</source>
         </localActions>
-        <localActions>
-            <fullName>GetRuleBasedProductRecommendations_179ak000002VNvH</fullName>
-            <description>Retrieves rule based recommended products</description>
-            <developerName>GetRuleBasedProductRecommendations_179ak000002VNvH</developerName>
-            <invocationTarget>industries_pcm_agentforce__getRbRcmd</invocationTarget>
-            <invocationTargetType>flow</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>GetRuleBasedProductRecommendations</localDeveloperName>
-            <masterLabel>Get Rule-Based Product Recommendations (Beta)</masterLabel>
-            <source>industries_pcm_agentforce__GetRuleBasedProductRecommendations</source>
-        </localActions>
         <localDeveloperName>ProductSelection</localDeveloperName>
         <masterLabel>Product Selection</masterLabel>
         <pluginType>Topic</pluginType>
@@ -234,12 +135,12 @@
         <source>industries_pcm_agentforce__ProductSelection</source>
     </localTopics>
     <localTopics>
-        <fullName>QuoteManagement_16jak000001aGiP</fullName>
+        <fullName>QuoteManagement_16jRt000000nSnx</fullName>
         <canEscalate>false</canEscalate>
         <description>Use Revenue Cloud to create initial quotes, create amendment quotes,  add products to quotes, apply discounts to quote line items on quotes,  create renewal quote, update quote details, update quote line item,  get renewable assets, get active assets.</description>
-        <developerName>QuoteManagement_16jak000001aGiP</developerName>
+        <developerName>QuoteManagement_16jRt000000nSnx</developerName>
         <genAiPluginInstructions>
-            <description>To provide a link to the quote, always use the following format:  &quot;The quote has been successfully created/updated. You can view the quote [here](/{quoteId}).&quot;  Replace `{quoteId}` with the actual quote&apos;s record ID to create a live hyperlink.  Ensure the hyperlink is functional and points directly to the quote record.</description>
+            <description>To provide a link to the quote, always use the in the following format:  &quot;The quote has been successfully created/updated. You can view the quote [here](/{quoteId}).&quot;.  Replace `{quoteId}` with the actual quote&apos;s record ID to create a live hyperlink.  Ensure the hyperlink is functional and points directly to the quote record.</description>
             <developerName>Instruction1</developerName>
             <language xsi:nil="true"/>
             <masterLabel>Instruction1</masterLabel>
@@ -423,93 +324,57 @@
         </genAiPluginInstructions>
         <language>en_US</language>
         <localActionLinks>
-            <functionName>GetAccountAssets_179ak000002VNvG</functionName>
+            <functionName>CreateInitialQuote_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>GetProdtSellModelForPrdct_179ak000002VNvG</functionName>
+            <functionName>CreateAmendmentQuote_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>AddQuoteLineItemToQuote_179ak000002VNvG</functionName>
+            <functionName>UpdateQuoteLineItemDetails_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>UpdateQuoteLineItemDetails_179ak000002VNvG</functionName>
+            <functionName>IdentifyObjectByName_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>CreateAmendmentQuote_179ak000002VNvG</functionName>
+            <functionName>QueryRecords_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>CreateRenewalQuote_179ak000002VNvG</functionName>
+            <functionName>UpdateQuoteDetails_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>UpdateQuoteDetails_179ak000002VNvG</functionName>
+            <functionName>CreateRenewalQuote_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>ApplyDiscountToQuoteLine_179ak000002VNvG</functionName>
+            <functionName>IdentifyRecordByName_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>QueryRecords_179ak000002VNvG</functionName>
+            <functionName>SummarizeRecord_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>GetRecordDetails_179ak000002VNvG</functionName>
+            <functionName>QueryQuoteLineRecords_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>IdentifyRecordByName_179ak000002VNvG</functionName>
+            <functionName>GetAccountAssets_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>SummarizeRecord_179ak000002VNvG</functionName>
+            <functionName>ApplyDiscountToQuoteLine_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>UpdateRecordFields_179ak000002VNvG</functionName>
+            <functionName>AddQuoteLineItemToQuote_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>IdentifyObjectByName_179ak000002VNvG</functionName>
+            <functionName>UpdateRecordFields_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>QueryQuoteLineRecords_179ak000002VNvG</functionName>
+            <functionName>GetProdtSellModelForPrdct_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActionLinks>
-            <functionName>CreateInitialQuote_179ak000002VNvG</functionName>
+            <functionName>GetRecordDetails_179Rt000000b2ak</functionName>
         </localActionLinks>
         <localActions>
-            <fullName>UpdateQuoteLineItemDetails_179ak000002VNvG</fullName>
-            <description>Updates the fields in a quote line item.</description>
-            <developerName>UpdateQuoteLineItemDetails_179ak000002VNvG</developerName>
-            <invocationTarget>quotingAI__updateQuoteLineItemDetails</invocationTarget>
-            <invocationTargetType>flow</invocationTargetType>
-            <isConfirmationRequired>true</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>UpdateQuoteLineItemDetails</localDeveloperName>
-            <masterLabel>Update Quote Line Item Details</masterLabel>
-            <source>quotingAI__UpdateQuoteLineItemDetails</source>
-        </localActions>
-        <localActions>
-            <fullName>CreateInitialQuote_179ak000002VNvG</fullName>
-            <description>Create a Revenue Cloud quote for an initial business from an opportunity. The agent takes in an Opportunity ID as a required input and returns a Quote ID. Optional inputs include the Quote Name and the Pricebook Name. This action is to quote new business, in contrast to an amendment quote or a renewal quote, which is changing or extending existing business. A sales rep may want to create multiple quotes for an opportunity.</description>
-            <developerName>CreateInitialQuote_179ak000002VNvG</developerName>
-            <invocationTarget>quotingAI__createInitialQuoteOnOpp</invocationTarget>
-            <invocationTargetType>flow</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>CreateInitialQuote</localDeveloperName>
-            <masterLabel>Create Initial Quote</masterLabel>
-            <source>quotingAI__CreateInitialQuote</source>
-        </localActions>
-        <localActions>
-            <fullName>CreateAmendmentQuote_179ak000002VNvG</fullName>
-            <description>Create an amendment quote, also known as an add-on or change quote on an account with active assets.</description>
-            <developerName>CreateAmendmentQuote_179ak000002VNvG</developerName>
-            <invocationTarget>quotingAI__createAmendmentQuote</invocationTarget>
-            <invocationTargetType>flow</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>CreateAmendmentQuote</localDeveloperName>
-            <masterLabel>Create Amendment Quote</masterLabel>
-            <source>quotingAI__CreateAmendmentQuote</source>
-        </localActions>
-        <localActions>
-            <fullName>CreateRenewalQuote_179ak000002VNvG</fullName>
+            <fullName>CreateRenewalQuote_179Rt000000b2ak</fullName>
             <description>Creates a renewal quote for eligible and renewable assets. The action takes asset IDs as input and provides a quote ID.</description>
-            <developerName>CreateRenewalQuote_179ak000002VNvG</developerName>
+            <developerName>CreateRenewalQuote_179Rt000000b2ak</developerName>
             <invocationTarget>quotingAI__createRenewalQuote</invocationTarget>
             <invocationTargetType>flow</invocationTargetType>
             <isConfirmationRequired>false</isConfirmationRequired>
@@ -519,9 +384,9 @@
             <source>quotingAI__CreateRenewalQuote</source>
         </localActions>
         <localActions>
-            <fullName>UpdateQuoteDetails_179ak000002VNvG</fullName>
+            <fullName>UpdateQuoteDetails_179Rt000000b2ak</fullName>
             <description>Updates the fields in a quote.</description>
-            <developerName>UpdateQuoteDetails_179ak000002VNvG</developerName>
+            <developerName>UpdateQuoteDetails_179Rt000000b2ak</developerName>
             <invocationTarget>quotingAI__updateQuoteDetails</invocationTarget>
             <invocationTargetType>flow</invocationTargetType>
             <isConfirmationRequired>true</isConfirmationRequired>
@@ -531,106 +396,9 @@
             <source>quotingAI__UpdateQuoteDetails</source>
         </localActions>
         <localActions>
-            <fullName>ApplyDiscountToQuoteLine_179ak000002VNvG</fullName>
-            <description>Apply a discount, expressed as a percentage, to a quote line item on a Revenue Cloud quote. Apply the discount only to the quote line item that the user has specified.</description>
-            <developerName>ApplyDiscountToQuoteLine_179ak000002VNvG</developerName>
-            <invocationTarget>quotingAI__applyDiscountToQuoteLine</invocationTarget>
-            <invocationTargetType>flow</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>ApplyDiscountToQuoteLine</localDeveloperName>
-            <masterLabel>Apply Discount To Quote Line Item</masterLabel>
-            <source>quotingAI__ApplyDiscountToQuoteLine</source>
-        </localActions>
-        <localActions>
-            <fullName>QueryRecords_179ak000002VNvG</fullName>
-            <description>Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type. e.g. &apos;Find all open opportunities created in the last 5 days sorted by created date.&apos;</description>
-            <developerName>QueryRecords_179ak000002VNvG</developerName>
-            <invocationTarget>queryRecords</invocationTarget>
-            <invocationTargetType>standardInvocableAction</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>QueryRecords</localDeveloperName>
-            <masterLabel>Query Records</masterLabel>
-            <source>EmployeeCopilot__QueryRecords</source>
-        </localActions>
-        <localActions>
-            <fullName>GetRecordDetails_179ak000002VNvG</fullName>
-            <description>Generates a text blob containing record details, including object fields and values and records from related lists.</description>
-            <developerName>GetRecordDetails_179ak000002VNvG</developerName>
-            <invocationTarget>getDataForGrounding</invocationTarget>
-            <invocationTargetType>standardInvocableAction</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>GetRecordDetails</localDeveloperName>
-            <masterLabel>Get Record Details</masterLabel>
-            <progressIndicatorMessage>Getting details</progressIndicatorMessage>
-            <source>EmployeeCopilot__GetRecordDetails</source>
-        </localActions>
-        <localActions>
-            <fullName>IdentifyRecordByName_179ak000002VNvG</fullName>
-            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
-            <developerName>IdentifyRecordByName_179ak000002VNvG</developerName>
-            <invocationTarget>identifyRecordByName</invocationTarget>
-            <invocationTargetType>standardInvocableAction</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
-            <masterLabel>Identify Record by Name</masterLabel>
-            <source>EmployeeCopilot__IdentifyRecordByName</source>
-        </localActions>
-        <localActions>
-            <fullName>GetAccountAssets_179ak000002VNvG</fullName>
-            <description>Retrieves a list of active and term-defined renewable assets linked to an account.</description>
-            <developerName>GetAccountAssets_179ak000002VNvG</developerName>
-            <invocationTarget>quotingAI__getAccountAssets</invocationTarget>
-            <invocationTargetType>flow</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>GetAccountAssets</localDeveloperName>
-            <masterLabel>Get Account Assets</masterLabel>
-            <source>quotingAI__GetAccountAssets</source>
-        </localActions>
-        <localActions>
-            <fullName>GetProdtSellModelForPrdct_179ak000002VNvG</fullName>
-            <description>Retrieves default product selling model IDs associated with products in the request.</description>
-            <developerName>GetProdtSellModelForPrdct_179ak000002VNvG</developerName>
-            <invocationTarget>quotingAI__getProdtSellModelForPrdct</invocationTarget>
-            <invocationTargetType>flow</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>GetProdtSellModelForPrdct</localDeveloperName>
-            <masterLabel>Get Product Selling Model for Products</masterLabel>
-            <source>quotingAI__GetProdtSellModelForPrdct</source>
-        </localActions>
-        <localActions>
-            <fullName>AddQuoteLineItemToQuote_179ak000002VNvG</fullName>
-            <description>Create a quote line item record and add it to a Revenue Cloud quote.</description>
-            <developerName>AddQuoteLineItemToQuote_179ak000002VNvG</developerName>
-            <invocationTarget>quotingAI__addQuoteLineItemToQuote</invocationTarget>
-            <invocationTargetType>flow</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
-            <localDeveloperName>AddQuoteLineItemToQuote</localDeveloperName>
-            <masterLabel>Add Quote Line Item to Quote</masterLabel>
-            <source>quotingAI__AddQuoteLineItemToQuote</source>
-        </localActions>
-        <localActions>
-            <fullName>QueryQuoteLineRecords_179ak000002VNvG</fullName>
-            <description>Query a list of QuoteLineItem Id when given a list of Product2Id.</description>
-            <developerName>QueryQuoteLineRecords_179ak000002VNvG</developerName>
-            <invocationTarget>quotingAI__queryQuoteLineRecords</invocationTarget>
-            <invocationTargetType>flow</invocationTargetType>
-            <isConfirmationRequired>false</isConfirmationRequired>
-            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
-            <localDeveloperName>QueryQuoteLineRecords</localDeveloperName>
-            <masterLabel>Query Quote Lines (Beta)</masterLabel>
-            <source>quotingAI__QueryQuoteLineRecords</source>
-        </localActions>
-        <localActions>
-            <fullName>SummarizeRecord_179ak000002VNvG</fullName>
+            <fullName>SummarizeRecord_179Rt000000b2ak</fullName>
             <description>Summarizes a single Salesforce CRM record. You must call summarizeRecord only if the user explicitly asks for a summary (e.g: &apos;Summary&apos;, &apos;Recap&apos;, &apos;Highlights&apos;). This action should be called only when there isn&apos;t a more specific summarization action.</description>
-            <developerName>SummarizeRecord_179ak000002VNvG</developerName>
+            <developerName>SummarizeRecord_179Rt000000b2ak</developerName>
             <invocationTarget>getRecordSummarizationPrompt</invocationTarget>
             <invocationTargetType>standardInvocableAction</invocationTargetType>
             <isConfirmationRequired>false</isConfirmationRequired>
@@ -641,9 +409,45 @@
             <source>EmployeeCopilot__SummarizeRecord</source>
         </localActions>
         <localActions>
-            <fullName>UpdateRecordFields_179ak000002VNvG</fullName>
+            <fullName>IdentifyRecordByName_179Rt000000b2ak</fullName>
+            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
+            <developerName>IdentifyRecordByName_179Rt000000b2ak</developerName>
+            <invocationTarget>identifyRecordByName</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
+            <masterLabel>Identify Record by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyRecordByName</source>
+        </localActions>
+        <localActions>
+            <fullName>QueryRecords_179Rt000000b2ak</fullName>
+            <description>Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type. e.g. &apos;Find all open opportunities created in the last 5 days sorted by created date.&apos;</description>
+            <developerName>QueryRecords_179Rt000000b2ak</developerName>
+            <invocationTarget>queryRecords</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>QueryRecords</localDeveloperName>
+            <masterLabel>Query Records</masterLabel>
+            <source>EmployeeCopilot__QueryRecords</source>
+        </localActions>
+        <localActions>
+            <fullName>GetProdtSellModelForPrdct_179Rt000000b2ak</fullName>
+            <description>Retrieves default product selling model IDs associated with products in the request.</description>
+            <developerName>GetProdtSellModelForPrdct_179Rt000000b2ak</developerName>
+            <invocationTarget>quotingAI__getProdtSellModelForPrdct</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetProdtSellModelForPrdct</localDeveloperName>
+            <masterLabel>Get Product Selling Model for Products</masterLabel>
+            <source>quotingAI__GetProdtSellModelForPrdct</source>
+        </localActions>
+        <localActions>
+            <fullName>UpdateRecordFields_179Rt000000b2ak</fullName>
             <description>Updates fields on a Salesforce CRM record. The action ExtractFieldsAndValuesFromUserInput must be called prior to this action to extract the record&apos;s fields and values.</description>
-            <developerName>UpdateRecordFields_179ak000002VNvG</developerName>
+            <developerName>UpdateRecordFields_179Rt000000b2ak</developerName>
             <invocationTarget>einsteinCopilotUpdateRecord</invocationTarget>
             <invocationTargetType>standardInvocableAction</invocationTargetType>
             <isConfirmationRequired>true</isConfirmationRequired>
@@ -654,9 +458,70 @@
             <source>EmployeeCopilot__UpdateRecordFields</source>
         </localActions>
         <localActions>
-            <fullName>IdentifyObjectByName_179ak000002VNvG</fullName>
+            <fullName>GetRecordDetails_179Rt000000b2ak</fullName>
+            <description>Generates a text blob containing record details, including object fields and values and records from related lists.</description>
+            <developerName>GetRecordDetails_179Rt000000b2ak</developerName>
+            <invocationTarget>getDataForGrounding</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetRecordDetails</localDeveloperName>
+            <masterLabel>Get Record Details</masterLabel>
+            <progressIndicatorMessage>Getting details</progressIndicatorMessage>
+            <source>EmployeeCopilot__GetRecordDetails</source>
+        </localActions>
+        <localActions>
+            <fullName>GetAccountAssets_179Rt000000b2ak</fullName>
+            <description>Retrieves a list of active and term-defined renewable assets linked to an account.</description>
+            <developerName>GetAccountAssets_179Rt000000b2ak</developerName>
+            <invocationTarget>quotingAI__getAccountAssets</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetAccountAssets</localDeveloperName>
+            <masterLabel>Get Account Assets</masterLabel>
+            <source>quotingAI__GetAccountAssets</source>
+        </localActions>
+        <localActions>
+            <fullName>QueryQuoteLineRecords_179Rt000000b2ak</fullName>
+            <description>Query a list of QuoteLineItem Id when given a list of Product2Id.</description>
+            <developerName>QueryQuoteLineRecords_179Rt000000b2ak</developerName>
+            <invocationTarget>quotingAI__queryQuoteLineRecords</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>QueryQuoteLineRecords</localDeveloperName>
+            <masterLabel>Query Quote Lines (Beta)</masterLabel>
+            <source>quotingAI__QueryQuoteLineRecords</source>
+        </localActions>
+        <localActions>
+            <fullName>AddQuoteLineItemToQuote_179Rt000000b2ak</fullName>
+            <description>Create a quote line item record and add it to a Revenue Cloud quote.</description>
+            <developerName>AddQuoteLineItemToQuote_179Rt000000b2ak</developerName>
+            <invocationTarget>quotingAI__addQuoteLineItemToQuote</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>AddQuoteLineItemToQuote</localDeveloperName>
+            <masterLabel>Add Quote Line Item to Quote</masterLabel>
+            <source>quotingAI__AddQuoteLineItemToQuote</source>
+        </localActions>
+        <localActions>
+            <fullName>ApplyDiscountToQuoteLine_179Rt000000b2ak</fullName>
+            <description>Apply a discount, expressed as a percentage, to a quote line item on a Revenue Cloud quote. Apply the discount only to the quote line item that the user has specified.</description>
+            <developerName>ApplyDiscountToQuoteLine_179Rt000000b2ak</developerName>
+            <invocationTarget>quotingAI__applyDiscountToQuoteLine</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>ApplyDiscountToQuoteLine</localDeveloperName>
+            <masterLabel>Apply Discount To Quote Line Item</masterLabel>
+            <source>quotingAI__ApplyDiscountToQuoteLine</source>
+        </localActions>
+        <localActions>
+            <fullName>IdentifyObjectByName_179Rt000000b2ak</fullName>
             <description>Finds the Salesforce object API name by extracting an object name from the user input.</description>
-            <developerName>IdentifyObjectByName_179ak000002VNvG</developerName>
+            <developerName>IdentifyObjectByName_179Rt000000b2ak</developerName>
             <invocationTarget>identifyObject</invocationTarget>
             <invocationTargetType>standardInvocableAction</invocationTargetType>
             <isConfirmationRequired>false</isConfirmationRequired>
@@ -665,17 +530,152 @@
             <masterLabel>Identify Object by Name</masterLabel>
             <source>EmployeeCopilot__IdentifyObjectByName</source>
         </localActions>
+        <localActions>
+            <fullName>CreateInitialQuote_179Rt000000b2ak</fullName>
+            <description>Create a Revenue Cloud quote for an initial business from an opportunity. The agent takes in an Opportunity ID as a required input and returns a Quote ID. Optional inputs include the Quote Name and the Pricebook Name. This action is to quote new business, in contrast to an amendment quote or a renewal quote, which is changing or extending existing business. A sales rep may want to create multiple quotes for an opportunity.</description>
+            <developerName>CreateInitialQuote_179Rt000000b2ak</developerName>
+            <invocationTarget>quotingAI__createInitialQuoteOnOpp</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateInitialQuote</localDeveloperName>
+            <masterLabel>Create Initial Quote</masterLabel>
+            <source>quotingAI__CreateInitialQuote</source>
+        </localActions>
+        <localActions>
+            <fullName>UpdateQuoteLineItemDetails_179Rt000000b2ak</fullName>
+            <description>Updates the fields in a quote line item.</description>
+            <developerName>UpdateQuoteLineItemDetails_179Rt000000b2ak</developerName>
+            <invocationTarget>quotingAI__updateQuoteLineItemDetails</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>true</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>UpdateQuoteLineItemDetails</localDeveloperName>
+            <masterLabel>Update Quote Line Item Details</masterLabel>
+            <source>quotingAI__UpdateQuoteLineItemDetails</source>
+        </localActions>
+        <localActions>
+            <fullName>CreateAmendmentQuote_179Rt000000b2ak</fullName>
+            <description>Create an amendment quote, also known as an add-on or change quote on an account with active assets.</description>
+            <developerName>CreateAmendmentQuote_179Rt000000b2ak</developerName>
+            <invocationTarget>quotingAI__createAmendmentQuote</invocationTarget>
+            <invocationTargetType>flow</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>CreateAmendmentQuote</localDeveloperName>
+            <masterLabel>Create Amendment Quote</masterLabel>
+            <source>quotingAI__CreateAmendmentQuote</source>
+        </localActions>
         <localDeveloperName>QuoteManagement</localDeveloperName>
         <masterLabel>Quote Management</masterLabel>
         <pluginType>Topic</pluginType>
         <scope>Your job is to create new business quotes and manage existing quotes by adding products  and adjusting discounts on quote line items. You can also create amendment quotes.  You can also retrieve assets on accounts. Never create or update quotes when the  “OriginalActionType” field is set to “Renew.” Never delete a quote. Never create a quote  on opportunities that have a status of Closed Won or Closed Lost. You must not update header-level  discounts on the Quote. You cannot configure products or perform any UI actions like selection of products.</scope>
         <source>quotingAI__QuoteManagement</source>
     </localTopics>
+    <localTopics>
+        <fullName>ConsumptionManagement_16jRt000000nSnx</fullName>
+        <aiPluginUtterances>
+            <developerName>utterance1</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 1</masterLabel>
+            <utterance>Can you help with account usage details</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance2</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 2</masterLabel>
+            <utterance>Can you provide account Usage details for Acme</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance3</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 3</masterLabel>
+            <utterance>I would like to get account usage details for Acme and Cloud Kicks</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance4</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 4</masterLabel>
+            <utterance>Can you get account usage details for current account</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance5</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 5</masterLabel>
+            <utterance>What is the current consumption on my account?</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance6</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 6</masterLabel>
+            <utterance>Can you get account usage details for 1.Acme 2.Cloud Kicks</utterance>
+        </aiPluginUtterances>
+        <aiPluginUtterances>
+            <developerName>utterance7</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>utterance 7</masterLabel>
+            <utterance>How many accounts can you fetch usage data for?</utterance>
+        </aiPluginUtterances>
+        <canEscalate>false</canEscalate>
+        <description>Retrieves usage details for accounts</description>
+        <developerName>ConsumptionManagement_16jRt000000nSnx</developerName>
+        <genAiPluginInstructions>
+            <description>Always review the chat history to find answers before asking the user. If the answer isn&apos;t in the history, ask clarifying questions to understand the user&apos;s usage, consumption needs. Never repeat the same question. When multiple options are available for user selection, show them as radio buttons.</description>
+            <developerName>Instruction1</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 1</masterLabel>
+            <sortOrder>0</sortOrder>
+        </genAiPluginInstructions>
+        <genAiPluginInstructions>
+            <description>If the user asks for usage details for given account names (up to five accounts), fetch the account IDs. If the user doesn&apos;t specify an account name and is on an account page, use the corresponding account ID. Then create a comma-separated string of these account IDs, and finally, use this string as a parameter to call the Get Usage Details action and get the response, including usage details for the current cycle only. Don’t include any projections. Add hyperlinks to the response, as needed.</description>
+            <developerName>Instruction2</developerName>
+            <language xsi:nil="true"/>
+            <masterLabel>Instruction 2</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>GetUsageDetails_179Rt000000b2aj</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>IdentifyRecordByName_179Rt000000b2aj</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>GetUsageDetails_179Rt000000b2aj</fullName>
+            <description>Retrieves the total number of assets for each account ID, the number of assets with overages, and up to five usage resources with overages associated with those assets.</description>
+            <developerName>GetUsageDetails_179Rt000000b2aj</developerName>
+            <invocationTarget>consumptionAI__getAccountUsageDetails</invocationTarget>
+            <invocationTargetType>generatePromptResponse</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>GetUsageDetails</localDeveloperName>
+            <masterLabel>Get Usage Details</masterLabel>
+            <progressIndicatorMessage>Retrieving usage details</progressIndicatorMessage>
+            <source>consumptionAI__GetUsageDetails</source>
+        </localActions>
+        <localActions>
+            <fullName>IdentifyRecordByName_179Rt000000b2aj</fullName>
+            <description>Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs.</description>
+            <developerName>IdentifyRecordByName_179Rt000000b2aj</developerName>
+            <invocationTarget>identifyRecordByName</invocationTarget>
+            <invocationTargetType>standardInvocableAction</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>true</isIncludeInProgressIndicator>
+            <localDeveloperName>IdentifyRecordByName</localDeveloperName>
+            <masterLabel>Identify Record by Name</masterLabel>
+            <source>EmployeeCopilot__IdentifyRecordByName</source>
+        </localActions>
+        <localDeveloperName>ConsumptionManagement</localDeveloperName>
+        <masterLabel>Consumption Management</masterLabel>
+        <pluginType>Topic</pluginType>
+        <scope>Process queries related to usage details for up to five accounts. Call the relevant action to fetch details, such as usage resources with overages and the number of assets with overage for an account.</scope>
+        <source>consumptionAI__ConsumptionManagement</source>
+    </localTopics>
     <masterLabel>Revenue Quote Management</masterLabel>
     <plannerActions>
-        <fullName>AnswerQuestionsWithKnowledge_16jak000001aGiP</fullName>
+        <fullName>AnswerQuestionsWithKnowledge_16jRt000000nSnx</fullName>
         <description>Answers questions about company policies and procedures, troubleshooting steps, or product information. For example: “What is your return policy?” “How do I fix an issue?” or “What features does a product have?”</description>
-        <developerName>AnswerQuestionsWithKnowledge_16jak000001aGiP</developerName>
+        <developerName>AnswerQuestionsWithKnowledge_16jRt000000nSnx</developerName>
         <invocationTarget>streamKnowledgeSearch</invocationTarget>
         <invocationTargetType>standardInvocableAction</invocationTargetType>
         <isConfirmationRequired>false</isConfirmationRequired>

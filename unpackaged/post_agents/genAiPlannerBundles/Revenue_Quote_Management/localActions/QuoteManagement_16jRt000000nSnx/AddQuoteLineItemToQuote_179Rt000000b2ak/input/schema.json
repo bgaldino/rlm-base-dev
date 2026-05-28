@@ -1,5 +1,5 @@
 {
-  "required" : [ "productId", "quoteId", "productSellingModelID" ],
+  "required" : [ "ProductId", "QuoteId", "ProductSellingModelID" ],
   "unevaluatedProperties" : false,
   "properties" : {
     "productId" : {
