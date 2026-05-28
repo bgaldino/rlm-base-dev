@@ -159,6 +159,12 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 
 ## qb-guidedselling
 
+Guided Selling setup is metadata-backed. Use `prepare_guidedselling` /
+`deploy_post_guidedselling` for OmniStudio setup; keep this SFDMU plan for
+extraction and preservation of OmniStudio data only, not for org setup or
+aggregate idempotency loads. Product2 guided-selling field values load through
+`qb-guidedselling-products`.
+
 | SObject | externalId | Operation | Notes |
 |---------|-----------|-----------|-------|
 | AssessmentQuestionConfig | `DeveloperName` | Upsert | |
@@ -171,6 +177,14 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | OmniScriptConfig | `DeveloperName` | Upsert | |
 | OmniProcessElement | traversal composite | **Insert** + deleteOldData | Bug 3 |
 | OmniProcessAsmtQuestionVer | traversal composite | **Insert** + deleteOldData | Bug 3 |
+
+## qb-guidedselling-products
+
+Product2 guided-selling field values are loaded as a separate decorator plan after `qb-pcm` creates the products and `deploy_post_guidedselling` deploys the RLM-prefixed fields.
+
+| SObject | externalId | Operation | Notes |
+|---------|------------|-----------|-------|
+| Product2 | `StockKeepingUnit` | Update | Updates `RLM_Primary_Goal__c`, `RLM_Timeline__c`, and `RLM_Platform_Control__c` only; does not create products |
 
 ## Standalone Plans
 

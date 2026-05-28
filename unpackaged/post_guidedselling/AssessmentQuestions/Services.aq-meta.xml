@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Services</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>What services do you need most?</questionText>
+        <responseValues>Hardware setup and rack installation
+Software configuration and integration
+Training for my team
+Ongoing support and success management</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Multiselect</dataType>
+    <developerName>Services</developerName>
+    <name>Services</name>
+    <questionCategory>Demographic</questionCategory>
+</AssessmentQuestion>

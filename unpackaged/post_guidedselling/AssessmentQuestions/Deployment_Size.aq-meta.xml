@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Deployment Size</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>How large is your deployment?</questionText>
+        <responseValues>Small (1–5 servers, limited rack space)
+Medium (6–20 servers, single rack)
+Large (20+ servers, mission-critical uptime required)</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Select</dataType>
+    <developerName>Deployment_Size</developerName>
+    <name>Deployment Size</name>
+    <questionCategory>Demographic</questionCategory>
+</AssessmentQuestion>

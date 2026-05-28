@@ -151,7 +151,7 @@ project:
     constraints: true         # Constraint Builder
     constraints_data: true    # Constraint Builder sample data
     breconfig: false          # Business Rules Engine configuration
-    guidedselling: false      # Guided Selling
+    guidedselling: true      # Guided Selling
     procedureplans: true      # Procedure Plans
 
     # ── Data & UX ──────────────────────────────────────────────────────────────
@@ -341,6 +341,15 @@ project:
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
       #- RLM_Collection_Plan_Activity
+
+    ps_guidedselling: &ps_guidedselling
+      # Guided Selling runtime/configuration permission sets available before metadata deploy
+      - OmniStudioAdmin
+      - ProductCatalogManagementAdministrator
+
+    ps_guidedselling_metadata: &ps_guidedselling_metadata
+      # Guided Selling permission sets deployed with unpackaged/post_guidedselling
+      - RLM_Guided_Selling
 
     ps_calmdelete: &ps_calmdelete
       # CALM Delete-specific permission sets
@@ -559,6 +568,7 @@ project:
     quantumbit_pcm_constraints_data_dir: &quantumbit_pcm_constraints_data_dir "datasets/constraints/qb/QuantumBitPCM"  # QuantumBitPCM CML constraint model data (CSVs + blob)
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
     quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
+    quantumbit_guidedselling_products_dataset: &quantumbit_guidedselling_products_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling-products"   # QuantumBit guided selling Product2 field values
     quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
     quantumbit_prm_dataset: &quantumbit_prm_dataset "datasets/sfdmu/qb/en-US/qb-prm"                                 # QuantumBit PRM data
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
@@ -1279,7 +1289,8 @@ tasks:
       path: unpackaged/post_billing_template_settings
 
   deploy_post_guidedselling:
-    description: Deploy Guided Selling Metadata
+    group: Revenue Lifecycle Management
+    description: Deploy Guided Selling metadata
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_guidedselling
@@ -1772,6 +1783,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
 
+  insert_qb_guidedselling_products_data:
+    group: Revenue Lifecycle Management
+    description: Update QuantumBit guided selling Product2 field values
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_guidedselling_products_dataset
+
   insert_qb_approvals_data:
     group: Revenue Lifecycle Management
     description: >
@@ -2188,6 +2206,13 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
 
+  extract_qb_guidedselling_products_data:
+    group: Data Management - Extract
+    description: "Extract qb-guidedselling-products from org to CSV. Output in datasets/sfdmu/extractions/qb-guidedselling-products/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_guidedselling_products_dataset
+
   extract_qb_approvals_data:
     group: Data Management - Extract
     description: "Extract qb-approvals (ApprovalAlertContentDef) from org to CSV. Output in datasets/sfdmu/extractions/qb-approvals/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -2296,6 +2321,14 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_guidedselling_dataset
+      use_extraction_roundtrip: false
+
+  test_qb_guidedselling_products_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for qb-guidedselling-products (Product2 guided selling field updates).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *quantumbit_guidedselling_products_dataset
       use_extraction_roundtrip: false
 
   test_qb_approvals_idempotency:
@@ -3517,11 +3550,21 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: insert_qb_guidedselling_data
-        when: project_config.project__custom__guidedselling and project_config.project__custom__qb
+        task: assign_permission_sets
+        when: project_config.project__custom__guidedselling
+        options:
+          api_names: *ps_guidedselling
       2:
         task: deploy_post_guidedselling
         when: project_config.project__custom__guidedselling
+      3:
+        task: assign_permission_sets
+        when: project_config.project__custom__guidedselling
+        options:
+          api_names: *ps_guidedselling_metadata
+      4:
+        task: insert_qb_guidedselling_products_data
+        when: project_config.project__custom__guidedselling and project_config.project__custom__qb
 
   prepare_analytics:
     group: Revenue Lifecycle Management
@@ -3713,6 +3756,8 @@ flows:
         task: extract_qb_transactionprocessingtypes_data
       9:
         task: extract_qb_guidedselling_data
+      10:
+        task: extract_qb_guidedselling_products_data
 
   run_qb_idempotency_tests:
     group: Data Management - Idempotency
@@ -3735,7 +3780,9 @@ flows:
       8:
         task: test_qb_transactionprocessingtypes_idempotency
       9:
-        task: test_qb_guidedselling_idempotency
+        # Intentional exclusion: legacy qb-guidedselling idempotency remains standalone
+        # because that plan is preservation-only until CSVs are regenerated from a canonical org.
+        task: test_qb_guidedselling_products_idempotency
 
   stamp_git_commit:
     group: RLM Administration

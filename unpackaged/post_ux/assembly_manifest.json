@@ -1,7 +1,7 @@
 {
-  "assembled_at": "2026-05-22T23:15:08.665246Z",
+  "assembled_at": "2026-05-21T22:57:35.226461Z",
   "feature_flags": {
-    "quantumbit": true,
+    "qb": true,
     "billing": true,
     "billing_ui": true,
     "tax": true,
@@ -9,7 +9,7 @@
     "rates": true,
     "clm": true,
     "dro": true,
-    "guidedselling": false,
+    "guidedselling": true,
     "ramps": true,
     "tso": false,
     "prm": true,
@@ -19,9 +19,7 @@
     "constraints": true,
     "analytics": true,
     "procedureplans": true,
-    "large_stx": false,
-    "collections": false,
-    "personas": true
+    "collections": false
   },
   "assembled": [
     {
@@ -151,13 +149,6 @@
     },
     {
       "type": "flexipage",
-      "name": "RLM_Dispute_Record_Page.flexipage-meta.xml",
-      "dest": "unpackaged/post_ux/flexipages/RLM_Dispute_Record_Page.flexipage-meta.xml",
-      "source": "templates/flexipages/standalone/billing_ui/RLM_Dispute_Record_Page.flexipage-meta.xml",
-      "patches": []
-    },
-    {
-      "type": "flexipage",
       "name": "RLM_Document_Clause_Set_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Document_Clause_Set_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Document_Clause_Set_Record_Page.flexipage-meta.xml",
@@ -255,11 +246,6 @@
       "patches": [
         {
           "feature": "billing_ui",
-          "patch_type": "insert_action",
-          "description": "insert actions: PreviewInvoices, BillNow"
-        },
-        {
-          "feature": "billing_ui",
           "patch_type": "insert_after_xml",
           "description": "insert XML after <name>detailTabContent</name>"
         },
@@ -267,6 +253,11 @@
           "feature": "billing_ui",
           "patch_type": "insert_after_xml",
           "description": "insert XML after <identifier>detailTab</identifier>"
+        },
+        {
+          "feature": "billing_ui",
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <value>BrowseCatalog</value>"
         },
         {
           "feature": "billing_ui",
@@ -308,9 +299,14 @@
       "source": "templates/flexipages/base/RLM_Product_Record_Page.flexipage-meta.xml",
       "patches": [
         {
-          "feature": "constraints",
+          "feature": "guidedselling",
           "patch_type": "insert_after_xml",
-          "description": "insert XML after <identifier>runtime_industries_pricing_pricingDiscountCalendar</identifier>"
+          "description": "insert XML after <name>Facet-0c7c6745-b043-4551-a759-983b62e14c5a</name>"
+        },
+        {
+          "feature": "guidedselling",
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <identifier>flexipage_fieldSection4</identifier>"
         }
       ]
     },
@@ -417,11 +413,6 @@
           "feature": "ramp_builder",
           "patch_type": "add_facet_field",
           "description": "add fields to System Information: RLM_Approval_Level__c"
-        },
-        {
-          "feature": "personas",
-          "patch_type": "insert_after_xml",
-          "description": "insert XML after <identifier>runtime_sales_pathassistant_pathAssistant</identifier>"
         }
       ]
     },
@@ -777,12 +768,6 @@
           "description": "layout: Order-RLM Order Layout"
         }
       ]
-    },
-    {
-      "type": "profile",
-      "name": "RLM Sales Representative.profile-meta.xml",
-      "dest": "unpackaged/post_ux/profiles/RLM Sales Representative.profile-meta.xml",
-      "patches": []
     },
     {
       "type": "CustomObject",

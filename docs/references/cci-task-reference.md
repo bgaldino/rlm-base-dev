@@ -383,6 +383,7 @@ cci task info <task_name>
 | `insert_qb_constraints_product_data` | Insert QuantumBit Constraints Product Data |
 | `insert_qb_dro_data` | Insert QuantumBit DRO Data (scratch and prod; AssignedTo resolved from target org) |
 | `insert_qb_guidedselling_data` | Insert QuantumBit Guided Selling Data |
+| `insert_qb_guidedselling_products_data` | Update QuantumBit guided selling Product2 field values |
 | `insert_qb_rates_data` | Insert QuantumBit Rates Data |
 | `insert_qb_rating_data` | Insert QuantumBit Rating Data |
 | `insert_qb_transactionprocessingtypes_` | Insert QuantumBit Transaction |
@@ -570,6 +571,7 @@ cci task info <task_name>
 | `extract_qb_dro_data` | Extract qb-dro from org to CSV. Output in datasets/sfdmu/extractions/qb-dro/<ti mestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
 | `extract_qb_guidedselling_data` | Extract qb-guidedselling from org to CSV. Output in |
 | `datasets/sfdmu/extractions/qb-guideds` | elling/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
+| `extract_qb_guidedselling_products_data` | Extract qb-guidedselling-products from org to CSV. |
 | `extract_qb_pcm_data` | Extract qb-pcm (product catalog) from org to CSV. Output in datasets/sfdmu/extractions/qb-pcm/<ti mestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
 | `extract_qb_pricing_data` | Extract qb-pricing from org to CSV. Output in |
 | `datasets/sfdmu/extractions/qb-pricing` | /<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
@@ -596,6 +598,7 @@ cci task info <task_name>
 | `test_qb_clm_idempotency` | Idempotency test for qb-clm. |
 | `test_qb_dro_idempotency` | Idempotency test for qb-dro. Note: plan uses dynamic_assigned_to_user for load; test runs without it (scratch org user may differ). |
 | `test_qb_guidedselling_idempotency` | Idempotency test for qb-guidedselling. |
+| `test_qb_guidedselling_products_idempotency` | Idempotency test for qb-guidedselling-products (Product2 guided selling field updates). |
 | `test_qb_pcm_idempotency` | Idempotency test for qb-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/qb-pcm/<ti mestamp>. |
 | `test_qb_pricing_idempotency` | Idempotency test for qb-pricing (load twice from source, assert no new records). |
 | `test_qb_prm_idempotency` | Idempotency test for qb-prm (partner relationship management). |

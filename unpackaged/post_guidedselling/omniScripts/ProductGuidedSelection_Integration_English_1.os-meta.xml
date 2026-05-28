@@ -2,7 +2,7 @@
 <OmniScript xmlns="http://soap.sforce.com/2006/04/metadata">
     <description>Encapsulates Product Guided Selection integration details.</description>
     <designerCustomizationType>Discovery Framework</designerCustomizationType>
-    <discoveryFrameworkUsageType>0</discoveryFrameworkUsageType>
+    <discoveryFrameworkUsageType>Default</discoveryFrameworkUsageType>
     <elementTypeComponentMapping>{&quot;ElementTypeToHTMLTemplateList&quot;:[]}</elementTypeComponentMapping>
     <isActive>true</isActive>
     <isIntegrationProcedure>false</isIntegrationProcedure>
@@ -14,7 +14,7 @@
     <language>English</language>
     <name>ProductGuidedSelectionIntegration</name>
     <omniProcessElements>
-        <discoveryFrameworkUsageType>0</discoveryFrameworkUsageType>
+        <discoveryFrameworkUsageType>Default</discoveryFrameworkUsageType>
         <isActive>true</isActive>
         <isOmniScriptEmbeddable>false</isOmniScriptEmbeddable>
         <level>0.0</level>
