@@ -356,10 +356,18 @@ def main():
                         help="Only act on pdf_artifact orphans (empty description)")
     parser.add_argument("--aggressive", action="store_true",
                         help="Act on all orphan types. Requires --orgs (multiple).")
-    parser.add_argument("--apply", action="store_true",
-                        help="Actually modify erd-data.json (default: dry-run)")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Don't modify anything (default behavior)")
+    # --apply and --dry-run are explicitly mutually exclusive. Earlier
+    # revisions left both as bare flags, so a user who passed
+    # `--apply --dry-run` (e.g. wrapper script that always appends
+    # `--dry-run` for safety) would still mutate erd-data.json because only
+    # `args.apply` controlled the mutation branch. Reject the combination
+    # up-front so the explicit dry-run intent is honored.
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument("--apply", action="store_true",
+                            help="Actually modify erd-data.json (default: dry-run)")
+    mode_group.add_argument("--dry-run", action="store_true",
+                            help="Don't modify anything (default behavior). "
+                                 "Mutually exclusive with --apply.")
     parser.add_argument("--report", default="docs/erds/orphan-candidates.md",
                         help="Output markdown report path (relative to repo root)")
     parser.add_argument("--concurrency", type=int, default=10,

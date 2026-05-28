@@ -256,13 +256,25 @@ def cmd_validate(args):
         print(result.stderr[-1000:] if result.stderr else "", file=sys.stderr)
     print(f"\nReport: {report_out.relative_to(REPO)}")
 
-    # Also rebuild HTML
+    # Also rebuild HTML. Earlier revisions discarded build_erds.py's exit
+    # code, so a failed regeneration would leave a stale viewer behind while
+    # the batch workflow happily reported success. Capture the result, log
+    # stderr on failure, and propagate the worse of the two return codes so
+    # callers (and CI) actually see the breakage.
     print("\nRegenerating HTML...")
-    subprocess.run(
+    html_result = subprocess.run(
         ["python3", str(REPO / "scripts" / "erd" / "build_erds.py")],
         capture_output=True, text=True,
     )
-    return result.returncode
+    if html_result.returncode != 0:
+        print(
+            f"  [ERROR] build_erds.py exited {html_result.returncode}; "
+            f"HTML viewer may be stale.",
+            file=sys.stderr,
+        )
+        if html_result.stderr:
+            print(html_result.stderr[-1000:], file=sys.stderr)
+    return result.returncode or html_result.returncode
 
 
 def main():

@@ -144,6 +144,20 @@ def diff_schemas(baseline: dict, target: dict) -> dict:
             "total_relationship_changes": sum(
                 len(d["relationship_changed"]) for d in object_diffs.values()
             ),
+            # Picklist value-level deltas. Surfacing these in the summary
+            # prevents docs from claiming "purely additive" when the diff
+            # actually removed picklist entries (which can break loads if any
+            # CSV references them).
+            "total_picklist_value_additions": sum(
+                len(pc["added"])
+                for d in object_diffs.values()
+                for pc in d.get("picklist_changed", [])
+            ),
+            "total_picklist_value_removals": sum(
+                len(pc["removed"])
+                for d in object_diffs.values()
+                for pc in d.get("picklist_changed", [])
+            ),
         },
         "objects_added": objects_added,
         "objects_removed": objects_removed,
@@ -251,21 +265,43 @@ def find_impacted_plans(diff: dict) -> dict:
             if obj_name:
                 object_to_plans.setdefault(obj_name, []).append(plan_id)
 
-    # Map changes to impacted plans
-    all_changed = set(diff["objects_removed"]) | set(diff["object_diffs"].keys())
+    # Map changes to impacted plans.
+    #
+    # Earlier revisions of this function only considered removed + modified
+    # objects, which silently dropped object-level additions. If a future
+    # release adds a new SObject that a maintained SFDMU plan already
+    # references (rare, but possible when a plan is forward-looking or when
+    # an entity is renamed in metadata), the report must surface it the same
+    # way as a removal — both flag a real impact a contributor needs to
+    # review. Classify each impacted object explicitly so the markdown
+    # downstream can suggest the right action.
+    removed_set = set(diff["objects_removed"])
+    added_set = set(diff["objects_added"])
+    modified_set = set(diff["object_diffs"].keys())
+    all_changed = removed_set | added_set | modified_set
     for obj_name in sorted(all_changed):
         plans = object_to_plans.get(obj_name, [])
-        if plans:
-            change_type = "removed" if obj_name in diff["objects_removed"] else "modified"
-            impacts[obj_name] = {
-                "change": change_type,
-                "plans": sorted(set(plans)),
-            }
-            if change_type == "modified" and obj_name in diff["object_diffs"]:
-                d = diff["object_diffs"][obj_name]
-                impacts[obj_name]["fields_removed"] = d["removed"]
-                impacts[obj_name]["fields_added"] = d["added"]
-                impacts[obj_name]["type_changed"] = d["type_changed"]
+        if not plans:
+            continue
+        if obj_name in removed_set:
+            change_type = "removed"
+        elif obj_name in added_set:
+            change_type = "added"
+        else:
+            change_type = "modified"
+        impacts[obj_name] = {
+            "change": change_type,
+            "plans": sorted(set(plans)),
+        }
+        if change_type == "modified" and obj_name in diff["object_diffs"]:
+            d = diff["object_diffs"][obj_name]
+            impacts[obj_name]["fields_removed"] = d["removed"]
+            impacts[obj_name]["fields_added"] = d["added"]
+            impacts[obj_name]["type_changed"] = d["type_changed"]
+            impacts[obj_name]["picklist_changed"] = d.get("picklist_changed", [])
+            impacts[obj_name]["relationship_changed"] = d.get(
+                "relationship_changed", []
+            )
 
     return impacts
 
@@ -296,6 +332,8 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
     lines.append(f"| Total fields removed | {summary['total_fields_removed']} |")
     lines.append(f"| Total type changes | {summary['total_type_changes']} |")
     lines.append(f"| Total relationship changes | {summary.get('total_relationship_changes', 0)} |")
+    lines.append(f"| Picklist values added | {summary.get('total_picklist_value_additions', 0)} |")
+    lines.append(f"| Picklist values removed | {summary.get('total_picklist_value_removals', 0)} |")
     lines.append("")
 
     # Objects added
@@ -370,10 +408,28 @@ def generate_markdown_report(diff: dict, impacts: Optional[dict] = None) -> str:
             change = impact["change"]
             if change == "removed":
                 action = "Remove from plans"
+            elif change == "added":
+                # An added-object hit means a maintained plan already
+                # references a name that didn't exist in the baseline. That's
+                # almost always a typo or a forward-looking plan worth
+                # double-checking.
+                action = "Verify plan references this new object intentionally"
             elif impact.get("fields_removed"):
                 action = f"Update CSV headers: remove {', '.join(impact['fields_removed'])}"
             elif impact.get("type_changed"):
                 action = "Verify CSV data types"
+            elif impact.get("picklist_changed"):
+                removed_vals = [
+                    f"{pc['field']}: {', '.join(pc['removed'])}"
+                    for pc in impact["picklist_changed"]
+                    if pc.get("removed")
+                ]
+                if removed_vals:
+                    action = "Check CSVs for removed picklist values (" + "; ".join(removed_vals) + ")"
+                else:
+                    action = "Picklist values added only — no remediation"
+            elif impact.get("relationship_changed"):
+                action = "Review relationship target changes"
             else:
                 action = "Verify compatibility"
             lines.append(f"| `{obj_name}` | {change} | {plans_str} | {action} |")
@@ -414,6 +470,8 @@ def main():
     print(f"  Fields removed: {summary['total_fields_removed']}")
     print(f"  Type changes: {summary['total_type_changes']}")
     print(f"  Relationship changes: {summary.get('total_relationship_changes', 0)}")
+    print(f"  Picklist values added: {summary.get('total_picklist_value_additions', 0)}")
+    print(f"  Picklist values removed: {summary.get('total_picklist_value_removals', 0)}")
 
     # Impact analysis
     impacts = None

@@ -22,14 +22,22 @@ Usage:
     python scripts/erd/schema_diff/extract_schema.py --org techido-260 --output scripts/erd/schema_diff/260-schema.json
 
 Options:
-    --org ALIAS       sf CLI target org alias (required)
-    --output PATH     Output JSON file path (required)
-    --objects FILE    Optional file with object names (one per line); defaults to erd-data.json objects
-    --all-objects     Query ALL EntityDefinitions, not just ERD-tracked ones
-    --include-custom  Include custom fields (any __c suffix). Default behavior
-                      strips ALL custom fields so the schema diff reflects
-                      only the canonical Revenue Cloud platform schema.
-    --verbose         Show progress per object
+    --org ALIAS         sf CLI target org alias (required)
+    --output PATH       Output JSON file path (required)
+    --objects FILE      Optional file with object names (one per line); defaults to erd-data.json objects
+    --all-objects       Query ALL EntityDefinitions, not just ERD-tracked ones
+    --include-custom    Include custom fields (any __c suffix). Default behavior
+                        strips ALL custom fields so the schema diff reflects
+                        only the canonical Revenue Cloud platform schema.
+    --allow-missing     (default) Treat undescribable ERD objects as warnings
+                        and exit 0 as long as at least one object was extracted.
+                        The shipped ERD list intentionally includes feature-
+                        gated objects (e.g. CLM) that a baseline scratch org
+                        cannot describe — without this default, the documented
+                        release-extraction workflow would always look failed.
+    --fail-on-missing   Strict mode — exit 1 if any requested object failed to
+                        describe. Use for CI where partial snapshots aren't OK.
+    --verbose           Show progress per object
 """
 
 import argparse
@@ -173,8 +181,34 @@ def main():
                         help="Include custom fields (any __c suffix). "
                         "Default skips ALL custom fields so the diff "
                         "reflects only the canonical Revenue Cloud schema.")
+    # Default ERD list now includes feature-gated objects (e.g. CLM,
+    # ContractAlertEvaluation) that aren't describable from a baseline
+    # scratch org without the corresponding permissions. Treat that as a
+    # warning by default so the documented release-extraction workflow
+    # produces a useful partial snapshot and still exits 0. Power users who
+    # want a strict reproducibility check can opt in with
+    # ``--fail-on-missing``.
+    miss_group = parser.add_mutually_exclusive_group()
+    miss_group.add_argument(
+        "--allow-missing",
+        action="store_true",
+        default=True,
+        help="(default) Treat undescribable ERD objects as warnings and exit 0 "
+             "as long as at least one object was extracted. Useful when the "
+             "default ERD list contains feature-gated objects the target org "
+             "doesn't license.",
+    )
+    miss_group.add_argument(
+        "--fail-on-missing",
+        action="store_true",
+        help="Strict mode — exit 1 if any requested object failed to "
+             "describe. Use for CI checks where partial snapshots aren't "
+             "acceptable.",
+    )
     args = parser.parse_args()
     skip_custom = not args.include_custom
+    # --fail-on-missing overrides the default --allow-missing
+    fail_on_missing = bool(args.fail_on_missing)
 
     # Determine object list
     if args.objects:
@@ -221,7 +255,8 @@ def main():
     print(f"  Extracted: {len(schema)} objects")
     print(f"  Errors/missing: {len(errors)}")
     if errors:
-        print(f"  Failed: {', '.join(errors[:20])}")
+        label = "Failed" if fail_on_missing else "Missing (warning, expected for feature-gated objects)"
+        print(f"  {label}: {', '.join(errors[:20])}")
 
     # Build output
     output = {
@@ -244,7 +279,18 @@ def main():
     print(f"  Objects: {output['metadata']['object_count']}")
     print(f"  Fields: {output['metadata']['total_fields']}")
 
-    return 0 if not errors else 1
+    # See --allow-missing / --fail-on-missing in argparse:
+    # - default (allow-missing): success unless we extracted ZERO objects
+    # - strict (fail-on-missing): success only when every requested object resolved
+    if fail_on_missing:
+        return 0 if not errors else 1
+    if not schema:
+        print(
+            "  [ERROR] no objects were extracted; refusing to write empty snapshot.",
+            file=sys.stderr,
+        )
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

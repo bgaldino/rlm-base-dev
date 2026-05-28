@@ -21,7 +21,9 @@
     "total_fields_added": 45,
     "total_fields_removed": 0,
     "total_type_changes": 0,
-    "total_relationship_changes": 2
+    "total_relationship_changes": 2,
+    "total_picklist_value_additions": 243,
+    "total_picklist_value_removals": 62
   },
   "objects_added": [],
   "objects_removed": [],
@@ -1828,7 +1830,55 @@
       ],
       "fields_removed": [],
       "fields_added": [],
-      "type_changed": []
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "RelatedEntityType",
+          "added": [
+            "BuyerAccount",
+            "CartAction",
+            "CartItemDetail",
+            "CaseServiceProcessExtension",
+            "CommerceConfigRelatedRecord",
+            "ContactCenterBulkOp",
+            "ContextParamMap",
+            "ConvEntryRelatedRecord",
+            "ConvEntryRelatedRecordCopy",
+            "ConvMessageSendRequest",
+            "ConvMsgSessionAuthResult",
+            "ConvMsgSessionHandlerRequest",
+            "ConvMsgSessionHandlerResult",
+            "Conversation",
+            "ConversationApiLog",
+            "ConversationApiLogObjSum",
+            "ConversationChannel",
+            "ConversationDefinitionSessionEngagement",
+            "ConversationEntry",
+            "ConversationEntryCopy",
+            "ConversationParticipant",
+            "ConversationTranscriptSendRequest",
+            "ExtlRecShrStagedRecord",
+            "FlowVersionMilestone",
+            "FulfillmentAssetStatePeriod",
+            "MessagingEndUser",
+            "MessagingSession",
+            "MessagingSessionMetrics",
+            "Participant",
+            "ParticipantDevice",
+            "ReportHierarchyObjectField",
+            "SearchRecentQuery",
+            "TenantConsumptionAlert",
+            "TenantPvsnLicConsumption",
+            "VoiceCall",
+            "VoiceCallRecording",
+            "VoiceChnlInteractionEvent",
+            "VoiceChnlIntrctnDtlEvent",
+            "VoiceProvisioningJob"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
     },
     "FulfillmentStepDefinition": {
       "change": "modified",
@@ -1840,7 +1890,18 @@
       "fields_added": [
         "CustomConfigParameter"
       ],
-      "type_changed": []
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [],
+          "removed": [
+            "InsuranceRuleAction",
+            "StageManagement"
+          ]
+        }
+      ],
+      "relationship_changed": []
     },
     "FulfillmentStepDefinitionGroup": {
       "change": "modified",
@@ -1850,7 +1911,18 @@
       ],
       "fields_removed": [],
       "fields_added": [],
-      "type_changed": []
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [],
+          "removed": [
+            "InsuranceRuleAction",
+            "StageManagement"
+          ]
+        }
+      ],
+      "relationship_changed": []
     },
     "FulfillmentTaskAssignmentRule": {
       "change": "modified",
@@ -1859,7 +1931,18 @@
       ],
       "fields_removed": [],
       "fields_added": [],
-      "type_changed": []
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [],
+          "removed": [
+            "InsuranceRuleAction",
+            "StageManagement"
+          ]
+        }
+      ],
+      "relationship_changed": []
     },
     "ObjectStateDefinition": {
       "change": "modified",
@@ -1868,7 +1951,132 @@
       ],
       "fields_removed": [],
       "fields_added": [],
-      "type_changed": []
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "ReferenceObject",
+          "added": [
+            "AgenticCtxtDecorDefinition",
+            "AgenticCtxtDecorRetriever",
+            "AgenticCtxtDecorRtvrParm",
+            "AiTestConvCritPersonaDef",
+            "AnalyticsBotSession",
+            "AppAnalyticsInfraPvsngSt",
+            "BatchCalcJobHierarchyPathAggregateField",
+            "BuyerAccount",
+            "CallCenterRoutingMap",
+            "CartAction",
+            "CartItemDetail",
+            "CaseServiceProcessExtension",
+            "CdsChangeEvent",
+            "ChoiceList",
+            "ChoiceListValue",
+            "ChoiceListValueDependency",
+            "CommerceConfigRelatedRecord",
+            "ConfigurableSolutionInstallStatusEvent",
+            "ContactCenterBulkOp",
+            "ContactCenterChannel",
+            "ContextDefinitionTfrm",
+            "ContextParamMap",
+            "ConvEntryRelatedRecord",
+            "ConvEntryRelatedRecordCopy",
+            "ConvIntelligenceSignalRule",
+            "ConvIntelligenceSignalSubRule",
+            "ConvMessageSendRequest",
+            "ConvMsgExternalTemplateVersion",
+            "ConvMsgSessionAuthResult",
+            "ConvMsgSessionHandlerRequest",
+            "ConvMsgSessionHandlerResult",
+            "Conversation",
+            "ConversationApiLog",
+            "ConversationApiLogObjSum",
+            "ConversationChannel",
+            "ConversationChannelDefinition",
+            "ConversationDefinitionSessionEngagement",
+            "ConversationEntry",
+            "ConversationEntryCopy",
+            "ConversationMessageConstant",
+            "ConversationMessageConstantValue",
+            "ConversationMessageDefinition",
+            "ConversationMessageDefinitionHandler",
+            "ConversationMessageLayout",
+            "ConversationMessageLayoutItem",
+            "ConversationMessageLayoutValue",
+            "ConversationMessageMergeField",
+            "ConversationMessageParameterDefinition",
+            "ConversationParticipant",
+            "ConversationTranscriptSendRequest",
+            "ConversationVendorInfo",
+            "ConversationalCapability",
+            "DecisionTableFileImportVersion",
+            "DeployExtensionResult",
+            "EmbdMsgChannelInvitationCondition",
+            "EmbeddedMessagingChannel",
+            "EmbeddedMessagingChannelHandler",
+            "EmbeddedServiceForm",
+            "EmbeddedServiceFormField",
+            "EmbeddedServiceMessagingChannel",
+            "EmbeddedServiceMobilePlatform",
+            "ExternalSrvRgstrEnumType",
+            "ExtlRecShrStagedRecord",
+            "FlowVersionMilestone",
+            "FulfillmentAssetStatePeriod",
+            "FulfmtAssetStatePeriodAttr",
+            "InteractionCollFltrCond",
+            "InteractionExitEventParam",
+            "LightningOutAppDeployment",
+            "LiveChatSensitiveDataRule",
+            "MessagingChannel",
+            "MessagingChannelActionParameterMapping",
+            "MessagingChannelAuthorization",
+            "MessagingChannelAutoResponse",
+            "MessagingChannelEmailTemplate",
+            "MessagingChannelParameter",
+            "MessagingChannelParameterValueMapping",
+            "MessagingChannelUsage",
+            "MessagingEndUser",
+            "MessagingSession",
+            "MessagingSessionMetrics",
+            "MobilePushNotificationCredential",
+            "MsgChannelAvailability",
+            "MsgChannelLanguageKeyword",
+            "MsgChannelUsageExternalOrg",
+            "MsgSessStatusChangedEvent",
+            "NetworkSelfServiceExtension",
+            "OrderItemSummaryChngEvent",
+            "Participant",
+            "ParticipantDevice",
+            "PersonalizedMsgGeneratorDef",
+            "PlatformEventMigration",
+            "PresenceUserConfigTransferDestination",
+            "PreviewOrgInfo",
+            "PublicKeyCertificate",
+            "PublicKeyCertificateSet",
+            "PublicKeyCertificateSetKey",
+            "ReportHierarchyObjectField",
+            "SearchRecentQuery",
+            "SecurityShieldJobRun",
+            "SelfSvcPortalTopic",
+            "SelfSvcPortalTopicItem",
+            "SelfSvcPortalTopicProfile",
+            "TenantConsumptionAlert",
+            "TenantPvsnLicConsumption",
+            "VendorCallCenterStatusMap",
+            "VoiceCall",
+            "VoiceCallMetrics",
+            "VoiceCallRecording",
+            "VoiceChnlInteractionEvent",
+            "VoiceChnlIntrctnDtlEvent",
+            "VoiceProvisioningJob",
+            "VoiceVendorInfo",
+            "WorkItemEvent"
+          ],
+          "removed": [
+            "AiTestConvPersonaDef"
+          ]
+        }
+      ],
+      "relationship_changed": []
     },
     "OmniProcessElement": {
       "change": "modified",
@@ -1877,7 +2085,26 @@
       ],
       "fields_removed": [],
       "fields_added": [],
-      "type_changed": []
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "ParentElementType",
+          "added": [
+            "Offline Data Action",
+            "Offline Data Mutation Action"
+          ],
+          "removed": []
+        },
+        {
+          "field": "Type",
+          "added": [
+            "Offline Data Action",
+            "Offline Data Mutation Action"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
     },
     "ProductFulfillmentScenario": {
       "change": "modified",
@@ -1887,7 +2114,18 @@
       ],
       "fields_removed": [],
       "fields_added": [],
-      "type_changed": []
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "UsageType",
+          "added": [],
+          "removed": [
+            "InsuranceRuleAction",
+            "StageManagement"
+          ]
+        }
+      ],
+      "relationship_changed": []
     },
     "ProductRampSegment": {
       "change": "modified",
@@ -1899,7 +2137,17 @@
       ],
       "fields_removed": [],
       "fields_added": [],
-      "type_changed": []
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "SegmentType",
+          "added": [
+            "Prorated"
+          ],
+          "removed": []
+        }
+      ],
+      "relationship_changed": []
     },
     "ValTfrmGrp": {
       "change": "modified",
@@ -1908,7 +2156,24 @@
       ],
       "fields_removed": [],
       "fields_added": [],
-      "type_changed": []
+      "type_changed": [],
+      "picklist_changed": [
+        {
+          "field": "DestinationPrimitiveType",
+          "added": [],
+          "removed": [
+            "Picklist"
+          ]
+        },
+        {
+          "field": "SourcePrimitiveType",
+          "added": [],
+          "removed": [
+            "Picklist"
+          ]
+        }
+      ],
+      "relationship_changed": []
     }
   }
 }
