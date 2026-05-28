@@ -409,7 +409,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 
 ### `prepare_prm_pricing`
 
-Deploy PRM pricing metadata/tasks behind prm_pricing.
+Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM expression sets, deploys objects/decision tables/recipe mappings/context/ procedures/flows/permission sets, assigns RLM_PRM_Pricing, loads qb-prm-pricing data (when qb=true), reactivates expression sets, and applies the PRM procedure-plan overlay (when procedureplans=true).
 
 **Steps:**
 

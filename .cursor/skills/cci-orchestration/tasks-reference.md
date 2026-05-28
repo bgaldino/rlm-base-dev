@@ -2329,7 +2329,7 @@
 
 ### `refresh_dt_prm_pricing`
 
-**Description:** Refresh PRM Pricing Decision Tables (when prm and prm_pricing flags are true)
+**Description:** Refresh PRM pricing decision tables (RLM_Channel_Program_Level_Partner). Run when prm and prm_pricing flags are both true.
 
 **Class:** `tasks.rlm_refresh_decision_table.RefreshDecisionTable`
 
