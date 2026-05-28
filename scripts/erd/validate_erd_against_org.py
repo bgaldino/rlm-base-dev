@@ -11,11 +11,11 @@ Prerequisites:
     - The target org must be set as default or passed via --org
 
 Usage:
-    python scripts/validate_erd_against_org.py --org beta
-    python scripts/validate_erd_against_org.py --org beta --objects PriceBookRateCard,RateCard
-    python scripts/validate_erd_against_org.py --org beta --domain "Rate Management"
-    python scripts/validate_erd_against_org.py --org beta --patch  # auto-patch erd-data.json
-    python scripts/validate_erd_against_org.py --org beta --report docs/erds/validation-report.md
+    python scripts/erd/validate_erd_against_org.py --org beta
+    python scripts/erd/validate_erd_against_org.py --org beta --objects PriceBookRateCard,RateCard
+    python scripts/erd/validate_erd_against_org.py --org beta --domain "Rate Management"
+    python scripts/erd/validate_erd_against_org.py --org beta --patch  # auto-patch erd-data.json
+    python scripts/erd/validate_erd_against_org.py --org beta --report docs/erds/validation-report.md
 
 Options:
     --org ALIAS           Target org alias (required)
@@ -488,7 +488,7 @@ def main():
         with open(erd_path, "w") as f:
             json.dump(erd_data, f, indent=2)
         print(f"  Added {fa} fields, {ra} relationships")
-        print(f"  Run `python postman/utilities/build_erds.py --patch` to rebuild the HTML ERD")
+        print(f"  Run `python scripts/erd/build_erds.py` to rebuild the HTML ERD")
 
     # Report
     if args.report:

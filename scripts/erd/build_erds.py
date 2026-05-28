@@ -10,10 +10,10 @@ Can also add new entities and relationships to erd-data.json.
 
 Usage:
     # Regenerate HTML from erd-data.json
-    python3 postman/utilities/build_erds.py
+    python3 scripts/erd/build_erds.py
 
     # Verify current state without modifying
-    python3 postman/utilities/build_erds.py --verify
+    python3 scripts/erd/build_erds.py --verify
 
 Output: docs/erds/revenue-cloud-erd.html (patched in place)
 """
