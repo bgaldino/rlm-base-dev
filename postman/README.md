@@ -60,10 +60,17 @@ Located in `utilities/`:
 
 ---
 
-## Reference PDFs
+## Reference Documentation
 
-- `revenue_lifecycle_management_dev_guide_260.pdf` — Official Salesforce Revenue Cloud Developer Guide, Spring '26 (v66.0).
-- `salesforce_industries_dev_guide_260.pdf` — Salesforce Industries Developer Guide, Spring '26.
+The legacy per-release PDF compendiums (Revenue Cloud Developer Guide, Salesforce
+Industries Developer Guide, CML User Guide) have been replaced by the
+**Salesforce Help snapshot** workflow — grep-friendly, diffable per-article
+markdown captured per release.
+
+- Snapshots live at `docs/salesforce/{release}/help/` (e.g. `docs/salesforce/262/help/`).
+- Refresh them per release via the `snapshot_{area}_help_{release}` CCI tasks
+  in `cumulusci.yml`.
+- Authoring guidance: `.cursor/skills/revenue-cloud-docs/SKILL.md`.
 
 ---
 
