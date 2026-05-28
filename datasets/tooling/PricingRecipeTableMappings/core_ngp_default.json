@@ -1,0 +1,7 @@
+[
+  {
+    "pricingRecipeDeveloperName": "NGPDefaultRecipe",
+    "decisionTableDeveloperName": "RLM_CostBookEntries",
+    "pricingComponentType": "ListPrice"
+  }
+]

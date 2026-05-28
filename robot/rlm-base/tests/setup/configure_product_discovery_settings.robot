@@ -30,11 +30,7 @@ Configure Product Discovery Default Catalog
     Capture Page Screenshot
     # Reload and re-verify to confirm the value was saved server-side
     Open Product Discovery Settings Page
-    ${verified}=    Execute JavaScript
-    ...    ${_JS_FIND_EL}
-    ...    return findEl(document, '[data-id="selectedCatalog"]', 0)?.textContent.trim() || 'not_set'
-    Should Be Equal    ${verified}    ${DEFAULT_CATALOG}
-    ...    msg=Default Catalog not persisted after page reload: expected "${DEFAULT_CATALOG}", got "${verified}"
+    Wait Until Keyword Succeeds    30s    3s    _Verify Default Catalog Selected    ${DEFAULT_CATALOG}
     Log    Product Discovery Settings: Default Catalog confirmed as "${DEFAULT_CATALOG}" after reload.
 
 *** Keywords ***
@@ -136,6 +132,20 @@ _Open Default Catalog Combobox
     Should Not Be Equal    ${result}    combobox_not_found
     ...    msg=Product Discovery combobox not yet rendered; retrying...
     RETURN    ${result}
+
+_Verify Default Catalog Selected
+    [Documentation]    Waits for the selected Default Catalog pill to render after reload and verifies its value.
+    [Arguments]    ${target_value}
+    ${verified}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
+    ...    return (function(targetValue) {
+    ...        var selected = findEl(document, '[data-id="selectedCatalog"], .default-catalog-pill .slds-pill__label, .selectedCatalog', 0);
+    ...        if (!selected) return 'not_set';
+    ...        return (selected.textContent || '').trim();
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${target_value}
+    Should Be Equal    ${verified}    ${target_value}
+    ...    msg=Default Catalog not persisted after page reload: expected "${target_value}", got "${verified}"
 
 Dismiss Toast If Present
     [Documentation]    Clicks the close button on any visible Salesforce toast messages.

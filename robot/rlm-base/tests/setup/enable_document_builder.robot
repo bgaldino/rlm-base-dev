@@ -56,15 +56,7 @@ Enable Document Templates Export On General Settings
     Sleep    3s    reason=Allow toggle change to reach Salesforce server
     # Reload and re-verify server-side persistence
     Open Setup Page    ${GENERAL_SETTINGS_PATH}
-    ${verified}=    Execute JavaScript
-    ...    return (function() {
-    ...        function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
-    ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
-    ...        if (!pi) return 'not_found';
-    ...        return pi.checked ? 'on' : 'off';
-    ...    })()
-    Should Be Equal    ${verified}    on
-    ...    msg=Document Templates Export toggle not persisted after page reload (got: ${verified})
+    Wait Until Keyword Succeeds    30s    3s    _Verify Document Templates Export Toggle On
     Log    Document Templates Export toggle enabled and confirmed.
 
 *** Keywords ***
@@ -85,6 +77,18 @@ _Click Document Templates Export Toggle
     Should Not Be Equal    ${result}    not_found
     ...    msg=Document Templates Export input[data-name="MetadataPreference"] not yet rendered; retrying...
     RETURN    ${result}
+
+_Verify Document Templates Export Toggle On
+    [Documentation]    Waits for the Document Templates Export LWC to render after reload, then confirms the persisted checked state.
+    ${verified}=    Execute JavaScript
+    ...    return (function() {
+    ...        function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
+    ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
+    ...        if (!pi) return 'not_found';
+    ...        return pi.checked ? 'on' : 'off';
+    ...    })()
+    Should Be Equal    ${verified}    on
+    ...    msg=Document Templates Export toggle not persisted after page reload (got: ${verified})
 
 Enable Prerequisite Then Document Builder
     [Documentation]    Enable the prerequisite toggle (e.g. Revenue Management) so Document Builder becomes enabled, then enable Document Builder.

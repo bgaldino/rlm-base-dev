@@ -77,34 +77,38 @@ Custom fields carry partner-specific pricing adjustments:
 - `RLM_Adjustment_Value__c` — adjustment amount
 - `RLM_Discount_Rate__c` — partner discount rate
 
-#### Known Constraint: SFDMU v5 Bug 3
+#### Org-Verified Exception: ChannelProgramMember Traversal Key
 
-ChannelProgramMember's `externalId` (`Partner.Name;Program.Name`) uses relationship-traversal fields, which are subject to [SFDMU v5 Bug 3](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781) — Upsert with relationship-traversal externalIds never matches existing records and always inserts. This means re-running the plan may create duplicate members.
+`ChannelProgramMember` uses `Partner.Name;Program.Name` as its external ID
+because the object has no stable direct field that represents the natural
+business key for a partner's enrollment in a program. This relationship
+traversal is a narrow, org-verified exception to the general SFDMU v5 guidance
+to avoid traversal-based Upsert keys.
 
-Currently mitigated by `skipExistingRecords: true`, but this is not a reliable fix because SFDMU cannot identify existing records when matching fails. The plan passes idempotency testing with the current single-member dataset, but could produce duplicates at scale.
-
-**Potential future fixes (in order of preference):**
-
-1. **Custom External ID field** — Add an `RLM_External_Id__c` (Text, External ID) field on `ChannelProgramMember`. Populate with a composite value like `"Robot Resellers:Reseller Program"` in the CSV. SFDMU Upsert matches correctly on direct fields. Requires adding the field metadata, updating the `RLM_PRM` permission set, and deploying before the data load.
-
-2. **`Insert` + `deleteOldData: true`** — Switch the operation to Insert with `deleteOldData: true`. SFDMU deletes all existing ChannelProgramMember records first, then re-inserts from CSV. Simple but destructive — any members created outside this plan (e.g., manually or by other processes) would be deleted on every run.
-
-3. **Use direct fields for externalId** — ChannelProgramMember has no direct unique or external ID fields beyond the auto-numbered `Name`. `PartnerId` and `ProgramId` are reference fields (only accessible via relationship traversal). There are no other direct field candidates for a composite key without creating a custom field (see option 1).
+The current baseline PRM dataset has been validated against target
+environments and reruns without increasing the scoped `ChannelProgramMember`
+count. No custom external key field is required, and the plan must not switch to
+`Insert` + `deleteOldData: true` because that would delete memberships outside
+this seed-data scope. Rerun validation remains part of the PR checklist for PRM
+changes that touch this plan or its `ChannelProgramMember` records.
 
 ## Custom Fields and Permission Set
 
 ### Custom Field Metadata
 
-Custom fields are packaged under `force-app/main/default/objects/`:
+Custom fields are packaged under `unpackaged/post_prm/force-app/main/default/objects/`
+and deployed by the baseline `deploy_post_prm` task:
 
 | Object                | Field                          | Type          | Label                |
 |-----------------------|--------------------------------|---------------|----------------------|
 | ChannelProgramLevel   | `RLM_Deal_Expiration_Days__c`  | Number(18,0)  | Deal Expiration Days |
-| ChannelProgramLevel   | `RLM_Discount_Rate__c`         | Percent(18,0) | Discount Rate        |
+| ChannelProgramLevel   | `RLM_Discount_Rate__c`         | Number(18,0)  | Discount Rate ¹      |
 | ChannelProgramLevel   | `RLM_Minimum_Deal_Size__c`     | Currency(18,0)| Minimum Deal Size    |
 | ChannelProgramMember  | `RLM_Adjustment_Type__c`       | Text(255)     | Adjustment Type      |
 | ChannelProgramMember  | `RLM_Adjustment_Value__c`      | Number(18,2)  | Adjustment Value     |
 | ChannelProgramMember  | `RLM_Discount_Rate__c`         | Number(18,2)  | Discount Rate        |
+
+¹ `ChannelProgramLevel.RLM_Discount_Rate__c` was intentionally changed from `Percent(18,0)` to `Number(18,0)` in this feature branch to align with the PRM pricing bundle, which stores raw decimal rates rather than percentages. Because this repo targets clean org builds, no destructive migration of existing data is required.
 
 ### Permission Set: `RLM_PRM`
 
@@ -115,7 +119,7 @@ Grants full read/edit access to all 6 custom fields above. Assigned in step 8 of
 | Object                | Composite Key             | CSV `$$` Column   | Bug 3 Risk |
 |-----------------------|---------------------------|--------------------|------------|
 | ChannelProgramLevel   | `Name;Rank`               | `$$Name$Rank`      | No — direct fields |
-| ChannelProgramMember  | `Partner.Name;Program.Name` | `$$Partner.Name$Program.Name` | **Yes** — relationship traversals |
+| ChannelProgramMember  | `Partner.Name;Program.Name` | `$$Partner.Name$Program.Name` | Org-verified exception |
 
 ## Portability
 
@@ -143,8 +147,8 @@ qb-prm/
 │  Source CSVs
 ├── Account.csv                   # 1 record (Robot Resellers)
 ├── ChannelProgram.csv            # 1 record (Reseller Program)
-├── ChannelProgramLevel.csv       # 4 records (Platinum, Gold, Silver, Bronze)
-├── ChannelProgramMember.csv      # 1 record (Robot Resellers @ Gold)
+├── ChannelProgramLevel.csv       # 4 records (Platinum - Reseller, Gold - Reseller, Silver - Reseller, Bronze - Reseller)
+├── ChannelProgramMember.csv      # 1 record (Robot Resellers @ Silver - Reseller)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/
@@ -163,4 +167,6 @@ cci task run extract_qb_prm_data --org <your-org>
 cci task run test_qb_prm_idempotency --org <your-org>
 ```
 
-Account, ChannelProgram, and ChannelProgramLevel are fully idempotent via Upsert on direct fields. ChannelProgramMember passes idempotency testing with the current dataset but is subject to SFDMU v5 Bug 3 — see [Known Constraint](#known-constraint-sfdmu-v5-bug-3) above.
+Account, ChannelProgram, and ChannelProgramLevel are fully idempotent via
+Upsert on direct fields. `ChannelProgramMember` is the org-verified exception
+described above and must continue to pass rerun validation before merge.

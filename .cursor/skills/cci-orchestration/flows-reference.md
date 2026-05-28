@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 flows** across **5 groups**.
+**43 flows** across **5 groups**.
 
 ---
 
@@ -94,6 +94,22 @@ Assign feature-gated permission set licenses after pre-deploy metadata is in pla
    - `api_names`: `['EinsteinAnalyticsPlusPsl']`
 4. **task** `assign_permission_set_licenses`  `when: project_config.project__custom__tso`
    - `api_names`: `['AutomatedActionsPsl', 'EinsteinAgentCWUPsl', 'EinsteinAgentPsl', 'EinsteinCopilotReviewMyDayPsl...`
+
+---
+
+### `deploy_post_prm_pricing`
+
+Deploy and configure the PRM pricing bundle in dependency order so context resources and recipe mappings exist before expression set deploy.
+
+**Steps:**
+
+1. **task** `deploy_post_prm_pricing_objects`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+2. **task** `deploy_post_prm_pricing_decision_tables`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+3. **task** `configure_pricing_recipe_table_mappings`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+4. **task** `apply_context_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+5. **task** `deploy_post_prm_pricing_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+6. **task** `deploy_post_prm_pricing_flows`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+7. **task** `deploy_post_prm_pricing_permissionsets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
 
 ---
 
@@ -300,7 +316,8 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 1. **task** `deactivate_expression_sets`
 2. **task** `ensure_pricing_schedules`
-3. **task** `deploy_expression_sets`
+3. **task** `configure_core_pricing_recipe_table_mappings`
+4. **task** `deploy_expression_sets`
 
 ---
 
@@ -386,6 +403,23 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
    - `developer_name`: `RLM_SalesTransactionContext`
    - `translate_plan`: `True`
    - `activate`: `True`
+11. **flow** `prepare_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+
+---
+
+### `prepare_prm_pricing`
+
+Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM expression sets, deploys objects/decision tables/recipe mappings/context/ procedures/flows/permission sets, assigns RLM_PRM_Pricing, loads qb-prm-pricing data (when qb=true), reactivates expression sets, and applies the PRM procedure-plan overlay (when procedureplans=true).
+
+**Steps:**
+
+1. **task** `deactivate_prm_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+2. **flow** `deploy_post_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+   - `api_names`: `['RLM_PRM_Pricing']`
+4. **task** `insert_quantumbit_prm_pricing_data`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
+5. **task** `activate_prm_expression_sets`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+6. **task** `apply_procedure_plan_overlay`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__procedureplans`
 
 ---
 
@@ -543,6 +577,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 4. **task** `refresh_dt_rating`  `when: project_config.project__custom__rating`
 5. **task** `refresh_dt_rating_discovery`  `when: project_config.project__custom__rating`
 6. **task** `refresh_dt_commerce`  `when: project_config.project__custom__commerce`
+7. **task** `refresh_dt_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
 
 ---
 

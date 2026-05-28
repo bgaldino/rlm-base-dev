@@ -95,7 +95,7 @@ externalId: "Code"
 
 **Audit required:** All data plans with `$$` composite columns used as *lookup references* (not just primary keys) should be reviewed. Cross-object `$$` references (e.g., `ProductComponentGroup.$$Code$...` referenced from `ProductRelatedComponent`) may also be affected — test each case.
 
-## The Three v5 Bugs
+## The Five Confirmed v5 Bugs
 
 **Bug 1 — All-multi-hop externalId fails validation**
 When externalId contains ONLY relationship-traversal components (2+ hops), SFDMU raises `{Object} has no mandatory external Id field definition`.
@@ -109,10 +109,22 @@ Fix: Use `Insert` + `deleteOldData: true` (Insert skips TARGET SELECT).
 Even 1-hop relationship traversals (e.g. `Product.StockKeepingUnit;UsageResource.Code`) cause Upsert to always insert, creating duplicates.
 Fix: Use `Insert` + `deleteOldData: true`.
 
+**Bug 4 — `$$` composite key self-references fail on import**
+When a CSV uses `$$` composite notation for a lookup reference to the same
+object, SFDMU cannot resolve the parent record even when the parent exists.
+Fix: Use simple single-field references for self-referential lookups (for
+example, `ParentGroup.Code`).
+
+**Bug 5 — Composite externalId with all-traversal fields fails upsert matching**
+When an `externalId` is composed entirely of relationship traversals, SFDMU may
+insert duplicates on every run instead of matching existing target records.
+Fix: Prefer a direct-field external ID. If no direct-field alternative exists,
+use `Insert` + `deleteOldData: true` only after explicit approval.
+
 ## CRITICAL — Insert + deleteOldData Safety
 
 **Never change Upsert to Insert + deleteOldData without:**
-1. Explaining which Bug (2 or 3) makes Upsert impossible
+1. Explaining which bug makes Upsert impossible
 2. Confirming no direct-field externalId alternative exists
 3. Getting explicit user approval
 
@@ -133,6 +145,40 @@ Objects in the `objects` array must be ordered **parent → child**. SFDMU delet
 - `$$` composite key columns: header format `$$Field1$Parent.Field2` — values must match exactly
 - Empty CSVs: must have `excluded: true` in export.json to prevent destructive delete
 - After extraction, run `scripts/post_process_extraction.py` to add `$$` columns (SFDMU v5 doesn't write them during extraction)
+
+## Self-Lookup Edge Case (Generic)
+
+For self-referential lookups (`Object.LookupToSameObject__c`), updates may be skipped when
+the plan uses only traversal columns (`LookupToSameObject__r.Name`) in an `Update` pass.
+SFDMU can reduce runtime source columns and treat rows as unchanged.
+
+### Proven Working Pattern
+
+For the update pass, include BOTH:
+- the lookup ID field(s) (`LookupToSameObject__c`)
+- the traversal reference field(s) (`LookupToSameObject__r.<ExternalIdField>`)
+
+This combination helps SFDMU compute deltas and apply updates reliably for
+self-referential lookups.
+
+Example (Account self-lookups):
+- `RLM_Primary_Distributor__c` + `RLM_Primary_Distributor__r.Name`
+- `RLM_Primary_Reseller__c` + `RLM_Primary_Reseller__r.Name`
+
+### Diagnostics
+
+If lookup updates are unexpectedly skipped:
+1. Check `source/*_source.csv` after a run. If expected lookup columns are missing there,
+   SFDMU dropped them before processing.
+2. Run with `simulation: true` to inspect pass-level behavior safely.
+3. Compare SOURCE/TARGET query lines in task logs to confirm the effective field list.
+
+### Related SFDMU Docs
+
+- Basic examples (self-reference / circular references): https://help.sfdmu.com/examples/basic-examples
+- Fields Mapping: https://help.sfdmu.com/full-documentation/advanced-features/fields-mapping
+  - Important: field mapping applies only to direct fields and does not extend to
+    reference-traversal query fields.
 
 ## Multi-Pass Architecture
 
@@ -155,6 +201,8 @@ Example: `qb-billing` uses 3 passes: draft insert → activate treatment items �
 - [ ] deleteOldData only used where justified (Bug 2/3)
 - [ ] No `$$` composite notation used for lookup reference columns (Bug 4 — use simple field references instead)
 - [ ] Self-referential lookups use simple field references (e.g., `ParentGroup.Code` not `ParentGroup.$$Code$...`)
+- [ ] All-traversal externalIds have a documented direct-field alternative or
+      explicit approval for `Insert` + `deleteOldData: true`
 
 ## Validation Tool
 

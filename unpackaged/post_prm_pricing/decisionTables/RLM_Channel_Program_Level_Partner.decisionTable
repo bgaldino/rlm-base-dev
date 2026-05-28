@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DecisionTable xmlns="http://soap.sforce.com/2006/04/metadata">
+    <collectOperator>None</collectOperator>
+    <conditionCriteria>1</conditionCriteria>
+    <conditionType>All</conditionType>
+    <dataSourceType>SingleSobject</dataSourceType>
+    <decisionTableParameters>
+        <dataType>String</dataType>
+        <fieldName>RLM_Adjustment_Type__c</fieldName>
+        <fieldPath>RLM_Adjustment_Type__c</fieldPath>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>false</isRequired>
+        <usage>OUTPUT</usage>
+    </decisionTableParameters>
+    <decisionTableParameters>
+        <dataType>String</dataType>
+        <fieldName>RLM_Discount_Rate__c</fieldName>
+        <fieldPath>RLM_Discount_Rate__c</fieldPath>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>false</isRequired>
+        <usage>OUTPUT</usage>
+    </decisionTableParameters>
+    <decisionTableParameters>
+        <dataType>String</dataType>
+        <fieldName>PartnerId</fieldName>
+        <fieldPath>PartnerId</fieldPath>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>true</isRequired>
+        <operator>Equals</operator>
+        <sequence>1</sequence>
+        <usage>INPUT</usage>
+    </decisionTableParameters>
+    <decisionTableParameters>
+        <dataType>String</dataType>
+        <fieldName>RLM_Adjustment_Value__c</fieldName>
+        <fieldPath>RLM_Adjustment_Value__c</fieldPath>
+        <isGroupByField>false</isGroupByField>
+        <isRequired>false</isRequired>
+        <usage>OUTPUT</usage>
+    </decisionTableParameters>
+    <description>Used for Partner and Distributor Pricing in PRM</description>
+    <doesConsiderNullValue>false</doesConsiderNullValue>
+    <dtRowLevelOverrideType>None</dtRowLevelOverrideType>
+    <executionType>HBASE</executionType>
+    <filterResultBy>OutputOrder</filterResultBy>
+    <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
+    <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
+    <setupName>RLM Channel Program Level Partner</setupName>
+    <sourceObject>ChannelProgramMember</sourceObject>
+    <status>Active</status>
+    <type>MediumVolume</type>
+    <usageType>DefaultPricing</usageType>
+</DecisionTable>

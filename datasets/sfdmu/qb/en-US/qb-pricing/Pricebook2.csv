@@ -1,2 +1,2 @@
-$$Name$IsStandard,CostBook.$$Name$IsDefault,Description,IsActive,IsStandard,Name,ValidFrom,ValidTo
-Standard Price Book;true,,,true,true,Standard Price Book,,
+$$Name$IsStandard,CostBook.Name,Description,IsActive,IsStandard,Name,ValidFrom,ValidTo
+Standard Price Book;true,Standard Cost Book,,true,true,Standard Price Book,,

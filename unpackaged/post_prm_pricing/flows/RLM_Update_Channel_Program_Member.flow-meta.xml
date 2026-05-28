@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Used for Partner/Disti solution where the Channel Program Level update all of the info on the Channel Program Member for Decision Table Purposes</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM Update Channel Program Member {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Update Channel Program Member</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_Channel_Program_Level</name>
+        <label>Get Channel Program Level</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Update_Channel_Program_Member</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.LevelId</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>ChannelProgramLevel</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <name>Update_Channel_Program_Member</name>
+        <label>Update Channel Program Member</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <inputAssignments>
+            <field>RLM_Adjustment_Type__c</field>
+            <value>
+                <elementReference>$Record.Level.RLM_Adjustment_Type__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>RLM_Adjustment_Value__c</field>
+            <value>
+                <elementReference>$Record.Level.RLM_Adjustment_Value__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>RLM_Discount_Rate__c</field>
+            <value>
+                <elementReference>$Record.Level.RLM_Discount_Rate__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Channel_Program_Level</targetReference>
+        </connector>
+        <object>ChannelProgramMember</object>
+        <recordTriggerType>Create</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

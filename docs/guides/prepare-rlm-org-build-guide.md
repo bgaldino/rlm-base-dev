@@ -9,7 +9,7 @@
 
 ## What This Document Covers
 
-Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 28-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
+Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 30-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
 
 This guide walks through that build process from start to finish, explaining not just *what* happens at each stage, but *why* each step exists and how the pieces fit together. Whether you're onboarding to the team, preparing a demo environment, or troubleshooting a failed build, this document gives you the full picture.
 
@@ -49,15 +49,18 @@ The most commonly used flags and their defaults:
 - **rates: true** — Rate cards and rate card entries
 - **clm: true** — Enables CLM permission set licenses and CLM context definition extensions; CLM reference data additionally requires `clm_data: true` (defaults to `false`)
 - **prm: true** — Partner Relationship Management
+- **prm_pricing: false** — PRM pricing metadata, data, and procedure-plan overlay
 - **docgen: true** — Document Generation templates
 - **constraints: true** — Constraint Builder / product configuration rules
+- **procedureplans: true** — Procedure Plan definition, sections, options, and activation
+- **ux: true** — Assemble and deploy UX metadata from `templates/`
 - **tso: false** — Trialforce Source Org mode (off by default for dev orgs)
 
 ---
 
 ## The Build Process: Phase by Phase
 
-The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
+The 30 steps of `prepare_rlm_org` can be understood as seven logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
 
 ---
 
@@ -153,7 +156,7 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Procedure plans** (Step 21, `procedureplans` flag) — Creates Procedure Plan Definitions and their associated sections and options via the Connect REST API and SFDMU data loading. Procedure plans define the step-by-step flows for quote pricing and other revenue processes.
 
-**PRM** (Step 22, `prm` flag) — Creates the Partner Central community, publishes it, and extends the Sales Transaction Context with partner account attributes — all of which happen whenever `prm` is on. Loading the QuantumBit PRM product data additionally requires `qb`; if you're building a Q3-only org, the community is still created and published but that data load is skipped. Two sub-steps are Trialforce Source Org-specific and only run in TSO builds: deploying the full Experience Bundle and assigning the `RLM_PRM` permission set. Sharing rules deployment is its own separate toggle (`sharingsettings`).
+**PRM** (Step 22, `prm` flag) — Creates the Partner Central community, publishes it, and extends the Sales Transaction Context with partner account attributes — all of which happen whenever `prm` is on. Loading the QuantumBit PRM product data additionally requires `qb`; if you're building a Q3-only org, the community is still created and published but that data load is skipped. Two sub-steps are Trialforce Source Org-specific and only run in TSO builds: deploying the full Experience Bundle and assigning the `RLM_PRM` permission set. Sharing rules deployment is its own separate toggle (`sharingsettings`). When `prm_pricing=true`, the PRM flow also deploys PRM pricing metadata, applies pricing recipe table mappings, loads the `qb-prm-pricing` overlay when `qb=true`, and wraps the PRM procedure-plan overlay in deactivate/load/verify/reactivate steps when `procedureplans=true`.
 
 **Agentforce agents** (Step 23, `agents` flag) — Deploys Agentforce AI agent configurations, settings, and assigns the quoting agent permission set.
 
@@ -171,9 +174,9 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 ---
 
-### Phase 7: Final Configuration (Steps 26–28)
+### Phase 7: Final Configuration (Steps 26–30)
 
-**What happens:** Revenue settings are configured via Robot Framework, pricing discovery is reconfigured for scratch orgs, and all decision tables are refreshed.
+**What happens:** Revenue settings are configured via Robot Framework, pricing discovery is reconfigured for scratch orgs, UX metadata is assembled and deployed when enabled, scratch data is inserted, and all decision tables are refreshed.
 
 **Why it matters:** This phase is the "polish" — it ensures that all the pieces assembled in previous phases are properly wired together and that runtime configurations reflect the current state of all loaded data.
 
@@ -181,7 +184,13 @@ The 28 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Pricing discovery reconfiguration** (Step 27, scratch orgs only, not TSO) — Fixes the pricing discovery procedure by reconfiguring an expression set. This addresses a platform behavior where scratch org provisioning creates a default pricing discovery configuration that conflicts with the one we deploy.
 
-**Decision table refresh** (Step 28) — The final step syncs pricing data and refreshes decision table categories. Pricing discovery always refreshes; the asset, rating, and rating discovery categories only refresh when `rating` is on; the commerce category only refreshes when `commerce` is on. Decision tables are the lookup caches that the pricing and rating engines use at runtime — refreshing them ensures they reflect all the data loaded during the build. This step must always run last because it materializes the current state of all reference data into the decision table engine.
+**UX assembly** (Step 27, `ux` flag) — Assembles UX metadata from `templates/` into `unpackaged/post_ux/` and deploys the resulting flexipages, layouts, applications, app menus, profiles, and object bindings late in the build after feature-specific metadata is in place.
+
+**Scratch data** (Step 28) — Inserts scratch-only records that are useful for local development and demo workflows.
+
+**Decision table refresh** (Step 29) — Syncs pricing data and refreshes decision table categories. Pricing discovery always refreshes; the asset, rating, and rating discovery categories only refresh when `rating` is on; the commerce category only refreshes when `commerce` is on. Decision tables are the lookup caches that the pricing and rating engines use at runtime — refreshing them ensures they reflect all the data loaded during the build.
+
+**Git commit stamping** (Step 30) — Stamps the org with the current repository commit so builds can be traced back to source.
 
 ---
 

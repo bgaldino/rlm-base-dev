@@ -22,8 +22,11 @@ UX_KNOWN_FLAGS: List[str] = [
     "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
     "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
     "payments", "constraints", "analytics", "procedureplans",
-    "collections",
+    "collections", "prm_pricing",
 ]
+
+#: LWC identifier for the Sales Transaction Line Editor component in Quote flexipages.
+SALES_TXN_LINE_EDITOR_IDENTIFIER = "runtime_rca_salesTxnLineTable"
 
 #: Standalone flexipage dirs in deploy order (last writer wins).
 #: Each entry is (directory_name, flag_key).
@@ -39,6 +42,7 @@ _STANDALONE_ORDER: List[Tuple[str, str]] = [
     ("docgen",      "docgen"),
     ("approvals",   "qb"),        # approvals deploys with qb flow
     ("collections", "collections"),
+    ("prm_pricing", "prm_pricing"),
 ]
 
 

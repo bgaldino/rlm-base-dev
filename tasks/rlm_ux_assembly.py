@@ -54,15 +54,14 @@ except ImportError:
         return str(val).lower() in ("true", "1", "yes")
 
 try:
-    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, SALES_TXN_LINE_EDITOR_IDENTIFIER
 except ImportError:
-    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, SALES_TXN_LINE_EDITOR_IDENTIFIER
 
 
 # Salesforce metadata XML namespace
 SF_NS = "http://soap.sforce.com/2006/04/metadata"
 SF_NS_TAG = f"{{{SF_NS}}}"
-
 # Maps full source filename suffix → canonical metadata type key
 SUFFIX_TO_TYPE: Dict[str, str] = {
     ".flexipage-meta.xml": "flexipages",
@@ -232,6 +231,68 @@ def _patch_add_display_field(root: ET.Element, field: str) -> bool:
         _sub_elem(new_item, "value", field)
         vlist.append(new_item)
         return True
+    return False
+
+
+def _patch_add_component_value_list_items(
+    root: ET.Element,
+    component_identifier: str,
+    property_name: str,
+    values: List[str],
+    after: Optional[str] = None,
+) -> bool:
+    """
+    Add values to a componentInstanceProperties valueList for a specific component.
+
+    Skips values already present in the target list. If `after` is supplied,
+    new values are inserted immediately after that existing value; otherwise
+    they are appended.
+    """
+    values = [value for value in values if value]
+    if not values:
+        return True
+
+    for ci in root.iter(f"{SF_NS_TAG}componentInstance"):
+        id_el = _find_elem(ci, "identifier")
+        if id_el is None or id_el.text != component_identifier:
+            continue
+
+        for ci_props in _findall_elem(ci, "componentInstanceProperties"):
+            name_el = _find_elem(ci_props, "name")
+            if name_el is None or name_el.text != property_name:
+                continue
+
+            vlist = _find_elem(ci_props, "valueList")
+            if vlist is None:
+                return False
+
+            children = list(vlist)
+            existing = {
+                _find_elem(item, "value").text
+                for item in children
+                if _find_elem(item, "value") is not None
+            }
+            values_to_add = [value for value in values if value not in existing]
+            if not values_to_add:
+                return True
+
+            insert_at = len(children)
+            if after:
+                insert_at = -1
+                for i, item in enumerate(children):
+                    val_el = _find_elem(item, "value")
+                    if val_el is not None and val_el.text == after:
+                        insert_at = i + 1
+                        break
+                if insert_at < 0:
+                    return False
+
+            for offset, value in enumerate(values_to_add):
+                new_item = _make_elem("valueListItems")
+                _sub_elem(new_item, "value", value)
+                vlist.insert(insert_at + offset, new_item)
+            return True
+
     return False
 
 
@@ -413,6 +474,10 @@ def _patch_description(patch: Dict[str, Any]) -> str:
         return f"remove action: {patch.get('action', '?')}"
     if ptype == "add_display_field":
         return f"add display field: {patch.get('field', '?')}"
+    if ptype == "add_sales_txn_line_editor_field":
+        fields = patch.get("fields") or [patch.get("field", "?")]
+        prop_name = patch.get("property", "displayFields")
+        return f"add Sales Transaction Line Editor {prop_name}: {', '.join(fields)}"
     if ptype == "add_facet_field":
         fields = patch.get("fields", [])
         facet = patch.get("facet", "")
@@ -473,6 +538,34 @@ def _apply_flexipage_patch(root: ET.Element, patch: Dict[str, Any], logger=None)
         ok = _patch_add_display_field(root, field)
         if not ok and logger:
             logger.warning(f"add_display_field: displayFields valueList not found")
+
+    elif ptype == "add_sales_txn_line_editor_field":
+        fields = patch.get("fields")
+        if not fields and patch.get("field"):
+            fields = [patch["field"]]
+        if not fields:
+            log(
+                "add_sales_txn_line_editor_field patch missing "
+                f"'field' or 'fields': {patch}"
+            )
+            return
+        prop_name = patch.get("property", "displayFields")
+        component_identifier = patch.get(
+            "component_identifier", SALES_TXN_LINE_EDITOR_IDENTIFIER
+        )
+        ok = _patch_add_component_value_list_items(
+            root,
+            component_identifier,
+            prop_name,
+            fields,
+            after=patch.get("after"),
+        )
+        if not ok and logger:
+            logger.warning(
+                "add_sales_txn_line_editor_field: "
+                f"{component_identifier}.{prop_name} valueList or anchor "
+                f"'{patch.get('after')}' not found"
+            )
 
     elif ptype == "add_facet_field":
         fields = patch.get("fields", [])
@@ -781,6 +874,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("constraints", "constraints"),
             ("ramps",       "ramp_builder"),
             ("collections", "collections"),
+            ("prm_pricing", "prm_pricing"),
         ]
 
         # Flexipage types that cannot be deployed via Metadata API (platform restriction)
@@ -959,7 +1053,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
         # Inject new actionOverrides that aren't already present
         added = 0
-        for ao in patch_root.findall(f"{{{NS}}}actionOverrides"):
+        for ao in patch_root.findall(f".//{{{NS}}}actionOverrides"):
             sobjtype = (ao.findtext(f"{{{NS}}}pageOrSobjectType") or "").strip()
             ff = (ao.findtext(f"{{{NS}}}formFactor") or "").strip()
             if (sobjtype, ff) not in existing_keys:
@@ -1046,7 +1140,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 # TSO template already contains all overrides; patches only run for non-TSO builds.
                 patches_applied = []
                 if not features.get("tso"):
-                    patch_features = ["billing", "rates", "ramps"]
+                    patch_features = ["billing", "rates", "ramps", "prm_pricing"]
                     for pf in patch_features:
                         if not features.get(pf):
                             continue

@@ -390,7 +390,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
    #### Setup for headless robot runs
 
-   Required if you use `prepare_docgen`, `enable_document_builder_toggle`, `enable_constraints_settings`, `configure_revenue_settings`, or `reorder_app_launcher`:
+   Required if you use Robot-backed setup tasks such as `prepare_docgen`, `enable_document_builder_toggle`, `enable_constraints_settings`, `configure_revenue_settings`, `configure_core_pricing_setup`, `configure_product_discovery_settings`, `enable_timeline`, or `reorder_app_launcher`:
 
    1. **Python packages** — Robot Framework, selenium (4.10+), SeleniumLibrary, webdriver-manager, urllib3. Keep them in the **same environment as CumulusCI** so CCI tasks can run the `robot` command. A full dependency set is in **`robot/requirements.txt`**. If you use **pipx** for CumulusCI (recommended):
      ```bash
@@ -527,7 +527,8 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `einstein` | `true` | Use Einstein AI |
 | `agents` | `false` | Deploy Agentforce Agent configurations |
 | `prm` | `true` | Use Partner Relationship Management |
-| `prm_exp_bundle` | `false` | Use PRM Experience Bundle |
+| `prm_exp_bundle` | `true` | Use PRM Experience Bundle |
+| `prm_pricing` | `false` | Enable PRM pricing metadata/tasks (`prepare_prm_pricing`) |
 | `commerce` | `false` | Use Commerce |
 | `breconfig` | `false` | Business Rules Engine configuration |
 | `docgen` | `true` | Use Document Generation |
@@ -590,6 +591,8 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `test_qb_guidedselling_products_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling-products | [qb-guidedselling-products README](datasets/sfdmu/qb/en-US/qb-guidedselling-products/README.md) |
 | `extract_qb_prm_data` | Data Management - Extract | Extract qb-prm (partner relationship management) from org to CSV | See `cumulusci.yml` |
 | `test_qb_prm_idempotency` | Data Management - Idempotency | Idempotency test for qb-prm | See `cumulusci.yml` |
+| `extract_qb_prm_pricing_data` | Data Management - Extract | Extract qb-prm-pricing (PRM pricing overlay) from org to CSV | [qb-prm-pricing README](datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) |
+| `test_qb_prm_pricing_idempotency` | Data Management - Idempotency | Idempotency test for qb-prm-pricing | [qb-prm-pricing README](datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) |
 | `post_process_extraction` | Revenue Lifecycle Management | Post-process extracted CSVs (composite keys, header normalization) for re-import; see `scripts/post_process_extraction.py` | See `cumulusci.yml` |
 | `load_sfdmu_data` | Revenue Lifecycle Management | Load SFDMU data plans (generic; supports simulation, object_sets, dynamic DRO user) | See `cumulusci.yml` |
 | `export_cml` | Revenue Lifecycle Management | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
@@ -599,7 +602,7 @@ cci flow run run_qb_idempotency_tests --org <org>
 
 Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. **Post-process runs by default** after extraction; re-import-ready CSVs are in `<timestamp>/processed/`. To skip post-process (raw SFDMU output only), pass `run_post_process: false` (e.g. `cci task run extract_qb_pcm_data --org <org> -o run_post_process false`). You can also run `post_process_extraction` manually for an existing extraction. See [Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md).
 
-**Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All ten plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling, qb-guidedselling-products) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script.
+**Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All ten plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling, qb-guidedselling-products) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script. Additional one-off tasks exist for overlays and adjacent plans such as qb-prm, qb-prm-pricing, qb-approvals, qb-billing, qb-tax, and scratch data; run those tasks directly unless they are explicitly added to the batch flows.
 
 ### Apex Execution Tasks
 
@@ -630,6 +633,8 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `manage_transaction_processing_types` | `rlm_manage_transaction_processing_types.py` | Manage TransactionProcessingType records (list, upsert, delete) | [Constraints Setup](docs/guides/constraints-setup.md) |
 | `manage_context_definition` | `rlm_context_service.py` | Modify context definitions via Context Service API | [Context Service Utility](docs/references/context-service-utility.md) |
 | `extend_standard_context` | `rlm_extend_stdctx.py` | Extend standard context definitions with custom attributes | [Context Service Utility](docs/references/context-service-utility.md) |
+| `configure_core_pricing_recipe_table_mappings` | `rlm_configure_pricing_recipe_table_mappings.py` | Ensure core `PricingRecipeTableMapping` records exist for `NGPDefaultRecipe` and `RLM_CostBookEntries` | [PRM Pricing Metadata](unpackaged/post_prm_pricing/README.md) |
+| `configure_pricing_recipe_table_mappings` | `rlm_configure_pricing_recipe_table_mappings.py` | Ensure PRM pricing lookup table mappings exist for `NGPDefaultRecipe` | [PRM Pricing Metadata](unpackaged/post_prm_pricing/README.md) |
 | `assemble_and_deploy_ux` | `rlm_ux_assembly.py` | Assemble UX metadata (flexipages, layouts, applications, app menus, profiles, compact layouts, list views, object bindings) from `templates/` into `unpackaged/post_ux/` and optionally deploy. Supports `metadata_type` (specific type or `all`) and `metadata_name` (single file by full source filename). Called by `prepare_ux` at step 27. | [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) |
 
 ### Decision Table Refresh Tasks
@@ -673,7 +678,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 
 | Task Name | Module | Description |
 |-----------|--------|-------------|
-| `delete_quantumbit_pricing_data` | `tasks.rlm_sfdmu.DeleteSFDMUData` | Delete all Insert-operation records from the qb-pricing plan (PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice) in reverse plan order (children first). Shape-agnostic — reads `export.json` at runtime. Runs automatically as step 1 of `prepare_pricing_data`. |
+| `delete_quantumbit_pricing_data` | `tasks.rlm_sfdmu.DeleteSFDMUData` | Delete all Insert-operation records from the qb-pricing plan (CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic — reads `export.json` at runtime. Runs automatically as step 1 of `prepare_pricing_data`. |
 | `delete_qb_rates_data` | `scripts/apex/deleteQbRatesData.apex` | Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running `insert_qb_rates_data` or `test_qb_rates_idempotency` when duplicates exist. |
 | `delete_qb_rating_data` | `scripts/apex/deleteQbRatingData.apex` | Delete all qb-rating data (PUG, PURP, PUR, rating policies, etc.) in dependency order. Use before re-running `insert_qb_rating_data` when duplicates exist. |
 | `delete_draft_billing_records` | `scripts/apex/deleteDraftBillingRecords.apex` | Delete all draft billing-related records (BillingTreatmentItem, BillingTreatment, BillingPolicy, PaymentTermItem, PaymentTerm) in dependency order. Use before re-running the billing data plan to avoid duplicates. |
@@ -688,12 +693,16 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
 | `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, selenium (4.10+), SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3. Auto-fixes outdated SFDMU and robot deps (including selenium) when `auto_fix=true`/`auto_fix_robot=true`. No org required. | See `cumulusci.yml` |
 | `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder, Document Templates Export, and Design Document Templates via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `enable_timeline` | `rlm_enable_timeline.py` | Enable the Timeline setup toggle required by billing UI flexipages that reference the Timeline component | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
 | `fix_document_template_binaries` | `rlm_docgen.py` | Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy (Salesforce assigns the same binary to all templates; this task uploads the correct `.dt` binary to each). Run automatically as step 8 of `prepare_docgen`. | [DocGen Setup](docs/guides/docgen-setup.md) |
 | `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/guides/constraints-setup.md) |
 | `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |
+| `configure_core_pricing_setup` | `rlm_configure_core_pricing_setup.py` | Configure Salesforce Pricing Setup (CorePricingSetup) default Pricing Procedure via Robot Framework | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `configure_product_discovery_settings` | `rlm_configure_product_discovery_settings.py` | Set the Product Discovery default catalog to QuantumBit Software via Robot Framework | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
 | `reconfigure_pricing_discovery` | `rlm_reconfigure_expression_set.py` | Reconfigure autoproc `Salesforce_Default_Pricing_Discovery_Procedure`: fix context definition, rank, start date | See `cumulusci.yml` |
 | `create_procedure_plan_definition` | `rlm_create_procedure_plan_def.py` | Create Procedure Plan Definition + inactive Version via Connect API (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
 | `activate_procedure_plan_version` | `rlm_create_procedure_plan_def.py` | Activate ProcedurePlanDefinitionVersion after data load (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
+| `apply_procedure_plan_overlay` | `rlm_apply_procedure_plan_overlay.py` | Apply and verify a procedure-plan overlay with a guarded deactivate/reactivate boundary | [procedure plan overlays README](datasets/procedure_plan_overlays/README.md) |
 | `deploy_billing_id_settings` | (CCI Deploy) | Deploy Billing Settings with org-specific record IDs resolved via XPath transform SOQL queries | See `cumulusci.yml` |
 | `deploy_billing_template_settings` | (CCI Deploy) | Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3) | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
@@ -884,12 +893,12 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
-| `prepare_prm` | Create community, patch Network email (placeholder → Network's current EmailSenderAddress), deploy PRM metadata, revert Network email to placeholder, publish community, sharing rules, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `sharingsettings`, `qb` |
+| `prepare_prm` | Main-compatible PRM flow: create/publish community, deploy PRM bundle for TSO+experience-bundle path, sharing rules, PRM data load, and PartnerAccount context extension; optionally invokes `prepare_prm_pricing` when `prm_pricing=true` | `prm`, `prm_exp_bundle`, `prm_pricing`, `sharingsettings`, `qb` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
 | `extract_rating` | Extract rating and rates data from an org | -- |
 | `prepare_agents` | Deploy Agentforce agents, settings, permissions | `agents` |
-| `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce` |
+| `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce`, `prm`, `prm_pricing` |
 | `prepare_decision_tables` | Activate decision tables | Scratch only |
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
 | `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |
@@ -903,7 +912,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 |------|-------------|--------------|
 | `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 27 of `prepare_rlm_org`. | `ux` |
 
-**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → qb → tso → constraints → ramps → collections → utils → docgen → approvals`) followed by sequential YAML patch application. One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing, rates, and ramps are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
+**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`) followed by sequential YAML patch application (order: `quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections → prm_pricing`). One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing, rates, and ramps are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
 
 ### Utility Flows and Tasks
 
@@ -1016,12 +1025,17 @@ datasets/sfdmu/
 | qb-rating | `datasets/sfdmu/qb/en-US/qb-rating/` | Rating design-time data | [README](datasets/sfdmu/qb/en-US/qb-rating/README.md) |
 | qb-rates | `datasets/sfdmu/qb/en-US/qb-rates/` | Rates data | [README](datasets/sfdmu/qb/en-US/qb-rates/README.md) |
 | qb-prm | `datasets/sfdmu/qb/en-US/qb-prm/` | Partner Relationship Management (channel programs, levels, members) | [README](datasets/sfdmu/qb/en-US/qb-prm/README.md) |
+| qb-prm-pricing | `datasets/sfdmu/qb/en-US/qb-prm-pricing/` | PRM pricing overlay data (partner accounts, channel programs, member pricing, account self-lookups) | [README](datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) |
 
 #### Procedure Plans Data Plan
 
 | Data Plan | Directory | Description | Documentation |
 |-----------|-----------|-------------|---------------|
 | procedure-plans | `datasets/sfdmu/procedure-plans/` | Procedure Plan sections and options with expression set links (2-pass upsert + Connect API + activation) | [README](datasets/sfdmu/procedure-plans/README.md) |
+
+Procedure-plan overlays that require resolved parent IDs live under
+`datasets/procedure_plan_overlays/` and are applied by dedicated CCI tasks
+rather than SFDMU.
 
 #### Archived Data Plans
 
@@ -1052,6 +1066,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Dev Environment Setup](docs/guides/dev-environment-setup.md) | Canonical local toolchain architecture — shell config layout, direnv `.envrc` per-project pinning, major-line update strategy, replication on new workstations |
 | [Constraints Utility Guide](datasets/constraints/README.md) | CML constraint model export, import, validate -- architecture, workflows, polymorphic resolution |
 | [Constraints Setup](docs/guides/constraints-setup.md) | `prepare_constraints` flow order, feature flags, deployment phases |
+| [CumulusCI Reference](docs/references/cci-task-reference.md) | Stable index for generated CCI task, flow, and feature flag references |
 | [Decision Table Examples](docs/references/decision-table-examples.md) | Comprehensive examples for Decision Table management tasks |
 | [Task Examples](docs/references/task-examples.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/references/context-service-utility.md) | Context Service utility usage and plan examples |
@@ -1079,12 +1094,13 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 - [qb-rating README](datasets/sfdmu/qb/en-US/qb-rating/README.md) -- Rating
 - [qb-rates README](datasets/sfdmu/qb/en-US/qb-rates/README.md) -- Rates
 - [qb-prm README](datasets/sfdmu/qb/en-US/qb-prm/README.md) -- Partner Relationship Management
+- [qb-prm-pricing README](datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) -- PRM Pricing Overlay
 - [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) -- Procedure Plans
 - [mfg README](datasets/sfdmu/mfg/README.md) -- Manufacturing data shape (add plans under mfg/en-US/; same patterns as qb)
 
 ### Robot Framework
 
-- [Robot Setup README](robot/rlm-base/tests/setup/README.md) -- Browser automation for setup page toggles and picklists (Document Builder, Constraints Settings, Revenue Settings)
+- [Robot Setup README](robot/rlm-base/tests/setup/README.md) -- Browser automation for setup page toggles and picklists (Document Builder, Constraints Settings, Revenue Settings, Pricing Setup, Product Discovery, Timeline)
 - [E2E Test Framework](docs/features/e2e-test-framework.md) -- End-to-end UI tests (Quote-to-Order flow), shadow DOM architecture, and debugging guide
 
 ### Configuration Files
