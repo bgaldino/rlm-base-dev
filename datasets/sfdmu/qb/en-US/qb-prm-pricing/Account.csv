@@ -1,4 +1,4 @@
 Industry,IsPartner,Name,Phone,Type,BillingCity,BillingCountry,BillingState,RLM_Primary_Distributor__r.Name,RLM_Primary_Reseller__r.Name
 Technology,true,Cloud Distributors,+1 (415) 555-1212,Partner,San Francisco,United States,CA,,
-Technology,false,Infinitech,+1 (415) 555-1212,Customer,San Francisco,United States,CA,,Robot Resellers
+Technology,false,Apex Dynamics,+1 (415) 555-1212,Customer,San Francisco,United States,CA,,Robot Resellers
 Technology,true,Robot Resellers,+1 (415) 555-9521,Reseller,San Francisco,United States,CA,Cloud Distributors,

@@ -31,7 +31,7 @@ insert_quantumbit_prm_pricing_data:
 
 This overlay includes:
 
-- 3 Accounts (`Cloud Distributors`, `Infinitech`, `Robot Resellers`)
+- 3 Accounts (`Cloud Distributors`, `Apex Dynamics`, `Robot Resellers`)
 - 2 Channel Programs (`Distributor Program`, `Reseller Program`)
 - 8 Channel Program Levels (Distributor + Reseller tiers with unique names)
 - 2 Channel Program Members
