@@ -157,8 +157,10 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 - `docs/erds/erd-data.json` — canonical machine-readable schema (263 objects, 4,190 fields, 674 relationships, custom fields excluded)
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer
-- `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis
-- `docs/erds/orphan-candidates-after-batch7.md` — final orphan classification report (38 explicitly-documented feature-gated/cross-cloud fields kept as informational)
+- `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis; records the **expected** feature-gated baseline (9 objects unfindable in a default RLM scratch profile, 33 objects with cross-cloud / version-gated field gaps, 822 ERD-side fields verified against Core UDD source but absent from a stock org). Use this file as the diff target for new validation runs — a clean refresh produces zero NEW gaps vs this baseline, not zero gaps absolute.
 - `scripts/erd/schema_diff/{260,262}-schema.json` — fresh-org schema snapshots for 260 and 262
 - `scripts/erd/schema_diff/260-vs-262-diff.md` — verified release delta
-- `.agents/artifacts/orphan-field-ownership.json` — per-entity ownership classification for 127 verified entities
+
+Internal-only (not committed; intentionally git-ignored):
+- `.agents/artifacts/orphan-field-ownership.json` — per-entity ownership classification for 127 verified entities (used by the `orphan_batch_helper.py` workflow; not required to audit any claim in this skill).
+- `docs/erds/orphan-candidates-after-batch*.md` — per-batch orphan classification reports produced by the cleanup workflow. The final outcome of the cleanup is already baked into `erd-data.json` and `validation-report.md`; the intermediate batch reports are local artifacts only.

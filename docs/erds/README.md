@@ -157,7 +157,7 @@ To refresh after a schema change or new release:
 2. Run `python scripts/erd/validate_erd_against_org.py --org <alias> --patch` to add new fields and relationships
 3. Run `python scripts/erd/cleanup_orphan_erd_fields.py --orgs <260>,<262> --dry-run` to identify candidates for cleanup
 4. Run `python scripts/erd/build_erds.py` to regenerate the HTML viewer
-5. Re-validate: `python scripts/erd/validate_erd_against_org.py --org <alias>` to confirm zero gaps
+5. Re-validate: `python scripts/erd/validate_erd_against_org.py --org <alias> --report docs/erds/validation-report.md` and confirm only the **expected feature-gated gaps** remain (diff against the committed `validation-report.md`; the current expected baseline is 9 feature-gated objects unfindable in a default RLM scratch profile — `AssetDowntimePeriod`, `AssetOwnerSharingRule`, `AssetShare`, `AssetTag`, `AssetWarranty`, `PricingProcedureResolution`, `ProductPriceHistoryLog`, `ProductPriceRange`, `ProductSellingModelDataTranslation` — plus 33 objects with cross-cloud / version-gated field gaps and 822 ERD-side fields that don't surface in a stock org but were verified against Core UDD source; see `docs/upgrades/262-upgrade-plan.md` for the rationale). A clean refresh produces **zero NEW gaps** vs the committed baseline, not zero gaps absolute.
 
 Detailed workflow at `.cursor/skills/schema-validation/SKILL.md`.
 
