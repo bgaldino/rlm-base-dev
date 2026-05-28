@@ -39,12 +39,13 @@ datasets/tooling/      # Tooling API metadata exports
 scripts/apex/          # Apex activation/deletion scripts
 scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
 scripts/cml/           # CML export/import/validation utilities
+scripts/erd/           # ERD validation, diffing, cleanup, HTML generation, schema_diff/
 scripts/soql/          # Reusable SOQL query files
 tasks/                 # Custom Python CCI task classes
 tests/                 # Shell-based integration test scripts
 robot/rlm-base/        # Robot Framework tests (setup + E2E)
 orgs/                  # Scratch org definition JSON files
-postman/               # Postman collections for RLM APIs (v66.0)
+postman/               # Postman collections for RLM APIs
 docs/                  # Documentation (lower-kebab-case filenames)
 ```
 
@@ -217,12 +218,15 @@ that topic.
 | Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
+| Validate / refresh / certify the ERD against orgs and Core source | `.cursor/skills/schema-validation/SKILL.md` |
+| Consume PMOS content from Foundations (or vice versa) via cross-repo skill manifest | `.cursor/skills/pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
 | Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
 | Capture/apply UX drift from org | `.cursor/skills/repo-integration/ux-assembly-retrieve.md` |
 | Review docs before merge | `.cursor/skills/doc-consistency/SKILL.md` |
 | Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
 | Author/update enablement exercises per release | `.cursor/skills/release-enablement/SKILL.md` |
+| Generate the QuantumBit demo-script canvas (per-release SE/partner artifact) | `.cursor/skills/qb-demo-script/SKILL.md` |
 | Ground product claims against Salesforce Help (Trailhead, internal docs, SME review) | `.cursor/skills/revenue-cloud-docs/SKILL.md` |
 
 Each skill has a **Quick Rules** section at the top for fast reference,
@@ -282,7 +286,26 @@ Scripts in `scripts/ai/` help agents query project data:
 python scripts/ai/query_erd.py describe Product2           # Query RLM data model
 python scripts/ai/query_erd.py domain Pricing               # List domain objects
 python scripts/ai/generate_cci_reference.py                 # Regenerate CCI docs
+python scripts/ai/skill_manifest.py --check                 # Verify cross-repo skill manifest can resolve PMOS clone
+python scripts/ai/skill_manifest.py --list-skills foundations
 ```
+
+`scripts/ai/skill_manifest.py` is the resolver for the cross-repo skill manifest at `.claude/skill-manifest.yml` — see `.cursor/skills/pmos-integration/SKILL.md` for the integration pattern.
+
+### Schema Validation Scripts
+
+Scripts for keeping `docs/erds/erd-data.json` aligned with canonical Revenue Cloud platform schema. See `.cursor/skills/schema-validation/SKILL.md` for the full workflow.
+
+```bash
+python scripts/erd/validate_erd_against_org.py --org <alias>           # Diff ERD vs org
+python scripts/erd/validate_erd_against_org.py --org <alias> --patch   # Patch ERD with org-discovered fields
+python scripts/erd/schema_diff/extract_schema.py --org <alias> --output <file>.json
+python scripts/erd/schema_diff/diff_schemas.py --baseline 260.json --target 262.json --impact
+python scripts/erd/cleanup_orphan_erd_fields.py --orgs <260>,<262> --dry-run    # Cross-validate orphans
+python scripts/erd/build_erds.py                              # Regenerate ERD HTML viewer
+```
+
+**All schema scripts skip custom fields by default** (`__c` suffix, including project `RLM_*__c` and managed-package fields). The ERD reflects canonical platform schema only. Pass `--include-custom` only for project-internal tooling that needs to see deployed custom fields.
 
 ---
 

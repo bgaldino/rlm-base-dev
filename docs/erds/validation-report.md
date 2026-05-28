@@ -1,17 +1,17 @@
 # ERD Validation Report
 
-Generated: 2026-03-26 22:53:06
+Generated: 2026-05-26 18:16:29
 
 ## Summary
 
 | Metric | Count |
 |--------|-------|
 | Objects validated | 263 |
-| Objects not found in org | 14 |
-| Objects with field gaps | 178 |
-| Fields in org missing from ERD | 1297 |
-| Relationships in org missing from ERD | 281 |
-| ERD fields not found in org | 806 |
+| Objects not found in org | 9 |
+| Objects with field gaps | 33 |
+| Fields in org missing from ERD | 56 |
+| Relationships in org missing from ERD | 14 |
+| ERD fields not found in org | 822 |
 
 ## Objects Not Found in Org
 
@@ -23,199 +23,215 @@ They may require specific licenses, permissions, or features to be enabled.
 - `AssetShare` (Transaction Management)
 - `AssetTag` (Transaction Management)
 - `AssetWarranty` (Transaction Management)
-- `Dispute` (Billing (Core Object))
-- `DisputeItem` (Billing (Core Object))
 - `PricingProcedureResolution` (Salesforce Pricing)
 - `ProductPriceHistoryLog` (Salesforce Pricing)
 - `ProductPriceRange` (Salesforce Pricing)
 - `ProductSellingModelDataTranslation` (Salesforce Pricing)
-- `SeqPolicySelectionCondition` (Billing)
-- `SequenceGapReconciliation` (Billing)
-- `SequencePolicy` (Billing)
 
 ## Per-Object Gaps
 
-### Quote
-Domain: Transaction Management (Core Object) | ERD fields: 41 | Org fields: 104
+### Dispute
+Domain: Billing (Core Object) | ERD fields: 11 | Org fields: 15
 
 **Relationships in org, missing from ERD:**
 
 | Field | Type | References |
 |-------|------|------------|
 | `AccountId` | reference | Account |
-| `BillToContactId` | reference | Contact |
-| `ContactId` | reference | Contact |
-| `ContractId` | reference | Contract |
-| `LegalEntityId` | reference | LegalEntity |
-| `OpportunityId` | reference | Opportunity |
-| `Pricebook2Id` | reference | Pricebook2 |
-| `PricingContractId` | reference | Contract |
-| `QuoteAccountId` | reference | Account |
-| `RelatedQuoteId` | reference | Quote |
-| `SalesTransactionTypeId` | reference | SalesTransactionType |
+| `CaseId` | reference | Case |
 
-**Data fields in org, missing from ERD (79):**
+**Data fields in org, missing from ERD (10):**
 
-- *address*: `AdditionalAddress`, `BillingAddress`, `QuoteToAddress`, `ShippingAddress`
-- *boolean*: `CanCreateQuoteLineItems`, `IsSyncing`
-- *currency*: `GrandTotal`, `ShippingHandling`, `Subtotal`, `Tax`, `TotalPrice`
-- *date*: `ExpirationDate`, `RLM_EndDate__c`
+- *currency*: `ApprovedAmount`, `DisputedAmount`
+- *date*: `ReceivedDate`
 - *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *double*: `AdditionalLatitude`, `AdditionalLongitude`, `BillingLatitude`, `BillingLongitude`, `QuoteToLatitude`, `QuoteToLongitude`, `RLM_Approval_Level__c`, `RLM_TermMonths__c`, `ShippingLatitude`, `ShippingLongitude`
-- *email*: `Email`
-- *int*: `LineGroupCount`, `LineItemCount`
-- *percent*: `RLM_Discount_Percent__c`
-- *phone*: `Fax`, `Phone`
-- *picklist*: `AdditionalGeocodeAccuracy`, `BillingGeocodeAccuracy`, `CalculationStatus`, `QuoteToGeocodeAccuracy`, `RLM_Approval_Status__c`, `RLM_Payment_Terms__c`, `RelatedQuoteType`, `ShippingGeocodeAccuracy`
-- *string*: `AdditionalCity`, `AdditionalCountry`, `AdditionalName`, `AdditionalPostalCode`, `AdditionalState`, `BillingCity`, `BillingCountry`, `BillingName`, `BillingPostalCode`, `BillingState`, `Name`, `QuoteNumber`, `QuoteToCity`, `QuoteToCountry`, `QuoteToName`, `QuoteToPostalCode`, `QuoteToState`, `RLM_Account_Name__c`, `RLM_Sales_Rep_Name__c`, `RLM_Seller_City__c`, `RLM_Seller_CompanyName__c`, `RLM_Seller_Country__c`, `RLM_Seller_Email__c`, `RLM_Seller_Fax__c`, `RLM_Seller_Phone__c`, `RLM_Seller_PostalCode__c`, `RLM_Seller_State__c`, `RLM_Seller_Street__c`, `RLM_Seller_Website__c`, `ServiceDocumentTemplate`, `ShippingCity`, `ShippingCountry`, `ShippingName`, `ShippingPostalCode`, `ShippingState`
-- *textarea*: `AdditionalStreet`, `BillingStreet`, `Description`, `QuoteToStreet`, `ShippingStreet`
+- *picklist*: `DisputeSubtype`, `DisputeType`, `ResolutionAction`
+- *string*: `Name`
+- *textarea*: `Description`
 
-**ERD fields not found in org (27):**
+**ERD fields not found in org (8):**
 
-- `Account`
-- `DiscountAmount`
-- `EffectiveGrantDate`
-- `EndDate`
-- `EndDateTime`
-- `EndQuantity`
-- `EndTime`
-- `IsRamped`
-- `Margin`
-- `MarginAmount`
-- `ParentQuoteLineGroupId`
-- `PartnerDiscountPercent`
-- `PartnerUnitPrice`
-- `PriceWaterfallIdentifier`
-- `QuoteLineGroup`
-- `SegmentType`
-- `StartDateTime`
-- `StartEndTimeZone`
-- `StartQuantity`
-- `StartTime`
-- `SummaryTotalAmount`
-- `TotalAdjustment`
-- `TotalAdjustmentAmount`
-- `TotalCost`
-- `TotalMargin`
-- `TotalMarginAmount`
-- `UnitCost`
+- `BillingResumptionDate`
+- `BillingSuspensionDate`
+- `Contact`
+- `Error`
+- `Invoice`
+- `MaySetContactAsDefault`
+- `RevisedBillToContact`
+- `RevisedDueDate`
 
-### OrderItem
-Domain: Transaction Management (Core Object) | ERD fields: 27 | Org fields: 90
+### DisputeItem
+Domain: Billing (Core Object) | ERD fields: 2 | Org fields: 8
 
 **Relationships in org, missing from ERD:**
 
 | Field | Type | References |
 |-------|------|------------|
-| `BillingTreatmentId` | reference | BillingTreatment |
-| `BindingInstanceTargetId` | reference | Account, Asset, BindingObjectCustomExt, Contract, OrderItem |
-| `LegalEntityId` | reference | LegalEntity |
-| `OrderActionId` | reference | OrderAction |
-| `OrderDeliveryGroupId` | reference | OrderDeliveryGroup |
-| `OrderItemRecipientId` | reference | OrderItemRecipient |
-| `ParentOrderItemId` | reference | OrderItem |
-| `PriceRevisionPolicyId` | reference | PriceRevisionPolicy |
-| `QuantityUnitOfMeasureId` | reference | UnitOfMeasure |
-| `RelatedOrderItemId` | reference | OrderItem |
-| `ReplacementGroupId` | reference | OrderItemGroup |
-| `TaxTreatmentId` | reference | TaxTreatment |
+| `DisputeId` | reference | Dispute |
 
-**Data fields in org, missing from ERD (56):**
+**Data fields in org, missing from ERD (5):**
 
-- *boolean*: `DoesAutomaticallyRenew`, `IsOrderItemLocked`, `IsPrimarySegment`
-- *currency*: `DiscountAmount`, `GrossUnitPrice`, `MarginAmount`, `NetTotalPrice`, `PartnerUnitPrice`, `TotalAdjustmentTaxAmount`, `TotalAmtWithTax`, `TotalCost`, `TotalLineAdjustmentAmount`, `TotalLineAdjustmentTaxAmount`, `TotalLineTaxAmount`, `TotalMarginAmount`, `TotalTaxAmount`, `UnitCost`
-- *date*: `EarliestEstimatedDeliveryDate`, `EffectiveGrantDate`, `LatestEstimatedDeliveryDate`
-- *double*: `AggregatedQuantity`, `AvailableQuantity`, `EndQuantity`, `PricingTermCount`, `StartQuantity`
-- *int*: `LineNumber`, `SubscriptionTerm`
-- *percent*: `Discount`, `Margin`, `PartnerDiscountPercent`, `TotalAdjustment`, `TotalMargin`, `UnitPriceUplift`
-- *picklist*: `BillingFrequency2`, `EstimatedDeliveryTimeZone`, `PeriodBoundaryStartMonth`, `RLM_RampMode__c`, `SegmentType`, `Status`, `SupplementalChangeType`, `Type`, `TypeCode`, `ValidationResult`
-- *string*: `BatchIdentifier`, `BillingReference2`, `CustomProductName`, `EstimatedDeliveryReference`, `PriceWaterfallIdentifier`, `RLM_ProductName__c`, `RampIdentifier`, `RelatedChangeIdentifier`, `RevenueCloudPackagingFlag`, `SegmentIdentifier`, `SegmentName`
-- *time*: `EarliestEstimatedDeliveryTime`, `LatestEstimatedDeliveryTime`
+- *currency*: `DisputedAmount`
+- *date*: `TransactionDate`
+- *datetime*: `LastReferencedDate`, `LastViewedDate`
+- *string*: `Name`
+
+### ProductConfigurationFlow
+Domain: Product Configurator | ERD fields: 12 | Org fields: 12
+
+**Relationships in org, missing from ERD:**
+
+| Field | Type | References |
+|-------|------|------------|
+| `AssociatedProcessId` | reference | ApexClass, FlowRecord, GenAiFunctionDefinition, IntegrationProviderDef, OmniScriptConfig |
+
+**Data fields in org, missing from ERD (5):**
+
+- *int*: `Sequence`
+- *picklist*: `AnchorObject`, `SubType`, `Type`
+- *string*: `ContextDefinitionName`
 
 **ERD fields not found in org (5):**
 
-- `BillingFrequency`
-- `PricingStatus`
-- `StartDate`
-- `TaxAmount`
-- `TotalAdjustmentDistAmount`
+- `AssignmentType`
+- `Lookup`
+- `ProductClassificationId`
+- `ProductConfigurationFlowId`
+- `ReferenceObjectId`
 
-### QuoteLineItem
-Domain: Transaction Management (Core Object) | ERD fields: 25 | Org fields: 89
+### FulfillmentAsset
+Domain: Dynamic Revenue Orchestrator | ERD fields: 10 | Org fields: 12
+
+**Data fields in org, missing from ERD (3):**
+
+- *boolean*: `IsTimeAware`
+- *datetime*: `StateEndTime`, `StateStartTime`
+
+**ERD fields not found in org (1):**
+
+- `Lookup`
+
+### FulfillmentOrderLineItem
+Domain: Dynamic Revenue Orchestrator | ERD fields: 36 | Org fields: 39
+
+**Data fields in org, missing from ERD (3):**
+
+- *double*: `FulfillmentAssetEndQuantity`, `FulfillmentAssetStartQuantity`
+- *string*: `FulfillmentAssetReference`
+
+### Invoice
+Domain: Billing | ERD fields: 70 | Org fields: 70
 
 **Relationships in org, missing from ERD:**
 
 | Field | Type | References |
 |-------|------|------------|
-| `BillingTreatmentId` | reference | BillingTreatment |
-| `BindingInstanceTargetId` | reference | Account, Asset, BindingObjectCustomExt, Contract, QuoteLineItem |
-| `LegalEntityId` | reference | LegalEntity |
-| `OpportunityLineItemId` | reference | OpportunityLineItem |
-| `ParentQuoteLineItemId` | reference | QuoteLineItem |
-| `PriceRevisionPolicyId` | reference | PriceRevisionPolicy |
-| `PricingContractId` | reference | Contract |
-| `QuantityUnitOfMeasureId` | reference | UnitOfMeasure |
-| `QuoteActionId` | reference | QuoteAction |
-| `QuoteLineItemRecipientId` | reference | QuoteLineItemRecipient |
-| `QuoteRecipientGroupId` | reference | QuoteRecipientGroup |
-| `RelatedQuoteLineItemId` | reference | QuoteLineItem |
-| `ReplacementGroupId` | reference | QuoteLineGroup |
-| `TaxTreatmentId` | reference | TaxTreatment |
+| `PaymentScheduleId` | reference | PaymentSchedule |
 
-**Data fields in org, missing from ERD (52):**
+**Data fields in org, missing from ERD (2):**
 
-- *boolean*: `DoesAutomaticallyRenew`, `IsPrimarySegment`
-- *currency*: `DiscountAmount`, `MarginAmount`, `NetTotalPrice`, `PartnerUnitPrice`, `Subtotal`, `TotalCost`, `TotalMarginAmount`, `TotalPriceWithTax`, `TotalTaxAmount`, `UnitCost`
-- *date*: `EffectiveGrantDate`
-- *datetime*: `EndDateTime`, `LastReferencedDate`, `LastViewedDate`, `StartDateTime`
-- *double*: `AggregatedQuantity`, `EndQuantity`, `PricingTermCount`, `RLM_Approval_Level_Calc__c`, `StartQuantity`
-- *int*: `PricingTerm`, `RecipientScaledQuantity`, `SubscriptionTerm`
-- *percent*: `Margin`, `PartnerDiscountPercent`, `TotalAdjustment`, `TotalMargin`, `UnitPriceUplift`
-- *picklist*: `PeriodBoundaryStartMonth`, `PricingTermUnit`, `RLM_RampMode__c`, `SegmentType`, `SellingModelType`, `StartEndTimeZone`, `SubscriptionTermUnit`, `ValidationResult`, `Visibility`
-- *string*: `BatchIdentifier`, `BillingReference`, `CustomProductName`, `PriceWaterfallIdentifier`, `ProductInstanceIdentifier`, `RLM_Approval__c`, `RLM_ProductName__c`, `RampIdentifier`, `RevenueCloudPackagingFlag`, `SegmentIdentifier`, `SegmentName`
-- *time*: `EndTime`, `StartTime`
+- *string*: `CreditInvoiceTaxDocNumber`, `DebitInvoiceTaxDocNumber`
 
 **ERD fields not found in org (2):**
 
-- `PricingStatus`
-- `TotalAdjustmentDistAmount`
+- `InvoiceLine`
+- `Settled`
 
-### Order
-Domain: Transaction Management (Core Object) | ERD fields: 48 | Org fields: 80
+### ApprovalSubmission
+Domain: Advanced Approvals | ERD fields: 23 | Org fields: 13
+
+**Data fields in org, missing from ERD (2):**
+
+- *datetime*: `LastReferencedDate`, `LastViewedDate`
+
+**ERD fields not found in org (10):**
+
+- `ApprovalChainName`
+- `Authentication`
+- `Formats`
+- `Input`
+- `Inputs`
+- `IsAutoReviewed`
+- `POST`
+- `SmartApprovalBasisWorkItemId`
+- `Suspended`
+- `URI`
+
+### AssetFulfillmentDecomp
+Domain: Dynamic Revenue Orchestrator | ERD fields: 9 | Org fields: 9
+
+**Data fields in org, missing from ERD (2):**
+
+- *datetime*: `EndTime`, `StartTime`
+
+**ERD fields not found in org (1):**
+
+- `SourceLineItem`
+
+### BillingSchedule
+Domain: Billing | ERD fields: 54 | Org fields: 53
+
+**Data fields in org, missing from ERD (2):**
+
+- *double*: `ProcessingOrder`
+- *picklist*: `SubCategory`
+
+**ERD fields not found in org (3):**
+
+- `LineItemCharge`
+- `ReadyForInvoicing`
+- `Year`
+
+### CreditMemoInvApplication
+Domain: Billing | ERD fields: 17 | Org fields: 17
 
 **Relationships in org, missing from ERD:**
 
 | Field | Type | References |
 |-------|------|------------|
-| `AccountId` | reference | Account |
-| `ActivatedById` | reference | User |
-| `BillToContactId` | reference | Contact |
-| `CompanyAuthorizedById` | reference | User |
-| `ContractId` | reference | Contract |
-| `CustomerAuthorizedById` | reference | Contact |
-| `FulfillmentPlanId` | reference | FulfillmentPlan |
+| `LegalEntityAccountingPeriodId` | reference | LegalEntyAccountingPeriod |
 | `LegalEntityId` | reference | LegalEntity |
-| `OriginalOrderId` | reference | Order |
-| `PaymentTermId` | reference | PaymentTerm |
-| `Pricebook2Id` | reference | Pricebook2 |
-| `QuoteId` | reference | Quote |
-| `RelatedOrderId` | reference | Order |
-| `SalesChannelId` | reference | SalesChannel |
-| `ShipToContactId` | reference | Contact |
 
-**Data fields in org, missing from ERD (50):**
+**ERD fields not found in org (2):**
 
-- *address*: `BillingAddress`, `ShippingAddress`
-- *boolean*: `IsReductionOrder`
-- *currency*: `GrandTotalAmount`, `TotalAdjustedDeliveryAmount`, `TotalAdjustedDeliveryTaxAmount`, `TotalAdjustedProductAmount`, `TotalAdjustedProductTaxAmount`, `TotalAmount`, `TotalDeliveryAdjDistAmount`, `TotalDeliveryAdjDistTaxAmount`, `TotalProductAdjDistAmount`, `TotalProductAdjDistTaxAmount`, `TotalTaxAmount`
-- *date*: `CompanyAuthorizedDate`, `CustomerAuthorizedDate`, `EffectiveDate`, `PoDate`
-- *datetime*: `ActivatedDate`, `LastReferencedDate`, `LastViewedDate`, `OrderedDate`
-- *double*: `BillingLatitude`, `BillingLongitude`, `ShippingLatitude`, `ShippingLongitude`
-- *email*: `BillingEmailAddress`
-- *phone*: `BillingPhoneNumber`
-- *picklist*: `BillingGeocodeAccuracy`, `RelatedOrderType`, `ShippingGeocodeAccuracy`, `StatusCode`, `TaxLocaleType`, `Type`
-- *string*: `BillingCity`, `BillingCountry`, `BillingPostalCode`, `BillingState`, `Name`, `OrderNumber`, `OrderReferenceNumber`, `PoNumber`, `RLM_FulfillmentPlanIdText__c`, `ShippingCity`, `ShippingCountry`, `ShippingPostalCode`, `ShippingState`
-- *textarea*: `BillingStreet`, `Description`, `ShippingStreet`
+- `LastViewedDate`
+- `Yes`
+
+### FulfillmentAssetRelationship
+Domain: Dynamic Revenue Orchestrator | ERD fields: 7 | Org fields: 8
+
+**Data fields in org, missing from ERD (2):**
+
+- *datetime*: `EndTime`, `StartTime`
+
+**ERD fields not found in org (1):**
+
+- `FulfillmentAssetId`
+
+### InvoiceLine
+Domain: Billing | ERD fields: 65 | Org fields: 63
+
+**Data fields in org, missing from ERD (2):**
+
+- *string*: `RLM_Charge_Type__c`
+- *textarea*: `RLM_Attributes__c`
+
+**ERD fields not found in org (4):**
+
+- `OverageUnitOfMeasure`
+- `Product`
+- `QuoteLineItem`
+- `Tax`
+
+### Order
+Domain: Transaction Management (Core Object) | ERD fields: 113 | Org fields: 82
+
+**Relationships in org, missing from ERD:**
+
+| Field | Type | References |
+|-------|------|------------|
+| `RLM_Billing_Arrangement__c` | reference | BillingArrangement |
+| `RLM_Billing_Profile__c` | reference | BillingAccount |
 
 **ERD fields not found in org (33):**
 
@@ -253,941 +269,71 @@ Domain: Transaction Management (Core Object) | ERD fields: 48 | Org fields: 80
 - `TotalMarginAmount`
 - `UnitCost`
 
-### Contact
-Domain: Transaction Management (Core Object) | ERD fields: 6 | Org fields: 57
+### PaymentScheduleTreatment
+Domain: Billing | ERD fields: 12 | Org fields: 11
 
-**Relationships in org, missing from ERD:**
+**Data fields in org, missing from ERD (2):**
 
-| Field | Type | References |
-|-------|------|------------|
-| `IndividualId` | reference | Individual |
-| `MasterRecordId` | reference | Contact |
-| `ReportsToId` | reference | Contact |
-
-**Data fields in org, missing from ERD (48):**
-
-- *address*: `MailingAddress`, `OtherAddress`
-- *boolean*: `CanAllowPortalSelfReg`, `DoNotCall`, `HasOptedOutOfEmail`, `HasOptedOutOfFax`, `IsEmailBounced`
-- *date*: `Birthdate`
-- *datetime*: `EmailBouncedDate`, `LastCURequestDate`, `LastCUUpdateDate`, `LastReferencedDate`, `LastViewedDate`
-- *double*: `MailingLatitude`, `MailingLongitude`, `OtherLatitude`, `OtherLongitude`
-- *multipicklist*: `BuyerAttributes`
-- *phone*: `AssistantPhone`, `Fax`, `HomePhone`, `MobilePhone`, `OtherPhone`
-- *picklist*: `ContactSource`, `DepartmentGroup`, `LeadSource`, `MailingGeocodeAccuracy`, `OtherGeocodeAccuracy`, `Salutation`, `TitleType`
-- *string*: `AssistantName`, `Department`, `EmailBouncedReason`, `Jigsaw`, `JigsawContactId`, `MailingCity`, `MailingCountry`, `MailingPostalCode`, `MailingState`, `Name`, `OtherCity`, `OtherCountry`, `OtherPostalCode`, `OtherState`
-- *textarea*: `Description`, `MailingStreet`, `OtherStreet`
-- *url*: `PhotoUrl`
-
-### FulfillmentOrder
-Domain: Dynamic Revenue Orchestrator | ERD fields: 7 | Org fields: 56
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `BillToContactId` | reference | Contact |
-| `DeliveryMethodId` | reference | OrderDeliveryMethod |
-| `FulfilledFromLocationId` | reference | Location |
-| `InvoiceId` | reference | Invoice |
-| `OrderSummaryId` | reference | OrderSummary |
-
-**Data fields in org, missing from ERD (44):**
-
-- *address*: `FulfilledToAddress`
-- *boolean*: `IsReship`, `IsSuspended`
-- *currency*: `GrandTotalAmount`, `TotalAdjustmentAmount`, `TotalAdjustmentAmtWithTax`, `TotalAdjustmentTaxAmount`, `TotalDeliveryAdjustAmount`, `TotalDeliveryAdjustAmtWithTax`, `TotalDeliveryAdjustTaxAmount`, `TotalDeliveryAmount`, `TotalDeliveryAmtWithTax`, `TotalDeliveryTaxAmount`, `TotalFeeAdjustAmount`, `TotalFeeAdjustAmtWithTax`, `TotalFeeAdjustTaxAmount`, `TotalFeeAmount`, `TotalFeeAmtWithTax`, `TotalFeeTaxAmount`, `TotalProductAmount`, `TotalProductAmtWithTax`, `TotalProductTaxAmount`, `TotalTaxAmount`
-- *datetime*: `ActivatedDate`, `ClosedDate`, `DeliveryDate`, `LastReferencedDate`, `LastViewedDate`, `StartFulfillmentDate`
-- *double*: `FulfilledToLatitude`, `FulfilledToLongitude`, `ItemCount`
-- *email*: `FulfilledToEmailAddress`
-- *int*: `ProcessingTimeInMinutes`
-- *phone*: `FulfilledToPhone`
-- *picklist*: `FulfilledToGeocodeAccuracy`, `StatusCategory`, `TaxLocaleType`, `TypeCategory`
-- *string*: `FulfilledToCity`, `FulfilledToCountry`, `FulfilledToPostalCode`, `FulfilledToState`
-- *textarea*: `FulfilledToStreet`
-
-### Payment
-Domain: Billing (Core Object) | ERD fields: 10 | Org fields: 57
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `AccountId` | reference | Account |
-| `LegalEntityId` | reference | LegalEntity |
-| `OrderPaymentSummaryId` | reference | OrderPaymentSummary |
-| `PaymentAuthorizationId` | reference | PaymentAuthorization |
-| `PaymentGatewayId` | reference | PaymentGateway |
-| `PaymentGroupId` | reference | PaymentGroup |
-| `PaymentInitiationSourceId` | reference | PaymentInitiationSource |
-| `PaymentIntentId` | reference | PaymentIntent |
-| `PaymentMethodId` | reference | PaymentMethod |
-
-**Data fields in org, missing from ERD (39):**
-
-- *currency*: `Amount`, `Balance`, `ImpactAmount`, `NetApplied`, `NetPaymentCreditApplied`, `NetRefundApplied`, `TotalApplied`, `TotalPaymentCreditApplied`, `TotalPaymentCreditUnapplied`, `TotalRefundApplied`, `TotalRefundUnapplied`, `TotalUnapplied`
-- *datetime*: `CancellationDate`, `CancellationEffectiveDate`, `CancellationGatewayDate`, `Date`, `EffectiveDate`, `GatewayDate`, `LastReferencedDate`, `LastViewedDate`
-- *email*: `Email`
-- *phone*: `Phone`
-- *picklist*: `ProcessingMode`, `SfResultCode`, `Status`, `Type`
-- *string*: `CancellationGatewayRefNumber`, `CancellationGatewayResultCode`, `CancellationSfResultCode`, `GatewayRefNumber`, `GatewayResultCode`, `GatewayResultCodeDescription`, `IpAddress`, `MacAddress`, `PaymentIntentGuid`, `PaymentNumber`
-- *textarea*: `ClientContext`, `Comments`, `GatewayRefDetails`
-
-**ERD fields not found in org (1):**
-
-- `LegalEntityAccountingPeriod`
-
-### Contract
-Domain: Transaction Management (Core Object) | ERD fields: 8 | Org fields: 50
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ActivatedById` | reference | User |
-| `CompanySignedId` | reference | User |
-| `ContractDocumentVersionId` | reference | ContractDocumentVersion |
-| `CustomerSignedId` | reference | Contact |
-| `Pricebook2Id` | reference | Pricebook2 |
-| `SourceOpportunityId` | reference | Opportunity |
-| `SourceOrderId` | reference | Order |
-| `SourceQuoteId` | reference | Quote |
-
-**Data fields in org, missing from ERD (34):**
-
-- *address*: `ShippingAddress`
-- *boolean*: `IsAssociatedWithClm`, `IsPricingContract`
-- *date*: `CompanySignedDate`, `CustomerSignedDate`
-- *datetime*: `ActivatedDate`, `LastApprovedDate`, `LastReferencedDate`, `LastViewedDate`
-- *double*: `BillingLatitude`, `BillingLongitude`, `RenewalTerm2`, `ShippingLatitude`, `ShippingLongitude`
-- *percent*: `UnitPriceUplift`
-- *picklist*: `BillingGeocodeAccuracy`, `PricingSource`, `RenewalTermUnit`, `ShippingGeocodeAccuracy`, `StatusCode`
-- *string*: `BillingCity`, `BillingCountry`, `BillingPostalCode`, `BillingState`, `ContractType`, `CustomerSignedTitle`, `ShippingCity`, `ShippingCountry`, `ShippingPostalCode`, `ShippingState`
-- *textarea*: `BillingStreet`, `Description`, `ShippingStreet`, `SpecialTerms`
-
-### CreditMemoLine
-Domain: Billing | ERD fields: 7 | Org fields: 46
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `CreditMemoId` | reference | CreditMemo |
-| `LegalEntityAccountingPeriodId` | reference | LegalEntyAccountingPeriod |
-| `LegalEntityId` | reference | LegalEntity |
-| `Product2Id` | reference | Product2 |
-| `ReferenceEntityItemId` | reference | InvoiceLine, OrderItem, OrderItemSummary |
-| `RelatedLineId` | reference | CreditMemoLine |
-| `ShipFromAddressId` | reference | CreditMemoAddressGroup |
-| `ShippingAddressId` | reference | CreditMemoAddressGroup |
-| `TaxTreatmentId` | reference | TaxTreatment |
-
-**Data fields in org, missing from ERD (32):**
-
-- *currency*: `ChargeAmount`, `ChargeAmountWithTax`, `ChargeTaxAmount`, `GrossUnitPrice`, `LineAmount`, `NetCreditsApplied`, `TaxAmount`
-- *date*: `CorporateCurrencyCvsnDate`, `EndDate`, `FunctionalCurrencyCvsnDate`, `StartDate`, `TaxEffectiveDate`
-- *double*: `CorpCurrencyCnvChargeAmt`, `CorpCurrencyCnvTotalTaxAmt`, `CorporateCurrencyCvsnRate`, `FuncCrcyCnvTotalTaxAmt`, `FuncCurrencyCnvChargeAmt`, `FunctionalCurrencyCvsnRate`
-- *percent*: `TaxRate`
-- *picklist*: `ReferenceEntityItemType`, `ReferenceEntityItemTypeCode`, `TaxStatus`, `Type`
-- *string*: `CorporateCurrencyIsoCode`, `Description`, `FunctionalCurrencyIsoCode`, `Name`, `Status`, `TaxCode`, `TaxDocumentNumber`, `TaxName`, `TaxTransactionNumber`
+- *int*: `DueDateWindow`
+- *picklist*: `GroupingSource`
 
 **ERD fields not found in org (2):**
 
-- `Unapplied`
-- `UnappliedDate`
+- `Inactive`
+- `TreatmentSelection`
 
-### Refund
-Domain: Billing (Core Object) | ERD fields: 11 | Org fields: 48
+### SequenceGapReconciliation
+Domain: Billing | ERD fields: 6 | Org fields: 6
 
-**Relationships in org, missing from ERD:**
+**Data fields in org, missing from ERD (2):**
 
-| Field | Type | References |
-|-------|------|------------|
-| `AccountId` | reference | Account |
-| `OrderPaymentSummaryId` | reference | OrderPaymentSummary |
-| `PaymentGatewayId` | reference | PaymentGateway |
-| `PaymentGroupId` | reference | PaymentGroup |
-| `PaymentId` | reference | Payment |
-| `PaymentIntentId` | reference | PaymentIntent |
-| `PaymentMethodId` | reference | PaymentMethod |
-
-**Data fields in org, missing from ERD (31):**
-
-- *currency*: `Amount`, `Balance`, `ImpactAmount`, `NetApplied`, `TotalApplied`, `TotalUnapplied`
-- *datetime*: `CancellationDate`, `CancellationEffectiveDate`, `CancellationGatewayDate`, `Date`, `EffectiveDate`, `GatewayDate`, `LastReferencedDate`, `LastViewedDate`
-- *email*: `Email`
-- *phone*: `Phone`
-- *picklist*: `ProcessingMode`, `SfResultCode`, `Status`, `Type`
-- *string*: `CancellationGatewayRefNumber`, `CancellationGatewayResultCode`, `CancellationSfResultCode`, `GatewayRefNumber`, `GatewayResultCode`, `GatewayResultCodeDescription`, `IpAddress`, `MacAddress`, `RefundNumber`
-- *textarea*: `ClientContext`, `Comments`
+- *long*: `SequenceValue`
+- *picklist*: `Status`
 
 **ERD fields not found in org (1):**
 
-- `LegalEntityAccountingPeriod`
+- `SequencePolicySelectionConditionName`
 
-### Account
-Domain: Transaction Management (Core Object) | ERD fields: 15 | Org fields: 44
+### SequencePolicy
+Domain: Billing | ERD fields: 20 | Org fields: 19
 
-**Relationships in org, missing from ERD:**
+**Data fields in org, missing from ERD (2):**
 
-| Field | Type | References |
-|-------|------|------------|
-| `MasterRecordId` | reference | Account |
+- *picklist*: `TimeZone`
+- *textarea*: `Description`
 
-**Data fields in org, missing from ERD (30):**
+**ERD fields not found in org (2):**
 
-- *boolean*: `IsBuyer`, `IsCustomerPortal`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *double*: `BillingLatitude`, `BillingLongitude`, `ShippingLatitude`, `ShippingLongitude`
-- *phone*: `Fax`
-- *picklist*: `AccountSource`, `BillingGeocodeAccuracy`, `Ownership`, `ShippingGeocodeAccuracy`
-- *string*: `AccountNumber`, `BillingPostalCode`, `ChannelProgramLevelName`, `ChannelProgramName`, `Jigsaw`, `JigsawCompanyId`, `ShippingCity`, `ShippingCountry`, `ShippingPostalCode`, `ShippingState`, `SicDesc`, `SourceSystemIdentifier`
-- *textarea*: `BillingStreet`, `Description`, `ShippingStreet`
-- *url*: `PhotoUrl`, `Website`
+- `SequenceValue`
+- `Status`
 
-### FulfillmentOrderLineItem
-Domain: Dynamic Revenue Orchestrator | ERD fields: 7 | Org fields: 36
+### AssetActionSource
+Domain: Transaction Management | ERD fields: 37 | Org fields: 36
 
-**Relationships in org, missing from ERD:**
+**Data fields in org, missing from ERD (1):**
 
-| Field | Type | References |
-|-------|------|------------|
-| `FulfillmentAssetId` | reference | FulfillmentAsset |
-| `MainFulfillmentOrderLineItemId` | reference | FulfillmentOrderLineItem |
-| `OrderItemSummaryId` | reference | OrderItemSummary |
-| `PrevFulfilOrderLineItemId` | reference | FulfillmentOrderLineItem |
-| `UnitOfMeasureId` | reference | UnitOfMeasure |
+- *textarea*: `RLM_ConstraintEngineNodeStatus__c`
 
-**Data fields in org, missing from ERD (24):**
-
-- *boolean*: `IsReship`
-- *currency*: `GrossUnitPrice`, `TotalAdjustmentAmount`, `TotalAdjustmentAmountWithTax`, `TotalAdjustmentTaxAmount`, `TotalAmount`, `TotalLineAmount`, `TotalLineAmountWithTax`, `TotalLineTaxAmount`, `TotalTaxAmount`, `UnitPrice`
-- *datetime*: `EndDate`, `ServiceDate`
-- *double*: `OriginalQuantity`, `RejectedQuantity`
-- *picklist*: `Action`, `RejectReason`, `ReshipReason`, `SupplementalAction`, `TypeCode`
-- *string*: `FulfillmentOrderLineItemNumber`, `FulfmtOrdItmVerGrpIdentifier`, `QuantityUnitOfMeasure`, `ScopeIdentifierText`
-
-### TransactionUsageEntitlement
-Domain: Usage Management | ERD fields: 6 | Org fields: 31
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `EntitlementUomClassId` | reference | UnitOfMeasureClass |
-| `EntitlementUomId` | reference | UnitOfMeasure |
-| `GrantBindingTargetId` | reference | Account, Asset, BindingObjectCustomExt, Contract |
-| `OrderItemId` | reference | OrderItem, WorkOrderLineItem |
-| `PricebookEntryId` | reference | PricebookEntry |
-| `ProductId` | reference | Product2 |
-| `RatingFrequencyPolicyId` | reference | RatingFrequencyPolicy |
-| `TokenResourceId` | reference | UsageResource |
-| `UsageAggregationPolicyId` | reference | UsageResourceBillingPolicy |
-| `UsageGrantRefreshPolicyId` | reference | UsageGrantRenewalPolicy |
-| `UsageGrantRolloverPolicyId` | reference | UsageGrantRolloverPolicy |
-| `UsageResourceId` | reference | UsageResource |
-
-**Data fields in org, missing from ERD (16):**
-
-- *datetime*: `EffectiveEndDateTime`, `EffectiveStartDateTime`, `LastReferencedDate`, `LastViewedDate`
-- *double*: `EntitlementQuantity`, `NetQuantity`, `TransactionQuantity`
-- *int*: `ValidityPeriodTerm`
-- *picklist*: `ChargeForOverage`, `DrawdownOrder`, `EntitlementProcessingStatus`, `GrantType`, `UsageModelType`, `ValidityPeriodUnit`
-- *string*: `ExternalOrderItem`, `Name`
-
-**ERD fields not found in org (3):**
-
-- `Renewal`
-- `UsageCommitmentPolicyId`
-- `UsageOveragePolicyId`
-
-### BillingScheduleGroup
-Domain: Billing | ERD fields: 43 | Org fields: 64
-
-**Data fields in org, missing from ERD (27):**
-
-- *currency*: `TotalPendingAmount`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *double*: `BillingLatitude`, `BillingLongitude`, `ShipFromLatitude`, `ShipFromLongitude`, `ShippingLatitude`, `ShippingLongitude`
-- *picklist*: `BillingGeocodeAccuracy`, `ShipFromGeocodeAccuracy`, `ShippingGeocodeAccuracy`
-- *string*: `BillingCity`, `BillingCountry`, `BillingPostalCode`, `BillingState`, `ShipFromCity`, `ShipFromCountry`, `ShipFromPostalCode`, `ShipFromState`, `ShippingCity`, `ShippingCountry`, `ShippingPostalCode`, `ShippingState`
-- *textarea*: `BillingStreet`, `ShipFromStreet`, `ShippingStreet`
-
-**ERD fields not found in org (5):**
+**ERD fields not found in org (2):**
 
 - `LastDayOfPeriod`
-- `None`
-- `UnitPrice`
-- `UsageResourceId`
-- `Year`
+- `Lookup`
 
 ### CollectionPlan
-Domain: Billing (Core Object) | ERD fields: 1 | Org fields: 27
+Domain: Billing (Core Object) | ERD fields: 27 | Org fields: 28
 
-**Relationships in org, missing from ERD:**
+**Data fields in org, missing from ERD (1):**
 
-| Field | Type | References |
-|-------|------|------------|
-| `AccountId` | reference | Account |
-| `BillingAccountId` | reference | BillingAccount |
-| `CollectionAgencyAccountId` | reference | Account |
-| `CollectionPlanReasonId` | reference | CollectionPlanReason |
-| `ContactId` | reference | Contact |
-| `LegalRepresentativeId` | reference | Contact |
-
-**Data fields in org, missing from ERD (20):**
-
-- *boolean*: `IsClosed`
-- *currency*: `InitialDueAmount`, `TotalTaxAmount`
-- *date*: `ClosedDate`, `Duedate`
-- *datetime*: `FirstCallDateTime`, `FirstEmailDateTime`, `FirstSmsDateTime`, `LastReferencedDate`, `LastViewedDate`
-- *double*: `RiskScore`
-- *int*: `AutoDebitRequestCount`, `DaysPastDue`, `MaximumPromisetoPayCount`, `PromiseToPayCount`
-- *picklist*: `CollectionPlanSegment`, `InteractionOutcome`, `Status`, `UsageType`
-- *string*: `Name`
-
-### FlowOrchestration
-Domain: Dynamic Revenue Orchestrator | ERD fields: 0 | Org fields: 25
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ActiveVersionId` | reference | FlowOrchestrationVersion |
-| `OverriddenById` | reference | FlowOrchestration |
-| `OverriddenOrchestrationId` | reference | FlowOrchestration |
-| `SourceTemplateId` | reference | FlowOrchestration |
-
-**Data fields in org, missing from ERD (21):**
-
-- *boolean*: `IsCitizenEnabled`, `IsOverridable`, `IsTemplate`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *int*: `ApiVersion`, `AverageRunTime`, `FailedRunCount`, `RunCount`
-- *percent*: `CompletionRate`
-- *picklist*: `ManageableState`, `OrchestrationType`, `Status`, `TriggerType`
-- *string*: `ApiName`, `InstalledPackageName`, `Name`, `NamespacePrefix`, `OrchestrationDefinition`, `OrchestrationLabel`
-- *textarea*: `Description`
-
-### IntegrationProviderDef
-Domain: Dynamic Revenue Orchestrator | ERD fields: 1 | Org fields: 22
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ApexClassId` | reference | ApexClass |
-| `InputDataProcessorId` | reference | OmniIntegrationProcConfig |
-| `OmniUiCardConfigId` | reference | OmniUiCardConfig |
-| `OutputDataProcessorId` | reference | OmniIntegrationProcConfig |
-
-**Data fields in org, missing from ERD (17):**
-
-- *boolean*: `CanUseInIntegrationOrch`, `IsActive`, `IsManual`, `IsServiceTypeIntegration`
-- *picklist*: `Language`, `StorePayload`, `Type`
-- *string*: `Description`, `ExternalServiceOperationName`, `FileBasedApexClass`, `FileBasedExternalService`, `FileBasedInputDataProcessor`, `FileBasedOmniUiCard`, `FileBasedOutputDataProcessor`, `JavaClassName`, `MasterLabel`, `NamespacePrefix`
-
-### InvoiceLineTax
-Domain: Billing | ERD fields: 6 | Org fields: 21
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `InvoiceLineId` | reference | InvoiceLine |
-| `LegalEntityAccountingPeriodId` | reference | LegalEntyAccountingPeriod |
-| `LegalEntityId` | reference | LegalEntity |
-| `ShipFromAddressId` | reference | InvoiceAddressGroup |
-| `ShippingAddressId` | reference | InvoiceAddressGroup |
-| `TaxTreatmentId` | reference | TaxTreatment |
-
-**Data fields in org, missing from ERD (13):**
-
-- *currency*: `TaxAmount`, `TaxExemptAmount`
-- *date*: `EndDate`, `StartDate`, `TaxEffectiveDate`
-- *percent*: `TaxRate`
-- *picklist*: `TaxProcessingStatus`
-- *string*: `Description`, `InvoiceLineTaxNumber`, `TaxCode`, `TaxDocumentNumber`, `TaxName`, `TaxTransactionNumber`
-
-**ERD fields not found in org (4):**
-
-- `CorpCrcyCnvTaxAmount`
-- `CorporateCurrencyCvsnDate`
-- `CorporateCurrencyCvsnRate`
-- `CorporateCurrencyIsoCode`
-
-### PaymentLineInvoice
-Domain: Billing (Core Object) | ERD fields: 2 | Org fields: 20
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `AssociatedAccountId` | reference | Account |
-| `AssociatedPaymentLineId` | reference | PaymentLineInvoice |
-| `InvoiceId` | reference | Invoice |
-| `LegalEntityAccountingPeriodId` | reference | LegalEntyAccountingPeriod |
-| `PaymentId` | reference | Payment |
-
-**Data fields in org, missing from ERD (14):**
-
-- *currency*: `Amount`, `EffectiveImpactAmount`, `ImpactAmount`, `PaymentBalance`
-- *datetime*: `AppliedDate`, `Date`, `EffectiveDate`, `LastReferencedDate`, `LastViewedDate`, `UnappliedDate`
-- *picklist*: `HasBeenUnapplied`, `Type`
-- *string*: `PaymentLineInvoiceNumber`
-- *textarea*: `Comments`
-
-**ERD fields not found in org (1):**
-
-- `LegalEntyAccountingPeriod`
-
-### UsageRatableSummary
-Domain: Usage Management | ERD fields: 7 | Org fields: 25
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `GrantBindingTargetId` | reference | Account, Asset, BindingObjectCustomExt, Contract |
-| `NetUnitRateUomId` | reference | UnitOfMeasure |
-| `OverageQuantityUomId` | reference | UnitOfMeasure |
-| `RatingRequestId` | reference | RatingRequest |
-| `SourceUsageResourceId` | reference | UsageResource |
-| `TierQuantityUomId` | reference | UnitOfMeasure |
-| `UsageEntitlementAccountId` | reference | UsageEntitlementAccount |
-| `UsageEntitlementBucketId` | reference | UsageEntitlementBucket |
-| `UsageResourceId` | reference | UsageResource |
-
-**Data fields in org, missing from ERD (10):**
-
-- *datetime*: `LastReferencedDate`, `RatingDecisionDateTime`, `StartDateTime`
-- *double*: `NetUnitRate`, `OverageQuantity`, `TierQuantity`, `TotalAmount`
-- *picklist*: `Status`
-- *string*: `ErrorDescription`, `RatingExecutionIdentifier`
-
-**ERD fields not found in org (1):**
-
-- `Product2Id`
-
-### EmailTemplate
-Domain: Approvals | ERD fields: 4 | Org fields: 22
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `BrandTemplateId` | reference | BrandTemplate |
-| `EnhancedLetterheadId` | reference | EnhancedLetterhead |
-| `FolderId` | reference | Folder, Organization, User |
-
-**Data fields in org, missing from ERD (15):**
-
-- *boolean*: `IsActive`, `IsBuilderContent`
-- *datetime*: `LastUsedDate`
-- *double*: `ApiVersion`
-- *int*: `TimesUsed`
-- *picklist*: `Encoding`, `RelatedEntityType`, `TemplateStyle`, `TemplateType`
-- *string*: `Description`, `FolderName`, `Name`, `NamespacePrefix`
-- *textarea*: `Body`, `Markup`
-
-### UsageBillingPeriodItem
-Domain: Usage Management | ERD fields: 1 | Org fields: 19
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `AssetId` | reference | Asset |
-| `GrantBindingTargetId` | reference | Account, Asset, BindingObjectCustomExt, Contract |
-| `UoMId` | reference | UnitOfMeasure |
-| `UsageEntitlementAccountId` | reference | UsageEntitlementAccount |
-| `UsageEntitlementBucketId` | reference | UsageEntitlementBucket |
-| `UsageResourceId` | reference | UsageResource |
-
-**Data fields in org, missing from ERD (12):**
-
-- *currency*: `OverageAmount`
-- *datetime*: `EndDateTime`, `LastReferencedDate`, `LastViewedDate`, `StartDateTime`
-- *double*: `OverageAmountDerived`, `OverageQuantity`, `TotalUsedQuantity`
-- *picklist*: `ErrorCode`, `Status`
-- *string*: `ErrorDescription`, `UsageBillingPeriodItemNum`
-
-### DebitMemo
-Domain: Billing | ERD fields: 11 | Org fields: 28
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `InvoiceMatchingRefKeyId` | reference | Asset, Product2 |
-| `LegalEntityId` | reference | LegalEntity |
-| `ReferenceRecordId` | reference | CreditMemo |
-
-**Data fields in org, missing from ERD (14):**
-
-- *boolean*: `IsManuallyProcessed`
-- *currency*: `TotalAmount`, `TotalChargeAmount`, `TotalTaxAmount`
-- *date*: `NextBillingDate`, `PostedDate`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *double*: `CorpCrcyCnvTotAmt`, `FuncCrcyCnvTotAmt`
-- *picklist*: `ReasonCode`, `Status`
-- *string*: `Description`, `InvoiceMatchingRefName`
-
-### RefundLinePayment
-Domain: Billing (Core Object) | ERD fields: 3 | Org fields: 19
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `AssociatedAccountId` | reference | Account |
-| `AssociatedRefundLinePaymentId` | reference | RefundLinePayment |
-| `PaymentId` | reference | Payment |
-| `RefundId` | reference | Refund |
-
-**Data fields in org, missing from ERD (13):**
-
-- *currency*: `Amount`, `EffectiveImpactAmount`, `ImpactAmount`, `PaymentBalance`, `RefundBalance`
-- *datetime*: `AppliedDate`, `Date`, `EffectiveDate`, `UnappliedDate`
-- *picklist*: `HasBeenUnapplied`, `Type`
-- *string*: `RefundLinePaymentNumber`
-- *textarea*: `Comments`
-
-**ERD fields not found in org (1):**
-
-- `LegalEntityAccountingPeriod`
-
-### UsageSummary
-Domain: Usage Management | ERD fields: 13 | Org fields: 19
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `AssetId` | reference | Asset |
-| `GrantBindingTargetId` | reference | Account, Asset, BindingObjectCustomExt, Contract |
-| `LiableSummaryId` | reference | UsageBillingPeriodItem |
-| `ParentUsageSummaryId` | reference | UsageSummary |
-| `RatableSummaryId` | reference | UsageRatableSummary |
-| `UomId` | reference | UnitOfMeasure |
-| `UsageEntitlementAccountId` | reference | UsageEntitlementAccount |
-| `UsageEntitlementBucketId` | reference | UsageEntitlementBucket |
-
-**Data fields in org, missing from ERD (9):**
-
-- *datetime*: `EndDateTime`, `LastReferencedDate`, `LastViewedDate`, `StartDateTime`
-- *double*: `ConsumptionUnits`, `DebitedUnits`, `OverageUnits`
-- *picklist*: `Status`
-- *string*: `Name`
-
-**ERD fields not found in org (11):**
-
-- `Authentication`
-- `Formats`
-- `Input`
-- `Inputs`
-- `POST`
-- `Sum`
-- `URI`
-- `UsageAccumulationPeriod`
-- `UsageModelType`
-- `UsageSummaryId`
-- `UsageType`
-
-### DebitMemoLineTax
-Domain: Billing | ERD fields: 2 | Org fields: 17
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `DebitMemoLineId` | reference | DebitMemoLine |
-| `LegalEntityAccountingPeriodId` | reference | LegalEntyAccountingPeriod |
-| `LegalEntityId` | reference | LegalEntity |
-| `ShipFromAddressId` | reference | DebitMemoAddress |
-| `ShippingAddressId` | reference | DebitMemoAddress |
-
-**Data fields in org, missing from ERD (11):**
-
-- *currency*: `TaxAmount`
-- *date*: `EndDate`, `StartDate`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *percent*: `TaxRate`
-- *string*: `DebitMemoLineTaxNumber`, `Description`, `JurisdictionTaxCode`, `JurisdictionTaxName`, `TaxTransactionNumber`
-
-### InvoiceLine
-Domain: Billing | ERD fields: 49 | Org fields: 61
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `RelatedLineId` | reference | InvoiceLine |
-| `ShipFromAddressId` | reference | InvoiceAddressGroup |
-| `UsageProductBillSchdGrpId` | reference | BillingScheduleGroup |
-| `UsageProductId` | reference | Product2 |
-
-**Data fields in org, missing from ERD (12):**
-
-- *currency*: `GrossUnitPrice`
-- *date*: `InvoiceLineEndDate`, `TaxEffectiveDate`
-- *double*: `Quantity`, `UsageOverageQuantity`
-- *percent*: `TaxRate`
-- *picklist*: `Type`
-- *string*: `Description`, `TaxCode`, `TaxDocumentNumber`, `TaxName`, `TaxTransactionNumber`
-
-**ERD fields not found in org (4):**
-
-- `OverageUnitOfMeasure`
-- `Product`
-- `QuoteLineItem`
-- `Tax`
-
-### NamedCredential
-Domain: Dynamic Revenue Orchestrator | ERD fields: 1 | Org fields: 17
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `AuthProviderId` | reference | AuthProvider |
-
-**Data fields in org, missing from ERD (15):**
-
-- *boolean*: `CalloutOptionsAllowMergeFieldsInBody`, `CalloutOptionsAllowMergeFieldsInHeader`, `CalloutOptionsGenerateAuthorizationHeader`
-- *int*: `JwtValidityPeriodSeconds`
-- *picklist*: `Language`, `PrincipalType`
-- *string*: `Description`, `JwtFormulaSubject`, `JwtIssuer`, `JwtTextSubject`, `MasterLabel`, `NamespacePrefix`
-- *textarea*: `AuthTokenEndpointUrl`, `Endpoint`, `JwtAudience`
-
-### ProductRelComponentOverride
-Domain: Product Catalog Management | ERD fields: 0 | Org fields: 15
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `OverrideContextId` | reference | Product2, Promotion |
-| `ProductRelatedComponentId` | reference | ProductRelatedComponent |
-| `UnitOfMeasureId` | reference | UnitOfMeasure |
-
-**Data fields in org, missing from ERD (12):**
-
-- *boolean*: `DoesBundlePriceIncludeChild`, `IsComponentRequired`, `IsDefaultComponent`, `IsExcluded`, `IsQuantityEditable`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *double*: `MaxQuantity`, `MinQuantity`, `Quantity`
-- *picklist*: `QuantityScaleMethod`
-- *string*: `Name`
-
-### TransactionJournal
-Domain: Usage Management (Core Object) | ERD fields: 19 | Org fields: 26
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `AccountId` | reference | Account |
-| `GenlLdgrJournalEntryRuleId` | reference | GeneralLedgerJrnlEntryRule |
-| `LegalEntityId` | reference | LegalEntity |
-| `LegalEntyAccountingPeriodId` | reference | LegalEntyAccountingPeriod |
-| `QuantityUnitOfMeasureId` | reference | UnitOfMeasure |
-| `ReferenceRecordId` | reference | Asset |
-| `ReferenceTransactionRecordId` | reference | CreditMemo, CreditMemoInvApplication, CreditMemoLine, CreditMemoLineInvoiceLine, CreditMemoLineTax, DebitMemoLine, DebitMemoLineTax, Invoice, InvoiceLine, InvoiceLineTax, Payment, PaymentLineInvoice, PaymentLineInvoiceLine, Refund, RefundLinePayment |
-
-**Data fields in org, missing from ERD (8):**
-
-- *datetime*: `EndDate`, `LastReferencedDate`, `LastViewedDate`
-- *double*: `Quantity`
-- *picklist*: `Status`, `TransactionType`
-- *string*: `Name`, `UniqueIdentifier`
-
-**ERD fields not found in org (8):**
-
-- `GeneralLedgerAccount`
-- `Input`
-- `RateUsageType`
-- `State`
-- `UnrealizedReversal`
-- `UsageResource`
-- `UsageSummary`
-- `ZipCode`
-
-### BillingSchedule
-Domain: Billing | ERD fields: 40 | Org fields: 51
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `UsageResourceId` | reference | UsageResource |
-
-**Data fields in org, missing from ERD (13):**
-
-- *boolean*: `IsBilledThroughPeriodUpdated`
-- *currency*: `UnitPrice`
-- *date*: `BilledThroughPeriod`
-- *double*: `BilledAmountDerived`, `BillingPeriodAmountDerived`, `LineAmountDerived`, `PendingAmountDerived`, `TotalAmountDerived`, `UnitPriceDerived`
-- *int*: `GroupingKeyVersion`
-- *picklist*: `BpiGenerationStatus`, `Type`
-- *string*: `GroupingKey`
-
-**ERD fields not found in org (3):**
-
-- `LineItemCharge`
-- `ReadyForInvoicing`
-- `Year`
-
-### Invoice
-Domain: Billing | ERD fields: 56 | Org fields: 66
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `BillingProfileId` | reference | BillingAccount |
-
-**Data fields in org, missing from ERD (13):**
-
-- *currency*: `TotalAmount`, `WriteOffTotalChargeAmount`, `WriteOffTotalTaxAmount`
-- *int*: `BillingArrangementVerNumber`, `ChildInvoiceCount`
-- *picklist*: `AppType`, `CreationMode`, `Status`, `TaxLocaleType`
-- *string*: `CorporateCurrencyIsoCode`, `Description`, `GroupingKey`, `InvoiceReference`
-
-**ERD fields not found in org (3):**
-
-- `InvoiceLine`
-- `SequencePolicyId`
-- `Settled`
-
-### ContractLineItem
-Domain: Transaction Management | ERD fields: 7 | Org fields: 20
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `LocationId` | reference | Location |
-| `ParentContractLineItemId` | reference | ContractLineItem |
-| `PricebookEntryId` | reference | PricebookEntry |
-| `RootContractLineItemId` | reference | ContractLineItem |
-
-**Data fields in org, missing from ERD (9):**
-
-- *currency*: `ListPrice`, `Subtotal`, `TotalPrice`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *percent*: `Discount`
-- *picklist*: `Status`
-- *string*: `LineItemNumber`
-- *textarea*: `Description`
-
-### AssetAction
-Domain: Transaction Management | ERD fields: 24 | Org fields: 31
-
-**Data fields in org, missing from ERD (12):**
-
-- *currency*: `TotalInitialSaleAmount`, `TotalMrr`, `TotalOtherAmount`, `TotalRenewalsAmount`, `TotalSwapsAmount`, `TotalTermsAndConditionsAmount`, `TotalTransfersAmount`, `TotalUpgradesAmount`, `TotalUpsellsAmount`
-- *double*: `TotalQuantity`
-- *picklist*: `Type`
-- *textarea*: `AssetStatePeriodHistory`
-
-**ERD fields not found in org (5):**
-
-- `Lookup`
-- `Other`
-- `Renewals`
-- `RolledbackAssetAction`
-- `TransferTo`
-
-### AssetTokenEvent
-Domain: Transaction Management | ERD fields: 3 | Org fields: 13
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ConnectedAppId` | reference | ConnectedApplication |
-| `ExternalClientApplicationId` | reference | ExternalClientApplication |
-| `UserId` | reference | User |
-
-**Data fields in org, missing from ERD (9):**
-
-- *datetime*: `Expiration`
-- *string*: `AssetName`, `AssetSerialNumber`, `DeviceId`, `EventUuid`, `Name`, `ReplayId`
-- *textarea*: `ActorTokenPayload`, `DeviceKey`
-
-**ERD fields not found in org (2):**
-
-- `AssetWarrantyNumber`
-- `EndDate`
-
-### BillingAccount
-Domain: Billing (Core Object) | ERD fields: 22 | Org fields: 28
-
-**Data fields in org, missing from ERD (12):**
-
-- *address*: `PrimaryBillAddr`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *double*: `PrimaryBillAddrLatitude`, `PrimaryBillAddrLongitude`
-- *picklist*: `PrimaryBillAddrGeocodeAccuracy`
-- *string*: `Name`, `PrimaryBillAddrCity`, `PrimaryBillAddrCountry`, `PrimaryBillAddrPostalCode`, `PrimaryBillAddrState`
-- *textarea*: `PrimaryBillAddrStreet`
-
-**ERD fields not found in org (6):**
-
-- `BillDayOfMonth`
-- `Contact`
-- `PaymentTerm`
-- `PaymentTermId`
-- `SavedPaymentMethod`
-- `ShippingAddress`
-
-### BindingObjUsageRsrcPlcy
-Domain: Transaction Management | ERD fields: 3 | Org fields: 12
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `BindingObjectId` | reference | Account, Asset, BindingObjectCustomExt, Contract |
-| `RatingFrequencyPolicyId` | reference | RatingFrequencyPolicy |
-| `UsageAggregationPolicyId` | reference | UsageResourceBillingPolicy |
-| `UsageCommitmentPolicyId` | reference | UsageCommitmentPolicy |
-| `UsageOveragePolicyId` | reference | UsageOveragePolicy |
-| `UsageResourceId` | reference | UsageResource |
-
-**Data fields in org, missing from ERD (6):**
-
-- *datetime*: `EffectiveEndDate`, `EffectiveStartDate`, `LastReferencedDate`, `LastViewedDate`
-- *picklist*: `DrawdownOrder`
-- *string*: `Name`
-
-**ERD fields not found in org (3):**
-
-- `StartDate`
-- `WarrantyTermId`
-- `WarrantyType`
-
-### ExpressionSet
-Domain: Transaction Management | ERD fields: 0 | Org fields: 12
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ExpressionSetDefinitionId` | reference | ExpressionSetDefinition |
-
-**Data fields in org, missing from ERD (11):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *picklist*: `ExecutionMode`, `ExecutionScale`, `InterfaceSourceType`, `ResourceInitializationType`, `UsageSubtype`, `UsageType`
-- *string*: `ApiName`, `Description`, `Name`
-
-### PaymentLineInvoiceLine
-Domain: Billing | ERD fields: 10 | Org fields: 20
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `LegalEntityAccountingPeriodId` | reference | LegalEntyAccountingPeriod |
-| `LegalEntityId` | reference | LegalEntity |
-| `PaymentId` | reference | Payment |
-| `RelatedPaymentLineInvcLineId` | reference | PaymentLineInvoiceLine |
-
-**Data fields in org, missing from ERD (8):**
-
-- *currency*: `PaymentBalance`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`, `UnappliedDateTime`
-- *picklist*: `Type`, `UnappliedStatus`
-- *string*: `PaymentLineInvoiceLineNumber`
-- *textarea*: `Description`
-
-**ERD fields not found in org (2):**
-
-- `TotalScheduleItemsApplied`
-- `TotalScheduleItemsApplyFailed`
-
-### Product2
-Domain: Product Catalog Management (Core Object) | ERD fields: 34 | Org fields: 32
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `BasedOnId` | reference | ProductClassification |
-| `ExternalDataSourceId` | reference | ExternalDataSource |
-
-**Data fields in org, missing from ERD (10):**
-
-- *boolean*: `IsArchived`
-- *datetime*: `AvailabilityDate`, `DiscontinuedDate`, `EndOfLifeDate`, `LastReferencedDate`, `LastViewedDate`
-- *picklist*: `ProductClass`
-- *string*: `ExternalId`, `Name`
-- *textarea*: `HelpText`
-
-**ERD fields not found in org (14):**
-
-- `AlwaysOne`
-- `AssociatedProductRoleCat`
-- `CatalogType`
-- `ChildProductClassificationId`
-- `Code`
-- `DataType`
-- `EffectiveEndDate`
-- `EffectiveStartDate`
-- `IsDefault`
-- `IsNavigational`
-- `OrderLineItem`
-- `ParentGroupId`
-- `ProductClassification`
-- `QuoteVisibility`
-
-### BindingObjectRateCardEntry
-Domain: Rate Management | ERD fields: 6 | Org fields: 15
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `RateCardEntryId` | reference | RateCardEntry |
-| `RateCardId` | reference | RateCard |
-| `RateUnitOfMeasureId` | reference | UnitOfMeasure |
-| `SourceAssetId` | reference | Asset |
-| `UsageResourceId` | reference | UsageResource |
-
-**Data fields in org, missing from ERD (5):**
-
-- *datetime*: `EffectiveTo`, `LastReferencedDate`, `LastViewedDate`
-- *double*: `NegotiatedRate`
-- *picklist*: `RateCardType`
-
-**ERD fields not found in org (1):**
-
-- `UpperBound`
-
-### OmniProcess
-Domain: Product Catalog Management | ERD fields: 23 | Org fields: 33
-
-**Data fields in org, missing from ERD (10):**
-
-- *boolean*: `IsActive`, `IsIntegProcdSignatureAvl`, `IsManagedUsingStdDesigner`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *picklist*: `DiscoveryFrameworkUsageType`
-- *string*: `Name`
-- *textarea*: `CustomHtmlTemplates`, `IntegrationProcedureInput`, `IntegrationProcedureOutput`
+- *picklist*: `OverdueRiskIndicator`
 
 ### CreditMemo
-Domain: Billing | ERD fields: 40 | Org fields: 44
+Domain: Billing | ERD fields: 49 | Org fields: 45
 
 **Relationships in org, missing from ERD:**
 
 | Field | Type | References |
 |-------|------|------------|
-| `BillingProfileId` | reference | BillingAccount |
-
-**Data fields in org, missing from ERD (8):**
-
-- *currency*: `TotalChargeAmountWithTax`, `TotalChargeTaxAmount`, `TotalCreditAmountApplied`, `TotalCreditAmountUnapplied`, `TotalTaxAmount`, `TotalTaxesCapturedAtHeader`
-- *picklist*: `TaxLocaleType`
-- *string*: `Description`
+| `SequencePolicyId` | reference | SequencePolicy |
 
 **ERD fields not found in org (4):**
 
@@ -1196,266 +342,107 @@ Domain: Billing | ERD fields: 40 | Org fields: 44
 - `Set`
 - `Voided`
 
-### CreditMemoAddressGroup
-Domain: Billing | ERD fields: 8 | Org fields: 13
+### ExpressionSet
+Domain: Transaction Management | ERD fields: 12 | Org fields: 13
 
-**Data fields in org, missing from ERD (9):**
+**Data fields in org, missing from ERD (1):**
 
-- *datetime*: `LastViewedDate`
-- *double*: `Latitude`, `Longitude`
-- *picklist*: `GeocodeAccuracy`
-- *string*: `City`, `Country`, `PostalCode`, `State`
-- *textarea*: `Street`
+- *picklist*: `Type`
+
+### FulfillmentStep
+Domain: Dynamic Revenue Orchestrator | ERD fields: 46 | Org fields: 40
+
+**Data fields in org, missing from ERD (1):**
+
+- *string*: `CustomConfigParameter`
+
+**ERD fields not found in org (6):**
+
+- `Lookup`
+- `Minutes`
+- `RequestedCompletionDate`
+- `RequestedStartDate`
+- `RoundRobin`
+- `Skipped`
+
+### FulfillmentStepDefinition
+Domain: Dynamic Revenue Orchestrator | ERD fields: 28 | Org fields: 28
+
+**Data fields in org, missing from ERD (1):**
+
+- *string*: `CustomConfigParameter`
+
+**ERD fields not found in org (1):**
+
+- `Lookup`
+
+### InvBatchDraftToPostedRun
+Domain: Billing | ERD fields: 17 | Org fields: 14
+
+**Relationships in org, missing from ERD:**
+
+| Field | Type | References |
+|-------|------|------------|
+| `BatchJobId` | reference | BatchJob |
 
 **ERD fields not found in org (4):**
 
-- `TotalChargeAmountWithTax`
-- `TotalChargeTaxAmount`
-- `TotalTaxAmount`
-- `TotalTaxesCapturedAtHeader`
+- `GeneralLedgerAcctAsgntRuleId`
+- `NotApplicable`
+- `Percentage`
+- `TransactionAmountField`
 
-### PaymentBatchRun
-Domain: Billing | ERD fields: 7 | Org fields: 14
+### InvoiceBatchRun
+Domain: Billing | ERD fields: 35 | Org fields: 31
 
-**Data fields in org, missing from ERD (9):**
+**Relationships in org, missing from ERD:**
 
-- *datetime*: `LastViewedDate`, `StartTime`
-- *int*: `TotalFailedScheduleItems`, `TotalFilteredScheduleItems`, `TotalProcessedScheduleItems`, `TotalScheduleItemsApplied`, `TotalScheduleItemsApplyFailed`
-- *picklist*: `Status`
-- *string*: `PaymentBatchRunNumber`
+| Field | Type | References |
+|-------|------|------------|
+| `BatchJobId` | reference | BatchJob |
+
+**ERD fields not found in org (4):**
+
+- `Address`
+- `InvoiceAddressGroupNumber`
+- `InvoiceId`
+- `NotApplicable`
+
+### InvoiceBatchRunRecovery
+Domain: Billing | ERD fields: 10 | Org fields: 9
+
+**Relationships in org, missing from ERD:**
+
+| Field | Type | References |
+|-------|------|------------|
+| `BatchJobId` | reference | BatchJob |
 
 **ERD fields not found in org (2):**
 
-- `TotalLiabilitiesAmount`
-- `TotalRevenueAmount`
+- `TargetDate`
+- `TargetDateOffset`
 
-### TaxRate
-Domain: Billing (Core Object) | ERD fields: 13 | Org fields: 19
+### OrderItem
+Domain: Transaction Management (Core Object) | ERD fields: 95 | Org fields: 91
 
-**Relationships in org, missing from ERD:**
+**Data fields in org, missing from ERD (1):**
 
-| Field | Type | References |
-|-------|------|------------|
-| `GeoCountryId` | reference | GeoCountry |
-| `GeoStateId` | reference | GeoState |
+- *textarea*: `RLM_ConstraintEngineNodeStatus__c`
 
-**Data fields in org, missing from ERD (7):**
+**ERD fields not found in org (5):**
 
-- *date*: `StartDate`
-- *double*: `Rate`
-- *int*: `Priority`
-- *picklist*: `RateUsageType`
-- *string*: `State`, `TaxCode`, `ZipCode`
-
-**ERD fields not found in org (1):**
-
-- `LegalEntity`
-
-### CustomPermission
-Domain: Transaction Management | ERD fields: 0 | Org fields: 8
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ExternalClientApplicationId` | reference | ExternalClientApplication |
-
-**Data fields in org, missing from ERD (7):**
-
-- *boolean*: `IsLicensed`, `IsProtected`
-- *picklist*: `Language`
-- *string*: `DeveloperName`, `MasterLabel`, `NamespacePrefix`
-- *textarea*: `Description`
-
-### DebitMemoAddress
-Domain: Billing | ERD fields: 5 | Org fields: 13
-
-**Data fields in org, missing from ERD (8):**
-
-- *double*: `Latitude`, `Longitude`
-- *picklist*: `GeocodeAccuracy`
-- *string*: `City`, `Country`, `PostalCode`, `State`
-- *textarea*: `Street`
-
-### DebitMemoLine
-Domain: Billing | ERD fields: 23 | Org fields: 31
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ShipFromAddressId` | reference | DebitMemoAddress |
-
-**Data fields in org, missing from ERD (7):**
-
-- *currency*: `LineAmount`, `TaxAmount`
-- *date*: `TaxEffectiveDate`
-- *double*: `CorpCurrencyCnvTotalTaxAmt`
-- *picklist*: `CalculationStatus`
-- *string*: `Description`, `TaxDocumentNumber`
-
-### FulfillmentAsset
-Domain: Dynamic Revenue Orchestrator | ERD fields: 2 | Org fields: 9
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ProductId` | reference | Product2 |
-| `UnitOfMeasureId` | reference | UnitOfMeasure |
-
-**Data fields in org, missing from ERD (6):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *double*: `Quantity`
-- *picklist*: `Status`
-- *string*: `Name`, `ScopeIdentifierText`
-
-**ERD fields not found in org (1):**
-
-- `Lookup`
-
-### InvoiceAddressGroup
-Domain: Billing | ERD fields: 5 | Org fields: 11
-
-**Data fields in org, missing from ERD (8):**
-
-- *double*: `Latitude`, `Longitude`
-- *picklist*: `GeocodeAccuracy`
-- *string*: `City`, `Country`, `PostalCode`, `State`
-- *textarea*: `Street`
-
-**ERD fields not found in org (2):**
-
-- `WriteOffTotalChargeAmount`
-- `WriteOffTotalTaxAmount`
-
-### LegalEntity
-Domain: Billing | ERD fields: 10 | Org fields: 17
-
-**Data fields in org, missing from ERD (8):**
-
-- *address*: `LegalEntityAddress`
-- *boolean*: `ShouldAttachInvoiceDocToEmail`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *double*: `LegalEntityLatitude`, `LegalEntityLongitude`
-- *picklist*: `LegalEntityGeocodeAccuracy`
-- *string*: `Name`
-
-### PaymentScheduleTreatmentDtl
-Domain: Billing | ERD fields: 7 | Org fields: 12
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `PaymentScheduleTreatmentId` | reference | PaymentScheduleTreatment |
-| `PymtSchdDistributionMethodId` | reference | PymtSchdDistributionMethod |
-
-**Data fields in org, missing from ERD (6):**
-
-- *datetime*: `LastViewedDate`
-- *picklist*: `PaymentMethodSelectionType`, `PaymentRunMatchingValue`, `ProcessingDateReference`
-- *string*: `PaymentScheduleTreatmentDetailNumber`
-- *textarea*: `Description`
-
-**ERD fields not found in org (3):**
-
-- `Inactive`
-- `Status`
-- `TriggerSource`
-
-### ProductComponentGrpOverride
-Domain: Product Catalog Management | ERD fields: 0 | Org fields: 8
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `OverrideContextId` | reference | Product2, Promotion |
-| `ProductComponentGroupId` | reference | ProductComponentGroup |
-
-**Data fields in org, missing from ERD (6):**
-
-- *boolean*: `IsExcluded`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *int*: `MaxBundleComponents`, `MinBundleComponents`
-- *string*: `Name`
-
-### TaxEngine
-Domain: Billing | ERD fields: 14 | Org fields: 21
-
-**Data fields in org, missing from ERD (8):**
-
-- *double*: `TaxEngineLatitude`, `TaxEngineLongitude`
-- *picklist*: `Type`
-- *string*: `TaxEngineCity`, `TaxEnginePostalCode`, `TaxEngineState`, `TaxPrvdAccountIdentifier`
-- *textarea*: `TaxEngineStreet`
-
-**ERD fields not found in org (1):**
-
-- `Inactive`
-
-### ContractItemPriceAdjTier
-Domain: Transaction Management | ERD fields: 1 | Org fields: 8
-
-**Data fields in org, missing from ERD (7):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *double*: `LowerBound`, `TierValue`, `UpperBound`
-- *picklist*: `TierType`
-- *string*: `Name`
-
-### FulfillmentStepDefinition
-Domain: Dynamic Revenue Orchestrator | ERD fields: 21 | Org fields: 27
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ExecuteOnRuleId` | reference | ExpressionSet, Ruleset |
-| `RunAsUserId` | reference | User |
-
-**Data fields in org, missing from ERD (5):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-- *textarea*: `ExecuteOnConditionData`, `ResumeOnConditionData`
-
-**ERD fields not found in org (1):**
-
-- `Lookup`
-
-### IndexRate
-Domain: Salesforce Pricing | ERD fields: 3 | Org fields: 9
-
-**Data fields in org, missing from ERD (7):**
-
-- *boolean*: `IsActive`
-- *date*: `ValidEndDate`, `ValidStartDate`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *percent*: `Rate`
-- *string*: `Name`
-
-**ERD fields not found in org (1):**
-
-- `Resources`
+- `BillingFrequency`
+- `PricingStatus`
+- `StartDate`
+- `TaxAmount`
+- `TotalAdjustmentDistAmount`
 
 ### OrderItemGroup
-Domain: Transaction Management | ERD fields: 48 | Org fields: 22
+Domain: Transaction Management | ERD fields: 55 | Org fields: 23
 
-**Relationships in org, missing from ERD:**
+**Data fields in org, missing from ERD (1):**
 
-| Field | Type | References |
-|-------|------|------------|
-| `OrderId` | reference | Order |
-
-**Data fields in org, missing from ERD (6):**
-
-- *currency*: `SummarySubtotal`
-- *int*: `SortOrder`
-- *picklist*: `RLM_RampMode__c`, `Type`
-- *string*: `Description`, `Name`
+- *percent*: `UnitPriceUplift`
 
 **ERD fields not found in org (33):**
 
@@ -1493,72 +480,128 @@ Domain: Transaction Management | ERD fields: 48 | Org fields: 22
 - `UnitCost`
 - `ValidationResult`
 
-### PaymentSchedule
-Domain: Billing | ERD fields: 16 | Org fields: 21
+### PaymentScheduleItem
+Domain: Billing | ERD fields: 27 | Org fields: 28
 
 **Relationships in org, missing from ERD:**
 
 | Field | Type | References |
 |-------|------|------------|
-| `PaymentScheduleTreatmentDtlId` | reference | PaymentScheduleTreatmentDtl |
+| `PaymentInitiationSourceId` | reference | PaymentInitiationSource |
 
-**Data fields in org, missing from ERD (6):**
+### Product2
+Domain: Product Catalog Management (Core Object) | ERD fields: 46 | Org fields: 33
 
-- *currency*: `AvailableRequestedAmount`, `TotalPaymentsReceived`, `TotalProcessedAmount`, `TotalRequestedAmount`
-- *picklist*: `Type`, `UsageType`
+**Data fields in org, missing from ERD (1):**
+
+- *picklist*: `UsedFor`
+
+**ERD fields not found in org (14):**
+
+- `AlwaysOne`
+- `AssociatedProductRoleCat`
+- `CatalogType`
+- `ChildProductClassificationId`
+- `Code`
+- `DataType`
+- `EffectiveEndDate`
+- `EffectiveStartDate`
+- `IsDefault`
+- `IsNavigational`
+- `OrderLineItem`
+- `ParentGroupId`
+- `ProductClassification`
+- `QuoteVisibility`
+
+### QuoteLineGroup
+Domain: Transaction Management | ERD fields: 28 | Org fields: 24
+
+**Data fields in org, missing from ERD (1):**
+
+- *percent*: `UnitPriceUplift`
+
+**ERD fields not found in org (5):**
+
+- `ReferenceNumber`
+- `TotalLineAmount`
+- `TotalPrice`
+- `UnitPrice`
+- `Yearly`
+
+### QuoteLineItem
+Domain: Transaction Management (Core Object) | ERD fields: 91 | Org fields: 90
+
+**Data fields in org, missing from ERD (1):**
+
+- *textarea*: `RLM_ConstraintEngineNodeStatus__c`
+
+**ERD fields not found in org (2):**
+
+- `PricingStatus`
+- `TotalAdjustmentDistAmount`
+
+### TransactionJournal
+Domain: Usage Management (Core Object) | ERD fields: 34 | Org fields: 27
+
+**Data fields in org, missing from ERD (1):**
+
+- *picklist*: `CreationSourceType`
+
+**ERD fields not found in org (8):**
+
+- `GeneralLedgerAccount`
+- `Input`
+- `RateUsageType`
+- `State`
+- `UnrealizedReversal`
+- `UsageResource`
+- `UsageSummary`
+- `ZipCode`
+
+### TransactionUsageEntitlement
+Domain: Usage Management | ERD fields: 34 | Org fields: 32
+
+**Data fields in org, missing from ERD (1):**
+
+- *datetime*: `OriginalEndDate`
+
+**ERD fields not found in org (3):**
+
+- `Renewal`
+- `UsageCommitmentPolicyId`
+- `UsageOveragePolicyId`
+
+### AccountBillingAccount
+Domain: Billing (Core Object) | ERD fields: 7 | Org fields: 6
 
 **ERD fields not found in org (1):**
 
-- `Name`
+- `Account`
 
-### PricingAPIExecution
-Domain: Salesforce Pricing | ERD fields: 2 | Org fields: 8
-
-**Data fields in org, missing from ERD (7):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *picklist*: `ApiType`, `Status`
-- *string*: `ExecutionKey`, `Name`, `ReferenceKey`
+### AccountingPeriod
+Domain: Billing | ERD fields: 14 | Org fields: 12
 
 **ERD fields not found in org (1):**
 
-- `TargetRecord`
+- `Open`
 
-### UsageEntitlementBucket
-Domain: Usage Management | ERD fields: 11 | Org fields: 16
+### AssessmentQuestion
+Domain: Product Catalog Management | ERD fields: 16 | Org fields: 13
 
-**Relationships in org, missing from ERD:**
+**ERD fields not found in org (2):**
 
-| Field | Type | References |
-|-------|------|------------|
-| `ParentId` | reference | UsageEntitlementAccount, UsageEntitlementBucket |
-| `TransactionUsageEntitlementId` | reference | TransactionUsageEntitlement |
-| `UsageResourceId` | reference | UsageResource |
+- `ShouldExcludeFromMetadata`
+- `ShouldHideInDesigner`
 
-**Data fields in org, missing from ERD (4):**
-
-- *double*: `ProvisionalBucketBalance`, `TotalAsOfBalance`, `TotalConsumedEntitlement`, `TotalProvisionalBalance`
+### AssessmentQuestionVersion
+Domain: Product Catalog Management | ERD fields: 19 | Org fields: 17
 
 **ERD fields not found in org (1):**
 
-- `ProductId`
+- `ExternalAsmtContentVersion`
 
 ### Asset
-Domain: Transaction Management | ERD fields: 72 | Org fields: 57
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `BindingInstanceTargetId` | reference | Account, Asset, BindingObjectCustomExt, Contract |
-| `CurrentQuantityUnitId` | reference | UnitOfMeasure |
-
-**Data fields in org, missing from ERD (4):**
-
-- *boolean*: `DoesAutomaticallyRenew`
-- *date*: `ManufactureDate`
-- *percent*: `UnitPriceUplift`
-- *textarea*: `Description`
+Domain: Transaction Management | ERD fields: 78 | Org fields: 57
 
 **ERD fields not found in org (18):**
 
@@ -1581,1487 +624,16 @@ Domain: Transaction Management | ERD fields: 72 | Org fields: 57
 - `UptimeRecordEnd`
 - `UptimeRecordStart`
 
-### CollectionPlanItem
-Domain: Billing (Core Object) | ERD fields: 1 | Org fields: 7
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `CollectionPlanId` | reference | CollectionPlan |
-| `InvoiceId` | reference | Invoice |
-
-**Data fields in org, missing from ERD (4):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *picklist*: `Status`
-- *string*: `Name`
-
-### FulfillmentStep
-Domain: Dynamic Revenue Orchestrator | ERD fields: 40 | Org fields: 39
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `TaskId` | reference | Task |
-
-**Data fields in org, missing from ERD (5):**
-
-- *boolean*: `IsVisibleByExternalUsers`
-- *datetime*: `LastViewedDate`
-- *picklist*: `UsageType`
-- *string*: `CustomBaseExecutionDate`, `StepDefIdentifier`
-
-**ERD fields not found in org (6):**
-
-- `Lookup`
-- `Minutes`
-- `RequestedCompletionDate`
-- `RequestedStartDate`
-- `RoundRobin`
-- `Skipped`
-
-### FulfillmentTaskAssignmentRule
-Domain: Dynamic Revenue Orchestrator | ERD fields: 6 | Org fields: 10
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `SourceId` | reference | Group |
-
-**Data fields in org, missing from ERD (5):**
-
-- *datetime*: `LastViewedDate`
-- *int*: `Priority`
-- *picklist*: `TaskAllocationType`, `UsageType`
-- *string*: `Name`
-
-**ERD fields not found in org (2):**
-
-- `StepId`
-- `VersionGroupIdentifier`
-
-### OrderItemAttribute
-Domain: Transaction Management | ERD fields: 3 | Org fields: 7
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `AttributePicklistValueId` | reference | AttributePicklistValue |
-| `OrderItemId` | reference | OrderItem |
-
-**Data fields in org, missing from ERD (4):**
-
-- *boolean*: `IsPriceImpacting`
-- *string*: `AttributeName`, `AttributeValue`, `ExternalId`
-
-**ERD fields not found in org (2):**
-
-- `Lookup`
-- `ShippingCarrierMethod`
-
-### AccountBillingAccount
-Domain: Billing (Core Object) | ERD fields: 2 | Org fields: 6
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `AccountId` | reference | Account |
-| `BillingAccountId` | reference | BillingAccount |
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-**ERD fields not found in org (1):**
-
-- `Account`
-
-### AssessmentQuestion
-Domain: Product Catalog Management | ERD fields: 11 | Org fields: 13
-
-**Data fields in org, missing from ERD (5):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *picklist*: `FormulaResponseDataType`
-- *string*: `Name`, `Namespace`
-
-**ERD fields not found in org (2):**
-
-- `ShouldExcludeFromMetadata`
-- `ShouldHideInDesigner`
-
-### BillingMilestonePlan
-Domain: Billing | ERD fields: 6 | Org fields: 10
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `AccountId` | reference | Account |
-| `ReferenceItemId` | reference | BillingSchedule, OrderItem, QuoteLineItem |
-
-**Data fields in org, missing from ERD (3):**
-
-- *currency*: `ReferenceItemAmount`
-- *picklist*: `Status`
-- *string*: `Description`
-
-**ERD fields not found in org (1):**
-
-- `Value`
-
-### FulfillmentAssetAttribute
-Domain: Dynamic Revenue Orchestrator | ERD fields: 1 | Org fields: 6
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `AttributePicklistValueId` | reference | AttributePicklistValue |
-| `FulfillmentAssetId` | reference | FulfillmentAsset |
-
-**Data fields in org, missing from ERD (3):**
-
-- *string*: `AttributeName`, `AttributeValue`, `ExternalId`
-
-### PaymentScheduleTreatment
-Domain: Billing | ERD fields: 7 | Org fields: 9
-
-**Data fields in org, missing from ERD (5):**
-
-- *boolean*: `IsApprovalRequired`
-- *picklist*: `Status`, `TriggerSource`
-- *textarea*: `Description`, `PaymentPlanTag`
-
-**ERD fields not found in org (2):**
-
-- `Inactive`
-- `TreatmentSelection`
-
-### RevenueTransactionErrorLog
-Domain: Billing | ERD fields: 12 | Org fields: 15
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `BillingScheduleGroupId` | reference | BillingScheduleGroup |
-
-**Data fields in org, missing from ERD (4):**
-
-- *picklist*: `Severity`
-- *string*: `PrimaryTextRecord`
-- *textarea*: `ConfiguratorErrorMessage`, `Request`
-
-**ERD fields not found in org (2):**
-
-- `Days`
-- `InvoiceLineTax`
-
-### AssessmentQuestionSet
-Domain: Product Catalog Management | ERD fields: 2 | Org fields: 6
-
-**Data fields in org, missing from ERD (4):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`, `Namespace`
-
-### AssessmentQuestionVersion
-Domain: Product Catalog Management | ERD fields: 15 | Org fields: 17
-
-**Data fields in org, missing from ERD (4):**
-
-- *datetime*: `ActivationDateTime`, `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-**ERD fields not found in org (1):**
-
-- `ExternalAsmtContentVersion`
-
-### AssetRelationship
-Domain: Transaction Management | ERD fields: 14 | Org fields: 15
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ProductRelatedComponentId` | reference | ProductRelatedComponent |
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`, `ToDate`
-
-**ERD fields not found in org (2):**
-
-- `ProductRelatedComponent`
-- `UsageResourceId`
-
-### AssetStatePeriod
-Domain: Transaction Management | ERD fields: 18 | Org fields: 19
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `PriceRevisionPolicyId` | reference | PriceRevisionPolicy |
-
-**Data fields in org, missing from ERD (3):**
-
-- *currency*: `UnitPrice`
-- *datetime*: `StartDate`
-- *percent*: `UnitPriceUplift`
-
-**ERD fields not found in org (3):**
-
-- `Lookup`
-- `PriceRevisionPolicy`
-- `UserOrGroupId`
-
-### DocumentClauseSet
-Domain: Transaction Management | ERD fields: 3 | Org fields: 7
-
-**Data fields in org, missing from ERD (4):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *picklist*: `Category`
-- *string*: `Name`
-
-### InvoiceBatchRun
-Domain: Billing | ERD fields: 31 | Org fields: 30
-
-**Data fields in org, missing from ERD (4):**
-
-- *int*: `TotalInvoicesCanceled`, `TotalInvoicesFailed`, `TotalInvoicesGenerated`, `TotalPostedInvoices`
-
-**ERD fields not found in org (4):**
-
-- `Address`
-- `InvoiceAddressGroupNumber`
-- `InvoiceId`
-- `NotApplicable`
-
-### ObjectStateActionDefinition
-Domain: Transaction Management | ERD fields: 5 | Org fields: 9
-
-**Data fields in org, missing from ERD (4):**
-
-- *boolean*: `IsSystem`
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ObjectStateDefinition
-Domain: Transaction Management | ERD fields: 7 | Org fields: 11
-
-**Data fields in org, missing from ERD (4):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-- *textarea*: `Description`
-
-### ObjectStateValue
-Domain: Transaction Management | ERD fields: 4 | Org fields: 8
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `CustomPermissionId` | reference | CustomPermission |
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### OrderItemDetail
-Domain: Transaction Management | ERD fields: 11 | Org fields: 14
-
-**Data fields in org, missing from ERD (4):**
-
-- *currency*: `TotalLineAmount`, `TotalPrice`, `UnitPrice`
-- *string*: `ReferenceNumber`
-
-**ERD fields not found in org (1):**
-
-- `IsPriceImpacting`
-
-### PaymentRetryRule
-Domain: Billing | ERD fields: 12 | Org fields: 12
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `PaymentRetryRuleSetId` | reference | PaymentRetryRuleSet |
-
-**Data fields in org, missing from ERD (3):**
-
-- *picklist*: `RetryIntervalType`
-- *string*: `Description`, `PaymentRetryRuleNumber`
-
-**ERD fields not found in org (4):**
-
-- `Minutes`
-- `Unapplied`
-- `UnappliedDateTime`
-- `UnappliedStatus`
-
-### PaymentScheduleItem
-Domain: Billing | ERD fields: 23 | Org fields: 27
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `PaymentScheduleId` | reference | PaymentSchedule |
-
-**Data fields in org, missing from ERD (3):**
-
-- *boolean*: `IsRetriableAsSameRequest`
-- *int*: `MaximumRetryCount`
-- *picklist*: `UsageType`
-
-### ProductCatalog
-Domain: Product Catalog Management | ERD fields: 5 | Org fields: 9
-
-**Data fields in org, missing from ERD (4):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *int*: `NumberOfCategories`
-- *string*: `Name`
-
-### ProductClassificationAttr
-Domain: Product Catalog Management | ERD fields: 21 | Org fields: 25
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `OverriddenInheritedAttributeId` | reference | ProductClassificationAttr |
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ProductConfigFlowAssignment
-Domain: Product Configurator | ERD fields: 6 | Org fields: 7
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ProductId` | reference | Product2 |
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-**ERD fields not found in org (3):**
-
-- `FlowIdentifier`
-- `IsDefault`
-- `Status`
-
-### ProductConfigurationRule
-Domain: Product Configurator | ERD fields: 11 | Org fields: 13
-
-**Data fields in org, missing from ERD (4):**
-
-- *int*: `Sequence`
-- *picklist*: `RuleType`, `Status`
-- *string*: `Description`
-
-**ERD fields not found in org (1):**
-
-- `ProductId`
-
-### QuoteLineDetail
-Domain: Transaction Management | ERD fields: 10 | Org fields: 14
-
-**Data fields in org, missing from ERD (4):**
-
-- *currency*: `TotalLineAmount`, `TotalPrice`, `UnitPrice`
-- *string*: `ReferenceNumber`
-
-### QuoteLineGroup
-Domain: Transaction Management | ERD fields: 24 | Org fields: 23
-
-**Data fields in org, missing from ERD (4):**
-
-- *percent*: `RLM_UpliftPercent__c`
-- *picklist*: `RLM_RampMode__c`, `Type`
-- *string*: `Description`
+### AssetAction
+Domain: Transaction Management | ERD fields: 36 | Org fields: 31
 
 **ERD fields not found in org (5):**
 
-- `ReferenceNumber`
-- `TotalLineAmount`
-- `TotalPrice`
-- `UnitPrice`
-- `Yearly`
-
-### RateAdjustmentByAttribute
-Domain: Rate Management | ERD fields: 14 | Org fields: 18
-
-**Data fields in org, missing from ERD (4):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *int*: `AttributeCount`
-- *string*: `AttributeAdjConditionsHash`
-
-### UsageRatableSumCmtAssetRt
-Domain: Usage Management | ERD fields: 6 | Org fields: 9
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `UsageRatableSummaryId` | reference | UsageRatableSummary |
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `RatingDecisionDateTime`
-- *double*: `NetUnitRate`
-- *string*: `Name`
-
-**ERD fields not found in org (1):**
-
-- `UsageResourceId`
-
-### AssessmentQuestionAssignment
-Domain: Product Catalog Management | ERD fields: 2 | Org fields: 5
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### AssetActionSource
-Domain: Transaction Management | ERD fields: 34 | Org fields: 35
-
-**Data fields in org, missing from ERD (3):**
-
-- *currency*: `TotalPrice`, `UnitPrice`
-- *datetime*: `TransactionDate`
-
-**ERD fields not found in org (2):**
-
-- `LastDayOfPeriod`
 - `Lookup`
-
-### AttributeCategoryAttribute
-Domain: Product Catalog Management | ERD fields: 2 | Org fields: 5
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### BillingMilestonePlanItem
-Domain: Billing | ERD fields: 22 | Org fields: 20
-
-**Data fields in org, missing from ERD (3):**
-
-- *double*: `MilestoneAmountDerived`
-- *picklist*: `Type`
-- *string*: `Description`
-
-**ERD fields not found in org (5):**
-
-- `Event`
-- `OrderProductActivation`
-- `ReferenceItemAmount`
-- `ReferenceItemId`
-- `Years`
-
-### BillingTreatmentItem
-Domain: Billing | ERD fields: 16 | Org fields: 18
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ChannelProgram
-Domain: Transaction Management (Core Object) | ERD fields: 3 | Org fields: 6
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ChannelProgramLevel
-Domain: Transaction Management (Core Object) | ERD fields: 4 | Org fields: 7
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ChannelProgramMember
-Domain: Transaction Management (Core Object) | ERD fields: 3 | Org fields: 6
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### CostBookEntry
-Domain: Salesforce Pricing | ERD fields: 9 | Org fields: 9
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-**ERD fields not found in org (2):**
-
-- `SellingModelType`
-- `StartDate`
-
-### CreditMemoInvApplication
-Domain: Billing | ERD fields: 14 | Org fields: 15
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `UnappliedDate`
-- *picklist*: `Type`
-- *string*: `Description`
-
-**ERD fields not found in org (2):**
-
-- `LastViewedDate`
-- `Yes`
-
-### ObjectStateTransition
-Domain: Transaction Management | ERD fields: 5 | Org fields: 8
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ObjectStateTransitionAction
-Domain: Transaction Management | ERD fields: 5 | Org fields: 8
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### OmniProcessAsmtQuestionVer
-Domain: Product Catalog Management | ERD fields: 4 | Org fields: 7
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### OmniProcessElement
-Domain: Product Catalog Management | ERD fields: 15 | Org fields: 18
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### PriceAdjustmentSchedule
-Domain: Salesforce Pricing | ERD fields: 10 | Org fields: 11
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ContractId` | reference | Contract |
-
-**Data fields in org, missing from ERD (2):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-
-### ProdtAttrScope
-Domain: Product Catalog Management | ERD fields: 2 | Org fields: 5
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ProductCategoryDisqual
-Domain: Product Catalog Management | ERD fields: 5 | Org fields: 8
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ProductCategoryQualification
-Domain: Product Catalog Management | ERD fields: 4 | Org fields: 7
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ProductClassification
-Domain: Product Catalog Management | ERD fields: 3 | Org fields: 6
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ProductComponentGroup
-Domain: Product Catalog Management | ERD fields: 7 | Org fields: 10
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ProductDecompEnrichmentRule
-Domain: Dynamic Revenue Orchestrator | ERD fields: 15 | Org fields: 18
-
-**Data fields in org, missing from ERD (3):**
-
-- *picklist*: `SourceType`
-- *string*: `SourceAttributeIdentifier`, `SourceContextTag`
-
-### ProductDisqualification
-Domain: Product Catalog Management | ERD fields: 7 | Org fields: 10
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ProductQualification
-Domain: Product Catalog Management | ERD fields: 6 | Org fields: 9
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ProductRampSegment
-Domain: Salesforce Pricing | ERD fields: 5 | Org fields: 8
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### TaxEngineInteractionLog
-Domain: Billing | ERD fields: 22 | Org fields: 21
-
-**Data fields in org, missing from ERD (3):**
-
-- *base64*: `ResponseBody`
-- *string*: `TaxEngineInteractionLogNumber`
-- *textarea*: `Description`
-
-**ERD fields not found in org (4):**
-
-- `TaxPrvdAccountIdentifier`
-- `ValidationError`
-- `Void`
-- `VoidOrDebit`
-
-### UsageResourceBillingPolicy
-Domain: Usage Management | ERD fields: 4 | Org fields: 7
-
-**Data fields in org, missing from ERD (3):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-- *string*: `Name`
-
-### ApprovalSubmission
-Domain: Advanced Approvals | ERD fields: 21 | Org fields: 11
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `SmartApprvlBasisSubmissionId` | reference | ApprovalSubmission |
-
-**Data fields in org, missing from ERD (1):**
-
-- *boolean*: `IsSmartApprovalRun`
-
-**ERD fields not found in org (10):**
-
-- `ApprovalChainName`
-- `Authentication`
-- `Formats`
-- `Input`
-- `Inputs`
-- `IsAutoReviewed`
-- `POST`
-- `SmartApprovalBasisWorkItemId`
-- `Suspended`
-- `URI`
-
-### AssetRateAdjustment
-Domain: Transaction Management | ERD fields: 6 | Org fields: 6
-
-**Data fields in org, missing from ERD (2):**
-
-- *double*: `LowerBound`, `UpperBound`
-
-**ERD fields not found in org (2):**
-
-- `GroupId`
-- `UserOrGroupId`
-
-### BillingBatchScheduler
-Domain: Billing | ERD fields: 23 | Org fields: 23
-
-**Data fields in org, missing from ERD (2):**
-
-- *boolean*: `ShouldRunDpeOnCore`
-- *picklist*: `TimeZone`
-
-**ERD fields not found in org (1):**
-
-- `Saturday`
-
-### BillingPeriodItem
-Domain: Billing | ERD fields: 14 | Org fields: 16
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `UnitOfMeasureId` | reference | UnitOfMeasure |
-
-**Data fields in org, missing from ERD (1):**
-
-- *double*: `TotalUsedQuantity`
-
-### BindingObjectRateAdjustment
-Domain: Rate Management | ERD fields: 6 | Org fields: 8
-
-**Data fields in org, missing from ERD (2):**
-
-- *double*: `UpperBound`
-- *string*: `Name`
-
-### CreditMemoLineInvoiceLine
-Domain: Billing | ERD fields: 19 | Org fields: 16
-
-**Data fields in org, missing from ERD (2):**
-
-- *picklist*: `Type`
-- *textarea*: `Description`
-
-**ERD fields not found in org (5):**
-
-- `StartDate`
-- `Status`
-- `TaxAmount`
-- `TaxTreatmentId`
-- `Unapplied`
-
-### FulfillmentPlan
-Domain: Dynamic Revenue Orchestrator | ERD fields: 9 | Org fields: 9
-
-**Data fields in org, missing from ERD (2):**
-
-- *picklist*: `State`, `UsageType`
-
-**ERD fields not found in org (1):**
-
-- `Bulk`
-
-### FulfillmentStepSource
-Domain: Dynamic Revenue Orchestrator | ERD fields: 3 | Org fields: 5
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `StepId` | reference | FulfillmentStep |
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `VersionGroupIdentifier`
-
-### InvoiceBatchRunCriteria
-Domain: Billing | ERD fields: 13 | Org fields: 10
-
-**Data fields in org, missing from ERD (2):**
-
-- *date*: `TargetDate`
-- *int*: `TargetDateOffset`
-
-**ERD fields not found in org (4):**
-
-- `TotalInvoicesCanceled`
-- `TotalInvoicesFailed`
-- `TotalInvoicesGenerated`
-- `TotalPostedInvoices`
-
-### InvoiceBatchRunRecovery
-Domain: Billing | ERD fields: 8 | Org fields: 8
-
-**Data fields in org, missing from ERD (2):**
-
-- *datetime*: `StartTime`
-- *picklist*: `Status`
-
-**ERD fields not found in org (2):**
-
-- `TargetDate`
-- `TargetDateOffset`
-
-### LegalEntyAccountingPeriod
-Domain: Billing | ERD fields: 14 | Org fields: 12
-
-**Data fields in org, missing from ERD (2):**
-
-- *currency*: `TotalLiabilitiesAmount`, `TotalRevenueAmount`
-
-**ERD fields not found in org (3):**
-
-- `CreateUnrealizedGainOrLossTransactionJournals`
-- `Reopened`
-- `ShouldAttachInvoiceDocToEmail`
-
-### OrderDeliveryMethod
-Domain: Transaction Management | ERD fields: 11 | Org fields: 10
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ShippingCarrierMethodId` | reference | ShippingCarrierMethod |
-
-**Data fields in org, missing from ERD (1):**
-
-- *textarea*: `Description`
-
-**ERD fields not found in org (2):**
-
-- `NewValue`
-- `OldValue`
-
-### OrderItemUsageRsrcGrant
-Domain: Transaction Management | ERD fields: 9 | Org fields: 11
-
-**Data fields in org, missing from ERD (2):**
-
-- *int*: `ValidityPeriodTerm`
-- *picklist*: `ValidityPeriodUnit`
-
-### OrderItemUsageRsrcPlcy
-Domain: Transaction Management | ERD fields: 10 | Org fields: 9
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `UsageOveragePolicyId` | reference | UsageOveragePolicy |
-| `UsageResourceId` | reference | UsageResource |
-
-**ERD fields not found in org (3):**
-
-- `GrantedLast`
-- `ValidityPeriodTerm`
-- `ValidityPeriodUnit`
-
-### PaymentSchedulePolicy
-Domain: Billing | ERD fields: 11 | Org fields: 8
-
-**Data fields in org, missing from ERD (2):**
-
-- *picklist*: `TreatmentSelection`
-- *textarea*: `Description`
-
-**ERD fields not found in org (4):**
-
-- `TotalPaymentsReceived`
-- `TotalProcessedAmount`
-- `TotalRequestedAmount`
-- `UsageType`
-
-### PriceBookEntryDerivedPrice
-Domain: Salesforce Pricing | ERD fields: 13 | Org fields: 13
-
-**Data fields in org, missing from ERD (2):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-
-### PriceRevisionPolicy
-Domain: Salesforce Pricing | ERD fields: 7 | Org fields: 8
-
-**Data fields in org, missing from ERD (2):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-
-### ProcedurePlanCriterion
-Domain: Salesforce Pricing | ERD fields: 7 | Org fields: 7
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ProcedurePlanOptionId` | reference | ProcedurePlanOption |
-
-**Data fields in org, missing from ERD (1):**
-
-- *int*: `Sequence`
-
-**ERD fields not found in org (2):**
-
-- `NotIn`
-- `ProrationPolicyId`
-
-### ProdtDecompEnrchVarMap
-Domain: Dynamic Revenue Orchestrator | ERD fields: 8 | Org fields: 7
-
-**Data fields in org, missing from ERD (2):**
-
-- *picklist*: `VariableType`
-- *string*: `Name`
-
-**ERD fields not found in org (3):**
-
-- `SourceAttributeIdentifier`
-- `SourceContextTag`
-- `SourceType`
-
-### ProductConfigurationFlow
-Domain: Product Configurator | ERD fields: 10 | Org fields: 6
-
-**Data fields in org, missing from ERD (2):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-
-**ERD fields not found in org (5):**
-
-- `AssignmentType`
-- `Lookup`
-- `ProductClassificationId`
-- `ProductConfigurationFlowId`
-- `ReferenceObjectId`
-
-### ProductFulfillmentScenario
-Domain: Dynamic Revenue Orchestrator | ERD fields: 15 | Org fields: 12
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ScenarioRuleId` | reference | Ruleset |
-
-**Data fields in org, missing from ERD (1):**
-
-- *picklist*: `UsageType`
-
-**ERD fields not found in org (4):**
-
-- `FulfillmentProcessId`
-- `Lookup`
-- `Renew`
-- `Type`
-
-### ProductUsageGrant
-Domain: Usage Management | ERD fields: 24 | Org fields: 23
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ProductId` | reference | Product2 |
-| `UsageRsrcId` | reference | UsageResource |
-
-**ERD fields not found in org (2):**
-
-- `ProductOfferId`
-- `UsageResourceId`
-
-### QuotLineItmUseRsrcGrant
-Domain: Transaction Management | ERD fields: 12 | Org fields: 13
-
-**Data fields in org, missing from ERD (2):**
-
-- *int*: `ValidityPeriodTerm`
-- *picklist*: `ValidityPeriodUnit`
-
-**ERD fields not found in org (1):**
-
-- `IsPriceImpacting`
-
-### QuoteLineItemAttribute
-Domain: Transaction Management | ERD fields: 5 | Org fields: 7
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `QuoteLineItemId` | reference | QuoteLineItem |
-
-**Data fields in org, missing from ERD (1):**
-
-- *boolean*: `IsPriceImpacting`
-
-### QuoteLineRateAdjustment
-Domain: Transaction Management | ERD fields: 5 | Org fields: 6
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `QuoteLineRateCardEntryId` | reference | QuoteLineRateCardEntry |
-
-**Data fields in org, missing from ERD (1):**
-
-- *double*: `UpperBound`
-
-**ERD fields not found in org (1):**
-
-- `Percentage`
-
-### RateCardEntry
-Domain: Rate Management | ERD fields: 17 | Org fields: 19
-
-**Data fields in org, missing from ERD (2):**
-
-- *datetime*: `LastReferencedDate`, `LastViewedDate`
-
-### SalesTrxnDeleteEvent
-Domain: Dynamic Revenue Orchestrator | ERD fields: 2 | Org fields: 3
-
-**Data fields in org, missing from ERD (2):**
-
-- *string*: `EventUuid`, `ReplayId`
-
-**ERD fields not found in org (1):**
-
-- `UsageType`
-
-### UsageCmtAssetRelatedObj
-Domain: Usage Management | ERD fields: 6 | Org fields: 7
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `RelatedObjectId` | reference | Account, Asset, BindingObjectCustomExt, Contract |
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `UsageCmtAssetRelatedObjNumber`
-
-**ERD fields not found in org (1):**
-
-- `UsageResourceId`
-
-### UsageEntitlementAccount
-Domain: Usage Management | ERD fields: 14 | Org fields: 14
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `PricebookEntryId` | reference | PricebookEntry |
-| `ProductId` | reference | Product2 |
-
-**ERD fields not found in org (1):**
-
-- `MONTH`
-
-### UsageEntitlementEntry
-Domain: Usage Management | ERD fields: 17 | Org fields: 17
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `UsageSummaryId` | reference | UsageSummary |
-
-**Data fields in org, missing from ERD (1):**
-
-- *picklist*: `TransactionType`
-
-**ERD fields not found in org (2):**
-
-- `Expired`
-- `Rollover`
-
-### UsageResourcePolicy
-Domain: Usage Management | ERD fields: 6 | Org fields: 8
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `UsageResourceId` | reference | UsageResource |
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `UsageResourcePolicyNum`
-
-### ValTfrm
-Domain: Dynamic Revenue Orchestrator | ERD fields: 12 | Org fields: 14
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ValueTransformGroupId` | reference | ValTfrmGrp |
-
-**Data fields in org, missing from ERD (1):**
-
-- *date*: `OutputDate`
-
-### ApprovalAlertContentDef
-Domain: Approvals | ERD fields: 4 | Org fields: 5
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `Name`
-
-### AssessmentQuestionConfig
-Domain: Product Catalog Management | ERD fields: 3 | Org fields: 4
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `NamespacePrefix`
-
-### AssessmentQuestionSetConfig
-Domain: Product Catalog Management | ERD fields: 3 | Org fields: 4
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `NamespacePrefix`
-
-### AssetRateCardEntry
-Domain: Transaction Management | ERD fields: 13 | Org fields: 12
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `UsageResourceId` | reference | UsageResource |
-
-**ERD fields not found in org (1):**
-
-- `UpperBound`
-
-### AssetStatePeriodAttribute
-Domain: Transaction Management | ERD fields: 12 | Org fields: 6
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `ExternalId`
-
-**ERD fields not found in org (7):**
-
-- `ItemId`
-- `Lookup`
-- `Name`
-- `StartDate`
-- `TagDefinitionId`
-- `UnitPrice`
-- `UnitPriceUplift`
-
-### AttributeAdjustmentCondition
-Domain: Salesforce Pricing | ERD fields: 15 | Org fields: 14
-
-**Data fields in org, missing from ERD (1):**
-
-- *picklist*: `UsageType`
-
-**ERD fields not found in org (2):**
-
-- `Lookup`
-- `True`
-
-### BillingArrangementLine
-Domain: Billing | ERD fields: 7 | Org fields: 8
-
-**Data fields in org, missing from ERD (1):**
-
-- *double*: `PercentageInternal`
-
-### ContractItemPrice
-Domain: Salesforce Pricing | ERD fields: 17 | Org fields: 14
-
-**Data fields in org, missing from ERD (1):**
-
-- *datetime*: `StartDate`
-
-**ERD fields not found in org (3):**
-
-- `AdjustmentPercentage`
-- `Lookup`
-- `UsageResourceId`
-
-### ContractItemPriceHistory
-Domain: Transaction Management | ERD fields: 46 | Org fields: 5
-
-**Data fields in org, missing from ERD (1):**
-
-- *picklist*: `Field`
-
-**ERD fields not found in org (42):**
-
-- `Carrier`
-- `ClassOfService`
-- `DiscountValue`
-- `EncryptedText`
-- `EndDate`
-- `EntityId`
-- `EnumOrId`
-- `ExternalId`
-- `Fax`
-- `File`
-- `HtmlMultiLineText`
-- `HtmlStringPlusClob`
-- `InetAddress`
-- `IsActive`
-- `Item`
-- `Json`
-- `LastReferencedDate`
-- `Location`
-- `Lookup`
-- `MultiEnum`
-- `MultiLineText`
-- `Name`
-- `Namespace`
-- `OverrideAmount`
-- `Percent`
-- `PersonName`
-- `Phone`
-- `Price`
-- `ProductSellingModel`
-- `Raw`
-- `RecordType`
-- `SfdcEncryptedText`
-- `SimpleNamespace`
-- `StartDate`
-- `StringPlusClob`
-- `Switchable_PersonName`
-- `Text`
-- `TierValue`
-- `TimeOnly`
-- `UpperBound`
-- `Url`
-- `YearQuarter`
-
-### CreditMemoLineTax
-Domain: Billing | ERD fields: 30 | Org fields: 20
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `Description`
-
-**ERD fields not found in org (11):**
-
-- `Complete`
-- `CorpCrcyCnvTaxAmount`
-- `CorporateCurrencyCvsnDate`
-- `CorporateCurrencyCvsnRate`
-- `CorporateCurrencyIsoCode`
-- `Error`
-- `FuncCrcyCnvTaxAmount`
-- `FunctionalCurrencyCvsnRate`
-- `FunctionalCurrencyIsoCode`
-- `None`
-- `Product2Id`
-
-### FulfillmentLineRel
-Domain: Dynamic Revenue Orchestrator | ERD fields: 10 | Org fields: 9
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ProductRelationshipTypeId` | reference | ProductRelationshipType |
-
-**ERD fields not found in org (2):**
-
-- `ExternalId`
-- `FulfillmentOrderLineItemId`
-
-### FulfillmentStepDependency
-Domain: Dynamic Revenue Orchestrator | ERD fields: 7 | Org fields: 5
-
-**Data fields in org, missing from ERD (1):**
-
-- *picklist*: `PropagateStateToDependentStep`
-
-**ERD fields not found in org (3):**
-
-- `DependencyScope`
-- `DependsOnStepDefinitionId`
-- `FulfillmentStepDefinitionId`
-
-### GeneralLdgrAcctPrdSummary
-Domain: Billing | ERD fields: 8 | Org fields: 9
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `Name`
-
-### OrderItemRateAdjustment
-Domain: Transaction Management | ERD fields: 10 | Org fields: 6
-
-**Data fields in org, missing from ERD (1):**
-
-- *double*: `UpperBound`
-
-**ERD fields not found in org (5):**
-
-- `Percentage`
-- `ReferenceNumber`
-- `TotalLineAmount`
-- `TotalPrice`
-- `UnitPrice`
-
-### PaymentRetryRuleSet
-Domain: Billing | ERD fields: 15 | Org fields: 11
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `Description`
-
-**ERD fields not found in org (5):**
-
-- `AvailableRequestedAmount`
-- `Minutes`
-- `PaymentRetryRuleSetId`
-- `RetryIntervalType`
-- `Staggered`
-
-### PriceBookRateCard
-Domain: Rate Management | ERD fields: 5 | Org fields: 6
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `Name`
-
-### PricingAdjBatchJobLog
-Domain: Salesforce Pricing | ERD fields: 9 | Org fields: 10
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `TargetRecord`
-
-### ProductAttributeDefinition
-Domain: Product Catalog Management | ERD fields: 27 | Org fields: 27
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `OverrideContextId` | reference | Product2, Promotion |
-
-### ProductCategory
-Domain: Product Catalog Management | ERD fields: 10 | Org fields: 10
-
-**Data fields in org, missing from ERD (1):**
-
-- *int*: `NumberOfProducts`
-
-### ProductCategoryProduct
-Domain: Product Catalog Management | ERD fields: 10 | Org fields: 6
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `ProductToCategory`
-
-**ERD fields not found in org (4):**
-
-- `CategoryId`
-- `DisplaySequence`
-- `LastReferencedDate`
-- `LastViewedDate`
-
-### ProductFulfillmentDecompRule
-Domain: Dynamic Revenue Orchestrator | ERD fields: 13 | Org fields: 12
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ExecuteOnRuleId` | reference | Ruleset |
-
-**ERD fields not found in org (1):**
-
-- `VariableType`
-
-### ProductUsageResource
-Domain: Usage Management | ERD fields: 11 | Org fields: 10
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `ProductUsageResourceNum`
-
-**ERD fields not found in org (2):**
-
-- `ValidityPeriodTerm`
-- `ValidityPeriodUnit`
-
-### ProductUsageResourcePolicy
-Domain: Usage Management | ERD fields: 8 | Org fields: 9
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `ProductUsageResourcePolicyNum`
-
-### PymtSchdDistributionMethod
-Domain: Billing | ERD fields: 6 | Org fields: 6
-
-**Data fields in org, missing from ERD (1):**
-
-- *textarea*: `Description`
-
-### QuoteAction
-Domain: Transaction Management | ERD fields: 7 | Org fields: 7
-
-**Data fields in org, missing from ERD (1):**
-
-- *picklist*: `Type`
-
-### SalesTransactionFulfillReq
-Domain: Dynamic Revenue Orchestrator | ERD fields: 18 | Org fields: 12
-
-**Relationships in org, missing from ERD:**
-
-| Field | Type | References |
-|-------|------|------------|
-| `ReferenceObjectId` | reference | Order, Quote |
-
-**ERD fields not found in org (6):**
-
-- `Completed`
-- `Failed`
-- `Freezing`
-- `InProgress`
-- `NotStarted`
-- `Rejected`
-
-### TransactionProcessingType
-Domain: Transaction Management | ERD fields: 9 | Org fields: 10
-
-**Data fields in org, missing from ERD (1):**
-
-- *string*: `NamespacePrefix`
-
-### AccountingPeriod
-Domain: Billing | ERD fields: 14 | Org fields: 12
-
-**ERD fields not found in org (1):**
-
-- `Open`
+- `Other`
+- `Renewals`
+- `RolledbackAssetAction`
+- `TransferTo`
 
 ### AssetActionSrcPriceAdjustment
 Domain: Transaction Management | ERD fields: 17 | Org fields: 8
@@ -3087,12 +659,58 @@ Domain: Transaction Management | ERD fields: 10 | Org fields: 7
 - `PriceAdjustmentSource`
 - `PrioritySequence`
 
-### AssetFulfillmentDecomp
-Domain: Dynamic Revenue Orchestrator | ERD fields: 9 | Org fields: 7
+### AssetRateAdjustment
+Domain: Transaction Management | ERD fields: 8 | Org fields: 6
+
+**ERD fields not found in org (2):**
+
+- `GroupId`
+- `UserOrGroupId`
+
+### AssetRateCardEntry
+Domain: Transaction Management | ERD fields: 14 | Org fields: 12
 
 **ERD fields not found in org (1):**
 
-- `SourceLineItem`
+- `UpperBound`
+
+### AssetRelationship
+Domain: Transaction Management | ERD fields: 18 | Org fields: 15
+
+**ERD fields not found in org (2):**
+
+- `ProductRelatedComponent`
+- `UsageResourceId`
+
+### AssetStatePeriod
+Domain: Transaction Management | ERD fields: 22 | Org fields: 19
+
+**ERD fields not found in org (3):**
+
+- `Lookup`
+- `PriceRevisionPolicy`
+- `UserOrGroupId`
+
+### AssetStatePeriodAttribute
+Domain: Transaction Management | ERD fields: 13 | Org fields: 6
+
+**ERD fields not found in org (7):**
+
+- `ItemId`
+- `Lookup`
+- `Name`
+- `StartDate`
+- `TagDefinitionId`
+- `UnitPrice`
+- `UnitPriceUplift`
+
+### AssetTokenEvent
+Domain: Transaction Management | ERD fields: 15 | Org fields: 13
+
+**ERD fields not found in org (2):**
+
+- `AssetWarrantyNumber`
+- `EndDate`
 
 ### AttrPicklistExcludedValue
 Domain: Product Catalog Management | ERD fields: 90 | Org fields: 5
@@ -3183,6 +801,14 @@ Domain: Product Catalog Management | ERD fields: 90 | Org fields: 5
 - `UsageModelType`
 - `ValueDescription`
 
+### AttributeAdjustmentCondition
+Domain: Salesforce Pricing | ERD fields: 16 | Org fields: 14
+
+**ERD fields not found in org (2):**
+
+- `Lookup`
+- `True`
+
 ### AttributeBasedAdjRule
 Domain: Salesforce Pricing | ERD fields: 8 | Org fields: 5
 
@@ -3235,6 +861,18 @@ Domain: Product Catalog Management | ERD fields: 16 | Org fields: 11
 - `DisplaySequence`
 - `IsActive`
 
+### BillingAccount
+Domain: Billing (Core Object) | ERD fields: 34 | Org fields: 28
+
+**ERD fields not found in org (6):**
+
+- `BillDayOfMonth`
+- `Contact`
+- `PaymentTerm`
+- `PaymentTermId`
+- `SavedPaymentMethod`
+- `ShippingAddress`
+
 ### BillingArrangement
 Domain: Billing | ERD fields: 9 | Org fields: 7
 
@@ -3252,6 +890,31 @@ Domain: Billing | ERD fields: 18 | Org fields: 14
 - `Inactive`
 - `TimeZone`
 
+### BillingBatchScheduler
+Domain: Billing | ERD fields: 25 | Org fields: 23
+
+**ERD fields not found in org (1):**
+
+- `Saturday`
+
+### BillingMilestonePlan
+Domain: Billing | ERD fields: 11 | Org fields: 10
+
+**ERD fields not found in org (1):**
+
+- `Value`
+
+### BillingMilestonePlanItem
+Domain: Billing | ERD fields: 25 | Org fields: 20
+
+**ERD fields not found in org (5):**
+
+- `Event`
+- `OrderProductActivation`
+- `ReferenceItemAmount`
+- `ReferenceItemId`
+- `Years`
+
 ### BillingPolicy
 Domain: Billing | ERD fields: 11 | Org fields: 7
 
@@ -3262,6 +925,17 @@ Domain: Billing | ERD fields: 11 | Org fields: 7
 - `TotalUsedQuantity`
 - `UnitOfMeasureId`
 
+### BillingScheduleGroup
+Domain: Billing | ERD fields: 70 | Org fields: 64
+
+**ERD fields not found in org (5):**
+
+- `LastDayOfPeriod`
+- `None`
+- `UnitPrice`
+- `UsageResourceId`
+- `Year`
+
 ### BillingTreatment
 Domain: Billing | ERD fields: 14 | Org fields: 10
 
@@ -3270,6 +944,22 @@ Domain: Billing | ERD fields: 14 | Org fields: 10
 - `TotalPendingAmount`
 - `UsageType`
 - `Yes`
+
+### BindingObjUsageRsrcPlcy
+Domain: Transaction Management | ERD fields: 15 | Org fields: 12
+
+**ERD fields not found in org (3):**
+
+- `StartDate`
+- `WarrantyTermId`
+- `WarrantyType`
+
+### BindingObjectRateCardEntry
+Domain: Rate Management | ERD fields: 16 | Org fields: 15
+
+**ERD fields not found in org (1):**
+
+- `UpperBound`
 
 ### BsgRelationship
 Domain: Billing | ERD fields: 14 | Org fields: 9
@@ -3292,6 +982,63 @@ Domain: Salesforce Pricing | ERD fields: 23 | Org fields: 18
 - `SourceSystemIdentifier`
 - `ValueDescription`
 
+### ContractItemPrice
+Domain: Salesforce Pricing | ERD fields: 18 | Org fields: 14
+
+**ERD fields not found in org (3):**
+
+- `AdjustmentPercentage`
+- `Lookup`
+- `UsageResourceId`
+
+### ContractItemPriceHistory
+Domain: Transaction Management | ERD fields: 47 | Org fields: 5
+
+**ERD fields not found in org (42):**
+
+- `Carrier`
+- `ClassOfService`
+- `DiscountValue`
+- `EncryptedText`
+- `EndDate`
+- `EntityId`
+- `EnumOrId`
+- `ExternalId`
+- `Fax`
+- `File`
+- `HtmlMultiLineText`
+- `HtmlStringPlusClob`
+- `InetAddress`
+- `IsActive`
+- `Item`
+- `Json`
+- `LastReferencedDate`
+- `Location`
+- `Lookup`
+- `MultiEnum`
+- `MultiLineText`
+- `Name`
+- `Namespace`
+- `OverrideAmount`
+- `Percent`
+- `PersonName`
+- `Phone`
+- `Price`
+- `ProductSellingModel`
+- `Raw`
+- `RecordType`
+- `SfdcEncryptedText`
+- `SimpleNamespace`
+- `StartDate`
+- `StringPlusClob`
+- `Switchable_PersonName`
+- `Text`
+- `TierValue`
+- `TimeOnly`
+- `UpperBound`
+- `Url`
+- `YearQuarter`
+
 ### CostBook
 Domain: Salesforce Pricing | ERD fields: 8 | Org fields: 6
 
@@ -3299,12 +1046,59 @@ Domain: Salesforce Pricing | ERD fields: 8 | Org fields: 6
 
 - `Lookup`
 
-### FulfillmentAssetRelationship
-Domain: Dynamic Revenue Orchestrator | ERD fields: 7 | Org fields: 6
+### CostBookEntry
+Domain: Salesforce Pricing | ERD fields: 12 | Org fields: 9
 
-**ERD fields not found in org (1):**
+**ERD fields not found in org (2):**
 
-- `FulfillmentAssetId`
+- `SellingModelType`
+- `StartDate`
+
+### CreditMemoAddressGroup
+Domain: Billing | ERD fields: 17 | Org fields: 13
+
+**ERD fields not found in org (4):**
+
+- `TotalChargeAmountWithTax`
+- `TotalChargeTaxAmount`
+- `TotalTaxAmount`
+- `TotalTaxesCapturedAtHeader`
+
+### CreditMemoLine
+Domain: Billing | ERD fields: 48 | Org fields: 46
+
+**ERD fields not found in org (2):**
+
+- `Unapplied`
+- `UnappliedDate`
+
+### CreditMemoLineInvoiceLine
+Domain: Billing | ERD fields: 21 | Org fields: 16
+
+**ERD fields not found in org (5):**
+
+- `StartDate`
+- `Status`
+- `TaxAmount`
+- `TaxTreatmentId`
+- `Unapplied`
+
+### CreditMemoLineTax
+Domain: Billing | ERD fields: 31 | Org fields: 20
+
+**ERD fields not found in org (11):**
+
+- `Complete`
+- `CorpCrcyCnvTaxAmount`
+- `CorporateCurrencyCvsnDate`
+- `CorporateCurrencyCvsnRate`
+- `CorporateCurrencyIsoCode`
+- `Error`
+- `FuncCrcyCnvTaxAmount`
+- `FunctionalCurrencyCvsnRate`
+- `FunctionalCurrencyIsoCode`
+- `None`
+- `Product2Id`
 
 ### FulfillmentFalloutRule
 Domain: Dynamic Revenue Orchestrator | ERD fields: 14 | Org fields: 11
@@ -3322,6 +1116,14 @@ Domain: Dynamic Revenue Orchestrator | ERD fields: 8 | Org fields: 6
 - `Staggered`
 - `StepType`
 
+### FulfillmentLineRel
+Domain: Dynamic Revenue Orchestrator | ERD fields: 11 | Org fields: 9
+
+**ERD fields not found in org (2):**
+
+- `ExternalId`
+- `FulfillmentOrderLineItemId`
+
 ### FulfillmentLineSourceRel
 Domain: Dynamic Revenue Orchestrator | ERD fields: 12 | Org fields: 8
 
@@ -3331,12 +1133,28 @@ Domain: Dynamic Revenue Orchestrator | ERD fields: 12 | Org fields: 8
 - `ProductRelationshipTypeId`
 - `SourceLineItem`
 
+### FulfillmentPlan
+Domain: Dynamic Revenue Orchestrator | ERD fields: 11 | Org fields: 9
+
+**ERD fields not found in org (1):**
+
+- `Bulk`
+
 ### FulfillmentStepDefinitionGroup
 Domain: Dynamic Revenue Orchestrator | ERD fields: 6 | Org fields: 4
 
 **ERD fields not found in org (1):**
 
 - `ContextBased`
+
+### FulfillmentStepDependency
+Domain: Dynamic Revenue Orchestrator | ERD fields: 8 | Org fields: 5
+
+**ERD fields not found in org (3):**
+
+- `DependencyScope`
+- `DependsOnStepDefinitionId`
+- `FulfillmentStepDefinitionId`
 
 ### FulfillmentStepDependencyDef
 Domain: Dynamic Revenue Orchestrator | ERD fields: 7 | Org fields: 6
@@ -3356,6 +1174,14 @@ Domain: Dynamic Revenue Orchestrator | ERD fields: 17 | Org fields: 10
 - `ManualTask`
 - `Milestone`
 - `Pause`
+
+### FulfillmentTaskAssignmentRule
+Domain: Dynamic Revenue Orchestrator | ERD fields: 12 | Org fields: 10
+
+**ERD fields not found in org (2):**
+
+- `StepId`
+- `VersionGroupIdentifier`
 
 ### GeneralLedgerAccount
 Domain: Billing | ERD fields: 27 | Org fields: 10
@@ -3386,15 +1212,30 @@ Domain: Billing | ERD fields: 15 | Org fields: 12
 - `Custom`
 - `Inactive`
 
-### InvBatchDraftToPostedRun
-Domain: Billing | ERD fields: 17 | Org fields: 13
+### IndexRate
+Domain: Salesforce Pricing | ERD fields: 10 | Org fields: 9
+
+**ERD fields not found in org (1):**
+
+- `Resources`
+
+### InvoiceAddressGroup
+Domain: Billing | ERD fields: 13 | Org fields: 11
+
+**ERD fields not found in org (2):**
+
+- `WriteOffTotalChargeAmount`
+- `WriteOffTotalTaxAmount`
+
+### InvoiceBatchRunCriteria
+Domain: Billing | ERD fields: 15 | Org fields: 10
 
 **ERD fields not found in org (4):**
 
-- `GeneralLedgerAcctAsgntRuleId`
-- `NotApplicable`
-- `Percentage`
-- `TransactionAmountField`
+- `TotalInvoicesCanceled`
+- `TotalInvoicesFailed`
+- `TotalInvoicesGenerated`
+- `TotalPostedInvoices`
 
 ### InvoiceDocument
 Domain: Billing | ERD fields: 8 | Org fields: 7
@@ -3415,12 +1256,151 @@ Domain: Billing | ERD fields: 16 | Org fields: 10
 - `UsageProductBillSchdGrpId`
 - `UsageProductId`
 
+### InvoiceLineTax
+Domain: Billing | ERD fields: 25 | Org fields: 21
+
+**ERD fields not found in org (4):**
+
+- `CorpCrcyCnvTaxAmount`
+- `CorporateCurrencyCvsnDate`
+- `CorporateCurrencyCvsnRate`
+- `CorporateCurrencyIsoCode`
+
+### LegalEntyAccountingPeriod
+Domain: Billing | ERD fields: 16 | Org fields: 12
+
+**ERD fields not found in org (3):**
+
+- `CreateUnrealizedGainOrLossTransactionJournals`
+- `Reopened`
+- `ShouldAttachInvoiceDocToEmail`
+
+### OrderDeliveryMethod
+Domain: Transaction Management | ERD fields: 13 | Org fields: 10
+
+**ERD fields not found in org (2):**
+
+- `NewValue`
+- `OldValue`
+
+### OrderItemAttribute
+Domain: Transaction Management | ERD fields: 9 | Org fields: 7
+
+**ERD fields not found in org (2):**
+
+- `Lookup`
+- `ShippingCarrierMethod`
+
+### OrderItemDetail
+Domain: Transaction Management | ERD fields: 15 | Org fields: 14
+
+**ERD fields not found in org (1):**
+
+- `IsPriceImpacting`
+
+### OrderItemRateAdjustment
+Domain: Transaction Management | ERD fields: 11 | Org fields: 6
+
+**ERD fields not found in org (5):**
+
+- `Percentage`
+- `ReferenceNumber`
+- `TotalLineAmount`
+- `TotalPrice`
+- `UnitPrice`
+
 ### OrderItemRateCardEntry
 Domain: Transaction Management | ERD fields: 9 | Org fields: 8
 
 **ERD fields not found in org (1):**
 
 - `UpperBound`
+
+### OrderItemUsageRsrcPlcy
+Domain: Transaction Management | ERD fields: 12 | Org fields: 9
+
+**ERD fields not found in org (3):**
+
+- `GrantedLast`
+- `ValidityPeriodTerm`
+- `ValidityPeriodUnit`
+
+### Payment
+Domain: Billing (Core Object) | ERD fields: 58 | Org fields: 57
+
+**ERD fields not found in org (1):**
+
+- `LegalEntityAccountingPeriod`
+
+### PaymentBatchRun
+Domain: Billing | ERD fields: 16 | Org fields: 14
+
+**ERD fields not found in org (2):**
+
+- `TotalLiabilitiesAmount`
+- `TotalRevenueAmount`
+
+### PaymentLineInvoice
+Domain: Billing (Core Object) | ERD fields: 21 | Org fields: 20
+
+**ERD fields not found in org (1):**
+
+- `LegalEntyAccountingPeriod`
+
+### PaymentLineInvoiceLine
+Domain: Billing | ERD fields: 22 | Org fields: 20
+
+**ERD fields not found in org (2):**
+
+- `TotalScheduleItemsApplied`
+- `TotalScheduleItemsApplyFailed`
+
+### PaymentRetryRule
+Domain: Billing | ERD fields: 16 | Org fields: 12
+
+**ERD fields not found in org (4):**
+
+- `Minutes`
+- `Unapplied`
+- `UnappliedDateTime`
+- `UnappliedStatus`
+
+### PaymentRetryRuleSet
+Domain: Billing | ERD fields: 16 | Org fields: 11
+
+**ERD fields not found in org (5):**
+
+- `AvailableRequestedAmount`
+- `Minutes`
+- `PaymentRetryRuleSetId`
+- `RetryIntervalType`
+- `Staggered`
+
+### PaymentSchedule
+Domain: Billing | ERD fields: 23 | Org fields: 21
+
+**ERD fields not found in org (1):**
+
+- `Name`
+
+### PaymentSchedulePolicy
+Domain: Billing | ERD fields: 13 | Org fields: 8
+
+**ERD fields not found in org (4):**
+
+- `TotalPaymentsReceived`
+- `TotalProcessedAmount`
+- `TotalRequestedAmount`
+- `UsageType`
+
+### PaymentScheduleTreatmentDtl
+Domain: Billing | ERD fields: 15 | Org fields: 12
+
+**ERD fields not found in org (3):**
+
+- `Inactive`
+- `Status`
+- `TriggerSource`
 
 ### PaymentTerm
 Domain: Billing | ERD fields: 7 | Org fields: 6
@@ -3451,6 +1431,13 @@ Domain: Salesforce Pricing | ERD fields: 13 | Org fields: 10
 - `TierValue`
 - `UpperBound`
 
+### PricingAPIExecution
+Domain: Salesforce Pricing | ERD fields: 9 | Org fields: 8
+
+**ERD fields not found in org (1):**
+
+- `TargetRecord`
+
 ### PricingAdjBatchJob
 Domain: Salesforce Pricing | ERD fields: 21 | Org fields: 14
 
@@ -3462,6 +1449,64 @@ Domain: Salesforce Pricing | ERD fields: 21 | Org fields: 14
 - `PricebookEntry`
 - `Region`
 - `Rerun`
+
+### ProcedurePlanCriterion
+Domain: Salesforce Pricing | ERD fields: 9 | Org fields: 7
+
+**ERD fields not found in org (2):**
+
+- `NotIn`
+- `ProrationPolicyId`
+
+### ProdtDecompEnrchVarMap
+Domain: Dynamic Revenue Orchestrator | ERD fields: 10 | Org fields: 7
+
+**ERD fields not found in org (3):**
+
+- `SourceAttributeIdentifier`
+- `SourceContextTag`
+- `SourceType`
+
+### ProductCategoryProduct
+Domain: Product Catalog Management | ERD fields: 11 | Org fields: 6
+
+**ERD fields not found in org (4):**
+
+- `CategoryId`
+- `DisplaySequence`
+- `LastReferencedDate`
+- `LastViewedDate`
+
+### ProductConfigFlowAssignment
+Domain: Product Configurator | ERD fields: 10 | Org fields: 7
+
+**ERD fields not found in org (3):**
+
+- `FlowIdentifier`
+- `IsDefault`
+- `Status`
+
+### ProductConfigurationRule
+Domain: Product Configurator | ERD fields: 15 | Org fields: 13
+
+**ERD fields not found in org (1):**
+
+- `ProductId`
+
+### ProductFulfillmentDecompRule
+Domain: Dynamic Revenue Orchestrator | ERD fields: 14 | Org fields: 12
+
+**ERD fields not found in org (1):**
+
+- `VariableType`
+
+### ProductFulfillmentScenario
+Domain: Dynamic Revenue Orchestrator | ERD fields: 17 | Org fields: 14
+
+**ERD fields not found in org (2):**
+
+- `Lookup`
+- `Renew`
 
 ### ProductRelatedComponent
 Domain: Product Catalog Management | ERD fields: 27 | Org fields: 23
@@ -3500,6 +1545,22 @@ Domain: Salesforce Pricing | ERD fields: 12 | Org fields: 7
 - `Maximum`
 - `Minimum`
 
+### ProductUsageGrant
+Domain: Usage Management | ERD fields: 26 | Org fields: 23
+
+**ERD fields not found in org (2):**
+
+- `ProductOfferId`
+- `UsageResourceId`
+
+### ProductUsageResource
+Domain: Usage Management | ERD fields: 12 | Org fields: 10
+
+**ERD fields not found in org (2):**
+
+- `ValidityPeriodTerm`
+- `ValidityPeriodUnit`
+
 ### ProrationPolicy
 Domain: Salesforce Pricing | ERD fields: 7 | Org fields: 6
 
@@ -3515,6 +1576,53 @@ Domain: Transaction Management | ERD fields: 14 | Org fields: 11
 - `GrantedLast`
 - `ValidityPeriodTerm`
 - `ValidityPeriodUnit`
+
+### QuotLineItmUseRsrcGrant
+Domain: Transaction Management | ERD fields: 14 | Org fields: 13
+
+**ERD fields not found in org (1):**
+
+- `IsPriceImpacting`
+
+### Quote
+Domain: Transaction Management (Core Object) | ERD fields: 131 | Org fields: 104
+
+**ERD fields not found in org (27):**
+
+- `Account`
+- `DiscountAmount`
+- `EffectiveGrantDate`
+- `EndDate`
+- `EndDateTime`
+- `EndQuantity`
+- `EndTime`
+- `IsRamped`
+- `Margin`
+- `MarginAmount`
+- `ParentQuoteLineGroupId`
+- `PartnerDiscountPercent`
+- `PartnerUnitPrice`
+- `PriceWaterfallIdentifier`
+- `QuoteLineGroup`
+- `SegmentType`
+- `StartDateTime`
+- `StartEndTimeZone`
+- `StartQuantity`
+- `StartTime`
+- `SummaryTotalAmount`
+- `TotalAdjustment`
+- `TotalAdjustmentAmount`
+- `TotalCost`
+- `TotalMargin`
+- `TotalMarginAmount`
+- `UnitCost`
+
+### QuoteLineRateAdjustment
+Domain: Transaction Management | ERD fields: 7 | Org fields: 6
+
+**ERD fields not found in org (1):**
+
+- `Percentage`
 
 ### QuoteLineRateCardEntry
 Domain: Transaction Management | ERD fields: 74 | Org fields: 8
@@ -3626,6 +1734,40 @@ Domain: Rate Management | ERD fields: 10 | Org fields: 7
 - `FlowActionCall`
 - `InternalError`
 
+### Refund
+Domain: Billing (Core Object) | ERD fields: 49 | Org fields: 48
+
+**ERD fields not found in org (1):**
+
+- `LegalEntityAccountingPeriod`
+
+### RefundLinePayment
+Domain: Billing (Core Object) | ERD fields: 20 | Org fields: 19
+
+**ERD fields not found in org (1):**
+
+- `LegalEntityAccountingPeriod`
+
+### RevenueTransactionErrorLog
+Domain: Billing | ERD fields: 17 | Org fields: 15
+
+**ERD fields not found in org (2):**
+
+- `Days`
+- `InvoiceLineTax`
+
+### SalesTransactionFulfillReq
+Domain: Dynamic Revenue Orchestrator | ERD fields: 19 | Org fields: 12
+
+**ERD fields not found in org (6):**
+
+- `Completed`
+- `Failed`
+- `Freezing`
+- `InProgress`
+- `NotStarted`
+- `Rejected`
+
 ### SalesTransactionType
 Domain: Transaction Management | ERD fields: 6 | Org fields: 3
 
@@ -3633,6 +1775,44 @@ Domain: Transaction Management | ERD fields: 6 | Org fields: 3
 
 - `UsageOveragePolicyId`
 - `UsageResourceId`
+
+### SalesTrxnDeleteEvent
+Domain: Dynamic Revenue Orchestrator | ERD fields: 4 | Org fields: 3
+
+**ERD fields not found in org (1):**
+
+- `UsageType`
+
+### SeqPolicySelectionCondition
+Domain: Billing | ERD fields: 18 | Org fields: 9
+
+**ERD fields not found in org (8):**
+
+- `DateTime`
+- `MultiPicklist`
+- `Number`
+- `Percent`
+- `Picklist`
+- `Reference`
+- `SequenceGapReconciliationNumber`
+- `Text`
+
+### TaxEngine
+Domain: Billing | ERD fields: 22 | Org fields: 21
+
+**ERD fields not found in org (1):**
+
+- `Inactive`
+
+### TaxEngineInteractionLog
+Domain: Billing | ERD fields: 25 | Org fields: 21
+
+**ERD fields not found in org (4):**
+
+- `TaxPrvdAccountIdentifier`
+- `ValidationError`
+- `Void`
+- `VoidOrDebit`
 
 ### TaxEngineProvider
 Domain: Billing | ERD fields: 8 | Org fields: 7
@@ -3718,6 +1898,13 @@ Domain: Billing | ERD fields: 80 | Org fields: 7
 - `UsageType`
 - `ZipCode`
 
+### TaxRate
+Domain: Billing (Core Object) | ERD fields: 22 | Org fields: 19
+
+**ERD fields not found in org (1):**
+
+- `LegalEntity`
+
 ### UnitOfMeasure
 Domain: Usage Management | ERD fields: 15 | Org fields: 12
 
@@ -3736,12 +1923,41 @@ Domain: Usage Management | ERD fields: 14 | Org fields: 9
 - `UnitOfMeasureClassId`
 - `Usage`
 
+### UsageCmtAssetRelatedObj
+Domain: Usage Management | ERD fields: 8 | Org fields: 7
+
+**ERD fields not found in org (1):**
+
+- `UsageResourceId`
+
 ### UsageCommitmentPolicy
 Domain: Usage Management | ERD fields: 5 | Org fields: 4
 
 **ERD fields not found in org (1):**
 
 - `RelatedObjectId`
+
+### UsageEntitlementAccount
+Domain: Usage Management | ERD fields: 16 | Org fields: 14
+
+**ERD fields not found in org (1):**
+
+- `MONTH`
+
+### UsageEntitlementBucket
+Domain: Usage Management | ERD fields: 18 | Org fields: 16
+
+**ERD fields not found in org (1):**
+
+- `ProductId`
+
+### UsageEntitlementEntry
+Domain: Usage Management | ERD fields: 19 | Org fields: 17
+
+**ERD fields not found in org (2):**
+
+- `Expired`
+- `Rollover`
 
 ### UsageGrantRenewalPolicy
 Domain: Usage Management | ERD fields: 9 | Org fields: 8
@@ -3774,12 +1990,43 @@ Domain: Usage Management | ERD fields: 8 | Org fields: 6
 - `Account`
 - `Target`
 
+### UsageRatableSumCmtAssetRt
+Domain: Usage Management | ERD fields: 10 | Org fields: 9
+
+**ERD fields not found in org (1):**
+
+- `UsageResourceId`
+
+### UsageRatableSummary
+Domain: Usage Management | ERD fields: 26 | Org fields: 25
+
+**ERD fields not found in org (1):**
+
+- `Product2Id`
+
 ### UsageResource
 Domain: Usage Management | ERD fields: 14 | Org fields: 12
 
 **ERD fields not found in org (1):**
 
 - `Inactive`
+
+### UsageSummary
+Domain: Usage Management | ERD fields: 30 | Org fields: 19
+
+**ERD fields not found in org (11):**
+
+- `Authentication`
+- `Formats`
+- `Input`
+- `Inputs`
+- `POST`
+- `Sum`
+- `URI`
+- `UsageAccumulationPeriod`
+- `UsageModelType`
+- `UsageSummaryId`
+- `UsageType`
 
 ### ValTfrmGrp
 Domain: Dynamic Revenue Orchestrator | ERD fields: 10 | Org fields: 8
@@ -3788,18 +2035,93 @@ Domain: Dynamic Revenue Orchestrator | ERD fields: 10 | Org fields: 8
 
 - `Text`
 
-## Complete Objects (11)
+## Complete Objects (86)
 
 These objects have no gaps between ERD and org:
 
+- `Account` (46 fields)
+- `ApprovalAlertContentDef` (5 fields)
+- `AssessmentQuestionAssignment` (5 fields)
+- `AssessmentQuestionConfig` (4 fields)
+- `AssessmentQuestionSet` (6 fields)
+- `AssessmentQuestionSetConfig` (4 fields)
+- `AttributeCategoryAttribute` (5 fields)
+- `BillingArrangementLine` (8 fields)
+- `BillingPeriodItem` (16 fields)
+- `BillingTreatmentItem` (19 fields)
 - `BindingObjectCustomExt` (4 fields)
+- `BindingObjectRateAdjustment` (8 fields)
+- `ChannelProgram` (6 fields)
+- `ChannelProgramLevel` (7 fields)
+- `ChannelProgramMember` (6 fields)
 - `ClauseCatgConfiguration` (6 fields)
+- `CollectionPlanItem` (7 fields)
+- `Contact` (57 fields)
+- `Contract` (50 fields)
+- `ContractItemPriceAdjTier` (8 fields)
+- `ContractLineItem` (20 fields)
 - `CurrencyType` (5 fields)
+- `CustomPermission` (8 fields)
+- `DebitMemo` (28 fields)
+- `DebitMemoAddress` (13 fields)
+- `DebitMemoLine` (31 fields)
+- `DebitMemoLineTax` (18 fields)
+- `DocumentClauseSet` (7 fields)
+- `EmailTemplate` (22 fields)
 - `ExpressionSetConstraintObj` (8 fields)
+- `FlowOrchestration` (25 fields)
+- `FulfillmentAssetAttribute` (6 fields)
+- `FulfillmentOrder` (56 fields)
+- `FulfillmentStepSource` (5 fields)
 - `FulfillmentWorkspace` (4 fields)
 - `FulfillmentWorkspaceItem` (5 fields)
+- `GeneralLdgrAcctPrdSummary` (9 fields)
 - `GeneralLedgerJrnlEntryRule` (7 fields)
+- `IntegrationProviderDef` (22 fields)
+- `LegalEntity` (18 fields)
+- `NamedCredential` (17 fields)
+- `ObjectStateActionDefinition` (9 fields)
+- `ObjectStateDefinition` (11 fields)
+- `ObjectStateTransition` (8 fields)
+- `ObjectStateTransitionAction` (8 fields)
+- `ObjectStateValue` (8 fields)
+- `OmniProcess` (33 fields)
+- `OmniProcessAsmtQuestionVer` (7 fields)
+- `OmniProcessElement` (18 fields)
 - `OmniScriptConfig` (3 fields)
+- `OrderItemUsageRsrcGrant` (11 fields)
+- `PriceAdjustmentSchedule` (13 fields)
 - `PriceBookEntry` (11 fields)
+- `PriceBookEntryDerivedPrice` (15 fields)
+- `PriceBookRateCard` (6 fields)
+- `PriceRevisionPolicy` (9 fields)
+- `PricingAdjBatchJobLog` (10 fields)
 - `PricingProcessExecution` (10 fields)
+- `ProdtAttrScope` (5 fields)
+- `ProductAttributeDefinition` (28 fields)
+- `ProductCatalog` (9 fields)
+- `ProductCategory` (11 fields)
+- `ProductCategoryDisqual` (8 fields)
+- `ProductCategoryQualification` (7 fields)
+- `ProductClassification` (6 fields)
+- `ProductClassificationAttr` (25 fields)
+- `ProductComponentGroup` (10 fields)
+- `ProductComponentGrpOverride` (8 fields)
+- `ProductDecompEnrichmentRule` (18 fields)
+- `ProductDisqualification` (10 fields)
+- `ProductQualification` (9 fields)
+- `ProductRampSegment` (8 fields)
+- `ProductRelComponentOverride` (15 fields)
+- `ProductUsageResourcePolicy` (9 fields)
+- `PymtSchdDistributionMethod` (7 fields)
+- `QuoteAction` (8 fields)
+- `QuoteLineDetail` (14 fields)
+- `QuoteLineItemAttribute` (7 fields)
+- `RateAdjustmentByAttribute` (18 fields)
+- `RateCardEntry` (19 fields)
 - `TaxTreatment` (13 fields)
+- `TransactionProcessingType` (10 fields)
+- `UsageBillingPeriodItem` (19 fields)
+- `UsageResourceBillingPolicy` (7 fields)
+- `UsageResourcePolicy` (8 fields)
+- `ValTfrm` (14 fields)

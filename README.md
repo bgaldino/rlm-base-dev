@@ -363,8 +363,8 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Installation (macOS): `brew install nvm` then `nvm install --lts` (recommended) — see Step 3 in the macOS setup guide
    - Verify: `node --version`
 
-8. **Python** (for custom tasks)
-   - Python 3.8 or later; **3.12 recommended** for CumulusCI (3.13 is acceptable; 3.14 has known dependency compatibility issues)
+8. **Python** (for custom tasks and the repo's AI/schema-diff scripts)
+   - Python 3.10 or later; **3.12 recommended** for CumulusCI (3.13 is what the CI workflow uses and is the dev-environment-setup default; 3.14 has known dependency compatibility issues). The 3.10 floor matches what the schema-diff and skill-manifest scripts already use (PEP 604 unions).
    - macOS: use [pyenv](https://github.com/pyenv/pyenv) — `brew install pyenv` — to manage versions
    - Required packages are included with CumulusCI; use a venv for local script development
 

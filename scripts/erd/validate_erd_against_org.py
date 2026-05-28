@@ -11,11 +11,11 @@ Prerequisites:
     - The target org must be set as default or passed via --org
 
 Usage:
-    python scripts/validate_erd_against_org.py --org beta
-    python scripts/validate_erd_against_org.py --org beta --objects PriceBookRateCard,RateCard
-    python scripts/validate_erd_against_org.py --org beta --domain "Rate Management"
-    python scripts/validate_erd_against_org.py --org beta --patch  # auto-patch erd-data.json
-    python scripts/validate_erd_against_org.py --org beta --report docs/erds/validation-report.md
+    python scripts/erd/validate_erd_against_org.py --org beta
+    python scripts/erd/validate_erd_against_org.py --org beta --objects PriceBookRateCard,RateCard
+    python scripts/erd/validate_erd_against_org.py --org beta --domain "Rate Management"
+    python scripts/erd/validate_erd_against_org.py --org beta --patch  # auto-patch erd-data.json
+    python scripts/erd/validate_erd_against_org.py --org beta --report docs/erds/validation-report.md
 
 Options:
     --org ALIAS           Target org alias (required)
@@ -25,7 +25,9 @@ Options:
     --report PATH         Write markdown gap report to file
     --verbose             Show per-object detail during scan
     --concurrency N       Parallel describe calls (default: 10)
-    --skip-managed        Skip managed package fields (namespace__Field__c)
+    --include-custom      Include custom fields (any __c suffix). Default
+                          behavior strips ALL custom fields so the ERD
+                          reflects only the canonical Revenue Cloud schema.
     --help                Show this help
 """
 
@@ -113,23 +115,30 @@ def describe_sobject(org_alias: str, object_name: str) -> Optional[dict]:
         return None
 
 
-def parse_org_fields(describe_result: dict, skip_managed: bool = True) -> List[FieldInfo]:
-    """Parse field metadata from a describe result."""
+def parse_org_fields(describe_result: dict, skip_custom: bool = True) -> List[FieldInfo]:
+    """Parse field metadata from a describe result.
+
+    By default skips ALL custom fields (anything ending in ``__c``). The ERD
+    represents the canonical Revenue Cloud schema, so custom fields deployed
+    by the project itself (e.g. ``RLM_*__c``) or any managed package
+    (``namespace__Field__c``) must NOT leak in. Pass ``skip_custom=False``
+    only for project-internal tooling that needs to see custom additions.
+    """
     fields = []
     for f in describe_result.get("fields", []):
         name = f["name"]
         # Skip system fields
         if name in SYSTEM_FIELDS:
             continue
-        # Detect managed package fields
-        namespace = None
+        # Detect custom fields (bare or managed) and skip when requested
         custom = name.endswith("__c")
+        namespace = None
         if custom and "__" in name[:-3]:
             parts = name.split("__")
             if len(parts) >= 3:
                 namespace = parts[0]
-                if skip_managed and namespace:
-                    continue
+        if custom and skip_custom:
+            continue
 
         ref_to = f.get("referenceTo", [])
         rel_name = f.get("relationshipName")
@@ -153,7 +162,7 @@ def diff_object(
     erd_obj: dict,
     org_alias: str,
     erd_relationships: List[dict],
-    skip_managed: bool = True,
+    skip_custom: bool = True,
 ) -> ObjectDiff:
     """Compare a single object between ERD and org."""
     domain = erd_obj.get("domain", "Unknown")
@@ -170,7 +179,7 @@ def diff_object(
         diff.error = f"Could not describe {object_name} (may not exist in org)"
         return diff
 
-    org_fields = parse_org_fields(describe, skip_managed=skip_managed)
+    org_fields = parse_org_fields(describe, skip_custom=skip_custom)
     diff.org_field_count = len(org_fields)
 
     org_field_map = {f.name.lower(): f for f in org_fields}
@@ -381,17 +390,19 @@ def main():
     parser.add_argument("--report", help="Write markdown report to file")
     parser.add_argument("--verbose", action="store_true", help="Show per-object progress")
     parser.add_argument("--concurrency", type=int, default=10, help="Parallel describe calls")
-    parser.add_argument("--skip-managed", action="store_true", default=True,
-                        help="Skip managed package fields (default: true)")
-    parser.add_argument("--include-managed", action="store_true",
-                        help="Include managed package fields")
+    parser.add_argument("--include-custom", action="store_true",
+                        help="Include custom fields (any __c suffix). Default "
+                        "behavior strips ALL custom fields, including project-"
+                        "deployed RLM_*__c fields and managed package fields, "
+                        "so the ERD reflects only the canonical Revenue Cloud "
+                        "schema.")
 
     args = parser.parse_args()
-    skip_managed = not args.include_managed
+    skip_custom = not args.include_custom
 
-    # Find repo root
+    # Find repo root (script lives at scripts/erd/, so go up two levels)
     script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parent
+    repo_root = script_dir.parent.parent
     erd_path = repo_root / "docs" / "erds" / "erd-data.json"
 
     if not erd_path.exists():
@@ -434,7 +445,7 @@ def main():
         for name in obj_names:
             erd_obj = objects.get(name, {})
             future = executor.submit(
-                diff_object, name, erd_obj, args.org, relationships, skip_managed
+                diff_object, name, erd_obj, args.org, relationships, skip_custom
             )
             futures[future] = name
 
@@ -477,7 +488,7 @@ def main():
         with open(erd_path, "w") as f:
             json.dump(erd_data, f, indent=2)
         print(f"  Added {fa} fields, {ra} relationships")
-        print(f"  Run `python postman/utilities/build_erds.py --patch` to rebuild the HTML ERD")
+        print(f"  Run `python scripts/erd/build_erds.py` to rebuild the HTML ERD")
 
     # Report
     if args.report:

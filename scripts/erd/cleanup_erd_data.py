@@ -9,10 +9,10 @@ Fixes:
   5. Fill missing domainShort from domain using DOMAIN_MAP
 
 Usage:
-  python scripts/cleanup_erd_data.py                # apply fixes and write
-  python scripts/cleanup_erd_data.py --dry-run      # show what would change
-  python scripts/cleanup_erd_data.py --verbose       # show each individual change
-  python scripts/cleanup_erd_data.py --dry-run --verbose
+  python scripts/erd/cleanup_erd_data.py                # apply fixes and write
+  python scripts/erd/cleanup_erd_data.py --dry-run      # show what would change
+  python scripts/erd/cleanup_erd_data.py --verbose       # show each individual change
+  python scripts/erd/cleanup_erd_data.py --dry-run --verbose
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ import re
 import sys
 from pathlib import Path
 
-ERD_DATA_PATH = Path(__file__).resolve().parent.parent / "docs" / "erds" / "erd-data.json"
+ERD_DATA_PATH = Path(__file__).resolve().parent.parent.parent / "docs" / "erds" / "erd-data.json"
 
 # ---------------------------------------------------------------------------
 # Domain mapping — mirrors build_erds.py DOMAIN_MAP

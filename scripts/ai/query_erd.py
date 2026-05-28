@@ -254,7 +254,7 @@ def cmd_search(erd, query):
 def cmd_stats(erd):
     domain_counts = defaultdict(int)
     total_fields = 0
-    total_rels = 0
+    ref_field_count = 0
 
     for obj_data in erd["objects"].values():
         domain = get_domain_short(obj_data)
@@ -263,13 +263,33 @@ def cmd_stats(erd):
         total_fields += len(fields)
         for fdata in fields.values():
             if fdata.get("type") == "reference" or "refersTo" in fdata:
-                total_rels += 1
+                ref_field_count += 1
 
-    print(f"\nRevenue Cloud Data Model — v66.0 (Spring '26)\n")
-    print(f"  Total Objects: {len(erd['objects'])}")
-    print(f"  Total Fields:  {total_fields}")
-    print(f"  Total Relationships: {total_rels}")
-    print(f"  Domains: {len(domain_counts)}\n")
+    # Use the canonical, post-orphan-cleanup edge count from
+    # `relationships[]`, not the on-the-fly reference-field tally. Earlier
+    # versions printed the field tally (1,135) as "Total Relationships",
+    # which conflated reference-fields with verified edges and disagreed
+    # with `stats.totalRelationships` (674) set by
+    # cleanup_orphan_erd_fields.py.
+    total_rels = len(erd.get("relationships", []))
+
+    # Read release/version from the JSON metadata block (added by the 262
+    # refresh) instead of hardcoding. Fall back gracefully for older
+    # snapshots that didn't carry metadata.
+    meta = erd.get("metadata", {})
+    release = meta.get("release")
+    label = meta.get("releaseLabel")
+    api = meta.get("apiVersion")
+    if release and label and api:
+        header = f"Revenue Cloud Data Model — Release {release} ({label}, API v{api})"
+    else:
+        header = "Revenue Cloud Data Model"
+    print(f"\n{header}\n")
+    print(f"  Total Objects:       {len(erd['objects'])}")
+    print(f"  Total Fields:        {total_fields}")
+    print(f"  Reference Fields:    {ref_field_count}")
+    print(f"  Total Relationships: {total_rels}  (verified edges in relationships[])")
+    print(f"  Domains:             {len(domain_counts)}\n")
 
     print(f"  {'Domain':<30} {'Objects':>8}")
     print(f"  {'─' * 30} {'─' * 8}")

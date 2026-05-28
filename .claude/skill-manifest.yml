@@ -1,0 +1,432 @@
+# Cross-Repo Skill Manifest — Foundations side
+#
+# Purpose: advertise what each repo in the Revenue Cloud Engineering Studio
+# offers, so agents working in either repo can discover and consume content
+# from the other without forking or duplicating.
+#
+# This file is meant to ship IDENTICALLY in both Foundations (rlm-base-dev)
+# and PMOS (pmos-revenue-cloud) once Phase 6.3 lands. Today it lives only
+# in Foundations as the v0 reference; Sandy will mirror to PMOS.
+#
+# Resolution mechanism:
+#   1. Consumers call load_manifest() from scripts/ai/skill_manifest.py to read
+#      and normalize this file; resolve_repo_root() / resolve_path() /
+#      resolve_grounding() / resolve_skill() / find_skill() / list_skills() then
+#      look up specific entries against the loaded manifest. (There is no
+#      resolve_manifest() function — load and resolve are separate steps so a
+#      single load can back many lookups.)
+#   2. Local clone paths come from env vars (FOUNDATIONS_REPO_ROOT, PMOS_REPO_ROOT)
+#      OR sibling-directory fallback (../pmos-revenue-cloud, ../rlm-base-dev)
+#   3. Each grounding artifact has a resolved local filesystem path
+#   4. CLI: `python scripts/ai/skill_manifest.py --check | --list-skills <repo> |
+#      --resolve <repo>/<kind>/<key>` exposes the same surface for diagnostics
+#
+# When this file changes:
+#   - regenerate via cci task run generate_skill_manifest (TBD — Phase 6.3)
+#   - ensure both repos commit the same file (CI gate planned for Phase 6.3.5)
+#
+# References:
+#   - Schema doc: .agents/artifacts/ssot-comparison.md §6
+#   - Consolidation pattern: .agents/artifacts/skills-consolidation-plan.md §3
+#   - Validation status: .agents/artifacts/integration-claim-validation.md
+
+manifest_version: 2
+generated_at: "2026-05-23T00:00:00Z"
+last_verified: "2026-05-23"
+salesforce_release_active: "262"
+salesforce_release_prior_ga: "260"
+api_version_active: "v67.0"
+api_version_prior_ga: "v66.0"
+
+# ─── Foundations (this repo) ────────────────────────────────────────────────
+foundations:
+  name: rlm-base-dev
+  repo_url: https://github.com/bgaldino/rlm-base-dev
+  branch_active: "262"
+  role: build
+  maintainer: Brian Galdino
+  local_path_hints:
+    - "$FOUNDATIONS_REPO_ROOT"
+    - "$RC_WORKSPACE/foundations"
+    - "${HOME}/Documents/GitHub/bgaldino/_bgaldino/rlm-base-dev"
+    - "../rlm-base-dev"
+
+  # Skills that Foundations holds canonically.
+  # PMOS skills can read these via cross-repo resolution.
+  skills:
+    - id: revenue-cloud-data-model
+      path: .cursor/skills/revenue-cloud-data-model/SKILL.md
+      purpose: "Revenue Cloud object/field schema reference; backed by erd-data.json"
+      consumed_by_pmos: [spec, technical-review, prd]
+      provenance: hand-curated + erd-data.json
+      caveats: []  # 213-vs-263 discrepancy resolved (refresh in feat/262-erd-refresh-and-schema-diff-tooling — both report 263); v67.0 baseline aligned
+
+    - id: rlm-business-apis
+      path: .cursor/skills/rlm-business-apis/SKILL.md
+      purpose: "204 RC business API endpoints across 9 domains"
+      consumed_by_pmos: [spec, technical-review, prd]
+      provenance: manual extraction from per-release PDF
+      caveats:
+        - "Skill banner is v67.0 / Release 262 (PR #176), but underlying Postman collections at postman/docs/ were extracted from v66.0 — payload examples should be re-extracted from v67.0 collections before being cited verbatim"
+        - "Skill self-describes as 'reference, not source of truth'"
+
+    - id: revenue-cloud-docs
+      path: .cursor/skills/revenue-cloud-docs/SKILL.md
+      purpose: "Help portal mirror access patterns; grep/extract/diff"
+      consumed_by_pmos: [sales-enablement, demo-script, presentation, documentation, release-notes]
+      provenance: Playwright + shadow-DOM walker scrape
+      caveats: []
+
+    - id: release-enablement
+      path: .cursor/skills/release-enablement/SKILL.md
+      purpose: "Per-release enablement exercise authoring (technical hands-on)"
+      consumed_by_pmos: [demo-script, sales-enablement]
+      provenance: hand-authored from Help PDF + Solution Overview + qb-scenario-reference
+      sub_skills:
+        - .cursor/skills/release-enablement/authoring-patterns.md
+        - .cursor/skills/release-enablement/resume-enablement-work.md
+
+    - id: qb-demo-script
+      path: .cursor/skills/qb-demo-script/SKILL.md
+      purpose: "Generate the QuantumBit demo-script canvas per Salesforce release"
+      output_template: docs/enablement/{release}/qb-demo-script.md
+      consumed_by_pmos: []  # PMOS demo-script may later supplement narrative voice via Phase 6.3+
+      grounding_inputs:
+        - foundations.grounding.qb_scenario       # canonical demo data
+        - foundations.grounding.feature_index_active
+        - foundations.grounding.help_corpus_active
+        - foundations.grounding.cci_reference     # for active feature flags
+      modes: [regenerate, refresh]
+      first_release: "262"
+
+    - id: cci-orchestration
+      path: .cursor/skills/cci-orchestration/SKILL.md
+      purpose: "CumulusCI tasks/flows/feature-flag patterns"
+      consumed_by_pmos: [feature-plan, spec]
+      provenance: hand-authored + auto-generated reference
+      auto_generated_subfiles:
+        - .cursor/skills/cci-orchestration/tasks-reference.md
+        - .cursor/skills/cci-orchestration/flows-reference.md
+        - .cursor/skills/cci-orchestration/feature-flags.md
+
+    - id: sfdmu-data-plans
+      path: .cursor/skills/sfdmu-data-plans/SKILL.md
+      purpose: "SFDMU v5 plan authoring + composite-key patterns"
+      consumed_by_pmos: []
+
+    - id: repo-integration
+      path: .cursor/skills/repo-integration/SKILL.md
+      purpose: "Adding new features to Foundations"
+      consumed_by_pmos: []
+
+    - id: robot-testing
+      path: .cursor/skills/robot-testing/SKILL.md
+      purpose: "Robot Framework setup + E2E patterns"
+      consumed_by_pmos: []
+
+    - id: troubleshooting
+      path: .cursor/skills/troubleshooting/SKILL.md
+      purpose: "Build/deploy debug patterns"
+      consumed_by_pmos: []
+
+    - id: doc-consistency
+      path: .cursor/skills/doc-consistency/SKILL.md
+      purpose: "Pre-merge doc-consistency review"
+      consumed_by_pmos: []
+
+    - id: schema-validation
+      path: .cursor/skills/schema-validation/SKILL.md
+      purpose: "Validate/refresh/certify erd-data.json against live orgs + Core UDD source; covers orphan-field cleanup, schema-diff tooling, dual-org cross-validation"
+      consumed_by_pmos: []
+      grounding_inputs:
+        - foundations.grounding.erd_data
+      tooling:
+        - scripts/erd/validate_erd_against_org.py
+        - scripts/erd/cleanup_orphan_erd_fields.py
+        - scripts/erd/orphan_batch_helper.py
+        - scripts/erd/schema_diff/extract_schema.py
+        - scripts/erd/schema_diff/diff_schemas.py
+        - scripts/erd/build_erds.py
+
+    - id: pmos-integration
+      path: .cursor/skills/pmos-integration/SKILL.md
+      purpose: "Cross-repo skill-manifest pattern connecting Foundations and PMOS; explains the temporal split (PMOS = future state, Foundations = current state), resolver mechanics, and per-skill opt-in"
+      consumed_by_pmos: []  # PMOS-side mirror authored by Sandy when PMOS adopts the manifest (Phase 6.3+)
+      tooling:
+        - scripts/ai/skill_manifest.py
+      governs: .claude/skill-manifest.yml
+
+  # CCI tasks that Foundations exposes for cross-repo workflows
+  cci_tasks:
+    - id: snapshot_salesforce_help
+      class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+      purpose: "Refresh per-release Help portal mirror via Playwright"
+      output: docs/salesforce/{release}/help/articles/
+
+    - id: validate_setup
+      class_path: tasks.rlm_validate_setup.ValidateSetup
+      purpose: "Pre-flight check for CCI/SFDMU/Robot toolchain"
+
+    # Phase 6.2 NEW (not yet implemented)
+    - id: check_pmos_prd
+      class_path: tasks.check_pmos_prd.CheckPmosPrd  # NOT YET IMPLEMENTED
+      purpose: "Validate PMOS PRD frontmatter against Foundations corpus"
+      status: designed_not_built
+      see: .agents/artifacts/integration-staging/pmos-integration.md
+
+  # SFDMU shape registry
+  sfdmu_shapes:
+    - id: qb/en-US
+      plan_count: 14
+      status: active
+    - id: qb/ja
+      plan_count: 2
+      status: active
+    - id: q3/en-US
+      plan_count: 6
+      status: active
+    - id: mfg/en-US
+      plan_count: 4
+      status: draft
+
+  # Grounding artifacts (referenced by skills above; here for direct lookup)
+  grounding:
+    help_corpus_active:
+      path: docs/salesforce/262/help/articles/
+      manifest: docs/salesforce/262/help/manifest.json
+      index: docs/salesforce/262/help/index.md
+      article_count: 838
+      release: "262"
+      season: "Summer '26"
+      api_version: v67.0
+      refresh_task: snapshot_salesforce_help
+
+    help_corpus_prior_ga:
+      path: docs/salesforce/260/help/articles/
+      manifest: docs/salesforce/260/help/manifest.json
+      release: "260"
+
+    erd_data:
+      path: docs/erds/erd-data.json
+      query_cli: scripts/ai/query_erd.py
+      object_count: 263
+      field_count: 4190
+      relationship_count: 674
+      api_version: v67.0
+      release: "262"
+      refresh_pr: "feat/262-erd-refresh-and-schema-diff-tooling (PR #179)"
+
+    qb_scenario:
+      path: docs/enablement/master/qb-scenario-reference.md
+      purpose: "Canonical QB demo data (Infinitech, Global Media, QB-COMPLETE, QB-QRack-750)"
+      shape: qb/en-US
+      line_count: 486
+      consumed_by_pmos: [demo-script, demo-flow, demo-data, presentation, sales-enablement]
+
+    # Per-release outputs of the qb-demo-script skill. Registered here so
+    # consumers can resolve a release-specific canvas via
+    # `resolve_grounding(..., 'qb_demo_script_{release}')`. Add a new entry
+    # each release when the corresponding markdown file is generated.
+    qb_demo_script_262:
+      path: docs/enablement/262/qb-demo-script.md
+      purpose: "QuantumBit demo-script canvas, Release 262 (Summer '26)"
+      produced_by_skill: qb-demo-script
+      release: "262"
+      status: draft  # awaits SME pass for Setup-UI, Known Bugs, image capture, Slack publish
+      consumed_by_pmos: []  # PMOS narrative-polish pass is Phase 6.3+, opt-in
+
+    feature_index_active:
+      path: docs/salesforce/262/feature-index.md
+      release: "262"
+
+    capability_roadmap:
+      # Foundations does NOT hold this; declared here so PMOS skills can route correctly
+      held_by: pmos
+      see: pmos.context_files.capabilities
+
+    cci_reference:
+      tasks: .cursor/skills/cci-orchestration/tasks-reference.md
+      flows: .cursor/skills/cci-orchestration/flows-reference.md
+      flags: .cursor/skills/cci-orchestration/feature-flags.md
+      refresh_script: scripts/ai/generate_cci_reference.py
+
+    postman_collections:
+      - postman/Salesforce_RLM_v260.postman_collection.json
+      - postman/Revenue_Cloud_Advanced.postman_collection.json
+    postman_v67_status: needs_refresh
+
+# ─── PMOS (sibling repo; this section will be authored/maintained by Sandy) ──
+#
+# Discovery is OPTIONAL: most Foundations workflows do not need a local PMOS
+# clone. The cross-repo manifest exists so PMOS-aware skills (release-enablement,
+# qb-demo-script's future PMOS narrative-polish pass) can degrade gracefully
+# when PMOS is absent, rather than failing hard. `--check` reports a missing
+# PMOS clone as an INFO line and exits 0; only an absent FOUNDATIONS clone is
+# treated as a hard failure (you can't sanely operate this manifest if the
+# repo containing it can't be located).
+pmos:
+  name: pmos-revenue-cloud
+  repo_url: https://git.soma.salesforce.com/s-varadharajan/pmos-revenue-cloud
+  role: author
+  maintainer: Santhanagopalan Varadharajan
+  optional: true   # discovery may legitimately fail on Foundations-only clones
+  local_path_hints:
+    - "$PMOS_REPO_ROOT"
+    - "$RC_WORKSPACE/pmos"
+    - "${HOME}/Documents/GitHub/Enterprise/_s-varadharajan/pmos-revenue-cloud"
+    - "../pmos-revenue-cloud"
+
+  # Skills that PMOS holds canonically (subset relevant to Foundations)
+  # Foundations skills can read these via cross-repo resolution.
+  # Today PMOS has 61 skills; only the ones likely consumed across repos
+  # are listed here. Sandy can extend in his copy.
+  skills:
+    - id: prd
+      path: .claude/skills/prd/SKILL.md
+      purpose: "Author a PRD with grounded frontmatter"
+      consumed_by_foundations: []  # Foundations doesn't author PRDs
+      stakeholder_review: [engineering-lead, ux-designer, csm, product-strategist, technical-architect]
+
+    - id: sales-enablement
+      path: .claude/skills/sales-enablement/SKILL.md
+      purpose: "Sales enablement collateral (battle cards, talk tracks)"
+      consumed_by_foundations: [release-enablement]
+
+    - id: demo-script
+      path: .claude/skills/demo-script/SKILL.md
+      purpose: "Per-feature demo walkthrough narrative"
+      consumed_by_foundations: [release-enablement]
+      caveats:
+        - "Currently invents fictional records; needs re-grounding on qb-scenario-reference (Tier 0 hygiene)"
+
+    - id: demo-data
+      path: .claude/skills/demo-data/SKILL.md
+      purpose: "Demo data personas"
+      consumed_by_foundations: []
+      caveats:
+        - "TIER 0 HYGIENE BLOCKER: contains healthcare residue (patient flow, care plans). Do NOT consume until Sandy resolves."
+
+    - id: demo-flow
+      path: .claude/skills/demo-flow/SKILL.md
+      purpose: "Visual demo flow / sequence"
+      consumed_by_foundations: [release-enablement]
+
+    - id: release-notes
+      path: .claude/skills/release-notes/SKILL.md
+      purpose: "Customer-facing release notes from PRD set"
+      consumed_by_foundations: []
+
+    - id: launch
+      path: .claude/skills/launch/SKILL.md
+      purpose: "Launch checklist + GTM artifacts"
+      consumed_by_foundations: []
+
+    - id: presentation
+      path: .claude/skills/presentation/SKILL.md
+      purpose: "Slide outline + speaker notes"
+      consumed_by_foundations: [release-enablement]
+
+    - id: multi-agent-review
+      path: .claude/skills/multi-agent-review/SKILL.md
+      purpose: "Parallel invocation of 5 stakeholder agents for review"
+      consumed_by_foundations: []  # pattern Foundations may adopt later
+      adopts_pattern: true  # flag for skills-consolidation-plan §8
+
+  # Grounding artifacts PMOS holds canonically (subset)
+  context_files:
+    capabilities:
+      path: context/CAPABILITIES.md
+      purpose: "Capability roadmap: 218 rows organized by area"
+      line_count: 375
+      consumed_by_foundations: [release-enablement]
+      caveats:
+        - "Header says 'Winter 26 (Current)' — Tier 0 hygiene release-version inconsistency"
+
+  knowledge_corpus:
+    base_path: knowledge/                # repo root, NOT under .claude/
+    total_lines: 25430
+    areas:
+      - id: lenny-podcast
+        path: knowledge/lenny-podcast/
+        purpose: "PM thought leadership"
+      - id: revenue-cloud
+        path: knowledge/revenue-cloud/
+        purpose: "Two tiers: 10 AI-synthesized *-comprehensive.md guides (~5,822 lines, commit 4cb95e6 2026-05-08, Claude Sonnet 4.5) + ancillary per-area files. The 17-area subset totals 9,683 lines."
+      - id: billing
+        path: knowledge/billing/
+      - id: books
+        path: knowledge/books/
+      - id: courses
+        path: knowledge/courses/
+      - id: internal-docs
+        path: knowledge/internal-docs/
+      - id: research-papers
+        path: knowledge/research-papers/
+      - id: articles
+        path: knowledge/articles/
+        purpose: "EMPTY placeholder — Salesforce Help mirror is in Foundations"
+
+  packaged_knowledge:
+    base_path: packages/available/      # repo root, NOT under .claude/
+    total_lines: 3842                   # verified 2026-05-24
+    package_count: 11
+    knowledge_file_count: 112           # ~112 deck-extracted per-feature files across all packages
+    release_headers:                    # the per-feature files carry these Release: headers
+      "Winter '25": 45
+      "Spring '25 (254)": 55
+      "Summer '25": 1
+    note: "Content is roughly 6 releases stale as of active 262 baseline. PMOS-canonical for PM-framing layer; product-fact freshness should be sourced from Foundations Help mirror via the manifest."
+    packages:
+      - id: revenue-cloud-billing
+        knowledge_files: 21
+      - id: revenue-cloud-pcm
+        knowledge_files: 22
+      - id: revenue-cloud-transaction-mgmt
+        knowledge_files: 18
+      - id: revenue-cloud-pricing
+        knowledge_files: 17
+      - id: revenue-cloud-usage
+        knowledge_files: 9
+      - id: revenue-cloud-ui-ux
+        knowledge_files: 6
+      - id: revenue-cloud-performance
+        knowledge_files: 5
+      - id: revenue-cloud-approvals
+        knowledge_files: 1
+      - id: revenue-cloud-configurator
+        knowledge_files: 1
+      - id: revenue-cloud-integrations
+        knowledge_files: 1
+      - id: revenue-cloud-contracts
+        knowledge_files: 0              # README + package.json only
+
+  prd_corpus:
+    base_path: docs/Releases/
+    release_dirs:
+      - "260/"                          # 1 PRD: DRO Enhancements
+      - "Spring '26 (262)/"             # 2 PRDs — directory wrongly named per Tier 0 H10
+      - "264/"                          # 1 PRD: Agentforce
+
+  workflows:
+    base_path: .claude/skills/workflows/definitions/
+    workflows:
+      - feature-development
+      - release-preparation             # status → release-notes → launch → demo-script
+      - problem-exploration
+
+# ─── Studio-wide concerns (neither repo owns alone) ─────────────────────────
+studio:
+  cross_repo_decisions:
+    - id: data_shape_consistency
+      see: .agents/artifacts/skills-consolidation-plan.md §5
+      summary: "All orgs are built from Foundations data shapes (qb/q3/mfg+locale). Enablement materials MUST reference real built-org records, not fictional ones."
+
+    - id: ssot_per_domain
+      see: .agents/artifacts/ssot-comparison.md
+      summary: "Foundations is canonical for Help mirror, APIs, schema. PMOS is canonical for PRDs, capability roadmap, PM frameworks. Cross-repo manifest is the wire."
+
+  sibling_repos_known:
+    - distill: not_modeled_in_manifest
+    - aegis: not_modeled_in_manifest
+    # See revenue-cloud-platform.md for the 4-component picture; this manifest
+    # only covers the Foundations × PMOS bridge today.

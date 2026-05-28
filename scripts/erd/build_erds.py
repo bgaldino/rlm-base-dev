@@ -10,10 +10,10 @@ Can also add new entities and relationships to erd-data.json.
 
 Usage:
     # Regenerate HTML from erd-data.json
-    python3 postman/utilities/build_erds.py
+    python3 scripts/erd/build_erds.py
 
     # Verify current state without modifying
-    python3 postman/utilities/build_erds.py --verify
+    python3 scripts/erd/build_erds.py --verify
 
 Output: docs/erds/revenue-cloud-erd.html (patched in place)
 """
@@ -206,7 +206,7 @@ def verify(html_path: str):
 
 
 def main():
-    base = Path(__file__).parent.parent.parent  # repo root
+    base = Path(__file__).resolve().parent.parent.parent  # repo root (scripts/erd/build_erds.py → /)
     data_file = base / "docs" / "erds" / "erd-data.json"
     html_file = base / "docs" / "erds" / "revenue-cloud-erd.html"
 

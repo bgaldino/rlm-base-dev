@@ -14,8 +14,12 @@ pipeline and work with any AI coding agent.
 ### `query_erd.py`
 
 CLI tool for querying the Revenue Cloud data model stored in
-`docs/erds/erd-data.json` (263 objects, ~4919 fields, ~1328 relationships).
-Avoids loading the 30K-line JSON file directly into AI context.
+`docs/erds/erd-data.json` — Release 262 (Summer '26, API v67.0): 263
+objects, 4,190 platform fields, 674 verified relationship edges (custom
+fields excluded). The same JSON also exposes 1,135 reference fields in
+total — see the "Reference Fields" line in `query_erd.py stats` for the
+distinction. Avoids loading the 30K-line JSON file directly into AI
+context.
 
 ```bash
 python scripts/ai/query_erd.py describe Product2         # fields, relationships, domain
@@ -55,8 +59,13 @@ python scripts/ai/generate_cci_reference.py --dry-run       # preview without wr
 
 ## Dependencies
 
-- **Python 3.8+** (scripts use only stdlib + PyYAML; no 3.12-specific features required)
-- **PyYAML** — used by `generate_cci_reference.py` (available in the CCI venv)
+- **Python 3.10+** (the schema-diff and skill-manifest scripts use PEP 604
+  union types like `list[Path] | None`; the repo's CI workflow pins Python
+  3.13 and the README recommends 3.12 for CumulusCI itself, so 3.10 is a
+  safe lower bound and is what we test against in practice). The previous
+  "3.8+" claim predated the schema-diff tooling.
+- **PyYAML** — used by `generate_cci_reference.py` and `skill_manifest.py`
+  (available in the CCI venv)
 - No other external dependencies
 
 ---
