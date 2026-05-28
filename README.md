@@ -15,6 +15,7 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 - [Installation](#installation)
   - [Setup for headless robot runs](#setup-for-headless-robot-runs)
 - [Quick Start](#quick-start)
+- [Build Harness and TUI](#build-harness-and-tui)
 - [Feature Flags](#feature-flags)
 - [Custom Tasks](#custom-tasks)
 - [Flows](#flows)
@@ -485,6 +486,26 @@ Decision tables under `unpackaged/pre/5_decisiontables` are deployed by this flo
 cci flow list
 cci task list
 ```
+
+## Build Harness and TUI
+
+Use the local build harness to profile, resume, and report on `prepare_rlm_org`
+runs across the standard `dev` and `ent` scratch org scenarios:
+
+```bash
+python scripts/build_harness/harness.py run
+python scripts/build_harness/harness.py report --run-id <run_id>
+```
+
+For an interactive scratch org build manager, launch the Textual TUI from the
+repo root:
+
+```bash
+./tui-cci
+```
+
+See [`docs/guides/build-harness.md`](docs/guides/build-harness.md) for the full
+CLI/TUI workflow, run artifacts, resume behavior, and test commands.
 
 ## Feature Flags
 

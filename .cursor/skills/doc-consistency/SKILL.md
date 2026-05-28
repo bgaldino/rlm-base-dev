@@ -42,6 +42,8 @@ The core lookup: **when X changes, verify Y**.
 | `scripts/apex/*.apex` | `troubleshooting/SKILL.md` if it references the script |
 | `.forceignore` | No doc update, but verify retrieve/deploy intent is consistent |
 | `scripts/ai/*.py` | `AGENTS.md` AI Utility Scripts section |
+| `scripts/build_harness/harness/` or `harness.py` | `.cursor/skills/build-harness/SKILL.md`, `docs/guides/build-harness.md` |
+| `scripts/build_harness/tui/` or `tui-cci` | `scripts/build_harness/tui/README.md`, `.cursor/skills/build-harness/SKILL.md` |
 
 ---
 

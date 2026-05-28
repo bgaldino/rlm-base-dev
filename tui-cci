@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$ROOT_DIR/.harness/tui-venv"
+VENV_PYTHON="$VENV_DIR/bin/python"
+REQ_FILE="$ROOT_DIR/scripts/build_harness/tui/requirements.txt"
+UPGRADE=0
+DEBUG_LAUNCH=0
+PASSTHROUGH_ARGS=()
+
+while (($#)); do
+  case "$1" in
+    --upgrade)
+      UPGRADE=1
+      shift
+      ;;
+    --debug-launch)
+      DEBUG_LAUNCH=1
+      shift
+      ;;
+    *)
+      PASSTHROUGH_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+# VS Code/Cursor can fail shell-environment resolution when SHELL is unset or invalid.
+if [[ -z "${SHELL:-}" || ! -x "${SHELL:-}" ]]; then
+  if [[ -x "/bin/zsh" ]]; then
+    export SHELL="/bin/zsh"
+  elif [[ -x "/bin/bash" ]]; then
+    export SHELL="/bin/bash"
+  fi
+fi
+
+# Textual requires an interactive TTY; avoid blank output in non-interactive contexts.
+# TUI_CCI_SKIP_TTY_CHECK=1 exists to support deterministic automated launcher tests.
+if [[ "${TUI_CCI_SKIP_TTY_CHECK:-0}" != "1" ]]; then
+  if [[ ! -t 0 || ! -t 1 || ! -t 2 ]]; then
+    echo "This TUI requires an interactive terminal."
+    echo "Run it from a local terminal or VS Code integrated terminal."
+    echo "TTY state: stdin=$([[ -t 0 ]] && echo yes || echo no) stdout=$([[ -t 1 ]] && echo yes || echo no) stderr=$([[ -t 2 ]] && echo yes || echo no)"
+    exit 1
+  fi
+fi
+
+# Ensure TERM is set for full-screen rendering.
+if [[ -t 1 && ( -z "${TERM:-}" || "${TERM:-}" == "dumb" ) ]]; then
+  export TERM="xterm-256color"
+fi
+
+restore_terminal() {
+  stty sane 2>/dev/null || true
+}
+
+trap restore_terminal EXIT INT TERM
+
+if [[ ! -x "$VENV_PYTHON" ]]; then
+  if ! python -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then
+    echo "tui-cci requires Python 3.11+ (current: $(python -c 'import sys; print(sys.version.split()[0])' 2>/dev/null || echo unknown))."
+    exit 1
+  fi
+  echo "Creating scoped TUI virtual environment at $VENV_DIR..."
+  mkdir -p "$ROOT_DIR/.harness"
+  python -m venv "$VENV_DIR"
+  "$VENV_PYTHON" -m pip install -r "$REQ_FILE"
+fi
+
+if [[ "$UPGRADE" -eq 1 ]] || ! "$VENV_PYTHON" -c "import textual, yaml" >/dev/null 2>&1; then
+  echo "Installing/updating TUI dependencies..."
+  "$VENV_PYTHON" -m pip install -r "$REQ_FILE"
+fi
+
+cd "$ROOT_DIR"
+if [[ "$DEBUG_LAUNCH" -eq 1 ]]; then
+  echo "[tui-cci] root=$ROOT_DIR"
+  echo "[tui-cci] venv=$VENV_DIR"
+  echo "[tui-cci] python=$VENV_PYTHON"
+  echo "[tui-cci] term=${TERM:-<unset>}"
+fi
+
+set +e
+if ((${#PASSTHROUGH_ARGS[@]})); then
+  "$VENV_PYTHON" -m scripts.build_harness.tui "${PASSTHROUGH_ARGS[@]}"
+else
+  "$VENV_PYTHON" -m scripts.build_harness.tui
+fi
+EXIT_CODE=$?
+set -e
+if [[ $EXIT_CODE -ne 0 ]]; then
+  echo "[tui-cci] TUI exited with code $EXIT_CODE"
+  echo "[tui-cci] Re-run with --debug-launch for startup diagnostics."
+fi
+exit $EXIT_CODE

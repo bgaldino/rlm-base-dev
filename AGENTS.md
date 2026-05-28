@@ -31,6 +31,7 @@ datasets/sfdmu/        # SFDMU data plans (export.json + CSVs)
 datasets/context_plans/# Context definition plans
 scripts/apex/          # Apex activation/deletion scripts
 scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
+scripts/build_harness/ # Build harness runner and TUI
 tasks/                 # Custom Python CCI task classes
 robot/rlm-base/        # Robot Framework tests (setup + E2E)
 orgs/                  # Scratch org definition JSON files
@@ -203,6 +204,7 @@ that topic.
 | Set up / replicate / update the local dev toolchain | `docs/guides/dev-environment-setup.md` |
 | Add new features, code placement | `.cursor/skills/repo-integration/SKILL.md` |
 | Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |
+| Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |
 | Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |

@@ -125,3 +125,7 @@ tmp-metadata/
 retrieved_rlm_bundle/
 postman/archive/
 core.code-workspace
+
+# Build harness artifacts
+.harness/
+scripts/build_harness/tui/settings.local.json

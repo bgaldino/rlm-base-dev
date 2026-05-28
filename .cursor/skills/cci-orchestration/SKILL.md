@@ -241,7 +241,7 @@ either a built-in CCI class or a custom class in `tasks/`.
 ### 6. Flows (`flows`)
 
 41 flows organized as a hierarchy. The main entry point is `prepare_rlm_org`
-(31 steps), which calls sub-flows:
+(30 steps), which calls sub-flows:
 
 ```
 prepare_rlm_org
@@ -404,6 +404,7 @@ cci flow info prepare_rlm_org
 ## Related Skills
 
 - **SFDMU Data Plans** — `.cursor/skills/sfdmu-data-plans/SKILL.md`
+- **Build Harness** — `.cursor/skills/build-harness/SKILL.md`
 - **Revenue Cloud Data Model** — `.cursor/skills/revenue-cloud-data-model/SKILL.md`
 - **Repository Integration** — `.cursor/skills/repo-integration/SKILL.md`
 - **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`
