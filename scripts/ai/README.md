@@ -14,8 +14,12 @@ pipeline and work with any AI coding agent.
 ### `query_erd.py`
 
 CLI tool for querying the Revenue Cloud data model stored in
-`docs/erds/erd-data.json` (263 objects, ~4919 fields, ~1328 relationships).
-Avoids loading the 30K-line JSON file directly into AI context.
+`docs/erds/erd-data.json` — Release 262 (Summer '26, API v67.0): 263
+objects, 4,190 platform fields, 674 verified relationship edges (custom
+fields excluded). The same JSON also exposes 1,135 reference fields in
+total — see the "Reference Fields" line in `query_erd.py stats` for the
+distinction. Avoids loading the 30K-line JSON file directly into AI
+context.
 
 ```bash
 python scripts/ai/query_erd.py describe Product2         # fields, relationships, domain

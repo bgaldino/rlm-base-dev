@@ -1,4 +1,36 @@
 {
+  "metadata": {
+    "release": "262",
+    "releaseLabel": "Summer '26",
+    "apiVersion": "67.0",
+    "baselineRelease": "260",
+    "baselineReleaseLabel": "Spring '26",
+    "baselineApiVersion": "66.0",
+    "source": "dual-org extraction (ent-r1 260 + rlm-base__ent-sb0 262) + Core UDD cross-validation",
+    "lastRefreshedOn": "2026-05-27",
+    "note": "Custom fields (any __c suffix) excluded by validation tooling. See scripts/erd/schema_diff/ for the 260->262 delta."
+  },
+  "stats": {
+    "totalObjects": 263,
+    "totalRelationships": 674,
+    "totalFields": 4190,
+    "domains": [
+      "Advanced Approvals",
+      "Approvals",
+      "Billing",
+      "Billing (Core Object)",
+      "Dynamic Revenue Orchestrator",
+      "Product Catalog Management",
+      "Product Catalog Management (Core Object)",
+      "Product Configurator",
+      "Rate Management",
+      "Salesforce Pricing",
+      "Transaction Management",
+      "Transaction Management (Core Object)",
+      "Usage Management",
+      "Usage Management (Core Object)"
+    ]
+  },
   "objects": {
     "Dispute": {
       "domain": "Billing (Core Object)",
@@ -26439,26 +26471,5 @@
       "field": "LegalEntityAccountingPeriodId",
       "type": "lookup"
     }
-  ],
-  "stats": {
-    "totalObjects": 263,
-    "totalRelationships": 674,
-    "totalFields": 4190,
-    "domains": [
-      "Advanced Approvals",
-      "Approvals",
-      "Billing",
-      "Billing (Core Object)",
-      "Dynamic Revenue Orchestrator",
-      "Product Catalog Management",
-      "Product Catalog Management (Core Object)",
-      "Product Configurator",
-      "Rate Management",
-      "Salesforce Pricing",
-      "Transaction Management",
-      "Transaction Management (Core Object)",
-      "Usage Management",
-      "Usage Management (Core Object)"
-    ]
-  }
+  ]
 }
