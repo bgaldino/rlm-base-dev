@@ -53,14 +53,13 @@ except ImportError:
     AssembleAndDeployUX = None
     SF_NS = "http://soap.sforce.com/2006/04/metadata"
     SF_NS_TAG = f"{{{SF_NS}}}"
-SALES_TXN_LINE_EDITOR_IDENTIFIER = "runtime_rca_salesTxnLineTable"
-
 try:
-    from tasks.rlm_ux_utils import resolve_flexipage_sources
+    from tasks.rlm_ux_utils import resolve_flexipage_sources, SALES_TXN_LINE_EDITOR_IDENTIFIER
 except ImportError:
     try:
-        from rlm_ux_utils import resolve_flexipage_sources
+        from rlm_ux_utils import resolve_flexipage_sources, SALES_TXN_LINE_EDITOR_IDENTIFIER
     except ImportError as _root_utils_err:
+        SALES_TXN_LINE_EDITOR_IDENTIFIER = "runtime_rca_salesTxnLineTable"
         def resolve_flexipage_sources(*args, **kwargs):  # type: ignore[misc]
             raise ImportError(
                 "Unable to import resolve_flexipage_sources from "

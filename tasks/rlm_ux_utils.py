@@ -30,6 +30,9 @@ PERSONAS_PROFILES: List[str] = [
     "RLM Sales Representative.profile-meta.xml",
 ]
 
+#: LWC identifier for the Sales Transaction Line Editor component in Quote flexipages.
+SALES_TXN_LINE_EDITOR_IDENTIFIER = "runtime_rca_salesTxnLineTable"
+
 #: Standalone flexipage dirs in deploy order (last writer wins).
 #: Each entry is (directory_name, flag_key).
 #: Order matches the prepare_rlm_org deploy sequence.
