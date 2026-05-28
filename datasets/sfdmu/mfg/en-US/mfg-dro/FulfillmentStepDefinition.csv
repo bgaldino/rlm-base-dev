@@ -1,0 +1,25 @@
+AmendGroup.Name,AssignedTo.Name,CancelledGroup.Name,CustomBaseExecutionDate,CustomFulfillmentScope,DelayOf,DelayUnit,ExecuteOn,FlowDefinitionName,ForcePlanFreezeDuringExecution,IntegrationDefinitionName.DeveloperName,IsSkipBranch,Name,OmniscriptName,PointOfNoReturn,ResumeOnRule.Name,Scope,StepDefinitionGroup.Name,StepType,TaskAllocationType,UsageType
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,RLM_Assetize_Order_DRO_Fulfillment,Never,#N/A,false,Convert Order to Asset,#N/A,#N/A,#N/A,Plan,Tenant Provisioning + Activation,Milestone,#N/A,#N/A
+#N/A,__DRO_ASSIGNED_TO_USER__,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,#N/A,false,Validate Order Info,#N/A,#N/A,#N/A,Plan,Order Processing,ManualTask,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,RLM_DFOTenantProvisioningCallout,false,Stage New Tenant for Provisioning,#N/A,#N/A,#N/A,Plan,Tenant Provisioning + Activation,Callout,#N/A,#N/A
+#N/A,__DRO_ASSIGNED_TO_USER__,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,#N/A,false,Initiate Billing,#N/A,#N/A,#N/A,Plan,Finance,Milestone,#N/A,#N/A
+#N/A,__DRO_ASSIGNED_TO_USER__,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,#N/A,false,Post Invoice,#N/A,#N/A,#N/A,Plan,Finance,ManualTask,#N/A,#N/A
+#N/A,__DRO_ASSIGNED_TO_USER__,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,#N/A,false,Receive Payment,#N/A,#N/A,#N/A,Plan,Finance,ManualTask,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,DFOApexMockService,false,IoT Health Check,#N/A,#N/A,#N/A,Plan,Equipment Health Check,Callout,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,RLM_Assetize_Order_DRO_Fulfillment,Never,#N/A,false,Convert Order to Asset,#N/A,#N/A,#N/A,Plan,Asset Conversion,AutoTask,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,RLM_DFOTenantProvisioningCallout,false,Stage New Tenant for Provisioning,#N/A,#N/A,#N/A,Plan,Tenant Provisioning,Callout,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,RLM_Create_Work_Order_DRO,Never,#N/A,false,Create Work Order,#N/A,#N/A,#N/A,Plan,Work Order,AutoTask,#N/A,#N/A
+#N/A,__DRO_ASSIGNED_TO_USER__,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,#N/A,false,Review IoT Report,#N/A,#N/A,#N/A,Plan,Equipment Health Check,ManualTask,#N/A,#N/A
+#N/A,__DRO_ASSIGNED_TO_USER__,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,RLM_Order_to_Svc_Contract_DRO_Task,Never,#N/A,false,Create Service Contract,#N/A,#N/A,#N/A,Plan,Service Contract & Assetization,ManualTask,#N/A,#N/A
+#N/A,__DRO_ASSIGNED_TO_USER__,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,#N/A,false,Work Order Completed,#N/A,#N/A,#N/A,Plan,Work Order,ManualTask,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,DFOApexMockService,false,Inventory Allocation,#N/A,#N/A,#N/A,Plan,Inventory Allocation & Sourcing,Callout,#N/A,#N/A
+#N/A,__DRO_ASSIGNED_TO_USER__,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,#N/A,false,Consolidated Fulfillment,#N/A,#N/A,#N/A,Plan,Inventory Allocation & Sourcing,ManualTask,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,DFOApexMockService,false,Shipment,#N/A,#N/A,#N/A,Plan,Shipment & Invoicing,Callout,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,DFOApexMockService,false,Generate Invoice,#N/A,#N/A,#N/A,Plan,Shipment & Invoicing,Callout,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,DFOApexMockService,false,Engineering Verification,#N/A,#N/A,#N/A,Plan,Order Configuration Verification,Callout,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,#N/A,false,Customer BOM sign-off,#N/A,#N/A,#N/A,Plan,Order Configuration Verification,Pause,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,DFOApexMockService,false,Source specialized components,#N/A,#N/A,#N/A,Plan,Production and Assembly,Callout,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,DFOApexMockService,false,Generator Assembly,#N/A,#N/A,#N/A,Plan,Production and Assembly,Callout,#N/A,#N/A
+#N/A,__DRO_ASSIGNED_TO_USER__,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,#N/A,false,Finish logistics plan,#N/A,#N/A,#N/A,Plan,Logistics and Transportation,ManualTask,#N/A,#N/A
+#N/A,__DRO_ASSIGNED_TO_USER__,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,#N/A,false,Confirm Delivery,#N/A,#N/A,#N/A,Plan,Logistics and Transportation,ManualTask,#N/A,#N/A
+#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,#N/A,Never,DFOApexMockService,false,Install and Commission,#N/A,#N/A,#N/A,Plan,On-Site Installation and Commissioning,Callout,#N/A,#N/A

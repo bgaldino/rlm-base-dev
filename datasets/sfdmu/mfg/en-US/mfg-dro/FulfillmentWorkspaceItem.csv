@@ -1,0 +1,10 @@
+FulfillmentStepDefinitionGroup.Name,FulfillmentWorkspace.Name,Name,ShowOrder
+Equipment Health Check,Service Contract Fulfillment,FWI-000000004,1
+Work Order,Service Contract Fulfillment,FWI-000000005,2
+Service Contract & Assetization,Service Contract Fulfillment,FWI-000000006,3
+Inventory Allocation & Sourcing,Kit Order Orchestration,FWI-000000007,1
+Shipment & Invoicing,Kit Order Orchestration,FWI-000000008,2
+Order Configuration Verification,FESBA Generator Fulfillment,FWI-000000009,1
+Logistics and Transportation,FESBA Generator Fulfillment,FWI-000000011,3
+On-Site Installation and Commissioning,FESBA Generator Fulfillment,FWI-000000012,4
+Production and Assembly,FESBA Generator Fulfillment,FWI-000000010,2

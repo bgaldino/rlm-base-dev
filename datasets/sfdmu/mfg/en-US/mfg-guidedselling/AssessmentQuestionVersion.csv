@@ -1,0 +1,52 @@
+$$AssessmentQuestion.UniqueIndex$VersionNumber,AdditionalInformation,AssessmentQuestion.UniqueIndex,CurrencyIsoCode,DataType,DeactivationDateTime,Description,ExternalAsmtContentVersion,GuidanceInformation,HelpText,IsActive,IsOptionSourceResponseValue,Name,QuestionText,ResponseValues,Status,VersionNumber
+Chemical_Regulatory_Requirements;1,#N/A,Chemical_Regulatory_Requirements,USD,Multiselect,#N/A,#N/A,#N/A,#N/A,#N/A,true,false,Chemical Regulatory Requirements,What are the performance/regulatory requirements,"Coatings-Grade
+Durable
+Electronics-Grade
+Fast Evaporating
+FDA-Compliant
+Food-Grade
+High-Density
+High-Dielectric-Strength
+High-Gloss
+High-Opacity
+High-Purity
+High-Strength
+High-Temperature
+Long-Life
+Multi-Metal Compatible
+Non-Yellowing Additive
+Silicone-Based
+Thermally-Conductive
+Ultra-High-Purity
+USP-grade",Active,1
+Customer_Industry;1,#N/A,Customer_Industry,USD,Select,#N/A,#N/A,#N/A,#N/A,#N/A,true,false,Customer Industry,Customer Industry,"Electronics
+Automotive
+Food & Beverage
+Pharmaceutical",Active,1
+Chemical_Application;1,#N/A,Chemical_Application,USD,Select,#N/A,#N/A,#N/A,#N/A,#N/A,true,false,Chemical Application,What is the primary application?,"PCB cleaning
+Protective Topcoat
+pH Adjustment and Sanitizing
+Preventing Product Degradation
+Coolant System Protection
+Foam Control During Processing
+Component Encapsulation
+Durable Container Molding
+pH Adjustment and Synthesis
+Cleaning-In-Place (CIP)
+Semiconductor Etching and Cleaning
+Tablet Coating and Opacifier
+Paint and Thinner Formulation
+Plastic Component and Coating Protection
+Paint Preparation and Parts Cleaning",Active,1
+Generator_Application;1,#N/A,Generator_Application,USD,Select,#N/A,#N/A,#N/A,#N/A,#N/A,true,false,Generator Application,What is the intended generator application?,"Prime Power (PRP)
+Emergency Standby Power (ESP)
+Continuous Power (COP)
+Data Center Continuous (DCC)",Active,1
+Emission_Certification;1,#N/A,Emission_Certification,USD,Select,#N/A,#N/A,#N/A,#N/A,#N/A,true,false,Emission Certification,Do you have emissions certification requirements?,"Install-US Stat
+Install-OutsideUS",Active,1
+Standards_and_Compliance;1,"""Certification-CSA"" means a product has been certified as safe by the Canadian Standards Association (an organization), whereas ""Listing-UL 2200"" means a product has been tested and found to comply with UL 2200 (a specific safety standard) for stationary generator assemblies.",Standards_and_Compliance,USD,Select,#N/A,#N/A,#N/A,#N/A,#N/A,true,false,Standards and Compliance,Review Standards & Compliancy Requirements,"Certification-CSA
+Listing-UL 2200",Active,1
+Seismic_Certification;1,#N/A,Seismic_Certification,USD,Select,#N/A,#N/A,#N/A,#N/A,#N/A,true,false,Seismic Certification,What seismic certification do you require?,"IBC Seismic Certification
+OSHPD Seismic Certification",Active,1
+Special_Application;1,#N/A,Special_Application,USD,Select,#N/A,#N/A,#N/A,#N/A,"A ""motor starting special application"" is any situation where a generator is sized or designed specifically to handle the massive, brief surge of power required to start an electric motor.",true,false,Special Application,Do you require a motor starting special application?,"None - Standard
+Motor Starting",Active,1
