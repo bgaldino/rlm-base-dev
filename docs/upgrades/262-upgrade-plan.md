@@ -36,7 +36,7 @@ Two workstations with distinct capabilities are used in combination:
 | Phase | Work | Workstation | Status |
 |---|---|---|---|
 | 1 — Setup | Provision scratch orgs; write and commit schema query scripts | Personal | ✅ Complete (2026-05-27) — `ent-r1` (260) and `rlm-base__ent-sb0` (262); tooling at `scripts/erd/schema_diff/` |
-| 2 — Data Collection | Run `FieldDefinition`/`EntityDefinition` queries against both orgs; commit diff output | Personal | ✅ Complete — `scripts/erd/schema_diff/{260,262}-schema.json` and `260-vs-262-diff.md` |
+| 2 — Data Collection | Use `scripts/erd/schema_diff/extract_schema.py` against both orgs: object list comes from a single `EntityDefinition` SOQL query (for `--all-objects`) or from `docs/erds/erd-data.json`, and field metadata comes from per-object `sf sobject describe`. Commit the resulting JSON snapshots and the diff. | Personal | ✅ Complete — `scripts/erd/schema_diff/{260,262}-schema.json` and `260-vs-262-diff.md` |
 | 3 — Deep Analysis | Cross-reference schema diffs against data plans, Apex scripts, export.json files | Salesforce (Opus) | ✅ Complete — Core source research at `.agents/artifacts/262-vs-260-core-schema-research.md`; cross-validation at `.agents/artifacts/262-org-vs-core-cross-validation.md` |
 | 4 — UI Validation | Validate UI-only settings and toggles in 262 org via Chrome extension | Personal | Parallel with Phase 3 |
 | 5 — Implementation | Data plan fixes, Apex updates, build verification | Either | Schema delta is additive only (45 fields added, 0 removed, 0 type changes, 2 polymorphic targets expanded). Nine objects with additive deltas appear in maintained SFDMU plans per `--impact`, but no remediation is required because new fields can't break existing CSV imports. No mandatory implementation changes identified. |
@@ -88,7 +88,7 @@ See Section 1 (Infrastructure) and Section 2 (Scratch Org Definitions) for prere
 
 Verify SObjects and fields used across data plans and metadata against the 262 schema. Check for added, renamed, removed, or type-changed fields.
 
-> **Analysis method:** No 262 documentation is available pre-release-freeze. All schema verification is performed by querying `FieldDefinition` and `EntityDefinition` via SOQL on both a 260 baseline scratch org and a 262 preview scratch org, then diffing the results. Query scripts live in `scripts/erd/schema_diff/` (created during Phase 1). Checkboxes below are updated during Phase 3 (deep analysis on Salesforce workstation with Opus).
+> **Analysis method:** No 262 documentation is available pre-release-freeze. All schema verification is performed against both a 260 baseline scratch org and a 262 preview scratch org via `scripts/erd/schema_diff/extract_schema.py`, then diffed with `diff_schemas.py`. Within the extractor, the **object list** comes from either `docs/erds/erd-data.json` or a single `EntityDefinition` SOQL query (when invoked with `--all-objects`), and **field metadata for each object** comes from `sf sobject describe`. `FieldDefinition` SOQL is not used by the production extractor — `sf sobject describe` returns the same field metadata in a single per-object call and surfaces relationship targets without follow-up queries. Query scripts live in `scripts/erd/schema_diff/` (created during Phase 1). Checkboxes below are updated during Phase 3 (deep analysis on Salesforce workstation with Opus).
 
 ### Revenue Lifecycle Management Objects
 

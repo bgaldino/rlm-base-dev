@@ -9,10 +9,17 @@
 # in Foundations as the v0 reference; Sandy will mirror to PMOS.
 #
 # Resolution mechanism:
-#   1. Consumers call resolve_manifest() from scripts/ai/skill_manifest.py
+#   1. Consumers call load_manifest() from scripts/ai/skill_manifest.py to read
+#      and normalize this file; resolve_repo_root() / resolve_path() /
+#      resolve_grounding() / resolve_skill() / find_skill() / list_skills() then
+#      look up specific entries against the loaded manifest. (There is no
+#      resolve_manifest() function — load and resolve are separate steps so a
+#      single load can back many lookups.)
 #   2. Local clone paths come from env vars (FOUNDATIONS_REPO_ROOT, PMOS_REPO_ROOT)
-#      OR sibling-directory fallback (../pmos, ../rlm-base-dev)
+#      OR sibling-directory fallback (../pmos-revenue-cloud, ../rlm-base-dev)
 #   3. Each grounding artifact has a resolved local filesystem path
+#   4. CLI: `python scripts/ai/skill_manifest.py --check | --list-skills <repo> |
+#      --resolve <repo>/<kind>/<key>` exposes the same surface for diagnostics
 #
 # When this file changes:
 #   - regenerate via cci task run generate_skill_manifest (TBD — Phase 6.3)

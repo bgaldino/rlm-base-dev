@@ -43,6 +43,13 @@ Usage:
     python scripts/erd/cleanup_orphan_erd_fields.py --orgs ent-r1,rlm-base__ent-sb0 \\
         --aggressive --dry-run
 
+    # Include custom (__c) fields in the comparison — only when intentionally
+    # validating an extended ERD snapshot that contains deployed RLM_*__c or
+    # managed-package fields. Default behavior (skipping custom) aligns with
+    # the canonical-platform-schema contract documented in AGENTS.md.
+    python scripts/erd/cleanup_orphan_erd_fields.py --org rlm-base__ent-sb0 \\
+        --include-custom --dry-run
+
 Outputs a candidates.md report listing every orphan and its classification.
 """
 from __future__ import annotations
@@ -87,9 +94,17 @@ def get_org_fields(org_alias: str, object_name: str,
                    skip_custom: bool = True) -> Optional[Set[str]]:
     """Return the set of field names declared by the org for an object.
 
-    By default skips ALL custom fields (any ``__c`` suffix). The ERD is
-    canonical Revenue Cloud schema; project-deployed (``RLM_*__c``) and
-    managed package fields must not be considered when classifying orphans.
+    When ``skip_custom`` is True (default), all ``__c``-suffixed fields are
+    omitted from the returned set. The ERD is canonical Revenue Cloud
+    platform schema; project-deployed (``RLM_*__c``) and managed-package
+    fields must not be considered when classifying orphans against the
+    default ERD.
+
+    Pass ``skip_custom=False`` (CLI: ``--include-custom``) only for
+    project-internal tooling that intentionally wants to consider deployed
+    custom fields — e.g. when validating an extended ERD snapshot that
+    includes ``RLM_*__c``. See ``AGENTS.md`` for the wider
+    custom-fields-excluded contract.
 
     Returns None if the object doesn't exist in the org (don't treat ERD
     fields as orphans for objects that aren't even in the org).
@@ -107,9 +122,14 @@ def get_org_fields(org_alias: str, object_name: str,
 
 
 def collect_org_fields(org_aliases: List[str], object_names: List[str],
-                       concurrency: int = 10, verbose: bool = False
+                       concurrency: int = 10, verbose: bool = False,
+                       skip_custom: bool = True
                        ) -> Dict[str, Dict[str, Optional[Set[str]]]]:
     """Collect field sets per (org, object) pair.
+
+    ``skip_custom`` is threaded through to :func:`get_org_fields`; see that
+    function for the contract. Defaults to True so the orphan workflow stays
+    aligned with the canonical-platform-schema rule.
 
     Returns: { org_alias: { object_name: {field_set} or None } }
     """
@@ -119,12 +139,13 @@ def collect_org_fields(org_aliases: List[str], object_names: List[str],
     }
     pairs = [(alias, obj) for alias in org_aliases for obj in object_names]
     print(f"Querying {len(pairs)} (org, object) pairs across "
-          f"{len(org_aliases)} orgs (concurrency={concurrency})...")
+          f"{len(org_aliases)} orgs (concurrency={concurrency}, "
+          f"skip_custom={skip_custom})...")
     start = time.time()
 
     with ThreadPoolExecutor(max_workers=concurrency) as executor:
         futures = {
-            executor.submit(get_org_fields, alias, obj): (alias, obj)
+            executor.submit(get_org_fields, alias, obj, skip_custom): (alias, obj)
             for alias, obj in pairs
         }
         for i, future in enumerate(as_completed(futures), 1):
@@ -343,6 +364,15 @@ def main():
                         help="Output markdown report path (relative to repo root)")
     parser.add_argument("--concurrency", type=int, default=10,
                         help="Parallel describe calls (default: 10)")
+    parser.add_argument(
+        "--include-custom",
+        action="store_true",
+        help="Include custom (__c) fields when reading orgs. Default is to "
+             "skip them so orphan classification stays aligned with the "
+             "canonical platform schema (see AGENTS.md). Use only when you "
+             "intentionally want to consider deployed RLM_*__c or managed-"
+             "package fields — e.g. validating an extended ERD snapshot.",
+    )
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -374,6 +404,7 @@ def main():
     org_data = collect_org_fields(
         org_aliases, object_names,
         concurrency=args.concurrency, verbose=args.verbose,
+        skip_custom=not args.include_custom,
     )
 
     # Find orphans
