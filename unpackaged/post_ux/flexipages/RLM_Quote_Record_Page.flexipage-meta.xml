@@ -174,30 +174,6 @@
                             <value>QuoteLineItem.TotalPrice</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>QuoteLineItem.RLM_Distributor_Discount_Percent__c</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.RLM_Distributor_Unit_Price__c</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.PartnerDiscountPercent</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.PartnerUnitPrice</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.RLM_Partner_Net_Total_Price__c</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.TotalCost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.Margin</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>QuoteLineItem.MarginAmount</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>QuoteLineItem.QuoteLineGroup.SegmentType[QuoteLineGroup]</value>
                         </valueListItems>
                         <valueListItems>

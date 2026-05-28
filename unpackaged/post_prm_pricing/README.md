@@ -10,7 +10,7 @@ partner-channel metadata remains in `unpackaged/post_prm/`.
 - Gate from `prepare_prm`: `project_config.project__custom__prm` and
   `project_config.project__custom__prm_pricing`
 - Metadata deploy task group: `deploy_post_prm_pricing_*`
-- Default branch state: `prm_pricing=true`
+- Default branch state: `prm_pricing=false`; set it to `true` to include this optional bundle
 
 ## Component Inventory
 
