@@ -128,6 +128,13 @@ datasets/bre/exports/**
 # (erd-data.json.batchN.bak, caught by *.bak above) and legacy variants
 # (.bak2, .bak.batchN) produced by earlier helper versions.
 docs/erds/erd-data.json.bak*
+# Intermediate orphan-cleanup batch reports — produced per run by
+# scripts/erd/orphan_batch_helper.py validate (orphan-candidates-after-batchN.md)
+# and the initial scan (orphan-candidates.md, orphan-candidates-dual-org.md,
+# orphan-candidates-after-cleanup.md). The cleanup's final outcome is already
+# baked into docs/erds/erd-data.json and docs/erds/validation-report.md, so
+# these intermediates are local-only artifacts.
+docs/erds/orphan-candidates*.md
 unpackaged/post_ux/drift_report.json
 tmp-metadata/
 .cursor/plans/**
