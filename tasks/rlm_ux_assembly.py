@@ -54,16 +54,14 @@ except ImportError:
         return str(val).lower() in ("true", "1", "yes")
 
 try:
-    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, SALES_TXN_LINE_EDITOR_IDENTIFIER
 except ImportError:
-    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, SALES_TXN_LINE_EDITOR_IDENTIFIER
 
 
 # Salesforce metadata XML namespace
 SF_NS = "http://soap.sforce.com/2006/04/metadata"
 SF_NS_TAG = f"{{{SF_NS}}}"
-SALES_TXN_LINE_EDITOR_IDENTIFIER = "runtime_rca_salesTxnLineTable"
-
 # Maps full source filename suffix → canonical metadata type key
 SUFFIX_TO_TYPE: Dict[str, str] = {
     ".flexipage-meta.xml": "flexipages",
