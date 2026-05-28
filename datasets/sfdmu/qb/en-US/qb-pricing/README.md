@@ -55,7 +55,7 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 3  | ProductSellingModel          | Readonly  |              | `Name;SellingModelType`                                                                                 | 9       |
 | 4  | AttributeDefinition          | Readonly  |              | `Code`                                                                                                  | 39      |
 | 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 164     |
-| 6  | CostBook                     | Upsert    |              | `Name;IsDefault`                                                                                        | 1       |
+| 6  | CostBook                     | Upsert    |              | `Name`                                                                                                  | 1       |
 | 7  | Pricebook2                   | Upsert    |              | `Name;IsStandard`                                                                                       | 1       |
 | 8  | PriceAdjustmentTier          | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom` | 3 |
 | 9  | PriceAdjustmentSchedule      | Update    |              | `Name;CurrencyIsoCode`                                                                                  | 3       |
@@ -73,7 +73,8 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 - `ProrationPolicy`: `Update` (not Upsert) — records are always pre-provisioned by the platform; SFDMU v5 TARGET SELECT fails for this managed object
 - `PriceAdjustmentSchedule`: `Update` with `WHERE ContractId = NULL` — only updates non-contract schedules auto-created by the platform when the pricebook is provisioned
 - `CostBook` is ordered before `Pricebook2` — `Pricebook2` has a `CostBookId` FK; processing it first produced `#N/A` in the target result
-- `CostBookEntry` references `CostBook.Name` instead of the composite `CostBook.$$Name$IsDefault` CSV key. The plan seeds only one CostBook, so the simple lookup avoids an unnecessary composite relationship reference while still resolving deterministically.
+- `Pricebook2.csv` resolves `CostBookId` through `CostBook.Name` (`Standard Cost Book`) so the standard pricebook links to the seeded cost book deterministically.
+- `CostBook` now keys on `Name` only, and `CostBookEntry` references `CostBook.Name` directly for parent resolution.
 
 ## Apex Activation Script
 
@@ -121,7 +122,7 @@ Several objects use complex multi-field composite keys:
 |------------------------------|----------------|-----------------|
 | ProductSellingModel          | Name + SellingModelType | Yes       |
 | Pricebook2                   | Name + IsStandard | Yes            |
-| CostBook                     | Name + IsDefault | Yes             |
+| CostBook                     | Name | No (single-field key) |
 | PriceAdjustmentTier          | 9-field composite | Yes            |
 | PriceAdjustmentSchedule      | Name + CurrencyIsoCode | Yes |
 | AttributeAdjustmentCondition | 3-field composite | Yes            |
@@ -324,7 +325,7 @@ This timestamp Name cascades to 2 dependent objects:
 | CurrencyType                 | 1 (`IsoCode`) | Simple | No |
 | ProrationPolicy              | 1 (`Name`) | Simple | No |
 | Pricebook2                   | 2 (`Name;IsStandard`) | Low | No — `Name` alone isn't unique (Standard + custom can share names) |
-| CostBook                     | 2 (`Name;IsDefault`) | Low | No |
+| CostBook                     | 1 (`Name`) | Low | N/A (already simplified) |
 | PriceAdjustmentSchedule      | 3 (`Name;Currency;PB.Name`) | Medium | No — Name alone may not be unique across pricebooks |
 | PriceAdjustmentTier          | **9** fields | **Very High** | Possible — investigate if a subset guarantees uniqueness |
 | AttributeBasedAdjustment     | 5 fields | High | No — multi-dimensional adjustment targeting |
