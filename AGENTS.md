@@ -201,6 +201,7 @@ that topic.
 
 | I need to... | Skill File (relative to repo root) |
 |-------------|-------------------------------------|
+| Set up / replicate / update the local dev toolchain | `docs/guides/dev-environment-setup.md` |
 | Add new features, code placement | `.cursor/skills/repo-integration/SKILL.md` |
 | Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |
 | Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |

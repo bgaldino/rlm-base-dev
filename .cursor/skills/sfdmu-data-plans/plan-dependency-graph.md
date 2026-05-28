@@ -39,11 +39,11 @@ scratch_data (Account, Contact, BillingAccount)
             ├──→ qb-clm (7 objects)
             │       ObjectStateDefinition, transitions, clause sets
             │
-            ├──→ qb-guidedselling (10 objects)
-            │       AssessmentQuestion, OmniProcess, OmniProcessElement
-            │
             ├──→ qb-product-images (1 object)
             │       Product2 DisplayUrl updates
+            │
+            ├──→ qb-guidedselling-products (1 object)
+            │       Product2 guided selling field updates; requires guided selling field metadata
             │
             ├──→ qb-prm (5 objects, 2 passes)
             │       Account (partner), ChannelProgram, ChannelProgramMember

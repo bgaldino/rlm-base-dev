@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Platform Control</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>What level of platform control do you need?</questionText>
+        <responseValues>Basic - core features are enough for now
+Intermediate - need enterprise controls and granular access
+Advanced - need specialized features for sensitive/regulated data</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Select</dataType>
+    <developerName>Platform_Control</developerName>
+    <name>Platform Control</name>
+    <questionCategory>Demographic</questionCategory>
+</AssessmentQuestion>

@@ -31,6 +31,13 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 
 > **Cursor users:** Open this README in [Cursor](https://www.cursor.com/), press `Cmd+L` to open the AI chat, and paste: *"Walk me through the macOS Environment Setup section of this README, running each command in the terminal."* The agent can execute each step interactively. Run the steps in order — each one builds on the previous.
 
+> **For the layered/canonical view** (shell config architecture, per-project
+> `.envrc` activation via direnv, major-line pin strategy, and the
+> `scripts/bash/update-toolchain.sh` maintenance routine), see
+> [`docs/guides/dev-environment-setup.md`](docs/guides/dev-environment-setup.md).
+> Steps 1–11 below are the first-time bootstrap; the guide describes the
+> target architecture and ongoing maintenance you'll move to after that.
+
 This section walks through a full, clean environment setup on macOS using [Homebrew](https://brew.sh/) for package management, [pyenv](https://github.com/pyenv/pyenv) for Python version management, and [nvm](https://github.com/nvm-sh/nvm) for Node.js version management. Using version managers (pyenv + nvm) keeps your tool installations isolated from the macOS system Python and Node, avoiding conflicts when multiple projects need different versions. Skip any step for tools you already have installed.
 
 ### Step 1 — Install Homebrew
@@ -295,6 +302,19 @@ If any command returns "not found", check that `~/.zshenv` contains the nvm and 
 
 **After any PATH change** (new nvm version, new pyenv version, new pipx install), restart Claude Code — it inherits the PATH from the shell that launched it and does not reload `~/.zshenv` mid-session.
 
+### Ongoing toolchain maintenance
+
+Once the bootstrap above is complete, ongoing updates (new Python patches,
+Node LTS refreshes, sf/CCI/SFDMU upgrades) are handled by a single script:
+
+```bash
+scripts/bash/update-toolchain.sh
+```
+
+It walks `brew update && brew upgrade` → latest patch in your pinned Python line → latest LTS Node → `sf update` → CCI reinstall/upgrade → `sf plugins update` → `cci task run validate_setup`. Major-line pins (e.g. Python 3.13, Node `lts/*`) are configured at the top of the script.
+
+For the full architecture — shell config responsibilities, the per-project `.envrc` pattern via [direnv](https://direnv.net/), troubleshooting, and instructions for replicating on a new workstation — see [`docs/guides/dev-environment-setup.md`](docs/guides/dev-environment-setup.md).
+
 **Validating the full setup from Claude Code:** Ask Claude to run `cci task run validate_setup`. This checks all required tools and — when the relevant auto-fix options are enabled — can auto-fix missing robot deps (default on) and update the SFDMU version (default on). urllib3 is upgraded as a side-effect of the robot dep fix, or independently with `auto_fix_urllib3=true`. No org connection needed. It is the fastest way to confirm your environment is ready before running flows.
 
 ---
@@ -512,7 +532,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `breconfig` | `false` | Business Rules Engine configuration |
 | `docgen` | `true` | Use Document Generation |
 | `constraints` | `true` | Use Constraint Builder (metadata setup) |
-| `guidedselling` | `false` | Use Guided Selling |
+| `guidedselling` | `true` | Use Guided Selling |
 | `procedureplans` | `true` | Use Procedure Plans |
 
 ### Deployment Flags
@@ -558,6 +578,7 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `extract_qb_rates_data` | Data Management - Extract | Extract qb-rates from org to CSV | See `cumulusci.yml` |
 | `extract_qb_transactionprocessingtypes_data` | Data Management - Extract | Extract qb-transactionprocessingtypes from org to CSV | See `cumulusci.yml` |
 | `extract_qb_guidedselling_data` | Data Management - Extract | Extract qb-guidedselling from org to CSV | See `cumulusci.yml` |
+| `extract_qb_guidedselling_products_data` | Data Management - Extract | Extract qb-guidedselling-products from org to CSV | [qb-guidedselling-products README](datasets/sfdmu/qb/en-US/qb-guidedselling-products/README.md) |
 | `test_qb_pcm_idempotency` | Data Management - Idempotency | Idempotency test for qb-pcm (supports extraction roundtrip) | [qb-pcm README](datasets/sfdmu/qb/en-US/qb-pcm/README.md) |
 | `test_qb_pricing_idempotency` | Data Management - Idempotency | Idempotency test for qb-pricing | See `cumulusci.yml` |
 | `test_qb_product_images_idempotency` | Data Management - Idempotency | Idempotency test for qb-product-images | See `cumulusci.yml` |
@@ -566,7 +587,7 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `test_qb_rating_idempotency` | Data Management - Idempotency | Idempotency test for qb-rating | See `cumulusci.yml` |
 | `test_qb_rates_idempotency` | Data Management - Idempotency | Idempotency test for qb-rates | See `cumulusci.yml` |
 | `test_qb_transactionprocessingtypes_idempotency` | Data Management - Idempotency | Idempotency test for qb-transactionprocessingtypes | See `cumulusci.yml` |
-| `test_qb_guidedselling_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling | See `cumulusci.yml` |
+| `test_qb_guidedselling_products_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling-products | [qb-guidedselling-products README](datasets/sfdmu/qb/en-US/qb-guidedselling-products/README.md) |
 | `extract_qb_prm_data` | Data Management - Extract | Extract qb-prm (partner relationship management) from org to CSV | See `cumulusci.yml` |
 | `test_qb_prm_idempotency` | Data Management - Idempotency | Idempotency test for qb-prm | See `cumulusci.yml` |
 | `post_process_extraction` | Revenue Lifecycle Management | Post-process extracted CSVs (composite keys, header normalization) for re-import; see `scripts/post_process_extraction.py` | See `cumulusci.yml` |
@@ -578,7 +599,7 @@ cci flow run run_qb_idempotency_tests --org <org>
 
 Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. **Post-process runs by default** after extraction; re-import-ready CSVs are in `<timestamp>/processed/`. To skip post-process (raw SFDMU output only), pass `run_post_process: false` (e.g. `cci task run extract_qb_pcm_data --org <org> -o run_post_process false`). You can also run `post_process_extraction` manually for an existing extraction. See [Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md).
 
-**Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All nine plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script.
+**Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All ten plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling, qb-guidedselling-products) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script.
 
 ### Apex Execution Tasks
 
@@ -842,8 +863,8 @@ Use these flows to run all QB extract tasks or all QB idempotency tests by group
 
 | Flow | Description |
 |------|-------------|
-| `run_qb_extracts` | Runs all 9 Data Management - Extract tasks (extract_qb_pcm_data, extract_qb_pricing_data, extract_qb_product_images_data, extract_qb_dro_data, extract_qb_clm_data, extract_qb_rating_data, extract_qb_rates_data, extract_qb_transactionprocessingtypes_data, extract_qb_guidedselling_data). Requires `--org`. Output in `datasets/sfdmu/extractions/<plan>/<timestamp>/`. |
-| `run_qb_idempotency_tests` | Runs all 9 Data Management - Idempotency tasks (test_qb_*_idempotency for the same plans). Loads each plan twice and fails if any object's record count increases. qb-pcm uses extraction roundtrip by default. Requires `--org`. |
+| `run_qb_extracts` | Runs all 10 Data Management - Extract tasks (extract_qb_pcm_data, extract_qb_pricing_data, extract_qb_product_images_data, extract_qb_dro_data, extract_qb_clm_data, extract_qb_rating_data, extract_qb_rates_data, extract_qb_transactionprocessingtypes_data, extract_qb_guidedselling_data, extract_qb_guidedselling_products_data). Requires `--org`. Output in `datasets/sfdmu/extractions/<plan>/<timestamp>/`. |
+| `run_qb_idempotency_tests` | Runs all 9 Data Management - Idempotency tasks, including `test_qb_guidedselling_products_idempotency`. Loads each plan twice and fails if any object's record count increases. qb-pcm uses extraction roundtrip by default. Requires `--org`. |
 
 See [Data Management Tasks](#data-management-tasks) for per-task details and group listing.
 
@@ -873,7 +894,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
 | `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |
 | `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, configure settings, import CML models, activate | `constraints`, `constraints_data`, `qb` |
-| `prepare_guidedselling` | Load guided selling data, deploy metadata | `guidedselling`, `qb` |
+| `prepare_guidedselling` | Assign guided selling permissions, deploy Guided Selling metadata, and update Product2 guided-selling field values | `guidedselling`, `qb` |
 | `prepare_payments` | Deploy payments site, publish community, deploy settings | `payments` |
 
 ### UX Assembly Flow
@@ -1028,6 +1049,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 
 | Document | Description |
 |----------|-------------|
+| [Dev Environment Setup](docs/guides/dev-environment-setup.md) | Canonical local toolchain architecture — shell config layout, direnv `.envrc` per-project pinning, major-line update strategy, replication on new workstations |
 | [Constraints Utility Guide](datasets/constraints/README.md) | CML constraint model export, import, validate -- architecture, workflows, polymorphic resolution |
 | [Constraints Setup](docs/guides/constraints-setup.md) | `prepare_constraints` flow order, feature flags, deployment phases |
 | [Decision Table Examples](docs/references/decision-table-examples.md) | Comprehensive examples for Decision Table management tasks |

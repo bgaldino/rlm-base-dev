@@ -163,7 +163,7 @@ The 30 steps of `prepare_rlm_org` can be understood as seven logical phases. Eac
 
 **Constraints** (Step 22, `constraints` and `constraints_data` flags) — This is a multi-step process with two independent flags. The `constraints` flag gates: loading transaction processing types (also requires `qb`), deploying constraint metadata (classes, triggers, UI components), and applying the context constraint engine node status. The `constraints_data` flag independently gates: configuring constraint settings via Robot Framework (a UI-only toggle), validating the CML data structure, importing two constraint model datasets (QuantumBitComplete and Server2, both also require `qb`) with polymorphic ID resolution, and activating the expression set versions. The flow does not require `constraints` to be set before `constraints_data` steps run — they are independently gated — but in practice both are enabled together for a fully functional constraints setup. The CML import is particularly sophisticated — it resolves polymorphic IDs across Product2, ProductClassification, and ProductRelatedComponent records using Salesforce ID prefix detection.
 
-**Guided Selling** (Step 23, `guidedselling` flag) — Loads guided selling assessment data and deploys the guided selling metadata. Guided selling creates interactive discovery flows that recommend products based on customer responses.
+**Guided Selling** (Step 23, `guidedselling` flag) — Assigns guided selling permission sets, deploys guided selling metadata, and loads Product2 guided-selling field values via the `qb-guidedselling-products` plan. Guided selling creates interactive discovery flows that recommend products based on customer responses.
 
 ---
 
