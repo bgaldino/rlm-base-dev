@@ -102,11 +102,13 @@ and deployed by the baseline `deploy_post_prm` task:
 | Object                | Field                          | Type          | Label                |
 |-----------------------|--------------------------------|---------------|----------------------|
 | ChannelProgramLevel   | `RLM_Deal_Expiration_Days__c`  | Number(18,0)  | Deal Expiration Days |
-| ChannelProgramLevel   | `RLM_Discount_Rate__c`         | Number(18,0)  | Discount Rate        |
+| ChannelProgramLevel   | `RLM_Discount_Rate__c`         | Number(18,0)  | Discount Rate ¹      |
 | ChannelProgramLevel   | `RLM_Minimum_Deal_Size__c`     | Currency(18,0)| Minimum Deal Size    |
 | ChannelProgramMember  | `RLM_Adjustment_Type__c`       | Text(255)     | Adjustment Type      |
 | ChannelProgramMember  | `RLM_Adjustment_Value__c`      | Number(18,2)  | Adjustment Value     |
 | ChannelProgramMember  | `RLM_Discount_Rate__c`         | Number(18,2)  | Discount Rate        |
+
+¹ `ChannelProgramLevel.RLM_Discount_Rate__c` was intentionally changed from `Percent(18,0)` to `Number(18,0)` in this feature branch to align with the PRM pricing bundle, which stores raw decimal rates rather than percentages. Because this repo targets clean org builds, no destructive migration of existing data is required.
 
 ### Permission Set: `RLM_PRM`
 
