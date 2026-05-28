@@ -258,7 +258,28 @@ def main():
         label = "Failed" if fail_on_missing else "Missing (warning, expected for feature-gated objects)"
         print(f"  {label}: {', '.join(errors[:20])}")
 
-    # Build output
+    # Guard BEFORE writing so a totally failed extraction never leaves a
+    # zero-object snapshot on disk (otherwise the bad artifact can get
+    # diffed or committed by accident). Apply the strict / lenient
+    # contract here too — see --allow-missing / --fail-on-missing in
+    # argparse:
+    # - default (allow-missing): success unless we extracted ZERO objects
+    # - strict (fail-on-missing): success only when every requested object resolved
+    if not schema:
+        print(
+            "  [ERROR] no objects were extracted; refusing to write empty snapshot.",
+            file=sys.stderr,
+        )
+        return 1
+    if fail_on_missing and errors:
+        print(
+            f"  [ERROR] --fail-on-missing: {len(errors)} object(s) failed to "
+            f"describe; refusing to write partial snapshot.",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Build output (we know schema is non-empty and meets the strict contract)
     output = {
         "metadata": {
             "org_alias": args.org,
@@ -270,7 +291,6 @@ def main():
         "objects": schema,
     }
 
-    # Write output
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
@@ -278,18 +298,6 @@ def main():
     print(f"\nSchema written to {output_path}")
     print(f"  Objects: {output['metadata']['object_count']}")
     print(f"  Fields: {output['metadata']['total_fields']}")
-
-    # See --allow-missing / --fail-on-missing in argparse:
-    # - default (allow-missing): success unless we extracted ZERO objects
-    # - strict (fail-on-missing): success only when every requested object resolved
-    if fail_on_missing:
-        return 0 if not errors else 1
-    if not schema:
-        print(
-            "  [ERROR] no objects were extracted; refusing to write empty snapshot.",
-            file=sys.stderr,
-        )
-        return 1
     return 0
 
 
