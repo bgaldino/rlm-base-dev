@@ -10,12 +10,13 @@ Hands-on enablement exercises for Salesforce Revenue Cloud (Agentforce Revenue M
 
 - We're building a **two-tier enablement catalog**: a **master / living** set for in-person workshops + per-release **delta extracts** for "what's new in 260" / "what's new in 262" reading
 - All exercises anchor to a **single workshop scenario** — Infinitech (US, Technology) consolidates cloud infrastructure on QuantumBit, configuring **QB-COMPLETE** software bundles + **QB-QRack-750** hardware servers
-- **2 master exercises drafted** (PCM, Pricing) · **10 per-release 260 drafts complete** · **Master Configurator + Transaction Mgmt + 6 more areas pending**
+- **2 master exercises drafted** (PCM, Pricing) · **10 per-release 260 drafts complete** · **262 QB demo script drafted** (`docs/enablement/262/qb-demo-script.md`) · **Master Configurator + Transaction Mgmt + 6 more areas pending** · **262 per-area extracts pending** (deferred until master coverage broadens)
 - Standing customer accounts (Infinitech, Global Media) come from `scratch_data`; channel partner (Robot Resellers) comes from `qb-prm`; everything else from the QB data plans
 - All content is **markdown source**; rendered PDFs/Word for distribution come later
+- **Salesforce Help grounding for 262** uses the per-article markdown snapshot at `docs/salesforce/262/help/` (838 articles) — replaces the old per-release master Help PDFs
 - **Where to start your review** depends on your role — see [Reading paths by reviewer role](#reading-paths-by-reviewer-role) below
 
-> **Branch context:** This catalog is landing on the `262` branch. On 262, 260 is the **prior GA reference** and 262 (Summer '26) is the **current development cycle**. The 262 feature index is populated at [`../salesforce/262/feature-index.md`](../salesforce/262/feature-index.md) and the Help-portal snapshot lives at [`../salesforce/262/help/`](../salesforce/262/help/); 262 per-release extracts (`docs/enablement/262/`) are pending until the master pilots are stable.
+> **Branch context:** This catalog is landing on the `262` branch. On 262, 260 is the **prior GA reference** and 262 (Summer '26) is the **current development cycle**. The 262 feature index is populated at [`../salesforce/262/feature-index.md`](../salesforce/262/feature-index.md) and the Help-portal snapshot lives at [`../salesforce/262/help/`](../salesforce/262/help/) (838 articles, replaces the prior per-release master Help PDFs). The `docs/enablement/262/` directory now contains the **262 QB demo script** ([`262/qb-demo-script.md`](262/qb-demo-script.md), generated 2026-05-24 via the [`qb-demo-script` SKILL](../../.cursor/skills/qb-demo-script/SKILL.md)); 262 per-area Hands-On extracts are still pending and will be derived from master coverage as it broadens.
 
 ---
 
@@ -32,6 +33,8 @@ Each section in a master exercise carries version-aware metadata (`introduced`, 
 ### Per-release extracts (`260/`, `262/`)
 
 Filtered views of the master, scoped to net-new and enhanced features for a specific release. **Used by sellers / SEs / customers** who already know the prior cycle and want only the delta. Currently maintained manually; eventual auto-gen will derive them mechanically from master frontmatter.
+
+The per-release directories also host **release-specific SE/partner artifacts** that aren't filtered views of master — currently the QB demo script ([`262/qb-demo-script.md`](262/qb-demo-script.md)). These have their own authoring SKILL (`.cursor/skills/qb-demo-script/`) and ground on the same QB scenario reference as the master exercises.
 
 > **Why not just one document?** The same text serves these two audiences poorly. A workshop attendee learning Pricing for the first time needs foundational concepts (price books, procedures, selling models) **before** they hit "what's new in 260." A seller pitching 260 to an existing customer wants only the delta. Forcing both into one document means each audience reads through content they don't need.
 
@@ -59,7 +62,7 @@ For the canonical reference of what's in QB orgs by default — including bundle
 |---|---|---|
 | **[`master/`](master/)** | The two-tier model's source of truth — master exercises + scenario reference | 🚧 **Pilot** (PCM + Pricing drafted; 8 areas pending) |
 | **[`260/`](260/)** | Per-release extracts for 260 (Spring '26, prior GA reference on the 262 branch) | ✅ All 10 area drafts complete |
-| `262/` (planned) | Per-release extracts for 262 (Summer '26, current development cycle on the 262 branch) | ⏳ Pending — drafted as 262 stabilizes (see *Branch context* above) |
+| **[`262/`](262/)** | Per-release artifacts for 262 (Summer '26, current development cycle on the 262 branch) | 🚧 QB demo script drafted ([`qb-demo-script.md`](262/qb-demo-script.md)); 10 per-area Hands-On extracts pending |
 | `248/`, `252/`, `254/`, `256/`, `258/` *(not in repo)* | **Read-only historical labels** — used in exercise files to point at prior published exercise PDFs (e.g. ``docs/enablement/258/Salesforce Pricing - Winter '26 Revenue Cloud - External.pdf``). The PDFs themselves live outside git (see the *External dependencies* table below); these path labels exist only as textual references in carry-forward sections. | Frozen labels. Never created in-repo. |
 | **[`coverage-matrix.md`](coverage-matrix.md)** | Cross-release inventory of what's drafted where | Keep current as drafts complete |
 | **[`_template/`](_template/)** | Per-release-extract scaffold template | Stable |
@@ -185,6 +188,13 @@ All 10 functional areas drafted. Currently authored manually pending the auto-ge
 | [`260/260-invoice-management-hands-on.md`](260/260-invoice-management-hands-on.md) | 🚧 Draft v0.1 |
 | [`260/260-revenue-cloud-billing-hands-on.md`](260/260-revenue-cloud-billing-hands-on.md) | 🚧 Draft v0.1 |
 | [`260/260-context-service-hands-on.md`](260/260-context-service-hands-on.md) | 🚧 Draft v0.1 |
+
+### Per-release 262 artifacts (`262/`)
+
+| File | Status |
+|---|---|
+| [`262/qb-demo-script.md`](262/qb-demo-script.md) | 🚧 Draft (preview release; pending SME pass for Setup-UI verification, Known-Bugs population, image capture, Slack canvas publish) |
+| 262 per-area Hands-On extracts (10 areas) | ⏳ Pending — deferred until master coverage broadens beyond the 2 piloted areas |
 
 Status legend: ✅ final · 🚧 draft (under iteration) · ⏳ pending (not yet started)
 
@@ -329,6 +339,8 @@ Project conventions that affect this work:
 - **2026-05-06** — Two-tier model formally documented in skill; master exercise pilots authored validating Pattern 9 (Scenario Threading) + Pattern 10 (Version-Aware Section Metadata)
 - **2026-05-06** — Initial commit on branch `feat/enablement-260-master-exercises` (commit `cae8d05d`)
 - **2026-05-22** — Brought the catalog onto the `262` branch (master + 260 extracts + 260/262 feature indexes + 262 Help-portal snapshot). Trailhead L2 editorial artifacts stay off the public branch.
+- **2026-05-24** — 262 QB demo script drafted (`262/qb-demo-script.md`) via the `qb-demo-script` SKILL; introduces a new per-release artifact type (SE/partner demo script) alongside the per-area Hands-On extracts.
+- **2026-05-28** — README refreshed for 262 status (this commit). 262 per-area Hands-On extracts intentionally deferred until master coverage broadens — see *Why two-tier?* and the *Per-release 262 artifacts* table for the rationale.
 
 ---
 
@@ -345,6 +357,8 @@ Project conventions that affect this work:
 | 📋 [260 Feature Index](../salesforce/260/feature-index.md) | What's new in 260, by area |
 | 📋 [262 Feature Index](../salesforce/262/feature-index.md) | What's new in 262 (preview) |
 | 🗂️ [260 Per-Release Drafts](260/) | All 10 area drafts for 260 |
+| 🎬 [262 QB Demo Script](262/qb-demo-script.md) | Per-release SE/partner demo script for 262 (preview, draft) |
+| 📚 [262 Help Snapshot](../salesforce/262/help/) | Per-article markdown mirror of help.salesforce.com for 262 (838 articles) |
 
 ---
 

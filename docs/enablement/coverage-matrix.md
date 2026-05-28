@@ -13,9 +13,9 @@ Working document tracking what enablement artifacts exist across releases, what'
 | `256/` *(label only)* | 256 | Summer '25 | Exercises only (PDF) |
 | `258/` *(label only)* | 258 | Winter '26 | Exercise drafts (some incomplete, PDF) |
 | `260/` | 260 | Spring '26 | **Prior GA** — 10 per-release `.md` drafts complete |
-| `262/` *(planned)* | 262 | Summer '26 | **Current development cycle** — feature index + Help snapshot landed; per-release `.md` extracts pending master sign-off |
+| `262/` | 262 | Summer '26 | **Current development cycle** — feature index + Help snapshot (838 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
 
-> *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. Only `260/` (and eventually `262/`) exist as real per-release extract folders.
+> *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. `260/` and `262/` exist as real per-release directories.
 
 Most "Overview" links in the journey map point out to Salesforce Help; we author **Hands-On Exercises only**.
 
@@ -38,6 +38,14 @@ Legend: ✅ have it · ⚠️ partial/draft · ❌ missing · — not in journey
 | Revenue Cloud Billing        | ⏳ pending | ⚠️ draft v0.1 | ❌ | ✅ | ✅ | — | — |
 | Advanced Approvals           | ⏳ pending | ⚠️ draft v0.1 | ❌ in 258 (journey map shows it) | — (overview-only in Su'25) | ✅ Release Overview only | ✅ | — |
 | CLM / Contracts              | — (dropped in W'26 and later) | — | — (dropped in W'26) | — | ✅ | ✅ | — |
+
+### Per-release SE/partner artifacts (non-extract)
+
+In addition to the per-area Hands-On extracts tracked above, `docs/enablement/{version}/` also hosts SE/partner artifacts that are **not** filtered views of master — they have their own authoring SKILL and are released as standalone deliverables.
+
+| File | Release | Status | Source |
+|---|---|---|---|
+| [`262/qb-demo-script.md`](262/qb-demo-script.md) | 262 | 🚧 Draft (preview release) | Generated 2026-05-24 via [`.cursor/skills/qb-demo-script/SKILL.md`](../../.cursor/skills/qb-demo-script/SKILL.md); pending SME pass for Setup-UI verification, Known-Bugs population, image capture, Slack canvas publish |
 
 ### Notes on draft state of 258 PDFs
 
@@ -105,4 +113,4 @@ Sorts cleanly by version, area is unambiguous, type suffix lets both kinds coexi
 
 ---
 
-*Last updated: 2026-05-22*
+*Last updated: 2026-05-28*
