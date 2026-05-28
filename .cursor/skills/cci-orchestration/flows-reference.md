@@ -24,6 +24,7 @@ Run all QB data extract tasks (org → CSV). Use --org to specify source org.
 7. **task** `extract_qb_rates_data`
 8. **task** `extract_qb_transactionprocessingtypes_data`
 9. **task** `extract_qb_guidedselling_data`
+10. **task** `extract_qb_guidedselling_products_data`
 
 ---
 
@@ -43,7 +44,7 @@ Run all QB data idempotency tests (load twice, assert no new records). Use --org
 6. **task** `test_qb_rating_idempotency`
 7. **task** `test_qb_rates_idempotency`
 8. **task** `test_qb_transactionprocessingtypes_idempotency`
-9. **task** `test_qb_guidedselling_idempotency`
+9. **task** `test_qb_guidedselling_products_idempotency`
 
 ---
 
@@ -307,8 +308,12 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 **Steps:**
 
-1. **task** `insert_qb_guidedselling_data`  `when: project_config.project__custom__guidedselling and project_config.project__custom__qb`
+1. **task** `assign_permission_sets`  `when: project_config.project__custom__guidedselling`
+   - `api_names`: `['OmniStudioAdmin', 'ProductCatalogManagementAdministrator']`
 2. **task** `deploy_post_guidedselling`  `when: project_config.project__custom__guidedselling`
+3. **task** `assign_permission_sets`  `when: project_config.project__custom__guidedselling`
+   - `api_names`: `['RLM_Guided_Selling']`
+4. **task** `insert_qb_guidedselling_products_data`  `when: project_config.project__custom__guidedselling and project_config.project__custom__qb`
 
 ---
 

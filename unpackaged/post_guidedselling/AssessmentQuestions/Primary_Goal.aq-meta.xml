@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Primary Goal</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>What&apos;s your primary goal today?</questionText>
+        <responseValues>Deploy a complete on-premise server infrastructure solution
+Integrate and manage APIs or cloud services
+Automate business processes and workflows
+Store and manage large volumes of data</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Multiselect</dataType>
+    <developerName>Primary_Goal</developerName>
+    <name>Primary Goal</name>
+    <questionCategory>Demographic</questionCategory>
+</AssessmentQuestion>
