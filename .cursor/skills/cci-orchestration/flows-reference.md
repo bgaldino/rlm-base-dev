@@ -459,6 +459,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 
 1. **task** `configure_revenue_settings`  `when: not (project_config.project__custom__quantumbit or project_config.project__custom__tso)`
 2. **task** `configure_revenue_settings`  `when: project_config.project__custom__quantumbit or project_config.project__custom__tso`
+   - `create_contracts_flow`: `RLM_CreateContractFromQuote`
    - `manage_assets_flow`: `RLM_ARC_Assets`
 3. **task** `configure_core_pricing_setup`
 

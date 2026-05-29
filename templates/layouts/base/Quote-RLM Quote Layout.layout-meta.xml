@@ -231,8 +231,8 @@
             <sortOrder>3</sortOrder>
         </platformActionListItems>
         <platformActionListItems>
-            <actionName>Quote.RLM_CreateContract</actionName>
-            <actionType>QuickAction</actionType>
+            <actionName>CreateContract</actionName>
+            <actionType>StandardButton</actionType>
             <sortOrder>4</sortOrder>
         </platformActionListItems>
         <platformActionListItems>
