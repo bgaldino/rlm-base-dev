@@ -5,7 +5,7 @@ feature_flag: ramps
 # All approval fields are included as fallback (no-ops if already added by
 # the approvals or docgen patches).
 patches:
-  # Move RLM_Create_Proposal from after RLM_CreateContract (where docgen
+  # Move RLM_Create_Proposal from after CreateContract (where docgen
   # placed it) to before CreateOrder — skip if docgen wasn't active.
   - type: remove_action
     action: "Quote.RLM_Create_Proposal"
@@ -20,7 +20,7 @@ patches:
 
   # Ensure approval submission action is present (no-op if approvals patch ran)
   - type: insert_action
-    after: "Quote.RLM_CreateContract"
+    after: "CreateContract"
     actions:
       - "Quote.RLM_Submit_for_Approval"
 

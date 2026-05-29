@@ -4,7 +4,7 @@ feature_flag: approvals
 # Note: All fields use RLM_ prefix (not RC_) per project naming standards.
 patches:
   - type: insert_action
-    after: "Quote.RLM_CreateContract"
+    after: "CreateContract"
     actions:
       - "Quote.RLM_Submit_for_Approval"
 

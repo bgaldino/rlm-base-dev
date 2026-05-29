@@ -150,7 +150,7 @@ feature: approvals          # Informational label
 feature_flag: qb            # Controls whether this patch group is active (checked at CCI level, not in YAML)
 patches:
   - type: insert_action
-    after: "Quote.RLM_CreateContract"   # Insert after this action value; omit to append
+    after: "CreateContract"   # Insert after this action value; omit to append
     actions:
       - "Quote.RLM_Submit_for_Approval"
 
