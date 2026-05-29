@@ -1074,7 +1074,7 @@
 
 ### `configure_revenue_settings`
 
-**Description:** Configure Revenue Settings page defaults: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders from Quote flow, and optionally Manage Assets flow (Robot test). Must run after all data/metadata is deployed and before decision table refresh.
+**Description:** Configure Revenue Settings page defaults: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders from Quote flow, and optionally Create Contracts from Quote and Manage Assets flows (Robot test). Must run after all data/metadata is deployed and before decision table refresh.
 
 **Class:** `tasks.rlm_configure_revenue_settings.ConfigureRevenueSettings`
 
