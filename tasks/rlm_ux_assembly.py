@@ -769,8 +769,8 @@ class AssembleAndDeployUX(SFDXBaseTask):
         skipped = []
         # Patch order matches deploy-sequence (approvals before docgen before ramps)
         feature_patch_order = [
-            ("qb",          "quantumbit"),
-            ("qb",          "utils"),
+            ("quantumbit",  "quantumbit"),
+            ("quantumbit",  "utils"),
             ("guidedselling", "guidedselling"),
             ("billing",     "billing"),
             ("billing_ui",  "billing_ui"),

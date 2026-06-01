@@ -587,6 +587,7 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `test_qb_rating_idempotency` | Data Management - Idempotency | Idempotency test for qb-rating | See `cumulusci.yml` |
 | `test_qb_rates_idempotency` | Data Management - Idempotency | Idempotency test for qb-rates | See `cumulusci.yml` |
 | `test_qb_transactionprocessingtypes_idempotency` | Data Management - Idempotency | Idempotency test for qb-transactionprocessingtypes | See `cumulusci.yml` |
+| `test_qb_guidedselling_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling (legacy plan; standalone — intentionally excluded from `run_qb_idempotency_tests`, preservation-only until CSVs are regenerated from a canonical org) | See `cumulusci.yml` |
 | `test_qb_guidedselling_products_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling-products | [qb-guidedselling-products README](datasets/sfdmu/qb/en-US/qb-guidedselling-products/README.md) |
 | `extract_qb_prm_data` | Data Management - Extract | Extract qb-prm (partner relationship management) from org to CSV | See `cumulusci.yml` |
 | `test_qb_prm_idempotency` | Data Management - Idempotency | Idempotency test for qb-prm | See `cumulusci.yml` |
