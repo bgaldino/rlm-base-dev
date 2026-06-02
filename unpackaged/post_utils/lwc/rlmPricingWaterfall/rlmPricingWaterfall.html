@@ -1,0 +1,210 @@
+<template>
+  <lightning-card title="Pricing Waterfall" icon-name="standard:feed">
+
+    <div class="slds-card__body slds-card__body_inner">
+
+      <!-- Loading -->
+      <template if:true={isLoading}>
+        <div class="slds-align_absolute-center slds-p-around_medium">
+          <lightning-spinner alternative-text="Loading pricing data" size="small"></lightning-spinner>
+        </div>
+      </template>
+
+      <template if:false={isLoading}>
+
+        <!-- Pricing has not run -->
+        <template if:true={isPricingNotRun}>
+          <div class="slds-illustration slds-illustration_small slds-p-around_medium">
+            <div class="slds-illustration__figure">
+              <lightning-icon icon-name="utility:info" size="medium" variant="bare"></lightning-icon>
+            </div>
+            <div class="slds-illustration__body slds-m-top_small">
+              <p class="slds-text-body_regular slds-text-color_weak">Pricing has not run for this line item.</p>
+            </div>
+          </div>
+        </template>
+
+        <template if:false={isPricingNotRun}>
+
+          <!-- Error -->
+          <template if:true={error}>
+            <div class="slds-box slds-theme_error slds-m-bottom_small">
+              <p class="slds-text-body_small">{error}</p>
+            </div>
+          </template>
+
+          <!-- Price Summary -->
+          <section class="slds-m-bottom_medium">
+            <h2 class="slds-text-heading_small slds-m-bottom_x-small">Price Summary</h2>
+            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered price-summary-table">
+              <tbody>
+                <tr>
+                  <td class="slds-text-color_weak label-cell">List Price</td>
+                  <td class="slds-text-align_right value-cell">
+                    <lightning-formatted-number value={listPrice} format-style="currency"
+                      currency-code={currencyCode} maximum-fraction-digits="2">
+                    </lightning-formatted-number>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="slds-text-color_weak label-cell">Discount</td>
+                  <td class="slds-text-align_right value-cell">
+                    <template if:true={hasDiscount}>
+                      <lightning-formatted-number value={discount} format-style="percent-fixed"
+                        maximum-fraction-digits="2">
+                      </lightning-formatted-number>
+                    </template>
+                    <template if:false={hasDiscount}>—</template>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="slds-text-color_weak label-cell">Unit Price</td>
+                  <td class="slds-text-align_right value-cell">
+                    <lightning-formatted-number value={unitPrice} format-style="currency"
+                      currency-code={currencyCode} maximum-fraction-digits="2">
+                    </lightning-formatted-number>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="slds-text-color_weak label-cell">Quantity</td>
+                  <td class="slds-text-align_right value-cell">
+                    <lightning-formatted-number value={quantity} maximum-fraction-digits="4">
+                    </lightning-formatted-number>
+                  </td>
+                </tr>
+                <tr class="total-row">
+                  <td class="label-cell slds-text-title_caps">Total Price</td>
+                  <td class="slds-text-align_right value-cell slds-text-heading_small">
+                    <lightning-formatted-number value={totalPrice} format-style="currency"
+                      currency-code={currencyCode} maximum-fraction-digits="2">
+                    </lightning-formatted-number>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <!-- Current execution status -->
+          <template if:true={currentLineStatus}>
+            <section class="slds-m-bottom_medium">
+              <h2 class="slds-text-heading_small slds-m-bottom_x-small">Current Execution</h2>
+              <div class="slds-grid slds-gutters_small slds-wrap">
+                <!-- Line-level status (most relevant for this QLI) -->
+                <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                  <p class="slds-text-color_weak slds-text-body_small">This Line</p>
+                  <span class={currentLineStatusBadgeClass}>{currentLineStatus}</span>
+                </div>
+                <!-- Batch-level status (across all lines priced together) -->
+                <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                  <p class="slds-text-color_weak slds-text-body_small">
+                    Batch
+                    <template if:true={currentLineCount}>
+                      <span class="slds-text-color_default"> ({currentLineCount} lines)</span>
+                    </template>
+                  </p>
+                  <span class={currentOverallStatusBadgeClass}>{currentOverallStatus}</span>
+                </div>
+                <!-- Who triggered it -->
+                <template if:true={currentTriggeredBy}>
+                  <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                    <p class="slds-text-color_weak slds-text-body_small">Triggered By</p>
+                    <p class="slds-text-body_small">{currentTriggeredBy}</p>
+                  </div>
+                </template>
+                <!-- Waterfall run id for reference -->
+                <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                  <p class="slds-text-color_weak slds-text-body_small">Waterfall Run ID</p>
+                  <p class="slds-text-body_small run-id-text" title={_waterfallRunId}>{_waterfallRunId}</p>
+                </div>
+              </div>
+            </section>
+          </template>
+
+          <!-- Pricing History -->
+          <section>
+            <h2 class="slds-text-heading_small slds-m-bottom_x-small">Pricing History</h2>
+            <template if:true={hasPricingHistory}>
+              <div class="waterfall-table-container">
+                <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered slds-table_fixed-layout">
+                  <thead>
+                    <tr class="slds-line-height_reset">
+                      <th class="run-col" scope="col"><div class="slds-truncate">Run</div></th>
+                      <th class="time-col" scope="col"><div class="slds-truncate">Time</div></th>
+                      <th class="status-col" scope="col"><div class="slds-truncate">This Line</div></th>
+                      <th class="status-col" scope="col"><div class="slds-truncate">Batch</div></th>
+                      <th class="lines-col" scope="col"><div class="slds-truncate" title="Total lines priced in this batch">Lines</div></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template for:each={pricingHistory} for:item="row">
+                      <tr key={row.key} class={row.rowClass}>
+
+                        <!-- Group separator row -->
+                        <template if:true={row.isSeparator}>
+                          <th colspan="5" class="group-separator-cell" scope="colgroup">{row.label}</th>
+                        </template>
+
+                        <!-- Data row -->
+                        <template if:false={row.isSeparator}>
+                          <td class="run-col">
+                            <template if:true={row.paeUrl}>
+                              <a
+                                class="run-link"
+                                href={row.paeUrl}
+                                data-id={row.pricingApiExecutionId}
+                                onclick={handleOpenRecord}
+                                title="Open PricingApiExecution record (Ctrl/⌘+click for new tab)"
+                              >
+                                <template if:true={row.isCurrent}>
+                                  <strong>{row.paeName}</strong>
+                                </template>
+                                <template if:false={row.isCurrent}>
+                                  {row.paeName}
+                                </template>
+                              </a>
+                              <template if:true={row.isCurrent}>
+                                <span class="slds-badge badge-current slds-m-left_xx-small">Current</span>
+                              </template>
+                            </template>
+                            <template if:false={row.paeUrl}>
+                              {row.paeName}
+                            </template>
+                          </td>
+                          <td class="time-col">
+                            <lightning-formatted-date-time
+                              value={row.createdDate}
+                              hour="2-digit"
+                              minute="2-digit"
+                              second="2-digit"
+                              hour12="true"
+                            ></lightning-formatted-date-time>
+                          </td>
+                          <td class="status-col">
+                            <span class={row.lineStatusBadgeClass}>{row.lineStatus}</span>
+                          </td>
+                          <td class="status-col">
+                            <span class={row.overallStatusBadgeClass}>{row.overallStatus}</span>
+                          </td>
+                          <td class="lines-col slds-text-color_weak">
+                            {row.lineCount}
+                          </td>
+                        </template>
+
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+            <template if:false={hasPricingHistory}>
+              <p class="slds-text-body_small slds-text-color_weak slds-p-vertical_small">
+                No pricing history found for this line item.
+              </p>
+            </template>
+          </section>
+
+        </template>
+      </template>
+    </div>
+  </lightning-card>
+</template>
