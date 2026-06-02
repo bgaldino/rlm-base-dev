@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Implementation</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>How would you like to handle implementation?</questionText>
+        <responseValues>We have an internal IT team - we&apos;ll do it ourselves
+We want QuantumBit&apos;s team to handle setup end-to-end
+We&apos;d like a hybrid - some help, some self-service</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Radio</dataType>
+    <developerName>Implementation</developerName>
+    <name>Implementation</name>
+    <questionCategory>Demographic</questionCategory>
+</AssessmentQuestion>

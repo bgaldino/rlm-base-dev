@@ -771,6 +771,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         feature_patch_order = [
             ("quantumbit",  "quantumbit"),
             ("quantumbit",  "utils"),
+            ("guidedselling", "guidedselling"),
             ("billing",     "billing"),
             ("billing_ui",  "billing_ui"),
             ("payments",    "payments"),

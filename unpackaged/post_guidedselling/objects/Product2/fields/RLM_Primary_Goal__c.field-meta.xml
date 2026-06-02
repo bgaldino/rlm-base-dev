@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Primary_Goal__c</fullName>
+    <description>Product qualification criteria used by the guided selling process.</description>
+    <inlineHelpText>Used by guided selling to match products to the customer&apos;s primary goal.</inlineHelpText>
+    <label>Primary Goal</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Deploy a complete on-premise server infrastructure solution</fullName>
+                <default>false</default>
+                <label>Deploy a complete on-premise server infrastructure solution</label>
+            </value>
+            <value>
+                <fullName>Integrate and manage APIs or cloud services</fullName>
+                <default>false</default>
+                <label>Integrate and manage APIs or cloud services</label>
+            </value>
+            <value>
+                <fullName>Automate business processes and workflows</fullName>
+                <default>false</default>
+                <label>Automate business processes and workflows</label>
+            </value>
+            <value>
+                <fullName>Store and manage large volumes of data</fullName>
+                <default>false</default>
+                <label>Store and manage large volumes of data</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+    <visibleLines>4</visibleLines>
+</CustomField>
