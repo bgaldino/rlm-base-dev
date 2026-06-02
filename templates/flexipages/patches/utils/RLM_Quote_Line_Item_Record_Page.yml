@@ -1,0 +1,41 @@
+feature: utils
+feature_flag: qb
+# Adds a "Price Waterfall" tab to the QuoteLineItem record page displaying
+# the rlmPricingWaterfall component (pricing history and execution status).
+patches:
+- type: insert_after_xml
+  anchor: |-
+    <name>usageRatesTabContent</name>
+            <type>Facet</type>
+        </flexiPageRegions>
+  xml: |2
+        <flexiPageRegions>
+            <itemInstances>
+                <componentInstance>
+                    <componentName>c:rlmPricingWaterfall</componentName>
+                    <identifier>c_rlmPricingWaterfall</identifier>
+                </componentInstance>
+            </itemInstances>
+            <name>priceWaterfallTabContent</name>
+            <type>Facet</type>
+        </flexiPageRegions>
+- type: insert_after_xml
+  anchor: |-
+    <identifier>usageRatesTab</identifier>
+                </componentInstance>
+            </itemInstances>
+  xml: |2
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>priceWaterfallTabContent</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Price Waterfall</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>priceWaterfallTab</identifier>
+            </componentInstance>
+        </itemInstances>

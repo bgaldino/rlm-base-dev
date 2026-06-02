@@ -224,6 +224,16 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
+                <componentName>c:rlmPricingWaterfall</componentName>
+                <identifier>c_rlmPricingWaterfall</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>priceWaterfallTabContent</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
                 <componentInstanceProperties>
                     <name>active</name>
                     <value>true</value>
@@ -266,6 +276,20 @@
                 </componentInstanceProperties>
                 <componentName>flexipage:tab</componentName>
                 <identifier>usageRatesTab</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>priceWaterfallTabContent</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>title</name>
+                    <value>Price Waterfall</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:tab</componentName>
+                <identifier>priceWaterfallTab</identifier>
             </componentInstance>
         </itemInstances>
         <name>maintabs</name>
