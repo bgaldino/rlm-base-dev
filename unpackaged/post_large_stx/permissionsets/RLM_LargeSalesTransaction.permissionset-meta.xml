@@ -10,6 +10,11 @@
         <field>Quote.IsLargeDeal</field>
         <readable>true</readable>
     </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>RLM_Set_Up_Quote_Settings__c.RLM_Show_Product_Set_Selector__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Large Sales Transaction</label>
 </PermissionSet>

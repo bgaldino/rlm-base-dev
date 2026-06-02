@@ -11,6 +11,11 @@ Library           ${EXECDIR}/robot/rlm-base/resources/ChromeOptionsHelper.py
 # Default timeout for waiting for setup page and toggle elements
 ${SETUP_PAGE_LOAD_TIMEOUT}    20s
 ${TOGGLE_CLICK_TIMEOUT}       10s
+# Password used to complete a forced "Change Your Password" reset if frontdoor
+# login lands there (safety net; the set_scratch_org_password CCI task normally
+# clears the must-reset flag first). Keep in sync with
+# scripts/apex/setScratchOrgPassword.apex.
+${SCRATCH_NEW_PASSWORD}       Cumulus1234!
 # Shared JS helper — pierces lightning-input → lightning-primitive-input-toggle → input.
 # Prepended to both _EnsureShadowDOMToggle and _VerifyToggleViaShadowDOM JS blocks so
 # the implementation lives in one place.
@@ -77,6 +82,46 @@ _Wait For Login If Needed
     ...    AND    Sleep    ${MANUAL_LOGIN_WAIT}
     ...    AND    Go To    ${target_url}
     ...    AND    Sleep    2s
+    _Handle Change Password If Needed    ${target_url}
+
+_Handle Change Password If Needed
+    [Documentation]    Safety net for scratch org definitions (e.g. the TSO-derived
+    ...    tfid-cdo-rlm template) that flag the admin user to reset password at next
+    ...    login. When that happens, frontdoor (sf org open --url-only) redirects to
+    ...    "Change Your Password" instead of the requested Setup page, so every toggle
+    ...    lookup fails on the wrong page. The set_scratch_org_password CCI task
+    ...    (prepare_core step 1) normally clears the flag before any UI step; this
+    ...    keyword completes the reset in-browser if the page is still reached, then
+    ...    returns to the target Setup URL.
+    [Arguments]    ${target_url}
+    ${title}=    Get Title
+    ${title_lower}=    Convert To Lower Case    ${title}
+    ${is_change_pw}=    Run Keyword And Return Status    Should Contain    ${title_lower}    change your password
+    Return From Keyword If    not ${is_change_pw}
+    Log    "Change Your Password" page detected; completing reset in-browser and continuing.
+    ${pw_inputs}=    Get WebElements    css:input[type="password"]
+    ${count}=    Get Length    ${pw_inputs}
+    Run Keyword If    ${count} == 0    Fail
+    ...    msg=Change Your Password page reached but no password inputs found. Run `cci task run set_scratch_org_password` against this org, then retry.
+    # New Password + Confirm New Password take the same value; frontdoor reset
+    # does not require the current password. Input Password masks the value in log.html.
+    FOR    ${el}    IN    @{pw_inputs}
+        Input Password    ${el}    ${SCRATCH_NEW_PASSWORD}
+    END
+    ${clicked}=    Run Keyword And Return Status    Click Element
+    ...    xpath=//*[(self::input or self::button) and (contains(translate(@value,'CHANGEPSWORD','changepsword'),'change password') or contains(translate(normalize-space(.),'CHANGEPSWORD','changepsword'),'change password'))]
+    Run Keyword If    not ${clicked}    Click Element    css:input[type="submit"], button[type="submit"]
+    Wait Until Keyword Succeeds    20s    2s    _Change Password Page Gone
+    Go To    ${target_url}
+    Wait Until Page Contains Element    css:body    timeout=${SETUP_PAGE_LOAD_TIMEOUT}
+    Sleep    3s    reason=Allow Setup page to load after password change
+
+_Change Password Page Gone
+    [Documentation]    Succeeds once the browser has navigated away from the
+    ...    "Change Your Password" page (drives Wait Until Keyword Succeeds).
+    ${title}=    Get Title
+    ${title_lower}=    Convert To Lower Case    ${title}
+    Should Not Contain    ${title_lower}    change your password
 
 Enable Toggle By Label
     [Documentation]    Finds a toggle by its visible label (e.g. "Document Builder") and turns it ON. Verifies the toggle is on after click; fails if it did not enable.

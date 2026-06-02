@@ -31,8 +31,9 @@
 
         <template if:true={productCountsEditMode}>
             <p class="tree-hint slds-text-body_small slds-text-color_weak slds-m-bottom_x-small">
-                Subgroups and on-quote line items are shown for context. <strong>Row total</strong> = on quote + the number you enter.
-                <strong>Roll-up</strong> = this row's total plus all descendants (subtree). Expand/collapse: + / − only.
+                Use the number field to add rows. <strong>Row total</strong> = this group only: on quote + additional rows entered.
+                <strong>Subtree total</strong> = this group plus all child groups. Full quote total is shown in the gray summary box.
+                Expand/collapse: + / − only.
             </p>
         </template>
 
@@ -54,28 +55,28 @@
                     <template for:each={visibleRows} for:item="row">
                         <div
                             key={row.path}
-                            class={row.rowClass}
+                            class="tree-row"
+                            class:tree-row-selected={row.isSelected}
+                            class:tree-row-first-branch={row.firstBranchGuides}
                         >
                             <div class="tree-row-top">
                                 <div
-                                    class={row.rowCoreClass}
+                                    class="tree-row-core"
+                                    class:tree-row-core-selected={row.isSelected}
                                     data-path={row.path}
-                                    role="button"
-                                    tabindex="0"
-                                    aria-selected={row.isSelected}
                                     onclick={handleRowSelect}
-                                    onkeydown={handleRowCoreKeydown}
                                 >
                                     <div
-                                        class={row.guidesClass}
+                                        class="tree-guides"
+                                        class:tree-guides-depth1={row.firstBranchGuides}
                                         style={row.guideClusterStyle}
                                     >
                                         <template for:each={row.guidePipes} for:item="pipe">
                                             <div key={pipe.key} class="tree-track">
-                                                <span class={pipe.pipeClass}></span>
+                                                <span class="tree-pipe" class:tree-pipe-on={pipe.on}></span>
                                             </div>
                                         </template>
-                                        <div class={row.elbowClass}>
+                                        <div class="tree-elbow" class:tree-elbow-none={row.elbowNone}>
                                             <template if:true={row.elbowTee}>
                                                 <span class="tree-elbow-bar tree-elbow-tee-v" aria-hidden="true"></span>
                                                 <span class="tree-elbow-bar tree-elbow-tee-h" aria-hidden="true"></span>
@@ -91,8 +92,6 @@
                                                 class="tree-toggle"
                                                 data-path={row.path}
                                                 title={row.toggleTitle}
-                                                aria-label={row.toggleTitle}
-                                                aria-expanded={row.ariaExpanded}
                                                 onclick={handleToggleExpand}
                                             >
                                                 {row.toggleLabel}
@@ -112,7 +111,6 @@
                                         <template if:true={row.isEditing}>
                                             <lightning-input
                                                 type="text"
-                                                label="Rename group"
                                                 variant="label-hidden"
                                                 value={editingDraftName}
                                                 data-path={row.path}
@@ -137,7 +135,7 @@
                                                         <span class="slds-text-color_weak">Row total: {row.productStepRowTotal}</span>
                                                         <template if:true={row.productStepShowRollUp}>
                                                             <span class="slds-text-color_weak tree-product-step-rollup"
-                                                                >Roll-up: {row.productStepRollUp}</span>
+                                                                >Subtree total: {row.productStepRollUp}</span>
                                                         </template>
                                                     </div>
                                                 </div>
@@ -152,19 +150,6 @@
                                         </template>
                                     </div>
                                 </div>
-                                <template if:true={row.showRename}>
-                                    <template if:false={row.isEditing}>
-                                        <lightning-button-icon
-                                            icon-name="utility:edit"
-                                            variant="border-filled"
-                                            alternative-text="Rename group"
-                                            title="Rename group"
-                                            data-path={row.path}
-                                            class="tree-rename-btn"
-                                            onclick={handleLabelDblClick}
-                                        ></lightning-button-icon>
-                                    </template>
-                                </template>
                                 <template if:true={row.showDelete}>
                                     <lightning-button-icon
                                         icon-name="utility:delete"
@@ -194,8 +179,6 @@
                                     <div class="add-child" style={row.addChildStyle}>
                                         <lightning-input
                                             type="text"
-                                            label="New subgroup name"
-                                            variant="label-hidden"
                                             data-parent-path={row.path}
                                             class="child-name"
                                             placeholder="New subgroup name"

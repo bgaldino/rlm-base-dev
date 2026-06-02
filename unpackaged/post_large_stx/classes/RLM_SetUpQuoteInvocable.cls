@@ -1,29 +1,10 @@
 /**
  * Invocable for "Set Up Quote" flow: create or modify quote, set Large Deal,
  * create top-level + nested groups (max 5 levels), add products per group (DemoInvocableAction product set).
+ * Modify + empty hierarchyJson parents + csvImportLineItemsJson: add CSV lines only (no QuoteLineGroup; flat QuoteLineItems).
  */
 public with sharing class RLM_SetUpQuoteInvocable {
 
-    /**
-     * Resolves demo PricebookEntries dynamically from the Standard Pricebook
-     * by ProductSellingModel type (OneTime, Evergreen, TermDefined), ordered
-     * so callers can cycle through all selling-model varieties via Math.mod.
-     * Returns up to 20 active PBEs — portable across scratch orgs and sandboxes.
-     */
-    @TestVisible
-    private static List<PricebookEntry> loadDemoPricebookEntries() {
-        return [
-            SELECT Id, Product2Id, UnitPrice,
-                   ProductSellingModel.SellingModelType,
-                   ProductSellingModel.PricingTermUnit
-            FROM PricebookEntry
-            WHERE Pricebook2.IsStandard = true
-              AND IsActive = true
-              AND ProductSellingModelId != null
-            ORDER BY ProductSellingModel.SellingModelType NULLS LAST
-            LIMIT 20
-        ];
-    }
     private static final Integer MAX_TOP_LEVEL = 20;
     private static final Integer MAX_NESTED_PER_TOP = 10;
 
@@ -48,10 +29,14 @@ public with sharing class RLM_SetUpQuoteInvocable {
         @InvocableVariable(label='Product counts per parent (comma-separated: parent count then each subgroup; same order as parents)')
         public List<String> productCountsPerParent;
         // LWC hierarchy (5-level tree + counts)
-        @InvocableVariable(label='Hierarchy JSON (from LWC: { parents: [ { name, path, children: [...] } ] })')
+        @InvocableVariable(label='Hierarchy JSON (from LWC: { parents: [ { name, path, children: [...] } ] }). Use {"parents":[]} when modifying a quote with csvImportLineItemsJson only (no QuoteLineGroup rows; flat lines).')
         public String hierarchyJson;
         @InvocableVariable(label='Product counts JSON (from LWC: { "0": 2, "0-0": 1, ... })')
         public String productCountsJson;
+        @InvocableVariable(label='Ungrouped product count (quote-level lines, no QuoteLineGroup)')
+        public Integer ungroupedProductCount;
+        @InvocableVariable(label='Product set mode for count-based setup quote paths')
+        public String productSetMode;
         /** CSV import: JSON array of { "path": "0-0", "productIdentifier": "QB-NETSECURE-10G", "quantity": 2 }. When set, used instead of productCountsJson (resolve by ProductCode then Name; PBE order OneTime→Evergreen→TermDefined; skip row if not found). */
         @InvocableVariable(label='CSV import line items JSON (array of path, productIdentifier, quantity)')
         public String csvImportLineItemsJson;
@@ -70,12 +55,12 @@ public with sharing class RLM_SetUpQuoteInvocable {
         /** Repeat-buy assignment payload (create previous-quotes mode). */
         @InvocableVariable(label='Repeat-buy line assignments JSON')
         public String repeatBuyAssignmentsJson;
-        /** Quote account context from action launch (Account record action). */
-        @InvocableVariable(label='Quote account Id')
-        public String quoteAccountId;
         /** Repeat-buy selected account id; used to set target quote account linkage. */
         @InvocableVariable(label='Repeat-buy account Id')
         public String repeatBuyAccountId;
+        /** Account action context; used to link newly created quotes to the source Account. */
+        @InvocableVariable(label='Quote Account Id')
+        public String quoteAccountId;
         // Legacy flat structure (old flow)
         @InvocableVariable(label='Number of top-level groups (legacy)')
         public Integer numTopLevel;
@@ -108,8 +93,14 @@ public with sharing class RLM_SetUpQuoteInvocable {
             return results;
         }
         Input in0 = inputs[0];
+        // TEMP DEBUG: Salesforce Debug Logs (Setup → Debug Logs). Remove after capturing.
+        Integer hjLen = String.isNotBlank(in0.hierarchyJson) ? in0.hierarchyJson.length() : 0;
+        Integer pjLen = String.isNotBlank(in0.productCountsJson) ? in0.productCountsJson.length() : 0;
         Boolean useHier = useHierarchyJsonInput(in0);
         Boolean useTree = useTreeInput(in0);
+        System.debug(LoggingLevel.INFO, '[SetUpQuoteInvocable.execute] hierarchyJson length=' + hjLen + ', productCountsJson length=' + pjLen + ', useHierarchyJson=' + useHier + ', useTree=' + useTree);
+        if (String.isNotBlank(in0.hierarchyJson)) System.debug(LoggingLevel.INFO, '[SetUpQuoteInvocable.execute] hierarchyJson preview: ' + in0.hierarchyJson.substring(0, Math.min(200, in0.hierarchyJson.length())) + (in0.hierarchyJson.length() > 200 ? '...' : ''));
+        if (String.isNotBlank(in0.productCountsJson)) System.debug(LoggingLevel.INFO, '[SetUpQuoteInvocable.execute] productCountsJson preview: ' + in0.productCountsJson.substring(0, Math.min(200, in0.productCountsJson.length())) + (in0.productCountsJson.length() > 200 ? '...' : ''));
         try {
             List<Integer> csvLinesAddedOut = new List<Integer>();
             String qId;
@@ -145,11 +136,11 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 'quoteId' => null, 'success' => false, 'errorMessage' => 'No input'
             });
         }
+        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(inputJson);
+        Input in0 = inputFromMap(m);
         // Call invocable directly so PST runs in Apex context; when run via Flow, PST defaults
         // persist to SKIP and the quote is empty. Same code path as run-set-up-quote-invocable.apex.
         try {
-            Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(inputJson);
-            Input in0 = inputFromMap(m);
             List<Output> outs = execute(new List<Input>{ in0 });
             if (outs.isEmpty()) {
                 return JSON.serialize(new Map<String, Object>{
@@ -169,11 +160,87 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
     }
 
+    @AuraEnabled(cacheable=false)
+    public static String getSetUpQuoteUiConfig() {
+        Boolean showProductSetSelector = false;
+        try {
+            RLM_Set_Up_Quote_Settings__c settings = RLM_Set_Up_Quote_Settings__c.getOrgDefaults();
+            showProductSetSelector = settings != null && settings.RLM_Show_Product_Set_Selector__c == true;
+        } catch (Exception e) {
+            showProductSetSelector = false;
+        }
+        return JSON.serialize(new Map<String, Object>{
+            'showProductSetSelector' => showProductSetSelector
+        });
+    }
+
+    /**
+     * Lightweight polling endpoint for the LWC Large Deal two-step path.
+     * Large Deal PST hydration can report success before groups/lines are query-visible.
+     */
+    @AuraEnabled(cacheable=false)
+    public static String getSetUpQuoteStatus(String quoteId) {
+        if (String.isBlank(quoteId)) {
+            return JSON.serialize(new Map<String, Object>{
+                'success' => false,
+                'errorMessage' => 'Quote Id is required'
+            });
+        }
+        try {
+            Id qId = Id.valueOf(quoteId);
+            Quote q = [
+                SELECT Id, Name, IsLargeDeal, LineItemCount, CalculationStatus
+                FROM Quote
+                WHERE Id = :qId
+                LIMIT 1
+            ];
+            Integer groupCount = [SELECT COUNT() FROM QuoteLineGroup WHERE QuoteId = :qId];
+            Integer qliCount = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId];
+            Integer errorCount = [SELECT COUNT() FROM RevenueTransactionErrorLog WHERE PrimaryRecordId = :qId];
+            Id currentUserId = UserInfo.getUserId();
+            Integer pendingAsyncCount = [
+                SELECT COUNT()
+                FROM AsyncOperationTracker
+                WHERE (ReferenceEntityId = :qId
+                    OR (CreatedById = :currentUserId
+                        AND JobType IN ('PSTBaseJob', 'PSTConfig', 'PSTPersist')))
+                AND Status NOT IN ('Completed', 'Failed', 'Failure', 'Canceled')
+            ];
+            Integer failedAsyncCount = [
+                SELECT COUNT()
+                FROM AsyncOperationTracker
+                WHERE ReferenceEntityId = :qId
+                AND Status IN ('Failed', 'Failure', 'Canceled')
+            ];
+            return JSON.serialize(new Map<String, Object>{
+                'success' => true,
+                'quoteId' => String.valueOf(q.Id),
+                'name' => q.Name,
+                'isLargeDeal' => q.IsLargeDeal,
+                'lineItemCount' => q.LineItemCount,
+                'calculationStatus' => q.CalculationStatus,
+                'groupCount' => groupCount,
+                'qliCount' => qliCount,
+                'revenueErrorCount' => errorCount,
+                'pendingAsyncCount' => pendingAsyncCount,
+                'failedAsyncCount' => failedAsyncCount
+            });
+        } catch (Exception e) {
+            String msg = e.getMessage();
+            if (String.isBlank(msg)) msg = e.getTypeName();
+            return JSON.serialize(new Map<String, Object>{
+                'success' => false,
+                'quoteId' => quoteId,
+                'errorMessage' => msg
+            });
+        }
+    }
+
     /**
      * Returns a list of quotes for the Modify flow: Id, Name, QuoteNumber, IsLargeDeal.
      * Used by Set Up Quote wizard to show a dropdown and to hide the Large Deal step when the selected quote already has Large Deal set.
      */
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled(cacheable=false)
     public static List<Map<String, String>> getQuotesForModify() {
         List<Map<String, String>> options = new List<Map<String, String>>();
         for (Quote q : [SELECT Id, Name, QuoteNumber, IsLargeDeal FROM Quote ORDER BY LastModifiedDate DESC LIMIT 100]) {
@@ -184,6 +251,37 @@ public with sharing class RLM_SetUpQuoteInvocable {
             options.add(opt);
         }
         return options;
+    }
+
+    @AuraEnabled(cacheable=false)
+    public static String detectQuoteProductSetMode(String quoteId) {
+        if (String.isBlank(quoteId)) {
+            return RLM_SetUpQuoteProductSets.PRODUCT_SET_QUANTUMBIT;
+        }
+        Set<String> siemensIdentifiers = RLM_SetUpQuoteProductSets.siemensProductIdentifierSet();
+        Integer totalLines = 0;
+        Integer siemensLines = 0;
+        try {
+            Id qId = Id.valueOf(quoteId);
+            for (QuoteLineItem line : [
+                SELECT Product2.ProductCode
+                FROM QuoteLineItem
+                WHERE QuoteId = :qId
+                LIMIT 5000
+            ]) {
+                totalLines++;
+                String productCode = line.Product2 != null ? line.Product2.ProductCode : null;
+                if (String.isNotBlank(productCode) && siemensIdentifiers.contains(productCode)) {
+                    siemensLines++;
+                }
+            }
+        } catch (Exception e) {
+            return RLM_SetUpQuoteProductSets.PRODUCT_SET_QUANTUMBIT;
+        }
+        if (totalLines > 0 && totalLines == siemensLines) {
+            return RLM_SetUpQuoteProductSets.PRODUCT_SET_SIEMENS;
+        }
+        return RLM_SetUpQuoteProductSets.PRODUCT_SET_QUANTUMBIT;
     }
 
     /**
@@ -201,15 +299,11 @@ public with sharing class RLM_SetUpQuoteInvocable {
             return emptyResult;
         }
         List<QuoteLineGroup> groups = [SELECT Id, Name, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name];
+        List<QuoteLineItem> items = [SELECT QuoteLineGroupId FROM QuoteLineItem WHERE QuoteId = :qId];
         Map<Id, Integer> lineCountByGroup = new Map<Id, Integer>();
-        for (AggregateResult ar : [
-            SELECT QuoteLineGroupId groupId, COUNT(Id) lineCount
-            FROM QuoteLineItem
-            WHERE QuoteId = :qId
-              AND QuoteLineGroupId != null
-            GROUP BY QuoteLineGroupId
-        ]) {
-            lineCountByGroup.put((Id) ar.get('groupId'), (Integer) ar.get('lineCount'));
+        for (QuoteLineItem li : items) {
+            Id gid = li.QuoteLineGroupId;
+            if (gid != null) lineCountByGroup.put(gid, lineCountByGroup.containsKey(gid) ? lineCountByGroup.get(gid) + 1 : 1);
         }
         Map<Id, List<QuoteLineGroup>> childrenByParent = new Map<Id, List<QuoteLineGroup>>();
         List<QuoteLineGroup> roots = new List<QuoteLineGroup>();
@@ -386,26 +480,51 @@ public with sharing class RLM_SetUpQuoteInvocable {
         return tempIdToNewId;
     }
 
-    private static void applyExistingGroupCounts(String quoteId, String existingGroupCountsJson, Map<String, Id> tempIdToNewGroupId) {
-        if (String.isBlank(quoteId) || String.isBlank(existingGroupCountsJson)) return;
+    private static Map<Id, Integer> parseExistingGroupCounts(String existingGroupCountsJson, Map<String, Id> tempIdToNewGroupId) {
         Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(existingGroupCountsJson);
         Map<Id, Integer> groupIdToCount = new Map<Id, Integer>();
         for (String k : m.keySet()) {
             Object v = m.get(k);
-            Integer count = null;
-            if (v instanceof Integer) count = (Integer) v;
-            else if (v instanceof Decimal) count = ((Decimal) v).intValue();
-            else if (v instanceof Long) count = ((Long) v).intValue();
-            else if (v instanceof Double) count = ((Double) v).intValue();
-            else if (v != null) count = Integer.valueOf(String.valueOf(v));
-            if (count == null || count < 0) count = 0;
+            Integer count = RLM_SetUpQuoteProductSets.parseNonNegativeInteger(v);
             Id gid = null;
             if (tempIdToNewGroupId != null && tempIdToNewGroupId.containsKey(k)) gid = tempIdToNewGroupId.get(k);
             else try { gid = Id.valueOf(k); } catch (Exception e) { continue; }
             groupIdToCount.put(gid, count);
         }
+        return groupIdToCount;
+    }
+
+    /** Ownership guard: returns only the entries whose group Id belongs to the given quote. */
+    private static Map<Id, Integer> filterGroupCountsToQuote(String quoteId, Map<Id, Integer> groupIdToCount) {
+        if (groupIdToCount == null || groupIdToCount.isEmpty() || String.isBlank(quoteId)) return new Map<Id, Integer>();
+        Id qId;
+        try {
+            qId = Id.valueOf(quoteId);
+        } catch (Exception e) {
+            return new Map<Id, Integer>();
+        }
+        Set<Id> requestedGroupIds = new Set<Id>(groupIdToCount.keySet());
+        Map<Id, Integer> filtered = new Map<Id, Integer>();
+        for (QuoteLineGroup qlg : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :qId AND Id IN :requestedGroupIds]) {
+            if (groupIdToCount.containsKey(qlg.Id)) filtered.put(qlg.Id, groupIdToCount.get(qlg.Id));
+        }
+        return filtered;
+    }
+
+    private static void appendExistingGroupCounts(String quoteId, String existingGroupCountsJson, Map<String, Id> tempIdToNewGroupId) {
+        if (String.isBlank(quoteId) || String.isBlank(existingGroupCountsJson)) return;
+        Map<Id, Integer> groupIdToCount = parseExistingGroupCounts(existingGroupCountsJson, tempIdToNewGroupId);
         if (groupIdToCount.isEmpty()) return;
-        List<PricebookEntry> pbes = loadDemoPricebookEntries();
+        Id pricebook2Id = getStandardPricebookId();
+        try {
+            Id qLookup = Id.valueOf(quoteId);
+            for (Quote rq : [SELECT Pricebook2Id FROM Quote WHERE Id = :qLookup LIMIT 1]) {
+                if (rq.Pricebook2Id != null) {
+                    pricebook2Id = rq.Pricebook2Id;
+                }
+            }
+        } catch (Exception e) { /* keep standard */ }
+        List<PricebookEntry> pbes = loadDemoRotationPricebookEntries(pricebook2Id);
         if (pbes.isEmpty()) return;
         Id qId = Id.valueOf(quoteId);
         // Ownership guard: discard any group Ids that don't belong to this quote
@@ -419,17 +538,8 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
         if (groupIdToCount.isEmpty()) return;
         List<Id> groupIds = new List<Id>(groupIdToCount.keySet());
-        // Bulkify: one SOQL for all line items in these groups, scoped to this quote
-        List<QuoteLineItem> existingItems = [SELECT Id, QuoteLineGroupId FROM QuoteLineItem WHERE QuoteId = :qId AND QuoteLineGroupId IN :groupIds];
-        Map<Id, List<QuoteLineItem>> groupIdToItems = new Map<Id, List<QuoteLineItem>>();
-        for (Id gid : groupIds) groupIdToItems.put(gid, new List<QuoteLineItem>());
-        for (QuoteLineItem it : existingItems) {
-            if (groupIdToItems.containsKey(it.QuoteLineGroupId)) groupIdToItems.get(it.QuoteLineGroupId).add(it);
-        }
         for (Id gid : groupIds) {
             Integer count = groupIdToCount.get(gid);
-            List<QuoteLineItem> existing = groupIdToItems.get(gid);
-            if (existing != null && !existing.isEmpty()) delete existing;
             if (count <= 0) continue;
             List<QuoteLineItem> newItems = new List<QuoteLineItem>();
             for (Integer i = 0; i < count; i++) {
@@ -464,14 +574,16 @@ public with sharing class RLM_SetUpQuoteInvocable {
         inputMap.put('var_LargeDeal', in0.largeDeal == true);
         inputMap.put('var_HierarchyJson', String.isBlank(in0.hierarchyJson) ? null : in0.hierarchyJson);
         inputMap.put('var_ProductCountsJson', String.isBlank(in0.productCountsJson) ? null : in0.productCountsJson);
+        inputMap.put('var_UngroupedProductCount', in0.ungroupedProductCount);
+        inputMap.put('var_ProductSetMode', RLM_SetUpQuoteProductSets.normalizeProductSetMode(in0.productSetMode));
         inputMap.put('var_CsvImportLineItemsJson', String.isBlank(in0.csvImportLineItemsJson) ? null : in0.csvImportLineItemsJson);
         inputMap.put('var_GroupsToDeleteJson', String.isBlank(in0.groupsToDeleteJson) ? null : in0.groupsToDeleteJson);
         inputMap.put('var_GroupRenamesJson', String.isBlank(in0.groupRenamesJson) ? null : in0.groupRenamesJson);
         inputMap.put('var_NewSubgroupsJson', String.isBlank(in0.newSubgroupsJson) ? null : in0.newSubgroupsJson);
         inputMap.put('var_ExistingGroupCountsJson', String.isBlank(in0.existingGroupCountsJson) ? null : in0.existingGroupCountsJson);
         inputMap.put('var_RepeatBuyAssignmentsJson', String.isBlank(in0.repeatBuyAssignmentsJson) ? null : in0.repeatBuyAssignmentsJson);
-        inputMap.put('var_QuoteAccountId', String.isBlank(in0.quoteAccountId) ? null : in0.quoteAccountId);
         inputMap.put('var_RepeatBuyAccountId', String.isBlank(in0.repeatBuyAccountId) ? null : in0.repeatBuyAccountId);
+        inputMap.put('var_QuoteAccountId', String.isBlank(in0.quoteAccountId) ? null : in0.quoteAccountId);
         inputMap.put('var_ParentNames', in0.parentGroupNames != null ? in0.parentGroupNames : new List<String>());
         inputMap.put('var_SubgroupCSVPerParent', in0.subgroupNamesPerParent != null ? in0.subgroupNamesPerParent : new List<String>());
         inputMap.put('var_ProductCountsCSVPerParent', in0.productCountsPerParent != null ? in0.productCountsPerParent : new List<String>());
@@ -487,14 +599,16 @@ public with sharing class RLM_SetUpQuoteInvocable {
         in0.largeDeal = m.get('largeDeal') == true;
         in0.hierarchyJson = (String) m.get('hierarchyJson');
         in0.productCountsJson = (String) m.get('productCountsJson');
+        in0.ungroupedProductCount = RLM_SetUpQuoteProductSets.parseNonNegativeInteger(m.get('ungroupedProductCount'));
+        in0.productSetMode = (String) m.get('productSetMode');
         in0.csvImportLineItemsJson = (String) m.get('csvImportLineItemsJson');
         in0.groupsToDeleteJson = (String) m.get('groupsToDeleteJson');
         in0.groupRenamesJson = (String) m.get('groupRenamesJson');
         in0.newSubgroupsJson = (String) m.get('newSubgroupsJson');
         in0.existingGroupCountsJson = (String) m.get('existingGroupCountsJson');
         in0.repeatBuyAssignmentsJson = (String) m.get('repeatBuyAssignmentsJson');
-        in0.quoteAccountId = (String) m.get('quoteAccountId');
         in0.repeatBuyAccountId = (String) m.get('repeatBuyAccountId');
+        in0.quoteAccountId = (String) m.get('quoteAccountId');
         in0.parentGroupNames = listOfStrings(m.get('parentGroupNames'));
         in0.subgroupNamesPerParent = listOfStrings(m.get('subgroupNamesPerParent'));
         in0.productCountsPerParent = listOfStrings(m.get('productCountsPerParent'));
@@ -537,10 +651,39 @@ public with sharing class RLM_SetUpQuoteInvocable {
     }
 
     private static Id getStandardPricebookId() {
-        if (Test.isRunningTest()) return Test.getStandardPricebookId();
-        List<Pricebook2> pbs = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
-        if (pbs.isEmpty()) throw new RLM_SetUpQuoteException('Standard Price Book not found.');
-        return pbs[0].Id;
+        try {
+            return RLM_ProductCatalogPbeService.resolveStandardPricebook2Id();
+        } catch (RLM_ProductCatalogPbeService.ProductCatalogPbeException e) {
+            throw new RLM_SetUpQuoteException(e.getMessage());
+        }
+    }
+
+    /** Demo product rotation (same order as DemoInvocableAction singles), resolved for the given price book. */
+    private static List<PricebookEntry> loadDemoRotationPricebookEntries(Id pricebook2Id) {
+        List<String> order = RLM_DemoProductCodes.orderedDemoProductIdentifiers();
+        Map<String, PricebookEntry> m = RLM_ProductCatalogPbeService.resolveProductsToPBEMap(order, pricebook2Id);
+        List<PricebookEntry> out = new List<PricebookEntry>();
+        for (String k : order) {
+            if (m.containsKey(k)) {
+                out.add(m.get(k));
+            }
+        }
+        return out;
+    }
+
+    private static Map<String, PricebookEntry> loadProductSetPricebookEntryMap(String productSetMode, Id pricebook2Id) {
+        List<String> identifiers = RLM_SetUpQuoteProductSets.identifiersForResolution(productSetMode);
+        Map<String, PricebookEntry> pbeMap = RLM_ProductCatalogPbeService.resolveProductsToPBEMap(identifiers, pricebook2Id);
+        List<String> missing = new List<String>();
+        for (String identifier : identifiers) {
+            if (!pbeMap.containsKey(identifier)) {
+                missing.add(identifier);
+            }
+        }
+        if (!missing.isEmpty()) {
+            throw new RLM_SetUpQuoteException('Missing active price book entries for product set ' + RLM_SetUpQuoteProductSets.normalizeProductSetMode(productSetMode) + ': ' + String.join(missing, ', '));
+        }
+        return pbeMap;
     }
 
     private static Map<String, Object> buildCreateQuoteHeaderFields(Input in0, Id pricebook2Id) {
@@ -548,9 +691,9 @@ public with sharing class RLM_SetUpQuoteInvocable {
             'Name' => in0.newQuoteName,
             'Pricebook2Id' => pricebook2Id
         };
-        String accountIdForQuote = String.isNotBlank(in0.quoteAccountId) ? in0.quoteAccountId : in0.repeatBuyAccountId;
-        if (String.isNotBlank(accountIdForQuote)) {
-            out.put('QuoteAccountId', accountIdForQuote);
+        String accountId = String.isNotBlank(in0.quoteAccountId) ? in0.quoteAccountId : in0.repeatBuyAccountId;
+        if (String.isNotBlank(accountId)) {
+            out.put('QuoteAccountId', accountId);
         }
         return out;
     }
@@ -560,16 +703,26 @@ public with sharing class RLM_SetUpQuoteInvocable {
         if (csvLinesAddedOut == null) csvLinesAddedOut = new List<Integer>();
         Boolean isCreate = (in0.isCreate == true);
         Boolean largeDeal = (in0.largeDeal == true);
+        String productSetMode = RLM_SetUpQuoteProductSets.normalizeProductSetMode(in0.productSetMode);
         if (!isCreate && String.isNotBlank(in0.groupsToDeleteJson)) deleteQuoteLineGroups(in0.quoteId, in0.groupsToDeleteJson);
         if (!isCreate) applyGroupRenames(in0.quoteId, in0.groupRenamesJson);
         Map<String, Id> tempIdToNewGroupId = new Map<String, Id>();
         if (!isCreate && String.isNotBlank(in0.newSubgroupsJson)) tempIdToNewGroupId = createNewSubgroupsUnderExisting(in0.quoteId, in0.newSubgroupsJson);
-        if (!isCreate && String.isNotBlank(in0.existingGroupCountsJson)) applyExistingGroupCounts(in0.quoteId, in0.existingGroupCountsJson, tempIdToNewGroupId);
+        Map<Id, Integer> siemensExistingGroupCounts = new Map<Id, Integer>();
+        if (!isCreate && String.isNotBlank(in0.existingGroupCountsJson)) {
+            if (RLM_SetUpQuoteProductSets.isSiemens(productSetMode)) {
+                // Ownership guard: only retain existing-group counts for groups on this quote
+                siemensExistingGroupCounts = filterGroupCountsToQuote(in0.quoteId, parseExistingGroupCounts(in0.existingGroupCountsJson, tempIdToNewGroupId));
+            } else {
+                appendExistingGroupCounts(in0.quoteId, in0.existingGroupCountsJson, tempIdToNewGroupId);
+            }
+        }
         Map<String, Object> treeMap = (Map<String, Object>) JSON.deserializeUntyped(in0.hierarchyJson);
         List<Object> parentsList = (List<Object>) treeMap.get('parents');
         if (parentsList == null) parentsList = new List<Object>();
+        Integer ungroupedProductCount = in0.ungroupedProductCount != null ? in0.ungroupedProductCount : 0;
         // Allow create with empty hierarchy (no groups) for 2-step flow: Step 1 = empty quote + large deal.
-        if (parentsList.isEmpty()) {
+        if (parentsList.isEmpty() && !hasPositiveIdCount(siemensExistingGroupCounts) && ungroupedProductCount <= 0 && String.isBlank(in0.csvImportLineItemsJson)) {
             if (isCreate) {
                 if (String.isBlank(in0.newQuoteName)) throw new RLM_SetUpQuoteException('New quote name required when creating.');
                 Id pricebook2Id = getStandardPricebookId();
@@ -587,30 +740,20 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 if (largeDeal) update new Quote(Id = quoteId, IsLargeDeal = true);
                 return quoteId;
             } else {
-                if (largeDeal && String.isNotBlank(in0.quoteId)) {
-                    Id qId;
-                    try {
-                        qId = Id.valueOf(in0.quoteId);
-                    } catch (Exception e) {
-                        throw new RLM_SetUpQuoteException('Invalid quote Id: ' + in0.quoteId);
-                    }
-                    update new Quote(Id = qId, IsLargeDeal = true);
+                if (String.isNotBlank(in0.csvImportLineItemsJson)) {
+                    return runHierarchyEmptyCsvModifyQuote(in0, csvLinesAddedOut);
                 }
+                if (largeDeal && String.isNotBlank(in0.quoteId)) update new Quote(Id = in0.quoteId, IsLargeDeal = true);
                 return in0.quoteId;
             }
         }
         Boolean useCsvImport = String.isNotBlank(in0.csvImportLineItemsJson);
         Map<String, Integer> countsMap = new Map<String, Integer>();
         if (!useCsvImport && String.isNotBlank(in0.productCountsJson)) {
-            Map<String, Object> countsObj;
             try {
-                countsObj = (Map<String, Object>) JSON.deserializeUntyped(in0.productCountsJson);
-            } catch (Exception e) {
-                throw new RLM_SetUpQuoteException('Invalid product counts JSON: ' + e.getMessage());
-            }
-            for (String k : countsObj.keySet()) {
-                Object v = countsObj.get(k);
-                try {
+                Map<String, Object> countsObj = (Map<String, Object>) JSON.deserializeUntyped(in0.productCountsJson);
+                for (String k : countsObj.keySet()) {
+                    Object v = countsObj.get(k);
                     Integer count = null;
                     if (v instanceof Integer) count = (Integer) v;
                     else if (v instanceof Decimal) count = ((Decimal) v).intValue();
@@ -618,61 +761,31 @@ public with sharing class RLM_SetUpQuoteInvocable {
                     else if (v instanceof Double) count = ((Double) v).intValue();
                     else if (v != null) count = Integer.valueOf(String.valueOf(v));
                     if (count != null) countsMap.put(k, count);
-                } catch (Exception e) {
-                    continue; // skip unparseable entry rather than discarding entire map
                 }
-            }
+            } catch (Exception e) { /* ignore */ }
         }
         Id pricebook2Id = getStandardPricebookId();
-        Boolean createViaPost = isCreate;
-        String targetQuoteId = in0.quoteId;
-        if (isCreate && largeDeal) {
-            // Create the quote shell first, mark IsLargeDeal via DML, then run PST for groups/lines as PATCH.
-            // This preserves "large deal on create" behavior while avoiding PST header-path endpoint issues.
-            RevSalesTrxn.RecordResource preHeader = new RevSalesTrxn.RecordResource(Quote.getSObjectType(), 'POST');
-            preHeader.fieldValues = buildCreateQuoteHeaderFields(in0, pricebook2Id);
-            List<RevSalesTrxn.RecordWithReferenceRequest> preRecords = new List<RevSalesTrxn.RecordWithReferenceRequest>{
-                new RevSalesTrxn.RecordWithReferenceRequest('refHeader', preHeader)
-            };
-            RevSalesTrxn.GraphRequest preGraph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable_PreCreate', preRecords);
-            RevSalesTrxn.PlaceSalesTransactionResponse preResp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
-                preGraph,
-                RevSalesTrxn.PricingPreferenceEnum.SKIP,
-                RevSalesTrxn.ConfigurationExecutionEnum.SKIP,
-                new RevSalesTrxn.ConfigurationOptionsInput(),
-                null,
-                null,
-                RevSalesTrxn.TaxPreferenceEnum.SKIP,
-                null
-            );
-            if (preResp == null || !preResp.isSuccess) {
-                throw new RLM_SetUpQuoteException(
-                    preResp != null && preResp.errorResponse != null
-                        ? String.valueOf(preResp.errorResponse)
-                        : 'PST pre-create execution failed'
-                );
-            }
-            targetQuoteId = String.valueOf(preResp.salesTransactionId);
-            update new Quote(Id = Id.valueOf(targetQuoteId), IsLargeDeal = true);
-            createViaPost = false;
-        }
         List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords = new List<RevSalesTrxn.RecordWithReferenceRequest>();
         RevSalesTrxn.RecordResource headerRecord;
-        if (createViaPost) {
+        if (isCreate) {
             if (String.isBlank(in0.newQuoteName)) throw new RLM_SetUpQuoteException('New quote name required when creating.');
             headerRecord = new RevSalesTrxn.RecordResource(Quote.getSObjectType(), 'POST');
             headerRecord.fieldValues = buildCreateQuoteHeaderFields(in0, pricebook2Id);
         } else {
-            if (String.isBlank(targetQuoteId)) throw new RLM_SetUpQuoteException('Quote Id required when modifying.');
-            headerRecord = new RevSalesTrxn.RecordResource(Quote.getSObjectType(), 'PATCH', targetQuoteId);
+            if (String.isBlank(in0.quoteId)) throw new RLM_SetUpQuoteException('Quote Id required when modifying.');
+            headerRecord = new RevSalesTrxn.RecordResource(Quote.getSObjectType(), 'PATCH', in0.quoteId);
             headerRecord.fieldValues = new Map<String, Object>();
         }
         // Always add quote to graph so PST has a root and processes children. When modifying, use literal quoteId on groups/lines so they attach to existing quote (not a new one).
         listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest('refHeader', headerRecord));
-        String quoteIdRef = createViaPost ? '@{refHeader.id}' : String.valueOf(targetQuoteId);
+        String quoteIdRef = isCreate ? '@{refHeader.id}' : String.valueOf(in0.quoteId);
         List<PricebookEntry> pbes = new List<PricebookEntry>();
-        if (!useCsvImport && !countsMap.isEmpty()) {
-            pbes = loadDemoPricebookEntries();
+        Map<String, PricebookEntry> productSetPbeMap = new Map<String, PricebookEntry>();
+        Boolean hasProductSetGraphCounts = !useCsvImport && (hasPositivePathCount(countsMap) || hasPositiveIdCount(siemensExistingGroupCounts) || ungroupedProductCount > 0);
+        if (hasProductSetGraphCounts) {
+            productSetPbeMap = loadProductSetPricebookEntryMap(productSetMode, pricebook2Id);
+        } else if (!useCsvImport && !countsMap.isEmpty()) {
+            pbes = loadDemoRotationPricebookEntries(pricebook2Id);
             if (pbes.isEmpty()) throw new RLM_SetUpQuoteException('No valid price book entries found.');
         }
         Map<String, String> pathToGroupRef = new Map<String, String>();
@@ -681,27 +794,37 @@ public with sharing class RLM_SetUpQuoteInvocable {
         Integer refIdx = 0;
         List<Integer> lineIndexHolder = new List<Integer>{ 0 };
         Map<String, Integer> countsForGroups = useCsvImport ? new Map<String, Integer>() : countsMap;
-        for (Integer pi = 0; pi < parentsList.size(); pi++) {
-            Map<String, Object> parentNode = (Map<String, Object>) parentsList.get(pi);
-            String path = parentNode.containsKey('path') ? String.valueOf(parentNode.get('path')) : String.valueOf(pi);
-            String name = parentNode.containsKey('name') ? String.valueOf(parentNode.get('name')).trim() : ('Group ' + (pi + 1));
-            if (String.isBlank(name)) name = 'Group ' + (pi + 1);
-            String refName = 'refGrp_' + (refIdx++);
-            pathToGroupRef.put(path, refName);
-            RevSalesTrxn.RecordResource topRec = new RevSalesTrxn.RecordResource(QuoteLineGroup.getSObjectType(), 'POST');
-            topRec.fieldValues = new Map<String, Object>{ 'Name' => name, 'QuoteId' => quoteIdRef, 'SortOrder' => sortOrder++ };
-            listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest(refName, topRec));
-            groupRefs.add(refName);
-            addLineItemsForGroup(path, refName, countsForGroups, listOfRecords, pbes, lineIndexHolder, quoteIdRef);
-            List<Object> children = (List<Object>) parentNode.get('children');
-            if (children != null && !children.isEmpty()) {
-                sortOrder = addChildGroups(children, refName, listOfRecords, groupRefs, refIdx, sortOrder, path, countsForGroups, pbes, lineIndexHolder, pathToGroupRef, quoteIdRef);
-                refIdx = groupRefs.size();
+        addLineItemsForExistingGroups(siemensExistingGroupCounts, listOfRecords, productSetPbeMap, productSetMode, lineIndexHolder, quoteIdRef);
+        if (!isCreate && useCsvImport) {
+            CsvMergeState mergeState = buildCsvMergeTargetsForModify(in0.quoteId, parentsList, listOfRecords, quoteIdRef, refIdx, sortOrder);
+            pathToGroupRef.putAll(mergeState.pathToGroupTarget);
+            refIdx = mergeState.refIdx;
+            sortOrder = mergeState.sortOrder;
+        } else {
+            for (Integer pi = 0; pi < parentsList.size(); pi++) {
+                Map<String, Object> parentNode = (Map<String, Object>) parentsList.get(pi);
+                String path = parentNode.containsKey('path') ? String.valueOf(parentNode.get('path')) : String.valueOf(pi);
+                String name = parentNode.containsKey('name') ? String.valueOf(parentNode.get('name')).trim() : ('Group ' + (pi + 1));
+                if (String.isBlank(name)) name = 'Group ' + (pi + 1);
+                String refName = 'refGrp_' + (refIdx++);
+                pathToGroupRef.put(path, refName);
+                RevSalesTrxn.RecordResource topRec = new RevSalesTrxn.RecordResource(QuoteLineGroup.getSObjectType(), 'POST');
+                topRec.fieldValues = new Map<String, Object>{ 'Name' => name, 'QuoteId' => quoteIdRef, 'SortOrder' => sortOrder++ };
+                listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest(refName, topRec));
+                groupRefs.add(refName);
+                addLineItemsForGroup(path, refName, countsForGroups, listOfRecords, pbes, productSetPbeMap, productSetMode, lineIndexHolder, quoteIdRef);
+                List<Object> children = (List<Object>) parentNode.get('children');
+                if (children != null && !children.isEmpty()) {
+                    sortOrder = addChildGroups(children, refName, listOfRecords, groupRefs, refIdx, sortOrder, path, countsForGroups, pbes, productSetPbeMap, productSetMode, lineIndexHolder, pathToGroupRef, quoteIdRef);
+                    refIdx = groupRefs.size();
+                }
             }
         }
         Integer linesAdded = 0;
         if (useCsvImport) {
-            linesAdded = addLineItemsFromCsvImport(in0.csvImportLineItemsJson, pathToGroupRef, listOfRecords, pricebook2Id, lineIndexHolder, quoteIdRef);
+            linesAdded = !isCreate
+                ? addLineItemsFromCsvImportToResolvedGroups(in0.csvImportLineItemsJson, pathToGroupRef, listOfRecords, pricebook2Id, lineIndexHolder, quoteIdRef)
+                : addLineItemsFromCsvImport(in0.csvImportLineItemsJson, pathToGroupRef, listOfRecords, pricebook2Id, lineIndexHolder, quoteIdRef);
             csvLinesAddedOut.clear();
             csvLinesAddedOut.add(linesAdded != null ? linesAdded : 0);
         }
@@ -715,7 +838,10 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 quoteIdRef
             );
         }
-        Boolean hasLineItems = useCsvImport ? (linesAdded != null && linesAdded > 0) : !countsMap.isEmpty();
+        if (!useCsvImport && ungroupedProductCount > 0) {
+            addProductRequestsForCount(ungroupedProductCount, null, listOfRecords, pbes, productSetPbeMap, productSetMode, lineIndexHolder, quoteIdRef);
+        }
+        Boolean hasLineItems = useCsvImport ? (linesAdded != null && linesAdded > 0) : (!countsMap.isEmpty() || hasPositiveIdCount(siemensExistingGroupCounts) || ungroupedProductCount > 0);
         // Default (skipConfiguration not set): FORCE when line items present — same as before 2-step/skipConfiguration. CSV import path unchanged.
         RevSalesTrxn.ConfigurationExecutionEnum configEnum = (in0.skipConfiguration == true)
             ? RevSalesTrxn.ConfigurationExecutionEnum.SKIP
@@ -725,23 +851,288 @@ public with sharing class RLM_SetUpQuoteInvocable {
             graph, RevSalesTrxn.PricingPreferenceEnum.SKIP, configEnum,
             new RevSalesTrxn.ConfigurationOptionsInput(), null, null, RevSalesTrxn.TaxPreferenceEnum.SKIP, null);
         if (resp == null || !resp.isSuccess) throw new RLM_SetUpQuoteException(resp != null && resp.errorResponse != null ? String.valueOf(resp.errorResponse) : 'PST execution failed');
-        Id quoteId = createViaPost ? (Id) resp.salesTransactionId : Id.valueOf(targetQuoteId);
+        Id quoteId = isCreate ? (Id) resp.salesTransactionId : in0.quoteId;
         if (largeDeal) {
             update new Quote(Id = quoteId, IsLargeDeal = true);
         }
         return quoteId;
     }
 
-    private static void addLineItemsForGroup(String path, String groupRef, Map<String, Integer> countsMap, List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords, List<PricebookEntry> pbes, List<Integer> lineIndexHolder, String quoteIdRef) {
+    /**
+     * Modify existing quote with CSV line items only: no QuoteLineGroup records (flat QuoteLineItems).
+     * Use hierarchyJson = {"parents":[]} plus csvImportLineItemsJson (path keys ignored for grouping).
+     */
+    private static String runHierarchyEmptyCsvModifyQuote(Input in0, List<Integer> csvLinesAddedOut) {
+        if (csvLinesAddedOut == null) csvLinesAddedOut = new List<Integer>();
+        if (String.isBlank(in0.quoteId)) {
+            throw new RLM_SetUpQuoteException('Quote Id required when modifying.');
+        }
+        Boolean largeDeal = (in0.largeDeal == true);
+        Id pricebook2Id = getStandardPricebookId();
+        List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords = new List<RevSalesTrxn.RecordWithReferenceRequest>();
+        RevSalesTrxn.RecordResource headerRecord = new RevSalesTrxn.RecordResource(Quote.getSObjectType(), 'PATCH', in0.quoteId);
+        headerRecord.fieldValues = new Map<String, Object>();
+        listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest('refHeader', headerRecord));
+        String quoteIdRef = String.valueOf(in0.quoteId);
+        List<Integer> lineIndexHolder = new List<Integer>{ 0 };
+        Integer linesAdded = addLineItemsFromCsvImportUngrouped(in0.csvImportLineItemsJson, listOfRecords, pricebook2Id, lineIndexHolder, quoteIdRef);
+        csvLinesAddedOut.clear();
+        csvLinesAddedOut.add(linesAdded != null ? linesAdded : 0);
+        if (linesAdded == null || linesAdded == 0) {
+            throw new RLM_SetUpQuoteException(
+                'No quote line items were resolved from CSV for ungrouped import. Check Product Code / Name and active PricebookEntry on the Standard Price Book.'
+            );
+        }
+        RevSalesTrxn.ConfigurationExecutionEnum configEnum = (in0.skipConfiguration == true)
+            ? RevSalesTrxn.ConfigurationExecutionEnum.SKIP
+            : RevSalesTrxn.ConfigurationExecutionEnum.FORCE;
+        RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable', listOfRecords);
+        RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
+            graph,
+            RevSalesTrxn.PricingPreferenceEnum.SKIP,
+            configEnum,
+            new RevSalesTrxn.ConfigurationOptionsInput(),
+            null,
+            null,
+            RevSalesTrxn.TaxPreferenceEnum.SKIP,
+            null
+        );
+        if (resp == null || !resp.isSuccess) {
+            throw new RLM_SetUpQuoteException(resp != null && resp.errorResponse != null ? String.valueOf(resp.errorResponse) : 'PST execution failed');
+        }
+        Id quoteId = in0.quoteId;
+        if (largeDeal) {
+            update new Quote(Id = quoteId, IsLargeDeal = true);
+        }
+        return quoteId;
+    }
+
+    private class CsvMergeState {
+        Map<String, String> existingPathToGroupId = new Map<String, String>();
+        Map<String, String> createdPathToTarget = new Map<String, String>();
+        Map<String, String> pathToGroupTarget = new Map<String, String>();
+        Set<String> ambiguousPathKeys = new Set<String>();
+        Integer refIdx = 0;
+        Integer sortOrder = 1;
+    }
+
+    private static CsvMergeState buildCsvMergeTargetsForModify(
+        String quoteId,
+        List<Object> parentsList,
+        List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords,
+        String quoteIdRef,
+        Integer startRefIdx,
+        Integer startSortOrder
+    ) {
+        if (String.isBlank(quoteId)) {
+            throw new RLM_SetUpQuoteException('Quote Id required when modifying.');
+        }
+        CsvMergeState state = buildExistingCsvMergeState(Id.valueOf(quoteId));
+        state.refIdx = startRefIdx != null ? startRefIdx : 0;
+        state.sortOrder = startSortOrder != null ? startSortOrder : 1;
+        for (Object parentObj : parentsList) {
+            resolveCsvMergeNode((Map<String, Object>) parentObj, new List<String>(), null, state, listOfRecords, quoteIdRef);
+        }
+        return state;
+    }
+
+    private static CsvMergeState buildExistingCsvMergeState(Id quoteId) {
+        CsvMergeState state = new CsvMergeState();
+        List<QuoteLineGroup> groups = [
+            SELECT Id, Name, ParentQuoteLineGroupId, SortOrder
+            FROM QuoteLineGroup
+            WHERE QuoteId = :quoteId
+            ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name
+        ];
+        Map<Id, List<QuoteLineGroup>> childrenByParent = new Map<Id, List<QuoteLineGroup>>();
+        List<QuoteLineGroup> roots = new List<QuoteLineGroup>();
+        for (QuoteLineGroup groupRow : groups) {
+            if (groupRow.ParentQuoteLineGroupId == null) {
+                roots.add(groupRow);
+            } else {
+                if (!childrenByParent.containsKey(groupRow.ParentQuoteLineGroupId)) {
+                    childrenByParent.put(groupRow.ParentQuoteLineGroupId, new List<QuoteLineGroup>());
+                }
+                childrenByParent.get(groupRow.ParentQuoteLineGroupId).add(groupRow);
+            }
+        }
+        for (QuoteLineGroup root : roots) {
+            collectExistingCsvPath(root, childrenByParent, new List<String>(), state);
+        }
+        if (!state.ambiguousPathKeys.isEmpty()) {
+            throw new RLM_SetUpQuoteException(
+                'Existing quote has duplicate group paths after CSV normalization: ' +
+                String.join(new List<String>(state.ambiguousPathKeys), ', ') +
+                '. Rename one group or adjust the CSV before importing.'
+            );
+        }
+        return state;
+    }
+
+    private static void collectExistingCsvPath(
+        QuoteLineGroup groupRow,
+        Map<Id, List<QuoteLineGroup>> childrenByParent,
+        List<String> parentNames,
+        CsvMergeState state
+    ) {
+        List<String> names = new List<String>();
+        names.addAll(parentNames);
+        names.add(groupRow.Name);
+        String key = csvMergePathKey(names);
+        String groupId = String.valueOf(groupRow.Id);
+        if (state.existingPathToGroupId.containsKey(key) && state.existingPathToGroupId.get(key) != groupId) {
+            state.ambiguousPathKeys.add(key);
+        } else {
+            state.existingPathToGroupId.put(key, groupId);
+        }
+        if (childrenByParent.containsKey(groupRow.Id)) {
+            for (QuoteLineGroup child : childrenByParent.get(groupRow.Id)) {
+                collectExistingCsvPath(child, childrenByParent, names, state);
+            }
+        }
+    }
+
+    private static void resolveCsvMergeNode(
+        Map<String, Object> node,
+        List<String> parentNames,
+        String parentTarget,
+        CsvMergeState state,
+        List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords,
+        String quoteIdRef
+    ) {
+        if (node == null) return;
+        String name = node.containsKey('name') ? String.valueOf(node.get('name')).trim() : null;
+        if (String.isBlank(name)) {
+            name = 'Group';
+        }
+        List<String> names = new List<String>();
+        names.addAll(parentNames);
+        names.add(name);
+        String key = csvMergePathKey(names);
+        String target = null;
+        if (state.existingPathToGroupId.containsKey(key)) {
+            target = state.existingPathToGroupId.get(key);
+        } else if (state.createdPathToTarget.containsKey(key)) {
+            target = state.createdPathToTarget.get(key);
+        } else {
+            String refName = 'refGrp_' + state.refIdx++;
+            target = '@{' + refName + '.id}';
+            state.createdPathToTarget.put(key, target);
+            RevSalesTrxn.RecordResource groupRecord = new RevSalesTrxn.RecordResource(QuoteLineGroup.getSObjectType(), 'POST');
+            groupRecord.fieldValues = new Map<String, Object>{
+                'Name' => name,
+                'QuoteId' => quoteIdRef,
+                'SortOrder' => state.sortOrder++
+            };
+            if (String.isNotBlank(parentTarget)) {
+                groupRecord.fieldValues.put('ParentQuoteLineGroupId', parentTarget);
+            }
+            listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest(refName, groupRecord));
+        }
+        if (node.containsKey('path') && node.get('path') != null) {
+            state.pathToGroupTarget.put(String.valueOf(node.get('path')), target);
+        }
+        List<Object> children = (List<Object>) node.get('children');
+        if (children != null) {
+            for (Object childObj : children) {
+                resolveCsvMergeNode((Map<String, Object>) childObj, names, target, state, listOfRecords, quoteIdRef);
+            }
+        }
+    }
+
+    private static String csvMergePathKey(List<String> names) {
+        List<String> parts = new List<String>();
+        for (String name : names) {
+            String part = normalizeCsvMergeSegment(name);
+            if (String.isNotBlank(part)) {
+                parts.add(part);
+            }
+        }
+        return String.join(parts, '|');
+    }
+
+    private static String normalizeCsvMergeSegment(String value) {
+        return String.isBlank(value) ? '' : value.trim().toLowerCase().replaceAll('\\s+', '');
+    }
+
+    private static Boolean hasPositiveIdCount(Map<Id, Integer> countsMap) {
+        if (countsMap == null || countsMap.isEmpty()) return false;
+        for (Integer count : countsMap.values()) {
+            if (count != null && count > 0) return true;
+        }
+        return false;
+    }
+
+    private static Boolean hasPositivePathCount(Map<String, Integer> countsMap) {
+        if (countsMap == null || countsMap.isEmpty()) return false;
+        for (Integer count : countsMap.values()) {
+            if (count != null && count > 0) return true;
+        }
+        return false;
+    }
+
+    private static void addLineItemsForExistingGroups(
+        Map<Id, Integer> groupIdToCount,
+        List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords,
+        Map<String, PricebookEntry> productSetPbeMap,
+        String productSetMode,
+        List<Integer> lineIndexHolder,
+        String quoteIdRef
+    ) {
+        if (groupIdToCount == null || groupIdToCount.isEmpty()) return;
+        for (Id groupId : groupIdToCount.keySet()) {
+            addProductRequestsForCount(groupIdToCount.get(groupId), String.valueOf(groupId), listOfRecords, null, productSetPbeMap, productSetMode, lineIndexHolder, quoteIdRef);
+        }
+    }
+
+    private static void addLineItemsForGroup(
+        String path,
+        String groupRef,
+        Map<String, Integer> countsMap,
+        List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords,
+        List<PricebookEntry> pbes,
+        Map<String, PricebookEntry> productSetPbeMap,
+        String productSetMode,
+        List<Integer> lineIndexHolder,
+        String quoteIdRef
+    ) {
         Integer count = countsMap.containsKey(path) ? countsMap.get(path) : 0;
         if (count == null || count <= 0) return;
+        addProductRequestsForCount(count, '@{' + groupRef + '.id}', listOfRecords, pbes, productSetPbeMap, productSetMode, lineIndexHolder, quoteIdRef);
+    }
+
+    private static void addProductRequestsForCount(
+        Integer count,
+        String quoteLineGroupIdRef,
+        List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords,
+        List<PricebookEntry> pbes,
+        Map<String, PricebookEntry> productSetPbeMap,
+        String productSetMode,
+        List<Integer> lineIndexHolder,
+        String quoteIdRef
+    ) {
+        if (count == null || count <= 0) return;
         Integer lineIndex = lineIndexHolder[0];
-        for (Integer i = 0; i < count; i++) {
-            PricebookEntry pbe = pbes.get(Math.mod(i, pbes.size()));
-            RevSalesTrxn.RecordResource lineRec = new RevSalesTrxn.RecordResource(QuoteLineItem.getSObjectType(), 'POST');
-            lineRec.fieldValues = buildQuoteLineItemFields(pbe, quoteIdRef, '@{' + groupRef + '.id}');
-            listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest('refLine' + lineIndex, lineRec));
-            lineIndex++;
+        if (productSetPbeMap != null && !productSetPbeMap.isEmpty()) {
+            String productSetLabel = RLM_SetUpQuoteProductSets.isSiemens(productSetMode) ? 'Siemens' : 'QuantumBit';
+            for (RLM_SetUpQuoteProductSets.ProductRequest request : RLM_SetUpQuoteProductSets.allocateRequests(productSetMode, count)) {
+                PricebookEntry pbe = productSetPbeMap.get(request.productIdentifier);
+                if (pbe == null) {
+                    throw new RLM_SetUpQuoteException('Missing price book entry for ' + productSetLabel + ' product ' + request.productIdentifier);
+                }
+                RevSalesTrxn.RecordResource lineRec = new RevSalesTrxn.RecordResource(QuoteLineItem.getSObjectType(), 'POST');
+                lineRec.fieldValues = buildQuoteLineItemFields(pbe, quoteIdRef, quoteLineGroupIdRef);
+                listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest('refLine' + lineIndex, lineRec));
+                lineIndex++;
+            }
+        } else {
+            for (Integer i = 0; i < count; i++) {
+                PricebookEntry pbe = pbes.get(Math.mod(i, pbes.size()));
+                RevSalesTrxn.RecordResource lineRec = new RevSalesTrxn.RecordResource(QuoteLineItem.getSObjectType(), 'POST');
+                lineRec.fieldValues = buildQuoteLineItemFields(pbe, quoteIdRef, quoteLineGroupIdRef);
+                listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest('refLine' + lineIndex, lineRec));
+                lineIndex++;
+            }
         }
         lineIndexHolder[0] = lineIndex;
     }
@@ -757,12 +1148,14 @@ public with sharing class RLM_SetUpQuoteInvocable {
         String billingFrequency = (String.isNotBlank(pricingTermUnit) && PRICING_TERM_TO_BILLING_FREQUENCY.containsKey(pricingTermUnit)) ? PRICING_TERM_TO_BILLING_FREQUENCY.get(pricingTermUnit) : null;
         Map<String, Object> fields = new Map<String, Object>{
             'QuoteId' => quoteIdRef,
-            'QuoteLineGroupId' => quoteLineGroupIdRef,
             'Product2Id' => pbe.Product2Id,
             'PricebookEntryId' => pbe.Id,
             'Quantity' => (quantity != null && quantity > 0) ? quantity : 1, // rule: no/zero quantity → 1
             'UnitPrice' => unitPrice
         };
+        if (String.isNotBlank(quoteLineGroupIdRef)) {
+            fields.put('QuoteLineGroupId', quoteLineGroupIdRef);
+        }
         if ('TermDefined' == sellingModelType && String.isNotBlank(billingFrequency)) {
             fields.put('StartDate', '2025-09-04T00:00:00.000Z');
             fields.put('EndDate', '2026-09-09T00:00:00.000Z');
@@ -774,73 +1167,6 @@ public with sharing class RLM_SetUpQuoteInvocable {
             fields.put('BillingFrequency', billingFrequency);
         }
         return fields;
-    }
-
-    /** Resolve product identifier (code or name) to a PricebookEntry for the given price book. Tries ProductCode first, then Name. PBE order: OneTime → Evergreen → TermDefined. If not found and identifier contains a comma, retries with the part before the last comma. Returns null if not found. Used for single-item resolution (e.g. productCounts path). */
-    private static PricebookEntry resolveProductToPBE(String productIdentifier, Id pricebook2Id) {
-        if (String.isBlank(productIdentifier) || pricebook2Id == null) return null;
-        List<String> ids = new List<String>{ productIdentifier.trim() };
-        Map<String, PricebookEntry> m = resolveProductsToPBEMap(ids, pricebook2Id);
-        String trimmed = productIdentifier.trim();
-        PricebookEntry pbe = m.get(trimmed);
-        if (pbe != null) return pbe;
-        if (trimmed.contains(',')) {
-            String prefix = trimmed.substring(0, trimmed.lastIndexOf(',')).trim();
-            if (String.isNotBlank(prefix)) pbe = m.get(prefix);
-        }
-        return pbe;
-    }
-
-    /** Bulk resolve: run SOQL once per batch. Returns map identifier -> PBE (ProductCode wins over Name; PBE order OneTime → Evergreen → TermDefined). */
-    private static Map<String, PricebookEntry> resolveProductsToPBEMap(List<String> identifiers, Id pricebook2Id) {
-        Map<String, PricebookEntry> result = new Map<String, PricebookEntry>();
-        if (identifiers == null || identifiers.isEmpty() || pricebook2Id == null) return result;
-        Set<String> idSet = new Set<String>();
-        for (String s : identifiers) {
-            if (String.isNotBlank(s)) {
-                idSet.add(s.trim());
-                if (s.contains(',')) {
-                    String prefix = s.substring(0, s.lastIndexOf(',')).trim();
-                    if (String.isNotBlank(prefix)) idSet.add(prefix);
-                }
-            }
-        }
-        if (idSet.isEmpty()) return result;
-        List<String> idList = new List<String>(idSet);
-        Map<Id, Product2> byCode = new Map<Id, Product2>();
-        Map<Id, Product2> byName = new Map<Id, Product2>();
-        List<Product2> byCodeList = [SELECT Id, ProductCode, Name FROM Product2 WHERE ProductCode IN :idList AND IsActive = true];
-        for (Product2 p : byCodeList) byCode.put(p.Id, p);
-        List<Product2> byNameList = [SELECT Id, ProductCode, Name FROM Product2 WHERE Name IN :idList AND IsActive = true];
-        for (Product2 p : byNameList) byName.put(p.Id, p);
-        Set<Id> product2Ids = new Set<Id>();
-        product2Ids.addAll(byCode.keySet());
-        product2Ids.addAll(byName.keySet());
-        if (product2Ids.isEmpty()) return result;
-        List<PricebookEntry> pbes = [SELECT Id, Product2Id, UnitPrice, ProductSellingModel.SellingModelType, ProductSellingModel.PricingTermUnit FROM PricebookEntry WHERE Product2Id IN :product2Ids AND Pricebook2Id = :pricebook2Id AND IsActive = true];
-        Map<Id, List<PricebookEntry>> pbeByProduct = new Map<Id, List<PricebookEntry>>();
-        Map<String, Integer> orderMap = new Map<String, Integer>{ 'OneTime' => 1, 'Evergreen' => 2, 'TermDefined' => 3 };
-        for (PricebookEntry pe : pbes) {
-            if (!pbeByProduct.containsKey(pe.Product2Id)) pbeByProduct.put(pe.Product2Id, new List<PricebookEntry>());
-            pbeByProduct.get(pe.Product2Id).add(pe);
-        }
-        for (String iden : idList) {
-            Id product2Id = null;
-            for (Product2 p : byCodeList) { if (p.ProductCode == iden) { product2Id = p.Id; break; } }
-            if (product2Id == null) { for (Product2 p : byNameList) { if (p.Name == iden) { product2Id = p.Id; break; } } }
-            if (product2Id == null) continue;
-            List<PricebookEntry> listPbe = pbeByProduct.get(product2Id);
-            if (listPbe == null || listPbe.isEmpty()) continue;
-            PricebookEntry chosen = listPbe[0];
-            Integer chosenOrder = orderMap.containsKey(String.valueOf(chosen.ProductSellingModel != null ? chosen.ProductSellingModel.SellingModelType : null)) ? orderMap.get(String.valueOf(chosen.ProductSellingModel.SellingModelType)) : 99;
-            for (Integer i = 1; i < listPbe.size(); i++) {
-                String st = listPbe[i].ProductSellingModel != null ? String.valueOf(listPbe[i].ProductSellingModel.SellingModelType) : null;
-                Integer o = orderMap.containsKey(st) ? orderMap.get(st) : 99;
-                if (o < chosenOrder) { chosen = listPbe[i]; chosenOrder = o; }
-            }
-            result.put(iden, chosen);
-        }
-        return result;
     }
 
     private static Integer addLineItemsFromCsvImport(String csvImportLineItemsJson, Map<String, String> pathToGroupRef, List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords, Id pricebook2Id, List<Integer> lineIndexHolder, String quoteIdRef) {
@@ -857,19 +1183,23 @@ public with sharing class RLM_SetUpQuoteInvocable {
             String productIdentifier = item != null && item.containsKey('productIdentifier') ? String.valueOf(item.get('productIdentifier')) : null;
             if (String.isNotBlank(productIdentifier)) allIdentifiers.add(productIdentifier.trim());
         }
-        Map<String, PricebookEntry> pbeMap = resolveProductsToPBEMap(allIdentifiers, pricebook2Id);
+        Map<String, PricebookEntry> pbeMap = RLM_ProductCatalogPbeService.resolveProductsToPBEMap(allIdentifiers, pricebook2Id);
         Integer lineIndex = lineIndexHolder[0];
         Integer linesAdded = 0;
         for (Object itemObj : items) {
             Map<String, Object> item = (Map<String, Object>) itemObj;
-            String path = item != null && item.containsKey('path') ? String.valueOf(item.get('path')) : null;
+            String path = item != null && item.containsKey('path') && item.get('path') != null ? String.valueOf(item.get('path')) : null;
             String productIdentifier = item != null && item.containsKey('productIdentifier') ? String.valueOf(item.get('productIdentifier')) : null;
             Object qtyObj = (item != null && item.containsKey('quantity')) ? item.get('quantity') : null;
             // Rule: if no quantity is provided, treat quantity as 1
             Decimal qty = (qtyObj instanceof Integer) ? (Integer) qtyObj : (qtyObj instanceof Decimal) ? (Decimal) qtyObj : (qtyObj != null && String.isNotBlank(String.valueOf(qtyObj))) ? Decimal.valueOf(String.valueOf(qtyObj)) : 1;
-            if (String.isBlank(path) || String.isBlank(productIdentifier)) continue;
-            String groupRef = pathToGroupRef.get(path);
-            if (String.isBlank(groupRef)) continue;
+            if (String.isBlank(productIdentifier)) continue;
+            String quoteLineGroupIdRef = null;
+            if (String.isNotBlank(path)) {
+                String groupRef = pathToGroupRef.get(path);
+                if (String.isBlank(groupRef)) continue;
+                quoteLineGroupIdRef = '@{' + groupRef + '.id}';
+            }
             String trimmed = productIdentifier.trim();
             PricebookEntry pbe = pbeMap.get(trimmed);
             if (pbe == null && trimmed.contains(',')) {
@@ -878,7 +1208,111 @@ public with sharing class RLM_SetUpQuoteInvocable {
             }
             if (pbe == null) continue;
             RevSalesTrxn.RecordResource lineRec = new RevSalesTrxn.RecordResource(QuoteLineItem.getSObjectType(), 'POST');
-            lineRec.fieldValues = buildQuoteLineItemFields(pbe, quoteIdRef, '@{' + groupRef + '.id}', qty);
+            lineRec.fieldValues = buildQuoteLineItemFields(pbe, quoteIdRef, quoteLineGroupIdRef, qty);
+            listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest('refLine' + lineIndex, lineRec));
+            lineIndex++;
+            linesAdded++;
+        }
+        lineIndexHolder[0] = lineIndex;
+        return linesAdded;
+    }
+
+    private static Integer addLineItemsFromCsvImportToResolvedGroups(
+        String csvImportLineItemsJson,
+        Map<String, String> pathToGroupTarget,
+        List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords,
+        Id pricebook2Id,
+        List<Integer> lineIndexHolder,
+        String quoteIdRef
+    ) {
+        List<Object> items;
+        try {
+            items = (List<Object>) JSON.deserializeUntyped(csvImportLineItemsJson);
+        } catch (Exception e) {
+            return 0;
+        }
+        if (items == null || items.isEmpty()) return 0;
+        List<String> allIdentifiers = new List<String>();
+        for (Object itemObj : items) {
+            Map<String, Object> item = (Map<String, Object>) itemObj;
+            String productIdentifier = item != null && item.containsKey('productIdentifier') ? String.valueOf(item.get('productIdentifier')) : null;
+            if (String.isNotBlank(productIdentifier)) allIdentifiers.add(productIdentifier.trim());
+        }
+        Map<String, PricebookEntry> pbeMap = RLM_ProductCatalogPbeService.resolveProductsToPBEMap(allIdentifiers, pricebook2Id);
+        Integer lineIndex = lineIndexHolder[0];
+        Integer linesAdded = 0;
+        for (Object itemObj : items) {
+            Map<String, Object> item = (Map<String, Object>) itemObj;
+            String path = item != null && item.containsKey('path') && item.get('path') != null ? String.valueOf(item.get('path')) : null;
+            String productIdentifier = item != null && item.containsKey('productIdentifier') ? String.valueOf(item.get('productIdentifier')) : null;
+            Object qtyObj = (item != null && item.containsKey('quantity')) ? item.get('quantity') : null;
+            Decimal qty = (qtyObj instanceof Integer) ? (Integer) qtyObj : (qtyObj instanceof Decimal) ? (Decimal) qtyObj : (qtyObj != null && String.isNotBlank(String.valueOf(qtyObj))) ? Decimal.valueOf(String.valueOf(qtyObj)) : 1;
+            if (String.isBlank(productIdentifier)) continue;
+            String groupTarget = null;
+            if (String.isNotBlank(path)) {
+                groupTarget = pathToGroupTarget.get(path);
+                if (String.isBlank(groupTarget)) continue;
+            }
+            String trimmed = productIdentifier.trim();
+            PricebookEntry pbe = pbeMap.get(trimmed);
+            if (pbe == null && trimmed.contains(',')) {
+                String prefix = trimmed.substring(0, trimmed.lastIndexOf(',')).trim();
+                if (String.isNotBlank(prefix)) pbe = pbeMap.get(prefix);
+            }
+            if (pbe == null) continue;
+            RevSalesTrxn.RecordResource lineRec = new RevSalesTrxn.RecordResource(QuoteLineItem.getSObjectType(), 'POST');
+            lineRec.fieldValues = buildQuoteLineItemFields(pbe, quoteIdRef, groupTarget, qty);
+            listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest('refLine' + lineIndex, lineRec));
+            lineIndex++;
+            linesAdded++;
+        }
+        lineIndexHolder[0] = lineIndex;
+        return linesAdded;
+    }
+
+    /** Same as addLineItemsFromCsvImport but QuoteLineItem has no QuoteLineGroupId (path not matched to groups). */
+    private static Integer addLineItemsFromCsvImportUngrouped(
+        String csvImportLineItemsJson,
+        List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords,
+        Id pricebook2Id,
+        List<Integer> lineIndexHolder,
+        String quoteIdRef
+    ) {
+        List<Object> items;
+        try {
+            items = (List<Object>) JSON.deserializeUntyped(csvImportLineItemsJson);
+        } catch (Exception e) {
+            return 0;
+        }
+        if (items == null || items.isEmpty()) return 0;
+        List<String> allIdentifiers = new List<String>();
+        for (Object itemObj : items) {
+            Map<String, Object> item = (Map<String, Object>) itemObj;
+            String productIdentifier = item != null && item.containsKey('productIdentifier') ? String.valueOf(item.get('productIdentifier')) : null;
+            if (String.isNotBlank(productIdentifier)) allIdentifiers.add(productIdentifier.trim());
+        }
+        Map<String, PricebookEntry> pbeMap = RLM_ProductCatalogPbeService.resolveProductsToPBEMap(allIdentifiers, pricebook2Id);
+        Integer lineIndex = lineIndexHolder[0];
+        Integer linesAdded = 0;
+        for (Object itemObj : items) {
+            Map<String, Object> item = (Map<String, Object>) itemObj;
+            String productIdentifier = item != null && item.containsKey('productIdentifier') ? String.valueOf(item.get('productIdentifier')) : null;
+            Object qtyObj = (item != null && item.containsKey('quantity')) ? item.get('quantity') : null;
+            Decimal qty = (qtyObj instanceof Integer)
+                ? (Integer) qtyObj
+                : (qtyObj instanceof Decimal)
+                    ? (Decimal) qtyObj
+                    : (qtyObj != null && String.isNotBlank(String.valueOf(qtyObj))) ? Decimal.valueOf(String.valueOf(qtyObj)) : 1;
+            if (String.isBlank(productIdentifier)) continue;
+            String trimmed = productIdentifier.trim();
+            PricebookEntry pbe = pbeMap.get(trimmed);
+            if (pbe == null && trimmed.contains(',')) {
+                String prefix = trimmed.substring(0, trimmed.lastIndexOf(',')).trim();
+                if (String.isNotBlank(prefix)) pbe = pbeMap.get(prefix);
+            }
+            if (pbe == null) continue;
+            RevSalesTrxn.RecordResource lineRec = new RevSalesTrxn.RecordResource(QuoteLineItem.getSObjectType(), 'POST');
+            lineRec.fieldValues = buildQuoteLineItemFields(pbe, quoteIdRef, null, qty);
             listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest('refLine' + lineIndex, lineRec));
             lineIndex++;
             linesAdded++;
@@ -910,7 +1344,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             String pid = row != null && row.containsKey('productIdentifier') ? String.valueOf(row.get('productIdentifier')) : null;
             if (String.isNotBlank(pid)) ids.add(pid.trim());
         }
-        Map<String, PricebookEntry> pbeMap = resolveProductsToPBEMap(ids, pricebook2Id);
+        Map<String, PricebookEntry> pbeMap = RLM_ProductCatalogPbeService.resolveProductsToPBEMap(ids, pricebook2Id);
         Integer lineIndex = lineIndexHolder[0];
 
         for (Object rowObj : rows) {
@@ -1067,7 +1501,22 @@ public with sharing class RLM_SetUpQuoteInvocable {
         return JSON.serialize(payload);
     }
 
-    private static Integer addChildGroups(List<Object> children, String parentRef, List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords, List<String> groupRefs, Integer refIdx, Integer sortOrder, String parentPath, Map<String, Integer> countsMap, List<PricebookEntry> pbes, List<Integer> lineIndexHolder, Map<String, String> pathToGroupRef, String quoteIdRef) {
+    private static Integer addChildGroups(
+        List<Object> children,
+        String parentRef,
+        List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords,
+        List<String> groupRefs,
+        Integer refIdx,
+        Integer sortOrder,
+        String parentPath,
+        Map<String, Integer> countsMap,
+        List<PricebookEntry> pbes,
+        Map<String, PricebookEntry> productSetPbeMap,
+        String productSetMode,
+        List<Integer> lineIndexHolder,
+        Map<String, String> pathToGroupRef,
+        String quoteIdRef
+    ) {
         for (Integer ci = 0; ci < children.size(); ci++) {
             Map<String, Object> node = (Map<String, Object>) children.get(ci);
             String path = node.containsKey('path') ? String.valueOf(node.get('path')) : (parentPath != '' ? parentPath + '-' + ci : String.valueOf(ci));
@@ -1081,9 +1530,9 @@ public with sharing class RLM_SetUpQuoteInvocable {
             };
             listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest(refName, rec));
             groupRefs.add(refName);
-            addLineItemsForGroup(path, refName, countsMap, listOfRecords, pbes, lineIndexHolder, quoteIdRef);
+            addLineItemsForGroup(path, refName, countsMap, listOfRecords, pbes, productSetPbeMap, productSetMode, lineIndexHolder, quoteIdRef);
             List<Object> sub = (List<Object>) node.get('children');
-            if (sub != null && !sub.isEmpty()) sortOrder = addChildGroups(sub, refName, listOfRecords, groupRefs, refIdx, sortOrder, path, countsMap, pbes, lineIndexHolder, pathToGroupRef, quoteIdRef);
+            if (sub != null && !sub.isEmpty()) sortOrder = addChildGroups(sub, refName, listOfRecords, groupRefs, refIdx, sortOrder, path, countsMap, pbes, productSetPbeMap, productSetMode, lineIndexHolder, pathToGroupRef, quoteIdRef);
             refIdx = groupRefs.size();
         }
         return sortOrder;
@@ -1182,7 +1631,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             productCounts.addAll(counts);
         }
 
-        List<PricebookEntry> pbes = loadDemoPricebookEntries();
+        List<PricebookEntry> pbes = loadDemoRotationPricebookEntries(pricebook2Id);
         if (pbes.isEmpty()) throw new RLM_SetUpQuoteException('No valid price book entries found.');
 
         Integer lineIndex = 0;
@@ -1268,7 +1717,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             }
         }
 
-        List<PricebookEntry> pbes = loadDemoPricebookEntries();
+        List<PricebookEntry> pbes = loadDemoRotationPricebookEntries(pricebook2Id);
         if (pbes.isEmpty()) throw new RLM_SetUpQuoteException('No valid price book entries found.');
 
         Integer lineIndex = 0;
@@ -1364,7 +1813,11 @@ public with sharing class RLM_SetUpQuoteInvocable {
     public static Integer countCsvImportLinesForPreview(String hierarchyJson, String csvImportLineItemsJson) {
         Set<String> validPaths = new Set<String>();
         collectHierarchyPathsIntoSet(hierarchyJson, validPaths);
-        if (validPaths.isEmpty() || String.isBlank(csvImportLineItemsJson)) {
+        Boolean ungroupedCsvOnly = validPaths.isEmpty();
+        if (String.isBlank(csvImportLineItemsJson)) {
+            return 0;
+        }
+        if (!ungroupedCsvOnly && validPaths.isEmpty()) {
             return 0;
         }
         List<Object> items;
@@ -1387,19 +1840,21 @@ public with sharing class RLM_SetUpQuoteInvocable {
             }
         }
         Id pricebook2Id = getStandardPricebookId();
-        Map<String, PricebookEntry> pbeMap = resolveProductsToPBEMap(allIdentifiers, pricebook2Id);
+        Map<String, PricebookEntry> pbeMap = RLM_ProductCatalogPbeService.resolveProductsToPBEMap(allIdentifiers, pricebook2Id);
         Integer linesAdded = 0;
         for (Object itemObj : items) {
             Map<String, Object> item = (Map<String, Object>) itemObj;
-            String path = item != null && item.containsKey('path') ? String.valueOf(item.get('path')) : null;
+            String path = item != null && item.containsKey('path') && item.get('path') != null ? String.valueOf(item.get('path')) : null;
             String productIdentifier = item != null && item.containsKey('productIdentifier')
                 ? String.valueOf(item.get('productIdentifier'))
                 : null;
-            if (String.isBlank(path) || String.isBlank(productIdentifier)) {
+            if (String.isBlank(productIdentifier)) {
                 continue;
             }
-            if (!validPaths.contains(path)) {
-                continue;
+            if (!ungroupedCsvOnly && String.isNotBlank(path)) {
+                if (!validPaths.contains(path)) {
+                    continue;
+                }
             }
             String trimmed = productIdentifier.trim();
             PricebookEntry pbe = pbeMap.get(trimmed);

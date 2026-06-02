@@ -241,19 +241,88 @@ private class RLM_SetUpQuoteInvocableTest {
     }
 
     // -------------------------------------------------------------------------
-    // loadDemoPricebookEntries()
+    // New public surface: UI config, product-set detection, status, repeat-buy,
+    // CSV preview helpers
     // -------------------------------------------------------------------------
 
     @IsTest
-    static void testLoadDemoPricebookEntries_ReturnsListWithoutError() {
+    static void testGetSetUpQuoteUiConfig_ReturnsJsonWithFlag() {
         Test.startTest();
-        List<PricebookEntry> pbes = RLM_SetUpQuoteInvocable.loadDemoPricebookEntries();
+        String cfgJson = RLM_SetUpQuoteInvocable.getSetUpQuoteUiConfig();
         Test.stopTest();
 
-        // In test context the Standard Pricebook exists but may have no PSM-linked PBEs;
-        // assert the return is non-null and not more than the LIMIT.
-        System.assertNotEquals(null, pbes, 'loadDemoPricebookEntries must not return null');
-        System.assert(pbes.size() <= 20, 'loadDemoPricebookEntries must respect LIMIT 20');
+        Map<String, Object> out = (Map<String, Object>) JSON.deserializeUntyped(cfgJson);
+        System.assert(out.containsKey('showProductSetSelector'), 'UI config must expose showProductSetSelector');
+    }
+
+    @IsTest
+    static void testDetectQuoteProductSetMode_BlankAndNoLines_DefaultsQuantumBit() {
+        System.assertEquals(
+            RLM_SetUpQuoteProductSets.PRODUCT_SET_QUANTUMBIT,
+            RLM_SetUpQuoteInvocable.detectQuoteProductSetMode(null),
+            'Blank quoteId defaults to QuantumBit'
+        );
+
+        Quote q = insertTestQuote('Detect Mode Quote');
+        Test.startTest();
+        String mode = RLM_SetUpQuoteInvocable.detectQuoteProductSetMode(q.Id);
+        Test.stopTest();
+        System.assertEquals(
+            RLM_SetUpQuoteProductSets.PRODUCT_SET_QUANTUMBIT,
+            mode,
+            'Quote with no Siemens lines defaults to QuantumBit'
+        );
+    }
+
+    @IsTest
+    static void testGetSetUpQuoteStatus_BlankReturnsFailure() {
+        Map<String, Object> blank = (Map<String, Object>) JSON.deserializeUntyped(
+            RLM_SetUpQuoteInvocable.getSetUpQuoteStatus(null));
+        System.assertEquals(false, blank.get('success'), 'Blank quoteId returns success=false');
+    }
+
+    @IsTest
+    static void testGetSetUpQuoteStatus_ValidQuoteReturnsCounts() {
+        Quote q = insertTestQuote('Status Quote');
+
+        Test.startTest();
+        Map<String, Object> out = (Map<String, Object>) JSON.deserializeUntyped(
+            RLM_SetUpQuoteInvocable.getSetUpQuoteStatus(q.Id));
+        Test.stopTest();
+
+        System.assertEquals(true, out.get('success'), 'Valid quoteId returns success=true');
+        System.assertEquals(0, Integer.valueOf(String.valueOf(out.get('qliCount'))), 'Fresh quote has 0 QLIs');
+        System.assertEquals(0, Integer.valueOf(String.valueOf(out.get('groupCount'))), 'Fresh quote has 0 groups');
+    }
+
+    @IsTest
+    static void testRepeatBuyHelpers_ReturnWithoutError() {
+        Account acct = new Account(Name = 'Repeat Buy Account');
+        insert acct;
+
+        Test.startTest();
+        List<Map<String, String>> accts = RLM_SetUpQuoteInvocable.getAccountsForRepeatBuy();
+        List<Map<String, String>> recent = RLM_SetUpQuoteInvocable.getRecentQuotesForRepeatBuy(acct.Id);
+        String lines = RLM_SetUpQuoteInvocable.getRepeatBuyLines('[]');
+        Test.stopTest();
+
+        System.assertNotEquals(null, accts, 'getAccountsForRepeatBuy returns a list');
+        System.assertNotEquals(null, recent, 'getRecentQuotesForRepeatBuy returns a list');
+        System.assertEquals('[]', lines, 'Empty quote-id array returns empty JSON array');
+    }
+
+    @IsTest
+    static void testCsvImportPreviewHelpers_UnknownProductResolvesToZero() {
+        String hierarchyJson = '{"parents":[{"name":"G","path":"0","children":[]}]}';
+        Set<String> paths = new Set<String>();
+        RLM_SetUpQuoteInvocable.collectHierarchyPathsIntoSet(hierarchyJson, paths);
+        System.assert(paths.contains('0'), 'Should collect hierarchy path "0"');
+
+        String csvJson = '[{"path":"0","productIdentifier":"DOES-NOT-EXIST","quantity":2}]';
+        Test.startTest();
+        Integer count = RLM_SetUpQuoteInvocable.countCsvImportLinesForPreview(hierarchyJson, csvJson);
+        Test.stopTest();
+        System.assertEquals(0, count, 'Unknown product resolves to 0 preview lines');
     }
 
 }
