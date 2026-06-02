@@ -254,7 +254,7 @@
     <description>Cloned from the default Create Contracts flow in version 260. Includes setting the Contract fields for renewal term, renewal term unit, and price source.</description>
     <environments>Default</environments>
     <interviewLabel>RLM_CreateContractFromQuote {!$Flow.CurrentDateTime}</interviewLabel>
-    <label>RLM_CreateContractFromQuote</label>
+    <label>RLM CreateContractFromQuote</label>
     <overriddenFlow>rev_contracts__CreateCntrFromQuote</overriddenFlow>
     <processMetadataValues>
         <name>BuilderType</name>
@@ -419,12 +419,6 @@
             <field>BillingStreet</field>
             <value>
                 <elementReference>GetContract.Account.BillingStreet</elementReference>
-            </value>
-        </inputAssignments>
-        <inputAssignments>
-            <field>ContractTerm</field>
-            <value>
-                <elementReference>GetSourceQuote.RLM_TermMonths__c</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
@@ -627,7 +621,7 @@
         <showHeader>false</showHeader>
     </screens>
     <screens>
-        <description>Collects the user's contract creation option before creating the contract.</description>
+        <description>Collects the user&apos;s contract creation option before creating the contract.</description>
         <name>ScreenCollectNewContractOptions</name>
         <label>Collect New Contract Options</label>
         <locationX>0</locationX>

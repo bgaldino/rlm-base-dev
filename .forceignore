@@ -65,6 +65,8 @@ force-app/main/default/flexipages
 force-app/main/default/layouts
 force-app/main/default/objects/Asset/compactLayouts
 force-app/main/default/objects/Asset/listViews
+force-app/main/default/objects/Contract/compactLayouts
+force-app/main/default/objects/Contract/Contract.object-meta.xml
 force-app/main/default/objects/Quote/compactLayouts
 force-app/main/default/objects/Product2/listViews
 # force-app object metadata holding only UX bindings (actionOverrides + compactLayoutAssignment)
