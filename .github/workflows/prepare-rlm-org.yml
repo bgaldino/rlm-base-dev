@@ -23,6 +23,15 @@ permissions:
   contents: read
   pull-requests: write
 
+# Serialize runs that target the same scratch-org alias: per-PR for
+# label-triggered runs, per-ref for workflow_dispatch. Prevents two jobs from
+# concurrently creating/deleting the same org alias (flaky failures / leaked
+# scratch orgs). cancel-in-progress is false so an in-flight build finishes
+# (and tears down its org) before the next queued run starts.
+concurrency:
+  group: prepare-rlm-org-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
 jobs:
   prepare-rlm-org:
     # Run on manual dispatch, or when the trigger label is applied to a
