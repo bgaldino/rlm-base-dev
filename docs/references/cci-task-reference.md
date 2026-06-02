@@ -571,7 +571,7 @@ cci task info <task_name>
 | `extract_qb_dro_data` | Extract qb-dro from org to CSV. Output in datasets/sfdmu/extractions/qb-dro/<ti mestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
 | `extract_qb_guidedselling_data` | Extract qb-guidedselling from org to CSV. Output in |
 | `datasets/sfdmu/extractions/qb-guideds` | elling/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
-| `extract_qb_guidedselling_products_data` | Extract qb-guidedselling-products from org to CSV. |
+| `extract_qb_guidedselling_products_data` | Extract qb-guidedselling-products from org to CSV. Output in datasets/sfdmu/extractions/qb-guidedselling-products/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
 | `extract_qb_pcm_data` | Extract qb-pcm (product catalog) from org to CSV. Output in datasets/sfdmu/extractions/qb-pcm/<ti mestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |
 | `extract_qb_pricing_data` | Extract qb-pricing from org to CSV. Output in |
 | `datasets/sfdmu/extractions/qb-pricing` | /<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip. |

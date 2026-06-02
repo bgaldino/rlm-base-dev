@@ -123,7 +123,7 @@ Reverse dependency order (children before parents):
 | 20 | prepare_prm | PRM community + data |
 | 21 | prepare_agents | Agent classes + deploy |
 | 22 | prepare_constraints | Constraints + CML |
-| 23 | prepare_guidedselling | Guided selling metadata |
+| 23 | prepare_guidedselling | Guided selling PSets + metadata + Product2 field values (qb-guidedselling-products) |
 | 24 | prepare_revenue_settings | Revenue Settings (Robot) |
 | 25 | prepare_pricing_discovery | Pricing discovery refresh |
 | 26 | prepare_ramp_builder | Ramp builder metadata |
