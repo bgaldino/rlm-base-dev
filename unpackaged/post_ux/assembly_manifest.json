@@ -9,7 +9,7 @@
     "rates": true,
     "clm": true,
     "dro": true,
-    "guidedselling": false,
+    "guidedselling": true,
     "ramps": true,
     "tso": false,
     "prm": true,
@@ -307,6 +307,16 @@
       "dest": "unpackaged/post_ux/flexipages/RLM_Product_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Product_Record_Page.flexipage-meta.xml",
       "patches": [
+        {
+          "feature": "guidedselling",
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <name>Facet-0c7c6745-b043-4551-a759-983b62e14c5a</name>"
+        },
+        {
+          "feature": "guidedselling",
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <identifier>flexipage_fieldSection4</identifier>"
+        },
         {
           "feature": "constraints",
           "patch_type": "insert_after_xml",

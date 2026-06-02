@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**39 feature flags**, **78 configuration values**, **32 YAML anchors** under `project.custom`.
+**39 feature flags**, **79 configuration values**, **34 YAML anchors** under `project.custom`.
 
 ---
 
@@ -30,7 +30,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
-| `guidedselling` | `False` | 2 flow step(s) |
+| `guidedselling` | `True` | 4 flow step(s) |
 | `large_stx` | `False` | 4 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
@@ -191,10 +191,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `assign_feature_permission_sets` step 2 → `assign_permission_sets`
 - `assign_feature_permission_sets` step 3 → `assign_permission_sets`
 
-### `guidedselling` (default: `False`)
+### `guidedselling` (default: `True`)
 
-- `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
+- `prepare_guidedselling` step 1 → `assign_permission_sets`
 - `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
+- `prepare_guidedselling` step 3 → `assign_permission_sets`
+- `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
 
 ### `large_stx` (default: `False`)
 
@@ -280,7 +282,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 9 → `import_cml`
 - `prepare_constraints` step 10 → `manage_expression_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
-- `prepare_guidedselling` step 1 → `insert_qb_guidedselling_data`
+- `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
 - `prepare_pricing_discovery` step 2 → `configure_product_discovery_settings`
 
 ### `quantumbit` (default: `True`)
@@ -445,6 +447,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_constraints_product_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-product` |
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
 | `quantumbit_guidedselling_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling` |
+| `quantumbit_guidedselling_products_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling-products` |
 | `quantumbit_pcm_constraints_data_dir` | `datasets/constraints/qb/QuantumBitPCM` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |
 | `quantumbit_prm_dataset` | `datasets/sfdmu/qb/en-US/qb-prm` |
@@ -591,6 +594,19 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_DocGen`
+
+### `ps_guidedselling`
+
+*2 items:*
+
+- `OmniStudioAdmin`
+- `ProductCatalogManagementAdministrator`
+
+### `ps_guidedselling_metadata`
+
+*1 items:*
+
+- `RLM_Guided_Selling`
 
 ### `ps_large_stx`
 
