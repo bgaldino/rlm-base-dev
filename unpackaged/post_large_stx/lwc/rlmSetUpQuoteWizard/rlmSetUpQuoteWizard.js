@@ -26,6 +26,14 @@ const STANDARD_QUOTE_LINE_LIMIT = 2000;
 const LARGE_DEAL_MODIFY_BATCH_QLI_LIMIT = 500;
 const LARGE_DEAL_POLL_INTERVAL_MS = 3000;
 const LARGE_DEAL_MAX_POLL_ATTEMPTS = 50;
+// Consecutive polls with unchanged counts (after async has settled) before we
+// treat Large Deal processing as complete even if the line count came in below
+// the client-side estimate. ~3 polls ≈ 9s of stability.
+const LARGE_DEAL_STABLE_POLLS_REQUIRED = 3;
+// At/above this projected line count the Large Deal box is auto-selected and
+// required (cannot be unchecked), restoring the pre-rewrite guardrail that
+// keeps over-threshold quotes on the Large Deal (batched) path.
+const LARGE_DEAL_THRESHOLD = 500;
 const PRODUCT_SET_QUANTUMBIT = "QUANTUMBIT";
 const PRODUCT_SET_SIEMENS = "SIEMENS";
 const SIEMENS_BUNDLE_IDENTIFIER = "BE2:L-BF-1114";
@@ -104,6 +112,8 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
   /** Step 4 / Confirm: QuoteLineItem count preview from Apex (no threshold enforcement). */
   @track quoteLinePreview = null;
   @track showProductSetSelectorFromConfig = false;
+  /** Set when projected lines >= LARGE_DEAL_THRESHOLD; forces the Large Deal box selected + required. */
+  @track largeDealRequiredByThreshold = false;
   _quoteLinePreviewTimer;
   _quoteInfoNextLockTimer;
 
@@ -988,7 +998,107 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
   }
   get confirmLargeDealLabel() {
     if (this.skipLargeDealStep) return "Yes (already set on quote)";
-    return this.largeDeal ? "Yes" : "No";
+    return this.effectiveLargeDeal ? "Yes" : "No";
+  }
+
+  get isLargeDealRequired() {
+    return this.largeDealRequiredByThreshold;
+  }
+
+  get estimatedProjectedTotalForLargeDealRequirement() {
+    const p = this.quoteLinePreview;
+    if (p && !p.error) {
+      return this.quoteLinePreviewProjectedTotal;
+    }
+    // Fallback while preview is still loading: reuse the projection helpers so
+    // the displayed estimate matches the guardrail logic (counts ungrouped
+    // products and bundle expansion, not just a raw per-group sum).
+    const projection = this._buildProjectionPayloadFromState();
+    if (this.isCreate) {
+      return this.getProjectedNewLineCount(projection);
+    }
+    const existingRows = this.quoteLinePreviewCurrentTotal || 0;
+    return (
+      existingRows +
+      this.getProjectedExistingGroupLineCount(projection) +
+      this.getProjectedNewLineCount({
+        ...projection,
+        existingGroupCountsJson: "{}",
+      })
+    );
+  }
+
+  get effectiveLargeDeal() {
+    return this.largeDeal || this.isLargeDealRequired || this.skipLargeDealStep;
+  }
+
+  get largeDealRequirementHelpText() {
+    if (!this.isLargeDealRequired) return null;
+    return (
+      "Estimated total is " +
+      this.estimatedProjectedTotalForLargeDealRequirement +
+      ". Large Deal is required at " +
+      LARGE_DEAL_THRESHOLD +
+      "+ lines and has been selected automatically."
+    );
+  }
+
+  _projectionRepeatBuyAssignmentsJson() {
+    if (
+      !this.isCreatePreviousMode ||
+      !this.repeatBuyAssignments ||
+      !this.repeatBuyAssignments.length
+    ) {
+      return null;
+    }
+    return JSON.stringify(
+      this.repeatBuyAssignments.map((r) => ({
+        removed: r.removed === true,
+        duplicateToTarget: r.duplicateToTarget === true,
+      })),
+    );
+  }
+
+  _buildProjectionPayloadFromState() {
+    return {
+      isCreate: this.isCreate,
+      productSetMode: this.effectiveProductSetMode,
+      productCountsJson: this._productCountsJson || "{}",
+      existingGroupCountsJson: JSON.stringify(this._existingGroupCounts || {}),
+      ungroupedProductCount: this.ungroupedProductCount || 0,
+      csvImportLineItemsJson:
+        this.csvImportData && this.csvImportData.csvImportLineItemsJson
+          ? this.csvImportData.csvImportLineItemsJson
+          : null,
+      repeatBuyAssignmentsJson: this._projectionRepeatBuyAssignmentsJson(),
+    };
+  }
+
+  computeLargeDealRequiredSnapshot() {
+    const projection = this._buildProjectionPayloadFromState();
+    // Create mode: reuse the same projection the batching path uses so the
+    // threshold accounts for ungrouped counts, bundle expansion, and
+    // repeat-buy adds (not just a raw per-group count sum).
+    if (this.isCreate) {
+      return this.getProjectedNewLineCount(projection) >= LARGE_DEAL_THRESHOLD;
+    }
+    // Modify mode: prefer the authoritative Apex preview total when available.
+    if (this.quoteLinePreview && !this.quoteLinePreview.error) {
+      return this.quoteLinePreviewProjectedTotal >= LARGE_DEAL_THRESHOLD;
+    }
+    // Fallback (preview unavailable): current quote lines + projected adds
+    // from existing groups, new groups, and ungrouped counts.
+    const existingRows = this.quoteLinePreviewCurrentTotal || 0;
+    const addsExistingGroups =
+      this.getProjectedExistingGroupLineCount(projection);
+    const addsNewAndUngrouped = this.getProjectedNewLineCount({
+      ...projection,
+      existingGroupCountsJson: "{}",
+    });
+    return (
+      existingRows + addsExistingGroups + addsNewAndUngrouped >=
+      LARGE_DEAL_THRESHOLD
+    );
   }
 
   get createModeScratchClass() {
@@ -1108,6 +1218,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
 
   handleCreate() {
     this.isCreate = true;
+    this.largeDealRequiredByThreshold = false;
     this.modifyProductCountsRail = "existing";
     this.importMethod = null;
     this.createMode = "SCRATCH";
@@ -1404,6 +1515,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
 
   async handleModify() {
     this.isCreate = false;
+    this.largeDealRequiredByThreshold = false;
     this.quoteId = "";
     this.modifyHierarchyRail = "existing";
     this.modifyProductCountsRail = "existing";
@@ -2414,6 +2526,12 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
     this.scheduleQuoteLinePreviewRefresh();
   }
 
+  handleUngroupedProductCountChange(event) {
+    const val = parseInt(event.target.value, 10);
+    this.ungroupedProductCount = Number.isFinite(val) && val > 0 ? val : 0;
+    this.scheduleQuoteLinePreviewRefresh();
+  }
+
   handleProductSetModeChange(event) {
     this.productSetMode =
       event.detail?.value === PRODUCT_SET_SIEMENS
@@ -2595,6 +2713,9 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
     }
     this._existingGroupCounts = existingCounts;
     this._productCountsJson = JSON.stringify(pathCounts);
+    this.largeDealRequiredByThreshold = this.computeLargeDealRequiredSnapshot();
+    // >= threshold => force Large Deal selected; below threshold => clear.
+    this.largeDeal = this.largeDealRequiredByThreshold;
     if (this.skipLargeDealStep) {
       this.largeDeal = true;
       this.step = STEP_CONFIRM;
@@ -2611,7 +2732,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
     const el = this.template.querySelector(
       'lightning-input[data-step="large-deal"]',
     );
-    this.largeDeal = el ? el.checked : false;
+    this.largeDeal = this.isLargeDealRequired ? true : el ? el.checked : false;
     this.step = STEP_CONFIRM;
   }
 
@@ -2651,6 +2772,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
     this.newQuoteName = "";
     this.quoteId = "";
     this.largeDeal = false;
+    this.largeDealRequiredByThreshold = false;
     this.result = null;
     this.loading = false;
     this.setupProgressMessage = "";
@@ -2934,29 +3056,62 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
     messagePrefix,
   ) {
     let lastStatus = null;
+    let prevQli = null;
+    let prevGroups = null;
+    let stablePolls = 0;
     for (let attempt = 1; attempt <= LARGE_DEAL_MAX_POLL_ATTEMPTS; attempt++) {
       lastStatus = await this.readSetUpQuoteStatus(quoteId);
-      const groupsReady = (lastStatus.groupCount || 0) >= expectedGroups;
-      const linesReady = (lastStatus.qliCount || 0) >= expectedLines;
+      const qliCount = lastStatus.qliCount || 0;
+      const groupCount = lastStatus.groupCount || 0;
+      const groupsReady = groupCount >= expectedGroups;
+      const linesReady = qliCount >= expectedLines;
       const hydrationDone =
         lastStatus.calculationStatus !== "ContextHydrationInProgress";
       const asyncDone = (lastStatus.pendingAsyncCount || 0) === 0;
       this.setupProgressMessage =
         messagePrefix +
         " (" +
-        (lastStatus.groupCount || 0) +
+        groupCount +
         "/" +
         expectedGroups +
         " groups, " +
-        (lastStatus.qliCount || 0) +
+        qliCount +
         "/" +
         expectedLines +
         " lines, " +
         (lastStatus.pendingAsyncCount || 0) +
         " async pending)";
+
+      // Exact fast path: counts reached/passed the estimate and work has settled.
       if (groupsReady && linesReady && hydrationDone && asyncDone) {
         return lastStatus;
       }
+
+      // Settled-short path: PST hydration can legitimately materialize fewer
+      // lines than the client-side estimate (bundle products expanding to fewer
+      // QLIs, product resolution, etc.). Once async work has settled (no pending
+      // jobs, hydration not in progress — readSetUpQuoteStatus already throws on
+      // failed async / revenue-transaction errors) AND the counts stop changing
+      // for several consecutive polls, the operation is complete even if below
+      // the estimate. Requiring qliCount > 0 (when lines are expected) guards
+      // against settling in the brief window before async jobs are enqueued.
+      const settledCandidate =
+        hydrationDone &&
+        asyncDone &&
+        (expectedLines === 0 || qliCount > 0) &&
+        qliCount === prevQli &&
+        groupCount === prevGroups;
+      stablePolls = settledCandidate ? stablePolls + 1 : 0;
+      if (settledCandidate && stablePolls >= LARGE_DEAL_STABLE_POLLS_REQUIRED) {
+        if (qliCount < expectedLines || groupCount < expectedGroups) {
+          lastStatus.settledBelowEstimate = true;
+          lastStatus.expectedLines = expectedLines;
+          lastStatus.expectedGroups = expectedGroups;
+        }
+        return lastStatus;
+      }
+      prevQli = qliCount;
+      prevGroups = groupCount;
       await this.sleep(LARGE_DEAL_POLL_INTERVAL_MS);
     }
     throw new Error(
@@ -3034,6 +3189,13 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
       expectedLines,
       "Waiting for Large Deal lines to persist",
     );
+    const shortNote = finalStatus.settledBelowEstimate
+      ? " Note: created " +
+        finalStatus.qliCount +
+        " of ~" +
+        expectedLines +
+        " estimated line item(s); the difference is expected when product bundles materialize to fewer lines than the estimate."
+      : "";
     return {
       quoteId: step1.quoteId,
       success: true,
@@ -3043,7 +3205,8 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         finalStatus.groupCount +
         " group(s), " +
         finalStatus.qliCount +
-        " line item(s).",
+        " line item(s)." +
+        shortNote,
     };
   }
 
@@ -3163,7 +3326,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         isCreate: this.isCreate,
         quoteId: this.isCreate ? null : this.quoteId,
         newQuoteName: this.isCreate ? this.newQuoteName : null,
-        largeDeal: this.largeDeal,
+        largeDeal: this.effectiveLargeDeal,
         parentGroupNames: null,
         subgroupNamesPerParent: null,
         productCountsPerParent: null,

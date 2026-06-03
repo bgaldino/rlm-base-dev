@@ -474,6 +474,13 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
     this.selectedPath = path;
   }
 
+  handleRowCoreKeydown(event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      this.handleRowSelect(event);
+    }
+  }
+
   handleToggleExpand(event) {
     event.stopPropagation();
     const path = event.currentTarget.dataset.path;

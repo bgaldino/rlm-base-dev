@@ -109,7 +109,7 @@ _Handle Change Password If Needed
         Input Password    ${el}    ${SCRATCH_NEW_PASSWORD}
     END
     ${clicked}=    Run Keyword And Return Status    Click Element
-    ...    xpath=//*[(self::input or self::button) and (contains(translate(@value,'CHANGEPSWORD','changepsword'),'change password') or contains(translate(normalize-space(.),'CHANGEPSWORD','changepsword'),'change password'))]
+    ...    xpath=//*[(self::input or self::button) and (contains(translate(@value,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'change password') or contains(translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'change password'))]
     Run Keyword If    not ${clicked}    Click Element    css:input[type="submit"], button[type="submit"]
     Wait Until Keyword Succeeds    20s    2s    _Change Password Page Gone
     Go To    ${target_url}

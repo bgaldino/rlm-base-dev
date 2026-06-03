@@ -136,18 +136,23 @@ public with sharing class RLM_SetUpQuoteLinePreview {
                 }
             }
             result.addAll(rootIds);
-            Boolean added = true;
-            while (added) {
-                added = false;
+            // Frontier BFS: each iteration only queries children of the groups
+            // discovered in the previous level, instead of re-querying children of
+            // the entire (growing) result set. Keeps this O(n) over the subtree
+            // rather than O(n^2) on deep/wide hierarchies.
+            Set<Id> frontier = new Set<Id>(rootIds);
+            while (!frontier.isEmpty()) {
+                Set<Id> nextFrontier = new Set<Id>();
                 List<QuoteLineGroup> children = quoteId != null
-                    ? [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :result AND QuoteId = :quoteId]
-                    : [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :result];
+                    ? [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :quoteId]
+                    : [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier];
                 for (QuoteLineGroup g : children) {
                     if (!result.contains(g.Id)) {
                         result.add(g.Id);
-                        added = true;
+                        nextFrontier.add(g.Id);
                     }
                 }
+                frontier = nextFrontier;
             }
         } catch (Exception e) {
             return new Set<Id>();

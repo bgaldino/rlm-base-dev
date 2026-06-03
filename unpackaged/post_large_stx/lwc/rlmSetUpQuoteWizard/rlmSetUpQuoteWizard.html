@@ -1,16 +1,16 @@
 <template>
     <div class="modal-overlay">
-        <div class={modalCardClass}>
+        <div class={modalCardClass} role="dialog" aria-modal="true" aria-labelledby="setup-quote-modal-title" tabindex="-1">
             <header class="modal-header">
                 <div class="modal-header-text">
-                    <h2 class="modal-title">Set Up Quote</h2>
+                    <h2 class="modal-title" id="setup-quote-modal-title">Set Up Quote</h2>
                     <p class="modal-subtitle">Create or modify a quote and set up hierarchy</p>
                 </div>
                 <lightning-button-icon icon-name="utility:close" alternative-text="Close" onclick={handleClose} class="close-btn"></lightning-button-icon>
             </header>
 
             <div class="step-indicator-wrap">
-                <ul class="step-indicator" role="tablist">
+                <ul class="step-indicator" role="tablist" aria-label="Wizard steps">
                     <template for:each={stepsList} for:item="s">
                         <li key={s.id} class="step-indicator-item" data-step-id={s.id}>
                             <span class={s.stepClass}>
@@ -529,6 +529,7 @@
                                         label="Product count for quote"
                                         value={ungroupedProductCountValue}
                                         min="0"
+                                        onchange={handleUngroupedProductCountChange}
                                     ></lightning-input>
                                 </template>
                                 <template if:false={showUngroupedProductCountInput}>
@@ -662,7 +663,17 @@
                 <template if:true={isStep6}>
                     <div class="wizard-card">
                         <h3 class="wizard-card-title">Large Deal</h3>
-                        <lightning-input data-step="large-deal" type="checkbox" label="Mark this quote as a Large Deal?" checked={largeDeal}></lightning-input>
+                        <lightning-input
+                            data-step="large-deal"
+                            type="checkbox"
+                            label="Mark this quote as a Large Deal?"
+                            checked={effectiveLargeDeal}
+                            disabled={isLargeDealRequired}
+                            required={isLargeDealRequired}
+                        ></lightning-input>
+                        <template if:true={largeDealRequirementHelpText}>
+                            <p class="slds-text-body_small slds-m-top_x-small slds-text-color_weak">{largeDealRequirementHelpText}</p>
+                        </template>
                     </div>
                 </template>
 

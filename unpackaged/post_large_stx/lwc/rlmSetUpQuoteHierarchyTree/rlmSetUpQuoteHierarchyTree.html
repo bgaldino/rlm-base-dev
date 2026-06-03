@@ -64,7 +64,11 @@
                                     class="tree-row-core"
                                     class:tree-row-core-selected={row.isSelected}
                                     data-path={row.path}
+                                    role="button"
+                                    tabindex="0"
+                                    aria-selected={row.isSelected}
                                     onclick={handleRowSelect}
+                                    onkeydown={handleRowCoreKeydown}
                                 >
                                     <div
                                         class="tree-guides"
@@ -92,6 +96,8 @@
                                                 class="tree-toggle"
                                                 data-path={row.path}
                                                 title={row.toggleTitle}
+                                                aria-label={row.toggleTitle}
+                                                aria-expanded={row.branchExpanded}
                                                 onclick={handleToggleExpand}
                                             >
                                                 {row.toggleLabel}
@@ -111,6 +117,7 @@
                                         <template if:true={row.isEditing}>
                                             <lightning-input
                                                 type="text"
+                                                label="Rename group"
                                                 variant="label-hidden"
                                                 value={editingDraftName}
                                                 data-path={row.path}

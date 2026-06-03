@@ -93,14 +93,8 @@ public with sharing class RLM_SetUpQuoteInvocable {
             return results;
         }
         Input in0 = inputs[0];
-        // TEMP DEBUG: Salesforce Debug Logs (Setup → Debug Logs). Remove after capturing.
-        Integer hjLen = String.isNotBlank(in0.hierarchyJson) ? in0.hierarchyJson.length() : 0;
-        Integer pjLen = String.isNotBlank(in0.productCountsJson) ? in0.productCountsJson.length() : 0;
         Boolean useHier = useHierarchyJsonInput(in0);
         Boolean useTree = useTreeInput(in0);
-        System.debug(LoggingLevel.INFO, '[SetUpQuoteInvocable.execute] hierarchyJson length=' + hjLen + ', productCountsJson length=' + pjLen + ', useHierarchyJson=' + useHier + ', useTree=' + useTree);
-        if (String.isNotBlank(in0.hierarchyJson)) System.debug(LoggingLevel.INFO, '[SetUpQuoteInvocable.execute] hierarchyJson preview: ' + in0.hierarchyJson.substring(0, Math.min(200, in0.hierarchyJson.length())) + (in0.hierarchyJson.length() > 200 ? '...' : ''));
-        if (String.isNotBlank(in0.productCountsJson)) System.debug(LoggingLevel.INFO, '[SetUpQuoteInvocable.execute] productCountsJson preview: ' + in0.productCountsJson.substring(0, Math.min(200, in0.productCountsJson.length())) + (in0.productCountsJson.length() > 200 ? '...' : ''));
         try {
             List<Integer> csvLinesAddedOut = new List<Integer>();
             String qId;
@@ -299,11 +293,18 @@ public with sharing class RLM_SetUpQuoteInvocable {
             return emptyResult;
         }
         List<QuoteLineGroup> groups = [SELECT Id, Name, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name];
-        List<QuoteLineItem> items = [SELECT QuoteLineGroupId FROM QuoteLineItem WHERE QuoteId = :qId];
+        // Count lines per group with a server-side aggregate. This avoids loading
+        // every QuoteLineItem into heap and the 50k-query-row limit, which matters
+        // for the large-sales-transaction quotes this feature targets.
         Map<Id, Integer> lineCountByGroup = new Map<Id, Integer>();
-        for (QuoteLineItem li : items) {
-            Id gid = li.QuoteLineGroupId;
-            if (gid != null) lineCountByGroup.put(gid, lineCountByGroup.containsKey(gid) ? lineCountByGroup.get(gid) + 1 : 1);
+        for (AggregateResult ar : [
+            SELECT QuoteLineGroupId groupId, COUNT(Id) lineCount
+            FROM QuoteLineItem
+            WHERE QuoteId = :qId
+              AND QuoteLineGroupId != null
+            GROUP BY QuoteLineGroupId
+        ]) {
+            lineCountByGroup.put((Id) ar.get('groupId'), (Integer) ar.get('lineCount'));
         }
         Map<Id, List<QuoteLineGroup>> childrenByParent = new Map<Id, List<QuoteLineGroup>>();
         List<QuoteLineGroup> roots = new List<QuoteLineGroup>();
@@ -1815,9 +1816,6 @@ public with sharing class RLM_SetUpQuoteInvocable {
         collectHierarchyPathsIntoSet(hierarchyJson, validPaths);
         Boolean ungroupedCsvOnly = validPaths.isEmpty();
         if (String.isBlank(csvImportLineItemsJson)) {
-            return 0;
-        }
-        if (!ungroupedCsvOnly && validPaths.isEmpty()) {
             return 0;
         }
         List<Object> items;
