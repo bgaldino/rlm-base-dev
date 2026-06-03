@@ -4,6 +4,8 @@ public class RLM_SetUpQuoteProductSets {
 
     public static final String SIEMENS_BUNDLE_IDENTIFIER = 'BE2:L-BF-1114';
     public static final Integer SIEMENS_BUNDLE_QLI_COST = 4;
+    // Minimum requested QLI count before Siemens allocation introduces bundles.
+    private static final Integer SIEMENS_BUNDLE_THRESHOLD = 50;
     public static final Integer QUANTUMBIT_BULK_BUNDLE_QLI_COST = 9;
     private static final Integer QUANTUMBIT_BULK_BUNDLE_THRESHOLD = 50;
     private static final Integer QUANTUMBIT_MAX_BULK_BUNDLES = 50;
@@ -74,8 +76,8 @@ public class RLM_SetUpQuoteProductSets {
         }
 
         Integer bundleCount = 0;
-        if (target >= 50) {
-            bundleCount = target / 50;
+        if (target >= SIEMENS_BUNDLE_THRESHOLD) {
+            bundleCount = target / SIEMENS_BUNDLE_THRESHOLD;
             Integer maxBundleCount = target / SIEMENS_BUNDLE_QLI_COST;
             if (bundleCount > maxBundleCount) {
                 bundleCount = maxBundleCount;
