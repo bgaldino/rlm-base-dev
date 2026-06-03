@@ -59,7 +59,14 @@ public with sharing class RLM_SetUpQuoteLinePreview {
                 if (projectedOnError < 0) {
                     projectedOnError = 0;
                 }
-                return buildResponse(currentTotal, linesRemovedFromDeletes, 0, 0, projectedOnError, 'Invalid existing group counts');
+                return buildResponse(
+                    currentTotal,
+                    linesRemovedFromDeletes,
+                    0,
+                    0,
+                    projectedOnError,
+                    'Could not read the existing group product counts, so the preview may be inaccurate. Refresh the page and re-enter the counts, then try again.'
+                );
             }
         }
 
