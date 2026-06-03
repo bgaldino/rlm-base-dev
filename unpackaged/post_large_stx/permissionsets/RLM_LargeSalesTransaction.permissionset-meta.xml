@@ -11,7 +11,9 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <editable>true</editable>
+        <!-- Org-wide config flag: end users (wizard) read it via getOrgDefaults();
+             toggling org-wide UI behavior is an admin/setup concern, so keep it read-only here. -->
+        <editable>false</editable>
         <field>RLM_Set_Up_Quote_Settings__c.RLM_Show_Product_Set_Selector__c</field>
         <readable>true</readable>
     </fieldPermissions>
