@@ -130,11 +130,12 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 'quoteId' => null, 'success' => false, 'errorMessage' => 'No input'
             });
         }
-        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(inputJson);
-        Input in0 = inputFromMap(m);
         // Call invocable directly so PST runs in Apex context; when run via Flow, PST defaults
         // persist to SKIP and the quote is empty. Same code path as run-set-up-quote-invocable.apex.
+        // Parse inside the try so malformed JSON returns a structured error, not an unhandled exception.
         try {
+            Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(inputJson);
+            Input in0 = inputFromMap(m);
             List<Output> outs = execute(new List<Input>{ in0 });
             if (outs.isEmpty()) {
                 return JSON.serialize(new Map<String, Object>{
