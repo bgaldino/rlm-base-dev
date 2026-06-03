@@ -32,6 +32,14 @@ public with sharing class RLM_PricingWaterfallController {
         @AuraEnabled public Integer lineCount;
         /** Name of the user who triggered pricing */
         @AuraEnabled public String triggeredByName;
+        /** QLI id that matched this execution row */
+        @AuraEnabled public String matchedLineItemId;
+        /** Why the run matched (SelectedLine or RelatedLine) */
+        @AuraEnabled public String matchSource;
+        /** Relationship role for matchedLineItemId (if known) */
+        @AuraEnabled public String matchRelationshipRole;
+        /** Raw execution token extracted from ExecutionTypeKey (suffix after first '_') */
+        @AuraEnabled public String matchedExecutionToken;
     }
 
     /**
@@ -52,15 +60,87 @@ public with sharing class RLM_PricingWaterfallController {
             throw new AuraHandledException('lineItemId is required');
         }
 
-        // Find every Pricing_Line PPE for this QLI across all historical runs
-        String likePattern = '%_' + lineItemId;
-        List<PricingProcessExecution> linePPEs = [
-            SELECT ExecutionKey, ExecutionTypeKey, Status
-            FROM PricingProcessExecution
-            WHERE ExecutionType = 'Pricing_Line'
-              AND ExecutionTypeKey LIKE :likePattern
-            ORDER BY CreatedDate ASC
-        ];
+        // Expand lookup scope beyond the selected line so bundle/component runs
+        // are discoverable in the same history panel.
+        Map<String, String> lineRoleById = collectRelatedLineItemRoles((Id) lineItemId);
+        Set<String> scopedLineItemIds = new Set<String>();
+        for (String scopedId : lineRoleById.keySet()) {
+            scopedLineItemIds.add(scopedId);
+        }
+        if (scopedLineItemIds.isEmpty()) {
+            scopedLineItemIds.add(lineItemId);
+            lineRoleById.put(lineItemId, 'SelectedLine');
+        }
+
+        // Include both line Id tokens and identifier-prefix tokens (ref_...) because
+        // bundle/component executions may persist non-QLI keys in ExecutionTypeKey.
+        Set<String> scopedMatchTokens = new Set<String>();
+        Map<String, String> tokenToLineId = new Map<String, String>();
+        Map<String, String> tokenToRole = new Map<String, String>();
+        Set<String> selectedAnchorTokens = new Set<String>{ lineItemId };
+        Set<String> selectedAnchorExecutionKeys = new Set<String>();
+
+        for (String scopedLineId : scopedLineItemIds) {
+            scopedMatchTokens.add(scopedLineId);
+            tokenToLineId.put(scopedLineId, scopedLineId);
+            tokenToRole.put(scopedLineId, lineRoleById.get(scopedLineId));
+        }
+
+        for (QuoteLineItem qli : [
+            SELECT Id, PriceWaterfallIdentifier
+            FROM QuoteLineItem
+            WHERE Id IN :scopedLineItemIds
+        ]) {
+            String token = extractTokenFromPriceWaterfallIdentifier(
+                qli.PriceWaterfallIdentifier
+            );
+            if (String.isBlank(token)) continue;
+            scopedMatchTokens.add(token);
+            tokenToLineId.put(token, qli.Id);
+            tokenToRole.put(
+                token,
+                lineRoleById.containsKey((String) qli.Id)
+                    ? lineRoleById.get((String) qli.Id)
+                    : null
+            );
+
+            if ((String) qli.Id == lineItemId) {
+                selectedAnchorTokens.add(token);
+            }
+        }
+
+        // First pass: anchor to runs that explicitly include the selected line/token.
+        String anchorQuery =
+            'SELECT ExecutionKey ' +
+            'FROM PricingProcessExecution ' +
+            'WHERE ExecutionType = \'Pricing_Line\' AND (' +
+            buildExecutionTypeKeyClause(selectedAnchorTokens) +
+            ')';
+        for (PricingProcessExecution anchorPpe : (List<PricingProcessExecution>) Database.query(anchorQuery)) {
+            selectedAnchorExecutionKeys.add(anchorPpe.ExecutionKey);
+        }
+
+        // Find every Pricing_Line PPE for selected + related tokens.
+        String ppeQuery;
+        if (!selectedAnchorExecutionKeys.isEmpty()) {
+            // Strict mode: include related token matches only for selected-anchored runs.
+            ppeQuery =
+                'SELECT ExecutionKey, ExecutionTypeKey, Status, CreatedDate ' +
+                'FROM PricingProcessExecution ' +
+                'WHERE ExecutionType = \'Pricing_Line\' ' +
+                'AND ExecutionKey IN :selectedAnchorExecutionKeys ' +
+                'ORDER BY CreatedDate ASC';
+        } else {
+            // Fallback mode if no anchors were found.
+            ppeQuery =
+                'SELECT ExecutionKey, ExecutionTypeKey, Status, CreatedDate ' +
+                'FROM PricingProcessExecution ' +
+                'WHERE ExecutionType = \'Pricing_Line\' AND (' +
+                buildExecutionTypeKeyClause(scopedMatchTokens) +
+                ') ORDER BY CreatedDate ASC';
+        }
+        List<PricingProcessExecution> linePPEs =
+            (List<PricingProcessExecution>) Database.query(ppeQuery);
 
         if (linePPEs.isEmpty()) {
             return new List<PricingRun>();
@@ -70,17 +150,49 @@ public with sharing class RLM_PricingWaterfallController {
         Set<String> executionKeys = new Set<String>();
         Map<String, String> keyToWaterfallRunId = new Map<String, String>();
         Map<String, String> keyToLineStatus    = new Map<String, String>();
-        String suffix = '_' + lineItemId;
+        Map<String, String> keyToMatchedLineId = new Map<String, String>();
+        Map<String, String> keyToMatchSource = new Map<String, String>();
+        Map<String, String> keyToRelationshipRole = new Map<String, String>();
+        Map<String, String> keyToMatchedToken = new Map<String, String>();
 
         for (PricingProcessExecution ppe : linePPEs) {
             executionKeys.add(ppe.ExecutionKey);
+
+            String matchedToken = extractMatchTokenFromExecutionTypeKey(
+                ppe.ExecutionTypeKey
+            );
+            String matchedLineId = tokenToLineId.get(matchedToken);
+            if (String.isBlank(matchedLineId) && scopedLineItemIds.contains(matchedToken)) {
+                matchedLineId = matchedToken;
+            }
+
+            Boolean isSelectedLine = matchedLineId == lineItemId || matchedToken == lineItemId;
+            String matchSource = isSelectedLine ? 'SelectedLine' : 'RelatedLine';
+            String relationshipRole = tokenToRole.containsKey(matchedToken)
+                ? tokenToRole.get(matchedToken)
+                : null;
+            if (relationshipRole == null && lineRoleById.containsKey(matchedLineId)) {
+                relationshipRole = lineRoleById.get(matchedLineId);
+            }
+
+            // Prefer selected-line PPE when multiple scoped lines share same key.
+            if (
+                !keyToMatchedLineId.containsKey(ppe.ExecutionKey) ||
+                (isSelectedLine && keyToMatchedLineId.get(ppe.ExecutionKey) != lineItemId)
+            ) {
+                keyToMatchedLineId.put(ppe.ExecutionKey, matchedLineId);
+                keyToMatchSource.put(ppe.ExecutionKey, matchSource);
+                keyToRelationshipRole.put(ppe.ExecutionKey, relationshipRole);
+                keyToMatchedToken.put(ppe.ExecutionKey, matchedToken);
+                keyToLineStatus.put(ppe.ExecutionKey, ppe.Status);
+            }
+
             if (!keyToWaterfallRunId.containsKey(ppe.ExecutionKey)) {
                 // ExecutionTypeKey = '{waterfallRunId}_{lineItemId}'
                 keyToWaterfallRunId.put(
                     ppe.ExecutionKey,
-                    ppe.ExecutionTypeKey.removeEnd(suffix)
+                    removeTokenSuffix(ppe.ExecutionTypeKey, matchedToken)
                 );
-                keyToLineStatus.put(ppe.ExecutionKey, ppe.Status);
             }
         }
 
@@ -131,6 +243,10 @@ public with sharing class RLM_PricingWaterfallController {
             run.waterfallRunId = keyToWaterfallRunId.get(execKey);
             run.lineStatus     = keyToLineStatus.get(execKey);
             run.lineCount      = lineCountByKey.get(execKey);
+            run.matchedLineItemId = keyToMatchedLineId.get(execKey);
+            run.matchSource = keyToMatchSource.get(execKey);
+            run.matchRelationshipRole = keyToRelationshipRole.get(execKey);
+            run.matchedExecutionToken = keyToMatchedToken.get(execKey);
 
             PricingApiExecution pae = paeByExecutionKey.get(execKey);
             if (pae != null) {
@@ -143,6 +259,98 @@ public with sharing class RLM_PricingWaterfallController {
             runs.add(run);
         }
         return runs;
+    }
+
+    /**
+     * Collect selected line + one-hop/expanded related lines from QuoteLineRelationship.
+     */
+    @TestVisible
+    private static Map<String, String> collectRelatedLineItemRoles(Id seedLineItemId) {
+        Map<String, String> roleByLineId = new Map<String, String>();
+        roleByLineId.put((String) seedLineItemId, 'SelectedLine');
+
+        Set<Id> frontier = new Set<Id>{ seedLineItemId };
+        // Two passes: seed neighbors + a light expansion to catch siblings.
+        for (Integer hop = 0; hop < 2; hop++) {
+            if (frontier.isEmpty()) break;
+
+            Set<Id> nextFrontier = new Set<Id>();
+            for (QuoteLineRelationship rel : [
+                SELECT MainQuoteLineId, AssociatedQuoteLineId, RootQuoteLineId
+                FROM QuoteLineRelationship
+                WHERE MainQuoteLineId IN :frontier
+                   OR AssociatedQuoteLineId IN :frontier
+                   OR RootQuoteLineId IN :frontier
+            ]) {
+                addRole(roleByLineId, nextFrontier, rel.MainQuoteLineId, 'MainQuoteLine');
+                addRole(
+                    roleByLineId,
+                    nextFrontier,
+                    rel.AssociatedQuoteLineId,
+                    'AssociatedQuoteLine'
+                );
+                addRole(roleByLineId, nextFrontier, rel.RootQuoteLineId, 'RootQuoteLine');
+            }
+            frontier = nextFrontier;
+        }
+        return roleByLineId;
+    }
+
+    @TestVisible
+    private static void addRole(
+        Map<String, String> roleByLineId,
+        Set<Id> nextFrontier,
+        Id lineId,
+        String role
+    ) {
+        if (lineId == null) return;
+        String lineKey = (String) lineId;
+        if (!roleByLineId.containsKey(lineKey)) {
+            roleByLineId.put(lineKey, role);
+            nextFrontier.add(lineId);
+        }
+    }
+
+    @TestVisible
+    private static String buildExecutionTypeKeyClause(Set<String> lineItemIds) {
+        List<String> clauses = new List<String>();
+        for (String lineId : lineItemIds) {
+            clauses.add(
+                'ExecutionTypeKey LIKE \'%_' +
+                String.escapeSingleQuotes(lineId) +
+                '\''
+            );
+        }
+        return String.join(clauses, ' OR ');
+    }
+
+    @TestVisible
+    private static String extractMatchTokenFromExecutionTypeKey(String executionTypeKey) {
+        if (String.isBlank(executionTypeKey)) return null;
+        Integer idx = executionTypeKey.indexOf('_');
+        if (idx == -1 || idx + 1 >= executionTypeKey.length()) return null;
+        return executionTypeKey.substring(idx + 1);
+    }
+
+    @TestVisible
+    private static String removeTokenSuffix(String executionTypeKey, String token) {
+        if (String.isBlank(executionTypeKey) || String.isBlank(token)) {
+            return executionTypeKey;
+        }
+        String suffix = '_' + token;
+        return executionTypeKey.endsWith(suffix)
+            ? executionTypeKey.removeEnd(suffix)
+            : executionTypeKey;
+    }
+
+    @TestVisible
+    private static String extractTokenFromPriceWaterfallIdentifier(
+        String priceWaterfallIdentifier
+    ) {
+        if (String.isBlank(priceWaterfallIdentifier)) return null;
+        Integer idx = priceWaterfallIdentifier.indexOf(':');
+        if (idx <= 0) return null;
+        return priceWaterfallIdentifier.substring(0, idx);
     }
 
 }
