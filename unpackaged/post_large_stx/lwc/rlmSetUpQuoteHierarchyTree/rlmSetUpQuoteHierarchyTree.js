@@ -478,6 +478,12 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       this.handleRowSelect(event);
+    } else if (event.key === "F2") {
+      // Keyboard equivalent of double-click rename for keyboard-only users.
+      if (!this.effectiveAllowRename) return;
+      event.preventDefault();
+      const path = event.currentTarget.dataset.path;
+      if (path) this._beginRename(path);
     }
   }
 

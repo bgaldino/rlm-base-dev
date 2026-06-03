@@ -1190,8 +1190,8 @@ public with sharing class RLM_SetUpQuoteInvocable {
             String path = item != null && item.containsKey('path') && item.get('path') != null ? String.valueOf(item.get('path')) : null;
             String productIdentifier = item != null && item.containsKey('productIdentifier') ? String.valueOf(item.get('productIdentifier')) : null;
             Object qtyObj = (item != null && item.containsKey('quantity')) ? item.get('quantity') : null;
-            // Rule: if no quantity is provided, treat quantity as 1
-            Decimal qty = (qtyObj instanceof Integer) ? (Integer) qtyObj : (qtyObj instanceof Decimal) ? (Decimal) qtyObj : (qtyObj != null && String.isNotBlank(String.valueOf(qtyObj))) ? Decimal.valueOf(String.valueOf(qtyObj)) : 1;
+            // Rule: if no quantity is provided (or it is non-numeric), treat quantity as 1
+            Decimal qty = parseCsvQuantity(qtyObj);
             if (String.isBlank(productIdentifier)) continue;
             String quoteLineGroupIdRef = null;
             if (String.isNotBlank(path)) {
@@ -1214,6 +1214,24 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
         lineIndexHolder[0] = lineIndex;
         return linesAdded;
+    }
+
+    /**
+     * Parse a CSV row quantity defensively. Missing, blank, or non-numeric
+     * values (e.g. "1,000" or "two") default to 1 instead of throwing and
+     * aborting the entire Set Up Quote run.
+     */
+    private static Decimal parseCsvQuantity(Object qtyObj) {
+        if (qtyObj instanceof Integer) return (Integer) qtyObj;
+        if (qtyObj instanceof Decimal) return (Decimal) qtyObj;
+        if (qtyObj == null) return 1;
+        String s = String.valueOf(qtyObj);
+        if (String.isBlank(s)) return 1;
+        try {
+            return Decimal.valueOf(s.trim());
+        } catch (Exception e) {
+            return 1;
+        }
     }
 
     private static Integer addLineItemsFromCsvImportToResolvedGroups(
@@ -1245,7 +1263,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             String path = item != null && item.containsKey('path') && item.get('path') != null ? String.valueOf(item.get('path')) : null;
             String productIdentifier = item != null && item.containsKey('productIdentifier') ? String.valueOf(item.get('productIdentifier')) : null;
             Object qtyObj = (item != null && item.containsKey('quantity')) ? item.get('quantity') : null;
-            Decimal qty = (qtyObj instanceof Integer) ? (Integer) qtyObj : (qtyObj instanceof Decimal) ? (Decimal) qtyObj : (qtyObj != null && String.isNotBlank(String.valueOf(qtyObj))) ? Decimal.valueOf(String.valueOf(qtyObj)) : 1;
+            Decimal qty = parseCsvQuantity(qtyObj);
             if (String.isBlank(productIdentifier)) continue;
             String groupTarget = null;
             if (String.isNotBlank(path)) {
@@ -1297,11 +1315,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             Map<String, Object> item = (Map<String, Object>) itemObj;
             String productIdentifier = item != null && item.containsKey('productIdentifier') ? String.valueOf(item.get('productIdentifier')) : null;
             Object qtyObj = (item != null && item.containsKey('quantity')) ? item.get('quantity') : null;
-            Decimal qty = (qtyObj instanceof Integer)
-                ? (Integer) qtyObj
-                : (qtyObj instanceof Decimal)
-                    ? (Decimal) qtyObj
-                    : (qtyObj != null && String.isNotBlank(String.valueOf(qtyObj))) ? Decimal.valueOf(String.valueOf(qtyObj)) : 1;
+            Decimal qty = parseCsvQuantity(qtyObj);
             if (String.isBlank(productIdentifier)) continue;
             String trimmed = productIdentifier.trim();
             PricebookEntry pbe = pbeMap.get(trimmed);
