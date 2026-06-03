@@ -731,8 +731,14 @@ public with sharing class RLM_SetUpQuoteInvocable {
         List<Object> parentsList = (List<Object>) treeMap.get('parents');
         if (parentsList == null) parentsList = new List<Object>();
         Integer ungroupedProductCount = in0.ungroupedProductCount != null ? in0.ungroupedProductCount : 0;
-        // Allow create with empty hierarchy (no groups) for 2-step flow: Step 1 = empty quote + large deal.
-        if (parentsList.isEmpty() && !hasPositiveIdCount(siemensExistingGroupCounts) && ungroupedProductCount <= 0 && String.isBlank(in0.csvImportLineItemsJson)) {
+        // Empty-hierarchy shell handling:
+        //   - Create: empty quote (2-step flow Step 1 = empty quote + large deal). A create
+        //     WITH CSV is left to the normal ungrouped path below, so it must not enter here.
+        //   - Modify: CSV-only ungrouped import (runHierarchyEmptyCsvModifyQuote) or a no-op
+        //     Large Deal flip. The modify+CSV case must be reachable, so don't require CSV
+        //     to be blank for modify (only for create).
+        Boolean emptyHierarchyShell = parentsList.isEmpty() && !hasPositiveIdCount(siemensExistingGroupCounts) && ungroupedProductCount <= 0;
+        if (emptyHierarchyShell && (String.isBlank(in0.csvImportLineItemsJson) || !isCreate)) {
             if (isCreate) {
                 if (String.isBlank(in0.newQuoteName)) throw new RLM_SetUpQuoteException('New quote name required when creating.');
                 Id pricebook2Id = getStandardPricebookId();
