@@ -78,8 +78,18 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             // modify where hierarchyJson is {"parents":[]}), so count them
             // regardless of whether parents are present.
             newFromHierarchy = RLM_SetUpQuoteInvocable.countCsvImportLinesForPreview(hierarchyJson, csvImportLineItemsJson);
-        } else if (parentsList != null && !parentsList.isEmpty()) {
-            newFromHierarchy = RLM_SetUpQuoteProductSets.sumExpectedQliCounts(productSetMode, productCountsJson);
+        } else {
+            if (parentsList != null && !parentsList.isEmpty()) {
+                newFromHierarchy = RLM_SetUpQuoteProductSets.sumExpectedQliCounts(productSetMode, productCountsJson);
+            }
+            // Ungrouped (no-group) lines: the non-CSV invocable path adds these via
+            // addProductRequestsForCount(ungroupedProductCount, ...) independent of the
+            // hierarchy, so include them here or the preview undercounts. Expected QLI
+            // count mirrors the invocable's product-set/demo allocation.
+            Integer ungroupedProductCount = RLM_SetUpQuoteProductSets.parseNonNegativeInteger(m.get('ungroupedProductCount'));
+            if (ungroupedProductCount > 0) {
+                newFromHierarchy += RLM_SetUpQuoteProductSets.expectedQliCountForRequestedCount(productSetMode, ungroupedProductCount);
+            }
         }
 
         Integer projected = currentTotal - linesRemovedFromDeletes + existingAdds + newFromHierarchy;
