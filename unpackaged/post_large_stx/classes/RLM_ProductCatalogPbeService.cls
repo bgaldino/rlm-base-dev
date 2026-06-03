@@ -63,19 +63,23 @@ public with sharing class RLM_ProductCatalogPbeService {
             return result;
         }
         List<String> idList = new List<String>(idSet);
-        Map<Id, Product2> byCode = new Map<Id, Product2>();
-        Map<Id, Product2> byName = new Map<Id, Product2>();
-        List<Product2> byCodeList = [SELECT Id, ProductCode, Name FROM Product2 WHERE ProductCode IN :idList AND IsActive = true];
-        for (Product2 p : byCodeList) {
-            byCode.put(p.Id, p);
+        // Lookup maps keyed by identifier (ProductCode / Name) so each requested
+        // identifier resolves in O(1) below instead of re-scanning the result lists.
+        Map<String, Id> productIdByCode = new Map<String, Id>();
+        Map<String, Id> productIdByName = new Map<String, Id>();
+        for (Product2 p : [SELECT Id, ProductCode, Name FROM Product2 WHERE ProductCode IN :idList AND IsActive = true]) {
+            if (String.isNotBlank(p.ProductCode) && !productIdByCode.containsKey(p.ProductCode)) {
+                productIdByCode.put(p.ProductCode, p.Id);
+            }
         }
-        List<Product2> byNameList = [SELECT Id, ProductCode, Name FROM Product2 WHERE Name IN :idList AND IsActive = true];
-        for (Product2 p : byNameList) {
-            byName.put(p.Id, p);
+        for (Product2 p : [SELECT Id, ProductCode, Name FROM Product2 WHERE Name IN :idList AND IsActive = true]) {
+            if (String.isNotBlank(p.Name) && !productIdByName.containsKey(p.Name)) {
+                productIdByName.put(p.Name, p.Id);
+            }
         }
         Set<Id> product2Ids = new Set<Id>();
-        product2Ids.addAll(byCode.keySet());
-        product2Ids.addAll(byName.keySet());
+        product2Ids.addAll(productIdByCode.values());
+        product2Ids.addAll(productIdByName.values());
         if (product2Ids.isEmpty()) {
             return result;
         }
@@ -97,21 +101,10 @@ public with sharing class RLM_ProductCatalogPbeService {
             pbeByProduct.get(pe.Product2Id).add(pe);
         }
         for (String iden : idList) {
-            Id product2Id = null;
-            for (Product2 p : byCodeList) {
-                if (p.ProductCode == iden) {
-                    product2Id = p.Id;
-                    break;
-                }
-            }
-            if (product2Id == null) {
-                for (Product2 p : byNameList) {
-                    if (p.Name == iden) {
-                        product2Id = p.Id;
-                        break;
-                    }
-                }
-            }
+            // ProductCode wins over Name, matching the prior resolution order.
+            Id product2Id = productIdByCode.containsKey(iden)
+                ? productIdByCode.get(iden)
+                : productIdByName.get(iden);
             if (product2Id == null) {
                 continue;
             }

@@ -257,18 +257,15 @@ public with sharing class RLM_SetUpQuoteInvocable {
         Integer siemensLines = 0;
         try {
             Id qId = Id.valueOf(quoteId);
-            for (QuoteLineItem line : [
-                SELECT Product2.ProductCode
+            // Aggregate counts avoid materializing every QLI (no 5000-row cap),
+            // so detection stays accurate and cheap on large quotes.
+            totalLines = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId];
+            siemensLines = [
+                SELECT COUNT()
                 FROM QuoteLineItem
                 WHERE QuoteId = :qId
-                LIMIT 5000
-            ]) {
-                totalLines++;
-                String productCode = line.Product2 != null ? line.Product2.ProductCode : null;
-                if (String.isNotBlank(productCode) && siemensIdentifiers.contains(productCode)) {
-                    siemensLines++;
-                }
-            }
+                  AND Product2.ProductCode IN :siemensIdentifiers
+            ];
         } catch (Exception e) {
             return RLM_SetUpQuoteProductSets.PRODUCT_SET_QUANTUMBIT;
         }

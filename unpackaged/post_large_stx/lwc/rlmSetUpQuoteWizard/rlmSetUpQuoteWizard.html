@@ -10,7 +10,7 @@
             </header>
 
             <div class="step-indicator-wrap">
-                <ul class="step-indicator" role="tablist" aria-label="Wizard steps">
+                <ul class="step-indicator" aria-label="Wizard steps">
                     <template for:each={stepsList} for:item="s">
                         <li key={s.id} class="step-indicator-item" data-step-id={s.id}>
                             <span class={s.stepClass}>

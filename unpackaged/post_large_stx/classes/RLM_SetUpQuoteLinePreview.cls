@@ -54,7 +54,12 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             try {
                 existingAdds = computeExistingGroupAdds(existingGroupCountsJson, deletedGroupIds, productSetMode, parsedQId);
             } catch (Exception e) {
-                /* ignore */
+                // Surface the failure instead of silently undercounting the preview.
+                Integer projectedOnError = currentTotal - linesRemovedFromDeletes;
+                if (projectedOnError < 0) {
+                    projectedOnError = 0;
+                }
+                return buildResponse(currentTotal, linesRemovedFromDeletes, 0, 0, projectedOnError, 'Invalid existing group counts');
             }
         }
 
@@ -117,8 +122,18 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             List<Object> arr = (List<Object>) JSON.deserializeUntyped(groupsToDeleteJson);
             Set<Id> rootIds = new Set<Id>();
             for (Object o : arr) {
-                if (o != null && String.isNotBlank(String.valueOf(o))) {
-                    rootIds.add(Id.valueOf(String.valueOf(o)));
+                if (o == null) {
+                    continue;
+                }
+                String idStr = String.valueOf(o);
+                if (String.isBlank(idStr)) {
+                    continue;
+                }
+                try {
+                    rootIds.add(Id.valueOf(idStr));
+                } catch (Exception e) {
+                    // Skip invalid Id entries rather than discarding the entire delete set.
+                    continue;
                 }
             }
             if (rootIds.isEmpty()) {
