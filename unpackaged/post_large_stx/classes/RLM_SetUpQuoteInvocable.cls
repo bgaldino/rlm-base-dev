@@ -1832,8 +1832,14 @@ public with sharing class RLM_SetUpQuoteInvocable {
     }
 
     /**
-     * Rows in CSV that match a hierarchy path and resolve to a PricebookEntry (same rules as addLineItemsFromCsvImport).
-     * Each row counts as one QuoteLineItem record (quantity is on the line, not extra rows).
+     * Counts the QuoteLineItems a CSV import will produce, mirroring the exact rules of
+     * addLineItemsFromCsvImport so the preview total matches the actual import:
+     *   - A row with no productIdentifier, or one that does not resolve to a PricebookEntry, is not counted.
+     *   - A row whose path is non-blank but does NOT match any hierarchy path is skipped
+     *     (in the import its group ref resolves blank and the row is dropped).
+     *   - A row with a blank/missing path IS counted: the import adds it as an ungrouped
+     *     line on the quote, so excluding it here would undercount the projection.
+     * Each surviving row counts as one QuoteLineItem (quantity lives on the line, not as extra rows).
      */
     public static Integer countCsvImportLinesForPreview(String hierarchyJson, String csvImportLineItemsJson) {
         Set<String> validPaths = new Set<String>();
@@ -1873,6 +1879,9 @@ public with sharing class RLM_SetUpQuoteInvocable {
             if (String.isBlank(productIdentifier)) {
                 continue;
             }
+            // Mirror addLineItemsFromCsvImport: a non-blank path that does not match any
+            // hierarchy group is dropped; a blank/missing path falls through and is counted
+            // as an ungrouped line (the import adds it ungrouped on the quote).
             if (!ungroupedCsvOnly && String.isNotBlank(path)) {
                 if (!validPaths.contains(path)) {
                     continue;
