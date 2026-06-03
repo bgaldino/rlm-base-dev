@@ -481,7 +481,17 @@ public with sharing class RLM_SetUpQuoteInvocable {
     }
 
     private static Map<Id, Integer> parseExistingGroupCounts(String existingGroupCountsJson, Map<String, Id> tempIdToNewGroupId) {
-        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(existingGroupCountsJson);
+        Map<String, Object> m;
+        try {
+            m = (Map<String, Object>) JSON.deserializeUntyped(existingGroupCountsJson);
+        } catch (Exception e) {
+            // Mirror the productCountsJson guard: fail loudly with an actionable message
+            // instead of an opaque deserialization error.
+            throw new RLM_SetUpQuoteException('Invalid existing group counts JSON: ' + e.getMessage());
+        }
+        if (m == null) {
+            throw new RLM_SetUpQuoteException('Invalid existing group counts JSON: payload was null.');
+        }
         Map<Id, Integer> groupIdToCount = new Map<Id, Integer>();
         for (String k : m.keySet()) {
             Object v = m.get(k);
