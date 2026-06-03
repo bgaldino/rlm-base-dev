@@ -192,13 +192,14 @@ public with sharing class RLM_SetUpQuoteInvocable {
             Integer groupCount = [SELECT COUNT() FROM QuoteLineGroup WHERE QuoteId = :qId];
             Integer qliCount = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId];
             Integer errorCount = [SELECT COUNT() FROM RevenueTransactionErrorLog WHERE PrimaryRecordId = :qId];
-            Id currentUserId = UserInfo.getUserId();
+            // Scope pending async strictly to this quote. PST trackers carry the quote
+            // in ReferenceEntityId (the failedAsyncCount query below relies on the same),
+            // so a broader CreatedById/JobType clause only risks counting unrelated PST
+            // jobs from the user's other transactions and hanging the poller.
             Integer pendingAsyncCount = [
                 SELECT COUNT()
                 FROM AsyncOperationTracker
-                WHERE (ReferenceEntityId = :qId
-                    OR (CreatedById = :currentUserId
-                        AND JobType IN ('PSTBaseJob', 'PSTConfig', 'PSTPersist')))
+                WHERE ReferenceEntityId = :qId
                 AND Status NOT IN ('Completed', 'Failed', 'Failure', 'Canceled')
             ];
             Integer failedAsyncCount = [
