@@ -65,13 +65,14 @@ public with sharing class RLM_SetUpQuoteLinePreview {
 
         Integer newFromHierarchy = 0;
         List<Object> parentsList = parseParentsList(hierarchyJson);
-        if (parentsList != null && !parentsList.isEmpty()) {
-            Boolean useCsv = String.isNotBlank(csvImportLineItemsJson);
-            if (useCsv) {
-                newFromHierarchy = RLM_SetUpQuoteInvocable.countCsvImportLinesForPreview(hierarchyJson, csvImportLineItemsJson);
-            } else {
-                newFromHierarchy = RLM_SetUpQuoteProductSets.sumExpectedQliCounts(productSetMode, productCountsJson);
-            }
+        Boolean useCsv = String.isNotBlank(csvImportLineItemsJson);
+        if (useCsv) {
+            // CSV lines resolve even with an empty hierarchy (CSV-only / ungrouped
+            // modify where hierarchyJson is {"parents":[]}), so count them
+            // regardless of whether parents are present.
+            newFromHierarchy = RLM_SetUpQuoteInvocable.countCsvImportLinesForPreview(hierarchyJson, csvImportLineItemsJson);
+        } else if (parentsList != null && !parentsList.isEmpty()) {
+            newFromHierarchy = RLM_SetUpQuoteProductSets.sumExpectedQliCounts(productSetMode, productCountsJson);
         }
 
         Integer projected = currentTotal - linesRemovedFromDeletes + existingAdds + newFromHierarchy;
