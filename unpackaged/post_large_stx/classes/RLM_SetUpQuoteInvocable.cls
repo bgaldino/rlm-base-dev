@@ -749,19 +749,31 @@ public with sharing class RLM_SetUpQuoteInvocable {
         Boolean useCsvImport = String.isNotBlank(in0.csvImportLineItemsJson);
         Map<String, Integer> countsMap = new Map<String, Integer>();
         if (!useCsvImport && String.isNotBlank(in0.productCountsJson)) {
+            Map<String, Object> countsObj;
             try {
-                Map<String, Object> countsObj = (Map<String, Object>) JSON.deserializeUntyped(in0.productCountsJson);
+                countsObj = (Map<String, Object>) JSON.deserializeUntyped(in0.productCountsJson);
+            } catch (Exception e) {
+                // Malformed JSON must fail loudly: silently proceeding with an empty
+                // counts map would create groups/lines with zero counts ("no lines added").
+                throw new RLM_SetUpQuoteException('Invalid product counts JSON: ' + e.getMessage());
+            }
+            if (countsObj != null) {
                 for (String k : countsObj.keySet()) {
                     Object v = countsObj.get(k);
                     Integer count = null;
-                    if (v instanceof Integer) count = (Integer) v;
-                    else if (v instanceof Decimal) count = ((Decimal) v).intValue();
-                    else if (v instanceof Long) count = ((Long) v).intValue();
-                    else if (v instanceof Double) count = ((Double) v).intValue();
-                    else if (v != null) count = Integer.valueOf(String.valueOf(v));
+                    try {
+                        if (v instanceof Integer) count = (Integer) v;
+                        else if (v instanceof Decimal) count = ((Decimal) v).intValue();
+                        else if (v instanceof Long) count = ((Long) v).intValue();
+                        else if (v instanceof Double) count = ((Double) v).intValue();
+                        else if (v != null) count = Integer.valueOf(String.valueOf(v));
+                    } catch (Exception e) {
+                        // Skip a single unparseable entry rather than aborting the whole import.
+                        continue;
+                    }
                     if (count != null) countsMap.put(k, count);
                 }
-            } catch (Exception e) { /* ignore */ }
+            }
         }
         Id pricebook2Id = getStandardPricebookId();
         List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords = new List<RevSalesTrxn.RecordWithReferenceRequest>();
