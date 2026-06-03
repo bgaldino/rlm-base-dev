@@ -117,11 +117,12 @@ public class RLM_SetUpQuoteProductSets {
     }
 
     public static Integer expectedQliCountForRequestedCount(String productSetMode, Integer requestedQliCount) {
-        Integer total = 0;
-        for (ProductRequest request : allocateRequests(productSetMode, requestedQliCount)) {
-            total += request.expectedQliCount != null ? request.expectedQliCount : 0;
-        }
-        return total;
+        // allocateRequests is constructed so the sum of expectedQliCount always equals the
+        // normalized requested count: bundles consume part of the target (bundleCount * cost)
+        // and singles fill the exact remainder. Return that count directly so preview math
+        // (sumExpectedQliCounts) avoids building O(n) ProductRequest lists per group.
+        // productSetMode is retained for signature/caller compatibility.
+        return (requestedQliCount != null && requestedQliCount > 0) ? requestedQliCount : 0;
     }
 
     public static Integer sumExpectedQliCounts(String productSetMode, String countsJson) {
