@@ -14,6 +14,7 @@
 .run-col    { width: 28%; }
 .time-col   { width: 24%; }
 .status-col { width: 18%; }
+.source-col { width: 20%; }
 .lines-col  { width: 10%; text-align: center; }
 
 /* Run name — unstyled button reset, link appearance */
@@ -49,6 +50,11 @@
   font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
   font-size: 0.75rem;
   word-break: break-all;
+}
+
+.source-subtext {
+  font-size: 0.7rem;
+  line-height: 1.25;
 }
 
 /*

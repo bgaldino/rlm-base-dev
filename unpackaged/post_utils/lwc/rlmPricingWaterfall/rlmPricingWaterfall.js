@@ -5,6 +5,7 @@ import getAllPricingRuns from "@salesforce/apex/RLM_PricingWaterfallController.g
 
 const QLI_FIELDS = [
   "QuoteLineItem.PriceWaterfallIdentifier",
+  "QuoteLineItem.LastModifiedDate",
   "QuoteLineItem.ListPrice",
   "QuoteLineItem.UnitPrice",
   "QuoteLineItem.Discount",
@@ -31,6 +32,7 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
   _recordData = null;
   _recordLoaded = false;
   _waterfallRunId = null; // current run id from PriceWaterfallIdentifier
+  _waterfallRunIdCandidates = [];
 
   _runs = null;
   _runsError = null;
@@ -43,12 +45,9 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
       this._recordData = data;
       this._recordError = null;
       const identifier = getFieldValue(data, "QuoteLineItem.PriceWaterfallIdentifier");
-      if (identifier) {
-        const colonIdx = identifier.indexOf(":");
-        this._waterfallRunId = colonIdx !== -1 ? identifier.substring(colonIdx + 1) : null;
-      } else {
-        this._waterfallRunId = null;
-      }
+      const candidates = this._extractRunIdCandidates(identifier);
+      this._waterfallRunIdCandidates = candidates;
+      this._waterfallRunId = this._extractPrimaryRunId(identifier, candidates);
     } else if (error) {
       this._recordData = null;
       this._recordError = error?.body?.message ?? "Failed to load record fields.";
@@ -89,7 +88,12 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
   }
 
   get isPricingNotRun() {
-    return this._recordLoaded && !this._waterfallRunId && !this._recordError;
+    return (
+      this._recordLoaded &&
+      !this._waterfallRunId &&
+      !this._recordError &&
+      !this.hasPricingHistory
+    );
   }
 
   get listPrice() {
@@ -126,8 +130,37 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
   }
 
   get currentRun() {
-    if (!this._runs || !this._waterfallRunId) return null;
-    return this._runs.find((r) => r.waterfallRunId === this._waterfallRunId) ?? null;
+    if (!Array.isArray(this._runs) || this._runs.length === 0) return null;
+
+    const matchedByIdentifier =
+      this._waterfallRunIdCandidates.length > 0
+        ? (
+            this._runs.find((r) =>
+              this._waterfallRunIdCandidates.includes(r.waterfallRunId) ||
+              this._waterfallRunIdCandidates.includes(r.paeName)
+            ) ?? null
+          )
+        : null;
+
+    const latestRun = this._latestRun;
+    if (!latestRun) return matchedByIdentifier;
+
+    // Primary behavior: when identifier matches, use it.
+    // Fallback: if identifier is stale and line was modified after a newer run,
+    // prefer latest run so "Current" reflects the line's active pricing.
+    if (!matchedByIdentifier) {
+      return this._wasLineTouchedAfterRun(latestRun) ? latestRun : null;
+    }
+
+    if (matchedByIdentifier === latestRun) {
+      return matchedByIdentifier;
+    }
+
+    if (this._wasLineTouchedAfterRun(latestRun)) {
+      return latestRun;
+    }
+
+    return matchedByIdentifier;
   }
 
   // Line-level status is more meaningful for this QLI than the batch-level PAE status
@@ -153,6 +186,22 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
 
   get currentTriggeredBy() {
     return this.currentRun?.triggeredByName ?? null;
+  }
+
+  get currentMatchSource() {
+    return this.currentRun?.matchSource ?? null;
+  }
+
+  get currentMatchRole() {
+    return this.currentRun?.matchRelationshipRole ?? null;
+  }
+
+  get currentMatchedLineItemId() {
+    return this.currentRun?.matchedLineItemId ?? null;
+  }
+
+  get currentMatchedExecutionToken() {
+    return this.currentRun?.matchedExecutionToken ?? null;
   }
 
   get hasPricingHistory() {
@@ -194,7 +243,7 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
         prevTime = runTime;
       }
 
-      const isCurrent = run.waterfallRunId === this._waterfallRunId;
+      const isCurrent = this._isCurrentRun(run);
       const paeId = run.pricingApiExecutionId;
       items.push({
         key: run.waterfallRunId ?? `run-${idx}`,
@@ -208,6 +257,10 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
         createdDate: run.createdDate,
         lineCount: run.lineCount,
         triggeredByName: run.triggeredByName,
+        matchSource: run.matchSource,
+        matchRelationshipRole: run.matchRelationshipRole,
+        matchedLineItemId: run.matchedLineItemId,
+        matchedExecutionToken: run.matchedExecutionToken,
         isCurrent,
         rowClass: isCurrent ? "current-run-row" : "",
         overallStatusBadgeClass: statusBadgeClass(run.overallStatus),
@@ -216,6 +269,15 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
     });
 
     return items;
+  }
+
+  get _latestRun() {
+    if (!Array.isArray(this._runs) || this._runs.length === 0) return null;
+    return [...this._runs].sort((a, b) => {
+      const aTs = a.createdDate ? new Date(a.createdDate).getTime() : 0;
+      const bTs = b.createdDate ? new Date(b.createdDate).getTime() : 0;
+      return bTs - aTs;
+    })[0];
   }
 
   /** Human-readable label for a group header, e.g. "Jun 2, 2026 · 1:19:35 PM" */
@@ -235,5 +297,71 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
     const ampm  = h >= 12 ? "PM" : "AM";
     const h12   = ((h % 12) || 12);
     return `${month} ${day}, ${year} · ${h12}:${pad(m)}:${pad(s)} ${ampm}`;
+  }
+
+  /**
+   * PriceWaterfallIdentifier formats are not fully consistent across org/runtime
+   * paths. Build multiple candidates so "current run" marking still works.
+   *
+   * Examples observed:
+   * - "{prefix}:{runId}"
+   * - "{runId}"
+   * - values where the execution name (PAE auto-number) is persisted
+   */
+  _extractRunIdCandidates(identifier) {
+    if (!identifier) return [];
+
+    const raw = String(identifier).trim();
+    if (!raw) return [];
+
+    const candidates = new Set([raw]);
+
+    if (raw.includes(":")) {
+      const firstSplit = raw.split(":")[1]?.trim();
+      const lastSplit = raw.split(":").pop()?.trim();
+      if (firstSplit) candidates.add(firstSplit);
+      if (lastSplit) candidates.add(lastSplit);
+    }
+
+    // Some values include URL-like separators or accidental whitespace wrappers.
+    const slashSplit = raw.split("/").pop()?.trim();
+    if (slashSplit) candidates.add(slashSplit);
+
+    return [...candidates].filter(Boolean);
+  }
+
+  _extractPrimaryRunId(identifier, candidates) {
+    if (!identifier) return null;
+    const raw = String(identifier).trim();
+    if (!raw) return null;
+
+    if (raw.includes(":")) {
+      return raw.split(":").pop()?.trim() || (candidates[0] ?? null);
+    }
+    return candidates[0] ?? null;
+  }
+
+  _wasLineTouchedAfterRun(run) {
+    const lineLastModified = getFieldValue(this._recordData, "QuoteLineItem.LastModifiedDate");
+    if (!lineLastModified || !run?.createdDate) return false;
+
+    const lineTs = new Date(lineLastModified).getTime();
+    const runTs = new Date(run.createdDate).getTime();
+    return Number.isFinite(lineTs) && Number.isFinite(runTs) && lineTs >= runTs;
+  }
+
+  _isCurrentRun(run) {
+    const current = this.currentRun;
+    if (!current || !run) return false;
+
+    if (current.pricingApiExecutionId && run.pricingApiExecutionId) {
+      return current.pricingApiExecutionId === run.pricingApiExecutionId;
+    }
+
+    if (current.waterfallRunId && run.waterfallRunId) {
+      return current.waterfallRunId === run.waterfallRunId;
+    }
+
+    return false;
   }
 }

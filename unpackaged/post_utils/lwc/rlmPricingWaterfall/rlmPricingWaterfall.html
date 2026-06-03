@@ -116,6 +116,29 @@
                   <p class="slds-text-color_weak slds-text-body_small">Waterfall Run ID</p>
                   <p class="slds-text-body_small run-id-text" title={_waterfallRunId}>{_waterfallRunId}</p>
                 </div>
+                <template if:true={currentMatchedLineItemId}>
+                  <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                    <p class="slds-text-color_weak slds-text-body_small">Matched Line</p>
+                    <p class="slds-text-body_small run-id-text">{currentMatchedLineItemId}</p>
+                  </div>
+                </template>
+                <template if:true={currentMatchSource}>
+                  <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                    <p class="slds-text-color_weak slds-text-body_small">Match Source</p>
+                    <p class="slds-text-body_small">
+                      {currentMatchSource}
+                      <template if:true={currentMatchRole}>
+                        <span class="slds-text-color_weak"> ({currentMatchRole})</span>
+                      </template>
+                    </p>
+                  </div>
+                </template>
+                <template if:true={currentMatchedExecutionToken}>
+                  <div class="slds-col slds-size_1-of-2 slds-m-bottom_x-small">
+                    <p class="slds-text-color_weak slds-text-body_small">Matched Token</p>
+                    <p class="slds-text-body_small run-id-text">{currentMatchedExecutionToken}</p>
+                  </div>
+                </template>
               </div>
             </section>
           </template>
@@ -132,6 +155,7 @@
                       <th class="time-col" scope="col"><div class="slds-truncate">Time</div></th>
                       <th class="status-col" scope="col"><div class="slds-truncate">This Line</div></th>
                       <th class="status-col" scope="col"><div class="slds-truncate">Batch</div></th>
+                      <th class="source-col" scope="col"><div class="slds-truncate">Matched By</div></th>
                       <th class="lines-col" scope="col"><div class="slds-truncate" title="Total lines priced in this batch">Lines</div></th>
                     </tr>
                   </thead>
@@ -141,7 +165,7 @@
 
                         <!-- Group separator row -->
                         <template if:true={row.isSeparator}>
-                          <th colspan="5" class="group-separator-cell" scope="colgroup">{row.label}</th>
+                          <th colspan="6" class="group-separator-cell" scope="colgroup">{row.label}</th>
                         </template>
 
                         <!-- Data row -->
@@ -184,6 +208,18 @@
                           </td>
                           <td class="status-col">
                             <span class={row.overallStatusBadgeClass}>{row.overallStatus}</span>
+                          </td>
+                          <td class="source-col slds-text-body_small">
+                            {row.matchSource}
+                            <template if:true={row.matchRelationshipRole}>
+                              <div class="slds-text-color_weak source-subtext">{row.matchRelationshipRole}</div>
+                            </template>
+                            <template if:true={row.matchedLineItemId}>
+                              <div class="slds-text-color_weak source-subtext run-id-text">{row.matchedLineItemId}</div>
+                            </template>
+                            <template if:true={row.matchedExecutionToken}>
+                              <div class="slds-text-color_weak source-subtext run-id-text">{row.matchedExecutionToken}</div>
+                            </template>
                           </td>
                           <td class="lines-col slds-text-color_weak">
                             {row.lineCount}
