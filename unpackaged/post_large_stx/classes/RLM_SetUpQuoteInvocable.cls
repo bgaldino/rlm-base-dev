@@ -1185,16 +1185,36 @@ public with sharing class RLM_SetUpQuoteInvocable {
             fields.put('QuoteLineGroupId', quoteLineGroupIdRef);
         }
         if ('TermDefined' == sellingModelType && String.isNotBlank(billingFrequency)) {
-            fields.put('StartDate', '2025-09-04T00:00:00.000Z');
-            fields.put('EndDate', '2026-09-09T00:00:00.000Z');
+            fields.put('StartDate', subscriptionStartDateIso());
+            fields.put('EndDate', subscriptionEndDateIso());
             fields.put('PeriodBoundary', 'Anniversary');
             fields.put('BillingFrequency', billingFrequency);
         } else if ('Evergreen' == sellingModelType && String.isNotBlank(billingFrequency)) {
-            fields.put('StartDate', '2025-09-04T00:00:00.000Z');
+            fields.put('StartDate', subscriptionStartDateIso());
             fields.put('PeriodBoundary', 'Anniversary');
             fields.put('BillingFrequency', billingFrequency);
         }
         return fields;
+    }
+
+    // Subscription line dates are relative to today (term = 1 year) so Set Up Quote runs
+    // never produce stale fixed dates. Cached per transaction since buildQuoteLineItemFields
+    // is called once per line item (potentially thousands of times).
+    private static String startDateIsoCache;
+    private static String endDateIsoCache;
+
+    private static String subscriptionStartDateIso() {
+        if (startDateIsoCache == null) {
+            startDateIsoCache = DateTime.newInstanceGmt(Date.today(), Time.newInstance(0, 0, 0, 0)).formatGmt('yyyy-MM-dd') + 'T00:00:00.000Z';
+        }
+        return startDateIsoCache;
+    }
+
+    private static String subscriptionEndDateIso() {
+        if (endDateIsoCache == null) {
+            endDateIsoCache = DateTime.newInstanceGmt(Date.today().addYears(1), Time.newInstance(0, 0, 0, 0)).formatGmt('yyyy-MM-dd') + 'T00:00:00.000Z';
+        }
+        return endDateIsoCache;
     }
 
     private static Integer addLineItemsFromCsvImport(String csvImportLineItemsJson, Map<String, String> pathToGroupRef, List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords, Id pricebook2Id, List<Integer> lineIndexHolder, String quoteIdRef) {
