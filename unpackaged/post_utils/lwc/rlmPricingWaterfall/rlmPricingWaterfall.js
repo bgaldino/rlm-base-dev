@@ -1,5 +1,5 @@
 import { LightningElement, api, wire } from "lwc";
-import { getRecord, getFieldValue } from "lightning/uiRecordApi";
+import { getRecord } from "lightning/uiRecordApi";
 import { NavigationMixin } from "lightning/navigation";
 import getAllPricingRuns from "@salesforce/apex/RLM_PricingWaterfallController.getAllPricingRuns";
 
@@ -14,6 +14,20 @@ const QLI_FIELDS = [
   "QuoteLineItem.CurrencyIsoCode"
 ];
 
+const ORDER_ITEM_FIELDS = [
+  "OrderItem.PriceWaterfallIdentifier",
+  "OrderItem.LastModifiedDate",
+  "OrderItem.ListPrice",
+  "OrderItem.UnitPrice",
+  "OrderItem.Discount",
+  "OrderItem.TotalPrice",
+  "OrderItem.Quantity",
+  "OrderItem.CurrencyIsoCode"
+];
+
+const QUOTE_LINE_ITEM_PREFIX = "0QL";
+const ORDER_ITEM_PREFIX = "802";
+
 // Runs within this many milliseconds of each other are shown under the same group header
 const GROUP_THRESHOLD_MS = 10_000;
 const DEFAULT_HISTORY_PAGE_SIZE = 25;
@@ -25,6 +39,19 @@ function statusBadgeClass(status) {
   if (status === "Failure") return "slds-badge badge-error";
   if (status) return "slds-badge badge-warning";
   return "";
+}
+
+function confidenceBadgeClass(confidenceBand) {
+  if (confidenceBand === "Very High" || confidenceBand === "High") {
+    return "slds-badge confidence-badge confidence-badge-high";
+  }
+  if (confidenceBand === "Medium") {
+    return "slds-badge confidence-badge confidence-badge-medium";
+  }
+  if (confidenceBand === "Low") {
+    return "slds-badge confidence-badge confidence-badge-low";
+  }
+  return "slds-badge confidence-badge";
 }
 
 export default class RlmPricingWaterfall extends NavigationMixin(LightningElement) {
@@ -43,23 +70,21 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
   _runsError = null;
   _recordError = null;
 
-  @wire(getRecord, { recordId: "$recordId", fields: QLI_FIELDS })
-  wiredRecord({ error, data }) {
+  @wire(getRecord, { recordId: "$quoteLineRecordId", fields: QLI_FIELDS })
+  wiredQuoteLineRecord({ error, data }) {
+    if (!this.isQuoteLineItemContext) return;
     this._recordLoaded = true;
-    if (data) {
-      this._recordData = data;
-      this._recordError = null;
-      const identifier = getFieldValue(data, "QuoteLineItem.PriceWaterfallIdentifier");
-      const candidates = this._extractRunIdCandidates(identifier);
-      this._waterfallRunIdCandidates = candidates;
-      this._waterfallRunId = this._extractPrimaryRunId(identifier, candidates);
-    } else if (error) {
-      this._recordData = null;
-      this._recordError = error?.body?.message ?? "Failed to load record fields.";
-    }
+    this._handleRecordResult({ error, data });
   }
 
-  @wire(getAllPricingRuns, { lineItemId: "$recordId" })
+  @wire(getRecord, { recordId: "$orderItemRecordId", fields: ORDER_ITEM_FIELDS })
+  wiredOrderItemRecord({ error, data }) {
+    if (!this.isOrderItemContext) return;
+    this._recordLoaded = true;
+    this._handleRecordResult({ error, data });
+  }
+
+  @wire(getAllPricingRuns, { lineItemId: "$pricingLineRecordId" })
   wiredRuns({ error, data }) {
     if (data) {
       this._runs = data;
@@ -90,7 +115,32 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
   // ── Getters ──────────────────────────────────────────────────────────
 
   get isLoading() {
+    if (this.isUnsupportedObject) return false;
     return !this._recordLoaded;
+  }
+
+  get isUnsupportedObject() {
+    return !this.isQuoteLineItemContext && !this.isOrderItemContext;
+  }
+
+  get quoteLineRecordId() {
+    return this.isQuoteLineItemContext ? this.recordId : null;
+  }
+
+  get orderItemRecordId() {
+    return this.isOrderItemContext ? this.recordId : null;
+  }
+
+  get pricingLineRecordId() {
+    return this.isUnsupportedObject ? null : this.recordId;
+  }
+
+  get isQuoteLineItemContext() {
+    return this._getRecordIdPrefix() === QUOTE_LINE_ITEM_PREFIX;
+  }
+
+  get isOrderItemContext() {
+    return this._getRecordIdPrefix() === ORDER_ITEM_PREFIX;
   }
 
   get isPricingNotRun() {
@@ -103,27 +153,27 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
   }
 
   get listPrice() {
-    return getFieldValue(this._recordData, "QuoteLineItem.ListPrice");
+    return this._getRecordFieldValue("ListPrice");
   }
 
   get unitPrice() {
-    return getFieldValue(this._recordData, "QuoteLineItem.UnitPrice");
+    return this._getRecordFieldValue("UnitPrice");
   }
 
   get discount() {
-    return getFieldValue(this._recordData, "QuoteLineItem.Discount");
+    return this._getRecordFieldValue("Discount");
   }
 
   get totalPrice() {
-    return getFieldValue(this._recordData, "QuoteLineItem.TotalPrice");
+    return this._getRecordFieldValue("TotalPrice");
   }
 
   get quantity() {
-    return getFieldValue(this._recordData, "QuoteLineItem.Quantity");
+    return this._getRecordFieldValue("Quantity");
   }
 
   get currencyCode() {
-    return getFieldValue(this._recordData, "QuoteLineItem.CurrencyIsoCode") ?? "USD";
+    return this._getRecordFieldValue("CurrencyIsoCode") ?? "USD";
   }
 
   get hasDiscount() {
@@ -132,6 +182,9 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
   }
 
   get error() {
+    if (this.isUnsupportedObject) {
+      return "RLM Pricing Waterfall supports QuoteLineItem and OrderItem record pages.";
+    }
     return this._recordError || this._runsError;
   }
 
@@ -210,6 +263,22 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
   get currentMatchedExecutionToken() {
     const token = this._sanitizeDisplayValue(this.currentRun?.matchedExecutionToken);
     return token && token !== this.currentMatchedLineItemId ? token : null;
+  }
+
+  get currentMatchedRecordType() {
+    return this._sanitizeDisplayValue(this.currentRun?.matchedRecordType);
+  }
+
+  get currentMatchConfidenceText() {
+    return this._formatConfidenceText(this.currentRun);
+  }
+
+  get currentMatchConfidenceReason() {
+    return this._sanitizeDisplayValue(this.currentRun?.matchConfidenceReason);
+  }
+
+  get currentMatchConfidenceBadgeClass() {
+    return confidenceBadgeClass(this.currentRun?.matchConfidenceBand);
   }
 
   get hasPricingHistory() {
@@ -311,6 +380,10 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
       const matchRelationshipRole = this._sanitizeDisplayValue(run.matchRelationshipRole);
       const matchedLineItemId = this._sanitizeDisplayValue(run.matchedLineItemId);
       const matchedExecutionToken = this._sanitizeDisplayValue(run.matchedExecutionToken);
+      const matchedRecordType = this._sanitizeDisplayValue(run.matchedRecordType);
+      const matchConfidenceReason = this._sanitizeDisplayValue(run.matchConfidenceReason);
+      const matchedLineItemDisplay = this._compactIdentifier(matchedLineItemId);
+      const matchedExecutionTokenDisplay = this._compactIdentifier(matchedExecutionToken);
       items.push({
         key: run.waterfallRunId ?? `run-${startIdx + idx}`,
         isSeparator: false,
@@ -333,6 +406,12 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
           matchedExecutionToken && matchedExecutionToken !== matchedLineItemId
             ? matchedExecutionToken
             : null,
+        matchedRecordType,
+        matchConfidenceText: this._formatConfidenceText(run),
+        matchConfidenceBadgeClass: confidenceBadgeClass(run.matchConfidenceBand),
+        matchConfidenceReason,
+        matchedLineItemDisplay,
+        matchedExecutionTokenDisplay,
         isCurrent,
         rowClass: isCurrent ? "current-run-row" : "",
         overallStatusBadgeClass: statusBadgeClass(run.overallStatus),
@@ -414,7 +493,7 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
   }
 
   _wasLineTouchedAfterRun(run) {
-    const lineLastModified = getFieldValue(this._recordData, "QuoteLineItem.LastModifiedDate");
+    const lineLastModified = this._getRecordFieldValue("LastModifiedDate");
     if (!lineLastModified || !run?.createdDate) return false;
 
     const lineTs = new Date(lineLastModified).getTime();
@@ -464,5 +543,48 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
       if (normalized === "false") return false;
     }
     return defaultValue;
+  }
+
+  _handleRecordResult({ error, data }) {
+    if (data) {
+      this._recordData = data;
+      this._recordError = null;
+      const identifier = this._getRecordFieldValue("PriceWaterfallIdentifier");
+      const candidates = this._extractRunIdCandidates(identifier);
+      this._waterfallRunIdCandidates = candidates;
+      this._waterfallRunId = this._extractPrimaryRunId(identifier, candidates);
+    } else if (error) {
+      this._recordData = null;
+      this._waterfallRunIdCandidates = [];
+      this._waterfallRunId = null;
+      this._recordError = error?.body?.message ?? "Failed to load record fields.";
+    }
+  }
+
+  _getRecordFieldValue(fieldName) {
+    return this._recordData?.fields?.[fieldName]?.value ?? null;
+  }
+
+  _getRecordIdPrefix() {
+    const id = this.recordId ? String(this.recordId) : "";
+    if (id.length < 3) return null;
+    return id.substring(0, 3).toUpperCase();
+  }
+
+  _formatConfidenceText(run) {
+    if (!run?.matchConfidenceBand) return null;
+    if (run.matchConfidenceScore === null || run.matchConfidenceScore === undefined) {
+      return run.matchConfidenceBand;
+    }
+    return `${run.matchConfidenceBand} (${run.matchConfidenceScore}%)`;
+  }
+
+  _compactIdentifier(value, maxLength = 18) {
+    if (!value) return null;
+    const raw = String(value);
+    if (raw.length <= maxLength) return raw;
+    const start = raw.slice(0, 8);
+    const end = raw.slice(-6);
+    return `${start}...${end}`;
   }
 }

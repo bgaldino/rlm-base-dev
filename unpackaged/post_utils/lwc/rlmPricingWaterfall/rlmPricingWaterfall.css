@@ -14,8 +14,8 @@
 .run-col    { width: 28%; }
 .time-col   { width: 24%; }
 .status-col { width: 18%; }
-.source-col { width: 20%; }
-.lines-col  { width: 10%; text-align: center; }
+.source-col { width: 30%; vertical-align: top; }
+.lines-col  { width: 8%; text-align: center; }
 
 /* Run name — unstyled button reset, link appearance */
 .run-link {
@@ -55,6 +55,79 @@
 .source-subtext {
   font-size: 0.7rem;
   line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.ellipsis-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Current execution card: denser, responsive tile layout */
+.execution-cell {
+  width: 100%;
+  margin-bottom: 0.4rem;
+}
+@media (min-width: 48rem) {
+  .execution-cell {
+    width: 50%;
+  }
+}
+@media (min-width: 64rem) {
+  .execution-cell {
+    width: 33.3333%;
+  }
+}
+
+/* Matched-by cell hierarchy */
+.match-source-primary {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.source-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.source-chip {
+  background-color: #eef4ff;
+  color: #1b5297;
+}
+
+.source-label {
+  font-weight: 600;
+}
+
+.evidence-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* Confidence chips */
+.confidence-badge {
+  border: 1px solid transparent;
+}
+
+.confidence-badge-high {
+  background-color: #e8f7ec;
+  border-color: #91db9f;
+  color: #1a6b35;
+}
+
+.confidence-badge-medium {
+  background-color: #fff4e5;
+  border-color: #f3c98a;
+  color: #8a4b00;
+}
+
+.confidence-badge-low {
+  background-color: #fde9ea;
+  border-color: #f0a3aa;
+  color: #8f1d2c;
 }
 
 /*

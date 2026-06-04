@@ -3,7 +3,7 @@
   <apiVersion>66.0</apiVersion>
   <isExposed>true</isExposed>
   <masterLabel>RLM Pricing Waterfall</masterLabel>
-  <description>Pricing waterfall display for a Quote Line Item. Shows price summary, execution status, and execution log from PricingProcessExecution records.</description>
+  <description>Pricing waterfall display for a sales transaction line. Shows price summary, execution status, and execution log from PricingProcessExecution records.</description>
   <targets>
     <target>lightning__RecordPage</target>
   </targets>
@@ -11,6 +11,7 @@
     <targetConfig targets="lightning__RecordPage">
       <objects>
         <object>QuoteLineItem</object>
+        <object>OrderItem</object>
       </objects>
       <property
         name="historyPageSize"
