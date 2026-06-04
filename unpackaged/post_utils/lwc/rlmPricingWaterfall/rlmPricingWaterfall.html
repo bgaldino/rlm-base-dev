@@ -91,13 +91,12 @@
             <template if:true={currentLineStatus}>
             <section class="slds-m-bottom_medium">
               <h2 class="slds-text-heading_small slds-m-bottom_x-small">Current Execution</h2>
-              <div class="slds-grid slds-gutters_small slds-wrap current-execution-grid">
-                <!-- Line-level status (most relevant for this QLI) -->
+              <div class="current-execution-row">
+                <!-- Row 1: run/execution context -->
                 <div class="slds-col execution-cell">
                   <p class="slds-text-color_weak slds-text-body_small">This Line</p>
                   <span class={currentLineStatusBadgeClass}>{currentLineStatus}</span>
                 </div>
-                <!-- Batch-level status (across all lines priced together) -->
                 <div class="slds-col execution-cell">
                   <p class="slds-text-color_weak slds-text-body_small">
                     Batch
@@ -107,33 +106,66 @@
                   </p>
                   <span class={currentOverallStatusBadgeClass}>{currentOverallStatus}</span>
                 </div>
-                <!-- Who triggered it -->
-                <template if:true={currentTriggeredBy}>
-                  <div class="slds-col execution-cell">
-                    <p class="slds-text-color_weak slds-text-body_small">Triggered By</p>
-                    <p class="slds-text-body_small">{currentTriggeredBy}</p>
-                  </div>
-                </template>
-                <!-- Waterfall run id for reference -->
                 <div class="slds-col execution-cell">
                   <p class="slds-text-color_weak slds-text-body_small">Waterfall Run ID</p>
                   <p class="slds-text-body_small run-id-text" title={_waterfallRunId}>{_waterfallRunId}</p>
                 </div>
-                <template if:true={currentMatchedLineItemId}>
-                  <div class="slds-col execution-cell">
-                    <p class="slds-text-color_weak slds-text-body_small">Matched Line</p>
+                <div class="slds-col execution-cell">
+                  <p class="slds-text-color_weak slds-text-body_small">Triggered By</p>
+                  <template if:true={currentTriggeredBy}>
+                    <p class="slds-text-body_small">{currentTriggeredBy}</p>
+                  </template>
+                  <template if:false={currentTriggeredBy}>
+                    <p class="slds-text-body_small slds-text-color_weak">—</p>
+                  </template>
+                </div>
+              </div>
+
+              <div class="current-execution-row">
+                <!-- Row 2: matching details -->
+                <div class="slds-col execution-cell">
+                  <p class="slds-text-color_weak slds-text-body_small">Matched Line</p>
+                  <template if:true={currentMatchedLineItemId}>
                     <p class="slds-text-body_small run-id-text">{currentMatchedLineItemId}</p>
-                  </div>
-                </template>
-                <template if:true={currentMatchedRecordType}>
-                  <div class="slds-col execution-cell">
-                    <p class="slds-text-color_weak slds-text-body_small">Matched Record Type</p>
+                  </template>
+                  <template if:false={currentMatchedLineItemId}>
+                    <p class="slds-text-body_small slds-text-color_weak">—</p>
+                  </template>
+                </div>
+
+                <div class="slds-col execution-cell">
+                  <p class="slds-text-color_weak slds-text-body_small">Matched Record Type</p>
+                  <template if:true={currentMatchedRecordType}>
                     <p class="slds-text-body_small">{currentMatchedRecordType}</p>
-                  </div>
-                </template>
-                <template if:true={currentMatchConfidenceText}>
-                  <div class="slds-col execution-cell">
-                    <p class="slds-text-color_weak slds-text-body_small">Match Confidence</p>
+                  </template>
+                  <template if:false={currentMatchedRecordType}>
+                    <p class="slds-text-body_small slds-text-color_weak">—</p>
+                  </template>
+                </div>
+
+                <div class="slds-col execution-cell">
+                  <p class="slds-text-color_weak slds-text-body_small">Match Source</p>
+                  <template if:true={currentMatchSource}>
+                    <p class="slds-text-body_small">
+                      {currentMatchSource}
+                      <template if:true={currentMatchRole}>
+                        <span class="slds-text-color_weak"> ({currentMatchRole})</span>
+                      </template>
+                    </p>
+                  </template>
+                  <template if:false={currentMatchSource}>
+                    <p class="slds-text-body_small slds-text-color_weak">—</p>
+                  </template>
+                  <template if:true={currentMatchedExecutionToken}>
+                    <p class="slds-text-color_weak source-subtext run-id-text ellipsis-line" title={currentMatchedExecutionToken}>
+                      Token: {currentMatchedExecutionToken}
+                    </p>
+                  </template>
+                </div>
+
+                <div class="slds-col execution-cell">
+                  <p class="slds-text-color_weak slds-text-body_small">Match Confidence</p>
+                  <template if:true={currentMatchConfidenceText}>
                     <span class={currentMatchConfidenceBadgeClass}>{currentMatchConfidenceText}</span>
                     <template if:true={currentMatchConfidenceReason}>
                       <p
@@ -143,25 +175,11 @@
                         {currentMatchConfidenceReason}
                       </p>
                     </template>
-                  </div>
-                </template>
-                <template if:true={currentMatchSource}>
-                  <div class="slds-col execution-cell">
-                    <p class="slds-text-color_weak slds-text-body_small">Match Source</p>
-                    <p class="slds-text-body_small">
-                      {currentMatchSource}
-                      <template if:true={currentMatchRole}>
-                        <span class="slds-text-color_weak"> ({currentMatchRole})</span>
-                      </template>
-                    </p>
-                  </div>
-                </template>
-                <template if:true={currentMatchedExecutionToken}>
-                  <div class="slds-col execution-cell">
-                    <p class="slds-text-color_weak slds-text-body_small">Matched Token</p>
-                    <p class="slds-text-body_small run-id-text">{currentMatchedExecutionToken}</p>
-                  </div>
-                </template>
+                  </template>
+                  <template if:false={currentMatchConfidenceText}>
+                    <p class="slds-text-body_small slds-text-color_weak">—</p>
+                  </template>
+                </div>
               </div>
             </section>
             </template>
