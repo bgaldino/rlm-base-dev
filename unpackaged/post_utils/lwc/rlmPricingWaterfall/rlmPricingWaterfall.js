@@ -16,6 +16,7 @@ const QLI_FIELDS = [
 
 // Runs within this many milliseconds of each other are shown under the same group header
 const GROUP_THRESHOLD_MS = 10_000;
+const DEFAULT_HISTORY_PAGE_SIZE = 25;
 
 // Returns classes for a status badge: slds-badge provides base layout,
 // badge-* overrides the background/text color.
@@ -28,6 +29,10 @@ function statusBadgeClass(status) {
 
 export default class RlmPricingWaterfall extends NavigationMixin(LightningElement) {
   @api recordId;
+  @api historyPageSize = DEFAULT_HISTORY_PAGE_SIZE;
+  @api showPriceSummary;
+  @api showCurrentExecution;
+  _currentHistoryPage = 1;
 
   _recordData = null;
   _recordLoaded = false;
@@ -59,6 +64,7 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
     if (data) {
       this._runs = data;
       this._runsError = null;
+      this._currentHistoryPage = 1;
     } else if (error) {
       this._runs = null;
       this._runsError = error?.body?.message ?? "Failed to load pricing history.";
@@ -189,23 +195,76 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
   }
 
   get currentMatchSource() {
-    return this.currentRun?.matchSource ?? null;
+    return this._sanitizeDisplayValue(this.currentRun?.matchSource);
   }
 
   get currentMatchRole() {
-    return this.currentRun?.matchRelationshipRole ?? null;
+    const role = this._sanitizeDisplayValue(this.currentRun?.matchRelationshipRole);
+    return role && role !== this.currentMatchSource ? role : null;
   }
 
   get currentMatchedLineItemId() {
-    return this.currentRun?.matchedLineItemId ?? null;
+    return this._sanitizeDisplayValue(this.currentRun?.matchedLineItemId);
   }
 
   get currentMatchedExecutionToken() {
-    return this.currentRun?.matchedExecutionToken ?? null;
+    const token = this._sanitizeDisplayValue(this.currentRun?.matchedExecutionToken);
+    return token && token !== this.currentMatchedLineItemId ? token : null;
   }
 
   get hasPricingHistory() {
     return Array.isArray(this._runs) && this._runs.length > 0;
+  }
+
+  get configuredHistoryPageSize() {
+    const parsed = Number(this.historyPageSize);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return DEFAULT_HISTORY_PAGE_SIZE;
+    }
+    return Math.floor(parsed);
+  }
+
+  get isPriceSummaryVisible() {
+    return this._coerceBoolean(this.showPriceSummary, true);
+  }
+
+  get isCurrentExecutionVisible() {
+    return this._coerceBoolean(this.showCurrentExecution, true);
+  }
+
+  get totalHistoryRows() {
+    return Array.isArray(this._runs) ? this._runs.length : 0;
+  }
+
+  get totalHistoryPages() {
+    if (this.totalHistoryRows === 0) return 1;
+    return Math.ceil(this.totalHistoryRows / this.configuredHistoryPageSize);
+  }
+
+  get hasPagination() {
+    return this.totalHistoryPages > 1;
+  }
+
+  get currentHistoryPage() {
+    return Math.min(Math.max(this._currentHistoryPage, 1), this.totalHistoryPages);
+  }
+
+  get isPreviousPageDisabled() {
+    return this.currentHistoryPage <= 1;
+  }
+
+  get isNextPageDisabled() {
+    return this.currentHistoryPage >= this.totalHistoryPages;
+  }
+
+  handlePreviousPage() {
+    if (this.isPreviousPageDisabled) return;
+    this._currentHistoryPage -= 1;
+  }
+
+  handleNextPage() {
+    if (this.isNextPageDisabled) return;
+    this._currentHistoryPage += 1;
   }
 
   /**
@@ -219,11 +278,14 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
 
     // Newest first
     const sorted = [...this._runs].reverse();
+    const startIdx = (this.currentHistoryPage - 1) * this.configuredHistoryPageSize;
+    const endIdx = startIdx + this.configuredHistoryPageSize;
+    const pagedRuns = sorted.slice(startIdx, endIdx);
     const items = [];
     let prevTime = null;
     let groupIdx = 0;
 
-    sorted.forEach((run, idx) => {
+    pagedRuns.forEach((run, idx) => {
       const runTime = run.createdDate ? new Date(run.createdDate).getTime() : null;
 
       // Start a new group when the gap to the previous run exceeds the threshold
@@ -245,8 +307,12 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
 
       const isCurrent = this._isCurrentRun(run);
       const paeId = run.pricingApiExecutionId;
+      const matchSource = this._sanitizeDisplayValue(run.matchSource);
+      const matchRelationshipRole = this._sanitizeDisplayValue(run.matchRelationshipRole);
+      const matchedLineItemId = this._sanitizeDisplayValue(run.matchedLineItemId);
+      const matchedExecutionToken = this._sanitizeDisplayValue(run.matchedExecutionToken);
       items.push({
-        key: run.waterfallRunId ?? `run-${idx}`,
+        key: run.waterfallRunId ?? `run-${startIdx + idx}`,
         isSeparator: false,
         waterfallRunId: run.waterfallRunId,
         pricingApiExecutionId: paeId,
@@ -257,10 +323,16 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
         createdDate: run.createdDate,
         lineCount: run.lineCount,
         triggeredByName: run.triggeredByName,
-        matchSource: run.matchSource,
-        matchRelationshipRole: run.matchRelationshipRole,
-        matchedLineItemId: run.matchedLineItemId,
-        matchedExecutionToken: run.matchedExecutionToken,
+        matchSource,
+        matchRelationshipRole:
+          matchRelationshipRole && matchRelationshipRole !== matchSource
+            ? matchRelationshipRole
+            : null,
+        matchedLineItemId,
+        matchedExecutionToken:
+          matchedExecutionToken && matchedExecutionToken !== matchedLineItemId
+            ? matchedExecutionToken
+            : null,
         isCurrent,
         rowClass: isCurrent ? "current-run-row" : "",
         overallStatusBadgeClass: statusBadgeClass(run.overallStatus),
@@ -363,5 +435,34 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
     }
 
     return false;
+  }
+
+  _sanitizeDisplayValue(value) {
+    if (value === null || value === undefined) return null;
+
+    const uniqueParts = [];
+    String(value)
+      .split(/\r?\n/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .forEach((part) => {
+        if (!uniqueParts.includes(part)) {
+          uniqueParts.push(part);
+        }
+      });
+
+    if (uniqueParts.length === 0) return null;
+    return uniqueParts.join(" | ");
+  }
+
+  _coerceBoolean(value, defaultValue) {
+    if (value === null || value === undefined) return defaultValue;
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === "true") return true;
+      if (normalized === "false") return false;
+    }
+    return defaultValue;
   }
 }

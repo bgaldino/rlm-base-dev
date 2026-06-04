@@ -34,58 +34,61 @@
           </template>
 
           <!-- Price Summary -->
-          <section class="slds-m-bottom_medium">
-            <h2 class="slds-text-heading_small slds-m-bottom_x-small">Price Summary</h2>
-            <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered price-summary-table">
-              <tbody>
-                <tr>
-                  <td class="slds-text-color_weak label-cell">List Price</td>
-                  <td class="slds-text-align_right value-cell">
-                    <lightning-formatted-number value={listPrice} format-style="currency"
-                      currency-code={currencyCode} maximum-fraction-digits="2">
-                    </lightning-formatted-number>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="slds-text-color_weak label-cell">Discount</td>
-                  <td class="slds-text-align_right value-cell">
-                    <template if:true={hasDiscount}>
-                      <lightning-formatted-number value={discount} format-style="percent-fixed"
-                        maximum-fraction-digits="2">
+          <template if:true={isPriceSummaryVisible}>
+            <section class="slds-m-bottom_medium">
+              <h2 class="slds-text-heading_small slds-m-bottom_x-small">Price Summary</h2>
+              <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_col-bordered price-summary-table">
+                <tbody>
+                  <tr>
+                    <td class="slds-text-color_weak label-cell">List Price</td>
+                    <td class="slds-text-align_right value-cell">
+                      <lightning-formatted-number value={listPrice} format-style="currency"
+                        currency-code={currencyCode} maximum-fraction-digits="2">
                       </lightning-formatted-number>
-                    </template>
-                    <template if:false={hasDiscount}>—</template>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="slds-text-color_weak label-cell">Unit Price</td>
-                  <td class="slds-text-align_right value-cell">
-                    <lightning-formatted-number value={unitPrice} format-style="currency"
-                      currency-code={currencyCode} maximum-fraction-digits="2">
-                    </lightning-formatted-number>
-                  </td>
-                </tr>
-                <tr>
-                  <td class="slds-text-color_weak label-cell">Quantity</td>
-                  <td class="slds-text-align_right value-cell">
-                    <lightning-formatted-number value={quantity} maximum-fraction-digits="4">
-                    </lightning-formatted-number>
-                  </td>
-                </tr>
-                <tr class="total-row">
-                  <td class="label-cell slds-text-title_caps">Total Price</td>
-                  <td class="slds-text-align_right value-cell slds-text-heading_small">
-                    <lightning-formatted-number value={totalPrice} format-style="currency"
-                      currency-code={currencyCode} maximum-fraction-digits="2">
-                    </lightning-formatted-number>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </section>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="slds-text-color_weak label-cell">Discount</td>
+                    <td class="slds-text-align_right value-cell">
+                      <template if:true={hasDiscount}>
+                        <lightning-formatted-number value={discount} format-style="percent-fixed"
+                          maximum-fraction-digits="2">
+                        </lightning-formatted-number>
+                      </template>
+                      <template if:false={hasDiscount}>—</template>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="slds-text-color_weak label-cell">Unit Price</td>
+                    <td class="slds-text-align_right value-cell">
+                      <lightning-formatted-number value={unitPrice} format-style="currency"
+                        currency-code={currencyCode} maximum-fraction-digits="2">
+                      </lightning-formatted-number>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="slds-text-color_weak label-cell">Quantity</td>
+                    <td class="slds-text-align_right value-cell">
+                      <lightning-formatted-number value={quantity} maximum-fraction-digits="4">
+                      </lightning-formatted-number>
+                    </td>
+                  </tr>
+                  <tr class="total-row">
+                    <td class="label-cell slds-text-title_caps">Total Price</td>
+                    <td class="slds-text-align_right value-cell slds-text-heading_small">
+                      <lightning-formatted-number value={totalPrice} format-style="currency"
+                        currency-code={currencyCode} maximum-fraction-digits="2">
+                      </lightning-formatted-number>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </template>
 
           <!-- Current execution status -->
-          <template if:true={currentLineStatus}>
+          <template if:true={isCurrentExecutionVisible}>
+            <template if:true={currentLineStatus}>
             <section class="slds-m-bottom_medium">
               <h2 class="slds-text-heading_small slds-m-bottom_x-small">Current Execution</h2>
               <div class="slds-grid slds-gutters_small slds-wrap">
@@ -141,6 +144,7 @@
                 </template>
               </div>
             </section>
+            </template>
           </template>
 
           <!-- Pricing History -->
@@ -231,6 +235,29 @@
                   </tbody>
                 </table>
               </div>
+              <template if:true={hasPagination}>
+                <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-top_small">
+                  <p class="slds-text-body_small slds-text-color_weak">
+                    Showing {configuredHistoryPageSize} per page ({totalHistoryRows} total runs)
+                  </p>
+                  <div class="slds-button-group" role="group">
+                    <lightning-button
+                      label="Previous"
+                      onclick={handlePreviousPage}
+                      disabled={isPreviousPageDisabled}
+                    ></lightning-button>
+                    <lightning-button
+                      class="slds-m-left_x-small"
+                      label="Next"
+                      onclick={handleNextPage}
+                      disabled={isNextPageDisabled}
+                    ></lightning-button>
+                  </div>
+                </div>
+                <p class="slds-text-body_small slds-text-align_right slds-text-color_weak slds-m-top_xx-small">
+                  Page {currentHistoryPage} of {totalHistoryPages}
+                </p>
+              </template>
             </template>
             <template if:false={hasPricingHistory}>
               <p class="slds-text-body_small slds-text-color_weak slds-p-vertical_small">
