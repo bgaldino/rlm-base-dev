@@ -79,6 +79,8 @@ public with sharing class RLM_PricingWaterfallController {
         Map<String, String> tokenToRole = new Map<String, String>();
         Set<String> selectedAnchorTokens = new Set<String>{ lineItemId };
         Set<String> selectedAnchorExecutionKeys = new Set<String>();
+        String selectedIdentifierToken;
+        Set<String> relatedIdentifierTokens = new Set<String>();
 
         for (String scopedLineId : scopedLineItemIds) {
             scopedMatchTokens.add(scopedLineId);
@@ -106,6 +108,9 @@ public with sharing class RLM_PricingWaterfallController {
 
             if ((String) qli.Id == lineItemId) {
                 selectedAnchorTokens.add(token);
+                selectedIdentifierToken = token;
+            } else if (!isGenericIdentifierToken(token)) {
+                relatedIdentifierTokens.add(token);
             }
         }
 
@@ -118,6 +123,36 @@ public with sharing class RLM_PricingWaterfallController {
             ')';
         for (PricingProcessExecution anchorPpe : (List<PricingProcessExecution>) Database.query(anchorQuery)) {
             selectedAnchorExecutionKeys.add(anchorPpe.ExecutionKey);
+        }
+
+        // Co-anchor tightening:
+        // If selected identifier token is generic (e.g., QLI0_0__0), require
+        // overlap with at least one related non-generic token (usually ref_...)
+        // to avoid pulling unrelated historical executions.
+        if (
+            isGenericIdentifierToken(selectedIdentifierToken) &&
+            !relatedIdentifierTokens.isEmpty() &&
+            !selectedAnchorExecutionKeys.isEmpty()
+        ) {
+            Set<String> relatedExecutionKeys = new Set<String>();
+            String relatedQuery =
+                'SELECT ExecutionKey ' +
+                'FROM PricingProcessExecution ' +
+                'WHERE ExecutionType = \'Pricing_Line\' AND (' +
+                buildExecutionTypeKeyClause(relatedIdentifierTokens) +
+                ')';
+            for (PricingProcessExecution relatedPpe : (List<PricingProcessExecution>) Database.query(relatedQuery)) {
+                relatedExecutionKeys.add(relatedPpe.ExecutionKey);
+            }
+
+            Set<String> coAnchoredExecutionKeys = new Set<String>();
+            coAnchoredExecutionKeys.addAll(selectedAnchorExecutionKeys);
+            coAnchoredExecutionKeys.retainAll(relatedExecutionKeys);
+
+            // Only tighten when overlap exists; otherwise retain selected anchors.
+            if (!coAnchoredExecutionKeys.isEmpty()) {
+                selectedAnchorExecutionKeys = coAnchoredExecutionKeys;
+            }
         }
 
         // Find every Pricing_Line PPE for selected + related tokens.
@@ -351,6 +386,12 @@ public with sharing class RLM_PricingWaterfallController {
         Integer idx = priceWaterfallIdentifier.indexOf(':');
         if (idx <= 0) return null;
         return priceWaterfallIdentifier.substring(0, idx);
+    }
+
+    @TestVisible
+    private static Boolean isGenericIdentifierToken(String token) {
+        if (String.isBlank(token)) return false;
+        return token.startsWithIgnoreCase('QLI');
     }
 
 }
