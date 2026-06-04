@@ -1,5 +1,5 @@
 <template>
-    <div class="modal-overlay" onkeydown={handleModalKeydown}>
+    <div class="modal-overlay">
         <div class={modalCardClass} role="dialog" aria-modal="true" aria-labelledby="setup-quote-modal-title" tabindex="-1">
             <header class="modal-header">
                 <div class="modal-header-text">
@@ -71,6 +71,17 @@
                                 <p class="slds-text-body_small slds-m-bottom_x-small"><strong>New quote name:</strong> {newQuoteName}</p>
                                 <p class="slds-text-body_small slds-m-bottom_small"><strong>Mode:</strong> Create from previous quotes</p>
                             </template>
+                            <template if:true={showQuoteInfoProductSetSelector}>
+                                <lightning-radio-group
+                                    class={quoteInfoProductSetClass}
+                                    label="Product set"
+                                    options={productSetOptions}
+                                    value={productSetMode}
+                                    type="radio"
+                                    onchange={handleProductSetModeChange}
+                                ></lightning-radio-group>
+                                <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">{quoteInfoProductSetHelpText}</p>
+                            </template>
                             <template if:true={isCreatePreviousMode}>
                                 <lightning-combobox
                                     label="Account for historical quote lookup"
@@ -119,6 +130,17 @@
                                     placeholder="Select a quote"
                                     required>
                                 </lightning-combobox>
+                                <template if:true={showQuoteInfoProductSetSelector}>
+                                    <lightning-radio-group
+                                        class="slds-m-top_medium slds-m-bottom_x-small"
+                                        label="Product set"
+                                        options={productSetOptions}
+                                        value={productSetMode}
+                                        type="radio"
+                                        onchange={handleProductSetModeChange}
+                                    ></lightning-radio-group>
+                                    <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">{quoteInfoProductSetHelpText}</p>
+                                </template>
                             </template>
                         </template>
                     </div>
@@ -210,7 +232,7 @@
                                                 onclick={handleModifyRailSelect}
                                                 aria-current={modifyRailCsvAriaCurrent}
                                             >
-                                                New groups (CSV)
+                                                Add from CSV
                                             </button>
                                         </li>
                                     </ul>
@@ -254,9 +276,9 @@
                                         ></c-rlm-set-up-quote-hierarchy-tree>
                                     </div>
                                     <div class={modifyPaneCsvClass}>
-                                        <h4 class="slds-text-heading_small slds-m-bottom_x-small">Add new groups (CSV)</h4>
+                                        <h4 class="slds-text-heading_small slds-m-bottom_x-small">Add from CSV</h4>
                                         <p class="slds-text-body_small slds-m-bottom_small slds-text-color_weak">
-                                            Select a CSV file with the exact header and columns (Group 1–5, Bundle Product, Product, Quantity). New groups and lines from the file are added after existing changes (deletes, renames, new subgroups) are applied.
+                                            Select a CSV file with the exact header and columns (Group 1–5, Bundle Product, Product, Quantity). Rows are added to matching existing groups; missing groups are created automatically.
                                         </p>
                                         <input type="file" accept=".csv" class="slds-m-bottom_small" onchange={handleCsvFileChange} />
                                         <template if:true={csvFileError}>
@@ -497,32 +519,62 @@
                         </template>
                         <template if:true={hasProductCountsStep}>
                             <template if:true={isCreate}>
-                                <p class="slds-text-body_small slds-m-bottom_medium slds-text-color_weak">
-                                    Set additional product counts per group. Repeated lines from previous quotes are preserved separately and included in the estimate above.
-                                </p>
-                                <div class="product-counts-list">
-                                    <template for:each={productCountsFlatList} for:item="node">
-                                        <div key={node.groupKey} class="product-count-row">
-                                            <span class="product-count-label" style={node.indentStyle}>{node.name}</span>
-                                            <lightning-input
-                                                type="number"
-                                                data-step="product-count"
-                                                data-group-key={node.groupKey}
-                                                data-key-type={node.keyType}
-                                                value={node.count}
-                                                min="0"
-                                                variant="label-hidden"
-                                                class="product-count-input"
-                                                onchange={handleCreateProductCountChange}
-                                            ></lightning-input>
-                                        </div>
-                                    </template>
-                                </div>
+                                <template if:true={showUngroupedProductCountInput}>
+                                    <p class="slds-text-body_small slds-m-bottom_medium slds-text-color_weak">
+                                        No groups were added. Enter the number of products to add directly to the quote without a quote line group.
+                                    </p>
+                                    <lightning-input
+                                        type="number"
+                                        data-step="ungrouped-product-count"
+                                        label="Product count for quote"
+                                        value={ungroupedProductCountValue}
+                                        min="0"
+                                        onchange={handleUngroupedProductCountChange}
+                                    ></lightning-input>
+                                </template>
+                                <template if:false={showUngroupedProductCountInput}>
+                                    <p class="slds-text-body_small slds-m-bottom_medium slds-text-color_weak">
+                                        Set additional product counts per group. Repeated lines from previous quotes are preserved separately and included in the estimate above.
+                                    </p>
+                                    <div class="product-counts-list">
+                                        <template for:each={productCountsFlatList} for:item="node">
+                                            <div key={node.groupKey} class="product-count-row">
+                                                <span class="product-count-label" style={node.indentStyle}>{node.name}</span>
+                                                <lightning-input
+                                                    type="number"
+                                                    data-step="product-count"
+                                                    data-group-key={node.groupKey}
+                                                    data-key-type={node.keyType}
+                                                    value={node.count}
+                                                    min="0"
+                                                    variant="label-hidden"
+                                                    class="product-count-input"
+                                                    onchange={handleCreateProductCountChange}
+                                                ></lightning-input>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
                             </template>
                             <template if:false={isCreate}>
                                 <p class="slds-text-body_small slds-m-bottom_medium slds-text-color_weak">
                                     Same layout as Build group hierarchy: pick a section on the left, then set demo product counts in the tree.
                                 </p>
+                                <template if:true={showUngroupedProductCountInput}>
+                                    <div class="slds-box slds-m-bottom_medium">
+                                        <lightning-input
+                                            type="number"
+                                            data-step="ungrouped-product-count"
+                                            label="Product count for quote"
+                                            value={ungroupedProductCountValue}
+                                            min="0"
+                                            onchange={handleUngroupedProductCountChange}
+                                        ></lightning-input>
+                                        <p class="slds-text-body_small slds-m-top_x-small slds-text-color_weak">
+                                            These products will be added directly to the quote without a quote line group.
+                                        </p>
+                                    </div>
+                                </template>
                                 <div class="modify-hierarchy-master-detail">
                                     <nav class="modify-hierarchy-rail" aria-label="Product count sections">
                                         <ul class="modify-hierarchy-rail-list">
@@ -667,6 +719,9 @@
                         <div class="confirm-summary-rows">
                             <div class="confirm-row"><span class="confirm-label">Mode</span><span class="confirm-value">{confirmModeLabel}</span></div>
                             <div class="confirm-row"><span class="confirm-label">Quote</span><span class="confirm-value">{confirmQuoteLabel}</span></div>
+                            <template if:true={confirmProductSetVisible}>
+                                <div class="confirm-row"><span class="confirm-label">Product set</span><span class="confirm-value">{confirmProductSetLabel}</span></div>
+                            </template>
                             <template if:true={confirmGroupsToDeleteCount}>
                                 <div class="confirm-row"><span class="confirm-label">Groups to delete</span><span class="confirm-value">{confirmGroupsToDeleteCount} group(s) and their line items</span></div>
                             </template>
@@ -675,6 +730,9 @@
                             </template>
                             <template if:true={confirmNewSubgroupsCount}>
                                 <div class="confirm-row"><span class="confirm-label">New subgroups under existing</span><span class="confirm-value">{confirmNewSubgroupsCount} new subgroup(s)</span></div>
+                            </template>
+                            <template if:true={confirmUngroupedProductCount}>
+                                <div class="confirm-row"><span class="confirm-label">Product count for quote</span><span class="confirm-value">{confirmUngroupedProductCount} ungrouped product(s)</span></div>
                             </template>
                             <div class="confirm-row"><span class="confirm-label">Large Deal</span><span class="confirm-value">{confirmLargeDealLabel}</span></div>
                         </div>
@@ -697,6 +755,12 @@
                             </template>
                         </div>
                         <p class="slds-m-top_medium slds-text-body_small">Click Run to execute Set Up Quote.</p>
+                        <template if:true={loading}>
+                            <div class="loading-wrap slds-m-top_medium">
+                                <lightning-spinner alternative-text="Running Set Up Quote" size="small"></lightning-spinner>
+                                <p class="loading-message">{setupProgressMessage}</p>
+                            </div>
+                        </template>
                     </div>
                 </template>
 

@@ -171,7 +171,7 @@ Extract rating and rates data from an org into CSV files
    - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
 6. **task** `activate_default_payment_term`  `when: project_config.project__custom__billing`
 7. **task** `activate_billing_records`  `when: project_config.project__custom__billing`
-8. **task** `enable_timeline`  `when: project_config.project__custom__billing_ui`
+8. **task** `enable_timeline`  `when: project_config.project__custom__billing_ui and not project_config.project__custom__tso`
 9. **task** `deploy_billing_id_settings`  `when: project_config.project__custom__billing`
 10. **task** `deploy_billing_template_settings`  `when: project_config.project__custom__billing`
 11. **task** `deploy_post_billing_ui`  `when: project_config.project__custom__billing_ui`
@@ -234,26 +234,27 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 **Steps:**
 
-1. **task** `validate_setup`
-2. **task** `assign_permission_set_licenses`
+1. **task** `set_scratch_org_password`  `when: org_config.scratch`
+2. **task** `validate_setup`
+3. **task** `assign_permission_set_licenses`
    - `api_names`: `['BREDesigner', 'BRERuntime', 'CorePricingDesignTime', 'DataProcessingEnginePsl', 'DecimalQuantit...`
-3. **task** `cleanup_settings_for_dev`
-4. **task** `exclude_active_decision_tables`
-5. **task** `deploy_pre`
-6. **task** `restore_decision_tables`
-7. **flow** `assign_feature_psls`
-8. **task** `recalculate_permission_set_groups`
+4. **task** `cleanup_settings_for_dev`
+5. **task** `exclude_active_decision_tables`
+6. **task** `deploy_pre`
+7. **task** `restore_decision_tables`
+8. **flow** `assign_feature_psls`
+9. **task** `recalculate_permission_set_groups`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-9. **task** `assign_permission_set_groups_tolerant`
+10. **task** `assign_permission_set_groups_tolerant`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-10. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
+11. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
    - `api_names`: `['RLM_TSO']`
-11. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
+12. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
    - `api_names`: `['RLM_TSO']`
-12. **flow** `extend_context_definitions`
-13. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
-14. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
-15. **flow** `assign_feature_permission_sets`
+13. **flow** `extend_context_definitions`
+14. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
+15. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
+16. **flow** `assign_feature_permission_sets`
 
 ---
 

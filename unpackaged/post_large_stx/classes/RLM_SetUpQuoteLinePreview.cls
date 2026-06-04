@@ -1,6 +1,6 @@
 /**
  * Estimates QuoteLineItem row count before Run (wizard preview on product-count and confirm steps).
- * Mirrors SetUpQuoteInvocable modify order: deletes → net from existingGroupCounts → new hierarchy lines.
+ * Mirrors RLM_SetUpQuoteInvocable modify order: deletes → additive existingGroupCounts → new hierarchy lines.
  */
 public with sharing class RLM_SetUpQuoteLinePreview {
     @AuraEnabled(cacheable = false)
@@ -21,11 +21,14 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             m.get('existingGroupCountsJson') != null ? String.valueOf(m.get('existingGroupCountsJson')) : null;
         String hierarchyJson = m.get('hierarchyJson') != null ? String.valueOf(m.get('hierarchyJson')) : null;
         String productCountsJson = m.get('productCountsJson') != null ? String.valueOf(m.get('productCountsJson')) : null;
+        String productSetMode = RLM_SetUpQuoteProductSets.normalizeProductSetMode(
+            m.get('productSetMode') != null ? String.valueOf(m.get('productSetMode')) : null
+        );
         String csvImportLineItemsJson =
             m.get('csvImportLineItemsJson') != null ? String.valueOf(m.get('csvImportLineItemsJson')) : null;
 
-        Id parsedQId = null;
         Integer currentTotal = 0;
+        Id parsedQId = null;
         if (!isCreate && String.isNotBlank(quoteIdStr)) {
             try {
                 parsedQId = Id.valueOf(quoteIdStr);
@@ -46,39 +49,61 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             ];
         }
 
-        Integer netExisting = 0;
+        Integer existingAdds = 0;
         if (!isCreate && parsedQId != null && String.isNotBlank(existingGroupCountsJson)) {
             try {
-                netExisting = computeNetExistingGroupLines(parsedQId, existingGroupCountsJson, deletedGroupIds);
+                existingAdds = computeExistingGroupAdds(existingGroupCountsJson, deletedGroupIds, productSetMode, parsedQId);
             } catch (Exception e) {
-                return buildResponse(currentTotal, linesRemovedFromDeletes, 0, 0, 0, 'Invalid existing group counts data; refresh and try again');
+                // Surface the failure instead of silently undercounting the preview.
+                Integer projectedOnError = currentTotal - linesRemovedFromDeletes;
+                if (projectedOnError < 0) {
+                    projectedOnError = 0;
+                }
+                return buildResponse(
+                    currentTotal,
+                    linesRemovedFromDeletes,
+                    0,
+                    0,
+                    projectedOnError,
+                    'Could not read the existing group product counts, so the preview may be inaccurate. Refresh the page and re-enter the counts, then try again.'
+                );
             }
         }
 
         Integer newFromHierarchy = 0;
-        if (String.isNotBlank(csvImportLineItemsJson)) {
-            // CSV path: countCsvImportLinesForPreview parses hierarchyJson internally and
-            // returns 0 for blank/empty hierarchies, so no need to call parseParentsList first.
+        List<Object> parentsList = parseParentsList(hierarchyJson);
+        Boolean useCsv = String.isNotBlank(csvImportLineItemsJson);
+        if (useCsv) {
+            // CSV lines resolve even with an empty hierarchy (CSV-only / ungrouped
+            // modify where hierarchyJson is {"parents":[]}), so count them
+            // regardless of whether parents are present.
             newFromHierarchy = RLM_SetUpQuoteInvocable.countCsvImportLinesForPreview(hierarchyJson, csvImportLineItemsJson);
         } else {
-            List<Object> parentsList = parseParentsList(hierarchyJson);
             if (parentsList != null && !parentsList.isEmpty()) {
-                newFromHierarchy = RLM_SetUpQuoteInvocable.sumProductCountsJsonValues(productCountsJson);
+                newFromHierarchy = RLM_SetUpQuoteProductSets.sumExpectedQliCounts(productSetMode, productCountsJson);
+            }
+            // Ungrouped (no-group) lines: the non-CSV invocable path adds these via
+            // addProductRequestsForCount(ungroupedProductCount, ...) independent of the
+            // hierarchy, so include them here or the preview undercounts. Expected QLI
+            // count mirrors the invocable's product-set/demo allocation.
+            Integer ungroupedProductCount = RLM_SetUpQuoteProductSets.parseNonNegativeInteger(m.get('ungroupedProductCount'));
+            if (ungroupedProductCount > 0) {
+                newFromHierarchy += RLM_SetUpQuoteProductSets.expectedQliCountForRequestedCount(productSetMode, ungroupedProductCount);
             }
         }
 
-        Integer projected = currentTotal - linesRemovedFromDeletes + netExisting + newFromHierarchy;
+        Integer projected = currentTotal - linesRemovedFromDeletes + existingAdds + newFromHierarchy;
         if (projected < 0) {
             projected = 0;
         }
 
-        return buildResponse(currentTotal, linesRemovedFromDeletes, netExisting, newFromHierarchy, projected, null);
+        return buildResponse(currentTotal, linesRemovedFromDeletes, existingAdds, newFromHierarchy, projected, null);
     }
 
     private static String buildResponse(
         Integer currentTotal,
         Integer linesRemoved,
-        Integer netExisting,
+        Integer existingAdds,
         Integer newHierarchy,
         Integer projected,
         String error
@@ -86,7 +111,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         Map<String, Object> out = new Map<String, Object>{
             'currentTotal' => currentTotal,
             'linesRemovedFromDeletes' => linesRemoved,
-            'netExistingGroupDelta' => netExisting,
+            'netExistingGroupDelta' => existingAdds,
             'newLinesFromHierarchy' => newHierarchy,
             'projectedTotal' => projected,
             'error' => error
@@ -115,22 +140,27 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             List<Object> arr = (List<Object>) JSON.deserializeUntyped(groupsToDeleteJson);
             Set<Id> rootIds = new Set<Id>();
             for (Object o : arr) {
-                if (o == null || String.isBlank(String.valueOf(o))) continue;
+                if (o == null) {
+                    continue;
+                }
+                String idStr = String.valueOf(o);
+                if (String.isBlank(idStr)) {
+                    continue;
+                }
                 try {
-                    rootIds.add(Id.valueOf(String.valueOf(o)));
+                    rootIds.add(Id.valueOf(idStr));
                 } catch (Exception e) {
-                    continue; // skip individual invalid Id — don't abort the whole set
+                    // Skip invalid Id entries rather than discarding the entire delete set.
+                    continue;
                 }
             }
             if (rootIds.isEmpty()) {
                 return result;
             }
-            // Validate roots belong to the target quote to avoid traversing unrelated hierarchies
+            // Ownership guard: only traverse roots that belong to the target quote
             if (quoteId != null) {
                 Set<Id> ownedRoots = new Set<Id>();
-                for (QuoteLineGroup g : [
-                    SELECT Id FROM QuoteLineGroup WHERE Id IN :rootIds AND QuoteId = :quoteId
-                ]) {
+                for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :rootIds AND QuoteId = :quoteId]) {
                     ownedRoots.add(g.Id);
                 }
                 rootIds = ownedRoots;
@@ -139,15 +169,16 @@ public with sharing class RLM_SetUpQuoteLinePreview {
                 }
             }
             result.addAll(rootIds);
+            // Frontier BFS: each iteration only queries children of the groups
+            // discovered in the previous level, instead of re-querying children of
+            // the entire (growing) result set. Keeps this O(n) over the subtree
+            // rather than O(n^2) on deep/wide hierarchies.
             Set<Id> frontier = new Set<Id>(rootIds);
             while (!frontier.isEmpty()) {
                 Set<Id> nextFrontier = new Set<Id>();
-                List<QuoteLineGroup> children;
-                if (quoteId != null) {
-                    children = [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :quoteId];
-                } else {
-                    children = [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier];
-                }
+                List<QuoteLineGroup> children = quoteId != null
+                    ? [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :quoteId]
+                    : [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier];
                 for (QuoteLineGroup g : children) {
                     if (!result.contains(g.Id)) {
                         result.add(g.Id);
@@ -162,77 +193,50 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         return result;
     }
 
-    private static Integer computeNetExistingGroupLines(Id quoteId, String existingGroupCountsJson, Set<Id> deletedGroupIds) {
+    private static Integer computeExistingGroupAdds(String existingGroupCountsJson, Set<Id> deletedGroupIds, String productSetMode, Id quoteId) {
         Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(existingGroupCountsJson);
         if (m == null || m.isEmpty()) {
             return 0;
         }
-        Set<Id> groupIdsForQuery = new Set<Id>();
-        Map<Id, Integer> idToNewCount = new Map<Id, Integer>();
-        Map<String, Integer> tempToNewCount = new Map<String, Integer>();
-
+        Integer adds = 0;
+        // Real group Ids are validated against the quote in one query; tempId (new subgroup) keys
+        // are counted directly since they will be created on this quote.
+        Map<Id, Integer> idToAddCount = new Map<Id, Integer>();
         for (String k : m.keySet()) {
             Object v = m.get(k);
-            Integer newCount = parsePositiveInt(v);
+            Integer addCount = RLM_SetUpQuoteProductSets.expectedQliCountForRequestedCount(productSetMode, parsePositiveInt(v));
             Id gid = null;
             try {
                 gid = Id.valueOf(k);
             } catch (Exception e) {
-                tempToNewCount.put(k, newCount);
+                adds += addCount;
                 continue;
             }
             if (deletedGroupIds != null && deletedGroupIds.contains(gid)) {
                 continue;
             }
-            idToNewCount.put(gid, newCount);
-            groupIdsForQuery.add(gid);
+            idToAddCount.put(gid, addCount);
         }
-
-        Integer net = 0;
-        for (String tempId : tempToNewCount.keySet()) {
-            net += tempToNewCount.get(tempId);
+        if (idToAddCount.isEmpty()) {
+            return adds;
         }
-
-        if (groupIdsForQuery.isEmpty()) {
-            return net;
+        if (quoteId == null) {
+            for (Integer c : idToAddCount.values()) {
+                adds += c;
+            }
+            return adds;
         }
-
-        // Validate group Ids belong to this quote — foreign Ids would return cur=0,
-        // making newC-cur=newC and inflating the preview delta.
+        // Ownership guard: only count adds for groups that belong to this quote
         Set<Id> validGroupIds = new Set<Id>();
-        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :quoteId AND Id IN :groupIdsForQuery]) {
+        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :quoteId AND Id IN :idToAddCount.keySet()]) {
             validGroupIds.add(g.Id);
         }
-        for (Id gid : new List<Id>(groupIdsForQuery)) {
-            if (!validGroupIds.contains(gid)) {
-                groupIdsForQuery.remove(gid);
-                idToNewCount.remove(gid);
+        for (Id gid : idToAddCount.keySet()) {
+            if (validGroupIds.contains(gid)) {
+                adds += idToAddCount.get(gid);
             }
         }
-        if (groupIdsForQuery.isEmpty()) {
-            return net;
-        }
-
-        List<AggregateResult> ars = [
-            SELECT QuoteLineGroupId grp, COUNT(Id) cnt
-            FROM QuoteLineItem
-            WHERE QuoteLineGroupId IN :groupIdsForQuery AND QuoteId = :quoteId
-            GROUP BY QuoteLineGroupId
-        ];
-        Map<Id, Integer> currentByGroup = new Map<Id, Integer>();
-        for (AggregateResult ar : ars) {
-            Id g = (Id) ar.get('grp');
-            Object cObj = ar.get('cnt');
-            Integer c = cObj == null ? 0 : Integer.valueOf(String.valueOf(cObj));
-            currentByGroup.put(g, c);
-        }
-
-        for (Id gid : idToNewCount.keySet()) {
-            Integer newC = idToNewCount.get(gid);
-            Integer cur = currentByGroup.containsKey(gid) ? currentByGroup.get(gid) : 0;
-            net += (newC - cur);
-        }
-        return net;
+        return adds;
     }
 
     private static Integer parsePositiveInt(Object v) {

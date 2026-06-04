@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**218 tasks** across **10 groups**.
+**219 tasks** across **10 groups**.
 
 ---
 
@@ -770,7 +770,7 @@
 
 ## Revenue Lifecycle Management
 
-*131 task(s)*
+*132 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1542,7 +1542,7 @@
 
 ### `enable_timeline`
 
-**Description:** Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium). Required before billing_ui flexipages that reference industries_common:timeline can be deployed. Once enabled, this toggle cannot be disabled.
+**Description:** Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium). Required before billing_ui flexipages that reference industries_common:timeline can be deployed. Once enabled, this toggle cannot be disabled. Skipped on TSO builds (tso=true), where Timeline is enabled via metadata (Industries.settings enableTimelinePref) instead of the UI toggle.
 
 **Class:** `tasks.rlm_enable_timeline.EnableTimeline`
 
@@ -2423,6 +2423,18 @@
 **Options:**
 
 - `org_wide_defaults`: `[{'api_name': 'Account', 'internal_sharing_model': 'ReadWrite', 'external_sharing_model': 'Private'}, {'api_name': 'A...`
+
+---
+
+### `set_scratch_org_password`
+
+**Description:** Set a permanent password for the scratch-org admin user and clear the "change password at next login" flag. Prevents the frontdoor login used by Robot setup steps (sf org open --url-only) from being redirected to the "Change Your Password" screen, which would otherwise break prepare_docgen and other UI-toggle steps. Scratch-org only.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/setScratchOrgPassword.apex`
 
 ---
 

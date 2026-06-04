@@ -1882,6 +1882,18 @@ tasks:
 # Each task references a script in the scripts/apex directory.
 # These are typically used for post-deployment configuration, data activation, or custom logic.
 
+  set_scratch_org_password:
+    group: Revenue Lifecycle Management
+    description: >
+      Set a permanent password for the scratch-org admin user and clear the
+      "change password at next login" flag. Prevents the frontdoor login used by
+      Robot setup steps (sf org open --url-only) from being redirected to the
+      "Change Your Password" screen, which would otherwise break prepare_docgen
+      and other UI-toggle steps. Scratch-org only.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/setScratchOrgPassword.apex
+
   create_rule_library:
     group: Revenue Lifecycle Management
     description: Create Rule Library
@@ -1909,7 +1921,8 @@ tasks:
     description: >
       Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium).
       Required before billing_ui flexipages that reference industries_common:timeline can be deployed.
-      Once enabled, this toggle cannot be disabled.
+      Once enabled, this toggle cannot be disabled. Skipped on TSO builds (tso=true), where Timeline
+      is enabled via metadata (Industries.settings enableTimelinePref) instead of the UI toggle.
     class_path: tasks.rlm_enable_timeline.EnableTimeline
     options:
       suite: robot/rlm-base/tests/setup/enable_timeline.robot
@@ -2949,51 +2962,54 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: validate_setup
+        task: set_scratch_org_password
+        when: org_config.scratch
       2:
+        task: validate_setup
+      3:
         task: assign_permission_set_licenses
         options:
           api_names: *rlm_psl_api_names
-      3:
+      4:
         task: cleanup_settings_for_dev
         #when: org_config.scratch
-      4:
+      5:
         task: exclude_active_decision_tables
         #when: org_config.scratch
-      5:
-        task: deploy_pre
       6:
+        task: deploy_pre
+      7:
         task: restore_decision_tables
         #when: org_config.scratch
-      7:
-        flow: assign_feature_psls
       8:
-        task: recalculate_permission_set_groups
-        options:
-          api_names: *rlm_psg_api_names
+        flow: assign_feature_psls
       9:
-        task: assign_permission_set_groups_tolerant
+        task: recalculate_permission_set_groups
         options:
           api_names: *rlm_psg_api_names
       10:
-        task: recalculate_permission_set_groups
-        when: project_config.project__custom__tso
-        options:
-          api_names: *psg_tso
-      11:
         task: assign_permission_set_groups_tolerant
+        options:
+          api_names: *rlm_psg_api_names
+      11:
+        task: recalculate_permission_set_groups
         when: project_config.project__custom__tso
         options:
           api_names: *psg_tso
       12:
-        flow: extend_context_definitions
+        task: assign_permission_set_groups_tolerant
+        when: project_config.project__custom__tso
+        options:
+          api_names: *psg_tso
       13:
+        flow: extend_context_definitions
+      14:
         task: create_rule_library
         when: project_config.project__custom__breconfig
-      14:
+      15:
         task: create_dro_rule_library
         when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      15:
+      16:
         flow: assign_feature_permission_sets
 
   assign_feature_psls:
@@ -3278,7 +3294,10 @@ flows:
         when: project_config.project__custom__billing
       8:
         task: enable_timeline
-        when: project_config.project__custom__billing_ui
+        # Skipped on TSO builds: Timeline is enabled via metadata
+        # (Industries.settings enableTimelinePref) on the tfid-cdo-rlm template,
+        # so the Robot UI toggle is only needed on non-TSO orgs.
+        when: project_config.project__custom__billing_ui and not project_config.project__custom__tso
       9:
         task: deploy_billing_id_settings
         when: project_config.project__custom__billing
