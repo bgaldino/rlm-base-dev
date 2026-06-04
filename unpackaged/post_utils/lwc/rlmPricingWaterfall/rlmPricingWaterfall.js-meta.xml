@@ -12,6 +12,27 @@
       <objects>
         <object>QuoteLineItem</object>
       </objects>
+      <property
+        name="historyPageSize"
+        type="Integer"
+        label="History Page Size"
+        description="Number of pricing runs shown per page in Pricing History."
+        default="25"
+      />
+      <property
+        name="showPriceSummary"
+        type="Boolean"
+        label="Show Price Summary"
+        description="Show or hide the Price Summary section."
+        default="true"
+      />
+      <property
+        name="showCurrentExecution"
+        type="Boolean"
+        label="Show Current Execution"
+        description="Show or hide the Current Execution section."
+        default="true"
+      />
     </targetConfig>
   </targetConfigs>
 </LightningComponentBundle>
