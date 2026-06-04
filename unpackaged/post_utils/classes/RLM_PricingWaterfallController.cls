@@ -2,18 +2,22 @@
  * @description Controller for the rlmPricingWaterfall LWC.
  *
  *              getAllPricingRuns(lineItemId) — returns the full history of
- *              PricingApiExecution runs for a QuoteLineItem by querying
+ *              PricingApiExecution runs for a sales transaction line item by querying
  *              PricingProcessExecution records whose ExecutionTypeKey ends
  *              with '_{lineItemId}' and ExecutionType = 'Pricing_Line'.
  *
  * @see rlmPricingWaterfall LWC
  */
 public with sharing class RLM_PricingWaterfallController {
+    // Allow near-simultaneous execution records that can predate line insert by a few seconds.
+    private static final Integer RUN_MATCH_TOLERANCE_SECONDS = 5;
+    // For generic tokens (QLI0_0__*, OLI0_0__*), only consider a tight creation-time window.
+    private static final Integer GENERIC_TOKEN_WINDOW_SECONDS = 120;
 
     // ── getAllPricingRuns ─────────────────────────────────────────────────────
 
     /**
-     * @description Represents one historical pricing run for a QuoteLineItem.
+     * @description Represents one historical pricing run for a sales transaction line.
      */
     public class PricingRun {
         /** Numeric run identifier (prefix of Pricing_Line.ExecutionTypeKey) */
@@ -24,7 +28,7 @@ public with sharing class RLM_PricingWaterfallController {
         @AuraEnabled public String paeName;
         /** PricingApiExecution.Status (overall batch status across all lines) */
         @AuraEnabled public String overallStatus;
-        /** PricingProcessExecution.Status for this specific QLI */
+        /** PricingProcessExecution.Status for this specific line */
         @AuraEnabled public String lineStatus;
         /** PricingApiExecution.CreatedDate */
         @AuraEnabled public Datetime createdDate;
@@ -32,7 +36,7 @@ public with sharing class RLM_PricingWaterfallController {
         @AuraEnabled public Integer lineCount;
         /** Name of the user who triggered pricing */
         @AuraEnabled public String triggeredByName;
-        /** QLI id that matched this execution row */
+        /** QuoteLineItem/OrderItem id that matched this execution row */
         @AuraEnabled public String matchedLineItemId;
         /** Why the run matched (SelectedLine or RelatedLine) */
         @AuraEnabled public String matchSource;
@@ -40,18 +44,33 @@ public with sharing class RLM_PricingWaterfallController {
         @AuraEnabled public String matchRelationshipRole;
         /** Raw execution token extracted from ExecutionTypeKey (suffix after first '_') */
         @AuraEnabled public String matchedExecutionToken;
+        /** High-level source type for the matched token/id (Quote vs Order lineage) */
+        @AuraEnabled public String matchedRecordType;
+        /** Confidence score (0-100) for why this run matched */
+        @AuraEnabled public Integer matchConfidenceScore;
+        /** Confidence band label (Very High, High, Medium, Low) */
+        @AuraEnabled public String matchConfidenceBand;
+        /** Human-readable reason for the chosen match confidence */
+        @AuraEnabled public String matchConfidenceReason;
+    }
+
+    private class MatchAssessment {
+        public Integer score;
+        public String band;
+        public String reason;
+        public Boolean isSelectedLine;
     }
 
     /**
      * @description Returns all historical PricingApiExecution runs for the given
-     *              QuoteLineItem Id, oldest first.
+     *              QuoteLineItem or OrderItem Id, oldest first.
      *
      *              Strategy: query PricingProcessExecution WHERE ExecutionType =
      *              'Pricing_Line' AND ExecutionTypeKey LIKE '%_{lineItemId}'.
      *              The ExecutionTypeKey prefix (before '_' + lineItemId) is the
      *              waterfallRunId; the ExecutionKey links to PricingApiExecution.
      *
-     * @param lineItemId  The 18-char Salesforce Id of the QuoteLineItem record
+     * @param lineItemId  The 18-char Salesforce Id of the QuoteLineItem/OrderItem record
      * @return            List of PricingRun objects, oldest first
      */
     @AuraEnabled(cacheable=true)
@@ -60,9 +79,22 @@ public with sharing class RLM_PricingWaterfallController {
             throw new AuraHandledException('lineItemId is required');
         }
 
+        Id seedLineItemId = (Id) lineItemId;
+        Schema.SObjectType lineItemType = seedLineItemId.getSObjectType();
+        Boolean isQuoteLineItemType = lineItemType == QuoteLineItem.SObjectType;
+        Boolean isOrderItemType = lineItemType == OrderItem.SObjectType;
+        if (!isQuoteLineItemType && !isOrderItemType) {
+            throw new AuraHandledException(
+                'Unsupported record type. Expected QuoteLineItem or OrderItem.'
+            );
+        }
+
         // Expand lookup scope beyond the selected line so bundle/component runs
         // are discoverable in the same history panel.
-        Map<String, String> lineRoleById = collectRelatedLineItemRoles((Id) lineItemId);
+        Map<String, String> lineRoleById = collectRelatedLineItemRoles(
+            seedLineItemId,
+            lineItemType
+        );
         Set<String> scopedLineItemIds = new Set<String>();
         for (String scopedId : lineRoleById.keySet()) {
             scopedLineItemIds.add(scopedId);
@@ -78,9 +110,14 @@ public with sharing class RLM_PricingWaterfallController {
         Map<String, String> tokenToLineId = new Map<String, String>();
         Map<String, String> tokenToRole = new Map<String, String>();
         Set<String> selectedAnchorTokens = new Set<String>{ lineItemId };
+        Set<String> selectedAnchorRunIds = new Set<String>();
         Set<String> selectedAnchorExecutionKeys = new Set<String>();
         String selectedIdentifierToken;
+        Boolean selectedIdentifierIsGeneric = false;
         Set<String> relatedIdentifierTokens = new Set<String>();
+        Datetime seedLineCreatedDate;
+        Datetime seedLineCreatedDateFloor;
+        Datetime seedLineCreatedDateCeiling;
 
         for (String scopedLineId : scopedLineItemIds) {
             scopedMatchTokens.add(scopedLineId);
@@ -88,41 +125,136 @@ public with sharing class RLM_PricingWaterfallController {
             tokenToRole.put(scopedLineId, lineRoleById.get(scopedLineId));
         }
 
-        for (QuoteLineItem qli : [
-            SELECT Id, PriceWaterfallIdentifier
-            FROM QuoteLineItem
-            WHERE Id IN :scopedLineItemIds
-        ]) {
-            String token = extractTokenFromPriceWaterfallIdentifier(
-                qli.PriceWaterfallIdentifier
-            );
-            if (String.isBlank(token)) continue;
-            scopedMatchTokens.add(token);
-            tokenToLineId.put(token, qli.Id);
-            tokenToRole.put(
-                token,
-                lineRoleById.containsKey((String) qli.Id)
-                    ? lineRoleById.get((String) qli.Id)
-                    : null
-            );
+        if (isQuoteLineItemType) {
+            for (QuoteLineItem qli : [
+                SELECT Id, PriceWaterfallIdentifier, CreatedDate
+                FROM QuoteLineItem
+                WHERE Id IN :scopedLineItemIds
+            ]) {
+                String token = extractTokenFromPriceWaterfallIdentifier(
+                    qli.PriceWaterfallIdentifier
+                );
+                String runIdFromIdentifier = extractRunIdFromPriceWaterfallIdentifier(
+                    qli.PriceWaterfallIdentifier
+                );
 
-            if ((String) qli.Id == lineItemId) {
-                selectedAnchorTokens.add(token);
-                selectedIdentifierToken = token;
-            } else if (!isGenericIdentifierToken(token)) {
-                relatedIdentifierTokens.add(token);
+                if (!String.isBlank(token)) {
+                    tokenToLineId.put(token, qli.Id);
+                    tokenToRole.put(
+                        token,
+                        lineRoleById.containsKey((String) qli.Id)
+                            ? lineRoleById.get((String) qli.Id)
+                            : null
+                    );
+                }
+
+                if ((String) qli.Id == lineItemId) {
+                    seedLineCreatedDate = qli.CreatedDate;
+                    selectedIdentifierToken = token;
+                    selectedIdentifierIsGeneric = isGenericIdentifierToken(token);
+                    if (!String.isBlank(runIdFromIdentifier)) {
+                        selectedAnchorRunIds.add(runIdFromIdentifier);
+                    }
+                    if (!String.isBlank(token) && !selectedIdentifierIsGeneric) {
+                        scopedMatchTokens.add(token);
+                        selectedAnchorTokens.add(token);
+                    }
+                } else if (!String.isBlank(token) && !isGenericIdentifierToken(token)) {
+                    scopedMatchTokens.add(token);
+                    relatedIdentifierTokens.add(token);
+                }
+            }
+        } else {
+            for (OrderItem oi : [
+                SELECT Id, PriceWaterfallIdentifier, CreatedDate
+                FROM OrderItem
+                WHERE Id IN :scopedLineItemIds
+            ]) {
+                String token = extractTokenFromPriceWaterfallIdentifier(
+                    oi.PriceWaterfallIdentifier
+                );
+                String runIdFromIdentifier = extractRunIdFromPriceWaterfallIdentifier(
+                    oi.PriceWaterfallIdentifier
+                );
+
+                if (!String.isBlank(token)) {
+                    tokenToLineId.put(token, oi.Id);
+                    tokenToRole.put(
+                        token,
+                        lineRoleById.containsKey((String) oi.Id)
+                            ? lineRoleById.get((String) oi.Id)
+                            : null
+                    );
+                }
+
+                if ((String) oi.Id == lineItemId) {
+                    seedLineCreatedDate = oi.CreatedDate;
+                    selectedIdentifierToken = token;
+                    selectedIdentifierIsGeneric = isGenericIdentifierToken(token);
+                    if (!String.isBlank(runIdFromIdentifier)) {
+                        selectedAnchorRunIds.add(runIdFromIdentifier);
+                    }
+                    if (!String.isBlank(token) && !selectedIdentifierIsGeneric) {
+                        scopedMatchTokens.add(token);
+                        selectedAnchorTokens.add(token);
+                    }
+                } else if (!String.isBlank(token) && !isGenericIdentifierToken(token)) {
+                    scopedMatchTokens.add(token);
+                    relatedIdentifierTokens.add(token);
+                }
             }
         }
 
         // First pass: anchor to runs that explicitly include the selected line/token.
+        List<String> anchorClauses = new List<String>();
+        if (!selectedAnchorTokens.isEmpty()) {
+            anchorClauses.add('(' + buildExecutionTypeKeyClause(selectedAnchorTokens) + ')');
+        }
+        if (!selectedAnchorRunIds.isEmpty()) {
+            anchorClauses.add('(' + buildWaterfallRunClause(selectedAnchorRunIds) + ')');
+        }
+        if (anchorClauses.isEmpty()) {
+            return new List<PricingRun>();
+        }
+        if (seedLineCreatedDate != null) {
+            seedLineCreatedDateFloor = seedLineCreatedDate.addSeconds(-RUN_MATCH_TOLERANCE_SECONDS);
+            seedLineCreatedDateCeiling = seedLineCreatedDate.addSeconds(GENERIC_TOKEN_WINDOW_SECONDS);
+        }
+        String minCreatedFilter = seedLineCreatedDate == null
+            ? ''
+            : ' AND CreatedDate >= :seedLineCreatedDateFloor';
+        String genericWindowUpperFilter = seedLineCreatedDate == null
+            ? ''
+            : ' AND CreatedDate <= :seedLineCreatedDateCeiling';
         String anchorQuery =
             'SELECT ExecutionKey ' +
             'FROM PricingProcessExecution ' +
             'WHERE ExecutionType = \'Pricing_Line\' AND (' +
-            buildExecutionTypeKeyClause(selectedAnchorTokens) +
-            ')';
+            String.join(anchorClauses, ' OR ') +
+            ')' +
+            minCreatedFilter;
         for (PricingProcessExecution anchorPpe : (List<PricingProcessExecution>) Database.query(anchorQuery)) {
             selectedAnchorExecutionKeys.add(anchorPpe.ExecutionKey);
+        }
+
+        // Generic token fallback: include nearby runs in the same creation-time window.
+        // This recovers adjacent calls (e.g. paired pricing runs) without pulling old history.
+        if (
+            selectedIdentifierIsGeneric &&
+            !String.isBlank(selectedIdentifierToken) &&
+            seedLineCreatedDate != null
+        ) {
+            String genericTokenAnchorQuery =
+                'SELECT ExecutionKey ' +
+                'FROM PricingProcessExecution ' +
+                'WHERE ExecutionType = \'Pricing_Line\' AND (' +
+                buildExecutionTypeKeyClause(new Set<String>{ selectedIdentifierToken }) +
+                ')' +
+                minCreatedFilter +
+                genericWindowUpperFilter;
+            for (PricingProcessExecution genericPpe : (List<PricingProcessExecution>) Database.query(genericTokenAnchorQuery)) {
+                selectedAnchorExecutionKeys.add(genericPpe.ExecutionKey);
+            }
         }
 
         // Co-anchor tightening:
@@ -130,7 +262,7 @@ public with sharing class RLM_PricingWaterfallController {
         // overlap with at least one related non-generic token (usually ref_...)
         // to avoid pulling unrelated historical executions.
         if (
-            isGenericIdentifierToken(selectedIdentifierToken) &&
+            selectedIdentifierIsGeneric &&
             !relatedIdentifierTokens.isEmpty() &&
             !selectedAnchorExecutionKeys.isEmpty()
         ) {
@@ -140,7 +272,8 @@ public with sharing class RLM_PricingWaterfallController {
                 'FROM PricingProcessExecution ' +
                 'WHERE ExecutionType = \'Pricing_Line\' AND (' +
                 buildExecutionTypeKeyClause(relatedIdentifierTokens) +
-                ')';
+                ')' +
+                minCreatedFilter;
             for (PricingProcessExecution relatedPpe : (List<PricingProcessExecution>) Database.query(relatedQuery)) {
                 relatedExecutionKeys.add(relatedPpe.ExecutionKey);
             }
@@ -164,15 +297,21 @@ public with sharing class RLM_PricingWaterfallController {
                 'FROM PricingProcessExecution ' +
                 'WHERE ExecutionType = \'Pricing_Line\' ' +
                 'AND ExecutionKey IN :selectedAnchorExecutionKeys ' +
-                'ORDER BY CreatedDate ASC';
+                minCreatedFilter +
+                ' ORDER BY CreatedDate ASC';
         } else {
             // Fallback mode if no anchors were found.
+            if (scopedMatchTokens.isEmpty()) {
+                return new List<PricingRun>();
+            }
             ppeQuery =
                 'SELECT ExecutionKey, ExecutionTypeKey, Status, CreatedDate ' +
                 'FROM PricingProcessExecution ' +
                 'WHERE ExecutionType = \'Pricing_Line\' AND (' +
                 buildExecutionTypeKeyClause(scopedMatchTokens) +
-                ') ORDER BY CreatedDate ASC';
+                ')' +
+                minCreatedFilter +
+                ' ORDER BY CreatedDate ASC';
         }
         List<PricingProcessExecution> linePPEs =
             (List<PricingProcessExecution>) Database.query(ppeQuery);
@@ -189,6 +328,10 @@ public with sharing class RLM_PricingWaterfallController {
         Map<String, String> keyToMatchSource = new Map<String, String>();
         Map<String, String> keyToRelationshipRole = new Map<String, String>();
         Map<String, String> keyToMatchedToken = new Map<String, String>();
+        Map<String, String> keyToMatchedRecordType = new Map<String, String>();
+        Map<String, Integer> keyToMatchConfidenceScore = new Map<String, Integer>();
+        Map<String, String> keyToMatchConfidenceBand = new Map<String, String>();
+        Map<String, String> keyToMatchConfidenceReason = new Map<String, String>();
 
         for (PricingProcessExecution ppe : linePPEs) {
             executionKeys.add(ppe.ExecutionKey);
@@ -201,7 +344,15 @@ public with sharing class RLM_PricingWaterfallController {
                 matchedLineId = matchedToken;
             }
 
-            Boolean isSelectedLine = matchedLineId == lineItemId || matchedToken == lineItemId;
+            MatchAssessment assessment = evaluateMatchConfidence(
+                lineItemId,
+                selectedIdentifierToken,
+                selectedAnchorRunIds,
+                ppe.ExecutionTypeKey,
+                matchedToken,
+                matchedLineId
+            );
+            Boolean isSelectedLine = assessment.isSelectedLine;
             String matchSource = isSelectedLine ? 'SelectedLine' : 'RelatedLine';
             String relationshipRole = tokenToRole.containsKey(matchedToken)
                 ? tokenToRole.get(matchedToken)
@@ -210,15 +361,30 @@ public with sharing class RLM_PricingWaterfallController {
                 relationshipRole = lineRoleById.get(matchedLineId);
             }
 
-            // Prefer selected-line PPE when multiple scoped lines share same key.
-            if (
-                !keyToMatchedLineId.containsKey(ppe.ExecutionKey) ||
-                (isSelectedLine && keyToMatchedLineId.get(ppe.ExecutionKey) != lineItemId)
-            ) {
+            Integer existingScore = keyToMatchConfidenceScore.get(ppe.ExecutionKey);
+            Boolean hasExisting = keyToMatchedLineId.containsKey(ppe.ExecutionKey);
+            Boolean existingSelectedLine = keyToMatchSource.get(ppe.ExecutionKey) == 'SelectedLine';
+            Boolean shouldReplace =
+                !hasExisting ||
+                assessment.score > existingScore ||
+                (
+                    assessment.score == existingScore &&
+                    isSelectedLine &&
+                    !existingSelectedLine
+                );
+
+            if (shouldReplace) {
                 keyToMatchedLineId.put(ppe.ExecutionKey, matchedLineId);
                 keyToMatchSource.put(ppe.ExecutionKey, matchSource);
                 keyToRelationshipRole.put(ppe.ExecutionKey, relationshipRole);
                 keyToMatchedToken.put(ppe.ExecutionKey, matchedToken);
+                keyToMatchedRecordType.put(
+                    ppe.ExecutionKey,
+                    classifyMatchedRecordType(matchedToken, matchedLineId)
+                );
+                keyToMatchConfidenceScore.put(ppe.ExecutionKey, assessment.score);
+                keyToMatchConfidenceBand.put(ppe.ExecutionKey, assessment.band);
+                keyToMatchConfidenceReason.put(ppe.ExecutionKey, assessment.reason);
                 keyToLineStatus.put(ppe.ExecutionKey, ppe.Status);
             }
 
@@ -271,7 +437,7 @@ public with sharing class RLM_PricingWaterfallController {
 
         for (PricingProcessExecution ppe : linePPEs) {
             String execKey = ppe.ExecutionKey;
-            if (seen.contains(execKey)) continue; // deduplicate (multi-line quotes)
+            if (seen.contains(execKey)) continue; // deduplicate (multi-line runs)
             seen.add(execKey);
 
             PricingRun run  = new PricingRun();
@@ -282,6 +448,10 @@ public with sharing class RLM_PricingWaterfallController {
             run.matchSource = keyToMatchSource.get(execKey);
             run.matchRelationshipRole = keyToRelationshipRole.get(execKey);
             run.matchedExecutionToken = keyToMatchedToken.get(execKey);
+            run.matchedRecordType = keyToMatchedRecordType.get(execKey);
+            run.matchConfidenceScore = keyToMatchConfidenceScore.get(execKey);
+            run.matchConfidenceBand = keyToMatchConfidenceBand.get(execKey);
+            run.matchConfidenceReason = keyToMatchConfidenceReason.get(execKey);
 
             PricingApiExecution pae = paeByExecutionKey.get(execKey);
             if (pae != null) {
@@ -296,11 +466,27 @@ public with sharing class RLM_PricingWaterfallController {
         return runs;
     }
 
+    @TestVisible
+    private static Map<String, String> collectRelatedLineItemRoles(
+        Id seedLineItemId,
+        Schema.SObjectType lineItemType
+    ) {
+        if (lineItemType == QuoteLineItem.SObjectType) {
+            return collectRelatedQuoteLineItemRoles(seedLineItemId);
+        }
+        if (lineItemType == OrderItem.SObjectType) {
+            return collectRelatedOrderLineItemRoles(seedLineItemId);
+        }
+        Map<String, String> roleByLineId = new Map<String, String>();
+        roleByLineId.put((String) seedLineItemId, 'SelectedLine');
+        return roleByLineId;
+    }
+
     /**
      * Collect selected line + one-hop/expanded related lines from QuoteLineRelationship.
      */
     @TestVisible
-    private static Map<String, String> collectRelatedLineItemRoles(Id seedLineItemId) {
+    private static Map<String, String> collectRelatedQuoteLineItemRoles(Id seedLineItemId) {
         Map<String, String> roleByLineId = new Map<String, String>();
         roleByLineId.put((String) seedLineItemId, 'SelectedLine');
 
@@ -325,6 +511,55 @@ public with sharing class RLM_PricingWaterfallController {
                     'AssociatedQuoteLine'
                 );
                 addRole(roleByLineId, nextFrontier, rel.RootQuoteLineId, 'RootQuoteLine');
+            }
+            frontier = nextFrontier;
+        }
+        return roleByLineId;
+    }
+
+    /**
+     * Collect selected line + one-hop/expanded related lines from OrderItemRelationship.
+     */
+    @TestVisible
+    private static Map<String, String> collectRelatedOrderLineItemRoles(Id seedLineItemId) {
+        Map<String, String> roleByLineId = new Map<String, String>();
+        roleByLineId.put((String) seedLineItemId, 'SelectedLine');
+
+        Set<Id> frontier = new Set<Id>{ seedLineItemId };
+        // Two passes: seed neighbors + a light expansion to catch siblings.
+        for (Integer hop = 0; hop < 2; hop++) {
+            if (frontier.isEmpty()) break;
+
+            Set<Id> nextFrontier = new Set<Id>();
+            for (OrderItemRelationship rel : [
+                SELECT
+                    MainOrderItemId,
+                    AssociatedOrderItemId,
+                    RootOrderItemId,
+                    MainOrderItemRole,
+                    AssociatedOrderItemRole
+                FROM OrderItemRelationship
+                WHERE MainOrderItemId IN :frontier
+                   OR AssociatedOrderItemId IN :frontier
+                   OR RootOrderItemId IN :frontier
+            ]) {
+                addRole(
+                    roleByLineId,
+                    nextFrontier,
+                    rel.MainOrderItemId,
+                    String.isBlank(rel.MainOrderItemRole)
+                        ? 'MainOrderItem'
+                        : rel.MainOrderItemRole
+                );
+                addRole(
+                    roleByLineId,
+                    nextFrontier,
+                    rel.AssociatedOrderItemId,
+                    String.isBlank(rel.AssociatedOrderItemRole)
+                        ? 'AssociatedOrderItem'
+                        : rel.AssociatedOrderItemRole
+                );
+                addRole(roleByLineId, nextFrontier, rel.RootOrderItemId, 'RootOrderItem');
             }
             frontier = nextFrontier;
         }
@@ -389,9 +624,113 @@ public with sharing class RLM_PricingWaterfallController {
     }
 
     @TestVisible
+    private static String extractRunIdFromPriceWaterfallIdentifier(
+        String priceWaterfallIdentifier
+    ) {
+        if (String.isBlank(priceWaterfallIdentifier)) return null;
+        Integer idx = priceWaterfallIdentifier.indexOf(':');
+        if (idx == -1 || idx + 1 >= priceWaterfallIdentifier.length()) return null;
+        return priceWaterfallIdentifier.substring(idx + 1);
+    }
+
+    @TestVisible
     private static Boolean isGenericIdentifierToken(String token) {
         if (String.isBlank(token)) return false;
-        return token.startsWithIgnoreCase('QLI');
+        return token.startsWithIgnoreCase('QLI') || token.startsWithIgnoreCase('OLI');
+    }
+
+    @TestVisible
+    private static String buildWaterfallRunClause(Set<String> runIds) {
+        List<String> clauses = new List<String>();
+        for (String runId : runIds) {
+            clauses.add(
+                'ExecutionTypeKey LIKE \'' +
+                String.escapeSingleQuotes(runId) +
+                '_%\''
+            );
+        }
+        return String.join(clauses, ' OR ');
+    }
+
+    @TestVisible
+    private static MatchAssessment evaluateMatchConfidence(
+        String selectedLineId,
+        String selectedIdentifierToken,
+        Set<String> selectedAnchorRunIds,
+        String executionTypeKey,
+        String matchedToken,
+        String matchedLineId
+    ) {
+        MatchAssessment assessment = new MatchAssessment();
+        assessment.isSelectedLine = matchedLineId == selectedLineId || matchedToken == selectedLineId;
+
+        String runId = removeTokenSuffix(executionTypeKey, matchedToken);
+        Boolean runIdMatch =
+            !String.isBlank(runId) &&
+            selectedAnchorRunIds != null &&
+            selectedAnchorRunIds.contains(runId);
+        Boolean tokenMatchSelectedIdentifier =
+            !String.isBlank(selectedIdentifierToken) &&
+            selectedIdentifierToken == matchedToken;
+        Boolean nonGenericToken = !isGenericIdentifierToken(matchedToken);
+        Boolean directLineIdSuffix = matchedToken == selectedLineId;
+
+        assessment.score = 50;
+        assessment.reason = 'Related context fallback';
+
+        if (directLineIdSuffix) {
+            assessment.score = 100;
+            assessment.reason = 'Exact selected line ID suffix';
+        } else if (assessment.isSelectedLine && tokenMatchSelectedIdentifier && nonGenericToken) {
+            assessment.score = 98;
+            assessment.reason = 'Exact non-generic identifier token';
+        } else if (assessment.isSelectedLine && runIdMatch) {
+            assessment.score = 92;
+            assessment.reason = 'Identifier run ID matched execution prefix';
+        } else if (assessment.isSelectedLine && tokenMatchSelectedIdentifier) {
+            assessment.score = 85;
+            assessment.reason = 'Generic selected identifier token within controlled window';
+        } else if (assessment.isSelectedLine) {
+            assessment.score = 80;
+            assessment.reason = 'Selected line resolved through scoped mapping';
+        } else if (runIdMatch && nonGenericToken) {
+            assessment.score = 72;
+            assessment.reason = 'Related non-generic token in same run';
+        } else if (nonGenericToken) {
+            assessment.score = 65;
+            assessment.reason = 'Related non-generic token evidence';
+        } else if (runIdMatch) {
+            assessment.score = 60;
+            assessment.reason = 'Related run-ID-only evidence';
+        }
+
+        if (assessment.score >= 95) {
+            assessment.band = 'Very High';
+        } else if (assessment.score >= 85) {
+            assessment.band = 'High';
+        } else if (assessment.score >= 70) {
+            assessment.band = 'Medium';
+        } else {
+            assessment.band = 'Low';
+        }
+
+        return assessment;
+    }
+
+    @TestVisible
+    private static String classifyMatchedRecordType(String matchedToken, String matchedLineId) {
+        String tokenType = classifyRecordTypeFromIdLikeValue(matchedToken);
+        if (!String.isBlank(tokenType)) return tokenType;
+        return classifyRecordTypeFromIdLikeValue(matchedLineId);
+    }
+
+    @TestVisible
+    private static String classifyRecordTypeFromIdLikeValue(String value) {
+        if (String.isBlank(value)) return null;
+        String normalized = value.trim().toUpperCase();
+        if (normalized.startsWith('0QL')) return 'Quote/QuoteLineItem';
+        if (normalized.startsWith('802')) return 'Order/OrderItem';
+        return null;
     }
 
 }
