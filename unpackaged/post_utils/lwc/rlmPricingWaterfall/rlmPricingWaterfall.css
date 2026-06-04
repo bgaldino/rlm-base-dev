@@ -65,18 +65,24 @@
 }
 
 /* Current execution card: denser, responsive tile layout */
+.current-execution-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
 .execution-cell {
-  width: 100%;
-  margin-bottom: 0.4rem;
+  width: calc(100% - 0.5rem);
 }
 @media (min-width: 48rem) {
   .execution-cell {
-    width: 50%;
+    width: calc(50% - 0.5rem);
   }
 }
 @media (min-width: 64rem) {
   .execution-cell {
-    width: 33.3333%;
+    width: calc(25% - 0.5rem);
   }
 }
 
