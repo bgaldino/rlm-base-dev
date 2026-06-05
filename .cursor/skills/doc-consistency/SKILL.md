@@ -13,7 +13,7 @@ review-loop fixes ("fix stale description", "update README task name",
 4. **If you changed feature flags** (added, removed, renamed, changed default) — update the flag table in `README.md` and verify `feature-flags.md` was regenerated (rule 1).
 5. **If you changed a Python task class** (`tasks/*.py`) — check the task's `description` in `cumulusci.yml`, the `README.md` Custom Tasks table, and any `docs/` guide that names it.
 6. **If you changed Robot test suites or resources** — check `robot-testing/SKILL.md` tables (Setup tasks / E2E tasks) and the `README.md` troubleshooting section.
-7. **If you created a new skill or sub-file** — add it to: (a) the parent `SKILL.md` cross-reference, (b) `AGENTS.md` Skill Sub-Files table, (c) `.cursor/skills/README.md` Skill Router if top-level.
+7. **If you created a new skill or sub-file** — follow `.cursor/skills/skill-authoring/SKILL.md`: add top-level skills to `AGENTS.md`, `.cursor/skills/README.md`, and `.claude/skill-manifest.yml` when cross-repo discoverability applies; add sub-files to the parent `SKILL.md` and `AGENTS.md` Skill Sub-Files table when broadly useful.
 8. **Quick verification** — run `python scripts/ai/generate_cci_reference.py` and then `git diff` to confirm only intended changes appear. Run `python scripts/validate_sfdmu_v5_datasets.py` (should pass).
 
 ## DO NOT

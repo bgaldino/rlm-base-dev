@@ -30,7 +30,8 @@ at `.cursor/skills/doc-consistency/SKILL.md`.
 4. **`robot/**`** — check `robot-testing/SKILL.md` task tables and
    `README.md` troubleshooting if the suite name or behavior changed.
 
-5. **`.cursor/skills/**`** — if adding a new skill or sub-file, register
-   it in `AGENTS.md` (Skill Index / Sub-Files) and `.cursor/skills/README.md`.
+5. **`.cursor/skills/**`** — if adding a new skill or sub-file, follow
+   `.cursor/skills/skill-authoring/SKILL.md`; register top-level skills in
+   `AGENTS.md`, `.cursor/skills/README.md`, and the manifest when applicable.
 
 For the full change-surface map, read `.cursor/skills/doc-consistency/SKILL.md`.

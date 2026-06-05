@@ -23,6 +23,7 @@ repo root.
 | Write Robot Framework tests | Robot Testing | `robot-testing/SKILL.md` |
 | Capture/apply UX drift from org | UX Assembly & Retrieve | `repo-integration/ux-assembly-retrieve.md` |
 | Review docs before merge | Doc Consistency | `doc-consistency/SKILL.md` |
+| Create, update, register, or test AI-agent skills | Skill Authoring | `skill-authoring/SKILL.md` |
 | Debug a build/deploy failure | Troubleshooting | `troubleshooting/SKILL.md` |
 | Author/update enablement exercises | Release Enablement | `release-enablement/SKILL.md` |
 | Generate the QuantumBit demo-script canvas (per-release) | QB Demo Script Generator | `qb-demo-script/SKILL.md` |
@@ -30,11 +31,16 @@ repo root.
 
 ## How Skills Are Structured
 
-Each skill has:
+Each top-level skill has:
 1. **Quick Rules** — 5-8 numbered rules at the top for fast reference
 2. **DO NOT** — explicit safety constraints for that topic
-3. **Main content** — tables, code examples, decision guides
-4. **Sub-files** — detailed reference split into separate files (read on demand)
+3. **Entry Conditions** — when to read the skill and when to use adjacent guidance
+4. **Main content** — tables, code examples, decision guides
+5. **Examples** — concrete usage patterns
+6. **Validation Checks** — commands and review checks to run before commit/PR
+7. **Sub-files** — detailed reference split into separate files (read on demand)
+
+For the full lifecycle checklist, read `skill-authoring/SKILL.md`.
 
 ## File-Specific Rules (Cursor Only)
 

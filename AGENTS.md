@@ -224,13 +224,16 @@ that topic.
 | Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
 | Capture/apply UX drift from org | `.cursor/skills/repo-integration/ux-assembly-retrieve.md` |
 | Review docs before merge | `.cursor/skills/doc-consistency/SKILL.md` |
+| Create, update, register, or test AI-agent skills | `.cursor/skills/skill-authoring/SKILL.md` |
 | Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
 | Author/update enablement exercises per release | `.cursor/skills/release-enablement/SKILL.md` |
 | Generate the QuantumBit demo-script canvas (per-release SE/partner artifact) | `.cursor/skills/qb-demo-script/SKILL.md` |
 | Ground product claims against Salesforce Help (Trailhead, internal docs, SME review) | `.cursor/skills/revenue-cloud-docs/SKILL.md` |
 
-Each skill has a **Quick Rules** section at the top for fast reference,
-and a **DO NOT** section listing critical safety constraints for that area.
+Each top-level skill has **Quick Rules**, **DO NOT**, **Entry Conditions**,
+**Examples**, and **Validation Checks** sections. Read
+`.cursor/skills/skill-authoring/SKILL.md` before creating, splitting,
+registering, or testing skills.
 
 ### Skill Sub-Files (Progressive Disclosure)
 

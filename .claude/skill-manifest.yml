@@ -134,6 +134,16 @@ foundations:
       purpose: "Pre-merge doc-consistency review"
       consumed_by_pmos: []
 
+    - id: skill-authoring
+      path: .cursor/skills/skill-authoring/SKILL.md
+      purpose: "Skill lifecycle, registration, Cursor rule, and non-Cursor consumption guidance"
+      consumed_by_pmos: []
+      governs:
+        - AGENTS.md
+        - .cursor/skills/README.md
+        - .claude/skill-manifest.yml
+        - .github/copilot-instructions.md
+
     - id: schema-validation
       path: .cursor/skills/schema-validation/SKILL.md
       purpose: "Validate/refresh/certify erd-data.json against live orgs + Core UDD source; covers orphan-field cleanup, schema-diff tooling, dual-org cross-validation"
