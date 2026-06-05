@@ -55,6 +55,36 @@ python scripts/ai/generate_cci_reference.py --dry-run       # preview without wr
 
 **Used by:** `.cursor/skills/cci-orchestration/SKILL.md`
 
+### `analyze_agent_tooling.py`
+
+Runs AI-agent tooling health checks. The default mode is intentionally a
+**baseline static check** suite that uses only the Python standard library, so
+it can run in a fresh clone before the CumulusCI/PyYAML environment is
+installed or activated. Baseline checks verify required files, Python syntax,
+manifest high-level keys, generated-reference file presence/markers, and the
+dependency guidance in existing utilities. They do **not** parse full YAML or
+regenerate CCI references.
+
+```bash
+python scripts/ai/analyze_agent_tooling.py
+```
+
+Use **full generated-reference checks** when you need to validate the generated
+CCI references against `cumulusci.yml`. This mode dry-runs
+`generate_cci_reference.py`, which requires full YAML parsing through the
+project CumulusCI/PyYAML environment. If that environment is missing, the tool
+prints activation/install guidance instead of failing with an import traceback.
+
+```bash
+python scripts/ai/analyze_agent_tooling.py --full-generated-reference-checks
+```
+
+**Data sources:** `AGENTS.md`, `.claude/skill-manifest.yml`,
+`scripts/ai/README.md`, `.cursor/skills/cci-orchestration/*-reference.md`,
+`cumulusci.yml` (full generated-reference mode only)
+**Used by:** AI agents before merge to distinguish always-available baseline
+validation from environment-dependent generated-reference validation.
+
 ---
 
 ## Dependencies
@@ -64,8 +94,13 @@ python scripts/ai/generate_cci_reference.py --dry-run       # preview without wr
   3.13 and the README recommends 3.12 for CumulusCI itself, so 3.10 is a
   safe lower bound and is what we test against in practice). The previous
   "3.8+" claim predated the schema-diff tooling.
-- **PyYAML** — used by `generate_cci_reference.py` and `skill_manifest.py`
-  (available in the CCI venv)
+- **PyYAML** — required by `generate_cci_reference.py` for full
+  `cumulusci.yml` parsing and used opportunistically by `skill_manifest.py`
+  when available. `skill_manifest.py` falls back to minimal baseline manifest
+  validation without PyYAML.
+- `analyze_agent_tooling.py` baseline static checks use only the Python standard
+  library. Its `--full-generated-reference-checks` mode requires the same
+  PyYAML/CCI environment as `generate_cci_reference.py`.
 - No other external dependencies
 
 ---

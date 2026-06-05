@@ -18,12 +18,16 @@ Usage:
 No external dependencies beyond PyYAML.
 """
 import argparse
+import importlib
+import importlib.util
 import re
 import sys
 from collections import defaultdict
 from pathlib import Path
 
-import yaml
+yaml = None
+if importlib.util.find_spec("yaml") is not None:
+    yaml = importlib.import_module("yaml")
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 CCI_YML = ROOT / "cumulusci.yml"
@@ -40,7 +44,19 @@ HEADER_NOTE = (
 # YAML loading
 # ---------------------------------------------------------------------------
 
+def _pyyaml_error() -> str:
+    return (
+        "generate_cci_reference.py requires PyYAML for full cumulusci.yml parsing.\n"
+        "Activate the project CumulusCI environment, or install PyYAML with one of:\n"
+        "  - pipx inject cumulusci PyYAML\n"
+        "  - python -m pip install PyYAML\n"
+        "  - python -m pip install cumulusci\n"
+    )
+
+
 def load_cci() -> dict:
+    if yaml is None:
+        raise SystemExit(_pyyaml_error())
     with open(CCI_YML, "r") as f:
         return yaml.safe_load(f)
 
@@ -375,8 +391,8 @@ def main():
         print(f"ERROR: {CCI_YML} not found", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Parsing {CCI_YML.relative_to(ROOT)} ...")
     data = load_cci()
+    print(f"Parsed {CCI_YML.relative_to(ROOT)}.")
 
     generate_all = not (args.tasks_only or args.flows_only or args.flags_only)
 
