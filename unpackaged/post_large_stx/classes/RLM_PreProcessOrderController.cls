@@ -30,6 +30,7 @@ public with sharing class RLM_PreProcessOrderController {
     private static Id largeDealExcludeTreatmentId;
     private static Boolean excludeTreatmentResolved = false;
 
+
     /** Lightweight order context for the action UI (gating + current state). */
     @AuraEnabled(cacheable=false)
     public static String getOrderInfo(String orderId) {
@@ -68,6 +69,12 @@ public with sharing class RLM_PreProcessOrderController {
             return errorJson('No order id provided.');
         }
         try {
+            // Orders created via createOrdersFromQuote come back with stale pricing, so
+            // preprocess validation (bit 0) fails with "the prices aren't updated. Click
+            // Reprice All". Reprice large-deal orders up front so the button is one-click.
+            // No-op for standard orders and for orders already priced.
+            repriceLargeDealOrderIfNeeded(orderId);
+
             // Large-deal billing fix: pre-stamp an Exclude-from-Billing treatment on
             // unresolved order items so the platform's legal-entity treatment resolver
             // (not bulk-safe at large-deal scale) finds nothing to fetch and bit 1
@@ -175,6 +182,54 @@ public with sharing class RLM_PreProcessOrderController {
     }
 
     /**
+     * Reprice a large-deal order via a Place Sales Transaction (PATCH header, Force
+     * pricing, Skip configuration). Orders created via createOrdersFromQuote report
+     * a "completed" CalculationStatus but still fail preprocess validation with "the
+     * prices aren't updated. Click Reprice All" until an explicit reprice runs — so
+     * the reprice is unconditional for large deals rather than gated on
+     * CalculationStatus. The executor returns once pricing is computed, and the
+     * async preprocess job validates against the committed result. No-op for
+     * standard orders and unknown ids.
+     */
+    @TestVisible
+    private static void repriceLargeDealOrderIfNeeded(String orderId) {
+        List<Order> orders = [
+            SELECT Id, IsLargeDeal FROM Order WHERE Id = :orderId LIMIT 1
+        ];
+        if (orders.isEmpty() || orders[0].IsLargeDeal != true) {
+            return;
+        }
+        RevSalesTrxn.RecordResource header =
+            new RevSalesTrxn.RecordResource(Order.getSObjectType(), 'PATCH', orderId);
+        header.fieldValues = new Map<String, Object>();
+        List<RevSalesTrxn.RecordWithReferenceRequest> records =
+            new List<RevSalesTrxn.RecordWithReferenceRequest>{
+                new RevSalesTrxn.RecordWithReferenceRequest('refHeader', header)
+            };
+        RevSalesTrxn.GraphRequest graph =
+            new RevSalesTrxn.GraphRequest('PrepareForActivationReprice', records);
+        // Typed nulls so the overloaded execute() signature resolves unambiguously.
+        RevSalesTrxn.CatalogRatesPreferenceEnum ratesPref = null;
+        RevSalesTrxn.TaxPreferenceEnum taxPref = null;
+        RevSalesTrxn.PlaceSalesTransactionResponse resp =
+            RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
+                graph,
+                RevSalesTrxn.PricingPreferenceEnum.FORCE,
+                RevSalesTrxn.ConfigurationExecutionEnum.SKIP,
+                new RevSalesTrxn.ConfigurationOptionsInput(),
+                null,
+                ratesPref,
+                taxPref,
+                null
+            );
+        if (resp == null || !resp.isSuccess) {
+            throw new RLM_PreProcessException(
+                'Reprice failed: ' + (resp != null ? String.valueOf(resp.errorResponse) : 'null response')
+            );
+        }
+    }
+
+    /**
      * For large-deal orders, stamp the Exclude-from-Billing treatment onto order
      * items that don't yet have a billing treatment. The resolver only fetches
      * treatments for items where BillingTreatmentId == null, so pre-stamping turns
@@ -229,4 +284,6 @@ public with sharing class RLM_PreProcessOrderController {
             'errorMessage' => String.isBlank(msg) ? 'Unknown error' : msg
         });
     }
+
+    public class RLM_PreProcessException extends Exception {}
 }

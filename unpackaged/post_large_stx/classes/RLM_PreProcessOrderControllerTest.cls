@@ -129,6 +129,29 @@ private class RLM_PreProcessOrderControllerTest {
         }
     }
 
+    @isTest
+    static void testReprice_StandardOrder_NoOp() {
+        // Standard orders gate out before the Place Sales Transaction executor runs
+        // (the managed executor isn't invocable in test context), so this must not throw.
+        Order o = buildOrderWithItem(false);
+        if (o == null) {
+            return;
+        }
+        Test.startTest();
+        RLM_PreProcessOrderController.repriceLargeDealOrderIfNeeded(o.Id);
+        Test.stopTest();
+        System.assert(true, 'Standard-order reprice is a no-op and does not throw');
+    }
+
+    @isTest
+    static void testReprice_InvalidId_NoOp() {
+        // No matching order → returns before touching the executor.
+        Test.startTest();
+        RLM_PreProcessOrderController.repriceLargeDealOrderIfNeeded('801000000000000AAA');
+        Test.stopTest();
+        System.assert(true, 'Unknown order id reprice is a no-op and does not throw');
+    }
+
     /** Minimal large-deal order; returns null if the org cannot create one in test context. */
     private static Order buildLargeDealOrder() {
         try {
