@@ -1,0 +1,115 @@
+name: Agent Tooling Optimization
+
+on:
+  workflow_dispatch:
+    inputs:
+      deep_checks:
+        description: "Run optional deeper checks such as CCI reference generation and local schema/doc freshness checks"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    # Weekly on Sunday at 08:17 UTC.
+    - cron: "17 8 * * 0"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: agent-tooling-optimization
+  cancel-in-progress: false
+
+jobs:
+  optimize-agent-tooling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      REPORT_DIR: ${{ runner.temp }}/agent-tooling-reports
+      DEEP_CHECKS: ${{ inputs.deep_checks || false }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # Generated artifacts often need comparison against prior commits.
+          fetch-depth: 0
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Prepare report directory
+        run: mkdir -p "$REPORT_DIR"
+
+      - name: Run static agent tooling analyzer
+        run: |
+          if [ ! -f scripts/ai/analyze_agent_tooling.py ]; then
+            echo "Expected scripts/ai/analyze_agent_tooling.py to exist." >&2
+            exit 1
+          fi
+          python scripts/ai/analyze_agent_tooling.py
+
+      - name: Run optional deeper checks
+        if: ${{ env.DEEP_CHECKS == 'true' }}
+        run: |
+          python scripts/ai/generate_cci_reference.py
+
+          # Keep these static/local by default: no Salesforce CLI, org auth, or
+          # external documentation access is required here. The analyzer can add
+          # report files under $REPORT_DIR when deeper check implementations grow.
+          if [ -f scripts/ai/skill_manifest.py ]; then
+            python scripts/ai/skill_manifest.py --check
+          fi
+
+          if [ -f scripts/erd/build_erds.py ]; then
+            python scripts/erd/build_erds.py
+          fi
+
+      - name: Collect generated report files
+        if: always()
+        run: |
+          mkdir -p "$REPORT_DIR"
+
+          # Preserve reports generated in common local locations without adding
+          # them to the eventual pull request branch.
+          for candidate in \
+            agent-tooling-report.md \
+            agent-tooling-report.json \
+            agent-tooling-report \
+            reports/agent-tooling \
+            reports/agent-tooling.md \
+            reports/agent-tooling.json \
+            reports/agent-tooling-optimization; do
+            if [ -e "$candidate" ]; then
+              cp -R "$candidate" "$REPORT_DIR"/
+            fi
+          done
+
+          find "$REPORT_DIR" -maxdepth 3 -type f -print | sort || true
+
+      - name: Upload agent tooling reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-tooling-optimization-reports
+          path: ${{ env.REPORT_DIR }}
+          if-no-files-found: warn
+
+      - name: Open or update optimization pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ github.token }}
+          branch: automation/agent-tooling-optimization
+          delete-branch: true
+          title: "Optimize agent tooling artifacts"
+          commit-message: "chore: optimize agent tooling artifacts"
+          body: |
+            ## Summary
+            - Runs the agent tooling optimization workflow.
+            - Updates tracked generated artifacts when static or optional deeper checks produce changes.
+
+            ## Validation
+            - Static analyzer: `python scripts/ai/analyze_agent_tooling.py`
+            - Deeper checks enabled: `${{ env.DEEP_CHECKS }}`
+          labels: automation, agent-tooling
