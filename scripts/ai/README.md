@@ -55,6 +55,27 @@ python scripts/ai/generate_cci_reference.py --dry-run       # preview without wr
 
 **Used by:** `.cursor/skills/cci-orchestration/SKILL.md`
 
+
+### `analyze_agent_tooling.py`
+
+Static analyzer for the AI-agent tooling surface. It inventories skill and rule
+files, verifies the canonical agent entry points, checks that AGENTS.md skill
+references resolve, validates Cursor rule coverage, and writes both a Markdown
+report and JSON scorecard. The initial implementation uses only Python standard
+library modules; if PyYAML is installed, it uses it opportunistically for richer
+manifest reporting.
+
+```bash
+python scripts/ai/analyze_agent_tooling.py          # write report + scorecard
+python scripts/ai/analyze_agent_tooling.py --check  # fail non-zero on blocking findings
+python scripts/ai/analyze_agent_tooling.py --json   # also print scorecard JSON
+```
+
+**Data sources:** `AGENTS.md`, `.claude/skill-manifest.yml`, `.cursor/skills/`, `.cursor/rules/`
+**Outputs:**
+- `docs/analysis/tooling-optimization-report.md`
+- `.agents/context/tooling-scorecard.json`
+
 ---
 
 ## Dependencies
@@ -64,8 +85,9 @@ python scripts/ai/generate_cci_reference.py --dry-run       # preview without wr
   3.13 and the README recommends 3.12 for CumulusCI itself, so 3.10 is a
   safe lower bound and is what we test against in practice). The previous
   "3.8+" claim predated the schema-diff tooling.
-- **PyYAML** — used by `generate_cci_reference.py` and `skill_manifest.py`
-  (available in the CCI venv)
+- **PyYAML** — required by `generate_cci_reference.py` and `skill_manifest.py`
+  (available in the CCI venv). `analyze_agent_tooling.py` can optionally use
+  PyYAML when available, but falls back to conservative line-oriented parsing.
 - No other external dependencies
 
 ---
