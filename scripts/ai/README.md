@@ -33,6 +33,22 @@ python scripts/ai/query_erd.py stats                      # domain counts summar
 **Data source:** `docs/erds/erd-data.json`
 **Used by:** `.cursor/skills/revenue-cloud-data-model/SKILL.md`
 
+
+### `analyze_agent_tooling.py`
+
+Generates an AI-agent rule/skill coverage report that compares `.cursor/rules/`
+with `AGENTS.md` and `.cursor/skills/README.md`, then flags rule README gaps,
+recommended file-specific rule opportunities, and high-risk AGENTS.md paths
+without rule or analyzer coverage.
+
+```bash
+python scripts/ai/analyze_agent_tooling.py              # write .agents/context/rule-skill-coverage.md
+python scripts/ai/analyze_agent_tooling.py --dry-run    # preview without writing
+```
+
+**Data sources:** `AGENTS.md`, `.cursor/rules/`, `.cursor/skills/README.md`
+**Output:** `.agents/context/rule-skill-coverage.md`
+
 ### `generate_cci_reference.py`
 
 Parses `cumulusci.yml` and generates three auto-updating reference files for the
