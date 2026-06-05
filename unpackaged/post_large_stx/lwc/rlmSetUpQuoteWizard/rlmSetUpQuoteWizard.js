@@ -112,6 +112,10 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
   /** Step 4 / Confirm: QuoteLineItem count preview from Apex (no threshold enforcement). */
   @track quoteLinePreview = null;
   @track showProductSetSelectorFromConfig = false;
+  /** Pricing/tax permutation options (TransactionProcessingType) from Apex config. */
+  @track transactionTypeOptions = [];
+  /** Selected TransactionProcessingType DeveloperName; passed to PST in the invocable. */
+  @track transactionType = null;
   /** Set when projected lines >= LARGE_DEAL_THRESHOLD; forces the Large Deal box selected + required. */
   @track largeDealRequiredByThreshold = false;
   _quoteLinePreviewTimer;
@@ -128,12 +132,38 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         typeof rawConfig === "string" ? JSON.parse(rawConfig) : rawConfig;
       this.showProductSetSelectorFromConfig =
         config && config.showProductSetSelector === true;
+      const types =
+        config && Array.isArray(config.transactionTypes)
+          ? config.transactionTypes
+          : [];
+      this.transactionTypeOptions = types.map((t) => ({
+        label: t.label,
+        value: t.value,
+      }));
+      const defaultType = config && config.defaultTransactionType;
+      if (defaultType && types.some((t) => t.value === defaultType)) {
+        this.transactionType = defaultType;
+      } else if (this.transactionTypeOptions.length) {
+        this.transactionType = this.transactionTypeOptions[0].value;
+      }
     } catch (e) {
       this.showProductSetSelectorFromConfig = false;
+      this.transactionTypeOptions = [];
     }
     if (!this.showProductSetSelectorFromConfig) {
       this.productSetMode = PRODUCT_SET_QUANTUMBIT;
     }
+  }
+
+  get showTransactionTypeSelector() {
+    return (
+      Array.isArray(this.transactionTypeOptions) &&
+      this.transactionTypeOptions.length > 0
+    );
+  }
+
+  handleTransactionTypeChange(event) {
+    this.transactionType = event.detail.value;
   }
 
   /** When modifying a quote that already has Large Deal set, we skip the Large Deal step (5-step flow). */
@@ -3334,6 +3364,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         productCountsJson: this._productCountsJson || "{}",
         ungroupedProductCount: this.ungroupedProductCount || 0,
         productSetMode: this.effectiveProductSetMode,
+        transactionType: this.transactionType || null,
         quoteAccountId: this.isCreate ? this.actionAccountId : null,
         csvImportLineItemsJson:
           this.csvImportData && this.csvImportData.csvImportLineItemsJson

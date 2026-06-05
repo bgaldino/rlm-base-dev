@@ -13,6 +13,26 @@
                             <value>Edit</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>Order.RLM_Prepare_For_Activation</value>
+                            <visibilityRule>
+                                <criteria>
+                                    <leftValue>{!Record.IsLargeDeal}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>true</rightValue>
+                                </criteria>
+                                <criteria>
+                                    <leftValue>{!Record.Status}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>Draft</rightValue>
+                                </criteria>
+                                <criteria>
+                                    <leftValue>{!Record.RLM_Preprocessing_Complete__c}</leftValue>
+                                    <operator>EQUAL</operator>
+                                    <rightValue>false</rightValue>
+                                </criteria>
+                            </visibilityRule>
+                        </valueListItems>
+                        <valueListItems>
                             <value>ActivateOrder</value>
                             <visibilityRule>
                                 <criteria>
@@ -484,6 +504,16 @@
                 <identifier>RecordOrchestrationSbmsStatusField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.PreprocessingStatus</fieldItem>
+                <identifier>RecordPreprocessingStatusField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-393d4ee0-edfd-4b21-916f-13ad31b8e268</name>
         <type>Facet</type>
     </flexiPageRegions>
@@ -526,6 +556,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.ValidationResult</fieldItem>
                 <identifier>RecordValidationResultField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RLM_Preprocessing_Complete__c</fieldItem>
+                <identifier>RecordRLM_Preprocessing_Complete__cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-b7974059-6991-44b8-933e-b1701483f20a</name>

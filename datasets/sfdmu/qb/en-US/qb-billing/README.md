@@ -316,6 +316,34 @@ Schema was queried against a 260 scratch org. Findings below.
 | SequencePolicy              | `Name`                                                                   | No            | ✅ Human-readable |
 | SeqPolicySelectionCondition | `ConditionNumber;SequencePolicy.Name`                                    | **Yes**       | ✅ Composite (direct int + parent traversal) satisfies SFDMU Bug 1 requirement |
 
+## Large-deal limitation — `LegalEntity` treatment selection (platform bug)
+
+`BillingPolicy.BillingTreatmentSelection = LegalEntity` (used by
+"Billing Policy - Advance" and other region-keyed policies here) is **not
+bulk-safe** during large-deal preprocess (`preProcessSalesTransaction` /
+`resolveBillingTreatments` when `IsLargeDeal = true`).
+
+The Core resolver builds **one SOQL `WHERE` condition per order item** (instead
+of per distinct `(LegalEntity, BillingPolicy)` pair) and `OR`s them into a
+single query. A large-deal order with many lines (repro: 2,700 `OrderItem`s,
+all US + Advance) overflows the query and throws, surfaced as:
+
+```
+PreprocessingStatus = CFCC
+UNKNOWN_EXCEPTION: "Something went wrong retrieving the billing treatment
+for legal entity <id>. Ask your Salesforce admin for help."
+```
+
+This is **not** a data/config gap — the US legal entity is fully provisioned
+and has exactly one matching treatment. A `Default`-selection policy resolves
+the same 2,700-line order instantly (`CCCC`, Activated) because it reads
+`DefaultBillingTreatmentId` directly with no per-item query.
+
+**Guidance for large-deal demos/tests:** assign products to a
+`Default`-selection billing policy (single legal entity per order anyway).
+Full root-cause trace and platform-fix proposal:
+`.agents/artifacts/large-deal-legal-entity-billing-treatment-bug.md`.
+
 ## Optimization Opportunities
 
 1. **Simplify activation**: The 3-pass SFDMU activation + 2 Apex activation scripts is complex — consider whether the Apex scripts alone could handle all activation, reducing to a simpler 1-pass SFDMU plan

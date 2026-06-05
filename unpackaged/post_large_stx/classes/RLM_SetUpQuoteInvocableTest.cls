@@ -325,4 +325,159 @@ private class RLM_SetUpQuoteInvocableTest {
         System.assertEquals(0, count, 'Unknown product resolves to 0 preview lines');
     }
 
+    // -------------------------------------------------------------------------
+    // buildCreateQuoteHeaderFields() — billing header parity with RLM_QuickQuote
+    // -------------------------------------------------------------------------
+
+    @IsTest
+    static void testBuildCreateQuoteHeaderFields_CopiesBillingInfoFromAccount() {
+        Account acct = new Account(
+            Name = 'Header Billing Account',
+            BillingStreet = '415 Mission Street',
+            BillingCity = 'San Francisco',
+            BillingState = 'CA',
+            BillingPostalCode = '94105',
+            BillingCountry = 'US',
+            ShippingStreet = '1 Market St',
+            ShippingCity = 'San Francisco',
+            ShippingState = 'CA',
+            ShippingPostalCode = '94105',
+            ShippingCountry = 'US'
+        );
+        insert acct;
+        Contact con = new Contact(
+            LastName = 'Buyer', AccountId = acct.Id, Email = 'buyer@example.com', Phone = '415-555-0100');
+        insert con;
+
+        RLM_SetUpQuoteInvocable.Input inp = makeCreateInput('Builder Quote', '{"parents":[]}');
+        inp.quoteAccountId = acct.Id;
+
+        Test.startTest();
+        Map<String, Object> hdr =
+            RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(inp, Test.getStandardPricebookId());
+        Test.stopTest();
+
+        // Account linkage + billing/shipping address copied from the Account.
+        System.assertEquals(acct.Id, hdr.get('QuoteAccountId'), 'QuoteAccountId set');
+        System.assertEquals('415 Mission Street', hdr.get('BillingStreet'), 'Billing street copied');
+        System.assertEquals('San Francisco', hdr.get('BillingCity'), 'Billing city copied');
+        System.assertEquals('94105', hdr.get('BillingPostalCode'), 'Billing postal copied');
+        System.assertEquals('US', hdr.get('BillingCountry'), 'Billing country copied');
+        System.assertEquals('1 Market St', hdr.get('ShippingStreet'), 'Shipping street copied');
+        // Bill-to + primary contact and contact channels copied.
+        System.assertEquals(con.Id, hdr.get('BillToContactId'), 'BillToContactId set to account contact');
+        System.assertEquals(con.Id, hdr.get('ContactId'), 'ContactId set to account contact');
+        System.assertEquals('buyer@example.com', hdr.get('Email'), 'Email copied from contact');
+        System.assertEquals('415-555-0100', hdr.get('Phone'), 'Phone copied from contact');
+        // Service dates + term always stamped on create.
+        System.assertNotEquals(null, hdr.get('StartDate'), 'StartDate stamped');
+        System.assertNotEquals(null, hdr.get('ExpirationDate'), 'ExpirationDate stamped');
+        System.assertEquals(12, hdr.get('RLM_TermMonths__c'), 'Default term months stamped');
+    }
+
+    @IsTest
+    static void testBuildCreateQuoteHeaderFields_NoAccount_StampsDatesOnly() {
+        RLM_SetUpQuoteInvocable.Input inp = makeCreateInput('No Account Quote', '{"parents":[]}');
+
+        Test.startTest();
+        Map<String, Object> hdr =
+            RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(inp, Test.getStandardPricebookId());
+        Test.stopTest();
+
+        System.assertEquals('No Account Quote', hdr.get('Name'), 'Name set');
+        System.assertEquals(false, hdr.containsKey('QuoteAccountId'), 'No account → no QuoteAccountId');
+        System.assertEquals(false, hdr.containsKey('BillingStreet'), 'No account → no billing address');
+        System.assertNotEquals(null, hdr.get('StartDate'), 'StartDate still stamped without account');
+        System.assertEquals(12, hdr.get('RLM_TermMonths__c'), 'Term still stamped without account');
+    }
+
+    // -------------------------------------------------------------------------
+    // TransactionProcessingType -> PST preference mapping
+    // -------------------------------------------------------------------------
+
+    @IsTest
+    static void testToPricingEnum_MapsValues() {
+        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.SKIP,
+            RLM_SetUpQuoteInvocable.toPricingEnum('Skip'), 'Skip -> SKIP');
+        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.SYSTEM,
+            RLM_SetUpQuoteInvocable.toPricingEnum('System'), 'System -> SYSTEM');
+        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.FORCE,
+            RLM_SetUpQuoteInvocable.toPricingEnum('Force'), 'Force -> FORCE');
+        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.FORCE,
+            RLM_SetUpQuoteInvocable.toPricingEnum(null), 'null -> FORCE (default)');
+        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.FORCE,
+            RLM_SetUpQuoteInvocable.toPricingEnum('Bogus'), 'unknown -> FORCE (default)');
+    }
+
+    @IsTest
+    static void testToTaxEnum_OnlySkipSkips() {
+        System.assertEquals(RevSalesTrxn.TaxPreferenceEnum.SKIP,
+            RLM_SetUpQuoteInvocable.toTaxEnum('Skip'), 'Skip -> SKIP');
+        System.assertEquals(null, RLM_SetUpQuoteInvocable.toTaxEnum(null), 'null -> run tax');
+        System.assertEquals(null, RLM_SetUpQuoteInvocable.toTaxEnum('Run'), 'other -> run tax');
+    }
+
+    @IsTest
+    static void testToCatalogRatesEnum_OnlyFetchFetches() {
+        System.assertEquals(RevSalesTrxn.CatalogRatesPreferenceEnum.FETCH,
+            RLM_SetUpQuoteInvocable.toCatalogRatesEnum('Fetch'), 'Fetch -> FETCH');
+        System.assertEquals(null, RLM_SetUpQuoteInvocable.toCatalogRatesEnum(null), 'null -> no fetch');
+        System.assertEquals(null, RLM_SetUpQuoteInvocable.toCatalogRatesEnum('Skip'), 'Skip -> no fetch');
+    }
+
+    @IsTest
+    static void testResolvePstPrefs_BlankType_DefaultsForceRunTax() {
+        RLM_SetUpQuoteInvocable.Input inp = makeCreateInput('Default Prefs', '{"parents":[]}');
+        // transactionType left null
+        RLM_SetUpQuoteInvocable.PstPrefs prefs = RLM_SetUpQuoteInvocable.resolvePstPrefs(inp);
+        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.FORCE, prefs.pricingPref, 'Default pricing FORCE');
+        System.assertEquals(null, prefs.taxPref, 'Default runs tax (null)');
+        System.assertEquals(null, prefs.catalogRatesPref, 'Default does not fetch rates');
+        System.assertEquals(null, prefs.typeDeveloperName, 'No type stamped when blank');
+    }
+
+    @IsTest
+    static void testResolvePstPrefs_UnknownType_FallsBackToDefaults() {
+        RLM_SetUpQuoteInvocable.Input inp = makeCreateInput('Unknown Prefs', '{"parents":[]}');
+        inp.transactionType = 'RLM_SUQ_DoesNotExist';
+        RLM_SetUpQuoteInvocable.PstPrefs prefs = RLM_SetUpQuoteInvocable.resolvePstPrefs(inp);
+        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.FORCE, prefs.pricingPref, 'Unknown -> FORCE');
+        System.assertEquals(null, prefs.taxPref, 'Unknown -> run tax');
+        System.assertEquals(null, prefs.typeDeveloperName, 'Unknown -> nothing stamped');
+    }
+
+    @IsTest
+    static void testBuildCreateQuoteHeaderFields_BlankType_NoTransactionTypeStamped() {
+        RLM_SetUpQuoteInvocable.Input inp = makeCreateInput('No TPT', '{"parents":[]}');
+        Map<String, Object> hdr =
+            RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(inp, Test.getStandardPricebookId());
+        System.assertEquals(false, hdr.containsKey('TransactionType'),
+            'No TransactionType stamped when none selected');
+    }
+
+    /**
+     * When the deployed RLM_SUQ_* TransactionProcessingType records exist (scratch/dev org),
+     * a selected type maps to the expected prefs and is stamped on the header. Tolerant of
+     * orgs that do not have the records so the test stays deterministic everywhere.
+     */
+    @IsTest
+    @SuppressWarnings('PMD.ApexUnitTestClassShouldHaveAsserts')
+    static void testResolvePstPrefs_KnownSkipType_WhenRecordPresent() {
+        Boolean present = ![SELECT Id FROM TransactionProcessingType WHERE DeveloperName = 'RLM_SUQ_SkipPriceAndTax'].isEmpty();
+        if (!present) {
+            return; // records not deployed in this org — covered by mapper unit tests above
+        }
+        RLM_SetUpQuoteInvocable.Input inp = makeCreateInput('Skip Both', '{"parents":[]}');
+        inp.transactionType = 'RLM_SUQ_SkipPriceAndTax';
+        RLM_SetUpQuoteInvocable.PstPrefs prefs = RLM_SetUpQuoteInvocable.resolvePstPrefs(inp);
+        System.assertEquals(RevSalesTrxn.PricingPreferenceEnum.SKIP, prefs.pricingPref, 'Maps to SKIP pricing');
+        System.assertEquals(RevSalesTrxn.TaxPreferenceEnum.SKIP, prefs.taxPref, 'Maps to SKIP tax');
+        System.assertEquals('RLM_SUQ_SkipPriceAndTax', prefs.typeDeveloperName, 'Validated name retained');
+
+        Map<String, Object> hdr =
+            RLM_SetUpQuoteInvocable.buildCreateQuoteHeaderFields(inp, Test.getStandardPricebookId());
+        System.assertEquals('RLM_SUQ_SkipPriceAndTax', hdr.get('TransactionType'),
+            'Validated TransactionType stamped on header');
+    }
+
 }

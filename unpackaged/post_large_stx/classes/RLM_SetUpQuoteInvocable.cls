@@ -71,6 +71,14 @@ public with sharing class RLM_SetUpQuoteInvocable {
         /** When true, PST skips configuration so groups and line items persist even if org configuration (e.g. CPQ) would fail. Use for CSV import when you see "Configuration failed" and no QLIs. */
         @InvocableVariable(label='Skip configuration (PST)')
         public Boolean skipConfiguration;
+        /**
+         * DeveloperName of a TransactionProcessingType record (e.g. RLM_SUQ_PriceAndTax,
+         * RLM_SUQ_SkipPriceAndTax). Selects the pricing/tax/rate permutation for the PST
+         * call. Blank or unknown keeps the default: run pricing (Force) and run tax. The
+         * name is also stamped on the Quote's TransactionType field for downstream re-pricing.
+         */
+        @InvocableVariable(label='Transaction Processing Type (DeveloperName)')
+        public String transactionType;
     }
 
     public class Output {
@@ -164,10 +172,45 @@ public with sharing class RLM_SetUpQuoteInvocable {
         } catch (Exception e) {
             showProductSetSelector = false;
         }
+        // Selectable pricing/tax permutations for the Set Up Quote wizard. Only the builder's
+        // canonical TransactionProcessingType records (the ones shipped in post_large_stx) are
+        // offered — an explicit allowlist keeps org-only/test artifacts out of the dropdown.
+        List<Map<String, Object>> transactionTypes = new List<Map<String, Object>>();
+        try {
+            for (TransactionProcessingType t : [
+                SELECT DeveloperName, MasterLabel FROM TransactionProcessingType ORDER BY MasterLabel
+            ]) {
+                if (t.DeveloperName != null && SELECTABLE_TRANSACTION_TYPES.contains(t.DeveloperName)) {
+                    transactionTypes.add(new Map<String, Object>{
+                        'value' => t.DeveloperName,
+                        'label' => String.isNotBlank(t.MasterLabel) ? t.MasterLabel : t.DeveloperName
+                    });
+                }
+            }
+        } catch (Exception e) {
+            // Leave the list empty; the wizard hides the selector when no types are available.
+        }
         return JSON.serialize(new Map<String, Object>{
-            'showProductSetSelector' => showProductSetSelector
+            'showProductSetSelector' => showProductSetSelector,
+            'transactionTypes' => transactionTypes,
+            'defaultTransactionType' => DEFAULT_TRANSACTION_TYPE
         });
     }
+
+    /** Default permutation the wizard preselects: run pricing and tax (full path). */
+    @TestVisible
+    private static final String DEFAULT_TRANSACTION_TYPE = 'RLM_SUQ_PriceAndTax';
+
+    /** Canonical permutations shipped in post_large_stx — the only types offered in the wizard. */
+    @TestVisible
+    private static final Set<String> SELECTABLE_TRANSACTION_TYPES = new Set<String>{
+        'RLM_SUQ_PriceAndTax',
+        'RLM_SUQ_PriceSkipTax',
+        'RLM_SUQ_SkipPriceRunTax',
+        'RLM_SUQ_SkipPriceAndTax',
+        'RLM_SUQ_PriceTaxFetchRates',
+        'RLM_SUQ_PriceTaxStdConfig'
+    };
 
     /**
      * Lightweight polling endpoint for the LWC Large Deal two-step path.
@@ -628,6 +671,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         in0.numNestedPerTop = nn != null ? Integer.valueOf(nn) : null;
         in0.productCountsCSV = (String) m.get('productCountsCSV');
         in0.skipConfiguration = m.get('skipConfiguration') == true;
+        in0.transactionType = (String) m.get('transactionType');
         return in0;
     }
 
@@ -696,6 +740,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         return pbeMap;
     }
 
+    @TestVisible
     private static Map<String, Object> buildCreateQuoteHeaderFields(Input in0, Id pricebook2Id) {
         Map<String, Object> out = new Map<String, Object>{
             'Name' => in0.newQuoteName,
@@ -704,8 +749,158 @@ public with sharing class RLM_SetUpQuoteInvocable {
         String accountId = String.isNotBlank(in0.quoteAccountId) ? in0.quoteAccountId : in0.repeatBuyAccountId;
         if (String.isNotBlank(accountId)) {
             out.put('QuoteAccountId', accountId);
+            applyBillingHeaderDefaults(out, accountId);
+        }
+        // Service start, expiration, and term mirror the standard RLM_QuickQuote action.
+        // Billing schedule generation and tax both key off these header values, so a
+        // builder-created quote that omits them cannot bill/tax the way a Quick Quote can.
+        out.put('StartDate', isoDate(Date.today()));
+        out.put('ExpirationDate', isoDate(Date.today().addDays(30)));
+        if (quoteHasField('RLM_TermMonths__c')) {
+            out.put('RLM_TermMonths__c', 12);
+        }
+        // Stamp the validated TransactionProcessingType on the header so the sales transaction
+        // line editor honors the same pricing/tax/rate permutation on later re-pricing.
+        PstPrefs prefs = resolvePstPrefs(in0);
+        if (String.isNotBlank(prefs.typeDeveloperName)) {
+            out.put('TransactionType', prefs.typeDeveloperName);
         }
         return out;
+    }
+
+    /**
+     * Copies the billing/shipping address and bill-to / primary contact from the source
+     * Account onto a new quote header, mirroring the standard RLM_QuickQuote action.
+     * Tax jurisdiction resolution and billing both rely on these values; a builder quote
+     * that omits them is missing the billing information a Quick Quote would have set.
+     * Only non-blank values are copied so we never overwrite with empty data.
+     */
+    private static void applyBillingHeaderDefaults(Map<String, Object> out, String accountId) {
+        Id acctId;
+        try {
+            acctId = Id.valueOf(accountId);
+        } catch (Exception e) {
+            return; // invalid Id — leave header defaults to platform behavior
+        }
+        for (Account a : [
+            SELECT BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry,
+                   ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry
+            FROM Account WHERE Id = :acctId LIMIT 1
+        ]) {
+            putIfNotBlank(out, 'BillingStreet', a.BillingStreet);
+            putIfNotBlank(out, 'BillingCity', a.BillingCity);
+            putIfNotBlank(out, 'BillingState', a.BillingState);
+            putIfNotBlank(out, 'BillingPostalCode', a.BillingPostalCode);
+            putIfNotBlank(out, 'BillingCountry', a.BillingCountry);
+            putIfNotBlank(out, 'ShippingStreet', a.ShippingStreet);
+            putIfNotBlank(out, 'ShippingCity', a.ShippingCity);
+            putIfNotBlank(out, 'ShippingState', a.ShippingState);
+            putIfNotBlank(out, 'ShippingPostalCode', a.ShippingPostalCode);
+            putIfNotBlank(out, 'ShippingCountry', a.ShippingCountry);
+        }
+        for (Contact c : [
+            SELECT Email, Phone FROM Contact WHERE AccountId = :acctId ORDER BY CreatedDate ASC LIMIT 1
+        ]) {
+            out.put('BillToContactId', c.Id);
+            out.put('ContactId', c.Id);
+            putIfNotBlank(out, 'Email', c.Email);
+            putIfNotBlank(out, 'Phone', c.Phone);
+        }
+    }
+
+    private static void putIfNotBlank(Map<String, Object> out, String fieldName, String value) {
+        if (String.isNotBlank(value)) {
+            out.put(fieldName, value);
+        }
+    }
+
+    // Cached lowercase field-name set so the optional RLM_TermMonths__c custom field is
+    // only written when the org actually has it (keeps the builder safe across editions).
+    private static Set<String> quoteFieldNames;
+    private static Boolean quoteHasField(String apiName) {
+        if (quoteFieldNames == null) {
+            quoteFieldNames = Schema.SObjectType.Quote.fields.getMap().keySet();
+        }
+        return quoteFieldNames.contains(apiName.toLowerCase());
+    }
+
+    private static String isoDate(Date d) {
+        return DateTime.newInstanceGmt(d, Time.newInstance(0, 0, 0, 0)).formatGmt('yyyy-MM-dd');
+    }
+
+    /**
+     * Resolved Place Sales Transaction preferences for one builder run.
+     *
+     * A TransactionProcessingType record bundles a pricing/tax/rate permutation, but its
+     * TransactionType field on the Quote is only honored by the REST PST resource when the
+     * request sends no top-level prefs. The Apex PlaceSalesTransactionExecutor the builder
+     * uses always requires non-null pricing/config prefs, so the record's preferences are
+     * translated into call-level enums here. The validated DeveloperName is still stamped on
+     * the Quote header so downstream re-pricing in the sales transaction line editor uses it.
+     */
+    @TestVisible
+    private class PstPrefs {
+        // Defaults preserve the builder's prior behavior: force pricing, run tax, no rate fetch.
+        public RevSalesTrxn.PricingPreferenceEnum pricingPref = RevSalesTrxn.PricingPreferenceEnum.FORCE;
+        public RevSalesTrxn.TaxPreferenceEnum taxPref = null;                  // null => tax runs by default
+        public RevSalesTrxn.CatalogRatesPreferenceEnum catalogRatesPref = null; // null => rates not fetched
+        public String typeDeveloperName;                                       // stamped on header when resolved
+    }
+
+    private static Map<String, TransactionProcessingType> tptCache;
+
+    /**
+     * Translates the Input.transactionType selection into call-level PST preferences.
+     * Blank or unknown names fall back to safe defaults so the builder keeps working in any org.
+     */
+    @TestVisible
+    private static PstPrefs resolvePstPrefs(Input in0) {
+        PstPrefs prefs = new PstPrefs();
+        if (in0 == null || String.isBlank(in0.transactionType)) {
+            return prefs;
+        }
+        TransactionProcessingType tpt = lookupTransactionProcessingType(in0.transactionType.trim());
+        if (tpt == null) {
+            return prefs;
+        }
+        prefs.typeDeveloperName = tpt.DeveloperName;
+        prefs.pricingPref = toPricingEnum(tpt.PricingPreference);
+        prefs.taxPref = toTaxEnum(tpt.TaxPreference);
+        prefs.catalogRatesPref = toCatalogRatesEnum(tpt.RatingPreference);
+        return prefs;
+    }
+
+    private static TransactionProcessingType lookupTransactionProcessingType(String devName) {
+        if (tptCache == null) {
+            tptCache = new Map<String, TransactionProcessingType>();
+            for (TransactionProcessingType t : [
+                SELECT DeveloperName, PricingPreference, TaxPreference, RatingPreference
+                FROM TransactionProcessingType
+            ]) {
+                tptCache.put(t.DeveloperName, t);
+            }
+        }
+        return tptCache.get(devName);
+    }
+
+    @TestVisible
+    private static RevSalesTrxn.PricingPreferenceEnum toPricingEnum(String v) {
+        if (v == 'Skip') return RevSalesTrxn.PricingPreferenceEnum.SKIP;
+        if (v == 'System') return RevSalesTrxn.PricingPreferenceEnum.SYSTEM;
+        // 'Force' or unset -> FORCE preserves the builder's existing default.
+        return RevSalesTrxn.PricingPreferenceEnum.FORCE;
+    }
+
+    @TestVisible
+    private static RevSalesTrxn.TaxPreferenceEnum toTaxEnum(String v) {
+        // Skip is the only tax preference value; anything else (incl. unset) runs tax by default.
+        return (v == 'Skip') ? RevSalesTrxn.TaxPreferenceEnum.SKIP : null;
+    }
+
+    @TestVisible
+    private static RevSalesTrxn.CatalogRatesPreferenceEnum toCatalogRatesEnum(String v) {
+        // Only fetch catalog rate cards when the selected type asks for it (usage-based products).
+        return (v == 'Fetch') ? RevSalesTrxn.CatalogRatesPreferenceEnum.FETCH : null;
     }
 
     private static String runFromHierarchyJson(Input in0, List<Integer> csvLinesAddedOut) {
@@ -748,9 +943,10 @@ public with sharing class RLM_SetUpQuoteInvocable {
                     new RevSalesTrxn.RecordWithReferenceRequest('refHeader', headerRecord)
                 };
                 RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable', listOfRecords);
+                PstPrefs prefs = resolvePstPrefs(in0);
                 RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
-                    graph, RevSalesTrxn.PricingPreferenceEnum.SKIP, RevSalesTrxn.ConfigurationExecutionEnum.SKIP,
-                    new RevSalesTrxn.ConfigurationOptionsInput(), null, null, RevSalesTrxn.TaxPreferenceEnum.SKIP, null);
+                    graph, prefs.pricingPref, RevSalesTrxn.ConfigurationExecutionEnum.SKIP,
+                    new RevSalesTrxn.ConfigurationOptionsInput(), null, prefs.catalogRatesPref, prefs.taxPref, null);
                 if (resp == null || !resp.isSuccess) throw new RLM_SetUpQuoteException(resp != null && resp.errorResponse != null ? String.valueOf(resp.errorResponse) : 'PST execution failed');
                 Id quoteId = (Id) resp.salesTransactionId;
                 if (largeDeal) update new Quote(Id = quoteId, IsLargeDeal = true);
@@ -875,9 +1071,14 @@ public with sharing class RLM_SetUpQuoteInvocable {
             ? RevSalesTrxn.ConfigurationExecutionEnum.SKIP
             : (hasLineItems ? RevSalesTrxn.ConfigurationExecutionEnum.FORCE : RevSalesTrxn.ConfigurationExecutionEnum.SKIP);
         RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable', listOfRecords);
+        // Pricing/tax/rate preferences come from the selected TransactionProcessingType
+        // (Input.transactionType). Defaults run pricing (Force) and tax, matching the
+        // standard quote save; a Skip-tax type stamps no tax treatment, and a Fetch-rates
+        // type retrieves usage rate cards. configEnum (configuration method) is independent.
+        PstPrefs prefs = resolvePstPrefs(in0);
         RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
-            graph, RevSalesTrxn.PricingPreferenceEnum.SKIP, configEnum,
-            new RevSalesTrxn.ConfigurationOptionsInput(), null, null, RevSalesTrxn.TaxPreferenceEnum.SKIP, null);
+            graph, prefs.pricingPref, configEnum,
+            new RevSalesTrxn.ConfigurationOptionsInput(), null, prefs.catalogRatesPref, prefs.taxPref, null);
         if (resp == null || !resp.isSuccess) throw new RLM_SetUpQuoteException(resp != null && resp.errorResponse != null ? String.valueOf(resp.errorResponse) : 'PST execution failed');
         Id quoteId = isCreate ? (Id) resp.salesTransactionId : in0.quoteId;
         if (largeDeal) {
@@ -915,14 +1116,15 @@ public with sharing class RLM_SetUpQuoteInvocable {
             ? RevSalesTrxn.ConfigurationExecutionEnum.SKIP
             : RevSalesTrxn.ConfigurationExecutionEnum.FORCE;
         RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable', listOfRecords);
+        PstPrefs prefs = resolvePstPrefs(in0);
         RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
             graph,
-            RevSalesTrxn.PricingPreferenceEnum.SKIP,
+            prefs.pricingPref,
             configEnum,
             new RevSalesTrxn.ConfigurationOptionsInput(),
             null,
-            null,
-            RevSalesTrxn.TaxPreferenceEnum.SKIP,
+            prefs.catalogRatesPref,
+            prefs.taxPref,
             null
         );
         if (resp == null || !resp.isSuccess) {
@@ -1711,14 +1913,15 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
 
         RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable', listOfRecords);
+        PstPrefs prefs = resolvePstPrefs(in0);
         RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
             graph,
-            RevSalesTrxn.PricingPreferenceEnum.SKIP,
+            prefs.pricingPref,
             RevSalesTrxn.ConfigurationExecutionEnum.FORCE,
             new RevSalesTrxn.ConfigurationOptionsInput(),
             null,
-            null,
-            RevSalesTrxn.TaxPreferenceEnum.SKIP,
+            prefs.catalogRatesPref,
+            prefs.taxPref,
             null
         );
         if (resp == null || !resp.isSuccess) {
@@ -1797,14 +2000,15 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
 
         RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable', listOfRecords);
+        PstPrefs prefs = resolvePstPrefs(in0);
         RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
             graph,
-            RevSalesTrxn.PricingPreferenceEnum.SKIP,
+            prefs.pricingPref,
             RevSalesTrxn.ConfigurationExecutionEnum.FORCE,
             new RevSalesTrxn.ConfigurationOptionsInput(),
             null,
-            null,
-            RevSalesTrxn.TaxPreferenceEnum.SKIP,
+            prefs.catalogRatesPref,
+            prefs.taxPref,
             null
         );
         if (resp == null || !resp.isSuccess) {

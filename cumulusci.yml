@@ -124,7 +124,7 @@ project:
     approvals: true           # Approvals
     tax: true                 # Tax engine
     calmdelete: true          # CALM Delete
-    large_stx: false          # Large Sales Transaction
+    large_stx: true           # Large Sales Transaction
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────
     dro: true                 # Dynamic Revenue Orchestration

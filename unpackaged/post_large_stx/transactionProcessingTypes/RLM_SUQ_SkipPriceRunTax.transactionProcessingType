@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TransactionProcessingType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>SUQ: skip pricing, run tax.</description>
+    <masterLabel>SUQ Skip Price, Run Tax</masterLabel>
+    <ruleEngine>AdvancedConfigurator</ruleEngine>
+    <saveType>Standard</saveType>
+    <tptPricingPreference>Skip</tptPricingPreference>
+</TransactionProcessingType>
