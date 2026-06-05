@@ -19,6 +19,17 @@ public with sharing class RLM_PreProcessOrderController {
     private static final Set<String> FAILED_STATUSES = new Set<String>{ 'Failed', 'Failure', 'Canceled', 'Cancelled' };
     private static final String ACTIVATED_STATUS = 'Activated';
 
+    /**
+     * Seed treatment (created by seed_large_deal_billing_treatment) used to make
+     * large-deal billing-treatment resolution a no-op. ExcludeFromBilling=Yes,
+     * Default-selection policy, no LegalEntity — avoids the non-bulk-safe
+     * legal-entity resolver that fails at large-deal scale.
+     */
+    @TestVisible
+    private static final String LARGE_DEAL_EXCLUDE_TREATMENT = 'RLM Large Deal - Exclude from Billing';
+    private static Id largeDealExcludeTreatmentId;
+    private static Boolean excludeTreatmentResolved = false;
+
     /** Lightweight order context for the action UI (gating + current state). */
     @AuraEnabled(cacheable=false)
     public static String getOrderInfo(String orderId) {
@@ -57,6 +68,12 @@ public with sharing class RLM_PreProcessOrderController {
             return errorJson('No order id provided.');
         }
         try {
+            // Large-deal billing fix: pre-stamp an Exclude-from-Billing treatment on
+            // unresolved order items so the platform's legal-entity treatment resolver
+            // (not bulk-safe at large-deal scale) finds nothing to fetch and bit 1
+            // (BillingTreatment) completes instead of failing. No-op for standard orders.
+            stampLargeDealExcludeTreatment(orderId);
+
             Invocable.Action action = Invocable.Action.createStandardAction('preProcessSalesTransaction');
             action.setInvocationParameter('salesTransactionId', String.valueOf(orderId));
             action.setInvocationParameter('shouldValidateDataShape', true);
@@ -155,6 +172,55 @@ public with sharing class RLM_PreProcessOrderController {
         return String.isNotBlank(preprocessingStatus)
             && preprocessingStatus.length() >= 1
             && preprocessingStatus.substring(0, 1).equalsIgnoreCase('C');
+    }
+
+    /**
+     * For large-deal orders, stamp the Exclude-from-Billing treatment onto order
+     * items that don't yet have a billing treatment. The resolver only fetches
+     * treatments for items where BillingTreatmentId == null, so pre-stamping turns
+     * the buggy bulk legal-entity query into a no-op. Idempotent (never overwrites
+     * an existing treatment) and a no-op when the order isn't a large deal or the
+     * seed treatment is absent (e.g. billing feature off).
+     */
+    @TestVisible
+    private static void stampLargeDealExcludeTreatment(String orderId) {
+        List<Order> orders = [SELECT Id, IsLargeDeal FROM Order WHERE Id = :orderId LIMIT 1];
+        if (orders.isEmpty() || orders[0].IsLargeDeal != true) {
+            return;
+        }
+        Id treatmentId = resolveLargeDealExcludeTreatmentId();
+        if (treatmentId == null) {
+            return;
+        }
+        List<OrderItem> toStamp = [
+            SELECT Id FROM OrderItem
+            WHERE OrderId = :orderId AND BillingTreatmentId = null
+        ];
+        if (toStamp.isEmpty()) {
+            return;
+        }
+        for (OrderItem oi : toStamp) {
+            oi.BillingTreatmentId = treatmentId;
+        }
+        // 2,700-line repro is well within the 10k DML-row limit. Orders large
+        // enough to exceed it can't be stamped in one synchronous transaction;
+        // such scale would require an async/batch path (out of scope here).
+        update toStamp;
+    }
+
+    /** Cached lookup of the seed Exclude-from-Billing treatment by name. */
+    @TestVisible
+    private static Id resolveLargeDealExcludeTreatmentId() {
+        if (!excludeTreatmentResolved) {
+            excludeTreatmentResolved = true;
+            List<BillingTreatment> bts = [
+                SELECT Id FROM BillingTreatment
+                WHERE Name = :LARGE_DEAL_EXCLUDE_TREATMENT AND Status = 'Active'
+                LIMIT 1
+            ];
+            largeDealExcludeTreatmentId = bts.isEmpty() ? null : bts[0].Id;
+        }
+        return largeDealExcludeTreatmentId;
     }
 
     private static String errorJson(String msg) {

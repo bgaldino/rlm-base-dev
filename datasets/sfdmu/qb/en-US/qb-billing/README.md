@@ -344,6 +344,21 @@ the same 2,700-line order instantly (`CCCC`, Activated) because it reads
 Full root-cause trace and platform-fix proposal:
 `.agents/artifacts/large-deal-legal-entity-billing-treatment-bug.md`.
 
+**Automated workaround (large_stx builds).** When `large_stx` + `billing` are
+on, `prepare_large_stx` runs `seed_large_deal_billing_treatment`
+(`scripts/apex/seedLargeDealBillingTreatment.apex`), which seeds a
+`Default`-selection **`RLM Large Deal Policy`** + an
+`ExcludeFromBilling = Yes` treatment **`RLM Large Deal - Exclude from Billing`**
+(no legal entity, no treatment items — nonbillable treatments can't have items).
+At activation, the large-deal "Prepare for Activation" action
+(`RLM_PreProcessOrderController.startPreprocess`) stamps that treatment onto
+every unresolved `OrderItem.BillingTreatmentId` before invoking
+`preProcessSalesTransaction`. The resolver only fetches treatments for items
+where `BillingTreatmentId == null`, so the buggy legal-entity bulk query becomes
+a no-op and bit 1 (BillingTreatment) completes. Standard orders
+(`IsLargeDeal = false`) are untouched. Plan:
+`.agents/artifacts/large-deal-billing-exclude-plan.md`.
+
 ## Optimization Opportunities
 
 1. **Simplify activation**: The 3-pass SFDMU activation + 2 Apex activation scripts is complex — consider whether the Apex scripts alone could handle all activation, reducing to a simpler 1-pass SFDMU plan

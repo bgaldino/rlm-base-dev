@@ -2021,6 +2021,13 @@ tasks:
     options:
       path: scripts/apex/activateBillingRecords.apex
 
+  seed_large_deal_billing_treatment:
+    group: Revenue Lifecycle Management
+    description: "Seed the large-deal Exclude-from-Billing policy + treatment (Default selection, no legal entity, no items). The large_stx Prepare-for-Activation flow stamps this treatment onto large-deal order items so billing-treatment resolution becomes a no-op and bypasses the non-bulk-safe legal-entity resolver. Idempotent."
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/seedLargeDealBillingTreatment.apex
+
   create_sequence_policies:
     group: Revenue Lifecycle Management
     description: Create SequencePolicy and SeqPolicySelectionCondition records via the Connect API (standard DML cannot create these objects)
@@ -3190,6 +3197,9 @@ flows:
         when: project_config.project__custom__large_stx
         options:
           api_names: *ps_large_stx
+      3:
+        task: seed_large_deal_billing_treatment
+        when: project_config.project__custom__large_stx and project_config.project__custom__billing
 
   upsert_fulfillment_scope_cnfg:
     group: Revenue Lifecycle Management

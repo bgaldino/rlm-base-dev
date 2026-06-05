@@ -71,6 +71,64 @@ private class RLM_PreProcessOrderControllerTest {
         System.assertEquals(true, m.get('isLargeDeal'), 'IsLargeDeal flag surfaced');
     }
 
+    @isTest
+    static void testResolveExcludeTreatment_AbsentReturnsNull() {
+        // Fresh test org with no seed treatment → resolver returns null and
+        // stamping self-skips (preprocess proceeds unchanged).
+        System.assertEquals(
+            null,
+            RLM_PreProcessOrderController.resolveLargeDealExcludeTreatmentId(),
+            'Absent seed treatment resolves to null'
+        );
+    }
+
+    @isTest
+    static void testStamp_NoTreatment_NoOp() {
+        Order o = buildOrderWithItem(true);
+        if (o == null) {
+            return;
+        }
+        Test.startTest();
+        RLM_PreProcessOrderController.stampLargeDealExcludeTreatment(o.Id);
+        Test.stopTest();
+        // No seed treatment → nothing stamped, no error.
+        for (OrderItem oi : [SELECT BillingTreatmentId FROM OrderItem WHERE OrderId = :o.Id]) {
+            System.assertEquals(null, oi.BillingTreatmentId, 'No treatment to stamp when seed absent');
+        }
+    }
+
+    @isTest
+    static void testStamp_LargeDeal_StampsItems() {
+        Id treatmentId = seedExcludeTreatment();
+        Order o = buildOrderWithItem(true);
+        if (treatmentId == null || o == null) {
+            return; // Environment can't build prerequisites; other tests cover logic.
+        }
+        Test.startTest();
+        RLM_PreProcessOrderController.stampLargeDealExcludeTreatment(o.Id);
+        Test.stopTest();
+        List<OrderItem> ois = [SELECT BillingTreatmentId FROM OrderItem WHERE OrderId = :o.Id];
+        System.assertNotEquals(0, ois.size(), 'Order has items');
+        for (OrderItem oi : ois) {
+            System.assertEquals(treatmentId, oi.BillingTreatmentId, 'Large-deal OI stamped with exclude treatment');
+        }
+    }
+
+    @isTest
+    static void testStamp_StandardOrder_NoOp() {
+        Id treatmentId = seedExcludeTreatment();
+        Order o = buildOrderWithItem(false);
+        if (treatmentId == null || o == null) {
+            return;
+        }
+        Test.startTest();
+        RLM_PreProcessOrderController.stampLargeDealExcludeTreatment(o.Id);
+        Test.stopTest();
+        for (OrderItem oi : [SELECT BillingTreatmentId FROM OrderItem WHERE OrderId = :o.Id]) {
+            System.assertEquals(null, oi.BillingTreatmentId, 'Standard order is never stamped');
+        }
+    }
+
     /** Minimal large-deal order; returns null if the org cannot create one in test context. */
     private static Order buildLargeDealOrder() {
         try {
@@ -84,6 +142,59 @@ private class RLM_PreProcessOrderControllerTest {
             );
             insert o;
             return o;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Order with one order item; isLargeDeal toggles the gating flag. Null on failure. */
+    private static Order buildOrderWithItem(Boolean isLargeDeal) {
+        try {
+            Account a = new Account(Name = 'PreProc Item Acct');
+            insert a;
+            Product2 pr = new Product2(Name = 'PreProc Prod', IsActive = true);
+            insert pr;
+            Id pbId = Test.getStandardPricebookId();
+            PricebookEntry pbe = new PricebookEntry(
+                Pricebook2Id = pbId, Product2Id = pr.Id, UnitPrice = 10, IsActive = true
+            );
+            insert pbe;
+            Order o = new Order(
+                AccountId = a.Id,
+                Status = 'Draft',
+                EffectiveDate = Date.today(),
+                IsLargeDeal = isLargeDeal,
+                Pricebook2Id = pbId
+            );
+            insert o;
+            OrderItem oi = new OrderItem(
+                OrderId = o.Id, PricebookEntryId = pbe.Id, Product2Id = pr.Id, Quantity = 1, UnitPrice = 10
+            );
+            insert oi;
+            return o;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Seeds the Active Exclude-from-Billing treatment; returns its id or null on failure. */
+    private static Id seedExcludeTreatment() {
+        try {
+            BillingPolicy p = new BillingPolicy(
+                Name = 'RLM Large Deal Policy', Status = 'Draft', BillingTreatmentSelection = 'Default'
+            );
+            insert p;
+            BillingTreatment t = new BillingTreatment(
+                Name = 'RLM Large Deal - Exclude from Billing',
+                Status = 'Draft',
+                BillingPolicyId = p.Id,
+                ExcludeFromBilling = 'Yes',
+                IsMilestoneBilling = false
+            );
+            insert t;
+            t.Status = 'Active';
+            update t;
+            return t.Id;
         } catch (Exception e) {
             return null;
         }
