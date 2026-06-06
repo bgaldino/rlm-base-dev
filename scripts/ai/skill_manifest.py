@@ -117,14 +117,16 @@ def _parse_scalar(value: str) -> Any:
     return value
 
 
-def _load_manifest_minimal(manifest_path: Path) -> dict[str, Any]:
+def _load_manifest_minimal(text: str) -> dict[str, Any]:
     """Load enough manifest structure for baseline checks without PyYAML.
 
-    This fallback intentionally does not try to be a general YAML parser. It
-    recognizes the manifest's top-level metadata, repo sections, local path
-    hints, simple grounding/context_files path entries, and skill ``id`` /
-    ``path`` / ``purpose`` fields so diagnostics can still run in a fresh
-    checkout. Complex nested YAML remains a PyYAML-only feature.
+    Accepts the already-read manifest text (the caller is responsible for
+    reading it, so I/O errors are handled in one place). This fallback
+    intentionally does not try to be a general YAML parser. It recognizes the
+    manifest's top-level metadata, repo sections, local path hints, simple
+    grounding/context_files path entries, and skill ``id`` / ``path`` /
+    ``purpose`` fields so diagnostics can still run in a fresh checkout.
+    Complex nested YAML remains a PyYAML-only feature.
     """
     data: dict[str, Any] = {"_minimal_fallback": True}
     current_repo: str | None = None
@@ -133,7 +135,7 @@ def _load_manifest_minimal(manifest_path: Path) -> dict[str, Any]:
     current_mapping: str | None = None
     current_mapping_key: str | None = None
 
-    for raw_line in manifest_path.read_text(encoding="utf-8").splitlines():
+    for raw_line in text.splitlines():
         if not raw_line.strip() or raw_line.lstrip().startswith("#"):
             continue
         indent = len(raw_line) - len(raw_line.lstrip(" "))
@@ -365,12 +367,19 @@ def find_manifest(start: Path | None = None) -> Path:
 def load_manifest(path: Path | None = None) -> dict[str, Any]:
     """Load and lightly normalize the manifest. Discovers repo locations."""
     manifest_path = path or find_manifest()
+    # Read once, with a guard, so an unreadable manifest produces a clear
+    # diagnostic (not a traceback) in both the PyYAML and fallback paths.
+    try:
+        manifest_text = manifest_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise SystemExit(f"skill_manifest.py: cannot read {manifest_path}: {exc}")
     if yaml is None:
         print(PY_YAML_HELP, file=sys.stderr)
-        data = _load_manifest_minimal(manifest_path)
+        data = _load_manifest_minimal(manifest_text)
     else:
-        with manifest_path.open("r", encoding="utf-8") as f:
-            data: dict[str, Any] = yaml.safe_load(f) or {}
+        data: dict[str, Any] = yaml.safe_load(manifest_text) or {}
+        if not isinstance(data, dict):
+            data = {}
 
     # Stash where we found it so callers can debug
     data["_manifest_path"] = str(manifest_path)
