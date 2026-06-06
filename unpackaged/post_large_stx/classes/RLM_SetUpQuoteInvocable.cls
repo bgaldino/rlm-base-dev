@@ -777,8 +777,16 @@ public with sharing class RLM_SetUpQuoteInvocable {
             'Pricebook2Id' => pricebook2Id
         };
         String accountId = String.isNotBlank(in0.quoteAccountId) ? in0.quoteAccountId : in0.repeatBuyAccountId;
+        Id acctId = null;
         if (String.isNotBlank(accountId)) {
-            out.put('QuoteAccountId', accountId);
+            try {
+                acctId = Id.valueOf(accountId);
+            } catch (Exception e) {
+                acctId = null; // malformed id (bad client/Flow input) — skip account-derived header
+            }
+        }
+        if (acctId != null) {
+            out.put('QuoteAccountId', acctId);
             applyBillingHeaderDefaults(out, accountId);
         }
         // Service start, expiration, and term mirror the standard RLM_QuickQuote action.
