@@ -67,7 +67,6 @@ Tracked generated references currently recorded in project memory:
 - `.cursor/skills/cci-orchestration/tasks-reference.md`
 - `.cursor/skills/cci-orchestration/flows-reference.md`
 - `.cursor/skills/cci-orchestration/feature-flags.md`
-- `docs/references/cci-task-reference.md`
 
 ## External Systems
 

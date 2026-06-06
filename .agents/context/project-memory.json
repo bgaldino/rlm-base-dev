@@ -192,12 +192,6 @@
         "last_modified_utc": "2026-06-05T23:38:58Z",
         "freshness_source": "filesystem_mtime",
         "regenerator": "python scripts/ai/generate_cci_reference.py"
-      },
-      {
-        "path": "docs/references/cci-task-reference.md",
-        "last_modified_utc": "2026-06-05T23:38:58Z",
-        "freshness_source": "filesystem_mtime",
-        "regenerator": "python scripts/ai/generate_cci_reference.py"
       }
     ]
   },
@@ -268,7 +262,7 @@
       "status": "open",
       "summary": "Add project-memory schema validation to CI or pre-merge checks.",
       "rationale": "Future memory edits should be machine-validated before merge.",
-      "suggested_command": "python -m jsonschema .agents/schemas/project-memory.schema.json .agents/context/project-memory.json"
+      "suggested_command": "python -m jsonschema -i .agents/context/project-memory.json .agents/schemas/project-memory.schema.json"
     },
     {
       "id": "REC-PMEM-002",
