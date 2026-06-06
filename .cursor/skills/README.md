@@ -31,7 +31,10 @@ repo root.
 
 ## How Skills Are Structured
 
-Each top-level skill has:
+Each top-level skill should include the sections below. **Quick Rules** and
+**DO NOT** are present in every skill today; **Entry Conditions**, **Examples**,
+and **Validation Checks** are the target structure for new skills, and existing
+skills are being migrated to add them incrementally:
 1. **Quick Rules** — 5-8 numbered rules at the top for fast reference
 2. **DO NOT** — explicit safety constraints for that topic
 3. **Entry Conditions** — when to read the skill and when to use adjacent guidance

@@ -230,8 +230,10 @@ that topic.
 | Generate the QuantumBit demo-script canvas (per-release SE/partner artifact) | `.cursor/skills/qb-demo-script/SKILL.md` |
 | Ground product claims against Salesforce Help (Trailhead, internal docs, SME review) | `.cursor/skills/revenue-cloud-docs/SKILL.md` |
 
-Each top-level skill has **Quick Rules**, **DO NOT**, **Entry Conditions**,
-**Examples**, and **Validation Checks** sections. Read
+Every top-level skill has **Quick Rules** and **DO NOT** sections; new and
+migrated skills should also include **Entry Conditions**, **Examples**, and
+**Validation Checks** sections. Existing skills are being migrated to this
+structure incrementally, so not all of them carry the full set yet. Read
 `.cursor/skills/skill-authoring/SKILL.md` before creating, splitting,
 registering, or testing skills.
 
