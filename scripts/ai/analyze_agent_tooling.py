@@ -643,9 +643,32 @@ def is_separator_row(cells: list[str]) -> bool:
     return all(set(c) <= set("-: ") and c for c in cells) if cells else False
 
 
+def file_specific_rules_region(markdown: str) -> str:
+    """Return the markdown under a 'File-Specific Rules' heading up to the next
+    heading, so rule-table parsing is anchored to that section and is not
+    polluted by any other pipe table that happens to mention a `.mdc` token.
+
+    Falls back to the whole document if the heading is not found.
+    """
+    lines = markdown.splitlines()
+    start = None
+    for i, line in enumerate(lines):
+        if re.match(r"^#{1,6}\s+File-Specific Rules", line):
+            start = i + 1
+            break
+    if start is None:
+        return markdown
+    end = len(lines)
+    for j in range(start, len(lines)):
+        if re.match(r"^#{1,6}\s", lines[j]):
+            end = j
+            break
+    return "\n".join(lines[start:end])
+
+
 def extract_rule_mappings(agents_text: str, rules: Iterable[str]) -> list[RuleMapping]:
     by_rule: dict[str, tuple[str, str]] = {}
-    for line in agents_text.splitlines():
+    for line in file_specific_rules_region(agents_text).splitlines():
         if not line.lstrip().startswith("|") or ".mdc" not in line:
             continue
         cells = split_table_row(line)
@@ -868,6 +891,7 @@ class RuleInfo:
     name: str
     globs: tuple[str, ...]
     equivalent_skill: str
+    standalone: bool
     has_do_not: bool
     appears_in_agents: bool
     listed_in_skill_readme: bool
@@ -1013,10 +1037,16 @@ def has_do_not_section(text: str) -> bool:
     return bool(re.search(r"^##+\s+DO NOT\b", text, flags=re.MULTILINE | re.IGNORECASE))
 
 
-def parse_rule_table(markdown: str) -> dict[str, dict[str, str]]:
-    """Parse Markdown rule tables (columns: Rule, Triggers On, Equivalent Skill)."""
-    rows: dict[str, dict[str, str]] = {}
-    for line in markdown.splitlines():
+def parse_rule_table(markdown: str) -> dict[str, dict[str, Any]]:
+    """Parse Markdown rule tables (columns: Rule, Triggers On, Equivalent Skill).
+
+    The Equivalent Skill cell is classified with ``normalize_equivalent_skill``
+    (shared with the report subcommand), so a stand-alone note that merely
+    *mentions* a skill (e.g. "complements `repo-integration/SKILL.md`") is
+    recorded as stand-alone rather than as that skill.
+    """
+    rows: dict[str, dict[str, Any]] = {}
+    for line in file_specific_rules_region(markdown).splitlines():
         if not line.lstrip().startswith("|"):
             continue
         cells = split_table_row(line)
@@ -1028,10 +1058,19 @@ def parse_rule_table(markdown: str) -> dict[str, dict[str, str]]:
         if not rule_match:
             continue
         name = Path(rule_match.group(1)).name
-        skill_match = re.search(r"`?([^`\s|]+\.md)`?", cells[2])
+        # The Equivalent Skill cell is the LAST column; use cells[-1] (matching
+        # extract_rule_mappings) so a stray pipe in the Triggers cell can't make
+        # the two subcommands read different cells and disagree.
+        kind, _target = normalize_equivalent_skill(cells[-1])
+        skill = ""
+        if kind == "skill":
+            # Preserve the cell's own (relative) skill path for display.
+            skill_match = re.search(r"`?([^`\s|]+\.md)`?", cells[-1])
+            skill = skill_match.group(1) if skill_match else ""
         rows[name] = {
             "triggers": cells[1],
-            "skill": skill_match.group(1) if skill_match else cells[2],
+            "skill": skill,
+            "standalone": kind == "standalone",
         }
     return rows
 
@@ -1078,12 +1117,16 @@ def collect_rules(root: Path) -> list[RuleInfo]:
     for rule_path in sorted(rules_dir.glob("*.mdc")):
         text = read_text(rule_path)
         name = rule_path.name
-        skill = readme_rules.get(name, {}).get("skill") or agents_rules.get(name, {}).get("skill") or ""
+        readme_row = readme_rules.get(name, {})
+        agents_row = agents_rules.get(name, {})
+        skill = readme_row.get("skill") or agents_row.get("skill") or ""
+        standalone = bool(readme_row.get("standalone") or agents_row.get("standalone"))
         rules.append(RuleInfo(
             path=rel(rule_path, root),
             name=name,
             globs=parse_globs(extract_frontmatter(text)),
             equivalent_skill=skill,
+            standalone=standalone,
             has_do_not=has_do_not_section(text),
             appears_in_agents=name in agents_rules,
             listed_in_skill_readme=name in readme_rules,
@@ -1128,9 +1171,14 @@ def render_coverage_markdown(root: Path) -> str:
         "|---|---|---|---|---|---|---|",
     ]
     for r in rules:
+        if r.standalone:
+            equiv = "(stand-alone)"
+        elif r.equivalent_skill:
+            equiv = f"`{r.equivalent_skill}`"
+        else:
+            equiv = "—"
         lines.append("| " + " | ".join([
-            f"`{r.path}`", _format_globs(r.globs),
-            f"`{r.equivalent_skill}`" if r.equivalent_skill else "—",
+            f"`{r.path}`", _format_globs(r.globs), equiv,
             _yes_no(r.has_do_not), _yes_no(r.appears_in_agents),
             _yes_no(r.listed_in_skill_readme), _md_escape(r.owner),
         ]) + " |")

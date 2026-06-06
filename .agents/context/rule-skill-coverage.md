@@ -14,12 +14,12 @@
 
 | Rule file path | Glob pattern | Equivalent skill path | Has DO NOT section | Appears in AGENTS.md | Listed in skill README | Recommended owner/domain |
 |---|---|---|---|---|---|---|
-| `.cursor/rules/apex-classes.mdc` | `unpackaged/**/*.cls`<br>`force-app/**/*.cls` | `repo-integration/SKILL.md` | Yes | Yes | No | Apex |
+| `.cursor/rules/apex-classes.mdc` | `unpackaged/**/*.cls`<br>`force-app/**/*.cls` | (stand-alone) | Yes | Yes | No | Apex |
 | `.cursor/rules/apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` | Yes | Yes | Yes | Apex |
 | `.cursor/rules/cci-python-tasks.mdc` | `tasks/**/*.py` | `cci-orchestration/custom-task-authoring.md` | Yes | Yes | Yes | CCI Orchestration |
 | `.cursor/rules/cci-task-definitions.mdc` | `cumulusci.yml` | `cci-orchestration/SKILL.md` | Yes | Yes | Yes | CCI Orchestration |
 | `.cursor/rules/doc-review.mdc` | `cumulusci.yml`<br>`tasks/**/*.py`<br>`datasets/sfdmu/**/export.json`<br>`datasets/sfdmu/**/*.csv`<br>`robot/**/*.robot`<br>`.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` | No | Yes | Yes | Doc Consistency |
-| `.cursor/rules/lwc-components.mdc` | `unpackaged/**/lwc/**/*.html`<br>`unpackaged/**/lwc/**/*.js`<br>`force-app/**/lwc/**/*.html`<br>`force-app/**/lwc/**/*.js` | `repo-integration/SKILL.md` | Yes | Yes | No | Lightning Web Components |
+| `.cursor/rules/lwc-components.mdc` | `unpackaged/**/lwc/**/*.html`<br>`unpackaged/**/lwc/**/*.js`<br>`force-app/**/lwc/**/*.html`<br>`force-app/**/lwc/**/*.js` | (stand-alone) | Yes | Yes | No | Lightning Web Components |
 | `.cursor/rules/robot-tests.mdc` | `robot/**/*.robot`<br>`robot/**/*.py` | `robot-testing/SKILL.md` | Yes | Yes | Yes | Robot Testing |
 | `.cursor/rules/sfdmu-csv-data.mdc` | `datasets/sfdmu/**/*.csv` | `sfdmu-data-plans/SKILL.md` | Yes | Yes | Yes | SFDMU Data Plans |
 | `.cursor/rules/sfdmu-export-json.mdc` | `**/export.json` | `sfdmu-data-plans/SKILL.md` | Yes | Yes | Yes | SFDMU Data Plans |
