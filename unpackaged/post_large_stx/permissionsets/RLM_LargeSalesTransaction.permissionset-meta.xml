@@ -4,6 +4,90 @@
         <apexClass>RLM_PreProcessOrderController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_SetUpQuoteInvocable</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_SetUpQuoteLinePreview</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <!-- Object CRUD the feature exercises in user mode (WITH USER_MODE / as user).
+         Non-permissionable fields (Status, Name, lookups, Quantity, UnitPrice…)
+         are governed by these object grants; only permissionable fields get FLS.
+         NOTE: OrderItem, QuoteLineGroup, and QuoteLineItem are intentionally NOT
+         listed. Their CRUD is parent-controlled — OrderItem follows Order, and
+         QuoteLineGroup/QuoteLineItem are master-detail children of Quote
+         (QuoteId, relationshipOrder=0). The platform silently ignores independent
+         objectPermissions on these children, so Order R/E and Quote R/E below
+         grant the create/edit/delete the feature performs on them. FLS on their
+         permissionable fields IS independently settable and is granted below. -->
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Order</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Quote</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <!-- Required dependency of Quote read (Quote relates to Opportunity). -->
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Opportunity</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>BillingTreatment</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <!-- Repeat-buy line preview traverses Product2.Name / Product2.ProductCode
+             in a WITH USER_MODE query (getRepeatBuyLines). -->
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Product2</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>AsyncOperationTracker</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>RevenueTransactionErrorLog</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
     <fieldPermissions>
         <editable>true</editable>
         <field>Order.IsLargeDeal</field>
@@ -22,8 +106,47 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <!-- Stamped onto large-deal order items so billing-treatment resolution no-ops. -->
+        <editable>true</editable>
+        <field>OrderItem.BillingTreatmentId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>true</editable>
         <field>Quote.IsLargeDeal</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- Subscription line dates set when seeding group-count quote lines. -->
+        <editable>true</editable>
+        <field>QuoteLineItem.StartDate</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.EndDate</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.PeriodBoundary</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.BillingFrequency</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- Read in the repeat-buy line preview (getRepeatBuyLines, WITH USER_MODE). -->
+        <editable>false</editable>
+        <field>QuoteLineItem.TotalPrice</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- Read in the repeat-buy line query. -->
+        <editable>false</editable>
+        <field>Product2.ProductCode</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

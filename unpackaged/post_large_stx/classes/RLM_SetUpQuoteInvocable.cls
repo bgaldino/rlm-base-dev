@@ -465,10 +465,11 @@ public with sharing class RLM_SetUpQuoteInvocable {
             FROM QuoteLineGroup
             WHERE Id IN :requestedNamesByGroupId.keySet()
               AND QuoteId = :qId
+            WITH USER_MODE
         ]) {
             toUpdate.add(new QuoteLineGroup(Id = g.Id, Name = requestedNamesByGroupId.get(g.Id)));
         }
-        if (!toUpdate.isEmpty()) update toUpdate;
+        if (!toUpdate.isEmpty()) update as user toUpdate;
     }
 
     /** Returns map tempId -> new QuoteLineGroup Id. Processes in dependency order so parents (existing Id or tempId) are created before children. */
@@ -970,13 +971,13 @@ public with sharing class RLM_SetUpQuoteInvocable {
                     new RevSalesTrxn.ConfigurationOptionsInput(), null, prefs.catalogRatesPref, prefs.taxPref, null);
                 if (resp == null || !resp.isSuccess) throw new RLM_SetUpQuoteException(resp != null && resp.errorResponse != null ? String.valueOf(resp.errorResponse) : 'PST execution failed');
                 Id quoteId = (Id) resp.salesTransactionId;
-                if (largeDeal) update new Quote(Id = quoteId, IsLargeDeal = true);
+                if (largeDeal) update as user new Quote(Id = quoteId, IsLargeDeal = true);
                 return quoteId;
             } else {
                 if (String.isNotBlank(in0.csvImportLineItemsJson)) {
                     return runHierarchyEmptyCsvModifyQuote(in0, csvLinesAddedOut);
                 }
-                if (largeDeal && String.isNotBlank(in0.quoteId)) update new Quote(Id = in0.quoteId, IsLargeDeal = true);
+                if (largeDeal && String.isNotBlank(in0.quoteId)) update as user new Quote(Id = in0.quoteId, IsLargeDeal = true);
                 return in0.quoteId;
             }
         }
