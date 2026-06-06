@@ -20,11 +20,26 @@ Use this routing guide when planning or reviewing AI-assisted repository work. P
 
 Escalate to a frontier or most capable available model when any of the following are true:
 
-1. More than one major subsystem changed.
+1. More than one major subsystem changed (see definition below).
 2. `cumulusci.yml` changed.
 3. `datasets/sfdmu/**` changed.
 4. `AGENTS.md`, `.cursor/skills/**`, `.cursor/rules/**`, or `.claude/skill-manifest.yml` changed.
 5. Any recommendation touches destructive Salesforce operations, credentials, org identity, or packaging.
+
+### What counts as a "major subsystem"
+
+A major subsystem is one of these top-level functional areas of the repository:
+
+| Subsystem | Primary paths |
+| --- | --- |
+| Orchestration | `cumulusci.yml`, `tasks/**` |
+| Data plans | `datasets/sfdmu/**`, `datasets/**` |
+| Metadata | `force-app/**`, `unpackaged/**` |
+| UX assembly | `templates/**`, `unpackaged/post_ux/**` |
+| Testing | `robot/**`, `tests/**` |
+| Tooling & docs | `scripts/**`, `docs/**`, `.agents/**` |
+
+"More than one major subsystem changed" means a single change set touches paths in two or more of these rows — for example, a PR that edits both `tasks/insert_pricing.py` (Orchestration) and `datasets/sfdmu/pricing/export.json` (Data plans). A change confined to one row (e.g. three files all under `datasets/sfdmu/**`) is a single-subsystem change and does not trigger this criterion on its own.
 
 ## Default Decision Pattern
 
