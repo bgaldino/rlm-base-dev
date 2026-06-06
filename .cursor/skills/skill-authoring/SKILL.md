@@ -15,9 +15,9 @@ agent that can read repository files.
    when every agent must see the rule before selecting a skill, or when adding a
    skill/sub-file to the repository-wide index.
 3. **New top-level skills should include** Quick Rules, DO NOT, Entry Conditions,
-   Examples, and Validation Checks sections. Quick Rules and DO NOT are required
-   and present in every skill today; existing skills are migrated to add Entry
-   Conditions, Examples, and Validation Checks incrementally.
+   Examples, and Validation Checks sections. Quick Rules is present in every
+   skill today and DO NOT in most; existing skills are migrated to add Entry
+   Conditions, Examples, and Validation Checks (and any missing DO NOT) incrementally.
 4. **Use progressive disclosure** — split sub-files when a skill is approaching
    context bloat, has variant-specific detail, or contains references that only
    some tasks need.
