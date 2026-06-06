@@ -571,7 +571,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         Id pricebook2Id = getStandardPricebookId();
         try {
             Id qLookup = Id.valueOf(quoteId);
-            for (Quote rq : [SELECT Pricebook2Id FROM Quote WHERE Id = :qLookup LIMIT 1]) {
+            for (Quote rq : [SELECT Pricebook2Id FROM Quote WHERE Id = :qLookup WITH USER_MODE LIMIT 1]) {
                 if (rq.Pricebook2Id != null) {
                     pricebook2Id = rq.Pricebook2Id;
                 }
@@ -583,7 +583,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         // Ownership guard: discard any group Ids that don't belong to this quote
         Set<Id> requestedGroupIds = new Set<Id>(groupIdToCount.keySet());
         Set<Id> validGroupIds = new Set<Id>();
-        for (QuoteLineGroup qlg : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :qId AND Id IN :requestedGroupIds]) {
+        for (QuoteLineGroup qlg : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :qId AND Id IN :requestedGroupIds WITH USER_MODE]) {
             validGroupIds.add(qlg.Id);
         }
         for (Id gid : new List<Id>(groupIdToCount.keySet())) {
@@ -591,10 +591,11 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
         if (groupIdToCount.isEmpty()) return;
         List<Id> groupIds = new List<Id>(groupIdToCount.keySet());
+        // Accumulate items across every group and insert once (no DML in a loop).
+        List<QuoteLineItem> allNewItems = new List<QuoteLineItem>();
         for (Id gid : groupIds) {
             Integer count = groupIdToCount.get(gid);
             if (count <= 0) continue;
-            List<QuoteLineItem> newItems = new List<QuoteLineItem>();
             for (Integer i = 0; i < count; i++) {
                 PricebookEntry pbe = pbes.get(Math.mod(i, pbes.size()));
                 QuoteLineItem li = new QuoteLineItem(QuoteId = qId, QuoteLineGroupId = gid, Product2Id = pbe.Product2Id, PricebookEntryId = pbe.Id, Quantity = 1, UnitPrice = pbe.UnitPrice != null ? pbe.UnitPrice : 0);
@@ -602,21 +603,22 @@ public with sharing class RLM_SetUpQuoteInvocable {
                     String st = String.valueOf(pbe.ProductSellingModel.SellingModelType);
                     String ptu = String.valueOf(pbe.ProductSellingModel.PricingTermUnit);
                     String bf = PRICING_TERM_TO_BILLING_FREQUENCY.get(ptu);
+                    // Relative dates (today / +1yr), consistent with subscriptionStartDateIso().
                     if ('TermDefined' == st && String.isNotBlank(bf)) {
-                        li.StartDate = Date.newInstance(2025, 9, 4);
-                        li.EndDate = Date.newInstance(2026, 9, 9);
+                        li.StartDate = Date.today();
+                        li.EndDate = Date.today().addYears(1);
                         li.PeriodBoundary = 'Anniversary';
                         li.BillingFrequency = bf;
                     } else if ('Evergreen' == st && String.isNotBlank(bf)) {
-                        li.StartDate = Date.newInstance(2025, 9, 4);
+                        li.StartDate = Date.today();
                         li.PeriodBoundary = 'Anniversary';
                         li.BillingFrequency = bf;
                     }
                 }
-                newItems.add(li);
+                allNewItems.add(li);
             }
-            if (!newItems.isEmpty()) insert newItems;
         }
+        if (!allNewItems.isEmpty()) insert as user allNewItems;
     }
 
     private static Map<String, Object> buildFlowInputMap(Input in0) {
@@ -1733,7 +1735,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         String soql =
             'SELECT Id, QuoteId, Quantity, UnitPrice, Product2Id, Product2.Name, Product2.ProductCode, QuoteLineGroupId, QuoteLineGroup.Name, ' +
             netField +
-            ' FROM QuoteLineItem WHERE QuoteId IN :quoteIds ORDER BY QuoteId, QuoteLineGroup.Name, CreatedDate';
+            ' FROM QuoteLineItem WHERE QuoteId IN :quoteIds WITH USER_MODE ORDER BY QuoteId, QuoteLineGroup.Name, CreatedDate';
         List<QuoteLineItem> lines = Database.query(soql);
 
         Map<Id, List<Map<String, Object>>> grouped = new Map<Id, List<Map<String, Object>>>();
