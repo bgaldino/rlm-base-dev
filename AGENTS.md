@@ -203,6 +203,34 @@ indexes, and more.
 
 ---
 
+## Responding to Automated PR Reviews
+
+Automated reviewers (GitHub Copilot, the Codex / `chatgpt-codex-connector` bot, and
+similar) post inline comments on PRs. **Policy — every agent, every PR:** each review
+comment is handled to completion, and **every review round ends with zero unresolved
+threads.** For each comment:
+
+1. **Verify against the code.** Don't trust the bot — confirm the claim in the actual
+   source and classify it *real*, *partial*, or *false positive*.
+2. **Sweep the whole class.** If a finding is real, fix **every** instance of that
+   pattern across the change, not just the cited line.
+3. **Reply in-thread** with the resolution **and the commit SHA** (or a clear,
+   evidence-backed refutation for a false positive):
+   `gh api --method POST repos/<owner>/<repo>/pulls/<n>/comments/<id>/replies -f body="…"`
+4. **React** 👍 on a valid comment:
+   `gh api --method POST repos/<owner>/<repo>/pulls/comments/<id>/reactions -H "Accept: application/vnd.github.squirrel-girl-preview+json" -f content=+1`
+5. **Resolve the thread** (REST cannot — use GraphQL): get the thread id from
+   `pullRequest(number:N){reviewThreads(first:100){nodes{id isResolved comments(first:1){nodes{databaseId path line}}}}}`,
+   then `mutation($tid:ID!){resolveReviewThread(input:{threadId:$tid}){thread{isResolved}}}`.
+6. **Confirm clean** — re-query `reviewThreads` and verify `unresolved == 0` for the round.
+
+Refute false positives (with evidence) rather than changing correct code — but still
+reply, and resolve the thread once the point is settled. This matters most on branches
+headed for `main`, which mirror to the internal Salesforce repo for audit: a left-open
+thread is a finding the audit will re-raise.
+
+---
+
 ## AI Agent Skill Index
 
 Skills are detailed guides for specific tasks. They live in
