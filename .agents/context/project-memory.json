@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/project-memory.schema.json",
   "schema_version": "1.0.0",
-  "last_updated_utc": "2026-06-05T00:00:00Z",
+  "last_updated_utc": "2026-06-05T23:38:58Z",
   "repository": {
     "name": "rlm-base-dev",
     "project_name": "rlm-base",
@@ -171,7 +171,7 @@
     }
   ],
   "generated_reference_freshness": {
-    "last_checked_utc": "2026-06-05T00:00:00Z",
+    "last_checked_utc": "2026-06-05T23:38:58Z",
     "source_of_truth": "cumulusci.yml",
     "regeneration_command": "python scripts/ai/generate_cci_reference.py",
     "files": [
