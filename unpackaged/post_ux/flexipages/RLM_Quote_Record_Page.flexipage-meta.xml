@@ -10,7 +10,7 @@
                             <value>BrowseCatalog</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RLM_Create_Ramp_Schedule_V4</value>
+                            <value>CreateRampSchedule</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Quote.RLM_Create_Proposal</value>
@@ -76,6 +76,10 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>hideChatterActions</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>hideSlackAction</name>
                     <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
@@ -370,6 +374,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.StartDate</fieldItem>
                 <identifier>RecordStartDateField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.IsLargeDeal</fieldItem>
+                <identifier>RecordIsLargeDealField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-3e11b449-99b0-44f1-91d1-32f24d3f586f</name>
