@@ -38,10 +38,12 @@ public with sharing class RLM_PreProcessOrderController {
             return errorJson('No order id provided.');
         }
         try {
+            Id oid = Id.valueOf(orderId);
             List<Order> orders = [
                 SELECT Id, OrderNumber, Status, IsLargeDeal, PreprocessingStatus
                 FROM Order
-                WHERE Id = :orderId
+                WHERE Id = :oid
+                WITH USER_MODE
                 LIMIT 1
             ];
             if (orders.isEmpty()) {
@@ -69,20 +71,21 @@ public with sharing class RLM_PreProcessOrderController {
             return errorJson('No order id provided.');
         }
         try {
+            Id oid = Id.valueOf(orderId);
             // Orders created via createOrdersFromQuote come back with stale pricing, so
             // preprocess validation (bit 0) fails with "the prices aren't updated. Click
             // Reprice All". Reprice large-deal orders up front so the button is one-click.
             // No-op for standard orders and for orders already priced.
-            repriceLargeDealOrderIfNeeded(orderId);
+            repriceLargeDealOrderIfNeeded(oid);
 
             // Large-deal billing fix: pre-stamp an Exclude-from-Billing treatment on
             // unresolved order items so the platform's legal-entity treatment resolver
             // (not bulk-safe at large-deal scale) finds nothing to fetch and bit 1
             // (BillingTreatment) completes instead of failing. No-op for standard orders.
-            stampLargeDealExcludeTreatment(orderId);
+            stampLargeDealExcludeTreatment(oid);
 
             Invocable.Action action = Invocable.Action.createStandardAction('preProcessSalesTransaction');
-            action.setInvocationParameter('salesTransactionId', String.valueOf(orderId));
+            action.setInvocationParameter('salesTransactionId', String.valueOf(oid));
             action.setInvocationParameter('shouldValidateDataShape', true);
             // Self-gated on orgHasInvoicingEnabled(); harmless (no-op) when invoicing is off.
             action.setInvocationParameter('shouldResolveBillingTreatments', true);
@@ -114,20 +117,23 @@ public with sharing class RLM_PreProcessOrderController {
             return errorJson('No order id provided.');
         }
         try {
+            Id oid = Id.valueOf(orderId);
             String trackerStatus = null;
             if (String.isNotBlank(requestId)) {
+                Id reqId = Id.valueOf(requestId);
                 List<AsyncOperationTracker> trackers = [
-                    SELECT Id, Status FROM AsyncOperationTracker WHERE Id = :requestId LIMIT 1
+                    SELECT Id, Status FROM AsyncOperationTracker WHERE Id = :reqId WITH USER_MODE LIMIT 1
                 ];
                 if (!trackers.isEmpty()) {
                     trackerStatus = trackers[0].Status;
                 }
             }
             // Fallback: most recent PreprocessOrder tracker for this order.
-            if (trackerStatus == null && String.isNotBlank(orderId)) {
+            if (trackerStatus == null) {
                 List<AsyncOperationTracker> trackers = [
                     SELECT Id, Status FROM AsyncOperationTracker
-                    WHERE ReferenceEntityId = :orderId AND JobType = 'PreprocessOrder'
+                    WHERE ReferenceEntityId = :oid AND JobType = 'PreprocessOrder'
+                    WITH USER_MODE
                     ORDER BY CreatedDate DESC LIMIT 1
                 ];
                 if (!trackers.isEmpty()) {
@@ -135,7 +141,7 @@ public with sharing class RLM_PreProcessOrderController {
                 }
             }
             List<Order> orders = [
-                SELECT Id, Status, PreprocessingStatus FROM Order WHERE Id = :orderId LIMIT 1
+                SELECT Id, Status, PreprocessingStatus FROM Order WHERE Id = :oid WITH USER_MODE LIMIT 1
             ];
             if (orders.isEmpty()) {
                 return errorJson('Order not found or not accessible.');
@@ -166,7 +172,9 @@ public with sharing class RLM_PreProcessOrderController {
             return errorJson('No order id provided.');
         }
         try {
-            update new Order(Id = orderId, Status = ACTIVATED_STATUS);
+            Id oid = Id.valueOf(orderId);
+            // User-mode DML: the activating user must have edit on Order.Status.
+            update as user new Order(Id = oid, Status = ACTIVATED_STATUS);
             return JSON.serialize(new Map<String, Object>{ 'success' => true });
         } catch (Exception e) {
             return errorJson(e.getMessage());
@@ -192,9 +200,9 @@ public with sharing class RLM_PreProcessOrderController {
      * standard orders and unknown ids.
      */
     @TestVisible
-    private static void repriceLargeDealOrderIfNeeded(String orderId) {
+    private static void repriceLargeDealOrderIfNeeded(Id orderId) {
         List<Order> orders = [
-            SELECT Id, IsLargeDeal FROM Order WHERE Id = :orderId LIMIT 1
+            SELECT Id, IsLargeDeal FROM Order WHERE Id = :orderId WITH USER_MODE LIMIT 1
         ];
         if (orders.isEmpty() || orders[0].IsLargeDeal != true) {
             return;
@@ -238,8 +246,8 @@ public with sharing class RLM_PreProcessOrderController {
      * seed treatment is absent (e.g. billing feature off).
      */
     @TestVisible
-    private static void stampLargeDealExcludeTreatment(String orderId) {
-        List<Order> orders = [SELECT Id, IsLargeDeal FROM Order WHERE Id = :orderId LIMIT 1];
+    private static void stampLargeDealExcludeTreatment(Id orderId) {
+        List<Order> orders = [SELECT Id, IsLargeDeal FROM Order WHERE Id = :orderId WITH USER_MODE LIMIT 1];
         if (orders.isEmpty() || orders[0].IsLargeDeal != true) {
             return;
         }
@@ -250,6 +258,7 @@ public with sharing class RLM_PreProcessOrderController {
         List<OrderItem> toStamp = [
             SELECT Id FROM OrderItem
             WHERE OrderId = :orderId AND BillingTreatmentId = null
+            WITH USER_MODE
         ];
         if (toStamp.isEmpty()) {
             return;
@@ -260,7 +269,7 @@ public with sharing class RLM_PreProcessOrderController {
         // 2,700-line repro is well within the 10k DML-row limit. Orders large
         // enough to exceed it can't be stamped in one synchronous transaction;
         // such scale would require an async/batch path (out of scope here).
-        update toStamp;
+        update as user toStamp;
     }
 
     /** Cached lookup of the seed Exclude-from-Billing treatment by name. */
@@ -271,6 +280,7 @@ public with sharing class RLM_PreProcessOrderController {
             List<BillingTreatment> bts = [
                 SELECT Id FROM BillingTreatment
                 WHERE Name = :LARGE_DEAL_EXCLUDE_TREATMENT AND Status = 'Active'
+                WITH USER_MODE
                 LIMIT 1
             ];
             largeDealExcludeTreatmentId = bts.isEmpty() ? null : bts[0].Id;

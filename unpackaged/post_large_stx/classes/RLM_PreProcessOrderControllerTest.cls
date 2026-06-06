@@ -60,9 +60,6 @@ private class RLM_PreProcessOrderControllerTest {
     @isTest
     static void testGetOrderInfo_RealOrder() {
         Order o = buildLargeDealOrder();
-        if (o == null) {
-            return; // Environment without the prerequisite setup; covered by other tests.
-        }
         Test.startTest();
         String resp = RLM_PreProcessOrderController.getOrderInfo(o.Id);
         Test.stopTest();
@@ -85,9 +82,6 @@ private class RLM_PreProcessOrderControllerTest {
     @isTest
     static void testStamp_NoTreatment_NoOp() {
         Order o = buildOrderWithItem(true);
-        if (o == null) {
-            return;
-        }
         Test.startTest();
         RLM_PreProcessOrderController.stampLargeDealExcludeTreatment(o.Id);
         Test.stopTest();
@@ -101,9 +95,6 @@ private class RLM_PreProcessOrderControllerTest {
     static void testStamp_LargeDeal_StampsItems() {
         Id treatmentId = seedExcludeTreatment();
         Order o = buildOrderWithItem(true);
-        if (treatmentId == null || o == null) {
-            return; // Environment can't build prerequisites; other tests cover logic.
-        }
         Test.startTest();
         RLM_PreProcessOrderController.stampLargeDealExcludeTreatment(o.Id);
         Test.stopTest();
@@ -115,12 +106,26 @@ private class RLM_PreProcessOrderControllerTest {
     }
 
     @isTest
-    static void testStamp_StandardOrder_NoOp() {
+    static void testStamp_LargeDeal_BulkItems() {
+        // Exercise the list-DML path with many items so the bulk stamp is covered
+        // at more than one record (the stamp uses a single `update`, so it is
+        // bulk-safe; this guards against a regression to per-record DML).
         Id treatmentId = seedExcludeTreatment();
-        Order o = buildOrderWithItem(false);
-        if (treatmentId == null || o == null) {
-            return;
+        Order o = buildOrderWithItems(true, 50);
+        Test.startTest();
+        RLM_PreProcessOrderController.stampLargeDealExcludeTreatment(o.Id);
+        Test.stopTest();
+        List<OrderItem> ois = [SELECT BillingTreatmentId FROM OrderItem WHERE OrderId = :o.Id];
+        System.assertEquals(50, ois.size(), 'All 50 items present');
+        for (OrderItem oi : ois) {
+            System.assertEquals(treatmentId, oi.BillingTreatmentId, 'Every large-deal OI stamped');
         }
+    }
+
+    @isTest
+    static void testStamp_StandardOrder_NoOp() {
+        seedExcludeTreatment();
+        Order o = buildOrderWithItem(false);
         Test.startTest();
         RLM_PreProcessOrderController.stampLargeDealExcludeTreatment(o.Id);
         Test.stopTest();
@@ -132,94 +137,102 @@ private class RLM_PreProcessOrderControllerTest {
     @isTest
     static void testReprice_StandardOrder_NoOp() {
         // Standard orders gate out before the Place Sales Transaction executor runs
-        // (the managed executor isn't invocable in test context), so this must not throw.
+        // (the managed executor isn't invocable in test context). Assert the no-op
+        // path leaves the order unchanged rather than asserting a tautology.
         Order o = buildOrderWithItem(false);
-        if (o == null) {
-            return;
-        }
         Test.startTest();
         RLM_PreProcessOrderController.repriceLargeDealOrderIfNeeded(o.Id);
         Test.stopTest();
-        System.assert(true, 'Standard-order reprice is a no-op and does not throw');
+        Order after = [SELECT Id, IsLargeDeal, Status FROM Order WHERE Id = :o.Id];
+        System.assertEquals(false, after.IsLargeDeal, 'Standard order remains non-large-deal');
+        System.assertEquals('Draft', after.Status, 'Standard order status unchanged by no-op reprice');
     }
 
     @isTest
     static void testReprice_InvalidId_NoOp() {
-        // No matching order → returns before touching the executor.
+        // No matching order → returns before touching the executor (must not throw).
+        Boolean threw = false;
         Test.startTest();
-        RLM_PreProcessOrderController.repriceLargeDealOrderIfNeeded('801000000000000AAA');
+        try {
+            RLM_PreProcessOrderController.repriceLargeDealOrderIfNeeded(Id.valueOf('801000000000000AAA'));
+        } catch (Exception e) {
+            threw = true;
+        }
         Test.stopTest();
-        System.assert(true, 'Unknown order id reprice is a no-op and does not throw');
+        System.assertEquals(false, threw, 'Unknown order id reprice is a safe no-op (does not throw)');
     }
 
-    /** Minimal large-deal order; returns null if the org cannot create one in test context. */
+    /** Minimal large-deal order. Lets setup failures surface as a test failure
+     *  (rather than a silent skip) so missing prerequisites are visible. */
     private static Order buildLargeDealOrder() {
-        try {
-            Account a = new Account(Name = 'PreProc Test Account');
-            insert a;
-            Order o = new Order(
-                AccountId = a.Id,
-                Status = 'Draft',
-                EffectiveDate = Date.today(),
-                IsLargeDeal = true
-            );
-            insert o;
-            return o;
-        } catch (Exception e) {
-            return null;
-        }
+        Account a = new Account(Name = 'PreProc Test Account');
+        insert a;
+        Order o = new Order(
+            AccountId = a.Id,
+            Status = 'Draft',
+            EffectiveDate = Date.today(),
+            IsLargeDeal = true
+        );
+        insert o;
+        return o;
     }
 
-    /** Order with one order item; isLargeDeal toggles the gating flag. Null on failure. */
-    private static Order buildOrderWithItem(Boolean isLargeDeal) {
-        try {
-            Account a = new Account(Name = 'PreProc Item Acct');
-            insert a;
-            Product2 pr = new Product2(Name = 'PreProc Prod', IsActive = true);
-            insert pr;
-            Id pbId = Test.getStandardPricebookId();
-            PricebookEntry pbe = new PricebookEntry(
+    /** Order with `itemCount` order items; isLargeDeal toggles the gating flag. */
+    private static Order buildOrderWithItems(Boolean isLargeDeal, Integer itemCount) {
+        Account a = new Account(Name = 'PreProc Item Acct');
+        insert a;
+        Id pbId = Test.getStandardPricebookId();
+        List<Product2> prods = new List<Product2>();
+        for (Integer i = 0; i < itemCount; i++) {
+            prods.add(new Product2(Name = 'PreProc Prod ' + i, IsActive = true));
+        }
+        insert prods;
+        List<PricebookEntry> pbes = new List<PricebookEntry>();
+        for (Product2 pr : prods) {
+            pbes.add(new PricebookEntry(
                 Pricebook2Id = pbId, Product2Id = pr.Id, UnitPrice = 10, IsActive = true
-            );
-            insert pbe;
-            Order o = new Order(
-                AccountId = a.Id,
-                Status = 'Draft',
-                EffectiveDate = Date.today(),
-                IsLargeDeal = isLargeDeal,
-                Pricebook2Id = pbId
-            );
-            insert o;
-            OrderItem oi = new OrderItem(
-                OrderId = o.Id, PricebookEntryId = pbe.Id, Product2Id = pr.Id, Quantity = 1, UnitPrice = 10
-            );
-            insert oi;
-            return o;
-        } catch (Exception e) {
-            return null;
+            ));
         }
+        insert pbes;
+        Order o = new Order(
+            AccountId = a.Id,
+            Status = 'Draft',
+            EffectiveDate = Date.today(),
+            IsLargeDeal = isLargeDeal,
+            Pricebook2Id = pbId
+        );
+        insert o;
+        List<OrderItem> items = new List<OrderItem>();
+        for (PricebookEntry pbe : pbes) {
+            items.add(new OrderItem(
+                OrderId = o.Id, PricebookEntryId = pbe.Id, Product2Id = pbe.Product2Id,
+                Quantity = 1, UnitPrice = 10
+            ));
+        }
+        insert items;
+        return o;
     }
 
-    /** Seeds the Active Exclude-from-Billing treatment; returns its id or null on failure. */
+    private static Order buildOrderWithItem(Boolean isLargeDeal) {
+        return buildOrderWithItems(isLargeDeal, 1);
+    }
+
+    /** Seeds the Active Exclude-from-Billing treatment; returns its id. */
     private static Id seedExcludeTreatment() {
-        try {
-            BillingPolicy p = new BillingPolicy(
-                Name = 'RLM Large Deal Policy', Status = 'Draft', BillingTreatmentSelection = 'Default'
-            );
-            insert p;
-            BillingTreatment t = new BillingTreatment(
-                Name = 'RLM Large Deal - Exclude from Billing',
-                Status = 'Draft',
-                BillingPolicyId = p.Id,
-                ExcludeFromBilling = 'Yes',
-                IsMilestoneBilling = false
-            );
-            insert t;
-            t.Status = 'Active';
-            update t;
-            return t.Id;
-        } catch (Exception e) {
-            return null;
-        }
+        BillingPolicy p = new BillingPolicy(
+            Name = 'RLM Large Deal Policy', Status = 'Draft', BillingTreatmentSelection = 'Default'
+        );
+        insert p;
+        BillingTreatment t = new BillingTreatment(
+            Name = 'RLM Large Deal - Exclude from Billing',
+            Status = 'Draft',
+            BillingPolicyId = p.Id,
+            ExcludeFromBilling = 'Yes',
+            IsMilestoneBilling = false
+        );
+        insert t;
+        t.Status = 'Active';
+        update t;
+        return t.Id;
     }
 }
