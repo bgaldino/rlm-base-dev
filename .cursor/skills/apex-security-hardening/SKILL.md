@@ -86,9 +86,10 @@ non-permissionable standard fields (Name, lookups, Quantity, address components)
 covered by object access:
 
 ```python
-import json, subprocess
+import json, os, subprocess
+ORG = os.environ.get("SF_TARGET_ORG", "rlm-base__beta")  # SF CLI alias/username (not the CCI alias)
 d = json.loads(subprocess.run(["sf","sobject","describe","-s","Quote","--target-org",ORG,"--json"],
-                               capture_output=True,text=True).stdout)
+                               capture_output=True, text=True, check=True).stdout)
 perm = {fld['name'] for fld in d['result']['fields'] if fld.get('permissionable')}
 ```
 

@@ -137,7 +137,7 @@ def main() -> int:
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     print(f"Wrote {len(ordered_entries)} app menu items to {out_path}.")
-    print("Run 'cci task run assemble_and_deploy_ux --org <alias>' to deploy the updated template.")
+    print("Run 'cci task run assemble_and_deploy_ux' to deploy the updated template (uses your default cci org; no --org flag).")
     return 0
 
 

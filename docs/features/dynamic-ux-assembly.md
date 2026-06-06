@@ -251,10 +251,11 @@ cci task run assemble_and_deploy_ux [options]
 
 ```bash
 # Assemble and deploy everything (production use via prepare_ux flow)
-cci task run assemble_and_deploy_ux --org dev-sb0
+# (no --org flag — deploys to your DEFAULT cci org)
+cci task run assemble_and_deploy_ux
 
-# Dry-run: assemble only, no deploy
-cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+# Dry-run: assemble only, no deploy (local — no org needed)
+cci task run assemble_and_deploy_ux -o deploy false
 
 # Regenerate a single flexipage
 cci task run assemble_and_deploy_ux \
@@ -512,7 +513,7 @@ TSO introduces:
 1. Prepare a TSO-capable org (or set `tso=true` in the org definition)
 2. Run dry-run to inspect output:
    ```bash
-   cci task run assemble_and_deploy_ux -o deploy false --org <tso-org>
+   cci task run assemble_and_deploy_ux -o deploy false        # dry-run: local only, no org needed
    ```
 3. Verify:
    - `unpackaged/post_ux/applications/RLM_Revenue_Cloud.app-meta.xml` comes from
@@ -549,7 +550,7 @@ After Phases 2 and 3 pass independently:
 ### Inspect the assembled output before deploying
 
 ```bash
-cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+cci task run assemble_and_deploy_ux -o deploy false        # local only, no org needed
 ```
 Review `unpackaged/post_ux/` and `unpackaged/post_ux/assembly_manifest.json`.
 
@@ -603,6 +604,6 @@ cci flow run apply_ux_drift --org dev-sb0
 ### Adding a new patch type or flexipage
 
 1. Add or edit the YAML patch file in `templates/flexipages/patches/{feature}/`
-2. Run `cci task run assemble_and_deploy_ux -o metadata_name <pagename>.flexipage-meta.xml -o deploy false --org <org>`
+2. Run `cci task run assemble_and_deploy_ux -o metadata_name <pagename>.flexipage-meta.xml -o deploy false` (dry-run; local, no org)
 3. Inspect the output file and compare to the reference in `unpackaged/post_*/flexipages/`
 4. When satisfied, run without `-o deploy false` to deploy

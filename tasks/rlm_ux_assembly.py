@@ -13,13 +13,13 @@ Supported metadata types:
   applications — copy from versioned templates based on active features
   profiles     — strip-and-build: base grants + feature layout patches
 
-Usage examples:
-    cci task run assemble_and_deploy_ux --org dev-sb0
-    cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+Usage examples (this task has no --org option; deploy uses your DEFAULT cci org):
+    cci task run assemble_and_deploy_ux
+    cci task run assemble_and_deploy_ux -o deploy false        # dry-run: local only, no org
     cci task run assemble_and_deploy_ux \\
-        -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml --org dev-sb0
+        -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
     cci task run assemble_and_deploy_ux \\
-        -o metadata_type profiles -o deploy false --org dev-sb0
+        -o metadata_type profiles -o deploy false
 """
 import datetime
 import json

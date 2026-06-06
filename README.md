@@ -1314,7 +1314,7 @@ python scripts/sync_appmenu_from_user.py
 cci flow run prepare_ux --org <org>
 
 # Assemble and deploy AppSwitcher metadata only (reorder_app_launcher runs separately)
-cci task run assemble_and_deploy_ux -o metadata_type appmenus --org <org>
+cci task run assemble_and_deploy_ux -o metadata_type appmenus       # deploys to your DEFAULT cci org (no --org flag)
 ```
 
 ### Load Product Data

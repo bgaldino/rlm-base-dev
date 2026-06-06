@@ -27,12 +27,13 @@ Read this when changing **`templates/`** UX sources, **`tasks/rlm_ux_assembly.py
 ## Workflows (canonical commands)
 
 ```bash
-cci task run assemble_and_deploy_ux --deploy false                     # dry-run assembly (local; this task takes no --org)
+cci task run assemble_and_deploy_ux --deploy false                     # dry-run assembly: local only, no org needed
+cci task run assemble_and_deploy_ux                                    # deploy: targets your DEFAULT cci org (no --org flag)
 cci flow run capture_ux_drift --org <cci_alias>                        # retrieve + diff
 cci flow run apply_ux_drift --org <cci_alias>                          # writeback to templates + verify
 ```
 
-Use **`--org`** with the **CCI alias**; for raw `sf` commands use **`--target-org`** with the SF CLI alias (e.g. `rlm-base__beta`). See `AGENTS.md` — Org Identity.
+Use **`--org`** with the **CCI alias** on the *flows* above; for raw `sf` commands use **`--target-org`** with the SF CLI alias (e.g. `rlm-base__beta`). See `AGENTS.md` — Org Identity. **Note:** the `assemble_and_deploy_ux` *task* has no `--org` option — its deploy step uses your **default** cci org (and raises if none is set); `--deploy false` runs assembly locally with no org at all.
 
 ## DO NOT
 
@@ -59,7 +60,7 @@ The **committed** `post_ux` must reflect the **committed default flags** (`tso=f
 
 ```bash
 # 1. cumulusci.yml at committed defaults (don't commit local flag flips)
-cci task run assemble_and_deploy_ux --deploy false        # NB: this task takes NO --org; assemble is local-only
+cci task run assemble_and_deploy_ux --deploy false        # local assembly only, no org needed
 # 2. confirm the assembled output is a false/false build
 python3 -c "import json;d=json.load(open('unpackaged/post_ux/assembly_manifest.json'));print(d['feature_flags'])"
 grep -rl '<post_feature_field>' unpackaged/post_ux/        # must be empty for gated fields

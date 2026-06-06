@@ -145,8 +145,8 @@ cci task run delete_quantumbit_pricing_data --org beta
 cci task run extract_qb_pricing_data --org beta
 cci task run test_qb_pricing_idempotency --org beta
 cci flow run prepare_rlm_org --org beta
-cci task run assemble_and_deploy_ux                                 # deploys to your default cci org (this task takes no --org)
-cci task run assemble_and_deploy_ux --deploy false                  # dry-run (local assembly; no org)
+cci task run assemble_and_deploy_ux                                 # deploys to your DEFAULT cci org (no --org flag — set the default org to target one)
+cci task run assemble_and_deploy_ux --deploy false                  # dry-run: local assembly only, no org needed
 cci flow run capture_ux_drift --org dev-sb0                          # retrieve + diff
 cci flow run apply_ux_drift --org dev-sb0                            # writeback + reassemble + verify
 cci task run writeback_ux_templates --org dev-sb0                    # dry-run writeback
