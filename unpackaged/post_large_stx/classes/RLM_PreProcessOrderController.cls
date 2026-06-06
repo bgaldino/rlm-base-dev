@@ -442,14 +442,21 @@ public with sharing class RLM_PreProcessOrderController {
         update as user toStamp;
     }
 
-    /** Cached lookup of the seed Exclude-from-Billing treatment by name. */
+    /**
+     * Cached lookup of the seed Exclude-from-Billing treatment. Name isn't a unique
+     * key, so also require ExcludeFromBilling = 'Yes': we must never stamp a billable
+     * same-named treatment onto large-deal order items (that would re-introduce the
+     * billing-schedule rejection this seed exists to avoid).
+     */
     @TestVisible
     private static Id resolveLargeDealExcludeTreatmentId() {
         if (!excludeTreatmentResolved) {
             excludeTreatmentResolved = true;
             List<BillingTreatment> bts = [
                 SELECT Id FROM BillingTreatment
-                WHERE Name = :LARGE_DEAL_EXCLUDE_TREATMENT AND Status = 'Active'
+                WHERE Name = :LARGE_DEAL_EXCLUDE_TREATMENT
+                  AND Status = 'Active'
+                  AND ExcludeFromBilling = 'Yes'
                 WITH USER_MODE
                 LIMIT 1
             ];

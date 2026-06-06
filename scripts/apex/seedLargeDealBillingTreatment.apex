@@ -15,16 +15,13 @@
 final String POLICY_NAME = 'RLM Large Deal Policy';
 final String TREATMENT_NAME = 'RLM Large Deal - Exclude from Billing';
 
-List<BillingTreatment> existing = [
-    SELECT Id, Status, BillingPolicyId FROM BillingTreatment WHERE Name = :TREATMENT_NAME LIMIT 1
-];
-
 // Idempotent + self-healing: the body below re-checks existence and status for
-// BOTH the treatment and the policy, so a re-run repairs a partial prior run
+// BOTH the policy and the treatment, so a re-run repairs a partial prior run
 // (e.g. treatment Active but the policy not yet Active / not linked) instead of
 // early-returning on the treatment's status alone.
 
-// 1) Policy (Draft, Default selection — no legal-entity lookup)
+// 1) Policy (Draft, Default selection — no legal-entity lookup). Resolved FIRST so
+//    the treatment lookup below can be scoped to THIS policy.
 List<BillingPolicy> pols = [SELECT Id, Status, DefaultBillingTreatmentId FROM BillingPolicy WHERE Name = :POLICY_NAME LIMIT 1];
 BillingPolicy pol = pols.isEmpty() ? null : pols[0];
 if (pol == null) {
@@ -36,7 +33,18 @@ if (pol == null) {
     insert pol;
 }
 
-// 2) Treatment (Draft, ExcludeFromBilling=Yes, NO legal entity, NO items)
+// 2) Treatment (Draft, ExcludeFromBilling=Yes, NO legal entity, NO items).
+//    Name is NOT a unique key, so scope the lookup to this policy + ExcludeFromBilling.
+//    Reusing an unrelated same-named treatment (a billable one, or one under a
+//    different policy) would make the DefaultBillingTreatmentId update below fail
+//    validation ("default treatment must belong to the policy") or activate the wrong
+//    config. A same-named treatment outside this policy is left untouched; we create
+//    our own under POLICY_NAME.
+List<BillingTreatment> existing = [
+    SELECT Id, Status FROM BillingTreatment
+    WHERE Name = :TREATMENT_NAME AND ExcludeFromBilling = 'Yes' AND BillingPolicyId = :pol.Id
+    LIMIT 1
+];
 BillingTreatment trt = existing.isEmpty() ? null : existing[0];
 if (trt == null) {
     trt = new BillingTreatment(

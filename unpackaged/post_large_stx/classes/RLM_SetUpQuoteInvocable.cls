@@ -177,15 +177,18 @@ public with sharing class RLM_SetUpQuoteInvocable {
         // offered — an explicit allowlist keeps org-only/test artifacts out of the dropdown.
         List<Map<String, Object>> transactionTypes = new List<Map<String, Object>>();
         try {
+            // Filter by the allowlist in SOQL (not post-query in Apex) so only the
+            // selectable types are fetched — bounded work even in CPQ-heavy orgs.
             for (TransactionProcessingType t : [
-                SELECT DeveloperName, MasterLabel FROM TransactionProcessingType WITH USER_MODE ORDER BY MasterLabel
+                SELECT DeveloperName, MasterLabel FROM TransactionProcessingType
+                WHERE DeveloperName IN :SELECTABLE_TRANSACTION_TYPES
+                WITH USER_MODE
+                ORDER BY MasterLabel
             ]) {
-                if (t.DeveloperName != null && SELECTABLE_TRANSACTION_TYPES.contains(t.DeveloperName)) {
-                    transactionTypes.add(new Map<String, Object>{
-                        'value' => t.DeveloperName,
-                        'label' => String.isNotBlank(t.MasterLabel) ? t.MasterLabel : t.DeveloperName
-                    });
-                }
+                transactionTypes.add(new Map<String, Object>{
+                    'value' => t.DeveloperName,
+                    'label' => String.isNotBlank(t.MasterLabel) ? t.MasterLabel : t.DeveloperName
+                });
             }
         } catch (Exception e) {
             // Leave the list empty; the wizard hides the selector when no types are available.
