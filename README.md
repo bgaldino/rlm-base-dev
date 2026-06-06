@@ -1313,8 +1313,9 @@ python scripts/sync_appmenu_from_user.py
 # Deploy App Launcher + reorder (runs automatically as step 1+2 of prepare_ux on all ux=true orgs)
 cci flow run prepare_ux --org <org>
 
-# Assemble and deploy AppSwitcher metadata only (reorder_app_launcher runs separately)
-cci task run assemble_and_deploy_ux -o metadata_type appmenus       # deploys to your DEFAULT cci org (no --org flag)
+# Apply App Launcher order only, without the rest of prepare_ux
+# (assemble_and_deploy_ux does NOT handle appMenus; AppSwitcher can't deploy via Metadata API on Trialforce orgs)
+cci task run reorder_app_launcher --org <org>
 ```
 
 ### Load Product Data

@@ -8,9 +8,9 @@ personalized in the App Launcher). This script:
   2. Maps each ApplicationId to (name, type) via AppMenuItem
   3. Writes templates/appMenus/base/AppSwitcher.appMenu-meta.xml
 
-No deploy is performed. Run assemble_and_deploy_ux (or prepare_ux) after syncing to
-deploy the updated template. Target orgs must have the same apps or the file may need
-trimming for that org.
+No deploy is performed. Apply the order with reorder_app_launcher (or the prepare_ux
+flow, which calls it) after syncing — assemble_and_deploy_ux does NOT handle appMenus.
+Target orgs must have the same apps or the file may need trimming for that org.
 
 Run with default org set:
   python scripts/sync_appmenu_from_user.py
@@ -137,7 +137,7 @@ def main() -> int:
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     print(f"Wrote {len(ordered_entries)} app menu items to {out_path}.")
-    print("Run 'cci task run assemble_and_deploy_ux' to deploy the updated template (uses your default cci org; no --org flag).")
+    print("Run 'cci task run reorder_app_launcher --org <alias>' (or 'cci flow run prepare_ux --org <alias>') to apply the updated App Launcher order.")
     return 0
 
 

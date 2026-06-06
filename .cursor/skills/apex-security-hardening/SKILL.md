@@ -63,9 +63,11 @@
 
 ## The hardening pass (step by step)
 
-**1. Convert the code.** Add `WITH USER_MODE` to every static `[SELECT …]` (after the
-`WHERE`, before `GROUP BY`/`ORDER BY`/`LIMIT`) and to dynamic query strings; change DML
-to `insert/update/delete as user`. Find what's still system-mode:
+**1. Convert the code.** Add `WITH USER_MODE` to every static `[SELECT …]` and to
+dynamic query strings; change DML to `insert/update/delete as user`. Clause position:
+`WITH USER_MODE` goes after the `WHERE` clause — or immediately after `FROM` when there
+is no `WHERE` — and before any `GROUP BY`/`ORDER BY`/`LIMIT`
+(e.g. `… FROM Account WHERE Id = :id WITH USER_MODE LIMIT 1`). Find what's still system-mode:
 
 ```python
 import re

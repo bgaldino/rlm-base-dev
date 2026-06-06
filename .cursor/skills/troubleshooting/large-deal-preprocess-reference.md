@@ -79,7 +79,7 @@ expected terminal state, confirmed by core automation tests.
 ## Diagnosing a failure (queries)
 
 ```bash
-sf data query --target-org $ORG -q "SELECT Status, CalculationStatus, ValidationResult, PreprocessingStatus, RLM_Preprocessing_Complete__c FROM Order WHERE Id='<id>'"
+sf data query --target-org $ORG -q "SELECT Status, CalculationStatus, ValidationResult, PreprocessingStatus FROM Order WHERE Id='<id>'"   # add ,RLM_Preprocessing_Complete__c only on a large_stx-deployed org (the custom field ships with that feature)
 sf data query --target-org $ORG -q "SELECT Category, ErrorCode, ErrorMessage, ConfiguratorErrorMessage FROM RevenueTransactionErrorLog WHERE PrimaryRecordId='<id>' ORDER BY CreatedDate"
 sf data query --target-org $ORG -q "SELECT JobType, Status, CreatedDate FROM AsyncOperationTracker WHERE ReferenceEntityId='<id>' ORDER BY CreatedDate"
 ```

@@ -48,6 +48,35 @@
 | A single trivial nit with no class | Fix inline; reply; skip the full ceremony |
 | Authoring the actual CRUD/FLS fixes | Pair with `apex-security-hardening/SKILL.md` |
 
+## Release Audit (`262` → `main` → Salesforce Labs)
+
+When a branch is being prepared to merge to `main`, it is **mirrored to an internal
+Salesforce repo and run through Salesforce audit agents** before release to devs,
+partners, and customers via Salesforce Labs. The bar is higher than normal review:
+
+1. **Clean, not just correct.** Resolve **every** finding — including pure nits
+   (option-style, wording, formatting) — until a fresh bot review returns nothing.
+   A nit left behind is a finding the internal audit will re-raise.
+2. **Sweep ahead of the bot.** Don't wait for round N+1. After a round, run a
+   preventive sweep of the *whole PR diff* for the **classes** already seen, so the
+   next round dries up. Verify every shell command (task/option/value exists — check
+   `cumulusci.yml` + the task's `task_options`/`VALID_TYPES`), every file/path
+   reference (`test -e`), every code snippet (runnable; no undefined vars), and every
+   tool/behavior claim (read the referenced task/class) **against the actual repo**.
+3. **Cross-PR reference hygiene (the subtle one).** When a feature is split into a
+   **code PR** and a **docs/skills PR**, the docs PR's examples can cite code that
+   isn't on *its* branch yet. Rules:
+   - A skill/doc must be accurate on **the branch it lives on**. Verify every cited
+     path/field/behavior against *that* branch, not the eventual merged state — a bot
+     (and the audit) reviews the branch in isolation.
+   - **Merge the code PR before its docs PR**, so the references resolve. State the
+     dependency in the docs PR.
+   - If they can't be ordered, make examples **branch-true**: describe the end-state
+     the pass *produces* ("after this pass, SOQL is `WITH USER_MODE`") rather than
+     asserting a present-tense fact about a file that's still pre-change on this branch.
+4. **No tool-coupling.** Skills are plain markdown for *any* agent — never depend on a
+   specific tool name (e.g. a "Workflow tool"); describe the technique.
+
 ## The process
 
 1. **Pull the comments.**
