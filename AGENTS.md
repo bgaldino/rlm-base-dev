@@ -224,13 +224,18 @@ that topic.
 | Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
 | Capture/apply UX drift from org | `.cursor/skills/repo-integration/ux-assembly-retrieve.md` |
 | Review docs before merge | `.cursor/skills/doc-consistency/SKILL.md` |
+| Create, update, register, or test AI-agent skills | `.cursor/skills/skill-authoring/SKILL.md` |
 | Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
 | Author/update enablement exercises per release | `.cursor/skills/release-enablement/SKILL.md` |
 | Generate the QuantumBit demo-script canvas (per-release SE/partner artifact) | `.cursor/skills/qb-demo-script/SKILL.md` |
 | Ground product claims against Salesforce Help (Trailhead, internal docs, SME review) | `.cursor/skills/revenue-cloud-docs/SKILL.md` |
 
-Each skill has a **Quick Rules** section at the top for fast reference,
-and a **DO NOT** section listing critical safety constraints for that area.
+Every top-level skill has a **Quick Rules** section, and most have **DO NOT**;
+new and migrated skills should also include **Entry Conditions**, **Examples**,
+and **Validation Checks** sections. Existing skills are being migrated to this
+structure incrementally, so not all of them carry the full set yet. Read
+`.cursor/skills/skill-authoring/SKILL.md` before creating, splitting,
+registering, or testing skills.
 
 ### Skill Sub-Files (Progressive Disclosure)
 
@@ -338,5 +343,8 @@ This repository provides multiple entry points for different AI tools:
 | `AGENTS.md` | Any agent | Canonical source of truth (this file) |
 | `CLAUDE.md` | Claude Code, Cursor | Symlink to `AGENTS.md` |
 | `.github/copilot-instructions.md` | GitHub Copilot | Pointer to `AGENTS.md` |
+| `.agents/README.md` | Any agent | Tool-agnostic routing layer: instruction-stack overview, per-tool adapters (`.agents/adapters/`), model routing, and project context. Defers to `AGENTS.md`. |
 
-All entry points resolve to the same content. Edit `AGENTS.md` only.
+`AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` resolve to the
+same content — edit `AGENTS.md` only. The `.agents/` tree is a separate routing
+and context layer that points back to `AGENTS.md` and never overrides it.
