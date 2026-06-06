@@ -291,8 +291,14 @@ public with sharing class RLM_PreProcessOrderController {
             String trackerStatus = null;
             if (String.isNotBlank(requestId)) {
                 Id reqId = Id.valueOf(requestId);
+                // Scope the requestId to THIS order's preprocess job so a stale/foreign
+                // tracker Id from the client can't report an unrelated job's status. A
+                // non-match yields no rows and falls through to the per-order fallback below.
                 List<AsyncOperationTracker> trackers = [
-                    SELECT Id, Status FROM AsyncOperationTracker WHERE Id = :reqId WITH USER_MODE LIMIT 1
+                    SELECT Id, Status FROM AsyncOperationTracker
+                    WHERE Id = :reqId AND ReferenceEntityId = :oid AND JobType = 'PreprocessOrder'
+                    WITH USER_MODE
+                    LIMIT 1
                 ];
                 if (!trackers.isEmpty()) {
                     trackerStatus = trackers[0].Status;
