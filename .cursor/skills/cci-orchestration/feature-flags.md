@@ -31,7 +31,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
 | `guidedselling` | `True` | 4 flow step(s) |
-| `large_stx` | `True` | 5 flow step(s) |
+| `large_stx` | `False` | 5 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
 | `personas` | `True` | 8 flow step(s) |
@@ -199,7 +199,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_guidedselling` step 3 → `assign_permission_sets`
 - `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
 
-### `large_stx` (default: `True`)
+### `large_stx` (default: `False`)
 
 - `prepare_rlm_org` step 27 → `prepare_large_stx`
 - `prepare_large_stx` step 1 → `deploy_post_large_stx`

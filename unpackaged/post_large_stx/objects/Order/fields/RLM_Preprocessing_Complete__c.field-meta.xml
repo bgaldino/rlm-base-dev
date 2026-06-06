@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Preprocessing_Complete__c</fullName>
     <externalId>false</externalId>
-    <formula>IF(ISBLANK(PreprocessingStatus), false, LEFT(PreprocessingStatus, 1) = "C")</formula>
+    <formula>IF(ISBLANK(PreprocessingStatus), false, UPPER(LEFT(PreprocessingStatus, 1)) = "C")</formula>
     <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
     <label>Preprocessing Complete</label>
     <description>True when the large-deal preprocessing validation bit (position 0 of PreprocessingStatus) is Completed ('C'). Billing-agnostic: complete is CNNN (invoicing off) or CCCC (on). Used to gate the Prepare for Activation action.</description>

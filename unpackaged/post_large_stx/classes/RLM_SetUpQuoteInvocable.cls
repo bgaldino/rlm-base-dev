@@ -178,7 +178,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         List<Map<String, Object>> transactionTypes = new List<Map<String, Object>>();
         try {
             for (TransactionProcessingType t : [
-                SELECT DeveloperName, MasterLabel FROM TransactionProcessingType ORDER BY MasterLabel
+                SELECT DeveloperName, MasterLabel FROM TransactionProcessingType WITH USER_MODE ORDER BY MasterLabel
             ]) {
                 if (t.DeveloperName != null && SELECTABLE_TRANSACTION_TYPES.contains(t.DeveloperName)) {
                     transactionTypes.add(new Map<String, Object>{
@@ -230,6 +230,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 SELECT Id, Name, IsLargeDeal, LineItemCount, CalculationStatus
                 FROM Quote
                 WHERE Id = :qId
+                WITH USER_MODE
                 LIMIT 1
             ];
             Integer groupCount = [SELECT COUNT() FROM QuoteLineGroup WHERE QuoteId = :qId WITH USER_MODE];
@@ -244,12 +245,14 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 FROM AsyncOperationTracker
                 WHERE ReferenceEntityId = :qId
                 AND Status NOT IN ('Completed', 'Failed', 'Failure', 'Canceled')
+                WITH USER_MODE
             ];
             Integer failedAsyncCount = [
                 SELECT COUNT()
                 FROM AsyncOperationTracker
                 WHERE ReferenceEntityId = :qId
                 AND Status IN ('Failed', 'Failure', 'Canceled')
+                WITH USER_MODE
             ];
             return JSON.serialize(new Map<String, Object>{
                 'success' => true,
@@ -310,6 +313,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 FROM QuoteLineItem
                 WHERE QuoteId = :qId
                   AND Product2.ProductCode IN :siemensIdentifiers
+                WITH USER_MODE
             ];
         } catch (Exception e) {
             return RLM_SetUpQuoteProductSets.PRODUCT_SET_QUANTUMBIT;
@@ -344,6 +348,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             FROM QuoteLineItem
             WHERE QuoteId = :qId
               AND QuoteLineGroupId != null
+            WITH USER_MODE
             GROUP BY QuoteLineGroupId
         ]) {
             lineCountByGroup.put((Id) ar.get('groupId'), (Integer) ar.get('lineCount'));
@@ -807,7 +812,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         for (Account a : [
             SELECT BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry,
                    ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry
-            FROM Account WHERE Id = :acctId LIMIT 1
+            FROM Account WHERE Id = :acctId WITH USER_MODE LIMIT 1
         ]) {
             putIfNotBlank(out, 'BillingStreet', a.BillingStreet);
             putIfNotBlank(out, 'BillingCity', a.BillingCity);
@@ -821,7 +826,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             putIfNotBlank(out, 'ShippingCountry', a.ShippingCountry);
         }
         for (Contact c : [
-            SELECT Email, Phone FROM Contact WHERE AccountId = :acctId ORDER BY CreatedDate ASC LIMIT 1
+            SELECT Email, Phone FROM Contact WHERE AccountId = :acctId WITH USER_MODE ORDER BY CreatedDate ASC LIMIT 1
         ]) {
             out.put('BillToContactId', c.Id);
             out.put('ContactId', c.Id);
@@ -898,6 +903,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             for (TransactionProcessingType t : [
                 SELECT DeveloperName, PricingPreference, TaxPreference, RatingPreference
                 FROM TransactionProcessingType
+                WITH USER_MODE
             ]) {
                 tptCache.put(t.DeveloperName, t);
             }
@@ -1194,6 +1200,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             SELECT Id, Name, ParentQuoteLineGroupId, SortOrder
             FROM QuoteLineGroup
             WHERE QuoteId = :quoteId
+            WITH USER_MODE
             ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name
         ];
         Map<Id, List<QuoteLineGroup>> childrenByParent = new Map<Id, List<QuoteLineGroup>>();
@@ -1691,6 +1698,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         for (Account a : [
             SELECT Id, Name
             FROM Account
+            WITH USER_MODE
             ORDER BY Name
             LIMIT 200
         ]) {
@@ -1710,6 +1718,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             SELECT Id, Name, QuoteNumber, Status, LastModifiedDate
             FROM Quote
             WHERE AccountId = :accountId OR QuoteAccountId = :accountId
+            WITH USER_MODE
             ORDER BY LastModifiedDate DESC
             LIMIT 10
         ];
@@ -1744,6 +1753,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             SELECT Id, Name, QuoteNumber, Status, LastModifiedDate
             FROM Quote
             WHERE Id IN :quoteIds
+            WITH USER_MODE
         ]);
 
         // Dynamic net-total field fallback by org capability.

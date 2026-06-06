@@ -32,7 +32,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         if (!isCreate && String.isNotBlank(quoteIdStr)) {
             try {
                 parsedQId = Id.valueOf(quoteIdStr);
-                currentTotal = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :parsedQId];
+                currentTotal = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :parsedQId WITH USER_MODE];
             } catch (Exception e) {
                 return buildResponse(0, 0, 0, 0, 0, 'Invalid quote Id');
             }
@@ -46,6 +46,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
                 FROM QuoteLineItem
                 WHERE QuoteId = :parsedQId
                   AND QuoteLineGroupId IN :deletedGroupIds
+                WITH USER_MODE
             ];
         }
 
@@ -160,7 +161,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             // Ownership guard: only traverse roots that belong to the target quote
             if (quoteId != null) {
                 Set<Id> ownedRoots = new Set<Id>();
-                for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :rootIds AND QuoteId = :quoteId]) {
+                for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :rootIds AND QuoteId = :quoteId WITH USER_MODE]) {
                     ownedRoots.add(g.Id);
                 }
                 rootIds = ownedRoots;
@@ -177,8 +178,8 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             while (!frontier.isEmpty()) {
                 Set<Id> nextFrontier = new Set<Id>();
                 List<QuoteLineGroup> children = quoteId != null
-                    ? [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :quoteId]
-                    : [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier];
+                    ? [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :quoteId WITH USER_MODE]
+                    : [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier WITH USER_MODE];
                 for (QuoteLineGroup g : children) {
                     if (!result.contains(g.Id)) {
                         result.add(g.Id);
@@ -228,7 +229,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         }
         // Ownership guard: only count adds for groups that belong to this quote
         Set<Id> validGroupIds = new Set<Id>();
-        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :quoteId AND Id IN :idToAddCount.keySet()]) {
+        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :quoteId AND Id IN :idToAddCount.keySet() WITH USER_MODE]) {
             validGroupIds.add(g.Id);
         }
         for (Id gid : idToAddCount.keySet()) {

@@ -52,10 +52,10 @@
             <name>RecordIsRevenueLifecycleManagement</name>
             <conditionLogic>and</conditionLogic>
             <conditions>
-                <leftValueReference>AppUsageAssignmentRecord.Id</leftValueReference>
+                <leftValueReference>Get_ApplicationUsageAssignment.Id</leftValueReference>
                 <operator>IsNull</operator>
                 <rightValue>
-                    <booleanValue>true</booleanValue>
+                    <booleanValue>false</booleanValue>
                 </rightValue>
             </conditions>
             <connector>
@@ -132,7 +132,7 @@
                 <stringValue>RevenueLifecycleManagement</stringValue>
             </value>
         </filters>
-        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>AppUsageAssignment</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
@@ -159,12 +159,4 @@
         <triggerType>RecordAfterSave</triggerType>
     </start>
     <status>Active</status>
-    <variables>
-        <name>AppUsageAssignmentRecord</name>
-        <dataType>SObject</dataType>
-        <isCollection>false</isCollection>
-        <isInput>false</isInput>
-        <isOutput>false</isOutput>
-        <objectType>AppUsageAssignment</objectType>
-    </variables>
 </Flow>
