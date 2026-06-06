@@ -43,6 +43,7 @@ export default class RlmPreProcessOrderAction extends LightningElement {
 
   _requestId;
   _pollHandle;
+  _pollInFlight = false;
   _pollCount = 0;
   _phase; // 'repricing' | 'preprocess'
   _repriceAttempt = 0;
@@ -246,12 +247,24 @@ export default class RlmPreProcessOrderAction extends LightningElement {
     }
   }
 
-  poll() {
-    this._pollCount += 1;
-    if (this._phase === "repricing") {
-      return this.pollPricing();
+  async poll() {
+    // Re-entrancy guard: setInterval can fire again while a prior poll's async
+    // Apex call is still in flight (server response slower than POLL_INTERVAL_MS).
+    // Skip overlapping ticks so only one poll mutates state at a time.
+    if (this._pollInFlight) {
+      return;
     }
-    return this.pollPreprocess();
+    this._pollInFlight = true;
+    try {
+      this._pollCount += 1;
+      if (this._phase === "repricing") {
+        await this.pollPricing();
+      } else {
+        await this.pollPreprocess();
+      }
+    } finally {
+      this._pollInFlight = false;
+    }
   }
 
   // Phase 2 poll: wait for the reprice to commit, retry it, or surface a partial-save.
@@ -263,6 +276,8 @@ export default class RlmPreProcessOrderAction extends LightningElement {
     try {
       const res = JSON.parse(await getPricingStatus({ orderId: this.recordId }));
       if (!res.success) {
+        // A non-committed observation breaks the consecutive-committed streak.
+        this._stableCommittedPolls = 0;
         return; // transient; keep polling
       }
       this.progressText =
@@ -299,7 +314,8 @@ export default class RlmPreProcessOrderAction extends LightningElement {
       // pricing_in_progress
       this._stableCommittedPolls = 0;
     } catch (e) {
-      // Keep polling on transient errors.
+      // Transient error — a failed observation breaks the committed streak too.
+      this._stableCommittedPolls = 0;
     }
   }
 
