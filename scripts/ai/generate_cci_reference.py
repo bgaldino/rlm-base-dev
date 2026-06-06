@@ -25,14 +25,15 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-# PyYAML is optional at import time. find_spec can report a module that still
-# fails to import (broken/partial install), so guard the actual import.
+# PyYAML is optional at import time. Any import-time failure — module missing,
+# a broken/partial install, a SyntaxError or runtime error in the module, or a
+# find_spec error — leaves yaml as None so load_cci() emits clean guidance.
 yaml = None
-if importlib.util.find_spec("yaml") is not None:
-    try:
+try:
+    if importlib.util.find_spec("yaml") is not None:
         yaml = importlib.import_module("yaml")
-    except ImportError:
-        yaml = None
+except Exception:
+    yaml = None
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 CCI_YML = ROOT / "cumulusci.yml"
@@ -62,8 +63,13 @@ def _pyyaml_error() -> str:
 def load_cci() -> dict:
     if yaml is None:
         raise SystemExit(_pyyaml_error())
-    with open(CCI_YML, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+    try:
+        with open(CCI_YML, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except (OSError, UnicodeDecodeError) as exc:
+        raise SystemExit(f"ERROR: cannot read {CCI_YML}: {exc}")
+    except yaml.YAMLError as exc:
+        raise SystemExit(f"ERROR: cannot parse {CCI_YML}: {exc}")
 
 
 # ---------------------------------------------------------------------------

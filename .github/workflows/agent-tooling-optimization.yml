@@ -35,9 +35,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      # workflow_dispatch passes a real boolean input; schedule/pull_request
-      # leave it unset, so default to false.
-      DEEP_CHECKS: ${{ github.event_name == 'workflow_dispatch' && inputs.deep_checks || false }}
+      # Deep checks (regenerate artifacts + open a drift PR) run on the weekly
+      # schedule and on manual dispatch with deep_checks=true. pull_request runs
+      # the stdlib-only baseline gate only.
+      DEEP_CHECKS: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.deep_checks) || false }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

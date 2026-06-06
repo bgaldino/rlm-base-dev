@@ -43,14 +43,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-# PyYAML is optional at import time. find_spec can report a module that still
-# fails to import (broken/partial install), so guard the actual import.
+# PyYAML is optional at import time. Any import-time failure — module missing,
+# a broken/partial install, a SyntaxError or runtime error in the module, or a
+# find_spec error — degrades to the stdlib-only minimal fallback.
 yaml = None
-if importlib.util.find_spec("yaml") is not None:
-    try:
+try:
+    if importlib.util.find_spec("yaml") is not None:
         yaml = importlib.import_module("yaml")
-    except ImportError:
-        yaml = None
+except Exception:
+    yaml = None
 
 
 MANIFEST_FILENAME = ".claude/skill-manifest.yml"
@@ -377,7 +378,10 @@ def load_manifest(path: Path | None = None) -> dict[str, Any]:
         print(PY_YAML_HELP, file=sys.stderr)
         data = _load_manifest_minimal(manifest_text)
     else:
-        data: dict[str, Any] = yaml.safe_load(manifest_text) or {}
+        try:
+            data: dict[str, Any] = yaml.safe_load(manifest_text) or {}
+        except yaml.YAMLError as exc:
+            raise SystemExit(f"skill_manifest.py: cannot parse {manifest_path}: {exc}")
         if not isinstance(data, dict):
             data = {}
 

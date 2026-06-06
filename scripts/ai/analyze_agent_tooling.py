@@ -181,15 +181,19 @@ def load_yaml_optional(path: Path) -> tuple[dict[str, Any] | None, str]:
     """Load YAML with PyYAML when importable; otherwise return ``(None, label)``.
 
     ``find_spec`` can report a module that still fails to import (broken or
-    partial install), so the actual import is guarded.
+    partial install), so the actual import is guarded against any import-time
+    failure (not only ImportError) and degrades to the line fallback.
     """
-    if importlib.util.find_spec("yaml") is None:
-        return None, "line-oriented fallback"
     try:
+        if importlib.util.find_spec("yaml") is None:
+            return None, "line-oriented fallback"
         yaml = importlib.import_module("yaml")
-    except ImportError:
+        data = yaml.safe_load(read_text(path)) or {}
+    except Exception:
+        # Any import-time OR parse failure (incl. malformed YAML) degrades to
+        # the line fallback, which produces the same environment-independent
+        # summary, so report/coverage still write their artifacts.
         return None, "line-oriented fallback"
-    data = yaml.safe_load(read_text(path)) or {}
     if not isinstance(data, dict):
         return {}, "PyYAML"
     return data, "PyYAML"
@@ -493,7 +497,11 @@ def run_baseline_checks(root: Path) -> list[CheckResult]:
 
 
 def run_full_generated_reference_check(root: Path) -> CheckResult:
-    if importlib.util.find_spec("yaml") is None:
+    try:
+        yaml_present = importlib.util.find_spec("yaml") is not None
+    except Exception:
+        yaml_present = False
+    if not yaml_present:
         # Skip (do not fail) when PyYAML is absent — this opt-in deeper check
         # requires it, and the README documents it as skipped with guidance.
         return CheckResult("full generated-reference dry run", True, FULL_CHECK_ENV_HELP, skipped=True)
@@ -934,11 +942,11 @@ OWNER_KEYWORDS: tuple[tuple[str, str], ...] = (
 
 
 def extract_frontmatter(text: str) -> str:
-    if not text.lstrip("﻿").startswith("---"):
+    # Strip a leading UTF-8 BOM and tolerate CRLF / an optional trailing newline
+    # after the closing fence, so a rule file's globs are not silently dropped.
+    text = text.lstrip("﻿").replace("\r\n", "\n").replace("\r", "\n")
+    if not text.startswith("---"):
         return ""
-    # Tolerate CRLF line endings and an optional trailing newline after the
-    # closing fence so a rule file's globs are not silently dropped.
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
     match = re.match(r"^---\n(.*?)\n---\s*(?:\n|$)", text, flags=re.DOTALL)
     return match.group(1) if match else ""
 
@@ -1054,8 +1062,9 @@ def glob_covers(rules: list[RuleInfo], candidate: str) -> bool:
             if pattern == candidate:
                 return True
             for sample in samples:
-                # fnmatch(name, pattern): the candidate is the name to match.
-                if fnmatch.fnmatch(sample, pattern):
+                # fnmatchcase (not fnmatch) skips os.path.normcase, so coverage
+                # matching is case-sensitive and identical on every platform.
+                if fnmatch.fnmatchcase(sample, pattern):
                     return True
     return False
 
