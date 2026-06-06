@@ -39,7 +39,7 @@ A major subsystem is one of these top-level functional areas of the repository:
 | Testing | `robot/**`, `tests/**` |
 | Tooling & docs | `scripts/**`, `docs/**`, `.agents/**` |
 
-"More than one major subsystem changed" means a single change set touches paths in two or more of these rows — for example, a PR that edits both `tasks/insert_pricing.py` (Orchestration) and `datasets/sfdmu/pricing/export.json` (Data plans). A change confined to one row (e.g. three files all under `datasets/sfdmu/**`) is a single-subsystem change and does not trigger this criterion on its own.
+"More than one major subsystem changed" means a single change set touches paths in two or more of these rows — for example, a PR that edits both `tasks/rlm_sync_pricing_data.py` (Orchestration) and `datasets/sfdmu/procedure-plans/export.json` (Data plans). A change confined to one row (e.g. three files all under `datasets/sfdmu/**`) is a single-subsystem change and does not trigger this criterion on its own.
 
 ## Default Decision Pattern
 
