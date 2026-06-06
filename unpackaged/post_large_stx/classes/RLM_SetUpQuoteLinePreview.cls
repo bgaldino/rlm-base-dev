@@ -175,7 +175,13 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             // the entire (growing) result set. Keeps this O(n) over the subtree
             // rather than O(n^2) on deep/wide hierarchies.
             Set<Id> frontier = new Set<Id>(rootIds);
-            while (!frontier.isEmpty()) {
+            // Depth guard: bound the per-level SOQL so a pathologically deep hierarchy can't
+            // exhaust the query governor limit. Group nesting is realistically <=5 levels;
+            // 50 is a safe hard cap well under the synchronous SOQL ceiling.
+            Integer levelGuard = 0;
+            final Integer maxLevels = 50;
+            while (!frontier.isEmpty() && levelGuard < maxLevels) {
+                levelGuard++;
                 Set<Id> nextFrontier = new Set<Id>();
                 List<QuoteLineGroup> children = quoteId != null
                     ? [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :quoteId WITH USER_MODE]

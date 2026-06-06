@@ -903,13 +903,22 @@ public with sharing class RLM_SetUpQuoteInvocable {
     private static TransactionProcessingType lookupTransactionProcessingType(String devName) {
         if (tptCache == null) {
             tptCache = new Map<String, TransactionProcessingType>();
+        }
+        // Lazy, per-DeveloperName lookup with negative caching — a builder run needs only the
+        // one selected type, so never scan the whole TransactionProcessingType table (cheap in
+        // CPQ-heavy orgs). The cached null for a missing name avoids re-querying it.
+        if (!tptCache.containsKey(devName)) {
+            TransactionProcessingType found = null;
             for (TransactionProcessingType t : [
                 SELECT DeveloperName, PricingPreference, TaxPreference, RatingPreference
                 FROM TransactionProcessingType
+                WHERE DeveloperName = :devName
                 WITH USER_MODE
+                LIMIT 1
             ]) {
-                tptCache.put(t.DeveloperName, t);
+                found = t;
             }
+            tptCache.put(devName, found);
         }
         return tptCache.get(devName);
     }
@@ -1736,6 +1745,13 @@ public with sharing class RLM_SetUpQuoteInvocable {
         return out;
     }
 
+    // Bounds for the repeat-buy preview so a caller-supplied selection can't exhaust
+    // query-row/heap limits (the flow targets large deals, so quotes can be big).
+    @TestVisible
+    private static final Integer MAX_REPEAT_BUY_QUOTES = 50;
+    @TestVisible
+    private static final Integer MAX_REPEAT_BUY_LINES = 5000;
+
     @AuraEnabled(cacheable=false)
     public static String getRepeatBuyLines(String quoteIdsJson) {
         if (String.isBlank(quoteIdsJson)) return '[]';
@@ -1751,6 +1767,9 @@ public with sharing class RLM_SetUpQuoteInvocable {
             }
         }
         if (quoteIds.isEmpty()) return '[]';
+        if (quoteIds.size() > MAX_REPEAT_BUY_QUOTES) {
+            throw new RLM_SetUpQuoteException('Select at most ' + MAX_REPEAT_BUY_QUOTES + ' quotes for repeat buy.');
+        }
 
         Map<Id, Quote> quoteById = new Map<Id, Quote>([
             SELECT Id, Name, QuoteNumber, Status, LastModifiedDate
@@ -1768,8 +1787,16 @@ public with sharing class RLM_SetUpQuoteInvocable {
         String soql =
             'SELECT Id, QuoteId, Quantity, UnitPrice, Product2Id, Product2.Name, Product2.ProductCode, QuoteLineGroupId, QuoteLineGroup.Name, ' +
             netField +
-            ' FROM QuoteLineItem WHERE QuoteId IN :quoteIds WITH USER_MODE ORDER BY QuoteId, QuoteLineGroup.Name, CreatedDate';
+            ' FROM QuoteLineItem WHERE QuoteId IN :quoteIds WITH USER_MODE' +
+            ' ORDER BY QuoteId, QuoteLineGroup.Name, CreatedDate' +
+            ' LIMIT ' + String.valueOf(MAX_REPEAT_BUY_LINES + 1);
         List<QuoteLineItem> lines = Database.query(soql);
+        // Defensive backstop: never let an oversized selection blow heap/row limits in this
+        // preview. Fail with guidance rather than silently truncating the previewed lines.
+        if (lines.size() > MAX_REPEAT_BUY_LINES) {
+            throw new RLM_SetUpQuoteException(
+                'The selected quotes have too many lines to preview at once. Select fewer or smaller quotes.');
+        }
 
         Map<Id, List<Map<String, Object>>> grouped = new Map<Id, List<Map<String, Object>>>();
         for (QuoteLineItem li : lines) {
