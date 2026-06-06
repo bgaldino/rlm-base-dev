@@ -145,11 +145,19 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         this.transactionType = defaultType;
       } else if (this.transactionTypeOptions.length) {
         this.transactionType = this.transactionTypeOptions[0].value;
+      } else {
+        // No selectable types — clear any prior selection so we never send a
+        // transactionType the (now-hidden) selector can't represent.
+        this.transactionType = null;
       }
     } catch (e) {
       console.error("RLM_SetUpQuoteWizard: getSetUpQuoteUiConfig failed", e);
       this.showProductSetSelectorFromConfig = false;
+      // Clear BOTH the options and the selected value: keep the invariant that
+      // transactionType is null whenever the selector is hidden, so a failed
+      // (re)load can't leave a stale transactionType in the submit payload.
       this.transactionTypeOptions = [];
+      this.transactionType = null;
     }
     if (!this.showProductSetSelectorFromConfig) {
       this.productSetMode = PRODUCT_SET_QUANTUMBIT;
