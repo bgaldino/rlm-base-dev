@@ -17,7 +17,8 @@ content is intentionally reusable across agents.
 
 2. **`.cursor/skills/` — tool-neutral skill markdown**
    - Contains detailed task guides such as CCI orchestration, SFDMU data plans,
-     Robot testing, UX assembly, schema validation, and release enablement.
+     Robot testing, UX assembly (under `repo-integration`), schema validation,
+     and release enablement.
    - Despite the historical `.cursor` path, these are plain Markdown skills for
      any agent that can read repository files.
    - Use the Skill Index in `AGENTS.md` or `.cursor/skills/README.md` to choose
@@ -66,3 +67,16 @@ Short adapter notes live in `.agents/adapters/`:
 
 Each adapter explains how that tool should map its native instruction mechanism
 to the repository's existing files and which files are authoritative.
+
+## Other `.agents/` files
+
+The `.agents/` tree also holds supporting context for agents (added alongside
+this README):
+
+- `.agents/model-routing.md` — maps work types to model/execution modes and
+  defines escalation criteria.
+- `.agents/context/project-map.md` — human-readable map of the repository.
+- `.agents/context/project-memory.json` — machine-readable project memory,
+  validated against `.agents/schemas/project-memory.schema.json`.
+
+None of these override `AGENTS.md`; they are routing and context aids.
