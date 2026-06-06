@@ -19,10 +19,10 @@ List<BillingTreatment> existing = [
     SELECT Id, Status, BillingPolicyId FROM BillingTreatment WHERE Name = :TREATMENT_NAME LIMIT 1
 ];
 
-if (!existing.isEmpty() && existing[0].Status == 'Active') {
-    System.debug('SEED skip: "' + TREATMENT_NAME + '" already Active (' + existing[0].Id + ')');
-    return;
-}
+// Idempotent + self-healing: the body below re-checks existence and status for
+// BOTH the treatment and the policy, so a re-run repairs a partial prior run
+// (e.g. treatment Active but the policy not yet Active / not linked) instead of
+// early-returning on the treatment's status alone.
 
 // 1) Policy (Draft, Default selection — no legal-entity lookup)
 List<BillingPolicy> pols = [SELECT Id, Status, DefaultBillingTreatmentId FROM BillingPolicy WHERE Name = :POLICY_NAME LIMIT 1];

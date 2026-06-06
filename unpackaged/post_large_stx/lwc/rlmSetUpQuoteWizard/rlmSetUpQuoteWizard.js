@@ -147,6 +147,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         this.transactionType = this.transactionTypeOptions[0].value;
       }
     } catch (e) {
+      console.error("RLM_SetUpQuoteWizard: getSetUpQuoteUiConfig failed", e);
       this.showProductSetSelectorFromConfig = false;
       this.transactionTypeOptions = [];
     }
@@ -1299,6 +1300,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         value: r.value,
       }));
     } catch (e) {
+      console.error("RLM_SetUpQuoteWizard: getAccountsForRepeatBuy failed", e);
       this.repeatBuyAccountOptions = [];
     }
     this.repeatBuyAccountsLoading = false;
@@ -1326,6 +1328,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         value: r.value,
       }));
     } catch (e) {
+      console.error("RLM_SetUpQuoteWizard: getRecentQuotesForRepeatBuy failed", e);
       this.repeatBuyQuoteOptions = [];
     }
     this.repeatBuyQuotesLoading = false;
@@ -1354,6 +1357,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
       this.repeatBuyPayload = payload;
       this.seedHierarchyAndAssignmentsFromRepeatPayload(payload);
     } catch (e) {
+      console.error("RLM_SetUpQuoteWizard: getRepeatBuyLines failed", e);
       this.repeatBuyPayload = [];
       this.repeatBuyAssignments = [];
       this._hierarchyJson = '{"parents":[]}';
@@ -1569,6 +1573,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         isLargeDeal: o.isLargeDeal === "true" ? "true" : "false",
       }));
     } catch (e) {
+      console.error("RLM_SetUpQuoteWizard: getQuotesForModify failed", e);
       this.quoteOptions = [];
     }
     this.quoteOptionsLoading = false;
@@ -1595,6 +1600,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
           ? PRODUCT_SET_SIEMENS
           : PRODUCT_SET_QUANTUMBIT;
     } catch (e) {
+      console.error("RLM_SetUpQuoteWizard: detectQuoteProductSetMode failed", e);
       this.productSetMode = PRODUCT_SET_QUANTUMBIT;
     }
     this.quoteProductSetDetectionLoading = false;
@@ -1723,41 +1729,13 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
       headerCells.length >= 8 &&
       !expectedCols.some((name, idx) => headerCells[idx] !== name);
     if (!headerOk) {
-      const charCodes = [];
-      for (let k = 0; k < Math.min(rawFirstLine.length, 15); k++) {
-        charCodes.push(rawFirstLine.charCodeAt(k));
-      }
-      const cellRepr = (s) => {
-        if (s == null) return "null";
-        const r = JSON.stringify(s);
-        const codes = [];
-        for (let k = 0; k < Math.min(s.length, 20); k++)
-          codes.push(s.charCodeAt(k));
-        return r + " (len=" + s.length + " codes=" + codes.join(",") + ")";
-      };
-      let fullError =
-        "Invalid header. Expected: " + CSV_HEADER + "\n\n--- DEBUG (v3) ---\n";
-      fullError += "Raw first line length: " + rawFirstLine.length + "\n";
-      fullError += "First 15 char codes: " + charCodes.join(",") + "\n";
-      fullError +=
-        "Raw first line (JSON): " + JSON.stringify(rawFirstLine) + "\n";
-      fullError += "Parsed header column count: " + headerCells.length + "\n";
-      headerCells.forEach((cell, idx) => {
-        fullError += "  [" + idx + "] " + cellRepr(cell) + "\n";
-      });
-      fullError += "Expected columns:\n";
-      expectedCols.forEach((name, idx) => {
-        const match = headerCells[idx] === name;
-        fullError +=
-          "  [" +
-          idx +
-          "] " +
-          JSON.stringify(name) +
-          " => " +
-          (match ? "OK" : "MISMATCH (got " + cellRepr(headerCells[idx]) + ")") +
-          "\n";
-      });
-      out.error = fullError;
+      // User-facing header error (no developer debug dump).
+      out.error =
+        "Invalid CSV header. Expected columns: " +
+        expectedCols.join(", ") +
+        ". Got: " +
+        headerCells.join(", ") +
+        ".";
       return out;
     }
     const norm = (s) => (s || "").trim().replace(/\s+/g, "");
@@ -2022,6 +2000,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
           typeof raw === "string" ? JSON.parse(raw || "{}") : raw || {};
         this.existingHierarchy = parsed;
       } catch (e) {
+        console.error("RLM_SetUpQuoteWizard: getQuoteHierarchy failed", e);
         this.existingHierarchy = { parents: [] };
       }
       this.captureOriginalGroupNamesFromHierarchy();
@@ -2674,6 +2653,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         error: o.error || null,
       };
     } catch (e) {
+      console.error("RLM_SetUpQuoteWizard: previewQuoteLineCounts failed", e);
       this.quoteLinePreview = {
         currentTotal: 0,
         projectedTotal: 0,
