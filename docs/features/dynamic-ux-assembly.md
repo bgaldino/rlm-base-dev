@@ -257,19 +257,18 @@ cci task run assemble_and_deploy_ux
 # Dry-run: assemble only, no deploy (local — no org needed)
 cci task run assemble_and_deploy_ux -o deploy false
 
-# Regenerate a single flexipage
+# Regenerate a single flexipage (deploys to your DEFAULT cci org; no --org flag)
 cci task run assemble_and_deploy_ux \
-    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml \
-    --org dev-sb0
+    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
 
-# Regenerate and inspect a profile without deploying
+# Regenerate and inspect a profile without deploying (local; no org needed)
 cci task run assemble_and_deploy_ux \
     -o metadata_name Admin.profile-meta.xml \
-    -o deploy false --org dev-sb0
+    -o deploy false
 
-# Assemble only layouts
+# Assemble only layouts (local; no org needed)
 cci task run assemble_and_deploy_ux \
-    -o metadata_type layouts -o deploy false --org dev-sb0
+    -o metadata_type layouts -o deploy false
 ```
 
 ### `prepare_ux` flow
@@ -557,15 +556,14 @@ Review `unpackaged/post_ux/` and `unpackaged/post_ux/assembly_manifest.json`.
 ### Regenerate a single item
 
 ```bash
-# Single flexipage (also deploys it)
+# Single flexipage (also deploys it — to your DEFAULT cci org; no --org flag)
 cci task run assemble_and_deploy_ux \
-    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml \
-    --org dev-sb0
+    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
 
-# Single layout, no deploy
+# Single layout, no deploy (local; no org needed)
 cci task run assemble_and_deploy_ux \
     -o metadata_name "Quote-RLM Quote Layout.layout-meta.xml" \
-    -o deploy false --org dev-sb0
+    -o deploy false
 ```
 
 ### Check what feature flags were active for a past assembly

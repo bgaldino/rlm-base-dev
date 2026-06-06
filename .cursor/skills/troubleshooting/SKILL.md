@@ -344,7 +344,7 @@ the Metadata API can't validate.
 
 **Fix:** Edit the source templates, then re-assemble:
 ```bash
-cci task run assemble_and_deploy_ux --deploy false
+cci task run assemble_and_deploy_ux -o deploy false
 ```
 Inspect `unpackaged/post_ux/` to verify, then deploy.
 
@@ -444,7 +444,7 @@ cci task run manage_decision_tables -o operation list --org beta
 cci task run manage_expression_sets -o operation list --org beta
 
 # UX dry-run (assemble without deploy)
-cci task run assemble_and_deploy_ux --deploy false
+cci task run assemble_and_deploy_ux -o deploy false
 
 # Clear source tracking corruption
 rm -rf .sf/orgs/<org-id>/localSourceTracking

@@ -89,7 +89,9 @@ gh api --method POST repos/<owner>/<repo>/pulls/comments/<comment_id>/reactions 
 
 ## Workflow patterns for scale
 
-For a branch-wide audit, fan out rather than read serially (see the `Workflow` tool):
+For a branch-wide audit, fan out rather than read serially — parallelize the work
+across multiple agents (use whatever multi-agent / parallel-task capability your
+tool provides; serial reading also works, just slower):
 **find → dedup vs seen → adversarially verify (multiple skeptics / diverse lenses) →
 synthesize.** Patterns that paid off here:
 
