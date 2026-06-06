@@ -27,7 +27,7 @@ Read this when changing **`templates/`** UX sources, **`tasks/rlm_ux_assembly.py
 ## Workflows (canonical commands)
 
 ```bash
-cci task run assemble_and_deploy_ux -o deploy false --org <cci_alias>   # dry-run assembly
+cci task run assemble_and_deploy_ux --deploy false                     # dry-run assembly (local; this task takes no --org)
 cci flow run capture_ux_drift --org <cci_alias>                        # retrieve + diff
 cci flow run apply_ux_drift --org <cci_alias>                          # writeback to templates + verify
 ```

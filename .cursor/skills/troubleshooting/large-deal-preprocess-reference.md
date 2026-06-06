@@ -66,9 +66,10 @@ has been observed null on some runs — treat the order-keyed count as best-effo
 4-char string, one char per step: position 0 = **Validation**, 1 = BillingTreatment,
 2 = TaxTreatment, 3 = UsageRate. Char values: `N` not-started, `Q` queued, `C` completed,
 `F` failed. So `FCCC` = validation failed, others complete; `CCCC` (or `CNNN` with
-invoicing off) = ready. `None`/null = the field was never stamped on that path (the
-standard Activate button is a legacy action that does **not** gate on `PreprocessingStatus`;
-the activation guard is enforced at DML time).
+invoicing off) = ready. A **null/blank** value (the API/SOQL result; the `sf` CLI and
+Python render it as `None`) means the field was never stamped on that path — the standard
+Activate button is a legacy action that does **not** gate on `PreprocessingStatus`; the
+activation guard is enforced at DML time.
 
 ## Tax skip
 
