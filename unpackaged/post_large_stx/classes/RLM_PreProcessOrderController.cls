@@ -365,9 +365,12 @@ public with sharing class RLM_PreProcessOrderController {
      * a "completed" CalculationStatus but still fail preprocess validation with "the
      * prices aren't updated. Click Reprice All" until an explicit reprice runs — so
      * the reprice is unconditional for large deals rather than gated on
-     * CalculationStatus. The executor returns once pricing is computed, and the
-     * async preprocess job validates against the committed result. No-op for
-     * standard orders and unknown ids.
+     * CalculationStatus. For a large deal the executor returns on ACCEPT — pricing
+     * runs ASYNCHRONOUSLY (dispatch keyed on IsLargeDeal), so a true `isSuccess`
+     * here does NOT mean pricing has committed. The caller must not enqueue
+     * preprocess off this return: the LWC polls getPricingStatus() until
+     * `ValidationResult == null` (pricing committed) first. This method only throws
+     * on a synchronous accept failure. No-op for standard orders and unknown ids.
      */
     @TestVisible
     private static void repriceLargeDealOrderIfNeeded(Id orderId) {

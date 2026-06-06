@@ -21,8 +21,17 @@ final String TREATMENT_NAME = 'RLM Large Deal - Exclude from Billing';
 // early-returning on the treatment's status alone.
 
 // 1) Policy (Draft, Default selection — no legal-entity lookup). Resolved FIRST so
-//    the treatment lookup below can be scoped to THIS policy.
-List<BillingPolicy> pols = [SELECT Id, Status, DefaultBillingTreatmentId FROM BillingPolicy WHERE Name = :POLICY_NAME LIMIT 1];
+//    the treatment lookup below can be scoped to THIS policy. Scope to
+//    BillingTreatmentSelection='Default': Name isn't unique, and reusing a same-named
+//    policy with a different selection (Manual/LegalEntity) would silently break the
+//    large-deal bypass this seed guarantees. A non-Default same-named policy is left
+//    untouched; we create our own Default-selection policy under POLICY_NAME.
+List<BillingPolicy> pols = [
+    SELECT Id, Status, DefaultBillingTreatmentId
+    FROM BillingPolicy
+    WHERE Name = :POLICY_NAME AND BillingTreatmentSelection = 'Default'
+    LIMIT 1
+];
 BillingPolicy pol = pols.isEmpty() ? null : pols[0];
 if (pol == null) {
     pol = new BillingPolicy(
