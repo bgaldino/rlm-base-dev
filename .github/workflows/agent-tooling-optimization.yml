@@ -38,7 +38,10 @@ jobs:
       # Deep checks (regenerate artifacts + open a drift PR) run on the weekly
       # schedule and on manual dispatch with deep_checks=true. pull_request runs
       # the stdlib-only baseline gate only.
-      DEEP_CHECKS: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.deep_checks) || false }}
+      # Use github.event.inputs (always a valid context; null on non-dispatch
+      # events) rather than the dispatch-only `inputs` context. It is a string,
+      # so compare against 'true' — a non-empty string is otherwise truthy.
+      DEEP_CHECKS: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.deep_checks == 'true') || false }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
