@@ -151,6 +151,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         this.transactionType = null;
       }
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error("RLM_SetUpQuoteWizard: getSetUpQuoteUiConfig failed", e);
       this.showProductSetSelectorFromConfig = false;
       // Clear BOTH the options and the selected value: keep the invariant that
@@ -1308,6 +1309,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         value: r.value,
       }));
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error("RLM_SetUpQuoteWizard: getAccountsForRepeatBuy failed", e);
       this.repeatBuyAccountOptions = [];
     }
@@ -1336,6 +1338,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         value: r.value,
       }));
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error("RLM_SetUpQuoteWizard: getRecentQuotesForRepeatBuy failed", e);
       this.repeatBuyQuoteOptions = [];
     }
@@ -1365,6 +1368,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
       this.repeatBuyPayload = payload;
       this.seedHierarchyAndAssignmentsFromRepeatPayload(payload);
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error("RLM_SetUpQuoteWizard: getRepeatBuyLines failed", e);
       this.repeatBuyPayload = [];
       this.repeatBuyAssignments = [];
@@ -1581,6 +1585,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         isLargeDeal: o.isLargeDeal === "true" ? "true" : "false",
       }));
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error("RLM_SetUpQuoteWizard: getQuotesForModify failed", e);
       this.quoteOptions = [];
     }
@@ -1608,6 +1613,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
           ? PRODUCT_SET_SIEMENS
           : PRODUCT_SET_QUANTUMBIT;
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error("RLM_SetUpQuoteWizard: detectQuoteProductSetMode failed", e);
       this.productSetMode = PRODUCT_SET_QUANTUMBIT;
     }
@@ -2008,6 +2014,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
           typeof raw === "string" ? JSON.parse(raw || "{}") : raw || {};
         this.existingHierarchy = parsed;
       } catch (e) {
+        // eslint-disable-next-line no-console
         console.error("RLM_SetUpQuoteWizard: getQuoteHierarchy failed", e);
         this.existingHierarchy = { parents: [] };
       }
@@ -2661,6 +2668,7 @@ export default class RlmSetUpQuoteWizard extends NavigationMixin(
         error: o.error || null,
       };
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error("RLM_SetUpQuoteWizard: previewQuoteLineCounts failed", e);
       this.quoteLinePreview = {
         currentTotal: 0,
