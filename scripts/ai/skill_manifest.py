@@ -34,24 +34,200 @@ CLI usage (for diagnostics):
 from __future__ import annotations
 
 import argparse
+import importlib
+import importlib.util
 import os
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+# PyYAML is optional at import time. Any import-time failure — module missing,
+# a broken/partial install, a SyntaxError or runtime error in the module, or a
+# find_spec error — degrades to the stdlib-only minimal fallback.
+yaml = None
 try:
-    import yaml
-except ImportError:  # pragma: no cover
-    sys.stderr.write(
-        "skill_manifest.py requires PyYAML. Install via "
-        "`pipx inject cumulusci PyYAML` (CCI venv) or `pip install pyyaml`.\n"
-    )
-    sys.exit(2)
+    if importlib.util.find_spec("yaml") is not None:
+        yaml = importlib.import_module("yaml")
+except Exception:
+    yaml = None
 
 
 MANIFEST_FILENAME = ".claude/skill-manifest.yml"
 
+PY_YAML_HELP = (
+    "PyYAML is not available (not installed, or failed to import), so "
+    "skill_manifest.py is using its minimal fallback. "
+    "The fallback supports baseline diagnostics only: file presence, high-level "
+    "manifest keys, repo discovery, and simple skill path listing. For full YAML "
+    "support, activate the project CumulusCI environment or install PyYAML with "
+    "`pipx inject cumulusci PyYAML`, `python -m pip install PyYAML`, or "
+    "`python -m pip install cumulusci`."
+)
+
+
+def _strip_inline_comment(value: str) -> str:
+    """Remove simple YAML comments outside quoted values for fallback parsing.
+
+    A ``#`` only starts a comment when it is at the start of the value or
+    preceded by whitespace (YAML semantics). This keeps ``#`` inside unquoted
+    path fragments (e.g. ``docs/foo#section``) intact.
+    """
+    in_single = False
+    in_double = False
+    for idx, char in enumerate(value):
+        if char == "'" and not in_double:
+            in_single = not in_single
+        elif char == '"' and not in_single:
+            in_double = not in_double
+        elif (
+            char == "#"
+            and not in_single
+            and not in_double
+            and (idx == 0 or value[idx - 1].isspace())
+        ):
+            return value[:idx].rstrip()
+    return value.strip()
+
+
+def _parse_scalar(value: str) -> Any:
+    """Parse a tiny subset of YAML scalars used by baseline diagnostics."""
+    value = _strip_inline_comment(value.strip())
+    if value in ("", "null", "Null", "NULL", "~"):
+        return None
+    if value in ("true", "True", "TRUE"):
+        return True
+    if value in ("false", "False", "FALSE"):
+        return False
+    if value == "[]":
+        return []
+    if value.startswith("[") and value.endswith("]"):
+        # Inline flow list. Drop empty segments so a trailing comma ("[a, b,]")
+        # matches yaml.safe_load rather than injecting a None.
+        inner = value[1:-1].strip()
+        if not inner:
+            return []
+        return [_parse_scalar(part.strip()) for part in inner.split(",") if part.strip()]
+    if (value.startswith('"') and value.endswith('"')) or (
+        value.startswith("'") and value.endswith("'")
+    ):
+        return value[1:-1]
+    # Coerce plain decimal integers (including a signed zero). Zero-padded codes
+    # ("007") and underscore-grouped values ("1_000") are INTENTIONALLY kept as
+    # strings to avoid corrupting identifiers; this diverges from yaml.safe_load
+    # (YAML 1.1 would coerce them), but the manifest contains no such values.
+    if re.fullmatch(r"-?(?:0|[1-9][0-9]*)", value):
+        return int(value)
+    return value
+
+
+def _split_key_value(content: str) -> tuple[str, str | None]:
+    """Split a ``key: value`` line at the first ``:`` that is outside quotes and
+    followed by whitespace or end-of-line (YAML's mapping separator).
+
+    Returns ``(key, value)``, or ``(content, None)`` when there is no separator
+    (so a quoted key containing a colon, e.g. ``"a:b": 1``, is not split mid-key).
+    """
+    in_single = in_double = False
+    for i, ch in enumerate(content):
+        if ch == "'" and not in_double:
+            in_single = not in_single
+        elif ch == '"' and not in_single:
+            in_double = not in_double
+        elif ch == ":" and not in_single and not in_double:
+            if i + 1 >= len(content) or content[i + 1] in " \t":
+                return content[:i], content[i + 1:]
+    return content, None
+
+
+def _reject_block_scalar(value: str) -> None:
+    """Raise on a YAML block-scalar indicator (``|``/``>`` with optional
+    chomping/indent modifiers). The fallback cannot fold multi-line block
+    scalars, so fail loudly rather than silently truncating to ``|``/``>``."""
+    if re.fullmatch(r"[|>][+-]?[0-9]?", value.strip()):
+        raise ValueError(
+            "block scalars (| or >) are not supported by the no-PyYAML "
+            "fallback; install PyYAML for full manifest parsing"
+        )
+
+
+def _load_manifest_minimal(text: str) -> dict[str, Any]:
+    """Parse the manifest without PyYAML, via a generic indent-based parser.
+
+    Accepts the already-read manifest text (the caller reads it, so I/O errors
+    are handled in one place). It supports the block-YAML subset the manifest
+    uses — nested mappings, block lists (``- item``), inline flow lists
+    (``[a, b]``), scalars (str/int/bool/null), quoted strings, and ``#``
+    comments — and for that structure reproduces ``yaml.safe_load``. It is NOT a
+    general YAML parser: anchors/aliases, merge keys, block scalars (``|``/``>``)
+    and flow maps are unsupported (the manifest uses none of them). For the
+    current manifest the output is verified to equal ``yaml.safe_load``.
+    """
+    # Tokenize: (indent, content) for non-blank, non-comment-only lines, with
+    # trailing inline comments stripped (respecting quotes) so a line like
+    # `key:   # note` is seen as an empty-valued key, not a scalar.
+    tokens: list[tuple[int, str]] = []
+    for raw in text.splitlines():
+        stripped = raw.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        content = _strip_inline_comment(stripped)
+        if not content:
+            continue
+        tokens.append((len(raw) - len(raw.lstrip(" ")), content))
+
+    pos = [0]  # boxed index so the nested parsers can advance it
+
+    def parse_block(indent: int) -> Any:
+        if pos[0] >= len(tokens):
+            return None
+        content = tokens[pos[0]][1]
+        if content == "-" or content.startswith("- "):
+            return parse_list(indent)
+        return parse_map(indent)
+
+    def parse_map(indent: int) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        while pos[0] < len(tokens):
+            cur_indent, content = tokens[pos[0]]
+            if cur_indent != indent or content.startswith("- "):
+                break
+            key_raw, val_raw = _split_key_value(content)
+            key = key_raw.strip()
+            if len(key) >= 2 and key[0] == key[-1] and key[0] in "\"'":
+                key = key[1:-1]  # unquote a quoted mapping key
+            pos[0] += 1
+            val = (val_raw or "").strip()
+            if val == "":
+                child_indent = tokens[pos[0]][0] if pos[0] < len(tokens) else -1
+                result[key] = parse_block(child_indent) if child_indent > indent else None
+            else:
+                _reject_block_scalar(val)
+                result[key] = _parse_scalar(val)
+        return result
+
+    def parse_list(indent: int) -> list[Any]:
+        result: list[Any] = []
+        while pos[0] < len(tokens):
+            cur_indent, content = tokens[pos[0]]
+            if cur_indent != indent or not (content == "-" or content.startswith("- ")):
+                break
+            item = content[1:].strip()
+            # A mapping list item ("- key: value") starts a mapping whose keys
+            # sit at indent + 2 (the columns after "- "). Quote-aware detection
+            # via _split_key_value handles quoted keys that contain a colon.
+            _, item_val = _split_key_value(item)
+            if item_val is not None:
+                tokens[pos[0]] = (indent + 2, item)
+                result.append(parse_map(indent + 2))
+            else:
+                pos[0] += 1
+                result.append(_parse_scalar(item))
+        return result
+
+    data = parse_block(0)
+    return data if isinstance(data, dict) else {}
 
 # ─── Repo discovery ─────────────────────────────────────────────────────────
 
@@ -83,6 +259,10 @@ def _discover_repo(
     env_var: str | None = None
 
     for hint in hints:
+        # Skip non-string hints (a malformed manifest could yield ints/lists),
+        # which would otherwise raise TypeError in expanduser/expandvars.
+        if not isinstance(hint, str):
+            continue
         # Expand env vars and ~. If the var is unset, expandvars leaves "$FOO"
         # as-is; we filter those out below.
         expanded = os.path.expandvars(os.path.expanduser(hint))
@@ -160,8 +340,28 @@ def find_manifest(start: Path | None = None) -> Path:
 def load_manifest(path: Path | None = None) -> dict[str, Any]:
     """Load and lightly normalize the manifest. Discovers repo locations."""
     manifest_path = path or find_manifest()
-    with manifest_path.open("r") as f:
-        data: dict[str, Any] = yaml.safe_load(f) or {}
+    # Read once, with a guard, so an unreadable manifest produces a clear
+    # diagnostic (not a traceback) in both the PyYAML and fallback paths.
+    try:
+        manifest_text = manifest_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise SystemExit(f"skill_manifest.py: cannot read {manifest_path}: {exc}")
+    if yaml is None:
+        print(PY_YAML_HELP, file=sys.stderr)
+        try:
+            data = _load_manifest_minimal(manifest_text)
+        except Exception as exc:
+            # Mirror the PyYAML branch: any fallback parse failure (e.g. an
+            # over-nested manifest, or an unsupported block scalar) becomes a
+            # clean diagnostic rather than a raw traceback.
+            raise SystemExit(f"skill_manifest.py: cannot parse {manifest_path}: {exc}")
+    else:
+        try:
+            data: dict[str, Any] = yaml.safe_load(manifest_text) or {}
+        except yaml.YAMLError as exc:
+            raise SystemExit(f"skill_manifest.py: cannot parse {manifest_path}: {exc}")
+        if not isinstance(data, dict):
+            data = {}
 
     # Stash where we found it so callers can debug
     data["_manifest_path"] = str(manifest_path)
@@ -171,7 +371,9 @@ def load_manifest(path: Path | None = None) -> dict[str, Any]:
     # Discover both repos' clones, anchoring relative hints to the manifest's
     # repo root (NOT process cwd) so discovery is stable from any subdirectory.
     for key in ("foundations", "pmos"):
-        if key in data:
+        # An empty `foundations:`/`pmos:` section parses to None; only resolve
+        # when the section is actually a mapping.
+        if isinstance(data.get(key), dict):
             data[key]["_resolved"] = _discover_repo(data[key], manifest_root)
 
     return data
