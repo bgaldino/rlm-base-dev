@@ -161,6 +161,19 @@
         <field>Quote.IsLargeDeal</field>
         <readable>true</readable>
     </fieldPermissions>
+    <!-- NO editable FLS for Quote *header* fields the wizard stamps on create
+         (StartDate, ExpirationDate, TransactionType, RLM_TermMonths__c, QuoteAccountId,
+         BillToContactId, ContactId, Email, Phone, Billing/Shipping address). Those are written
+         ONLY through the PlaceSalesTransaction graph save (RevSalesTrxn.PlaceSalesTransactionExecutor
+         .execute in RLM_SetUpQuoteInvocable), which persists in SYSTEM mode — core wraps the DML in
+         pushFullAccessRights() (PSTContextFlushPipeline, W-21338578), and the header save uses
+         createWithNoCommitAsDevInternal(). The caller's FLS/CRUD is NOT enforced on those writes
+         (the only gate is the coreCPQUser user-perm), so granting editable FLS here would be a
+         least-privilege over-grant. That is also why Quote.QuoteAccountId below is read-only despite
+         being graph-written. Only fields written via direct "as user" DML (Quote.IsLargeDeal above)
+         or read via WITH USER_MODE SOQL get FLS. The permissionable line-item fields written by the
+         wizard's direct "insert as user" path DO get editable FLS (QuoteLineItem.* below);
+         QuoteLineItem/QuoteLineGroup lookups + Quantity/UnitPrice + Name are non-permissionable. -->
     <!-- Quote header fields read in user-mode wizard queries (modify/repeat-buy/status). -->
     <fieldPermissions>
         <editable>false</editable>
