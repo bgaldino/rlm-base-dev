@@ -369,7 +369,7 @@ def load_manifest(path: Path | None = None) -> dict[str, Any]:
         print(PY_YAML_HELP, file=sys.stderr)
         data = _load_manifest_minimal(manifest_path)
     else:
-        with manifest_path.open("r") as f:
+        with manifest_path.open("r", encoding="utf-8") as f:
             data: dict[str, Any] = yaml.safe_load(f) or {}
 
     # Stash where we found it so callers can debug

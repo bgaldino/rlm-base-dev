@@ -62,7 +62,7 @@ def _pyyaml_error() -> str:
 def load_cci() -> dict:
     if yaml is None:
         raise SystemExit(_pyyaml_error())
-    with open(CCI_YML, "r") as f:
+    with open(CCI_YML, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 

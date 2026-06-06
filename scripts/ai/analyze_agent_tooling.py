@@ -205,14 +205,29 @@ def stdlib_module_names() -> set[str]:
 
 
 def top_level_imports(path: Path) -> set[str]:
+    """Module-level (import-time) imports only.
+
+    Does NOT descend into function or class bodies, so a lazy in-function
+    third-party import (e.g. an ``import yaml`` inside a report/coverage helper)
+    is not counted against the stdlib-only-at-import-time contract. Imports in
+    module-level ``if``/``try``/``with`` blocks still execute at import time and
+    are included.
+    """
     tree = ast.parse(read_text(path), filename=str(path))
     imports: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                imports.add(alias.name.split(".", 1)[0])
-        elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
-            imports.add(node.module.split(".", 1)[0])
+    scopes = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+
+    def visit(node: ast.AST) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.Import):
+                for alias in child.names:
+                    imports.add(alias.name.split(".", 1)[0])
+            elif isinstance(child, ast.ImportFrom) and child.module and child.level == 0:
+                imports.add(child.module.split(".", 1)[0])
+            elif not isinstance(child, scopes):
+                visit(child)
+
+    visit(tree)
     return imports
 
 
@@ -335,6 +350,7 @@ class CheckResult:
     name: str
     ok: bool
     detail: str
+    skipped: bool = False
 
 
 def check_required_files(root: Path) -> CheckResult:
@@ -460,7 +476,9 @@ def run_baseline_checks(root: Path) -> list[CheckResult]:
 
 def run_full_generated_reference_check(root: Path) -> CheckResult:
     if importlib.util.find_spec("yaml") is None:
-        return CheckResult("full generated-reference dry run", False, FULL_CHECK_ENV_HELP)
+        # Skip (do not fail) when PyYAML is absent — this opt-in deeper check
+        # requires it, and the README documents it as skipped with guidance.
+        return CheckResult("full generated-reference dry run", True, FULL_CHECK_ENV_HELP, skipped=True)
     script = root / "scripts" / "ai" / "generate_cci_reference.py"
     cmd = [sys.executable, str(script), "--dry-run"]
     try:
@@ -480,12 +498,19 @@ def cmd_check(root: Path, full_generated_reference_checks: bool) -> int:
     if full_generated_reference_checks:
         results.append(run_full_generated_reference_check(root))
     overall_ok = True
+    skipped = 0
     for result in results:
-        marker = "PASS" if result.ok else "FAIL"
+        if result.skipped:
+            marker = "SKIP"
+            skipped += 1
+        else:
+            marker = "PASS" if result.ok else "FAIL"
         print(f"[{marker}] {result.name}: {result.detail}")
         overall_ok = overall_ok and result.ok
+    failing = sum(1 for r in results if not r.ok)
+    suffix = f", {skipped} skipped" if skipped else ""
     print(f"Status: {'PASS' if overall_ok else 'FAIL'} "
-          f"({sum(1 for r in results if not r.ok)} failing of {len(results)} checks)")
+          f"({failing} failing of {len(results)} checks{suffix})")
     return 0 if overall_ok else 1
 
 
