@@ -19,6 +19,35 @@ public with sharing class RLM_PreProcessOrderController {
     private static final Set<String> FAILED_STATUSES = new Set<String>{ 'Failed', 'Failure', 'Canceled', 'Cancelled' };
     private static final String ACTIVATED_STATUS = 'Activated';
 
+    // AsyncOperationTracker terminal statuses (the job is no longer running).
+    private static final Set<String> TRACKER_TERMINAL_STATUSES = new Set<String>{
+        'Completed', 'Failed', 'Failure', 'Canceled', 'Cancelled'
+    };
+
+    // Order.CalculationStatus buckets (core OrderCalculationStatus enum — see
+    // docs/analysis/large-stx-reprice-core-code-answers.md). Used to classify a
+    // large-deal reprice as in-progress / failed / committed before the preprocess
+    // job is enqueued. NEGATIVE model (as the quote wizard uses): a value in NEITHER
+    // the in-progress NOR the failed/investigate set is a terminal-success candidate.
+    // The authoritative "safe to preprocess" gate, however, is
+    // Order.ValidationResult == null — the field the platform preprocess validation
+    // actually checks ("the prices aren't updated" fires while it is non-null).
+    private static final Set<String> PRICING_IN_PROGRESS_STATUSES = new Set<String>{
+        'NotStarted', 'ContextHydrationInProgress', 'QueuedForConfiguration',
+        'ConfigurationInProgress', 'QueuedForPricing', 'QueuedForPricingAndSaving',
+        'PriceCalculationInProgress', 'TaxCalculationWaiting', 'QueuedForSaving',
+        'Saving', 'ReconciliationInProgress'
+    };
+    private static final Set<String> PRICING_FAILED_STATUSES = new Set<String>{
+        'PstBaseStepFailed', 'ConfigurationFailed', 'GroupRampConfigurationFailed',
+        'PriceCalculationFailed', 'TaxCalculationFailed', 'SaveFailedOrIncomplete',
+        'ReconciliationFailed', 'OrderRequestFailed'
+    };
+    // Partial-save states — surface for investigation, never auto-retry.
+    private static final Set<String> PRICING_INVESTIGATE_STATUSES = new Set<String>{
+        'OrderRequestPartiallySaved', 'PartialSaveSuccess'
+    };
+
     /**
      * Seed treatment (created by seed_large_deal_billing_treatment) used to make
      * large-deal billing-treatment resolution a no-op. ExcludeFromBilling=Yes,
@@ -64,7 +93,17 @@ public with sharing class RLM_PreProcessOrderController {
         }
     }
 
-    /** Kicks off the async preprocess job. Returns the AsyncOperationTracker requestId. */
+    /**
+     * Phase 1 of Prepare-for-Activation. For a large deal, kick the async reprice
+     * (orders created via createOrdersFromQuote carry ValidationResult=
+     * TransactionIncomplete, which the preprocess job rejects as "the prices aren't
+     * updated") and pre-stamp the exclude-billing treatment. Does NOT enqueue the
+     * preprocess job — that is enqueuePreprocess(), called by the LWC only after it
+     * polls getPricingStatus() and confirms pricing committed. This split removes
+     * the race where preprocess validated against still-async pricing and failed on
+     * the first click. Standard orders return phase='ready_to_enqueue' (reprice +
+     * stamp are no-ops) so the LWC enqueues immediately, preserving prior behavior.
+     */
     @AuraEnabled(cacheable=false)
     public static String startPreprocess(String orderId) {
         if (String.isBlank(orderId)) {
@@ -72,18 +111,108 @@ public with sharing class RLM_PreProcessOrderController {
         }
         try {
             Id oid = Id.valueOf(orderId);
-            // Orders created via createOrdersFromQuote come back with stale pricing, so
-            // preprocess validation (bit 0) fails with "the prices aren't updated. Click
-            // Reprice All". Reprice large-deal orders up front so the button is one-click.
-            // No-op for standard orders and for orders already priced.
+            Boolean isLarge = isLargeDealOrder(oid);
+            // Large-deal reprice prices ASYNCHRONOUSLY (dispatch keyed on IsLargeDeal);
+            // throws only on a synchronous accept failure. No-op for standard/unknown.
             repriceLargeDealOrderIfNeeded(oid);
-
-            // Large-deal billing fix: pre-stamp an Exclude-from-Billing treatment on
-            // unresolved order items so the platform's legal-entity treatment resolver
-            // (not bulk-safe at large-deal scale) finds nothing to fetch and bit 1
-            // (BillingTreatment) completes instead of failing. No-op for standard orders.
+            // Pre-stamp the exclude-from-billing treatment (idempotent; no-op for
+            // standard orders / when the seed treatment is absent).
             stampLargeDealExcludeTreatment(oid);
+            return JSON.serialize(new Map<String, Object>{
+                'success' => true,
+                'isLargeDeal' => isLarge,
+                'phase' => isLarge ? 'repricing' : 'ready_to_enqueue'
+            });
+        } catch (Exception e) {
+            return errorJson('Preprocess error: ' + e.getMessage());
+        }
+    }
 
+    /**
+     * Phase 2. Classify the large-deal reprice's pricing state so the LWC poll can
+     * wait, retry the reprice, or enqueue preprocess. Committed gate =
+     * Order.ValidationResult == null (the field the platform preprocess validation
+     * checks) AND a terminal-success CalculationStatus AND no pending async PST work.
+     */
+    @AuraEnabled(cacheable=false)
+    public static String getPricingStatus(String orderId) {
+        if (String.isBlank(orderId)) {
+            return errorJson('No order id provided.');
+        }
+        try {
+            Id oid = Id.valueOf(orderId);
+            List<Order> orders = [
+                SELECT Id, CalculationStatus, ValidationResult
+                FROM Order WHERE Id = :oid WITH USER_MODE LIMIT 1
+            ];
+            if (orders.isEmpty()) {
+                return errorJson('Order not found or not accessible.');
+            }
+            Order o = orders[0];
+            Integer pendingAsyncCount = countPendingAsync(oid);
+            return JSON.serialize(new Map<String, Object>{
+                'success' => true,
+                'phase' => classifyPricingPhase(o.CalculationStatus, o.ValidationResult, pendingAsyncCount),
+                'calculationStatus' => o.CalculationStatus,
+                'validationResult' => o.ValidationResult,
+                'pendingAsyncCount' => pendingAsyncCount
+            });
+        } catch (Exception e) {
+            return errorJson(e.getMessage());
+        }
+    }
+
+    /**
+     * Phase 3. Enqueue the async preprocess job — the ONLY place this happens.
+     * Re-verifies committed pricing for large deals (guards a stale/racing client)
+     * and runs a server-side idempotency guard (skips if validation already complete
+     * or a preprocess job is already in flight) so re-opens / multiple tabs cannot
+     * double-enqueue.
+     */
+    @AuraEnabled(cacheable=false)
+    public static String enqueuePreprocess(String orderId) {
+        if (String.isBlank(orderId)) {
+            return errorJson('No order id provided.');
+        }
+        try {
+            Id oid = Id.valueOf(orderId);
+            List<Order> orders = [
+                SELECT Id, IsLargeDeal, CalculationStatus, ValidationResult, PreprocessingStatus
+                FROM Order WHERE Id = :oid WITH USER_MODE LIMIT 1
+            ];
+            if (orders.isEmpty()) {
+                return errorJson('Order not found or not accessible.');
+            }
+            Order o = orders[0];
+            // Large deals: do not enqueue until pricing has committed.
+            if (o.IsLargeDeal == true) {
+                Integer pendingAsyncCount = countPendingAsync(oid);
+                if (classifyPricingPhase(o.CalculationStatus, o.ValidationResult, pendingAsyncCount) != 'pricing_committed') {
+                    return JSON.serialize(new Map<String, Object>{
+                        'success' => false,
+                        'phase' => 'pricing_not_committed',
+                        'errorMessage' => 'Pricing has not committed yet.'
+                    });
+                }
+            }
+            // Idempotency: validation already complete, or a preprocess job in flight.
+            if (isValidationComplete(o.PreprocessingStatus)) {
+                return JSON.serialize(new Map<String, Object>{
+                    'success' => true, 'alreadyEnqueued' => true, 'requestId' => null
+                });
+            }
+            List<AsyncOperationTracker> inflight = [
+                SELECT Id, Status FROM AsyncOperationTracker
+                WHERE ReferenceEntityId = :oid AND JobType = 'PreprocessOrder'
+                  AND Status NOT IN :TRACKER_TERMINAL_STATUSES
+                WITH USER_MODE
+                ORDER BY CreatedDate DESC LIMIT 1
+            ];
+            if (!inflight.isEmpty()) {
+                return JSON.serialize(new Map<String, Object>{
+                    'success' => true, 'alreadyEnqueued' => true, 'requestId' => inflight[0].Id
+                });
+            }
             Invocable.Action action = Invocable.Action.createStandardAction('preProcessSalesTransaction');
             action.setInvocationParameter('salesTransactionId', String.valueOf(oid));
             action.setInvocationParameter('shouldValidateDataShape', true);
@@ -99,15 +228,56 @@ public with sharing class RLM_PreProcessOrderController {
             if (!r.isSuccess()) {
                 return errorJson('Preprocess failed: ' + String.valueOf(r.getErrors()));
             }
-            Map<String, Object> out = r.getOutputParameters();
-            String requestId = out != null ? String.valueOf(out.get('requestId')) : null;
+            Map<String, Object> outParams = r.getOutputParameters();
+            String requestId = outParams != null ? String.valueOf(outParams.get('requestId')) : null;
             return JSON.serialize(new Map<String, Object>{
-                'success' => true,
-                'requestId' => requestId
+                'success' => true, 'requestId' => requestId
             });
         } catch (Exception e) {
             return errorJson('Preprocess error: ' + e.getMessage());
         }
+    }
+
+    /** True when the order exists and is a large deal. */
+    @TestVisible
+    private static Boolean isLargeDealOrder(Id orderId) {
+        List<Order> orders = [SELECT Id, IsLargeDeal FROM Order WHERE Id = :orderId WITH USER_MODE LIMIT 1];
+        return !orders.isEmpty() && orders[0].IsLargeDeal == true;
+    }
+
+    /** Count of non-terminal AsyncOperationTracker rows for the order (pending PST/async work). */
+    private static Integer countPendingAsync(Id orderId) {
+        return [
+            SELECT COUNT() FROM AsyncOperationTracker
+            WHERE ReferenceEntityId = :orderId AND Status NOT IN :TRACKER_TERMINAL_STATUSES
+            WITH USER_MODE
+        ];
+    }
+
+    /**
+     * Pure classification of a large-deal reprice's pricing state. Param-based (no
+     * SOQL/DML) so it is unit-testable — CalculationStatus and ValidationResult are
+     * read-only platform fields that cannot be set via DML. Committed = pricing's
+     * dirty flag cleared (ValidationResult null) AND a terminal-success
+     * CalculationStatus (not in the in-progress / failed / investigate sets) AND no
+     * pending async work. Failed/investigate are keyed on CalculationStatus (current
+     * order state, authoritative); everything else is still in progress.
+     */
+    @TestVisible
+    private static String classifyPricingPhase(String calcStatus, String validationResult, Integer pendingAsyncCount) {
+        if (calcStatus != null && PRICING_FAILED_STATUSES.contains(calcStatus)) {
+            return 'pricing_failed';
+        }
+        if (calcStatus != null && PRICING_INVESTIGATE_STATUSES.contains(calcStatus)) {
+            return 'pricing_investigate';
+        }
+        Boolean pricingFinished = String.isNotBlank(calcStatus)
+            && !PRICING_IN_PROGRESS_STATUSES.contains(calcStatus);
+        Boolean noPending = (pendingAsyncCount == null || pendingAsyncCount <= 0);
+        if (String.isBlank(validationResult) && pricingFinished && noPending) {
+            return 'pricing_committed';
+        }
+        return 'pricing_in_progress';
     }
 
     /** Polls the async job + current order state. LWC calls this on an interval. */

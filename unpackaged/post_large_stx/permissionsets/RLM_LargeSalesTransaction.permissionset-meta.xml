@@ -106,6 +106,20 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <!-- Read in getPricingStatus/enqueuePreprocess to confirm the large-deal
+             reprice committed before enqueueing preprocess (read-only platform field). -->
+        <editable>false</editable>
+        <field>Order.CalculationStatus</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- The authoritative "prices current" gate: preprocess rejects while this
+             is non-null. Read in getPricingStatus/enqueuePreprocess (read-only). -->
+        <editable>false</editable>
+        <field>Order.ValidationResult</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <!-- Stamped onto large-deal order items so billing-treatment resolution no-ops. -->
         <editable>true</editable>
         <field>OrderItem.BillingTreatmentId</field>

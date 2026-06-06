@@ -4,9 +4,15 @@ import getOrderInfo from "@salesforce/apex/RLM_PreProcessOrderController.getOrde
 import startPreprocess from "@salesforce/apex/RLM_PreProcessOrderController.startPreprocess";
 import getStatus from "@salesforce/apex/RLM_PreProcessOrderController.getStatus";
 import activateOrder from "@salesforce/apex/RLM_PreProcessOrderController.activateOrder";
+import getPricingStatus from "@salesforce/apex/RLM_PreProcessOrderController.getPricingStatus";
+import enqueuePreprocess from "@salesforce/apex/RLM_PreProcessOrderController.enqueuePreprocess";
 
 const POLL_INTERVAL_MS = 2500;
-const MAX_POLLS = 120; // ~5 minutes
+const MAX_POLLS = 120; // ~5 minutes (preprocess phase)
+const PRICING_POLL_CAP = 60; // ~2.5 minutes per reprice leg
+const MAX_REPRICE_ATTEMPTS = 2; // re-reprices after the first kick (3 total)
+const STABLE_POLLS_REQUIRED = 3; // committed must hold this many consecutive polls
+const BACKOFF_TICKS = [1, 2, 4]; // poll intervals to wait before each re-reprice (~2.5/5/10s)
 
 export default class RlmPreProcessOrderAction extends LightningElement {
   _recordId;
@@ -38,6 +44,11 @@ export default class RlmPreProcessOrderAction extends LightningElement {
   _requestId;
   _pollHandle;
   _pollCount = 0;
+  _phase; // 'repricing' | 'preprocess'
+  _repriceAttempt = 0;
+  _stableCommittedPolls = 0;
+  _backoffHandle;
+  _preprocessEnqueued = false;
 
   connectedCallback() {
     this.maybeLoad();
@@ -120,21 +131,102 @@ export default class RlmPreProcessOrderAction extends LightningElement {
   async handlePrepare() {
     this.clearPolling();
     this.running = true;
-    this.progressText = "Submitting preprocessing job…";
-    this.setMessage("Preprocessing started. This runs asynchronously.", "info");
+    this._repriceAttempt = 0;
+    this._preprocessEnqueued = false;
+    await this.kickReprice();
+  }
+
+  // Phase 1: kick the reprice (large deal) or go straight to enqueue (standard).
+  async kickReprice() {
+    this.clearPolling();
+    this._pollCount = 0;
+    this._stableCommittedPolls = 0;
+    this.progressText = "Confirming pricing…";
+    this.setMessage("Preparing the order for activation…", "info");
     try {
       const res = JSON.parse(await startPreprocess({ orderId: this.recordId }));
       if (!res.success) {
+        // Synchronous reprice reject counts as a failed attempt (bounded retry).
+        this.handleRepriceFailure(res.errorMessage || "Reprice failed to start.");
+        return;
+      }
+      if (res.phase === "ready_to_enqueue") {
+        // Standard order: no pricing wait needed.
+        await this.enqueueAndPoll();
+        return;
+      }
+      this._phase = "repricing";
+      this.startPolling();
+    } catch (e) {
+      this.handleRepriceFailure(this.errText(e));
+    }
+  }
+
+  // Bounded re-reprice with backoff; gives up after MAX_REPRICE_ATTEMPTS.
+  handleRepriceFailure(msg) {
+    this.clearPolling();
+    this._stableCommittedPolls = 0;
+    if (this._repriceAttempt < MAX_REPRICE_ATTEMPTS) {
+      this._repriceAttempt += 1;
+      const ticks = BACKOFF_TICKS[Math.min(this._repriceAttempt - 1, BACKOFF_TICKS.length - 1)];
+      this.progressText =
+        "Pricing didn't settle; retrying (" + this._repriceAttempt + "/" + MAX_REPRICE_ATTEMPTS + ")…";
+      this._backoffHandle = setTimeout(() => this.kickReprice(), ticks * POLL_INTERVAL_MS);
+    } else {
+      this.running = false;
+      this.progressText = undefined;
+      this.setMessage(
+        "Pricing did not settle after " +
+          (MAX_REPRICE_ATTEMPTS + 1) +
+          " attempts. Review the order data and try again. (" +
+          msg +
+          ")",
+        "error",
+      );
+    }
+  }
+
+  // Phase 3: enqueue preprocess at most once, then poll the preprocess job.
+  async enqueueAndPoll() {
+    if (this._preprocessEnqueued) {
+      return;
+    }
+    this.progressText = "Submitting preprocessing job…";
+    try {
+      const res = JSON.parse(await enqueuePreprocess({ orderId: this.recordId }));
+      if (!res.success) {
+        if (res.phase === "pricing_not_committed") {
+          // Racing client — resume the pricing poll instead of erroring.
+          this._stableCommittedPolls = 0;
+          this._phase = "repricing";
+          this._pollCount = 0;
+          this.startPolling();
+          return;
+        }
         this.running = false;
+        this.progressText = undefined;
         this.setMessage(res.errorMessage || "Preprocessing failed to start.", "error");
         return;
       }
+      this._preprocessEnqueued = true;
       this._requestId = res.requestId;
+      if (res.alreadyEnqueued && !res.requestId) {
+        // Validation already complete server-side — surface ready, no polling.
+        this.clearPolling();
+        this.running = false;
+        this.validationComplete = true;
+        this.progressText = undefined;
+        this.setMessage("This order is already preprocessed and ready to activate.", "success");
+        return;
+      }
+      this._phase = "preprocess";
       this._pollCount = 0;
       this.progressText = "Waiting for validation to complete…";
+      this.setMessage("Preprocessing started. This runs asynchronously.", "info");
       this.startPolling();
     } catch (e) {
       this.running = false;
+      this.progressText = undefined;
       this.setMessage(this.errText(e), "error");
     }
   }
@@ -148,10 +240,71 @@ export default class RlmPreProcessOrderAction extends LightningElement {
       clearInterval(this._pollHandle);
       this._pollHandle = undefined;
     }
+    if (this._backoffHandle) {
+      clearTimeout(this._backoffHandle);
+      this._backoffHandle = undefined;
+    }
   }
 
-  async poll() {
+  poll() {
     this._pollCount += 1;
+    if (this._phase === "repricing") {
+      return this.pollPricing();
+    }
+    return this.pollPreprocess();
+  }
+
+  // Phase 2 poll: wait for the reprice to commit, retry it, or surface a partial-save.
+  async pollPricing() {
+    if (this._pollCount > PRICING_POLL_CAP) {
+      this.handleRepriceFailure("Pricing is taking longer than expected.");
+      return;
+    }
+    try {
+      const res = JSON.parse(await getPricingStatus({ orderId: this.recordId }));
+      if (!res.success) {
+        return; // transient; keep polling
+      }
+      this.progressText =
+        "Confirming pricing… (" +
+        (res.calculationStatus || "…") +
+        ", " +
+        (res.pendingAsyncCount || 0) +
+        " pending)";
+      if (res.phase === "pricing_failed") {
+        this.handleRepriceFailure("Pricing failed (" + (res.calculationStatus || "unknown") + ").");
+        return;
+      }
+      if (res.phase === "pricing_investigate") {
+        this.clearPolling();
+        this._stableCommittedPolls = 0;
+        this.running = false;
+        this.progressText = undefined;
+        this.setMessage(
+          "Pricing returned a partial-save state (" +
+            (res.calculationStatus || "unknown") +
+            "). Review the order data before retrying.",
+          "error",
+        );
+        return;
+      }
+      if (res.phase === "pricing_committed") {
+        this._stableCommittedPolls += 1;
+        if (this._stableCommittedPolls >= STABLE_POLLS_REQUIRED) {
+          this.clearPolling();
+          await this.enqueueAndPoll();
+        }
+        return;
+      }
+      // pricing_in_progress
+      this._stableCommittedPolls = 0;
+    } catch (e) {
+      // Keep polling on transient errors.
+    }
+  }
+
+  // Final poll: the existing preprocess-tracker poll (failed checked before ready).
+  async pollPreprocess() {
     if (this._pollCount > MAX_POLLS) {
       this.clearPolling();
       this.running = false;

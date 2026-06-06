@@ -20,12 +20,149 @@ private class RLM_PreProcessOrderControllerTest {
     }
 
     @isTest
-    static void testStartPreprocess_HandlesActionContext() {
-        // The standard action is not invocable in test context; the method must
-        // still return a structured (non-throwing) result.
+    static void testStartPreprocess_UnknownId_ReadyToEnqueue() {
+        // Unknown id resolves as non-large-deal (reprice + stamp no-op); phase 1
+        // returns a structured result with the standard-order phase.
         String resp = RLM_PreProcessOrderController.startPreprocess('801000000000000AAA');
         Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(resp);
-        System.assertNotEquals(null, m.get('success'), 'Returns a structured result');
+        System.assertEquals(true, m.get('success'), 'Returns a structured success result');
+        System.assertEquals('ready_to_enqueue', m.get('phase'), 'Non-large-deal enqueues immediately');
+        System.assertEquals(false, m.get('isLargeDeal'), 'Unknown/standard order is not a large deal');
+    }
+
+    @isTest
+    static void testStartPreprocess_StandardOrder_ReadyToEnqueue() {
+        Order o = buildOrderWithItem(false);
+        Test.startTest();
+        String resp = RLM_PreProcessOrderController.startPreprocess(o.Id);
+        Test.stopTest();
+        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(resp);
+        System.assertEquals(true, m.get('success'), 'Standard order phase 1 succeeds (reprice/stamp no-op)');
+        System.assertEquals('ready_to_enqueue', m.get('phase'), 'Standard order is ready to enqueue');
+        System.assertEquals(false, m.get('isLargeDeal'), 'Standard order flagged not-large');
+    }
+
+    @isTest
+    static void testGetPricingStatus_BlankId() {
+        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(
+            RLM_PreProcessOrderController.getPricingStatus('')
+        );
+        System.assertEquals(false, m.get('success'), 'Blank id fails gracefully');
+    }
+
+    @isTest
+    static void testGetPricingStatus_InvalidId() {
+        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(
+            RLM_PreProcessOrderController.getPricingStatus('801000000000000AAA')
+        );
+        System.assertEquals(false, m.get('success'), 'No matching order returns structured error');
+    }
+
+    @isTest
+    static void testGetPricingStatus_RealOrder() {
+        Order o = buildLargeDealOrder();
+        Test.startTest();
+        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(
+            RLM_PreProcessOrderController.getPricingStatus(o.Id)
+        );
+        Test.stopTest();
+        System.assertEquals(true, m.get('success'), 'Real order pricing status resolves');
+        System.assertNotEquals(null, m.get('phase'), 'phase key present');
+        System.assert(m.containsKey('calculationStatus'), 'calculationStatus key present');
+        System.assert(m.containsKey('validationResult'), 'validationResult key present');
+        System.assert(m.containsKey('pendingAsyncCount'), 'pendingAsyncCount key present');
+    }
+
+    @isTest
+    static void testEnqueuePreprocess_BlankId() {
+        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(
+            RLM_PreProcessOrderController.enqueuePreprocess('')
+        );
+        System.assertEquals(false, m.get('success'), 'Blank id fails gracefully');
+    }
+
+    @isTest
+    static void testEnqueuePreprocess_LargeDeal_NotCommitted() {
+        // A fresh large-deal order has no committed pricing, so enqueue must refuse
+        // and report the pricing_not_committed phase (never enqueues against unpriced lines).
+        Order o = buildLargeDealOrder();
+        Test.startTest();
+        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(
+            RLM_PreProcessOrderController.enqueuePreprocess(o.Id)
+        );
+        Test.stopTest();
+        System.assertEquals(false, m.get('success'), 'Uncommitted pricing blocks enqueue');
+        System.assertEquals('pricing_not_committed', m.get('phase'), 'Reports pricing_not_committed');
+    }
+
+    @isTest
+    static void testClassifyPricingPhase_Cases() {
+        System.assertEquals('pricing_committed',
+            RLM_PreProcessOrderController.classifyPricingPhase('CompletedWithPricing', null, 0),
+            'Cleared ValidationResult + terminal success + no pending = committed');
+        System.assertEquals('pricing_in_progress',
+            RLM_PreProcessOrderController.classifyPricingPhase('CompletedWithPricing', 'TransactionIncomplete', 0),
+            'Dirty ValidationResult is not committed even with terminal status');
+        System.assertEquals('pricing_in_progress',
+            RLM_PreProcessOrderController.classifyPricingPhase('CompletedWithPricing', null, 2),
+            'Pending async work is not committed');
+        System.assertEquals('pricing_in_progress',
+            RLM_PreProcessOrderController.classifyPricingPhase('PriceCalculationInProgress', null, 0),
+            'In-progress status waits');
+        System.assertEquals('pricing_in_progress',
+            RLM_PreProcessOrderController.classifyPricingPhase(null, null, 0),
+            'Null status waits');
+        System.assertEquals('pricing_failed',
+            RLM_PreProcessOrderController.classifyPricingPhase('PstBaseStepFailed', null, 0),
+            'PstBaseStepFailed = failed (retry)');
+        System.assertEquals('pricing_failed',
+            RLM_PreProcessOrderController.classifyPricingPhase('PriceCalculationFailed', null, 9),
+            'Failure status overrides pending/validation');
+        System.assertEquals('pricing_investigate',
+            RLM_PreProcessOrderController.classifyPricingPhase('PartialSaveSuccess', null, 0),
+            'Partial-save = investigate (no auto-retry)');
+    }
+
+    @isTest
+    static void testClassifyPricingPhase_AllStatusesBucketed() {
+        // Exhaustiveness guard over the full core OrderCalculationStatus picklist
+        // (24 values). Fails loudly if a value drifts into the wrong bucket.
+        Map<String, String> expected = new Map<String, String>{
+            'NotStarted' => 'pricing_in_progress',
+            'ContextHydrationInProgress' => 'pricing_in_progress',
+            'QueuedForConfiguration' => 'pricing_in_progress',
+            'ConfigurationInProgress' => 'pricing_in_progress',
+            'QueuedForPricing' => 'pricing_in_progress',
+            'QueuedForPricingAndSaving' => 'pricing_in_progress',
+            'PriceCalculationInProgress' => 'pricing_in_progress',
+            'TaxCalculationWaiting' => 'pricing_in_progress',
+            'QueuedForSaving' => 'pricing_in_progress',
+            'Saving' => 'pricing_in_progress',
+            'ReconciliationInProgress' => 'pricing_in_progress',
+            'PstBaseStepFailed' => 'pricing_failed',
+            'ConfigurationFailed' => 'pricing_failed',
+            'GroupRampConfigurationFailed' => 'pricing_failed',
+            'PriceCalculationFailed' => 'pricing_failed',
+            'TaxCalculationFailed' => 'pricing_failed',
+            'SaveFailedOrIncomplete' => 'pricing_failed',
+            'ReconciliationFailed' => 'pricing_failed',
+            'OrderRequestFailed' => 'pricing_failed',
+            'OrderRequestPartiallySaved' => 'pricing_investigate',
+            'PartialSaveSuccess' => 'pricing_investigate',
+            'CompletedWithPricing' => 'pricing_committed',
+            'CompletedWithTax' => 'pricing_committed',
+            'CompletedWithoutPricing' => 'pricing_committed'
+        };
+        System.assertEquals(24, expected.size(), 'All 24 CalculationStatus values covered');
+        for (String status : expected.keySet()) {
+            // committed inputs (ValidationResult cleared, no pending) so terminal-success
+            // values resolve to committed and the in-progress/failed buckets are isolated.
+            System.assertEquals(
+                expected.get(status),
+                RLM_PreProcessOrderController.classifyPricingPhase(status, null, 0),
+                'Status ' + status + ' classified into the wrong bucket'
+            );
+        }
     }
 
     @isTest
