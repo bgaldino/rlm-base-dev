@@ -232,9 +232,9 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 WHERE Id = :qId
                 LIMIT 1
             ];
-            Integer groupCount = [SELECT COUNT() FROM QuoteLineGroup WHERE QuoteId = :qId];
-            Integer qliCount = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId];
-            Integer errorCount = [SELECT COUNT() FROM RevenueTransactionErrorLog WHERE PrimaryRecordId = :qId];
+            Integer groupCount = [SELECT COUNT() FROM QuoteLineGroup WHERE QuoteId = :qId WITH USER_MODE];
+            Integer qliCount = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId WITH USER_MODE];
+            Integer errorCount = [SELECT COUNT() FROM RevenueTransactionErrorLog WHERE PrimaryRecordId = :qId WITH USER_MODE];
             // Scope pending async strictly to this quote. PST trackers carry the quote
             // in ReferenceEntityId (the failedAsyncCount query below relies on the same),
             // so a broader CreatedById/JobType clause only risks counting unrelated PST
@@ -282,7 +282,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
     @AuraEnabled(cacheable=false)
     public static List<Map<String, String>> getQuotesForModify() {
         List<Map<String, String>> options = new List<Map<String, String>>();
-        for (Quote q : [SELECT Id, Name, QuoteNumber, IsLargeDeal FROM Quote ORDER BY LastModifiedDate DESC LIMIT 100]) {
+        for (Quote q : [SELECT Id, Name, QuoteNumber, IsLargeDeal FROM Quote WITH USER_MODE ORDER BY LastModifiedDate DESC LIMIT 100]) {
             Map<String, String> opt = new Map<String, String>();
             opt.put('value', q.Id);
             opt.put('label', (String.isNotBlank(q.Name) ? q.Name : q.QuoteNumber) + ' (' + q.QuoteNumber + ')');
@@ -304,7 +304,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             Id qId = Id.valueOf(quoteId);
             // Aggregate counts avoid materializing every QLI (no 5000-row cap),
             // so detection stays accurate and cheap on large quotes.
-            totalLines = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId];
+            totalLines = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId WITH USER_MODE];
             siemensLines = [
                 SELECT COUNT()
                 FROM QuoteLineItem
@@ -334,7 +334,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         } catch (Exception e) {
             return emptyResult;
         }
-        List<QuoteLineGroup> groups = [SELECT Id, Name, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name];
+        List<QuoteLineGroup> groups = [SELECT Id, Name, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId WITH USER_MODE ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name];
         // Count lines per group with a server-side aggregate. This avoids loading
         // every QuoteLineItem into heap and the 50k-query-row limit, which matters
         // for the large-sales-transaction quotes this feature targets.
@@ -402,7 +402,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         // Ownership guard: only expand groups that actually belong to this quote
         Id qId = Id.valueOf(quoteId);
         Set<Id> rootIds = new Set<Id>();
-        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :candidateIds AND QuoteId = :qId]) {
+        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :candidateIds AND QuoteId = :qId WITH USER_MODE]) {
             rootIds.add(g.Id);
         }
         if (rootIds.isEmpty()) return;
@@ -411,7 +411,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         Set<Id> frontier = new Set<Id>(rootIds);
         while (!frontier.isEmpty()) {
             Set<Id> nextFrontier = new Set<Id>();
-            for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :qId]) {
+            for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :qId WITH USER_MODE]) {
                 if (!allGroupIds.contains(g.Id)) {
                     allGroupIds.add(g.Id);
                     nextFrontier.add(g.Id);
@@ -419,10 +419,15 @@ public with sharing class RLM_SetUpQuoteInvocable {
             }
             frontier = nextFrontier;
         }
-        List<QuoteLineItem> toDeleteItems = [SELECT Id FROM QuoteLineItem WHERE QuoteLineGroupId IN :allGroupIds AND QuoteId = :qId];
-        if (!toDeleteItems.isEmpty()) delete toDeleteItems;
-        List<QuoteLineGroup> toDeleteGroups = [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE Id IN :allGroupIds];
+        List<QuoteLineItem> toDeleteItems = [SELECT Id FROM QuoteLineItem WHERE QuoteLineGroupId IN :allGroupIds AND QuoteId = :qId WITH USER_MODE];
+        if (!toDeleteItems.isEmpty()) delete as user toDeleteItems;
+        List<QuoteLineGroup> toDeleteGroups = [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE Id IN :allGroupIds WITH USER_MODE];
+        Map<Id, QuoteLineGroup> groupById = new Map<Id, QuoteLineGroup>(toDeleteGroups);
         Set<Id> remaining = new Set<Id>(allGroupIds);
+        // Peel leaves level-by-level into a children-first list, then delete
+        // once after the loop — no SOQL or DML inside the loop. Children-first
+        // order keeps the self-referential ParentQuoteLineGroupId valid.
+        List<QuoteLineGroup> orderedDeletes = new List<QuoteLineGroup>();
         while (!remaining.isEmpty()) {
             Set<Id> parentIdsInRemaining = new Set<Id>();
             for (QuoteLineGroup g : toDeleteGroups) {
@@ -431,9 +436,12 @@ public with sharing class RLM_SetUpQuoteInvocable {
             List<Id> leafIds = new List<Id>();
             for (Id gid : remaining) if (!parentIdsInRemaining.contains(gid)) leafIds.add(gid);
             if (leafIds.isEmpty()) break;
-            delete [SELECT Id FROM QuoteLineGroup WHERE Id IN :leafIds];
-            for (Id gid : leafIds) remaining.remove(gid);
+            for (Id gid : leafIds) {
+                if (groupById.containsKey(gid)) orderedDeletes.add(groupById.get(gid));
+                remaining.remove(gid);
+            }
         }
+        if (!orderedDeletes.isEmpty()) delete as user orderedDeletes;
     }
 
     private static void applyGroupRenames(String quoteId, String groupRenamesJson) {
@@ -473,7 +481,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         // real (non-tempId) parentGroupId values and prevent cross-quote subgroup creation.
         Set<Id> validGroupIdsForQuote = new Set<Id>();
         Map<Id, Integer> nextSortOrderByParent = new Map<Id, Integer>();
-        for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId]) {
+        for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId WITH USER_MODE]) {
             validGroupIdsForQuote.add(g.Id);
             if (g.ParentQuoteLineGroupId != null) {
                 Id p = g.ParentQuoteLineGroupId;
@@ -493,7 +501,13 @@ public with sharing class RLM_SetUpQuoteInvocable {
         Map<String, Id> tempIdToNewId = new Map<String, Id>();
         Set<Integer> created = new Set<Integer>();
         while (created.size() < items.size()) {
-            Integer createdThisPass = 0;
+            // Collect every item whose parent is already resolved, then insert
+            // the whole pass in one DML (no insert in a loop). A child whose
+            // parent is a new group created in THIS pass is deferred to the next
+            // pass; the loop converges in tree-depth passes.
+            List<QuoteLineGroup> toInsert = new List<QuoteLineGroup>();
+            List<Integer> insertItemIdx = new List<Integer>();
+            List<String> insertTempIds = new List<String>();
             for (Integer i = 0; i < items.size(); i++) {
                 if (created.contains(i)) continue;
                 Map<String, Object> item = items[i];
@@ -510,15 +524,20 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 } else continue;
                 Integer nextSo = (nextSortOrderByParent.containsKey(parentId) ? nextSortOrderByParent.get(parentId) : 0) + 1;
                 nextSortOrderByParent.put(parentId, nextSo);
-                QuoteLineGroup g = new QuoteLineGroup(QuoteId = qId, ParentQuoteLineGroupId = parentId, Name = nameStr, SortOrder = nextSo);
-                insert g;
-                validGroupIdsForQuote.add(g.Id); // allow this new group as a parent in subsequent passes
-                if (String.isNotBlank(tempId)) tempIdToNewId.put(tempId, g.Id);
-                nextSortOrderByParent.put(g.Id, 0);
-                created.add(i);
-                createdThisPass++;
+                toInsert.add(new QuoteLineGroup(QuoteId = qId, ParentQuoteLineGroupId = parentId, Name = nameStr, SortOrder = nextSo));
+                insertItemIdx.add(i);
+                insertTempIds.add(tempId);
             }
-            if (createdThisPass == 0) break;
+            if (toInsert.isEmpty()) break; // no resolvable item this pass — stop
+            insert as user toInsert;
+            for (Integer j = 0; j < toInsert.size(); j++) {
+                Id newId = toInsert[j].Id;
+                validGroupIdsForQuote.add(newId); // allow as a parent in later passes
+                String tId = insertTempIds[j];
+                if (String.isNotBlank(tId)) tempIdToNewId.put(tId, newId);
+                nextSortOrderByParent.put(newId, 0);
+                created.add(insertItemIdx[j]);
+            }
         }
         return tempIdToNewId;
     }
@@ -558,7 +577,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
         Set<Id> requestedGroupIds = new Set<Id>(groupIdToCount.keySet());
         Map<Id, Integer> filtered = new Map<Id, Integer>();
-        for (QuoteLineGroup qlg : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :qId AND Id IN :requestedGroupIds]) {
+        for (QuoteLineGroup qlg : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :qId AND Id IN :requestedGroupIds WITH USER_MODE]) {
             if (groupIdToCount.containsKey(qlg.Id)) filtered.put(qlg.Id, groupIdToCount.get(qlg.Id));
         }
         return filtered;
@@ -1084,7 +1103,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         if (resp == null || !resp.isSuccess) throw new RLM_SetUpQuoteException(resp != null && resp.errorResponse != null ? String.valueOf(resp.errorResponse) : 'PST execution failed');
         Id quoteId = isCreate ? (Id) resp.salesTransactionId : in0.quoteId;
         if (largeDeal) {
-            update new Quote(Id = quoteId, IsLargeDeal = true);
+            update as user new Quote(Id = quoteId, IsLargeDeal = true);
         }
         return quoteId;
     }
@@ -1134,7 +1153,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
         Id quoteId = in0.quoteId;
         if (largeDeal) {
-            update new Quote(Id = quoteId, IsLargeDeal = true);
+            update as user new Quote(Id = quoteId, IsLargeDeal = true);
         }
         return quoteId;
     }
