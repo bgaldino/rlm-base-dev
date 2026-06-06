@@ -5,8 +5,8 @@ separate Claude-only contract.
 
 ## Instruction mapping
 
-- **Primary instructions:** `CLAUDE.md` points to the same content as
-  `AGENTS.md`; `AGENTS.md` remains the authoritative root contract.
+- **Primary instructions:** `CLAUDE.md` is a symlink to `AGENTS.md`;
+  `AGENTS.md` is the authoritative root contract — edit only `AGENTS.md`.
 - **Task-specific skills:** read the applicable `.cursor/skills/**` Markdown
   files from the Skill Index in `AGENTS.md`. The skills are tool-neutral.
 - **File-specific guidance:** `.cursor/rules/*.mdc` files are Cursor auto-rules,
@@ -16,7 +16,7 @@ separate Claude-only contract.
 
 ## Authoritative files
 
-1. `AGENTS.md` / `CLAUDE.md` when it resolves to `AGENTS.md`
+1. `AGENTS.md` (authoritative); `CLAUDE.md` is the symlink entry point for Claude Code
 2. Relevant `.cursor/skills/**` files
 3. Relevant `.cursor/rules/*.mdc` files
 4. `.claude/skill-manifest.yml` for cross-repo skill resolution

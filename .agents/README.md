@@ -12,6 +12,8 @@ content is intentionally reusable across agents.
      workflows, pre-merge checks, and the skill index.
    - Every tool should read this file first and treat it as the top-level source
      of truth unless a direct human instruction overrides it.
+   - Tool-specific entry points (`CLAUDE.md`, `.github/copilot-instructions.md`)
+     are symlinks or pointers to this file — edit `AGENTS.md` only.
 
 2. **`.cursor/skills/` — tool-neutral skill markdown**
    - Contains detailed task guides such as CCI orchestration, SFDMU data plans,
@@ -60,7 +62,7 @@ Short adapter notes live in `.agents/adapters/`:
 - `claude-code.md`
 - `cursor.md`
 - `copilot.md`
-- `agentforce-vibes.md`
+- `agentforce.md`
 
 Each adapter explains how that tool should map its native instruction mechanism
 to the repository's existing files and which files are authoritative.

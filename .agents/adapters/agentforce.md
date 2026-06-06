@@ -1,6 +1,6 @@
-# Agentforce Vibes Adapter
+# Agentforce Adapter
 
-Agentforce Vibes should use this repository's shared files as its source of
+Agentforce should use this repository's shared files as its source of
 instructions instead of introducing a parallel guidance stack.
 
 ## Instruction mapping
@@ -12,7 +12,7 @@ instructions instead of introducing a parallel guidance stack.
   limited to Cursor.
 - **File-specific guidance:** read applicable `.cursor/rules/*.mdc` files for
   reusable file-pattern guidance, while recognizing that Cursor-specific
-  auto-injection does not apply to Agentforce Vibes.
+  auto-injection does not apply to Agentforce.
 - **Cross-repo discovery:** use `.claude/skill-manifest.yml` to understand which
   skills and grounding artifacts are shared across repos.
 - **Copilot pointer:** `.github/copilot-instructions.md` is specific to GitHub
