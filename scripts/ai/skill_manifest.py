@@ -34,24 +34,225 @@ CLI usage (for diagnostics):
 from __future__ import annotations
 
 import argparse
+import importlib
+import importlib.util
 import os
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-try:
-    import yaml
-except ImportError:  # pragma: no cover
-    sys.stderr.write(
-        "skill_manifest.py requires PyYAML. Install via "
-        "`pipx inject cumulusci PyYAML` (CCI venv) or `pip install pyyaml`.\n"
-    )
-    sys.exit(2)
+# PyYAML is optional at import time. find_spec can report a module that still
+# fails to import (broken/partial install), so guard the actual import.
+yaml = None
+if importlib.util.find_spec("yaml") is not None:
+    try:
+        yaml = importlib.import_module("yaml")
+    except ImportError:
+        yaml = None
 
 
 MANIFEST_FILENAME = ".claude/skill-manifest.yml"
 
+PY_YAML_HELP = (
+    "PyYAML is not installed, so skill_manifest.py is using its minimal fallback. "
+    "The fallback supports baseline diagnostics only: file presence, high-level "
+    "manifest keys, repo discovery, and simple skill path listing. For full YAML "
+    "support, activate the project CumulusCI environment or install PyYAML with "
+    "`pipx inject cumulusci PyYAML`, `python -m pip install PyYAML`, or "
+    "`python -m pip install cumulusci`."
+)
+
+
+def _strip_inline_comment(value: str) -> str:
+    """Remove simple YAML comments outside quoted values for fallback parsing.
+
+    A ``#`` only starts a comment when it is at the start of the value or
+    preceded by whitespace (YAML semantics). This keeps ``#`` inside unquoted
+    path fragments (e.g. ``docs/foo#section``) intact.
+    """
+    in_single = False
+    in_double = False
+    for idx, char in enumerate(value):
+        if char == "'" and not in_double:
+            in_single = not in_single
+        elif char == '"' and not in_single:
+            in_double = not in_double
+        elif (
+            char == "#"
+            and not in_single
+            and not in_double
+            and (idx == 0 or value[idx - 1].isspace())
+        ):
+            return value[:idx].rstrip()
+    return value.strip()
+
+
+def _parse_scalar(value: str) -> Any:
+    """Parse a tiny subset of YAML scalars used by baseline diagnostics."""
+    value = _strip_inline_comment(value.strip())
+    if value in ("", "null", "Null", "NULL", "~"):
+        return None
+    if value in ("true", "True", "TRUE"):
+        return True
+    if value in ("false", "False", "FALSE"):
+        return False
+    if value == "[]":
+        return []
+    if value.startswith("[") and value.endswith("]"):
+        inner = value[1:-1].strip()
+        if not inner:
+            return []
+        return [_parse_scalar(part.strip()) for part in inner.split(",")]
+    if (value.startswith('"') and value.endswith('"')) or (
+        value.startswith("'") and value.endswith("'")
+    ):
+        return value[1:-1]
+    # Only coerce plain base-10 integers. Leave zero-padded codes ("007") and
+    # underscore-grouped values ("1_000") as strings so they are not corrupted
+    # — this matches yaml.safe_load for these forms.
+    if re.fullmatch(r"-?[1-9][0-9]*|0", value):
+        return int(value)
+    return value
+
+
+def _load_manifest_minimal(manifest_path: Path) -> dict[str, Any]:
+    """Load enough manifest structure for baseline checks without PyYAML.
+
+    This fallback intentionally does not try to be a general YAML parser. It
+    recognizes the manifest's top-level metadata, repo sections, local path
+    hints, simple grounding/context_files path entries, and skill ``id`` /
+    ``path`` / ``purpose`` fields so diagnostics can still run in a fresh
+    checkout. Complex nested YAML remains a PyYAML-only feature.
+    """
+    data: dict[str, Any] = {"_minimal_fallback": True}
+    current_repo: str | None = None
+    current_list: str | None = None
+    current_skill: dict[str, Any] | None = None
+    current_mapping: str | None = None
+    current_mapping_key: str | None = None
+
+    for raw_line in manifest_path.read_text(encoding="utf-8").splitlines():
+        if not raw_line.strip() or raw_line.lstrip().startswith("#"):
+            continue
+        indent = len(raw_line) - len(raw_line.lstrip(" "))
+        line = raw_line.strip()
+
+        if indent == 0 and line.endswith(":"):
+            key = line[:-1]
+            if key in ("foundations", "pmos"):
+                current_repo = key
+                data.setdefault(key, {})
+            else:
+                data.setdefault(key, {})
+                current_repo = None
+            current_list = None
+            current_skill = None
+            current_mapping = None
+            current_mapping_key = None
+            continue
+
+        if indent == 0 and ":" in line:
+            key, value = line.split(":", 1)
+            data[key] = _parse_scalar(value)
+            current_repo = None
+            current_list = None
+            current_mapping = None
+            current_mapping_key = None
+            continue
+
+        if current_repo is None:
+            continue
+        section = data.setdefault(current_repo, {})
+
+        if indent == 2 and line.endswith(":"):
+            key = line[:-1]
+            if key in ("local_path_hints", "skills"):
+                section.setdefault(key, [])
+                current_list = key
+                current_mapping = None
+            elif key in ("grounding", "context_files"):
+                section.setdefault(key, {})
+                current_mapping = key
+                current_list = None
+            else:
+                section.setdefault(key, {})
+                current_list = None
+                current_mapping = None
+            current_skill = None
+            current_mapping_key = None
+            continue
+
+        if indent == 2 and ":" in line:
+            key, value = line.split(":", 1)
+            section[key] = _parse_scalar(value)
+            current_list = None
+            current_skill = None
+            current_mapping = None
+            current_mapping_key = None
+            continue
+
+        if (
+            current_list == "local_path_hints"
+            and indent == 4
+            and line.startswith("- ")
+        ):
+            section.setdefault("local_path_hints", []).append(_parse_scalar(line[2:]))
+            continue
+
+        if current_list == "skills" and indent == 4 and line.startswith("- "):
+            current_skill = {}
+            section.setdefault("skills", []).append(current_skill)
+            item = line[2:]
+            if ":" in item:
+                key, value = item.split(":", 1)
+                current_skill[key] = _parse_scalar(value)
+            continue
+
+        if (
+            current_list == "skills"
+            and current_skill is not None
+            and indent == 6
+            and ":" in line
+        ):
+            key, value = line.split(":", 1)
+            # Baseline diagnostics only need simple scalar skill metadata.
+            if key in ("id", "path", "purpose"):
+                current_skill[key] = _parse_scalar(value)
+            continue
+
+        if (
+            current_mapping in ("grounding", "context_files")
+            and indent == 4
+            and ":" in line
+        ):
+            key, value = line.split(":", 1)
+            mapping = section.setdefault(current_mapping, {})
+            parsed_value = _parse_scalar(value)
+            mapping[key] = {} if parsed_value is None else parsed_value
+            current_mapping_key = key
+            continue
+
+        if (
+            current_mapping in ("grounding", "context_files")
+            and current_mapping_key
+            and indent == 6
+            and ":" in line
+        ):
+            key, value = line.split(":", 1)
+            entry = section.setdefault(current_mapping, {}).setdefault(
+                current_mapping_key, {}
+            )
+            # Capture every scalar sub-key, not just ``path`` — structured
+            # grounding entries carry multiple path-like keys (e.g. path,
+            # manifest, index, or cci_reference: {tasks, flows, flags}) that
+            # the old ``path``-only branch silently dropped.
+            if isinstance(entry, dict):
+                entry[key] = _parse_scalar(value)
+            continue
+
+    return data
 
 # ─── Repo discovery ─────────────────────────────────────────────────────────
 
@@ -83,6 +284,10 @@ def _discover_repo(
     env_var: str | None = None
 
     for hint in hints:
+        # Skip non-string hints (a malformed manifest could yield ints/lists),
+        # which would otherwise raise TypeError in expanduser/expandvars.
+        if not isinstance(hint, str):
+            continue
         # Expand env vars and ~. If the var is unset, expandvars leaves "$FOO"
         # as-is; we filter those out below.
         expanded = os.path.expandvars(os.path.expanduser(hint))
@@ -160,8 +365,12 @@ def find_manifest(start: Path | None = None) -> Path:
 def load_manifest(path: Path | None = None) -> dict[str, Any]:
     """Load and lightly normalize the manifest. Discovers repo locations."""
     manifest_path = path or find_manifest()
-    with manifest_path.open("r") as f:
-        data: dict[str, Any] = yaml.safe_load(f) or {}
+    if yaml is None:
+        print(PY_YAML_HELP, file=sys.stderr)
+        data = _load_manifest_minimal(manifest_path)
+    else:
+        with manifest_path.open("r") as f:
+            data: dict[str, Any] = yaml.safe_load(f) or {}
 
     # Stash where we found it so callers can debug
     data["_manifest_path"] = str(manifest_path)
@@ -171,7 +380,9 @@ def load_manifest(path: Path | None = None) -> dict[str, Any]:
     # Discover both repos' clones, anchoring relative hints to the manifest's
     # repo root (NOT process cwd) so discovery is stable from any subdirectory.
     for key in ("foundations", "pmos"):
-        if key in data:
+        # An empty `foundations:`/`pmos:` section parses to None; only resolve
+        # when the section is actually a mapping.
+        if isinstance(data.get(key), dict):
             data[key]["_resolved"] = _discover_repo(data[key], manifest_root)
 
     return data
