@@ -102,160 +102,131 @@ def _parse_scalar(value: str) -> Any:
     if value == "[]":
         return []
     if value.startswith("[") and value.endswith("]"):
+        # Inline flow list. Drop empty segments so a trailing comma ("[a, b,]")
+        # matches yaml.safe_load rather than injecting a None.
         inner = value[1:-1].strip()
         if not inner:
             return []
-        return [_parse_scalar(part.strip()) for part in inner.split(",")]
+        return [_parse_scalar(part.strip()) for part in inner.split(",") if part.strip()]
     if (value.startswith('"') and value.endswith('"')) or (
         value.startswith("'") and value.endswith("'")
     ):
         return value[1:-1]
-    # Only coerce plain base-10 integers. Leave zero-padded codes ("007") and
-    # underscore-grouped values ("1_000") as strings so they are not corrupted
-    # — this matches yaml.safe_load for these forms.
-    if re.fullmatch(r"-?[1-9][0-9]*|0", value):
+    # Coerce plain decimal integers (including a signed zero). Zero-padded codes
+    # ("007") and underscore-grouped values ("1_000") are INTENTIONALLY kept as
+    # strings to avoid corrupting identifiers; this diverges from yaml.safe_load
+    # (YAML 1.1 would coerce them), but the manifest contains no such values.
+    if re.fullmatch(r"-?(?:0|[1-9][0-9]*)", value):
         return int(value)
     return value
 
 
-def _load_manifest_minimal(text: str) -> dict[str, Any]:
-    """Load enough manifest structure for baseline checks without PyYAML.
+def _split_key_value(content: str) -> tuple[str, str | None]:
+    """Split a ``key: value`` line at the first ``:`` that is outside quotes and
+    followed by whitespace or end-of-line (YAML's mapping separator).
 
-    Accepts the already-read manifest text (the caller is responsible for
-    reading it, so I/O errors are handled in one place). This fallback
-    intentionally does not try to be a general YAML parser. It recognizes the
-    manifest's top-level metadata, repo sections, local path hints, simple
-    grounding/context_files path entries, and skill ``id`` / ``path`` /
-    ``purpose`` fields so diagnostics can still run in a fresh checkout.
-    Complex nested YAML remains a PyYAML-only feature.
+    Returns ``(key, value)``, or ``(content, None)`` when there is no separator
+    (so a quoted key containing a colon, e.g. ``"a:b": 1``, is not split mid-key).
     """
-    data: dict[str, Any] = {"_minimal_fallback": True}
-    current_repo: str | None = None
-    current_list: str | None = None
-    current_skill: dict[str, Any] | None = None
-    current_mapping: str | None = None
-    current_mapping_key: str | None = None
+    in_single = in_double = False
+    for i, ch in enumerate(content):
+        if ch == "'" and not in_double:
+            in_single = not in_single
+        elif ch == '"' and not in_single:
+            in_double = not in_double
+        elif ch == ":" and not in_single and not in_double:
+            if i + 1 >= len(content) or content[i + 1] in " \t":
+                return content[:i], content[i + 1:]
+    return content, None
 
-    for raw_line in text.splitlines():
-        if not raw_line.strip() or raw_line.lstrip().startswith("#"):
+
+def _reject_block_scalar(value: str) -> None:
+    """Raise on a YAML block-scalar indicator (``|``/``>`` with optional
+    chomping/indent modifiers). The fallback cannot fold multi-line block
+    scalars, so fail loudly rather than silently truncating to ``|``/``>``."""
+    if re.fullmatch(r"[|>][+-]?[0-9]?", value.strip()):
+        raise ValueError(
+            "block scalars (| or >) are not supported by the no-PyYAML "
+            "fallback; install PyYAML for full manifest parsing"
+        )
+
+
+def _load_manifest_minimal(text: str) -> dict[str, Any]:
+    """Parse the manifest without PyYAML, via a generic indent-based parser.
+
+    Accepts the already-read manifest text (the caller reads it, so I/O errors
+    are handled in one place). It supports the block-YAML subset the manifest
+    uses — nested mappings, block lists (``- item``), inline flow lists
+    (``[a, b]``), scalars (str/int/bool/null), quoted strings, and ``#``
+    comments — and for that structure reproduces ``yaml.safe_load``. It is NOT a
+    general YAML parser: anchors/aliases, merge keys, block scalars (``|``/``>``)
+    and flow maps are unsupported (the manifest uses none of them). For the
+    current manifest the output is verified to equal ``yaml.safe_load``.
+    """
+    # Tokenize: (indent, content) for non-blank, non-comment-only lines, with
+    # trailing inline comments stripped (respecting quotes) so a line like
+    # `key:   # note` is seen as an empty-valued key, not a scalar.
+    tokens: list[tuple[int, str]] = []
+    for raw in text.splitlines():
+        stripped = raw.strip()
+        if not stripped or stripped.startswith("#"):
             continue
-        indent = len(raw_line) - len(raw_line.lstrip(" "))
-        line = raw_line.strip()
+        content = _strip_inline_comment(stripped)
+        if not content:
+            continue
+        tokens.append((len(raw) - len(raw.lstrip(" ")), content))
 
-        if indent == 0 and line.endswith(":"):
-            key = line[:-1]
-            if key in ("foundations", "pmos"):
-                current_repo = key
-                data.setdefault(key, {})
+    pos = [0]  # boxed index so the nested parsers can advance it
+
+    def parse_block(indent: int) -> Any:
+        if pos[0] >= len(tokens):
+            return None
+        content = tokens[pos[0]][1]
+        if content == "-" or content.startswith("- "):
+            return parse_list(indent)
+        return parse_map(indent)
+
+    def parse_map(indent: int) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        while pos[0] < len(tokens):
+            cur_indent, content = tokens[pos[0]]
+            if cur_indent != indent or content.startswith("- "):
+                break
+            key_raw, val_raw = _split_key_value(content)
+            key = key_raw.strip()
+            if len(key) >= 2 and key[0] == key[-1] and key[0] in "\"'":
+                key = key[1:-1]  # unquote a quoted mapping key
+            pos[0] += 1
+            val = (val_raw or "").strip()
+            if val == "":
+                child_indent = tokens[pos[0]][0] if pos[0] < len(tokens) else -1
+                result[key] = parse_block(child_indent) if child_indent > indent else None
             else:
-                data.setdefault(key, {})
-                current_repo = None
-            current_list = None
-            current_skill = None
-            current_mapping = None
-            current_mapping_key = None
-            continue
+                _reject_block_scalar(val)
+                result[key] = _parse_scalar(val)
+        return result
 
-        if indent == 0 and ":" in line:
-            key, value = line.split(":", 1)
-            data[key] = _parse_scalar(value)
-            current_repo = None
-            current_list = None
-            current_mapping = None
-            current_mapping_key = None
-            continue
-
-        if current_repo is None:
-            continue
-        section = data.setdefault(current_repo, {})
-
-        if indent == 2 and line.endswith(":"):
-            key = line[:-1]
-            if key in ("local_path_hints", "skills"):
-                section.setdefault(key, [])
-                current_list = key
-                current_mapping = None
-            elif key in ("grounding", "context_files"):
-                section.setdefault(key, {})
-                current_mapping = key
-                current_list = None
+    def parse_list(indent: int) -> list[Any]:
+        result: list[Any] = []
+        while pos[0] < len(tokens):
+            cur_indent, content = tokens[pos[0]]
+            if cur_indent != indent or not (content == "-" or content.startswith("- ")):
+                break
+            item = content[1:].strip()
+            # A mapping list item ("- key: value") starts a mapping whose keys
+            # sit at indent + 2 (the columns after "- "). Quote-aware detection
+            # via _split_key_value handles quoted keys that contain a colon.
+            _, item_val = _split_key_value(item)
+            if item_val is not None:
+                tokens[pos[0]] = (indent + 2, item)
+                result.append(parse_map(indent + 2))
             else:
-                section.setdefault(key, {})
-                current_list = None
-                current_mapping = None
-            current_skill = None
-            current_mapping_key = None
-            continue
+                pos[0] += 1
+                result.append(_parse_scalar(item))
+        return result
 
-        if indent == 2 and ":" in line:
-            key, value = line.split(":", 1)
-            section[key] = _parse_scalar(value)
-            current_list = None
-            current_skill = None
-            current_mapping = None
-            current_mapping_key = None
-            continue
-
-        if (
-            current_list == "local_path_hints"
-            and indent == 4
-            and line.startswith("- ")
-        ):
-            section.setdefault("local_path_hints", []).append(_parse_scalar(line[2:]))
-            continue
-
-        if current_list == "skills" and indent == 4 and line.startswith("- "):
-            current_skill = {}
-            section.setdefault("skills", []).append(current_skill)
-            item = line[2:]
-            if ":" in item:
-                key, value = item.split(":", 1)
-                current_skill[key] = _parse_scalar(value)
-            continue
-
-        if (
-            current_list == "skills"
-            and current_skill is not None
-            and indent == 6
-            and ":" in line
-        ):
-            key, value = line.split(":", 1)
-            # Baseline diagnostics only need simple scalar skill metadata.
-            if key in ("id", "path", "purpose"):
-                current_skill[key] = _parse_scalar(value)
-            continue
-
-        if (
-            current_mapping in ("grounding", "context_files")
-            and indent == 4
-            and ":" in line
-        ):
-            key, value = line.split(":", 1)
-            mapping = section.setdefault(current_mapping, {})
-            parsed_value = _parse_scalar(value)
-            mapping[key] = {} if parsed_value is None else parsed_value
-            current_mapping_key = key
-            continue
-
-        if (
-            current_mapping in ("grounding", "context_files")
-            and current_mapping_key
-            and indent == 6
-            and ":" in line
-        ):
-            key, value = line.split(":", 1)
-            entry = section.setdefault(current_mapping, {}).setdefault(
-                current_mapping_key, {}
-            )
-            # Capture every scalar sub-key, not just ``path`` — structured
-            # grounding entries carry multiple path-like keys (e.g. path,
-            # manifest, index, or cci_reference: {tasks, flows, flags}) that
-            # the old ``path``-only branch silently dropped.
-            if isinstance(entry, dict):
-                entry[key] = _parse_scalar(value)
-            continue
-
-    return data
+    data = parse_block(0)
+    return data if isinstance(data, dict) else {}
 
 # ─── Repo discovery ─────────────────────────────────────────────────────────
 
@@ -376,7 +347,13 @@ def load_manifest(path: Path | None = None) -> dict[str, Any]:
         raise SystemExit(f"skill_manifest.py: cannot read {manifest_path}: {exc}")
     if yaml is None:
         print(PY_YAML_HELP, file=sys.stderr)
-        data = _load_manifest_minimal(manifest_text)
+        try:
+            data = _load_manifest_minimal(manifest_text)
+        except Exception as exc:
+            # Mirror the PyYAML branch: any fallback parse failure (e.g. an
+            # over-nested manifest, or an unsupported block scalar) becomes a
+            # clean diagnostic rather than a raw traceback.
+            raise SystemExit(f"skill_manifest.py: cannot parse {manifest_path}: {exc}")
     else:
         try:
             data: dict[str, Any] = yaml.safe_load(manifest_text) or {}
