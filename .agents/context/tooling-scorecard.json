@@ -59,20 +59,14 @@
     "generated_at": "2026-05-23T00:00:00Z",
     "last_verified": "2026-05-23",
     "manifest_version": "2",
-    "parser": "line-oriented fallback",
     "present": true,
     "salesforce_release_active": "262",
-    "skill_count": 21,
+    "skill_count": 14,
     "skill_ids": [
       "cci-orchestration",
-      "check_pmos_prd",
       "doc-consistency",
-      "mfg/en-US",
       "pmos-integration",
-      "q3/en-US",
       "qb-demo-script",
-      "qb/en-US",
-      "qb/ja",
       "release-enablement",
       "repo-integration",
       "revenue-cloud-data-model",
@@ -82,9 +76,7 @@
       "schema-validation",
       "sfdmu-data-plans",
       "skill-authoring",
-      "snapshot_salesforce_help",
-      "troubleshooting",
-      "validate_setup"
+      "troubleshooting"
     ],
     "skill_paths": [
       ".cursor/skills/cci-orchestration/SKILL.md",

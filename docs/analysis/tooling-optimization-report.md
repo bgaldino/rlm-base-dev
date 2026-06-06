@@ -133,20 +133,14 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
 ## Skill Manifest Snapshot
 
 - Present: **True**
-- Parser: `line-oriented fallback`
 - Manifest version: `2`
 - Last verified: `2026-05-23`
 - Active Salesforce release: `262`
-- Manifest skill count: **21**
+- Manifest skill count: **14**
   - `cci-orchestration`
-  - `check_pmos_prd`
   - `doc-consistency`
-  - `mfg/en-US`
   - `pmos-integration`
-  - `q3/en-US`
   - `qb-demo-script`
-  - `qb/en-US`
-  - `qb/ja`
   - `release-enablement`
   - `repo-integration`
   - `revenue-cloud-data-model`
@@ -156,9 +150,7 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
   - `schema-validation`
   - `sfdmu-data-plans`
   - `skill-authoring`
-  - `snapshot_salesforce_help`
   - `troubleshooting`
-  - `validate_setup`
 
 ## Findings
 

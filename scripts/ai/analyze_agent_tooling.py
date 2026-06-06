@@ -267,6 +267,14 @@ def parse_manifest_fallback(text: str) -> dict[str, Any]:
     if foundations_match:
         foundations_text = foundations_match.group("body")
 
+    # Scope skill extraction to the foundations ``skills:`` block (indent 2),
+    # ending at the next sibling key, so ``- id:`` lines under cci_tasks,
+    # sfdmu_shapes, grounding, etc. are not miscounted as skills.
+    skills_text = ""
+    skills_match = re.search(r"(?ms)^  skills:\n(?P<body>.*?)(?=^  \S|\Z)", foundations_text)
+    if skills_match:
+        skills_text = skills_match.group("body")
+
     for line in text.splitlines():
         # Top-level scalars only (no leading whitespace).
         if line[:1].isspace():
@@ -276,7 +284,7 @@ def parse_manifest_fallback(text: str) -> dict[str, Any]:
             if line.startswith(prefix):
                 summary[key] = line[len(prefix):].strip().strip('"').strip("'")
 
-    for line in foundations_text.splitlines():
+    for line in skills_text.splitlines():
         stripped = line.strip()
         if stripped.startswith("- id:"):
             summary["skills"].append(stripped.split(":", 1)[1].strip())
@@ -287,12 +295,24 @@ def parse_manifest_fallback(text: str) -> dict[str, Any]:
     return summary
 
 
+def _version_str(value: Any) -> Any:
+    """Render a version-like scalar as a string so PyYAML (int 2) and the
+    line fallback (str '2') produce identical, environment-independent output."""
+    return None if value is None else str(value)
+
+
 def summarize_manifest(root: Path) -> dict[str, Any]:
+    """Summarize the skill manifest.
+
+    The output is environment-independent: the PyYAML and line-fallback paths
+    produce the same data, and no ``parser`` label is recorded, so a committed
+    artifact does not drift just because PyYAML is (or is not) installed.
+    """
     manifest = root / MANIFEST_PATH
     if not manifest.is_file():
-        return {"present": False, "parser": "not run"}
+        return {"present": False}
 
-    data, parser = load_yaml_optional(manifest)
+    data, _parser = load_yaml_optional(manifest)
     if data is not None:
         foundations = data.get("foundations") or {}
         if not isinstance(foundations, dict):
@@ -308,11 +328,10 @@ def summarize_manifest(root: Path) -> dict[str, Any]:
                 generated_subfiles.extend(s.get("auto_generated_subfiles") or [])
         return {
             "present": True,
-            "parser": parser,
-            "manifest_version": _scalar(data.get("manifest_version")),
+            "manifest_version": _version_str(data.get("manifest_version")),
             "generated_at": _scalar(data.get("generated_at")),
             "last_verified": _scalar(data.get("last_verified")),
-            "salesforce_release_active": _scalar(data.get("salesforce_release_active")),
+            "salesforce_release_active": _version_str(data.get("salesforce_release_active")),
             "skill_count": len(skill_ids),
             "skill_ids": sorted(str(s) for s in skill_ids),
             "skill_paths": sorted(str(p) for p in skill_paths),
@@ -322,11 +341,10 @@ def summarize_manifest(root: Path) -> dict[str, Any]:
     fb = parse_manifest_fallback(read_text(manifest))
     return {
         "present": True,
-        "parser": parser,
-        "manifest_version": fb.get("manifest_version"),
+        "manifest_version": _version_str(fb.get("manifest_version")),
         "generated_at": fb.get("generated_at"),
         "last_verified": fb.get("last_verified"),
-        "salesforce_release_active": fb.get("salesforce_release_active"),
+        "salesforce_release_active": _version_str(fb.get("salesforce_release_active")),
         "skill_count": len(fb.get("skills", [])),
         "skill_ids": sorted(fb.get("skills", [])),
         "skill_paths": sorted(fb.get("skill_paths", [])),
@@ -744,7 +762,6 @@ def render_report_markdown(a: Analysis) -> str:
     lines += [
         "", "## Skill Manifest Snapshot", "",
         f"- Present: **{m.get('present', False)}**",
-        f"- Parser: `{m.get('parser', 'unknown')}`",
         f"- Manifest version: `{m.get('manifest_version')}`",
         f"- Last verified: `{m.get('last_verified')}`",
         f"- Active Salesforce release: `{m.get('salesforce_release_active')}`",
