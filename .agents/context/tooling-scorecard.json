@@ -1,0 +1,212 @@
+{
+  "agents_skill_references": {
+    "checked": [
+      ".cursor/skills/cci-orchestration/SKILL.md",
+      ".cursor/skills/cci-orchestration/custom-task-authoring.md",
+      ".cursor/skills/cci-orchestration/feature-flags.md",
+      ".cursor/skills/cci-orchestration/flows-reference.md",
+      ".cursor/skills/cci-orchestration/tasks-reference.md",
+      ".cursor/skills/doc-consistency/SKILL.md",
+      ".cursor/skills/pmos-integration/SKILL.md",
+      ".cursor/skills/qb-demo-script/SKILL.md",
+      ".cursor/skills/release-enablement/SKILL.md",
+      ".cursor/skills/release-enablement/authoring-patterns.md",
+      ".cursor/skills/release-enablement/resume-enablement-work.md",
+      ".cursor/skills/repo-integration/SKILL.md",
+      ".cursor/skills/repo-integration/dependency-ordering.md",
+      ".cursor/skills/repo-integration/new-feature-guide.md",
+      ".cursor/skills/repo-integration/ux-assembly-retrieve.md",
+      ".cursor/skills/revenue-cloud-data-model/SKILL.md",
+      ".cursor/skills/revenue-cloud-data-model/cross-domain-relationships.md",
+      ".cursor/skills/revenue-cloud-docs/SKILL.md",
+      ".cursor/skills/rlm-business-apis/SKILL.md",
+      ".cursor/skills/robot-testing/SKILL.md",
+      ".cursor/skills/robot-testing/patterns.md",
+      ".cursor/skills/robot-testing/setup-ui-shadow-dom.md",
+      ".cursor/skills/schema-validation/SKILL.md",
+      ".cursor/skills/sfdmu-data-plans/SKILL.md",
+      ".cursor/skills/sfdmu-data-plans/object-plan-mapping.md",
+      ".cursor/skills/sfdmu-data-plans/plan-dependency-graph.md",
+      ".cursor/skills/skill-authoring/SKILL.md",
+      ".cursor/skills/troubleshooting/SKILL.md"
+    ],
+    "missing": []
+  },
+  "counts": {
+    "agents_skill_references": 28,
+    "cursor_rules": 10,
+    "errors": 0,
+    "generated_cci_reference_files_present": 3,
+    "generated_cci_reference_files_total": 3,
+    "missing_agents_skill_references": 0,
+    "required_files_present": 6,
+    "required_files_total": 6,
+    "skills_markdown_files": 38,
+    "warnings": 0
+  },
+  "errors": [],
+  "generated_cci_reference_files": {
+    ".cursor/skills/cci-orchestration/feature-flags.md": true,
+    ".cursor/skills/cci-orchestration/flows-reference.md": true,
+    ".cursor/skills/cci-orchestration/tasks-reference.md": true
+  },
+  "manifest": {
+    "auto_generated_subfiles": [
+      ".cursor/skills/cci-orchestration/feature-flags.md",
+      ".cursor/skills/cci-orchestration/flows-reference.md",
+      ".cursor/skills/cci-orchestration/tasks-reference.md"
+    ],
+    "generated_at": "2026-05-23T00:00:00Z",
+    "last_verified": "2026-05-23",
+    "manifest_version": "2",
+    "present": true,
+    "salesforce_release_active": "262",
+    "skill_count": 14,
+    "skill_ids": [
+      "cci-orchestration",
+      "doc-consistency",
+      "pmos-integration",
+      "qb-demo-script",
+      "release-enablement",
+      "repo-integration",
+      "revenue-cloud-data-model",
+      "revenue-cloud-docs",
+      "rlm-business-apis",
+      "robot-testing",
+      "schema-validation",
+      "sfdmu-data-plans",
+      "skill-authoring",
+      "troubleshooting"
+    ],
+    "skill_paths": [
+      ".cursor/skills/cci-orchestration/SKILL.md",
+      ".cursor/skills/doc-consistency/SKILL.md",
+      ".cursor/skills/pmos-integration/SKILL.md",
+      ".cursor/skills/qb-demo-script/SKILL.md",
+      ".cursor/skills/release-enablement/SKILL.md",
+      ".cursor/skills/repo-integration/SKILL.md",
+      ".cursor/skills/revenue-cloud-data-model/SKILL.md",
+      ".cursor/skills/revenue-cloud-docs/SKILL.md",
+      ".cursor/skills/rlm-business-apis/SKILL.md",
+      ".cursor/skills/robot-testing/SKILL.md",
+      ".cursor/skills/schema-validation/SKILL.md",
+      ".cursor/skills/sfdmu-data-plans/SKILL.md",
+      ".cursor/skills/skill-authoring/SKILL.md",
+      ".cursor/skills/troubleshooting/SKILL.md"
+    ]
+  },
+  "required_files": {
+    ".claude/skill-manifest.yml": true,
+    ".cursor/skills/README.md": true,
+    ".github/copilot-instructions.md": true,
+    "AGENTS.md": true,
+    "CLAUDE.md": true,
+    "scripts/ai/README.md": true
+  },
+  "rule_mappings": [
+    {
+      "rule": "apex-classes.mdc",
+      "status": "standalone",
+      "target": "*(stand-alone \u2014 sharing keywords, `Id.valueOf` validation, SOQL safety, test patterns; complements `repo-integration/SKILL.md` for placement)*"
+    },
+    {
+      "rule": "apex-scripts.mdc",
+      "status": "skill",
+      "target": ".cursor/skills/troubleshooting/SKILL.md"
+    },
+    {
+      "rule": "cci-python-tasks.mdc",
+      "status": "skill",
+      "target": ".cursor/skills/cci-orchestration/custom-task-authoring.md"
+    },
+    {
+      "rule": "cci-task-definitions.mdc",
+      "status": "skill",
+      "target": ".cursor/skills/cci-orchestration/SKILL.md"
+    },
+    {
+      "rule": "doc-review.mdc",
+      "status": "skill",
+      "target": ".cursor/skills/doc-consistency/SKILL.md"
+    },
+    {
+      "rule": "lwc-components.mdc",
+      "status": "standalone",
+      "target": "*(stand-alone \u2014 template syntax, ARIA/accessibility, performance, error messages; complements `repo-integration/SKILL.md` for placement)*"
+    },
+    {
+      "rule": "robot-tests.mdc",
+      "status": "skill",
+      "target": ".cursor/skills/robot-testing/SKILL.md"
+    },
+    {
+      "rule": "sfdmu-csv-data.mdc",
+      "status": "skill",
+      "target": ".cursor/skills/sfdmu-data-plans/SKILL.md"
+    },
+    {
+      "rule": "sfdmu-export-json.mdc",
+      "status": "skill",
+      "target": ".cursor/skills/sfdmu-data-plans/SKILL.md"
+    },
+    {
+      "rule": "ux-templates.mdc",
+      "status": "skill",
+      "target": ".cursor/skills/repo-integration/SKILL.md"
+    }
+  ],
+  "rules": [
+    ".cursor/rules/apex-classes.mdc",
+    ".cursor/rules/apex-scripts.mdc",
+    ".cursor/rules/cci-python-tasks.mdc",
+    ".cursor/rules/cci-task-definitions.mdc",
+    ".cursor/rules/doc-review.mdc",
+    ".cursor/rules/lwc-components.mdc",
+    ".cursor/rules/robot-tests.mdc",
+    ".cursor/rules/sfdmu-csv-data.mdc",
+    ".cursor/rules/sfdmu-export-json.mdc",
+    ".cursor/rules/ux-templates.mdc"
+  ],
+  "skills": [
+    ".cursor/skills/README.md",
+    ".cursor/skills/cci-orchestration/SKILL.md",
+    ".cursor/skills/cci-orchestration/custom-task-authoring.md",
+    ".cursor/skills/cci-orchestration/feature-flags.md",
+    ".cursor/skills/cci-orchestration/flows-reference.md",
+    ".cursor/skills/cci-orchestration/tasks-reference.md",
+    ".cursor/skills/doc-consistency/SKILL.md",
+    ".cursor/skills/pmos-integration/SKILL.md",
+    ".cursor/skills/qb-demo-script/SKILL.md",
+    ".cursor/skills/release-enablement/SKILL.md",
+    ".cursor/skills/release-enablement/authoring-patterns.md",
+    ".cursor/skills/release-enablement/resume-enablement-work.md",
+    ".cursor/skills/repo-integration/SKILL.md",
+    ".cursor/skills/repo-integration/dependency-ordering.md",
+    ".cursor/skills/repo-integration/new-feature-guide.md",
+    ".cursor/skills/repo-integration/ux-assembly-retrieve.md",
+    ".cursor/skills/revenue-cloud-data-model/SKILL.md",
+    ".cursor/skills/revenue-cloud-data-model/cross-domain-relationships.md",
+    ".cursor/skills/revenue-cloud-data-model/domains/approvals.md",
+    ".cursor/skills/revenue-cloud-data-model/domains/billing.md",
+    ".cursor/skills/revenue-cloud-data-model/domains/configurator.md",
+    ".cursor/skills/revenue-cloud-data-model/domains/dro.md",
+    ".cursor/skills/revenue-cloud-data-model/domains/pcm.md",
+    ".cursor/skills/revenue-cloud-data-model/domains/pricing.md",
+    ".cursor/skills/revenue-cloud-data-model/domains/rates.md",
+    ".cursor/skills/revenue-cloud-data-model/domains/transactions.md",
+    ".cursor/skills/revenue-cloud-data-model/domains/usage.md",
+    ".cursor/skills/revenue-cloud-docs/SKILL.md",
+    ".cursor/skills/rlm-business-apis/SKILL.md",
+    ".cursor/skills/robot-testing/SKILL.md",
+    ".cursor/skills/robot-testing/patterns.md",
+    ".cursor/skills/robot-testing/setup-ui-shadow-dom.md",
+    ".cursor/skills/schema-validation/SKILL.md",
+    ".cursor/skills/sfdmu-data-plans/SKILL.md",
+    ".cursor/skills/sfdmu-data-plans/object-plan-mapping.md",
+    ".cursor/skills/sfdmu-data-plans/plan-dependency-graph.md",
+    ".cursor/skills/skill-authoring/SKILL.md",
+    ".cursor/skills/troubleshooting/SKILL.md"
+  ],
+  "status": "pass",
+  "warnings": []
+}

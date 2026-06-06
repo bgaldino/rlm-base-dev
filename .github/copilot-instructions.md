@@ -15,8 +15,9 @@ AI agent instructions file. Read it for:
 1. Read `AGENTS.md` at the repo root
 2. Find the relevant skill in the Skill Index section
 3. Read that skill's `SKILL.md` for detailed guidance
-4. Use **Skill Sub-Files** (listed in `AGENTS.md`) for focused topics — e.g. Robot setup UI + shadow DOM (`.cursor/skills/robot-testing/setup-ui-shadow-dom.md`), UX assembly vs retrieve (`.cursor/skills/repo-integration/ux-assembly-retrieve.md`)
-5. Before a PR: follow **Pre-merge checklists for AI agents** in `AGENTS.md` (SFDMU, `cumulusci.yml`, merge diffs)
+4. When creating, updating, registering, or testing skills, read `.cursor/skills/skill-authoring/SKILL.md`
+5. Use **Skill Sub-Files** (listed in `AGENTS.md`) for focused topics — e.g. Robot setup UI + shadow DOM (`.cursor/skills/robot-testing/setup-ui-shadow-dom.md`), UX assembly vs retrieve (`.cursor/skills/repo-integration/ux-assembly-retrieve.md`)
+6. Before a PR: follow **Pre-merge checklists for AI agents** in `AGENTS.md` (SFDMU, `cumulusci.yml`, merge diffs)
 
 ## Entry Points
 
