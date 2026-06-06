@@ -57,7 +57,8 @@ except Exception:
 MANIFEST_FILENAME = ".claude/skill-manifest.yml"
 
 PY_YAML_HELP = (
-    "PyYAML is not installed, so skill_manifest.py is using its minimal fallback. "
+    "PyYAML is not available (not installed, or failed to import), so "
+    "skill_manifest.py is using its minimal fallback. "
     "The fallback supports baseline diagnostics only: file presence, high-level "
     "manifest keys, repo discovery, and simple skill path listing. For full YAML "
     "support, activate the project CumulusCI environment or install PyYAML with "

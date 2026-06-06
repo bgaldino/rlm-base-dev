@@ -84,7 +84,8 @@ BACKTICK_MD_RE = re.compile(r"`([^`]+\.md)`")
 FENCE_RE = re.compile(r"^\s*```")
 
 FULL_CHECK_ENV_HELP = (
-    "Full generated-reference checks require PyYAML/CumulusCI. Activate the "
+    "Full generated-reference checks need PyYAML/CumulusCI, which is not "
+    "available (not installed, or failed to import). Activate the "
     "project CCI environment, or install PyYAML with one of: "
     "`pipx inject cumulusci PyYAML`, `python -m pip install PyYAML`, or "
     "`python -m pip install cumulusci`."

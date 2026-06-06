@@ -52,7 +52,8 @@ HEADER_NOTE = (
 
 def _pyyaml_error() -> str:
     return (
-        "generate_cci_reference.py requires PyYAML for full cumulusci.yml parsing.\n"
+        "generate_cci_reference.py needs PyYAML for full cumulusci.yml parsing, "
+        "but it is not available (not installed, or failed to import).\n"
         "Activate the project CumulusCI environment, or install PyYAML with one of:\n"
         "  - pipx inject cumulusci PyYAML\n"
         "  - python -m pip install PyYAML\n"
