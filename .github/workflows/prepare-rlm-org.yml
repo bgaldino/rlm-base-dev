@@ -48,6 +48,14 @@ jobs:
       # per-PR alias and default to the `dev` scratch config.
       ORG_ALIAS: ${{ inputs.org_alias || format('pr{0}-ci', github.event.pull_request.number) }}
       SCRATCH_CONFIG: ${{ inputs.scratch_config || 'dev' }}
+      # Restore legacy `sf --json` output that includes access tokens. The May
+      # 2026 CLI security change (forcedotcom/cli#3560) redacts them, which
+      # makes CumulusCI read a "[REDACTED] ..." placeholder as the token and
+      # fail with INVALID_AUTH_HEADER on org info / scratch creation. Harmless
+      # on CLI versions that predate the redaction. Temporary shim — Salesforce
+      # plans to remove it in Summer '26 once CCI uses the explicit
+      # `sf org auth show-access-token` command. Mirrors the repo `.envrc`.
+      SF_TEMP_SHOW_SECRETS: "true"
     steps:
       - name: Remove trigger label (re-apply to re-run)
         if: github.event_name == 'pull_request'
