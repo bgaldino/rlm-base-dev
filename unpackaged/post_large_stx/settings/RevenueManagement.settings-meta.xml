@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RevenueManagementSettings xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+      Large Sales Transaction override (deployed by deploy_post_large_stx only when
+      large_stx=true). Settings deploys MERGE field-by-field, so this updates only the
+      field below; the full RevenueManagement settings come from unpackaged/pre/1_settings
+      (which sets enableFullEscalationHydration=true). deploy_post_large_stx runs after the
+      pre phase, so this flips enableFullEscalationHydration to false for large-deal orgs.
+      Verified on rlm-base__large-stx: after deploy the org shows
+      enableFullEscalationHydration=false with all other RevenueManagement fields intact.
+
+      enableContextReuse is intentionally NOT set here: confirmed via org retrieve that it
+      already defaults to true once the large-transaction org perm is enabled, so an
+      explicit value is unnecessary. Add it back if a future release shows otherwise.
+    -->
+    <enableFullEscalationHydration>false</enableFullEscalationHydration>
+</RevenueManagementSettings>

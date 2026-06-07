@@ -47,7 +47,12 @@ class ExcludeActiveDecisionTables(BaseTask):
         skip_dir_name = self.options.get("skip_dir") or ".skip"
         skip_dir = path / skip_dir_name
         decision_tables_to_check = self.options.get("decision_tables", self.PROBLEMATIC_DECISION_TABLES)
-        
+
+        # Restore any files left in .skip/ from a previous aborted run before
+        # deciding what to exclude. Without this, stale .skip/ state causes the
+        # deploy to run against an empty directory.
+        self._restore_leftover_skipped_files(path, skip_dir)
+
         # Query active decision tables
         active_decision_tables = self._get_active_decision_tables(decision_tables_to_check)
         
@@ -58,6 +63,25 @@ class ExcludeActiveDecisionTables(BaseTask):
         self.logger.info(f"Found {len(active_decision_tables)} active decision table(s) to exclude from deployment")
         self._move_active_decision_tables(path, skip_dir, active_decision_tables)
     
+    def _restore_leftover_skipped_files(self, decision_tables_path: Path, skip_dir: Path):
+        """Move any files left in .skip/ back to the main directory before the pre-flight check.
+
+        If a previous build was aborted after exclude but before restore, .skip/ will contain
+        files that should be in the main directory. Leaving them there would cause deploy_pre
+        to run against an empty folder.
+        """
+        if not skip_dir.exists():
+            return
+        restored = 0
+        for file in skip_dir.glob("*.decisionTable-meta.xml"):
+            target = decision_tables_path / file.name
+            if not target.exists():
+                file.replace(target)
+                restored += 1
+                self.logger.info(f"Pre-flight restore: moved {file.name} back from {skip_dir.name}/")
+        if restored:
+            self.logger.info(f"Pre-flight restored {restored} leftover file(s) from {skip_dir.name}/")
+
     def _get_active_decision_tables(self, decision_table_names: Set[str]) -> Set[str]:
         """Query Salesforce to find which decision tables are active."""
         active_tables = set()
@@ -65,8 +89,8 @@ class ExcludeActiveDecisionTables(BaseTask):
         try:
             # Use CumulusCI's Salesforce connection
             if not hasattr(self, 'org_config') or not self.org_config:
-                self.logger.warning("No org_config available, excluding all problematic decision tables as safety measure")
-                return decision_table_names
+                self.logger.warning("No org_config available, assuming no active decision tables.")
+                return active_tables
             
             # Get Salesforce connection
             sf = self.org_config.salesforce_client
@@ -89,9 +113,21 @@ class ExcludeActiveDecisionTables(BaseTask):
             self.logger.info(f"Found {len(active_tables)} active decision table(s) out of {len(decision_table_names)} checked")
             
         except Exception as e:
-            self.logger.warning(f"Error querying decision tables: {e}. Will exclude all problematic decision tables as a safety measure.")
-            # If we can't query, exclude all problematic tables to be safe
-            active_tables = decision_table_names
+            error_str = str(e).lower()
+            # INVALID_TYPE means DecisionTable doesn't exist in the org yet (fresh build).
+            # Treat as "no active tables" so we don't skip files that haven't been deployed.
+            if "invalid_type" in error_str or "invalid type" in error_str or "decisiontable" in error_str:
+                self.logger.info(
+                    f"DecisionTable object not queryable ({e}); org likely pre-deploy. "
+                    "Assuming no active decision tables — skipping none."
+                )
+            else:
+                # Unknown error on an org that may already have active tables — exclude all to be safe.
+                self.logger.warning(
+                    f"Error querying decision tables: {e}. "
+                    "Excluding all problematic decision tables as a safety measure."
+                )
+                active_tables = decision_table_names
         
         return active_tables
 

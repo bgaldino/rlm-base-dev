@@ -9,14 +9,17 @@
     <enableFullEscalationHydration>true</enableFullEscalationHydration>
     <enableGroupRampMultiSchedulePref>true</enableGroupRampMultiSchedulePref>
     <enableGroupRampPref>true</enableGroupRampPref>
+    <enableGroupRampTrialSegmentPref>true</enableGroupRampTrialSegmentPref>
     <enableRampDeal>true</enableRampDeal>
     <enableRevInstPricingDefaultPref>true</enableRevInstPricingDefaultPref>
     <enableRevUnifiedSetup>true</enableRevUnifiedSetup>
     <enableRevenueAdjustment>true</enableRevenueAdjustment>
+    <enableScaleAttributes>true</enableScaleAttributes>
     <enableTransactionCloning>true</enableTransactionCloning>
     <enableTransactionProcessor>true</enableTransactionProcessor>
     <groupsEnabled>true</groupsEnabled>
     <hidePriceRefreshNtfcn>false</hidePriceRefreshNtfcn>
+    <persistChunkSizeOverride>true</persistChunkSizeOverride>
     <relaxUniqueCipValidation>true</relaxUniqueCipValidation>
     <skipOrgSttPricing>false</skipOrgSttPricing>
 </RevenueManagementSettings>

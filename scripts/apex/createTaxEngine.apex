@@ -1,6 +1,6 @@
 // Define the variables for the endpoint
 String baseUrl = URL.getOrgDomainUrl().toExternalForm();
-String apiVersion = 'v66.0'; // Update to the correct API version as needed
+String apiVersion = 'v67.0'; // Update to the correct API version as needed
 
 // Query for the ApexClass with the name 'RLM_MockTaxAdapter'
 ApexClass mockTaxAdapterClass = [SELECT Id, Name FROM ApexClass WHERE Name = 'RLM_MockTaxAdapter' LIMIT 1];

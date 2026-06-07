@@ -18,7 +18,7 @@ data loading, metadata deployment, or local environment setup.
 
 ## Quick Diagnosis: Which Step Failed?
 
-The `prepare_rlm_org` flow runs 31 steps. Identify the failing step from
+The `prepare_rlm_org` flow runs 33 steps. Identify the failing step from
 CCI output, then jump to the relevant section below.
 
 | Step Range | Category | Section |
@@ -46,7 +46,7 @@ Run this first — it checks everything:
 
 | Check | Fix |
 |-------|-----|
-| Python < 3.8 | Install Python 3.12 or 3.13 via `pyenv` |
+| Python < 3.10 | Install Python 3.12 or 3.13 via `pyenv` (3.10 is the repo floor; 3.12/3.13 are recommended for CumulusCI) |
 | CumulusCI not found | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` |
 | SF CLI < v2 | `npm install -g @salesforce/cli` (NOT `brew install sf`) |
 | SFDMU plugin missing/outdated | Auto-fixed by default (`auto_fix=true`). Manual: `sf plugins install sfdmu` |
@@ -344,7 +344,7 @@ the Metadata API can't validate.
 
 **Fix:** Edit the source templates, then re-assemble:
 ```bash
-cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+cci task run assemble_and_deploy_ux -o deploy false
 ```
 Inspect `unpackaged/post_ux/` to verify, then deploy.
 
@@ -444,7 +444,7 @@ cci task run manage_decision_tables -o operation list --org beta
 cci task run manage_expression_sets -o operation list --org beta
 
 # UX dry-run (assemble without deploy)
-cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+cci task run assemble_and_deploy_ux -o deploy false
 
 # Clear source tracking corruption
 rm -rf .sf/orgs/<org-id>/localSourceTracking
@@ -452,3 +452,40 @@ rm -rf .sf/orgs/<org-id>/localSourceTracking
 # Validate CML constraint model
 cci task run validate_cml -o data_dir datasets/constraints/qb/QuantumBitComplete --org beta
 ```
+
+---
+
+## Live-Org Evidence Capture (RLM async / pricing / preprocess failures)
+
+RLM async failures (Place Sales Transaction, preprocess, assetize, rating) leave their
+root cause in **records, not stdout** — and that evidence is **destroyed by an account/
+data reset**. So when a UI flow fails (e.g. "Preprocessing failed", "prices aren't
+updated", an activation/repricing error):
+
+1. **Capture before any reset.** Note the record id from the URL/UI, then query the
+   error logs + async trackers + the record's calc state immediately:
+
+```bash
+# The actual failure reason (message + code + category)
+sf data query --target-org $ORG -q "SELECT Category, ErrorCode, Severity, ErrorMessage, ConfiguratorErrorMessage, PrimaryRecordId, CreatedDate FROM RevenueTransactionErrorLog ORDER BY CreatedDate DESC LIMIT 15"
+# Async job outcomes (PSTBaseJob/PSTPrice/PSTPersist/PreprocessOrder/AssetizationAsyncJob/QuoteToOrderJob)
+sf data query --target-org $ORG -q "SELECT JobType, Status, ReferenceEntityId, CreatedDate FROM AsyncOperationTracker ORDER BY CreatedDate DESC LIMIT 25"
+# The record's pricing/preprocess state (Order example)
+sf data query --target-org $ORG -q "SELECT Status, CalculationStatus, ValidationResult, PreprocessingStatus FROM Order WHERE Id='<id>'"
+```
+
+2. **Interpret the signals.** `RevenueTransactionErrorLog.ErrorMessage` is usually the
+   real reason; `CalculationStatus` is the pricing lifecycle; `ValidationResult != null`
+   means "prices not current"; `AsyncOperationTracker.Status=Failure` pinpoints the failed
+   async job. Settings/config live in metadata, not SOQL — retrieve them (see below), do
+   not expect them in a query.
+
+3. **Settings caution.** `sf project retrieve start -m Settings:RevenueManagement`
+   decomposes org settings back into **existing** source paths (it can clobber
+   `unpackaged/pre/1_settings/…` and other tracked copies). Retrieve to a throwaway, or
+   `git checkout` the clobbered files afterward. Settings deploys **merge** field-by-field.
+
+For the large-deal "Prepare for Activation" (reprice → preprocess → activate) flow
+specifically — the `CalculationStatus` enum, the `ValidationResult` gate, async pricing
+behavior, the `PreprocessingStatus` decode, and tax-skip — read
+**`troubleshooting/large-deal-preprocess-reference.md`**.

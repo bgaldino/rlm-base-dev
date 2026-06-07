@@ -26,26 +26,16 @@ Configure Core Pricing Setup
     Open Setup Page    /lightning/setup/CorePricingSetup/home
     Set Core Pricing Procedure    ${PRICING_PROCEDURE}
     Capture Page Screenshot
-    # Reload and re-verify to confirm the value was saved server-side
+    # Reload and re-verify to confirm the value was saved server-side.
+    # Open Setup Page sleeps 2s for generic Lightning rendering, but the
+    # CorePricingSetup LWC (and the resulting pill that replaces the empty
+    # combobox) routinely takes longer than that to wire on the post-reload
+    # visit. Without a retry the pill query returns 'not_set' even when the
+    # value is genuinely persisted server-side. Wait Until Keyword Succeeds
+    # polls _Read Pricing Procedure Pill State (which treats 'not_set' as a
+    # retry signal) until the pill renders.
     Open Setup Page    /lightning/setup/CorePricingSetup/home
-    ${verified}=    Execute JavaScript
-    ...    return (function(targetValue) {
-    ...        var pills = [];
-    ...        (function findAll(root, d) {
-    ...            if (d > 6) return;
-    ...            root.querySelectorAll('.slds-pill__label').forEach(function(el){pills.push(el);});
-    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,d+1);});
-    ...        })(document, 0);
-    ...        var pillValues = [];
-    ...        for (var i=0; i<pills.length; i++) {
-    ...            var pillValue = pills[i].textContent.trim();
-    ...            pillValues.push(pillValue);
-    ...            if (pillValue === targetValue) return targetValue;
-    ...        }
-    ...        if (pillValues.length > 0) return pillValues.join(', ');
-    ...        return 'not_set';
-    ...    })(arguments[0])
-    ...    ARGUMENTS    ${PRICING_PROCEDURE}
+    ${verified}=    Wait Until Keyword Succeeds    30s    2s    _Read Pricing Procedure Pill State    ${PRICING_PROCEDURE}
     Should Be Equal    ${verified}    ${PRICING_PROCEDURE}
     ...    msg=Pricing Procedure not persisted after page reload: expected "${PRICING_PROCEDURE}", got "${verified}"
     Log    CorePricingSetup: Pricing Procedure confirmed as "${PRICING_PROCEDURE}" after reload.
@@ -90,6 +80,36 @@ Set Core Pricing Procedure
     ...    msg=Option "${target_value}" not found in dropdown. ${select_result}
     Sleep    2s    reason=Allow selection to auto-save
     Log    Pricing Procedure set to "${target_value}".
+
+_Read Pricing Procedure Pill State
+    [Documentation]    Walks the page (piercing shadow DOMs) for .slds-pill__label
+    ...    elements after a CorePricingSetup reload. Returns the matching pill text
+    ...    when found, the joined list of wrong pills when something else is set,
+    ...    or fails with 'not_set' to drive Wait Until Keyword Succeeds retry —
+    ...    the LWC routinely takes longer than Open Setup Page's 2s default sleep
+    ...    to wire on the post-reload visit. Caller asserts the final state.
+    [Arguments]    ${target_value}
+    ${state}=    Execute JavaScript
+    ...    return (function(targetValue) {
+    ...        var pills = [];
+    ...        (function findAll(root, d) {
+    ...            if (d > 6) return;
+    ...            root.querySelectorAll('.slds-pill__label').forEach(function(el){pills.push(el);});
+    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,d+1);});
+    ...        })(document, 0);
+    ...        var pillValues = [];
+    ...        for (var i=0; i<pills.length; i++) {
+    ...            var pillValue = pills[i].textContent.trim();
+    ...            pillValues.push(pillValue);
+    ...            if (pillValue === targetValue) return targetValue;
+    ...        }
+    ...        if (pillValues.length > 0) return pillValues.join(', ');
+    ...        return 'not_set';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${target_value}
+    Should Not Be Equal    ${state}    not_set
+    ...    msg=Pricing Procedure pill not yet rendered post-reload; retrying...
+    RETURN    ${state}
 
 _Open Pricing Procedure Combobox
     [Documentation]    Runs the state-check JS for Set Core Pricing Procedure.

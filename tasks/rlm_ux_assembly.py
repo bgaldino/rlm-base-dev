@@ -13,13 +13,13 @@ Supported metadata types:
   applications — copy from versioned templates based on active features
   profiles     — strip-and-build: base grants + feature layout patches
 
-Usage examples:
-    cci task run assemble_and_deploy_ux --org dev-sb0
-    cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+Usage examples (this task has no --org option; deploy uses your DEFAULT cci org):
+    cci task run assemble_and_deploy_ux
+    cci task run assemble_and_deploy_ux -o deploy false        # dry-run: local only, no org
     cci task run assemble_and_deploy_ux \\
-        -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml --org dev-sb0
+        -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
     cci task run assemble_and_deploy_ux \\
-        -o metadata_type profiles -o deploy false --org dev-sb0
+        -o metadata_type profiles -o deploy false
 """
 import datetime
 import json
@@ -54,9 +54,9 @@ except ImportError:
         return str(val).lower() in ("true", "1", "yes")
 
 try:
-    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, PERSONAS_PROFILES
 except ImportError:
-    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, PERSONAS_PROFILES
 
 
 # Salesforce metadata XML namespace
@@ -180,9 +180,34 @@ def _patch_remove_action(root: ET.Element, action: str) -> bool:
     return False
 
 
-def _patch_insert_action(root: ET.Element, anchor: str, actions: List[str]) -> bool:
+def _action_name(action: Any) -> str:
+    """An insert_action entry is either a bare action name (str) or a dict with
+    a 'name' key plus optional 'visibility' criteria."""
+    if isinstance(action, dict):
+        return action.get("name", "")
+    return action
+
+
+def _append_visibility_rule(item: ET.Element, criteria: List[Dict[str, Any]]) -> None:
+    """Add a <visibilityRule> with one <criteria> per entry. Multiple criteria are
+    ANDed (FlexiPage default with no booleanFilter). Each criteria entry is
+    {field, operator, value}; field may be 'Record.X' or a full '{!Record.X}'."""
+    if not criteria:
+        return
+    vr = _sub_elem(item, "visibilityRule")
+    for crit in criteria:
+        field = str(crit.get("field", "")).strip()
+        left = field if field.startswith("{!") else "{!" + field + "}"
+        c = _sub_elem(vr, "criteria")
+        _sub_elem(c, "leftValue", left)
+        _sub_elem(c, "operator", str(crit.get("operator", "EQUAL")))
+        _sub_elem(c, "rightValue", str(crit.get("value", "")))
+
+
+def _patch_insert_action(root: ET.Element, anchor: str, actions: List[Any]) -> bool:
     """Insert action valueListItems immediately after the anchor action.
-    Skips actions already present anywhere in the list (idempotent)."""
+    Skips actions already present anywhere in the list (idempotent). Each action
+    is either a bare name (str) or a dict {name, visibility:[{field,operator,value}]}."""
     for ci_props in root.iter(f"{SF_NS_TAG}componentInstanceProperties"):
         name_el = _find_elem(ci_props, "name")
         if name_el is None or name_el.text != "actionNames":
@@ -201,10 +226,13 @@ def _patch_insert_action(root: ET.Element, anchor: str, actions: List[str]) -> b
             if val_el is not None and val_el.text == anchor:
                 offset = 0
                 for action in actions:
-                    if action in existing:
-                        continue  # already present, skip
+                    name = _action_name(action)
+                    if not name or name in existing:
+                        continue  # missing name or already present, skip
                     new_item = _make_elem("valueListItems")
-                    _sub_elem(new_item, "value", action)
+                    _sub_elem(new_item, "value", name)
+                    if isinstance(action, dict):
+                        _append_visibility_rule(new_item, action.get("visibility", []))
                     vlist.insert(i + 1 + offset, new_item)
                     offset += 1
                 return True
@@ -408,7 +436,8 @@ def _patch_description(patch: Dict[str, Any]) -> str:
     ptype = patch.get("type", "")
     if ptype == "insert_action":
         actions = patch.get("actions", [])
-        return f"insert actions: {', '.join(actions)}"
+        names = [_action_name(a) for a in actions]
+        return f"insert actions: {', '.join(n for n in names if n)}"
     if ptype == "remove_action":
         return f"remove action: {patch.get('action', '?')}"
     if ptype == "add_display_field":
@@ -769,18 +798,20 @@ class AssembleAndDeployUX(SFDXBaseTask):
         skipped = []
         # Patch order matches deploy-sequence (approvals before docgen before ramps)
         feature_patch_order = [
-            ("qb",          "quantumbit"),
-            ("qb",          "utils"),
+            ("quantumbit",  "quantumbit"),
+            ("quantumbit",  "utils"),
             ("guidedselling", "guidedselling"),
             ("billing",     "billing"),
             ("billing_ui",  "billing_ui"),
             ("payments",    "payments"),
-            ("qb",          "approvals"),
+            ("quantumbit",  "approvals"),
             ("docgen",      "docgen"),
             ("tso",         "tso"),
             ("constraints", "constraints"),
             ("ramps",       "ramp_builder"),
+            ("large_stx",   "large_stx"),
             ("collections", "collections"),
+            ("personas",    "personas"),
         ]
 
         # Flexipage types that cannot be deployed via Metadata API (platform restriction)
@@ -1028,7 +1059,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         if not filter_name or filter_name == rev_cloud_name:
             if features.get("tso"):
                 src_dir = app_base / "tso"
-            elif features.get("qb"):
+            elif features.get("quantumbit"):
                 src_dir = app_base / "quantumbit"
             else:
                 src_dir = app_base / "base"
@@ -1038,7 +1069,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 dest = out_dir / rev_cloud_name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src_file), str(dest))
-                tier = "tso" if features.get("tso") else ("quantumbit" if features.get("qb") else "base")
+                tier = "tso" if features.get("tso") else ("quantumbit" if features.get("quantumbit") else "base")
 
                 # Apply feature-conditional actionOverride patches.
                 # Patch files live in templates/applications/patches/{feature}/RLM_Revenue_Cloud.patch.xml
@@ -1140,6 +1171,9 @@ class AssembleAndDeployUX(SFDXBaseTask):
         for base_file in sorted(profiles_base.glob("*.profile-meta.xml")):
             fname = base_file.name
             if filter_name and fname != filter_name:
+                continue
+            if fname in PERSONAS_PROFILES and not features.get("personas"):
+                self.logger.info(f"  [profile] skipping {fname} (personas feature flag is false)")
                 continue
 
             root = ET.parse(str(base_file)).getroot()

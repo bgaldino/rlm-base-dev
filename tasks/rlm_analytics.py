@@ -1,10 +1,12 @@
-"""Enable the Data Sync and Connections toggle (enableWaveReplication) via Robot Framework.
+"""Enable CRM Analytics via Robot Framework browser automation.
 
 Runs the enable_analytics Robot test with the flow's org so the browser
-session is authenticated via sf org open --url-only. Enables the
-"Enable Data Sync and Connections" checkbox on the Analytics/Insights Settings
-page. Required before rating-related data loads that depend on the Wave
-replication engine. Does not require enabling the full CRM Analytics feature.
+session is authenticated via sf org open --url-only. Clicks the
+"Enable CRM Analytics" button on the Analytics Getting Started page
+(/lightning/setup/InsightsSetupGettingStarted/home).
+
+In Release 262+ (Summer '26), the old InsightsSetupSettings VF iframe page
+was removed. Full CRM Analytics enablement is now required.
 """
 
 import subprocess
@@ -26,7 +28,7 @@ DEFAULT_OUTPUT_DIR = "robot/rlm-base/results"
 
 
 class EnableAnalyticsReplication(BaseTask):
-    """Run the Robot test that enables the Data Sync and Connections toggle (enableWaveReplication)."""
+    """Run the Robot test that enables CRM Analytics via the Getting Started page."""
 
     task_options = {
         "suite": {
@@ -80,7 +82,7 @@ class EnableAnalyticsReplication(BaseTask):
             str(suite_path),
         ]
         self.logger.info(
-            "Running Enable Data Sync and Connections (enableWaveReplication) test for org %s: %s",
+            "Running Enable CRM Analytics test for org %s: %s",
             org_name,
             " ".join(cmd),
         )
@@ -95,9 +97,7 @@ class EnableAnalyticsReplication(BaseTask):
                 else "Robot log not generated — check console output above for details."
             )
             raise RuntimeError(
-                f"Enable Data Sync and Connections test failed (exit code {result.returncode}). "
+                f"Enable CRM Analytics test failed (exit code {result.returncode}). "
                 + detail
             )
-        self.logger.info(
-            "Data Sync and Connections (enableWaveReplication) enabled successfully."
-        )
+        self.logger.info("CRM Analytics enabled successfully.")

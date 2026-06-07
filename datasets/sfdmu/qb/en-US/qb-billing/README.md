@@ -17,7 +17,7 @@ This plan is executed as **step 1** of the `prepare_billing` flow (when `billing
 | 5    | `activate_flow`                         | billing            | Activates `RLM_Order_to_Billing_Schedule_Flow`                                          |
 | 6    | `activate_default_payment_term`         | billing            | Runs `activateDefaultPaymentTerm.apex`                                                  |
 | 7    | `activate_billing_records`              | billing            | Runs `activateBillingRecords.apex` (BTI → BT → BP)                                     |
-| 8    | `enable_timeline`                       | billing_ui         | Enables industries_common:timeline (required before billing_ui flexipages)               |
+| 8    | `enable_timeline`                       | billing_ui+!tso    | Enables industries_common:timeline (required before billing_ui flexipages). Skipped on TSO builds (Timeline enabled via metadata). |
 | 9    | `deploy_billing_id_settings`            | billing            | Deploys `post_billing_id_settings` — sets GL accounts, legal entity, treatment, tax IDs |
 | 10   | `deploy_billing_template_settings`      | billing            | Re-enables Invoice Email/PDF toggles (cycled off in step 9 to avoid template ID errors) |
 | 11   | `deploy_post_billing_ui`                | billing_ui         | Deploys Billing UI LWC components, Apex, fields, permset from `unpackaged/post_billing_ui` |
@@ -315,6 +315,29 @@ Schema was queried against a 260 scratch org. Findings below.
 | Product2                    | `StockKeepingUnit`                                                       | No*           | ✅ Platform-enforced unique when RLM enabled |
 | SequencePolicy              | `Name`                                                                   | No            | ✅ Human-readable |
 | SeqPolicySelectionCondition | `ConditionNumber;SequencePolicy.Name`                                    | **Yes**       | ✅ Composite (direct int + parent traversal) satisfies SFDMU Bug 1 requirement |
+
+## Large-deal billing — known limitation with `LegalEntity` treatment selection
+
+`BillingPolicy.BillingTreatmentSelection = LegalEntity` (used by
+"Billing Policy - Advance" and other region-keyed policies here) does **not**
+resolve reliably for large-deal orders (`IsLargeDeal = true`) at high line counts
+during preprocess (`preProcessSalesTransaction` / `resolveBillingTreatments`). A
+`Default`-selection billing policy resolves the same order cleanly because it
+reads `DefaultBillingTreatmentId` directly.
+
+**Guidance for large-deal demos/tests:** assign products to a `Default`-selection
+billing policy (a large-deal order targets a single legal entity anyway).
+
+**Automated workaround (large_stx builds).** When `large_stx` + `billing` are on,
+`prepare_large_stx` runs `seed_large_deal_billing_treatment`
+(`scripts/apex/seedLargeDealBillingTreatment.apex`), which seeds a
+`Default`-selection **`RLM Large Deal Policy`** + an `ExcludeFromBilling = Yes`
+treatment **`RLM Large Deal - Exclude from Billing`** (no legal entity, no
+treatment items — nonbillable treatments can't have items). At activation, the
+"Prepare for Activation" action (`RLM_PreProcessOrderController.startPreprocess`)
+stamps that treatment onto every unresolved `OrderItem.BillingTreatmentId` before
+invoking `preProcessSalesTransaction`, so billing-treatment resolution is a no-op
+for large deals. Standard orders (`IsLargeDeal = false`) are untouched.
 
 ## Optimization Opportunities
 

@@ -5,8 +5,8 @@
         <label>RLM Account Statement IA</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <actionName>generateStatementOfAccount</actionName>
-        <actionType>generateStatementOfAccount</actionType>
+        <actionName>generateAccountStatement</actionName>
+        <actionType>generateAccountStatement</actionType>
         <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>accountId</name>
@@ -38,7 +38,7 @@
                 <elementReference>Sorting_Order</elementReference>
             </value>
         </inputParameters>
-        <nameSegment>generateStatementOfAccount</nameSegment>
+        <nameSegment>generateAccountStatement</nameSegment>
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>

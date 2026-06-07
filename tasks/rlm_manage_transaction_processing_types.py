@@ -56,7 +56,7 @@ class ManageTransactionProcessingTypes(BaseTask):
         instance_url = self.org_config.instance_url
         api_version = self.options.get("api_version") or getattr(
             self.org_config, "api_version", None
-        ) or getattr(self.project_config, "project__package__api_version", "66.0")
+        ) or getattr(self.project_config, "project__package__api_version", "67.0")
         return access_token, instance_url, api_version
 
     def _tooling_headers(self, access_token: str) -> Dict[str, str]:

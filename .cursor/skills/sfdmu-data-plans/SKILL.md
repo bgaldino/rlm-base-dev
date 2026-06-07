@@ -33,7 +33,7 @@ SFDMU v5.0.0+ is required. v4 syntax is not supported.
 
 ```json
 {
-  "apiVersion": "66.0",
+  "apiVersion": "67.0",
   "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {

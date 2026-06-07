@@ -105,7 +105,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
             or getattr(
                 self.project_config,
                 "project__package__api_version",
-                "66.0",
+                "67.0",
             )
         )
 
@@ -281,7 +281,7 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
 
     @property
     def _base_url(self):
-        return f"{self.org_config.instance_url}/services/data/v66.0"
+        return f"{self.org_config.instance_url}/services/data/v67.0"
 
     @property
     def _headers(self):

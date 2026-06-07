@@ -22,6 +22,18 @@ orgs:
     dev-sb0:
       config_file: orgs/dev-sb0.json
       days: 30
+    dev-sdb9:
+      config_file: orgs/dev-sdb9.json
+      days: 30
+    dev-sdb27:
+      config_file: orgs/dev-sdb27.json
+      days: 30
+    dev-sdb39:
+      config_file: orgs/dev-sdb39.json
+      days: 30
+    dev-sdb6:
+      config_file: orgs/dev-sdb6.json
+      days: 30
     dev_preview:
       config_file: orgs/dev_preview.json
       days: 30
@@ -64,6 +76,9 @@ orgs:
     tfid-qb-tso:
       config_file: orgs/tfid-qb-tso.json
       days: 30
+    tfid-sb0:
+      config_file: orgs/tfid-sb0.json
+      days: 30
     tfid-sdo:
       config_file: orgs/tfid-sdo.json
       days: 30
@@ -80,7 +95,7 @@ project:
   name: rlm-base
   package:
     name: rlm-base
-    api_version: "66.0"
+    api_version: "67.0"
   git:
     default_branch: "main"
   source_format: sfdx
@@ -109,6 +124,7 @@ project:
     approvals: true           # Approvals
     tax: true                 # Tax engine
     calmdelete: true          # CALM Delete
+    large_stx: false          # Large Sales Transaction
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────
     dro: true                 # Dynamic Revenue Orchestration
@@ -122,13 +138,13 @@ project:
 
     # ── Partner & Commerce ─────────────────────────────────────────────────────
     prm: true                 # Partner Relationship Management
-    prm_exp_bundle: true      # PRM Experience Bundle (post_prm site content)
+    prm_exp_bundle: false      # PRM Experience Bundle (post_prm site content)
     commerce: false           # Commerce
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
     einstein: true            # Einstein AI
     agents: false             # Agentforce agent configurations
-    analytics: true           # Data Sync / CRM Analytics replication (enableWaveReplication)
+    analytics: true           # Enable CRM Analytics (262+: InsightsSetupSettings VF page removed; full CRM Analytics enablement now required via Getting Started page)
 
     # ── Configurators & Tooling ────────────────────────────────────────────────
     docgen: true              # Document Generation
@@ -144,9 +160,10 @@ project:
     quantumbit: true          # QuantumBit app deployment
     product_dataset: qb       # Default product dataset
     ux: true                  # Assemble and deploy dynamic UX (set false to skip prepare_ux entirely)
+    sample_data: true         # Sample data
 
     # ── Deployment Options ─────────────────────────────────────────────────────
-    sharingsettings: false    # Sharing Settings
+    personas: true            # Persona profiles and permission set groups (post_personas)
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -342,7 +359,6 @@ project:
       # Agent-specific permission sets
       - RLM_QuotingAgent
 
-
     ps_constraints: &ps_constraints
       # Constraints-specific permission sets
       - RLM_Constraints
@@ -358,6 +374,14 @@ project:
     ps_prm: &ps_prm
       # PRM-specific permission sets
       - RLM_PRM
+
+    ps_large_stx: &ps_large_stx
+      # Large STX-specific permission sets
+      - RLM_LargeSalesTransaction
+
+    ps_persona_sales_rep: &ps_persona_sales_rep
+      # Persona sales rep-specific permission sets
+      - RLM_QuantumBit_Sales_Representative
 
 #-----------------#
 # DECISION TABLES #
@@ -541,6 +565,7 @@ project:
     quantumbit_constraints_component_dataset: &quantumbit_constraints_component_dataset "datasets/sfdmu/qb/en-US/qb-constraints-component" # DEPRECATED - replaced by CML import
     quantumbit_constraints_data_dir: &quantumbit_constraints_data_dir "datasets/constraints/qb/QuantumBitComplete"  # CML constraint model data (CSVs + blob)
     server2_constraints_data_dir: &server2_constraints_data_dir "datasets/constraints/qb/Server2"  # Server2 CML constraint model data (CSVs + blob)
+    quantumbit_pcm_constraints_data_dir: &quantumbit_pcm_constraints_data_dir "datasets/constraints/qb/QuantumBitPCM"  # QuantumBitPCM CML constraint model data (CSVs + blob)
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
     quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
     quantumbit_guidedselling_products_dataset: &quantumbit_guidedselling_products_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling-products"   # QuantumBit guided selling Product2 field values
@@ -953,12 +978,6 @@ tasks:
     options:
       path: unpackaged/post_agents
 
-  deploy_sharing_rules:
-    description: Deploy Sharing Rules
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_sharing
-
   deploy_quantumbit:
     description: Deploy QuantumBit Metadata
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -966,7 +985,7 @@ tasks:
       path: unpackaged/post_quantumbit
 
   deploy_post_tso:
-    description: Deploy Trialforce Source Org Metadata (App Launcher now deploys via prepare_ux/assemble_and_deploy_ux)
+    description: Deploy Trialforce Source Org Metadata (App Launcher order is applied separately by reorder_app_launcher in prepare_ux, not here)
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_tso
@@ -977,12 +996,155 @@ tasks:
     options:
       path: unpackaged/post_prm
 
+  set_personas_org_wide_defaults:
+    group: Revenue Lifecycle Management
+    description: >
+      Sets Organization-Wide Defaults for the Sales Rep persona. Sales Cloud objects
+      Account/Asset/Contract/Order → internal Read/Write (all internal users can see
+      and edit); Opportunity stays Private (reps own their pipeline). The product /
+      configuration model (ProductCatalog plus the catalog/config objects below) →
+      Read/Read so the salesrep can browse catalogs and run the Set Up Quote
+      configurator — the PST configuration-rule engine reads those records in the
+      running user's context. Restores the OWD the deleted post_sharing object-meta
+      bundle used to set.
+    class_path: tasks.rlm_sharing.SetOrgWideDefaultsSharingOnly
+    options:
+      org_wide_defaults: &persona_owd_defaults
+        - api_name: Account
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: Asset
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        #- api_name: Contact
+        #  internal_sharing_model: ReadWrite
+        #  external_sharing_model: Private
+        - api_name: Contract
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: Order
+          internal_sharing_model: ReadWrite
+          external_sharing_model: Private
+        - api_name: ProductCatalog
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        # Product / configuration model — Read/Read so the salesrep persona can browse
+        # catalogs and run the Set Up Quote configurator (the PST configuration-rule
+        # engine reads these records). Restores OWD the deleted post_sharing bundle set.
+        - api_name: Product2
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductConfigurationRule
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductConfigurationFlow
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductComponentGroup
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductComponentGrpOverride
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductRelComponentOverride
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductClassification
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductClassificationAttr
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttributeDefinition
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductAttributeDefinition
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttributeCategory
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttributeCategoryAttribute
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttributePicklist
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttrPicklistExcludedValue
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductQualification
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductDisqualification
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductCategoryQualification
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductCategoryDisqual
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttributeBasedAdjRule
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: PriceAdjustmentSchedule
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: PriceBookEntryDerivedPrice
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: SalesTransactionType
+          internal_sharing_model: Read
+          external_sharing_model: Read
+
+  verify_personas_org_wide_defaults:
+    group: Revenue Lifecycle Management
+    description: >
+      Post-set verification: asserts the persona Org-Wide Defaults actually landed
+      (raises if any present object's internal/external sharing model does not match
+      the expected spec). Objects absent on the target org shape are skipped, matching
+      set_personas_org_wide_defaults' shape tolerance.
+    class_path: tasks.rlm_sharing.AssertSObjectOWDs
+    options:
+      org_wide_defaults: *persona_owd_defaults
+
   deploy_post_personas:
     group: Revenue Lifecycle Management
     description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_personas
+
+  create_personas_sales_rep_user:
+    group: Revenue Lifecycle Management
+    description: >
+      Create the Sales Rep scratch user (Luke Sales Rep / alias sales-rep-user) from
+      config/users/sales-rep-def.json using the sf CLI. Assigns the RLM Sales Representative
+      profile. Idempotent: skips creation when a matching user already exists. Appends a
+      unique username suffix to avoid conflicts on initial create.
+    class_path: tasks.rlm_create_persona_user.CreatePersonaUser
+    options:
+      definition_file: config/users/sales-rep-def.json
+      alias: sales-rep-user
+      set_unique_username: true
+
+  recalculate_personas_sales_rep_psg:
+    group: Revenue Lifecycle Management
+    description: Recalculate the RLM_Sales_Representative permission set group before user assignment.
+    class_path: tasks.rlm_recalculate_permission_set_groups.RecalculatePermissionSetGroups
+    options:
+      api_names:
+        - RLM_Sales_Representative
+
+  assign_personas_sales_rep_psg:
+    group: Revenue Lifecycle Management
+    description: Assign RLM_Sales_Representative PSG to the sales-rep-user persona using tolerant assignment.
+    class_path: tasks.rlm_assign_permission_set_groups.AssignPermissionSetGroupsTolerant
+    options:
+      api_names:
+        - RLM_Sales_Representative
+      user_alias: salesrep
 
   deploy_post_approvals:
     description: >
@@ -1075,6 +1237,13 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_utils
+
+  deploy_post_large_stx:
+    group: Revenue Lifecycle Management
+    description: Deploy Large Sales Transaction metadata
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_large_stx
 
   deploy_post_commerce:
     description: Deploy Commerce Metadata (e.g. Commerce decision table flows)
@@ -1294,7 +1463,7 @@ tasks:
       path: unpackaged/post_ramp_builder
 
   enable_analytics_replication:
-    description: Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
+    description: Enable CRM Analytics via browser automation (Robot/Selenium, clicks "Enable CRM Analytics" on InsightsSetupGettingStarted/home; VF iframe approach removed in 262)
     class_path: tasks.rlm_analytics.EnableAnalyticsReplication
     options:
       suite: robot/rlm-base/tests/setup/enable_analytics.robot
@@ -1793,6 +1962,18 @@ tasks:
 # Each task references a script in the scripts/apex directory.
 # These are typically used for post-deployment configuration, data activation, or custom logic.
 
+  set_scratch_org_password:
+    group: Revenue Lifecycle Management
+    description: >
+      Set a permanent password for the scratch-org admin user and clear the
+      "change password at next login" flag. Prevents the frontdoor login used by
+      Robot setup steps (sf org open --url-only) from being redirected to the
+      "Change Your Password" screen, which would otherwise break prepare_docgen
+      and other UI-toggle steps. Scratch-org only.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/setScratchOrgPassword.apex
+
   create_rule_library:
     group: Revenue Lifecycle Management
     description: Create Rule Library
@@ -1820,7 +2001,8 @@ tasks:
     description: >
       Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium).
       Required before billing_ui flexipages that reference industries_common:timeline can be deployed.
-      Once enabled, this toggle cannot be disabled.
+      Once enabled, this toggle cannot be disabled. Skipped on TSO builds (tso=true), where Timeline
+      is enabled via metadata (Industries.settings enableTimelinePref) instead of the UI toggle.
     class_path: tasks.rlm_enable_timeline.EnableTimeline
     options:
       suite: robot/rlm-base/tests/setup/enable_timeline.robot
@@ -1919,6 +2101,13 @@ tasks:
     options:
       path: scripts/apex/activateBillingRecords.apex
 
+  seed_large_deal_billing_treatment:
+    group: Revenue Lifecycle Management
+    description: "Seed the large-deal Exclude-from-Billing policy + treatment (Default selection, no legal entity, no items). The large_stx Prepare-for-Activation flow stamps this treatment onto large-deal order items so billing-treatment resolution becomes a no-op and bypasses the non-bulk-safe legal-entity resolver. Idempotent."
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/seedLargeDealBillingTreatment.apex
+
   create_sequence_policies:
     group: Revenue Lifecycle Management
     description: Create SequencePolicy and SeqPolicySelectionCondition records via the Connect API (standard DML cannot create these objects)
@@ -1978,10 +2167,11 @@ tasks:
 
   activate_rates:
     group: Revenue Lifecycle Management
-    description: Activate Rates
-    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
-    options:
-      path: scripts/apex/activateRateCardEntries.apex
+    description: >
+      Activate Draft RateCardEntry records (Status → Active). Uses REST Composite
+      API instead of Apex DML — Apex path raises UNKNOWN_EXCEPTION in Release 262
+      (platform regression in SOAP Execute Anonymous for RateCardEntry).
+    class_path: tasks.rlm_activate_rates.ActivateRateCardEntries
 
 
 #--------------------#
@@ -2327,6 +2517,11 @@ tasks:
     options:
       developerNames: *dt_commerce_decision_tables
 
+  rebuild_search_index:
+    group: Revenue Lifecycle Management
+    description: Rebuild the Product Catalog (PCM) search index via Connect API (FULL, IMMEDIATE). Asynchronous - initiates the build and logs the snapshot id. Warns and continues on API failure unless raise_on_failure is set.
+    class_path: tasks.rlm_rebuild_search_index.RebuildSearchIndex
+
   manage_decision_tables:
     group: Revenue Lifecycle Management
     description: "Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists (compare org to project list anchors)"
@@ -2470,6 +2665,311 @@ tasks:
     options:
       flow_name: manual
 
+  # ----------------------------------------------------------------------
+  # Documentation / AI grounding
+  # ----------------------------------------------------------------------
+  # snapshot_salesforce_help walks a Salesforce Help portal area and emits
+  # one markdown file per article, plus a manifest.json and index.md.
+  # See tasks/rlm_snapshot_help.py for full docstring.
+  #
+  # Playwright must be installed into the same Python environment that runs
+  # CCI. With pipx-installed CCI (recommended per the project README, which
+  # uses the standard ~/.local/pipx/venvs/cumulusci/ path):
+  #
+  #   pipx inject cumulusci playwright
+  #   ~/.local/pipx/venvs/cumulusci/bin/python -m playwright install chromium
+  #
+  # On Windows, the equivalent path is %USERPROFILE%\pipx\venvs\cumulusci\Scripts\python.exe.
+  # If your pipx install lives somewhere non-standard (custom PIPX_HOME, etc.),
+  # `pipx environment --value PIPX_LOCAL_VENVS` returns the actual base
+  # directory containing the cumulusci venv.
+  #
+  # pipx doesn't expose Playwright's CLI by default; running via the venv's
+  # Python is the cleanest path. Alternatively, re-inject with --include-apps
+  # to put `playwright` on your PATH:
+  #   pipx inject cumulusci playwright --include-apps --force
+  #   playwright install chromium
+  #
+  # With pip-installed CCI in the project .venv:
+  #
+  #   source .venv/bin/activate
+  #   python -m pip install playwright
+  #   playwright install chromium
+
+  snapshot_salesforce_help:
+    group: Documentation
+    description: >
+      Generic snapshot task. Walks a Salesforce Help portal area from a root
+      article ID, captures every article whose ID starts with the given prefix,
+      and writes markdown files with YAML frontmatter to
+      docs/salesforce/{release_version}/help/articles/. Also produces
+      manifest.json and index.md.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    # All options must be provided at invocation time. See the area-specific
+    # variants below for ready-to-run examples.
+
+  snapshot_billing_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 (Summer '26) Billing area of Salesforce Help.
+      ~171 articles (matches the captured inventory below). Default
+      headless run takes ~10-15 minutes.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: billing
+      root_article_id: ind.billing.htm
+      article_id_prefix: ind.billing
+      mode: all
+
+  snapshot_billing_help_260:
+    group: Documentation
+    description: >
+      Snapshot the 260 (Spring '26) Billing area of Salesforce Help.
+      For diff-against-262 verification work.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "260"
+      release_name: "Spring '26"
+      area: billing
+      root_article_id: ind.billing.htm
+      article_id_prefix: ind.billing
+      mode: all
+
+  # Module 3 (Usage, Rating, and Consumption Agents) requires TWO snapshot
+  # areas because the Revenue Cloud data model treats Usage Management and
+  # Rate Management as separate domains (see .cursor/skills/revenue-cloud-data-model/SKILL.md).
+  # - Usage Management owns: TransactionUsageEntitlement, UsageEntitlementAccount,
+  #   UsageEntitlementBucket, UsageEntitlementEntry, ProductUsageResource (PUR),
+  #   ProductUsageGrant (PUG), UsageResource, UsageSummary, TransactionJournal,
+  #   Usage Agent, Drawdown Policies, Digital Wallets.
+  # - Rate Management owns: RateCard, RateCardEntry, AssetRateCardEntry,
+  #   AssetRateAdjustment, Rating Procedure (ExpressionSetDefinition), the
+  #   Ratable Summary / Liable Summary part of the rating pipeline.
+  #
+  # Root IDs for both wrappers were verified during the 2026-05-11 sidebar
+  # walk and the tasks have captured successfully — see the AREA SNAPSHOT
+  # VARIANTS header below for the verified inventory. Troubleshooting note
+  # for future releases: Help-portal article IDs are not stable across
+  # release reorgs. During 262 capture, the candidates ind.usage_management.htm
+  # and ind.usage.htm both 404'd before ind.um_usage_management.htm /
+  # ind.rm_rate_management.htm were confirmed as the real roots. If the
+  # discover phase fails on a future release, start from the Revenue
+  # Lifecycle Management parent (ind.revenue_lifecycle_management.htm),
+  # find the relevant sidebar links, and copy the id= param into
+  # root_article_id / article_id_prefix below. The discover phase fails
+  # loudly if the root ID is wrong.
+
+  # =====================================================================
+  # AREA SNAPSHOT VARIANTS — Salesforce Help portal, Summer '26 (262)
+  # =====================================================================
+  # All 10 RC functional areas captured 2026-05-11 / 2026-05-12.
+  # 838 articles total, ~4.3 MB markdown. Roots verified via the
+  # Revenue Lifecycle Management parent sidebar walk.
+  #
+  # Captured (article counts as of capture date):
+  #   ✓ snapshot_pcm_help_262                — 107 articles
+  #   ✓ snapshot_pricing_help_262            — 110 articles
+  #   ✓ snapshot_rating_help_262             —  35 articles
+  #   ✓ snapshot_configurator_help_262       —  76 articles
+  #   ✓ snapshot_transaction_mgmt_help_262   — 170 articles
+  #   ✓ snapshot_dro_help_262                —  70 articles
+  #   ✓ snapshot_usage_help_262              —  52 articles
+  #   ✓ snapshot_billing_help_262            — 171 articles
+  #   ✓ snapshot_agents_help_262             —  13 articles (topic-reference;
+  #                                              area-specific agent how-to
+  #                                              articles live under each
+  #                                              area's prefix — see the
+  #                                              revenue-cloud-docs skill)
+  #   ✓ snapshot_approvals_help_262          —  34 articles
+  #
+  # NOTE — the Help portal uses short-prefix conventions that differ from
+  # data-model domain names. For example: Rate Management → `ind.rm_*`,
+  # Usage Management → `ind.um_*`, Transaction Management → `ind.qocal_*`
+  # (Quote/Order/Contract/Asset/Lifecycle all combined under one prefix).
+  #
+  # To refresh any area (e.g., when a new release ships):
+  #   cci task run snapshot_{area}_help_262 -o mode refresh
+  #
+  # To validate a root_article_id change without doing a full capture:
+  #   cci task run snapshot_{area}_help_262 -o mode discover
+  #
+  # Ordered to mirror the data-model domain flow:
+  # Catalog → Pricing → Rating → Configuration → Transaction lifecycle
+  # → Fulfillment → Usage → Billing → Agents → Approvals.
+
+  snapshot_pcm_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 (Summer '26) Product Catalog Management area of
+      Salesforce Help. Covers Product2, ProductCategory, AttributeDefinition,
+      ProductRelatedComponent. Root verified via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: pcm
+      root_article_id: ind.product_catalog_introduction.htm
+      article_id_prefix: ind.product_catalog
+      mode: all
+
+  snapshot_pricing_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Pricing area of Salesforce Help. Covers PriceBook2,
+      PriceBookEntry, PriceAdjustmentSchedule, ProductSellingModel, proration.
+      Distinct from Rate Management. Root verified via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: pricing
+      root_article_id: ind.pricing_salesforce_pricing.htm
+      article_id_prefix: ind.pricing
+      mode: all
+
+  snapshot_rating_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Rate Management area of Salesforce Help. Required for
+      Module 3 Unit 2 LO validation (Rate Card, Rate Card Entry, Asset Rate
+      Card Entry, Asset Rate Adjustment, Rating Procedure, the Transaction
+      Journal → Usage Summary → Ratable Summary → Liable Summary pipeline).
+      Root verified via RLM sidebar walk. Prefix `ind.rm_*` (NOT `ind.rate_*`).
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: rating
+      root_article_id: ind.rm_rate_management.htm
+      article_id_prefix: ind.rm
+      mode: all
+
+  snapshot_configurator_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Product Configurator area of Salesforce Help. Covers
+      ProductConfigurationFlow, ProductConfigurationRule. Small data-model
+      domain (4 objects) but the Help area covers configuration rules and
+      flow assignments that affect Quote/Order configuration. Root verified
+      via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: configurator
+      root_article_id: ind.product_configurator_introduction.htm
+      article_id_prefix: ind.product_configurator
+      mode: all
+
+  # The Transaction Management data-model domain corresponds to a SINGLE
+  # Help-portal area in 262 — not four seller-facing splits. Quote, Order,
+  # Contract, Asset, and Lifecycle articles all share the `ind.qocal_*`
+  # prefix (Quote-Order-Contract-Asset-Lifecycle). One snapshot variant
+  # covers all of them.
+  snapshot_transaction_mgmt_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Transaction Management area of Salesforce Help. Covers
+      Quote, QuoteLineItem, Order, OrderItem, Contract, Asset, AssetAction,
+      AssetStatePeriod, AssetRelationship, and quote/order/asset lifecycle
+      management. ONE combined area with prefix `ind.qocal_*` — not four
+      separate areas. Root verified via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: transaction_mgmt
+      root_article_id: ind.qocal_sales_transactions_rev_cloud.htm
+      article_id_prefix: ind.qocal
+      mode: all
+
+  snapshot_dro_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 DRO (Dynamic Revenue Orchestration) / Fulfillment area
+      of Salesforce Help. Covers FulfillmentPlan, FulfillmentStep,
+      FulfillmentStepDefinition, ProductFulfillmentDecompRule. Root verified
+      via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: dro
+      root_article_id: ind.dro_dynamic_revenue_orchestrator.htm
+      article_id_prefix: ind.dro
+      mode: all
+
+  snapshot_usage_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Usage Management area of Salesforce Help. Required for
+      Module 3 Unit 1 + Unit 3 LO validation (data model, Usage Agent,
+      Drawdown Policies, Digital Wallets, TransactionUsageEntitlement, Usage
+      Entitlement Account / Bucket / Entry). Root verified via RLM sidebar
+      walk. Prefix `ind.um_*` (NOT `ind.usage_*`).
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: usage
+      root_article_id: ind.um_usage_management.htm
+      article_id_prefix: ind.um
+      mode: all
+
+  snapshot_approvals_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Advanced Approvals area of Salesforce Help (~34 articles
+      per the sidebar walk). Covers Advanced Approval Objects, approval
+      workflow design, Smart Approvals, approval previews, Slack notifications,
+      auto-approval rules. Note: the data-model domain is thin (1 object,
+      ApprovalSubmission) but the Help area is rich. Root and prefix verified
+      via sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: approvals
+      root_article_id: ind.approvals_advanced_approvals.htm
+      article_id_prefix: ind.approvals
+      mode: all
+
+  # Agentforce for Revenue Management — the AI-agent suite that spans every
+  # functional domain (PCM, Quote/Order, Usage, Billing). 7 subagents per the
+  # 2026-05-11 sidebar walk:
+  #   - Subagent: Product Selection (PCM)
+  #   - Subagent: Product Description Generation (PCM)
+  #   - Subagent: Quote Management (Transaction Mgmt)
+  #   - Subagent: Consumption Management (Usage) — answers Module 3 LO 3.1
+  #   - Subagent: Invoice Line Explanation (Billing)
+  #   - Subagent: Billing Collections Management (Billing)
+  #   - Subagent: Billing Inquiries (Billing)
+  # This is the missing area that resolves the "Usage Agent / Consumption
+  # Agent" question for Module 3 — the subagent is named "Consumption
+  # Management" and lives in this area, not in the Usage Management area.
+  # Also relevant for Module 1 v2 voice corrections (the M1v2 validation
+  # report flagged Invoice Explanation / Billing Inquiries / Collections
+  # naming, all of which actually live here).
+  snapshot_agents_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 Agentforce for Revenue Management area of Salesforce
+      Help. Covers the 7 revenue-management subagents (Product Selection,
+      Product Description Generation, Quote Management, Consumption
+      Management, Invoice Line Explanation, Billing Collections Management,
+      Billing Inquiries) plus agent templates and setup. Root and prefix
+      verified via RLM sidebar walk.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: agents
+      root_article_id: ind.rev_agent_overview.htm
+      article_id_prefix: ind.rev_agent
+      mode: all
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
@@ -2535,64 +3035,75 @@ flows:
       26:
         flow: prepare_ramp_builder
       27:
+        flow: prepare_large_stx
+        when: project_config.project__custom__large_stx
+      28:
+        flow: prepare_personas
+        when: project_config.project__custom__personas
+      29:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      28:
-        flow: prepare_scratch
-      29:
-        flow: refresh_all_decision_tables
       30:
+        flow: prepare_scratch
+      31:
+        flow: refresh_all_decision_tables
+      32:
+        task: rebuild_search_index
+      33:
         flow: stamp_git_commit
 
   prepare_core:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: validate_setup
+        task: set_scratch_org_password
+        when: org_config.scratch
       2:
+        task: validate_setup
+      3:
         task: assign_permission_set_licenses
         options:
           api_names: *rlm_psl_api_names
-      3:
+      4:
         task: cleanup_settings_for_dev
         #when: org_config.scratch
-      4:
+      5:
         task: exclude_active_decision_tables
         #when: org_config.scratch
-      5:
-        task: deploy_pre
       6:
+        task: deploy_pre
+      7:
         task: restore_decision_tables
         #when: org_config.scratch
-      7:
-        flow: assign_feature_psls
       8:
-        task: recalculate_permission_set_groups
-        options:
-          api_names: *rlm_psg_api_names
+        flow: assign_feature_psls
       9:
-        task: assign_permission_set_groups_tolerant
+        task: recalculate_permission_set_groups
         options:
           api_names: *rlm_psg_api_names
       10:
-        task: recalculate_permission_set_groups
-        when: project_config.project__custom__tso
-        options:
-          api_names: *psg_tso
-      11:
         task: assign_permission_set_groups_tolerant
+        options:
+          api_names: *rlm_psg_api_names
+      11:
+        task: recalculate_permission_set_groups
         when: project_config.project__custom__tso
         options:
           api_names: *psg_tso
       12:
-        flow: extend_context_definitions
+        task: assign_permission_set_groups_tolerant
+        when: project_config.project__custom__tso
+        options:
+          api_names: *psg_tso
       13:
+        flow: extend_context_definitions
+      14:
         task: create_rule_library
         when: project_config.project__custom__breconfig
-      14:
+      15:
         task: create_dro_rule_library
         when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      15:
+      16:
         flow: assign_feature_permission_sets
 
   assign_feature_psls:
@@ -2718,7 +3229,7 @@ flows:
     steps:
       1:
         task: insert_scratch_data
-        when: org_config.scratch and not project_config.project__custom__tso
+        when: project_config.project__custom__sample_data
 
   prepare_quantumbit:
     group: Revenue Lifecycle Management
@@ -2761,6 +3272,21 @@ flows:
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
+
+  prepare_large_stx:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_large_stx
+        when: project_config.project__custom__large_stx
+      2:
+        task: assign_permission_sets
+        when: project_config.project__custom__large_stx
+        options:
+          api_names: *ps_large_stx
+      3:
+        task: seed_large_deal_billing_treatment
+        when: project_config.project__custom__large_stx and project_config.project__custom__billing
 
   upsert_fulfillment_scope_cnfg:
     group: Revenue Lifecycle Management
@@ -2865,7 +3391,10 @@ flows:
         when: project_config.project__custom__billing
       8:
         task: enable_timeline
-        when: project_config.project__custom__billing_ui
+        # Skipped on TSO builds: Timeline is enabled via metadata
+        # (Industries.settings enableTimelinePref) on the tfid-cdo-rlm template,
+        # so the Robot UI toggle is only needed on non-TSO orgs.
+        when: project_config.project__custom__billing_ui and not project_config.project__custom__tso
       9:
         task: deploy_billing_id_settings
         when: project_config.project__custom__billing
@@ -2906,17 +3435,14 @@ flows:
         options:
           name: rlm
       7:
-        task: deploy_sharing_rules
-        when: project_config.project__custom__prm and project_config.project__custom__sharingsettings
-      8:
         task: assign_permission_sets
         when: project_config.project__custom__prm and project_config.project__custom__prm_exp_bundle and project_config.project__custom__tso
         options:
           api_names: *ps_prm
-      9:
+      8:
         task: insert_quantumbit_prm_data
         when: project_config.project__custom__prm and project_config.project__custom__qb
-      10:
+      9:
         task: manage_context_definition
         when: project_config.project__custom__prm
         options:
@@ -3106,11 +3632,22 @@ flows:
           data_dir: *server2_constraints_data_dir
           dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
       9:
+        task: import_cml
+        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        options:
+          data_dir: *quantumbit_pcm_constraints_data_dir
+          dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
+      10:
         task: manage_expression_sets
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           operation: activate_versions
-          version_full_names: "QuantumBitComplete_V1,Server2_V1"
+          # QuantumBitComplete_V1 is intentionally NOT activated: only one QuantumBit
+          # constraint model can be active at a time, and QuantumBitPCM_V1 (the updated
+          # v67 virtual-quote structure) is the active model. QuantumBitComplete is still
+          # imported (step 7) but left inactive until the two models are merged.
+          # See datasets/constraints/README.md.
+          version_full_names: "Server2_V1,QuantumBitPCM_V1"
 
   prepare_approvals:
     group: Revenue Lifecycle Management
@@ -3231,10 +3768,10 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, profiles) from feature-conditional templates. Runs at step 27 of
-      prepare_rlm_org, after all feature provisioning is complete, ensuring all
-      referenced objects, fields, and components exist before UX metadata is deployed.
-      Step 2 reorders the App Launcher via browser automation.
+      applications, profiles) from feature-conditional templates. Runs at step 29 of
+      prepare_rlm_org, after all feature provisioning (including personas at step 28)
+      is complete, ensuring all referenced objects, fields, and components exist before
+      UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
     steps:
       1:
         task: assemble_and_deploy_ux
@@ -3278,10 +3815,61 @@ flows:
 
   prepare_personas:
     group: Revenue Lifecycle Management
-    description: Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas. Not wired into prepare_rlm_org.
+    description: >
+      Deploy persona metadata (profiles, permission set groups, permission sets) from
+      unpackaged/post_personas and create the Sales Rep scratch user. Gated by the
+      personas feature flag. Runs as step 28 of prepare_rlm_org, before prepare_ux
+      (step 29), so that persona profile templates are assembled and deployed by
+      the UX assembler in the same pass.
     steps:
       1:
+        task: set_personas_org_wide_defaults
+        when: project_config.project__custom__personas
+      2:
         task: deploy_post_personas
+        when: project_config.project__custom__personas
+      3:
+        task: recalculate_personas_sales_rep_psg
+        when: project_config.project__custom__personas
+      4:
+        task: create_personas_sales_rep_user
+        when: project_config.project__custom__personas
+      5:
+        task: assign_personas_sales_rep_psg
+        when: project_config.project__custom__personas
+      6:
+        task: assign_permission_sets
+        when: project_config.project__custom__personas
+        options:
+          api_names: *ps_persona_sales_rep
+          user_alias: salesrep
+      7:
+        # Assign the large_stx PermissionSet to the salesrep user only when
+        # large_stx is also on — RLM_LargeSalesTransaction lives in
+        # unpackaged/post_large_stx and is only deployed when large_stx=true,
+        # so assigning it on a personas=true / large_stx=false build would
+        # fail trying to reference a PermissionSet that wasn't deployed.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and project_config.project__custom__large_stx
+        options:
+          api_names: *ps_large_stx
+          user_alias: salesrep
+      8:
+        # Assign the ramp builder PermissionSet to the salesrep user only when
+        # ramps is also on — RLM_RampSchedule lives in unpackaged/post_ramp_builder
+        # and is only deployed when ramps=true, so assigning it on a
+        # personas=true / ramps=false build would fail referencing a PermissionSet
+        # that wasn't deployed.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and project_config.project__custom__ramps
+        options:
+          api_names: *ps_ramp_builder
+          user_alias: salesrep
+      9:
+        # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
+        # Runs last so it confirms the final sharing state after all persona setup.
+        task: verify_personas_org_wide_defaults
+        when: project_config.project__custom__personas
 
   run_qb_extracts:
     group: Data Management - Extract

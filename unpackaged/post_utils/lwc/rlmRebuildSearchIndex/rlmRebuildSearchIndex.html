@@ -1,0 +1,16 @@
+<template>
+    <lightning-card title="Catalog Index" icon-name="standard:search">
+        <div class="slds-p-around_medium">
+            <p class="slds-text-body_small slds-text-color_weak slds-m-bottom_medium">
+                Rebuild the Product Catalog Management search index. Allow up to 15 minutes after triggering.
+            </p>
+            <lightning-button
+                variant="brand"
+                label={buttonLabel}
+                onclick={handleBuildIndex}
+                disabled={isButtonDisabled}
+                icon-name="utility:refresh">
+            </lightning-button>
+        </div>
+    </lightning-card>
+</template>

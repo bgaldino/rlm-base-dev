@@ -17,18 +17,35 @@ repo root.
 | Write a Python CCI task class | Custom Task Authoring | `cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | SFDMU Data Plans | `sfdmu-data-plans/SKILL.md` |
 | Understand RLM objects/relationships | Revenue Cloud Data Model | `revenue-cloud-data-model/SKILL.md` |
+| Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | `schema-validation/SKILL.md` |
+| Cross-repo skill manifest (PMOS ↔ Foundations) | PMOS Integration | `pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | Business APIs | `rlm-business-apis/SKILL.md` |
 | Write Robot Framework tests | Robot Testing | `robot-testing/SKILL.md` |
+| Capture/apply UX drift from org | UX Assembly & Retrieve | `repo-integration/ux-assembly-retrieve.md` |
 | Review docs before merge | Doc Consistency | `doc-consistency/SKILL.md` |
+| Create, update, register, or test AI-agent skills | Skill Authoring | `skill-authoring/SKILL.md` |
 | Debug a build/deploy failure | Troubleshooting | `troubleshooting/SKILL.md` |
+| Harden Apex CRUD/FLS (USER_MODE) + permission-set self-sufficiency | Apex Security Hardening | `apex-security-hardening/SKILL.md` |
+| Process PR reviews / run the pre-merge audit (completeness sweeps) | Audit Review | `audit-review/SKILL.md` |
+| Author/update enablement exercises | Release Enablement | `release-enablement/SKILL.md` |
+| Generate the QuantumBit demo-script canvas (per-release) | QB Demo Script Generator | `qb-demo-script/SKILL.md` |
+| Ground claims against Salesforce Help | Revenue Cloud Docs | `revenue-cloud-docs/SKILL.md` |
 
 ## How Skills Are Structured
 
-Each skill has:
+Each top-level skill should include the sections below. **Quick Rules** is
+present in every skill today and **DO NOT** in most; **Entry Conditions**,
+**Examples**, and **Validation Checks** are the target structure for new skills,
+and existing skills are being migrated to add them incrementally:
 1. **Quick Rules** — 5-8 numbered rules at the top for fast reference
 2. **DO NOT** — explicit safety constraints for that topic
-3. **Main content** — tables, code examples, decision guides
-4. **Sub-files** — detailed reference split into separate files (read on demand)
+3. **Entry Conditions** — when to read the skill and when to use adjacent guidance
+4. **Main content** — tables, code examples, decision guides
+5. **Examples** — concrete usage patterns
+6. **Validation Checks** — commands and review checks to run before commit/PR
+7. **Sub-files** — detailed reference split into separate files (read on demand)
+
+For the full lifecycle checklist, read `skill-authoring/SKILL.md`.
 
 ## File-Specific Rules (Cursor Only)
 

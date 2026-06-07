@@ -19,10 +19,15 @@ except ImportError:
 
 #: All feature flags that gate UX metadata assembly / retrieval.
 UX_KNOWN_FLAGS: List[str] = [
-    "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
+    "quantumbit", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
     "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
-    "payments", "constraints", "analytics", "procedureplans",
-    "collections",
+    "payments", "constraints", "analytics", "procedureplans", "large_stx",
+    "collections", "personas",
+]
+
+#: Profile templates only assembled when the personas feature flag is true.
+PERSONAS_PROFILES: List[str] = [
+    "RLM Sales Representative.profile-meta.xml",
 ]
 
 #: Standalone flexipage dirs in deploy order (last writer wins).
@@ -32,12 +37,12 @@ _STANDALONE_ORDER: List[Tuple[str, str]] = [
     ("payments",    "payments"),
     ("billing",     "billing"),
     ("billing_ui",  "billing_ui"),
-    ("quantumbit",  "qb"),
+    ("quantumbit",  "quantumbit"),
     ("tso",         "tso"),
     ("constraints", "constraints"),
-    ("utils",       "qb"),        # utils deploys with qb flow
+    ("utils",       "quantumbit"),  # utils deploys with quantumbit flow
     ("docgen",      "docgen"),
-    ("approvals",   "qb"),        # approvals deploys with qb flow
+    ("approvals",   "quantumbit"),  # approvals deploys with quantumbit flow
     ("collections", "collections"),
 ]
 
