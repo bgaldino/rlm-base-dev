@@ -18,7 +18,7 @@ control order):
 
 The `force-app/` Admin profile is **classAccesses only**:
 - Step 5 (`deploy_full`): profile with no layout assignments
-- Step 27 (`prepare_ux`): full profile from `templates/profiles/base/` + patches
+- Step 29 (`prepare_ux`): full profile from `templates/profiles/base/` + patches
 
 ### Object metadata strip-and-build
 
@@ -26,7 +26,7 @@ These standard objects have `actionOverrides` and `compactLayoutAssignment`
 in `templates/objects/base/` (NOT `force-app/`):
 - Asset, Quote, Order, OrderItem, QuoteLineItem, FulfillmentOrderLineItem
 
-They deploy at step 27 after referenced flexipages exist. The `force-app/`
+They deploy at step 29 after referenced flexipages exist. The `force-app/`
 paths are forceignored.
 
 ### Metadata dependencies
