@@ -19,7 +19,7 @@ review-loop fixes ("fix stale description", "update README task name",
 ## DO NOT
 
 - **DO NOT** duplicate procedural content across `README.md`, `AGENTS.md`, and skill files — keep one source and add pointers.
-- **DO NOT** manually update `docs/references/cci-task-reference.md` if the generated `tasks-reference.md` covers the same tasks — consolidate to one.
+- **DO NOT** re-add a hand-maintained task listing (e.g. the removed `docs/references/cci-task-reference.md`). The single source for project tasks is the generated `.cursor/skills/cci-orchestration/tasks-reference.md` (run `python scripts/ai/generate_cci_reference.py`); for CumulusCI built-in tasks use `cci task list` / `cci task info <name>`.
 - **DO NOT** edit `CLAUDE.md` — it is a symlink to `AGENTS.md`.
 - **DO NOT** skip the plan README when changing SFDMU plan behavior.
 
