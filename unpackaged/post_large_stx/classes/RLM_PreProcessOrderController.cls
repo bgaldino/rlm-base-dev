@@ -111,7 +111,14 @@ public with sharing class RLM_PreProcessOrderController {
         }
         try {
             Id oid = Id.valueOf(orderId);
-            Boolean isLarge = isLargeDealOrder(oid);
+            // Verify the order exists / is accessible first (consistent with getOrderInfo,
+            // getPricingStatus, enqueuePreprocess) so we never return a misleading
+            // "ready_to_enqueue" success for a missing or inaccessible order.
+            List<Order> orders = [SELECT Id, IsLargeDeal FROM Order WHERE Id = :oid WITH USER_MODE LIMIT 1];
+            if (orders.isEmpty()) {
+                return errorJson('Order not found or not accessible.');
+            }
+            Boolean isLarge = orders[0].IsLargeDeal == true;
             // Large-deal reprice prices ASYNCHRONOUSLY (dispatch keyed on IsLargeDeal);
             // throws only on a synchronous accept failure. No-op for standard/unknown.
             repriceLargeDealOrderIfNeeded(oid);

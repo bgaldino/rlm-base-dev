@@ -316,48 +316,28 @@ Schema was queried against a 260 scratch org. Findings below.
 | SequencePolicy              | `Name`                                                                   | No            | ✅ Human-readable |
 | SeqPolicySelectionCondition | `ConditionNumber;SequencePolicy.Name`                                    | **Yes**       | ✅ Composite (direct int + parent traversal) satisfies SFDMU Bug 1 requirement |
 
-## Large-deal limitation — `LegalEntity` treatment selection (platform bug)
+## Large-deal billing — known limitation with `LegalEntity` treatment selection
 
 `BillingPolicy.BillingTreatmentSelection = LegalEntity` (used by
-"Billing Policy - Advance" and other region-keyed policies here) is **not
-bulk-safe** during large-deal preprocess (`preProcessSalesTransaction` /
-`resolveBillingTreatments` when `IsLargeDeal = true`).
+"Billing Policy - Advance" and other region-keyed policies here) does **not**
+resolve reliably for large-deal orders (`IsLargeDeal = true`) at high line counts
+during preprocess (`preProcessSalesTransaction` / `resolveBillingTreatments`). A
+`Default`-selection billing policy resolves the same order cleanly because it
+reads `DefaultBillingTreatmentId` directly.
 
-The Core resolver builds **one SOQL `WHERE` condition per order item** (instead
-of per distinct `(LegalEntity, BillingPolicy)` pair) and `OR`s them into a
-single query. A large-deal order with many lines (repro: 2,700 `OrderItem`s,
-all US + Advance) overflows the query and throws, surfaced as:
+**Guidance for large-deal demos/tests:** assign products to a `Default`-selection
+billing policy (a large-deal order targets a single legal entity anyway).
 
-```
-PreprocessingStatus = CFCC
-UNKNOWN_EXCEPTION: "Something went wrong retrieving the billing treatment
-for legal entity <id>. Ask your Salesforce admin for help."
-```
-
-This is **not** a data/config gap — the US legal entity is fully provisioned
-and has exactly one matching treatment. A `Default`-selection policy resolves
-the same 2,700-line order instantly (`CCCC`, Activated) because it reads
-`DefaultBillingTreatmentId` directly with no per-item query.
-
-**Guidance for large-deal demos/tests:** assign products to a
-`Default`-selection billing policy (single legal entity per order anyway).
-Full root-cause trace and platform-fix proposal:
-`.agents/artifacts/large-deal-legal-entity-billing-treatment-bug.md`.
-
-**Automated workaround (large_stx builds).** When `large_stx` + `billing` are
-on, `prepare_large_stx` runs `seed_large_deal_billing_treatment`
+**Automated workaround (large_stx builds).** When `large_stx` + `billing` are on,
+`prepare_large_stx` runs `seed_large_deal_billing_treatment`
 (`scripts/apex/seedLargeDealBillingTreatment.apex`), which seeds a
-`Default`-selection **`RLM Large Deal Policy`** + an
-`ExcludeFromBilling = Yes` treatment **`RLM Large Deal - Exclude from Billing`**
-(no legal entity, no treatment items — nonbillable treatments can't have items).
-At activation, the large-deal "Prepare for Activation" action
-(`RLM_PreProcessOrderController.startPreprocess`) stamps that treatment onto
-every unresolved `OrderItem.BillingTreatmentId` before invoking
-`preProcessSalesTransaction`. The resolver only fetches treatments for items
-where `BillingTreatmentId == null`, so the buggy legal-entity bulk query becomes
-a no-op and bit 1 (BillingTreatment) completes. Standard orders
-(`IsLargeDeal = false`) are untouched. Plan:
-`.agents/artifacts/large-deal-billing-exclude-plan.md`.
+`Default`-selection **`RLM Large Deal Policy`** + an `ExcludeFromBilling = Yes`
+treatment **`RLM Large Deal - Exclude from Billing`** (no legal entity, no
+treatment items — nonbillable treatments can't have items). At activation, the
+"Prepare for Activation" action (`RLM_PreProcessOrderController.startPreprocess`)
+stamps that treatment onto every unresolved `OrderItem.BillingTreatmentId` before
+invoking `preProcessSalesTransaction`, so billing-treatment resolution is a no-op
+for large deals. Standard orders (`IsLargeDeal = false`) are untouched.
 
 ## Optimization Opportunities
 

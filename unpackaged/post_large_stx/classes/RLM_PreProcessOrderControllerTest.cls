@@ -20,14 +20,14 @@ private class RLM_PreProcessOrderControllerTest {
     }
 
     @isTest
-    static void testStartPreprocess_UnknownId_ReadyToEnqueue() {
-        // Unknown id resolves as non-large-deal (reprice + stamp no-op); phase 1
-        // returns a structured result with the standard-order phase.
+    static void testStartPreprocess_UnknownId_ReturnsError() {
+        // An unknown / inaccessible order must fail fast (consistent with getOrderInfo /
+        // getPricingStatus / enqueuePreprocess) rather than reporting a misleading
+        // ready_to_enqueue success the UI would act on.
         String resp = RLM_PreProcessOrderController.startPreprocess('801000000000000AAA');
         Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(resp);
-        System.assertEquals(true, m.get('success'), 'Returns a structured success result');
-        System.assertEquals('ready_to_enqueue', m.get('phase'), 'Non-large-deal enqueues immediately');
-        System.assertEquals(false, m.get('isLargeDeal'), 'Unknown/standard order is not a large deal');
+        System.assertEquals(false, m.get('success'), 'Unknown order id should not succeed');
+        System.assertNotEquals(null, m.get('errorMessage'), 'An error message is returned for a missing order');
     }
 
     @isTest

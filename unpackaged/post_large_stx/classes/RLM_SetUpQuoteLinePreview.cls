@@ -3,6 +3,14 @@
  * Mirrors RLM_SetUpQuoteInvocable modify order: deletes → additive existingGroupCounts → new hierarchy lines.
  */
 public with sharing class RLM_SetUpQuoteLinePreview {
+    // Hard cap on QuoteLineGroup delete-expansion BFS depth (realistic nesting <=5; 50 is
+    // well under the synchronous SOQL governor). Hitting it means the expansion is partial.
+    private static final Integer EXPANSION_MAX_LEVELS = 50;
+
+    // Thrown when the depth guard trips, so the preview surfaces an error instead of
+    // silently undercounting the deleted-group / projected-line totals.
+    public class PreviewExpansionException extends Exception {}
+
     @AuraEnabled(cacheable = false)
     public static String previewQuoteLineCounts(String previewJson) {
         if (String.isBlank(previewJson)) {
@@ -38,7 +46,14 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             }
         }
 
-        Set<Id> deletedGroupIds = expandDeletedGroupIds(groupsToDeleteJson, parsedQId);
+        Set<Id> deletedGroupIds;
+        try {
+            deletedGroupIds = expandDeletedGroupIds(groupsToDeleteJson, parsedQId);
+        } catch (PreviewExpansionException e) {
+            // Partial delete-set (depth guard tripped): surface an error instead of
+            // silently undercounting linesRemovedFromDeletes / the projected total.
+            return buildResponse(currentTotal, 0, 0, 0, currentTotal, e.getMessage());
+        }
         Integer linesRemovedFromDeletes = 0;
         if (!isCreate && parsedQId != null && !deletedGroupIds.isEmpty()) {
             linesRemovedFromDeletes = [
@@ -137,6 +152,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         if (String.isBlank(groupsToDeleteJson)) {
             return result;
         }
+        Boolean truncated = false;
         try {
             List<Object> arr = (List<Object>) JSON.deserializeUntyped(groupsToDeleteJson);
             Set<Id> rootIds = new Set<Id>();
@@ -177,10 +193,9 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             Set<Id> frontier = new Set<Id>(rootIds);
             // Depth guard: bound the per-level SOQL so a pathologically deep hierarchy can't
             // exhaust the query governor limit. Group nesting is realistically <=5 levels;
-            // 50 is a safe hard cap well under the synchronous SOQL ceiling.
+            // EXPANSION_MAX_LEVELS is a safe hard cap well under the synchronous SOQL ceiling.
             Integer levelGuard = 0;
-            final Integer maxLevels = 50;
-            while (!frontier.isEmpty() && levelGuard < maxLevels) {
+            while (!frontier.isEmpty() && levelGuard < EXPANSION_MAX_LEVELS) {
                 levelGuard++;
                 Set<Id> nextFrontier = new Set<Id>();
                 List<QuoteLineGroup> children = quoteId != null
@@ -194,8 +209,17 @@ public with sharing class RLM_SetUpQuoteLinePreview {
                 }
                 frontier = nextFrontier;
             }
+            // Guard tripped with levels still pending => the delete set is PARTIAL. Flag it
+            // here (frontier is in scope) and throw AFTER the catch so the caller surfaces it
+            // rather than silently undercounting.
+            truncated = !frontier.isEmpty();
         } catch (Exception e) {
             return new Set<Id>();
+        }
+        if (truncated) {
+            throw new PreviewExpansionException(
+                'The group hierarchy is too deep to preview accurately (exceeded ' +
+                EXPANSION_MAX_LEVELS + ' levels). Refresh the page and retry, or reduce nesting.');
         }
         return result;
     }
