@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-06-07T17:40:49.864318Z",
+  "assembled_at": "2026-06-07T18:41:00.680266Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -824,8 +824,32 @@
     },
     {
       "type": "listView",
+      "name": "All_Accounts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Account/listViews/All_Accounts.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
       "name": "All_Assets.listView-meta.xml",
       "dest": "unpackaged/post_ux/objects/Asset/listViews/All_Assets.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "All_Contacts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contact/listViews/All_Contacts.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "All_Contracts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contract/listViews/All_Contracts.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "All_Orders.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Order/listViews/All_Orders.listView-meta.xml",
       "source": "objects/base"
     },
     {
