@@ -56,6 +56,12 @@ class SetOrgWideDefaultsSharingOnly(SetOrgWideDefaults):
     def _prune_to_existing_objects(self):
         """Drop requested objects that don't exist on this org (shape difference)."""
         requested = sorted(self.owds.keys())
+        if not requested:
+            # No Org-Wide Defaults requested: clear api_names so _retrieve()
+            # short-circuits gracefully instead of building an invalid
+            # `WHERE QualifiedApiName IN ()` SOQL clause.
+            self.api_names = set()
+            return
         object_list = ", ".join(f"'{obj}'" for obj in requested)
         existing = {
             rec["QualifiedApiName"]
