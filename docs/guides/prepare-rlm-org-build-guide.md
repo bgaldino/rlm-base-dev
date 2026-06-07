@@ -57,7 +57,7 @@ The most commonly used flags and their defaults:
 
 ## The Build Process: Phase by Phase
 
-The 32 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
+The 33 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
 
 ---
 
@@ -189,15 +189,17 @@ The 32 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 ---
 
-### Phase 8: Finalization (Steps 31–32)
+### Phase 8: Finalization (Steps 31–33)
 
-**What happens:** All decision tables are refreshed, and the build's git provenance is stamped onto the org.
+**What happens:** All decision tables are refreshed, the Product Catalog search index is rebuilt, and the build's git provenance is stamped onto the org.
 
-**Why it matters:** Decision tables must be refreshed last so they materialize the final state of all reference data; stamping the commit makes each org traceable back to the exact build that produced it.
+**Why it matters:** Decision tables must be refreshed last so they materialize the final state of all reference data; the catalog search index must rebuild after the catalog data is in place so products are searchable; stamping the commit makes each org traceable back to the exact build that produced it.
 
 **Decision table refresh** (Step 31) — Syncs pricing data and refreshes decision table categories. Pricing discovery always refreshes; the asset, rating, and rating discovery categories only refresh when `rating` is on; the commerce category only refreshes when `commerce` is on. Decision tables are the lookup caches that the pricing and rating engines use at runtime — refreshing them ensures they reflect all the data loaded during the build. This must run after all data is in place because it materializes the current state of all reference data into the decision table engine.
 
-**Git commit stamp** (Step 32) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
+**Search index rebuild** (Step 32, `rebuild_search_index`) — Initiates a FULL, IMMEDIATE Product Catalog (PCM) search index build via the Connect API (`connect/pcm/index/deploy`), so the catalog loaded during the build is searchable for product browse and guided selling. This is the same operation the **Build Catalog Index** component performs from the UI. The build runs asynchronously on the platform (allow several minutes); the task initiates it and logs the snapshot id. A failed index call warns and continues by default (set `raise_on_failure` to make it fatal) — the index can always be rebuilt later via the component.
+
+**Git commit stamp** (Step 33) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
 
 ---
 

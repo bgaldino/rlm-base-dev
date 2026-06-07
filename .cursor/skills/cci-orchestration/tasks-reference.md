@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**221 tasks** across **10 groups**.
+**222 tasks** across **10 groups**.
 
 ---
 
@@ -770,7 +770,7 @@
 
 ## Revenue Lifecycle Management
 
-*134 task(s)*
+*135 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -2271,6 +2271,14 @@
 **Options:**
 
 - `path`: `scripts/apex/query_billing_state.apex`
+
+---
+
+### `rebuild_search_index`
+
+**Description:** Rebuild the Product Catalog (PCM) search index via Connect API (FULL, IMMEDIATE). Asynchronous - initiates the build and logs the snapshot id. Warns and continues on API failure unless raise_on_failure is set.
+
+**Class:** `tasks.rlm_rebuild_search_index.RebuildSearchIndex`
 
 ---
 

@@ -818,7 +818,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 | Flow | Description |
 |------|-------------|
-| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (32 steps). This is the primary flow for full org setup. |
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (33 steps). This is the primary flow for full org setup. |
 
 #### prepare_rlm_org Step Order
 
@@ -855,9 +855,10 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 29 | `prepare_ux` | `ux` |
 | 30 | `prepare_scratch` | Always |
 | 31 | `refresh_all_decision_tables` | Always |
-| 32 | `stamp_git_commit` | Always |
+| 32 | `rebuild_search_index` | Always |
+| 33 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 31 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 32 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 31 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 32 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 33 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 

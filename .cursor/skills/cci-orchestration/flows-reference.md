@@ -527,7 +527,8 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
 30. **flow** `prepare_scratch`
 31. **flow** `refresh_all_decision_tables`
-32. **flow** `stamp_git_commit`
+32. **task** `rebuild_search_index`
+33. **flow** `stamp_git_commit`
 
 ---
 

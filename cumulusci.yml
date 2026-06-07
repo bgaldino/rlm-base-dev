@@ -2517,6 +2517,11 @@ tasks:
     options:
       developerNames: *dt_commerce_decision_tables
 
+  rebuild_search_index:
+    group: Revenue Lifecycle Management
+    description: Rebuild the Product Catalog (PCM) search index via Connect API (FULL, IMMEDIATE). Asynchronous - initiates the build and logs the snapshot id. Warns and continues on API failure unless raise_on_failure is set.
+    class_path: tasks.rlm_rebuild_search_index.RebuildSearchIndex
+
   manage_decision_tables:
     group: Revenue Lifecycle Management
     description: "Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists (compare org to project list anchors)"
@@ -3043,6 +3048,8 @@ flows:
       31:
         flow: refresh_all_decision_tables
       32:
+        task: rebuild_search_index
+      33:
         flow: stamp_git_commit
 
   prepare_core:
