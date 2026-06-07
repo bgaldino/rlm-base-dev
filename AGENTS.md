@@ -219,10 +219,15 @@ threads.** For each comment:
    `gh api --method POST repos/<owner>/<repo>/pulls/<n>/comments/<id>/replies -f body="…"`
 4. **React** 👍 on a valid comment:
    `gh api --method POST repos/<owner>/<repo>/pulls/comments/<id>/reactions -H "Accept: application/vnd.github.squirrel-girl-preview+json" -f content=+1`
-5. **Resolve the thread** (REST cannot — use GraphQL): get the thread id from
-   `pullRequest(number:N){reviewThreads(first:100){nodes{id isResolved comments(first:1){nodes{databaseId path line}}}}}`,
-   then `mutation($tid:ID!){resolveReviewThread(input:{threadId:$tid}){thread{isResolved}}}`.
-6. **Confirm clean** — re-query `reviewThreads` and verify `unresolved == 0` for the round.
+5. **Resolve the thread** (REST cannot — use GraphQL). List threads with the full query
+   root — `reviewThreads` lives under `repository(owner:, name:){ pullRequest(number:N){ … } }`
+   (`pullRequest` is **not** a GraphQL root field) — and **paginate** so PRs with >100
+   threads aren't truncated:
+   `repository(owner:$o,name:$r){ pullRequest(number:$n){ reviewThreads(first:100, after:$cursor){ pageInfo{ hasNextPage endCursor } nodes{ id isResolved comments(first:1){ nodes{ databaseId path line } } } } } }`
+   — loop, passing `endCursor` as `after`, until `hasNextPage` is false. Resolve each
+   unresolved id with `mutation($tid:ID!){ resolveReviewThread(input:{threadId:$tid}){ thread{ isResolved } } }`.
+6. **Confirm clean** — re-query `reviewThreads` across **all** pages (same pagination) and
+   verify `unresolved == 0` for the round.
 
 Refute false positives (with evidence) rather than changing correct code — but still
 reply, and resolve the thread once the point is settled. This matters most on branches
