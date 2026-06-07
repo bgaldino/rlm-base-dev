@@ -218,7 +218,7 @@ threads.** For each comment:
    evidence-backed refutation for a false positive):
    `gh api --method POST repos/<owner>/<repo>/pulls/<n>/comments/<id>/replies -f body="…"`
 4. **React** 👍 on a valid comment:
-   `gh api --method POST repos/<owner>/<repo>/pulls/comments/<id>/reactions -H "Accept: application/vnd.github.squirrel-girl-preview+json" -f content=+1`
+   `gh api --method POST repos/<owner>/<repo>/pulls/comments/<id>/reactions -H "Accept: application/vnd.github+json" -f content="+1"`
 5. **Resolve the thread** (REST cannot — use GraphQL). List threads with the full query
    root — `reviewThreads` lives under `repository(owner:, name:){ pullRequest(number:N){ … } }`
    (`pullRequest` is **not** a GraphQL root field) — and **paginate** so PRs with >100
