@@ -999,18 +999,17 @@ tasks:
   set_personas_org_wide_defaults:
     group: Revenue Lifecycle Management
     description: >
-      Sets Organization-Wide Defaults for standard Sales Cloud objects to support
-      the Sales Rep persona. Account/Asset/Contract/Order → Public Read/Write
-      (all internal users can see and edit). Opportunity stays Private (reps own
-      their pipeline). ProductCatalog is intentionally omitted — it already defaults
-      to Read/Read in RLM-enabled orgs, and CCI's SetOrgWideDefaults does a full
-      retrieve-modify-deploy round-trip on each listed object, which for
-      ProductCatalog hits a Salesforce 262 Metadata API quirk where the retrieve
-      returns duplicate <listViews> entries (including All_ProductCatalogs), making
-      the redeploy fail with "Duplicate name 'ProductCatalog.All_ProductCatalogs'".
-    class_path: cumulusci.tasks.metadata_etl.SetOrgWideDefaults
+      Sets Organization-Wide Defaults for the Sales Rep persona. Sales Cloud objects
+      Account/Asset/Contract/Order → internal Read/Write (all internal users can see
+      and edit); Opportunity stays Private (reps own their pipeline). The product /
+      configuration model (ProductCatalog plus the catalog/config objects below) →
+      Read/Read so the salesrep can browse catalogs and run the Set Up Quote
+      configurator — the PST configuration-rule engine reads those records in the
+      running user's context. Restores the OWD the deleted post_sharing object-meta
+      bundle used to set.
+    class_path: tasks.rlm_sharing.SetOrgWideDefaultsSharingOnly
     options:
-      org_wide_defaults:
+      org_wide_defaults: &persona_owd_defaults
         - api_name: Account
           internal_sharing_model: ReadWrite
           external_sharing_model: Private
@@ -1026,8 +1025,89 @@ tasks:
         - api_name: Order
           internal_sharing_model: ReadWrite
           external_sharing_model: Private
-        # ProductCatalog intentionally omitted — see description above.
-        # Default OWD in RLM-enabled orgs is already Read/Read.
+        - api_name: ProductCatalog
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        # Product / configuration model — Read/Read so the salesrep persona can browse
+        # catalogs and run the Set Up Quote configurator (the PST configuration-rule
+        # engine reads these records). Restores OWD the deleted post_sharing bundle set.
+        - api_name: Product2
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductConfigurationRule
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductConfigurationFlow
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductComponentGroup
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductComponentGrpOverride
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductRelComponentOverride
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductClassification
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductClassificationAttr
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttributeDefinition
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductAttributeDefinition
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttributeCategory
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttributeCategoryAttribute
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttributePicklist
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttrPicklistExcludedValue
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductQualification
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductDisqualification
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductCategoryQualification
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: ProductCategoryDisqual
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: AttributeBasedAdjRule
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: PriceAdjustmentSchedule
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: PriceBookEntryDerivedPrice
+          internal_sharing_model: Read
+          external_sharing_model: Read
+        - api_name: SalesTransactionType
+          internal_sharing_model: Read
+          external_sharing_model: Read
+
+  verify_personas_org_wide_defaults:
+    group: Revenue Lifecycle Management
+    description: >
+      Post-set verification: asserts the persona Org-Wide Defaults actually landed
+      (raises if any present object's internal/external sharing model does not match
+      the expected spec). Objects absent on the target org shape are skipped, matching
+      set_personas_org_wide_defaults' shape tolerance.
+    class_path: tasks.rlm_sharing.AssertSObjectOWDs
+    options:
+      org_wide_defaults: *persona_owd_defaults
 
   deploy_post_personas:
     group: Revenue Lifecycle Management
@@ -3762,6 +3842,22 @@ flows:
         options:
           api_names: *ps_large_stx
           user_alias: salesrep
+      8:
+        # Assign the ramp builder PermissionSet to the salesrep user only when
+        # ramps is also on — RLM_RampSchedule lives in unpackaged/post_ramp_builder
+        # and is only deployed when ramps=true, so assigning it on a
+        # personas=true / ramps=false build would fail referencing a PermissionSet
+        # that wasn't deployed.
+        task: assign_permission_sets
+        when: project_config.project__custom__personas and project_config.project__custom__ramps
+        options:
+          api_names: *ps_ramp_builder
+          user_alias: salesrep
+      9:
+        # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
+        # Runs last so it confirms the final sharing state after all persona setup.
+        task: verify_personas_org_wide_defaults
+        when: project_config.project__custom__personas
 
   run_qb_extracts:
     group: Data Management - Extract

@@ -34,7 +34,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `large_stx` | `False` | 5 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
-| `personas` | `True` | 8 flow step(s) |
+| `personas` | `True` | 10 flow step(s) |
 | `prm` | `True` | 8 flow step(s) |
 | `prm_exp_bundle` | `False` | 4 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
@@ -43,7 +43,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `qb` | `True` | 21 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
-| `ramps` | `True` | 3 flow step(s) |
+| `ramps` | `True` | 4 flow step(s) |
 | `rates` | `True` | 5 flow step(s) |
 | `rating` | `True` | 13 flow step(s) |
 | `refresh` | `False` | 11 flow step(s) |
@@ -226,6 +226,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_personas` step 5 → `assign_personas_sales_rep_psg`
 - `prepare_personas` step 6 → `assign_permission_sets`
 - `prepare_personas` step 7 → `assign_permission_sets`
+- `prepare_personas` step 8 → `assign_permission_sets`
+- `prepare_personas` step 9 → `verify_personas_org_wide_defaults`
 
 ### `prm` (default: `True`)
 
@@ -305,6 +307,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_ramp_builder` step 1 → `deploy_post_ramp_builder`
 - `prepare_ramp_builder` step 2 → `apply_context_ramp_mode`
 - `prepare_ramp_builder` step 3 → `assign_permission_sets`
+- `prepare_personas` step 8 → `assign_permission_sets`
 
 ### `rates` (default: `True`)
 

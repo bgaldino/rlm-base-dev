@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**220 tasks** across **10 groups**.
+**221 tasks** across **10 groups**.
 
 ---
 
@@ -770,7 +770,7 @@
 
 ## Revenue Lifecycle Management
 
-*133 task(s)*
+*134 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -2428,9 +2428,9 @@
 
 ### `set_personas_org_wide_defaults`
 
-**Description:** Sets Organization-Wide Defaults for standard Sales Cloud objects to support the Sales Rep persona. Account/Asset/Contract/Order → Public Read/Write (all internal users can see and edit). Opportunity stays Private (reps own their pipeline). ProductCatalog is intentionally omitted — it already defaults to Read/Read in RLM-enabled orgs, and CCI's SetOrgWideDefaults does a full retrieve-modify-deploy round-trip on each listed object, which for ProductCatalog hits a Salesforce 262 Metadata API quirk where the retrieve returns duplicate <listViews> entries (including All_ProductCatalogs), making the redeploy fail with "Duplicate name 'ProductCatalog.All_ProductCatalogs'".
+**Description:** Sets Organization-Wide Defaults for the Sales Rep persona. Sales Cloud objects Account/Asset/Contract/Order → internal Read/Write (all internal users can see and edit); Opportunity stays Private (reps own their pipeline). The product / configuration model (ProductCatalog plus the catalog/config objects below) → Read/Read so the salesrep can browse catalogs and run the Set Up Quote configurator — the PST configuration-rule engine reads those records in the running user's context. Restores the OWD the deleted post_sharing object-meta bundle used to set.
 
-**Class:** `cumulusci.tasks.metadata_etl.SetOrgWideDefaults`
+**Class:** `tasks.rlm_sharing.SetOrgWideDefaultsSharingOnly`
 
 **Options:**
 
@@ -2513,6 +2513,18 @@
 - `auto_fix`: `True`
 - `required_sfdmu_version`: `5.0.0`
 - `fail_on_error`: `True`
+
+---
+
+### `verify_personas_org_wide_defaults`
+
+**Description:** Post-set verification: asserts the persona Org-Wide Defaults actually landed (raises if any present object's internal/external sharing model does not match the expected spec). Objects absent on the target org shape are skipped, matching set_personas_org_wide_defaults' shape tolerance.
+
+**Class:** `tasks.rlm_sharing.AssertSObjectOWDs`
+
+**Options:**
+
+- `org_wide_defaults`: `[{'api_name': 'Account', 'internal_sharing_model': 'ReadWrite', 'external_sharing_model': 'Private'}, {'api_name': 'A...`
 
 ---
 
