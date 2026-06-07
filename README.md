@@ -727,18 +727,16 @@ cci task run robot_order_from_quote --org beta
 
 ### App Launcher
 
-`assemble_and_deploy_ux` assembles `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` and attempts a Metadata API deploy (step 27, gated by `ux=true`). When that deploy succeeds it becomes the **org-default** App Launcher order — new users inherit it automatically. The deploy is skipped gracefully on orgs where the AppMenu contains managed ConnectedApp or Network entries (Salesforce cannot validate those references); in that case the template is **not** applied as the org default.
+App Launcher ordering is applied **dynamically** by `reorder_app_launcher` (step 2 of `prepare_ux`, step 27 of `prepare_rlm_org`, on all `ux=true` orgs). `assemble_and_deploy_ux` does **not** assemble or deploy appMenus — it only removes any stale `appMenus/` output left by older assembler versions. The task queries `AppMenuItem` via REST SOQL, builds an ordered `ApplicationId` list from its `priority_app_labels` option (a display-label priority list; see the task description for the default), and submits it to `AppLauncherController/saveOrder` via Aura XHR as a **user-level customization** for the automation user. No UI drag, and no Metadata API deploy — which is necessary because Salesforce blocks AppSwitcher Metadata API deployment on orgs whose AppMenu contains managed ConnectedApp or Network entries (the common Trialforce case), and `AppMenuItem.SortOrder` is read-only via all other APIs. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
 
-On all `ux=true` orgs, `reorder_app_launcher` (step 2 of `prepare_ux`) applies the template order as a **user-level customization** for the automation user — it queries `AppMenuItem` via REST SOQL, builds an ordered `ApplicationId` list, and submits it to `AppLauncherController/saveOrder` via Aura XHR. No UI drag required. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
-
-To capture a customized order from an org and commit it as the new template:
+To capture the running user's current order as a versioned reference snapshot:
 
 ```bash
-# Capture your customized App Launcher order from the default org
+# Writes templates/appMenus/base/AppSwitcher.appMenu-meta.xml — a reference snapshot, no deploy.
 python scripts/sync_appmenu_from_user.py
-# Writes directly to templates/appMenus/base/AppSwitcher.appMenu-meta.xml — no deploy.
-# Then run prepare_ux or assemble_and_deploy_ux to deploy.
 ```
+
+The snapshot is **not** consumed by `reorder_app_launcher` (which orders by `priority_app_labels`); use it to review the current order or to inform that label list.
 
 ### Using Custom Tasks
 
@@ -1118,7 +1116,7 @@ rlm-base-dev/
 │   ├── applications/           # RLM_Revenue_Cloud variants (base, quantumbit, tso) + standalones
 │   │   └── patches/            # Feature-conditional actionOverride patches (billing, rates, ramps)
 │   ├── appMenus/
-│   │   └── base/               # AppSwitcher (always assembled; deploy skipped if org has managed entries)
+│   │   └── base/               # AppSwitcher snapshot (reference only; not assembled/deployed — order applied via reorder_app_launcher)
 │   ├── objects/                # Object-level UX bindings + compact layouts + list views
 │   │   ├── base/               # Always-on (actionOverrides, compactLayoutAssignment, compactLayouts, listViews)
 │   │   ├── billing/            # Billing feature (TransactionJournal)
@@ -1307,14 +1305,16 @@ See the [Constraints Utility Guide](datasets/constraints/README.md) for full exp
 ### App Launcher order
 
 ```bash
-# Capture your customized App Launcher order from the default org (writes to templates/appMenus/base/)
+# Capture the running user's order as a reference snapshot (writes templates/appMenus/base/; no deploy)
 python scripts/sync_appmenu_from_user.py
 
-# Deploy App Launcher + reorder (runs automatically as step 1+2 of prepare_ux on all ux=true orgs)
+# Apply the App Launcher order (runs as step 2 of prepare_ux on all ux=true orgs)
 cci flow run prepare_ux --org <org>
 
-# Apply App Launcher order only, without the rest of prepare_ux
-# (assemble_and_deploy_ux does NOT handle appMenus; AppSwitcher can't deploy via Metadata API on Trialforce orgs)
+# Apply the App Launcher order only, without the rest of prepare_ux
+# (reorder_app_launcher orders by its priority_app_labels option via Aura saveOrder; assemble_and_deploy_ux
+#  does NOT handle appMenus, and AppSwitcher can't deploy via the Metadata API when the AppMenu contains
+#  managed ConnectedApp/Network entries — the Trialforce case)
 cci task run reorder_app_launcher --org <org>
 ```
 
