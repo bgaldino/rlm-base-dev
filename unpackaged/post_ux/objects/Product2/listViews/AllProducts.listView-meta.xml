@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ListView xmlns="http://soap.sforce.com/2006/04/metadata">
-    <fullName>All_Products</fullName>
+    <fullName>AllProducts</fullName>
     <columns>PRODUCT2.NAME</columns>
     <columns>PRODUCT2.CUSTOMER_PRODUCT_ID</columns>
     <columns>PRODUCT2.DESCRIPTION</columns>

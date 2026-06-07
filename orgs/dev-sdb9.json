@@ -1,7 +1,7 @@
 {
   "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
-  "edition": "Enterprise",
+  "edition": "enterprise",
   "instance": "SDB9",
   "features": [
     "B2BCommerce",

@@ -534,12 +534,13 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `constraints` | `true` | Use Constraint Builder (metadata setup) |
 | `guidedselling` | `true` | Use Guided Selling |
 | `procedureplans` | `true` | Use Procedure Plans |
+| `large_stx` | `false` | Deploy Large Sales Transaction metadata (large-deal reprice / preprocess / setup-quote) via `prepare_large_stx` at step 27 |
 
 ### Deployment Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `sharingsettings` | `false` | Deploy Sharing Settings |
+| `personas` | `true` | Deploy persona profiles + permission set groups and create the Sales Rep user via `prepare_personas` at step 28 |
 | `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 29. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
 
 ## Custom Tasks
@@ -817,7 +818,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 | Flow | Description |
 |------|-------------|
-| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (30 steps). This is the primary flow for full org setup. |
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (33 steps). This is the primary flow for full org setup. |
 
 #### prepare_rlm_org Step Order
 
@@ -854,9 +855,10 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 29 | `prepare_ux` | `ux` |
 | 30 | `prepare_scratch` | Always |
 | 31 | `refresh_all_decision_tables` | Always |
-| 32 | `stamp_git_commit` | Always |
+| 32 | `rebuild_search_index` | Always |
+| 33 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 31 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 32 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 31 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 32 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 33 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 
@@ -885,7 +887,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
-| `prepare_prm` | Create community, patch Network email (placeholder → Network's current EmailSenderAddress), deploy PRM metadata, revert Network email to placeholder, publish community, sharing rules, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `sharingsettings`, `qb` |
+| `prepare_prm` | Create community, patch Network email (placeholder → Network's current EmailSenderAddress), deploy PRM metadata, revert Network email to placeholder, publish community, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `qb` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
 | `extract_rating` | Extract rating and rates data from an org | -- |

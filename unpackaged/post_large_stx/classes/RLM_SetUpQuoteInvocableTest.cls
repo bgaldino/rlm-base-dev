@@ -98,7 +98,19 @@ private class RLM_SetUpQuoteInvocableTest {
 
         // PST may succeed or fail in test context; what matters is we get a result, not an exception
         System.assertEquals(1, results.size(), 'Should always return one output');
-        System.assertNotEquals(null, results[0], 'Output must not be null');
+        // Same provable contract as the with-hierarchy case: execute() always decides
+        // success and keeps errorMessage/quoteId consistent, in both reachable branches.
+        RLM_SetUpQuoteInvocable.Output out0 = results[0];
+        System.assertNotEquals(null, out0, 'Output must not be null');
+        System.assertNotEquals(null, out0.success, 'execute() must always decide success (true or false), never leave it null');
+        if (out0.success == true) {
+            System.assertEquals(null, out0.errorMessage, 'Success output must have a null errorMessage');
+        } else {
+            System.assertNotEquals(null, out0.errorMessage, 'Failure output must carry an errorMessage');
+            System.assert(out0.errorMessage.startsWith('Quote creation failed: '),
+                'Create-mode failure must use the catch-path message prefix; got: ' + out0.errorMessage);
+            System.assertEquals(null, out0.quoteId, 'Failure output must not carry a quoteId');
+        }
     }
 
     @IsTest
@@ -114,7 +126,22 @@ private class RLM_SetUpQuoteInvocableTest {
         Test.stopTest();
 
         System.assertEquals(1, results.size(), 'Should always return one output');
-        System.assertNotEquals(null, results[0]);
+        // PST is non-deterministic in test context (success depends on full RLM/PST org
+        // config), so we assert the contract that holds in BOTH branches of execute():
+        // success is always decided (never left null), and errorMessage is consistent with it.
+        // On success execute() sets success=true + errorMessage=null; on the only reachable
+        // failure path it returns fail(null, 'Quote creation failed: ' + msg).
+        RLM_SetUpQuoteInvocable.Output out0 = results[0];
+        System.assertNotEquals(null, out0, 'Output must not be null');
+        System.assertNotEquals(null, out0.success, 'execute() must always decide success (true or false), never leave it null');
+        if (out0.success == true) {
+            System.assertEquals(null, out0.errorMessage, 'Success output must have a null errorMessage');
+        } else {
+            System.assertNotEquals(null, out0.errorMessage, 'Failure output must carry an errorMessage');
+            System.assert(out0.errorMessage.startsWith('Quote creation failed: '),
+                'Create-mode failure must use the catch-path message prefix; got: ' + out0.errorMessage);
+            System.assertEquals(null, out0.quoteId, 'Failure output must not carry a quoteId');
+        }
     }
 
     // -------------------------------------------------------------------------

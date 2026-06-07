@@ -195,6 +195,29 @@ private class RLM_PreProcessOrderControllerTest {
     }
 
     @isTest
+    static void testGetStatus_RealOrder_NoTracker_FreshFlags() {
+        // Success path for a freshly built large-deal order with no PreprocessOrder
+        // AsyncOperationTracker and an unstamped (null) PreprocessingStatus. Every flag is
+        // deterministic: requestId=null skips the scoped tracker query and the fallback finds
+        // no rows, so trackerStatus stays null (=> failed/trackerDone false); PreprocessingStatus
+        // is null so isValidationComplete is false (=> ready and done false); Status is 'Draft'
+        // so activated is false.
+        Order o = buildLargeDealOrder();
+        Test.startTest();
+        String resp = RLM_PreProcessOrderController.getStatus(o.Id, null);
+        Test.stopTest();
+        Map<String, Object> m = (Map<String, Object>) JSON.deserializeUntyped(resp);
+        System.assertEquals(true, m.get('success'), 'Real order status resolves');
+        System.assertEquals(null, m.get('trackerStatus'), 'No tracker for a fresh order (scoping falls through to none)');
+        System.assertEquals(null, m.get('preprocessingStatus'), 'PreprocessingStatus unstamped on a fresh order');
+        System.assertEquals('Draft', m.get('orderStatus'), 'Order status reflected from the order record');
+        System.assertEquals(false, m.get('done'), 'No tracker-done and no validation-complete => not done');
+        System.assertEquals(false, m.get('failed'), 'No tracker status => not failed');
+        System.assertEquals(false, m.get('ready'), 'Null PreprocessingStatus => validation not complete => not ready');
+        System.assertEquals(false, m.get('activated'), 'Draft order is not activated');
+    }
+
+    @isTest
     static void testGetOrderInfo_RealOrder() {
         Order o = buildLargeDealOrder();
         Test.startTest();
@@ -248,12 +271,12 @@ private class RLM_PreProcessOrderControllerTest {
         // at more than one record (the stamp uses a single `update`, so it is
         // bulk-safe; this guards against a regression to per-record DML).
         Id treatmentId = seedExcludeTreatment();
-        Order o = buildOrderWithItems(true, 50);
+        Order o = buildOrderWithItems(true, 200);
         Test.startTest();
         RLM_PreProcessOrderController.stampLargeDealExcludeTreatment(o.Id);
         Test.stopTest();
         List<OrderItem> ois = [SELECT BillingTreatmentId FROM OrderItem WHERE OrderId = :o.Id];
-        System.assertEquals(50, ois.size(), 'All 50 items present');
+        System.assertEquals(200, ois.size(), 'All 200 items present');
         for (OrderItem oi : ois) {
             System.assertEquals(treatmentId, oi.BillingTreatmentId, 'Every large-deal OI stamped');
         }

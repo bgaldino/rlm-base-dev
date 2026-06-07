@@ -132,4 +132,5 @@ Reverse dependency order (children before parents):
 | 29 | prepare_ux | UX assembly + deploy (when `ux`) |
 | 30 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
 | 31 | refresh_all_decision_tables | DT cache refresh |
-| 32 | stamp_git_commit | Always last |
+| 32 | rebuild_search_index | PCM catalog search index build (async) |
+| 33 | stamp_git_commit | Always last |

@@ -226,7 +226,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
 10. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `activate_versions`
-   - `version_full_names`: `QuantumBitComplete_V1,Server2_V1,QuantumBitPCM_V1`
+   - `version_full_names`: `Server2_V1,QuantumBitPCM_V1`
 
 ---
 
@@ -363,6 +363,10 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 7. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__large_stx`
    - `api_names`: `['RLM_LargeSalesTransaction']`
    - `user_alias`: `salesrep`
+8. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__ramps`
+   - `api_names`: `['RLM_RampSchedule']`
+   - `user_alias`: `salesrep`
+9. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
 
 ---
 
@@ -523,7 +527,8 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
 30. **flow** `prepare_scratch`
 31. **flow** `refresh_all_decision_tables`
-32. **flow** `stamp_git_commit`
+32. **task** `rebuild_search_index`
+33. **flow** `stamp_git_commit`
 
 ---
 

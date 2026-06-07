@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-06-06T20:02:26.268344Z",
+  "assembled_at": "2026-06-07T18:59:49.092954Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -824,14 +824,38 @@
     },
     {
       "type": "listView",
-      "name": "All_Assets.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Asset/listViews/All_Assets.listView-meta.xml",
+      "name": "AllAccounts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Account/listViews/AllAccounts.listView-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "listView",
-      "name": "All_Products.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Product2/listViews/All_Products.listView-meta.xml",
+      "name": "AllAssets.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Asset/listViews/AllAssets.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "AllContacts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contact/listViews/AllContacts.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "AllContracts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contract/listViews/AllContracts.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "AllOrders.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Order/listViews/AllOrders.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "AllProducts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Product2/listViews/AllProducts.listView-meta.xml",
       "source": "objects/base"
     },
     {

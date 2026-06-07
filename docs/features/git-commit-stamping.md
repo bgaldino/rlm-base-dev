@@ -29,7 +29,7 @@ When debugging issues or auditing org configurations, there was no way to trace 
 
 **Task:** `stamp_git_commit` (class: `tasks.rlm_stamp_commit.StampGitCommit`)
 
-The task reads the current git state and project config, generates a CMDT record XML in a temporary directory, and deploys it to the org via `sf project deploy start`. It runs as the last step (step 31) of `prepare_rlm_org`.
+The task reads the current git state and project config, generates a CMDT record XML in a temporary directory, and deploys it to the org via `sf project deploy start`. It runs as the last step (step 33) of `prepare_rlm_org`.
 
 **Non-fatal by design:** Deploy failures are logged as warnings. The task never fails a flow that has already completed all real work. This protects against network blips, first-run scenarios where the CMDT type hasn't been deployed yet, or other transient issues.
 

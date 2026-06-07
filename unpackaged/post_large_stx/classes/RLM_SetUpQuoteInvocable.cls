@@ -192,6 +192,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             }
         } catch (Exception e) {
             // Leave the list empty; the wizard hides the selector when no types are available.
+            System.debug(LoggingLevel.WARN, 'RLM_SetUpQuoteInvocable: transaction-type load failed: ' + e.getMessage());
         }
         return JSON.serialize(new Map<String, Object>{
             'showProductSetSelector' => showProductSetSelector,
@@ -503,7 +504,6 @@ public with sharing class RLM_SetUpQuoteInvocable {
             Map<String, Object> item = (Map<String, Object>) o;
             String parentIdStr = item.containsKey('parentGroupId') ? String.valueOf(item.get('parentGroupId')) : null;
             String nameStr = item.containsKey('name') ? String.valueOf(item.get('name')).trim() : null;
-            String tempId = item.containsKey('tempId') ? String.valueOf(item.get('tempId')) : null;
             if (String.isBlank(parentIdStr) || String.isBlank(nameStr)) continue;
             items.add(item);
         }
@@ -604,7 +604,10 @@ public with sharing class RLM_SetUpQuoteInvocable {
                     pricebook2Id = rq.Pricebook2Id;
                 }
             }
-        } catch (Exception e) { /* keep standard */ }
+        } catch (Exception e) {
+            // Keep the standard pricebook fallback when the quote lookup fails.
+            System.debug(LoggingLevel.WARN, 'RLM_SetUpQuoteInvocable: quote pricebook lookup failed, keeping standard: ' + e.getMessage());
+        }
         List<PricebookEntry> pbes = loadDemoRotationPricebookEntries(pricebook2Id);
         if (pbes.isEmpty()) return;
         Id qId = Id.valueOf(quoteId);
@@ -1770,7 +1773,8 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 try {
                     quoteIds.add(Id.valueOf(String.valueOf(o)));
                 } catch (Exception e) {
-                    /* ignore bad id */
+                    // Skip malformed quote ids.
+                    System.debug(LoggingLevel.WARN, 'RLM_SetUpQuoteInvocable: skipping malformed quote id: ' + e.getMessage());
                 }
             }
         }
@@ -2124,7 +2128,8 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 }
             }
         } catch (Exception e) {
-            /* ignore */
+            // Malformed hierarchy JSON — return whatever paths were collected so far.
+            System.debug(LoggingLevel.WARN, 'RLM_SetUpQuoteInvocable: hierarchy path collection failed: ' + e.getMessage());
         }
     }
 
@@ -2241,7 +2246,8 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 }
             }
         } catch (Exception e) {
-            /* ignore */
+            // Malformed counts JSON — return the partial sum accumulated so far.
+            System.debug(LoggingLevel.WARN, 'RLM_SetUpQuoteInvocable: count summation failed: ' + e.getMessage());
         }
         return sum;
     }
