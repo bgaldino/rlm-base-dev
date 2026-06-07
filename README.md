@@ -849,10 +849,12 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 24 | `prepare_revenue_settings` | Always |
 | 25 | `prepare_pricing_discovery` | Always |
 | 26 | `prepare_ramp_builder` | Always |
-| 27 | `prepare_ux` | `ux` |
-| 28 | `prepare_scratch` | Always |
-| 29 | `refresh_all_decision_tables` | Always |
-| 30 | `stamp_git_commit` | Always |
+| 27 | `prepare_large_stx` | `large_stx` |
+| 28 | `prepare_personas` | `personas` |
+| 29 | `prepare_ux` | `ux` |
+| 30 | `prepare_scratch` | Always |
+| 31 | `refresh_all_decision_tables` | Always |
+| 32 | `stamp_git_commit` | Always |
 
 > **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 31 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 32 (`stamp_git_commit`) is always last.
 
