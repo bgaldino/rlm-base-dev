@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-06-07T18:41:00.680266Z",
+  "assembled_at": "2026-06-07T18:54:10.133338Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -824,8 +824,8 @@
     },
     {
       "type": "listView",
-      "name": "All_Accounts.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Account/listViews/All_Accounts.listView-meta.xml",
+      "name": "AllAccounts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Account/listViews/AllAccounts.listView-meta.xml",
       "source": "objects/base"
     },
     {
@@ -836,20 +836,20 @@
     },
     {
       "type": "listView",
-      "name": "All_Contacts.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Contact/listViews/All_Contacts.listView-meta.xml",
+      "name": "AllContacts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contact/listViews/AllContacts.listView-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "listView",
-      "name": "All_Contracts.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Contract/listViews/All_Contracts.listView-meta.xml",
+      "name": "AllContracts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contract/listViews/AllContracts.listView-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "listView",
-      "name": "All_Orders.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Order/listViews/All_Orders.listView-meta.xml",
+      "name": "AllOrders.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Order/listViews/AllOrders.listView-meta.xml",
       "source": "objects/base"
     },
     {

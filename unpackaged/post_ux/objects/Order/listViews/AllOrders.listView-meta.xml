@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ListView xmlns="http://soap.sforce.com/2006/04/metadata">
-    <fullName>All_Orders</fullName>
+    <fullName>AllOrders</fullName>
     <columns>ORDERS.ORDER_NUMBER</columns>
     <columns>ORDERS.STATUS</columns>
     <columns>ORDERS.EFFECTIVE_DATE</columns>
