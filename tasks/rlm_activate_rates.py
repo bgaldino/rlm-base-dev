@@ -45,19 +45,31 @@ class ActivateRateCardEntries(BaseTask):
         }
         base_url = f"{instance_url}/services/data/v{api_version}"
 
-        # Step 1: Query Draft records
+        # Step 1: Query Draft records — follow the query locator across ALL
+        # pages. A single REST query page caps at ~2000 rows; without paging,
+        # larger rate sets would be only partially activated while still
+        # reporting success.
         soql = "SELECT Id FROM RateCardEntry WHERE Status = 'Draft'"
+        records = []
         resp = requests.get(
             f"{base_url}/query",
             headers=headers,
             params={"q": soql},
             timeout=30,
         )
-        if not resp.ok:
-            raise RuntimeError(
-                f"Failed to query RateCardEntry: {resp.status_code} {resp.text}"
+        while True:
+            if not resp.ok:
+                raise RuntimeError(
+                    f"Failed to query RateCardEntry: {resp.status_code} {resp.text}"
+                )
+            page = resp.json()
+            records.extend(page.get("records", []))
+            next_url = page.get("nextRecordsUrl")
+            if page.get("done", True) or not next_url:
+                break
+            resp = requests.get(
+                f"{instance_url}{next_url}", headers=headers, timeout=30
             )
-        records = resp.json().get("records", [])
 
         if not records:
             self.logger.info("No Draft RateCardEntry records found — already Active.")
