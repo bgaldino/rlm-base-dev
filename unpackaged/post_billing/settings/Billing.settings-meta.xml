@@ -5,12 +5,17 @@
     <enableBillingSetup>true</enableBillingSetup>
     <enableCrMemoApplicationToPostedInvoices>true</enableCrMemoApplicationToPostedInvoices>
     <enableCreditMemoSequenceService>true</enableCreditMemoSequenceService>
+    <enableDunningOrchestration>true</enableDunningOrchestration>
+    <enableEnhancedPaymentData>true</enableEnhancedPaymentData>
+    <enableAutomaticRefunds>true</enableAutomaticRefunds>
     <enableFailedPaymentsRetry>true</enableFailedPaymentsRetry>
     <enableForeignExchangeTrxnJrnlCreation>true</enableForeignExchangeTrxnJrnlCreation>
     <enableInvoiceEmailDelivery>true</enableInvoiceEmailDelivery>
     <enableInvoicePdfGeneration>true</enableInvoicePdfGeneration>
     <enableInvoiceSequenceService>true</enableInvoiceSequenceService>
+    <enableMilestoneBillingForAmend>true</enableMilestoneBillingForAmend>
     <enableNegInvoiceLnConversionToCrMemoLn>true</enableNegInvoiceLnConversionToCrMemoLn>
+    <enablePaymentApplicationToPostedInvoices>true</enablePaymentApplicationToPostedInvoices>
     <enablePaymentSchedulesAndItemsCreation>true</enablePaymentSchedulesAndItemsCreation>
     <enableTransactionJournalCreation>true</enableTransactionJournalCreation>
     <enableTransactionsApplicationToInvoices>true</enableTransactionsApplicationToInvoices>
