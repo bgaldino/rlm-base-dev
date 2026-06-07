@@ -33,6 +33,8 @@ private class RLM_DemoProductCodesTest {
         // No QB-BDL-SRVC product in a bare test org → catalog subtree unresolved → fallback budget
         System.assertEquals(null, RLM_DemoProductCodes.countBulkBundleCatalogSubtreeIncludingRoot(null));
         Integer budget = RLM_DemoProductCodes.bulkBundleLineBudgetPerUnitForAllocation(Test.getStandardPricebookId());
-        System.assert(budget >= 1, 'Budget falls back to a positive per-unit value');
+        // No QB-BDL-SRVC PBE in a bare test org → catalog count is null → exact fallback
+        // value BULK_BUNDLE_LINE_BUDGET_FALLBACK_PER_UNIT (= 3, private constant in RLM_DemoProductCodes)
+        System.assertEquals(3, budget, 'Budget falls back to BULK_BUNDLE_LINE_BUDGET_FALLBACK_PER_UNIT (3)');
     }
 }
