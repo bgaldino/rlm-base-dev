@@ -322,7 +322,6 @@ These permission sets are stored as metadata in this repository but are not assi
 | `RLM_QB_Admin_Class_Access` | `unpackaged/post_quantumbit/` | Apex class access for QB admin |
 | `RLM_UsageDatatables` | `unpackaged/post_utils/` | Read access to usage objects + `RLM_UsageDataController` Apex class for Usage Datatable LWC |
 | `RLM_Collection_Plan_Activity` | `unpackaged/post_collections/` | CRUD on `Collection_Plan_Activity__c` custom object (present in repo; not deployed by any standard flow — deploy manually if needed) |
-| `RLM_Custom_Sales_Rep_Perm_Set` | `unpackaged/post_personas/` | Custom sales rep permissions (deploy-only; available for manual or future persona PSG assignment) |
 | `RLM_Partner_Community_User_Perm_Set` | `unpackaged/post_prm/` | Partner community user FLS |
 | `RLM_BillingEmployeeAgent` | `unpackaged/post_agents/` | Agentforce billing employee agent access |
 | `RLM_BillingServiceAgent` | `unpackaged/post_agents/` | Agentforce billing service agent access |
@@ -358,25 +357,30 @@ The following table shows the sequence of all permission-related steps across th
 | 1.13 | `prepare_core` | PCM permission sets (4) | `tso` + `psg_debug` |
 | 1.19 | `prepare_core` | `EinsteinGPTPromptTemplateManager`, `SalesCloudEinsteinAll` | `einstein` |
 | 1.20 | `prepare_core` | Billing permission sets (10) | `billing` + `psg_debug` |
-| 9.2.3 | `prepare_quantumbit` > `prepare_approvals` | `RLM_Approvals` | `quantumbit` + `approvals` |
-| 9.4 | `prepare_quantumbit` | `RLM_QuantumBit` | `quantumbit` |
-| 9.5 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
-| 12.10 | `prepare_docgen` | `RLM_DocGen` | `docgen` |
-| 20.1 | `prepare_tso` | TSO PSLs (23) | `tso` |
-| 20.2 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
-| 20.5 | `prepare_tso` | TSO permission sets (4) | `tso` |
-| 20.6 | `prepare_tso` | `RLM_TSO` PSG | `tso` |
-| 22.8 | `prepare_prm` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
-| 23.1 | `prepare_agents` | Copilot PSGs (2) | `agents` |
-| 23.4 | `prepare_agents` | `RLM_QuotingAgent` | `agents` |
-| 24.3 | `prepare_constraints` | `RLM_Constraints` | `tso` + `constraints` |
-| 28.3 | `prepare_ramp_builder` | `RLM_RampSchedule` | `ramps` |
+| 7.2.3 | `prepare_quantumbit` > `prepare_approvals` | `RLM_Approvals` | `quantumbit` + `approvals` |
+| 7.4 | `prepare_quantumbit` | `RLM_QuantumBit` | `quantumbit` |
+| 7.5 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
+| 10.10 | `prepare_docgen` | `RLM_DocGen` | `docgen` |
+| 18.1 | `prepare_tso` | TSO PSLs (23) | `tso` |
+| 18.2 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
+| 18.5 | `prepare_tso` | TSO permission sets (4) | `tso` |
+| 18.6 | `prepare_tso` | `RLM_TSO` PSG | `tso` |
+| 20.8 | `prepare_prm` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
+| 21.1 | `prepare_agents` | Copilot PSGs (2) | `agents` |
+| 21.4 | `prepare_agents` | `RLM_QuotingAgent` | `agents` |
+| 22.3 | `prepare_constraints` | `RLM_Constraints` | `tso` + `constraints` |
+| 23.1 | `prepare_guidedselling` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
+| 23.3 | `prepare_guidedselling` | `RLM_Guided_Selling` | `guidedselling` |
+| 26.3 | `prepare_ramp_builder` | `RLM_RampSchedule` | `ramps` |
+| 27.2 | `prepare_large_stx` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
+| 28.6 | `prepare_personas` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
+| 28.7 | `prepare_personas` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
 
 ---
 
 ## Persona PSGs (Optional)
 
-Persona PSGs provide role-based permission groupings for end users. They are deployed separately via `cci flow run prepare_personas` and are **not** part of `prepare_rlm_org`. Metadata lives in `unpackaged/post_personas/`.
+Persona PSGs provide role-based permission groupings for end users. They are deployed by `prepare_personas`, which runs as **step 28 of `prepare_rlm_org`** when the `personas` flag is on (and can also be run standalone via `cci flow run prepare_personas`). Metadata lives in `unpackaged/post_personas/`.
 
 | Persona PSG | Label | Permission Sets |
 |---|---|---|
@@ -426,6 +430,6 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 
 4. **Debug-only assignments (`psg_debug`)** -- The `psg_debug` flag gates direct permission set assignments that are normally provided by their parent PSGs. Useful for isolating whether a PSG recalculation issue is causing missing permissions.
 
-5. **Persona PSGs are independent** -- Not part of `prepare_rlm_org`. Must be deployed and assigned separately via `cci flow run prepare_personas`. Designed for end-user role assignment rather than admin provisioning.
+5. **Persona PSGs target end users** -- Deployed by `prepare_personas` (step 28 of `prepare_rlm_org` when the `personas` flag is on; also runnable standalone via `cci flow run prepare_personas`). Designed for end-user role assignment rather than admin provisioning.
 
 6. **Deploy-only permission sets** -- Several permission sets (e.g., `RLM_UsageDatatables`, `RLM_Collection_Plan_Activity`, agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.

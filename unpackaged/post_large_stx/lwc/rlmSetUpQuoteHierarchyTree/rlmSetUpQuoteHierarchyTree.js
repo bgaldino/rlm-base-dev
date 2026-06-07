@@ -7,8 +7,29 @@ const MAX_DEPTH = 5;
  * Modes: manual (add + rename), CSV import (rename only, no add), confirm/review (read-only, same chrome).
  */
 export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
-  @api hierarchyJson = '{"parents":[]}';
-  @api productCountsJson = "{}";
+  /**
+   * Hierarchy JSON. Settable by the parent AND updated internally as the user edits the tree
+   * (the parent reads it back via the element ref and the `existingtreemutated` event). Backed by
+   * a private field so internal updates do not reassign the @api property directly (one-way data flow).
+   */
+  @api
+  get hierarchyJson() {
+    return this._hierarchyJson;
+  }
+  set hierarchyJson(value) {
+    this._hierarchyJson = value;
+  }
+  _hierarchyJson = '{"parents":[]}';
+
+  /** Product counts JSON (keyed by path). Settable by the parent and updated internally; backed by a private field. */
+  @api
+  get productCountsJson() {
+    return this._productCountsJson;
+  }
+  set productCountsJson(value) {
+    this._productCountsJson = value;
+  }
+  _productCountsJson = "{}";
   /** Loaded once in connectedCallback when building from CSV (optional). */
   @api initialHierarchyJson;
   /**
@@ -620,8 +641,10 @@ export default class RlmSetUpQuoteHierarchyTree extends LightningElement {
 
   _syncOutputs() {
     if (this.suppressSync) return;
-    this.hierarchyJson = JSON.stringify(this._tree);
-    this.productCountsJson = JSON.stringify(this._counts);
+    // Write the private backing fields (not the @api accessors) so internal edits never
+    // reassign a public property; the parent still reads the updated values via the getters.
+    this._hierarchyJson = JSON.stringify(this._tree);
+    this._productCountsJson = JSON.stringify(this._counts);
   }
 
   _emitExistingMutated() {

@@ -1,4 +1,4 @@
-public class RLM_SetUpQuoteProductSets {
+public with sharing class RLM_SetUpQuoteProductSets {
     public static final String PRODUCT_SET_QUANTUMBIT = 'QUANTUMBIT';
     public static final String PRODUCT_SET_SIEMENS = 'SIEMENS';
 

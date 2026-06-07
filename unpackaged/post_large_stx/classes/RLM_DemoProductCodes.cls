@@ -2,7 +2,7 @@
  * Product identifiers (ProductCode) for demo quote setup and PST bulk add-products.
  * Aligns with Siemens Example CSV / SetUpQuoteCsvImportTest SIEMENS_CSV_PRODUCT_IDENTIFIERS subset.
  */
-public class RLM_DemoProductCodes {
+public with sharing class RLM_DemoProductCodes {
     public static final List<String> ONE_TIME_PRODUCT_IDENTIFIERS = new List<String>{
         'PROD-2035320005',
         'PROD-1768772247',
@@ -125,7 +125,7 @@ public class RLM_DemoProductCodes {
         while (!frontier.isEmpty() && depth < 50) {
             Set<Id> next = new Set<Id>();
             for (ProductRelatedComponent prc : [
-                SELECT ChildProductId FROM ProductRelatedComponent WHERE ParentProductId IN :frontier
+                SELECT ChildProductId FROM ProductRelatedComponent WHERE ParentProductId IN :frontier WITH USER_MODE
             ]) {
                 if (!seen.contains(prc.ChildProductId)) {
                     next.add(prc.ChildProductId);

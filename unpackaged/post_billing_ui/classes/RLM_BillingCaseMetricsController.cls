@@ -29,9 +29,11 @@ public with sharing class RLM_BillingCaseMetricsController {
                 FROM Case
                 WHERE IsClosed = false
                 AND Type = 'Billing'
+                WITH USER_MODE
             ];
             return (Integer) caseAgg[0].get('cnt');
         } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController.countOpenBillingCases failed: ' + e.getMessage());
             return 0;
         }
     }
@@ -61,23 +63,29 @@ public with sharing class RLM_BillingCaseMetricsController {
                     selectClause += ', SUM(DisputedAmount) totalAmt';
                 }
                 List<AggregateResult> disputeAgg = Database.query(
-                    selectClause + ' FROM Dispute WHERE IsClosed = false'
+                    selectClause + ' FROM Dispute WHERE IsClosed = false', AccessLevel.USER_MODE
                 );
                 metrics.put('openDisputes', (Integer) disputeAgg[0].get('cnt'));
                 if (hasDisputedAmount) {
                     Object amt = disputeAgg[0].get('totalAmt');
                     metrics.put('totalDisputedAmount', amt != null ? (Decimal) amt : 0);
                 }
-            } catch (Exception e) { /* field removed or object inaccessible */ }
+            } catch (Exception e) {
+                // Dispute field removed or object inaccessible — keep zero defaults.
+                System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController dispute aggregate failed: ' + e.getMessage());
+            }
 
             if (hasInvoiceId) {
                 try {
                     List<AggregateResult> invAgg = Database.query(
                         'SELECT COUNT_DISTINCT(InvoiceId) cnt ' +
-                        'FROM Dispute WHERE IsClosed = false AND InvoiceId != null'
+                        'FROM Dispute WHERE IsClosed = false AND InvoiceId != null', AccessLevel.USER_MODE
                     );
                     metrics.put('disputedInvoices', (Integer) invAgg[0].get('cnt'));
-                } catch (Exception e) { /* field removed or object inaccessible */ }
+                } catch (Exception e) {
+                    // Dispute.InvoiceId removed or object inaccessible — keep zero default.
+                    System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController disputed-invoice aggregate failed: ' + e.getMessage());
+                }
             }
         }
 

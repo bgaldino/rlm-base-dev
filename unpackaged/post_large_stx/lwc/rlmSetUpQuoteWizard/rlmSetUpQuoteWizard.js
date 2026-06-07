@@ -20,8 +20,6 @@ const STEP_LARGE_DEAL = 6;
 const STEP_CONFIRM = 7;
 const STEP_RESULT = 8;
 
-const CSV_HEADER =
-  "Group 1,Group 2,Group 3,Group 4,Group 5,Bundle Product,Product,Quantity";
 const STANDARD_QUOTE_LINE_LIMIT = 2000;
 const LARGE_DEAL_MODIFY_BATCH_QLI_LIMIT = 500;
 const LARGE_DEAL_POLL_INTERVAL_MS = 3000;

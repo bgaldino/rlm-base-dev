@@ -534,12 +534,13 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `constraints` | `true` | Use Constraint Builder (metadata setup) |
 | `guidedselling` | `true` | Use Guided Selling |
 | `procedureplans` | `true` | Use Procedure Plans |
+| `large_stx` | `false` | Deploy Large Sales Transaction metadata (large-deal reprice / preprocess / setup-quote) via `prepare_large_stx` at step 27 |
 
 ### Deployment Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `sharingsettings` | `false` | Deploy Sharing Settings |
+| `personas` | `true` | Deploy persona profiles + permission set groups and create the Sales Rep user via `prepare_personas` at step 28 |
 | `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 29. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
 
 ## Custom Tasks
@@ -817,7 +818,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 | Flow | Description |
 |------|-------------|
-| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (30 steps). This is the primary flow for full org setup. |
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (32 steps). This is the primary flow for full org setup. |
 
 #### prepare_rlm_org Step Order
 
@@ -885,7 +886,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
-| `prepare_prm` | Create community, patch Network email (placeholder → Network's current EmailSenderAddress), deploy PRM metadata, revert Network email to placeholder, publish community, sharing rules, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `sharingsettings`, `qb` |
+| `prepare_prm` | Create community, patch Network email (placeholder → Network's current EmailSenderAddress), deploy PRM metadata, revert Network email to placeholder, publish community, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `qb` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
 | `extract_rating` | Extract rating and rates data from an org | -- |

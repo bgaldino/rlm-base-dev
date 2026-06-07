@@ -13,7 +13,7 @@ public with sharing class RLM_ProductCatalogPbeService {
         if (Test.isRunningTest()) {
             return Test.getStandardPricebookId();
         }
-        List<Pricebook2> pbs = [SELECT Id FROM Pricebook2 WHERE IsStandard = true LIMIT 1];
+        List<Pricebook2> pbs = [SELECT Id FROM Pricebook2 WHERE IsStandard = true WITH USER_MODE LIMIT 1];
         if (pbs.isEmpty()) {
             throw new ProductCatalogPbeException('Standard Price Book not found.');
         }
@@ -67,12 +67,12 @@ public with sharing class RLM_ProductCatalogPbeService {
         // identifier resolves in O(1) below instead of re-scanning the result lists.
         Map<String, Id> productIdByCode = new Map<String, Id>();
         Map<String, Id> productIdByName = new Map<String, Id>();
-        for (Product2 p : [SELECT Id, ProductCode, Name FROM Product2 WHERE ProductCode IN :idList AND IsActive = true]) {
+        for (Product2 p : [SELECT Id, ProductCode, Name FROM Product2 WHERE ProductCode IN :idList AND IsActive = true WITH USER_MODE]) {
             if (String.isNotBlank(p.ProductCode) && !productIdByCode.containsKey(p.ProductCode)) {
                 productIdByCode.put(p.ProductCode, p.Id);
             }
         }
-        for (Product2 p : [SELECT Id, ProductCode, Name FROM Product2 WHERE Name IN :idList AND IsActive = true]) {
+        for (Product2 p : [SELECT Id, ProductCode, Name FROM Product2 WHERE Name IN :idList AND IsActive = true WITH USER_MODE]) {
             if (String.isNotBlank(p.Name) && !productIdByName.containsKey(p.Name)) {
                 productIdByName.put(p.Name, p.Id);
             }
@@ -87,6 +87,7 @@ public with sharing class RLM_ProductCatalogPbeService {
             SELECT Id, Product2Id, UnitPrice, ProductSellingModel.SellingModelType, ProductSellingModel.PricingTermUnit
             FROM PricebookEntry
             WHERE Product2Id IN :product2Ids AND Pricebook2Id = :pricebook2Id AND IsActive = true
+            WITH USER_MODE
         ];
         Map<Id, List<PricebookEntry>> pbeByProduct = new Map<Id, List<PricebookEntry>>();
         Map<String, Integer> orderMap = new Map<String, Integer>{
