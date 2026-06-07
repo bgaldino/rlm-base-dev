@@ -140,8 +140,7 @@ cci task info <task_name>
 | `deploy_post_procedureplans_objects` | Deploy Procedure Plans Objects |
 | `deploy_post_procedureplans_permission` | Deploy Procedure Plans |
 | `sets` | Permissionsets |
-| `deploy_post_tso` | Deploy Trialforce Source Org Metadata (App Launcher now deploys |
-| `via` | prepare_ux/assemble_and_deploy_ux) |
+| `deploy_post_tso` | Deploy Trialforce Source Org Metadata (App Launcher order is applied separately by reorder_app_launcher in prepare_ux, not here) |
 | `deploy_post_utils` | Deploy Utils Metadata |
 | `deploy_quantumbit` | Deploy QuantumBit Metadata |
 | `deploy_sharing_rules` | Deploy Sharing Rules |
