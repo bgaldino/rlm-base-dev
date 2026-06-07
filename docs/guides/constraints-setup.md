@@ -25,10 +25,10 @@ These steps run when `constraints_data` is `true` (steps 6-10 also require `qb`)
 |------|------|-----------|---------|
 | 5 | `enable_constraints_settings` | `constraints_data` | Set Default Transaction Type to "Advanced Configurator", set Asset Context for Product Configurator, and enable Constraints Engine toggle via Robot Framework browser automation |
 | 6 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against QuantumBitComplete data |
-| 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import the QuantumBitComplete constraint model |
+| 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import the QuantumBitComplete constraint model (imported but left **inactive**) |
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import the Server2 constraint model |
 | 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import the QuantumBitPCM constraint model |
-| 10 | `manage_expression_sets` | `constraints_data` + `qb` | Activate QuantumBitComplete_V1, Server2_V1, and QuantumBitPCM_V1 |
+| 10 | `manage_expression_sets` | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitPCM_V1 only** (QuantumBitComplete_V1 is left inactive — only one QuantumBit model can be active at a time; QuantumBitPCM is the active v67 model) |
 
 **Important:** Phase 2 uses the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. The old SFDMU constraint data plans (`qb-constraints-product`, `qb-constraints-component`, etc.) are deprecated and archived in `datasets/sfdmu/_archived/`.
 

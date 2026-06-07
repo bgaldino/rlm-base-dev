@@ -243,10 +243,21 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 | 5 | `enable_constraints_settings` | `constraints_data` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle (Robot Framework) |
 | 6 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against data |
-| 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import QuantumBitComplete model |
+| 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import QuantumBitComplete model (imported but left **inactive** — see note below) |
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import Server2 model |
 | 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import QuantumBitPCM model |
-| 10 | `manage_expression_sets` | `constraints_data` + `qb` | Activate QuantumBitComplete_V1, Server2_V1, and QuantumBitPCM_V1 |
+| 10 | `manage_expression_sets` | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitPCM_V1 only** |
+
+> **QuantumBitComplete is imported but not activated.** Only one QuantumBit
+> constraint model can be active at a time. `QuantumBitPCM` carries the updated
+> v67 virtual-quote structure and is the active QuantumBit model; `QuantumBitComplete`
+> is loaded (model + blob + ESC) but left inactive until the two are merged.
+> Activation sets `ExpressionSetVersion.IsActive=true` only for the versions named
+> in step 10; `import_cml` creates versions inactive, so omitting `QuantumBitComplete_V1`
+> from the list is sufficient. To deactivate it on an org where it is *already*
+> active: `cci task run manage_expression_sets -o operation deactivate_versions -o
+> version_full_names QuantumBitComplete_V1 --org <alias>` (if it was activated without
+> a Rank, set the Rank first or deactivate via the UI).
 
 ### Feature Flags
 

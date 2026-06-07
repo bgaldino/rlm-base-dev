@@ -3642,7 +3642,12 @@ flows:
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           operation: activate_versions
-          version_full_names: "QuantumBitComplete_V1,Server2_V1,QuantumBitPCM_V1"
+          # QuantumBitComplete_V1 is intentionally NOT activated: only one QuantumBit
+          # constraint model can be active at a time, and QuantumBitPCM_V1 (the updated
+          # v67 virtual-quote structure) is the active model. QuantumBitComplete is still
+          # imported (step 7) but left inactive until the two models are merged.
+          # See datasets/constraints/README.md.
+          version_full_names: "Server2_V1,QuantumBitPCM_V1"
 
   prepare_approvals:
     group: Revenue Lifecycle Management
