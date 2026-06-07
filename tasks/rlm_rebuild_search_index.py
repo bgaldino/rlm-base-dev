@@ -13,8 +13,6 @@ and has no dependency on the Apex/VF page being deployed.
 The index build is asynchronous: this task initiates it and logs the snapshot
 id, but does not wait for the build to finish (matching the LWC behavior).
 """
-import json
-
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceApiTask
     from cumulusci.core.exceptions import CumulusCIException
@@ -96,10 +94,10 @@ class RebuildSearchIndex(BaseSalesforceApiTask):
         except requests.RequestException as e:
             return self._handle_failure(str(e), raise_on_failure)
 
-        if resp.status_code in (200, 201):
+        if 200 <= resp.status_code < 300:
             try:
                 data = resp.json()
-            except (ValueError, json.JSONDecodeError):
+            except ValueError:
                 data = {}
             snapshot = (data or {}).get("snapshot") or {}
             snapshot_id = snapshot.get("id")
