@@ -79,6 +79,10 @@
                 <behavior>Readonly</behavior>
                 <field>CreatedById</field>
             </layoutItems>
+            <layoutItems>
+                <behavior>Readonly</behavior>
+                <field>PreprocessingStatus</field>
+            </layoutItems>
         </layoutColumns>
         <layoutColumns>
             <layoutItems>

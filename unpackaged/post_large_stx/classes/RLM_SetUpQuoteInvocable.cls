@@ -71,6 +71,14 @@ public with sharing class RLM_SetUpQuoteInvocable {
         /** When true, PST skips configuration so groups and line items persist even if org configuration (e.g. CPQ) would fail. Use for CSV import when you see "Configuration failed" and no QLIs. */
         @InvocableVariable(label='Skip configuration (PST)')
         public Boolean skipConfiguration;
+        /**
+         * DeveloperName of a TransactionProcessingType record (e.g. RLM_SUQ_PriceAndTax,
+         * RLM_SUQ_SkipPriceAndTax). Selects the pricing/tax/rate permutation for the PST
+         * call. Blank or unknown keeps the default: run pricing (Force) and run tax. The
+         * name is also stamped on the Quote's TransactionType field for downstream re-pricing.
+         */
+        @InvocableVariable(label='Transaction Processing Type (DeveloperName)')
+        public String transactionType;
     }
 
     public class Output {
@@ -164,10 +172,48 @@ public with sharing class RLM_SetUpQuoteInvocable {
         } catch (Exception e) {
             showProductSetSelector = false;
         }
+        // Selectable pricing/tax permutations for the Set Up Quote wizard. Only the builder's
+        // canonical TransactionProcessingType records (the ones shipped in post_large_stx) are
+        // offered — an explicit allowlist keeps org-only/test artifacts out of the dropdown.
+        List<Map<String, Object>> transactionTypes = new List<Map<String, Object>>();
+        try {
+            // Filter by the allowlist in SOQL (not post-query in Apex) so only the
+            // selectable types are fetched — bounded work even in CPQ-heavy orgs.
+            for (TransactionProcessingType t : [
+                SELECT DeveloperName, MasterLabel FROM TransactionProcessingType
+                WHERE DeveloperName IN :SELECTABLE_TRANSACTION_TYPES
+                WITH USER_MODE
+                ORDER BY MasterLabel
+            ]) {
+                transactionTypes.add(new Map<String, Object>{
+                    'value' => t.DeveloperName,
+                    'label' => String.isNotBlank(t.MasterLabel) ? t.MasterLabel : t.DeveloperName
+                });
+            }
+        } catch (Exception e) {
+            // Leave the list empty; the wizard hides the selector when no types are available.
+        }
         return JSON.serialize(new Map<String, Object>{
-            'showProductSetSelector' => showProductSetSelector
+            'showProductSetSelector' => showProductSetSelector,
+            'transactionTypes' => transactionTypes,
+            'defaultTransactionType' => DEFAULT_TRANSACTION_TYPE
         });
     }
+
+    /** Default permutation the wizard preselects: run pricing and tax (full path). */
+    @TestVisible
+    private static final String DEFAULT_TRANSACTION_TYPE = 'RLM_SUQ_PriceAndTax';
+
+    /** Canonical permutations shipped in post_large_stx — the only types offered in the wizard. */
+    @TestVisible
+    private static final Set<String> SELECTABLE_TRANSACTION_TYPES = new Set<String>{
+        'RLM_SUQ_PriceAndTax',
+        'RLM_SUQ_PriceSkipTax',
+        'RLM_SUQ_SkipPriceRunTax',
+        'RLM_SUQ_SkipPriceAndTax',
+        'RLM_SUQ_PriceTaxFetchRates',
+        'RLM_SUQ_PriceTaxStdConfig'
+    };
 
     /**
      * Lightweight polling endpoint for the LWC Large Deal two-step path.
@@ -187,11 +233,12 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 SELECT Id, Name, IsLargeDeal, LineItemCount, CalculationStatus
                 FROM Quote
                 WHERE Id = :qId
+                WITH USER_MODE
                 LIMIT 1
             ];
-            Integer groupCount = [SELECT COUNT() FROM QuoteLineGroup WHERE QuoteId = :qId];
-            Integer qliCount = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId];
-            Integer errorCount = [SELECT COUNT() FROM RevenueTransactionErrorLog WHERE PrimaryRecordId = :qId];
+            Integer groupCount = [SELECT COUNT() FROM QuoteLineGroup WHERE QuoteId = :qId WITH USER_MODE];
+            Integer qliCount = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId WITH USER_MODE];
+            Integer errorCount = [SELECT COUNT() FROM RevenueTransactionErrorLog WHERE PrimaryRecordId = :qId WITH USER_MODE];
             // Scope pending async strictly to this quote. PST trackers carry the quote
             // in ReferenceEntityId (the failedAsyncCount query below relies on the same),
             // so a broader CreatedById/JobType clause only risks counting unrelated PST
@@ -201,12 +248,14 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 FROM AsyncOperationTracker
                 WHERE ReferenceEntityId = :qId
                 AND Status NOT IN ('Completed', 'Failed', 'Failure', 'Canceled')
+                WITH USER_MODE
             ];
             Integer failedAsyncCount = [
                 SELECT COUNT()
                 FROM AsyncOperationTracker
                 WHERE ReferenceEntityId = :qId
                 AND Status IN ('Failed', 'Failure', 'Canceled')
+                WITH USER_MODE
             ];
             return JSON.serialize(new Map<String, Object>{
                 'success' => true,
@@ -239,7 +288,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
     @AuraEnabled(cacheable=false)
     public static List<Map<String, String>> getQuotesForModify() {
         List<Map<String, String>> options = new List<Map<String, String>>();
-        for (Quote q : [SELECT Id, Name, QuoteNumber, IsLargeDeal FROM Quote ORDER BY LastModifiedDate DESC LIMIT 100]) {
+        for (Quote q : [SELECT Id, Name, QuoteNumber, IsLargeDeal FROM Quote WITH USER_MODE ORDER BY LastModifiedDate DESC LIMIT 100]) {
             Map<String, String> opt = new Map<String, String>();
             opt.put('value', q.Id);
             opt.put('label', (String.isNotBlank(q.Name) ? q.Name : q.QuoteNumber) + ' (' + q.QuoteNumber + ')');
@@ -261,12 +310,13 @@ public with sharing class RLM_SetUpQuoteInvocable {
             Id qId = Id.valueOf(quoteId);
             // Aggregate counts avoid materializing every QLI (no 5000-row cap),
             // so detection stays accurate and cheap on large quotes.
-            totalLines = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId];
+            totalLines = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :qId WITH USER_MODE];
             siemensLines = [
                 SELECT COUNT()
                 FROM QuoteLineItem
                 WHERE QuoteId = :qId
                   AND Product2.ProductCode IN :siemensIdentifiers
+                WITH USER_MODE
             ];
         } catch (Exception e) {
             return RLM_SetUpQuoteProductSets.PRODUCT_SET_QUANTUMBIT;
@@ -291,7 +341,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         } catch (Exception e) {
             return emptyResult;
         }
-        List<QuoteLineGroup> groups = [SELECT Id, Name, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name];
+        List<QuoteLineGroup> groups = [SELECT Id, Name, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId WITH USER_MODE ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name];
         // Count lines per group with a server-side aggregate. This avoids loading
         // every QuoteLineItem into heap and the 50k-query-row limit, which matters
         // for the large-sales-transaction quotes this feature targets.
@@ -301,6 +351,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             FROM QuoteLineItem
             WHERE QuoteId = :qId
               AND QuoteLineGroupId != null
+            WITH USER_MODE
             GROUP BY QuoteLineGroupId
         ]) {
             lineCountByGroup.put((Id) ar.get('groupId'), (Integer) ar.get('lineCount'));
@@ -359,7 +410,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         // Ownership guard: only expand groups that actually belong to this quote
         Id qId = Id.valueOf(quoteId);
         Set<Id> rootIds = new Set<Id>();
-        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :candidateIds AND QuoteId = :qId]) {
+        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :candidateIds AND QuoteId = :qId WITH USER_MODE]) {
             rootIds.add(g.Id);
         }
         if (rootIds.isEmpty()) return;
@@ -368,7 +419,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         Set<Id> frontier = new Set<Id>(rootIds);
         while (!frontier.isEmpty()) {
             Set<Id> nextFrontier = new Set<Id>();
-            for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :qId]) {
+            for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :qId WITH USER_MODE]) {
                 if (!allGroupIds.contains(g.Id)) {
                     allGroupIds.add(g.Id);
                     nextFrontier.add(g.Id);
@@ -376,10 +427,15 @@ public with sharing class RLM_SetUpQuoteInvocable {
             }
             frontier = nextFrontier;
         }
-        List<QuoteLineItem> toDeleteItems = [SELECT Id FROM QuoteLineItem WHERE QuoteLineGroupId IN :allGroupIds AND QuoteId = :qId];
-        if (!toDeleteItems.isEmpty()) delete toDeleteItems;
-        List<QuoteLineGroup> toDeleteGroups = [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE Id IN :allGroupIds];
+        List<QuoteLineItem> toDeleteItems = [SELECT Id FROM QuoteLineItem WHERE QuoteLineGroupId IN :allGroupIds AND QuoteId = :qId WITH USER_MODE];
+        if (!toDeleteItems.isEmpty()) delete as user toDeleteItems;
+        List<QuoteLineGroup> toDeleteGroups = [SELECT Id, ParentQuoteLineGroupId FROM QuoteLineGroup WHERE Id IN :allGroupIds WITH USER_MODE];
+        Map<Id, QuoteLineGroup> groupById = new Map<Id, QuoteLineGroup>(toDeleteGroups);
         Set<Id> remaining = new Set<Id>(allGroupIds);
+        // Peel leaves level-by-level into a children-first list, then delete
+        // once after the loop — no SOQL or DML inside the loop. Children-first
+        // order keeps the self-referential ParentQuoteLineGroupId valid.
+        List<QuoteLineGroup> orderedDeletes = new List<QuoteLineGroup>();
         while (!remaining.isEmpty()) {
             Set<Id> parentIdsInRemaining = new Set<Id>();
             for (QuoteLineGroup g : toDeleteGroups) {
@@ -388,9 +444,12 @@ public with sharing class RLM_SetUpQuoteInvocable {
             List<Id> leafIds = new List<Id>();
             for (Id gid : remaining) if (!parentIdsInRemaining.contains(gid)) leafIds.add(gid);
             if (leafIds.isEmpty()) break;
-            delete [SELECT Id FROM QuoteLineGroup WHERE Id IN :leafIds];
-            for (Id gid : leafIds) remaining.remove(gid);
+            for (Id gid : leafIds) {
+                if (groupById.containsKey(gid)) orderedDeletes.add(groupById.get(gid));
+                remaining.remove(gid);
+            }
         }
+        if (!orderedDeletes.isEmpty()) delete as user orderedDeletes;
     }
 
     private static void applyGroupRenames(String quoteId, String groupRenamesJson) {
@@ -414,10 +473,11 @@ public with sharing class RLM_SetUpQuoteInvocable {
             FROM QuoteLineGroup
             WHERE Id IN :requestedNamesByGroupId.keySet()
               AND QuoteId = :qId
+            WITH USER_MODE
         ]) {
             toUpdate.add(new QuoteLineGroup(Id = g.Id, Name = requestedNamesByGroupId.get(g.Id)));
         }
-        if (!toUpdate.isEmpty()) update toUpdate;
+        if (!toUpdate.isEmpty()) update as user toUpdate;
     }
 
     /** Returns map tempId -> new QuoteLineGroup Id. Processes in dependency order so parents (existing Id or tempId) are created before children. */
@@ -430,7 +490,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         // real (non-tempId) parentGroupId values and prevent cross-quote subgroup creation.
         Set<Id> validGroupIdsForQuote = new Set<Id>();
         Map<Id, Integer> nextSortOrderByParent = new Map<Id, Integer>();
-        for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId]) {
+        for (QuoteLineGroup g : [SELECT Id, ParentQuoteLineGroupId, SortOrder FROM QuoteLineGroup WHERE QuoteId = :qId WITH USER_MODE]) {
             validGroupIdsForQuote.add(g.Id);
             if (g.ParentQuoteLineGroupId != null) {
                 Id p = g.ParentQuoteLineGroupId;
@@ -450,7 +510,13 @@ public with sharing class RLM_SetUpQuoteInvocable {
         Map<String, Id> tempIdToNewId = new Map<String, Id>();
         Set<Integer> created = new Set<Integer>();
         while (created.size() < items.size()) {
-            Integer createdThisPass = 0;
+            // Collect every item whose parent is already resolved, then insert
+            // the whole pass in one DML (no insert in a loop). A child whose
+            // parent is a new group created in THIS pass is deferred to the next
+            // pass; the loop converges in tree-depth passes.
+            List<QuoteLineGroup> toInsert = new List<QuoteLineGroup>();
+            List<Integer> insertItemIdx = new List<Integer>();
+            List<String> insertTempIds = new List<String>();
             for (Integer i = 0; i < items.size(); i++) {
                 if (created.contains(i)) continue;
                 Map<String, Object> item = items[i];
@@ -467,15 +533,20 @@ public with sharing class RLM_SetUpQuoteInvocable {
                 } else continue;
                 Integer nextSo = (nextSortOrderByParent.containsKey(parentId) ? nextSortOrderByParent.get(parentId) : 0) + 1;
                 nextSortOrderByParent.put(parentId, nextSo);
-                QuoteLineGroup g = new QuoteLineGroup(QuoteId = qId, ParentQuoteLineGroupId = parentId, Name = nameStr, SortOrder = nextSo);
-                insert g;
-                validGroupIdsForQuote.add(g.Id); // allow this new group as a parent in subsequent passes
-                if (String.isNotBlank(tempId)) tempIdToNewId.put(tempId, g.Id);
-                nextSortOrderByParent.put(g.Id, 0);
-                created.add(i);
-                createdThisPass++;
+                toInsert.add(new QuoteLineGroup(QuoteId = qId, ParentQuoteLineGroupId = parentId, Name = nameStr, SortOrder = nextSo));
+                insertItemIdx.add(i);
+                insertTempIds.add(tempId);
             }
-            if (createdThisPass == 0) break;
+            if (toInsert.isEmpty()) break; // no resolvable item this pass — stop
+            insert as user toInsert;
+            for (Integer j = 0; j < toInsert.size(); j++) {
+                Id newId = toInsert[j].Id;
+                validGroupIdsForQuote.add(newId); // allow as a parent in later passes
+                String tId = insertTempIds[j];
+                if (String.isNotBlank(tId)) tempIdToNewId.put(tId, newId);
+                nextSortOrderByParent.put(newId, 0);
+                created.add(insertItemIdx[j]);
+            }
         }
         return tempIdToNewId;
     }
@@ -515,7 +586,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
         Set<Id> requestedGroupIds = new Set<Id>(groupIdToCount.keySet());
         Map<Id, Integer> filtered = new Map<Id, Integer>();
-        for (QuoteLineGroup qlg : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :qId AND Id IN :requestedGroupIds]) {
+        for (QuoteLineGroup qlg : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :qId AND Id IN :requestedGroupIds WITH USER_MODE]) {
             if (groupIdToCount.containsKey(qlg.Id)) filtered.put(qlg.Id, groupIdToCount.get(qlg.Id));
         }
         return filtered;
@@ -528,7 +599,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         Id pricebook2Id = getStandardPricebookId();
         try {
             Id qLookup = Id.valueOf(quoteId);
-            for (Quote rq : [SELECT Pricebook2Id FROM Quote WHERE Id = :qLookup LIMIT 1]) {
+            for (Quote rq : [SELECT Pricebook2Id FROM Quote WHERE Id = :qLookup WITH USER_MODE LIMIT 1]) {
                 if (rq.Pricebook2Id != null) {
                     pricebook2Id = rq.Pricebook2Id;
                 }
@@ -540,7 +611,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         // Ownership guard: discard any group Ids that don't belong to this quote
         Set<Id> requestedGroupIds = new Set<Id>(groupIdToCount.keySet());
         Set<Id> validGroupIds = new Set<Id>();
-        for (QuoteLineGroup qlg : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :qId AND Id IN :requestedGroupIds]) {
+        for (QuoteLineGroup qlg : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :qId AND Id IN :requestedGroupIds WITH USER_MODE]) {
             validGroupIds.add(qlg.Id);
         }
         for (Id gid : new List<Id>(groupIdToCount.keySet())) {
@@ -548,10 +619,11 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
         if (groupIdToCount.isEmpty()) return;
         List<Id> groupIds = new List<Id>(groupIdToCount.keySet());
+        // Accumulate items across every group and insert once (no DML in a loop).
+        List<QuoteLineItem> allNewItems = new List<QuoteLineItem>();
         for (Id gid : groupIds) {
             Integer count = groupIdToCount.get(gid);
             if (count <= 0) continue;
-            List<QuoteLineItem> newItems = new List<QuoteLineItem>();
             for (Integer i = 0; i < count; i++) {
                 PricebookEntry pbe = pbes.get(Math.mod(i, pbes.size()));
                 QuoteLineItem li = new QuoteLineItem(QuoteId = qId, QuoteLineGroupId = gid, Product2Id = pbe.Product2Id, PricebookEntryId = pbe.Id, Quantity = 1, UnitPrice = pbe.UnitPrice != null ? pbe.UnitPrice : 0);
@@ -559,21 +631,22 @@ public with sharing class RLM_SetUpQuoteInvocable {
                     String st = String.valueOf(pbe.ProductSellingModel.SellingModelType);
                     String ptu = String.valueOf(pbe.ProductSellingModel.PricingTermUnit);
                     String bf = PRICING_TERM_TO_BILLING_FREQUENCY.get(ptu);
+                    // Relative dates (today / +1yr), consistent with subscriptionStartDateIso().
                     if ('TermDefined' == st && String.isNotBlank(bf)) {
-                        li.StartDate = Date.newInstance(2025, 9, 4);
-                        li.EndDate = Date.newInstance(2026, 9, 9);
+                        li.StartDate = Date.today();
+                        li.EndDate = Date.today().addYears(1);
                         li.PeriodBoundary = 'Anniversary';
                         li.BillingFrequency = bf;
                     } else if ('Evergreen' == st && String.isNotBlank(bf)) {
-                        li.StartDate = Date.newInstance(2025, 9, 4);
+                        li.StartDate = Date.today();
                         li.PeriodBoundary = 'Anniversary';
                         li.BillingFrequency = bf;
                     }
                 }
-                newItems.add(li);
+                allNewItems.add(li);
             }
-            if (!newItems.isEmpty()) insert newItems;
         }
+        if (!allNewItems.isEmpty()) insert as user allNewItems;
     }
 
     private static Map<String, Object> buildFlowInputMap(Input in0) {
@@ -628,6 +701,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         in0.numNestedPerTop = nn != null ? Integer.valueOf(nn) : null;
         in0.productCountsCSV = (String) m.get('productCountsCSV');
         in0.skipConfiguration = m.get('skipConfiguration') == true;
+        in0.transactionType = (String) m.get('transactionType');
         return in0;
     }
 
@@ -696,16 +770,185 @@ public with sharing class RLM_SetUpQuoteInvocable {
         return pbeMap;
     }
 
+    @TestVisible
     private static Map<String, Object> buildCreateQuoteHeaderFields(Input in0, Id pricebook2Id) {
         Map<String, Object> out = new Map<String, Object>{
             'Name' => in0.newQuoteName,
             'Pricebook2Id' => pricebook2Id
         };
         String accountId = String.isNotBlank(in0.quoteAccountId) ? in0.quoteAccountId : in0.repeatBuyAccountId;
+        Id acctId = null;
         if (String.isNotBlank(accountId)) {
-            out.put('QuoteAccountId', accountId);
+            try {
+                acctId = Id.valueOf(accountId);
+            } catch (Exception e) {
+                acctId = null; // malformed id (bad client/Flow input) — skip account-derived header
+            }
+        }
+        if (acctId != null) {
+            out.put('QuoteAccountId', acctId);
+            applyBillingHeaderDefaults(out, accountId);
+        }
+        // Service start, expiration, and term mirror the standard RLM_QuickQuote action.
+        // Billing schedule generation and tax both key off these header values, so a
+        // builder-created quote that omits them cannot bill/tax the way a Quick Quote can.
+        out.put('StartDate', isoDate(Date.today()));
+        out.put('ExpirationDate', isoDate(Date.today().addDays(30)));
+        if (quoteHasField('RLM_TermMonths__c')) {
+            out.put('RLM_TermMonths__c', 12);
+        }
+        // Stamp the validated TransactionProcessingType on the header so the sales transaction
+        // line editor honors the same pricing/tax/rate permutation on later re-pricing.
+        PstPrefs prefs = resolvePstPrefs(in0);
+        if (String.isNotBlank(prefs.typeDeveloperName)) {
+            out.put('TransactionType', prefs.typeDeveloperName);
         }
         return out;
+    }
+
+    /**
+     * Copies the billing/shipping address and bill-to / primary contact from the source
+     * Account onto a new quote header, mirroring the standard RLM_QuickQuote action.
+     * Tax jurisdiction resolution and billing both rely on these values; a builder quote
+     * that omits them is missing the billing information a Quick Quote would have set.
+     * Only non-blank values are copied so we never overwrite with empty data.
+     */
+    private static void applyBillingHeaderDefaults(Map<String, Object> out, String accountId) {
+        Id acctId;
+        try {
+            acctId = Id.valueOf(accountId);
+        } catch (Exception e) {
+            return; // invalid Id — leave header defaults to platform behavior
+        }
+        for (Account a : [
+            SELECT BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry,
+                   ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry
+            FROM Account WHERE Id = :acctId WITH USER_MODE LIMIT 1
+        ]) {
+            putIfNotBlank(out, 'BillingStreet', a.BillingStreet);
+            putIfNotBlank(out, 'BillingCity', a.BillingCity);
+            putIfNotBlank(out, 'BillingState', a.BillingState);
+            putIfNotBlank(out, 'BillingPostalCode', a.BillingPostalCode);
+            putIfNotBlank(out, 'BillingCountry', a.BillingCountry);
+            putIfNotBlank(out, 'ShippingStreet', a.ShippingStreet);
+            putIfNotBlank(out, 'ShippingCity', a.ShippingCity);
+            putIfNotBlank(out, 'ShippingState', a.ShippingState);
+            putIfNotBlank(out, 'ShippingPostalCode', a.ShippingPostalCode);
+            putIfNotBlank(out, 'ShippingCountry', a.ShippingCountry);
+        }
+        for (Contact c : [
+            SELECT Id, Email, Phone FROM Contact WHERE AccountId = :acctId WITH USER_MODE ORDER BY CreatedDate ASC LIMIT 1
+        ]) {
+            out.put('BillToContactId', c.Id);
+            out.put('ContactId', c.Id);
+            putIfNotBlank(out, 'Email', c.Email);
+            putIfNotBlank(out, 'Phone', c.Phone);
+        }
+    }
+
+    private static void putIfNotBlank(Map<String, Object> out, String fieldName, String value) {
+        if (String.isNotBlank(value)) {
+            out.put(fieldName, value);
+        }
+    }
+
+    // Cached lowercase field-name set so the optional RLM_TermMonths__c custom field is
+    // only written when the org actually has it (keeps the builder safe across editions).
+    private static Set<String> quoteFieldNames;
+    private static Boolean quoteHasField(String apiName) {
+        if (quoteFieldNames == null) {
+            quoteFieldNames = Schema.SObjectType.Quote.fields.getMap().keySet();
+        }
+        return quoteFieldNames.contains(apiName.toLowerCase());
+    }
+
+    private static String isoDate(Date d) {
+        return DateTime.newInstanceGmt(d, Time.newInstance(0, 0, 0, 0)).formatGmt('yyyy-MM-dd');
+    }
+
+    /**
+     * Resolved Place Sales Transaction preferences for one builder run.
+     *
+     * A TransactionProcessingType record bundles a pricing/tax/rate permutation, but its
+     * TransactionType field on the Quote is only honored by the REST PST resource when the
+     * request sends no top-level prefs. The Apex PlaceSalesTransactionExecutor the builder
+     * uses always requires non-null pricing/config prefs, so the record's preferences are
+     * translated into call-level enums here. The validated DeveloperName is still stamped on
+     * the Quote header so downstream re-pricing in the sales transaction line editor uses it.
+     */
+    @TestVisible
+    private class PstPrefs {
+        // Defaults preserve the builder's prior behavior: force pricing, run tax, no rate fetch.
+        public RevSalesTrxn.PricingPreferenceEnum pricingPref = RevSalesTrxn.PricingPreferenceEnum.FORCE;
+        public RevSalesTrxn.TaxPreferenceEnum taxPref = null;                  // null => tax runs by default
+        public RevSalesTrxn.CatalogRatesPreferenceEnum catalogRatesPref = null; // null => rates not fetched
+        public String typeDeveloperName;                                       // stamped on header when resolved
+    }
+
+    private static Map<String, TransactionProcessingType> tptCache;
+
+    /**
+     * Translates the Input.transactionType selection into call-level PST preferences.
+     * Blank or unknown names fall back to safe defaults so the builder keeps working in any org.
+     */
+    @TestVisible
+    private static PstPrefs resolvePstPrefs(Input in0) {
+        PstPrefs prefs = new PstPrefs();
+        if (in0 == null || String.isBlank(in0.transactionType)) {
+            return prefs;
+        }
+        TransactionProcessingType tpt = lookupTransactionProcessingType(in0.transactionType.trim());
+        if (tpt == null) {
+            return prefs;
+        }
+        prefs.typeDeveloperName = tpt.DeveloperName;
+        prefs.pricingPref = toPricingEnum(tpt.PricingPreference);
+        prefs.taxPref = toTaxEnum(tpt.TaxPreference);
+        prefs.catalogRatesPref = toCatalogRatesEnum(tpt.RatingPreference);
+        return prefs;
+    }
+
+    private static TransactionProcessingType lookupTransactionProcessingType(String devName) {
+        if (tptCache == null) {
+            tptCache = new Map<String, TransactionProcessingType>();
+        }
+        // Lazy, per-DeveloperName lookup with negative caching — a builder run needs only the
+        // one selected type, so never scan the whole TransactionProcessingType table (cheap in
+        // CPQ-heavy orgs). The cached null for a missing name avoids re-querying it.
+        if (!tptCache.containsKey(devName)) {
+            TransactionProcessingType found = null;
+            for (TransactionProcessingType t : [
+                SELECT DeveloperName, PricingPreference, TaxPreference, RatingPreference
+                FROM TransactionProcessingType
+                WHERE DeveloperName = :devName
+                WITH USER_MODE
+                LIMIT 1
+            ]) {
+                found = t;
+            }
+            tptCache.put(devName, found);
+        }
+        return tptCache.get(devName);
+    }
+
+    @TestVisible
+    private static RevSalesTrxn.PricingPreferenceEnum toPricingEnum(String v) {
+        if (v == 'Skip') return RevSalesTrxn.PricingPreferenceEnum.SKIP;
+        if (v == 'System') return RevSalesTrxn.PricingPreferenceEnum.SYSTEM;
+        // 'Force' or unset -> FORCE preserves the builder's existing default.
+        return RevSalesTrxn.PricingPreferenceEnum.FORCE;
+    }
+
+    @TestVisible
+    private static RevSalesTrxn.TaxPreferenceEnum toTaxEnum(String v) {
+        // Skip is the only tax preference value; anything else (incl. unset) runs tax by default.
+        return (v == 'Skip') ? RevSalesTrxn.TaxPreferenceEnum.SKIP : null;
+    }
+
+    @TestVisible
+    private static RevSalesTrxn.CatalogRatesPreferenceEnum toCatalogRatesEnum(String v) {
+        // Only fetch catalog rate cards when the selected type asks for it (usage-based products).
+        return (v == 'Fetch') ? RevSalesTrxn.CatalogRatesPreferenceEnum.FETCH : null;
     }
 
     private static String runFromHierarchyJson(Input in0, List<Integer> csvLinesAddedOut) {
@@ -748,18 +991,19 @@ public with sharing class RLM_SetUpQuoteInvocable {
                     new RevSalesTrxn.RecordWithReferenceRequest('refHeader', headerRecord)
                 };
                 RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable', listOfRecords);
+                PstPrefs prefs = resolvePstPrefs(in0);
                 RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
-                    graph, RevSalesTrxn.PricingPreferenceEnum.SKIP, RevSalesTrxn.ConfigurationExecutionEnum.SKIP,
-                    new RevSalesTrxn.ConfigurationOptionsInput(), null, null, RevSalesTrxn.TaxPreferenceEnum.SKIP, null);
+                    graph, prefs.pricingPref, RevSalesTrxn.ConfigurationExecutionEnum.SKIP,
+                    new RevSalesTrxn.ConfigurationOptionsInput(), null, prefs.catalogRatesPref, prefs.taxPref, null);
                 if (resp == null || !resp.isSuccess) throw new RLM_SetUpQuoteException(resp != null && resp.errorResponse != null ? String.valueOf(resp.errorResponse) : 'PST execution failed');
                 Id quoteId = (Id) resp.salesTransactionId;
-                if (largeDeal) update new Quote(Id = quoteId, IsLargeDeal = true);
+                if (largeDeal) update as user new Quote(Id = quoteId, IsLargeDeal = true);
                 return quoteId;
             } else {
                 if (String.isNotBlank(in0.csvImportLineItemsJson)) {
                     return runHierarchyEmptyCsvModifyQuote(in0, csvLinesAddedOut);
                 }
-                if (largeDeal && String.isNotBlank(in0.quoteId)) update new Quote(Id = in0.quoteId, IsLargeDeal = true);
+                if (largeDeal && String.isNotBlank(in0.quoteId)) update as user new Quote(Id = in0.quoteId, IsLargeDeal = true);
                 return in0.quoteId;
             }
         }
@@ -875,13 +1119,18 @@ public with sharing class RLM_SetUpQuoteInvocable {
             ? RevSalesTrxn.ConfigurationExecutionEnum.SKIP
             : (hasLineItems ? RevSalesTrxn.ConfigurationExecutionEnum.FORCE : RevSalesTrxn.ConfigurationExecutionEnum.SKIP);
         RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable', listOfRecords);
+        // Pricing/tax/rate preferences come from the selected TransactionProcessingType
+        // (Input.transactionType). Defaults run pricing (Force) and tax, matching the
+        // standard quote save; a Skip-tax type stamps no tax treatment, and a Fetch-rates
+        // type retrieves usage rate cards. configEnum (configuration method) is independent.
+        PstPrefs prefs = resolvePstPrefs(in0);
         RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
-            graph, RevSalesTrxn.PricingPreferenceEnum.SKIP, configEnum,
-            new RevSalesTrxn.ConfigurationOptionsInput(), null, null, RevSalesTrxn.TaxPreferenceEnum.SKIP, null);
+            graph, prefs.pricingPref, configEnum,
+            new RevSalesTrxn.ConfigurationOptionsInput(), null, prefs.catalogRatesPref, prefs.taxPref, null);
         if (resp == null || !resp.isSuccess) throw new RLM_SetUpQuoteException(resp != null && resp.errorResponse != null ? String.valueOf(resp.errorResponse) : 'PST execution failed');
         Id quoteId = isCreate ? (Id) resp.salesTransactionId : in0.quoteId;
         if (largeDeal) {
-            update new Quote(Id = quoteId, IsLargeDeal = true);
+            update as user new Quote(Id = quoteId, IsLargeDeal = true);
         }
         return quoteId;
     }
@@ -915,14 +1164,15 @@ public with sharing class RLM_SetUpQuoteInvocable {
             ? RevSalesTrxn.ConfigurationExecutionEnum.SKIP
             : RevSalesTrxn.ConfigurationExecutionEnum.FORCE;
         RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable', listOfRecords);
+        PstPrefs prefs = resolvePstPrefs(in0);
         RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
             graph,
-            RevSalesTrxn.PricingPreferenceEnum.SKIP,
+            prefs.pricingPref,
             configEnum,
             new RevSalesTrxn.ConfigurationOptionsInput(),
             null,
-            null,
-            RevSalesTrxn.TaxPreferenceEnum.SKIP,
+            prefs.catalogRatesPref,
+            prefs.taxPref,
             null
         );
         if (resp == null || !resp.isSuccess) {
@@ -930,7 +1180,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
         Id quoteId = in0.quoteId;
         if (largeDeal) {
-            update new Quote(Id = quoteId, IsLargeDeal = true);
+            update as user new Quote(Id = quoteId, IsLargeDeal = true);
         }
         return quoteId;
     }
@@ -970,6 +1220,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             SELECT Id, Name, ParentQuoteLineGroupId, SortOrder
             FROM QuoteLineGroup
             WHERE QuoteId = :quoteId
+            WITH USER_MODE
             ORDER BY ParentQuoteLineGroupId NULLS FIRST, SortOrder NULLS LAST, Name
         ];
         Map<Id, List<QuoteLineGroup>> childrenByParent = new Map<Id, List<QuoteLineGroup>>();
@@ -1467,6 +1718,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
         for (Account a : [
             SELECT Id, Name
             FROM Account
+            WITH USER_MODE
             ORDER BY Name
             LIMIT 200
         ]) {
@@ -1486,6 +1738,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             SELECT Id, Name, QuoteNumber, Status, LastModifiedDate
             FROM Quote
             WHERE AccountId = :accountId OR QuoteAccountId = :accountId
+            WITH USER_MODE
             ORDER BY LastModifiedDate DESC
             LIMIT 10
         ];
@@ -1499,6 +1752,13 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
         return out;
     }
+
+    // Bounds for the repeat-buy preview so a caller-supplied selection can't exhaust
+    // query-row/heap limits (the flow targets large deals, so quotes can be big).
+    @TestVisible
+    private static final Integer MAX_REPEAT_BUY_QUOTES = 50;
+    @TestVisible
+    private static final Integer MAX_REPEAT_BUY_LINES = 5000;
 
     @AuraEnabled(cacheable=false)
     public static String getRepeatBuyLines(String quoteIdsJson) {
@@ -1515,11 +1775,15 @@ public with sharing class RLM_SetUpQuoteInvocable {
             }
         }
         if (quoteIds.isEmpty()) return '[]';
+        if (quoteIds.size() > MAX_REPEAT_BUY_QUOTES) {
+            throw new RLM_SetUpQuoteException('Select at most ' + MAX_REPEAT_BUY_QUOTES + ' quotes for repeat buy.');
+        }
 
         Map<Id, Quote> quoteById = new Map<Id, Quote>([
             SELECT Id, Name, QuoteNumber, Status, LastModifiedDate
             FROM Quote
             WHERE Id IN :quoteIds
+            WITH USER_MODE
         ]);
 
         // Dynamic net-total field fallback by org capability.
@@ -1531,8 +1795,16 @@ public with sharing class RLM_SetUpQuoteInvocable {
         String soql =
             'SELECT Id, QuoteId, Quantity, UnitPrice, Product2Id, Product2.Name, Product2.ProductCode, QuoteLineGroupId, QuoteLineGroup.Name, ' +
             netField +
-            ' FROM QuoteLineItem WHERE QuoteId IN :quoteIds ORDER BY QuoteId, QuoteLineGroup.Name, CreatedDate';
+            ' FROM QuoteLineItem WHERE QuoteId IN :quoteIds WITH USER_MODE' +
+            ' ORDER BY QuoteId, QuoteLineGroup.Name, CreatedDate' +
+            ' LIMIT ' + String.valueOf(MAX_REPEAT_BUY_LINES + 1);
         List<QuoteLineItem> lines = Database.query(soql);
+        // Defensive backstop: never let an oversized selection blow heap/row limits in this
+        // preview. Fail with guidance rather than silently truncating the previewed lines.
+        if (lines.size() > MAX_REPEAT_BUY_LINES) {
+            throw new RLM_SetUpQuoteException(
+                'The selected quotes have too many lines to preview at once. Select fewer or smaller quotes.');
+        }
 
         Map<Id, List<Map<String, Object>>> grouped = new Map<Id, List<Map<String, Object>>>();
         for (QuoteLineItem li : lines) {
@@ -1711,14 +1983,15 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
 
         RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable', listOfRecords);
+        PstPrefs prefs = resolvePstPrefs(in0);
         RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
             graph,
-            RevSalesTrxn.PricingPreferenceEnum.SKIP,
+            prefs.pricingPref,
             RevSalesTrxn.ConfigurationExecutionEnum.FORCE,
             new RevSalesTrxn.ConfigurationOptionsInput(),
             null,
-            null,
-            RevSalesTrxn.TaxPreferenceEnum.SKIP,
+            prefs.catalogRatesPref,
+            prefs.taxPref,
             null
         );
         if (resp == null || !resp.isSuccess) {
@@ -1797,14 +2070,15 @@ public with sharing class RLM_SetUpQuoteInvocable {
         }
 
         RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('SetUpQuoteInvocable', listOfRecords);
+        PstPrefs prefs = resolvePstPrefs(in0);
         RevSalesTrxn.PlaceSalesTransactionResponse resp = RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
             graph,
-            RevSalesTrxn.PricingPreferenceEnum.SKIP,
+            prefs.pricingPref,
             RevSalesTrxn.ConfigurationExecutionEnum.FORCE,
             new RevSalesTrxn.ConfigurationOptionsInput(),
             null,
-            null,
-            RevSalesTrxn.TaxPreferenceEnum.SKIP,
+            prefs.catalogRatesPref,
+            prefs.taxPref,
             null
         );
         if (resp == null || !resp.isSuccess) {

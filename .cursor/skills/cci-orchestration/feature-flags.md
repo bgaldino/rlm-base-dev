@@ -16,7 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `False` | 4 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 4 flow step(s) |
-| `billing` | `True` | 19 flow step(s) |
+| `billing` | `True` | 20 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
 | `billing_portal_deploy` | `True` | 1 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
@@ -31,7 +31,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
 | `guidedselling` | `True` | 4 flow step(s) |
-| `large_stx` | `False` | 4 flow step(s) |
+| `large_stx` | `False` | 5 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
 | `personas` | `True` | 8 flow step(s) |
@@ -81,6 +81,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `assign_feature_permission_sets` step 4 → `assign_permission_sets`
 - `extend_context_definitions` step 4 → `extend_context_billing`
 - `extend_context_definitions` step 5 → `extend_context_collection_plan_segment`
+- `prepare_large_stx` step 3 → `seed_large_deal_billing_treatment`
 - `prepare_billing` step 1 → `deploy_post_billing`
 - `prepare_billing` step 2 → `insert_billing_data`
 - `prepare_billing` step 3 → `insert_q3_billing_data`
@@ -203,6 +204,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_rlm_org` step 27 → `prepare_large_stx`
 - `prepare_large_stx` step 1 → `deploy_post_large_stx`
 - `prepare_large_stx` step 2 → `assign_permission_sets`
+- `prepare_large_stx` step 3 → `seed_large_deal_billing_treatment`
 - `prepare_personas` step 7 → `assign_permission_sets`
 
 ### `payments` (default: `True`)

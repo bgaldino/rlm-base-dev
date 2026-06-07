@@ -180,9 +180,34 @@ def _patch_remove_action(root: ET.Element, action: str) -> bool:
     return False
 
 
-def _patch_insert_action(root: ET.Element, anchor: str, actions: List[str]) -> bool:
+def _action_name(action: Any) -> str:
+    """An insert_action entry is either a bare action name (str) or a dict with
+    a 'name' key plus optional 'visibility' criteria."""
+    if isinstance(action, dict):
+        return action.get("name", "")
+    return action
+
+
+def _append_visibility_rule(item: ET.Element, criteria: List[Dict[str, Any]]) -> None:
+    """Add a <visibilityRule> with one <criteria> per entry. Multiple criteria are
+    ANDed (FlexiPage default with no booleanFilter). Each criteria entry is
+    {field, operator, value}; field may be 'Record.X' or a full '{!Record.X}'."""
+    if not criteria:
+        return
+    vr = _sub_elem(item, "visibilityRule")
+    for crit in criteria:
+        field = str(crit.get("field", "")).strip()
+        left = field if field.startswith("{!") else "{!" + field + "}"
+        c = _sub_elem(vr, "criteria")
+        _sub_elem(c, "leftValue", left)
+        _sub_elem(c, "operator", str(crit.get("operator", "EQUAL")))
+        _sub_elem(c, "rightValue", str(crit.get("value", "")))
+
+
+def _patch_insert_action(root: ET.Element, anchor: str, actions: List[Any]) -> bool:
     """Insert action valueListItems immediately after the anchor action.
-    Skips actions already present anywhere in the list (idempotent)."""
+    Skips actions already present anywhere in the list (idempotent). Each action
+    is either a bare name (str) or a dict {name, visibility:[{field,operator,value}]}."""
     for ci_props in root.iter(f"{SF_NS_TAG}componentInstanceProperties"):
         name_el = _find_elem(ci_props, "name")
         if name_el is None or name_el.text != "actionNames":
@@ -201,10 +226,13 @@ def _patch_insert_action(root: ET.Element, anchor: str, actions: List[str]) -> b
             if val_el is not None and val_el.text == anchor:
                 offset = 0
                 for action in actions:
-                    if action in existing:
-                        continue  # already present, skip
+                    name = _action_name(action)
+                    if not name or name in existing:
+                        continue  # missing name or already present, skip
                     new_item = _make_elem("valueListItems")
-                    _sub_elem(new_item, "value", action)
+                    _sub_elem(new_item, "value", name)
+                    if isinstance(action, dict):
+                        _append_visibility_rule(new_item, action.get("visibility", []))
                     vlist.insert(i + 1 + offset, new_item)
                     offset += 1
                 return True
@@ -408,7 +436,8 @@ def _patch_description(patch: Dict[str, Any]) -> str:
     ptype = patch.get("type", "")
     if ptype == "insert_action":
         actions = patch.get("actions", [])
-        return f"insert actions: {', '.join(actions)}"
+        names = [_action_name(a) for a in actions]
+        return f"insert actions: {', '.join(n for n in names if n)}"
     if ptype == "remove_action":
         return f"remove action: {patch.get('action', '?')}"
     if ptype == "add_display_field":

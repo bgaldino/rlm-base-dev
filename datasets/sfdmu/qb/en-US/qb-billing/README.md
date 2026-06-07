@@ -316,6 +316,29 @@ Schema was queried against a 260 scratch org. Findings below.
 | SequencePolicy              | `Name`                                                                   | No            | ✅ Human-readable |
 | SeqPolicySelectionCondition | `ConditionNumber;SequencePolicy.Name`                                    | **Yes**       | ✅ Composite (direct int + parent traversal) satisfies SFDMU Bug 1 requirement |
 
+## Large-deal billing — known limitation with `LegalEntity` treatment selection
+
+`BillingPolicy.BillingTreatmentSelection = LegalEntity` (used by
+"Billing Policy - Advance" and other region-keyed policies here) does **not**
+resolve reliably for large-deal orders (`IsLargeDeal = true`) at high line counts
+during preprocess (`preProcessSalesTransaction` / `resolveBillingTreatments`). A
+`Default`-selection billing policy resolves the same order cleanly because it
+reads `DefaultBillingTreatmentId` directly.
+
+**Guidance for large-deal demos/tests:** assign products to a `Default`-selection
+billing policy (a large-deal order targets a single legal entity anyway).
+
+**Automated workaround (large_stx builds).** When `large_stx` + `billing` are on,
+`prepare_large_stx` runs `seed_large_deal_billing_treatment`
+(`scripts/apex/seedLargeDealBillingTreatment.apex`), which seeds a
+`Default`-selection **`RLM Large Deal Policy`** + an `ExcludeFromBilling = Yes`
+treatment **`RLM Large Deal - Exclude from Billing`** (no legal entity, no
+treatment items — nonbillable treatments can't have items). At activation, the
+"Prepare for Activation" action (`RLM_PreProcessOrderController.startPreprocess`)
+stamps that treatment onto every unresolved `OrderItem.BillingTreatmentId` before
+invoking `preProcessSalesTransaction`, so billing-treatment resolution is a no-op
+for large deals. Standard orders (`IsLargeDeal = false`) are untouched.
+
 ## Optimization Opportunities
 
 1. **Simplify activation**: The 3-pass SFDMU activation + 2 Apex activation scripts is complex — consider whether the Apex scripts alone could handle all activation, reducing to a simpler 1-pass SFDMU plan

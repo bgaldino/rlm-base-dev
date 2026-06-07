@@ -328,6 +328,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 1. **task** `deploy_post_large_stx`  `when: project_config.project__custom__large_stx`
 2. **task** `assign_permission_sets`  `when: project_config.project__custom__large_stx`
    - `api_names`: `['RLM_LargeSalesTransaction']`
+3. **task** `seed_large_deal_billing_treatment`  `when: project_config.project__custom__large_stx and project_config.project__custom__billing`
 
 ---
 

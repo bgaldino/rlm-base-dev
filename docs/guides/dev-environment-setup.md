@@ -182,6 +182,10 @@ if [ -n "$_NVM_PREFIX" ] && [ -s "$_NVM_PREFIX/nvm.sh" ]; then
   nvm use --silent lts/\* >/dev/null 2>&1 || nvm use --silent default >/dev/null 2>&1
 fi
 unset _NVM_PREFIX
+
+# Salesforce CLI token-redaction opt-out (see §6 troubleshooting). Lets
+# CumulusCI 4.10.x keep reading the access token out of `sf --json` output.
+export SF_TEMP_SHOW_SECRETS=true
 ```
 
 ### First-time activation
@@ -316,6 +320,39 @@ the pyenv `python3` specifically, use `pyenv exec python3`.
 - Is the `direnv hook zsh` line in `~/.zshrc`?
 - Is your shell interactive? Non-interactive shells activate via the
   `direnv export zsh` line in `~/.zshenv` at startup, not on cd.
+
+### `INVALID_AUTH_HEADER` / "Expired session" on `cci org info` or scratch creation
+Symptom — a freshly created scratch org immediately fails, with a URL that
+ends in a redacted placeholder, e.g.:
+
+```
+Error: Expired session for https://...my.salesforce.com/services/data/v67.0/
+sobjects/Organization/[REDACTED] Use 'sf org auth show-access-token' to view.
+[{'message': 'INVALID_AUTH_HEADER', 'errorCode': 'INVALID_AUTH_HEADER'}]
+```
+
+Cause — the May 2026 Salesforce CLI security change
+([forcedotcom/cli#3560](https://github.com/forcedotcom/cli/issues/3560))
+redacts access tokens from the `--json` output of `org create scratch`,
+`org display`, `org list`, and the `org login *` commands. CumulusCI 4.10.x
+still parses those outputs for the token, so it grabs the literal
+`[REDACTED] Use 'sf org auth show-access-token' to view.` string and sends it
+as the auth header. It is **not** a real expired session or an org problem.
+
+Fix — restore the legacy output via the Salesforce-provided shim:
+
+```bash
+export SF_TEMP_SHOW_SECRETS=true
+```
+
+This is already set in the repo `.envrc` (so `direnv allow` covers local work)
+and in `.github/workflows/prepare-rlm-org.yml` (CI). If you hit it, you're
+likely in a shell where `.envrc` isn't active — re-run `direnv allow` or export
+it manually.
+
+> **Temporary.** Salesforce plans to remove `SF_TEMP_SHOW_SECRETS` in
+> Summer '26. The durable fix is a CumulusCI release that fetches the token via
+> `sf org auth show-access-token --json`; drop the env var once CCI does that.
 
 ---
 

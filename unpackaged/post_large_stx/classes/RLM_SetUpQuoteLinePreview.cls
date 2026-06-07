@@ -3,6 +3,14 @@
  * Mirrors RLM_SetUpQuoteInvocable modify order: deletes → additive existingGroupCounts → new hierarchy lines.
  */
 public with sharing class RLM_SetUpQuoteLinePreview {
+    // Hard cap on QuoteLineGroup delete-expansion BFS depth (realistic nesting <=5; 50 is
+    // well under the synchronous SOQL governor). Hitting it means the expansion is partial.
+    private static final Integer EXPANSION_MAX_LEVELS = 50;
+
+    // Thrown when the depth guard trips, so the preview surfaces an error instead of
+    // silently undercounting the deleted-group / projected-line totals.
+    public class PreviewExpansionException extends Exception {}
+
     @AuraEnabled(cacheable = false)
     public static String previewQuoteLineCounts(String previewJson) {
         if (String.isBlank(previewJson)) {
@@ -32,13 +40,20 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         if (!isCreate && String.isNotBlank(quoteIdStr)) {
             try {
                 parsedQId = Id.valueOf(quoteIdStr);
-                currentTotal = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :parsedQId];
+                currentTotal = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :parsedQId WITH USER_MODE];
             } catch (Exception e) {
                 return buildResponse(0, 0, 0, 0, 0, 'Invalid quote Id');
             }
         }
 
-        Set<Id> deletedGroupIds = expandDeletedGroupIds(groupsToDeleteJson, parsedQId);
+        Set<Id> deletedGroupIds;
+        try {
+            deletedGroupIds = expandDeletedGroupIds(groupsToDeleteJson, parsedQId);
+        } catch (PreviewExpansionException e) {
+            // Partial delete-set (depth guard tripped): surface an error instead of
+            // silently undercounting linesRemovedFromDeletes / the projected total.
+            return buildResponse(currentTotal, 0, 0, 0, currentTotal, e.getMessage());
+        }
         Integer linesRemovedFromDeletes = 0;
         if (!isCreate && parsedQId != null && !deletedGroupIds.isEmpty()) {
             linesRemovedFromDeletes = [
@@ -46,6 +61,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
                 FROM QuoteLineItem
                 WHERE QuoteId = :parsedQId
                   AND QuoteLineGroupId IN :deletedGroupIds
+                WITH USER_MODE
             ];
         }
 
@@ -136,6 +152,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         if (String.isBlank(groupsToDeleteJson)) {
             return result;
         }
+        Boolean truncated = false;
         try {
             List<Object> arr = (List<Object>) JSON.deserializeUntyped(groupsToDeleteJson);
             Set<Id> rootIds = new Set<Id>();
@@ -160,7 +177,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             // Ownership guard: only traverse roots that belong to the target quote
             if (quoteId != null) {
                 Set<Id> ownedRoots = new Set<Id>();
-                for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :rootIds AND QuoteId = :quoteId]) {
+                for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE Id IN :rootIds AND QuoteId = :quoteId WITH USER_MODE]) {
                     ownedRoots.add(g.Id);
                 }
                 rootIds = ownedRoots;
@@ -174,11 +191,16 @@ public with sharing class RLM_SetUpQuoteLinePreview {
             // the entire (growing) result set. Keeps this O(n) over the subtree
             // rather than O(n^2) on deep/wide hierarchies.
             Set<Id> frontier = new Set<Id>(rootIds);
-            while (!frontier.isEmpty()) {
+            // Depth guard: bound the per-level SOQL so a pathologically deep hierarchy can't
+            // exhaust the query governor limit. Group nesting is realistically <=5 levels;
+            // EXPANSION_MAX_LEVELS is a safe hard cap well under the synchronous SOQL ceiling.
+            Integer levelGuard = 0;
+            while (!frontier.isEmpty() && levelGuard < EXPANSION_MAX_LEVELS) {
+                levelGuard++;
                 Set<Id> nextFrontier = new Set<Id>();
                 List<QuoteLineGroup> children = quoteId != null
-                    ? [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :quoteId]
-                    : [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier];
+                    ? [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier AND QuoteId = :quoteId WITH USER_MODE]
+                    : [SELECT Id FROM QuoteLineGroup WHERE ParentQuoteLineGroupId IN :frontier WITH USER_MODE];
                 for (QuoteLineGroup g : children) {
                     if (!result.contains(g.Id)) {
                         result.add(g.Id);
@@ -187,8 +209,17 @@ public with sharing class RLM_SetUpQuoteLinePreview {
                 }
                 frontier = nextFrontier;
             }
+            // Guard tripped with levels still pending => the delete set is PARTIAL. Flag it
+            // here (frontier is in scope) and throw AFTER the catch so the caller surfaces it
+            // rather than silently undercounting.
+            truncated = !frontier.isEmpty();
         } catch (Exception e) {
             return new Set<Id>();
+        }
+        if (truncated) {
+            throw new PreviewExpansionException(
+                'The group hierarchy is too deep to preview accurately (exceeded ' +
+                EXPANSION_MAX_LEVELS + ' levels). Refresh the page and retry, or reduce nesting.');
         }
         return result;
     }
@@ -228,7 +259,7 @@ public with sharing class RLM_SetUpQuoteLinePreview {
         }
         // Ownership guard: only count adds for groups that belong to this quote
         Set<Id> validGroupIds = new Set<Id>();
-        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :quoteId AND Id IN :idToAddCount.keySet()]) {
+        for (QuoteLineGroup g : [SELECT Id FROM QuoteLineGroup WHERE QuoteId = :quoteId AND Id IN :idToAddCount.keySet() WITH USER_MODE]) {
             validGroupIds.add(g.Id);
         }
         for (Id gid : idToAddCount.keySet()) {

@@ -155,3 +155,9 @@ docs/salesforce/*/salesforce-release-notes-*.pdf
 # LibreOffice / soffice artifacts (lock files, scratch tmp files left behind when headless conversions crash)
 .~lock.*#
 *.tmp
+
+# Internal AI-agent / core-investigation artifacts (core-code Q&A, platform-bug writeups,
+# design plans, research notes). Local only — they reference internal Salesforce core and
+# MUST NOT ship to the customer/partner Salesforce Labs mirror. Keep them uncommitted.
+.agents/artifacts/
+docs/analysis/*-core-code-*.md
