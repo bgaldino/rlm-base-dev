@@ -24,8 +24,10 @@
    lines/files. Fix once; reply to each thread.
 5. **One cohesive follow-up commit** per review round; re-run deploy + tests; never
    stage `cumulusci.yml` (local-only flags) or internal-reference docs.
-6. **Reply in-thread + react.** Document the resolution (and the commit SHA) on each
-   thread; 👍/👎 bot comments that ask for it. This is the audit trail.
+6. **Reply in-thread, react, and resolve.** Document the resolution (and the commit SHA)
+   on each thread; 👍 valid comments; then **resolve the thread** (GraphQL — REST can't).
+   **Every review round ends with zero unresolved threads** — that is the audit trail.
+   See `AGENTS.md` "Responding to Automated PR Reviews" for the canonical command set.
 7. **Re-sweep after each round** — a new commit can introduce a new instance of an
    old class.
 
@@ -91,16 +93,30 @@ partners, and customers via Salesforce Labs. The bar is higher than normal revie
    feature for the same pattern (grep/parse), not just the cited site. Expect to find
    *more* than the bot flagged (e.g. a "5 missing `WITH USER_MODE`" finding was 20).
 5. **Fix cohesively**, then **deploy + run tests** on the result.
-6. **Reply + react.** In-thread reply per comment with the resolution + commit SHA;
-   for false positives, reply with the refutation; 👍 the P1 bot comments.
-7. **Commit precisely** (the changed files only; never `cumulusci.yml`, never
-   internal-reference docs) and push; the bots re-review the new SHA.
+6. **Commit precisely** (the changed files only; never `cumulusci.yml`, never
+   internal-reference docs) and push — this gives you the SHA to cite; the bots
+   re-review the new SHA.
+7. **Reply, react, resolve.** Per comment: in-thread reply with the resolution + commit
+   SHA (for false positives, the evidence-backed refutation); 👍 valid comments; then
+   **resolve the thread** (GraphQL).
+8. **Confirm zero unresolved.** Re-query `reviewThreads` across **all** pages and verify
+   the round closed with `unresolved == 0`.
 
 ```bash
-# in-thread reply to a review comment
+# in-thread reply to a review comment (pull_number IS in the path — GitHub's documented endpoint)
 gh api --method POST repos/<owner>/<repo>/pulls/<n>/comments/<comment_id>/replies -f body="…"
-# 👍 a comment the bot asked you to react to
-gh api --method POST repos/<owner>/<repo>/pulls/comments/<comment_id>/reactions -f content=+1
+# 👍 a valid comment (Reactions API is GA — standard Accept header; quote +1 for the shell)
+gh api --method POST repos/<owner>/<repo>/pulls/comments/<comment_id>/reactions \
+  -H "Accept: application/vnd.github+json" -f content="+1"
+# list review threads (repository-wrapped + paginated) — loop on endCursor until hasNextPage is false
+gh api graphql -f query='query($o:String!,$r:String!,$n:Int!,$after:String){
+  repository(owner:$o,name:$r){ pullRequest(number:$n){
+    reviewThreads(first:100, after:$after){
+      pageInfo{ hasNextPage endCursor }
+      nodes{ id isResolved comments(first:1){ nodes{ databaseId path line } } } } } }' \
+  -f o=<owner> -f r=<repo> -F n=<n>
+# resolve a thread (REST cannot)
+gh api graphql -f query='mutation($tid:ID!){ resolveReviewThread(input:{threadId:$tid}){ thread{ isResolved } } }' -f tid=<thread_id>
 ```
 
 ## Finding-class checklist (recurring; from real audit rounds)
@@ -136,11 +152,14 @@ synthesize.** Patterns that paid off here:
 - **PR #203 (large_stx):** Codex 2×P1 + Copilot 13 comments → triaged to 5 classes;
   swept the `WITH USER_MODE` class from the flagged 5 to **all 20** queries; confirmed the
   gated-field-in-base-layout leak was isolated; rejected one finding (`getMap` casing) as a
-  false positive with evidence; one cohesive commit; 14 in-thread replies + 2 👍.
+  false positive with evidence; one cohesive commit; in-thread replies + 👍 on each valid
+  finding; **every thread resolved, round closed at 0 unresolved.**
 
 ## Validation Checks
 
-- Every comment has an in-thread reply (resolution + SHA, or refutation).
+- Every comment has an in-thread reply (resolution + SHA, or refutation), a 👍 on the
+  valid ones, and a **resolved thread**; the round closed with `unresolved == 0` (checked
+  across all pages).
 - Each valid class was swept feature-wide (show the search, not just the one fix).
 - Deploy clean + tests green on the new commit.
 - `git diff --cached --name-only` excludes `cumulusci.yml` and internal-reference docs.
