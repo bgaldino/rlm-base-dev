@@ -126,7 +126,17 @@ foundations:
 
     - id: troubleshooting
       path: .cursor/skills/troubleshooting/SKILL.md
-      purpose: "Build/deploy debug patterns"
+      purpose: "Build/deploy debug patterns; live-org evidence capture; large-deal preprocess/reprice reference"
+      consumed_by_pmos: []
+
+    - id: apex-security-hardening
+      path: .cursor/skills/apex-security-hardening/SKILL.md
+      purpose: "USER_MODE/CRUD-FLS conversion + permission-set self-sufficiency audit for Apex features"
+      consumed_by_pmos: []
+
+    - id: audit-review
+      path: .cursor/skills/audit-review/SKILL.md
+      purpose: "PR review-response + pre-merge audit playbook: audit lens, completeness sweeps by finding class, verify-before-trust"
       consumed_by_pmos: []
 
     - id: doc-consistency

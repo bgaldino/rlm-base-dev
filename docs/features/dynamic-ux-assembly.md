@@ -15,16 +15,16 @@ Dynamic UX Assembly replaces the previous approach of maintaining duplicate, han
 UX metadata files scattered across every `unpackaged/post_*` feature directory. Instead, a
 single late-stage CCI task (`assemble_and_deploy_ux`) builds the correct version of every
 UX artifact from composable templates and feature-flag-driven logic, then deploys them all
-in one `sf project deploy start` call at **step 27** of `prepare_rlm_org` (immediately
-before `prepare_scratch` at step 27 and `refresh_all_decision_tables` at step 29).
+in one `sf project deploy start` call at **step 29** of `prepare_rlm_org` (immediately
+before `prepare_scratch` at step 30 and `refresh_all_decision_tables` at step 31).
 
 ### Problems it solves
 
 | Before | After |
 |--------|-------|
 | 19+ copies of `RLM_Quote_Record_Page.flexipage-meta.xml` across `post_*` directories, each needing manual sync | One base template + per-feature YAML patch files; assembly is automatic |
-| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 27 after all objects exist |
-| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 27 |
+| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 29 after all objects exist |
+| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 29 |
 | No gate — UX always deployed even during isolated feature testing | `ux: true` feature flag in `cumulusci.yml`; set `ux: false` to bypass entirely |
 | Compact layouts and list views in feature `unpackaged/post_*` dirs, not conditionally assembled | Moved to `templates/objects/`; assembled with feature-conditional copy order |
 
@@ -40,8 +40,8 @@ ux: true   # Set false to skip prepare_ux entirely (useful for isolated feature 
 `prepare_ux` runs only when `ux=true`:
 
 ```yaml
-# prepare_rlm_org step 27
-27:
+# prepare_rlm_org step 29
+29:
   flow: prepare_ux
   when: project_config.project__custom__ux
 ```
@@ -209,7 +209,7 @@ No patching — layouts are copied as-is.
 - Early-stage profiles in `force-app/main/default/profiles/` and `unpackaged/post_*/profiles/`
   are **stripped** of `layoutAssignment` and `applicationVisibilities` elements. They deploy
   at step 5 with only `classAccesses` (and other non-personalization grants).
-- At step 27, `_assemble_profiles` reads the **base template** (full layout assignments +
+- At step 29, `_assemble_profiles` reads the **base template** (full layout assignments +
   app visibility) from `templates/profiles/base/` and applies feature patches:
 
 | Patch file | Activates when | Effect |
@@ -251,24 +251,24 @@ cci task run assemble_and_deploy_ux [options]
 
 ```bash
 # Assemble and deploy everything (production use via prepare_ux flow)
-cci task run assemble_and_deploy_ux --org dev-sb0
+# (no --org flag — deploys to your DEFAULT cci org)
+cci task run assemble_and_deploy_ux
 
-# Dry-run: assemble only, no deploy
-cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+# Dry-run: assemble only, no deploy (local — no org needed)
+cci task run assemble_and_deploy_ux -o deploy false
 
-# Regenerate a single flexipage
+# Regenerate a single flexipage (deploys to your DEFAULT cci org; no --org flag)
 cci task run assemble_and_deploy_ux \
-    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml \
-    --org dev-sb0
+    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
 
-# Regenerate and inspect a profile without deploying
+# Regenerate and inspect a profile without deploying (local; no org needed)
 cci task run assemble_and_deploy_ux \
     -o metadata_name Admin.profile-meta.xml \
-    -o deploy false --org dev-sb0
+    -o deploy false
 
-# Assemble only layouts
+# Assemble only layouts (local; no org needed)
 cci task run assemble_and_deploy_ux \
-    -o metadata_type layouts -o deploy false --org dev-sb0
+    -o metadata_type layouts -o deploy false
 ```
 
 ### `prepare_ux` flow
@@ -278,7 +278,7 @@ cci flow run prepare_ux --org dev-sb0
 ```
 
 Two-step flow: runs `assemble_and_deploy_ux` (full assembly + deploy) then
-`reorder_app_launcher`. Runs as step 27 of `prepare_rlm_org` when `ux=true`.
+`reorder_app_launcher`. Runs as step 29 of `prepare_rlm_org` when `ux=true`.
 
 ---
 
@@ -512,7 +512,7 @@ TSO introduces:
 1. Prepare a TSO-capable org (or set `tso=true` in the org definition)
 2. Run dry-run to inspect output:
    ```bash
-   cci task run assemble_and_deploy_ux -o deploy false --org <tso-org>
+   cci task run assemble_and_deploy_ux -o deploy false        # dry-run: local only, no org needed
    ```
 3. Verify:
    - `unpackaged/post_ux/applications/RLM_Revenue_Cloud.app-meta.xml` comes from
@@ -534,7 +534,7 @@ content parity.
 After Phases 2 and 3 pass independently:
 
 1. Run `cci flow run prepare_rlm_org --org <fresh-org>` end-to-end
-2. Confirm all UX deploys succeed at step 27
+2. Confirm all UX deploys succeed at step 29
 3. Spot-check record pages in the org UI:
    - Quote Record Page: all actions present in correct order
    - Profile layout assignments: Admin profile can open all expected record pages
@@ -549,22 +549,21 @@ After Phases 2 and 3 pass independently:
 ### Inspect the assembled output before deploying
 
 ```bash
-cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+cci task run assemble_and_deploy_ux -o deploy false        # local only, no org needed
 ```
 Review `unpackaged/post_ux/` and `unpackaged/post_ux/assembly_manifest.json`.
 
 ### Regenerate a single item
 
 ```bash
-# Single flexipage (also deploys it)
+# Single flexipage (also deploys it — to your DEFAULT cci org; no --org flag)
 cci task run assemble_and_deploy_ux \
-    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml \
-    --org dev-sb0
+    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
 
-# Single layout, no deploy
+# Single layout, no deploy (local; no org needed)
 cci task run assemble_and_deploy_ux \
     -o metadata_name "Quote-RLM Quote Layout.layout-meta.xml" \
-    -o deploy false --org dev-sb0
+    -o deploy false
 ```
 
 ### Check what feature flags were active for a past assembly
@@ -603,6 +602,6 @@ cci flow run apply_ux_drift --org dev-sb0
 ### Adding a new patch type or flexipage
 
 1. Add or edit the YAML patch file in `templates/flexipages/patches/{feature}/`
-2. Run `cci task run assemble_and_deploy_ux -o metadata_name <pagename>.flexipage-meta.xml -o deploy false --org <org>`
+2. Run `cci task run assemble_and_deploy_ux -o metadata_name <pagename>.flexipage-meta.xml -o deploy false` (dry-run; local, no org)
 3. Inspect the output file and compare to the reference in `unpackaged/post_*/flexipages/`
 4. When satisfied, run without `-o deploy false` to deploy

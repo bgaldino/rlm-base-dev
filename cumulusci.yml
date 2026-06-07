@@ -985,7 +985,7 @@ tasks:
       path: unpackaged/post_quantumbit
 
   deploy_post_tso:
-    description: Deploy Trialforce Source Org Metadata (App Launcher now deploys via prepare_ux/assemble_and_deploy_ux)
+    description: Deploy Trialforce Source Org Metadata (App Launcher order is applied separately by reorder_app_launcher in prepare_ux, not here)
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_tso

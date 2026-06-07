@@ -540,7 +540,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | Flag | Default | Description |
 |------|---------|-------------|
 | `sharingsettings` | `false` | Deploy Sharing Settings |
-| `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 27. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
+| `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 29. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
 
 ## Custom Tasks
 
@@ -631,7 +631,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `manage_transaction_processing_types` | `rlm_manage_transaction_processing_types.py` | Manage TransactionProcessingType records (list, upsert, delete) | [Constraints Setup](docs/guides/constraints-setup.md) |
 | `manage_context_definition` | `rlm_context_service.py` | Modify context definitions via Context Service API | [Context Service Utility](docs/references/context-service-utility.md) |
 | `extend_standard_context` | `rlm_extend_stdctx.py` | Extend standard context definitions with custom attributes | [Context Service Utility](docs/references/context-service-utility.md) |
-| `assemble_and_deploy_ux` | `rlm_ux_assembly.py` | Assemble UX metadata (flexipages, layouts, applications, app menus, profiles, compact layouts, list views, object bindings) from `templates/` into `unpackaged/post_ux/` and optionally deploy. Supports `metadata_type` (specific type or `all`) and `metadata_name` (single file by full source filename). Called by `prepare_ux` at step 27. | [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) |
+| `assemble_and_deploy_ux` | `rlm_ux_assembly.py` | Assemble UX metadata (flexipages, layouts, applications, profiles, compact layouts, list views, object bindings) from `templates/` into `unpackaged/post_ux/` and optionally deploy. Supports `metadata_type` (specific type or `all`) and `metadata_name` (single file by full source filename). Called by `prepare_ux` at step 29. | [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) |
 
 ### Decision Table Refresh Tasks
 
@@ -727,18 +727,16 @@ cci task run robot_order_from_quote --org beta
 
 ### App Launcher
 
-`assemble_and_deploy_ux` assembles `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` and attempts a Metadata API deploy (step 27, gated by `ux=true`). When that deploy succeeds it becomes the **org-default** App Launcher order — new users inherit it automatically. The deploy is skipped gracefully on orgs where the AppMenu contains managed ConnectedApp or Network entries (Salesforce cannot validate those references); in that case the template is **not** applied as the org default.
+App Launcher ordering is applied **dynamically** by `reorder_app_launcher` (step 2 of `prepare_ux`, step 29 of `prepare_rlm_org`, on all `ux=true` orgs). `assemble_and_deploy_ux` does **not** assemble or deploy appMenus — it only removes any stale `appMenus/` output left by older assembler versions. The task queries `AppMenuItem` via REST SOQL, builds an ordered `ApplicationId` list from its `priority_app_labels` option (a display-label priority list; see the task description for the default), and submits it to `AppLauncherController/saveOrder` via Aura XHR as a **user-level customization** for the automation user. No UI drag, and no Metadata API deploy — which is necessary because Salesforce blocks AppSwitcher Metadata API deployment on orgs whose AppMenu contains managed ConnectedApp or Network entries (the common Trialforce case), and `AppMenuItem.SortOrder` is read-only via all other APIs. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
 
-On all `ux=true` orgs, `reorder_app_launcher` (step 2 of `prepare_ux`) applies the template order as a **user-level customization** for the automation user — it queries `AppMenuItem` via REST SOQL, builds an ordered `ApplicationId` list, and submits it to `AppLauncherController/saveOrder` via Aura XHR. No UI drag required. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
-
-To capture a customized order from an org and commit it as the new template:
+To capture the running user's current order as a versioned reference snapshot:
 
 ```bash
-# Capture your customized App Launcher order from the default org
+# Writes templates/appMenus/base/AppSwitcher.appMenu-meta.xml — a reference snapshot, no deploy.
 python scripts/sync_appmenu_from_user.py
-# Writes directly to templates/appMenus/base/AppSwitcher.appMenu-meta.xml — no deploy.
-# Then run prepare_ux or assemble_and_deploy_ux to deploy.
 ```
+
+The snapshot is **not** consumed by `reorder_app_launcher` (which orders by `priority_app_labels`); use it to review the current order or to inform that label list.
 
 ### Using Custom Tasks
 
@@ -851,12 +849,14 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 24 | `prepare_revenue_settings` | Always |
 | 25 | `prepare_pricing_discovery` | Always |
 | 26 | `prepare_ramp_builder` | Always |
-| 27 | `prepare_ux` | `ux` |
-| 28 | `prepare_scratch` | Always |
-| 29 | `refresh_all_decision_tables` | Always |
-| 30 | `stamp_git_commit` | Always |
+| 27 | `prepare_large_stx` | `large_stx` |
+| 28 | `prepare_personas` | `personas` |
+| 29 | `prepare_ux` | `ux` |
+| 30 | `prepare_scratch` | Always |
+| 31 | `refresh_all_decision_tables` | Always |
+| 32 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 27 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, app menus, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 29 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 30 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 31 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 32 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 
@@ -902,7 +902,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 
 | Flow | Description | Feature Flag |
 |------|-------------|--------------|
-| `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 27 of `prepare_rlm_org`. | `ux` |
+| `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 29 of `prepare_rlm_org`. | `ux` |
 
 **Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → qb → tso → constraints → ramps → collections → utils → docgen → approvals`) followed by sequential YAML patch application. One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing, rates, and ramps are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
 
@@ -1118,7 +1118,7 @@ rlm-base-dev/
 │   ├── applications/           # RLM_Revenue_Cloud variants (base, quantumbit, tso) + standalones
 │   │   └── patches/            # Feature-conditional actionOverride patches (billing, rates, ramps)
 │   ├── appMenus/
-│   │   └── base/               # AppSwitcher (always assembled; deploy skipped if org has managed entries)
+│   │   └── base/               # AppSwitcher snapshot (reference only; not assembled/deployed — order applied via reorder_app_launcher)
 │   ├── objects/                # Object-level UX bindings + compact layouts + list views
 │   │   ├── base/               # Always-on (actionOverrides, compactLayoutAssignment, compactLayouts, listViews)
 │   │   ├── billing/            # Billing feature (TransactionJournal)
@@ -1262,7 +1262,7 @@ cci flow run prepare_rlm_org -o ux false
 ### Assemble and Deploy UX Metadata
 
 ```bash
-# Assemble all UX metadata and deploy (same as step 27)
+# Assemble all UX metadata and deploy (same as step 29)
 cci flow run prepare_ux
 
 # Dry-run only — inspect unpackaged/post_ux/ without deploying
@@ -1307,14 +1307,17 @@ See the [Constraints Utility Guide](datasets/constraints/README.md) for full exp
 ### App Launcher order
 
 ```bash
-# Capture your customized App Launcher order from the default org (writes to templates/appMenus/base/)
+# Capture the running user's order as a reference snapshot (writes templates/appMenus/base/; no deploy)
 python scripts/sync_appmenu_from_user.py
 
-# Deploy App Launcher + reorder (runs automatically as step 1+2 of prepare_ux on all ux=true orgs)
+# Apply the App Launcher order (runs as step 2 of prepare_ux on all ux=true orgs)
 cci flow run prepare_ux --org <org>
 
-# Assemble and deploy AppSwitcher metadata only (reorder_app_launcher runs separately)
-cci task run assemble_and_deploy_ux -o metadata_type appmenus --org <org>
+# Apply the App Launcher order only, without the rest of prepare_ux
+# (reorder_app_launcher orders by its priority_app_labels option via Aura saveOrder; assemble_and_deploy_ux
+#  does NOT handle appMenus, and AppSwitcher can't deploy via the Metadata API when the AppMenu contains
+#  managed ConnectedApp/Network entries — the Trialforce case)
+cci task run reorder_app_launcher --org <org>
 ```
 
 ### Load Product Data

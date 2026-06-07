@@ -145,8 +145,8 @@ cci task run delete_quantumbit_pricing_data --org beta
 cci task run extract_qb_pricing_data --org beta
 cci task run test_qb_pricing_idempotency --org beta
 cci flow run prepare_rlm_org --org beta
-cci task run assemble_and_deploy_ux --org dev-sb0
-cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0   # dry-run
+cci task run assemble_and_deploy_ux                                 # deploys to your DEFAULT cci org (no --org flag — set the default org to target one)
+cci task run assemble_and_deploy_ux -o deploy false                 # dry-run: local assembly only, no org needed
 cci flow run capture_ux_drift --org dev-sb0                          # retrieve + diff
 cci flow run apply_ux_drift --org dev-sb0                            # writeback + reassemble + verify
 cci task run writeback_ux_templates --org dev-sb0                    # dry-run writeback
@@ -259,6 +259,8 @@ that topic.
 | Review docs before merge | `.cursor/skills/doc-consistency/SKILL.md` |
 | Create, update, register, or test AI-agent skills | `.cursor/skills/skill-authoring/SKILL.md` |
 | Debug a build/deploy failure | `.cursor/skills/troubleshooting/SKILL.md` |
+| Harden Apex CRUD/FLS (USER_MODE) + make a permission set self-sufficient | `.cursor/skills/apex-security-hardening/SKILL.md` |
+| Process Codex/Copilot PR reviews or run the pre-merge audit (completeness sweeps) | `.cursor/skills/audit-review/SKILL.md` |
 | Author/update enablement exercises per release | `.cursor/skills/release-enablement/SKILL.md` |
 | Generate the QuantumBit demo-script canvas (per-release SE/partner artifact) | `.cursor/skills/qb-demo-script/SKILL.md` |
 | Ground product claims against Salesforce Help (Trailhead, internal docs, SME review) | `.cursor/skills/revenue-cloud-docs/SKILL.md` |
@@ -296,6 +298,7 @@ Read the sub-file only when you need that specific detail:
 | `release-enablement/authoring-patterns.md` | Release Enablement | Edge-case patterns: upgrade guidance, known issues, sub-features, cross-area features, recordings placeholders, QB walkthrough handling |
 | `release-enablement/resume-enablement-work.md` | Release Enablement | Cross-workstation handoff — read when picking up enablement work in a fresh conversation. 4-step re-orientation + tool grants + restart prompt template |
 | `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
+| `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
 
 ### File-Specific Rules (Cursor Only)
 

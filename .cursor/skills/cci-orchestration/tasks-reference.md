@@ -2795,7 +2795,7 @@
 
 ### `deploy_post_tso`
 
-**Description:** Deploy Trialforce Source Org Metadata (App Launcher now deploys via prepare_ux/assemble_and_deploy_ux)
+**Description:** Deploy Trialforce Source Org Metadata (App Launcher order is applied separately by reorder_app_launcher in prepare_ux, not here)
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 

@@ -25,6 +25,8 @@ repo root.
 | Review docs before merge | Doc Consistency | `doc-consistency/SKILL.md` |
 | Create, update, register, or test AI-agent skills | Skill Authoring | `skill-authoring/SKILL.md` |
 | Debug a build/deploy failure | Troubleshooting | `troubleshooting/SKILL.md` |
+| Harden Apex CRUD/FLS (USER_MODE) + permission-set self-sufficiency | Apex Security Hardening | `apex-security-hardening/SKILL.md` |
+| Process PR reviews / run the pre-merge audit (completeness sweeps) | Audit Review | `audit-review/SKILL.md` |
 | Author/update enablement exercises | Release Enablement | `release-enablement/SKILL.md` |
 | Generate the QuantumBit demo-script canvas (per-release) | QB Demo Script Generator | `qb-demo-script/SKILL.md` |
 | Ground claims against Salesforce Help | Revenue Cloud Docs | `revenue-cloud-docs/SKILL.md` |

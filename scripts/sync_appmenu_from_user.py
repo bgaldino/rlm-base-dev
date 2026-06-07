@@ -8,9 +8,12 @@ personalized in the App Launcher). This script:
   2. Maps each ApplicationId to (name, type) via AppMenuItem
   3. Writes templates/appMenus/base/AppSwitcher.appMenu-meta.xml
 
-No deploy is performed. Run assemble_and_deploy_ux (or prepare_ux) after syncing to
-deploy the updated template. Target orgs must have the same apps or the file may need
-trimming for that org.
+No deploy is performed — this writes a versioned reference snapshot. Note that
+reorder_app_launcher does NOT read this template: it applies an order built from live
+AppMenuItem records and its priority_app_labels option (see the task description), via
+the Aura AppLauncherController/saveOrder API. assemble_and_deploy_ux does not handle
+appMenus either. Use this snapshot to review the current order or to inform the
+priority_app_labels list.
 
 Run with default org set:
   python scripts/sync_appmenu_from_user.py
@@ -136,8 +139,12 @@ def main() -> int:
     lines.append("</AppMenu>")
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    print(f"Wrote {len(ordered_entries)} app menu items to {out_path}.")
-    print("Run 'cci task run assemble_and_deploy_ux --org <alias>' to deploy the updated template.")
+    print(f"Wrote {len(ordered_entries)} app menu items to {out_path} (reference snapshot; not deployed).")
+    print(
+        "To apply an App Launcher order to an org, run 'cci task run reorder_app_launcher --org <alias>' "
+        "(or 'cci flow run prepare_ux --org <alias>'), which orders the launcher from its priority_app_labels "
+        "option via Aura saveOrder — this snapshot is a reference, not an input to that task."
+    )
     return 0
 
 
