@@ -343,29 +343,30 @@ Defined as a YAML anchor but not assigned in any standard flow. Available for or
 
 ## Assignment Order in `prepare_rlm_org`
 
-The following table shows the sequence of all permission-related steps across the full `prepare_rlm_org` flow. Step numbers use `X.Y` notation where X is the `prepare_rlm_org` step and Y is the sub-flow step.
+The following table shows the sequence of all permission-related steps across the full `prepare_rlm_org` flow. Step numbers use `X.Y(.Z)` notation: X is the `prepare_rlm_org` step, Y is the step within that sub-flow, and Z is the step within a further-nested sub-flow (e.g. `assign_feature_psls` / `assign_feature_permission_sets` inside `prepare_core`, or `prepare_approvals` inside `prepare_quantumbit`).
 
 | Step | Flow/Task | What is Assigned | Condition |
 |---|---|---|---|
-| 1.2 | `prepare_core` | Core RLM PSLs (25) | Always |
-| 1.5 | `prepare_core` | Deploy PSG metadata (`deploy_pre`) | Always |
-| 1.7 | `prepare_core` | CLM PSLs (11) | `clm` |
-| 1.8 | `prepare_core` | Einstein AI PSLs (3) | `einstein` |
-| 1.10 | `prepare_core` | `EinsteinAnalyticsPlusPsl` | Always |
-| 1.11 | `prepare_core` | Recalculate 11 core PSGs | Always |
-| 1.12 | `prepare_core` | Assign 11 core PSGs | Always |
-| 1.13 | `prepare_core` | PCM permission sets (4) | `tso` + `psg_debug` |
-| 1.19 | `prepare_core` | `EinsteinGPTPromptTemplateManager`, `SalesCloudEinsteinAll` | `einstein` |
-| 1.20 | `prepare_core` | Billing permission sets (10) | `billing` + `psg_debug` |
+| 1.3 | `prepare_core` | Core RLM PSLs (25) | Always |
+| 1.6 | `prepare_core` | Deploy PSG metadata (`deploy_pre`) | Always |
+| 1.8.1 | `prepare_core` > `assign_feature_psls` | CLM PSLs (11) | `clm` |
+| 1.8.2 | `prepare_core` > `assign_feature_psls` | Einstein AI PSLs (3) | `einstein` |
+| 1.8.3 | `prepare_core` > `assign_feature_psls` | `EinsteinAnalyticsPlusPsl` | Always |
+| 1.8.4 | `prepare_core` > `assign_feature_psls` | TSO PSLs (23) | `tso` |
+| 1.9 | `prepare_core` | Recalculate 11 core PSGs | Always |
+| 1.10 | `prepare_core` | Assign 11 core PSGs | Always |
+| 1.12 | `prepare_core` | `RLM_TSO` PSG | `tso` |
+| 1.16.1 | `prepare_core` > `assign_feature_permission_sets` | PCM permission sets (4) | `tso` + `psg_debug` |
+| 1.16.2 | `prepare_core` > `assign_feature_permission_sets` | `EinsteinGPTPromptTemplateManager` | `einstein` |
+| 1.16.3 | `prepare_core` > `assign_feature_permission_sets` | `SalesCloudEinsteinAll` | `einstein` (non-Developer Edition) |
+| 1.16.4 | `prepare_core` > `assign_feature_permission_sets` | Billing permission sets (10) | `billing` + `psg_debug` |
 | 7.2.3 | `prepare_quantumbit` > `prepare_approvals` | `RLM_Approvals` | `quantumbit` + `approvals` |
 | 7.4 | `prepare_quantumbit` | `RLM_QuantumBit` | `quantumbit` |
 | 7.5 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
 | 10.10 | `prepare_docgen` | `RLM_DocGen` | `docgen` |
-| 18.1 | `prepare_tso` | TSO PSLs (23) | `tso` |
-| 18.2 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
-| 18.5 | `prepare_tso` | TSO permission sets (4) | `tso` |
-| 18.6 | `prepare_tso` | `RLM_TSO` PSG | `tso` |
-| 20.8 | `prepare_prm` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
+| 18.1 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
+| 18.4 | `prepare_tso` | TSO permission sets (4) | `tso` |
+| 20.7 | `prepare_prm` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
 | 21.1 | `prepare_agents` | Copilot PSGs (2) | `agents` |
 | 21.4 | `prepare_agents` | `RLM_QuotingAgent` | `agents` |
 | 22.3 | `prepare_constraints` | `RLM_Constraints` | `tso` + `constraints` |
