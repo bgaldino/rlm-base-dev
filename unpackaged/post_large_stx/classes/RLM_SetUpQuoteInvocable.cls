@@ -837,7 +837,7 @@ public with sharing class RLM_SetUpQuoteInvocable {
             putIfNotBlank(out, 'ShippingCountry', a.ShippingCountry);
         }
         for (Contact c : [
-            SELECT Email, Phone FROM Contact WHERE AccountId = :acctId WITH USER_MODE ORDER BY CreatedDate ASC LIMIT 1
+            SELECT Id, Email, Phone FROM Contact WHERE AccountId = :acctId WITH USER_MODE ORDER BY CreatedDate ASC LIMIT 1
         ]) {
             out.put('BillToContactId', c.Id);
             out.put('ContactId', c.Id);
