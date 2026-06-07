@@ -10,7 +10,7 @@
                             <value>BrowseCatalog</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RLM_Create_Ramp_Schedule_V4</value>
+                            <value>CreateRampSchedule</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Quote.RLM_Create_Proposal</value>
@@ -76,6 +76,10 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>hideChatterActions</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>hideSlackAction</name>
                     <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>

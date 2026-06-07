@@ -1,13 +1,249 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>RLM_PreProcessOrderController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_SetUpQuoteInvocable</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_SetUpQuoteLinePreview</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <!-- Object CRUD the feature exercises in user mode (WITH USER_MODE / as user).
+         Non-permissionable fields (Status, Name, lookups, Quantity, UnitPrice…)
+         are governed by these object grants; only permissionable fields get FLS.
+         NOTE: OrderItem, QuoteLineGroup, and QuoteLineItem are intentionally NOT
+         listed. Their CRUD is parent-controlled — OrderItem follows Order, and
+         QuoteLineGroup/QuoteLineItem are master-detail children of Quote
+         (QuoteId, relationshipOrder=0). The platform silently ignores independent
+         objectPermissions on these children, so Order R/E and Quote R/E below
+         grant the create/edit/delete the feature performs on them. FLS on their
+         permissionable fields IS independently settable and is granted below. -->
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Order</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Quote</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <!-- Required dependency of Quote read (Quote relates to Opportunity). -->
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Opportunity</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>BillingTreatment</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <!-- Repeat-buy line preview traverses Product2.Name / Product2.ProductCode
+             in a WITH USER_MODE query (getRepeatBuyLines). -->
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Product2</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>AsyncOperationTracker</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>RevenueTransactionErrorLog</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <!-- Read in applyBillingHeaderDefaults (WITH USER_MODE) to copy billing/shipping
+             address onto a new quote header. -->
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Account</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <!-- Read in applyBillingHeaderDefaults (WITH USER_MODE) for the bill-to contact. -->
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Contact</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <!-- Read in resolvePstPrefs (WITH USER_MODE) to resolve the pricing/tax permutation. -->
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>TransactionProcessingType</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
     <fieldPermissions>
         <editable>true</editable>
         <field>Order.IsLargeDeal</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <!-- System-managed preprocessing bitmask (read-only); surfaced in System Information. -->
+        <editable>false</editable>
+        <field>Order.PreprocessingStatus</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- Formula field (read-only); gates the Prepare for Activation action. -->
+        <editable>false</editable>
+        <field>Order.RLM_Preprocessing_Complete__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- Read in getPricingStatus/enqueuePreprocess to confirm the large-deal
+             reprice committed before enqueueing preprocess (read-only platform field). -->
+        <editable>false</editable>
+        <field>Order.CalculationStatus</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- The authoritative "prices current" gate: preprocess rejects while this
+             is non-null. Read in getPricingStatus/enqueuePreprocess (read-only). -->
+        <editable>false</editable>
+        <field>Order.ValidationResult</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- Stamped onto large-deal order items so billing-treatment resolution no-ops. -->
+        <editable>true</editable>
+        <field>OrderItem.BillingTreatmentId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>true</editable>
         <field>Quote.IsLargeDeal</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- NO editable FLS for Quote *header* fields the wizard stamps on create
+         (StartDate, ExpirationDate, TransactionType, RLM_TermMonths__c, QuoteAccountId,
+         BillToContactId, ContactId, Email, Phone, Billing/Shipping address). Those are written
+         ONLY through the PlaceSalesTransaction graph save (RevSalesTrxn.PlaceSalesTransactionExecutor
+         .execute in RLM_SetUpQuoteInvocable), which persists in SYSTEM mode — core wraps the DML in
+         pushFullAccessRights() (PSTContextFlushPipeline, W-21338578), and the header save uses
+         createWithNoCommitAsDevInternal(). The caller's FLS/CRUD is NOT enforced on those writes
+         (the only gate is the coreCPQUser user-perm), so granting editable FLS here would be a
+         least-privilege over-grant. That is also why Quote.QuoteAccountId below is read-only despite
+         being graph-written. Only fields written via direct "as user" DML (Quote.IsLargeDeal above)
+         or read via WITH USER_MODE SOQL get FLS. The permissionable line-item fields written by the
+         wizard's direct "insert as user" path DO get editable FLS (QuoteLineItem.* below);
+         QuoteLineItem/QuoteLineGroup lookups + Quantity/UnitPrice + Name are non-permissionable. -->
+    <!-- Quote header fields read in user-mode wizard queries (modify/repeat-buy/status). -->
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Quote.Status</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Quote.CalculationStatus</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Quote.AccountId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Quote.QuoteAccountId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Account billing/shipping address are standard compound-address components
+         (not perm-set FLS-settable); the Account object read grant covers them. -->
+    <!-- Contact bill-to fields read in applyBillingHeaderDefaults (user-mode). -->
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Contact.Email</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Contact.Phone</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Contact.AccountId</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- Subscription line dates set when seeding group-count quote lines. -->
+        <editable>true</editable>
+        <field>QuoteLineItem.StartDate</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.EndDate</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.PeriodBoundary</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>QuoteLineItem.BillingFrequency</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- Read in the repeat-buy line preview (getRepeatBuyLines, WITH USER_MODE). -->
+        <editable>false</editable>
+        <field>QuoteLineItem.TotalPrice</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- Read in the repeat-buy line query. -->
+        <editable>false</editable>
+        <field>Product2.ProductCode</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>

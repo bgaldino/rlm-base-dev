@@ -1,0 +1,71 @@
+<template>
+  <div class="slds-p-around_medium">
+    <template if:true={loading}>
+      <div class="slds-align_absolute-center slds-p-vertical_medium">
+        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+      </div>
+    </template>
+
+    <template if:false={loading}>
+      <template if:true={message}>
+        <div class={messageClass} role="status" aria-live="polite">
+          {message}
+        </div>
+      </template>
+
+      <dl class="slds-list_horizontal slds-wrap slds-m-bottom_small">
+        <dt class="slds-item_label slds-text-color_weak slds-truncate">Order</dt>
+        <dd class="slds-item_detail slds-truncate">{orderNumber}</dd>
+        <dt class="slds-item_label slds-text-color_weak slds-truncate">Order status</dt>
+        <dd class="slds-item_detail slds-truncate">{orderStatus}</dd>
+        <dt class="slds-item_label slds-text-color_weak slds-truncate">Preprocessing</dt>
+        <dd class="slds-item_detail slds-truncate">{statusBadge}</dd>
+      </dl>
+
+      <template if:true={showPrepareButton}>
+        <lightning-input
+          type="checkbox"
+          label="Activate automatically when ready"
+          checked={autoActivate}
+          onchange={handleAutoActivateChange}
+          field-level-help="The job runs asynchronously. Auto-activate only works if you keep this window open until it completes; otherwise, reopen the action and click Activate."
+          class="slds-m-bottom_small"
+        ></lightning-input>
+      </template>
+
+      <template if:true={running}>
+        <div class="slds-align_absolute-center slds-p-vertical_small">
+          <lightning-spinner alternative-text="Working" size="small"></lightning-spinner>
+        </div>
+        <template if:true={progressText}>
+          <p class="slds-text-body_small slds-text-align_center slds-text-color_weak">
+            {progressText}
+          </p>
+        </template>
+      </template>
+    </template>
+  </div>
+
+  <footer class="slds-modal__footer slds-p-around_small slds-text-align_right">
+    <lightning-button
+      label="Close"
+      onclick={handleClose}
+      class="slds-m-right_x-small"
+    ></lightning-button>
+    <template if:true={showPrepareButton}>
+      <lightning-button
+        variant="brand"
+        label="Prepare for Activation"
+        onclick={handlePrepare}
+        disabled={prepareDisabled}
+      ></lightning-button>
+    </template>
+    <template if:true={showActivateButton}>
+      <lightning-button
+        variant="brand"
+        label="Activate Order"
+        onclick={handleActivate}
+      ></lightning-button>
+    </template>
+  </footer>
+</template>

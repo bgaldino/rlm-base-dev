@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-05-22T23:15:08.665246Z",
+  "assembled_at": "2026-06-06T20:02:26.268344Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -406,27 +406,7 @@
         {
           "feature": "ramp_builder",
           "patch_type": "insert_action",
-          "description": "insert actions: Quote.RLM_Create_Ramp_Schedule_V4, Quote.RLM_Create_Proposal"
-        },
-        {
-          "feature": "ramp_builder",
-          "patch_type": "insert_action",
-          "description": "insert actions: Quote.RLM_Submit_for_Approval"
-        },
-        {
-          "feature": "ramp_builder",
-          "patch_type": "add_display_field",
-          "description": "add display field: QuoteLineItem.RLM_Approval__c"
-        },
-        {
-          "feature": "ramp_builder",
-          "patch_type": "add_facet_field",
-          "description": "add fields to Quote Information: RLM_Approval_Status__c, RLM_Payment_Terms__c"
-        },
-        {
-          "feature": "ramp_builder",
-          "patch_type": "add_facet_field",
-          "description": "add fields to System Information: RLM_Approval_Level__c"
+          "description": "insert actions: Quote.RLM_Create_Proposal"
         },
         {
           "feature": "personas",

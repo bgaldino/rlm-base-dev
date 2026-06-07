@@ -143,6 +143,17 @@
                                 </template>
                             </template>
                         </template>
+                        <template if:true={showTransactionTypeSelector}>
+                            <lightning-combobox
+                                data-step="transaction-type"
+                                class="slds-m-top_medium"
+                                label="Pricing & tax handling"
+                                value={transactionType}
+                                options={transactionTypeOptions}
+                                onchange={handleTransactionTypeChange}
+                                field-level-help="Controls how the quote is priced and taxed (Place Sales Transaction processing type)."
+                            ></lightning-combobox>
+                        </template>
                     </div>
                 </template>
 

@@ -111,15 +111,28 @@ jobs:
           sf org login sfdx-url --sfdx-url-file /tmp/sfdx-auth-url.txt --set-default-dev-hub --alias devhub
           rm /tmp/sfdx-auth-url.txt
 
+      # SF_TEMP_SHOW_SECRETS is scoped to ONLY the steps where CumulusCI reads a
+      # scratch-org access token via `sf org display --json`. The May 2026 CLI
+      # change (forcedotcom/cli#3560) redacts tokens, so CCI reads "[REDACTED]"
+      # and fails with INVALID_AUTH_HEADER on scratch creation / org info / the
+      # flow's REST calls. Temporary shim (Salesforce removes it in Summer '26
+      # once CCI uses `sf org auth show-access-token`); kept OFF the checkout /
+      # build / setup steps so a token can't leak from unrelated JSON. Mirrors `.envrc`.
       - name: Create scratch org
+        env:
+          SF_TEMP_SHOW_SECRETS: "true"
         run: |
           cci org scratch "$SCRATCH_CONFIG" "$ORG_ALIAS" --default
 
       - name: Run prepare_rlm_org
+        env:
+          SF_TEMP_SHOW_SECRETS: "true"  # CCI reads the scratch token for REST throughout the flow
         run: |
           cci flow run prepare_rlm_org --org "$ORG_ALIAS"
 
       - name: Delete scratch org
         if: always()
+        env:
+          SF_TEMP_SHOW_SECRETS: "true"  # CCI reads org info to delete the scratch
         run: |
           cci org scratch_delete "$ORG_ALIAS" || true
