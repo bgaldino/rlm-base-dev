@@ -2,6 +2,8 @@
   "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
   "edition": "enterprise",
+  "language": "en_US",
+  "hasSampleData": false,
   "features": [
     "B2BCommerce",
     "BillingAdvanced",
@@ -152,6 +154,9 @@
       "persistChunkSizeOverride": true,
       "relaxUniqueCipValidation": true,
       "skipOrgSttPricing": false
+    },
+    "connectedAppSettings": {
+      "skipAuthorizationForApps": true
     },
     "securitySettings": {
       "enableAdminLoginAsAnyUser": true,
