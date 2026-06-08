@@ -6,6 +6,7 @@
   "language": "en_US",
   "hasSampleData": false,
   "features": [
+    "ActionableEventOrchestration",
     "B2BCommerce",
     "BillingAdvanced",
     "CGAnalytics",

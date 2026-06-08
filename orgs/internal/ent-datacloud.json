@@ -3,6 +3,7 @@
   "country": "US",
   "edition": "enterprise",
   "features": [
+    "ActionableEventOrchestration",
     "B2BCommerce",
     "BillingAdvanced",
     "CGAnalytics",
