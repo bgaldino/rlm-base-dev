@@ -109,7 +109,7 @@ class ExtendStandardContext(SFDXBaseTask):
         # POST is NOT idempotent — don't retry it. If the network drops after
         # the server processes the request, retrying would create a duplicate.
         response = self._make_request("post", url, headers=headers, json=payload, retryable=False)
-        if response:
+        if response is not None:
             self.context_id = response.get("contextDefinitionId")
         else:
             # Network likely dropped after server-side creation succeeded.
@@ -135,7 +135,7 @@ class ExtendStandardContext(SFDXBaseTask):
         url, headers = self._build_url_and_headers("connect/context-definitions")
         for attempt in range(1, _MAX_RETRIES + 1):
             response = self._make_request("get", url, headers=headers)
-            if response:
+            if response is not None:
                 for ctx_def in response.get("contextDefinitions", []):
                     if ctx_def.get("developerName") == developer_name:
                         self.logger.info(f"      Recovered context definition from org.")
@@ -156,7 +156,7 @@ class ExtendStandardContext(SFDXBaseTask):
             f"connect/context-definitions/{self.context_id}"
         )
         response = self._make_request("get", url, headers=headers)
-        if response:
+        if response is not None:
             version_list = response.get("contextDefinitionVersionList", [])
             self.logger.info(f"      Found {len(version_list)} version(s)")
             if version_list:
@@ -257,7 +257,7 @@ class ExtendStandardContext(SFDXBaseTask):
             f"connect/context-definitions/{self.context_id}"
         )
         response = self._make_request("get", url, headers=headers)
-        if not response:
+        if response is None:
             return []
         versions = response.get("contextDefinitionVersionList", [])
         if not versions:
