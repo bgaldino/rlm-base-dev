@@ -51,14 +51,18 @@ class CleanupSettingsForDev(BaseTask):
             org_features = self._read_org_features(org_config_file)
             self.logger.info(f"Detected {len(org_features)} features in org definition")
         else:
-            # Fallback: use ent.json (max feature set) to conservatively preserve
-            # settings rather than incorrectly removing supported ones.
+            # Fallback (scratch orgs only): use ent.json (max feature set) to
+            # conservatively preserve settings rather than incorrectly removing
+            # supported ones. Non-scratch orgs without a config_file get no
+            # feature detection — cleanup proceeds without feature context.
             try:
-                if hasattr(self, 'org_config') and hasattr(self.org_config, 'username') and self.org_config.username:
+                if (hasattr(self, 'org_config')
+                        and getattr(self.org_config, 'scratch', False)
+                        and self.org_config.username):
                     ent_config = Path.cwd() / "orgs" / "ent.json"
                     if ent_config.exists():
                         org_features = self._read_org_features(str(ent_config))
-                        self.logger.info(f"Detected {len(org_features)} features from ent.json (fallback)")
+                        self.logger.info(f"Detected {len(org_features)} features from ent.json (scratch org fallback)")
             except Exception as e:
                 self.logger.debug(f"Could not use fallback config detection: {e}")
         
