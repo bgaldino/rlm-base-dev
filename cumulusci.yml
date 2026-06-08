@@ -17,10 +17,10 @@ orgs:
       config_file: orgs/dev.json
       days: 30
     dev-r1:
-      config_file: orgs/dev-r1.json
+      config_file: orgs/internal/dev-r1.json
       days: 30
     dev-sb0:
-      config_file: orgs/dev-sb0.json
+      config_file: orgs/internal/dev-sb0.json
       days: 30
     dev-sdb9:
       config_file: orgs/internal/dev-sdb9.json
@@ -50,13 +50,13 @@ orgs:
       config_file: orgs/ent.json
       days: 30
     ent-r1:
-      config_file: orgs/ent-r1.json
+      config_file: orgs/internal/ent-r1.json
       days: 30
     ent-sb0:
-      config_file: orgs/ent-sb0.json
+      config_file: orgs/internal/ent-sb0.json
       days: 30
     test-sb0:
-      config_file: orgs/test-sb0.json
+      config_file: orgs/internal/test-sb0.json
       days: 30
     tfid:
       config_file: orgs/tfid/tfid.json
