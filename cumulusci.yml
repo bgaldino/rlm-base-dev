@@ -73,9 +73,6 @@ orgs:
     tfid-dev:
       config_file: orgs/tfid/tfid-dev.json
       days: 30
-    tfid-enable:
-      config_file: orgs/tfid/tfid-enable.json
-      days: 30
 
 # Project configuration settings
 # Defines the project name, package details, and source format
