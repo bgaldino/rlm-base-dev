@@ -96,7 +96,7 @@ class ExtendStandardContext(SFDXBaseTask):
     def _extend_context_definition(self):
         developer_name = self.options.get("developerName")
         self.logger.info(f"[1/4] Creating context definition: {developer_name}...")
-        self.logger.info("      (this API call may take up to 5 minutes on some org types — please wait)")
+        self.logger.info("      (this API call may take 5-10 minutes on some org types — please wait)")
         url, headers = self._build_url_and_headers("connect/context-definitions")
         payload = {
             "name": self.options.get("name"),
