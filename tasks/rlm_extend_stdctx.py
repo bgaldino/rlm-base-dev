@@ -123,9 +123,9 @@ class ExtendStandardContext(SFDXBaseTask):
             self.logger.info(f"      Context Definition ID: {self.context_id}")
             self._process_context_id()
         else:
-            self.logger.error(
-                f"      Could not obtain context definition ID for '{developer_name}'. "
-                f"The creation may have failed — check the org manually."
+            raise RuntimeError(
+                f"Could not obtain context definition ID for '{developer_name}' "
+                f"after creation and recovery attempts. The org may need manual inspection."
             )
 
     def _recover_context_id(self, developer_name):
@@ -138,7 +138,8 @@ class ExtendStandardContext(SFDXBaseTask):
             f"connect/context-definitions/{developer_name}"
         )
         for attempt in range(1, _MAX_RETRIES + 1):
-            response = self._make_request("get", url, headers=headers)
+            # Disable _make_request's own retries — this loop owns the backoff
+            response = self._make_request("get", url, headers=headers, retryable=False)
             if response is not None:
                 # The API returns isSuccess:false for unknown definitions
                 if response.get("isSuccess") is not False:
