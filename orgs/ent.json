@@ -155,9 +155,6 @@
       "relaxUniqueCipValidation": true,
       "skipOrgSttPricing": false
     },
-    "connectedAppSettings": {
-      "skipAuthorizationForApps": true
-    },
     "securitySettings": {
       "enableAdminLoginAsAnyUser": true,
       "sessionSettings": {
