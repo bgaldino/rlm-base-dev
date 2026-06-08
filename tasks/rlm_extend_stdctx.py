@@ -110,22 +110,30 @@ class ExtendStandardContext(SFDXBaseTask):
         # If the network drops after the server processes the request, we recover
         # the context definition ID by querying the org (see _recover_context_id).
         self.context_id = None
-        self._last_request_failure = None
+        self._last_response_status = None
+        self._last_response_body = None
         response = self._make_request("post", url, headers=headers, json=payload)
         if response is not None:
             self.context_id = response.get("contextDefinitionId")
-        # Determine how to handle failure based on failure mode:
-        # - api_error: Salesforce explicitly rejected (e.g. base context not available).
-        #   This is not recoverable — warn and return gracefully.
-        # - network_error: connection dropped, server may have processed the request.
-        #   Attempt recovery by querying the org.
+        # Determine how to handle failure:
+        # - UNKNOWN_EXCEPTION = base context definition not available in this org.
+        #   This is expected for optional contexts (e.g. Contracts when CLM feature
+        #   is not fully enabled). Skip gracefully.
+        # - Other API errors (401, 403, 400, etc.) = fail loudly.
+        # - Network error (no response status) = attempt recovery by querying org.
         if not self.context_id:
-            if self._last_request_failure == "api_error":
+            if self._last_response_status is not None and self._is_missing_base_context_error():
                 self.logger.warning(
-                    f"      Salesforce rejected the request for '{developer_name}'. "
-                    f"The base context definition may not be available in this org. Skipping."
+                    f"      Base context definition not available for '{developer_name}'. "
+                    f"Skipping — the required feature may not be enabled in this org."
                 )
                 return
+            if self._last_response_status is not None:
+                # Non-recoverable API error (auth, validation, etc.) — fail loudly
+                raise RuntimeError(
+                    f"Salesforce API error creating context definition '{developer_name}': "
+                    f"HTTP {self._last_response_status} — {self._last_response_body[:300]}"
+                )
             # Network failure or missing ID in response — attempt recovery
             self.logger.warning(
                 f"      contextDefinitionId not in response — attempting to recover by developerName..."
@@ -139,6 +147,24 @@ class ExtendStandardContext(SFDXBaseTask):
                 f"Could not obtain context definition ID for '{developer_name}' "
                 f"after creation and recovery attempts. The org may need manual inspection."
             )
+
+    def _is_missing_base_context_error(self):
+        """Check if the last API error indicates the base context is unavailable.
+
+        Salesforce returns UNKNOWN_EXCEPTION when the base context definition
+        referenced by baseReference does not exist in the org (feature not enabled).
+        """
+        if not self._last_response_body:
+            return False
+        try:
+            errors = json.loads(self._last_response_body)
+            if isinstance(errors, list):
+                return any(
+                    e.get("errorCode") == "UNKNOWN_EXCEPTION" for e in errors
+                )
+        except (ValueError, TypeError):
+            pass
+        return False
 
     def _recover_context_id(self, developer_name):
         """Query the org for an existing context definition by developerName."""
@@ -381,7 +407,8 @@ class ExtendStandardContext(SFDXBaseTask):
                 self.logger.error(
                     f"Failed {method.upper()} request to {url}: {response.text}"
                 )
-                self._last_request_failure = "api_error"
+                self._last_response_status = response.status_code
+                self._last_response_body = response.text
                 return None
             except (ConnectionError, Timeout, ChunkedEncodingError, OSError) as exc:
                 last_exc = exc
@@ -396,7 +423,8 @@ class ExtendStandardContext(SFDXBaseTask):
                     self.logger.error(
                         f"Failed {method.upper()} request to {url} after {max_attempts} attempt(s): {last_exc}"
                     )
-                    self._last_request_failure = "network_error"
+                    self._last_response_status = None
+                    self._last_response_body = None
         return None
 
     # Abstract method to get the keychain class, needs to be implemented by subclasses
