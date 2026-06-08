@@ -25,10 +25,10 @@
     "OrderSaveLogicEnabled",
     "PartnerCommunity",
     "RevenueIntelligence",
-    "SalesforceHostedMCP",
     "SalesCloudEinstein",
-    "ServiceCloud",
+    "SalesforceHostedMCP",
     "Scrt2Conversation",
+    "ServiceCloud",
     "UsageManagement",
     "UnifiedCatalog"
   ],

@@ -44,7 +44,7 @@ fi
 
 echo ""
 echo "========================================="
-echo "Test 2: Dev Enhanced Org (Full Features)"
+echo "Test 2: Enterprise Enhanced Org (Full Features)"
 echo "========================================="
 echo "Expected: Cleanup should SKIP or have fewer removals"
 echo ""
