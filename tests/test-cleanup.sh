@@ -3,9 +3,9 @@
 # Test script for cleanup task conditional execution
 # This script tests both scenarios:
 # 1. Dev org (minimal features) - cleanup should run
-# 2. Enterprise org (full features) - cleanup should be skipped or have fewer removals
+# 2. Enterprise org (full features) - cleanup should have fewer removals
 
-set -e
+set -eo pipefail
 
 ORG_ALIAS_DEV="test-cleanup-dev"
 ORG_ALIAS_ENT="test-cleanup-ent"
@@ -32,7 +32,8 @@ echo "Creating dev scratch org with alias: $ORG_ALIAS_DEV"
 cci org scratch dev "$ORG_ALIAS_DEV" --days 1
 
 echo "Running prepare_rlm_org flow (up to cleanup step)..."
-cci flow run prepare_rlm_org --org "$ORG_ALIAS_DEV" 2>&1 | tee "$LOG_FILE" | grep -E "(cleanup|Removed|Skipping|Success|Failed)" || true
+cci flow run prepare_rlm_org --org "$ORG_ALIAS_DEV" 2>&1 | tee "$LOG_FILE"
+grep -E "(cleanup|Removed|Skipping|Success|Failed)" "$LOG_FILE" || true
 
 echo ""
 echo "Checking what was removed in dev org..."
@@ -54,7 +55,8 @@ cci org scratch ent "$ORG_ALIAS_ENT" --days 1
 
 LOG_FILE_ENT="cleanup-test-ent.log"
 echo "Running prepare_rlm_org flow (up to cleanup step)..."
-cci flow run prepare_rlm_org --org "$ORG_ALIAS_ENT" 2>&1 | tee "$LOG_FILE_ENT" | grep -E "(cleanup|Removed|Skipping|Success|Failed)" || true
+cci flow run prepare_rlm_org --org "$ORG_ALIAS_ENT" 2>&1 | tee "$LOG_FILE_ENT"
+grep -E "(cleanup|Removed|Skipping|Success|Failed)" "$LOG_FILE_ENT" || true
 
 echo ""
 echo "Checking cleanup behavior in enterprise org..."
