@@ -2,7 +2,10 @@
   "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
   "edition": "enterprise",
+  "language": "en_US",
+  "hasSampleData": false,
   "features": [
+    "ActionableEventOrchestration",
     "B2BCommerce",
     "BillingAdvanced",
     "CGAnalytics",
@@ -13,18 +16,22 @@
     "CustomerCommunityPlus",
     "DocGen",
     "Einstein1AIPlatform",
+    "EmbeddedServiceMessaging",
     "EnablePRM",
     "EnableSetPasswordInApi",
     "ExternalClientApps",
+    "GlobalPromotionsMgmtBasic",
     "InsightsPlatform",
     "OrderManagement",
     "OrderSaveLogicEnabled",
     "PartnerCommunity",
     "RevenueIntelligence",
     "SalesCloudEinstein",
+    "SalesforceHostedMCP",
+    "Scrt2Conversation",
     "ServiceCloud",
-    "UsageManagement",
-    "UnifiedCatalog"
+    "UnifiedCatalog",
+    "UsageManagement"
   ],
   "settings": {
     "agentPlatformSettings": {

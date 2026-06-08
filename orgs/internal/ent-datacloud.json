@@ -2,8 +2,10 @@
   "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
   "edition": "enterprise",
-  "instance": "SDB9",
+  "language": "en_US",
+  "hasSampleData": false,
   "features": [
+    "ActionableEventOrchestration",
     "B2BCommerce",
     "BillingAdvanced",
     "CGAnalytics",
@@ -12,27 +14,28 @@
     "ContractsAI",
     "CoreCpq",
     "CustomerCommunityPlus",
+    "CustomerDataPlatform",
+    "CustomerDataPlatformLite",
     "DocGen",
     "Einstein1AIPlatform",
     "EmbeddedServiceMessaging",
     "EnablePRM",
     "EnableSetPasswordInApi",
     "ExternalClientApps",
+    "GlobalPromotionsMgmtBasic",
     "InsightsPlatform",
     "OrderManagement",
     "OrderSaveLogicEnabled",
     "PartnerCommunity",
     "RevenueIntelligence",
     "SalesCloudEinstein",
-    "ServiceCloud",
+    "SalesforceHostedMCP",
     "Scrt2Conversation",
-    "UsageManagement",
-    "UnifiedCatalog"
+    "ServiceCloud",
+    "UnifiedCatalog",
+    "UsageManagement"
   ],
   "settings": {
-    "agentPlatformSettings": {
-      "enableAgentPlatform": true
-    },
     "billingSettings": {
       "enableBillingSetup": true
     },
@@ -41,6 +44,9 @@
     },
     "currencySettings": {
       "enableMultiCurrency": true
+    },
+    "customerDataPlatformSettings": {
+      "enableCustomerDataPlatform": true
     },
     "dynamicFulfillmentOrchestratorSettings": {
       "enableDFOPref": true
@@ -57,29 +63,6 @@
     "industriesContextSettings": {
       "enableContextDefinitions": true
     },
-    "industriesSettings": {
-      "enableAIAccelerator": true,
-      "enableAccountScoreEnabled": false,
-      "enableContractMgmtPref": true,
-      "enableContractSearchPref": true,
-      "enableContractsAIPref": true,
-      "enableDataTrueUpPreference": true,
-      "enableDiscoveryFrameworkMetadata": true,
-      "enableDontSharePartyprofWPortalOrgPref": false,
-      "enableEnhancedQuestionCreation": true,
-      "enableEpcDeleteAccess": false,
-      "enableIndustriesAssessment": true,
-      "enableIndustriesAssessmentPrefill": false,
-      "enableIndustriesIntegrationOrchestratorPref": false,
-      "enableMicrosoftWordAddInEnabled": true,
-      "enableNewTimelineSetupFlow": true,
-      "enablePCMConfigRules": false,
-      "enablePartyProfileParentSharingOrgPref": false,
-      "enablePartyprofParentMultiSharingOrgPref": false,
-      "enableTimelinePref": true,
-      "partyProfMultiShrPrtnrsOrgPref": false,
-      "rlaEditIfAccHasEdit": false
-    },
     "industriesPricingSettings": {
       "enableHighAvailability": true,
       "enablePricingWaterfall": true,
@@ -93,15 +76,6 @@
     },
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
-    },
-    "omniStudioSettings": {
-      "enableOaEventInternalWrites": true,
-      "enableOaEventNotifications": true,
-      "enableOaForCore": true,
-      "enableOmniReplaceFileBasedApex": true,
-      "enableOmniStudioDrVersion": false,
-      "enableOmniStudioMetadata": true,
-      "enableStandardOmniStudioRuntime": true
     },
     "omniChannelSettings": {
       "enableOmniChannel": true

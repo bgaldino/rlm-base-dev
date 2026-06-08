@@ -3,7 +3,10 @@
   "country": "US",
   "edition": "enterprise",
   "instance": "USA796",
+  "language": "en_US",
+  "hasSampleData": false,
   "features": [
+    "ActionableEventOrchestration",
     "B2BCommerce",
     "BillingAdvanced",
     "CGAnalytics",
@@ -18,17 +21,18 @@
     "EnablePRM",
     "EnableSetPasswordInApi",
     "ExternalClientApps",
-    "FSCServiceAIAddOn",
+    "GlobalPromotionsMgmtBasic",
     "InsightsPlatform",
     "OrderManagement",
     "OrderSaveLogicEnabled",
     "PartnerCommunity",
     "RevenueIntelligence",
     "SalesCloudEinstein",
-    "ServiceCloud",
+    "SalesforceHostedMCP",
     "Scrt2Conversation",
-    "UsageManagement",
-    "UnifiedCatalog"
+    "ServiceCloud",
+    "UnifiedCatalog",
+    "UsageManagement"
   ],
   "settings": {
     "agentPlatformSettings": {

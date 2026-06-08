@@ -8,7 +8,7 @@ on:
         required: false
         default: "test-org"
       scratch_config:
-        description: "Scratch org config name from orgs/ (e.g. dev, test-sb0)"
+        description: "Scratch org config name from orgs/ (e.g. dev, ent-sb0)"
         required: false
         default: "dev"
   # Label-triggered CI for same-repo PR branches: apply the "ci:prepare-org"
