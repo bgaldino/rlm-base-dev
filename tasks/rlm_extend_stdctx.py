@@ -110,12 +110,23 @@ class ExtendStandardContext(SFDXBaseTask):
         # If the network drops after the server processes the request, we recover
         # the context definition ID by querying the org (see _recover_context_id).
         self.context_id = None
+        self._last_request_failure = None
         response = self._make_request("post", url, headers=headers, json=payload)
         if response is not None:
             self.context_id = response.get("contextDefinitionId")
-        # Recover by querying the org if we didn't get a context ID — covers both
-        # network failures (response is None) and empty/unexpected response bodies.
+        # Determine how to handle failure based on failure mode:
+        # - api_error: Salesforce explicitly rejected (e.g. base context not available).
+        #   This is not recoverable — warn and return gracefully.
+        # - network_error: connection dropped, server may have processed the request.
+        #   Attempt recovery by querying the org.
         if not self.context_id:
+            if self._last_request_failure == "api_error":
+                self.logger.warning(
+                    f"      Salesforce rejected the request for '{developer_name}'. "
+                    f"The base context definition may not be available in this org. Skipping."
+                )
+                return
+            # Network failure or missing ID in response — attempt recovery
             self.logger.warning(
                 f"      contextDefinitionId not in response — attempting to recover by developerName..."
             )
@@ -370,6 +381,7 @@ class ExtendStandardContext(SFDXBaseTask):
                 self.logger.error(
                     f"Failed {method.upper()} request to {url}: {response.text}"
                 )
+                self._last_request_failure = "api_error"
                 return None
             except (ConnectionError, Timeout, ChunkedEncodingError, OSError) as exc:
                 last_exc = exc
@@ -384,6 +396,7 @@ class ExtendStandardContext(SFDXBaseTask):
                     self.logger.error(
                         f"Failed {method.upper()} request to {url} after {max_attempts} attempt(s): {last_exc}"
                     )
+                    self._last_request_failure = "network_error"
         return None
 
     # Abstract method to get the keychain class, needs to be implemented by subclasses
