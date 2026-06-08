@@ -2,7 +2,7 @@
   "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
   "edition": "enterprise",
-  "instance": "SDB9",
+  "instance": "SDB6",
   "features": [
     "B2BCommerce",
     "BillingAdvanced",
@@ -24,6 +24,7 @@
     "PartnerCommunity",
     "RevenueIntelligence",
     "SalesCloudEinstein",
+    "SalesforceHostedMCP",
     "ServiceCloud",
     "Scrt2Conversation",
     "UsageManagement",

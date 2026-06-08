@@ -22,23 +22,23 @@ orgs:
     dev-sb0:
       config_file: orgs/internal/dev-sb0.json
       days: 30
-    dev-sdb9:
-      config_file: orgs/internal/dev-sdb9.json
+    ent-sdb9:
+      config_file: orgs/internal/ent-sdb9.json
       days: 30
-    dev-sdb27:
-      config_file: orgs/internal/dev-sdb27.json
+    ent-sdb27:
+      config_file: orgs/internal/ent-sdb27.json
       days: 30
-    dev-sdb39:
-      config_file: orgs/internal/dev-sdb39.json
+    ent-sdb39:
+      config_file: orgs/internal/ent-sdb39.json
       days: 30
-    dev-sdb6:
-      config_file: orgs/internal/dev-sdb6.json
+    ent-sdb6:
+      config_file: orgs/internal/ent-sdb6.json
       days: 30
-    dev_enhanced:
-      config_file: orgs/internal/dev-enhanced.json
+    ent-enhanced:
+      config_file: orgs/internal/ent-enhanced.json
       days: 30
-    dev_datacloud:
-      config_file: orgs/internal/dev-datacloud.json
+    ent-datacloud:
+      config_file: orgs/internal/ent-datacloud.json
       days: 30
     ent:
       config_file: orgs/ent.json
