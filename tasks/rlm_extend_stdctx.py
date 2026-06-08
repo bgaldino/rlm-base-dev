@@ -109,6 +109,7 @@ class ExtendStandardContext(SFDXBaseTask):
         # POST is NOT idempotent — default retryable=None means no retry for POST.
         # If the network drops after the server processes the request, we recover
         # the context definition ID by querying the org (see _recover_context_id).
+        self.context_id = None
         response = self._make_request("post", url, headers=headers, json=payload)
         if response is not None:
             self.context_id = response.get("contextDefinitionId")
