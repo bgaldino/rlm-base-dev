@@ -346,9 +346,16 @@ class ExtendStandardContext(SFDXBaseTask):
             try:
                 response = requests.request(method, url, **kwargs)
                 if response.ok:
-                    if response.status_code == 204 or not response.text:
+                    if response.status_code == 204 or not response.text.strip():
                         return {}
-                    return response.json()
+                    try:
+                        return response.json()
+                    except ValueError:
+                        self.logger.warning(
+                            f"      Non-JSON response body on {response.status_code}: "
+                            f"{response.text[:200]}"
+                        )
+                        return {}
                 # 5xx = server-side transient; retry if allowed.
                 if response.status_code >= 500 and attempt < max_attempts:
                     wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
