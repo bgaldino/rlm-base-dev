@@ -56,11 +56,11 @@ class CleanupSettingsForDev(BaseTask):
                 if hasattr(self.org_config, 'username'):
                     username = self.org_config.username
                     if 'enhanced' in username.lower():
-                        # Try dev-enhanced.json
-                        enhanced_config = Path.cwd() / "orgs" / "dev-enhanced.json"
+                        # Try ent-enhanced.json
+                        enhanced_config = Path.cwd() / "orgs" / "internal" / "ent-enhanced.json"
                         if enhanced_config.exists():
                             org_features = self._read_org_features(str(enhanced_config))
-                            self.logger.info(f"Detected {len(org_features)} features from dev-enhanced.json (fallback)")
+                            self.logger.info(f"Detected {len(org_features)} features from ent-enhanced.json (fallback)")
             except (AttributeError, Exception) as e:
                 self.logger.debug(f"Could not use fallback config detection: {e}")
         

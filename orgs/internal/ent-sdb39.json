@@ -17,8 +17,8 @@
     "EmbeddedServiceMessaging",
     "EnablePRM",
     "EnableSetPasswordInApi",
-    "FSCServiceAIAddOn",
     "ExternalClientApps",
+    "FSCServiceAIAddOn",
     "InsightsPlatform",
     "OrderManagement",
     "OrderSaveLogicEnabled",
@@ -26,10 +26,10 @@
     "RevenueIntelligence",
     "SalesCloudEinstein",
     "SalesforceHostedMCP",
-    "ServiceCloud",
     "Scrt2Conversation",
-    "UsageManagement",
-    "UnifiedCatalog"
+    "ServiceCloud",
+    "UnifiedCatalog",
+    "UsageManagement"
   ],
   "settings": {
     "agentPlatformSettings": {

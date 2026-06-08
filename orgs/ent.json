@@ -28,8 +28,8 @@
     "SalesforceHostedMCP",
     "Scrt2Conversation",
     "ServiceCloud",
-    "UsageManagement",
-    "UnifiedCatalog"
+    "UnifiedCatalog",
+    "UsageManagement"
   ],
   "settings": {
     "agentPlatformSettings": {

@@ -79,7 +79,7 @@ See Section 1 (Infrastructure) and Section 2 (Scratch Org Definitions) for prere
 - [x] Review all scratch org definition files for 262-incompatible features or settings (no 262-incompatible features found)
 - [x] Verify all `features` entries are still valid in 262 (`prepare_rlm_org` succeeded end-to-end against `rlm-base__ent-sb0`)
 - [x] Check for new 262 features to add (none required — schema delta is purely additive at field level, no new feature flags needed)
-- [x] Update `dev_preview.json` (`"release": "preview"`) — confirm it targets 262 preview pod
+- [x] Update preview org definition (`"release": "preview"`) — confirm it targets 262 preview pod (dev_preview.json removed in org cleanup)
 - [x] Test scratch org creation succeeds against the 262 dev hub (multiple successful `prepare_rlm_org` runs)
 
 ---

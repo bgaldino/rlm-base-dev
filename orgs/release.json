@@ -24,8 +24,8 @@
     "SalesCloudEinstein",
     "SalesforceHostedMCP",
     "ServiceCloud",
-    "UsageManagement",
-    "UnifiedCatalog"
+    "UnifiedCatalog",
+    "UsageManagement"
   ],
   "settings": {
     "agentPlatformSettings": {

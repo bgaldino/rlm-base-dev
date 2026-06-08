@@ -24,10 +24,10 @@
     "PartnerCommunity",
     "RevenueIntelligence",
     "SalesforceHostedMCP",
-    "ServiceCloud",
     "Scrt2Conversation",
-    "UsageManagement",
-    "UnifiedCatalog"
+    "ServiceCloud",
+    "UnifiedCatalog",
+    "UsageManagement"
   ],
   "settings": {
     "agentPlatformSettings": {
