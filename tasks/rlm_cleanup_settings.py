@@ -51,11 +51,10 @@ class CleanupSettingsForDev(BaseTask):
             org_features = self._read_org_features(org_config_file)
             self.logger.info(f"Detected {len(org_features)} features in org definition")
         else:
-            # Fallback: Try to detect based on org name or username
+            # Fallback: use ent.json (max feature set) to conservatively preserve
+            # settings rather than incorrectly removing supported ones.
             try:
-                if hasattr(self.org_config, 'username'):
-                    username = self.org_config.username
-                    # Fallback to standard ent.json for feature detection
+                if hasattr(self.org_config, 'username') and self.org_config.username:
                     ent_config = Path.cwd() / "orgs" / "ent.json"
                     if ent_config.exists():
                         org_features = self._read_org_features(str(ent_config))
