@@ -34,12 +34,6 @@ orgs:
     dev-sdb6:
       config_file: orgs/internal/dev-sdb6.json
       days: 30
-    dev_preview:
-      config_file: orgs/dev_preview.json
-      days: 30
-    dev_previous:
-      config_file: orgs/dev_previous.json
-      days: 30
     dev_enhanced:
       config_file: orgs/dev-enhanced.json
       days: 30
