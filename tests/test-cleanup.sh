@@ -36,7 +36,7 @@ cci flow run prepare_rlm_org --org "$ORG_ALIAS_DEV" 2>&1 | tee -a "$LOG_FILE" | 
 
 echo ""
 echo "Checking what was removed in dev org..."
-if grep -q "Removed" "$LOG_FILE" | tail -5; then
+if grep -q "Removed" "$LOG_FILE"; then
     echo "✅ Cleanup ran - fields/PSLs were removed"
 else
     echo "⚠️  No removals found - check if cleanup ran"
@@ -52,14 +52,15 @@ echo ""
 echo "Creating ent scratch org with alias: $ORG_ALIAS_ENT"
 cci org scratch ent "$ORG_ALIAS_ENT" --days 1
 
+LOG_FILE_ENT="cleanup-test-ent.log"
 echo "Running prepare_rlm_org flow (up to cleanup step)..."
-cci flow run prepare_rlm_org --org "$ORG_ALIAS_ENT" 2>&1 | tee -a "$LOG_FILE" | grep -E "(cleanup|Removed|Skipping|Success|Failed)" || true
+cci flow run prepare_rlm_org --org "$ORG_ALIAS_ENT" 2>&1 | tee "$LOG_FILE_ENT" | grep -E "(cleanup|Removed|Skipping|Success|Failed)" || true
 
 echo ""
 echo "Checking cleanup behavior in enterprise org..."
-if grep -q "Skipping settings cleanup" "$LOG_FILE"; then
+if grep -q "Skipping settings cleanup" "$LOG_FILE_ENT"; then
     echo "✅ Cleanup correctly skipped for enterprise org"
-elif grep -q "Removed" "$LOG_FILE"; then
+elif grep -q "Removed" "$LOG_FILE_ENT"; then
     echo "⚠️  Cleanup still ran - may need to check conditional logic"
 else
     echo "⚠️  Check logs to see cleanup behavior"
@@ -69,7 +70,7 @@ echo ""
 echo "========================================="
 echo "Test Complete"
 echo "========================================="
-echo "Full log saved to: $LOG_FILE"
+echo "Logs saved to: $LOG_FILE (dev), $LOG_FILE_ENT (ent)"
 echo ""
 echo "Note: The cleanup task runs conditionally based on org_config.scratch"
 echo "Both orgs are scratch orgs, so cleanup will run for both."
