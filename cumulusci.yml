@@ -49,9 +49,6 @@ orgs:
     ent-sb0:
       config_file: orgs/internal/ent-sb0.json
       days: 30
-    test-sb0:
-      config_file: orgs/internal/test-sb0.json
-      days: 30
     tfid:
       config_file: orgs/tfid/tfid.json
       days: 30

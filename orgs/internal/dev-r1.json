@@ -2,7 +2,9 @@
   "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
   "edition": "developer",
-  "instance": "USA1000",
+  "instance": "USA1016",
+  "language": "en_US",
+  "hasSampleData": false,
   "features": [
     "B2BCommerce",
     "BillingAdvanced",
@@ -14,7 +16,6 @@
     "CustomerCommunityPlus",
     "DocGen",
     "Einstein1AIPlatform",
-    "EmbeddedServiceMessaging",
     "EnablePRM",
     "EnableSetPasswordInApi",
     "ExternalClientApps",
@@ -25,7 +26,6 @@
     "RevenueIntelligence",
     "SalesforceHostedMCP",
     "ServiceCloud",
-    "Scrt2Conversation",
     "UsageManagement",
     "UnifiedCatalog"
   ],

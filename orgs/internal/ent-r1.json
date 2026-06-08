@@ -2,7 +2,9 @@
   "orgName": "Salesforce Agentforce Revenue Management",
   "country": "US",
   "edition": "enterprise",
-  "instance": "USA1000",
+  "instance": "USA1016",
+  "language": "en_US",
+  "hasSampleData": false,
   "features": [
     "B2BCommerce",
     "BillingAdvanced",
@@ -25,8 +27,8 @@
     "RevenueIntelligence",
     "SalesCloudEinstein",
     "SalesforceHostedMCP",
-    "ServiceCloud",
     "Scrt2Conversation",
+    "ServiceCloud",
     "UsageManagement",
     "UnifiedCatalog"
   ],
