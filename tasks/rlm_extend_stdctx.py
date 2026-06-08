@@ -1,9 +1,17 @@
 from abc import abstractmethod
 import json
+import time
 import requests
+from requests.exceptions import ConnectionError, Timeout, ChunkedEncodingError
 
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.sfdx import SFDXBaseTask
+
+# Network resilience settings for long-running Salesforce APIs
+_CONNECT_TIMEOUT = 30       # seconds to establish TCP connection
+_READ_TIMEOUT = 600         # seconds to wait for response (context APIs can take 5-10 min)
+_MAX_RETRIES = 3            # total attempts on transient failures
+_RETRY_BACKOFF = 30         # seconds between retries (doubles each attempt)
 
 
 # ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
@@ -277,16 +285,44 @@ class ExtendStandardContext(SFDXBaseTask):
         }
         return url, headers
 
-    # Make an HTTP request using the requests library and handle the response
+    # Make an HTTP request with retry logic for transient network failures.
+    # Context definition APIs can take 5-10 minutes; intermediate network
+    # devices (NAT gateways, load balancers) may drop idle TCP connections.
     def _make_request(self, method, url, **kwargs):
-        response = requests.request(method, url, **kwargs)
-        if response.ok:
-            return response.json()
-        else:
-            self.logger.error(
-                f"Failed {method.upper()} request to {url}: {response.text}"
-            )
-            return None
+        kwargs.setdefault("timeout", (_CONNECT_TIMEOUT, _READ_TIMEOUT))
+        last_exc = None
+        for attempt in range(1, _MAX_RETRIES + 1):
+            try:
+                response = requests.request(method, url, **kwargs)
+                if response.ok:
+                    return response.json()
+                # 5xx = server-side transient; retry. 4xx = client error; don't retry.
+                if response.status_code >= 500 and attempt < _MAX_RETRIES:
+                    wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
+                    self.logger.warning(
+                        f"      Received {response.status_code} on attempt {attempt}/{_MAX_RETRIES}. "
+                        f"Retrying in {wait}s..."
+                    )
+                    time.sleep(wait)
+                    continue
+                self.logger.error(
+                    f"Failed {method.upper()} request to {url}: {response.text}"
+                )
+                return None
+            except (ConnectionError, Timeout, ChunkedEncodingError, OSError) as exc:
+                last_exc = exc
+                if attempt < _MAX_RETRIES:
+                    wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
+                    self.logger.warning(
+                        f"      Network error on attempt {attempt}/{_MAX_RETRIES}: {exc}. "
+                        f"Retrying in {wait}s..."
+                    )
+                    time.sleep(wait)
+                else:
+                    self.logger.error(
+                        f"Failed {method.upper()} request to {url} after {_MAX_RETRIES} attempts: {last_exc}"
+                    )
+        return None
 
     # Abstract method to get the keychain class, needs to be implemented by subclasses
     @abstractmethod
