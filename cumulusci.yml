@@ -680,6 +680,7 @@ tasks:
       contextTtl: *default_context_ttl
       defaultMapping: *contracts_context_default_mapping
       activate: true
+      allow_skip_if_unavailable: true
 
   extend_context_contracts_extraction:
     description: Extend Standard Contracts Extraction Context Definition
@@ -694,6 +695,7 @@ tasks:
       contextTtl: *default_context_ttl
       defaultMapping: *contracts_extraction_context_default_mapping
       activate: true
+      allow_skip_if_unavailable: true
 
   extend_context_asset:
     group: Revenue Lifecycle Management
@@ -807,8 +809,9 @@ tasks:
       baseReference: *cart_context_base_reference
       startDate: *default_context_start_date
       contextTtl: *default_context_ttl
-      defaultMapping: *cart_context_default_mapping  
+      defaultMapping: *cart_context_default_mapping
       activate: true
+      allow_skip_if_unavailable: true
 
   extend_context_billing:
     description: Extend Standard Billing Context
@@ -823,6 +826,7 @@ tasks:
       contextTtl: *default_context_ttl
       defaultMapping: *billing_context_default_mapping
       activate: true
+      allow_skip_if_unavailable: true
 
   extend_context_fulfillment_asset:
     description: Extend Standard Fulfillment Asset Context Definition
@@ -837,6 +841,7 @@ tasks:
       contextTtl: *default_context_ttl
       defaultMapping: *fulfillment_asset_context_default_mapping
       activate: true
+      allow_skip_if_unavailable: true
 
   extend_context_collection_plan_segment:
     description: Extend Standard Collection Plan Segment Context Definition
@@ -851,6 +856,7 @@ tasks:
       contextTtl: *default_context_ttl
       defaultMapping: *collection_plan_segment_context_default_mapping
       activate: true
+      allow_skip_if_unavailable: true
 
   extend_context_rate_management:
     description: Extend Standard Rate Management Context Definition
@@ -865,6 +871,7 @@ tasks:
       contextTtl: *default_context_ttl
       defaultMapping: *rate_management_context_default_mapping
       activate: true
+      allow_skip_if_unavailable: true
 
   extend_context_rating_discovery:
     description: Extend Standard Rating Discovery Context Definition
@@ -879,6 +886,7 @@ tasks:
       contextTtl: *default_context_ttl
       defaultMapping: *rating_discovery_context_default_mapping
       activate: true
+      allow_skip_if_unavailable: true
 
 #--------------#
 # DEPLOY TASKS #
