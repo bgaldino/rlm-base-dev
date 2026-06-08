@@ -106,9 +106,10 @@ class ExtendStandardContext(SFDXBaseTask):
             "startDate": self.options.get("startDate"),
             "contextTtl": self.options.get("contextTtl")
         }
-        # POST is NOT idempotent — don't retry it. If the network drops after
-        # the server processes the request, retrying would create a duplicate.
-        response = self._make_request("post", url, headers=headers, json=payload, retryable=False)
+        # POST is NOT idempotent — default retryable=None means no retry for POST.
+        # If the network drops after the server processes the request, we recover
+        # the context definition ID by querying the org (see _recover_context_id).
+        response = self._make_request("post", url, headers=headers, json=payload)
         if response is not None:
             self.context_id = response.get("contextDefinitionId")
         else:
@@ -132,14 +133,19 @@ class ExtendStandardContext(SFDXBaseTask):
         self.logger.info(f"      Querying for existing context definition '{developer_name}'...")
         # Wait briefly for server-side commit to propagate
         time.sleep(10)
-        url, headers = self._build_url_and_headers("connect/context-definitions")
+        # Use the direct lookup endpoint (avoids paging the full list)
+        url, headers = self._build_url_and_headers(
+            f"connect/context-definitions/{developer_name}"
+        )
         for attempt in range(1, _MAX_RETRIES + 1):
             response = self._make_request("get", url, headers=headers)
             if response is not None:
-                for ctx_def in response.get("contextDefinitions", []):
-                    if ctx_def.get("developerName") == developer_name:
+                # The API returns isSuccess:false for unknown definitions
+                if response.get("isSuccess") is not False:
+                    ctx_id = response.get("contextDefinitionId")
+                    if ctx_id:
                         self.logger.info(f"      Recovered context definition from org.")
-                        return ctx_def.get("contextDefinitionId")
+                        return ctx_id
             if attempt < _MAX_RETRIES:
                 wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
                 self.logger.warning(
@@ -326,10 +332,14 @@ class ExtendStandardContext(SFDXBaseTask):
     # Context definition APIs can take 5-10 minutes; intermediate network
     # devices (NAT gateways, load balancers) may drop idle TCP connections.
     #
-    # retryable=True (default): retries on network errors and 5xx (safe for GET/PATCH)
-    # retryable=False: no retries (use for non-idempotent POST to avoid duplicates)
-    def _make_request(self, method, url, retryable=True, **kwargs):
+    # retryable: controls retry behavior on network errors and 5xx responses.
+    #   None (default) = auto: retry GET/PATCH (idempotent), don't retry POST
+    #   True  = force retry regardless of method
+    #   False = never retry
+    def _make_request(self, method, url, retryable=None, **kwargs):
         kwargs.setdefault("timeout", (_CONNECT_TIMEOUT, _READ_TIMEOUT))
+        if retryable is None:
+            retryable = method.lower() in ("get", "patch", "put", "delete", "head", "options")
         max_attempts = _MAX_RETRIES if retryable else 1
         last_exc = None
         for attempt in range(1, max_attempts + 1):
