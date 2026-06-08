@@ -23,16 +23,16 @@ orgs:
       config_file: orgs/dev-sb0.json
       days: 30
     dev-sdb9:
-      config_file: orgs/dev-sdb9.json
+      config_file: orgs/internal/dev-sdb9.json
       days: 30
     dev-sdb27:
-      config_file: orgs/dev-sdb27.json
+      config_file: orgs/internal/dev-sdb27.json
       days: 30
     dev-sdb39:
-      config_file: orgs/dev-sdb39.json
+      config_file: orgs/internal/dev-sdb39.json
       days: 30
     dev-sdb6:
-      config_file: orgs/dev-sdb6.json
+      config_file: orgs/internal/dev-sdb6.json
       days: 30
     dev_preview:
       config_file: orgs/dev_preview.json
@@ -59,34 +59,34 @@ orgs:
       config_file: orgs/test-sb0.json
       days: 30
     tfid:
-      config_file: orgs/tfid.json
+      config_file: orgs/tfid/tfid.json
       days: 30
     tfid-cdo:
-      config_file: orgs/tfid-cdo.json
+      config_file: orgs/tfid/tfid-cdo.json
       days: 30
     tfid-cdo-rlm:
-      config_file: orgs/tfid-cdo-rlm.json
+      config_file: orgs/tfid/tfid-cdo-rlm.json
       days: 30
     tfid-ido-tech:
-      config_file: orgs/tfid-ido-tech-SB0.json
+      config_file: orgs/tfid/tfid-ido-tech-SB0.json
       days: 30
     tfid-ido-tech-R2:
-      config_file: orgs/tfid-ido-tech-R2.json
+      config_file: orgs/tfid/tfid-ido-tech-R2.json
       days: 30
     tfid-qb-tso:
-      config_file: orgs/tfid-qb-tso.json
+      config_file: orgs/tfid/tfid-qb-tso.json
       days: 30
     tfid-sb0:
-      config_file: orgs/tfid-sb0.json
+      config_file: orgs/tfid/tfid-sb0.json
       days: 30
     tfid-sdo:
-      config_file: orgs/tfid-sdo.json
+      config_file: orgs/tfid/tfid-sdo.json
       days: 30
     tfid-dev:
-      config_file: orgs/tfid-dev.json
+      config_file: orgs/tfid/tfid-dev.json
       days: 30
     tfid-enable:
-      config_file: orgs/tfid-enable.json
+      config_file: orgs/tfid/tfid-enable.json
       days: 30
 
 # Project configuration settings
