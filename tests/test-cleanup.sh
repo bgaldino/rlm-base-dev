@@ -57,9 +57,9 @@ cci flow run prepare_rlm_org --org "$ORG_ALIAS_ENT" 2>&1 | tee -a "$LOG_FILE" | 
 
 echo ""
 echo "Checking cleanup behavior in enterprise org..."
-if grep -q "Skipping settings cleanup" "$LOG_FILE" | tail -1; then
+if grep -q "Skipping settings cleanup" "$LOG_FILE"; then
     echo "✅ Cleanup correctly skipped for enterprise org"
-elif grep -q "Removed" "$LOG_FILE" | tail -5; then
+elif grep -q "Removed" "$LOG_FILE"; then
     echo "⚠️  Cleanup still ran - may need to check conditional logic"
 else
     echo "⚠️  Check logs to see cleanup behavior"

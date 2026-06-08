@@ -59,7 +59,7 @@ class CleanupSettingsForDev(BaseTask):
                     if ent_config.exists():
                         org_features = self._read_org_features(str(ent_config))
                         self.logger.info(f"Detected {len(org_features)} features from ent.json (fallback)")
-            except (AttributeError, Exception) as e:
+            except Exception as e:
                 self.logger.debug(f"Could not use fallback config detection: {e}")
         
         settings_path = Path(path) / "2_settings"
