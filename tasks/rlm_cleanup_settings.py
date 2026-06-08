@@ -54,7 +54,7 @@ class CleanupSettingsForDev(BaseTask):
             # Fallback: use ent.json (max feature set) to conservatively preserve
             # settings rather than incorrectly removing supported ones.
             try:
-                if hasattr(self.org_config, 'username') and self.org_config.username:
+                if hasattr(self, 'org_config') and hasattr(self.org_config, 'username') and self.org_config.username:
                     ent_config = Path.cwd() / "orgs" / "ent.json"
                     if ent_config.exists():
                         org_features = self._read_org_features(str(ent_config))

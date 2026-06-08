@@ -32,7 +32,7 @@ echo "Creating dev scratch org with alias: $ORG_ALIAS_DEV"
 cci org scratch dev "$ORG_ALIAS_DEV" --days 1
 
 echo "Running prepare_rlm_org flow (up to cleanup step)..."
-cci flow run prepare_rlm_org --org "$ORG_ALIAS_DEV" 2>&1 | tee -a "$LOG_FILE" | grep -E "(cleanup|Removed|Skipping|Success|Failed)" || true
+cci flow run prepare_rlm_org --org "$ORG_ALIAS_DEV" 2>&1 | tee "$LOG_FILE" | grep -E "(cleanup|Removed|Skipping|Success|Failed)" || true
 
 echo ""
 echo "Checking what was removed in dev org..."
@@ -46,7 +46,7 @@ echo ""
 echo "========================================="
 echo "Test 2: Enterprise Org (Full Features)"
 echo "========================================="
-echo "Expected: Cleanup should SKIP or have fewer removals"
+echo "Expected: Cleanup should have fewer removals than dev"
 echo ""
 
 echo "Creating ent scratch org with alias: $ORG_ALIAS_ENT"
@@ -58,12 +58,10 @@ cci flow run prepare_rlm_org --org "$ORG_ALIAS_ENT" 2>&1 | tee "$LOG_FILE_ENT" |
 
 echo ""
 echo "Checking cleanup behavior in enterprise org..."
-if grep -q "Skipping settings cleanup" "$LOG_FILE_ENT"; then
-    echo "✅ Cleanup correctly skipped for enterprise org"
-elif grep -q "Removed" "$LOG_FILE_ENT"; then
-    echo "⚠️  Cleanup still ran - may need to check conditional logic"
+if grep -q "Removed" "$LOG_FILE_ENT"; then
+    echo "⚠️  Cleanup ran - compare removal count with dev org (should be fewer)"
 else
-    echo "⚠️  Check logs to see cleanup behavior"
+    echo "✅ No removals in enterprise org"
 fi
 
 echo ""
