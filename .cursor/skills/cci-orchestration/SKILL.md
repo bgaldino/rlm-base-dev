@@ -161,11 +161,10 @@ This project's `cumulusci.yml` (~3275 lines) is organized into these sections:
 
 ### 1. Scratch Org Definitions (`orgs.scratch`)
 
-21 scratch org configs, each referencing a JSON definition in `orgs/`. Key orgs:
-- `beta` — general-purpose development
-- `dev-sb0` — sandbox-like development
-- `tfid-*` — Trialforce-based orgs for various configurations
-- `dev_preview` / `dev_previous` — API version testing
+Scratch org configs in `orgs/` (organized into subfolders). Key orgs:
+- `beta` / `dev` / `ent` — standard development (root)
+- `orgs/internal/` — sandbox-derived shapes (dev-sb0, dev-r1, ent-sb0, etc.)
+- `orgs/tfid/` — Trialforce-based orgs (tfid-cdo, tfid-sdo, tfid-qb-tso, etc.)
 
 ### 2. Project Settings (`project`)
 
