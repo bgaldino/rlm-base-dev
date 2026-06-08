@@ -58,6 +58,12 @@ class ExtendStandardContext(SFDXBaseTask):
         "plan_file": {
             "description": "Optional JSON plan with nodes/mappings/tags to apply after creation",
             "required": False,
+        },
+        "allow_skip_if_unavailable": {
+            "description": "If true, skip gracefully when the base context definition "
+                           "is not available (UNKNOWN_EXCEPTION). Use for optional contexts "
+                           "whose base may not be provisioned. Defaults to false.",
+            "required": False,
         }
     }
 
@@ -110,16 +116,51 @@ class ExtendStandardContext(SFDXBaseTask):
         # If the network drops after the server processes the request, we recover
         # the context definition ID by querying the org (see _recover_context_id).
         self.context_id = None
+        self._last_response_status = None
+        self._last_response_body = None
         response = self._make_request("post", url, headers=headers, json=payload)
         if response is not None:
             self.context_id = response.get("contextDefinitionId")
-        # Recover by querying the org if we didn't get a context ID — covers both
-        # network failures (response is None) and empty/unexpected response bodies.
+        # Determine how to handle failure:
+        # - UNKNOWN_EXCEPTION = base context definition not available in this org.
+        #   This is expected for optional contexts (e.g. Contracts when CLM feature
+        #   is not fully enabled). Skip gracefully.
+        # - DUPLICATE_VALUE = context definition already exists. Recover the ID
+        #   and continue with configuration (set default mapping, activate, etc.).
+        # - Other API errors (401, 403, 400, etc.) = fail loudly.
+        # - Network error (no response status) = attempt recovery by querying org.
         if not self.context_id:
-            self.logger.warning(
-                f"      contextDefinitionId not in response — attempting to recover by developerName..."
-            )
-            self.context_id = self._recover_context_id(developer_name)
+            allow_skip = str(self.options.get("allow_skip_if_unavailable", "false")).lower() == "true"
+            if self._last_response_status is not None and self._is_missing_base_context_error():
+                if allow_skip:
+                    self.logger.warning(
+                        f"      Base context definition not available for '{developer_name}'. "
+                        f"Skipping — allow_skip_if_unavailable is set."
+                    )
+                    return
+                raise RuntimeError(
+                    f"Base context definition not available for '{developer_name}'. "
+                    f"Salesforce returned UNKNOWN_EXCEPTION. If this context is optional, "
+                    f"set allow_skip_if_unavailable: true in the task options."
+                )
+            if self._last_response_status is not None and self._is_duplicate_value_error():
+                self.logger.info(
+                    f"      Context definition '{developer_name}' already exists. "
+                    f"Recovering ID to continue configuration..."
+                )
+                self.context_id = self._recover_context_id(developer_name)
+            elif self._last_response_status is not None:
+                # Non-recoverable API error (auth, validation, etc.) — fail loudly
+                raise RuntimeError(
+                    f"Salesforce API error creating context definition '{developer_name}': "
+                    f"HTTP {self._last_response_status} — {self._last_response_body[:300]}"
+                )
+            else:
+                # Network failure or missing ID in response — attempt recovery
+                self.logger.warning(
+                    f"      contextDefinitionId not in response — attempting to recover by developerName..."
+                )
+                self.context_id = self._recover_context_id(developer_name)
         if self.context_id:
             self.logger.info(f"      Context Definition ID: {self.context_id}")
             self._process_context_id()
@@ -128,6 +169,37 @@ class ExtendStandardContext(SFDXBaseTask):
                 f"Could not obtain context definition ID for '{developer_name}' "
                 f"after creation and recovery attempts. The org may need manual inspection."
             )
+
+    def _is_missing_base_context_error(self):
+        """Check if the last API error indicates the base context is unavailable.
+
+        Salesforce returns UNKNOWN_EXCEPTION when the base context definition
+        referenced by baseReference does not exist in the org (feature not enabled).
+        """
+        return self._has_error_code("UNKNOWN_EXCEPTION")
+
+    def _is_duplicate_value_error(self):
+        """Check if the last API error indicates the context definition already exists.
+
+        Salesforce returns DUPLICATE_VALUE when a definition with the same
+        Name or DeveloperName already exists. The task should recover the
+        existing ID and continue with configuration steps.
+        """
+        return self._has_error_code("DUPLICATE_VALUE")
+
+    def _has_error_code(self, error_code):
+        """Check if the last response body contains a specific Salesforce errorCode."""
+        if not self._last_response_body:
+            return False
+        try:
+            errors = json.loads(self._last_response_body)
+            if isinstance(errors, list):
+                return any(
+                    e.get("errorCode") == error_code for e in errors
+                )
+        except (ValueError, TypeError):
+            pass
+        return False
 
     def _recover_context_id(self, developer_name):
         """Query the org for an existing context definition by developerName."""
@@ -370,6 +442,8 @@ class ExtendStandardContext(SFDXBaseTask):
                 self.logger.error(
                     f"Failed {method.upper()} request to {url}: {response.text}"
                 )
+                self._last_response_status = response.status_code
+                self._last_response_body = response.text
                 return None
             except (ConnectionError, Timeout, ChunkedEncodingError, OSError) as exc:
                 last_exc = exc
@@ -384,6 +458,8 @@ class ExtendStandardContext(SFDXBaseTask):
                     self.logger.error(
                         f"Failed {method.upper()} request to {url} after {max_attempts} attempt(s): {last_exc}"
                     )
+                    self._last_response_status = None
+                    self._last_response_body = None
         return None
 
     # Abstract method to get the keychain class, needs to be implemented by subclasses
