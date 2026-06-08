@@ -336,6 +336,8 @@ class ExtendStandardContext(SFDXBaseTask):
             try:
                 response = requests.request(method, url, **kwargs)
                 if response.ok:
+                    if response.status_code == 204 or not response.text:
+                        return {}
                     return response.json()
                 # 5xx = server-side transient; retry if allowed.
                 if response.status_code >= 500 and attempt < max_attempts:
