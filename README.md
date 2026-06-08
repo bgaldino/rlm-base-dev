@@ -448,8 +448,8 @@ For the full architecture — shell config responsibilities, the per-project `.e
 # Create a basic dev scratch org
 cci org scratch dev <org-alias>
 
-# Create an enhanced dev scratch org (with additional features)
-cci org scratch dev_enhanced <org-alias>
+# Create an enhanced enterprise scratch org (with additional features)
+cci org scratch ent-enhanced <org-alias>
 ```
 
 ### Deploy to an Existing Org
@@ -464,7 +464,7 @@ cci flow run prepare_rlm_org
 
 ### Reset default or target scratch org and run full flow
 
-To remove your current default (or target) scratch org, create a new one, and run the full RLM prepare flow (includes billing data when applicable), use your scratch org config and alias (e.g. `beta`, `dev`, `dev_enhanced`—see `orgs/` and `cumulusci.yml` under `orgs.scratch`):
+To remove your current default (or target) scratch org, create a new one, and run the full RLM prepare flow (includes billing data when applicable), use your scratch org config and alias (e.g. `beta`, `dev`, `ent-enhanced`—see `orgs/` and `cumulusci.yml` under `orgs.scratch`):
 
 ```bash
 # Delete existing scratch org (use the same alias you created it with)
