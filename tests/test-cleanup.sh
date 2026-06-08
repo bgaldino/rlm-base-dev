@@ -49,8 +49,8 @@ echo "========================================="
 echo "Expected: Cleanup should SKIP or have fewer removals"
 echo ""
 
-echo "Creating ent-enhanced scratch org with alias: $ORG_ALIAS_ENHANCED"
-cci org scratch ent-enhanced "$ORG_ALIAS_ENHANCED" --days 1
+echo "Creating ent scratch org with alias: $ORG_ALIAS_ENHANCED"
+cci org scratch ent "$ORG_ALIAS_ENHANCED" --days 1
 
 echo "Running prepare_rlm_org flow (up to cleanup step)..."
 cci flow run prepare_rlm_org --org "$ORG_ALIAS_ENHANCED" 2>&1 | tee -a "$LOG_FILE" | grep -E "(cleanup|Removed|Skipping|Success|Failed)" || true

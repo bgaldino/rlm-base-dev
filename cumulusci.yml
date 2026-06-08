@@ -34,9 +34,6 @@ orgs:
     ent-sdb6:
       config_file: orgs/internal/ent-sdb6.json
       days: 30
-    ent-enhanced:
-      config_file: orgs/internal/ent-enhanced.json
-      days: 30
     ent-datacloud:
       config_file: orgs/internal/ent-datacloud.json
       days: 30

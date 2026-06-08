@@ -15,6 +15,7 @@
     "CustomerCommunityPlus",
     "DocGen",
     "Einstein1AIPlatform",
+    "EmbeddedServiceMessaging",
     "EnablePRM",
     "EnableSetPasswordInApi",
     "ExternalClientApps",
@@ -24,6 +25,7 @@
     "PartnerCommunity",
     "RevenueIntelligence",
     "SalesforceHostedMCP",
+    "Scrt2Conversation",
     "ServiceCloud",
     "UnifiedCatalog",
     "UsageManagement"

@@ -3,6 +3,8 @@
   "country": "US",
   "edition": "developer",
   "instance": "USA796",
+  "language": "en_US",
+  "hasSampleData": false,
   "features": [
     "B2BCommerce",
     "BillingAdvanced",
