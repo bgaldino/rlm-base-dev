@@ -58,7 +58,7 @@ class CleanupSettingsForDev(BaseTask):
             try:
                 if (hasattr(self, 'org_config')
                         and getattr(self.org_config, 'scratch', False)
-                        and self.org_config.username):
+                        and getattr(self.org_config, 'username', None)):
                     ent_config = Path.cwd() / "orgs" / "ent.json"
                     if ent_config.exists():
                         org_features = self._read_org_features(str(ent_config))
