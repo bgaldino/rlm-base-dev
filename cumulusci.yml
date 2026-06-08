@@ -64,9 +64,6 @@ orgs:
     tfid-qb-tso:
       config_file: orgs/tfid/tfid-qb-tso.json
       days: 30
-    tfid-sb0:
-      config_file: orgs/tfid/tfid-sb0.json
-      days: 30
     tfid-sdo:
       config_file: orgs/tfid/tfid-sdo.json
       days: 30
