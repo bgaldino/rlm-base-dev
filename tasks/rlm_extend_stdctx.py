@@ -94,23 +94,60 @@ class ExtendStandardContext(SFDXBaseTask):
 
     # Core logic to extend an existing context definition
     def _extend_context_definition(self):
-        self.logger.info(f"[1/4] Creating context definition: {self.options.get('developerName')}...")
+        developer_name = self.options.get("developerName")
+        self.logger.info(f"[1/4] Creating context definition: {developer_name}...")
         self.logger.info("      (this API call may take up to 5 minutes on some org types — please wait)")
         url, headers = self._build_url_and_headers("connect/context-definitions")
         payload = {
             "name": self.options.get("name"),
             "description": self.options.get("description"),
-            "developerName": self.options.get("developerName"),
+            "developerName": developer_name,
             "baseReference": self.options.get("baseReference"),
             "startDate": self.options.get("startDate"),
             "contextTtl": self.options.get("contextTtl")
         }
-        response = self._make_request("post", url, headers=headers, json=payload)
+        # POST is NOT idempotent — don't retry it. If the network drops after
+        # the server processes the request, retrying would create a duplicate.
+        response = self._make_request("post", url, headers=headers, json=payload, retryable=False)
         if response:
             self.context_id = response.get("contextDefinitionId")
-            if self.context_id:
-                self.logger.info(f"      Context Definition ID: {self.context_id}")
-                self._process_context_id()
+        else:
+            # Network likely dropped after server-side creation succeeded.
+            # Recover the context definition ID by querying for it.
+            self.logger.warning(
+                f"      POST response lost — attempting to recover context definition by developerName..."
+            )
+            self.context_id = self._recover_context_id(developer_name)
+        if self.context_id:
+            self.logger.info(f"      Context Definition ID: {self.context_id}")
+            self._process_context_id()
+        else:
+            self.logger.error(
+                f"      Could not obtain context definition ID for '{developer_name}'. "
+                f"The creation may have failed — check the org manually."
+            )
+
+    def _recover_context_id(self, developer_name):
+        """Query the org for an existing context definition by developerName."""
+        self.logger.info(f"      Querying for existing context definition '{developer_name}'...")
+        # Wait briefly for server-side commit to propagate
+        time.sleep(10)
+        url, headers = self._build_url_and_headers("connect/context-definitions")
+        for attempt in range(1, _MAX_RETRIES + 1):
+            response = self._make_request("get", url, headers=headers)
+            if response:
+                for ctx_def in response.get("contextDefinitions", []):
+                    if ctx_def.get("developerName") == developer_name:
+                        self.logger.info(f"      Recovered context definition from org.")
+                        return ctx_def.get("contextDefinitionId")
+            if attempt < _MAX_RETRIES:
+                wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
+                self.logger.warning(
+                    f"      Context definition not found yet (attempt {attempt}/{_MAX_RETRIES}). "
+                    f"Waiting {wait}s for server-side commit..."
+                )
+                time.sleep(wait)
+        return None
 
     # Post-process after getting the context ID - typically to process the version list
     def _process_context_id(self):
@@ -285,22 +322,26 @@ class ExtendStandardContext(SFDXBaseTask):
         }
         return url, headers
 
-    # Make an HTTP request with retry logic for transient network failures.
+    # Make an HTTP request with optional retry logic for transient network failures.
     # Context definition APIs can take 5-10 minutes; intermediate network
     # devices (NAT gateways, load balancers) may drop idle TCP connections.
-    def _make_request(self, method, url, **kwargs):
+    #
+    # retryable=True (default): retries on network errors and 5xx (safe for GET/PATCH)
+    # retryable=False: no retries (use for non-idempotent POST to avoid duplicates)
+    def _make_request(self, method, url, retryable=True, **kwargs):
         kwargs.setdefault("timeout", (_CONNECT_TIMEOUT, _READ_TIMEOUT))
+        max_attempts = _MAX_RETRIES if retryable else 1
         last_exc = None
-        for attempt in range(1, _MAX_RETRIES + 1):
+        for attempt in range(1, max_attempts + 1):
             try:
                 response = requests.request(method, url, **kwargs)
                 if response.ok:
                     return response.json()
-                # 5xx = server-side transient; retry. 4xx = client error; don't retry.
-                if response.status_code >= 500 and attempt < _MAX_RETRIES:
+                # 5xx = server-side transient; retry if allowed.
+                if response.status_code >= 500 and attempt < max_attempts:
                     wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
                     self.logger.warning(
-                        f"      Received {response.status_code} on attempt {attempt}/{_MAX_RETRIES}. "
+                        f"      Received {response.status_code} on attempt {attempt}/{max_attempts}. "
                         f"Retrying in {wait}s..."
                     )
                     time.sleep(wait)
@@ -311,16 +352,16 @@ class ExtendStandardContext(SFDXBaseTask):
                 return None
             except (ConnectionError, Timeout, ChunkedEncodingError, OSError) as exc:
                 last_exc = exc
-                if attempt < _MAX_RETRIES:
+                if attempt < max_attempts:
                     wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
                     self.logger.warning(
-                        f"      Network error on attempt {attempt}/{_MAX_RETRIES}: {exc}. "
+                        f"      Network error on attempt {attempt}/{max_attempts}: {exc}. "
                         f"Retrying in {wait}s..."
                     )
                     time.sleep(wait)
                 else:
                     self.logger.error(
-                        f"Failed {method.upper()} request to {url} after {_MAX_RETRIES} attempts: {last_exc}"
+                        f"Failed {method.upper()} request to {url} after {max_attempts} attempt(s): {last_exc}"
                     )
         return None
 
