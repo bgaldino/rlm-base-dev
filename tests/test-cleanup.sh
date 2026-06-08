@@ -37,7 +37,7 @@ grep -E "(cleanup|Removed|Skipping|Success|Failed)" "$LOG_FILE" || true
 
 echo ""
 echo "Checking what was removed in dev org..."
-if grep -q "Removed" "$LOG_FILE"; then
+if grep -q "Removed .* from" "$LOG_FILE"; then
     echo "✅ Cleanup ran - fields/PSLs were removed"
 else
     echo "⚠️  No removals found - check if cleanup ran"
@@ -60,7 +60,7 @@ grep -E "(cleanup|Removed|Skipping|Success|Failed)" "$LOG_FILE_ENT" || true
 
 echo ""
 echo "Checking cleanup behavior in enterprise org..."
-if grep -q "Removed" "$LOG_FILE_ENT"; then
+if grep -q "Removed .* from" "$LOG_FILE_ENT"; then
     echo "⚠️  Cleanup ran - compare removal count with dev org (should be fewer)"
 else
     echo "✅ No removals in enterprise org"
