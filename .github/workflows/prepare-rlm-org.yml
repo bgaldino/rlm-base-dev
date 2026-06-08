@@ -32,6 +32,9 @@ concurrency:
   group: prepare-rlm-org-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   prepare-rlm-org:
     # Run on manual dispatch, or when the trigger label is applied to a
