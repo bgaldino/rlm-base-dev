@@ -112,11 +112,11 @@ class ExtendStandardContext(SFDXBaseTask):
         response = self._make_request("post", url, headers=headers, json=payload)
         if response is not None:
             self.context_id = response.get("contextDefinitionId")
-        else:
-            # Network likely dropped after server-side creation succeeded.
-            # Recover the context definition ID by querying for it.
+        # Recover by querying the org if we didn't get a context ID — covers both
+        # network failures (response is None) and empty/unexpected response bodies.
+        if not self.context_id:
             self.logger.warning(
-                f"      POST response lost — attempting to recover context definition by developerName..."
+                f"      contextDefinitionId not in response — attempting to recover by developerName..."
             )
             self.context_id = self._recover_context_id(developer_name)
         if self.context_id:
