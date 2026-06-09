@@ -24,7 +24,7 @@ These steps run when `constraints_data` is `true` (steps 6-12 also require `qb`)
 | Step | Task | Condition | Purpose |
 |------|------|-----------|---------|
 | 5 | `enable_constraints_settings` | `constraints_data` | Set Default Transaction Type to "Advanced Configurator", set Asset Context for Product Configurator, and enable Constraints Engine toggle via Robot Framework browser automation |
-| 6 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against QuantumBitComplete data |
+| 6 | `validate_cml` | `constraints_data` + `qb` | Structure-validate **all** `scripts/cml/*.cml` files; cross-reference ESC associations **only** against the QuantumBitComplete data dir (other models, incl. QuantumBitBundle, get structure-only validation — their ESC coverage is not checked here) |
 | 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import the QuantumBitComplete constraint model (imported but left **inactive**) |
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import the Server2 constraint model |
 | 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import the QuantumBitPCM constraint model (imported but left **inactive**) |
