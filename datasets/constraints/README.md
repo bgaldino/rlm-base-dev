@@ -166,8 +166,8 @@ cci task run import_cml --org <target_org> \
 
 ### Import Steps
 
-1. **Upsert ExpressionSet** by ApiName (create if missing, update if exists)
-2. **Resolve ExpressionSetDefinitionVersion** by DeveloperName
+1. **Upsert ExpressionSet** by ApiName (create if missing, update if exists). **Creating an `ExpressionSet` with `UsageType=Constraint` auto-provisions the backing `ExpressionSetDefinition` + a V1 `ExpressionSetDefinitionVersion` + `ExpressionSetVersion` as a platform side-effect** — so **no `ExpressionSetDefinition` metadata needs to be deployed and no separate provisioning step is required**. All four QB constraint models (Complete, Server2, PCM, Bundle) rely on this; none ship ESD metadata.
+2. **Resolve ExpressionSetDefinitionVersion** by DeveloperName (the version auto-provisioned in step 1). `import_cml` resolves — it does not itself create — the ESDV, because step 1 has already provisioned it.
 3. **Upsert ExpressionSetDefinitionContextDefinition**
 4. **Build polymorphic lookup maps** -- reads exported CSVs to build legacy ID-to-name mappings, queries target org to resolve names to target IDs
 5. **Create ExpressionSetConstraintObj records** -- resolves each polymorphic ReferenceObjectId
@@ -260,8 +260,13 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 > QuantumBitComplete configurable bundle + the QuantumBitPCM virtual-quote
 > cross-item rules — see [QuantumBitBundle (combined model)](#quantumbitbundle-combined-model)).
 > `QuantumBitComplete` and `QuantumBitPCM` are loaded (model + blob + ESC) but left
-> inactive for A/B/C comparison. On a fresh build `import_cml` creates every version
-> inactive; step 11 explicitly deactivates `QuantumBitComplete_V1` + `QuantumBitPCM_V1`
+> inactive for A/B/C comparison. On a fresh build, each `import_cml` step's
+> ExpressionSet upsert auto-provisions the backing `ExpressionSetDefinition` + V1
+> `ExpressionSetDefinitionVersion` + `ExpressionSetVersion` — created **inactive** — as
+> a platform side-effect of creating an `ExpressionSet` with `UsageType=Constraint` (no
+> ESD metadata is deployed); `import_cml` then resolves that ESDV and uploads the blob +
+> ESC (see [Import Steps](#import-steps)). Step 11 explicitly deactivates
+> `QuantumBitComplete_V1` + `QuantumBitPCM_V1`
 > (a no-op on a fresh build, but it makes re-running on an existing org idempotent —
 > `manage_expression_sets` only toggles the versions it is given), and step 12 then
 > sets `ExpressionSetVersion.IsActive=true` only for `Server2_V1` + `QuantumBitBundle_V1`.
