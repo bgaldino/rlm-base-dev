@@ -88,18 +88,26 @@ class FixScratchOrgIdentity(BaseTask):
             )
             return
 
-        patched = 0
+        patched, errors = 0, 0
         for path in auth_files:
             try:
                 if self._repair_file(path):
                     patched += 1
             except Exception as exc:  # noqa: BLE001 - report per-file, keep going
+                errors += 1
+                # _fail_or_warn raises when raise_on_failure is set; otherwise
+                # warns so an unreadable auth file is never swallowed silently.
                 self._fail_or_warn(f"Could not process auth file {path}: {exc}")
 
         if patched:
             self.logger.info(
                 f"Scratch-org identity repaired: set isScratch=true in "
                 f"{patched} auth file(s) for {username}."
+            )
+        elif errors:
+            self.logger.warning(
+                f"Scratch-org identity NOT verified for {username}: "
+                f"{errors} auth file(s) could not be processed (see warnings above)."
             )
         else:
             self.logger.info(
@@ -141,16 +149,22 @@ class FixScratchOrgIdentity(BaseTask):
     # ------------------------------------------------------------------
 
     def _repair_file(self, path):
-        """Patch a single auth file. Returns True if it was changed."""
+        """Patch a single auth file. Returns True if it was changed.
+
+        Raises on an unreadable / non-JSON / non-object auth file so the caller
+        can surface it (warn, or raise when raise_on_failure is set) instead of
+        silently reporting "already correct" when the repair never actually ran.
+        """
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-            # Encrypted/unreadable auth file — not something we can safely edit.
-            self.logger.debug(f"Skipping unreadable auth file {path}: {exc}")
-            return False
+            raw = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            raise RuntimeError(f"cannot read auth file: {exc}") from exc
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"auth file is not valid JSON: {exc}") from exc
         if not isinstance(data, dict):
-            self.logger.debug(f"Skipping auth file {path}: not a JSON object.")
-            return False
+            raise RuntimeError("auth file is not a JSON object")
 
         if data.get("isScratch") is True:
             self.logger.debug(f"{path}: isScratch already true.")
@@ -182,19 +196,22 @@ class FixScratchOrgIdentity(BaseTask):
 
     @staticmethod
     def _atomic_write(path, data):
-        """Write JSON to ``path`` atomically, preserving restrictive perms.
+        """Write JSON to ``path`` atomically with owner-only permissions.
 
-        Auth files hold credentials, so the temp file is created 0600 and we
-        carry over the original mode when available before the atomic replace.
+        Auth files hold credentials, so we never widen access beyond the owner:
+        all group/other bits are dropped and owner read/write is guaranteed,
+        regardless of the file's prior (possibly lax, e.g. 0644) mode.
         """
         try:
             mode = os.stat(path).st_mode & 0o777
         except OSError:
             mode = 0o600
+        # Restrict to the owner: clear group/other bits, ensure owner can rw.
+        mode = (mode & 0o700) | 0o600
         directory = os.path.dirname(str(path)) or "."
         fd, tmp = tempfile.mkstemp(prefix=".rlm_auth_", dir=directory)
         try:
-            os.fchmod(fd, mode or 0o600)
+            os.fchmod(fd, mode)
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 json.dump(data, fh, indent=2)
                 fh.write("\n")
