@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**223 tasks** across **10 groups**.
+**225 tasks** across **10 groups**.
 
 ---
 
@@ -466,7 +466,7 @@
 
 ## Documentation
 
-*12 task(s)*
+*14 task(s)*
 
 ### `snapshot_agents_help_262`
 
@@ -553,6 +553,21 @@
 
 ---
 
+### `snapshot_dev_guide_262`
+
+**Description:** Snapshot the full 262 (Summer '26) Revenue Cloud Developer Guide (atlas deliverable revenue_lifecycle_management_dev_guide). Use -o section "Constraint Modeling Language" to capture a single section.
+
+**Class:** `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `deliverable`: `revenue_lifecycle_management_dev_guide`
+- `mode`: `all`
+
+---
+
 ### `snapshot_dro_help_262`
 
 **Description:** Snapshot the 262 DRO (Dynamic Revenue Orchestration) / Fulfillment area of Salesforce Help. Covers FulfillmentPlan, FulfillmentStep, FulfillmentStepDefinition, ProductFulfillmentDecompRule. Root verified via RLM sidebar walk.
@@ -618,6 +633,14 @@
 - `root_article_id`: `ind.rm_rate_management.htm`
 - `article_id_prefix`: `ind.rm`
 - `mode`: `all`
+
+---
+
+### `snapshot_salesforce_dev_guide`
+
+**Description:** Generic atlas Developer Guide snapshot. Fetches the guide TOC, captures each page as markdown with YAML frontmatter to docs/salesforce/{release_version}/dev-guide/articles/, and writes manifest.json and index.md. Provide release_version, release_name, and (optionally) deliverable / doc_version / section at invocation time.
+
+**Class:** `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide`
 
 ---
 
