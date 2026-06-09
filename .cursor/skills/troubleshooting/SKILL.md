@@ -91,7 +91,7 @@ cci org info beta         # shows username, instance URL
 ### `NonScratchOrgError` ("This command works with only scratch orgs")
 
 **Symptom:** a scratch-only SF CLI command — most often `sf org create user`
-(the `create_persona_user` task in `prepare_personas`), but also
+(the `create_personas_sales_rep_user` task in `prepare_personas`), but also
 `sf org generate password` — fails with `NonScratchOrgError` against an org you
 created as a scratch org. Common on **Enterprise-Edition / "ent"** shapes
 (e.g. `orgs/internal/ent-r1.json`).
@@ -108,12 +108,12 @@ refuses scratch-only commands. CCI's own `org_config.scratch` is unaffected, so
 
 ```bash
 cci org default ent-r1                      # this CCI build uses the default org (no --org)
-cci task run fix_scratch_org_identity        # flips isScratch false->true when devHubUsername is present
+cci task run fix_scratch_org_identity        # sets isScratch=true (when false or missing) if devHubUsername is present
 ```
 
-The task is idempotent (no-op when already correct) and only flips
-`false -> true` when the auth file has a `devHubUsername` (so it never
-mis-tags a real non-scratch org).
+The task is idempotent (no-op when already correct) and only sets
+`isScratch=true` (when it is false or missing) when the auth file has a
+`devHubUsername` (so it never mis-tags a real non-scratch org).
 
 ---
 

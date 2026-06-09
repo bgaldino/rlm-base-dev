@@ -2510,8 +2510,8 @@ tasks:
       SF CLI bug where Enterprise-Edition scratch orgs created via the DevHub API
       get isScratch=false in ~/.sfdx/<username>.json, making scratch-only commands
       (sf org create user, sf org generate password) fail with NonScratchOrgError.
-      Flips isScratch false->true only when a devHubUsername is present. Idempotent;
-      warns and continues on failure unless raise_on_failure is set.
+      Sets isScratch=true (when false or missing) only when a devHubUsername is
+      present. Idempotent; warns and continues on failure unless raise_on_failure is set.
     class_path: tasks.rlm_fix_scratch_identity.FixScratchOrgIdentity
 
   manage_decision_tables:
@@ -3048,10 +3048,11 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        # Repair isScratch=false on EE scratch orgs (SF CLI bug) before any
-        # scratch-only CLI command runs. In this flow that's create_persona_user
-        # (sf org create user, step in prepare_personas), which would otherwise
-        # fail with NonScratchOrgError; also covers manual scratch-only commands.
+        # Repair isScratch (false or missing) on EE scratch orgs (SF CLI bug)
+        # before any scratch-only CLI command runs. In this flow that's the
+        # create_personas_sales_rep_user task (sf org create user, in
+        # prepare_personas), which would otherwise fail with NonScratchOrgError;
+        # also covers manual scratch-only commands.
         task: fix_scratch_org_identity
         when: org_config.scratch
       2:

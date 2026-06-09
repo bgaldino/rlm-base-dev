@@ -1820,7 +1820,7 @@
 
 ### `fix_scratch_org_identity`
 
-**Description:** Repair scratch-org identity in the local SF CLI auth file. Works around an SF CLI bug where Enterprise-Edition scratch orgs created via the DevHub API get isScratch=false in ~/.sfdx/<username>.json, making scratch-only commands (sf org create user, sf org generate password) fail with NonScratchOrgError. Flips isScratch false->true only when a devHubUsername is present. Idempotent; warns and continues on failure unless raise_on_failure is set.
+**Description:** Repair scratch-org identity in the local SF CLI auth file. Works around an SF CLI bug where Enterprise-Edition scratch orgs created via the DevHub API get isScratch=false in ~/.sfdx/<username>.json, making scratch-only commands (sf org create user, sf org generate password) fail with NonScratchOrgError. Sets isScratch=true (when false or missing) only when a devHubUsername is present. Idempotent; warns and continues on failure unless raise_on_failure is set.
 
 **Class:** `tasks.rlm_fix_scratch_identity.FixScratchOrgIdentity`
 

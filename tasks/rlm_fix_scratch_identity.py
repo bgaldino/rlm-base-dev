@@ -8,7 +8,7 @@ scratch orgs (valid ``devHubUsername``, present in ``sf org list`` scratchOrgs).
 The SF CLI then rejects scratch-only commands against them with
 NonScratchOrgError, e.g.:
 
-* ``sf org create user``        (this repo: the create_persona_user task)
+* ``sf org create user``        (this repo: the create_personas_sales_rep_user task)
 * ``sf org generate password``  (a developer running it manually)
 
 This task reads the org's auth file(s), and when ``isScratch`` is false/missing
@@ -47,9 +47,10 @@ except ImportError:
 class FixScratchOrgIdentity(BaseTask):
     """Ensure a CCI-created scratch org is marked ``isScratch: true`` locally.
 
-    Safe and idempotent: only flips ``false -> true`` when the auth file has a
-    ``devHubUsername`` and is not itself a DevHub or sandbox. Never flips
-    ``true -> false``. Non-fatal by default.
+    Safe and idempotent: sets ``isScratch`` to true when it is false *or
+    missing*, only when the auth file has a ``devHubUsername`` and is not itself
+    a DevHub or sandbox. Never sets a true flag back to false. Non-fatal by
+    default.
     """
 
     task_options = {
