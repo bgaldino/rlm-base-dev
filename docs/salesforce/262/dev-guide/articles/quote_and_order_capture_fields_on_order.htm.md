@@ -1,0 +1,40 @@
+---
+page_id: quote_and_order_capture_fields_on_order.htm
+title: Transaction Management Fields on Order
+source_url: https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/quote_and_order_capture_fields_on_order.htm
+release: 262
+release_name: Summer '26
+deliverable: revenue_lifecycle_management_dev_guide
+section: Transaction Management
+parent_page: quote_and_order_capture_fields_on_standard_objects.htm
+fetched_at: 2026-06-09
+---
+
+# Transaction Management Fields on Order
+
+Standard and custom fields extend the standard Order object for use
+in Transaction Management.
+
+## Special Access Rules
+
+To view these fields, you must have the Revenue Cloud Advanced license. See [Order](https://developer.salesforce.com/docs/atlas.en-us.262.0.object_reference.meta/object_reference/sforce_api_objects_order.htm) for fields on the Salesforce platform
+object.
+
+## Fields
+
+| Field | Details |
+| --- | --- |
+| AdjustmentDistributionLogic | Type  picklist  Properties  Create, Filter, Group, Nillable, Restricted picklist, Sort, Update  Description  Specifies how the overall discount amount distributes among all the order line items that have prices associated with them.  The amount distributed is either the value specified in the AppliedDiscountAmount field or the difference between the values in the calculated TotalAmount and the user-specified TotalAmountOverride fields.  Valid values are:  - `Equal`—Distributes the discount amount   equally among all the order items. - `Proportionate`—Distributes the discount   amount in proportion to the   ListPriceTotal values of the order   items.  Available in API version 65.0 and later. |
+| AppliedDiscount | Type  percent  Properties  Create, Filter, Nillable, Sort, Update  Description  The discount amount that’s distributed among all the order items that have prices associated with them. This amount is distributed based on the logic specified in the AdjustmentDistributionLogic field. Available in API version 65.0 and later. |
+| AppliedDiscountAmount | Type  currency  Properties  Create, Filter, Nillable, Sort, Update  Description  The percent discount applied to each order item. Available in API version 65.0 and later. |
+| CalculationStatus | Type  picklist  Properties  Filter, Group, Nillable, Restricted picklist, Sort  Description  The status of the price and tax calculations for the order.  Valid values are:  - `CompletedWithPricing`—Indicates that pricing   is complete and tax will now be calculated. - `CompletedWithTax`—Indicates that pricing and   tax calculation are complete. - `CompletedWithoutPricing`—Indicates that   pricing and tax calculation were skipped. For a sales rep,   this value appears as Unknown on the   order page. - `ConfigurationFailed`—Indicates that   configuration failed. Available in API version 62.0 - `ConfigurationInProgress`—Indicates that the   configuration is in progress. Available in API version   62.0 - `GroupRampConfigurationFailed`—Indicates   that the checks for group ramps have failed. Available in API   version 65.0 and later. - `OrderRequestFailed`—Indicates that the   requested order changes weren’t saved. Available in API   version 62.0 - `OrderRequestPartiallySaved`—Indicates that   the requested order changes were partially saved. Available   in API version 62.0 - `PriceCalculationFailed`—Indicates that   pricing failed. - `ReconciliationFailed`—Indicates that the   arrangement of order data failed. Available in API version   62.0 - `ReconciliationInProgress`—Indicates that   the arrangement of data is in progress. For a sales rep, this   value appears as Saving on the order   page. Available in API version 62.0 - `SaveFailedOrIncomplete`—Indicates that the   recent changes to the order weren’t saved. For a sales rep,   this value appears as Some Records Weren’t   Saved on the order page. - `TaxCalculationFailed`—Indicates that pricing   is complete but tax calculation failed. - `TaxCalculationWaiting`—Indicates that pricing   is complete and a request sent to the tax engine, but tax   calculation isn’t complete.   This read-only field is available in API version 61.0 and later. |
+| DiscountPercent | Type  percent  Properties  Filter, Nillable, Sort  Description  The percentage of discount applied to the order. The discount percent calculation is ((TotalRoundedLineAmount - TotalAmount) / TotalRoundedLineAmount) \* 100. Available in API version 60.0 and later. |
+| FulfillmentPlanId | Type  reference  Properties  Create, Filter, Group, Nillable, Sort, Update  Description  The unique ID of the fulfillment plan associated with the order.  This field is a relationship field.  This field is available only in orgs where Dynamic Revenue Orchestrator is enabled. Available in API version 60.0 and later.  Relationship Name  FulfillmentPlan  Relationship Type  Lookup  Refers To  FulfillmentPlan |
+| LastPricedDate | Type  dateTime  Properties  Filter, Nillable, Sort  Description  The date when the order price was last calculated. Available in API version 60.0 and later. |
+| OrchestrationSbmsStatus | Type  picklist  Properties  Filter, Group, Nillable, Restricted picklist, Sort  Description  The status of order submission for orchestration.  This field is available only in orgs where Dynamic Revenue Orchestrator is enabled.  Valid values are:  - `Completed` - `Rejected` - `Submitted`  This read-only field is available in API version 61.0 and later. |
+| OriginalActionType | Type  picklist  Properties  Filter, Group, Nillable, Restricted picklist, Sort  Description  Specifies the action that created the order.  Valid values are:  - `Amend`—Indicates   that the order was created to amend assets. - `Cancel`—Indicates   that the order was created to cancel assets. - `Renew`—Indicates   that the order was created to renew assets. - `Transfer`—Indicates that the order was   created to transfer assets.  Available in API version 61.0 and later. |
+| SalesTransactionTypeId | Type  reference  Properties  Create, Filter, Group, Nillable, Sort, Update  Description  The foreign key to the Sales Transaction Type object. Available in API version 61.0 and later.  This field is a relationship field.  Relationship Name  SalesTransactionType  Relationship Type  Lookup  Refers To  SalesTransactionType |
+| TotalAmountOverride | Type  currency  Properties  Create, Filter, Nillable, Sort, Update  Description  The value that the TotalAmount field must be set to by applying overall discounts.  Transaction Management calculates the overall discount amount by finding the difference between the value in the calculated TotalAmount field and the value in this field. It then uses the logic specified in the AdjustmentDistributionLogic field to distribute the discount amount among all the order items that have prices associated with them.  Available in API version 65.0 and later. |
+| TotalRoundedLineAmount | Type  currency  Properties  Filter, Nillable, Sort  Description  The total amount of all line items in an order without pricing adjustments, such as discounts or tax calculations. Available in API version 60.0 and later. |
+| TransactionType | Type  picklist  Properties  Create, Filter, Group, Nillable, Restricted picklist, Sort, Update  Description  Specifies the type of order being processed.  The valid value is:  - `AdvancedConfigurator`—Indicates that the   order must be processed by using the configuration rules and   constraints set up in Constraint Rules Engine.  Available in API version 61.0 and later. |
+| ValidationResult | Type  picklist  Properties  Create, Filter, Group, Nillable, Restricted picklist, Sort, Update  Description  Specifies whether the order was configured and priced.  Orders can be activated only after they’re configured and priced.  Valid values are:  - `MissingContributor`—Indicates that the order   contains a derived product but not its pricing source. - `TransactionIncomplete`—Indicates that the   order wasn’t configured and priced.  Available in API version 61.0 and later. |

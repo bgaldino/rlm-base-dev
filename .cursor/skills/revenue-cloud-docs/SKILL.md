@@ -19,6 +19,8 @@ description: >-
 
 Use the Salesforce Help portal snapshots at `docs/salesforce/{release}/help/` as the canonical source of truth for product claims about Revenue Cloud — Billing, Pricing, Quoting, Orders, Contracts, Assets, Usage, and the adjacent areas. Every Trailhead module, enablement exercise, internal doc, or SME review response that asserts something about how Revenue Cloud works should ground that assertion against an article in the snapshot before being written or accepted.
 
+For **developer-facing** material — standard object/field reference, Business APIs, Apex, Metadata/Tooling API types, invocable actions, and **Constraint Modeling Language (CML)** — use the companion **Developer Guide snapshot** at `docs/salesforce/{release}/dev-guide/` (the atlas Revenue Cloud Developer Guide). See [Developer Guide snapshot (atlas)](#developer-guide-snapshot-atlas) below. Rule of thumb: **Help = how an admin/seller uses a feature; Dev Guide = the objects, fields, APIs, and CML a developer builds against.**
+
 ## Why the snapshot exists
 
 The Salesforce Help portal is an LWC SPA. `WebFetch`, `curl`, and naive scrapers all return an unrendered shell. The PDF Help compendium that Salesforce publishes per release is huge (124 MB for Spring '26 Billing alone), terrible for grep, opaque to file diffs, and impractical to commit. The snapshot replaces it with per-article markdown — one file per Help article, with YAML frontmatter carrying article ID, title, release, source URL, area, and fetched date. The markdown is small (~450 KB for ~170 Billing articles in 262), grep-friendly, diffable across releases, and structured well enough for AI agents to use as surgical grounding.
@@ -66,6 +68,33 @@ parent_article: ind.billing.htm
 fetched_at: "2026-05-11"
 ---
 ```
+
+## Developer Guide snapshot (atlas)
+
+The **Revenue Cloud Developer Guide** lives in a different documentation system than Help — the "atlas" viewer at `developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta`. It is captured separately by **`tasks/rlm_snapshot_dev_guide.py`** into `docs/salesforce/{release}/dev-guide/`, mirroring the help layout (`articles/{page_id}.md` + `manifest.json` + `index.md`).
+
+| Path | Purpose |
+|---|---|
+| `docs/salesforce/{release}/dev-guide/articles/{page_id}.md` | One captured guide page, markdown body + YAML frontmatter |
+| `docs/salesforce/{release}/dev-guide/manifest.json` | Machine index: page status, section, parent, doc_version, file path |
+| `docs/salesforce/{release}/dev-guide/index.md` | Human index: stats + pages grouped by TOC section |
+| `tasks/rlm_snapshot_dev_guide.py` | The capture task (Playwright + atlas JSON content API → markdown) |
+
+**Why a separate task.** The atlas viewer exposes a clean JSON content API (`get_document` for the TOC, `get_document_content/<deliverable>/<page_id>/en-us/<doc_version>` per page), but it sits behind Akamai bot protection — plain `requests`/`curl` get HTTP 403. The task drives the API from inside a Playwright browser context (so requests carry the browser's cookies/TLS) and converts the returned HTML to markdown (`markdownify` when injected, else a built-in converter). Intra-guide cross-references are rewritten to sibling `./<page_id>.md` files so the corpus is self-navigable.
+
+**Frontmatter** carries `page_id`, `title`, `source_url`, `release`, `release_name`, `deliverable`, `section` (TOC top-level ancestor), `parent_page`, and `fetched_at`.
+
+**Capture / refresh.** Same modes as the help task (`discover` / `capture` / `all` / `refresh`). Run the whole guide or one section:
+
+```bash
+cci task run snapshot_dev_guide_262                                   # whole guide
+cci task run snapshot_dev_guide_262 -o section "Constraint Modeling Language"   # one TOC section
+cci task run snapshot_dev_guide_262 -o mode refresh                  # re-capture all (after a release update)
+```
+
+Requires Playwright in the CCI venv (same inject as the help task); `markdownify` is an optional inject for best table/list fidelity. See the task docstring for setup.
+
+**When to use which.** Ground **developer** claims (object/field API names, Business APIs, Apex, Metadata/Tooling types, invocable actions, **CML syntax and semantics**) against the dev-guide snapshot; ground **admin/seller** claims (feature setup, how-to, configuration) against the help snapshot. The CML section (`section: Constraint Modeling Language`, `cml_*.htm.md`) is the canonical reference for constraint-model authoring and the QuantumBit constraint-model work.
 
 ## Common grounding workflows
 
