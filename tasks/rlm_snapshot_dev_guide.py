@@ -1000,7 +1000,7 @@ class SnapshotSalesforceDevGuide(BaseTask):
                 items = by_section[section]
                 lines.append(f"## {section} ({len(items)})")
                 lines.append("")
-                lines.append("| Page | ID | Bytes |")
+                lines.append("| Page | ID | Chars |")
                 lines.append("|:--|:--|--:|")
                 for p in sorted(items, key=lambda x: x["page_id"]):
                     pid = p["page_id"]
