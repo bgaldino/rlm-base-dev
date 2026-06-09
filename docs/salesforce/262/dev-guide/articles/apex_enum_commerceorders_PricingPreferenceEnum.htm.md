@@ -16,7 +16,7 @@ Specifies the pricing preference during the create order process.
 
 ## Usage
 
-Used by the [PlaceOrderExecutor](./apex_class_commerceorders_PlaceOrderExecutor.htm.md "Contains methods to place an order with details of the graph request, pricing preferences, and configuration options.")
+Used by the [PlaceOrderExecutor](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_commerceorders_PlaceOrderExecutor.htm "Contains methods to place an order with details of the graph request, pricing preferences, and configuration options.")
 class.
 
 ## Enum Values

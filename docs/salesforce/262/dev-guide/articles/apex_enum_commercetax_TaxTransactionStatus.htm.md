@@ -17,7 +17,7 @@ uncommitted.
 
 ## Usage
 
-Used by the [CalculateTaxResponse](./apex_class_commercetax_CalculateTaxResponse.htm.md "Sets the values of the tax transaction following a response from the external tax engine. Extends the AbstractTransactionResponse class and is the top-level response class.") class method.
+Used by the [CalculateTaxResponse](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_commercetax_CalculateTaxResponse.htm "Sets the values of the tax transaction following a response from the external tax engine. Extends the AbstractTransactionResponse class and is the top-level response class.") class method.
 
 ## Enum Values
 

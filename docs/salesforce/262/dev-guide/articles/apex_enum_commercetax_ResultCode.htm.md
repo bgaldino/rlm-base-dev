@@ -17,7 +17,7 @@ engine.
 
 ## Usage
 
-Used by the [ErrorResponse](./apex_class_commercetax_ErrorResponse.htm.md "Use to respond with an error after receiving errors from the PaymentGatewayAdapter methods of the CommercePayments namespace, such as request-forbidden responses, custom validation errors, or expired API tokens.")
+Used by the [ErrorResponse](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_commercetax_ErrorResponse.htm "Use to respond with an error after receiving errors from the PaymentGatewayAdapter methods of the CommercePayments namespace, such as request-forbidden responses, custom validation errors, or expired API tokens.")
 class method.
 
 ## Enum Values

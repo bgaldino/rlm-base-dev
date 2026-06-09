@@ -16,7 +16,7 @@ Specifies the pricing preference during the create quote process.
 
 ## Usage
 
-Used by the [PlaceQuoteRLMApexProcessor](./apex_class_placequote_PlaceQuoteRLMApexProcessor.htm.md "Contains methods to place a quote with details of the graph request, pricing preferences, and configuration options.") class.
+Used by the [PlaceQuoteRLMApexProcessor](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_PlaceQuoteRLMApexProcessor.htm "Contains methods to place a quote with details of the graph request, pricing preferences, and configuration options.") class.
 
 ## Enum Values
 

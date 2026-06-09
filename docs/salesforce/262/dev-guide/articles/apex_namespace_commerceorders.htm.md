@@ -29,17 +29,17 @@ The `CommerceOrders` namespace includes these classes.
   Specifies the rate card entries defined in the catalog that must be fetched for order items, with usage-based selling during the order creation process.
 - **[ConfigurationInputEnum Enum](./apex_enum_commerceorders_ConfigurationInputEnum.htm.md)**  
   Specifies the configuration input for the request to place an order.
-- **[ConfigurationOptionsInput Class](./apex_class_commerceorders_ConfigurationOptionsInput.htm.md)**  
+- **[ConfigurationOptionsInput Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_commerceorders_ConfigurationOptionsInput.htm)**  
   Contains methods and properties to set the configuration options for the input to the product configurator.
-- **[GraphRequest Class](./apex_class_commerceorders_GraphRequest.htm.md)**  
+- **[GraphRequest Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_commerceorders_GraphRequest.htm)**  
   Contains constructors and properties to set the graph ID and a list of records to be ingested. The list of records is specified in a key-value map format that contains the field values of an order.
-- **[PlaceOrderExecutor Class](./apex_class_commerceorders_PlaceOrderExecutor.htm.md)**  
+- **[PlaceOrderExecutor Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_commerceorders_PlaceOrderExecutor.htm)**  
   Contains methods to place an order with details of the graph request, pricing preferences, and configuration options.
-- **[PlaceOrderResult Class](./apex_class_commerceorders_PlaceOrderResult.htm.md)**  
+- **[PlaceOrderResult Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_commerceorders_PlaceOrderResult.htm)**  
   Contains properties to hold the response to the place order request.
 - **[PricingPreferenceEnum Enum](./apex_enum_commerceorders_PricingPreferenceEnum.htm.md)**  
   Specifies the pricing preference during the create order process.
-- **[RecordResource Class](./apex_class_commerceorders_RecordResource.htm.md)**  
+- **[RecordResource Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_commerceorders_RecordResource.htm)**  
   Contains constructors and properties to create a record object from field values of an order.
-- **[RecordWithReferenceRequest Class](./apex_class_commerceorders_RecordWithReferenceRequest.htm.md)**  
+- **[RecordWithReferenceRequest Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_commerceorders_RecordWithReferenceRequest.htm)**  
   Contains constructors and properties to associate a record object with a reference identifier.

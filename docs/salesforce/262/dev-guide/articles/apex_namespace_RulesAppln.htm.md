@@ -16,9 +16,9 @@ Apply payments and credits to posted invoices by adhering to the specified rules
 
 The `RulesAppln` namespace includes these classes.
 
-- **[RulesApplicationErrorResponse Class](./apex_class_RulesAppln_RulesApplicationErrorResponse.htm.md)**  
+- **[RulesApplicationErrorResponse Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RulesAppln_RulesApplicationErrorResponse.htm)**  
   Contains properties to store error details that occurred during the rules application.
-- **[RulesApplicationResponse Class](./apex_class_RulesAppln_RulesApplicationResponse.htm.md)**  
+- **[RulesApplicationResponse Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RulesAppln_RulesApplicationResponse.htm)**  
   Contains properties to store the response details for the rules application request.
-- **[RulesApplicationSummaryResponse Class](./apex_class_RulesAppln_RulesApplicationSummaryResponse.htm.md)**  
+- **[RulesApplicationSummaryResponse Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RulesAppln_RulesApplicationSummaryResponse.htm)**  
   Contains properties to store the summary details of the rules application, including payment and credit memo counts and application statistics.

@@ -16,7 +16,7 @@ Specifies the pricing preference during the creation of a sales transaction.
 
 ## Usage
 
-Used by the [PlaceSalesTransactionExecutor](./apex_class_RevSalesTrxn_PlaceSalesTransactionExecutor.htm.md "Contains methods to place a sales transaction with details of the graph request, pricing preferences, and configuration options.") class.
+Used by the [PlaceSalesTransactionExecutor](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RevSalesTrxn_PlaceSalesTransactionExecutor.htm "Contains methods to place a sales transaction with details of the graph request, pricing preferences, and configuration options.") class.
 
 ## Enum Values
 

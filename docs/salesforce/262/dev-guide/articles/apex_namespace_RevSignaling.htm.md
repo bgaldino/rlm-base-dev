@@ -23,13 +23,13 @@ Pricing** toggle from the Revenue Settings page from Setup.
 
 The `RevSignaling` namespace includes these classes.
 
-- **[ProcedurePlan Class](./apex_class_RevSignaling_ProcedurePlan.htm.md)**  
+- **[ProcedurePlan Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RevSignaling_ProcedurePlan.htm)**  
   Represents the instance of the current pricing procedure plan that you're working on.
-- **[SignalingApexProcessor Interface](./apex_interface_RevSignaling_SignalingApexProcessor.htm.md)**  
+- **[SignalingApexProcessor Interface](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_interface_RevSignaling_SignalingApexProcessor.htm)**  
   Defines the context-driven orchestration logic based on procedure plan instance and contextual instance.
-- **[TransactionRequest Class](./apex_class_RevSignaling_TransactionRequest.htm.md)**  
+- **[TransactionRequest Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RevSignaling_TransactionRequest.htm)**  
   Represents the transaction request to the signaling Apex processor.
-- **[TransactionResponse Class](./apex_class_RevSignaling_TransactionResponse.htm.md)**  
+- **[TransactionResponse Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_RevSignaling_TransactionResponse.htm)**  
   Represents the transaction response from the signaling Apex processor.
 - **[TransactionStatus Enum](./apex_enum_RevSignaling_TransactionStatus.htm.md)**  
   Specifies the status of the transaction request.

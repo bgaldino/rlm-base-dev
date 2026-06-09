@@ -29,19 +29,19 @@ The `PlaceQuote` namespace includes these classes.
   Specifies the rate card entries defined in the catalog that must be fetched for quote line items, with usage-based selling during the quote creation process.
 - **[ConfigurationInputEnum Enum](./apex_enum_placequote_ConfigurationInputEnum.htm.md)**  
   Specifies the configuration input for the request to place a quote.
-- **[ConfigurationOptionsInput Class](./apex_class_placequote_ConfigurationOptionsInput.htm.md)**  
+- **[ConfigurationOptionsInput Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_ConfigurationOptionsInput.htm)**  
   Contains methods and properties to set the configuration options for the input to the product configurator.
-- **[GraphRequest Class](./apex_class_placequote_GraphRequest.htm.md)**  
+- **[GraphRequest Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_GraphRequest.htm)**  
   Contains constructors and properties to set the graph ID and a list of records to be ingested. The list of records is specified in a key-value map format that contains the field values of an order.
-- **[PlaceQuoteException Class](./apex_class_placequote_PlaceQuoteException.htm.md)**  
+- **[PlaceQuoteException Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_PlaceQuoteException.htm)**  
   Contains methods to hold the exception details for the place quote request.
-- **[PlaceQuoteResponse Class](./apex_class_placequote_PlaceQuoteResponse.htm.md)**  
+- **[PlaceQuoteResponse Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_PlaceQuoteResponse.htm)**  
   Contains properties to hold the response to the place quote request.
-- **[PlaceQuoteRLMApexProcessor Class](./apex_class_placequote_PlaceQuoteRLMApexProcessor.htm.md)**  
+- **[PlaceQuoteRLMApexProcessor Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_PlaceQuoteRLMApexProcessor.htm)**  
   Contains methods to place a quote with details of the graph request, pricing preferences, and configuration options.
 - **[PricingPreferenceEnum Enum](./apex_enum_placequote_PricingPreferenceEnum.htm.md)**  
   Specifies the pricing preference during the create quote process.
-- **[RecordResource Class](./apex_class_placequote_RecordResource.htm.md)**  
+- **[RecordResource Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_RecordResource.htm)**  
   Contains constructors and properties to create a record object from the field values of a quote.
-- **[RecordWithReferenceRequest Class](./apex_class_placequote_RecordWithReferenceRequest.htm.md)**  
+- **[RecordWithReferenceRequest Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_RecordWithReferenceRequest.htm)**  
   Contains constructors and properties to associate a record object with a reference identifier.

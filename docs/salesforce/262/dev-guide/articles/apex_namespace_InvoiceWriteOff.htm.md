@@ -22,13 +22,13 @@ The `InvoiceWriteOff` namespace includes these classes.
 You need the Billing Operations User or Credit Memo Operations User permission set to
 access this namespace.
 
-- **[WriteOffInvoiceInput Class](./apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm.md)**  
+- **[WriteOffInvoiceInput Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_InvoiceWriteOff_WriteOffInvoiceInput.htm)**  
   Contains invoice details that are used for the request to write off an invoice.
-- **[WriteOffInvoiceInputList Class](./apex_class_InvoiceWriteOff_WriteOffInvoiceInputList.htm.md)**  
+- **[WriteOffInvoiceInputList Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_InvoiceWriteOff_WriteOffInvoiceInputList.htm)**  
   Contains invoice details to write off a list of posted invoices.
-- **[WriteOffInvoiceResponse Class](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponse.htm.md)**  
+- **[WriteOffInvoiceResponse Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_InvoiceWriteOff_WriteOffInvoiceResponse.htm)**  
   Contains properties to store the response details to the request to write off a posted invoice.
-- **[WriteOffInvoiceResponseError Class](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm.md)**  
+- **[WriteOffInvoiceResponseError Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_InvoiceWriteOff_WriteOffInvoiceResponseError.htm)**  
   Contains properties to store the error response that's associated with a request to write off a posted invoice.
-- **[WriteOffInvoiceResponseList Class](./apex_class_InvoiceWriteOff_WriteOffInvoiceResponseList.htm.md)**  
+- **[WriteOffInvoiceResponseList Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_InvoiceWriteOff_WriteOffInvoiceResponseList.htm)**  
   Contains properties to store the response details of the list of invoices that are written off.

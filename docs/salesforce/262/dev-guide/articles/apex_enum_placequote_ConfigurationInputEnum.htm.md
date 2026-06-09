@@ -17,7 +17,7 @@ Specifies the configuration input for the request to place a quote.
 ## Usage
 
 Use these enum values for the `configurationInputEnum` property
-in the [PlaceQuoteRLMApexProcessor](./apex_class_placequote_PlaceQuoteRLMApexProcessor.htm.md "Contains methods to place a quote with details of the graph request, pricing preferences, and configuration options.") class.
+in the [PlaceQuoteRLMApexProcessor](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_PlaceQuoteRLMApexProcessor.htm "Contains methods to place a quote with details of the graph request, pricing preferences, and configuration options.") class.
 
 ## Enum Values
 

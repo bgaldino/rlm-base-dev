@@ -17,7 +17,7 @@ engine.
 
 ## Usage
 
-Used by the [TaxEngineContext](./apex_class_commercetax_TaxEngineContext.htm.md "Wrapper class that stores details about the type of a tax calculation request.")
+Used by the [TaxEngineContext](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_commercetax_TaxEngineContext.htm "Wrapper class that stores details about the type of a tax calculation request.")
 class method.
 
 ## Enum Values

@@ -16,7 +16,7 @@ Retrieve details about renewable assets to create renewal opportunities.
 
 The `renew_assets_summary` namespace includes these classes.
 
-- **[RenewalOpptyDetail Class](./apex_class_renew_assets_summary_RenewalOpptyDetail.htm.md)**  
+- **[RenewalOpptyDetail Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_renew_assets_summary_RenewalOpptyDetail.htm)**  
   Contains asset details and renewal pricing information for creating renewal opportunities.
-- **[RenewalPriceDetail Class](./apex_class_renew_assets_summary_RenewalPriceDetail.htm.md)**  
+- **[RenewalPriceDetail Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_renew_assets_summary_RenewalPriceDetail.htm)**  
   Contains net unit price and quantity details for an asset to set as sales price for renewal opportunities.

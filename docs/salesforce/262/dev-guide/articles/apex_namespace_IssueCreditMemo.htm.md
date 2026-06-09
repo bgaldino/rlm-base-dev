@@ -21,9 +21,9 @@ The
 `IssueCreditMemo` namespace includes these
 classes.
 
-- **[CreditLineRequestInputRepresentations Class](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md)**  
+- **[CreditLineRequestInputRepresentations Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm)**  
   Represents a single line-level credit request. Specifies the invoice line to credit, the amount to apply, and an optional description.
-- **[CreditRequestInputRepresentations Class](./apex_class_IssueCreditMemo_CreditRequestInputRepresentations.htm.md)**  
+- **[CreditRequestInputRepresentations Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_IssueCreditMemo_CreditRequestInputRepresentations.htm)**  
   Represents a credit request for an invoice. Contains invoice and dispute identifiers, total credit amount, category, and line-level credit details for issuing a credit memo.
-- **[CreditResponseOutputRepresentations Class](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md)**  
+- **[CreditResponseOutputRepresentations Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm)**  
   Represents the result of a credit memo operation. Indicates success or failure and any additional information or message.

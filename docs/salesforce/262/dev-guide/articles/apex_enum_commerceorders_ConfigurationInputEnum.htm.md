@@ -17,7 +17,7 @@ Specifies the configuration input for the request to place an order.
 ## Usage
 
 Use these enum values for the `configurationInputEnum` property
-in the [PlaceOrderExecutor Class](./apex_class_commerceorders_PlaceOrderExecutor.htm.md "Contains methods to place an order with details of the graph request, pricing preferences, and configuration options.")
+in the [PlaceOrderExecutor Class](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_commerceorders_PlaceOrderExecutor.htm "Contains methods to place an order with details of the graph request, pricing preferences, and configuration options.")
 
 ## Enum Values
 
