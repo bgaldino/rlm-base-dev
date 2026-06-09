@@ -65,6 +65,10 @@ datasets/constraints/qb/
 │   ├── (same CSV structure)
 │   └── blobs/
 │       └── ESDV_QuantumBitPCM_V1.ffxblob
+├── QuantumBitBundle/        # Combined model (QuantumBitComplete + QuantumBitPCM)
+│   ├── (same CSV structure)
+│   └── blobs/
+│       └── ESDV_QuantumBitBundle_V1.ffxblob
 └── README.md               # This file
 ```
 
@@ -162,8 +166,8 @@ cci task run import_cml --org <target_org> \
 
 ### Import Steps
 
-1. **Upsert ExpressionSet** by ApiName (create if missing, update if exists)
-2. **Resolve ExpressionSetDefinitionVersion** by DeveloperName
+1. **Upsert ExpressionSet** by ApiName (create if missing, update if exists). **Creating an `ExpressionSet` with `UsageType=Constraint` auto-provisions the backing `ExpressionSetDefinition` + a V1 `ExpressionSetDefinitionVersion` + `ExpressionSetVersion` as a platform side-effect** — so **no `ExpressionSetDefinition` metadata needs to be deployed and no separate provisioning step is required**. All four QB constraint models (Complete, Server2, PCM, Bundle) rely on this; none ship ESD metadata.
+2. **Resolve ExpressionSetDefinitionVersion** by DeveloperName (the version auto-provisioned in step 1). `import_cml` resolves — it does not itself create — the ESDV, because step 1 has already provisioned it.
 3. **Upsert ExpressionSetDefinitionContextDefinition**
 4. **Build polymorphic lookup maps** -- reads exported CSVs to build legacy ID-to-name mappings, queries target org to resolve names to target IDs
 5. **Create ExpressionSetConstraintObj records** -- resolves each polymorphic ReferenceObjectId
@@ -242,31 +246,49 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 | 3 | `assign_permission_sets` | `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 | 5 | `enable_constraints_settings` | `constraints_data` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle (Robot Framework) |
-| 6 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against data |
+| 6 | `validate_cml` | `constraints_data` + `qb` | Structure-validate all `scripts/cml/*.cml`; cross-reference ESC associations only against the QuantumBitComplete data dir (other models, incl. QuantumBitBundle, get structure-only validation) |
 | 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import QuantumBitComplete model (imported but left **inactive** — see note below) |
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import Server2 model |
-| 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import QuantumBitPCM model |
-| 10 | `manage_expression_sets` | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitPCM_V1 only** |
+| 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import QuantumBitPCM model (imported but left **inactive** — see note below) |
+| 10 | `import_cml` (QuantumBitBundle) | `constraints_data` + `qb` | Import the combined QuantumBitBundle model |
+| 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1` + `QuantumBitPCM_V1` (idempotent switch; no-op on a fresh build) |
+| 12 | `manage_expression_sets` (activate) | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** |
 
-> **QuantumBitComplete is imported but not activated.** Only one QuantumBit
-> constraint model can be active at a time. `QuantumBitPCM` carries the updated
-> v67 virtual-quote structure and is the active QuantumBit model; `QuantumBitComplete`
-> is loaded (model + blob + ESC) but left inactive until the two are merged.
-> Activation sets `ExpressionSetVersion.IsActive=true` only for the versions named
-> in step 10; `import_cml` creates versions inactive, so omitting `QuantumBitComplete_V1`
-> from the list is sufficient. To deactivate it on an org where it is *already*
-> active: `cci task run manage_expression_sets -o operation deactivate_versions -o
-> version_full_names QuantumBitComplete_V1 --org <alias>` (if it was activated without
-> a Rank, set the Rank first or deactivate via the UI).
+> **QuantumBitBundle is the active QuantumBit model; QuantumBitComplete and
+> QuantumBitPCM are imported but not activated.** Only one QuantumBit constraint
+> model can be active at a time. `QuantumBitBundle` is the combined model (the
+> QuantumBitComplete configurable bundle + the QuantumBitPCM virtual-quote
+> cross-item rules — see [QuantumBitBundle (combined model)](#quantumbitbundle-combined-model)).
+> `QuantumBitComplete` and `QuantumBitPCM` are loaded (model + blob + ESC) but left
+> inactive for A/B/C comparison. On a fresh build, each `import_cml` step's
+> ExpressionSet upsert auto-provisions the backing `ExpressionSetDefinition` + V1
+> `ExpressionSetDefinitionVersion` + `ExpressionSetVersion` — created **inactive** — as
+> a platform side-effect of creating an `ExpressionSet` with `UsageType=Constraint` (no
+> ESD metadata is deployed); `import_cml` then resolves that ESDV and uploads the blob +
+> ESC (see [Import Steps](#import-steps)). Step 11 explicitly deactivates
+> `QuantumBitComplete_V1` + `QuantumBitPCM_V1`
+> (a no-op on a fresh build, but it makes re-running on an existing org idempotent —
+> `manage_expression_sets` only toggles the versions it is given), and step 12 then
+> sets `ExpressionSetVersion.IsActive=true` only for `Server2_V1` + `QuantumBitBundle_V1`.
+>
+> **Switching the active QuantumBit model** (e.g. back to PCM for comparison) —
+> `manage_expression_sets` extends `BaseTask`, so it has **no `--org` flag**; it
+> targets the **default** CCI org. Set the default org first (`cci org default <alias>`),
+> then:
+> ```bash
+> cci task run manage_expression_sets -o operation deactivate_versions -o version_full_names QuantumBitBundle_V1
+> cci task run manage_expression_sets -o operation activate_versions   -o version_full_names QuantumBitPCM_V1
+> ```
+> (Deactivation works over REST even when the version has no Rank.)
 
 ### Feature Flags
 
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `constraints` | `true` | Enable constraint metadata deployment (steps 1-4) |
-| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-10) |
+| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-12) |
 | `quantumbit` | `true` | QuantumBit-specific prerequisites (step 1) |
-| `qb` | `true` | QuantumBit dataset family (steps 6-10) |
+| `qb` | `true` | QuantumBit dataset family (steps 6-12) |
 
 To run the full constraints flow including data:
 ```yaml
@@ -285,9 +307,10 @@ cci flow run prepare_constraints --org <org> -o constraints_data true
 
 | Model | ESC Records | Product2 | PRC | Blob |
 |-------|------------|----------|-----|------|
-| QuantumBitComplete | 43 | 22 (Type) | 21 (Port) | ESDV_QuantumBitComplete_V1.ffxblob |
+| QuantumBitComplete | 55 (28 Type + 27 Port) | 28 (Type) | 27 (Port) | ESDV_QuantumBitComplete_V1.ffxblob |
 | Server2 | 81 | 41 (Type) | 40 (Port) | ESDV_Server2_V1.ffxblob |
 | QuantumBitPCM | 12 | 12 (Type) | 0 | ESDV_QuantumBitPCM_V1.ffxblob |
+| QuantumBitBundle | 59 (32 Type + 27 Port) | 32 (Type) | 27 (Port) | ESDV_QuantumBitBundle_V1.ffxblob |
 
 ### Source Org
 
@@ -306,6 +329,79 @@ cci task run export_cml --org pm-pcm262 \
     -o developer_name QuantumBitPCM -o version 1 \
     -o output_dir datasets/constraints/qb/QuantumBitPCM
 ```
+
+## QuantumBitBundle (combined model)
+
+`QuantumBitBundle` is a **synthesized union** of the two QuantumBit models, built so
+the combined behavior can be compared against each original in a scratch org. Unlike
+the other models it was **not** exported from a source org — its CML
+(`scripts/cml/QuantumBitBundle.cml`) was authored by grafting:
+
+- **QuantumBitComplete** (bundle/configuration paradigm) — the full configurable
+  `QuantumBitCompleteSolution` bundle, verbatim: 28 product types, 27 relation
+  **ports** (→ `ProductRelatedComponent`), all attributes (OS / Base Core Count /
+  Data Utilization, engineer options, etc.), the RedHat→8-cores `constraint`, and the
+  API-management `require`.
+- **QuantumBitPCM** (virtual-quote paradigm, v67) — the `@(virtual="true") type Quote`
+  container with its `lineitems` relation and **cart-level** cross-item rules: the
+  `require(lineitems[APIAccessRequestsAEH], lineitems[QuantumBitDatabase], …)` and the
+  two `recommend` rules (Essentials / Fundamentals Training).
+
+### LineItem-primary (a platform constraint, not a choice)
+
+A fully faithful union is **structurally impossible**: in RLM a `Product2` maps to
+exactly **one Component Type**, and CML is single-inheritance, so a product cannot be
+both a `LineItem` (a QuantumBitComplete bundle member) **and** an `AssetLineItem` (a
+QuantumBitPCM asset leaf) in one model. Tagging a product with two CML types fails at
+config-rule compile time (`Model '…' is invalid: Component Type with Id '…' already
+exists`), and the platform auto-deactivates the invalid version. The combined model is
+therefore **LineItem-primary**:
+
+- QuantumBitPCM's **asset-context facet is dropped** — the `assetLineItems` relation,
+  the `AssetLineItem` base + its three `…OnAsset` leaves, and the single
+  `assetLineItems[…]` recommend rule. Those products remain as QuantumBitComplete
+  `LineItem` bundle members instead.
+- QuantumBitPCM's `APIAccessRequests` is **unified** to QuantumBitComplete's
+  `APIAccessRequestsAEH` (same product "API Access Requests (AEH)", both `LineItem`) —
+  lossless.
+
+**Preserved:** the full configurable bundle + PCM's cart-level `require` and both
+`recommend` rules. **Lost:** PCM's asset-context recommend (own a Complete Solution →
+recommend Token Commit Flat), which is irreconcilable with the bundle.
+
+### Re-importing QuantumBitBundle
+
+The data plan resolves entirely against the `qb-pcm` catalog, so:
+
+```bash
+cci task run import_cml --org <alias> \
+    -o data_dir datasets/constraints/qb/QuantumBitBundle \
+    -o dataset_dirs "datasets/sfdmu/qb/en-US/qb-pcm"
+```
+
+To edit the model: change `scripts/cml/QuantumBitBundle.cml`, copy it over
+`datasets/constraints/qb/QuantumBitBundle/blobs/ESDV_QuantumBitBundle_V1.ffxblob`
+(the blob **is** the plain-text CML), deactivate the version, re-import, then
+re-activate (see the [switching note](#prepare_constraints-flow) above).
+
+### Validating the combined model (headless)
+
+Activation only flips `IsActive`; the constraint model is **compiled when config rules
+run**. To verify headlessly without the UI, POST the Product Configurator `configure`
+action against a quote line that uses the model:
+
+```
+POST /services/data/v67.0/connect/cpq/configurator/actions/configure
+{
+  "transactionLineId": "<QuoteLineItem Id of a configurable bundle on the quote>",
+  "transactionId": "<Quote Id>",
+  "correlationId": "<uuid>",
+  "configuratorOptions": { "executeConfigurationRules": true, "validateProductCatalog": true }
+}
+```
+
+A valid model returns `success: true`, `solverStatus: "success"`, `errors: []`. A model
+error (e.g. duplicate Component Type) returns the `Model '…' is invalid` message.
 
 ## Adding New Models
 
@@ -427,7 +523,8 @@ The CML constraint model source files are located in `scripts/cml/`:
 
 | File | Description |
 |------|-------------|
-| `QuantumBitComplete.cml` | QuantumBit Complete constraint model |
+| `QuantumBitComplete.cml` | QuantumBit Complete constraint model (bundle/config paradigm) |
+| `QuantumBitBundle.cml` | Combined model: QuantumBitComplete bundle + QuantumBitPCM virtual-quote rules (see below) |
 | `Server2.cml` | Server2 constraint model |
 | `Server260.cml` | Server 260 constraint model |
 | `GeneratorSet258.cml` | Generator Set 258 constraint model |

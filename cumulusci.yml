@@ -539,6 +539,7 @@ project:
     quantumbit_constraints_data_dir: &quantumbit_constraints_data_dir "datasets/constraints/qb/QuantumBitComplete"  # CML constraint model data (CSVs + blob)
     server2_constraints_data_dir: &server2_constraints_data_dir "datasets/constraints/qb/Server2"  # Server2 CML constraint model data (CSVs + blob)
     quantumbit_pcm_constraints_data_dir: &quantumbit_pcm_constraints_data_dir "datasets/constraints/qb/QuantumBitPCM"  # QuantumBitPCM CML constraint model data (CSVs + blob)
+    quantumbit_bundle_constraints_data_dir: &quantumbit_bundle_constraints_data_dir "datasets/constraints/qb/QuantumBitBundle"  # QuantumBitBundle combined CML model (Complete + PCM, LineItem-primary)
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
     quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
     quantumbit_guidedselling_products_dataset: &quantumbit_guidedselling_products_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling-products"   # QuantumBit guided selling Product2 field values
@@ -3669,16 +3670,36 @@ flows:
           data_dir: *quantumbit_pcm_constraints_data_dir
           dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
       10:
+        task: import_cml
+        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        options:
+          data_dir: *quantumbit_bundle_constraints_data_dir
+          dataset_dirs: "datasets/sfdmu/qb/en-US/qb-pcm"
+      11:
+        task: manage_expression_sets
+        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        options:
+          operation: deactivate_versions
+          # Deactivate any previously-active QuantumBit model FIRST so re-running
+          # prepare_constraints on an existing org reliably switches to QuantumBitBundle.
+          # manage_expression_sets only toggles the versions it is given -- it does not
+          # auto-deactivate others -- and only one QuantumBit model may be active at a time,
+          # so activating Bundle without this would leave Complete/PCM active alongside it.
+          # No-op on a fresh build (Complete/PCM are imported inactive); the task safely
+          # skips versions that are already inactive or absent.
+          version_full_names: "QuantumBitComplete_V1,QuantumBitPCM_V1"
+      12:
         task: manage_expression_sets
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
           operation: activate_versions
-          # QuantumBitComplete_V1 is intentionally NOT activated: only one QuantumBit
-          # constraint model can be active at a time, and QuantumBitPCM_V1 (the updated
-          # v67 virtual-quote structure) is the active model. QuantumBitComplete is still
-          # imported (step 7) but left inactive until the two models are merged.
+          # Only one QuantumBit constraint model can be active at a time.
+          # QuantumBitBundle_V1 (the combined model = QuantumBitComplete bundle +
+          # QuantumBitPCM virtual-quote rules, LineItem-primary) is the active QuantumBit
+          # model. QuantumBitComplete_V1 (step 7) and QuantumBitPCM_V1 (step 9) are still
+          # imported but left INACTIVE (deactivated in step 11) for A/B comparison.
           # See datasets/constraints/README.md.
-          version_full_names: "Server2_V1,QuantumBitPCM_V1"
+          version_full_names: "Server2_V1,QuantumBitBundle_V1"
 
   prepare_approvals:
     group: Revenue Lifecycle Management

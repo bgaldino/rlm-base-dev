@@ -590,14 +590,20 @@ class ImportCML(CMLBaseTask):
             esc_list = self.read_csv(os.path.join(data_dir, "ExpressionSetConstraintObj.csv"))
             self.logger.info(f"Loaded {len(esc_list)} ESC records from {data_dir}")
 
-        # Step 1: Upsert ExpressionSet
+        # Step 1: Upsert ExpressionSet.
+        # NOTE: creating an ExpressionSet with UsageType=Constraint causes the platform
+        # to auto-provision the backing ExpressionSetDefinition + a V1
+        # ExpressionSetDefinitionVersion + ExpressionSetVersion (all inactive). This is
+        # why Step 2 can *resolve* the ESDV by DeveloperName even on a fresh org where no
+        # ExpressionSetDefinition metadata is deployed -- the version was just provisioned
+        # here. (All four QB constraint models rely on this; none ship ESD metadata.)
         ess.pop("Id", None)
         ess_id = self._upsert_expression_set(ess, dry_run)
         if not ess_id:
             self.logger.error("Could not create or update ExpressionSet. Aborting.")
             return
 
-        # Step 2: Resolve ESDV
+        # Step 2: Resolve ESDV (auto-provisioned by the ExpressionSet upsert in Step 1).
         devname = esdv["DeveloperName"]
         esdv_records = self.soql_query(
             f"SELECT Id FROM ExpressionSetDefinitionVersion WHERE DeveloperName = '{devname}'"

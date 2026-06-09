@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**39 feature flags**, **79 configuration values**, **34 YAML anchors** under `project.custom`.
+**39 feature flags**, **80 configuration values**, **34 YAML anchors** under `project.custom`.
 
 ---
 
@@ -25,8 +25,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `clm` | `True` | 4 flow step(s) |
 | `clm_data` | `False` | 1 flow step(s) |
 | `commerce` | `False` | 2 flow step(s) |
-| `constraints` | `True` | 10 flow step(s) |
-| `constraints_data` | `True` | 6 flow step(s) |
+| `constraints` | `True` | 12 flow step(s) |
+| `constraints_data` | `True` | 8 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
@@ -40,7 +40,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 5 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
-| `qb` | `True` | 21 flow step(s) |
+| `qb` | `True` | 23 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
 | `ramps` | `True` | 4 flow step(s) |
@@ -152,7 +152,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
 - `prepare_constraints` step 9 → `import_cml`
-- `prepare_constraints` step 10 → `manage_expression_sets`
+- `prepare_constraints` step 10 → `import_cml`
+- `prepare_constraints` step 11 → `manage_expression_sets`
+- `prepare_constraints` step 12 → `manage_expression_sets`
 
 ### `constraints_data` (default: `True`)
 
@@ -161,7 +163,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
 - `prepare_constraints` step 9 → `import_cml`
-- `prepare_constraints` step 10 → `manage_expression_sets`
+- `prepare_constraints` step 10 → `import_cml`
+- `prepare_constraints` step 11 → `manage_expression_sets`
+- `prepare_constraints` step 12 → `manage_expression_sets`
 
 ### `docgen` (default: `True`)
 
@@ -284,7 +288,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
 - `prepare_constraints` step 9 → `import_cml`
-- `prepare_constraints` step 10 → `manage_expression_sets`
+- `prepare_constraints` step 10 → `import_cml`
+- `prepare_constraints` step 11 → `manage_expression_sets`
+- `prepare_constraints` step 12 → `manage_expression_sets`
 - `prepare_approvals` step 4 → `insert_qb_approvals_data`
 - `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
 - `prepare_pricing_discovery` step 2 → `configure_product_discovery_settings`
@@ -449,6 +455,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `q3_tax_dataset` | `datasets/sfdmu/q3/en-US/q3-tax` |
 | `quantumbit_approvals_dataset` | `datasets/sfdmu/qb/en-US/qb-approvals` |
 | `quantumbit_billing_dataset` | `datasets/sfdmu/qb/en-US/qb-billing` |
+| `quantumbit_bundle_constraints_data_dir` | `datasets/constraints/qb/QuantumBitBundle` |
 | `quantumbit_clm_dataset` | `datasets/sfdmu/qb/en-US/qb-clm` |
 | `quantumbit_constraints_component_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-component` |
 | `quantumbit_constraints_data_dir` | `datasets/constraints/qb/QuantumBitComplete` |
