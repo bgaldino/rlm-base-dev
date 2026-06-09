@@ -1,0 +1,386 @@
+<template>
+  <div class="debugger-root slds-card">
+
+    <!-- ── Card header ──────────────────────────────────────────────────── -->
+    <div class="slds-grid slds-grid_vertical-align-center slds-theme_shade slds-border_bottom slds-p-around_x-small">
+      <div class="slds-col slds-has-flexi-truncate slds-grid slds-grid_vertical-align-center">
+        <lightning-icon
+          icon-name="utility:bug"
+          size="x-small"
+          alternative-text="Configurator Debugger"
+          class="slds-m-right_x-small"
+        ></lightning-icon>
+        <span class="slds-text-heading_small slds-truncate">Configurator Debugger</span>
+
+        <template lwc:if={isApiInProgress}>
+          <span class="slds-badge slds-badge_inverse slds-m-left_x-small">
+            {apiProgressLabel}
+          </span>
+        </template>
+        <template lwc:elseif={hasLastApiTiming}>
+          <span class="slds-badge slds-m-left_x-small">
+            {lastApiTimingLabel}
+          </span>
+        </template>
+        <template lwc:if={hasErrors}>
+          <span class="slds-badge slds-badge_error slds-m-left_x-small">
+            Has&nbsp;Errors
+          </span>
+        </template>
+      </div>
+
+      <div class="slds-col slds-no-flex slds-grid slds-grid_vertical-align-center">
+        <span class="slds-text-body_small slds-text-color_weak slds-m-right_small slds-truncate">
+          <template lwc:if={transactionId}>{transactionId}</template>
+          <template lwc:else>no txn id</template>
+        </span>
+        <lightning-button-icon
+          icon-name={collapseIcon}
+          alternative-text={collapseLabel}
+          title={collapseLabel}
+          variant="border-filled"
+          size="small"
+          onclick={handleToggleCollapse}
+        ></lightning-button-icon>
+      </div>
+    </div>
+
+    <!-- ── Collapsible body ──────────────────────────────────────────────── -->
+    <template lwc:if={isCollapsed}>
+      <div class="collapsed-hint slds-text-body_small slds-text-color_weak slds-p-horizontal_medium slds-p-vertical_x-small">
+        Click expand to view state and publish LMS events.
+      </div>
+    </template>
+
+    <template lwc:else>
+      <!-- ── SLDS Tabs ─────────────────────────────────────────────────── -->
+      <div class="slds-tabs_default">
+        <ul class="slds-tabs_default__nav" role="tablist">
+          <li class={stateTabClass} title="State" role="presentation">
+            <a
+              class="slds-tabs_default__link"
+              role="tab"
+              tabindex="0"
+              data-tab="state"
+              onclick={handleTabClick}
+            >State</a>
+          </li>
+          <li class={logTabClass} title="LMS Log" role="presentation">
+            <a
+              class="slds-tabs_default__link"
+              role="tab"
+              tabindex="-1"
+              data-tab="log"
+              onclick={handleTabClick}
+            >LMS Log ({logEntryCount})</a>
+          </li>
+          <li class={editTabClass} title="Edit &amp; Publish" role="presentation">
+            <a
+              class="slds-tabs_default__link"
+              role="tab"
+              tabindex="-1"
+              data-tab="edit"
+              onclick={handleTabClick}
+            >Edit &amp; Publish</a>
+          </li>
+        </ul>
+
+        <!-- ── STATE TAB ─────────────────────────────────────────────────── -->
+        <template lwc:if={isStateTab}>
+          <div class="slds-tabs_default__content slds-show tab-panel">
+            <lightning-tabset
+              variant="default"
+              class="state-subtabs"
+              active-tab-value={activeStateSubtab}
+            >
+              <lightning-tab
+                label="Total JSON"
+                value="total"
+                onactive={handleStateSubtabActive}
+              ></lightning-tab>
+              <lightning-tab
+                label="Messages"
+                value="messages"
+                onactive={handleStateSubtabActive}
+              ></lightning-tab>
+              <lightning-tab
+                label="Option Groups"
+                value="optionGroups"
+                onactive={handleStateSubtabActive}
+              ></lightning-tab>
+              <lightning-tab
+                label="Attribute Categories"
+                value="attributeCategories"
+                onactive={handleStateSubtabActive}
+              ></lightning-tab>
+              <lightning-tab
+                label="Sales Transaction Items"
+                value="salesTransactionItems"
+                onactive={handleStateSubtabActive}
+              ></lightning-tab>
+              <lightning-tab
+                label="Summary"
+                value="summary"
+                onactive={handleStateSubtabActive}
+              ></lightning-tab>
+            </lightning-tabset>
+            <div class="tab-toolbar state-toolbar slds-grid slds-grid_vertical-align-end slds-p-around_x-small">
+              <div class="state-search-input">
+                <lightning-input
+                  type="search"
+                  label="Search state JSON"
+                  variant="label-hidden"
+                  placeholder="Search state JSON"
+                  value={stateSearchTerm}
+                  onchange={handleStateSearchChange}
+                ></lightning-input>
+              </div>
+              <span class="state-search-count slds-text-body_small slds-text-color_weak">
+                {stateSearchPosition}
+              </span>
+              <lightning-button-icon
+                icon-name="utility:chevronup"
+                alternative-text="Previous match"
+                title="Previous match"
+                variant="border-filled"
+                size="small"
+                onclick={handlePreviousStateSearch}
+                disabled={isStateSearchNavigationDisabled}
+              ></lightning-button-icon>
+              <lightning-button-icon
+                icon-name="utility:chevrondown"
+                alternative-text="Next match"
+                title="Next match"
+                variant="border-filled"
+                size="small"
+                onclick={handleNextStateSearch}
+                disabled={isStateSearchNavigationDisabled}
+              ></lightning-button-icon>
+              <lightning-button-icon
+                icon-name="utility:close"
+                alternative-text="Clear search"
+                title="Clear search"
+                variant="border-filled"
+                size="small"
+                onclick={handleClearStateSearch}
+                disabled={isStateSearchClearDisabled}
+              ></lightning-button-icon>
+              <lightning-button
+                label="Copy"
+                icon-name="utility:copy"
+                onclick={handleCopyState}
+                variant="neutral"
+                size="small"
+              ></lightning-button>
+            </div>
+            <div class="json-container">
+              <pre class="json-pre json-pre_searchable" data-state-json>{activeStateJson}</pre>
+            </div>
+          </div>
+        </template>
+
+        <!-- ── LOG TAB ───────────────────────────────────────────────────── -->
+        <template lwc:if={isLogTab}>
+          <div class="slds-tabs_default__content slds-show tab-panel">
+            <div class="tab-toolbar slds-grid slds-grid_align-end slds-p-around_x-small">
+              <lightning-button
+                label="Copy All"
+                icon-name="utility:copy"
+                onclick={handleCopyAllLogEntries}
+                variant="neutral"
+                size="small"
+                disabled={isClearDisabled}
+              ></lightning-button>
+              <lightning-button
+                label="Clear"
+                icon-name="utility:delete"
+                onclick={handleClearLog}
+                variant="neutral"
+                size="small"
+                disabled={isClearDisabled}
+              ></lightning-button>
+            </div>
+
+            <template lwc:if={hasLogEntries}>
+              <div class="log-container">
+                <template for:each={lmsLog} for:item="entry">
+                  <div key={entry.id} class="slds-box slds-box_x-small slds-m-around_x-small slds-theme_default">
+                    <!-- Entry header row (click to expand JSON) -->
+                    <div
+                      class="log-entry-header slds-grid slds-grid_vertical-align-center"
+                      data-id={entry.id}
+                      onclick={handleToggleLogEntry}
+                    >
+                      <div class="slds-col slds-has-flexi-truncate slds-grid slds-grid_vertical-align-center">
+                        <span class="slds-badge slds-theme_info slds-m-right_x-small">
+                          {entry.action}
+                        </span>
+                        <span class="slds-text-body_small slds-text-color_weak">
+                          {entry.timestamp}
+                        </span>
+                        <template lwc:if={entry.apiTimingLabel}>
+                          <span class="slds-badge slds-m-left_x-small">
+                            API {entry.apiTimingLabel}
+                          </span>
+                        </template>
+                      </div>
+                      <div class="slds-col slds-no-flex">
+                        <lightning-button-icon
+                          icon-name="utility:copy"
+                          alternative-text="Copy JSON"
+                          title="Copy JSON"
+                          variant="bare"
+                          size="x-small"
+                          data-id={entry.id}
+                          onclick={handleCopyLogEntry}
+                        ></lightning-button-icon>
+                      </div>
+                    </div>
+                    <!-- Expandable JSON body -->
+                    <template lwc:if={entry.isExpanded}>
+                      <div class="log-entry-body slds-m-top_x-small">
+                        <pre class="json-pre json-pre_compact">{entry.json}</pre>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+
+            <template lwc:else>
+              <div class="slds-p-around_large slds-text-align_center slds-align_absolute-center slds-grid slds-grid_vertical slds-grid_align-center">
+                <lightning-icon
+                  icon-name="utility:connected_apps"
+                  size="medium"
+                  alternative-text="Waiting"
+                  class="slds-m-bottom_small"
+                ></lightning-icon>
+                <p class="slds-text-body_regular slds-text-color_weak">
+                  No LMS events received yet.
+                </p>
+                <p class="slds-text-body_small slds-text-color_weak">
+                  Events from the Data Manager will appear here.
+                </p>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <!-- ── EDIT TAB ──────────────────────────────────────────────────── -->
+        <template lwc:if={isEditTab}>
+          <div class="slds-tabs_default__content slds-show tab-panel">
+
+            <!-- Snippet quick-insert bar -->
+            <div class="slds-p-around_x-small slds-border_bottom slds-grid slds-wrap slds-grid_vertical-align-center slds-theme_shade">
+              <span class="slds-text-body_small slds-text-color_weak slds-m-right_x-small">
+                Insert data item:
+              </span>
+              <lightning-button
+                label="Quantity"
+                size="small"
+                variant="neutral"
+                data-snippet="quantity"
+                onclick={handleInsertSnippet}
+                class="slds-m-right_x-small"
+              ></lightning-button>
+              <lightning-button
+                label="Attribute"
+                size="small"
+                variant="neutral"
+                data-snippet="attribute"
+                onclick={handleInsertSnippet}
+                class="slds-m-right_x-small"
+              ></lightning-button>
+              <lightning-button
+                label="Select"
+                size="small"
+                variant="neutral"
+                data-snippet="select"
+                onclick={handleInsertSnippet}
+                class="slds-m-right_x-small"
+              ></lightning-button>
+              <lightning-button
+                label="Custom Field"
+                size="small"
+                variant="neutral"
+                data-snippet="custom"
+                onclick={handleInsertSnippet}
+                class="slds-m-right_x-small"
+              ></lightning-button>
+              <lightning-button
+                label="PSM"
+                size="small"
+                variant="neutral"
+                data-snippet="psm"
+                onclick={handleInsertSnippet}
+              ></lightning-button>
+            </div>
+
+            <!-- JSON textarea -->
+            <div class="edit-area-wrapper slds-p-around_x-small">
+              <lightning-textarea
+                class="edit-textarea"
+                label="LMS payload JSON editor"
+                variant="label-hidden"
+                value={editPayload}
+                onchange={handleEditChange}
+                rows="20"
+                spellcheck="false"
+              ></lightning-textarea>
+            </div>
+
+            <!-- Error banner -->
+            <template lwc:if={hasParseError}>
+              <div class="slds-notify slds-notify_alert slds-alert_error slds-m-horizontal_x-small slds-m-bottom_x-small" role="alert">
+                <lightning-icon
+                  icon-name="utility:error"
+                  size="x-small"
+                  alternative-text="Error"
+                  class="slds-m-right_x-small"
+                ></lightning-icon>
+                {parseError}
+              </div>
+            </template>
+
+            <!-- Success banner -->
+            <template lwc:if={showPublishSuccess}>
+              <div class="slds-notify slds-notify_alert slds-theme_success slds-m-horizontal_x-small slds-m-bottom_x-small" role="status">
+                <lightning-icon
+                  icon-name="utility:success"
+                  size="x-small"
+                  alternative-text="Success"
+                  class="slds-m-right_x-small"
+                ></lightning-icon>
+                Published to Data Manager.
+              </div>
+            </template>
+
+            <!-- Action buttons -->
+            <div class="slds-grid slds-grid_align-end slds-p-horizontal_small slds-p-vertical_small slds-border_top edit-actions">
+              <lightning-button
+                label="Copy"
+                icon-name="utility:copy"
+                variant="neutral"
+                onclick={handleCopyEdit}
+              ></lightning-button>
+              <lightning-button
+                label="Reset"
+                icon-name="utility:refresh"
+                variant="neutral"
+                onclick={handleReset}
+              ></lightning-button>
+              <lightning-button
+                label="Publish"
+                icon-name="utility:send"
+                variant="brand"
+                onclick={handleApply}
+              ></lightning-button>
+            </div>
+          </div>
+        </template>
+
+      </div><!-- /slds-tabs_default -->
+    </template><!-- /lwc:else (not collapsed) -->
+
+  </div><!-- /debugger-root -->
+</template>

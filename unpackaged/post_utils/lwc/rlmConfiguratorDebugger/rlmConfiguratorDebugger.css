@@ -1,0 +1,130 @@
+/* ── Root container ───────────────────────────────────────────────────────── */
+.debugger-root {
+  --debugger-content-min-height: 25rem;
+  overflow: hidden;
+}
+
+/* ── Collapsed hint ───────────────────────────────────────────────────────── */
+.collapsed-hint {
+  font-style: italic;
+}
+
+/* ── Tab panel (shared height / scroll wrapper) ───────────────────────────── */
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(var(--debugger-content-min-height) + 2.5rem);
+}
+
+.tab-toolbar {
+  flex-shrink: 0;
+  gap: 0.25rem;
+}
+
+.state-subtabs {
+  --slds-c-tabs-item-spacing-inline-end: 0.25rem;
+}
+
+.state-toolbar {
+  align-items: flex-end;
+}
+
+.state-search-input {
+  flex: 1 1 18rem;
+  min-width: 12rem;
+}
+
+.state-search-count {
+  min-width: 3.5rem;
+  text-align: right;
+  line-height: 2rem;
+}
+
+/* ── JSON display (State tab + log entry expand) ──────────────────────────── */
+.json-container {
+  overflow: auto;
+  min-height: var(--debugger-content-min-height);
+  max-height: var(--debugger-content-min-height);
+  background: var(--slds-g-color-neutral-base-98, #fafaf9);
+  border-top: 1px solid var(--slds-g-color-border-base-1, #dddbda);
+}
+
+.json-pre {
+  margin: 0;
+  padding: 0.75rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier,
+    monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre;
+  color: var(--slds-g-color-neutral-base-10, #181818);
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.json-pre_searchable {
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.json-pre_compact {
+  font-size: 0.7rem;
+  max-height: 300px;
+  overflow: auto;
+  background: var(--slds-g-color-neutral-base-98, #fafaf9);
+  border-radius: 0.2rem;
+  border: 1px solid var(--slds-g-color-border-base-1, #dddbda);
+  padding: 0.5rem;
+}
+
+/* ── LMS Log tab ──────────────────────────────────────────────────────────── */
+.log-container {
+  overflow-y: auto;
+  min-height: var(--debugger-content-min-height);
+  max-height: var(--debugger-content-min-height);
+  padding-bottom: 0.25rem;
+}
+
+.log-entry-header {
+  cursor: pointer;
+  user-select: none;
+  gap: 0.5rem;
+}
+
+.log-entry-body {
+  margin-top: 0.25rem;
+}
+
+/* ── Edit tab ─────────────────────────────────────────────────────────────── */
+.edit-area-wrapper {
+  flex: 1;
+}
+
+.edit-actions {
+  gap: 0.75rem;
+}
+
+.edit-textarea {
+  width: 100%;
+  --slds-c-textarea-sizing-min-height: 22rem;
+  --slds-c-textarea-sizing-max-height: 32rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier,
+    monospace;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  resize: vertical;
+  color: var(--slds-g-color-neutral-base-10, #181818);
+  background: var(--slds-g-color-neutral-base-98, #fafaf9);
+  border: 1px solid var(--slds-g-color-border-base-1, #dddbda);
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  tab-size: 2;
+}
+
+.edit-textarea:focus {
+  outline: none;
+  border-color: var(--slds-g-color-brand-base-50, #0070d2);
+  box-shadow: 0 0 0 1px var(--slds-g-color-brand-base-50, #0070d2);
+}
+
