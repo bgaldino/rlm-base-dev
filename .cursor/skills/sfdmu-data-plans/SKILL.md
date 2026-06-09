@@ -156,10 +156,22 @@ Example: `qb-billing` uses 3 passes: draft insert → activate treatment items �
 - [ ] No `$$` composite notation used for lookup reference columns (Bug 4 — use simple field references instead)
 - [ ] Self-referential lookups use simple field references (e.g., `ParentGroup.Code` not `ParentGroup.$$Code$...`)
 
+## Developer-Local Scratch Directory
+
+`datasets/sfdmu/test/` is a developer-local scratch area for experimental and throwaway plans. It is:
+
+- **Gitignored** — `datasets/sfdmu/test/**` in `.gitignore`; never committed or pushed
+- **Excluded from validation** — `validate_sfdmu_v5_datasets.py` skips `test/` and `*.bak` directories
+- **Not referenced** by any shipped task, flow, CI job, or test
+
+To clean up local scratch plans: `rm -rf datasets/sfdmu/test/`
+
+**Convention:** Never commit anything under `datasets/sfdmu/test/`. Never add a shipped plan there. For real plans, use `datasets/sfdmu/qb/`, `mfg/`, `q3/`, `procedure-plans/`, or `scratch_data/`.
+
 ## Validation Tool
 
 ```bash
-python scripts/validate_sfdmu_v5_datasets.py                           # validate all
+python scripts/validate_sfdmu_v5_datasets.py                           # validate all shipped plans (skips test/ and *.bak)
 python scripts/validate_sfdmu_v5_datasets.py --dataset datasets/sfdmu/qb/en-US/qb-pricing  # one plan
 python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run       # preview fixes
 python scripts/validate_sfdmu_v5_datasets.py --fix-all                 # apply fixes

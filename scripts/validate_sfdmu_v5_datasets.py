@@ -180,8 +180,10 @@ class SFDMUValidator:
         # Find all export.json files in SFDMU directory tree
         for export_json in self.sfdmu_base.rglob("export.json"):
             dataset_dir = export_json.parent
-            # Skip if it's in a subdirectory like objectset_source or processed
-            if any(p in export_json.parts for p in ["objectset_source", "processed", "source", "logs"]):
+            # Skip internal subdirs, developer-local scratch (test/), and backup dirs (*.bak)
+            if any(p in export_json.parts for p in ["objectset_source", "processed", "source", "logs", "test"]):
+                continue
+            if any(p.endswith(".bak") for p in export_json.parts):
                 continue
             datasets.append(dataset_dir)
 
@@ -1130,8 +1132,10 @@ Examples:
             datasets = []
             for export_json in dataset_path.rglob("export.json"):
                 dataset_dir = export_json.parent
-                # Skip if it's in a subdirectory like objectset_source or processed
-                if any(p in export_json.parts for p in ["objectset_source", "processed", "source", "logs"]):
+                # Skip internal subdirs, developer-local scratch (test/), and backup dirs (*.bak)
+                if any(p in export_json.parts for p in ["objectset_source", "processed", "source", "logs", "test"]):
+                    continue
+                if any(p.endswith(".bak") for p in export_json.parts):
                     continue
                 datasets.append(dataset_dir)
             datasets = sorted(datasets)
