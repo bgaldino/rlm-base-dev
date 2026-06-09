@@ -28,6 +28,9 @@
    on each thread; 👍 valid comments; then **resolve the thread** (GraphQL — REST can't).
    **Every review round ends with zero unresolved threads** — that is the audit trail.
    See `AGENTS.md` "Responding to Automated PR Reviews" for the canonical command set.
+   **Tooling:** `python scripts/ai/pr_review.py` (`status` / `handle` / `verify`) automates the
+   reply + 👍 + resolve + paginated 0-unresolved check; the `/pr-review <pr>` Claude command drives
+   the full round with it. Both default to the current repo (`--repo owner/name` to override).
 7. **Re-sweep after each round** — a new commit can introduce a new instance of an
    old class.
 
