@@ -123,10 +123,14 @@ def _loc(comment):
     return f"{comment.get('path', '?')}:{line}"
 
 
-def cmd_status(repo, pr, show_all):
+def cmd_status(repo, pr, show_all, repo_arg=None):
     threads = fetch_threads(repo, pr)
     unresolved = [t for t in threads if not t["isResolved"]]
     shown = threads if show_all else unresolved
+    # Carry an explicit --repo through to the copy/paste `handle` suggestion so it
+    # targets the same repo, not the current checkout. (--repo is a top-level arg,
+    # so it must precede the subcommand.)
+    repo_flag = f"--repo {repo_arg} " if repo_arg else ""
     print(f"PR #{pr} ({repo}): {len(threads)} thread(s), {len(unresolved)} unresolved")
     if not shown:
         print("  ✅ nothing to handle" if not show_all else "  (no threads)")
@@ -141,7 +145,7 @@ def cmd_status(repo, pr, show_all):
         print(f"  {snippet}")
         if not t["isResolved"]:
             print(
-                f"  → resolve: python scripts/ai/pr_review.py handle {pr} "
+                f"  → resolve: python scripts/ai/pr_review.py {repo_flag}handle {pr} "
                 f"--comment {c.get('databaseId')} --body \"<fix + commit SHA>\""
             )
             print("             (👍 added by default; add --no-react to refute a false positive)")
@@ -221,7 +225,10 @@ def main():
 
     h = sub.add_parser("handle", help="reply + 👍 + resolve one thread")
     h.add_argument("pr", type=int)
-    h.add_argument("--comment", required=True, help="original review comment databaseId")
+    h.add_argument(
+        "--comment", required=True, type=int,
+        help="original review comment databaseId",
+    )
     h.add_argument("--body", help="reply body (resolution + commit SHA, or refutation)")
     h.add_argument("--body-file", help="read reply body from a file ('-' for stdin)")
     h.add_argument("--no-react", action="store_true", help="skip the 👍 reaction")
@@ -230,7 +237,7 @@ def main():
     repo = resolve_repo(a.repo)
 
     if a.cmd == "status":
-        sys.exit(cmd_status(repo, a.pr, a.all))
+        sys.exit(cmd_status(repo, a.pr, a.all, a.repo))
     if a.cmd == "verify":
         sys.exit(cmd_verify(repo, a.pr))
     if a.cmd == "handle":
