@@ -26,7 +26,7 @@ PlaceQuote.RecordResource quoteLineRelationship1 = new PlaceQuote.RecordResource
 ```
 
 See
-[PlaceQuoteRLMApexProcessor](https://developer.salesforce.com/docs/./apex_class_placequote_PlaceQuoteRLMApexProcessor.htm.md#apex_placequote_PlaceQuoteRLMApexProcessor_example_implementation "HTML (New Window)") to
+[PlaceQuoteRLMApexProcessor](./apex_class_placequote_PlaceQuoteRLMApexProcessor.htm.md#apex_placequote_PlaceQuoteRLMApexProcessor_example_implementation "HTML (New Window)") to
 refer to an example implementation.
 
 - **[RecordResource Constructors](./apex_class_placequote_RecordResource.htm.md#apex_placequote_RecordResource_constructors)**  

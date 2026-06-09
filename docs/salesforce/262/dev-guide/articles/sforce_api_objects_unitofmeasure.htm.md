@@ -44,8 +44,8 @@ This object has these associated objects. If the API version isn’t specified, 
 available in the same API versions as this object. Otherwise, they’re available in the
 specified API version and later.
 
-[UnitOfMeasureChangeEvent](https://developer.salesforce.com/docs/./sforce_api_associated_objects_change_event.htm.md)
+[UnitOfMeasureChangeEvent](./sforce_api_associated_objects_change_event.htm.md)
 :   Change events are available for the object.
 
-[UnitOfMeasureShare](https://developer.salesforce.com/docs/./sforce_api_associated_objects_ownersharingrule.htm.md)
+[UnitOfMeasureShare](./sforce_api_associated_objects_ownersharingrule.htm.md)
 :   Sharing is available for the object.

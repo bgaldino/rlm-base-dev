@@ -29,8 +29,8 @@ You can invoke this action via Apex and Flows only.
 
 | Input | Details |
 | --- | --- |
-| additionalContextData | Type  Apex-defined  Description  An array of Apex [`runtime_industries_cpq.AdditionalContextData`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)") records that contain the additional nodes that are used along with the context definition nodes for data hydration.  The maximum number of supported nodes is 10. |
-| additionalFields | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.AdditionalFields`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_AdditionalFields.htm.md "HTML (New Window)") record that contains an array of additional standard or custom fields to include in the response.  The supported objects are:   - `Product2` - `ProductAttributeDefinition`—If the   fields defined for the `ProductAttributeDefinition` object aren’t   available for the `ProductClassificationAttr` object, then   the API request fails. |
+| additionalContextData | Type  Apex-defined  Description  An array of Apex [`runtime_industries_cpq.AdditionalContextData`](./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)") records that contain the additional nodes that are used along with the context definition nodes for data hydration.  The maximum number of supported nodes is 10. |
+| additionalFields | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.AdditionalFields`](./apex_class_runtime_industries_cpq_AdditionalFields.htm.md "HTML (New Window)") record that contains an array of additional standard or custom fields to include in the response.  The supported objects are:   - `Product2` - `ProductAttributeDefinition`—If the   fields defined for the `ProductAttributeDefinition` object aren’t   available for the `ProductClassificationAttr` object, then   the API request fails. |
 | catalogId | Type  string  Description  Catalog ID that’s used to find and retrieve the products. |
 | categoryId | Type  string  Description  ID of the category or subcategory to get the products for. |
 | contextDefinition | Type  string  Description  API name of the context definition used for context creation. If you don’t specify a value, the context selected on the Product Discovery Settings page from Setup is used. |
@@ -41,7 +41,7 @@ You can invoke this action via Apex and Flows only.
 | executeConfigurationRules | Type  boolean  Description  Indicates whether configuration rules must run (`true`) or not (`false`). Available in API version 67.0 and later. |
 | enablePricing | Type  boolean  Description  Indicates whether the pricing procedure must run (`true`) or not (`false`).  The default value is `true`. To use this parameter, you must enable the Pricing Procedure setting from Setup. |
 | enableQualification | Type  boolean  Description  Indicates whether the qualification procedure must run (`true`) or not (`false`).  The default value is `true`. To use this parameter, you must enable the Qualification Procedure setting from Setup. |
-| filter | Type  Apex-defined  Description  A collection of Apex [`runtime_industries_cpq.FilterInputRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md "HTML (New Window)") records where each record contains a related object and the filter criteria that’s applied on the object.  The filter parameter supports only the `name` property.  The supported operators are:   - `eq` - `in` - `contains`   If this parameter contains multiple criteria, all the criteria are applied. |
+| filter | Type  Apex-defined  Description  A collection of Apex [`runtime_industries_cpq.FilterInputRepresentation`](./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md "HTML (New Window)") records where each record contains a related object and the filter criteria that’s applied on the object.  The filter parameter supports only the `name` property.  The supported operators are:   - `eq` - `in` - `contains`   If this parameter contains multiple criteria, all the criteria are applied. |
 | includeCatalogDetails | Type  boolean  Description  Indicates whether catalog details must be included in the response (`true`) or not (`false`). |
 | limit | Type  integer  Description  Maximum number of results to be returned in the response. Enter a value from 1 through 100.  The default value is 10. |
 | orderBy | Type  string  Description  Comma-separated string of key-value pairs that specify how results are sorted. Each string must contain a field name and its sort order. For example, `["name:asc",”custom_field:asc”]`. |
@@ -51,7 +51,7 @@ You can invoke this action via Apex and Flows only.
 | qualificationProcedure | Type  string  Description  API name of the qualification procedure to evaluate product eligibility. If you don’t specify a value, the qualification procedure selected on the Product Discovery Settings page from Setup is used. |
 | transactionContextId | Type  string  Description  Context ID of the quote or order. Available in API version 67.0 and later. |
 | transactionId | Type  string  Description  ID of the quote or order. Available in API version 67.0 and later. |
-| relatedObjectFilters | Type  Apex-defined  Description  A collection of Apex [`runtime_industries_cpq.RelatedObjectFilterInputRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm.md "HTML (New Window)") records, where each record contains a related object and the filter criteria that’s applied on the object. |
+| relatedObjectFilters | Type  Apex-defined  Description  A collection of Apex [`runtime_industries_cpq.RelatedObjectFilterInputRepresentation`](./apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm.md "HTML (New Window)") records, where each record contains a related object and the filter criteria that’s applied on the object. |
 | searchTerm | Type  string  Description  Required.  Search term to find and retrieve products. |
 | userContext | Type  Apex-defined  Description  An Apex `ConnectApi.UserContextInputRepresentation` record that contains the user details to evaluate product eligibility and calculate prices. |
 
@@ -59,12 +59,12 @@ You can invoke this action via Apex and Flows only.
 
 | Output | Details |
 | --- | --- |
-| apiStatus | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains a status code and message. |
+| apiStatus | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains a status code and message. |
 | contextId | Type  string  Description  ID of the context that’s created by using the specified context definition. |
 | correlationId | Type  string  Description  ID to reference a series of related actions. |
 | cursor | Type  string  Description  Unique identifier that represents the position of the next product in the dataset. It’s used as an input to retrieve the next set of products. |
 | facets | Type  Apex-defined  Description  Collection of Apex ProductFacetsRepresentation records that contain details of the facet that's retrieved. |
-| results | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.SearchProductsRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_SearchProductsRepresentation.htm.md "HTML (New Window)") record that contains the products that match the query. |
+| results | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.SearchProductsRepresentation`](./apex_class_runtime_industries_cpq_SearchProductsRepresentation.htm.md "HTML (New Window)") record that contains the products that match the query. |
 | userContext | Type  Apex-defined  Description  An Apex `ConnectApi.UserContextRepresentation` record that includes the user details. |
 
 ## Example

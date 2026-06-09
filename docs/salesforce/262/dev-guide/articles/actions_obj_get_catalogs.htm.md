@@ -33,8 +33,8 @@ You can invoke this action via Apex and Flows only.
 
 | Output | Details |
 | --- | --- |
-| resultCatalogList | Type  Apex-defined  Description  List of filtered catalog records. See [CatalogOutputRepresentation](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md "HTML (New Window)"). |
-| apiStatusOutputRepresentation | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains the status of the request, including the status code and message. |
+| resultCatalogList | Type  Apex-defined  Description  List of filtered catalog records. See [CatalogOutputRepresentation](./apex_class_runtime_industries_cpq_CatalogOutputRepresentation.htm.md "HTML (New Window)"). |
+| apiStatusOutputRepresentation | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains the status of the request, including the status code and message. |
 | recordLimit | Type  integer  Description  Number of catalog records to show per page. |
 | resultListCount | Type  integer  Description  Number of catalog records in the result. |
 | correlationId | Type  string  Description  Unique identifier for tracking requests and messages, allowing reference to a specific transaction or event chain. |

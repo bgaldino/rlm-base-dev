@@ -69,14 +69,14 @@ This object has these associated objects. If the API version isn’t specified, 
 available in the same API versions as this object. Otherwise, they’re available in the
 specified API version and later.
 
-[TransactionUsageEntitlementFeed](https://developer.salesforce.com/docs/./sforce_api_associated_objects_feed.htm.md)
+[TransactionUsageEntitlementFeed](./sforce_api_associated_objects_feed.htm.md)
 :   Feed tracking is available for the object.
 
-[TransactionUsageEntitlementHistory](https://developer.salesforce.com/docs/./sforce_api_associated_objects_history.htm.md)
+[TransactionUsageEntitlementHistory](./sforce_api_associated_objects_history.htm.md)
 :   History is available for tracked fields of the object.
 
-[TransactionUsageEntitlementOwnerSharingRule](https://developer.salesforce.com/docs/./sforce_api_associated_objects_ownersharingrule.htm.md)
+[TransactionUsageEntitlementOwnerSharingRule](./sforce_api_associated_objects_ownersharingrule.htm.md)
 :   Sharing rules are available for the object.
 
-[TransactionUsageEntitlementShare](https://developer.salesforce.com/docs/./sforce_api_associated_objects_ownersharingrule.htm.md)
+[TransactionUsageEntitlementShare](./sforce_api_associated_objects_ownersharingrule.htm.md)
 :   Sharing is available for the object.

@@ -18,7 +18,7 @@ records by calling the Create Standalone Billing Schedules API.
 This action is available in API version 64.0 and later.
 
 See [Create Standalone Billing
-Schedules (POST) API](https://developer.salesforce.com/docs/./connect_resources_create_billing_schedules_from_any_transaction.htm.md "HTML (New Window)") to know more about the mandatory and optional tags,
+Schedules (POST) API](./connect_resources_create_billing_schedules_from_any_transaction.htm.md "HTML (New Window)") to know more about the mandatory and optional tags,
 sample transaction details, and sample payloads for various types of
 transactions.
 

@@ -49,7 +49,7 @@ considerations.
 - Migration Prerequisites
   - When DRO is enabled in a new org, the system provides an built-in library named as
     DRORuleLibrary. See [Dynamic Fulfillment
-    Orchestrator Settings](https://developer.salesforce.com/docs/./meta_dynamicfulfillmentorchestratorsettings.htm.md "HTML (New Window)").
+    Orchestrator Settings](./meta_dynamicfulfillmentorchestratorsettings.htm.md "HTML (New Window)").
   - Context rules library is Active with `Usage
     Type=Dfo` and is linked with Sales Context Definition.
   - The active rule library version must point to the context definition currently

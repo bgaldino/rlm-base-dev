@@ -20,7 +20,7 @@ to create or update quotes with pricing preferences and configuration options.
 #### Note
 
 This namespace has been deprecated as of API version 63.0. In API version 63.0 and
-later, use the new [RevSalesTrxn](https://developer.salesforce.com/docs/./apex_namespace_RevSalesTrxn.htm.md "HTML (New Window)")
+later, use the new [RevSalesTrxn](./apex_namespace_RevSalesTrxn.htm.md "HTML (New Window)")
 namespace.
 
 The `PlaceQuote` namespace includes these classes.

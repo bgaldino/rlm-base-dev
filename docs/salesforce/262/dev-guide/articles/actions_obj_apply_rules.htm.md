@@ -47,7 +47,7 @@ Authentication
 
 | Output | Details |
 | --- | --- |
-| rulesApplicationResponse | Type  Apex-defined  Description  The Apex [RulesApplicationResponse](https://developer.salesforce.com/docs/./apex_class_RulesAppln_RulesApplicationResponse.htm.md "HTML (New Window)") record that contains the results of rules application including the list of applied rules, application details, and any errors. |
+| rulesApplicationResponse | Type  Apex-defined  Description  The Apex [RulesApplicationResponse](./apex_class_RulesAppln_RulesApplicationResponse.htm.md "HTML (New Window)") record that contains the results of rules application including the list of applied rules, application details, and any errors. |
 
 ## Example
 

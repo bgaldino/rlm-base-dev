@@ -17,7 +17,7 @@ comprehensive response that contains final pricing details per line items and re
 if any.
 
 If price waterfall is disabled from Salesforce Pricing Setup in your org, this API
-doesn't return the waterfall details. You can use the [Price Waterfall API](https://developer.salesforce.com/docs/./connect_resources_pricing_waterfall_fetch.htm.md "HTML (New Window)") to
+doesn't return the waterfall details. You can use the [Price Waterfall API](./connect_resources_pricing_waterfall_fetch.htm.md "HTML (New Window)") to
 retrieve the waterfall details if price waterfall persistence is enabled in Salesforce
 Pricing Setup.
 

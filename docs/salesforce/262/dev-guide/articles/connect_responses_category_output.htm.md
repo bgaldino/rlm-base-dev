@@ -45,4 +45,4 @@ JSON example
 | `numberOf​Products` | Integer | Number of products associated with the category. | Small, 60.0 | 60.0 |
 | `parent​CategoryId` | String | ID of the parent category. | Small, 60.0 | 60.0 |
 | `sort​Order` | Integer | Display order of the product category relative to the siblings with the same parent category. | Small, 60.0 | 60.0 |
-| `sub​Categories` | [Category Output](# "Output representation of the category definition.")[] | List of subcategories, if available. This property is returned with the [Categories List (GET) API](https://developer.salesforce.com/docs/./connect_resources_get_categories.htm.md "HTML (New Window)") response. | Small, 60.0 | 60.0 |
+| `sub​Categories` | [Category Output](# "Output representation of the category definition.")[] | List of subcategories, if available. This property is returned with the [Categories List (GET) API](./connect_resources_get_categories.htm.md "HTML (New Window)") response. | Small, 60.0 | 60.0 |

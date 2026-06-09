@@ -28,8 +28,8 @@ where Product Discovery is enabled.
 
 | Input | Details |
 | --- | --- |
-| additionalContextData | Type  Apex-defined  Description  An array of Apex [`runtime_industries_cpq.AdditionalContextData`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)") records that contain the additional nodes that are used along with the context definition nodes for data hydration.  The maximum number of supported nodes is 10. |
-| additionalFields | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.AdditionalFields`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_AdditionalFields.htm.md "HTML (New Window)") record that contains an array of additional standard or custom fields to include in the response.  The supported objects are:   - `Product2` - `ProductAttributeDefinition`—If the   fields defined for the `ProductAttributeDefinition` object aren’t   available for the `ProductClassificationAttr` object, then   the API request fails. |
+| additionalContextData | Type  Apex-defined  Description  An array of Apex [`runtime_industries_cpq.AdditionalContextData`](./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)") records that contain the additional nodes that are used along with the context definition nodes for data hydration.  The maximum number of supported nodes is 10. |
+| additionalFields | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.AdditionalFields`](./apex_class_runtime_industries_cpq_AdditionalFields.htm.md "HTML (New Window)") record that contains an array of additional standard or custom fields to include in the response.  The supported objects are:   - `Product2` - `ProductAttributeDefinition`—If the   fields defined for the `ProductAttributeDefinition` object aren’t   available for the `ProductClassificationAttr` object, then   the API request fails. |
 | catalogId | Type  string  Description  Catalog ID that’s used to find and retrieve the products. |
 | contextDefinition | Type  string  Description  API name of the context definition for context creation.  If you don’t provide a value, the context selected on the Product Discovery Settings page from Setup is used. |
 | contextMapping | Type  string  Description  API name of the context mapping for data hydration. The value of this parameter is used only if it belongs to the specified context definition. |
@@ -48,10 +48,10 @@ where Product Discovery is enabled.
 
 | Output | Details |
 | --- | --- |
-| apiStatus | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains a status code and message. |
+| apiStatus | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains a status code and message. |
 | contextId | Type  string  Description  ID of the context that’s created by using the specified context definition. |
 | correlationId | Type  string  Description  ID to reference a series of related actions. |
-| results | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ProductDetailsRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md "HTML (New Window)") record that contains the product details. |
+| results | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ProductDetailsRepresentation`](./apex_class_runtime_industries_cpq_ProductDetailsRepresentation.htm.md "HTML (New Window)") record that contains the product details. |
 | userContext | Type  Apex-defined  Description  An Apex `ConnectApi.UserContextRepresentation` record that contains the user details. |
 
 ## Example

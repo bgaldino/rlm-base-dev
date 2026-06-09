@@ -353,7 +353,7 @@ in mind when you use this method.
   Progress` status. You also can’t update the invoice fields.
 - You can void only the most recently posted invoice on a billing schedule.
 - To void an invoice that has payments or credits, use the [Credit Memo
-  Unapply (POST)](https://developer.salesforce.com/docs/./connect_resources_credit_memo_invoice_application_unapply.htm.md "HTML (New Window)")  API.
+  Unapply (POST)](./connect_resources_credit_memo_invoice_application_unapply.htm.md "HTML (New Window)")  API.
 
 Credit Memos
 :   The void process creates a credit memo, which contains one credit memo line for each

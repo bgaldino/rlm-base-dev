@@ -65,5 +65,5 @@ Internal objects aren't accessible.
 
 #### See Also
 
-- [*Revenue Cloud Developer Guide*: Salesforce Pricing Standard Objects](https://developer.salesforce.com/docs/./pricing_std_objects_parent.htm.md "Revenue Cloud Developer Guide: Salesforce Pricing Standard Objects - HTML (New Window)")
+- [*Revenue Cloud Developer Guide*: Salesforce Pricing Standard Objects](./pricing_std_objects_parent.htm.md "Revenue Cloud Developer Guide: Salesforce Pricing Standard Objects - HTML (New Window)")
 - [Explore the Revenue Cloud Data Model](https://help.salesforce.com/s/articleView?id=ind.data_model_overview.htm&language=en_US "Explore the Revenue Cloud Data Model - HTML (New Window)")

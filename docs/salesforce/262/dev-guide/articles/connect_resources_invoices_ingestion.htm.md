@@ -28,9 +28,9 @@ Keep these considerations in mind when you use this API.
 
 - If the Convert Negative Invoice Lines to Credit Memo Lines feature isn’t enabled, use
   the [Negative Invoice Lines to Credit
-  Conversion API](https://developer.salesforce.com/docs/./connect_resources_convert_negative_invoice_lines_to_credit.htm.md "HTML (New Window)") to create a credit memo against an ingested negative invoice
+  Conversion API](./connect_resources_convert_negative_invoice_lines_to_credit.htm.md "HTML (New Window)") to create a credit memo against an ingested negative invoice
   line.
-- Use the [Apply Credit Action](https://developer.salesforce.com/docs/./actions_obj_run_apply_credit.htm.md "HTML (New Window)") to
+- Use the [Apply Credit Action](./actions_obj_run_apply_credit.htm.md "HTML (New Window)") to
   apply a credit memo to an invoice.
 - To ingest legacy invoices, create at least one invoice line.
 - To generate invoices from debit memos, specify the debit memo ID as the `referenceEntityId` property value in the request body of

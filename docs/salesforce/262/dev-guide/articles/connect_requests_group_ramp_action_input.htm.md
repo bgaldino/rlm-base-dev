@@ -17,9 +17,9 @@ sale.
 
 Keep these considerations in mind when you specify ramp actions.
 
-- Use the [Clone Sales Transaction API](https://developer.salesforce.com/docs/./connect_resources_clone_sales_transaction.htm.md "HTML (New Window)") to clone a
+- Use the [Clone Sales Transaction API](./connect_resources_clone_sales_transaction.htm.md "HTML (New Window)") to clone a
   ramp segment, and specify the clone option.
-- Use the [Place Sales Transaction API](https://developer.salesforce.com/docs/./connect_resources_place_sales_transaction.htm.md "HTML (New Window)") to specify a
+- Use the [Place Sales Transaction API](./connect_resources_place_sales_transaction.htm.md "HTML (New Window)") to specify a
   group ramp action by using the `groupRampAction`
   property. You can refer to the sections in this topic for examples.
 
@@ -33,7 +33,7 @@ JSON example to edit a group
     This process converts a group
     into a segment, which becomes the first segment in the ramp schedule. A quote can
     contain a single ramp schedule only. To create another segment in the ramp schedule,
-    use the [Clone Sales Transaction API](https://developer.salesforce.com/docs/./connect_resources_clone_sales_transaction.htm.md "HTML (New Window)").
+    use the [Clone Sales Transaction API](./connect_resources_clone_sales_transaction.htm.md "HTML (New Window)").
 :   ```
     {
       "groupRampAction": "EditGroup",

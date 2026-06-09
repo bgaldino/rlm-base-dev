@@ -33,8 +33,8 @@ Tax\_Rate fields. Create records to define the details for these fields.
 #### See Also
 
 - [*Salesforce Help*: Tax Calculation for Invoices](https://help.salesforce.com/s/articleView?id=ind.billing_tax_configuration.htm&language=en_US "Salesforce Help: Tax Calculation for Invoices - HTML (New Window)")
-- [*Billing Business APIs*: Tax Calculation (POST)](https://developer.salesforce.com/docs/./connect_resources_calculate_taxes.htm.md "Billing Business APIs: Tax Calculation (POST) - HTML (New Window)")
+- [*Billing Business APIs*: Tax Calculation (POST)](./connect_resources_calculate_taxes.htm.md "Billing Business APIs: Tax Calculation (POST) - HTML (New Window)")
 - [*Billing Standard Objects*: TaxEngineProvider, TaxEngine, TaxPolicy, and
-  TaxTreatment](https://developer.salesforce.com/docs/./billing_std_objects_parent.htm.md "Billing Standard Objects: TaxEngineProvider, TaxEngine, TaxPolicy, and
+  TaxTreatment](./billing_std_objects_parent.htm.md "Billing Standard Objects: TaxEngineProvider, TaxEngine, TaxPolicy, and
          TaxTreatment - HTML (New Window)")
 - [Tax Engine Reference Gateway Adapter](https://github.com/salesforce-misc/salesforce-tax-engine-reference-gateway-adapters "Tax Engine Reference Gateway Adapter - HTML (New Window)")

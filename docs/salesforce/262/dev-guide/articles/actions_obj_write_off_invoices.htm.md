@@ -42,19 +42,19 @@ Authentication
 Notes
 :   You can also call the associated Connect REST API endpoint or
     InvoiceWriteOff Apex methods. See [Posted Invoice List Write-Off
-    (POST)](https://developer.salesforce.com/docs/./connect_resources_write_off_invoices.htm.md) API or [InvoiceWriteOff Namespace](https://developer.salesforce.com/docs/./apex_namespace_InvoiceWriteOff.htm.md).
+    (POST)](./connect_resources_write_off_invoices.htm.md) API or [InvoiceWriteOff Namespace](./apex_namespace_InvoiceWriteOff.htm.md).
 
 ## Inputs
 
 | Input | Details |
 | --- | --- |
-| writeOffInvoiceInputList | Type  Apex-defined  Description  Required. A collection of Apex input records that contain details about the invoices to be written off. See [InvoiceWriteOff Namespace](https://developer.salesforce.com/docs/./apex_namespace_InvoiceWriteOff.htm.md) for the list of input parameters. |
+| writeOffInvoiceInputList | Type  Apex-defined  Description  Required. A collection of Apex input records that contain details about the invoices to be written off. See [InvoiceWriteOff Namespace](./apex_namespace_InvoiceWriteOff.htm.md) for the list of input parameters. |
 
 ## Outputs
 
 | Output | Details |
 | --- | --- |
-| writeOffInvoiceResponseList | Type  Apex-defined  Description  A collection of Apex output records that contain details about the invoices that were written off. See [InvoiceWriteOff Namespace](https://developer.salesforce.com/docs/./apex_namespace_InvoiceWriteOff.htm.md) for the list of output parameters. |
+| writeOffInvoiceResponseList | Type  Apex-defined  Description  A collection of Apex output records that contain details about the invoices that were written off. See [InvoiceWriteOff Namespace](./apex_namespace_InvoiceWriteOff.htm.md) for the list of output parameters. |
 
 ## Example
 

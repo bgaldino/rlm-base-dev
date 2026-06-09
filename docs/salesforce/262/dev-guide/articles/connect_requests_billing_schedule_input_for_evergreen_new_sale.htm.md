@@ -113,6 +113,6 @@ Evergreen selling model type, make sure that you specify the mandatory values in
 
 #### See Also
 
-- [BillingSchedule](https://developer.salesforce.com/docs/./sforce_api_objects_billingschedule.htm.md "BillingSchedule - HTML (New Window)")
-- [BillingScheduleGroup](https://developer.salesforce.com/docs/./sforce_api_objects_billingschedulegroup.htm.md "BillingScheduleGroup - HTML (New Window)")
-- [BsgRelationship](https://developer.salesforce.com/docs/./sforce_api_objects_bsgrelationship.htm.md "BsgRelationship - HTML (New Window)")
+- [BillingSchedule](./sforce_api_objects_billingschedule.htm.md "BillingSchedule - HTML (New Window)")
+- [BillingScheduleGroup](./sforce_api_objects_billingschedulegroup.htm.md "BillingScheduleGroup - HTML (New Window)")
+- [BsgRelationship](./sforce_api_objects_bsgrelationship.htm.md "BsgRelationship - HTML (New Window)")

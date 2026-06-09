@@ -29,7 +29,7 @@ is enabled.
 
 | Input | Details |
 | --- | --- |
-| additionalContextData | Type  Apex-defined  Description  Collection of Apex AdditionalContextData records that contain additional context data for nodes of the custom context definition, if applicable. You can add details for up to 10 nodes. See [AdditionalContextData](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)"). |
+| additionalContextData | Type  Apex-defined  Description  Collection of Apex AdditionalContextData records that contain additional context data for nodes of the custom context definition, if applicable. You can add details for up to 10 nodes. See [AdditionalContextData](./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)"). |
 | contextDefinitionName | Type  string  Description  Name of the custom context definition that’s used to create context data for categories. If null, the default context definition is used. |
 | contextMappingName | Type  string  Description  Name of the context mapping. By default, the default context mapping associated with the context definition is used. |
 | correlationId | Type  string  Description  Unique identifier attached to requests and messages, allowing reference to a specific transaction or event chain. |

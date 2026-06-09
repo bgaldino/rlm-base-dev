@@ -26,7 +26,7 @@ This API supports a maximum of 300 transaction line items.
 #### Note
 
 This API has been deprecated as of API version 63.0. In API version 63.0 and later, use
-the new [Place Sales Transaction](https://developer.salesforce.com/docs/./connect_resources_place_sales_transaction.htm.md "HTML (New Window)")
+the new [Place Sales Transaction](./connect_resources_place_sales_transaction.htm.md "HTML (New Window)")
 API.
 
 Special Access Rules

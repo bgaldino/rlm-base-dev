@@ -24,7 +24,7 @@ condition is met, the engine forces a UI change (hiding or disabling a product o
 attribute, or value). Recommendations are not automatically applied to the UI by the
 configuration engine alone. To suggest types or relations (products/bundles), typically for
 up-selling or cross-selling based on their current selections at runtime, use the Run Config
-Rules action within a Salesforce Flow. See [Run Config Rules Action](https://developer.salesforce.com/docs/./actions_obj_run_config_rules.htm.md "HTML (New Window)") in
+Rules action within a Salesforce Flow. See [Run Config Rules Action](./actions_obj_run_config_rules.htm.md "HTML (New Window)") in
 the Revenue Cloud Developer Guide.
 
 - Use an action rule when a selection makes another option invalid or irrelevant. For example, if a user selects a basic warranty, you should "hide" or "disable" the premium support options to prevent a conflicting or impossible setup.

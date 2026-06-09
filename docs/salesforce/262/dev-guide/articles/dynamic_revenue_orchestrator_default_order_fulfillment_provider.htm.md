@@ -259,7 +259,7 @@ You can configure these additional features for the integration definition.
   and response payloads as attachments. Use [Shield
   Platform Encryption](https://help.salesforce.com/s/articleView?id=xcloud.security_pe_overview.htm&type=5&language=en_US "HTML (New Window)") for secure storage of sensitive information.
 - [Define Input and Output Processors
-  for the Integration Definition](https://developer.salesforce.com/docs/./dynamic_revenue_orchestrator_input_output_processors.htm.md "HTML (New Window)") for the pre-processing of the standard fulfillment
+  for the Integration Definition](./dynamic_revenue_orchestrator_input_output_processors.htm.md "HTML (New Window)") for the pre-processing of the standard fulfillment
   request before you send the request to an external system. See [Omnistudio
   Integration Procedures](https://help.salesforce.com/s/articleView?id=xcloud.os_omnistudio_integration_procedures_48334.htm&type=5&language=en_US "HTML (New Window)").
 

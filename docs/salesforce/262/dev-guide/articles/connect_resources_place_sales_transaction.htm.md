@@ -498,7 +498,7 @@ Request body for POST
         ```
     :   This is a sample request to save changes to a ramp deal by using context ID. The
         context ID is returned by the Ramp Deal APIs. See [Create Ramp Deal
-        (POST)](https://developer.salesforce.com/docs/./connect_resources_create_ramp_deal.htm.md "HTML (New Window)").
+        (POST)](./connect_resources_create_ramp_deal.htm.md "HTML (New Window)").
 
         ```
         {

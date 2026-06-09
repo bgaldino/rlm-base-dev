@@ -20,12 +20,12 @@ Here are the details that this API returns.
 
 - Grants and resources for the product, if rates aren’t configured.
 - Grants, resources, and any configured rates for the product. The rates are returned by
-  the [Rate Plan (GET) API](https://developer.salesforce.com/docs/./connect_resources_get_rate_plan.htm.md "HTML (New Window)").
+  the [Rate Plan (GET) API](./connect_resources_get_rate_plan.htm.md "HTML (New Window)").
 - Resources that include grants, if applicable, and any negotiated rates for the product
   in case of a rate override request.
 
 This API doesn't return binding target rates. Use the [Binding Object Usage Details
-API](https://developer.salesforce.com/docs/./connect_resources_retrieve_binding_object_details.htm.md "HTML (New Window)") to retrieve binding target rates.
+API](./connect_resources_retrieve_binding_object_details.htm.md "HTML (New Window)") to retrieve binding target rates.
 
 Resource
 :   ```

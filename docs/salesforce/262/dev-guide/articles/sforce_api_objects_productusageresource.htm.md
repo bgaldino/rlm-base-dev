@@ -43,17 +43,17 @@ This object has the following associated objects. If the API version isn’t spe
 they’re available in the same API versions as this object. Otherwise, they’re available
 in the specified API version and later.
 
-[ProductUsageResourceChangeEvent](https://developer.salesforce.com/docs/./sforce_api_associated_objects_change_event.htm.md)
+[ProductUsageResourceChangeEvent](./sforce_api_associated_objects_change_event.htm.md)
 :   Change events are available for the object.
 
-[ProductUsageResourceFeed](https://developer.salesforce.com/docs/./sforce_api_associated_objects_feed.htm.md)
+[ProductUsageResourceFeed](./sforce_api_associated_objects_feed.htm.md)
 :   Feed tracking is available for the object.
 
-[ProductUsageResourceHistory](https://developer.salesforce.com/docs/./sforce_api_associated_objects_history.htm.md)
+[ProductUsageResourceHistory](./sforce_api_associated_objects_history.htm.md)
 :   History is available for tracked fields of the object.
 
-[ProductUsageResourceOwnerSharingRule](https://developer.salesforce.com/docs/./sforce_api_associated_objects_ownersharingrule.htm.md)
+[ProductUsageResourceOwnerSharingRule](./sforce_api_associated_objects_ownersharingrule.htm.md)
 :   Sharing rules are available for the object.
 
-[ProductUsageResourceShare](https://developer.salesforce.com/docs/./sforce_api_associated_objects_share.htm.md)
+[ProductUsageResourceShare](./sforce_api_associated_objects_share.htm.md)
 :   Sharing is available for the object.

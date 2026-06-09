@@ -21,7 +21,7 @@ This API request creates segments based on the specified input properties such a
 type, and trial details. The API response includes the context ID and the updated context
 object for the sales transaction. You must call the Place Sales Transaction API by
 specifying this context ID to apply the ramp deal updates. See [Place Sales Transaction
-API](https://developer.salesforce.com/docs/./connect_resources_place_sales_transaction.htm.md "HTML (New Window)").
+API](./connect_resources_place_sales_transaction.htm.md "HTML (New Window)").
 
 ![Note](/docs/resources/img/en-us/262.0?doc_id=images%2Ficon_note.png&folder=revenue_lifecycle_management_dev_guide)
 

@@ -28,8 +28,8 @@ Unlimited, and Developer Editions where Product Discovery is enabled.
 
 | Input | Details |
 | --- | --- |
-| additionalContextData | Type  Apex-defined  Description  Collection of Apex [`runtime_industries_cpq.AdditionalContextData`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)") records that contain the nodes used in addition to context definition nodes for data hydration. This parameter can contain up to 10 nodes. |
-| additionalFields | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.AdditionalFields`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_AdditionalFields.htm.md "HTML (New Window)") record that contains the collection of additional fields to be included in the response. This parameter supports only the fields from the Product2 and ProductAttributeDefinition objects. The fields defined for the ProductAttributeDefinition object must also be available on the ProductClassificationAttr object. |
+| additionalContextData | Type  Apex-defined  Description  Collection of Apex [`runtime_industries_cpq.AdditionalContextData`](./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)") records that contain the nodes used in addition to context definition nodes for data hydration. This parameter can contain up to 10 nodes. |
+| additionalFields | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.AdditionalFields`](./apex_class_runtime_industries_cpq_AdditionalFields.htm.md "HTML (New Window)") record that contains the collection of additional fields to be included in the response. This parameter supports only the fields from the Product2 and ProductAttributeDefinition objects. The fields defined for the ProductAttributeDefinition object must also be available on the ProductClassificationAttr object. |
 | catalogId | Type  string  Description  ID of the catalog to find and retrieve products. |
 | categoryId | Type  string  Description  ID of the category or subcategory to find and retrieve products. |
 | contextDefinition | Type  string  Description  API name of the context definition that's used for context creation. If you don’t specify a value, the context selected on the **Product Discovery Settings** page is used. |
@@ -39,7 +39,7 @@ Unlimited, and Developer Editions where Product Discovery is enabled.
 | executeConfigurationRules | Type  boolean  Description  Indicates whether configuration rules must run (`true`) or not (`false`). Available in API version 67.0 and later. |
 | enablePricing | Type  boolean  Description  Indicates whether pricing procedure must run (`true`) or not (`false`). The default value is `true`. To use this parameter, the **Pricing Procedure** setting must be enabled. |
 | enableQualification | Type  boolean  Description  Indicates whether qualification procedure must run (`true`) or not (`false`). The default value is `true`. To use this parameter, the **Qualification Procedure** setting must be enabled. |
-| filterInputRepresentation | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.FilterInputRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md "HTML (New Window)") record that contains the filter criteria. This parameter supports only the `name` property and the `eq`, `in`, or `contains` operators. If it contains multiple criteria, all the criteria are applied. |
+| filterInputRepresentation | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.FilterInputRepresentation`](./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md "HTML (New Window)") record that contains the filter criteria. This parameter supports only the `name` property and the `eq`, `in`, or `contains` operators. If it contains multiple criteria, all the criteria are applied. |
 | guidedSelectionResponseId | Type  string  Description  Response identifier that stores user responses specified in the guided product selection window. |
 | includeCatalogDetails | Type  boolean  Description  Indicates whether catalog details must be included in the response (`true`) or not (`false`). |
 | orderBy | Type  string  Description  Comma-delimited string of key-value pairs that specify how results are sorted. Each string must contain a field name and its sort order. For example, ["name:asc",”custom\_field:asc”]. |
@@ -49,8 +49,8 @@ Unlimited, and Developer Editions where Product Discovery is enabled.
 | productCursor | Type  string  Description  Unique identifier that represents the position of the product from which the next set of results are retrieved. |
 | qualificationProcedure | Type  string  Description  API name of the qualification procedure to evaluate product eligibility. If you don’t specify a value, the qualification procedure selected on the **Product Discovery Settings** page is used. |
 | recordLimit | Type  integer  Description  Maximum number of results to be returned in the response. Specify a value from 1 through 100. Default value is 10. |
-| relatedObjectFilters | Type  Apex-defined  Description  Collection of Apex [`runtime_industries_cpq.RelatedObjectFilterInputRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm.md "HTML (New Window)") records, each containing a related object and the filter criteria that’s applied on the object. |
-| searchTerms | Type  Apex-defined  Description  Collection of terms that are used to search products. See [GuidedSelectionSearchTerm](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm.md). |
+| relatedObjectFilters | Type  Apex-defined  Description  Collection of Apex [`runtime_industries_cpq.RelatedObjectFilterInputRepresentation`](./apex_class_runtime_industries_cpq_RelatedObjectFilterInputRepresentation.htm.md "HTML (New Window)") records, each containing a related object and the filter criteria that’s applied on the object. |
+| searchTerms | Type  Apex-defined  Description  Collection of terms that are used to search products. See [GuidedSelectionSearchTerm](./apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm.md). |
 | transactionContextId | Type  string  Description  Context ID of the quote or order. Available in API version 67.0 and later. |
 | transactionId | Type  string  Description  ID of the quote or order. Available in API version 67.0 and later. |
 | userContext | Type  Apex-defined  Description  An Apex ConnectApi.UserContextInputRepresentation record containing user information to evaluate product eligibility and calculate pricing. |
@@ -59,13 +59,13 @@ Unlimited, and Developer Editions where Product Discovery is enabled.
 
 | Output | Details |
 | --- | --- |
-| apiStatusOutputRepresentation | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains the status of the request, including the status code and message. |
+| apiStatusOutputRepresentation | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains the status of the request, including the status code and message. |
 | contextId | Type  string  Description  ID of the context that’s created by using the specified context definition. |
 | correlationId | Type  string  Description  Unique identifier attached to requests and messages, allowing reference to a specific transaction or event chain. |
 | productCursor | Type  string  Description  Unique identifier that represents the position of the product from which the next set of results are retrieved. |
-| productListOutputRepresentations | Type  Apex-defined  Description  Collection of Apex [ProductListOutputRepresentation](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md "HTML (New Window)") records that contain details about the product shown by the Guided Product Selection. |
+| productListOutputRepresentations | Type  Apex-defined  Description  Collection of Apex [ProductListOutputRepresentation](./apex_class_runtime_industries_cpq_ProductListRepresentation.htm.md "HTML (New Window)") records that contain details about the product shown by the Guided Product Selection. |
 | recordOffset | Type  integer  Description  Number of catalog records to skip in the request. The default is 0. |
-| searchTerms | Type  Apex-defined  Description  Collection of terms that are used to search products. See [GuidedSelectionSearchTerm](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm.md). |
+| searchTerms | Type  Apex-defined  Description  Collection of terms that are used to search products. See [GuidedSelectionSearchTerm](./apex_class_runtime_industries_cpq_GuidedSelectionSearchTerm.htm.md). |
 | userContext | Type  Apex-defined  Description  An Apex ConnectApi.UserContextRepresentation record containing user information. |
 
 ## Example

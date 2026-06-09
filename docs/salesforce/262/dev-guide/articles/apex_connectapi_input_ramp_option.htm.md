@@ -15,7 +15,7 @@ fetched_at: 2026-06-09
 Input representation of the ramp option details during an asset renewal.
 
 This Apex class is used by the `rampOptionDetails`
-Apex-defined input variable. See [Initiate Renewal Action](https://developer.salesforce.com/docs/./actions_obj_renew_assets.htm.md "HTML (New Window)").
+Apex-defined input variable. See [Initiate Renewal Action](./actions_obj_renew_assets.htm.md "HTML (New Window)").
 
 | Property | Type | Description | Required or Optional | Available Version |
 | --- | --- | --- | --- | --- |

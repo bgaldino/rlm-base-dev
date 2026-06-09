@@ -51,11 +51,11 @@ This object has these associated objects. If the API version isn’t specified, 
 available in the same API versions as this object. Otherwise, they’re available in the
 specified API version and later.
 
-[UsageSummaryHistory](https://developer.salesforce.com/docs/./sforce_api_associated_objects_history.htm.md)
+[UsageSummaryHistory](./sforce_api_associated_objects_history.htm.md)
 :   History is available for tracked fields of the object.
 
-[UsageSummaryOwnerSharingRule](https://developer.salesforce.com/docs/./sforce_api_associated_objects_ownersharingrule.htm.md)
+[UsageSummaryOwnerSharingRule](./sforce_api_associated_objects_ownersharingrule.htm.md)
 :   Sharing rules are available for the object.
 
-[UsageSummaryShare](https://developer.salesforce.com/docs/./sforce_api_associated_objects_ownersharingrule.htm.md)
+[UsageSummaryShare](./sforce_api_associated_objects_ownersharingrule.htm.md)
 :   Sharing is available for the object.

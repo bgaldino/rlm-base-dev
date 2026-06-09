@@ -98,4 +98,4 @@ Response body for POST
 
 - [Salesforce Help: Context Service](https://help.salesforce.com/s/articleView?id=ind.context_service_context_definitions.htm&language=en_US "Salesforce Help: Context Service - HTML (New Window)")
 - [Industries Common Resources Developer Guide: Context Service](https://developer.salesforce.com/docs/atlas.en-us.262.0.industries_reference.meta/industries_reference/context_service_overview.htm "Industries Common Resources Developer Guide: Context Service - HTML (New Window)")
-- [BillingScheduleGroup](https://developer.salesforce.com/docs/./sforce_api_objects_billingschedulegroup.htm.md "BillingScheduleGroup - HTML (New Window)")
+- [BillingScheduleGroup](./sforce_api_objects_billingschedulegroup.htm.md "BillingScheduleGroup - HTML (New Window)")

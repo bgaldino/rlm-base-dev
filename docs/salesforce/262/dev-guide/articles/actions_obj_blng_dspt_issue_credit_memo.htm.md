@@ -46,13 +46,13 @@ Authentication
 
 | Input | Details |
 | --- | --- |
-| creditRequest​List | Type  Apex-defined  Description  List of Apex-defined creditRequestInputRepresentations objects that contains the invoice ID, credit amount, description, and a list of creditLineRequestInputRepresentations objects. The creditLineRequestInputRepresentations objects include the invoice line ID, credit line amount, and a description. See [CreditLineRequestInputRepresentations](https://developer.salesforce.com/docs/./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md "HTML (New Window)") Apex class. |
+| creditRequest​List | Type  Apex-defined  Description  List of Apex-defined creditRequestInputRepresentations objects that contains the invoice ID, credit amount, description, and a list of creditLineRequestInputRepresentations objects. The creditLineRequestInputRepresentations objects include the invoice line ID, credit line amount, and a description. See [CreditLineRequestInputRepresentations](./apex_class_IssueCreditMemo_CreditLineRequestInputRepresentations.htm.md "HTML (New Window)") Apex class. |
 
 ## Outputs
 
 | Output | Details |
 | --- | --- |
-| creditResponse | Type  Apex-defined  Description  An Apex-defined creditResponseOutputRepresentations object that contains the status and any additional information.  See [CreditResponseOutputRepresentations](https://developer.salesforce.com/docs/./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md "HTML (New Window)") Apex class. |
+| creditResponse | Type  Apex-defined  Description  An Apex-defined creditResponseOutputRepresentations object that contains the status and any additional information.  See [CreditResponseOutputRepresentations](./apex_class_IssueCreditMemo_CreditResponseOutputRepresentations.htm.md "HTML (New Window)") Apex class. |
 
 ## Example
 

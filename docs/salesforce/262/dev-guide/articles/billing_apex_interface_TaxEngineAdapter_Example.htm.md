@@ -17,7 +17,7 @@ evaluate the information to define tax details.
 
 ## Namespace
 
-See [commercetax](https://developer.salesforce.com/docs/./apex_namespace_commercetax.htm.md "HTML (New Window)")
+See [commercetax](./apex_namespace_commercetax.htm.md "HTML (New Window)")
 namespace to view the list of available classes.
 
 ## Usage

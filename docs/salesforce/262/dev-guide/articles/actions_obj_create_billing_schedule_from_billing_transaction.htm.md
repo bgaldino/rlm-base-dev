@@ -16,7 +16,7 @@ Create one or more billing schedules for a specified billing
 transaction ID.
 
 This action calls the [Create Billing Schedules
-for Orders (POST) API](https://developer.salesforce.com/docs/./connect_resources_create_billing_schedules.htm.md "HTML (New Window)") to retrieve the billing transaction items
+for Orders (POST) API](./connect_resources_create_billing_schedules.htm.md "HTML (New Window)") to retrieve the billing transaction items
 associated with the billing transaction ID. The API generates the corresponding
 billing schedules for each of the billing transaction items for operations such as
 transaction modifications, renewals, cancellations, and new sales.
@@ -92,4 +92,4 @@ POST
 
 #### See Also
 
-- [*Revenue Cloud Developer Guide*: Context-Aware Billing Schedule API](https://developer.salesforce.com/docs/./connect_resources_create_billing_schedules.htm.md "Revenue Cloud Developer Guide: Context-Aware Billing Schedule API - HTML (New Window)")
+- [*Revenue Cloud Developer Guide*: Context-Aware Billing Schedule API](./connect_resources_create_billing_schedules.htm.md "Revenue Cloud Developer Guide: Context-Aware Billing Schedule API - HTML (New Window)")

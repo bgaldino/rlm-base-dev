@@ -26,7 +26,7 @@ PlaceQuote.RecordWithReferenceRequest quoteLineRelationship = new PlaceQuote.Rec
 ```
 
 See
-[PlaceQuoteRLMApexProcessor](https://developer.salesforce.com/docs/./apex_class_placequote_PlaceQuoteRLMApexProcessor.htm.md#apex_placequote_PlaceQuoteRLMApexProcessor_example_implementation "HTML (New Window)") to
+[PlaceQuoteRLMApexProcessor](./apex_class_placequote_PlaceQuoteRLMApexProcessor.htm.md#apex_placequote_PlaceQuoteRLMApexProcessor_example_implementation "HTML (New Window)") to
 refer to an example implementation.
 
 - **[RecordWithReferenceRequest Constructors](./apex_class_placequote_RecordWithReferenceRequest.htm.md#apex_placequote_RecordWithReferenceRequest_constructors)**  

@@ -72,11 +72,11 @@ This object has these associated objects. If the API version isn’t specified, 
 available in the same API versions as this object. Otherwise, they’re available in the
 specified API version and later.
 
-[ProductUsageGrantHistory](https://developer.salesforce.com/docs/./sforce_api_associated_objects_history.htm.md)
+[ProductUsageGrantHistory](./sforce_api_associated_objects_history.htm.md)
 :   History is available for tracked fields of the object.
 
-[ProductUsageGrantOwnerSharingRule](https://developer.salesforce.com/docs/./sforce_api_associated_objects_ownersharingrule.htm.md)
+[ProductUsageGrantOwnerSharingRule](./sforce_api_associated_objects_ownersharingrule.htm.md)
 :   Sharing rules are available for the object.
 
-[ProductUsageGrantShare](https://developer.salesforce.com/docs/./sforce_api_associated_objects_ownersharingrule.htm.md)
+[ProductUsageGrantShare](./sforce_api_associated_objects_ownersharingrule.htm.md)
 :   Sharing is available for the object.

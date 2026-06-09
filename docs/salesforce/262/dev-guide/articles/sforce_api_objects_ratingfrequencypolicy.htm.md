@@ -46,7 +46,7 @@ specified API version and later.
 [RatingFrequencyPolicyHistory](https://developer.salesforce.com/docs/atlas.en-us.262.0.object_reference.meta/object_reference/sforce_api_associated_objects_history.htm)
 :   History is available for tracked fields of the object.
 
-[RatingFrequencyPolicyOwnerSharingRule](https://developer.salesforce.com/docs/./sforce_api_associated_objects_ownersharingrule.htm.md)
+[RatingFrequencyPolicyOwnerSharingRule](./sforce_api_associated_objects_ownersharingrule.htm.md)
 :   Sharing rules are available for the object.
 
 [RatingFrequencyPolicyShare](https://developer.salesforce.com/docs/atlas.en-us.262.0.object_reference.meta/object_reference/sforce_api_associated_objects_share.htm)

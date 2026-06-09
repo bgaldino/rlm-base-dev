@@ -15,7 +15,7 @@ fetched_at: 2026-06-09
 Retrieve any asynchronous error details associated with
 a sales transaction request.
 
-This API returns detailed error status and a retryable payload from [Place Sales Transaction API](https://developer.salesforce.com/docs/./connect_resources_place_sales_transaction.htm.md "HTML (New Window)")
+This API returns detailed error status and a retryable payload from [Place Sales Transaction API](./connect_resources_place_sales_transaction.htm.md "HTML (New Window)")
 that runs asynchronously. Also, view any blocking errors that prevent a subrequest from
 persisting. This request doesn’t return any non-blocking warnings, such as configuration or
 tax warnings.

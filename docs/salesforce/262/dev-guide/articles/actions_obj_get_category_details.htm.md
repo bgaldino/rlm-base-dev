@@ -27,14 +27,14 @@ Editions where Product Discovery is enabled.
 
 | Input | Details |
 | --- | --- |
-| additionalContextData | Type  Apex-defined  Description  Collection of Apex [`runtime_industries_cpq.AdditionalContextData`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)") records that contain additional context data for nodes of the custom context definition, if applicable. You can add details for up to 10 nodes. |
+| additionalContextData | Type  Apex-defined  Description  Collection of Apex [`runtime_industries_cpq.AdditionalContextData`](./apex_class_runtime_industries_cpq_AdditionalContextData.htm.md "HTML (New Window)") records that contain additional context data for nodes of the custom context definition, if applicable. You can add details for up to 10 nodes. |
 | catalogId | Type  string  Description  ID of the catalog record that’s used to search for products within a category. |
 | categoryId | Type  string  Description  Required. ID of the category or subcategory that’s used to search for products. |
 | contextDefinitionName | Type  string  Description  Name of the custom context definition that’s used to create context data for categories. If null, the default context definition is used. |
 | contextMappingName | Type  string  Description  Name of the context mapping. By default, the default context mapping associated with the context definition is used. |
 | correlationId | Type  string  Description  Unique identifier attached to requests and messages, allowing reference to a specific transaction or event chain. |
 | enableQualificationProcedure | Type  boolean  Description  Indicates whether qualification rules are applied to categories (`tru`e) or not (`false`). |
-| filterInputRepresentation | Type  Apex-defined  Description  Collection of Apex [`runtime_industries_cpq.FilterInputRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md "HTML (New Window)") records that contain the filter criteria applied to the category records. |
+| filterInputRepresentation | Type  Apex-defined  Description  Collection of Apex [`runtime_industries_cpq.FilterInputRepresentation`](./apex_class_runtime_industries_cpq_FilterInputRepresentation.htm.md "HTML (New Window)") records that contain the filter criteria applied to the category records. |
 | qualificationProcedureName | Type  string  Description  Name of the custom qualification procedure that’s executed to determine the category list. If null, the default qualification procedure is executed. |
 | userContextInputRepresentation | Type  Apex-defined  Description  An Apex UserContextInputRepresentation record that contains user details, such as account ID, geographical location, language preferences, and more. |
 
@@ -42,8 +42,8 @@ Editions where Product Discovery is enabled.
 
 | Output | Details |
 | --- | --- |
-| apiStatusOutputRepresentation | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains the status of the request, including the status code and message. |
-| categoryDetailsRepresentations | Type  Apex-defined  Description  Collection of Apex [CategoryDetailsRepresentation](https://developer.salesforce.com/docs/./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md "HTML (New Window)") records that contain details about the retrieved category. |
+| apiStatusOutputRepresentation | Type  Apex-defined  Description  An Apex [`runtime_industries_cpq.ApiStatusRepresentation`](./apex_class_runtime_industries_cpq_ApiStatusRepresentation.htm.md "HTML (New Window)") record that contains the status of the request, including the status code and message. |
+| categoryDetailsRepresentations | Type  Apex-defined  Description  Collection of Apex [CategoryDetailsRepresentation](./apex_class_runtime_industries_cpq_CategoryOutputRepresentation.htm.md "HTML (New Window)") records that contain details about the retrieved category. |
 | correlationId | Type  string  Description  Unique identifier attached to requests and messages, allowing reference to a specific transaction or event chain. |
 
 ## Example

@@ -17,7 +17,7 @@ procedure, and price waterfall details.
 
 This action is available in API version 60.0 and later. You can use this action with Flows
 only. To use this action with an API tool such as Postman, see [Run Salesforce Headless
-Pricing Action](https://developer.salesforce.com/docs/./actions_obj_run_salesforce_headless_pricing.htm.md "HTML (New Window)").
+Pricing Action](./actions_obj_run_salesforce_headless_pricing.htm.md "HTML (New Window)").
 
 ## Special Access Rules
 

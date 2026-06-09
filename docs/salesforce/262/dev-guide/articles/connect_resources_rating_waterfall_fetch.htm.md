@@ -35,7 +35,7 @@ Query parameters
 :   | Name | Type | Description | Required or Optional | Available Version |
     | --- | --- | --- | --- | --- |
     | `tagsTo​Filter` | String | Comma-separated tags to filter. | Optional | 62.0 |
-    | `usage​Type` | String | Usage type of the waterfall log record. Valid values are:   - `Rating` - `Pricing`—Specifies that the   record type is `Pricing`. If this value   is specified, the API creates a log of pricing waterfall. See [Pricing   Waterfall](https://developer.salesforce.com/docs/./connect_resources_pricing_waterfall_post.htm.md "HTML (New Window)").   The default value is `Pricing`. | Optional | 62.0 |
+    | `usage​Type` | String | Usage type of the waterfall log record. Valid values are:   - `Rating` - `Pricing`—Specifies that the   record type is `Pricing`. If this value   is specified, the API creates a log of pricing waterfall. See [Pricing   Waterfall](./connect_resources_pricing_waterfall_post.htm.md "HTML (New Window)").   The default value is `Pricing`. | Optional | 62.0 |
 
 Response body for GET
 :   [Line Item Waterfall

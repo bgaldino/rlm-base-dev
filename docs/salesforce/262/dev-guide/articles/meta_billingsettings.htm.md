@@ -44,7 +44,7 @@ These settings are available when Billing is enabled.
 | Field Name | Description |
 | --- | --- |
 | acctRecGlAccount | Field Type  string  Description  General ledger account to record the credit amount for unrealized or realized losses and the debit amount for unrealized or realized gains in transaction journals. Available in API version 64.0 and later. |
-| billingContextDefinition | Field Type  string  Description  Name of the context definition that the [Create Billing Schedules for Orders API](https://developer.salesforce.com/docs/./connect_resources_create_billing_schedules.htm.md "HTML (New Window)") uses to understand your order data. Available in API version 64.0 and later. |
+| billingContextDefinition | Field Type  string  Description  Name of the context definition that the [Create Billing Schedules for Orders API](./connect_resources_create_billing_schedules.htm.md "HTML (New Window)") uses to understand your order data. Available in API version 64.0 and later. |
 | billingContextSourceMapping | Field Type  string  Description  Name of the context mapping that links Order fields to billing transaction context nodes. Available in API version 64.0 and later. |
 | billingIntraCtxtSrcMapping | Field Type  string  Description  Name of the custom context mapping that maps your custom or standard Order fields to billing transaction context nodes. Available in API version 64.0 and later. |
 | defaultAPClosureDPEDefnName | Field Type  string  Description  Org-wide default value to specify the Data Processing Engine (DPE) definition to close legal entity accounting periods. Available in API version 64.0 and later. |

@@ -56,14 +56,14 @@ This object has these associated objects. If the API version isn’t specified, 
 available in the same API versions as this object. Otherwise, they’re available in the
 specified API version and later.
 
-[UsageResourceFeed](https://developer.salesforce.com/docs/./sforce_api_associated_objects_feed.htm.md)
+[UsageResourceFeed](./sforce_api_associated_objects_feed.htm.md)
 :   Feed tracking is available for the object.
 
-[UsageResourceHistory](https://developer.salesforce.com/docs/./sforce_api_associated_objects_history.htm.md)
+[UsageResourceHistory](./sforce_api_associated_objects_history.htm.md)
 :   History is available for tracked fields of the object.
 
-[UsageResourceOwnerSharingRule](https://developer.salesforce.com/docs/./sforce_api_associated_objects_ownersharingrule.htm.md)
+[UsageResourceOwnerSharingRule](./sforce_api_associated_objects_ownersharingrule.htm.md)
 :   Sharing rules are available for the object.
 
-[UsageResourceShare](https://developer.salesforce.com/docs/./sforce_api_associated_objects_ownersharingrule.htm.md)
+[UsageResourceShare](./sforce_api_associated_objects_ownersharingrule.htm.md)
 :   Sharing is available for the object.

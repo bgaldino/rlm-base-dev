@@ -49,5 +49,5 @@ This table provides the metadata deployment reference for Dynamic Revenue Orches
 #### See Also
 
 - [*Revenue Cloud Developer Guide*:
-  DynamicFulfillmentOrchestratorSettings](https://developer.salesforce.com/docs/./meta_dynamicfulfillmentorchestratorsettings.htm.md "Revenue Cloud Developer Guide:
+  DynamicFulfillmentOrchestratorSettings](./meta_dynamicfulfillmentorchestratorsettings.htm.md "Revenue Cloud Developer Guide:
          DynamicFulfillmentOrchestratorSettings - HTML (New Window)")

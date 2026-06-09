@@ -60,7 +60,7 @@ Authentication
 
 | Output | Details |
 | --- | --- |
-| renewableAssetsSummary | Type  Apex-defined  Description  Summary of the assets associated with the order, including details about renewal opportunities such as renewal pricing information. See [renew\_assets\_summary Apex Namespace](https://developer.salesforce.com/docs/./apex_namespace_renew_assets_summary.htm.md "HTML (New Window)"). |
+| renewableAssetsSummary | Type  Apex-defined  Description  Summary of the assets associated with the order, including details about renewal opportunities such as renewal pricing information. See [renew\_assets\_summary Apex Namespace](./apex_namespace_renew_assets_summary.htm.md "HTML (New Window)"). |
 
 ## Example
 
