@@ -32,6 +32,28 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 
+# Path segments (relative to the scan root) that mark a directory we never validate:
+# internal SFDMU subdirs, developer-local scratch (test/), and backup dirs (*.bak).
+_SKIP_SEGMENTS = ("objectset_source", "processed", "source", "logs", "test")
+
+
+def _is_skippable_export(export_json: Path, root: Path) -> bool:
+    """Return True if an export.json found under ``root`` should be skipped.
+
+    The skip filters are applied to the path RELATIVE TO ``root`` (the SFDMU base
+    or the ``--dataset`` parent), not the absolute filesystem path. Otherwise a
+    checkout directory literally named, e.g., ``test`` or ``source`` (such as
+    ``/tmp/test/rlm-base-dev``) would wrongly filter out every shipped dataset.
+    """
+    try:
+        rel_parts = export_json.relative_to(root).parts
+    except ValueError:
+        rel_parts = export_json.parts
+    if any(seg in _SKIP_SEGMENTS for seg in rel_parts):
+        return True
+    return any(seg.endswith(".bak") for seg in rel_parts)
+
+
 class Severity(Enum):
     """Issue severity levels."""
     CRITICAL = "Critical"
@@ -180,8 +202,9 @@ class SFDMUValidator:
         # Find all export.json files in SFDMU directory tree
         for export_json in self.sfdmu_base.rglob("export.json"):
             dataset_dir = export_json.parent
-            # Skip if it's in a subdirectory like objectset_source or processed
-            if any(p in export_json.parts for p in ["objectset_source", "processed", "source", "logs"]):
+            # Skip internal subdirs, developer-local scratch (test/), and backup dirs (*.bak).
+            # Filter on the path relative to sfdmu_base so the checkout path can't matter.
+            if _is_skippable_export(export_json, self.sfdmu_base):
                 continue
             datasets.append(dataset_dir)
 
@@ -1130,8 +1153,9 @@ Examples:
             datasets = []
             for export_json in dataset_path.rglob("export.json"):
                 dataset_dir = export_json.parent
-                # Skip if it's in a subdirectory like objectset_source or processed
-                if any(p in export_json.parts for p in ["objectset_source", "processed", "source", "logs"]):
+                # Skip internal subdirs, developer-local scratch (test/), and backup dirs (*.bak).
+                # Filter on the path relative to the --dataset parent, not the checkout path.
+                if _is_skippable_export(export_json, dataset_path):
                     continue
                 datasets.append(dataset_dir)
             datasets = sorted(datasets)
