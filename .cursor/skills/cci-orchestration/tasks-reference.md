@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**217 tasks** across **9 groups**.
+**240 tasks** across **10 groups**.
 
 ---
 
@@ -501,6 +501,228 @@
 
 ---
 
+## Documentation
+
+*14 task(s)*
+
+### `snapshot_agents_help_262`
+
+**Description:** Snapshot the 262 Agentforce for Revenue Management area of Salesforce Help. Covers the 7 revenue-management subagents (Product Selection, Product Description Generation, Quote Management, Consumption Management, Invoice Line Explanation, Billing Collections Management, Billing Inquiries) plus agent templates and setup. Root and prefix verified via RLM sidebar walk.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `agents`
+- `root_article_id`: `ind.rev_agent_overview.htm`
+- `article_id_prefix`: `ind.rev_agent`
+- `mode`: `all`
+
+---
+
+### `snapshot_approvals_help_262`
+
+**Description:** Snapshot the 262 Advanced Approvals area of Salesforce Help (~34 articles per the sidebar walk). Covers Advanced Approval Objects, approval workflow design, Smart Approvals, approval previews, Slack notifications, auto-approval rules. Note: the data-model domain is thin (1 object, ApprovalSubmission) but the Help area is rich. Root and prefix verified via sidebar walk.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `approvals`
+- `root_article_id`: `ind.approvals_advanced_approvals.htm`
+- `article_id_prefix`: `ind.approvals`
+- `mode`: `all`
+
+---
+
+### `snapshot_billing_help_260`
+
+**Description:** Snapshot the 260 (Spring '26) Billing area of Salesforce Help. For diff-against-262 verification work.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `260`
+- `release_name`: `Spring '26`
+- `area`: `billing`
+- `root_article_id`: `ind.billing.htm`
+- `article_id_prefix`: `ind.billing`
+- `mode`: `all`
+
+---
+
+### `snapshot_billing_help_262`
+
+**Description:** Snapshot the 262 (Summer '26) Billing area of Salesforce Help. ~171 articles (matches the captured inventory below). Default headless run takes ~10-15 minutes.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `billing`
+- `root_article_id`: `ind.billing.htm`
+- `article_id_prefix`: `ind.billing`
+- `mode`: `all`
+
+---
+
+### `snapshot_configurator_help_262`
+
+**Description:** Snapshot the 262 Product Configurator area of Salesforce Help. Covers ProductConfigurationFlow, ProductConfigurationRule. Small data-model domain (4 objects) but the Help area covers configuration rules and flow assignments that affect Quote/Order configuration. Root verified via RLM sidebar walk.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `configurator`
+- `root_article_id`: `ind.product_configurator_introduction.htm`
+- `article_id_prefix`: `ind.product_configurator`
+- `mode`: `all`
+
+---
+
+### `snapshot_dev_guide_262`
+
+**Description:** Snapshot the full 262 (Summer '26) Revenue Cloud Developer Guide (atlas deliverable revenue_lifecycle_management_dev_guide). Use -o section "Constraint Modeling Language" to capture a single section.
+
+**Class:** `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `deliverable`: `revenue_lifecycle_management_dev_guide`
+- `mode`: `all`
+
+---
+
+### `snapshot_dro_help_262`
+
+**Description:** Snapshot the 262 DRO (Dynamic Revenue Orchestration) / Fulfillment area of Salesforce Help. Covers FulfillmentPlan, FulfillmentStep, FulfillmentStepDefinition, ProductFulfillmentDecompRule. Root verified via RLM sidebar walk.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `dro`
+- `root_article_id`: `ind.dro_dynamic_revenue_orchestrator.htm`
+- `article_id_prefix`: `ind.dro`
+- `mode`: `all`
+
+---
+
+### `snapshot_pcm_help_262`
+
+**Description:** Snapshot the 262 (Summer '26) Product Catalog Management area of Salesforce Help. Covers Product2, ProductCategory, AttributeDefinition, ProductRelatedComponent. Root verified via RLM sidebar walk.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `pcm`
+- `root_article_id`: `ind.product_catalog_introduction.htm`
+- `article_id_prefix`: `ind.product_catalog`
+- `mode`: `all`
+
+---
+
+### `snapshot_pricing_help_262`
+
+**Description:** Snapshot the 262 Pricing area of Salesforce Help. Covers PriceBook2, PriceBookEntry, PriceAdjustmentSchedule, ProductSellingModel, proration. Distinct from Rate Management. Root verified via RLM sidebar walk.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `pricing`
+- `root_article_id`: `ind.pricing_salesforce_pricing.htm`
+- `article_id_prefix`: `ind.pricing`
+- `mode`: `all`
+
+---
+
+### `snapshot_rating_help_262`
+
+**Description:** Snapshot the 262 Rate Management area of Salesforce Help. Required for Module 3 Unit 2 LO validation (Rate Card, Rate Card Entry, Asset Rate Card Entry, Asset Rate Adjustment, Rating Procedure, the Transaction Journal → Usage Summary → Ratable Summary → Liable Summary pipeline). Root verified via RLM sidebar walk. Prefix `ind.rm_*` (NOT `ind.rate_*`).
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `rating`
+- `root_article_id`: `ind.rm_rate_management.htm`
+- `article_id_prefix`: `ind.rm`
+- `mode`: `all`
+
+---
+
+### `snapshot_salesforce_dev_guide`
+
+**Description:** Generic atlas Developer Guide snapshot. Fetches the guide TOC, captures each page as markdown with YAML frontmatter to docs/salesforce/{release_version}/dev-guide/articles/, and writes manifest.json and index.md. Provide release_version, release_name, and (optionally) deliverable / doc_version / section at invocation time.
+
+**Class:** `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide`
+
+---
+
+### `snapshot_salesforce_help`
+
+**Description:** Generic snapshot task. Walks a Salesforce Help portal area from a root article ID, captures every article whose ID starts with the given prefix, and writes markdown files with YAML frontmatter to docs/salesforce/{release_version}/help/articles/. Also produces manifest.json and index.md.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+---
+
+### `snapshot_transaction_mgmt_help_262`
+
+**Description:** Snapshot the 262 Transaction Management area of Salesforce Help. Covers Quote, QuoteLineItem, Order, OrderItem, Contract, Asset, AssetAction, AssetStatePeriod, AssetRelationship, and quote/order/asset lifecycle management. ONE combined area with prefix `ind.qocal_*` — not four separate areas. Root verified via RLM sidebar walk.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `transaction_mgmt`
+- `root_article_id`: `ind.qocal_sales_transactions_rev_cloud.htm`
+- `article_id_prefix`: `ind.qocal`
+- `mode`: `all`
+
+---
+
+### `snapshot_usage_help_262`
+
+**Description:** Snapshot the 262 Usage Management area of Salesforce Help. Required for Module 3 Unit 1 + Unit 3 LO validation (data model, Usage Agent, Drawdown Policies, Digital Wallets, TransactionUsageEntitlement, Usage Entitlement Account / Bucket / Entry). Root verified via RLM sidebar walk. Prefix `ind.um_*` (NOT `ind.usage_*`).
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `usage`
+- `root_article_id`: `ind.um_usage_management.htm`
+- `article_id_prefix`: `ind.um`
+- `mode`: `all`
+
+---
+
 ## E2E Testing
 
 *5 task(s)*
@@ -596,7 +818,7 @@
 
 ## Revenue Lifecycle Management
 
-*139 task(s)*
+*149 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -725,13 +947,9 @@
 
 ### `activate_rates`
 
-**Description:** Activate Rates
+**Description:** Activate Draft RateCardEntry records (Status → Active). Uses REST Composite API instead of Apex DML — Apex path raises UNKNOWN_EXCEPTION in Release 262 (platform regression in SOAP Execute Anonymous for RateCardEntry).
 
-**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
-
-**Options:**
-
-- `path`: `scripts/apex/activateRateCardEntries.apex`
+**Class:** `tasks.rlm_activate_rates.ActivateRateCardEntries`
 
 ---
 
@@ -867,6 +1085,19 @@
 
 - `api_names`: API Developer Names of desired Permission Set Groups *(required)*
 - `user_alias`: Alias of target user (if not the current running user) 
+
+---
+
+### `assign_personas_sales_rep_psg`
+
+**Description:** Assign RLM_Sales_Representative PSG to the sales-rep-user persona using tolerant assignment.
+
+**Class:** `tasks.rlm_assign_permission_set_groups.AssignPermissionSetGroupsTolerant`
+
+**Options:**
+
+- `api_names`: `['RLM_Sales_Representative']`
+- `user_alias`: `salesrep`
 
 ---
 
@@ -1020,7 +1251,6 @@
 - `set_unique_username`: `True`
 
 ---
-
 
 ### `create_procedure_plan_definition`
 
@@ -1372,6 +1602,18 @@
 
 ---
 
+### `deploy_post_large_stx`
+
+**Description:** Deploy Large Sales Transaction metadata
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_large_stx`
+
+---
+
 ### `deploy_post_personas`
 
 **Description:** Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas.
@@ -1499,7 +1741,7 @@
 
 ### `enable_timeline`
 
-**Description:** Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium). Required before billing_ui flexipages that reference industries_common:timeline can be deployed. Once enabled, this toggle cannot be disabled.
+**Description:** Enable the Timeline feature toggle at Setup → Feature Settings → Timeline (Robot/Selenium). Required before billing_ui flexipages that reference industries_common:timeline can be deployed. Once enabled, this toggle cannot be disabled. Skipped on TSO builds (tso=true), where Timeline is enabled via metadata (Industries.settings enableTimelinePref) instead of the UI toggle.
 
 **Class:** `tasks.rlm_enable_timeline.EnableTimeline`
 
@@ -1565,6 +1807,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `BSGEntitiesMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1584,6 +1827,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `CommerceCartMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1603,6 +1847,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `CollectionPlanContextMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1622,6 +1867,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `OppToCntrPersistenceMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1641,6 +1887,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `DocExtrctPersistenceMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1660,6 +1907,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `FulfillAssetEntitiesMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1698,6 +1946,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `DefaultUsageMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1717,6 +1966,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `CatalogMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1764,6 +2014,14 @@
 **Description:** Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy. Salesforce metadata API bug: all DocumentTemplates deployed in a single batch receive the same ContentDocument binary (first alphabetically). This task uploads the correct .dt binary from the repo for each RLM_ template, replacing the wrong ContentDocument content. Run after deploy_post_docgen + activate_docgen_templates.
 
 **Class:** `tasks.rlm_docgen.FixDocumentTemplateBinaries`
+
+---
+
+### `fix_scratch_org_identity`
+
+**Description:** Repair scratch-org identity in the local SF CLI auth file. Works around an SF CLI bug where Enterprise-Edition scratch orgs created via the DevHub API get isScratch=false in ~/.sfdx/<username>.json, making scratch-only commands (sf org create user, sf org generate password) fail with NonScratchOrgError. Sets isScratch=true (when false or missing) only when a devHubUsername is present. Idempotent; warns and continues on failure unless raise_on_failure is set.
+
+**Class:** `tasks.rlm_fix_scratch_identity.FixScratchOrgIdentity`
 
 ---
 
@@ -2243,6 +2501,14 @@
 
 ---
 
+### `rebuild_search_index`
+
+**Description:** Rebuild the Product Catalog (PCM) search index via Connect API (FULL, IMMEDIATE). Asynchronous - initiates the build and logs the snapshot id. Warns and continues on API failure unless raise_on_failure is set.
+
+**Class:** `tasks.rlm_rebuild_search_index.RebuildSearchIndex`
+
+---
+
 ### `recalculate_permission_set_groups`
 
 **Description:** Recalculate permission set groups and wait for Updated status
@@ -2260,6 +2526,18 @@
 - `retry_delay_seconds`: `120`
 - `post_trigger_delay_seconds`: `90`
 - `use_tooling_api`: `False`
+
+---
+
+### `recalculate_personas_sales_rep_psg`
+
+**Description:** Recalculate the RLM_Sales_Representative permission set group before user assignment.
+
+**Class:** `tasks.rlm_recalculate_permission_set_groups.RecalculatePermissionSetGroups`
+
+**Options:**
+
+- `api_names`: `['RLM_Sales_Representative']`
 
 ---
 
@@ -2383,6 +2661,42 @@
 
 ---
 
+### `seed_large_deal_billing_treatment`
+
+**Description:** Seed the large-deal Exclude-from-Billing policy + treatment (Default selection, no legal entity, no items). The large_stx Prepare-for-Activation flow stamps this treatment onto large-deal order items so billing-treatment resolution becomes a no-op and bypasses the non-bulk-safe legal-entity resolver. Idempotent.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/seedLargeDealBillingTreatment.apex`
+
+---
+
+### `set_personas_org_wide_defaults`
+
+**Description:** Sets Organization-Wide Defaults for the Sales Rep persona. Sales Cloud objects Account/Asset/Contract/Order → internal Read/Write (all internal users can see and edit); Opportunity stays Private (reps own their pipeline). The product / configuration model (ProductCatalog plus the catalog/config objects below) → Read/Read so the salesrep can browse catalogs and run the Set Up Quote configurator — the PST configuration-rule engine reads those records in the running user's context. Restores the OWD the deleted post_sharing object-meta bundle used to set.
+
+**Class:** `tasks.rlm_sharing.SetOrgWideDefaultsSharingOnly`
+
+**Options:**
+
+- `org_wide_defaults`: `[{'api_name': 'Account', 'internal_sharing_model': 'ReadWrite', 'external_sharing_model': 'Private'}, {'api_name': 'A...`
+
+---
+
+### `set_scratch_org_password`
+
+**Description:** Set a permanent password for the scratch-org admin user and clear the "change password at next login" flag. Prevents the frontdoor login used by Robot setup steps (sf org open --url-only) from being redirected to the "Change Your Password" screen, which would otherwise break prepare_docgen and other UI-toggle steps. Scratch-org only.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/setScratchOrgPassword.apex`
+
+---
+
 ### `stamp_git_commit`
 
 **Description:** Stamps the current git commit hash, branch, timestamp, org definition, dirty-tree flag, and active feature flags into the org as a Custom Metadata Type record (RLM_Build_Info__mdt.Latest). Non-fatal: deploy failures are logged as warnings so this task never breaks a completed flow.
@@ -2449,6 +2763,18 @@
 
 ---
 
+### `verify_personas_org_wide_defaults`
+
+**Description:** Post-set verification: asserts the persona Org-Wide Defaults actually landed (raises if any present object's internal/external sharing model does not match the expected spec). Objects absent on the target org shape are skipped, matching set_personas_org_wide_defaults' shape tolerance.
+
+**Class:** `tasks.rlm_sharing.AssertSObjectOWDs`
+
+**Options:**
+
+- `org_wide_defaults`: `[{'api_name': 'Account', 'internal_sharing_model': 'ReadWrite', 'external_sharing_model': 'Private'}, {'api_name': 'A...`
+
+---
+
 ## UX Personalization
 
 *5 task(s)*
@@ -2500,7 +2826,7 @@
 
 ## Uncategorized
 
-*27 task(s)*
+*26 task(s)*
 
 ### `create_partner_central`
 
@@ -2728,7 +3054,7 @@
 
 ### `deploy_post_tso`
 
-**Description:** Deploy Trialforce Source Org Metadata (App Launcher now deploys via prepare_ux/assemble_and_deploy_ux)
+**Description:** Deploy Trialforce Source Org Metadata (App Launcher order is applied separately by reorder_app_launcher in prepare_ux, not here)
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -2762,21 +3088,9 @@
 
 ---
 
-### `deploy_sharing_rules`
-
-**Description:** Deploy Sharing Rules
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_sharing`
-
----
-
 ### `enable_analytics_replication`
 
-**Description:** Enable CRM Analytics replication via browser automation (Robot/Selenium, Analytics Settings VF iframe)
+**Description:** Enable CRM Analytics via browser automation (Robot/Selenium, clicks "Enable CRM Analytics" on InsightsSetupGettingStarted/home; VF iframe approach removed in 262)
 
 **Class:** `tasks.rlm_analytics.EnableAnalyticsReplication`
 

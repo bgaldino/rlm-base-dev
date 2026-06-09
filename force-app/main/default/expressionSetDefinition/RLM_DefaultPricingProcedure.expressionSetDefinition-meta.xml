@@ -100,13 +100,6 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>__LOOKUPID_INDEX_RATE_DECISION_TABLE__</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
                     <name>HideWaterfall</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -194,11 +187,7 @@
             <label>Apply amount-based and percentage-based discounts</label>
             <name>Applyamountbasedandpercentagebaseddiscounts</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>16</sequenceNumber>
-=======
-            <sequenceNumber>18</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -209,11 +198,7 @@
             <label>Apply bundle-based adjustments</label>
             <name>Applybundlebasedadjustments</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>12</sequenceNumber>
-=======
-            <sequenceNumber>14</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -224,11 +209,7 @@
             <label>Apply manual discounts to lines without derived pricing</label>
             <name>Applymanualdiscountstolineswithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>15</sequenceNumber>
-=======
-            <sequenceNumber>17</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -239,11 +220,7 @@
             <label>Apply non-prorated pricing for lines without term-defined or evergreen pricing</label>
             <name>Applynonproratedpricingforlineswithouttermdefinedorevergreenpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>22</sequenceNumber>
-=======
-            <sequenceNumber>24</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -254,11 +231,7 @@
             <label>Apply non-prorated pricing to term-defined and evergreen lines</label>
             <name>Applynonproratedpricingtotermdefinedandevergreenlines</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>24</sequenceNumber>
-=======
-            <sequenceNumber>26</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -269,11 +242,7 @@
             <label>Apply price revision for lines with subscription and without derived pricing</label>
             <name>Applypricerevisionforlineswithsubscriptionandwithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>17</sequenceNumber>
-=======
-            <sequenceNumber>19</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -284,11 +253,7 @@
             <label>Apply prorated pricing to evergreen lines</label>
             <name>Applyproratedpricingtoevergreenlines</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>21</sequenceNumber>
-=======
-            <sequenceNumber>23</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -299,11 +264,7 @@
             <label>Apply prorated pricing to term-defined lines</label>
             <name>Applyproratedpricingtotermdefinedlines</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>20</sequenceNumber>
-=======
-            <sequenceNumber>22</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -314,11 +275,7 @@
             <label>Apply uplifts to ramped subscriptions items during amendment</label>
             <name>Applyupliftstorampedsubscriptionsitemsduringamendment</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>18</sequenceNumber>
-=======
-            <sequenceNumber>20</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -329,11 +286,7 @@
             <label>Apply volume-based discounts to lines with contract and without derived pricing</label>
             <name>Applyvolumebaseddiscountstolineswithcontractandwithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>13</sequenceNumber>
-=======
-            <sequenceNumber>15</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -344,11 +297,7 @@
             <label>Apply volume-based discounts to lines without contract or last-trxn pricing</label>
             <name>Applyvolumebaseddiscountstolineswithoutcontractorlasttrxnpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>14</sequenceNumber>
-=======
-            <sequenceNumber>16</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -702,13 +651,6 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>Contract_Pricing_Entries_Decision_Table</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>__LOOKUPID_CONTRACT_PRICING_ENTRIES_DECISION_TABLE__</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -1166,11 +1108,7 @@
             <label>Assign pricing term count to evergreen lines with non-prorated pricing</label>
             <name>Assignpricingtermcounttoevergreenlineswithnonproratedpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>23</sequenceNumber>
-=======
-            <sequenceNumber>25</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1220,11 +1158,7 @@
             <label>Assign the EffectiveFrom date to PricingDate</label>
             <name>AssigntheEffectiveFromdatetoPricingDate</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>3</sequenceNumber>
-=======
-            <sequenceNumber>5</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1286,11 +1220,7 @@
             <label>Assign total line amount for lines with inclusive price</label>
             <name>Assigntotallineamountforlineswithinclusiveprice</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>25</sequenceNumber>
-=======
-            <sequenceNumber>27</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -1396,13 +1326,6 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>Attribute_Based_Adjustment_Decision_Table</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>__LOOKUPID_ATTRIBUTE_BASED_ADJUSTMENT_DECISION_TABLE__</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -1573,13 +1496,6 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>Attribute_Based_Adjustment_Decision_Table</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>__LOOKUPID_ATTRIBUTE_BASED_ADJUSTMENT_DECISION_TABLE__</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -1961,11 +1877,7 @@
             <label>Calculate item net total price for lines without derived pricing</label>
             <name>Calculateitemnettotalpriceforlineswithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>9</sequenceNumber>
-=======
-            <sequenceNumber>11</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -2085,13 +1997,6 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>Bundle_Based_Adjustment_Decision_Table</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>__LOOKUPID_BUNDLE_BASED_ADJUSTMENT_DECISION_TABLE__</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -2509,13 +2414,6 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>__LOOKUPID_CONTRACT_PRICING_VOLUME_TIERS__</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
                     <name>IsContractEnabled</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -2676,13 +2574,6 @@
                     <output>false</output>
                     <type>Literal</type>
                     <value>Price_Adjustment_Tier_Decision_Table</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>__LOOKUPID_PRICE_ADJUSTMENT_TIER_DECISION_TABLE__</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -3439,11 +3330,7 @@
             <label>Calculate subtotal by adding total line amounts of all the lines</label>
             <name>Calculatesubtotalbyaddingtotallineamountsofallthelines</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>32</sequenceNumber>
-=======
-            <sequenceNumber>30</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -3544,155 +3431,6 @@
                     <value>DerivedPricingAttribute</value>
                 </parameters>
                 <parameters>
-<<<<<<< ours
-=======
-                    <input>false</input>
-                    <name>Subtotal</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemNetTotalPrice</value>
-                </parameters>
-            </customElement>
-            <description>Derived Price</description>
-            <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculate the net unit price based on the price of another product or asset</label>
-            <name>Calculatethenetunitpricebasedonthepriceofanotherproductorasset</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>4</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>BusinessKnowledgeModel</stepType>
-        </steps>
-        <steps>
-            <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculate cost and margin for priced lines</label>
-            <name>Calculatecostandmarginforpricedlines</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>28</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>ListGroup</stepType>
-        </steps>
-        <steps>
-            <advancedCondition>
-                <conditionLogic>1</conditionLogic>
-                <criteria>
-                    <operator>IsNotNull</operator>
-                    <sequenceNumber>1</sequenceNumber>
-                    <sourceFieldName>ItemUnitCost__std</sourceFieldName>
-                </criteria>
-            </advancedCondition>
-            <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Filter lines with unit cost</label>
-            <name>Filterlineswithunitcost</name>
-            <parentStep>Calculatecostandmarginforpricedlines</parentStep>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>1</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>AdvancedListFilter</stepType>
-        </steps>
-        <steps>
-            <actionType>FormulaBasedPricing</actionType>
-            <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>formula-section-0-input</name>
-                    <output>false</output>
-                    <type>Formula</type>
-                    <value>ItemUnitCost__std * LineItemQuantity</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>formula-section-2-input</name>
-                    <output>false</output>
-                    <type>Formula</type>
-                    <value>ItemNetTotalPrice - ( ItemUnitCost__std * LineItemQuantity )</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>selectedFunction</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>Get</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>formula-section-1-input</name>
-                    <output>false</output>
-                    <type>Formula</type>
-                    <value>( ItemNetTotalPrice - ( ItemUnitCost__std * LineItemQuantity ) ) / ItemNetTotalPrice</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>formulaSectionCount</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>3</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>HideWaterfall</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionCount</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>IsRealTime</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>formula-section-0-output</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemTotalCost__std</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>formula-section-1-output</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemMargin__std</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>formula-section-2-output</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemMarginAmount__std</value>
-                </parameters>
-            </customElement>
-            <description>Calculate total cost, margin percentage, and margin amount</description>
-            <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Calculate total cost and margin</label>
-            <name>Calculatetotalcostandmargin</name>
-            <parentStep>Calculatecostandmarginforpricedlines</parentStep>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>2</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>BusinessKnowledgeModel</stepType>
-        </steps>
-        <steps>
-            <actionType>GroupingAndAggregatePricing</actionType>
-            <customElement>
-                <parameters>
->>>>>>> theirs
                     <input>true</input>
                     <name>condition-2-operator</name>
                     <output>false</output>
@@ -3881,11 +3619,7 @@
             <label>Discount Distribution Service</label>
             <name>DiscountDistributionService</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>30</sequenceNumber>
-=======
-            <sequenceNumber>29</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -4187,11 +3921,7 @@
             <label>Filter lines with last-transaction pricing and assign net total price</label>
             <name>Filterlineswithlasttransactionpricingandassignnettotalprice</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>19</sequenceNumber>
-=======
-            <sequenceNumber>21</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -4699,13 +4429,6 @@
                 </parameters>
                 <parameters>
                     <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>__LOOKUPID_PRICE_BOOK_ENTRY_DECISION_TABLE_V2__</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
                     <name>IsContractEnabled</name>
                     <output>false</output>
                     <type>Literal</type>
@@ -4766,7 +4489,6 @@
             <stepType>BusinessKnowledgeModel</stepType>
         </steps>
         <steps>
-<<<<<<< ours
             <advancedCondition>
                 <conditionLogic>1 AND 2 AND 3</conditionLogic>
                 <criteria>
@@ -4853,133 +4575,6 @@
                     <output>false</output>
                     <type>Parameter</type>
                     <value>CurrencyIsoCode</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>IsDerived</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>DerivedPricingAttribute</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>ContractId</name>
-=======
-            <actionType>ListPrice</actionType>
-            <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>selectedFunction</name>
->>>>>>> theirs
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>Get</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>IsRealTime</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpId</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>__LOOKUPID_RLM_COSTBOOKENTRIES__</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpApiName</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>RLM_CostBookEntries</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>IsContractEnabled</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>false</input>
-                    <name>ListPrice</name>
-                    <output>true</output>
-                    <type>Parameter</type>
-                    <value>ItemUnitCost__std</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>ProductId</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>Product</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>Quantity</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>LineItemQuantity</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>HideWaterfall</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>IsOutputResolutionEnabled</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>false</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>ListPriceField</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>Constant_UnitPrice_RLM_CostBookEntries_LP</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>LookUpName</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>Cost Book Entries</value>
-                </parameters>
-                <parameters>
-                    <input>true</input>
-                    <name>sectionCount</name>
-                    <output>false</output>
-                    <type>Literal</type>
-                    <value>0</value>
-                </parameters>
-            </customElement>
-            <description>Look up unit cost from the Cost Book Entries decision table</description>
-            <hasNestedExplainability>false</hasNestedExplainability>
-            <label>Get unit cost from cost book</label>
-            <name>Getunitcostfromcostbook</name>
-            <resultIncluded>false</resultIncluded>
-            <sequenceNumber>3</sequenceNumber>
-            <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
-            <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
-            <shouldShowExplExternally>false</shouldShowExplExternally>
-            <stepType>BusinessKnowledgeModel</stepType>
-        </steps>
-        <steps>
-            <actionType>PricingSettings</actionType>
-            <customElement>
-                <parameters>
-                    <input>true</input>
-                    <name>LineItemId</name>
-                    <output>false</output>
-                    <type>Parameter</type>
-                    <value>LineItem</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
@@ -5091,11 +4686,7 @@
             <label>Set attribute-based pricing for lines without contract pricing</label>
             <name>Setattributebasedpricingforlineswithoutcontractpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>11</sequenceNumber>
-=======
-            <sequenceNumber>13</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5106,11 +4697,7 @@
             <label>Set attribute-based pricing for lines without derived pricing</label>
             <name>Setattributebasedpricingforlineswithoutderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>10</sequenceNumber>
-=======
-            <sequenceNumber>12</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5121,11 +4708,7 @@
             <label>Set input unit price for lines with contract pricing</label>
             <name>Setinputunitpriceforlineswithcontractpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>7</sequenceNumber>
-=======
-            <sequenceNumber>9</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5136,11 +4719,7 @@
             <label>Set input unit price for lines without derived pricing or last-trxn pricing</label>
             <name>Setinputunitpriceforlineswithoutderivedpricingorlasttrxnpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>8</sequenceNumber>
-=======
-            <sequenceNumber>10</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5151,11 +4730,7 @@
             <label>Set list price for lines with contract pricing</label>
             <name>Setlistpriceforlineswithcontractpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>6</sequenceNumber>
-=======
-            <sequenceNumber>8</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5166,11 +4741,7 @@
             <label>Set pricing date for lines with contract pricing</label>
             <name>Setpricingdateforlineswithcontractpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>4</sequenceNumber>
-=======
-            <sequenceNumber>6</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5181,11 +4752,7 @@
             <label>Set the net unit price for lines with derived pricing</label>
             <name>Setthenetunitpriceforlineswithderivedpricing</name>
             <resultIncluded>false</resultIncluded>
-<<<<<<< ours
             <sequenceNumber>5</sequenceNumber>
-=======
-            <sequenceNumber>7</sequenceNumber>
->>>>>>> theirs
             <shouldExposExecPathMsgOnly>true</shouldExposExecPathMsgOnly>
             <shouldExposeConditionDetails>false</shouldExposeConditionDetails>
             <shouldShowExplExternally>false</shouldShowExplExternally>
@@ -5456,17 +5023,6 @@
             <output>false</output>
             <type>Constant</type>
             <value>UnitPrice</value>
-        </variables>
-        <variables>
-            <collection>false</collection>
-            <dataType>Text</dataType>
-            <decimalPlaces>2</decimalPlaces>
-            <description>Constant_UnitPrice_RLM_CostBookEntries_LP</description>
-            <input>false</input>
-            <name>Constant_UnitPrice_RLM_CostBookEntries_LP</name>
-            <output>false</output>
-            <type>Constant</type>
-            <value>Cost</value>
         </variables>
         <variables>
             <collection>false</collection>
