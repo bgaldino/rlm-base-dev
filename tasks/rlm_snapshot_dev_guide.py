@@ -912,10 +912,16 @@ class SnapshotSalesforceDevGuide(BaseTask):
             room = max_pages - len(fetched)
             frontier = new_targets[:room] if room > 0 else []
 
-        if frontier:
+        # Pages discovered (queued in `seen`) but never fetched — dropped when the
+        # max_pages cap was hit (loop break, or new_targets[:room] truncation).
+        # `frontier` alone misses these, so compute from `seen` and record them as
+        # 'pending' below so they aren't silently lost.
+        unfetched = [pid for pid in seen if pid not in fetched and pid not in errors]
+        if unfetched:
             self.logger.warning(
-                f"  Hit max_pages={max_pages}; {len(frontier)} page(s) left "
-                "uncaptured. Raise -o max_pages to capture more."
+                f"  Hit max_pages={max_pages}: {len(unfetched)} discovered page(s) "
+                "left uncaptured (recorded as 'pending'). Raise -o max_pages or "
+                "re-run mode=capture to fetch them."
             )
 
         # --- Phase 2: write every fetched page with the full set known ---------
@@ -956,6 +962,17 @@ class SnapshotSalesforceDevGuide(BaseTask):
             rec.setdefault("section", (meta.get(pid) or {}).get("section"))
             rec["status"] = "error"
             rec["error"] = err
+            by_id[pid] = rec
+        # Record discovered-but-unfetched pages as 'pending' so they survive in the
+        # manifest and a later mode=capture run can fetch them (don't downgrade a
+        # page already captured in a prior run).
+        for pid in unfetched:
+            rec = by_id.get(pid, {"page_id": pid})
+            rec.setdefault("section", (meta.get(pid) or {}).get("section"))
+            if (meta.get(pid) or {}).get("parent") and not rec.get("parent_page"):
+                rec["parent_page"] = meta[pid]["parent"]
+            if rec.get("status") != "captured":
+                rec["status"] = "pending"
             by_id[pid] = rec
 
         manifest["pages"] = sorted(by_id.values(), key=lambda p: p["page_id"])
