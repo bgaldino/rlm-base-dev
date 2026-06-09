@@ -224,8 +224,11 @@ def test_run_gating_and_failure_modes():
         try:
             task._run_task()
             check("raise_on_failure raises", False)
-        except TaskOptionsError:
+            check("raise_on_failure chains cause", False)
+        except TaskOptionsError as exc:
             check("raise_on_failure raises", True)
+            # The originating error must be chained (raise ... from exc).
+            check("raise_on_failure chains cause", exc.__cause__ is not None)
 
 
 def test_dedicated_exception_type():

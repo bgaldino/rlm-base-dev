@@ -101,7 +101,11 @@ class FixScratchOrgIdentity(BaseTask):
                 errors += 1
                 # _fail_or_warn raises when raise_on_failure is set; otherwise
                 # warns so an unreadable auth file is never swallowed silently.
-                self._fail_or_warn(f"Could not process auth file {path}: {exc}")
+                # Pass cause=exc so the raised error chains the original
+                # traceback (JSONDecodeError, etc.) for easier debugging.
+                self._fail_or_warn(
+                    f"Could not process auth file {path}: {exc}", cause=exc
+                )
 
         if errors:
             # Errors were already warned per-file above; make the summary reflect
@@ -251,7 +255,10 @@ class FixScratchOrgIdentity(BaseTask):
     # Error handling
     # ------------------------------------------------------------------
 
-    def _fail_or_warn(self, message):
+    def _fail_or_warn(self, message, cause=None):
         if self.options.get("raise_on_failure"):
-            raise TaskOptionsError(message)
+            # Chain the originating exception (when there is one) so the
+            # traceback/cause is preserved, per the repo's `raise ... from exc`
+            # convention. cause=None at non-exception call sites is harmless.
+            raise TaskOptionsError(message) from cause
         self.logger.warning(message)
