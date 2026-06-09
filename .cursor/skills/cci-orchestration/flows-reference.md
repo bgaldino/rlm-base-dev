@@ -234,27 +234,28 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 **Steps:**
 
-1. **task** `set_scratch_org_password`  `when: org_config.scratch`
-2. **task** `validate_setup`
-3. **task** `assign_permission_set_licenses`
+1. **task** `fix_scratch_org_identity`  `when: org_config.scratch`
+2. **task** `set_scratch_org_password`  `when: org_config.scratch`
+3. **task** `validate_setup`
+4. **task** `assign_permission_set_licenses`
    - `api_names`: `['BREDesigner', 'BRERuntime', 'CorePricingDesignTime', 'DataProcessingEnginePsl', 'DecimalQuantit...`
-4. **task** `cleanup_settings_for_dev`
-5. **task** `exclude_active_decision_tables`
-6. **task** `deploy_pre`
-7. **task** `restore_decision_tables`
-8. **flow** `assign_feature_psls`
-9. **task** `recalculate_permission_set_groups`
+5. **task** `cleanup_settings_for_dev`
+6. **task** `exclude_active_decision_tables`
+7. **task** `deploy_pre`
+8. **task** `restore_decision_tables`
+9. **flow** `assign_feature_psls`
+10. **task** `recalculate_permission_set_groups`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-10. **task** `assign_permission_set_groups_tolerant`
+11. **task** `assign_permission_set_groups_tolerant`
    - `api_names`: `['RLM_QB_AI', 'RLM_RCB', 'RLM_RMI', 'RLM_CFG', 'RLM_CLM', 'RLM_DOC', 'RLM_DRO', 'RLM_NGP', 'RLM_P...`
-11. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
+12. **task** `recalculate_permission_set_groups`  `when: project_config.project__custom__tso`
    - `api_names`: `['RLM_TSO']`
-12. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
+13. **task** `assign_permission_set_groups_tolerant`  `when: project_config.project__custom__tso`
    - `api_names`: `['RLM_TSO']`
-13. **flow** `extend_context_definitions`
-14. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
-15. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
-16. **flow** `assign_feature_permission_sets`
+14. **flow** `extend_context_definitions`
+15. **task** `create_rule_library`  `when: project_config.project__custom__breconfig`
+16. **task** `create_dro_rule_library`  `when: project_config.project__custom__dro and project_config.project__custom__breconfig`
+17. **flow** `assign_feature_permission_sets`
 
 ---
 

@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**222 tasks** across **10 groups**.
+**223 tasks** across **10 groups**.
 
 ---
 
@@ -770,7 +770,7 @@
 
 ## Revenue Lifecycle Management
 
-*135 task(s)*
+*136 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1608,6 +1608,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `BSGEntitiesMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1627,6 +1628,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `CommerceCartMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1646,6 +1648,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `CollectionPlanContextMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1665,6 +1668,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `OppToCntrPersistenceMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1684,6 +1688,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `DocExtrctPersistenceMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1703,6 +1708,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `FulfillAssetEntitiesMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1741,6 +1747,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `DefaultUsageMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1760,6 +1767,7 @@
 - `contextTtl`: `30`
 - `defaultMapping`: `CatalogMapping`
 - `activate`: `True`
+- `allow_skip_if_unavailable`: `True`
 
 ---
 
@@ -1807,6 +1815,14 @@
 **Description:** Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy. Salesforce metadata API bug: all DocumentTemplates deployed in a single batch receive the same ContentDocument binary (first alphabetically). This task uploads the correct .dt binary from the repo for each RLM_ template, replacing the wrong ContentDocument content. Run after deploy_post_docgen + activate_docgen_templates.
 
 **Class:** `tasks.rlm_docgen.FixDocumentTemplateBinaries`
+
+---
+
+### `fix_scratch_org_identity`
+
+**Description:** Repair scratch-org identity in the local SF CLI auth file. Works around an SF CLI bug where Enterprise-Edition scratch orgs created via the DevHub API get isScratch=false in ~/.sfdx/<username>.json, making scratch-only commands (sf org create user, sf org generate password) fail with NonScratchOrgError. Sets isScratch=true (when false or missing) only when a devHubUsername is present. Idempotent; warns and continues on failure unless raise_on_failure is set.
+
+**Class:** `tasks.rlm_fix_scratch_identity.FixScratchOrgIdentity`
 
 ---
 

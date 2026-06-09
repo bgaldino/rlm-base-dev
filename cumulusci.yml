@@ -2503,6 +2503,17 @@ tasks:
     description: Rebuild the Product Catalog (PCM) search index via Connect API (FULL, IMMEDIATE). Asynchronous - initiates the build and logs the snapshot id. Warns and continues on API failure unless raise_on_failure is set.
     class_path: tasks.rlm_rebuild_search_index.RebuildSearchIndex
 
+  fix_scratch_org_identity:
+    group: Revenue Lifecycle Management
+    description: >
+      Repair scratch-org identity in the local SF CLI auth file. Works around an
+      SF CLI bug where Enterprise-Edition scratch orgs created via the DevHub API
+      get isScratch=false in ~/.sfdx/<username>.json, making scratch-only commands
+      (sf org create user, sf org generate password) fail with NonScratchOrgError.
+      Sets isScratch=true (when false or missing) only when a devHubUsername is
+      present. Idempotent; warns and continues on failure unless raise_on_failure is set.
+    class_path: tasks.rlm_fix_scratch_identity.FixScratchOrgIdentity
+
   manage_decision_tables:
     group: Revenue Lifecycle Management
     description: "Decision Table management: list (with UsageType), query, refresh, activate, deactivate, validate_lists (compare org to project list anchors)"
@@ -3037,54 +3048,62 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: set_scratch_org_password
+        # Repair isScratch (false or missing) on EE scratch orgs (SF CLI bug)
+        # before any scratch-only CLI command runs. In this flow that's the
+        # create_personas_sales_rep_user task (sf org create user, in
+        # prepare_personas), which would otherwise fail with NonScratchOrgError;
+        # also covers manual scratch-only commands.
+        task: fix_scratch_org_identity
         when: org_config.scratch
       2:
-        task: validate_setup
+        task: set_scratch_org_password
+        when: org_config.scratch
       3:
+        task: validate_setup
+      4:
         task: assign_permission_set_licenses
         options:
           api_names: *rlm_psl_api_names
-      4:
+      5:
         task: cleanup_settings_for_dev
         #when: org_config.scratch
-      5:
+      6:
         task: exclude_active_decision_tables
         #when: org_config.scratch
-      6:
-        task: deploy_pre
       7:
+        task: deploy_pre
+      8:
         task: restore_decision_tables
         #when: org_config.scratch
-      8:
-        flow: assign_feature_psls
       9:
-        task: recalculate_permission_set_groups
-        options:
-          api_names: *rlm_psg_api_names
+        flow: assign_feature_psls
       10:
-        task: assign_permission_set_groups_tolerant
+        task: recalculate_permission_set_groups
         options:
           api_names: *rlm_psg_api_names
       11:
-        task: recalculate_permission_set_groups
-        when: project_config.project__custom__tso
-        options:
-          api_names: *psg_tso
-      12:
         task: assign_permission_set_groups_tolerant
+        options:
+          api_names: *rlm_psg_api_names
+      12:
+        task: recalculate_permission_set_groups
         when: project_config.project__custom__tso
         options:
           api_names: *psg_tso
       13:
-        flow: extend_context_definitions
+        task: assign_permission_set_groups_tolerant
+        when: project_config.project__custom__tso
+        options:
+          api_names: *psg_tso
       14:
+        flow: extend_context_definitions
+      15:
         task: create_rule_library
         when: project_config.project__custom__breconfig
-      15:
+      16:
         task: create_dro_rule_library
         when: project_config.project__custom__dro and project_config.project__custom__breconfig
-      16:
+      17:
         flow: assign_feature_permission_sets
 
   assign_feature_psls:
