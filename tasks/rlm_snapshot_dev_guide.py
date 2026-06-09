@@ -144,13 +144,30 @@ _ANCHOR_RE = re.compile(r'<a\s+name="[^"]*">\s*(?:<!--.*?-->)?\s*</a>', re.IGNOR
 _MULTI_BLANK_RE = re.compile(r"\n{3,}")
 
 
-def html_to_markdown(html: str, deliverable: Optional[str] = None) -> str:
+def _atlas_link_re(deliverable: str) -> "re.Pattern":
+    """Regex matching an atlas intra-guide page reference for ``deliverable``.
+
+    Captures group 1 = page id (``<page>.htm``), group 2 = optional ``#anchor``.
+    """
+    d = re.escape(deliverable)
+    return re.compile(
+        r"(?:atlas\.en-us\.)?(?:[0-9.]+\.)?" + d + r"\.meta/" + d
+        + r"/([A-Za-z0-9_.\-]+\.htm)(#[A-Za-z0-9_.\-]+)?"
+    )
+
+
+def html_to_markdown(
+    html: str,
+    deliverable: Optional[str] = None,
+    known_ids: Optional[set] = None,
+) -> str:
     """Convert an atlas HTML content fragment to markdown.
 
     Prefers ``markdownify`` (best fidelity for tables / nested lists); falls
     back to a built-in converter when it isn't installed. When ``deliverable``
-    is given, intra-guide cross-references are rewritten to sibling markdown
-    files so the captured corpus is self-navigable.
+    is given, intra-guide cross-references are rewritten: to a sibling
+    ``./<page_id>.md`` when the target was captured (``known_ids``), otherwise
+    to an absolute developer.salesforce.com URL so the link is never dead.
     """
     if not html:
         return ""
@@ -162,25 +179,47 @@ def html_to_markdown(html: str, deliverable: Optional[str] = None) -> str:
     except ImportError:
         text = _MinimalMarkdownParser.convert(html)
     if deliverable:
-        text = _rewrite_internal_links(text, deliverable)
+        text = _rewrite_internal_links(text, deliverable, known_ids)
     text = _MULTI_BLANK_RE.sub("\n\n", text).strip()
     return text
 
 
-def _rewrite_internal_links(text: str, deliverable: str) -> str:
-    """Rewrite atlas intra-guide page links to sibling ``./<page_id>.md`` files.
+def _rewrite_internal_links(
+    text: str, deliverable: str, known_ids: Optional[set] = None
+) -> str:
+    """Rewrite atlas intra-guide page links so none are dead.
 
-    Turns ``atlas.en-us.<deliverable>.meta/<deliverable>/<page>.htm[#anchor]``
-    (the relative cross-ref the atlas API emits) into ``./<page>.htm.md`` so the
-    link resolves to the captured sibling file. Cross-product help.salesforce.com
-    links and other absolute URLs are left untouched.
+    ``atlas.en-us.<deliverable>.meta/<deliverable>/<page>.htm[#anchor]`` becomes:
+      * ``./<page>.htm.md`` when ``<page>`` was captured (in ``known_ids``), so the
+        corpus is self-navigable; or
+      * the absolute ``https://developer.salesforce.com/docs/...`` URL when it was
+        not captured (e.g. a reference page outside the captured set), so the link
+        resolves online instead of pointing at a missing file.
+    When ``known_ids`` is None, every match is rewritten to a sibling (legacy
+    behavior). Cross-product (help.salesforce.com) and other absolute links are
+    left untouched.
     """
-    d = re.escape(deliverable)
-    pat = re.compile(
-        r"(?:atlas\.en-us\.)?(?:[0-9.]+\.)?" + d + r"\.meta/" + d
-        + r"/([A-Za-z0-9_.\-]+\.htm)(?:#[A-Za-z0-9_.\-]+)?"
-    )
-    return pat.sub(lambda m: f"./{m.group(1)}.md", text)
+    pat = _atlas_link_re(deliverable)
+
+    def repl(m):
+        page_id, anchor = m.group(1), m.group(2) or ""
+        if known_ids is None or page_id in known_ids:
+            return f"./{page_id}.md"
+        return f"{DOCS_BASE}/atlas.en-us.{deliverable}.meta/{deliverable}/{page_id}{anchor}"
+
+    return pat.sub(repl, text)
+
+
+def extract_link_targets(html: str, deliverable: str) -> set:
+    """Return the set of intra-guide page ids (``<page>.htm``) linked from ``html``.
+
+    Used to follow links beyond the TOC so pages that are linked from a captured
+    page but not listed in the TOC (e.g. per-class Apex reference pages) are also
+    captured.
+    """
+    if not html:
+        return set()
+    return {m.group(1) for m in _atlas_link_re(deliverable).finditer(html)}
 
 
 class _MinimalMarkdownParser(HTMLParser):
@@ -449,6 +488,14 @@ class SnapshotSalesforceDevGuide(BaseTask):
             "description": "Milliseconds to pause between fetch batches (politeness/rate-limit). Defaults to 400.",
             "required": False,
         },
+        "follow_links": {
+            "description": "Follow intra-guide links beyond the TOC so linked-but-not-listed pages (e.g. per-class Apex reference) are also captured. Defaults to true for a whole-guide run, false when a 'section' is given.",
+            "required": False,
+        },
+        "max_pages": {
+            "description": "Safety cap on total pages captured (prevents runaway crawls). Defaults to 5000.",
+            "required": False,
+        },
     }
 
     DEFAULT_DELIVERABLE = "revenue_lifecycle_management_dev_guide"
@@ -477,6 +524,15 @@ class SnapshotSalesforceDevGuide(BaseTask):
         self.options["batch_delay_ms"] = int(self.options.get("batch_delay_ms", 400))
         self.options["section"] = self.options.get("section") or None
         self.options["doc_version"] = self.options.get("doc_version") or None
+        self.options["max_pages"] = int(self.options.get("max_pages", 5000))
+        # Follow links by default for a whole-guide run; default off when a
+        # single section is requested (so a section capture stays scoped).
+        if self.options.get("follow_links") is None:
+            self.options["follow_links"] = self.options["section"] is None
+        else:
+            self.options["follow_links"] = (
+                str(self.options.get("follow_links")).lower() == "true"
+            )
 
         valid_modes = ("discover", "capture", "all", "refresh")
         if self.options["mode"] not in valid_modes:
@@ -758,68 +814,118 @@ class SnapshotSalesforceDevGuide(BaseTask):
         manifest: Dict[str, Any],
         manifest_path: Path,
     ) -> None:
-        by_id = {p["page_id"]: p for p in manifest["pages"]}
         concurrency = self.options["concurrency"]
         deliverable = self.options["deliverable"]
         doc_version = self.options["doc_version"]
+        follow = self.options["follow_links"]
+        max_pages = self.options["max_pages"]
         fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        ids = [p["page_id"] for p in pages]
-        done = 0
 
-        for start in range(0, len(ids), concurrency):
-            batch = ids[start:start + concurrency]
-            results = await page.evaluate(
-                FETCH_BATCH_JS,
-                {"base": DOCS_BASE, "deliverable": deliverable,
-                 "docVersion": doc_version, "ids": batch},
-            )
-            for res in results:
-                pid = res.get("id")
-                rec = by_id.get(pid, {"page_id": pid})
-                if not res.get("ok"):
-                    rec["status"] = "error"
-                    rec["error"] = res.get("error") or f"HTTP {res.get('status')}"
-                    self.logger.warning(f"  [skip] {pid}: {rec['error']}")
-                else:
+        # Per-page metadata (section/parent), seeded from the TOC manifest.
+        meta = {
+            p["page_id"]: {"section": p.get("section"), "parent": p.get("parent_page")}
+            for p in manifest.get("pages", []) if p.get("page_id")
+        }
+
+        # --- Phase 1: fetch (and, when follow_links, crawl) to closure ---------
+        # Cache HTML in memory so Phase 2 can rewrite links against the FULL
+        # captured set (a link is rewritten to a sibling only if its target was
+        # captured; otherwise it falls back to an absolute URL — never a dead
+        # local link). Following links also captures pages reachable from the
+        # TOC pages but not listed in the TOC (e.g. per-class Apex reference).
+        fetched: Dict[str, Dict[str, Any]] = {}   # pid -> {title, html}
+        errors: Dict[str, str] = {}               # pid -> error
+        seen = {p["page_id"] for p in pages}
+        frontier = [p["page_id"] for p in pages]
+        round_no = 0
+        while frontier and len(fetched) < max_pages:
+            round_no += 1
+            new_targets: List[str] = []
+            for start in range(0, len(frontier), concurrency):
+                if len(fetched) >= max_pages:
+                    break
+                batch = frontier[start:start + concurrency]
+                results = await page.evaluate(
+                    FETCH_BATCH_JS,
+                    {"base": DOCS_BASE, "deliverable": deliverable,
+                     "docVersion": doc_version, "ids": batch},
+                )
+                for res in results:
+                    pid = res.get("id")
+                    if not res.get("ok"):
+                        errors[pid] = res.get("error") or f"HTTP {res.get('status')}"
+                        continue
                     html = res.get("content") or ""
-                    body_md = html_to_markdown(html, deliverable=deliverable)
-                    if not body_md:
-                        rec["status"] = "error"
-                        rec["error"] = "empty body"
-                        self.logger.warning(f"  [skip] {pid}: empty body")
-                    else:
-                        title = res.get("title") or rec.get("title") or pid
-                        (articles_dir / f"{pid}.md").write_text(
-                            render_page_markdown(
-                                page_id=pid,
-                                title=title,
-                                body_md=body_md,
-                                source_url=self._page_source_url(pid),
-                                release_version=self.options["release_version"],
-                                release_name=self.options["release_name"],
-                                deliverable=deliverable,
-                                section=rec.get("section"),
-                                parent_page_id=rec.get("parent_page"),
-                                fetched_at=fetched_at,
-                            ),
-                            encoding="utf-8",
-                        )
-                        rec["title"] = title
-                        rec["status"] = "captured"
-                        rec["body_length"] = len(body_md)
-                        rec["file"] = f"articles/{pid}.md"
-                        rec.pop("error", None)
-                        done += 1
-                by_id[pid] = rec
-
-            manifest["pages"] = sorted(by_id.values(), key=lambda p: p["page_id"])
-            self._save_manifest(manifest_path, manifest)
+                    if not html:
+                        errors[pid] = "empty body"
+                        continue
+                    fetched[pid] = {"title": res.get("title"), "html": html}
+                    errors.pop(pid, None)
+                    if follow:
+                        linker_section = (meta.get(pid) or {}).get("section")
+                        for t in extract_link_targets(html, deliverable):
+                            if t not in seen:
+                                seen.add(t)
+                                meta.setdefault(t, {"section": linker_section, "parent": pid})
+                                new_targets.append(t)
+                if start + concurrency < len(frontier):
+                    await page.wait_for_timeout(self.options["batch_delay_ms"])
             self.logger.info(
-                f"  captured {done}/{len(ids)} "
-                f"(batch {start // concurrency + 1})"
+                f"  round {round_no}: {len(fetched)} fetched, "
+                f"{len(errors)} error(s), {len(new_targets)} newly discovered"
             )
-            if start + concurrency < len(ids):
-                await page.wait_for_timeout(self.options["batch_delay_ms"])
+            room = max_pages - len(fetched)
+            frontier = new_targets[:room] if room > 0 else []
+
+        if frontier:
+            self.logger.warning(
+                f"  Hit max_pages={max_pages}; {len(frontier)} page(s) left "
+                "uncaptured. Raise -o max_pages to capture more."
+            )
+
+        # --- Phase 2: write every fetched page with the full set known ---------
+        known_ids = set(fetched)
+        by_id = {p["page_id"]: p for p in manifest.get("pages", [])}
+        written = 0
+        for pid, data in fetched.items():
+            body_md = html_to_markdown(data["html"], deliverable=deliverable, known_ids=known_ids)
+            rec = by_id.get(pid, {"page_id": pid})
+            rec.setdefault("section", (meta.get(pid) or {}).get("section"))
+            if (meta.get(pid) or {}).get("parent") and not rec.get("parent_page"):
+                rec["parent_page"] = meta[pid]["parent"]
+            if not body_md:
+                rec["status"] = "error"
+                rec["error"] = "empty body"
+            else:
+                title = data["title"] or rec.get("title") or pid
+                (articles_dir / f"{pid}.md").write_text(
+                    render_page_markdown(
+                        page_id=pid, title=title, body_md=body_md,
+                        source_url=self._page_source_url(pid),
+                        release_version=self.options["release_version"],
+                        release_name=self.options["release_name"],
+                        deliverable=deliverable,
+                        section=rec.get("section"),
+                        parent_page_id=rec.get("parent_page"),
+                        fetched_at=fetched_at,
+                    ),
+                    encoding="utf-8",
+                )
+                rec.update(title=title, status="captured",
+                           body_length=len(body_md), file=f"articles/{pid}.md")
+                rec.pop("error", None)
+                written += 1
+            by_id[pid] = rec
+        for pid, err in errors.items():
+            rec = by_id.get(pid, {"page_id": pid})
+            rec.setdefault("section", (meta.get(pid) or {}).get("section"))
+            rec["status"] = "error"
+            rec["error"] = err
+            by_id[pid] = rec
+
+        manifest["pages"] = sorted(by_id.values(), key=lambda p: p["page_id"])
+        self._save_manifest(manifest_path, manifest)
+        self.logger.info(f"  wrote {written} page(s); {len(errors)} error(s)")
 
     # ------------------------------------------------------------------
     # Index rendering
