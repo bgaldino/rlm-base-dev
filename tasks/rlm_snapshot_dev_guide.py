@@ -147,9 +147,14 @@ def _atlas_link_re(deliverable: str) -> "re.Pattern":
     """Regex matching an atlas intra-guide page reference for ``deliverable``.
 
     Captures group 1 = page id (``<page>.htm``), group 2 = optional ``#anchor``.
+    Optionally consumes a leading ``https://developer.salesforce.com/docs/`` so
+    that *absolute* atlas URLs are matched and replaced whole — otherwise only
+    the suffix would be rewritten, leaving a dangling ``…/docs/`` prefix (e.g.
+    ``https://developer.salesforce.com/docs/./page.htm.md``).
     """
     d = re.escape(deliverable)
     return re.compile(
+        r"(?:https?://developer\.salesforce\.com/docs/)?"
         r"(?:atlas\.en-us\.)?(?:[0-9.]+\.)?" + d + r"\.meta/" + d
         + r"/([A-Za-z0-9_.\-]+\.htm)(#[A-Za-z0-9_.\-]+)?"
     )
