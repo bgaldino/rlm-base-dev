@@ -17,6 +17,9 @@ instructions instead of introducing a parallel guidance stack.
   skills and grounding artifacts are shared across repos.
 - **Copilot pointer:** `.github/copilot-instructions.md` is specific to GitHub
   Copilot and should be treated as an adapter, not as a separate authority.
+- **Automated PR reviews:** drive review threads to **zero unresolved** using
+  `python scripts/ai/pr_review.py` (`status` / `handle` / `verify`), per
+  `AGENTS.md` §"Responding to Automated PR Reviews".
 
 ## Authoritative files
 

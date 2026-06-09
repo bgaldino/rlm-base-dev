@@ -15,6 +15,9 @@ file-pattern rule files in this repository.
 - **Cross-repo discovery:** use `.claude/skill-manifest.yml` and
   `scripts/ai/skill_manifest.py` when resolving cross-repo skills or grounding
   artifacts.
+- **Automated PR reviews:** drive review threads to **zero unresolved** using
+  `python scripts/ai/pr_review.py` (`status` / `handle` / `verify`), per
+  `AGENTS.md` §"Responding to Automated PR Reviews".
 
 ## Authoritative files
 

@@ -13,6 +13,10 @@ separate Claude-only contract.
   but Claude Code can reuse their guidance manually for matching file types.
 - **Cross-repo discovery:** `.claude/skill-manifest.yml` is the manifest for
   resolving shared skills and artifacts across Foundations and related repos.
+- **Automated PR reviews:** drive review threads to **zero unresolved** using
+  `python scripts/ai/pr_review.py` (`status` / `handle` / `verify`) — or the
+  `/pr-review <pr>` slash command — per `AGENTS.md` §"Responding to Automated PR
+  Reviews".
 
 ## Authoritative files
 
