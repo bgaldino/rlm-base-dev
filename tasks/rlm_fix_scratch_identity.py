@@ -99,15 +99,25 @@ class FixScratchOrgIdentity(BaseTask):
                 # warns so an unreadable auth file is never swallowed silently.
                 self._fail_or_warn(f"Could not process auth file {path}: {exc}")
 
-        if patched:
+        if errors:
+            # Errors were already warned per-file above; make the summary reflect
+            # them too, even when some files were patched, so a partial repair is
+            # never mistaken for a full one.
+            if patched:
+                self.logger.warning(
+                    f"Scratch-org identity PARTIALLY repaired for {username}: "
+                    f"set isScratch=true in {patched} file(s), but {errors} "
+                    f"file(s) could not be processed (see warnings above)."
+                )
+            else:
+                self.logger.warning(
+                    f"Scratch-org identity NOT verified for {username}: "
+                    f"{errors} auth file(s) could not be processed (see warnings above)."
+                )
+        elif patched:
             self.logger.info(
                 f"Scratch-org identity repaired: set isScratch=true in "
                 f"{patched} auth file(s) for {username}."
-            )
-        elif errors:
-            self.logger.warning(
-                f"Scratch-org identity NOT verified for {username}: "
-                f"{errors} auth file(s) could not be processed (see warnings above)."
             )
         else:
             self.logger.info(
@@ -196,18 +206,14 @@ class FixScratchOrgIdentity(BaseTask):
 
     @staticmethod
     def _atomic_write(path, data):
-        """Write JSON to ``path`` atomically with owner-only permissions.
+        """Write JSON to ``path`` atomically with 0600 (owner-only) permissions.
 
-        Auth files hold credentials, so we never widen access beyond the owner:
-        all group/other bits are dropped and owner read/write is guaranteed,
-        regardless of the file's prior (possibly lax, e.g. 0644) mode.
+        Auth files hold credentials, so the result is forced to exactly 0600
+        (owner read/write — no group/other access and no execute bit)
+        regardless of the file's prior (possibly lax, e.g. 0644 or 0700) mode.
         """
-        try:
-            mode = os.stat(path).st_mode & 0o777
-        except OSError:
-            mode = 0o600
-        # Restrict to the owner: clear group/other bits, ensure owner can rw.
-        mode = (mode & 0o700) | 0o600
+        # Force exactly 0600; never carry over the prior mode for a creds file.
+        mode = 0o600
         directory = os.path.dirname(str(path)) or "."
         fd, tmp = tempfile.mkstemp(prefix=".rlm_auth_", dir=directory)
         try:
