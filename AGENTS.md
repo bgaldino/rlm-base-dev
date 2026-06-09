@@ -208,7 +208,17 @@ indexes, and more.
 Automated reviewers (GitHub Copilot, the Codex / `chatgpt-codex-connector` bot, and
 similar) post inline comments on PRs. **Policy — every agent, every PR:** each review
 comment is handled to completion, and **every review round ends with zero unresolved
-threads.** For each comment:
+threads.**
+
+**Tooling — `python scripts/ai/pr_review.py`** (or the `/pr-review <pr>` command in Claude
+Code) automates the mechanical steps so a round can't be left half-finished:
+`status <pr>` lists unresolved threads (paginated), `handle <pr> --comment <id> --body "…"`
+replies + resolves one thread (adds 👍 **by default** — pass `--no-react` to refute a false
+positive without the 👍, per the "react on valid comments" rule below), and `verify <pr>`
+confirms 0 unresolved (exit 1 if any remain). It's tool-agnostic (shells out to `gh`); defaults to the current repo, or pass
+`--repo owner/name`. Verifying findings and sweeping the class (steps 1–2) stay your job.
+
+For each comment:
 
 1. **Verify against the code.** Don't trust the bot — confirm the claim in the actual
    source and classify it *real*, *partial*, or *false positive*.
@@ -329,7 +339,12 @@ python scripts/ai/query_erd.py domain Pricing               # List domain object
 python scripts/ai/generate_cci_reference.py                 # Regenerate CCI docs
 python scripts/ai/skill_manifest.py --check                 # Verify cross-repo skill manifest can resolve PMOS clone
 python scripts/ai/skill_manifest.py --list-skills foundations
+python scripts/ai/pr_review.py status <pr>                  # Automated-PR-review helper: list unresolved threads
+python scripts/ai/pr_review.py handle <pr> --comment <id> --body "…"   # reply + resolve one thread (👍 by default; --no-react to refute a false positive)
+python scripts/ai/pr_review.py verify <pr>                  # confirm 0 unresolved (paginated)
 ```
+
+`scripts/ai/pr_review.py` executes the mechanical half of **Responding to Automated PR Reviews** (above); the `/pr-review <pr>` Claude command drives the full protocol with it.
 
 `scripts/ai/skill_manifest.py` is the resolver for the cross-repo skill manifest at `.claude/skill-manifest.yml` — see `.cursor/skills/pmos-integration/SKILL.md` for the integration pattern.
 

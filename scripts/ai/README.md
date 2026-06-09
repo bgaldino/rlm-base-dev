@@ -109,6 +109,29 @@ without it they degrade gracefully to a line-oriented fallback.
 **Used by:** `.github/workflows/agent-tooling-optimization.yml`, the `.agents/`
 tool-agnostic layer.
 
+### `pr_review.py`
+
+Automates the *mechanical* half of the "Responding to Automated PR Reviews"
+protocol in `AGENTS.md`, so review rounds reliably end with **zero unresolved
+threads**. Tool-agnostic — shells out to the authenticated `gh` CLI. Repo
+defaults to the current checkout (`gh repo view`); override with
+`--repo owner/name`.
+
+```bash
+python scripts/ai/pr_review.py status 213                              # list unresolved threads (paginated)
+python scripts/ai/pr_review.py handle 213 --comment <id> --body "Fixed in <sha> …"   # reply + 👍 + resolve
+python scripts/ai/pr_review.py handle 213 --comment <id> --body "…" --no-react        # refute a false positive (no 👍)
+python scripts/ai/pr_review.py verify 213                              # confirm 0 unresolved (exit 1 if any remain)
+```
+
+The *judgment* half stays with the agent: verify each finding against the code,
+classify it real / partial / false-positive, and sweep the whole class before
+resolving (see `AGENTS.md` and `.cursor/skills/audit-review/SKILL.md`).
+
+**Used by:** `AGENTS.md` §"Responding to Automated PR Reviews", the `/pr-review`
+Claude command (`.claude/commands/pr-review.md`),
+`.cursor/skills/audit-review/SKILL.md`
+
 ---
 
 ## Dependencies

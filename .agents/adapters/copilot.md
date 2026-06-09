@@ -15,6 +15,9 @@ Copilot instruction file.
   injection, but Copilot can reuse their guidance manually.
 - **Cross-repo discovery:** `.claude/skill-manifest.yml` supports cross-repo
   skill and artifact resolution.
+- **Automated PR reviews:** drive review threads to **zero unresolved** using
+  `python scripts/ai/pr_review.py` (`status` / `handle` / `verify`), per
+  `AGENTS.md` §"Responding to Automated PR Reviews".
 
 ## Authoritative files
 
