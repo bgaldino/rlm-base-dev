@@ -1,4 +1,4 @@
-import lwc from "@salesforce/eslint-config-lwc/recommended";
+import lwc from "@salesforce/eslint-config-lwc/recommended.js";
 
 export default [
     ...lwc,
