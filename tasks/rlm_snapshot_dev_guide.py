@@ -203,7 +203,7 @@ def _rewrite_internal_links(
     def repl(m):
         page_id, anchor = m.group(1), m.group(2) or ""
         if known_ids is None or page_id in known_ids:
-            return f"./{page_id}.md"
+            return f"./{page_id}.md{anchor}"  # keep the #fragment on local links too
         return f"{DOCS_BASE}/atlas.en-us.{deliverable}.meta/{deliverable}/{page_id}{anchor}"
 
     return pat.sub(repl, text)
@@ -629,9 +629,14 @@ class SnapshotSalesforceDevGuide(BaseTask):
 
     @classmethod
     def _safe_page_id(cls, href: Optional[str]) -> Optional[str]:
-        """Return ``href`` if it is a safe intra-guide page id, else None."""
+        """Return a safe intra-guide page id from ``href``, else None.
+
+        Strips any ``#fragment`` / ``?query`` first (so a page with an anchored
+        TOC href isn't skipped), then rejects path separators / parent refs.
+        """
         if not href or href.startswith("http://") or href.startswith("https://"):
             return None  # missing or external (e.g. help.salesforce.com cross-ref)
+        href = href.split("#", 1)[0].split("?", 1)[0]  # drop #fragment / ?query
         if "/" in href or "\\" in href or ".." in href:
             return None  # path separators / parent refs — not a flat page id
         return href if cls._SAFE_PAGE_ID_RE.match(href) else None
@@ -737,13 +742,21 @@ class SnapshotSalesforceDevGuide(BaseTask):
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=self.options["headless"])
-            context = await browser.new_context(
-                user_agent=(
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/148.0.0.0 Safari/537.36"
+            # Derive the user agent from the actual bundled Chromium (rather than
+            # hardcoding a version that can go stale) and drop the "Headless"
+            # marker so requests look like a normal browser — the atlas API sits
+            # behind bot protection. Falls back to Playwright's default UA.
+            probe = await browser.new_context()
+            try:
+                default_ua = await (await probe.new_page()).evaluate(
+                    "() => navigator.userAgent"
                 )
-            )
+            finally:
+                await probe.close()
+            user_agent = (default_ua or "").replace("HeadlessChrome", "Chrome").replace(
+                "Headless", ""
+            ).strip()
+            context = await browser.new_context(user_agent=user_agent or None)
             page = await context.new_page()
 
             self.logger.info(f"Bootstrapping session: {self._bootstrap_url()}")
