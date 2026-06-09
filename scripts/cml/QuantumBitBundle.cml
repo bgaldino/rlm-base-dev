@@ -1,0 +1,258 @@
+// ============================================================================
+// QuantumBitBundle - combined constraint model (Release 262 / API v67)
+// ============================================================================
+// UNION of two existing QuantumBit constraint models so the combined behavior
+// can be compared against the originals in a scratch org:
+//   * QuantumBitComplete - bundle/configuration paradigm (LineItem + relation
+//     ports -> ProductRelatedComponent). Grafted VERBATIM below as the
+//     configurable QuantumBitCompleteSolution bundle (+ QuantumBitServicesProject
+//     sub-bundle, attributes, constraint, require).
+//   * QuantumBitPCM - virtual-quote cross-item paradigm (v67). Grafted as the
+//     @(virtual="true") Quote container with its lineitems relation + cart-level
+//     require/recommend rules.
+//
+// LINEITEM-PRIMARY (forced by the platform): In RLM a Product2 maps to exactly
+// ONE Component Type, and CML is single-inheritance, so a product cannot be both
+// a LineItem bundle member (QuantumBitComplete) and an AssetLineItem leaf
+// (QuantumBitPCM) in one model. Verified on ent-r1: tagging a product with two
+// types fails config rules ("Component Type ... already exists"). Therefore:
+//   - QuantumBitPCM's asset-context facet is DROPPED: the assetLineItems relation,
+//     the AssetLineItem base + its 3 leaves (QuantumBitCompleteSolution,
+//     QuantumBitDatabaseTokenCommitEach/Flat as AssetLineItem), and the single
+//     assetLineItems[...] recommend rule. Those products remain as the
+//     QuantumBitComplete LineItem bundle members instead.
+//   - QuantumBitPCM's APIAccessRequests is unified to QuantumBitComplete's
+//     APIAccessRequestsAEH (same product "API Access Requests (AEH)", both
+//     LineItem) -- lossless.
+// PRESERVED: the full bundle, and PCM's cart-level require + both recommend rules.
+// ----------------------------------------------------------------------------
+
+// --- Header: external variable (from QuantumBitComplete) ---
+@(contextPath = "SalesTransaction.OriginalActionType")
+extern string OriginalActionType;
+
+// ============================================================================
+// Virtual-quote container (from QuantumBitPCM) - cart-level cross-item rules
+// ============================================================================
+@(virtual = "true")
+type Quote {
+    @(sourceContextNode = "SalesTransaction.SalesTransactionItem")
+    relation lineitems : LineItem;
+
+    // rule(lineitems[APIAccessRequestsAEH], "disable", "relation", "LineItem", "type", "APIAccessRequestsFlex", "message", "Not compatible with API Access Requests Flex");
+    // rule(lineitems[APIAccessRequestsAEH], "disable", "relation", "LineItem", "type", "GoldHardwareMaintenance", "message", "Not compatible with Gold Hardware Maintenance");
+    // rule(lineitems[APIAccessRequestsAEH], "disable", "relation", "LineItem", "type", "QuantumBitCollaborationSuite", "message", "Not compatible with QuantumBit Collaboration Suite");
+
+    // message(true, "API Access Requests needs to be provisioned carefully", "warning");
+    require(lineitems[APIAccessRequestsAEH], lineitems[QuantumBitDatabase], "Unable to add QuantumBit Database");
+
+    rule(lineitems[APIAccessRequestsAEH], "recommend", "type", "QuantumBitEssentialsTraining", "message", "QuantumBit Essentials Training to help you with API access");
+
+    rule(lineitems[APIAccessRequestsAEH], "recommend", "type", "QuantumBitFundamentalsTraining", "message", "QuantumBit Fundamentals Training to help you with API access");
+}
+
+// --- Base type ---
+type LineItem;
+
+// ============================================================================
+// QuantumBitComplete configurable bundle (grafted verbatim)
+// ============================================================================
+type QuantumBitCompleteSolution : LineItem {
+    relation softwaremaintenance : SoftwareMaintenance;
+
+    relation additionalautomationqbcredits : AdditionalAutomationQBCredits;
+
+    relation additionalmessagesqbstarter : AdditionalMessagesQBStarter;
+
+    relation additionalflowsqbstarter : AdditionalFlowsQBStarter;
+
+    relation quantumbitdatabase : QuantumBitDatabase;
+
+    relation quantumbitdatabasetokenbased : QuantumBitDatabaseTokenBased;
+
+    relation quantumbitdatabasetokencommiteach : QuantumBitDatabaseTokenCommitEach;
+
+    relation quantumbitdatabasetokencommitflat : QuantumBitDatabaseTokenCommitFlat;
+
+    relation quantumbitdatabasetokencommittier : QuantumBitDatabaseTokenCommitTier;
+
+    relation quantumbitdatabasemonetarycommit : QuantumBitDatabaseMonetaryCommit;
+
+    relation quantumbitdatabasequantitycommit : QuantumBitDatabaseQuantityCommit;
+
+    relation quantumbitessentialstraining : QuantumBitEssentialsTraining;
+
+    relation quantumbitfundamentalstraining : QuantumBitFundamentalsTraining;
+
+    relation apiaccessrequestsaeh : APIAccessRequestsAEH;
+
+    relation additionalapi : AdditionalAPI;
+
+    relation qbapimanagementsolution : QBAPIManagementSolution;
+
+    relation quantumbitservicesproject : QuantumBitServicesProject;
+
+    relation professionalservicesscopeofwork : ProfessionalServicesScopeofWork;
+
+    relation professionalservicesdailyrate : ProfessionalServicesDailyRate {
+        default ProfessionalServicesDailyRate(250);
+    }
+
+    @(defaultValue = "Amazon Linux 2")
+    string Operating_System = ["Amazon Linux 2", "Redhat Enterprise Linux"];
+
+    @(defaultValue = "4")
+    int Base_Core_Count = [2, 4, 6, 8];
+
+    @(defaultValue = "0")
+    int Data_Utilization = [0, 10, 20, 30, 40, 5, 50];
+
+    //constraint(Operating_System == "Redhat Enterprise Linux" -> Base_Core_Count == "8", "When running RedHat Linux, a minimum of 8 Base Cores is required!");
+
+    constraint(Operating_System == "Redhat Enterprise Linux" -> Base_Core_Count == 8, "When running RedHat Linux, a minimum of 8 Base Cores is required!");
+    
+	//require(qbapimanagementsolution[QBAPIManagementSolution] >= 5 && OriginalActionType == null, additionalapi[AdditionalAPI]);
+    require(qbapimanagementsolution[QBAPIManagementSolution] >= 5, additionalapi[AdditionalAPI]);
+
+}
+
+type SoftwareMaintenance : LineItem;
+
+type AdditionalAutomationQBCredits : LineItem;
+
+type AdditionalMessagesQBStarter : LineItem;
+
+type AdditionalFlowsQBStarter : LineItem;
+
+type QuantumBitDatabase : LineItem;
+
+type QuantumBitDatabaseTokenBased : LineItem;
+
+type QuantumBitDatabaseTokenCommitEach : LineItem;
+
+type QuantumBitDatabaseTokenCommitFlat : LineItem;
+
+type QuantumBitDatabaseTokenCommitTier : LineItem;
+
+type QuantumBitDatabaseMonetaryCommit : LineItem;
+
+type QuantumBitDatabaseQuantityCommit : LineItem;
+
+type QuantumBitEssentialsTraining : LineItem;
+
+type QuantumBitFundamentalsTraining : LineItem;
+
+type APIAccessRequestsAEH : LineItem;
+
+type AdditionalAPI : LineItem {
+    @(defaultValue = "Flex")
+    string Type = ["Gov", "Flex", "Pre-Prod", "Prod"];
+
+}
+
+type QBAPIManagementSolution : LineItem;
+
+type QuantumBitServicesProject : LineItem {
+    relation programdirector : ProgramDirector {
+        default ProgramDirector(8);
+    }
+
+    relation projectmanager : ProjectManager[1..9999] {
+        default ProjectManager(8);
+    }
+
+    relation datanormalizationexpert : DataNormalizationExpert {
+        default DataNormalizationExpert(8);
+    }
+
+    relation moduleextensionengineer : ModuleExtensionEngineer {
+        default ModuleExtensionEngineer(8);
+    }
+
+    relation integrationspecialistengineer : IntegrationSpecialistEngineer {
+        default IntegrationSpecialistEngineer(8);
+    }
+
+    relation qualityassuranceengineer : QualityAssuranceEngineer {
+        default QualityAssuranceEngineer(8);
+    }
+
+    relation implementationengineer : ImplementationEngineer {
+        default ImplementationEngineer(8);
+    }
+
+    relation solutionsarchitect : SolutionsArchitect {
+        default SolutionsArchitect(8);
+    }
+
+    @(defaultValue = "Insert Notes Here")
+    string Notes_and_Assumptions;
+
+}
+
+type ProgramDirector : LineItem;
+
+type ProjectManager : LineItem;
+
+type DataNormalizationExpert : LineItem {
+    @(defaultValue = "Extended_Care")
+    string Engineering_Options = ["Extended_Care", "Basic"];
+
+    @(defaultValue = "Onsite")
+    string Resource_Location = ["Onsite", "Offshore", "Remote"];
+
+}
+
+type ModuleExtensionEngineer : LineItem {
+    @(defaultValue = "Extended_Care")
+    string Engineering_Options = ["Extended_Care", "Basic"];
+
+    @(defaultValue = "Onsite")
+    string Resource_Location = ["Onsite", "Offshore", "Remote"];
+
+}
+
+type IntegrationSpecialistEngineer : LineItem {
+    @(defaultValue = "Extended_Care")
+    string Engineering_Options = ["Extended_Care", "Basic"];
+
+    @(defaultValue = "Onsite")
+    string Resource_Location = ["Onsite", "Offshore", "Remote"];
+
+}
+
+type QualityAssuranceEngineer : LineItem {
+    @(defaultValue = "Extended_Care")
+    string Engineering_Options = ["Extended_Care", "Basic"];
+
+    @(defaultValue = "Onsite")
+    string Resource_Location = ["Onsite", "Offshore", "Remote"];
+
+}
+
+type ImplementationEngineer : LineItem {
+    @(defaultValue = "Extended_Care")
+    string Engineering_Options = ["Extended_Care", "Basic"];
+
+    @(defaultValue = "Onsite")
+    string Resource_Location = ["Onsite", "Offshore", "Remote"];
+
+}
+
+type SolutionsArchitect : LineItem;
+
+type ProfessionalServicesScopeofWork : LineItem;
+
+type ProfessionalServicesDailyRate : LineItem;
+
+// ============================================================================
+// QuantumBitPCM-only leaf types (grafted; APIAccessRequests unified to the
+// QuantumBitComplete bundle child APIAccessRequestsAEH - same product)
+// ============================================================================
+type APIAccessRequestsFlex : LineItem;
+
+type GoldHardwareMaintenance : LineItem;
+
+type QuantumBitCollaborationSuite : LineItem;
+
+type AdditionalAPIGov : LineItem;

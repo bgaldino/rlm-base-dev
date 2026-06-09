@@ -17,9 +17,9 @@ These steps run when the `constraints` flag is `true`:
 | 3 | `assign_permission_sets` | `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 
-### Phase 2: Constraint Data Loading (steps 5-10)
+### Phase 2: Constraint Data Loading (steps 5-11)
 
-These steps run when `constraints_data` is `true` (steps 6-10 also require `qb`):
+These steps run when `constraints_data` is `true` (steps 6-11 also require `qb`):
 
 | Step | Task | Condition | Purpose |
 |------|------|-----------|---------|
@@ -27,8 +27,9 @@ These steps run when `constraints_data` is `true` (steps 6-10 also require `qb`)
 | 6 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against QuantumBitComplete data |
 | 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import the QuantumBitComplete constraint model (imported but left **inactive**) |
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import the Server2 constraint model |
-| 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import the QuantumBitPCM constraint model |
-| 10 | `manage_expression_sets` | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitPCM_V1 only** (QuantumBitComplete_V1 is left inactive — only one QuantumBit model can be active at a time; QuantumBitPCM is the active v67 model) |
+| 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import the QuantumBitPCM constraint model (imported but left **inactive**) |
+| 10 | `import_cml` (QuantumBitBundle) | `constraints_data` + `qb` | Import the combined QuantumBitBundle model (QuantumBitComplete bundle + QuantumBitPCM virtual-quote rules) |
+| 11 | `manage_expression_sets` | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** (QuantumBitComplete_V1 and QuantumBitPCM_V1 are left inactive — only one QuantumBit model can be active at a time; QuantumBitBundle is the active combined model). See `datasets/constraints/README.md`. |
 
 **Important:** Phase 2 uses the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. The old SFDMU constraint data plans (`qb-constraints-product`, `qb-constraints-component`, etc.) are deprecated and archived in `datasets/sfdmu/_archived/`.
 
