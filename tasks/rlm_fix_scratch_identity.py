@@ -37,7 +37,11 @@ try:
     from cumulusci.core.exceptions import TaskOptionsError
 except ImportError:
     BaseTask = object
-    TaskOptionsError = Exception
+
+    class TaskOptionsError(Exception):
+        """Dedicated fallback when CumulusCI is unavailable (e.g. stdlib-only
+        test runs). A distinct type — not bare ``Exception`` — so callers and
+        tests that ``except TaskOptionsError`` catch only intended failures."""
 
 
 class FixScratchOrgIdentity(BaseTask):
@@ -216,19 +220,27 @@ class FixScratchOrgIdentity(BaseTask):
         mode = 0o600
         directory = os.path.dirname(str(path)) or "."
         fd, tmp = tempfile.mkstemp(prefix=".rlm_auth_", dir=directory)
+        fd_open = True  # we still own fd until os.fdopen takes it over
         try:
             # Restrict perms before writing secrets. os.fchmod is POSIX-only;
             # fall back to os.chmod(path) on platforms without it (e.g. Windows).
             if hasattr(os, "fchmod"):
                 os.fchmod(fd, mode)
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fd_open = False  # fdopen now owns fd and closes it on exit
                 json.dump(data, fh, indent=2)
                 fh.write("\n")
             if not hasattr(os, "fchmod"):
                 os.chmod(tmp, mode)
             os.replace(tmp, str(path))
         except BaseException:
-            # Clean up the temp file on any failure; never leave a stray.
+            # On any failure: close fd if fdopen never took ownership (e.g.
+            # os.fchmod raised) so we don't leak it, then remove the temp file.
+            if fd_open:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
             try:
                 os.unlink(tmp)
             except OSError:

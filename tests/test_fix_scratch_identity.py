@@ -228,6 +228,40 @@ def test_run_gating_and_failure_modes():
             check("raise_on_failure raises", True)
 
 
+def test_dedicated_exception_type():
+    # The CumulusCI-absent fallback must be a distinct type, not bare Exception,
+    # so `except TaskOptionsError` catches only intended failures.
+    check("TaskOptionsError is not bare Exception", TaskOptionsError is not Exception)
+    check("TaskOptionsError subclasses Exception", issubclass(TaskOptionsError, Exception))
+
+
+def test_atomic_write_cleanup_on_chmod_failure():
+    # If os.fchmod raises before os.fdopen takes ownership of the descriptor,
+    # _atomic_write must still re-raise and leave no stray temp file behind.
+    if not hasattr(os, "fchmod"):
+        check("atomic_write cleanup on fchmod failure (skipped: no fchmod)", True)
+        return
+    original_fchmod = os.fchmod
+
+    def boom(*args, **kwargs):
+        raise OSError("simulated fchmod failure")
+
+    with tempfile.TemporaryDirectory() as d:
+        path = write_auth(d, {"isScratch": False, "devHubUsername": "dh"})
+        os.fchmod = boom
+        try:
+            raised = False
+            try:
+                FixScratchOrgIdentity._atomic_write(path, {"isScratch": True})
+            except OSError:
+                raised = True
+            leftover = [f for f in os.listdir(d) if f.startswith(".rlm_auth_")]
+            check("atomic_write re-raises on fchmod failure", raised)
+            check("atomic_write leaves no temp file", leftover == [])
+        finally:
+            os.fchmod = original_fchmod
+
+
 def main():
     test_repair_decisions()
     test_repair_raises_on_bad_files()
@@ -235,6 +269,8 @@ def main():
     test_find_auth_files()
     test_run_summary_branches()
     test_run_gating_and_failure_modes()
+    test_dedicated_exception_type()
+    test_atomic_write_cleanup_on_chmod_failure()
 
     passed = sum(1 for _, ok in RESULTS if ok)
     total = len(RESULTS)
