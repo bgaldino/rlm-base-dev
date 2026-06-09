@@ -832,10 +832,17 @@ class SnapshotSalesforceDevGuide(BaseTask):
         section = self.options.get("section")
         if section:
             want = section.strip().lower()
+            # A section may be given as a TOC title OR a page id (matching
+            # _find_section). Pages are tagged with their section *title*, so if a
+            # page id was supplied, resolve it to that page's stored section title
+            # and filter by that — otherwise only the root page would match and
+            # the subtree's children would be missed.
+            by_pid = {(p.get("page_id") or "").lower(): p for p in pages}
+            root = by_pid.get(want) or by_pid.get(want + ".htm")
+            want_title = (root.get("section") or want).strip().lower() if root else want
             pages = [
                 p for p in pages
-                if (p.get("section") or "").strip().lower() == want
-                or (p.get("page_id") or "").lower() in (want, want + ".htm")
+                if (p.get("section") or "").strip().lower() == want_title
             ]
         if mode == "refresh":
             return pages
