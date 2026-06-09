@@ -15,11 +15,12 @@ Use the helper `scripts/ai/pr_review.py`.
      *real*, *partial*, or *false positive*.
    - **Sweep the class** — if real, fix **every** instance of that pattern across
      the change, not just the cited line. Commit the fix; note the SHA.
-   - **Resolve it** — replies in-thread with the SHA, adds 👍, and resolves the
-     thread in one call:
+   - **Resolve it** — for a **valid** finding, reply in-thread with the SHA, 👍,
+     and resolve in one call:
      `python scripts/ai/pr_review.py handle $ARGUMENTS --comment <id> --body "<resolution + commit SHA>"`
-     For a false positive, put an evidence-backed refutation in `--body` (still
-     reply + resolve; don't change correct code).
+     For a **false positive**, put an evidence-backed refutation in `--body` and add
+     `--no-react` — reply + resolve but **don't** 👍, and don't change correct code.
+     (👍 only on valid comments, per AGENTS.md.)
 
 3. **Confirm clean:**
    `python scripts/ai/pr_review.py verify $ARGUMENTS` → must report **0

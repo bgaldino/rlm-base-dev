@@ -213,8 +213,9 @@ threads.**
 **Tooling — `python scripts/ai/pr_review.py`** (or the `/pr-review <pr>` command in Claude
 Code) automates the mechanical steps so a round can't be left half-finished:
 `status <pr>` lists unresolved threads (paginated), `handle <pr> --comment <id> --body "…"`
-replies + 👍 + resolves one thread, and `verify <pr>` confirms 0 unresolved (exit 1 if any
-remain). It's tool-agnostic (shells out to `gh`); defaults to the current repo, or pass
+replies + resolves one thread (adds 👍 **by default** — pass `--no-react` to refute a false
+positive without the 👍, per the "react on valid comments" rule below), and `verify <pr>`
+confirms 0 unresolved (exit 1 if any remain). It's tool-agnostic (shells out to `gh`); defaults to the current repo, or pass
 `--repo owner/name`. Verifying findings and sweeping the class (steps 1–2) stay your job.
 
 For each comment:
@@ -339,7 +340,7 @@ python scripts/ai/generate_cci_reference.py                 # Regenerate CCI doc
 python scripts/ai/skill_manifest.py --check                 # Verify cross-repo skill manifest can resolve PMOS clone
 python scripts/ai/skill_manifest.py --list-skills foundations
 python scripts/ai/pr_review.py status <pr>                  # Automated-PR-review helper: list unresolved threads
-python scripts/ai/pr_review.py handle <pr> --comment <id> --body "…"   # reply + 👍 + resolve one thread
+python scripts/ai/pr_review.py handle <pr> --comment <id> --body "…"   # reply + resolve one thread (👍 by default; --no-react to refute a false positive)
 python scripts/ai/pr_review.py verify <pr>                  # confirm 0 unresolved (paginated)
 ```
 

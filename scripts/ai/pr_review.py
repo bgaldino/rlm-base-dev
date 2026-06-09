@@ -7,7 +7,8 @@ threads**:
 
 * ``status``  — list review threads (unresolved by default), paginated, with the
   comment id, location, and body needed to act on each.
-* ``handle``  — reply in-thread + 👍 react + resolve a single thread, in one call.
+* ``handle``  — reply in-thread + 👍 + resolve a single thread, in one call
+  (👍 by default; pass ``--no-react`` to refute a false positive without it).
 * ``verify``  — confirm 0 unresolved across all pages (exit 1 if any remain).
 
 The *judgment* half stays with the agent: verify each finding against the code,
@@ -90,8 +91,19 @@ def fetch_threads(repo, pr):
         ]
         if cursor:
             args += ["-f", f"cursor={cursor}"]
-        data = _json(args)
-        rt = data["data"]["repository"]["pullRequest"]["reviewThreads"]
+        res = _run(args, check=False)
+        try:
+            data = json.loads(res.stdout) if res.stdout.strip() else {}
+        except json.JSONDecodeError:
+            data = {}
+        if data.get("errors"):
+            msgs = "; ".join(e.get("message", str(e)) for e in data["errors"])
+            raise SystemExit(f"GraphQL error for PR #{pr} in {repo}: {msgs}")
+        pr_node = ((data.get("data") or {}).get("repository") or {}).get("pullRequest")
+        if pr_node is None:  # bad repo/auth/network, or PR missing with no errors block
+            detail = res.stderr.strip() or res.stdout.strip() or "unknown error"
+            raise SystemExit(f"Could not read PR #{pr} in {repo}: {detail}")
+        rt = pr_node["reviewThreads"]
         nodes.extend(rt["nodes"])
         if rt["pageInfo"]["hasNextPage"]:
             cursor = rt["pageInfo"]["endCursor"]
@@ -127,9 +139,10 @@ def cmd_status(repo, pr, show_all):
         print(f"  {snippet}")
         if not t["isResolved"]:
             print(
-                f"  → handle: python scripts/ai/pr_review.py handle {pr} "
-                f"--comment {c.get('databaseId')} --body \"<resolution + commit SHA>\""
+                f"  → resolve: python scripts/ai/pr_review.py handle {pr} "
+                f"--comment {c.get('databaseId')} --body \"<fix + commit SHA>\""
             )
+            print("             (👍 added by default; add --no-react to refute a false positive)")
     return 0
 
 
