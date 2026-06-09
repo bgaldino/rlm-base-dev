@@ -131,6 +131,10 @@ _Open Default Catalog Combobox
     ...    ARGUMENTS    ${target_value}
     Should Not Be Equal    ${result}    combobox_not_found
     ...    msg=Product Discovery combobox not yet rendered; retrying...
+    Should Not Be Equal    ${result}    lbc_not_found
+    ...    msg=lightning-base-combobox shadow element not yet rendered; retrying...
+    Should Not Be Equal    ${result}    btn_not_found
+    ...    msg=Combobox button not yet rendered inside shadow root; retrying...
     RETURN    ${result}
 
 _Verify Default Catalog Selected

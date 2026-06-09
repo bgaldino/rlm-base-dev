@@ -46,7 +46,7 @@ Run this first — it checks everything:
 
 | Check | Fix |
 |-------|-----|
-| Python < 3.8 | Install Python 3.12 or 3.13 via `pyenv` |
+| Python < 3.10 | Install Python 3.12 or 3.13 via `pyenv` |
 | CumulusCI not found | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` |
 | SF CLI < v2 | `npm install -g @salesforce/cli` (NOT `brew install sf`) |
 | SFDMU plugin missing/outdated | Auto-fixed by default (`auto_fix=true`). Manual: `sf plugins install sfdmu` |

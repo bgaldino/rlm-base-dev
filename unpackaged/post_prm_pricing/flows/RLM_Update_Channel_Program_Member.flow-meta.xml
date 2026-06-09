@@ -42,7 +42,7 @@
                 <elementReference>$Record.LevelId</elementReference>
             </value>
         </filters>
-        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
         <object>ChannelProgramLevel</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
@@ -54,19 +54,19 @@
         <inputAssignments>
             <field>RLM_Adjustment_Type__c</field>
             <value>
-                <elementReference>$Record.Level.RLM_Adjustment_Type__c</elementReference>
+                <elementReference>Get_Channel_Program_Level.RLM_Adjustment_Type__c</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>RLM_Adjustment_Value__c</field>
             <value>
-                <elementReference>$Record.Level.RLM_Adjustment_Value__c</elementReference>
+                <elementReference>Get_Channel_Program_Level.RLM_Adjustment_Value__c</elementReference>
             </value>
         </inputAssignments>
         <inputAssignments>
             <field>RLM_Discount_Rate__c</field>
             <value>
-                <elementReference>$Record.Level.RLM_Discount_Rate__c</elementReference>
+                <elementReference>Get_Channel_Program_Level.RLM_Discount_Rate__c</elementReference>
             </value>
         </inputAssignments>
         <inputReference>$Record</inputReference>
