@@ -226,16 +226,19 @@ class FixScratchOrgIdentity(BaseTask):
         fd, tmp = tempfile.mkstemp(prefix=".rlm_auth_", dir=directory)
         fd_open = True  # we still own fd until os.fdopen takes it over
         try:
-            # Restrict perms before writing secrets. os.fchmod is POSIX-only;
-            # fall back to os.chmod(path) on platforms without it (e.g. Windows).
+            # Restrict perms BEFORE writing any secrets — never leave a window
+            # where the file is readable while credentials are on disk. os.fchmod
+            # is POSIX-only; fall back to os.chmod(path) on platforms without it
+            # (e.g. Windows). mkstemp already creates the file 0600 on POSIX; this
+            # enforces it explicitly on both paths.
             if hasattr(os, "fchmod"):
                 os.fchmod(fd, mode)
+            else:
+                os.chmod(tmp, mode)
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 fd_open = False  # fdopen now owns fd and closes it on exit
                 json.dump(data, fh, indent=2)
                 fh.write("\n")
-            if not hasattr(os, "fchmod"):
-                os.chmod(tmp, mode)
             os.replace(tmp, str(path))
         except BaseException:
             # On any failure: close fd if fdopen never took ownership (e.g.

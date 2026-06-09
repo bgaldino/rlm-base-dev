@@ -265,6 +265,27 @@ def test_atomic_write_cleanup_on_chmod_failure():
             os.fchmod = original_fchmod
 
 
+def test_atomic_write_without_fchmod():
+    # Simulate a platform without os.fchmod (e.g. Windows): the os.chmod path
+    # must still restrict perms to 0600 (before writing) and write correctly.
+    task = make_task()
+    had_fchmod = hasattr(os, "fchmod")
+    saved = os.fchmod if had_fchmod else None
+    if had_fchmod:
+        delattr(os, "fchmod")
+    try:
+        with tempfile.TemporaryDirectory() as d:
+            path = write_auth(d, {"isScratch": False, "devHubUsername": "dh"}, mode=0o644)
+            task._repair_file(path)
+            final = oct(os.stat(path).st_mode & 0o777)
+            data = json.loads(path.read_text())
+            check("no-fchmod path -> 0o600", final == "0o600")
+            check("no-fchmod path writes isScratch=true", data.get("isScratch") is True)
+    finally:
+        if had_fchmod:
+            os.fchmod = saved
+
+
 def main():
     test_repair_decisions()
     test_repair_raises_on_bad_files()
@@ -274,6 +295,7 @@ def main():
     test_run_gating_and_failure_modes()
     test_dedicated_exception_type()
     test_atomic_write_cleanup_on_chmod_failure()
+    test_atomic_write_without_fchmod()
 
     passed = sum(1 for _, ok in RESULTS if ok)
     total = len(RESULTS)
