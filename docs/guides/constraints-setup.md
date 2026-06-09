@@ -54,9 +54,10 @@ Constraint model data is stored in `datasets/constraints/qb/` with one directory
 
 ```
 datasets/constraints/qb/
-├── QuantumBitComplete/   # 43 ESC records, 22 products
-├── Server2/              # 81 ESC records, 41 products
-├── QuantumBitPCM/        # 12 ESC records, 12 products
+├── QuantumBitComplete/   # 55 ESC records (28 Type + 27 Port), 28 products — imported, inactive
+├── Server2/              # 81 ESC records (41 Type + 40 Port), 41 products — active
+├── QuantumBitPCM/        # 12 ESC records (12 Type, 0 Port), 12 products — imported, inactive
+├── QuantumBitBundle/     # 59 ESC records (32 Type + 27 Port), 32 products — active (Complete bundle + PCM rules)
 └── README.md             # Detailed CML utility documentation
 ```
 

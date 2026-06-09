@@ -49,7 +49,7 @@ Every walkthrough in every exercise anchors to a single deal narrative:
 This scenario was deliberately chosen because:
 
 - The customers ([Infinitech, Global Media](../../datasets/sfdmu/scratch_data/Account.csv)) and partner ([Robot Resellers](../../datasets/sfdmu/qb/en-US/qb-prm/Account.csv)) are already loaded by `prepare_rlm_org` — no new data plans required
-- The bundles ([QB-COMPLETE](../../datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv), [QB-QRack-750](../../datasets/sfdmu/qb/en-US/qb-pcm/ProductComponentGroup.csv)) exercise the **complete spectrum of Revenue Cloud capabilities** — bundle/attribute/volume pricing, CML constraint rules (QuantumBitComplete + Server2), nested component groups, multi-LE billing, usage products, ramp deals
+- The bundles ([QB-COMPLETE](../../datasets/sfdmu/qb/en-US/qb-pcm/Product2.csv), [QB-QRack-750](../../datasets/sfdmu/qb/en-US/qb-pcm/ProductComponentGroup.csv)) exercise the **complete spectrum of Revenue Cloud capabilities** — bundle/attribute/volume pricing, CML constraint rules (QuantumBitBundle + Server2), nested component groups, multi-LE billing, usage products, ramp deals
 - The deal naturally crosses every functional area: PCM (catalog) → Pricing (rates) → Configurator (rules) → Transaction Mgmt (quote) → Approvals (high-value review) → DRO (multi-location fulfillment) → Usage Mgmt (consumption) → Invoice/Billing (per-LE invoices)
 
 For the canonical reference of what's in QB orgs by default — including bundle structure, CML constraint models, pricing-feature wiring, usage products, multi-LE setup — read **[`master/qb-scenario-reference.md`](master/qb-scenario-reference.md)**. That's the foundational document every other exercise builds on.

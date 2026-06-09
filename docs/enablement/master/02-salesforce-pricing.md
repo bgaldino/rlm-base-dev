@@ -11,7 +11,7 @@ scenario_anchor: infinitech-cloud-deal
 prerequisites:
   - "`cci flow run prepare_rlm_org` completed against the target org"
   - "QuantumBit catalog + pricing data loaded (`qb=true`, `prepare_pricing_data` flow run)"
-  - "QuantumBitComplete CML constraint model active (default in QB orgs)"
+  - "QuantumBitBundle CML constraint model active (default in QB orgs)"
   - "Standard Price Book + 3 Price Adjustment Schedules active"
 sources:
   - "docs/enablement/master/qb-scenario-reference.md — canonical QB scenario reference"

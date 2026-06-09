@@ -11,7 +11,7 @@ scenario_anchor: infinitech-cloud-deal
 prerequisites:
   - "`cci flow run prepare_rlm_org` completed against the target org"
   - "QuantumBit catalog loaded (`qb=true`) — 162 products, 18 classifications, 3 catalogs, 18 categories, 5 bundles, 27 component groups"
-  - "QuantumBitComplete + Server2 CML constraint models active (default in QB orgs with `constraints=true`, `constraints_data=true`)"
+  - "QuantumBitBundle + Server2 CML constraint models active (default in QB orgs with `constraints=true`, `constraints_data=true`); QuantumBitComplete and QuantumBitPCM imported but inactive"
 sources:
   - "docs/enablement/master/qb-scenario-reference.md — canonical QB scenario reference"
   - ".cursor/skills/release-enablement/authoring-patterns.md"
@@ -84,7 +84,7 @@ For the full scenario context — customer accounts, partner channel, multi-LE s
 | Product Classifications | 18 classifications — Server, Memory, CPU, NIC, Storage, API Type, Software, Database, Subscription, Bundles, Services |
 | Top-level bundles | `QB-COMPLETE` (Software flagship) · `QB-QRack-750` (Hardware with nested groups) · `QB-BDL-R750` (Server) · `QB-BDL-STND` (Starter) · `QB-BDL-SRVC` (Pro Services) |
 | Component groups | 27 groups, including nested (Computing → Cooling, Storage → Hard Drives, PCIe → GPUs/I/O/Networking) |
-| Constraint Rules | **QuantumBitComplete CML** (43 ESC, 22 software products) + **Server2 CML** (81 ESC, 41 hardware products) — active on default |
+| Constraint Rules | **QuantumBitBundle CML** (59 ESC, 32 software products; QuantumBitComplete bundle + QuantumBitPCM cart rules) + **Server2 CML** (81 ESC, 41 hardware products) — active on default. QuantumBitComplete (55 ESC) and QuantumBitPCM (12 ESC) imported but inactive. |
 | Attributes | 39 Attribute Definitions, 17 Product Attribute Definitions, 87 Picklist Values |
 | Sample products | 162 commercial products, 5 bundles |
 

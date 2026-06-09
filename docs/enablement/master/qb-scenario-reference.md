@@ -235,19 +235,27 @@ Source: `datasets/sfdmu/qb/en-US/qb-rating/`
 
 ---
 
-## 7. CML Constraint Models (2)
+## 7. CML Constraint Models (4 imported, 2 active)
 
-`prepare_constraints` activates two CML constraint models against the QB catalog:
+`prepare_constraints` imports four CML constraint models and activates two against the QB catalog — **Server2** (hardware) and **QuantumBitBundle** (software). Only one QuantumBit *software* model can be active at a time, so **QuantumBitComplete** and **QuantumBitPCM** are imported but left **inactive** for A/B/C comparison. See `datasets/constraints/README.md` → "QuantumBitBundle (combined model)".
 
-### QuantumBitComplete (43 ESC records, 22 products)
+### QuantumBitBundle (59 ESC records = 32 Type + 27 Port, 32 products) — ACTIVE software model
 
-Software-focused constraints. Targeted products include:
+A LineItem-primary union of QuantumBitComplete's configurable bundle and QuantumBitPCM's virtual-quote cart-level rules. It **preserves QuantumBitComplete's full bundle behavior** (same ports / attributes / constraints — see Type/Port semantics below) and **adds** PCM's cart-level `require` / `recommend` cross-item rules (require QuantumBit Database with API Access Requests; recommend Essentials / Fundamentals Training). Targeted products = the QuantumBitComplete set (below) plus Gold Hardware Maintenance, QuantumBit Collaboration Suite, Additional API Flex (100M), and Additional API Gov.
+
+### QuantumBitComplete (55 ESC records = 28 Type + 27 Port, 28 products) — imported, INACTIVE
+
+Software-focused constraints; the bundle/configuration source grafted into QuantumBitBundle. Targeted products include:
 - Additional API, API Access Requests (AEH), Additional Automation QB Credits
 - QuantumBit Services Project, QuantumBit Database (5 variants: base, token-based, token-commit-each/flat/tier, monetary commit, quantity commit)
 - Professional Services Daily Rate, Professional Services Scope of Work, Software Maintenance
 - API Management Solution, Additional Flows/Messages
 
-### Server2 (81 ESC records, 41 products) — wired to QB-QRack-750
+### QuantumBitPCM (12 ESC records = 12 Type, 0 Port) — imported, INACTIVE
+
+Virtual-quote (v67) cross-item source grafted into QuantumBitBundle: an `@(virtual="true") Quote` container with cart-level `require` / `recommend` rules and **no** bundle ports (its product relationships are expressed in CML via context-bound relations, not `ProductRelatedComponent`).
+
+### Server2 (81 ESC records = 41 Type + 40 Port, 41 products) — ACTIVE, wired to QB-QRack-750
 
 Hardware-focused constraints. Targeted products include:
 - HDD: 1TB / 4TB / 8TB / 20TB NLSAS variants, 1TB / 3TB 10k RPM
@@ -264,18 +272,20 @@ Hardware-focused constraints. Targeted products include:
 
 ESC records use two `ConstraintModelTagType` values that drive how the Constraint Builder evaluates configurations:
 
-| Tag Type | QuantumBitComplete | Server2 | Meaning |
-|---|---|---|---|
-| **Type** | 28 | 41 | Identifies a *kind* of product (e.g., `QuantumBitDatabase`, `Gold_22Ghz_28C56T`, `RAM64`) |
-| **Port** | 27 | 40 | Identifies a *socket* into which a Type plugs (e.g., `quantumbitdatabase`, `gold22ghz`, `ram64`) |
+| Tag Type | QuantumBitBundle | QuantumBitComplete | Server2 | Meaning |
+|---|---|---|---|---|
+| **Type** | 32 | 28 | 41 | Identifies a *kind* of product (e.g., `QuantumBitDatabase`, `Gold_22Ghz_28C56T`, `RAM64`) |
+| **Port** | 27 | 27 | 40 | Identifies a *socket* into which a Type plugs (e.g., `quantumbitdatabase`, `gold22ghz`, `ram64`) |
+
+(QuantumBitBundle's 27 Ports are inherited verbatim from QuantumBitComplete's bundle; its 32 Types = QuantumBitComplete's 28 plus 4 PCM-unique products. QuantumBitPCM contributes 12 Type tags and 0 Ports.)
 
 **Port-type semantics in plain terms:** the Constraint Builder treats Ports as connection points. A Type tag identifies what kind of component a product is; a Port tag identifies the slot it fills. The constraint logic in the binary CML blob enforces compatibility — e.g., a `gold22ghz` CPU port can only accept Type tags compatible with that CPU socket; a `ram64` port only accepts 64GB RAM Type tags.
 
 This is the model that powers the Spring '26 Configurator features (Compact Layout, Sticky Errors, Inline Attribute Configuration, Enhanced Instance Selection) — they all run against the constraint engine that interprets these Type/Port relationships.
 
-**Both models** are activated automatically by `prepare_constraints` Phase 2 when `constraints_data=true` (default). Activation creates `QuantumBitComplete_V1` and `Server2_V1` ExpressionSetDefinitionVersions in `Active` status.
+**The two active models** are activated automatically by `prepare_constraints` Phase 2 when `constraints_data=true` (default). Activation sets `Server2_V1` and `QuantumBitBundle_V1` ExpressionSetVersions to `Active`. `QuantumBitComplete_V1` and `QuantumBitPCM_V1` are imported but left `Inactive` (only one QuantumBit software model can be active at a time).
 
-Source: `datasets/constraints/qb/QuantumBitComplete/` + `datasets/constraints/qb/Server2/`
+Source: `datasets/constraints/qb/QuantumBitBundle/` (active) + `datasets/constraints/qb/Server2/` (active) + `datasets/constraints/qb/QuantumBitComplete/` and `.../QuantumBitPCM/` (imported, inactive)
 
 ---
 
@@ -435,7 +445,7 @@ The QB org is rich and well-constructed for workshops. With customers in `scratc
 - ✅ **Partner channel** — Robot Resellers in `qb-prm` with 4-tier Reseller Program (Platinum / Gold / Silver / Bronze)
 - ✅ Multi-currency (7 currencies, USD corporate)
 - ✅ Multi-Legal-Entity (4 LEs covering NA + EU + UK with Advance + Arrears Billing Treatments per LE)
-- ✅ Two CML constraint models active: QuantumBitComplete + Server2 with full Port/Type semantics
+- ✅ Two CML constraint models active: QuantumBitBundle + Server2 with full Port/Type semantics (QuantumBitBundle = QuantumBitComplete bundle + QuantumBitPCM cart rules; QuantumBitComplete and QuantumBitPCM imported but inactive)
 - ✅ Component groups with min/max quantity enforcement (QB-COMPLETE Usage = exactly 1, QB-BDL-R750 components each = exactly 1)
 - ✅ Nested component groups (QB-QRack-750: Computing → Cooling, Storage → Hard Drives, PCIe → GPUs / I/O / Networking)
 - ✅ Pricing-feature wiring on QB-COMPLETE — Bundle (QB-API 5%), Attribute (QB-API environment override), Volume (QB-MSG-STRT tiered), Derived (2 entries)
@@ -465,7 +475,7 @@ The QB org is rich and well-constructed for workshops. With customers in `scratc
 >
 > The deal exercises:
 >
-> - **QB-COMPLETE** bundle as the software foundation, with the **QuantumBitComplete CML** enforcing valid configurations
+> - **QB-COMPLETE** bundle as the software foundation, with the **QuantumBitBundle CML** (the active model — it contains QuantumBitComplete's full bundle configuration plus PCM cart-level rules) enforcing valid configurations
 >   - **QB-API** with environment attribute set to `Prod` ($15,000/year via attribute-based pricing) for the production environment, plus additional QB-API instances at `Pre-Prod` ($12,000) and `Gov` ($8,500) attribute values
 >   - **5% bundle adjustment** applied automatically via QB-COMPLETE's bundle relationship
 >   - **QB-MSG-STRT** at 16+ units → **25% volume discount** for high-volume messaging
