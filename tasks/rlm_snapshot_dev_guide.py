@@ -72,7 +72,6 @@ headings, paragraphs, lists, links, inline/blocks of code, and br.
 """
 
 import asyncio
-import html as html_lib
 import json
 import os
 import re
@@ -588,7 +587,7 @@ class SnapshotSalesforceDevGuide(BaseTask):
         }
         if manifest_path.exists():
             try:
-                existing = json.loads(manifest_path.read_text())
+                existing = json.loads(manifest_path.read_text(encoding="utf-8"))
                 for k, v in base.items():
                     existing.setdefault(k, v)
                 self.logger.info(
@@ -603,7 +602,9 @@ class SnapshotSalesforceDevGuide(BaseTask):
         manifest["last_updated"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         manifest["stats"] = self._compute_stats(manifest)
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False))
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
 
     @staticmethod
     def _compute_stats(manifest: Dict[str, Any]) -> Dict[str, Any]:
@@ -621,16 +622,24 @@ class SnapshotSalesforceDevGuide(BaseTask):
     # TOC walk
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _node_page_id(node: Dict[str, Any]) -> Optional[str]:
+    # A page id must be a bare ``<name>.htm`` filename — no path separators or
+    # parent refs — because it is used to build a local file path. This guards
+    # against path traversal from a malformed/hostile TOC or link href.
+    _SAFE_PAGE_ID_RE = re.compile(r"^[A-Za-z0-9_.\-]+\.htm$")
+
+    @classmethod
+    def _safe_page_id(cls, href: Optional[str]) -> Optional[str]:
+        """Return ``href`` if it is a safe intra-guide page id, else None."""
+        if not href or href.startswith("http://") or href.startswith("https://"):
+            return None  # missing or external (e.g. help.salesforce.com cross-ref)
+        if "/" in href or "\\" in href or ".." in href:
+            return None  # path separators / parent refs — not a flat page id
+        return href if cls._SAFE_PAGE_ID_RE.match(href) else None
+
+    @classmethod
+    def _node_page_id(cls, node: Dict[str, Any]) -> Optional[str]:
         href = (node.get("a_attr") or {}).get("href") or node.get("href")
-        if not href:
-            return None
-        if href.startswith("http://") or href.startswith("https://"):
-            return None  # external link (e.g. help.salesforce.com cross-ref)
-        if not href.endswith(".htm"):
-            return None
-        return href
+        return cls._safe_page_id(href)
 
     def _flatten_toc(
         self, toc: List[Dict[str, Any]], section_filter: Optional[str]
@@ -802,6 +811,19 @@ class SnapshotSalesforceDevGuide(BaseTask):
 
     def _select_to_capture(self, manifest: Dict[str, Any], mode: str) -> List[Dict[str, Any]]:
         pages = [p for p in manifest.get("pages", []) if p.get("page_id")]
+        # When a section is requested, restrict to that section's pages even if
+        # the manifest already holds other (e.g. previously discovered) pages, so
+        # a single-section run never captures unrelated guide pages. Pages are
+        # tagged with their TOC section by _merge_discovered; match that, or the
+        # requested value given as the section's own page id.
+        section = self.options.get("section")
+        if section:
+            want = section.strip().lower()
+            pages = [
+                p for p in pages
+                if (p.get("section") or "").strip().lower() == want
+                or (p.get("page_id") or "").lower() in (want, want + ".htm")
+            ]
         if mode == "refresh":
             return pages
         return [p for p in pages if p.get("status") != "captured"]
