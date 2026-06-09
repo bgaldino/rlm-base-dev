@@ -118,8 +118,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `breconfig` (default: `False`)
 
-- `prepare_core` step 14 → `create_rule_library`
-- `prepare_core` step 15 → `create_dro_rule_library`
+- `prepare_core` step 15 → `create_rule_library`
+- `prepare_core` step 16 → `create_dro_rule_library`
 
 ### `calmdelete` (default: `True`)
 
@@ -178,7 +178,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `dro` (default: `True`)
 
-- `prepare_core` step 15 → `create_dro_rule_library`
+- `prepare_core` step 16 → `create_dro_rule_library`
 - `extend_context_definitions` step 6 → `extend_context_fulfillment_asset`
 - `prepare_dro` step 1 → `manage_fulfillment_scope_cnfg`
 - `prepare_dro` step 2 → `insert_qb_dro_data`
@@ -360,8 +360,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `tso` (default: `False`)
 
-- `prepare_core` step 11 → `recalculate_permission_set_groups`
-- `prepare_core` step 12 → `assign_permission_set_groups_tolerant`
+- `prepare_core` step 12 → `recalculate_permission_set_groups`
+- `prepare_core` step 13 → `assign_permission_set_groups_tolerant`
 - `assign_feature_psls` step 4 → `assign_permission_set_licenses`
 - `assign_feature_permission_sets` step 1 → `assign_permission_sets`
 - `prepare_tso` step 1 → `assign_permission_set_groups`
@@ -384,7 +384,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `org_config.scratch` (runtime)
 
-- `prepare_core` step 1 → `set_scratch_org_password`
+- `prepare_core` step 1 → `fix_scratch_org_identity`
+- `prepare_core` step 2 → `set_scratch_org_password`
 - `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
 - `prepare_dro` step 4 → `insert_q3_dro_data_prod`
 

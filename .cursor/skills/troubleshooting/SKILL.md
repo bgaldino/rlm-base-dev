@@ -88,6 +88,33 @@ sf org list               # shows sf aliases (rlm-base__* prefix)
 cci org info beta         # shows username, instance URL
 ```
 
+### `NonScratchOrgError` ("This command works with only scratch orgs")
+
+**Symptom:** a scratch-only SF CLI command — most often `sf org create user`
+(the `create_persona_user` task in `prepare_personas`), but also
+`sf org generate password` — fails with `NonScratchOrgError` against an org you
+created as a scratch org. Common on **Enterprise-Edition / "ent"** shapes
+(e.g. `orgs/internal/ent-r1.json`).
+
+**Cause:** an SF CLI bug — EE scratch orgs created via the DevHub API get
+`"isScratch": false` written to the local auth file
+(`~/.sfdx/<username>.json`) even though they are real scratch orgs (valid
+`devHubUsername`, listed under `scratchOrgs` in `sf org list`). The CLI then
+refuses scratch-only commands. CCI's own `org_config.scratch` is unaffected, so
+**`prepare_rlm_org` self-heals** — `prepare_core` step 1 runs
+`fix_scratch_org_identity` before any scratch-only CLI command.
+
+**Fix (standalone, when running CLI commands outside the flow):**
+
+```bash
+cci org default ent-r1                      # this CCI build uses the default org (no --org)
+cci task run fix_scratch_org_identity        # flips isScratch false->true when devHubUsername is present
+```
+
+The task is idempotent (no-op when already correct) and only flips
+`false -> true` when the auth file has a `devHubUsername` (so it never
+mis-tags a real non-scratch org).
+
 ---
 
 ## SFDMU Data Loading Errors
