@@ -484,9 +484,14 @@ def _patch_add_component(
                         region.insert(list(region).index(item) + 1, new_item)
                         return True
 
-        # Append before <name> element
+        # Preserve metadata schema order by keeping all itemInstances contiguous
+        # at the front of the region (before mode/name/type).
         region_children = list(region)
-        insert_before = region_children.index(name_el) if name_el in region_children else len(region_children)
+        insert_before = len(region_children)
+        for i, child in enumerate(region_children):
+            if child.tag.rsplit("}", 1)[-1] != "itemInstances":
+                insert_before = i
+                break
         region.insert(insert_before, new_item)
         return True
     return False

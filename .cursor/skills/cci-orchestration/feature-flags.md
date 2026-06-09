@@ -35,9 +35,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
 | `personas` | `True` | 10 flow step(s) |
-| `prm` | `True` | 24 flow step(s) |
+| `prm` | `True` | 23 flow step(s) |
 | `prm_exp_bundle` | `False` | 4 flow step(s) |
-| `prm_pricing` | `False` | 15 flow step(s) |
+| `prm_pricing` | `True` | 15 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 6 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
@@ -244,8 +244,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 7 → `assign_permission_sets`
 - `prepare_prm` step 8 → `insert_quantumbit_prm_data`
 - `prepare_prm` step 9 → `manage_context_definition`
-- `prepare_prm` step 10 → `manage_context_definition`
-- `prepare_prm` step 11 → `prepare_prm_pricing`
+- `prepare_prm` step 10 → `prepare_prm_pricing`
 - `deploy_post_prm_pricing` step 1 → `deploy_post_prm_pricing_objects`
 - `deploy_post_prm_pricing` step 2 → `deploy_post_prm_pricing_decision_tables`
 - `deploy_post_prm_pricing` step 3 → `configure_pricing_recipe_table_mappings`
@@ -268,9 +267,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 7 → `assign_permission_sets`
 
-### `prm_pricing` (default: `False`)
+### `prm_pricing` (default: `True`)
 
-- `prepare_prm` step 11 → `prepare_prm_pricing`
+- `prepare_prm` step 10 → `prepare_prm_pricing`
 - `deploy_post_prm_pricing` step 1 → `deploy_post_prm_pricing_objects`
 - `deploy_post_prm_pricing` step 2 → `deploy_post_prm_pricing_decision_tables`
 - `deploy_post_prm_pricing` step 3 → `configure_pricing_recipe_table_mappings`

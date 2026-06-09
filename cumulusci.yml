@@ -112,7 +112,7 @@ project:
     # ── Partner & Commerce ─────────────────────────────────────────────────────
     prm: true                 # Partner Relationship Management
     prm_exp_bundle: false      # PRM Experience Bundle (post_prm site content)
-    prm_pricing: false         # PRM pricing metadata overlay (decision tables, flows, expression sets)
+    prm_pricing: true         # PRM pricing metadata overlay (decision tables, flows, expression sets)
     commerce: false           # Commerce
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
@@ -3727,15 +3727,12 @@ flows:
       9:
         task: manage_context_definition
         when: project_config.project__custom__prm
-      10:
-        task: manage_context_definition
-        when: project_config.project__custom__prm
         options:
           plan_file: datasets/context_plans/PartnerAccount/manifest.json
           developer_name: RLM_SalesTransactionContext
           translate_plan: true
           activate: true
-      11:
+      10:
         flow: prepare_prm_pricing
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing
 

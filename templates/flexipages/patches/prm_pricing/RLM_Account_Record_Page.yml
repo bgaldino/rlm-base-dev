@@ -4,7 +4,7 @@ feature_flag: prm_pricing
 patches:
   - type: insert_after_xml
     anchor: |-
-      <name>Facet-a78af889-d410-46dc-a884-1e795c99f4fe</name>
+      <name>Facet-233dc5b6-35f9-467e-b1da-f02d79f91713</name>
               <type>Facet</type>
           </flexiPageRegions>
     xml: |2
@@ -74,7 +74,7 @@ patches:
                           <value>Facet-dabbcfbe-adbd-4e7f-afbd-ffa148c19d17</value>
                       </componentInstanceProperties>
                       <componentName>flexipage:column</componentName>
-                      <identifier>flexipage_column</identifier>
+                      <identifier>flexipage_column_partner_info_1</identifier>
                   </componentInstance>
               </itemInstances>
               <itemInstances>
@@ -84,7 +84,7 @@ patches:
                           <value>Facet-9300f0a6-56dc-4de4-9757-eb3af415cdba</value>
                       </componentInstanceProperties>
                       <componentName>flexipage:column</componentName>
-                      <identifier>flexipage_column2</identifier>
+                      <identifier>flexipage_column_partner_info_2</identifier>
                   </componentInstance>
               </itemInstances>
               <name>Facet-2f95b3e5-6e75-47de-bc77-230fb17aac4d</name>
@@ -92,8 +92,8 @@ patches:
           </flexiPageRegions>
 
   - type: add_component
-    region: detailTabContent
-    after_identifier: flexipage_fieldSection3
+    region: feedTabContent
+    after_identifier: flexipage_fieldSection2
     component: flexipage:fieldSection
     identifier: flexipage_fieldSection_partner_info
     properties:

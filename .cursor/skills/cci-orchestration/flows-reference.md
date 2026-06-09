@@ -434,12 +434,11 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
    - `api_names`: `['RLM_PRM']`
 8. **task** `insert_quantumbit_prm_data`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
 9. **task** `manage_context_definition`  `when: project_config.project__custom__prm`
-10. **task** `manage_context_definition`  `when: project_config.project__custom__prm`
    - `plan_file`: `datasets/context_plans/PartnerAccount/manifest.json`
    - `developer_name`: `RLM_SalesTransactionContext`
    - `translate_plan`: `True`
    - `activate`: `True`
-11. **flow** `prepare_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
+10. **flow** `prepare_prm_pricing`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing`
 
 ---
 
