@@ -69,14 +69,16 @@ def _json(args, input_text=None):
 
 
 def resolve_repo(repo):
-    if repo:
-        return repo
-    out = _run(
-        ["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"]
-    ).stdout.strip()
-    if not out:
-        raise SystemExit("Could not determine repo; pass --repo owner/name")
-    return out
+    if not repo:
+        repo = _run(
+            ["repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"]
+        ).stdout.strip()
+        if not repo:
+            raise SystemExit("Could not determine repo; pass --repo owner/name")
+    parts = repo.split("/")
+    if len(parts) != 2 or not parts[0] or not parts[1]:
+        raise SystemExit(f"--repo must be in owner/name format, got: {repo!r}")
+    return repo
 
 
 def fetch_threads(repo, pr):
@@ -234,9 +236,11 @@ def main():
     if a.cmd == "handle":
         body = a.body
         if a.body_file:
-            body = sys.stdin.read() if a.body_file == "-" else open(
-                a.body_file, encoding="utf-8"
-            ).read()
+            if a.body_file == "-":
+                body = sys.stdin.read()
+            else:
+                with open(a.body_file, encoding="utf-8") as fh:
+                    body = fh.read()
         if not body or not body.strip():
             raise SystemExit("handle requires --body or --body-file")
         sys.exit(cmd_handle(repo, a.pr, a.comment, body, react=not a.no_react))
