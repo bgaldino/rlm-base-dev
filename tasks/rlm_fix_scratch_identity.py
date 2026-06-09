@@ -217,10 +217,15 @@ class FixScratchOrgIdentity(BaseTask):
         directory = os.path.dirname(str(path)) or "."
         fd, tmp = tempfile.mkstemp(prefix=".rlm_auth_", dir=directory)
         try:
-            os.fchmod(fd, mode)
+            # Restrict perms before writing secrets. os.fchmod is POSIX-only;
+            # fall back to os.chmod(path) on platforms without it (e.g. Windows).
+            if hasattr(os, "fchmod"):
+                os.fchmod(fd, mode)
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 json.dump(data, fh, indent=2)
                 fh.write("\n")
+            if not hasattr(os, "fchmod"):
+                os.chmod(tmp, mode)
             os.replace(tmp, str(path))
         except BaseException:
             # Clean up the temp file on any failure; never leave a stray.
