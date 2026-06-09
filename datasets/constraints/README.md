@@ -251,7 +251,8 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import Server2 model |
 | 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import QuantumBitPCM model (imported but left **inactive** — see note below) |
 | 10 | `import_cml` (QuantumBitBundle) | `constraints_data` + `qb` | Import the combined QuantumBitBundle model |
-| 11 | `manage_expression_sets` | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** |
+| 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1` + `QuantumBitPCM_V1` (idempotent switch; no-op on a fresh build) |
+| 12 | `manage_expression_sets` (activate) | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** |
 
 > **QuantumBitBundle is the active QuantumBit model; QuantumBitComplete and
 > QuantumBitPCM are imported but not activated.** Only one QuantumBit constraint
@@ -259,9 +260,11 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 > QuantumBitComplete configurable bundle + the QuantumBitPCM virtual-quote
 > cross-item rules — see [QuantumBitBundle (combined model)](#quantumbitbundle-combined-model)).
 > `QuantumBitComplete` and `QuantumBitPCM` are loaded (model + blob + ESC) but left
-> inactive for A/B/C comparison. Activation sets `ExpressionSetVersion.IsActive=true`
-> only for the versions named in step 11; `import_cml` creates versions inactive, so
-> omitting the others from the list is sufficient.
+> inactive for A/B/C comparison. On a fresh build `import_cml` creates every version
+> inactive; step 11 explicitly deactivates `QuantumBitComplete_V1` + `QuantumBitPCM_V1`
+> (a no-op on a fresh build, but it makes re-running on an existing org idempotent —
+> `manage_expression_sets` only toggles the versions it is given), and step 12 then
+> sets `ExpressionSetVersion.IsActive=true` only for `Server2_V1` + `QuantumBitBundle_V1`.
 >
 > **Switching the active QuantumBit model** (e.g. back to PCM for comparison) —
 > `manage_expression_sets` extends `BaseTask`, so it has **no `--org` flag**; it
@@ -278,9 +281,9 @@ The `prepare_constraints` flow in `cumulusci.yml` orchestrates the full constrai
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `constraints` | `true` | Enable constraint metadata deployment (steps 1-4) |
-| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-10) |
+| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-12) |
 | `quantumbit` | `true` | QuantumBit-specific prerequisites (step 1) |
-| `qb` | `true` | QuantumBit dataset family (steps 6-10) |
+| `qb` | `true` | QuantumBit dataset family (steps 6-12) |
 
 To run the full constraints flow including data:
 ```yaml

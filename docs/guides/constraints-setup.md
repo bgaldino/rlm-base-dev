@@ -4,7 +4,7 @@ This document describes the `prepare_constraints` flow, its dependencies, and ho
 
 ## Flow Order (prepare_constraints)
 
-The `prepare_constraints` flow runs ten steps grouped into two phases:
+The `prepare_constraints` flow runs twelve steps grouped into two phases:
 
 ### Phase 1: Metadata Setup (steps 1-4)
 
@@ -17,9 +17,9 @@ These steps run when the `constraints` flag is `true`:
 | 3 | `assign_permission_sets` | `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 
-### Phase 2: Constraint Data Loading (steps 5-11)
+### Phase 2: Constraint Data Loading (steps 5-12)
 
-These steps run when `constraints_data` is `true` (steps 6-11 also require `qb`):
+These steps run when `constraints_data` is `true` (steps 6-12 also require `qb`):
 
 | Step | Task | Condition | Purpose |
 |------|------|-----------|---------|
@@ -29,7 +29,8 @@ These steps run when `constraints_data` is `true` (steps 6-11 also require `qb`)
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import the Server2 constraint model |
 | 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import the QuantumBitPCM constraint model (imported but left **inactive**) |
 | 10 | `import_cml` (QuantumBitBundle) | `constraints_data` + `qb` | Import the combined QuantumBitBundle model (QuantumBitComplete bundle + QuantumBitPCM virtual-quote rules) |
-| 11 | `manage_expression_sets` | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** (QuantumBitComplete_V1 and QuantumBitPCM_V1 are left inactive — only one QuantumBit model can be active at a time; QuantumBitBundle is the active combined model). See `datasets/constraints/README.md`. |
+| 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1` and `QuantumBitPCM_V1` first, so re-running on an existing org reliably switches to Bundle (no-op on a fresh build) |
+| 12 | `manage_expression_sets` (activate) | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** (only one QuantumBit model can be active at a time; QuantumBitBundle is the active combined model). See `datasets/constraints/README.md`. |
 
 **Important:** Phase 2 uses the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. The old SFDMU constraint data plans (`qb-constraints-product`, `qb-constraints-component`, etc.) are deprecated and archived in `datasets/sfdmu/_archived/`.
 
@@ -38,9 +39,9 @@ These steps run when `constraints_data` is `true` (steps 6-11 also require `qb`)
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `constraints` | `true` | Enable constraint metadata deployment (steps 1-4) |
-| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-10) |
+| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-12) |
 | `quantumbit` | `true` | QuantumBit-specific prerequisites (step 1) |
-| `qb` | `true` | QuantumBit dataset family gate (steps 6-10) |
+| `qb` | `true` | QuantumBit dataset family gate (steps 6-12) |
 
 To load constraint data, set `constraints_data: true` in `cumulusci.yml` or override at runtime:
 

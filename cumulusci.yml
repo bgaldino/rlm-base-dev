@@ -3679,12 +3679,26 @@ flows:
         task: manage_expression_sets
         when: project_config.project__custom__constraints_data and project_config.project__custom__qb
         options:
+          operation: deactivate_versions
+          # Deactivate any previously-active QuantumBit model FIRST so re-running
+          # prepare_constraints on an existing org reliably switches to QuantumBitBundle.
+          # manage_expression_sets only toggles the versions it is given -- it does not
+          # auto-deactivate others -- and only one QuantumBit model may be active at a time,
+          # so activating Bundle without this would leave Complete/PCM active alongside it.
+          # No-op on a fresh build (Complete/PCM are imported inactive); the task safely
+          # skips versions that are already inactive or absent.
+          version_full_names: "QuantumBitComplete_V1,QuantumBitPCM_V1"
+      12:
+        task: manage_expression_sets
+        when: project_config.project__custom__constraints_data and project_config.project__custom__qb
+        options:
           operation: activate_versions
           # Only one QuantumBit constraint model can be active at a time.
           # QuantumBitBundle_V1 (the combined model = QuantumBitComplete bundle +
           # QuantumBitPCM virtual-quote rules, LineItem-primary) is the active QuantumBit
           # model. QuantumBitComplete_V1 (step 7) and QuantumBitPCM_V1 (step 9) are still
-          # imported but left INACTIVE for A/B comparison. See datasets/constraints/README.md.
+          # imported but left INACTIVE (deactivated in step 11) for A/B comparison.
+          # See datasets/constraints/README.md.
           version_full_names: "Server2_V1,QuantumBitBundle_V1"
 
   prepare_approvals:

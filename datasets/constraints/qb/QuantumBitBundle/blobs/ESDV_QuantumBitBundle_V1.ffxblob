@@ -44,7 +44,7 @@ type Quote {
     // rule(lineitems[APIAccessRequestsAEH], "disable", "relation", "LineItem", "type", "QuantumBitCollaborationSuite", "message", "Not compatible with QuantumBit Collaboration Suite");
 
     // message(true, "API Access Requests needs to be provisioned carefully", "warning");
-    require(lineitems[APIAccessRequestsAEH], lineitems[QuantumBitDatabase], "Unable to add QuantumBit Database");
+    require(lineitems[APIAccessRequestsAEH], lineitems[QuantumBitDatabase], "QuantumBit Database is required when API Access Requests (AEH) is selected.");
 
     rule(lineitems[APIAccessRequestsAEH], "recommend", "type", "QuantumBitEssentialsTraining", "message", "QuantumBit Essentials Training to help you with API access");
 

@@ -228,6 +228,9 @@ Create Self-Service Billing Portal community and optionally deploy site content.
    - `data_dir`: `datasets/constraints/qb/QuantumBitBundle`
    - `dataset_dirs`: `datasets/sfdmu/qb/en-US/qb-pcm`
 11. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
+   - `operation`: `deactivate_versions`
+   - `version_full_names`: `QuantumBitComplete_V1,QuantumBitPCM_V1`
+12. **task** `manage_expression_sets`  `when: project_config.project__custom__constraints_data and project_config.project__custom__qb`
    - `operation`: `activate_versions`
    - `version_full_names`: `Server2_V1,QuantumBitBundle_V1`
 
