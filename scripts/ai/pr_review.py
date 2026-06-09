@@ -176,14 +176,21 @@ def cmd_handle(repo, pr, comment_id, body, react):
         "-f", f"body={body}",
     ])
     print(f"  ✓ replied in-thread on comment {comment_id}")
-    # 2. 👍 the original comment (GA reactions header).
+    # 2. 👍 the original comment (GA reactions header). Non-fatal: a failed
+    #    reaction must NOT abort the all-important resolve step below — that
+    #    would leave the half-finished state (reply posted, thread open) this
+    #    tool exists to prevent. Warn and continue.
     if react:
-        _run([
+        res = _run([
             "api", "--method", "POST",
             f"repos/{owner}/{name}/pulls/comments/{comment_id}/reactions",
             "-H", "Accept: application/vnd.github+json", "-f", "content=+1",
-        ])
-        print("  ✓ 👍 reaction added")
+        ], check=False)
+        if res.returncode == 0:
+            print("  ✓ 👍 reaction added")
+        else:
+            detail = (res.stderr or res.stdout or "").strip()
+            print(f"  ⚠ 👍 reaction failed (continuing to resolve): {detail[:200]}")
     # 3. Resolve the thread (REST can't — GraphQL). Match the thread whose first
     #    comment is the cited (original) review comment.
     target = next(
