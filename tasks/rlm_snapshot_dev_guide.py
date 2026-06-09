@@ -879,7 +879,11 @@ class SnapshotSalesforceDevGuide(BaseTask):
             for start in range(0, len(frontier), concurrency):
                 if len(fetched) >= max_pages:
                     break
-                batch = frontier[start:start + concurrency]
+                # Cap the final batch to the remaining allowance so the total
+                # fetched never exceeds max_pages (the slice would otherwise grab
+                # a full `concurrency` and overshoot by up to concurrency-1).
+                remaining = max_pages - len(fetched)
+                batch = frontier[start:start + min(concurrency, remaining)]
                 results = await page.evaluate(
                     FETCH_BATCH_JS,
                     {"base": DOCS_BASE, "deliverable": deliverable,
