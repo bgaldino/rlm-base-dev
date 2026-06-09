@@ -149,9 +149,13 @@ def test_permissions_forced_0600():
 
 def test_find_auth_files():
     task = make_task()
-    original_home = os.environ.get("HOME")
+    # Path.home() reads HOME on POSIX and USERPROFILE on Windows — set/restore
+    # both so the test redirects the home dir portably.
+    home_vars = ("HOME", "USERPROFILE")
+    saved = {k: os.environ.get(k) for k in home_vars}
     with tempfile.TemporaryDirectory() as home:
-        os.environ["HOME"] = home
+        for k in home_vars:
+            os.environ[k] = home
         try:
             sfdx = os.path.join(home, ".sfdx")
             os.makedirs(sfdx)
@@ -160,10 +164,11 @@ def test_find_auth_files():
             check("finds ~/.sfdx/<user>.json", [str(p) for p in found] == [str(target)])
             check("missing user -> empty", task._find_auth_files("nobody@example.com") == [])
         finally:
-            if original_home is not None:
-                os.environ["HOME"] = original_home
-            else:
-                os.environ.pop("HOME", None)
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
 
 
 # ----------------------------------------------------------------------
@@ -265,6 +270,30 @@ def test_atomic_write_cleanup_on_chmod_failure():
             os.fchmod = original_fchmod
 
 
+def test_find_auth_files_glob_safe():
+    # A username with glob metacharacters ("[") must be matched literally in the
+    # recursive ~/.sf scan, not interpreted as a glob char-class.
+    task = make_task()
+    home_vars = ("HOME", "USERPROFILE")
+    saved = {k: os.environ.get(k) for k in home_vars}
+    user = "weird[name]@example.com"
+    with tempfile.TemporaryDirectory() as home:
+        for k in home_vars:
+            os.environ[k] = home
+        try:
+            sf_sub = os.path.join(home, ".sf", "orgs")
+            os.makedirs(sf_sub)
+            target = write_auth(sf_sub, {"isScratch": True}, name=f"{user}.json")
+            found = [str(p) for p in task._find_auth_files(user)]
+            check("glob-safe: finds user with '[' in name", str(target) in found)
+        finally:
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
+
+
 def test_atomic_write_without_fchmod():
     # Simulate a platform without os.fchmod (e.g. Windows): the os.chmod path
     # must still restrict perms to 0600 (before writing) and write correctly.
@@ -291,6 +320,7 @@ def main():
     test_repair_raises_on_bad_files()
     test_permissions_forced_0600()
     test_find_auth_files()
+    test_find_auth_files_glob_safe()
     test_run_summary_branches()
     test_run_gating_and_failure_modes()
     test_dedicated_exception_type()

@@ -147,9 +147,14 @@ class FixScratchOrgIdentity(BaseTask):
         candidates = [home / ".sfdx" / f"{username}.json"]
         sf_dir = home / ".sf"
         if sf_dir.is_dir():
+            # Escape the directory prefix and the filename so any glob
+            # metacharacters in the path or username (e.g. "[") are matched
+            # literally; only the "**" segment stays a recursive wildcard.
+            pattern = os.path.join(
+                glob.escape(str(sf_dir)), "**", glob.escape(f"{username}.json")
+            )
             candidates += [
-                Path(p)
-                for p in glob.glob(str(sf_dir / "**" / f"{username}.json"), recursive=True)
+                Path(p) for p in glob.glob(pattern, recursive=True)
             ]
         # De-dupe while preserving order; keep only files that exist.
         seen, found = set(), []
