@@ -98,6 +98,11 @@ class CreatePersonaUser(BaseTask):
             raise CommandException(
                 f"{action} timed out after {self.CLI_TIMEOUT_SECONDS}s."
             ) from exc
+        except FileNotFoundError as exc:
+            raise CommandException(
+                f"{action} failed: the Salesforce CLI ('sf') was not found on "
+                "PATH. Install the Salesforce CLI and ensure 'sf' is on PATH."
+            ) from exc
 
     def _run_task(self):
         definition_file = self.options.get("definition_file")

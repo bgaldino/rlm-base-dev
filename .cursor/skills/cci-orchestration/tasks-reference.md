@@ -1138,7 +1138,7 @@
 
 ### `create_personas_sales_rep_user`
 
-**Description:** Create the Sales Rep persona user (alias sales-rep-user) from config/users/sales-rep-def.json with the RLM Sales Representative profile. On scratch orgs uses `sf org create user`; on non-scratch orgs (production, developer edition, sandbox) inserts a User sObject via REST and sets a password via the REST User password resource (never logged; supply via the 'password' option or RLM_PERSONA_USER_PASSWORD env var to use a known value). Idempotent: skips creation when a matching user already exists. Appends a unique username suffix to avoid conflicts.
+**Description:** Create the Sales Rep persona user from config/users/sales-rep-def.json with the RLM Sales Representative profile. On scratch orgs uses `sf org create user`, which registers the sf auth alias 'sales-rep-user' (usable as `--target-org sales-rep-user`). On non-scratch orgs (production, developer edition, sandbox) inserts a User sObject via REST and sets a password via the REST User password resource (never logged; supply via the 'password' option or RLM_PERSONA_USER_PASSWORD env var to use a known value) — no sf auth alias is created in that case. Idempotent: skips creation when a matching user already exists. Appends a unique username suffix to avoid conflicts.
 
 **Class:** `tasks.rlm_create_persona_user.CreatePersonaUser`
 
