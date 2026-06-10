@@ -821,11 +821,16 @@ class WriteBackUXTemplates(BaseTask):
             "component_identifier", SALES_TXN_LINE_EDITOR_IDENTIFIER
         )
         prop_name = patch.get("property", "displayFields")
-        org_fields = set(
-            _get_component_value_list_items(
-                org_root, component_identifier, prop_name
-            )
+        org_items = _get_component_value_list_items(
+            org_root, component_identifier, prop_name
         )
+        if org_items is None:
+            # Component/property/valueList not found in the org state — cannot
+            # determine which fields survive, so leave the patch unchanged rather
+            # than dropping all of its fields (the org may use a different
+            # component identifier or property name).
+            return None
+        org_fields = set(org_items)
         surviving = [field for field in patch_fields if field in org_fields]
         if surviving == patch_fields:
             return None
@@ -1382,8 +1387,15 @@ def _get_component_value_list_items(
     root: ET.Element,
     component_identifier: str,
     prop_name: str,
-) -> List[str]:
-    """Return valueList values for a property on a specific component identifier."""
+) -> Optional[List[str]]:
+    """Return valueList values for a property on a specific component identifier.
+
+    Returns ``None`` when the component identifier, the property, or its
+    ``valueList`` cannot be located ("cannot determine" — distinct from a
+    valueList that exists but is empty, which returns ``[]``). Callers must treat
+    ``None`` as "leave unchanged", not "the org has no fields", so a patch is not
+    silently dropped when the org uses a different component identifier/property.
+    """
     for ci in root.iter(f"{SF_NS_TAG}componentInstance"):
         id_el = _find_elem(ci, "identifier")
         if id_el is None or id_el.text != component_identifier:
@@ -1395,7 +1407,7 @@ def _get_component_value_list_items(
                 continue
             vlist = _find_elem(ci_props, "valueList")
             if vlist is None:
-                return []
+                return None
             return [
                 val_el.text
                 for item in _findall_elem(vlist, "valueListItems")
@@ -1403,7 +1415,7 @@ def _get_component_value_list_items(
                 if val_el is not None and val_el.text
             ]
 
-    return []
+    return None
 
 
 def _remove_component_value_list_items(
