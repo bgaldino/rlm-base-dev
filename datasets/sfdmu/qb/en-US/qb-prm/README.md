@@ -108,7 +108,7 @@ and deployed by the baseline `deploy_post_prm` task:
 | ChannelProgramMember  | `RLM_Adjustment_Value__c`      | Number(18,2)  | Adjustment Value     |
 | ChannelProgramMember  | `RLM_Discount_Rate__c`         | Number(18,2)  | Discount Rate        |
 
-¹ `ChannelProgramLevel.RLM_Discount_Rate__c` was intentionally changed from `Percent(18,0)` to `Number(18,0)` in this feature branch to align with the PRM pricing bundle, which stores raw decimal rates rather than percentages. Because this repo targets clean org builds, no destructive migration of existing data is required.
+¹ `ChannelProgramLevel.RLM_Discount_Rate__c` was intentionally changed from `Percent(18,0)` to `Number(18,0)` in this feature branch to align with the PRM pricing bundle. The field holds the rate as a literal whole number (the seed values are `15`, `10`, `5`, `2` — i.e. `15` means a 15% discount), which the PRM pricing decision table (`RLM_Channel_Program_Level_Partner`) reads directly. A `Percent` field would be treated as a fraction (e.g. `0.15`) in formula/decision-table evaluation, so `Number` keeps the stored and evaluated values identical. Because this repo targets clean org builds, no destructive migration of existing data is required.
 
 ### Permission Set: `RLM_PRM`
 
