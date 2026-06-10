@@ -528,7 +528,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `agents` | `false` | Deploy Agentforce Agent configurations |
 | `prm` | `true` | Use Partner Relationship Management |
 | `prm_exp_bundle` | `true` | Use PRM Experience Bundle |
-| `prm_pricing` | `false` | Enable PRM pricing metadata/tasks (`prepare_prm_pricing`) |
+| `prm_pricing` | `true` | Enable PRM pricing metadata/tasks (`prepare_prm_pricing`) |
 | `commerce` | `false` | Use Commerce |
 | `breconfig` | `false` | Business Rules Engine configuration |
 | `docgen` | `true` | Use Document Generation |

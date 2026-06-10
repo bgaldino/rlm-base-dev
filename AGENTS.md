@@ -13,7 +13,6 @@ Salesforce Release 262 (Summer '26, API v67.0). The previous GA target was
 Release 260 (Spring '26) on the `main` branch — this branch is the 262 upgrade.
 
 Key technology stack:
-
 - **CumulusCI (CCI)** — orchestration engine for tasks and flows
 - **SFDMU v5** — data import/export (`sf sfdmu run`). **v5.0.0+ required.**
 - **Salesforce DX / `sf` CLI** — metadata deployment and org management
@@ -73,10 +72,10 @@ docs/                  # Documentation (lower-kebab-case filenames)
 
 CCI and `sf` CLI use **different alias registries**:
 
-| Context        | Flag                                  | Example                                                  |
-| -------------- | ------------------------------------- | -------------------------------------------------------- |
-| CCI task/flow  | `--org <cci_alias>`                   | `cci task run insert_quantumbit_pricing_data --org beta` |
-| SF CLI command | `--target-org <sf_alias_or_username>` | `sf data query -q "..." --target-org rlm-base__beta`     |
+| Context | Flag | Example |
+|---------|------|---------|
+| CCI task/flow | `--org <cci_alias>` | `cci task run insert_quantumbit_pricing_data --org beta` |
+| SF CLI command | `--target-org <sf_alias_or_username>` | `sf data query -q "..." --target-org rlm-base__beta` |
 
 CCI alias `beta` → SF CLI alias `rlm-base__beta`. Never mix them.
 
@@ -91,7 +90,6 @@ All data plans **must** comply with these rules. SFDMU v5 has breaking
 changes from v4.
 
 ### externalId Format
-
 - Use `;` delimiters: `Field1;Field2` (NOT `$$Field1$Field2`)
 - `$$` columns in CSVs are valid for Upsert target-record matching
 
@@ -107,7 +105,7 @@ changes from v4.
 **Bug 3 — Upsert with relationship-traversal externalId never matches**
 Creates duplicates on every run.
 **Fix:** Use `operation: Insert` + `deleteOldData: true`.
-_Upstream: [SFDX-Data-Move-Utility#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)_
+*Upstream: [SFDX-Data-Move-Utility#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)*
 
 **Bug 4 — `$$` composite key self-references fail on import**
 When a CSV uses `$$` composite notation for a self-referential lookup
@@ -126,8 +124,7 @@ whose only logical key is a composite of parent lookups.
 ### CRITICAL — Insert + deleteOldData requires explicit approval
 
 **Never propose changing `Upsert` to `Insert` + `deleteOldData: true` without:**
-
-1. Explaining _why_ Upsert cannot work (which Bug applies)
+1. Explaining *why* Upsert cannot work (which Bug applies)
 2. Confirming no direct-field externalId alternative exists
 3. Getting **explicit user approval**
 
@@ -135,7 +132,6 @@ whose only logical key is a composite of parent lookups.
 before inserting. When in doubt, keep Upsert.
 
 ### deleteOldData Deletion Order
-
 Objects delete in **reverse array order**. Always order parent → child
 in the array; deletions run child → parent.
 
