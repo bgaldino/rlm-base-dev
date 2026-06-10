@@ -17,6 +17,8 @@ pattern as PRM pricing without redesigning setup order each time.
 3. Keep metadata org-agnostic (placeholders + transforms, never hardcoded record IDs).
 4. Apply overlays with explicit sequencing (deactivate -> load -> verify -> reactivate).
 5. Validate on a clean org, then re-run for idempotency.
+6. Prefer `LookUpApiName` for decision table references; add `LookUpId` only when
+   a known org/runtime issue requires it.
 
 ## DO NOT
 
@@ -26,6 +28,8 @@ pattern as PRM pricing without redesigning setup order each time.
 - **DO NOT** assume decision table existence implies recipe compatibility (mapping can still be missing).
 - **DO NOT** reorder `prepare_rlm_org` or subflow steps without dependency analysis.
 - **DO NOT** insert a procedure-plan section into an occupied sequence before moving the existing section out of that sequence.
+- **DO NOT** duplicate `LookUpId` parameters within a single expression-set step;
+  this can produce a generic Metadata API "unexpected error" at deploy time.
 
 ---
 
@@ -85,6 +89,15 @@ Keep procedure metadata deploy-safe with placeholders and runtime transforms in
 
 - lookup placeholders (e.g., `__LOOKUPID_*`)
 - PAS placeholders (e.g., `__ATTRIBUTEPasID__`)
+
+Lookup reference strategy:
+
+- Default to `LookUpApiName` when the target `DecisionTable.DeveloperName` is
+  stable and verified in setup/flows.
+- Add `LookUpId` placeholders only when needed; do not add both casually.
+- If both are present in a step, verify there is exactly one `LookUpId`
+  parameter block per step.
+- Keep source metadata org-agnostic: never commit real record IDs.
 
 When altering calculation logic, prefer minimal additive deltas on top of stable
 baseline structure.
@@ -231,6 +244,9 @@ cci flow run prepare_prm_pricing --org <cci_alias>
 
 # Idempotency rerun
 cci flow run prepare_expression_sets --org <cci_alias>
+
+# Targeted expression-set parse/deploy check (fast failure signal)
+sf project deploy start --metadata ExpressionSetDefinition:RLM_DefaultPricingProcedure --target-org rlm-base__<cci_alias> --dry-run --test-level NoTestRun --json
 ```
 
 Expected idempotency:
@@ -254,6 +270,35 @@ Check in order:
 ### active version update failures
 
 Confirm deactivate step runs before deploy and targets correct versions.
+Note: there are two distinct deactivation gates:
+
+1. **ExpressionSetVersion** — the `deactivate_expression_sets` task handles this
+2. **ProcedurePlanDefinitionVersion** — if the expression set is referenced by an
+   active plan version, that plan version must also be deactivated before deploy.
+   The plan version lock produces a generic "unexpected error" distinct from the
+   expression set version lock.
+
+### `ExpressionSetDefinition ... unexpected error occurred`
+
+When the deploy error is generic and points at a single expression set:
+
+1. check whether an active `ProcedurePlanDefinitionVersion` references the
+   expression set — an active plan version locks the expression set from
+   metadata API updates. Deactivate the plan version first, deploy, then
+   reactivate.
+2. run a targeted dry-run deploy for that expression set only
+3. diff against last known-good version
+4. inspect changed steps for duplicate parameter names (especially `LookUpId`)
+5. confirm lookup strategy is coherent (`LookUpApiName` baseline, `LookUpId` only when intentional)
+
+### Expression sets fail deploy via raw `sf project deploy`
+
+Expression sets containing `__LOOKUPID_*__` placeholder tokens cannot deploy
+via `sf project deploy start` — placeholders are not valid Salesforce record
+IDs and the metadata API rejects them. Always use `cci task run
+deploy_expression_sets` (or `activate_and_deploy_expression_sets`), which
+applies `find_replace` transforms from `cumulusci.yml` to resolve placeholders
+to real DecisionTable IDs via SOQL before deploying.
 
 ### procedure-plan overlay succeeds only on rerun
 
