@@ -78,7 +78,12 @@ fi
 
 if [[ "$UPGRADE" -eq 1 ]] || ! "$VENV_PYTHON" -c "import textual, yaml" >/dev/null 2>&1; then
   echo "Installing/updating TUI dependencies..."
-  "$VENV_PYTHON" -m pip install -r "$REQ_FILE"
+  if [[ "$UPGRADE" -eq 1 ]]; then
+    # --upgrade so already-satisfied packages are actually bumped, not skipped.
+    "$VENV_PYTHON" -m pip install --upgrade -r "$REQ_FILE"
+  else
+    "$VENV_PYTHON" -m pip install -r "$REQ_FILE"
+  fi
 fi
 
 cd "$ROOT_DIR"

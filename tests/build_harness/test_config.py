@@ -466,6 +466,36 @@ class TestPrepareScenarioProjectRoot:
         )
         assert not (scenario_dir / "cci_project" / ".harness").exists()
 
+    def test_rebuilds_from_clean_dropping_stale_entries(self, tmp_path, fake_repo) -> None:
+        # A retained cci_project/ from a prior failed/resumable run must not leak
+        # stale entries (e.g. files since deleted from the source repo) into the
+        # rebuilt workspace.
+        scenario_dir = tmp_path / "scenarios" / "minimal"
+        scenario_dir.mkdir(parents=True)
+        prepare_scenario_project_root(
+            fake_repo, scenario_dir, {"project": {"custom": {}}}, {}
+        )
+        # Simulate leftovers from a previous run: a stale top-level entry and a
+        # stale file inside the copied scripts/ tree.
+        stale = scenario_dir / "cci_project" / "stale-from-prior-run"
+        stale.mkdir()
+        (stale / "junk.txt").write_text("junk\n", encoding="utf-8")
+        (scenario_dir / "cci_project" / "scripts" / "removed.apex").write_text(
+            "// removed upstream\n", encoding="utf-8"
+        )
+
+        prepare_scenario_project_root(
+            fake_repo, scenario_dir, {"project": {"custom": {}}}, {}
+        )
+
+        assert not stale.exists(), "stale top-level entry must be dropped on rebuild"
+        assert not (
+            scenario_dir / "cci_project" / "scripts" / "removed.apex"
+        ).exists(), "stale scripts/ file must be dropped on rebuild"
+        # Real source content is still materialized after the rebuild.
+        assert (scenario_dir / "cci_project" / "scripts" / "noop.apex").exists()
+        assert (scenario_dir / "cci_project" / "force-app").is_symlink()
+
 
 class TestCleanupScenarioProjectRoot:
     def test_removes_existing_cci_project_directory(self, tmp_path) -> None:

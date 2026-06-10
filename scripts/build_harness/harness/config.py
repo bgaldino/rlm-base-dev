@@ -199,9 +199,11 @@ _SCENARIO_CCI_BANNER = (
     "#\n"
     "# This file is a per-scenario snapshot of the repo-root cumulusci.yml with\n"
     "# the scenario's flag_overrides applied to project.custom. It is rewritten\n"
-    "# on every harness run inside the scenario's .harness/runs/<run-id>/\n"
-    "# scenarios/<scenario-id>/cci_project/ workspace and is removed at the end\n"
-    "# of the run.\n"
+    "# on every harness run inside the scenario's per-run workspace under\n"
+    "# .harness/ (.harness/runs/<run-id>/... for the CLI, .harness/tui-runs/...\n"
+    "# for the TUI), at scenarios/<scenario-id>/cci_project/. The workspace is\n"
+    "# removed when the run completes successfully and retained on failure (and\n"
+    "# for resumable runs) so the artifacts can be inspected.\n"
     "#\n"
     "# Differences from the source cumulusci.yml that are EXPECTED:\n"
     "# - YAML anchors (&name / *name) are inlined as their resolved values.\n"
@@ -226,10 +228,22 @@ def prepare_scenario_project_root(
     ``cumulusci.yml`` (which gets rewritten with this scenario's overrides)
     and ``scripts/`` (which is *copied* — see comment below). The rewritten
     ``cumulusci.yml`` carries a banner header so an operator inspecting the
-    file inside ``.harness/runs/.../cci_project/`` knows it is generated and
-    where to make permanent changes.
+    file inside the per-run workspace (``.harness/runs/...`` for the CLI or
+    ``.harness/tui-runs/...`` for the TUI) knows it is generated and where to
+    make permanent changes.
+
+    The workspace is rebuilt from a clean directory on every call so that a
+    retained ``cci_project/`` from a prior failed/resumable run cannot leak
+    stale entries (e.g. files since deleted from the source repo) into this run.
     """
     project_root = scenario_dir / "cci_project"
+    # Clean rebuild: nothing in cci_project is run-state — it is regenerated
+    # from source (symlinks to the live repo, a scripts/ copy, and the rewritten
+    # cumulusci.yml) — so discarding any retained copy keeps builds deterministic.
+    if project_root.is_symlink():
+        project_root.unlink()
+    elif project_root.exists():
+        shutil.rmtree(project_root)
     ensure_dir(project_root)
 
     for item in root.iterdir():
@@ -237,15 +251,9 @@ def prepare_scenario_project_root(
             continue
         destination = project_root / item.name
         if item.name == "scripts" and item.is_dir():
-            # Always refresh scripts/ so resumed runs pick up any script changes
-            # made between the original run and the resume. Other items are
-            # symlinked and tolerate the source changing in-place, but scripts/
-            # is a full copy for path isolation, so it must be kept current.
-            if destination.exists():
-                shutil.rmtree(destination)
+            # scripts/ is a full copy (not a symlink) for path isolation, so a
+            # resumed run picks up any script changes made since the prior run.
             shutil.copytree(item, destination)
-            continue
-        if destination.exists() or destination.is_symlink():
             continue
         os.symlink(item, destination, target_is_directory=item.is_dir())
 
