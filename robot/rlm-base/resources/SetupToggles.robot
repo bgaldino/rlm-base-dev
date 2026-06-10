@@ -20,6 +20,9 @@ ${SCRATCH_NEW_PASSWORD}       Cumulus1234!
 # Prepended to both _EnsureShadowDOMToggle and _VerifyToggleViaShadowDOM JS blocks so
 # the implementation lives in one place.
 ${_JS_GET_INPUT_FROM_TOGGLE}    function getInputFromToggle(li){if(!li.shadowRoot)return null;var inp=li.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');if(inp)return inp;var n=li.shadowRoot.querySelector('lightning-primitive-input-toggle');if(n&&n.shadowRoot)return n.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');return null;}
+# Canonical depth-limited shadow-DOM search (.cursor/rules/robot-tests.mdc). Use this
+# instead of an unbounded recursive walk so traversal can't run away on complex pages.
+${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
 
 *** Keywords ***
 Get Authenticated Setup Page Url
@@ -196,8 +199,8 @@ _Document Builder Toggle Should Be On
 _Get Document Builder Toggle State
     ${state}=    Execute JavaScript
     ...    return (function() {
-    ...        function findInShadows(root) { var el = root.querySelector('input[name="documentBuilderEnabled"]'); if (el) return el; var list = root.querySelectorAll('*'); for (var i = 0; i < list.length; i++) { if (list[i].shadowRoot) { var found = findInShadows(list[i].shadowRoot); if (found) return found; } } return null; }
-    ...        var el = document.querySelector('input[name="documentBuilderEnabled"]') || findInShadows(document.body);
+    ...        ${_JS_FIND_EL}
+    ...        var el = findEl(document, 'input[name="documentBuilderEnabled"]', 0);
     ...        if (!el) return 'not_found';
     ...        return el.checked ? 'on' : 'off';
     ...    })()
@@ -349,7 +352,7 @@ _EnsureDocumentBuilderToggle
     Return From Keyword If    not ${turn_on} and "${state}" == "off"
     # Need to toggle -- click exactly once via JS (pierces shadow DOM)
     Log    Document Builder is currently ${state}. Clicking once to toggle.
-    Execute JavaScript    (function(){ function findInShadows(root){ var el=root.querySelector('input[name="documentBuilderEnabled"]'); if(el)return el; var list=root.querySelectorAll('*'); for(var i=0;i<list.length;i++){ if(list[i].shadowRoot){ var r=findInShadows(list[i].shadowRoot); if(r)return r; } } return null; } var el=document.querySelector('input[name="documentBuilderEnabled"]')||findInShadows(document.body); if(el)(el.closest('label')||el).click(); })()
+    Execute JavaScript    (function(){ ${_JS_FIND_EL} var el=findEl(document, 'input[name="documentBuilderEnabled"]', 0); if(el)(el.closest('label')||el).click(); })()
     Sleep    3s    reason=Allow toggle state to update after JS click
 
 _EnsureShadowDOMToggle
