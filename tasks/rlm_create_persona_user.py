@@ -74,6 +74,31 @@ class CreatePersonaUser(BaseTask):
     # hang a CI/build flow indefinitely.
     REQUEST_TIMEOUT_SECONDS = 30
 
+    # Timeout (seconds) for sf CLI subprocess calls. Generous because the CLI
+    # spins up Node and may make network round-trips, but bounded so a hung
+    # plugin or auth prompt can't block a build flow indefinitely.
+    CLI_TIMEOUT_SECONDS = 300
+
+    def _run_cli(self, cmd, action):
+        """Run an sf CLI command with a bounded timeout.
+
+        Converts a ``TimeoutExpired`` into a clear ``CommandException`` so a
+        stalled CLI call (network hiccup, auth prompt, hung plugin) cannot hang
+        the task even though REST calls are already bounded by
+        ``REQUEST_TIMEOUT_SECONDS``.
+        """
+        try:
+            return subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=self.CLI_TIMEOUT_SECONDS,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise CommandException(
+                f"{action} timed out after {self.CLI_TIMEOUT_SECONDS}s."
+            ) from exc
+
     def _run_task(self):
         definition_file = self.options.get("definition_file")
         alias = self.options.get("alias")
@@ -137,7 +162,7 @@ class CreatePersonaUser(BaseTask):
         self.logger.info(f"Creating user from {definition_file} with alias '{alias}' ...")
         self.logger.info(f"  Target org: {self.org_config.username}")
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = self._run_cli(cmd, "sf org create user")
 
         if result.stdout:
             self.logger.info(result.stdout.strip())
@@ -277,7 +302,7 @@ class CreatePersonaUser(BaseTask):
             "--json",
             "--target-org", self.org_config.username,
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = self._run_cli(cmd, "sf data query (resolve ProfileId)")
         if result.returncode != 0:
             raise CommandException(
                 f"Failed to resolve ProfileId for '{profile_name}'.\n{result.stderr}"
@@ -426,7 +451,7 @@ class CreatePersonaUser(BaseTask):
             "--target-org",
             self.org_config.username,
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = self._run_cli(cmd, "sf data query (existing-user check)")
         if result.returncode != 0:
             raise TaskOptionsError(
                 "Failed checking for existing user before create.\n"
