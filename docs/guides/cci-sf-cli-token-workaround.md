@@ -139,6 +139,10 @@ This workaround relies on a flag Salesforce documents as **temporary** (`SF_TEMP
 2. **The Salesforce CLI removes `SF_TEMP_SHOW_SECRETS`** — this *breaks* the workaround and
    forces option 1. Watch the `sf` release notes.
 
+> **Automated:** the `.github/workflows/check-cci-token-fix.yml` workflow runs this check
+> weekly (and on demand via *Run workflow*) and opens a tracking issue when a newer CumulusCI
+> release appears — so nobody has to remember. The manual command below is the same check.
+
 ### How to check (run periodically)
 
 ```bash
