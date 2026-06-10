@@ -1,2 +1,2 @@
-Industry,IsPartner,Name,Phone,Type,BillingCity,BillingCountry,BillingState,RLM_Primary_Reseller__c,RLM_Primary_Distributor__c
-Technology,true,Robot Resellers,+1 (555) 472-9521,Partner,San Francisco,US,CA,,
+Industry,IsPartner,Name,Phone,Type,BillingCity,BillingCountry,BillingState
+Technology,true,Robot Resellers,+1 (555) 472-9521,Partner,San Francisco,US,CA
