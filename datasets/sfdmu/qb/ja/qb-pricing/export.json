@@ -43,7 +43,7 @@
         {
           "query": "SELECT Name, IsDefault, EffectiveFrom, EffectiveTo FROM CostBook",
           "operation": "Upsert",
-          "externalId": "Name;IsDefault",
+          "externalId": "Name",
           "excluded": false
         },
         {
