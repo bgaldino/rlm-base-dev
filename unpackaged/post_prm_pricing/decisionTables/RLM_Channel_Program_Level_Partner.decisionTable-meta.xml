@@ -41,7 +41,7 @@
     <description>Used for Partner and Distributor Pricing in PRM</description>
     <doesConsiderNullValue>false</doesConsiderNullValue>
     <dtRowLevelOverrideType>None</dtRowLevelOverrideType>
-    <executionType>HBASE</executionType>
+    <executionType>Hbase</executionType>
     <filterResultBy>OutputOrder</filterResultBy>
     <hasIncrementalSyncFailed>false</hasIncrementalSyncFailed>
     <isIncrementalSyncEnabled>false</isIncrementalSyncEnabled>
