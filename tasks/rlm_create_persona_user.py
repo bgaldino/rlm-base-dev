@@ -70,6 +70,10 @@ class CreatePersonaUser(BaseTask):
     # 'password' option is not supplied. Keeps secrets out of cumulusci.yml.
     PASSWORD_ENV_VAR = "RLM_PERSONA_USER_PASSWORD"
 
+    # Timeout (seconds) for REST calls so a stalled Salesforce endpoint cannot
+    # hang a CI/build flow indefinitely.
+    REQUEST_TIMEOUT_SECONDS = 30
+
     def _run_task(self):
         definition_file = self.options.get("definition_file")
         alias = self.options.get("alias")
@@ -91,6 +95,24 @@ class CreatePersonaUser(BaseTask):
                 existing_user["Id"],
                 existing_user["Username"],
             )
+            # On non-scratch orgs the user is created and its password set in two
+            # separate REST calls. If a prior run created the user but the
+            # password step failed (e.g. the org policy rejected the value), a
+            # plain skip would leave the user without a usable password and no
+            # way to recover short of deleting it. When an explicit password is
+            # supplied (option or env var), retry setting it on the existing
+            # user so a corrected rerun can recover. The value is never logged.
+            if not getattr(self.org_config, "scratch", False):
+                supplied_password = self.options.get("password") or os.environ.get(
+                    self.PASSWORD_ENV_VAR
+                )
+                if supplied_password:
+                    self._set_password(existing_user["Id"], supplied_password)
+                    self.logger.info(
+                        "Reset the configured password for existing user %s "
+                        "(value not logged).",
+                        existing_user["Username"],
+                    )
             return
 
         # `sf org create user` is scratch-only and raises NonScratchOrgError on
@@ -152,6 +174,15 @@ class CreatePersonaUser(BaseTask):
             )
         profile_id = self._resolve_profile_id(profile_name)
 
+        # Validate the fields accessed directly below so a missing field yields a
+        # clear TaskOptionsError instead of an unhelpful KeyError stack trace.
+        missing = [f for f in ("LastName", "Email") if not user_def.get(f)]
+        if missing:
+            raise TaskOptionsError(
+                "definition_file is missing required field(s) for non-scratch "
+                f"user creation: {', '.join(missing)}."
+            )
+
         # Production usernames must be globally unique across all Salesforce
         # orgs. Mirror the scratch --set-unique-username behavior by appending
         # a unique ".<suffix>" so re-runs still match via _find_existing_user's
@@ -195,7 +226,9 @@ class CreatePersonaUser(BaseTask):
             "Authorization": f"Bearer {self.org_config.access_token}",
             "Content-Type": "application/json",
         }
-        resp = requests.post(url, headers=headers, json=record)
+        resp = requests.post(
+            url, headers=headers, json=record, timeout=self.REQUEST_TIMEOUT_SECONDS
+        )
         if not resp.ok:
             raise CommandException(
                 f"Failed to create User (HTTP {resp.status_code}): {resp.text}"
@@ -279,7 +312,12 @@ class CreatePersonaUser(BaseTask):
             "Authorization": f"Bearer {self.org_config.access_token}",
             "Content-Type": "application/json",
         }
-        resp = requests.post(url, headers=headers, json={"NewPassword": password})
+        resp = requests.post(
+            url,
+            headers=headers,
+            json={"NewPassword": password},
+            timeout=self.REQUEST_TIMEOUT_SECONDS,
+        )
         if not resp.ok:
             # Surface only the status and error code(s) — never the response body
             # verbatim, which can echo the submitted password.
@@ -305,13 +343,15 @@ class CreatePersonaUser(BaseTask):
     @staticmethod
     def _generate_password():
         """Generate a strong password meeting Salesforce complexity requirements."""
-        alphabet = string.ascii_letters + string.digits + "!@#$%^&*-_"
+        special = "!@#$%^&*-_"
+        alphabet = string.ascii_letters + string.digits + special
         while True:
             pwd = "".join(secrets.choice(alphabet) for _ in range(14))
             if (
                 any(c.islower() for c in pwd)
                 and any(c.isupper() for c in pwd)
                 and any(c.isdigit() for c in pwd)
+                and any(c in special for c in pwd)
             ):
                 return pwd
 
