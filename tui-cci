@@ -68,6 +68,14 @@ if [[ ! -x "$VENV_PYTHON" ]]; then
   "$VENV_PYTHON" -m pip install -r "$REQ_FILE"
 fi
 
+# Always verify the venv Python is 3.11+ — guards against a venv that was
+# created by an older Python before the 3.11 requirement was introduced.
+if ! "$VENV_PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then
+  echo "tui-cci: existing venv at $VENV_DIR uses Python < 3.11. Remove it and re-run to rebuild with Python 3.11+."
+  echo "  rm -rf $VENV_DIR"
+  exit 1
+fi
+
 if [[ "$UPGRADE" -eq 1 ]] || ! "$VENV_PYTHON" -c "import textual, yaml" >/dev/null 2>&1; then
   echo "Installing/updating TUI dependencies..."
   "$VENV_PYTHON" -m pip install -r "$REQ_FILE"

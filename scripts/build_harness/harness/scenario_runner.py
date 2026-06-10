@@ -414,14 +414,6 @@ def run_single_scenario(
             failed_step=first_failed_step,
             retry_count=failed_step_retries,
         )
-        write_build_provenance(
-            run_dir=run_dir,
-            scenario_dir=scenario_dir,
-            scenario_id=scenario_id,
-            org_alias=org_alias,
-            org_shape=org_shape,
-            effective_flags=flags,
-        )
         if scenario_status != "success":
             cleanup_workspace = False
         return {
@@ -440,6 +432,20 @@ def run_single_scenario(
             "policy": policy,
         }
     finally:
+        # Always write provenance so early-exit paths (validate_setup failure,
+        # org_create failure, org_materialize failure, resume_blocked) also
+        # produce a provenance.json for the reporting layer.
+        try:
+            write_build_provenance(
+                run_dir=run_dir,
+                scenario_dir=scenario_dir,
+                scenario_id=scenario_id,
+                org_alias=org_alias,
+                org_shape=org_shape,
+                effective_flags=flags,
+            )
+        except Exception:
+            pass
         if cleanup_workspace:
             cleanup_error = cleanup_scenario_project_root(project_root)
             if cleanup_error:
