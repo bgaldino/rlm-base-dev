@@ -275,6 +275,7 @@ def run_single_scenario(
                     can_resume=False,
                 )
 
+        last_completed_step = 0
         for step in prepare_steps:
             if resume_from_step and step.step_number < resume_from_step:
                 continue
@@ -342,6 +343,7 @@ def run_single_scenario(
             record_event(event_payload)
 
             if step_completed:
+                last_completed_step = step.step_number
                 write_json(
                     checkpoint_path,
                     {
@@ -369,7 +371,7 @@ def run_single_scenario(
                     "org_alias": org_alias,
                     "org_shape": org_shape,
                     "effective_flags": flags,
-                    "last_successful_step": step.step_number - 1,
+                    "last_successful_step": last_completed_step,
                     "failed_step": step.step_number,
                     "failed_target": first_failed_target,
                     "failure_signature": last_failure_signature,
