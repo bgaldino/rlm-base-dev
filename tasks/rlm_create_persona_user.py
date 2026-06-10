@@ -304,6 +304,11 @@ class CreatePersonaUser(BaseTask):
         which matters for audit compliance — the value only ever travels in the
         request body and is never written to a log or temp file.
         """
+        if requests is None:
+            raise CommandException(
+                "The 'requests' library is required to set a user password but "
+                "is not available."
+            )
         url = (
             f"{self.org_config.instance_url}"
             f"/services/data/v{self._api_version()}/sobjects/User/{user_id}/password"
