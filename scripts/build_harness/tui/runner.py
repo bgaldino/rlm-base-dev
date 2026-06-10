@@ -56,7 +56,10 @@ def load_tui_config() -> Tuple[
         if not isinstance(shape_config, dict):
             continue
         days_value = shape_config.get("days", 1)
-        days = int(days_value) if isinstance(days_value, int) else 1
+        try:
+            days = int(days_value)
+        except (TypeError, ValueError):
+            days = 1
         shapes.append(
             OrgShape(
                 name=str(shape_name),
