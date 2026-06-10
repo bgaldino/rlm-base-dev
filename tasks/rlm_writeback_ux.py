@@ -213,9 +213,15 @@ class WriteBackUXTemplates(BaseTask):
             self.logger.warning("No org-retrieved flexipages to process.")
             return []
 
+        # MUST mirror AssembleAndDeployUX._assemble_flexipages feature_patch_order
+        # exactly (same features, same order): writeback collects these patches in
+        # forward order then reverses them, so any feature the assembler applies but
+        # this list omits would never be reverse-applied — breaking base + patches =
+        # deployed and corrupting the regenerated base template for those pages.
         feature_patch_order = [
             ("quantumbit", "quantumbit"),
             ("quantumbit", "utils"),
+            ("guidedselling", "guidedselling"),
             ("billing", "billing"),
             ("billing_ui", "billing_ui"),
             ("payments", "payments"),
