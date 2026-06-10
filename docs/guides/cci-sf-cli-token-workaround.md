@@ -1,0 +1,172 @@
+# Workaround: CCI `INVALID_AUTH_HEADER` on healthy scratch orgs (sf CLI token redaction)
+
+> **Status:** temporary workaround. Track the removal conditions in
+> [When can we remove this?](#when-can-we-remove-this) and drop it as soon as an
+> official fix ships.
+
+## Symptom
+
+Any CumulusCI command that touches an org fails with an expired-session / invalid-auth error,
+**even on a brand-new scratch org**:
+
+```
+$ cci org info pr182
+Error: Expired session for https://...scratch.my.salesforce.com/services/data/v67.0/...
+Response content: [{'message': 'INVALID_AUTH_HEADER', 'errorCode': 'INVALID_AUTH_HEADER'}]
+```
+
+It is not org-specific — it hits every scratch org, and a full `cci flow run prepare_rlm_org`
+dies on the first org-touching step. In an IDE (Cursor / VS Code) it can look like the auth
+"randomly breaks," and relaunching the IDE only helps until the next time.
+
+## How to confirm it's this bug
+
+The org is healthy; only CumulusCI can't authenticate. The `sf` CLI reaches it fine:
+
+```bash
+# Works (sf refreshes its own token):
+sf data query -q "SELECT Id FROM Organization LIMIT 1" --target-org <username-or-sf-alias>
+
+# Fails with INVALID_AUTH_HEADER (CCI):
+cci org info <cci-alias>
+```
+
+If `sf` succeeds and `cci` fails, it's this bug — **do not delete or recreate the org.**
+(Note: `cci org remove <scratch-alias>` runs `sf org delete scratch -p` and **deletes** the
+org — never use it to "refresh" a token.)
+
+## Root cause
+
+CumulusCI **4.10.0** (the latest release as of 2026-06) reads an org's access token by parsing
+the output of `sf org display`. Salesforce CLI **≥ 2.13x** now **redacts secrets** from that
+output by default:
+
+```
+Warning: Secrets are now hidden from 'sf org display' command output.
+... set SF_TEMP_SHOW_SECRETS=true to render these secrets.
+```
+
+CCI receives the redacted placeholder instead of the real token and sends a malformed
+`Authorization` header → `INVALID_AUTH_HEADER`.
+
+## The fix
+
+Set `SF_TEMP_SHOW_SECRETS=true` in the environment so `sf` exposes the token to CCI. Pick the
+scope that matches how you run CCI.
+
+### Quick / one-off
+
+Prefix any CCI command:
+
+```bash
+SF_TEMP_SHOW_SECRETS=true cci org info pr182
+SF_TEMP_SHOW_SECRETS=true cci flow run prepare_rlm_org --org pr182
+```
+
+Env vars propagate to CCI's child processes, so prefixing the top-level command covers the
+whole flow.
+
+### Durable — terminals (all platforms)
+
+Add to your shell profile (covers terminals, including IDE integrated terminals):
+
+```bash
+echo 'export SF_TEMP_SHOW_SECRETS=true' >> ~/.zshrc   # or ~/.bashrc
+```
+
+On Linux / CI runners this is all you need — export the variable in the job environment.
+
+### Durable — IDE launched from the macOS Dock
+
+The shell profile does **not** cover an app launched from the Dock (Cursor / VS Code), because
+macOS GUI apps don't source `~/.zshrc`. To cover the IDE process itself and anything it spawns,
+set the variable in the GUI login session with a LaunchAgent.
+
+Create `~/Library/LaunchAgents/com.<you>.sf-temp-show-secrets.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.<you>.sf-temp-show-secrets</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/launchctl</string>
+        <string>setenv</string>
+        <string>SF_TEMP_SHOW_SECRETS</string>
+        <string>true</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+```
+
+Load it and set it immediately for the current session:
+
+```bash
+launchctl setenv SF_TEMP_SHOW_SECRETS true                                   # current session
+launchctl load -w ~/Library/LaunchAgents/com.<you>.sf-temp-show-secrets.plist # every login
+```
+
+**Relaunch the IDE once** afterward — an already-running app does not inherit a freshly-set
+`launchctl` variable. It is permanent after that (the LaunchAgent re-applies it at every login).
+
+Verify:
+
+```bash
+launchctl getenv SF_TEMP_SHOW_SECRETS    # -> true
+cci org info <cci-alias>                  # -> instance_url, no INVALID_AUTH_HEADER
+```
+
+### Security note
+
+`SF_TEMP_SHOW_SECRETS=true` makes `sf org display` print access tokens in **plaintext**. That's
+acceptable for local scratch-org development, but it means tokens can appear in `sf` output,
+logs, screen shares, and CI artifacts. Don't commit logs produced with it set, and prefer the
+narrowest scope that solves your case.
+
+## When can we remove this?
+
+This workaround relies on a flag Salesforce documents as **temporary** (`SF_TEMP_SHOW_SECRETS`
+"will be removed in an upcoming release"). There are two clocks — remove the workaround when the
+**first** of these happens:
+
+1. **CumulusCI ships a release that reads the token via `sf org auth show-access-token`** (the
+   non-redacted API) instead of parsing `sf org display`. Then upgrade CCI and drop the flag.
+2. **The Salesforce CLI removes `SF_TEMP_SHOW_SECRETS`** — this *breaks* the workaround and
+   forces option 1. Watch the `sf` release notes.
+
+### How to check (run periodically)
+
+```bash
+# Is there a CumulusCI release newer than the one with the bug (4.10.0)?
+LATEST=$(curl -fsSL https://pypi.org/pypi/cumulusci/json | python3 -c 'import sys,json; print(json.load(sys.stdin)["info"]["version"])')
+echo "Latest CumulusCI on PyPI: $LATEST (workaround baseline: 4.10.0)"
+[ "$LATEST" != "4.10.0" ] && echo "NEW RELEASE — check its changelog for the sf-token / 'show-access-token' fix:
+  https://github.com/SFDO-Tooling/CumulusCI/releases"
+```
+
+If a newer release exists, confirm from its changelog that it addresses the
+`sf org display` token-redaction issue, then:
+
+### Removal steps (once the official fix lands)
+
+```bash
+pipx upgrade cumulusci                       # or to a specific fixed version
+# then remove the workaround:
+launchctl unload ~/Library/LaunchAgents/com.<you>.sf-temp-show-secrets.plist
+rm ~/Library/LaunchAgents/com.<you>.sf-temp-show-secrets.plist
+launchctl unsetenv SF_TEMP_SHOW_SECRETS
+# remove the `export SF_TEMP_SHOW_SECRETS=true` line from ~/.zshrc
+```
+
+Verify `cci org info <alias>` still works **without** the flag, then delete this note's entry
+from the troubleshooting skill.
+
+## Related
+
+- `.cursor/skills/troubleshooting/SKILL.md` → Environment & Setup Errors
+- `docs/guides/dev-environment-setup.md` (toolchain setup)
