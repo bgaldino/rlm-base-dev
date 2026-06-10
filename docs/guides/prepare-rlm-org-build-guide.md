@@ -169,7 +169,7 @@ The 33 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 ### Phase 7: Final Configuration & Personalization (Steps 24–30)
 
-**What happens:** Revenue settings are configured via Robot Framework, pricing discovery is reconfigured for scratch orgs, the optional feature extensions (Ramp Schedule Builder, Large Sales Transaction, Personas) and the UX layer are deployed, and scratch org seed data is inserted.
+**What happens:** Revenue settings are configured via Robot Framework, pricing discovery is reconfigured, the optional feature extensions (Ramp Schedule Builder, Large Sales Transaction, Personas) and the UX layer are deployed, and scratch org seed data is inserted.
 
 **Why it matters:** This phase is the "polish and personalize" pass — it wires together the pieces assembled in previous phases, layers on optional feature extensions, and assembles the user-facing UX so the org is demo-ready.
 

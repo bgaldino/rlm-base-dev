@@ -236,13 +236,16 @@ def prepare_scenario_project_root(
         if item.name in {"cumulusci.yml", ".harness"}:
             continue
         destination = project_root / item.name
-        if destination.exists() or destination.is_symlink():
-            continue
         if item.name == "scripts" and item.is_dir():
-            # Copy scripts into the temp project so path validation for
-            # file-based task options (e.g. scripts/apex/*.apex) stays inside
-            # the scenario repo_root instead of resolving to the source repo.
+            # Always refresh scripts/ so resumed runs pick up any script changes
+            # made between the original run and the resume. Other items are
+            # symlinked and tolerate the source changing in-place, but scripts/
+            # is a full copy for path isolation, so it must be kept current.
+            if destination.exists():
+                shutil.rmtree(destination)
             shutil.copytree(item, destination)
+            continue
+        if destination.exists() or destination.is_symlink():
             continue
         os.symlink(item, destination, target_is_directory=item.is_dir())
 
