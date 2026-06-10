@@ -128,10 +128,6 @@
     </userPermissions>
     <userPermissions>
         <enabled>true</enabled>
-        <name>UserSlackCapabilities</name>
-    </userPermissions>
-    <userPermissions>
-        <enabled>true</enabled>
         <name>WalletManagementUser</name>
     </userPermissions>
 </Profile>
