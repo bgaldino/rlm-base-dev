@@ -4,6 +4,10 @@
         <apexClass>RLM_AccountUtilities</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_ExpressionSetManagerController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Utilities</label>
 </PermissionSet>
