@@ -13,10 +13,10 @@ from typing import Any, Dict, List, Optional
 import requests
 
 from cumulusci.core.keychain import BaseProjectKeychain
-
-_REQUEST_TIMEOUT = 30  # seconds — prevents hangs on slow networks or CI
 from cumulusci.tasks.sfdx import SFDXBaseTask
 from cumulusci.core.exceptions import TaskOptionsError
+
+_REQUEST_TIMEOUT = 30  # seconds — prevents hangs on slow networks or CI
 
 
 class ManageContextDefinition(SFDXBaseTask):

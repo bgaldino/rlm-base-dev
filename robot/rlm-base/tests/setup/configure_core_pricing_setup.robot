@@ -26,9 +26,13 @@ Configure Core Pricing Setup
     Open Setup Page    /lightning/setup/CorePricingSetup/home
     Set Core Pricing Procedure    ${PRICING_PROCEDURE}
     Capture Page Screenshot
-    # Reload and re-verify to confirm the value was saved server-side
+    # Reload and re-verify to confirm the value was saved server-side. Wait only
+    # for the pill to render, then assert the value once so a persisted-but-wrong
+    # procedure fails fast instead of retrying for the full timeout.
     Open Setup Page    /lightning/setup/CorePricingSetup/home
-    Wait Until Keyword Succeeds    30s    3s    _Verify Core Pricing Procedure Selected    ${PRICING_PROCEDURE}
+    ${selected_procedure}=    Wait Until Keyword Succeeds    30s    3s    _Get Core Pricing Procedure Selected    ${PRICING_PROCEDURE}
+    Should Be Equal    ${selected_procedure}    ${PRICING_PROCEDURE}
+    ...    msg=Pricing Procedure not persisted after page reload: expected "${PRICING_PROCEDURE}", got "${selected_procedure}"
     Log    CorePricingSetup: Pricing Procedure confirmed as "${PRICING_PROCEDURE}" after reload.
 
 *** Keywords ***
@@ -108,8 +112,11 @@ _Open Pricing Procedure Combobox
     ...    msg=Page LWC components not yet rendered; retrying...
     RETURN    ${result}
 
-_Verify Core Pricing Procedure Selected
-    [Documentation]    Waits for the selected Pricing Procedure pill to render after reload and verifies its value.
+_Get Core Pricing Procedure Selected
+    [Documentation]    Returns the Pricing Procedure pill rendered after reload — the matching
+    ...    value when present, otherwise the observed pill text. Fails with 'not_set' so Wait Until
+    ...    Keyword Succeeds retries only while the pill is absent; the caller asserts the expected
+    ...    value once so a persisted-but-wrong value fails fast.
     [Arguments]    ${target_value}
     ${verified}=    Execute JavaScript
     ...    return (function(targetValue) {
@@ -127,5 +134,6 @@ _Verify Core Pricing Procedure Selected
     ...        return 'not_set';
     ...    })(arguments[0])
     ...    ARGUMENTS    ${target_value}
-    Should Be Equal    ${verified}    ${target_value}
-    ...    msg=Pricing Procedure not persisted after page reload: expected "${target_value}", got "${verified}"
+    Should Not Be Equal    ${verified}    not_set
+    ...    msg=Pricing Procedure pill not yet rendered after reload; retrying...
+    RETURN    ${verified}

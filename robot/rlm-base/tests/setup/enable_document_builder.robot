@@ -56,9 +56,13 @@ Enable Document Templates Export On General Settings
         ...    msg=Document Templates Export could not be clicked (got: ${click_result})
     END
     Sleep    3s    reason=Allow toggle change to reach Salesforce server
-    # Reload and re-verify server-side persistence
+    # Reload and re-verify server-side persistence. Wait only for the input to
+    # render, then assert the persisted value once so a persisted-but-off toggle
+    # fails fast instead of retrying for the full timeout.
     Open Setup Page    ${GENERAL_SETTINGS_PATH}
-    Wait Until Keyword Succeeds    30s    3s    _Verify Document Templates Export Toggle On
+    ${export_state}=    Wait Until Keyword Succeeds    30s    3s    _Get Document Templates Export Toggle State
+    Should Be Equal    ${export_state}    on
+    ...    msg=Document Templates Export toggle not persisted after page reload (got: ${export_state})
     Log    Document Templates Export toggle enabled and confirmed.
 
 *** Keywords ***
@@ -73,24 +77,28 @@ _Click Document Templates Export Toggle
     ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
     ...        if (!pi) return 'not_found';
     ...        if (pi.checked) return 'already_on';
-    ...        pi.click();
+    ...        (pi.closest('label') || pi).click();
     ...        return 'clicked';
     ...    })()
     Should Not Be Equal    ${result}    not_found
     ...    msg=Document Templates Export input[data-name="MetadataPreference"] not yet rendered; retrying...
     RETURN    ${result}
 
-_Verify Document Templates Export Toggle On
-    [Documentation]    Waits for the Document Templates Export LWC to render after reload, then confirms the persisted checked state.
-    ${verified}=    Execute JavaScript
+_Get Document Templates Export Toggle State
+    [Documentation]    Returns the persisted Document Templates Export checked state ('on'/'off')
+    ...    once the LWC has rendered after reload. Fails with 'not_found' so Wait Until Keyword
+    ...    Succeeds retries only while the input is absent; the caller asserts the expected value
+    ...    once so a persisted-but-off toggle fails fast instead of retrying to the timeout.
+    ${state}=    Execute JavaScript
     ...    return (function() {
     ...        ${_JS_FIND_EL}
     ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
     ...        if (!pi) return 'not_found';
     ...        return pi.checked ? 'on' : 'off';
     ...    })()
-    Should Be Equal    ${verified}    on
-    ...    msg=Document Templates Export toggle not persisted after page reload (got: ${verified})
+    Should Not Be Equal    ${state}    not_found
+    ...    msg=Document Templates Export input[data-name="MetadataPreference"] not yet rendered after reload; retrying...
+    RETURN    ${state}
 
 Enable Prerequisite Then Document Builder
     [Documentation]    Enable the prerequisite toggle (e.g. Revenue Management) so Document Builder becomes enabled, then enable Document Builder.

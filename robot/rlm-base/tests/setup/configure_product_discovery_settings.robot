@@ -28,9 +28,13 @@ Configure Product Discovery Default Catalog
     Set Default Catalog    ${DEFAULT_CATALOG}
     Dismiss Toast If Present
     Capture Page Screenshot
-    # Reload and re-verify to confirm the value was saved server-side
+    # Reload and re-verify to confirm the value was saved server-side. Wait only
+    # for the pill to render, then assert the value once so a persisted-but-wrong
+    # catalog fails fast instead of retrying for the full timeout.
     Open Product Discovery Settings Page
-    Wait Until Keyword Succeeds    30s    3s    _Verify Default Catalog Selected    ${DEFAULT_CATALOG}
+    ${selected_catalog}=    Wait Until Keyword Succeeds    30s    3s    _Get Default Catalog Selected
+    Should Be Equal    ${selected_catalog}    ${DEFAULT_CATALOG}
+    ...    msg=Default Catalog not persisted after page reload: expected "${DEFAULT_CATALOG}", got "${selected_catalog}"
     Log    Product Discovery Settings: Default Catalog confirmed as "${DEFAULT_CATALOG}" after reload.
 
 *** Keywords ***
@@ -137,19 +141,20 @@ _Open Default Catalog Combobox
     ...    msg=Combobox button not yet rendered inside shadow root; retrying...
     RETURN    ${result}
 
-_Verify Default Catalog Selected
-    [Documentation]    Waits for the selected Default Catalog pill to render after reload and verifies its value.
-    [Arguments]    ${target_value}
+_Get Default Catalog Selected
+    [Documentation]    Returns the Default Catalog pill text rendered after reload. Fails with
+    ...    'not_set' so Wait Until Keyword Succeeds retries only while the pill is absent; the
+    ...    caller asserts the expected value once so a persisted-but-wrong value fails fast.
     ${verified}=    Execute JavaScript
     ...    ${_JS_FIND_EL}
-    ...    return (function(targetValue) {
+    ...    return (function() {
     ...        var selected = findEl(document, '[data-id="selectedCatalog"], .default-catalog-pill .slds-pill__label, .selectedCatalog', 0);
     ...        if (!selected) return 'not_set';
     ...        return (selected.textContent || '').trim();
-    ...    })(arguments[0])
-    ...    ARGUMENTS    ${target_value}
-    Should Be Equal    ${verified}    ${target_value}
-    ...    msg=Default Catalog not persisted after page reload: expected "${target_value}", got "${verified}"
+    ...    })()
+    Should Not Be Equal    ${verified}    not_set
+    ...    msg=Default Catalog pill not yet rendered after reload; retrying...
+    RETURN    ${verified}
 
 Dismiss Toast If Present
     [Documentation]    Clicks the close button on any visible Salesforce toast messages.
