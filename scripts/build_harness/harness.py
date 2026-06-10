@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -77,6 +78,8 @@ def _resolve_run_dir(run_id: str, *, must_exist: bool = False) -> Optional[Path]
     """Resolve a run-id path safely under DEFAULT_OUTPUT_ROOT."""
     run_id_clean = run_id.strip()
     if not run_id_clean:
+        return None
+    if "/" in run_id_clean or os.sep in run_id_clean:
         return None
     output_root = DEFAULT_OUTPUT_ROOT.resolve()
     run_dir = (output_root / run_id_clean).resolve()

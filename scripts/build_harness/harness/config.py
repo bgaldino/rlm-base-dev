@@ -32,7 +32,10 @@ class Step:
 
 def load_cci(cci_file: Path) -> Dict[str, Any]:
     with cci_file.open("r", encoding="utf-8") as handle:
-        return yaml.safe_load(handle)
+        try:
+            return yaml.safe_load(handle)
+        except yaml.YAMLError as exc:
+            raise ValueError(f"Failed to parse {cci_file}: {exc}") from exc
 
 
 def load_default_flags(cci: Dict[str, Any]) -> Dict[str, Any]:
