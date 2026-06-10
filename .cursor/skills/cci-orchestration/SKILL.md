@@ -241,7 +241,7 @@ either a built-in CCI class or a custom class in `tasks/`.
 ### 6. Flows (`flows`)
 
 43 flows are organized as a hierarchy. The main entry point is `prepare_rlm_org`
-(30 steps), which calls sub-flows:
+(33 steps), which calls sub-flows:
 
 ```
 prepare_rlm_org
@@ -271,10 +271,13 @@ prepare_rlm_org
 ├── 24. prepare_revenue_settings
 ├── 25. prepare_pricing_discovery
 ├── 26. prepare_ramp_builder
-├── 27. prepare_ux (when: ux=true)
-├── 28. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
-├── 29. refresh_all_decision_tables
-└── 30. stamp_git_commit
+├── 27. prepare_large_stx (when: large_stx=true)
+├── 28. prepare_personas (when: personas=true)
+├── 29. prepare_ux (when: ux=true)
+├── 30. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
+├── 31. refresh_all_decision_tables
+├── 32. rebuild_search_index
+└── 33. stamp_git_commit
 ```
 
 > For the complete flow listing with all steps and `when:` conditions, read

@@ -23,6 +23,9 @@ except ImportError:
     TaskOptionsError = Exception
 
 
+_REQUEST_TIMEOUT = 30  # seconds — prevents hangs on unstable networks/CI
+
+
 def _soql_escape(value: str) -> str:
     """Escape a string for use in a SOQL literal (single-quoted value)."""
     return value.replace("\\", "\\\\").replace("'", "\\'")
@@ -136,7 +139,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
     def _soql_query(self, soql: str) -> list:
         """Execute a SOQL query and return all records."""
         url = f"{self._base_url}/query"
-        resp = requests.get(url, headers=self._headers, params={"q": soql})
+        resp = requests.get(url, headers=self._headers, params={"q": soql}, timeout=_REQUEST_TIMEOUT)
         if resp.status_code != 200:
             self.logger.error(
                 "SOQL query failed (%s): %s", resp.status_code, resp.text
@@ -146,7 +149,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
         records = body.get("records", [])
         while not body.get("done", True) and body.get("nextRecordsUrl"):
             nurl = f"{self.org_config.instance_url}{body['nextRecordsUrl']}"
-            resp = requests.get(nurl, headers=self._headers)
+            resp = requests.get(nurl, headers=self._headers, timeout=_REQUEST_TIMEOUT)
             if resp.status_code != 200:
                 break
             body = resp.json()
@@ -240,7 +243,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
         self.logger.info(
             "Creating ProcedurePlanDefinition '%s' via Connect API ...", dev_name
         )
-        resp = requests.post(url, headers=self._headers, json=body)
+        resp = requests.post(url, headers=self._headers, json=body, timeout=_REQUEST_TIMEOUT)
 
         if resp.ok:
             result = resp.json() if resp.content else {}
@@ -314,7 +317,7 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
             "LIMIT 1"
         )
         url = f"{self._base_url}/query/?q={requests.utils.requote_uri(query)}"
-        resp = requests.get(url, headers=self._headers)
+        resp = requests.get(url, headers=self._headers, timeout=_REQUEST_TIMEOUT)
         resp.raise_for_status()
         records = resp.json().get("records", [])
 
@@ -334,7 +337,7 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
             return
 
         patch_url = f"{self._base_url}/sobjects/ProcedurePlanDefinitionVersion/{version_id}"
-        patch_resp = requests.patch(patch_url, headers=self._headers, json={"IsActive": True})
+        patch_resp = requests.patch(patch_url, headers=self._headers, json={"IsActive": True}, timeout=_REQUEST_TIMEOUT)
 
         if patch_resp.ok or patch_resp.status_code == 204:
             self.logger.info(
@@ -405,7 +408,7 @@ class DeactivateProcedurePlanVersion(BaseSalesforceTask):
             "LIMIT 1"
         )
         url = f"{self._base_url}/query/?q={requests.utils.requote_uri(query)}"
-        resp = requests.get(url, headers=self._headers)
+        resp = requests.get(url, headers=self._headers, timeout=_REQUEST_TIMEOUT)
         resp.raise_for_status()
         records = resp.json().get("records", [])
 
@@ -425,16 +428,21 @@ class DeactivateProcedurePlanVersion(BaseSalesforceTask):
             return
 
         patch_url = f"{self._base_url}/sobjects/ProcedurePlanDefinitionVersion/{version_id}"
-        patch_resp = requests.patch(patch_url, headers=self._headers, json={"IsActive": False})
+        patch_resp = requests.patch(patch_url, headers=self._headers, json={"IsActive": False}, timeout=_REQUEST_TIMEOUT)
 
         if patch_resp.ok or patch_resp.status_code == 204:
             self.logger.info(
                 "ProcedurePlanDefinitionVersion %s deactivated successfully.", version_id
             )
-            # Confirm state transition before downstream SFDMU inserts.
+            # Confirm state transition by querying the specific version by Id.
+            verify_query = (
+                f"SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
+                f"WHERE Id = '{version_id}'"
+            )
+            verify_url = f"{self._base_url}/query/?q={requests.utils.requote_uri(verify_query)}"
             waited = 0
             while waited <= max_wait_seconds:
-                verify_resp = requests.get(url, headers=self._headers)
+                verify_resp = requests.get(verify_url, headers=self._headers, timeout=_REQUEST_TIMEOUT)
                 verify_resp.raise_for_status()
                 verify_records = verify_resp.json().get("records", [])
                 if verify_records and not verify_records[0].get("IsActive"):

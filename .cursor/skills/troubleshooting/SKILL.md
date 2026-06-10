@@ -18,7 +18,7 @@ data loading, metadata deployment, or local environment setup.
 
 ## Quick Diagnosis: Which Step Failed?
 
-The `prepare_rlm_org` flow runs 30 steps. Identify the failing step from
+The `prepare_rlm_org` flow runs 33 steps. Identify the failing step from
 CCI output, then jump to the relevant section below.
 
 | Step Range | Category | Section |
@@ -33,8 +33,11 @@ CCI output, then jump to the relevant section below.
 | 16 (prepare_rating) | Rating/rates data + activation | [Rating & Rates Errors](#rating--rates-errors) |
 | 20 (prepare_prm) | PRM community + data | [PRM & Community Errors](#prm--community-errors) |
 | 22 (prepare_constraints) | Constraints + CML import | [Constraints / CML Errors](#constraints--cml-errors) |
-| 27 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
-| 29 | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
+| 27 (prepare_large_stx) | Large transaction demo data | [SFDMU Data Loading Errors](#sfdmu-data-loading-errors) |
+| 28 (prepare_personas) | Persona user creation | [Permission & PSG Errors](#permission--psg-errors) |
+| 29 (prepare_ux) | UX assembly + deploy | [UX Assembly Errors](#ux-assembly-errors) |
+| 31 (refresh_all_decision_tables) | Decision table refresh | [Decision Table Errors](#decision-table-errors) |
+| 32 (rebuild_search_index) | Search index rebuild | [Metadata Deploy Errors](#metadata-deploy-errors) |
 
 ---
 

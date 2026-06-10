@@ -6,7 +6,7 @@
     <label>Primary Reseller</label>
     <referenceTo>Account</referenceTo>
     <relationshipLabel>Accounts (Primary Reseller)</relationshipLabel>
-    <relationshipName>Accounts1</relationshipName>
+    <relationshipName>PrimaryResellerAccounts</relationshipName>
     <required>false</required>
     <trackFeedHistory>false</trackFeedHistory>
     <trackHistory>false</trackHistory>
