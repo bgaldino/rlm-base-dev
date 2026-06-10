@@ -214,7 +214,7 @@ cci flow run prepare_prm_pricing --org dev
 ## References
 
 - Design source: Google Sheets document (file ID: 1L3O40ManpD9ppox1CCBxw62e91YmI41yMTl5oEpbA9E)
-- Source org: `chrisRossPRM_may2026` (`trailsignup.0616730547a2ce@salesforce.com`)
+- Source org: `chrisRossPRM_may2026`
 - Integration date: 2026-05-15
 
 ## Related Documentation

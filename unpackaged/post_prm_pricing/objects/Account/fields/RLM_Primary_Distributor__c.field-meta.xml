@@ -5,8 +5,8 @@
     <inlineHelpText>Primary Distributor that works with Partner or Customer</inlineHelpText>
     <label>Primary Distributor</label>
     <referenceTo>Account</referenceTo>
-    <relationshipLabel>Accounts</relationshipLabel>
-    <relationshipName>Accounts</relationshipName>
+    <relationshipLabel>Accounts (Primary Distributor)</relationshipLabel>
+    <relationshipName>PrimaryDistributorAccounts</relationshipName>
     <required>false</required>
     <trackFeedHistory>false</trackFeedHistory>
     <trackHistory>false</trackHistory>
