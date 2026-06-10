@@ -67,6 +67,17 @@ docs/                  # Documentation (lower-kebab-case filenames)
 8. **DO NOT** commit or push directly to `main` — all changes must go
    through a feature branch and pull request. Never use `git push origin main`
    or force-push main without explicit user approval.
+9. **DO NOT** present a behavioral Robot Framework change as verified —
+   or merge one — on the strength of `robot --dryrun`. Dryrun validates only
+   syntax and keyword resolution; it never launches a browser or runs the
+   `Execute JavaScript`/shadow-DOM logic, so it is **not** verification. Any
+   behavioral change to a `robot/**/*.robot` suite (keywords, locators, JS,
+   click targets, wait/assert flow) **or** the Python task wrapper that invokes
+   a suite (`tasks/rlm_*.py`) must be run against a **live scratch org** before
+   the PR merges. If you must commit such a change unverified, say so explicitly
+   and keep the PR blocked (label `blocked: needs-live-verification`) until a
+   live run passes. Comment/`[Documentation]`-only edits are exempt. See
+   `.cursor/skills/robot-testing/SKILL.md` → **Verification**.
 
 ## Org Identity: CCI vs SF CLI
 

@@ -9,6 +9,12 @@ globs:
 
 ## DO NOT
 
+- **Commit a behavioral robot change — or its Python task wrapper — validated only
+  by `robot --dryrun`.** Dryrun is syntax/keyword-resolution only; it never runs the
+  browser or `Execute JavaScript`. Verify in a **live scratch org** first
+  (`cci task run <robot_task> --org <alias>`), or mark the change unverified and keep
+  the PR blocked (`blocked: needs-live-verification`). Comment/`[Documentation]`-only
+  edits are exempt. (See `robot-testing/SKILL.md` → Verification, and AGENTS.md DO NOT #9.)
 - Use `//` comments in Robot JavaScript blocks — use `/* */`
 - Use standard `input_text` for LWC inputs — use native setter pattern
 - Log session tokens in Robot output (`Set Log Level NONE`)
