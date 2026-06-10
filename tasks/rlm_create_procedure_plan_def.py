@@ -131,11 +131,6 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
 
     # -- SOQL helpers --------------------------------------------------
 
-    @staticmethod
-    def _soql_escape(value: str) -> str:
-        """Escape a string for use in a SOQL literal (single-quoted value)."""
-        return value.replace("\\", "\\\\").replace("'", "\\'")
-
     def _soql_query(self, soql: str) -> list:
         """Execute a SOQL query and return all records."""
         url = f"{self._base_url}/query"
@@ -160,7 +155,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
 
     def _definition_exists(self, developer_name: str) -> bool:
         """Return True if a ProcedurePlanDefinition with this DeveloperName exists."""
-        safe = self._soql_escape(developer_name)
+        safe = _soql_escape(developer_name)
         records = self._soql_query(
             f"SELECT Id FROM ProcedurePlanDefinition "
             f"WHERE DeveloperName = '{safe}'"
@@ -171,7 +166,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
 
     def _get_context_definition_id_by_label(self, label: str) -> Optional[str]:
         """Query ContextDefinition by MasterLabel and return its Id."""
-        safe = self._soql_escape(label)
+        safe = _soql_escape(label)
         records = self._soql_query(
             f"SELECT Id FROM ContextDefinition WHERE MasterLabel = '{safe}'"
         )

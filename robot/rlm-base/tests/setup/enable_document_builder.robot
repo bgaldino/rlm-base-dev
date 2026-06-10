@@ -15,6 +15,8 @@ ${DOCUMENT_BUILDER_TOGGLE_LABEL}          Document Builder
 ${GENERAL_SETTINGS_PATH}                  /lightning/setup/GeneralSettings/home
 ${DOC_TEMPLATES_EXPORT_LABEL}             Document Templates Export
 ${DESIGN_DOC_TEMPLATES_LABEL}             Design Document Templates in Salesforce
+# Shared shadow-DOM traversal helper (depth-limited BFS) used by _Click and _Verify keywords.
+${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
 
 *** Test Cases ***
 Enable Document Builder Toggle On Revenue Settings
@@ -67,7 +69,7 @@ _Click Document Templates Export Toggle
     ...    'clicked', 'already_on', or fails with 'not_found' to trigger Wait Until Keyword Succeeds retry.
     ${result}=    Execute JavaScript
     ...    return (function() {
-    ...        function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
+    ...        ${_JS_FIND_EL}
     ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
     ...        if (!pi) return 'not_found';
     ...        if (pi.checked) return 'already_on';
@@ -82,7 +84,7 @@ _Verify Document Templates Export Toggle On
     [Documentation]    Waits for the Document Templates Export LWC to render after reload, then confirms the persisted checked state.
     ${verified}=    Execute JavaScript
     ...    return (function() {
-    ...        function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
+    ...        ${_JS_FIND_EL}
     ...        var pi = findEl(document, 'input[data-name="MetadataPreference"]', 0);
     ...        if (!pi) return 'not_found';
     ...        return pi.checked ? 'on' : 'off';
