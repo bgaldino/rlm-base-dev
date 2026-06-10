@@ -93,7 +93,7 @@ cci flow run prepare_prm --org <org-alias>
 ```
 
 The baseline `prepare_prm` flow (main-compatible) includes the following
-numbered steps. Step 4 is intentionally unused in `cumulusci.yml`; step 11 runs
+numbered steps. Step 4 is intentionally unused in `cumulusci.yml`; step 10 runs
 the optional PRM pricing extension when `prm_pricing=true`.
 
 1. Create Partner Central community
@@ -101,7 +101,6 @@ the optional PRM pricing extension when `prm_pricing=true`.
 1. Deploy post_prm metadata
 1. Revert network metadata
 1. Publish Partner Central community
-1. Deploy sharing rules
 1. Assign permission sets
 1. Load QuantumBit PRM data
 1. Apply PartnerAccount context extension (`manage_context_definition`)
