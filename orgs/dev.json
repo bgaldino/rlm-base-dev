@@ -29,6 +29,7 @@
     "SalesforceHostedMCP",
     "Scrt2Conversation",
     "ServiceCloud",
+    "SlackSalesEnabled",
     "UnifiedCatalog",
     "UsageManagement"
   ],
@@ -56,6 +57,9 @@
     },
     "experienceBundleSettings": {
       "enableExperienceBundleMetadata": true
+    },
+    "forecastingSettings": {
+      "enableForecasts": true
     },
     "industriesContextSettings": {
       "enableContextDefinitions": true
