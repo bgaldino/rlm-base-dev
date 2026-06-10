@@ -165,6 +165,51 @@ branch do not silently overwrite newer versions that landed on `main` after the
 branch diverged. This is the "swept-in file" risk mentioned in AGENTS.md
 §"Merges and unintended diffs".
 
+### Step 0 — Detect branch-side reverts of inherited main content (do this FIRST)
+
+**The Step 1 overlap method has a blind spot — run this step before trusting it.**
+When the branch has been **rebased onto (or merged with) main's tip**,
+`git merge-base main HEAD` *equals* main's tip, so "files changed on main since the
+merge-base" is **empty** and the Step 1 intersection finds nothing — even though the
+branch's own commits may have **reverted main content the branch inherited**. A clean
+Step 1 result here means "no concurrent main-side changes," **not** "no regression."
+
+> Real incident (PR #182): a branch's `fix(robot): harden setup verification waits`
+> commit replaced three setup suites with simpler versions; a later rebase resolved
+> conflicts toward the branch, silently dropping ~118 lines of main's hardening
+> (`_Try Set Default Catalog` fail-fast, terminal-vs-transient retry). Step 1's overlap
+> was empty and the audit reported "clean merge, zero risk" — wrong. Caught only by the
+> deletion-ranked diff below.
+
+Catch it by diffing the branch against main directly and ranking by **deletions**
+(removed ≫ added is the revert signature):
+
+```bash
+# Files the branch changed vs main, ranked by lines REMOVED from main.
+# A removal-dominated file (especially one unrelated to the feature) is a revert suspect.
+git diff --numstat origin/main HEAD | sort -k2 -rn \
+  | awk '{printf "%-70s +%-5s -%-5s\n", $3, $1, $2}' | head -25
+
+# Cross-check: files main developed recently AND the branch also changed
+# (concurrent development → highest revert risk).
+git log --name-only --pretty=format: -40 origin/main | grep . | sort -u > /tmp/main_recent.txt
+git diff --name-only origin/main HEAD | sort -u > /tmp/prm_changed.txt
+comm -12 /tmp/main_recent.txt /tmp/prm_changed.txt
+```
+
+For each suspect, confirm whether the branch dropped a specific main fix before deciding:
+
+```bash
+git show <main_fix_sha> -- <file>                          # what main changed
+git diff origin/main HEAD -- <file> | grep '^-' | grep '<fix marker>'   # did the branch remove it?
+```
+
+Resolve a confirmed revert with `git checkout origin/main -- <file>` (take main's
+version). **But first** rule out the rare case where the branch's version is a genuine
+*improvement* over main (read both) — then keep the branch's and let it carry to main.
+Removal-dominated ≠ always a regression; addition-dominated files are usually legitimate
+feature work, so judge by content, not line count alone.
+
 ### Step 1 — Find the overlap
 
 ```bash
