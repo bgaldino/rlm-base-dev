@@ -3583,21 +3583,21 @@
                     <name>SpreadValue</name>
                     <output>true</output>
                     <type>Parameter</type>
-                    <value>AdjustmentValue</value>
+                    <value>LineItemDiscountValue</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
                     <name>SpreadType</name>
                     <output>true</output>
                     <type>Parameter</type>
-                    <value>HeaderDiscountType</value>
+                    <value>HeaderDistributionType</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
                     <name>LineItemDiscountType</name>
                     <output>true</output>
                     <type>Parameter</type>
-                    <value>AdjustmentType</value>
+                    <value>LineItemDiscountType</value>
                 </parameters>
                 <parameters>
                     <input>false</input>
