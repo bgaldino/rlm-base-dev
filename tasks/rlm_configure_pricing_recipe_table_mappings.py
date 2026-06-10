@@ -411,9 +411,17 @@ class ConfigurePricingRecipeTableMappings(BaseSalesforceTask):
                 )
             updates += 1
 
-        self.logger.info(
-            "PricingRecipeTableMapping ensure complete: %s created, %s updated, %s unchanged/skipped.",
-            creates,
-            updates,
-            skips,
-        )
+        if dry_run:
+            self.logger.info(
+                "PricingRecipeTableMapping dry-run complete: %s would be created, %s would be updated, %s unchanged/skipped.",
+                creates,
+                updates,
+                skips,
+            )
+        else:
+            self.logger.info(
+                "PricingRecipeTableMapping ensure complete: %s created, %s updated, %s unchanged/skipped.",
+                creates,
+                updates,
+                skips,
+            )
