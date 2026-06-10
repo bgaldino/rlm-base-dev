@@ -1101,10 +1101,14 @@ tasks:
   create_personas_sales_rep_user:
     group: Revenue Lifecycle Management
     description: >
-      Create the Sales Rep scratch user (Luke Sales Rep / alias sales-rep-user) from
-      config/users/sales-rep-def.json using the sf CLI. Assigns the RLM Sales Representative
-      profile. Idempotent: skips creation when a matching user already exists. Appends a
-      unique username suffix to avoid conflicts on initial create.
+      Create the Sales Rep persona user (alias sales-rep-user) from
+      config/users/sales-rep-def.json with the RLM Sales Representative profile.
+      On scratch orgs uses `sf org create user`; on non-scratch orgs (production,
+      developer edition, sandbox) inserts a User sObject via REST and sets a
+      password via the REST User password resource (never logged; supply via the
+      'password' option or RLM_PERSONA_USER_PASSWORD env var to use a known value).
+      Idempotent: skips creation when a matching user already exists. Appends a
+      unique username suffix to avoid conflicts.
     class_path: tasks.rlm_create_persona_user.CreatePersonaUser
     options:
       definition_file: config/users/sales-rep-def.json
@@ -3869,8 +3873,9 @@ flows:
     group: Revenue Lifecycle Management
     description: >
       Deploy persona metadata (profiles, permission set groups, permission sets) from
-      unpackaged/post_personas and create the Sales Rep scratch user. Gated by the
-      personas feature flag. Runs as step 28 of prepare_rlm_org, before prepare_ux
+      unpackaged/post_personas and create the Sales Rep persona user (scratch and
+      non-scratch orgs). Gated by the personas feature flag. Runs as step 28 of
+      prepare_rlm_org, before prepare_ux
       (step 29), so that persona profile templates are assembled and deployed by
       the UX assembler in the same pass.
     steps:
