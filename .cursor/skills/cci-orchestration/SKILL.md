@@ -157,15 +157,14 @@ cci org connect my-sandbox
 
 ## Project Configuration (`cumulusci.yml`)
 
-This project's `cumulusci.yml` is organized into these sections:
+This project's `cumulusci.yml` (~3275 lines) is organized into these sections:
 
 ### 1. Scratch Org Definitions (`orgs.scratch`)
 
-21 scratch org configs, each referencing a JSON definition in `orgs/`. Key orgs:
-- `beta` — general-purpose development
-- `dev-sb0` — sandbox-like development
-- `tfid-*` — Trialforce-based orgs for various configurations
-- `dev_preview` / `dev_previous` — API version testing
+Scratch org configs in `orgs/` (organized into subfolders). Key orgs:
+- `beta` / `dev` / `ent` — standard development (root)
+- `orgs/internal/` — sandbox-derived shapes (dev-sb0, dev-r1, ent-sb0, etc.)
+- `orgs/tfid/` — Trialforce-based orgs (tfid-cdo, tfid-sdo, tfid-qb-tso, etc.)
 
 ### 2. Project Settings (`project`)
 
@@ -174,13 +173,13 @@ project:
   name: rlm-base
   package:
     name: rlm-base
-    api_version: "67.0"    # Summer '26
+    api_version: "67.0"    # Summer '26 (Release 262)
   source_format: sfdx
 ```
 
 ### 3. Feature Flags (`project.custom`)
 
-38 boolean flags control which features are deployed. Common flags:
+36 boolean flags control which features are deployed. Common flags:
 
 | Flag | Default | Purpose |
 |------|---------|---------|
@@ -222,7 +221,7 @@ These anchors are referenced with `*name` in task/flow options.
 
 ### 5. Tasks (`tasks`)
 
-215 task definitions use this naming convention:
+~197 custom task definitions using this naming convention:
 - `insert_qb_{plan}_data` / `insert_quantumbit_{plan}_data` — load a data plan
 - `delete_qb_{plan}_data` / `delete_quantumbit_{plan}_data` — delete plan data
 - `extract_qb_{plan}_data` — extract from org to CSV
@@ -240,7 +239,7 @@ either a built-in CCI class or a custom class in `tasks/`.
 
 ### 6. Flows (`flows`)
 
-43 flows are organized as a hierarchy. The main entry point is `prepare_rlm_org`
+41 flows organized as a hierarchy. The main entry point is `prepare_rlm_org`
 (33 steps), which calls sub-flows:
 
 ```
@@ -276,7 +275,7 @@ prepare_rlm_org
 ├── 29. prepare_ux (when: ux=true)
 ├── 30. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
 ├── 31. refresh_all_decision_tables
-├── 32. rebuild_search_index
+├── 32. rebuild_search_index (PCM catalog search index, async)
 └── 33. stamp_git_commit
 ```
 
@@ -309,7 +308,7 @@ when: "not (project_config.project__custom__quantumbit or project_config.project
 
 ## Custom Task Classes (`tasks/`)
 
-This project has 45 Python files in `tasks/` defining custom CCI task
+This project has 40 Python files in `tasks/` defining 49+ custom CCI task
 classes. They fall into these categories:
 
 | Category | Classes | Base Class |
@@ -318,7 +317,7 @@ classes. They fall into these categories:
 | REST/Connect API | `RefreshDecisionTable`, `ExtendStandardContext`, `ManageContextDefinition`, `ManageDecisionTables`, `ManageExpressionSets`, `ManageFlows`, `ManageTransactionProcessingTypes` | `SFDXBaseTask` / `BaseTask` |
 | Metadata deploy | `AssembleAndDeployUX`, `StampGitCommit`, `CleanupSettingsForDev`, `FixDocumentTemplateBinaries` | `SFDXBaseTask` |
 | UX drift/writeback | `RetrieveUXFromOrg`, `DiffUXTemplates`, `WriteBackUXTemplates` | `BaseSalesforceTask` / `BaseTask` |
-| Robot Framework | `RunE2ETests`, `ReorderAppLauncher`, `EnableAnalyticsReplication`, `ConfigureRevenueSettings`, `ConfigureCorePricingSetup`, `ConfigureProductDiscoverySettings`, `EnableDocumentBuilderToggle`, `EnableConstraintsSettings`, `EnableTimeline` | `BaseTask` |
+| Robot Framework | `RunE2ETests`, `ReorderAppLauncher`, `EnableAnalyticsReplication`, `ConfigureRevenueSettings`, `EnableDocumentBuilderToggle`, `EnableConstraintsSettings` | `BaseTask` |
 | Local-only (no org) | `ValidateSetup` | `BaseTask` |
 | Community/PRM | `PatchNetworkEmailForDeploy`, `RevertNetworkEmailAfterDeploy`, `PatchPaymentsSiteForDeploy`, `RevertPaymentsSiteAfterDeploy` | varies |
 | CML (Constraints) | `ExportCML`, `ImportCML`, `ValidateCML` | `SFDXBaseTask` |
@@ -373,11 +372,11 @@ cci task run test_qb_pricing_idempotency --org beta
 # Activate records
 cci task run activate_rating_records --org beta
 
-# Deploy and assemble UX
-cci task run assemble_and_deploy_ux --org dev-sb0
+# Deploy and assemble UX (deploys to your DEFAULT cci org — no --org flag)
+cci task run assemble_and_deploy_ux
 
-# UX dry-run (assemble only, no deploy)
-cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+# UX dry-run (assemble only, no deploy; local — no org needed)
+cci task run assemble_and_deploy_ux -o deploy false
 
 # Capture UX drift from org
 cci flow run capture_ux_drift --org dev-sb0
