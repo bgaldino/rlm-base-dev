@@ -9,10 +9,11 @@
 requires_python = ">=3.11"
 
 [tool.pytest.ini_options]
-# Scope test discovery to the build harness tests. Without this pytest would
-# scan the entire repo (including .harness/, scripts/cml/, etc.) and either
-# pick up unrelated files or fail on syntactically-foreign content.
-testpaths = ["tests/build_harness"]
+# Scope test discovery to tests/ so pytest doesn't scan the entire repo
+# (including .harness/, scripts/cml/, etc.) and pick up non-test content.
+# Using tests/ rather than tests/build_harness/ ensures tests/test_fix_scratch_identity.py
+# and any future top-level test files are also discovered.
+testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
