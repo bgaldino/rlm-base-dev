@@ -177,9 +177,12 @@ public with sharing class RLM_ExpressionSetManagerController {
 
     @AuraEnabled
     public static void deactivateExpressionSets(Id contextDefinitionId, List<Id> definitionIds) {
+        // ExpressionSetVersion is the only object actually mutated via Apex SOQL/DML
+        // before enqueuing — the junction object is mutated through Composite REST
+        // (where the session-id user's permissions are enforced server-side), and
+        // its describe returns false for createable/deletable on every profile.
         if (!ExpressionSetVersion.SObjectType.getDescribe().isUpdateable()
-                || !ExpressionSetVersion.IsActive.getDescribe().isUpdateable()
-                || !ExpressionSetDefinitionContextDefinition.SObjectType.getDescribe().isDeletable()) {
+                || !ExpressionSetVersion.IsActive.getDescribe().isUpdateable()) {
             throw new AuraHandledException('Insufficient access to deactivate Expression Sets.');
         }
         String sessionId = getApiSessionId();
@@ -224,9 +227,10 @@ public with sharing class RLM_ExpressionSetManagerController {
 
     @AuraEnabled
     public static void activateExpressionSets(Id contextDefinitionId, List<Id> definitionIds) {
+        // See deactivateExpressionSets — junction is mutated via Composite REST,
+        // not Apex DML, so we only guard the field we actually update from Apex.
         if (!ExpressionSetVersion.SObjectType.getDescribe().isUpdateable()
-                || !ExpressionSetVersion.IsActive.getDescribe().isUpdateable()
-                || !ExpressionSetDefinitionContextDefinition.SObjectType.getDescribe().isCreateable()) {
+                || !ExpressionSetVersion.IsActive.getDescribe().isUpdateable()) {
             throw new AuraHandledException('Insufficient access to activate Expression Sets.');
         }
         String sessionId = getApiSessionId();

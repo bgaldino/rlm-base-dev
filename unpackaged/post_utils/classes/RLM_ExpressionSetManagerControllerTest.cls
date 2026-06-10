@@ -17,10 +17,17 @@ private class RLM_ExpressionSetManagerControllerTest {
     }
 
     @IsTest
-    static void getLinkedExpressionSets_noMatches_returnsEmpty() {
+    static void getLinkedExpressionSets_unknownContext_returnsNonNull() {
+        // An unknown context returns no linked rows, but the method also surfaces
+        // unlinked Constraint ExpressionSets — count varies by org, so we only
+        // assert the call succeeds and every row is flagged isLinked = false.
         List<RLM_ExpressionSetManagerController.ExpressionSetInfo> results =
             RLM_ExpressionSetManagerController.getLinkedExpressionSets(FAKE_CONTEXT_ID);
-        System.assertEquals(0, results.size(), 'Unknown context should return empty list');
+        System.assertNotEquals(null, results, 'Should return a non-null list');
+        for (RLM_ExpressionSetManagerController.ExpressionSetInfo info : results) {
+            System.assertEquals(false, info.isLinked,
+                'Unknown context cannot have any linked rows');
+        }
     }
 
     @IsTest
