@@ -33,9 +33,12 @@ class Step:
 def load_cci(cci_file: Path) -> Dict[str, Any]:
     with cci_file.open("r", encoding="utf-8") as handle:
         try:
-            return yaml.safe_load(handle)
+            data = yaml.safe_load(handle)
         except yaml.YAMLError as exc:
             raise ValueError(f"Failed to parse {cci_file}: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"{cci_file} did not parse as a YAML mapping (got {type(data).__name__})")
+    return data
 
 
 def load_default_flags(cci: Dict[str, Any]) -> Dict[str, Any]:

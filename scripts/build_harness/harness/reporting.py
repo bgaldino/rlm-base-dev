@@ -46,7 +46,9 @@ def build_run_analysis(run_dir: Path, run_summary: Dict[str, Any]) -> Dict[str, 
         first_failed: Dict[str, Any] = {}
         if scenario_result.get("status") != "success":
             failed_events = [e for e in step_events if e.get("status") == "failed" and e.get("phase") == "prepare_step"]
-            first_failed = failed_events[0] if failed_events else {}
+            # Use the most recent failure (-1) so that resume attempts don't surface
+            # stale failures from earlier attempts that were superseded by a later run.
+            first_failed = failed_events[-1] if failed_events else {}
 
         scenario_records.append(
             {
