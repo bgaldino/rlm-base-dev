@@ -77,6 +77,18 @@ class TestParseStampLineFlexibility:
         assert parsed is not None
         assert parsed["extra"] == {"build_user": "alice", "ci_run_id": "12345"}
 
+    def test_extra_keys_with_digits_and_camelcase_preserved(self) -> None:
+        # Keys containing digits or uppercase (e.g. camelCase) must still be
+        # captured into ``extra`` with their original casing, not dropped.
+        line = (
+            "Stamped org: commit=abc1234, branch=main, ciRunId=987, "
+            "ci_run_id2=xyz, attempt3=second"
+        )
+        parsed = parse_stamp_line(line)
+        assert parsed is not None
+        assert parsed["commit_hash_short"] == "abc1234"
+        assert parsed["extra"] == {"ciRunId": "987", "ci_run_id2": "xyz", "attempt3": "second"}
+
     def test_missing_optional_fields_default_to_empty(self) -> None:
         # The strict regex would have returned None here; we now keep the
         # commit value (the most useful piece) and report empty strings for

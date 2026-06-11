@@ -137,7 +137,11 @@ class PersistentRunLogger:
         self._effective_flags = dict(effective_flags)
         self._started_at = now_utc()
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        self.run_id = f"tui-{stamp}-{_path_safe_alias_fragment(config.org_alias)}"
+        # Append a short random suffix so two runs started in the same second
+        # with the same alias get distinct run_ids (and distinct run_dirs)
+        # instead of silently colliding under the second-granularity timestamp.
+        suffix = secrets.token_hex(3)
+        self.run_id = f"tui-{stamp}-{_path_safe_alias_fragment(config.org_alias)}-{suffix}"
         self.run_dir = TUI_RUNS_ROOT / self.run_id
         self.run_dir.mkdir(parents=True, exist_ok=True)
 

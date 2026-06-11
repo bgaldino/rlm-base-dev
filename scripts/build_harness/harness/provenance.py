@@ -16,8 +16,11 @@ _KNOWN_STAMP_KEYS = {"commit", "branch", "timestamp", "flow", "org"}
 # Match each ``key=value`` pair where ``value`` extends until the next
 # ``, key=`` boundary or end of line. Order-independent, tolerates extra
 # whitespace, and lets values legitimately contain commas as long as they
-# are not followed by ``\s+key=``.
-_STAMP_KV_PATTERN = re.compile(r"([a-z_]+)\s*=\s*(.+?)(?=,\s+[a-z_]+\s*=|$)")
+# are not followed by ``\s+key=``. The key class is a full identifier
+# (letters, digits, underscore) so future stamp fields like ``ciRunId`` or
+# ``ci_run_id2`` are captured into ``extra`` rather than silently dropped.
+_STAMP_KEY = r"[A-Za-z_][A-Za-z0-9_]*"
+_STAMP_KV_PATTERN = re.compile(rf"({_STAMP_KEY})\s*=\s*(.+?)(?=,\s+{_STAMP_KEY}\s*=|$)")
 
 
 def parse_stamp_line(line: str) -> Optional[Dict[str, Any]]:
@@ -44,11 +47,15 @@ def parse_stamp_line(line: str) -> Optional[Dict[str, Any]]:
 
     pairs: Dict[str, str] = {}
     for match in _STAMP_KV_PATTERN.finditer(payload):
-        key = match.group(1).lower()
+        key = match.group(1)
         value = match.group(2).strip().rstrip(",").strip()
         pairs[key] = value
 
-    commit_value = pairs.get("commit")
+    # Known keys are matched case-insensitively; unknown keys keep their
+    # original casing when surfaced in ``extra``.
+    by_lower = {key.lower(): value for key, value in pairs.items()}
+
+    commit_value = by_lower.get("commit")
     if not commit_value:
         return None
 
@@ -58,17 +65,17 @@ def parse_stamp_line(line: str) -> Optional[Dict[str, Any]]:
 
     parsed: Dict[str, Any] = {
         "commit_hash_short": commit_value,
-        "branch": pairs.get("branch", ""),
-        "build_timestamp": pairs.get("timestamp", ""),
-        "flow_name": pairs.get("flow", ""),
-        "org_definition": pairs.get("org", ""),
+        "branch": by_lower.get("branch", ""),
+        "build_timestamp": by_lower.get("timestamp", ""),
+        "flow_name": by_lower.get("flow", ""),
+        "org_definition": by_lower.get("org", ""),
         "dirty_tree": dirty,
     }
 
     extra = {
         key: value
         for key, value in pairs.items()
-        if key not in _KNOWN_STAMP_KEYS
+        if key.lower() not in _KNOWN_STAMP_KEYS
     }
     if extra:
         parsed["extra"] = extra
