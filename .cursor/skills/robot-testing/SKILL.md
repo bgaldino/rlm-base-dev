@@ -34,10 +34,16 @@ suite, run it against a live scratch org:
 
 ```bash
 # via the CCI task wrapper (preferred — mirrors how prepare_rlm_org runs it)
-cci task run <robot_task> --org <alias>
-# or directly against a suite
-robot -v ORG_ALIAS:<alias> robot/rlm-base/tests/setup/<suite>.robot
+cci task run <robot_task> --org <cci_alias>           # CCI alias, e.g. beta
+# or directly against a suite — ORG_ALIAS is passed to `sf org open -o`, so it
+# takes the SF CLI alias (or username), NOT the CCI alias
+robot -v ORG_ALIAS:<sf_alias> robot/rlm-base/tests/setup/<suite>.robot   # e.g. rlm-base__beta
 ```
+
+The two commands take **different** alias forms (see AGENTS.md → *Org Identity:
+CCI vs SF CLI*): `cci task run --org` uses the CCI alias (`beta`); the direct
+`robot` run's `ORG_ALIAS` feeds `sf org open`, so it needs the SF CLI alias
+(`rlm-base__beta`) or the org username.
 
 Confirm the suite actually passes (toggle flips, pill/value reads back, element
 is found) — not just that it parses. **Exempt:** comment/`[Documentation]`-only
