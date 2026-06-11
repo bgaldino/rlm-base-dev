@@ -39,17 +39,16 @@ jobs:
         id: pypi
         run: |
           set -euo pipefail
-          LATEST=$(curl -fsSL https://pypi.org/pypi/cumulusci/json \
-            | python3 -c 'import sys,json; print(json.load(sys.stdin)["info"]["version"])')
+          # Compare with PEP 440 semantics (packaging.Version) — `sort -V` can mis-order
+          # pre/post/dev releases (e.g. 4.11.0rc1 vs 4.11.0). PyPI versions are PEP 440.
+          python3 -m pip install --quiet --disable-pip-version-check packaging
+          curl -fsSL https://pypi.org/pypi/cumulusci/json -o "$RUNNER_TEMP/cci.json"
+          OUT=$(python3 -c 'import sys,json; from packaging.version import Version as V; d=json.load(open(sys.argv[2])); l=d["info"]["version"]; print(l, "true" if V(l)>V(sys.argv[1]) else "false")' "$BASELINE" "$RUNNER_TEMP/cci.json")
+          LATEST=${OUT%% *}
+          IS_NEWER=${OUT##* }
           echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
-          # "newer" = larger of {baseline, latest} under version sort, and != baseline.
-          NEWER=$(printf '%s\n%s\n' "$BASELINE" "$LATEST" | sort -V | tail -1)
-          if [ "$LATEST" != "$BASELINE" ] && [ "$NEWER" = "$LATEST" ]; then
-            echo "is_newer=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "is_newer=false" >> "$GITHUB_OUTPUT"
-          fi
-          echo "Latest CumulusCI on PyPI: $LATEST (baseline $BASELINE)"
+          echo "is_newer=$IS_NEWER" >> "$GITHUB_OUTPUT"
+          echo "Latest CumulusCI on PyPI: $LATEST (baseline $BASELINE, PEP 440 compare)"
 
       - name: Open tracking issue when a newer release exists
         if: steps.pypi.outputs.is_newer == 'true'

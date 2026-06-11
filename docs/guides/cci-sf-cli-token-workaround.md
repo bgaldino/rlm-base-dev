@@ -84,7 +84,7 @@ CI) — whereas `~/.zshrc` is interactive-only and is skipped in exactly the non
 contexts CCI runs in:
 
 ```bash
-echo 'export SF_TEMP_SHOW_SECRETS=true' >> ~/.zshenv   # bash: ~/.bashrc (interactive) or the BASH_ENV file (non-interactive)
+echo 'export SF_TEMP_SHOW_SECRETS=true' >> ~/.zshenv   # bash: use ~/.bashrc for interactive shells; non-interactive bash reads only the file named by the $BASH_ENV variable
 ```
 
 On Linux / CI runners this is all you need — export the variable in the job environment.
@@ -160,21 +160,18 @@ This workaround relies on a flag Salesforce documents as **temporary** (`SF_TEMP
 
 > **Automated:** the `.github/workflows/check-cci-token-fix.yml` workflow runs this check
 > weekly (and on demand via *Run workflow*) and opens a tracking issue when a newer CumulusCI
-> release appears — so nobody has to remember. The manual command below is the same check.
+> release appears — so nobody has to remember. It compares versions with PEP 440 semantics
+> (`packaging.Version`). The manual command below just prints the latest for you to eyeball.
 
 ### How to check (run periodically)
 
 ```bash
-# Is there a CumulusCI release newer than the one with the bug? (same logic as the workflow)
+# Print the latest CumulusCI on PyPI; compare it against the baseline yourself.
 BASELINE=4.10.0
 LATEST=$(curl -fsSL https://pypi.org/pypi/cumulusci/json | python3 -c 'import sys,json; print(json.load(sys.stdin)["info"]["version"])')
-echo "Latest CumulusCI on PyPI: $LATEST (workaround baseline: $BASELINE)"
-# "newer" = larger of {baseline, latest} under version sort, and != baseline.
-NEWER=$(printf '%s\n%s\n' "$BASELINE" "$LATEST" | sort -V | tail -1)
-if [ "$LATEST" != "$BASELINE" ] && [ "$NEWER" = "$LATEST" ]; then
-  echo "NEW RELEASE — check its changelog for the sf-token / 'show-access-token' fix:
-  https://github.com/SFDO-Tooling/CumulusCI/releases"
-fi
+echo "Latest CumulusCI on PyPI: $LATEST   (workaround baseline: $BASELINE)"
+echo "If $LATEST is newer than $BASELINE, check its changelog for the sf-token / 'show-access-token' fix:"
+echo "  https://github.com/SFDO-Tooling/CumulusCI/releases"
 ```
 
 If a newer release exists, confirm from its changelog that it addresses the
