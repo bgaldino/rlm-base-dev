@@ -5,6 +5,10 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$ROOT_DIR/.harness/tui-venv"
 VENV_PYTHON="$VENV_DIR/bin/python"
 REQ_FILE="$ROOT_DIR/scripts/build_harness/tui/requirements.txt"
+# Records the hash of requirements.txt at the last successful install so a
+# launch can skip the slow `pip install` only when the pinned versions are
+# unchanged (a plain import check can't tell stale versions from current ones).
+REQ_MARKER="$VENV_DIR/.requirements.sha256"
 UPGRADE=0
 DEBUG_LAUNCH=0
 PASSTHROUGH_ARGS=()
@@ -57,6 +61,34 @@ restore_terminal() {
 
 trap restore_terminal EXIT INT TERM
 
+req_file_hash() {
+  # Emit a hex digest of requirements.txt, or nothing if no hashing tool is
+  # available (in which case deps_satisfied falls back to always reinstalling).
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$REQ_FILE" 2>/dev/null | awk '{print $1}'
+  elif command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$REQ_FILE" 2>/dev/null | awk '{print $1}'
+  fi
+}
+
+REQ_HASH="$(req_file_hash || true)"
+
+stamp_requirements() {
+  # No-op when we could not compute a hash; that just forces the next launch to
+  # reinstall rather than risk skipping over an unsatisfied requirement.
+  if [[ -n "$REQ_HASH" ]]; then
+    printf '%s\n' "$REQ_HASH" >"$REQ_MARKER"
+  fi
+}
+
+deps_satisfied() {
+  # Skip reinstall only when (a) requirements.txt hashed, (b) the recorded hash
+  # matches it (so version pins are current), and (c) the core imports succeed.
+  [[ -n "$REQ_HASH" && -f "$REQ_MARKER" ]] || return 1
+  [[ "$(cat "$REQ_MARKER" 2>/dev/null)" == "$REQ_HASH" ]] || return 1
+  "$VENV_PYTHON" -c "import textual, yaml" >/dev/null 2>&1
+}
+
 if [[ ! -x "$VENV_PYTHON" ]]; then
   # Resolve a bootstrap interpreter to create the venv. Prefer python3 — many
   # systems (notably Linux) ship only `python3` with no bare `python`, so a
@@ -81,6 +113,7 @@ if [[ ! -x "$VENV_PYTHON" ]]; then
   mkdir -p "$ROOT_DIR/.harness"
   "$BOOTSTRAP_PYTHON" -m venv "$VENV_DIR"
   "$VENV_PYTHON" -m pip install -r "$REQ_FILE"
+  stamp_requirements
 fi
 
 # Always verify the venv Python is 3.11+ — guards against a venv that was
@@ -91,7 +124,7 @@ if ! "$VENV_PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3
   exit 1
 fi
 
-if [[ "$UPGRADE" -eq 1 ]] || ! "$VENV_PYTHON" -c "import textual, yaml" >/dev/null 2>&1; then
+if [[ "$UPGRADE" -eq 1 ]] || ! deps_satisfied; then
   echo "Installing/updating TUI dependencies..."
   if [[ "$UPGRADE" -eq 1 ]]; then
     # --upgrade so already-satisfied packages are actually bumped, not skipped.
@@ -99,6 +132,7 @@ if [[ "$UPGRADE" -eq 1 ]] || ! "$VENV_PYTHON" -c "import textual, yaml" >/dev/nu
   else
     "$VENV_PYTHON" -m pip install -r "$REQ_FILE"
   fi
+  stamp_requirements
 fi
 
 cd "$ROOT_DIR"
