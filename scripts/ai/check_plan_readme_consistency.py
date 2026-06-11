@@ -248,9 +248,14 @@ def check_plan(plan_dir: str):
         has_csv = name in counts
         excluded = in_plan and all(v["excluded"] for v in variants)
 
-        # phantom object: named in the table but not an export.json object and no CSV
-        if not in_plan and not has_csv:
-            errors.append(f"{rel}:{ln} object table lists `{name}` — not in export.json and no {name}.csv on disk")
+        # phantom object: a load-table row that isn't an export.json object is drift —
+        # the plan won't load it, even if a leftover/supporting CSV happens to exist.
+        if not in_plan:
+            extra = "" if not has_csv else (
+                f" (a {name}.csv exists but the plan doesn't reference it; "
+                "add a `<!-- readme-check: ignore -->` marker on the row if intentional)"
+            )
+            errors.append(f"{rel}:{ln} object table lists `{name}` — not an object in export.json{extra}")
             continue
 
         # operation — matches if it agrees with ANY pass's operation (excluded objects are descriptive only)
