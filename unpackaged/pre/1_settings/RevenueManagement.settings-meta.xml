@@ -3,7 +3,8 @@
     <enableAdvCreateOrdersFromQuote>true</enableAdvCreateOrdersFromQuote>
     <!-- Advanced Detail Line Pricing is intentionally disabled: it is not required for the
          base RLM configuration and changes pricing/totals behavior. Keep false here and in
-         the orgs/*.json scratch-def settings so deployed metadata and new scratch orgs match. -->
+         every scratch-def settings block (config/project-scratch-def.json, orgs/*.json, and
+         orgs/internal/*.json) so deployed metadata and new scratch orgs stay in sync. -->
     <enableAdvancedDetailLinePricing>false</enableAdvancedDetailLinePricing>
     <enableAsIsRenewals>true</enableAsIsRenewals>
     <enableAutoAddDerivedAsset>true</enableAutoAddDerivedAsset>
