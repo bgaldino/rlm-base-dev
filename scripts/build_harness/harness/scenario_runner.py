@@ -444,8 +444,15 @@ def run_single_scenario(
                 org_shape=org_shape,
                 effective_flags=flags,
             )
-        except Exception:
-            pass
+        except Exception as exc:  # never let provenance failure mask the real result
+            try:
+                with log_path.open("a", encoding="utf-8") as handle:
+                    handle.write(
+                        f"\n[{scenario_id}] WARNING build provenance write failed: "
+                        f"{type(exc).__name__}: {exc}\n"
+                    )
+            except OSError:
+                pass
         if cleanup_workspace:
             cleanup_error = cleanup_scenario_project_root(project_root)
             if cleanup_error:

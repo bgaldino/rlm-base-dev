@@ -67,6 +67,12 @@ def run_command_stream(
     reader = Thread(target=_read_stdout, daemon=True)
     reader.start()
 
+    # Grace period to wait after SIGTERM before escalating to SIGKILL, so a
+    # subprocess that ignores (or is slow to honor) SIGTERM cannot wedge the loop.
+    terminate_grace_seconds = 10.0
+    terminate_requested_at: Optional[float] = None
+    killed = False
+
     while True:
         drained_any = False
         try:
@@ -81,7 +87,13 @@ def run_command_stream(
             pass
 
         if stop_event is not None and stop_event.is_set() and process.poll() is None:
-            process.terminate()
+            now = time.monotonic()
+            if terminate_requested_at is None:
+                process.terminate()
+                terminate_requested_at = now
+            elif not killed and now - terminate_requested_at > terminate_grace_seconds:
+                process.kill()
+                killed = True
 
         if process.poll() is not None:
             if reader_done.is_set():

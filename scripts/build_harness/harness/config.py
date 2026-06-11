@@ -165,10 +165,23 @@ def evaluate_when(
         return True
 
 
+# A scenario_id is interpolated into filesystem paths (run_dir/scenarios/<id>)
+# and org aliases, so restrict it to a safe, path-segment-free token.
+_SCENARIO_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
+
+
 def load_scenarios(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
     scenarios = payload.get("scenarios", [])
     if not scenarios:
         raise ValueError("Scenario file contains no scenarios")
+    for scenario in scenarios:
+        scenario_id = scenario.get("scenario_id")
+        if not isinstance(scenario_id, str) or not _SCENARIO_ID_RE.match(scenario_id):
+            raise ValueError(
+                "Invalid scenario_id "
+                f"{scenario_id!r}: must match {_SCENARIO_ID_RE.pattern} "
+                "(letters, digits, '-', '_'; no path separators or '..')"
+            )
     return scenarios
 
 

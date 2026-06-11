@@ -148,6 +148,18 @@ class TestLoadScenarios:
         with pytest.raises(ValueError, match="no scenarios"):
             load_scenarios({})
 
+    def test_accepts_valid_scenario_ids(self) -> None:
+        payload = {"scenarios": [{"scenario_id": "dev-default"}, {"scenario_id": "ent_full2"}]}
+        assert load_scenarios(payload) == payload["scenarios"]
+
+    @pytest.mark.parametrize(
+        "bad_id",
+        ["../escape", "a/b", "with space", "", "-leading-dash", ".", None],
+    )
+    def test_rejects_unsafe_scenario_id(self, bad_id) -> None:
+        with pytest.raises(ValueError, match="Invalid scenario_id"):
+            load_scenarios({"scenarios": [{"scenario_id": bad_id}]})
+
 
 class TestLoadDefaultFlags:
     def test_returns_project_custom_dict(self) -> None:
