@@ -91,12 +91,24 @@ def load_plan(export_json: str) -> dict:
     return out
 
 
+# SFDMU runtime-artifact dirs — gitignored (datasets/**/source/**, target/**, logs).
+# They hold per-run snapshots (e.g. Product2_source.csv, *_insert_target.csv) that
+# must not feed into counts; pruning them keeps results deterministic across working
+# trees and matches a clean CI checkout regardless of whether SFDMU has been run.
+RUNTIME_DIRS = {"source", "target", "logs"}
+# Gitignored SFDMU report files that would otherwise add spurious index entries.
+SKIP_CSV = {"CSVIssuesReport.csv", "MissingParentRecordsReport.csv"}
+
+
 def csv_index(plan_dir: str) -> dict[str, list[str]]:
-    """basename (without .csv) -> [absolute paths] across the plan tree."""
+    """basename (without .csv) -> [absolute paths] for the plan's source CSVs.
+    SFDMU runtime dirs (source/target/logs) and report CSVs are pruned during the
+    walk so counts don't depend on local, gitignored working-tree artifacts."""
     idx: dict[str, list[str]] = {}
-    for root, _dirs, files in os.walk(plan_dir):
+    for root, dirs, files in os.walk(plan_dir):
+        dirs[:] = [d for d in dirs if d not in RUNTIME_DIRS and not d.startswith(".")]
         for f in files:
-            if f.endswith(".csv"):
+            if f.endswith(".csv") and f not in SKIP_CSV:
                 idx.setdefault(f[:-4], []).append(os.path.join(root, f))
     return idx
 
@@ -122,9 +134,12 @@ def parse_int(text: str):
 
 
 def parse_object_tables(lines: list[str]):
-    """Yield dict rows from any markdown table that has an 'Object' column plus at
-    least one of Operation / External ID / Records. Column lookups are by header
-    name so extra columns (e.g. 'v5 Notes') don't break parsing."""
+    """Yield dict rows from the canonical *load* table(s): any markdown table that
+    has BOTH an 'Object' column and an 'Operation' column. Requiring 'Operation'
+    excludes dated "Schema Analysis" / "ExternalId Assessment" tables (which have
+    Object + External ID but no Operation), so they aren't mis-parsed as the object
+    table. Other columns (External ID, Records, 'v5 Notes', …) are optional, and
+    column lookups are by header name so extra columns don't break parsing."""
     i = 0
     n = len(lines)
     while i < n - 1:
