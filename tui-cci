@@ -6,8 +6,9 @@ VENV_DIR="$ROOT_DIR/.harness/tui-venv"
 VENV_PYTHON="$VENV_DIR/bin/python"
 REQ_FILE="$ROOT_DIR/scripts/build_harness/tui/requirements.txt"
 # Records the hash of requirements.txt at the last successful install so a
-# launch can skip the slow `pip install` only when the pinned versions are
-# unchanged (a plain import check can't tell stale versions from current ones).
+# launch can skip the slow `pip install` only when the file (its declared
+# version requirements) is unchanged — a plain import check can't tell a stale
+# below-minimum install from a current one.
 REQ_MARKER="$VENV_DIR/.requirements.sha256"
 UPGRADE=0
 DEBUG_LAUNCH=0
@@ -83,7 +84,7 @@ stamp_requirements() {
 
 deps_satisfied() {
   # Skip reinstall only when (a) requirements.txt hashed, (b) the recorded hash
-  # matches it (so version pins are current), and (c) the core imports succeed.
+  # matches it (so its declared requirements are current), and (c) imports succeed.
   [[ -n "$REQ_HASH" && -f "$REQ_MARKER" ]] || return 1
   [[ "$(cat "$REQ_MARKER" 2>/dev/null)" == "$REQ_HASH" ]] || return 1
   "$VENV_PYTHON" -c "import textual, yaml" >/dev/null 2>&1

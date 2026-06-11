@@ -25,7 +25,7 @@ def estimate_optimization_heuristics(target_type: str, target_name: str, avg_sec
     return {
         "impact": impact,
         "effort": effort,
-        "note": f"Average runtime {round(avg_seconds, 2)}s for {target_type}:{target_name}.",
+        "note": f"Average runtime {avg_seconds:.2f}s for {target_type}:{target_name}.",
     }
 
 
