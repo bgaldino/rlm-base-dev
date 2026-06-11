@@ -8,12 +8,12 @@ SFDMU data plan for QuantumBit (QB) tax configuration. Creates legal entities, t
 
 This plan is executed as **step 2** of the `prepare_tax` flow (when `tax=true`, `qb=true`, `refresh=false`).
 
-| Step | Task                     | Description                                                |
-|------|--------------------------|------------------------------------------------------------|
-| 1    | `create_tax_engine`      | Runs `createTaxEngine.apex` (creates TaxEngineProvider + TaxEngine via REST API) |
-| 2    | `insert_tax_data`        | Runs this SFDMU plan (2 passes)                            |
-| 3    | `insert_q3_tax_data`     | Loads Q3 tax data (gated by the `q3` flag)                |
-| 4    | `activate_tax_records`   | Runs `activateTaxRecords.apex`                             |
+| Step | Task                     | When (`when:`)                | Description                                                |
+|------|--------------------------|-------------------------------|------------------------------------------------------------|
+| 1    | `create_tax_engine`      | `tax`                         | Runs `createTaxEngine.apex` (creates TaxEngineProvider + TaxEngine via REST API) |
+| 2    | `insert_tax_data`        | `tax` and not `refresh` and `qb` | Runs this SFDMU plan (2 passes)                         |
+| 3    | `insert_q3_tax_data`     | `tax` and not `refresh` and `q3` | Loads Q3 tax data (gated by the `q3` flag)             |
+| 4    | `activate_tax_records`   | `tax`                         | Runs `activateTaxRecords.apex`                             |
 
 ### Task Definition
 
