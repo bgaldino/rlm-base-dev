@@ -76,7 +76,8 @@ docs/                  # Documentation (lower-kebab-case filenames)
    a suite (`tasks/rlm_*.py`) must be run against a **live scratch org** before
    the PR merges. If you must commit such a change unverified, say so explicitly
    and keep the PR blocked (label `blocked: needs-live-verification`) until a
-   live run passes. Comment/`[Documentation]`-only edits are exempt. See
+   live run passes. Exempt: comment/`[Documentation]`-only edits, and resource
+   files with no behavioral change. See
    `.cursor/skills/robot-testing/SKILL.md` → **Verification**.
 
 ## Org Identity: CCI vs SF CLI

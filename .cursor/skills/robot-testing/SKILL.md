@@ -18,7 +18,7 @@ Use this skill when writing, modifying, or debugging Robot Framework tests.
 - **DO NOT** use `//` comments in Robot JavaScript — use `/* */` instead
 - **DO NOT** use standard `input_text` for LWC inputs — use native setter pattern
 - **DO NOT** log session tokens — wrap URL retrieval with `Set Log Level NONE`
-- **DO NOT** commit a behavioral robot change (keywords, locators, `Execute JavaScript`/DOM logic, click targets, wait/assert flow) **or** its Python task wrapper as verified — or merge it — on `robot --dryrun` alone. Run the affected suite against a live scratch org first. Dryrun never launches a browser. Comment/`[Documentation]`-only edits are exempt.
+- **DO NOT** commit a behavioral robot change (keywords, locators, `Execute JavaScript`/DOM logic, click targets, wait/assert flow) **or** its Python task wrapper as verified — or merge it — on `robot --dryrun` alone. Run the affected suite against a live scratch org first. Dryrun never launches a browser. Exempt: comment/`[Documentation]`-only edits, and resource files with no behavioral change.
 
 ## Verification — dryrun is not enough
 

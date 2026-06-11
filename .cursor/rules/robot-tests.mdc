@@ -13,9 +13,10 @@ globs:
   by `robot --dryrun`.** Dryrun is syntax/keyword-resolution only; it never runs the
   browser or `Execute JavaScript`. Verify in a **live scratch org** first
   (`cci task run <robot_task> --org <alias>`), or mark the change unverified and keep
-  the PR blocked (`blocked: needs-live-verification`). Comment/`[Documentation]`-only
-  edits are exempt. (This rule's `globs` cover the `.robot` suites; the same requirement for
-  task wrappers under `tasks/**/*.py` is carried by `cci-python-tasks.mdc`. See
+  the PR blocked (`blocked: needs-live-verification`). Exempt: comment/`[Documentation]`-only
+  edits, and resource files with no behavioral change. (This rule's `globs` cover the
+  `robot/**` tree — both `*.robot` suites and in-tree Python `robot/**/*.py`; the same
+  requirement for task wrappers under `tasks/**/*.py` is carried by `cci-python-tasks.mdc`. See
   `robot-testing/SKILL.md` → Verification, and AGENTS.md DO NOT #9.)
 - Use `//` comments in Robot JavaScript blocks — use `/* */`
 - Use standard `input_text` for LWC inputs — use native setter pattern

@@ -12,11 +12,11 @@ alwaysApply: false
 - Log access tokens or session IDs
 - Use `org_config.name` (CCI alias) as `--target-org` — use `.username`
 - Write SOQL in loops (batch-query before processing)
-- **If this task wraps a Robot Framework suite** (runs `robot` via subprocess / imports
-  `tasks.robot_utils`): commit a behavioral change to the suite or this wrapper validated only
-  by `robot --dryrun`. Dryrun never launches a browser — verify in a **live scratch org** first
-  (`cci task run <robot_task> --org <alias>`), or keep the PR blocked
-  (`blocked: needs-live-verification`). See AGENTS.md DO NOT #9 and
+- **Commit a behavioral change to a wrapped Robot Framework suite — or to this wrapper
+  itself — validated only by `robot --dryrun`** (applies when this task runs `robot` via
+  subprocess / imports `tasks.robot_utils`). Dryrun never launches a browser — verify in a
+  **live scratch org** first (`cci task run <robot_task> --org <alias>`), or keep the PR
+  blocked (`blocked: needs-live-verification`). See AGENTS.md DO NOT #9 and
   `robot-testing/SKILL.md` → Verification.
 
 ## Base Class Selection
