@@ -88,6 +88,24 @@ sf org list               # shows sf aliases (rlm-base__* prefix)
 cci org info beta         # shows username, instance URL
 ```
 
+### `INVALID_AUTH_HEADER` / "Expired session" on a healthy scratch org
+
+**Symptom:** every `cci` command that touches an org fails with
+`INVALID_AUTH_HEADER` (or "Expired session"), even on a brand-new org — but
+`sf data query --target-org USERNAME` reaches the same org fine.
+
+**Cause:** CumulusCI 4.10 parses `sf org display` for the access token, and
+sf CLI >= 2.13.0 now **redacts** it. CCI sends a bogus header.
+
+**Fix:** set `SF_TEMP_SHOW_SECRETS=true`. The repo's tracked `.envrc` already exports
+it, so **direnv users are covered automatically** inside the repo; otherwise prefix a
+command for a one-off, or for a durable / Dock-launched-IDE setup use `~/.zshenv` + a
+LaunchAgent. **Do not** delete or recreate the org — and never `cci org remove` a
+scratch org (it deletes it).
+Full guide, including the durable setup, the security tradeoff, and **how to
+check for / remove the workaround once an official fix ships**:
+[cci-sf-cli-token-workaround.md](../../../docs/guides/cci-sf-cli-token-workaround.md).
+
 ### `NonScratchOrgError` ("This command works with only scratch orgs")
 
 **Symptom:** a scratch-only SF CLI command — most often `sf org create user`
