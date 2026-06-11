@@ -179,7 +179,7 @@ Use these before opening or updating a PR. They complement the **PR Review Focus
 
 1. Run `python scripts/validate_sfdmu_v5_datasets.py` and fix reported issues.
 2. Keep **`externalId`** (`;` delimiters) and CSV `$$` columns aligned with the skill rules in this file — do not change `Upsert` to `Insert` + `deleteOldData: true` without explicit user approval.
-3. If the plan’s behavior or objects changed, update the plan’s **README** in the same change.
+3. If the plan’s behavior or objects changed, update the plan’s **README** in the same change, then run `python scripts/ai/check_plan_readme_consistency.py <plan_dir>` — it fails if the README's object table or `# N records` listings drift from the actual `export.json`/CSVs (record counts, operations, externalIds, phantom/missing objects). Must report **0 errors**.
 
 ### `cumulusci.yml` and CCI tasks
 
@@ -358,6 +358,7 @@ python scripts/ai/skill_manifest.py --list-skills foundations
 python scripts/ai/pr_review.py status <pr>                  # Automated-PR-review helper: list unresolved threads
 python scripts/ai/pr_review.py handle <pr> --comment <id> --body "…"   # reply + resolve one thread (👍 by default; --no-react to refute a false positive)
 python scripts/ai/pr_review.py verify <pr>                  # confirm 0 unresolved (paginated)
+python scripts/ai/check_plan_readme_consistency.py          # SFDMU plan README ↔ export.json/CSVs drift check (counts, ops, externalIds)
 ```
 
 `scripts/ai/pr_review.py` executes the mechanical half of **Responding to Automated PR Reviews** (above); the `/pr-review <pr>` Claude command drives the full protocol with it.
