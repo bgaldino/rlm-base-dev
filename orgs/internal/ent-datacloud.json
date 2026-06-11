@@ -109,7 +109,7 @@
     },
     "revenueManagementSettings": {
       "enableAdvCreateOrdersFromQuote": true,
-      "enableAdvancedDetailLinePricing": true,
+      "enableAdvancedDetailLinePricing": false,
       "enableAsIsRenewals": true,
       "enableAutoAddDerivedAsset": true,
       "enableCoreCPQ": true,
