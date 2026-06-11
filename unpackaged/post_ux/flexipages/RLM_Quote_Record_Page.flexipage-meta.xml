@@ -19,7 +19,7 @@
                             <value>CreateOrder</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RLM_CreateContract</value>
+                            <value>CreateContract</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Quote.RLM_Submit_for_Approval</value>
@@ -32,9 +32,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteAdjustment</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>UpdateContractFromSObject</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Edit</value>
@@ -53,9 +50,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>PrintableView</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>CreateContractFromSObject</value>
                         </valueListItems>
                         <valueListItems>
                             <value>headlessPricingAction</value>

@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-06-09T21:01:31.049966Z",
+  "assembled_at": "2026-06-11T02:54:06.761778Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -812,6 +812,12 @@
     },
     {
       "type": "CustomObject",
+      "name": "Contract.object-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contract/Contract.object-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "CustomObject",
       "name": "FulfillmentOrderLineItem.object-meta.xml",
       "dest": "unpackaged/post_ux/objects/FulfillmentOrderLineItem/FulfillmentOrderLineItem.object-meta.xml",
       "source": "objects/base"
@@ -844,6 +850,12 @@
       "type": "compactLayout",
       "name": "RLM_Asset_Compact_Layout.compactLayout-meta.xml",
       "dest": "unpackaged/post_ux/objects/Asset/compactLayouts/RLM_Asset_Compact_Layout.compactLayout-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "compactLayout",
+      "name": "RLM_Contract_Compact_Layout.compactLayout-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contract/compactLayouts/RLM_Contract_Compact_Layout.compactLayout-meta.xml",
       "source": "objects/base"
     },
     {

@@ -143,6 +143,8 @@ Automates general Revenue Settings page configuration via Robot Framework:
 - **Usage Rating Procedure** -- set to `RLM Default Rating Discovery Procedure` (combobox-recipe, `<li>`-scoped; page reload between Pricing and Usage Rating ensures clean dropdown state)
 - **Instant Pricing** toggle -- enabled (shadow DOM toggle via JavaScript)
 - **Create Orders Flow** -- set to `RLM_CreateOrdersFromQuote` (text input)
+- **Create Contracts Flow** -- optionally set to `RLM_CreateContractFromQuote` (text input, QuantumBit/TSO orgs)
+- **Manage Assets Flow** -- optionally set to `RLM_ARC_Assets` (text input, QuantumBit/TSO orgs)
 
 All values are configurable via `cumulusci.yml` task options. All procedure field selectors are scoped to their parent `<li>` setup-assistant step, making it impossible to accidentally interact with the Asset Context field. The Asset Context field is **not** configured in this step; it is handled exclusively by `enable_constraints_settings`.
 

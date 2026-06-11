@@ -2,8 +2,8 @@
 
 Sets default procedures (Pricing, Usage Rating), enables Instant Pricing,
 sets the Create Orders from Quote screen flow, and optionally sets the
-Manage Assets flow. Must run after all data/metadata is deployed and
-before decision table refresh.
+Create Contracts from Quote and Manage Assets flows. Must run after all
+data/metadata is deployed and before decision table refresh.
 Asset Context is configured separately via enable_constraints_settings.
 
 Follows the same pattern as rlm_enable_constraints_settings.py.
@@ -31,8 +31,8 @@ class ConfigureRevenueSettings(BaseSalesforceTask):
 
     Sets default Pricing Procedure, Usage Rating Procedure, enables Instant
     Pricing, sets the Create Orders from Quote flow, and optionally sets the
-    Manage Assets flow. Required before decision table refresh can run
-    successfully.
+    Create Contracts from Quote and Manage Assets flows. Required before
+    decision table refresh can run successfully.
     """
 
     task_options = {
@@ -54,6 +54,10 @@ class ConfigureRevenueSettings(BaseSalesforceTask):
         },
         "create_orders_flow": {
             "description": "API name of the Create Orders from Quote screen flow.",
+            "required": False,
+        },
+        "create_contracts_flow": {
+            "description": "API name of the Create Contracts from Quote screen flow.",
             "required": False,
         },
         "manage_assets_flow": {
@@ -100,6 +104,13 @@ class ConfigureRevenueSettings(BaseSalesforceTask):
             cmd.extend(["--variable", f"USAGE_RATING_PROCEDURE:{self.options['usage_rating_procedure']}"])
         if self.options.get("create_orders_flow"):
             cmd.extend(["--variable", f"CREATE_ORDERS_FLOW:{self.options['create_orders_flow']}"])
+        if self.options.get("create_contracts_flow"):
+            cmd.extend(
+                [
+                    "--variable",
+                    f"CREATE_CONTRACTS_FLOW:{self.options['create_contracts_flow']}",
+                ]
+            )
         if self.options.get("manage_assets_flow"):
             cmd.extend(["--variable", f"MANAGE_ASSETS_FLOW:{self.options['manage_assets_flow']}"])
 
@@ -131,6 +142,8 @@ class ConfigureRevenueSettings(BaseSalesforceTask):
             "Pricing Procedure", "Usage Rating", "Instant Pricing",
             "Create Orders Flow",
         ]
+        if self.options.get("create_contracts_flow"):
+            configured.append("Create Contracts Flow")
         if self.options.get("manage_assets_flow"):
             configured.append("Manage Assets Flow")
         self.logger.info(
