@@ -92,10 +92,10 @@ cci org info beta         # shows username, instance URL
 
 **Symptom:** every `cci` command that touches an org fails with
 `INVALID_AUTH_HEADER` (or "Expired session"), even on a brand-new org — but
-`sf data query --target-org <username>` reaches the same org fine.
+`sf data query --target-org USERNAME` reaches the same org fine.
 
 **Cause:** CumulusCI 4.10 parses `sf org display` for the access token, and
-sf CLI ≥ 2.13x now **redacts** it. CCI sends a bogus header.
+sf CLI >= 2.13.0 now **redacts** it. CCI sends a bogus header.
 
 **Fix:** set `SF_TEMP_SHOW_SECRETS=true` (prefix a command for a one-off; for a
 durable, IDE-covering setup use a LaunchAgent + `~/.zshrc`). **Do not** delete or

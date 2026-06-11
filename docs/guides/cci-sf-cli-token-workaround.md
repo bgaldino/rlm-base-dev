@@ -25,20 +25,20 @@ The org is healthy; only CumulusCI can't authenticate. The `sf` CLI reaches it f
 
 ```bash
 # Works (sf refreshes its own token):
-sf data query -q "SELECT Id FROM Organization LIMIT 1" --target-org <username-or-sf-alias>
+sf data query -q "SELECT Id FROM Organization LIMIT 1" --target-org USERNAME_OR_SF_ALIAS
 
 # Fails with INVALID_AUTH_HEADER (CCI):
-cci org info <cci-alias>
+cci org info CCI_ALIAS
 ```
 
 If `sf` succeeds and `cci` fails, it's this bug — **do not delete or recreate the org.**
-(Note: `cci org remove <scratch-alias>` runs `sf org delete scratch -p` and **deletes** the
+(Note: `cci org remove SCRATCH_ALIAS` runs `sf org delete scratch -p` and **deletes** the
 org — never use it to "refresh" a token.)
 
 ## Root cause
 
 CumulusCI **4.10.0** (the latest release as of 2026-06) reads an org's access token by parsing
-the output of `sf org display`. Salesforce CLI **≥ 2.13x** now **redacts secrets** from that
+the output of `sf org display`. Salesforce CLI **>= 2.13.0** now **redacts secrets** from that
 output by default:
 
 ```
@@ -82,7 +82,9 @@ The shell profile does **not** cover an app launched from the Dock (Cursor / VS 
 macOS GUI apps don't source `~/.zshrc`. To cover the IDE process itself and anything it spawns,
 set the variable in the GUI login session with a LaunchAgent.
 
-Create `~/Library/LaunchAgents/com.<you>.sf-temp-show-secrets.plist`:
+Create `~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist` (replace `example`
+with your own identifier — e.g. your username — keeping the filename and the `Label` below
+identical):
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -90,7 +92,7 @@ Create `~/Library/LaunchAgents/com.<you>.sf-temp-show-secrets.plist`:
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.<you>.sf-temp-show-secrets</string>
+    <string>com.example.sf-temp-show-secrets</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/launchctl</string>
@@ -108,7 +110,7 @@ Load it and set it immediately for the current session:
 
 ```bash
 launchctl setenv SF_TEMP_SHOW_SECRETS true                                   # current session
-launchctl load -w ~/Library/LaunchAgents/com.<you>.sf-temp-show-secrets.plist # every login
+launchctl load -w ~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist # every login
 ```
 
 **Relaunch the IDE once** afterward — an already-running app does not inherit a freshly-set
@@ -118,7 +120,7 @@ Verify:
 
 ```bash
 launchctl getenv SF_TEMP_SHOW_SECRETS    # -> true
-cci org info <cci-alias>                  # -> instance_url, no INVALID_AUTH_HEADER
+cci org info CCI_ALIAS                     # -> instance_url, no INVALID_AUTH_HEADER
 ```
 
 ### Security note
@@ -161,13 +163,13 @@ If a newer release exists, confirm from its changelog that it addresses the
 ```bash
 pipx upgrade cumulusci                       # or to a specific fixed version
 # then remove the workaround:
-launchctl unload ~/Library/LaunchAgents/com.<you>.sf-temp-show-secrets.plist
-rm ~/Library/LaunchAgents/com.<you>.sf-temp-show-secrets.plist
+launchctl unload ~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist
+rm ~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist
 launchctl unsetenv SF_TEMP_SHOW_SECRETS
 # remove the `export SF_TEMP_SHOW_SECRETS=true` line from ~/.zshrc
 ```
 
-Verify `cci org info <alias>` still works **without** the flag, then delete this note's entry
+Verify `cci org info CCI_ALIAS` still works **without** the flag, then delete this note's entry
 from the troubleshooting skill.
 
 ## Related
