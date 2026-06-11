@@ -16,7 +16,7 @@ Hands-on enablement exercises for Salesforce Revenue Cloud (Agentforce Revenue M
 - **Salesforce Help grounding for 262** uses the per-article markdown snapshot at `docs/salesforce/262/help/` (838 articles) — replaces the old per-release master Help PDFs
 - **Where to start your review** depends on your role — see [Reading paths by reviewer role](#reading-paths-by-reviewer-role) below
 
-> **Branch context:** This catalog is landing on the `262` branch. On 262, 260 is the **prior GA reference** and 262 (Summer '26) is the **current development cycle**. The 262 feature index is populated at [`../salesforce/262/feature-index.md`](../salesforce/262/feature-index.md) and the Help-portal snapshot lives at [`../salesforce/262/help/`](../salesforce/262/help/) (838 articles, replaces the prior per-release master Help PDFs). The `docs/enablement/262/` directory now contains the **262 QB demo script** ([`262/qb-demo-script.md`](262/qb-demo-script.md), generated 2026-05-24 via the [`qb-demo-script` SKILL](../../.cursor/skills/qb-demo-script/SKILL.md)); 262 per-area Hands-On extracts are still pending and will be derived from master coverage as it broadens.
+> **Branch context:** This catalog now lives on `main` (Release 262). 260 is the **prior GA reference** and 262 (Summer '26) is the **current release cycle**. The 262 feature index is populated at [`../salesforce/262/feature-index.md`](../salesforce/262/feature-index.md) and the Help-portal snapshot lives at [`../salesforce/262/help/`](../salesforce/262/help/) (838 articles, replaces the prior per-release master Help PDFs). The `docs/enablement/262/` directory now contains the **262 QB demo script** ([`262/qb-demo-script.md`](262/qb-demo-script.md), generated 2026-05-24 via the [`qb-demo-script` SKILL](../../.cursor/skills/qb-demo-script/SKILL.md)); 262 per-area Hands-On extracts are still pending and will be derived from master coverage as it broadens.
 
 ---
 
@@ -61,8 +61,8 @@ For the canonical reference of what's in QB orgs by default — including bundle
 | Path | What's there | Status |
 |---|---|---|
 | **[`master/`](master/)** | The two-tier model's source of truth — master exercises + scenario reference | 🚧 **Pilot** (PCM + Pricing drafted; 8 areas pending) |
-| **[`260/`](260/)** | Per-release extracts for 260 (Spring '26, prior GA reference on the 262 branch) | ✅ All 10 area drafts complete |
-| **[`262/`](262/)** | Per-release artifacts for 262 (Summer '26, current development cycle on the 262 branch) | 🚧 QB demo script drafted ([`qb-demo-script.md`](262/qb-demo-script.md)); 10 per-area Hands-On extracts pending |
+| **[`260/`](260/)** | Per-release extracts for 260 (Spring '26, prior GA reference) | ✅ All 10 area drafts complete |
+| **[`262/`](262/)** | Per-release artifacts for 262 (Summer '26, current release cycle on `main`) | 🚧 QB demo script drafted ([`qb-demo-script.md`](262/qb-demo-script.md)); 10 per-area Hands-On extracts pending |
 | `248/`, `252/`, `254/`, `256/`, `258/` *(not in repo)* | **Read-only historical labels** — used in exercise files to point at prior published exercise PDFs (e.g. ``docs/enablement/258/Salesforce Pricing - Winter '26 Revenue Cloud - External.pdf``). The PDFs themselves live outside git (see the *External dependencies* table below); these path labels exist only as textual references in carry-forward sections. | Frozen labels. Never created in-repo. |
 | **[`coverage-matrix.md`](coverage-matrix.md)** | Cross-release inventory of what's drafted where | Keep current as drafts complete |
 | **[`_template/`](_template/)** | Per-release-extract scaffold template | Stable |
