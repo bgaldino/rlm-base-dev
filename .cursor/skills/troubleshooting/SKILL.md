@@ -98,7 +98,7 @@ cci org info beta         # shows username, instance URL
 sf CLI >= 2.13.0 now **redacts** it. CCI sends a bogus header.
 
 **Fix:** set `SF_TEMP_SHOW_SECRETS=true` (prefix a command for a one-off; for a
-durable, IDE-covering setup use a LaunchAgent + `~/.zshrc`). **Do not** delete or
+durable, IDE-covering setup use a LaunchAgent + `~/.zshenv`). **Do not** delete or
 recreate the org — and never `cci org remove` a scratch org (it deletes it).
 Full guide, including the durable setup, the security tradeoff, and **how to
 check for / remove the workaround once an official fix ships**:

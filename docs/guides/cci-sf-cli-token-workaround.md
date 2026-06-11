@@ -68,10 +68,14 @@ whole flow.
 
 ### Durable — terminals (POSIX shells: macOS / Linux)
 
-Add to your shell profile (covers terminals, including IDE integrated terminals):
+Add it to `~/.zshenv`. Per this repo's shell setup
+(`docs/guides/dev-environment-setup.md`), `~/.zshenv` runs for **every** zsh shell —
+interactive, login, and **non-interactive** (CCI subprocesses, IDE integrated terminals,
+CI) — whereas `~/.zshrc` is interactive-only and is skipped in exactly the non-interactive
+contexts CCI runs in:
 
 ```bash
-echo 'export SF_TEMP_SHOW_SECRETS=true' >> ~/.zshrc   # or ~/.bashrc
+echo 'export SF_TEMP_SHOW_SECRETS=true' >> ~/.zshenv   # bash: ~/.bashrc (interactive) or the BASH_ENV file (non-interactive)
 ```
 
 On Linux / CI runners this is all you need — export the variable in the job environment.
@@ -174,7 +178,7 @@ pipx upgrade cumulusci                       # or to a specific fixed version
 launchctl unload -w ~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist   # -w mirrors the -w used on load
 rm ~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist
 launchctl unsetenv SF_TEMP_SHOW_SECRETS
-# remove the `export SF_TEMP_SHOW_SECRETS=true` line from ~/.zshrc
+# remove the `export SF_TEMP_SHOW_SECRETS=true` line from ~/.zshenv
 ```
 
 Verify `cci org info CCI_ALIAS` still works **without** the flag, then delete this note's entry
