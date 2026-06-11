@@ -50,7 +50,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -81,7 +81,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -95,7 +95,7 @@ jobs:
         run: python scripts/ai/analyze_agent_tooling.py all
 
       - name: Upload tooling artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: agent-tooling-artifacts
           path: |
@@ -106,8 +106,8 @@ jobs:
 
       - name: Open or update optimization pull request
         # Third-party, write-scoped action — pinned to a full commit SHA (not the
-        # mutable v7 tag) to limit supply-chain blast radius. Bump via Dependabot.
-        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676  # v7.0.11
+        # mutable v8 tag) to limit supply-chain blast radius. Bump via Dependabot.
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
         with:
           token: ${{ github.token }}
           branch: automation/agent-tooling-optimization

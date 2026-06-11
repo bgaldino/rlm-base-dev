@@ -162,3 +162,7 @@ docs/salesforce/*/salesforce-release-notes-*.pdf
 # MUST NOT ship to the customer/partner Salesforce Labs mirror. Keep them uncommitted.
 .agents/artifacts/
 docs/analysis/*-core-code-*.md
+
+# Build harness artifacts
+.harness/
+scripts/build_harness/tui/settings.local.json

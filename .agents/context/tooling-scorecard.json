@@ -1,6 +1,9 @@
 {
   "agents_skill_references": {
     "checked": [
+      ".cursor/skills/apex-security-hardening/SKILL.md",
+      ".cursor/skills/audit-review/SKILL.md",
+      ".cursor/skills/build-harness/SKILL.md",
       ".cursor/skills/cci-orchestration/SKILL.md",
       ".cursor/skills/cci-orchestration/custom-task-authoring.md",
       ".cursor/skills/cci-orchestration/feature-flags.md",
@@ -8,6 +11,7 @@
       ".cursor/skills/cci-orchestration/tasks-reference.md",
       ".cursor/skills/doc-consistency/SKILL.md",
       ".cursor/skills/pmos-integration/SKILL.md",
+      ".cursor/skills/pricing-wiring/SKILL.md",
       ".cursor/skills/qb-demo-script/SKILL.md",
       ".cursor/skills/release-enablement/SKILL.md",
       ".cursor/skills/release-enablement/authoring-patterns.md",
@@ -28,12 +32,13 @@
       ".cursor/skills/sfdmu-data-plans/object-plan-mapping.md",
       ".cursor/skills/sfdmu-data-plans/plan-dependency-graph.md",
       ".cursor/skills/skill-authoring/SKILL.md",
-      ".cursor/skills/troubleshooting/SKILL.md"
+      ".cursor/skills/troubleshooting/SKILL.md",
+      ".cursor/skills/troubleshooting/large-deal-preprocess-reference.md"
     ],
     "missing": []
   },
   "counts": {
-    "agents_skill_references": 28,
+    "agents_skill_references": 33,
     "cursor_rules": 10,
     "errors": 0,
     "generated_cci_reference_files_present": 3,
@@ -41,7 +46,7 @@
     "missing_agents_skill_references": 0,
     "required_files_present": 6,
     "required_files_total": 6,
-    "skills_markdown_files": 38,
+    "skills_markdown_files": 43,
     "warnings": 0
   },
   "errors": [],
@@ -61,8 +66,10 @@
     "manifest_version": "2",
     "present": true,
     "salesforce_release_active": "262",
-    "skill_count": 14,
+    "skill_count": 16,
     "skill_ids": [
+      "apex-security-hardening",
+      "audit-review",
       "cci-orchestration",
       "doc-consistency",
       "pmos-integration",
@@ -79,6 +86,8 @@
       "troubleshooting"
     ],
     "skill_paths": [
+      ".cursor/skills/apex-security-hardening/SKILL.md",
+      ".cursor/skills/audit-review/SKILL.md",
       ".cursor/skills/cci-orchestration/SKILL.md",
       ".cursor/skills/doc-consistency/SKILL.md",
       ".cursor/skills/pmos-integration/SKILL.md",
@@ -169,6 +178,9 @@
   ],
   "skills": [
     ".cursor/skills/README.md",
+    ".cursor/skills/apex-security-hardening/SKILL.md",
+    ".cursor/skills/audit-review/SKILL.md",
+    ".cursor/skills/build-harness/SKILL.md",
     ".cursor/skills/cci-orchestration/SKILL.md",
     ".cursor/skills/cci-orchestration/custom-task-authoring.md",
     ".cursor/skills/cci-orchestration/feature-flags.md",
@@ -176,6 +188,7 @@
     ".cursor/skills/cci-orchestration/tasks-reference.md",
     ".cursor/skills/doc-consistency/SKILL.md",
     ".cursor/skills/pmos-integration/SKILL.md",
+    ".cursor/skills/pricing-wiring/SKILL.md",
     ".cursor/skills/qb-demo-script/SKILL.md",
     ".cursor/skills/release-enablement/SKILL.md",
     ".cursor/skills/release-enablement/authoring-patterns.md",
@@ -205,7 +218,8 @@
     ".cursor/skills/sfdmu-data-plans/object-plan-mapping.md",
     ".cursor/skills/sfdmu-data-plans/plan-dependency-graph.md",
     ".cursor/skills/skill-authoring/SKILL.md",
-    ".cursor/skills/troubleshooting/SKILL.md"
+    ".cursor/skills/troubleshooting/SKILL.md",
+    ".cursor/skills/troubleshooting/large-deal-preprocess-reference.md"
   ],
   "status": "pass",
   "warnings": []
