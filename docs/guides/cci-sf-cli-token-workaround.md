@@ -151,11 +151,16 @@ This workaround relies on a flag Salesforce documents as **temporary** (`SF_TEMP
 ### How to check (run periodically)
 
 ```bash
-# Is there a CumulusCI release newer than the one with the bug (4.10.0)?
+# Is there a CumulusCI release newer than the one with the bug? (same logic as the workflow)
+BASELINE=4.10.0
 LATEST=$(curl -fsSL https://pypi.org/pypi/cumulusci/json | python3 -c 'import sys,json; print(json.load(sys.stdin)["info"]["version"])')
-echo "Latest CumulusCI on PyPI: $LATEST (workaround baseline: 4.10.0)"
-[ "$LATEST" != "4.10.0" ] && echo "NEW RELEASE — check its changelog for the sf-token / 'show-access-token' fix:
+echo "Latest CumulusCI on PyPI: $LATEST (workaround baseline: $BASELINE)"
+# "newer" = larger of {baseline, latest} under version sort, and != baseline.
+NEWER=$(printf '%s\n%s\n' "$BASELINE" "$LATEST" | sort -V | tail -1)
+if [ "$LATEST" != "$BASELINE" ] && [ "$NEWER" = "$LATEST" ]; then
+  echo "NEW RELEASE — check its changelog for the sf-token / 'show-access-token' fix:
   https://github.com/SFDO-Tooling/CumulusCI/releases"
+fi
 ```
 
 If a newer release exists, confirm from its changelog that it addresses the
