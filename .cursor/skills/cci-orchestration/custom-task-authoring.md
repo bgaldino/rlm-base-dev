@@ -234,7 +234,7 @@ tso_mode = self.project_config.project__custom__tso
 custom = dict(self.project_config.config.get("project", {}).get("custom", {}))
 
 # API version
-api_version = self.project_config.project__package__api_version  # "67.0" on the 262 branch
+api_version = self.project_config.project__package__api_version  # "67.0" for Release 262
 ```
 
 ---

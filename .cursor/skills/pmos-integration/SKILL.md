@@ -101,7 +101,7 @@ python scripts/ai/skill_manifest.py --list-skills pmos
 
 ## The Working Example
 
-Foundations' `qb-demo-script` skill (shipped on the 262 branch) auto-generates the QuantumBit demo canvas grounded entirely on canonical Foundations sources (ERD, Help mirror, qb-scenario-reference, feature-index). Output at `docs/enablement/262/qb-demo-script.md`.
+Foundations' `qb-demo-script` skill (shipped in Release 262, now on `main`) auto-generates the QuantumBit demo canvas grounded entirely on canonical Foundations sources (ERD, Help mirror, qb-scenario-reference, feature-index). Output at `docs/enablement/262/qb-demo-script.md`.
 
 - **Today (standalone):** Works whether or not PMOS is present
 - **With manifest fully wired:** Optionally invokes PMOS `presentation` for narrative-voice polish; PMOS `sales-enablement` for battle-card companion. None of those are dependencies — they're upgrades.

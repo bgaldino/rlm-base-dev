@@ -1,8 +1,8 @@
 # Release 262 (Summer '26) Upgrade Plan
 
-**Branch:** `262` (originally `262-test`; upgrade work consolidated onto `262` — see Section 1)
+**Branch:** `262` (originally `262-test`; upgrade work consolidated onto `262` — see Section 1), **promoted to `main` on 2026-06-07** (PR #208). `main` is now the Release 262 GA target; `release/260` preserves the prior 260 GA.
 **Target API Version:** 67.0
-**Status:** Substantially Complete (2026-05-27) — Phases 1–3 and 5 done; Phase 6 final remote CI verification pending; Phase 4 UI-only validation ongoing as needed.
+**Status:** Complete — 262 promoted to `main` (2026-06-07). This document is retained as the historical upgrade-workstream record; Phases 1–3 and 5 done, Phase 4 UI-only validation ongoing as needed.
 
 This document tracks all work required to certify this repository against Salesforce Release 262 (Summer '26). Check off items as they are completed.
 

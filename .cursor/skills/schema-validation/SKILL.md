@@ -46,7 +46,7 @@ End-to-end workflow for keeping `docs/erds/erd-data.json` aligned to canonical R
 ### A. Refresh ERD after a release upgrade
 
 ```bash
-# 1. Provision fresh scratch orgs from main (260) and 262 branches
+# 1. Provision fresh scratch orgs from the release/260 (260) and main (262) branches
 cci flow run prepare_rlm_org --org ent-r1
 cci flow run prepare_rlm_org --org ent-sb0
 
