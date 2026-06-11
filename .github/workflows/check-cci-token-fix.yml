@@ -20,13 +20,18 @@ concurrency:
   group: check-cci-token-fix
   cancel-in-progress: false
 
-# Read-only floor; the job elevates only issues:write.
+# Default permissions floor for any job that does NOT declare its own `permissions`.
+# NOTE: a job-level `permissions:` block REPLACES this floor (it does not merge) —
+# every scope the job omits becomes `none`. So each job must list every scope it needs.
 permissions:
   contents: read
 
 jobs:
   check-pypi:
     runs-on: ubuntu-latest
+    # Replaces the floor above. This job only calls PyPI (curl) and the GitHub issues
+    # API (gh) — it never checks out the repo — so `issues: write` is the complete
+    # least-privilege set; `contents` is intentionally `none` here.
     permissions:
       issues: write
     env:
