@@ -127,7 +127,7 @@
       "enableQuotesWithoutOppEnabled": true
     },
     "revenueManagementSettings": {
-      "enableAdvancedDetailLinePricing": true,
+      "enableAdvancedDetailLinePricing": false,
       "enableAdvCreateOrdersFromQuote": true,
       "enableAsIsRenewals": true,
       "enableAutoAddDerivedAsset": true,
