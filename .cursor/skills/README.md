@@ -15,6 +15,7 @@ repo root.
 | Add new code, features, metadata | Repository Integration | `repo-integration/SKILL.md` |
 | Work with CCI tasks, flows, or CLI | CCI Orchestration | `cci-orchestration/SKILL.md` |
 | Wire pricing recipes, procedures, or lookup table mappings | Pricing Wiring | `pricing-wiring/SKILL.md` |
+| Run build harness profiles/resume/report | Build Harness | `build-harness/SKILL.md` |
 | Write a Python CCI task class | Custom Task Authoring | `cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | SFDMU Data Plans | `sfdmu-data-plans/SKILL.md` |
 | Understand RLM objects/relationships | Revenue Cloud Data Model | `revenue-cloud-data-model/SKILL.md` |

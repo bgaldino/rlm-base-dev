@@ -41,6 +41,7 @@ scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
 scripts/cml/           # CML export/import/validation utilities
 scripts/erd/           # ERD validation, diffing, cleanup, HTML generation, schema_diff/
 scripts/soql/          # Reusable SOQL query files
+scripts/build_harness/ # Build harness runner and TUI
 tasks/                 # Custom Python CCI task classes
 tests/                 # Shell-based integration test scripts
 robot/rlm-base/        # Robot Framework tests (setup + E2E)
@@ -259,6 +260,7 @@ that topic.
 | Add new features, code placement | `.cursor/skills/repo-integration/SKILL.md` |
 | Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |
 | Wire pricing recipes/procedures/plans | `.cursor/skills/pricing-wiring/SKILL.md` |
+| Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |
 | Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
