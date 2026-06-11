@@ -51,11 +51,14 @@ jobs:
         run: |
           set -euo pipefail
           TITLE="Re-evaluate SF_TEMP_SHOW_SECRETS workaround — CumulusCI $LATEST available"
-          # Don't open a duplicate: reuse any open issue with the same title.
-          EXISTING=$(gh issue list --repo "$REPO" --state open --search "in:title \"$TITLE\"" \
-            --json number --jq '.[0].number // empty')
+          # Don't open a duplicate: reuse any issue with the same title, open OR
+          # closed. The title is version-specific, so closing this issue suppresses
+          # re-creation for the same release (the team chose not to act on it) while
+          # a genuinely newer release gets a new title — and thus a fresh issue.
+          EXISTING=$(gh issue list --repo "$REPO" --state all --search "in:title \"$TITLE\"" \
+            --json number,state --jq '.[0] | select(.) | "\(.number) (\(.state))"')
           if [ -n "$EXISTING" ]; then
-            echo "Tracking issue already open: #$EXISTING"
+            echo "Tracking issue already exists: #$EXISTING — not re-creating."
             exit 0
           fi
           {

@@ -66,7 +66,7 @@ SF_TEMP_SHOW_SECRETS=true cci flow run prepare_rlm_org --org pr182
 Env vars propagate to CCI's child processes, so prefixing the top-level command covers the
 whole flow.
 
-### Durable — terminals (all platforms)
+### Durable — terminals (POSIX shells: macOS / Linux)
 
 Add to your shell profile (covers terminals, including IDE integrated terminals):
 
@@ -75,6 +75,9 @@ echo 'export SF_TEMP_SHOW_SECRETS=true' >> ~/.zshrc   # or ~/.bashrc
 ```
 
 On Linux / CI runners this is all you need — export the variable in the job environment.
+
+On **Windows**, set it as a user environment variable instead — `setx SF_TEMP_SHOW_SECRETS true`
+(PowerShell or cmd), then reopen the terminal/IDE so it picks up the new value.
 
 ### Durable — IDE launched from the macOS Dock
 
