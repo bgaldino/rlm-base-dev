@@ -78,10 +78,13 @@ whole flow.
 ### Durable — terminals (POSIX shells: macOS / Linux)
 
 Add it to `~/.zshenv`. Per this repo's shell setup
-(`docs/guides/dev-environment-setup.md`), `~/.zshenv` runs for **every** zsh shell —
-interactive, login, and **non-interactive** (CCI subprocesses, IDE integrated terminals,
-CI) — whereas `~/.zshrc` is interactive-only and is skipped in exactly the non-interactive
-contexts CCI runs in:
+(`docs/guides/dev-environment-setup.md`), `~/.zshenv` is sourced by **every** zsh shell you
+start — interactive, login, and **non-interactive** (e.g. an IDE's integrated terminal) —
+whereas `~/.zshrc` is sourced only by interactive shells. Any CCI command you run from such a
+shell then has the variable, and CCI's own child subprocesses inherit it from that shell's
+environment (they don't re-source `~/.zshenv` themselves). Note this is a personal-shell
+mechanism: a **CI** runner uses its own (often non-zsh) shell and won't read your `~/.zshenv`
+— there, export the variable in the job environment instead (see below).
 
 ```bash
 echo 'export SF_TEMP_SHOW_SECRETS=true' >> ~/.zshenv   # bash: use ~/.bashrc for interactive shells; non-interactive bash reads only the file named by the $BASH_ENV variable
