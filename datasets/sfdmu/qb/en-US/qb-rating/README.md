@@ -67,7 +67,7 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | # | Object             | Operation | External ID | Records |
 |---|--------------------|-----------|-------------|---------|
 | 1 | UnitOfMeasureClass | Update    | `Code`      | 5       |
-| 2 | UsageResource      | Update    | `Code`      | 9       |
+| 2 | UsageResource      | Update    | `Code`      | 5       |
 
 Only UoMClass and UsageResource are activated in SFDMU Pass 2. PUR and PUG activation requires the Apex script (`activate_rating_records`) which enforces a strict dependency order — Token PURs must be Active before non-Token usage PURs, and all PURs must be Active before PUGs.
 

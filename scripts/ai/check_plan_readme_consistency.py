@@ -43,6 +43,7 @@ import json
 import os
 import re
 import sys
+from collections import Counter
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 SFDMU_ROOT = os.path.join(REPO_ROOT, "datasets", "sfdmu")
@@ -172,6 +173,35 @@ def parse_object_tables(lines: list[str]):
 
 # --- checks ---------------------------------------------------------------
 
+def check_count_claims(rel, claims_by_name, counts, errors, suffix=""):
+    """Match each claimed record count to a DISTINCT actual CSV.
+
+    An object can map to several CSVs — a Pass-1 source plus a smaller
+    `objectset_source/object-set-N/` override is common. When those CSVs have
+    *different* row counts (e.g. 9 and 5), each claim must consume a distinct
+    count, so a README that lists 9/9 is flagged even though 9 is "present".
+    When every CSV shares one count (or there's a single CSV), duplicate correct
+    claims are fine and under-listing (fewer claims than CSVs) is not an error.
+    """
+    for name, claims in claims_by_name.items():
+        if name not in counts:
+            continue  # phantom / no-CSV handled by the caller
+        actual = counts[name]
+        label = f"`{name}{suffix}`"
+        if len(set(actual)) > 1:
+            avail = Counter(actual)
+            for ln, claimed in claims:
+                if avail.get(claimed, 0) > 0:
+                    avail[claimed] -= 1
+                else:
+                    errors.append(f"{rel}:{ln} {label} record count README={claimed} — no un-consumed CSV matches; actual CSVs={sorted(actual)}")
+        else:
+            val = actual[0]
+            for ln, claimed in claims:
+                if claimed != val:
+                    errors.append(f"{rel}:{ln} {label} record count README={claimed} actual CSV={val}")
+
+
 def check_plan(plan_dir: str):
     """Return (errors, warns, checked_anything) for one plan dir."""
     errors: list[str] = []
@@ -191,6 +221,7 @@ def check_plan(plan_dir: str):
 
     # 1) Object-table rows
     seen_objects = set()
+    table_count_claims: dict[str, list] = {}  # object -> [(line, claimed_count)]
     for row in parse_object_tables(lines):
         parsed_anything = True
         object_table_found = True
@@ -221,16 +252,18 @@ def check_plan(plan_dir: str):
             if wants and got not in wants:
                 warns.append(f"{rel}:{ln} `{name}` externalId README={got!r} export.json={sorted(wants)}")
 
-        # record count — only when the object maps to a single CSV (avoid multi-pass ambiguity)
+        # record count — collected here, matched per-CSV after the loop (handles
+        # multi-CSV objects, e.g. a Pass-1 source + a smaller objectset override)
         if row["records"] is not None and has_csv:
             claimed = parse_int(row["records"])
-            actual_set = set(counts[name])
-            if claimed is not None and claimed not in actual_set:
-                if len(actual_set) == 1:
-                    errors.append(f"{rel}:{ln} `{name}` record count README={claimed} actual CSV={counts[name][0]}")
-                # multi-CSV (multi-pass): skip to avoid false positives
+            if claimed is not None:
+                table_count_claims.setdefault(name, []).append((ln, claimed))
+
+    # object-table record counts: each claim must match a distinct actual CSV
+    check_count_claims(rel, table_count_claims, counts, errors)
 
     # 2) File-structure CSV listings  (Foo.csv  # N records)
+    fs_claims: dict[str, list] = {}
     for idx_, line in enumerate(lines, start=1):
         if IGNORE_MARKER in line:
             continue
@@ -243,9 +276,8 @@ def check_plan(plan_dir: str):
         if name not in counts:
             errors.append(f"{rel}:{idx_} file-structure lists `{name}.csv` — no such CSV on disk")
             continue
-        if claimed not in set(counts[name]):
-            actual = counts[name][0] if len(counts[name]) == 1 else counts[name]
-            errors.append(f"{rel}:{idx_} `{name}.csv` record count README={claimed} actual={actual}")
+        fs_claims.setdefault(name, []).append((idx_, claimed))
+    check_count_claims(rel, fs_claims, counts, errors, suffix=".csv")
 
     # 3) Missing objects — a non-excluded export.json object that the README's object
     # table never lists (so a README can't silently omit objects and still pass).
