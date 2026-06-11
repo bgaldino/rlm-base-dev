@@ -5,7 +5,7 @@
 
 This repository automates the creation and configuration of Salesforce environments that require Revenue Cloud (formerly Revenue Lifecycle Management) functionality.
 
-The `262` branch targets Salesforce Release 262 (Summer '26). The `main` branch tracks the prior GA target, Release 260 (Spring '26). See `docs/upgrades/262-upgrade-plan.md` for the upgrade workstream.
+The `main` branch targets Salesforce Release 262 (Summer '26), promoted from the `262` upgrade branch. Release 260 (Spring '26) is the prior GA reference, preserved on the `release/260` branch. See `docs/upgrades/262-upgrade-plan.md` for the upgrade workstream history.
 
 ## Table of Contents
 
@@ -1509,8 +1509,9 @@ When contributing to this project:
 
 ## Branch Information
 
-- **`262`**: Salesforce Release 262 (Summer '26) — current development branch (this branch)
-- **`main`**: Salesforce Release 260 (Spring '26, GA) — prior GA reference
+- **`main`**: Salesforce Release 262 (Summer '26, API v67.0) — current GA target (promoted from `262`)
+- **`262`**: Retained Release 262 upgrade branch — now equivalent to `main`
+- **`release/260`**: Salesforce Release 260 (Spring '26, GA) — prior GA reference
 - Other branches exist for different release scenarios and preview features
 
 ## Additional Resources

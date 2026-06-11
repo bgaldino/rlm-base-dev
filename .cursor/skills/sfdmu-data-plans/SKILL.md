@@ -225,6 +225,16 @@ python scripts/validate_sfdmu_v5_datasets.py --fix-all --dry-run       # preview
 python scripts/validate_sfdmu_v5_datasets.py --fix-all                 # apply fixes
 ```
 
+The validator checks the **plan** (export.json/CSV v5 compliance). To check that the
+plan's **README** still matches the plan after you edit objects/CSVs (record counts,
+operations, externalIds, phantom/missing objects), run the consistency checker — it
+fails (exit 1) on drift, so it doubles as a pre-merge gate:
+
+```bash
+python scripts/ai/check_plan_readme_consistency.py                                  # all plans
+python scripts/ai/check_plan_readme_consistency.py datasets/sfdmu/qb/en-US/qb-pricing  # one plan
+```
+
 ## Additional References
 
 - Plan dependency graph: [plan-dependency-graph.md](plan-dependency-graph.md)

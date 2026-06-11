@@ -13,7 +13,7 @@ This plan is executed as **step 1** of the `prepare_billing` flow (when `billing
 | 1    | `deploy_post_billing`                   | billing            | Deploys billing settings/metadata from `unpackaged/post_billing` — **must run first** to enable `SequenceService` and `BillingSettings` so SequencePolicy SObjects are accessible |
 | 2    | `insert_billing_data`                   | billing+qb         | Runs this SFDMU plan (3 passes)                                                         |
 | 3    | `insert_q3_billing_data`                | billing+q3         | Loads Q3 billing data (gated by q3 flag)                                                |
-| 4    | `resolve_seq_policy_condition_refs`     | billing+qb+!refresh| Resolves LegalEntity names in SeqPolicySelectionCondition.FilterValue to target-org IDs via REST API |
+| 4    | `create_sequence_policies`              | billing+qb+!refresh| Creates `SequencePolicy` and `SeqPolicySelectionCondition` records via the Connect API (standard DML cannot create these objects) |
 | 5    | `activate_flow`                         | billing            | Activates `RLM_Order_to_Billing_Schedule_Flow`                                          |
 | 6    | `activate_default_payment_term`         | billing            | Runs `activateDefaultPaymentTerm.apex`                                                  |
 | 7    | `activate_billing_records`              | billing            | Runs `activateBillingRecords.apex` (BTI → BT → BP)                                     |
@@ -58,15 +58,15 @@ to Product2
 | 6  | BillingPolicy                | Upsert    | `Name`                                     | 3       |
 | 7  | BillingTreatment             | Upsert    | `Name`                                     | 9       |
 | 8  | BillingTreatmentItem         | Upsert    | `Name;BillingTreatment.Name`               | 12      |
-| 9  | Product2                     | Update    | `StockKeepingUnit`                         | 164     |
+| 9  | Product2                     | Update    | `StockKeepingUnit`                         | 315     |
 | 10 | GeneralLedgerAccount         | Upsert    | `AccountingCode`                           | 51      |
 | 11 | GeneralLedgerAcctAsgntRule   | Upsert    | `Name`                                     | 8       |
 | 12 | PaymentRetryRuleSet          | Upsert    | `Name`                                     | 1       |
 | 13 | PaymentRetryRule             | Upsert    | `PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType` | 6 |
-| 14 | SequencePolicy               | Upsert    | `Name`                                     | 8       |
-| 15 | SeqPolicySelectionCondition  | Upsert    | `ConditionNumber;SequencePolicy.Name`      | 8       |
 
-**Note:** PaymentTerm, PaymentTermItem, BillingPolicy, BillingTreatment, and BillingTreatmentItem all use `skipExistingRecords: true` to avoid overwriting existing records. Product2 is Update-only (sets `BillingPolicyId`). LegalEntity uses `Readonly` — records are created by qb-tax (which runs first at step 13); qb-billing only resolves their IDs for FK relationships. See [Optimization Opportunities](#optimization-opportunities) for known issues with `skipExistingRecords`.
+**Note:** `SequencePolicy` and `SeqPolicySelectionCondition` are **not** SFDMU objects in this plan. They are created by the `create_sequence_policies` Connect-API task (`prepare_billing` step 4), because standard DML cannot create these SObjects. See [Sequence Policies](#sequence-policies-connect-api) below.
+
+**Note:** PaymentTerm, PaymentTermItem, BillingPolicy, BillingTreatment, and BillingTreatmentItem all use `skipExistingRecords: true` to avoid overwriting existing records. Product2 is Update-only (sets `BillingPolicyId`). LegalEntity uses `Readonly` — records are created by qb-tax (which runs first at step 12); qb-billing only resolves their IDs for FK relationships. See [Optimization Opportunities](#optimization-opportunities) for known issues with `skipExistingRecords`.
 
 **FK ID pattern:** All parent-lookup fields include both the FK ID field (e.g. `PaymentTermId`, `BillingTreatmentId`, `BillingPolicyId`, `LegalEntityId`) in the SOQL SELECT and the traversal column (e.g. `PaymentTerm.Name`, `BillingTreatment.Name`) in the CSV header. SFDMU v5 requires the FK ID in the SELECT to know which field to write; the traversal column in the CSV provides the lookup value. Omitting the FK ID results in null FKs even when the traversal column resolves correctly.
 
@@ -87,15 +87,15 @@ Activates BillingTreatmentItem records that are still in Draft status.
 
 Activates BillingTreatment records and sets `DefaultBillingTreatmentId` on BillingPolicy. BillingPolicy.csv includes a `DefaultBillingTreatment.Name` traversal column so SFDMU can resolve the FK at load time.
 
+## Sequence Policies (Connect API)
+
+### `create_sequence_policies`
+
+`SequencePolicy` and `SeqPolicySelectionCondition` records are **not** loaded by this SFDMU plan — standard DML cannot create them. Instead, the `create_sequence_policies` task (`tasks.rlm_billing.CreateSequencePolicies`) creates them via the Connect API as **step 4** of `prepare_billing`, reading the policy definitions from `SequencePolicies.json`.
+
+The legacy `resolveSeqPolicyConditionRefs.apex` (which resolved portable LegalEntity names in `SeqPolicySelectionCondition.FilterValue` to target-org IDs) is **retired** — selection conditions are now created directly by the Connect-API task, so no name→ID FilterValue resolution step is wired into `prepare_billing`. The `.apex` file remains on disk but is unused.
+
 ## Apex Activation Scripts
-
-### `resolveSeqPolicyConditionRefs.apex`
-
-Resolves portable LegalEntity names stored in `SeqPolicySelectionCondition.FilterValue` to target-org record IDs. Runs as step 3 of `prepare_billing` (after SFDMU loads the conditions but before activation).
-
-The script is generic: it queries all `SeqPolicySelectionCondition` records where `FilterFieldType = 'Reference'` and `FilterValue` is non-null, derives the target SObject type by stripping the trailing `Id` from `FilterField` (e.g. `LegalEntityId` → `LegalEntity`), queries for matching records by `Name`, then patches `FilterValue` with the resolved org ID. Unmatched names are logged as warnings.
-
-This allows CSVs to store human-readable, portable names (e.g. `Default Legal Entity - US`) instead of source-org IDs.
 
 ### `activateDefaultPaymentTerm.apex`
 
@@ -138,9 +138,9 @@ Three-level hierarchy: BillingPolicy -> BillingTreatment -> BillingTreatmentItem
 
 Chart of accounts (51 GL accounts) with 8 assignment rules mapping transaction types to debit/credit accounts per legal entity.
 
-### Sequence Policies (Objects 14-15)
+### Sequence Policies (Connect-API task, not SFDMU)
 
-8 `SequencePolicy` records (US/CA/EU/UK × Invoice/CreditMemo) controlling invoice and credit memo number sequences, each with one `SeqPolicySelectionCondition` routing by LegalEntity. `FilterValue` stores the LegalEntity name as a portable string; `resolveSeqPolicyConditionRefs.apex` resolves these names to target-org IDs at load time.
+8 `SequencePolicy` records (US/CA/EU/UK × Invoice/CreditMemo) controlling invoice and credit memo number sequences, each with one `SeqPolicySelectionCondition` routing by LegalEntity. These are created by the `create_sequence_policies` Connect-API task (`prepare_billing` step 4) from `SequencePolicies.json`, **not** by this SFDMU plan — see [Sequence Policies (Connect API)](#sequence-policies-connect-api).
 
 ## Composite External IDs
 
@@ -150,7 +150,6 @@ Chart of accounts (51 GL accounts) with 8 assignment rules mapping transaction t
 | PaymentTermItem             | `PaymentTerm.Name;Type`                                                  | Yes             |
 | BillingTreatmentItem        | `Name;BillingTreatment.Name`                                             | Yes             |
 | PaymentRetryRule            | `PaymentGatewayErrorCategory;PaymentRetryRuleSet.Name;RetryIntervalType` | Yes             |
-| SeqPolicySelectionCondition | `ConditionNumber;SequencePolicy.Name`                                    | No              |
 
 GL assignment rules reference debit/credit accounts via `DebitGeneralLedgerAccount.AccountingCode` and `CreditGeneralLedgerAccount.AccountingCode` traversal columns in the CSV (resolved to `CreditGeneralLedgerAccountId`/`DebitGeneralLedgerAccountId` FK IDs in SELECT).
 
@@ -181,7 +180,7 @@ Step 13 of `prepare_billing` patches the `RLM_BillingContext` context definition
 
 **Upstream:**
 - **qb-pcm** — Product2 records must exist (matched by `StockKeepingUnit`)
-- **qb-tax** — LegalEntity records; qb-tax is the authoritative source (runs first at step 13 of `prepare_rlm_org`); qb-billing resolves LegalEntity as `Readonly` only
+- **qb-tax** — LegalEntity records; qb-tax is the authoritative source (runs first at step 12 of `prepare_rlm_org`); qb-billing resolves LegalEntity as `Readonly` only
 
 **Downstream:**
 - **qb-rating** — UsageResourceBillingPolicy may reference billing infrastructure
@@ -191,7 +190,7 @@ Step 13 of `prepare_billing` patches the `RLM_BillingContext` context definition
 
 ```
 qb-billing/
-├── export.json                          # SFDMU data plan (3 passes, 18 objects)
+├── export.json                          # SFDMU data plan (3 passes, 16 objects)
 ├── README.md                            # This file
 │
 │  Source CSVs (Pass 1 - Draft status)
@@ -203,7 +202,7 @@ qb-billing/
 ├── BillingPolicy.csv                    # 3 records
 ├── BillingTreatment.csv                 # 9 records (US/CA/EU/UK × Advance/Arrears + Milestone)
 ├── BillingTreatmentItem.csv             # 12 records (one per treatment, EU=EUR, UK=GBP)
-├── Product2.csv                         # 164 records (Update only)
+├── Product2.csv                         # 315 records (Update only)
 ├── GeneralLedgerAccount.csv             # 51 records
 ├── GeneralLedgerAcctAsgntRule.csv       # 8 records
 ├── PaymentRetryRuleSet.csv
@@ -233,7 +232,7 @@ Pass 1 uses `skipExistingRecords: true` on billing objects, so re-runs will skip
 
 The Apex activation scripts filter on `Status != 'Active'`, making them idempotent.
 
-**Validated** — `test_qb_billing_idempotency` passes on Release 260. All 15 objects confirmed idempotent (LegalEntity excluded as Readonly).
+**Validated** — `test_qb_billing_idempotency` passes on Release 260. Pass 1 has 13 objects (12 idempotent; LegalEntity is Readonly).
 
 ## 260 Schema Analysis (Confirmed via Org Describe)
 

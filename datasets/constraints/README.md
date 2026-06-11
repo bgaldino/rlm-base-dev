@@ -105,7 +105,7 @@ cci task run export_cml --org <source_org> \
 | `developer_name` | Yes | DeveloperName of the Expression Set Definition |
 | `version` | No | Version number (default: 1) |
 | `output_dir` | Yes | Directory to write CSV exports and blobs |
-| `api_version` | No | Override Salesforce API version (e.g. 66.0) |
+| `api_version` | No | Override Salesforce API version (e.g. 67.0) |
 
 ### What Gets Exported
 

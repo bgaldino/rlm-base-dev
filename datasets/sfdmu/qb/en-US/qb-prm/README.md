@@ -6,19 +6,23 @@ SFDMU data plan for QuantumBit (QB) Partner Relationship Management (PRM). Creat
 
 ### Flow: `prepare_prm`
 
-This plan is executed as **step 9** of the `prepare_prm` flow (when `prm=true` and `qb=true`).
+This plan is executed as **step 8** of the `prepare_prm` flow (when `prm=true` and `qb=true`).
 
-| Step | Task                              | Description                                                |
-|------|-----------------------------------|------------------------------------------------------------|
-| 1    | `create_partner_central`          | Create Partner Central community                           |
-| 2    | `patch_network_email_for_deploy`  | Replace placeholder email in rlm.network-meta.xml with Network's actual EmailSenderAddress (immutable) |
-| 3    | `setup_prm_org_email`             | Create org-wide email address for PRM                      |
-| 4    | `deploy_post_prm`                 | Deploy PRM Experience Bundle metadata                      |
-| 5    | `revert_network_email_after_deploy` | Restore placeholder email in rlm.network-meta.xml        |
-| 6    | `publish_community`               | Publish the Partner Central community                      |
-| 7    | `deploy_sharing_rules`            | Deploy sharing rules for PRM                               |
-| 8    | `assign_permission_sets`         | Assign `RLM_PRM` permission set                            |
-| 9    | `insert_quantumbit_prm_data`      | Runs this SFDMU plan (2-pass)                              |
+**Every step is gated by `prm`; several carry additional `when:` conditions in `cumulusci.yml` (shown below), so not all steps run on every org.** The flow also uses non-contiguous numeric step keys (step 4 is intentionally absent).
+
+| Step | Task                              | Extra `when:` (beyond `prm`) | Description |
+|------|-----------------------------------|------------------------------|-------------|
+| 1    | `create_partner_central`          | —                            | Create Partner Central community |
+| 2    | `patch_network_email_for_deploy`  | `prm_exp_bundle` and `tso`   | Replace placeholder email in rlm.network-meta.xml with Network's actual EmailSenderAddress (immutable) |
+| 3    | `deploy_post_prm`                 | `prm_exp_bundle` and `tso`   | Deploy PRM Experience Bundle metadata |
+| 5    | `revert_network_email_after_deploy` | `prm_exp_bundle` and `tso` | Restore placeholder email in rlm.network-meta.xml |
+| 6    | `publish_community`               | —                            | Publish the Partner Central community |
+| 7    | `assign_permission_sets`          | `prm_exp_bundle` and `tso`   | Assign `RLM_PRM` permission set |
+| 8    | `insert_quantumbit_prm_data`      | `qb`                         | Runs this SFDMU plan (2-pass) |
+| 9    | `manage_context_definition`       | —                            | Activate the PartnerAccount context definition plan |
+| 10   | flow: `prepare_prm_pricing`       | `prm_pricing`                | Deploy PRM pricing metadata and data |
+
+> **Note:** steps 2/3/5/7 also require `tso` (Trialforce Source Org), which **defaults to `false`** — so on a default dev/ent scratch build those steps (including `assign_permission_sets`) are **skipped**. This plan (step 8) still runs whenever `prm` and `qb` are true, independent of those steps.
 
 ### Task Definition
 
@@ -112,7 +116,7 @@ and deployed by the baseline `deploy_post_prm` task:
 
 ### Permission Set: `RLM_PRM`
 
-Grants full read/edit access to all 6 custom fields above. Assigned in step 8 of the `prepare_prm` flow before the data load, ensuring SFDMU can write to the custom fields.
+Grants full read/edit access to all 6 custom fields above. When it runs, step 7 (`assign_permission_sets`) assigns it before the data load so SFDMU can write the custom fields. Note step 7 is **conditional** — it only runs when `prm_exp_bundle` and `tso` are both true (see the flow table), so on a default `tso=false` build the assignment does not happen in this flow and `RLM_PRM` must already be granted to the automation user by another path for the load to write the custom fields.
 
 ## Composite External IDs
 
@@ -135,7 +139,7 @@ No auto-numbered Name fields are used as external IDs.
 
 This plan has **no upstream data plan dependencies** — it creates its own Account records.
 
-This plan is independent of the product catalog (qb-pcm) and can be loaded in any order relative to other QB plans. However, the `prepare_prm` flow runs metadata deployment, community setup, and permission assignment (steps 1-8) before this data load (step 9).
+This plan is independent of the product catalog (qb-pcm) and can be loaded in any order relative to other QB plans. Within the `prepare_prm` flow, metadata deployment, community setup, and permission assignment (steps 1-7) run before this data load (step 8) **when their `when:` conditions are met** — steps 2/3/5/7 require `prm_exp_bundle` and `tso`, so on a default `tso=false` build several are skipped (see the flow table above). The data load itself (step 8) runs whenever `prm` and `qb` are true.
 
 ## File Structure
 
