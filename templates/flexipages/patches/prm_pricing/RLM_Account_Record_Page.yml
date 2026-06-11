@@ -1,0 +1,102 @@
+feature: prm_pricing
+feature_flag: prm_pricing
+# Adds the Partner Info field section for PRM pricing.
+patches:
+  - type: insert_after_xml
+    anchor: |-
+      <name>Facet-233dc5b6-35f9-467e-b1da-f02d79f91713</name>
+              <type>Facet</type>
+          </flexiPageRegions>
+    xml: |2
+          <flexiPageRegions>
+              <itemInstances>
+                  <fieldInstance>
+                      <fieldInstanceProperties>
+                          <name>uiBehavior</name>
+                          <value>readonly</value>
+                      </fieldInstanceProperties>
+                      <fieldItem>Record.IsPartner</fieldItem>
+                      <identifier>RecordIsPartnerField</identifier>
+                  </fieldInstance>
+              </itemInstances>
+              <itemInstances>
+                  <fieldInstance>
+                      <fieldInstanceProperties>
+                          <name>uiBehavior</name>
+                          <value>none</value>
+                      </fieldInstanceProperties>
+                      <fieldItem>Record.ChannelProgramName</fieldItem>
+                      <identifier>RecordChannelProgramNameField</identifier>
+                  </fieldInstance>
+              </itemInstances>
+              <itemInstances>
+                  <fieldInstance>
+                      <fieldInstanceProperties>
+                          <name>uiBehavior</name>
+                          <value>none</value>
+                      </fieldInstanceProperties>
+                      <fieldItem>Record.ChannelProgramLevelName</fieldItem>
+                      <identifier>RecordChannelProgramLevelNameField</identifier>
+                  </fieldInstance>
+              </itemInstances>
+              <name>Facet-dabbcfbe-adbd-4e7f-afbd-ffa148c19d17</name>
+              <type>Facet</type>
+          </flexiPageRegions>
+          <flexiPageRegions>
+              <itemInstances>
+                  <fieldInstance>
+                      <fieldInstanceProperties>
+                          <name>uiBehavior</name>
+                          <value>none</value>
+                      </fieldInstanceProperties>
+                      <fieldItem>Record.RLM_Primary_Reseller__c</fieldItem>
+                      <identifier>RecordRLM_Primary_Reseller_cField</identifier>
+                  </fieldInstance>
+              </itemInstances>
+              <itemInstances>
+                  <fieldInstance>
+                      <fieldInstanceProperties>
+                          <name>uiBehavior</name>
+                          <value>none</value>
+                      </fieldInstanceProperties>
+                      <fieldItem>Record.RLM_Primary_Distributor__c</fieldItem>
+                      <identifier>RecordRLM_Primary_Distributor_cField</identifier>
+                  </fieldInstance>
+              </itemInstances>
+              <name>Facet-9300f0a6-56dc-4de4-9757-eb3af415cdba</name>
+              <type>Facet</type>
+          </flexiPageRegions>
+          <flexiPageRegions>
+              <itemInstances>
+                  <componentInstance>
+                      <componentInstanceProperties>
+                          <name>body</name>
+                          <value>Facet-dabbcfbe-adbd-4e7f-afbd-ffa148c19d17</value>
+                      </componentInstanceProperties>
+                      <componentName>flexipage:column</componentName>
+                      <identifier>flexipage_column_partner_info_1</identifier>
+                  </componentInstance>
+              </itemInstances>
+              <itemInstances>
+                  <componentInstance>
+                      <componentInstanceProperties>
+                          <name>body</name>
+                          <value>Facet-9300f0a6-56dc-4de4-9757-eb3af415cdba</value>
+                      </componentInstanceProperties>
+                      <componentName>flexipage:column</componentName>
+                      <identifier>flexipage_column_partner_info_2</identifier>
+                  </componentInstance>
+              </itemInstances>
+              <name>Facet-2f95b3e5-6e75-47de-bc77-230fb17aac4d</name>
+              <type>Facet</type>
+          </flexiPageRegions>
+
+  - type: add_component
+    region: feedTabContent
+    after_identifier: flexipage_fieldSection2
+    component: flexipage:fieldSection
+    identifier: flexipage_fieldSection_partner_info
+    properties:
+      columns: Facet-2f95b3e5-6e75-47de-bc77-230fb17aac4d
+      horizontalAlignment: "false"
+      label: Partner Info

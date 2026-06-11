@@ -1,0 +1,37 @@
+{
+  "developerName": "RLM_Quote_Pricing_Procedure_Plan",
+  "sections": [
+    {
+      "subSectionType": "IFPartnerDistributorOnQuote",
+      "description": null,
+      "phase": 0,
+      "resolutionType": "RuleBased",
+      "sectionType": "PricingProcedure",
+      "placement": {
+        "afterSubSectionType": "DefaultPricing"
+      }
+    }
+  ],
+  "options": [
+    {
+      "sectionSubSectionType": "IFPartnerDistributorOnQuote",
+      "priority": 1,
+      "criteriaLogic": "1",
+      "expressionSetDeveloperName": "RLM_PRM_DISTI_Pricing_Procedure",
+      "readContextMapping": "QuoteEntitiesMapping",
+      "saveContextMapping": "QuoteEntitiesMapping"
+    }
+  ],
+  "criteria": [
+    {
+      "sectionSubSectionType": "IFPartnerDistributorOnQuote",
+      "optionPriority": 1,
+      "sequence": 1,
+      "operator": "IsNotNull",
+      "objectField": "BillingAddress",
+      "fieldPath": "PartnerAccount.BillingAddress",
+      "actualValue": null,
+      "dataType": "Text"
+    }
+  ]
+}

@@ -158,6 +158,114 @@ synthesize.** Patterns that paid off here:
   false positive with evidence; one cohesive commit; in-thread replies + 👍 on each valid
   finding; **every thread resolved, round closed at 0 unresolved.**
 
+## Pre-merge main comparison audit
+
+Before merging a long-running feature branch, verify that files changed on the
+branch do not silently overwrite newer versions that landed on `main` after the
+branch diverged. This is the "swept-in file" risk mentioned in AGENTS.md
+§"Merges and unintended diffs".
+
+### Step 0 — Detect branch-side reverts of inherited main content (do this FIRST)
+
+**The Step 1 overlap method has a blind spot — run this step before trusting it.**
+When the branch has been **rebased onto (or merged with) main's tip**,
+`git merge-base main HEAD` *equals* main's tip, so "files changed on main since the
+merge-base" is **empty** and the Step 1 intersection finds nothing — even though the
+branch's own commits may have **reverted main content the branch inherited**. A clean
+Step 1 result here means "no concurrent main-side changes," **not** "no regression."
+
+> Real incident (PR #182): a branch's `fix(robot): harden setup verification waits`
+> commit replaced three setup suites with simpler versions; a later rebase resolved
+> conflicts toward the branch, silently dropping ~118 lines of main's hardening
+> (`_Try Set Default Catalog` fail-fast, terminal-vs-transient retry). Step 1's overlap
+> was empty and the audit reported "clean merge, zero risk" — wrong. Caught only by the
+> deletion-ranked diff below.
+
+Catch it by diffing the branch against main directly and ranking by **deletions**
+(removed ≫ added is the revert signature):
+
+```bash
+# Files the branch changed vs main, ranked by lines REMOVED from main.
+# A removal-dominated file (especially one unrelated to the feature) is a revert suspect.
+git diff --numstat origin/main HEAD | sort -k2 -rn \
+  | awk '{printf "%-70s +%-5s -%-5s\n", $3, $1, $2}' | head -25
+
+# Cross-check: files main developed recently AND the branch also changed
+# (concurrent development → highest revert risk).
+git log --name-only --pretty=format: -40 origin/main | grep . | sort -u > /tmp/main_recent.txt
+git diff --name-only origin/main HEAD | sort -u > /tmp/prm_changed.txt
+comm -12 /tmp/main_recent.txt /tmp/prm_changed.txt
+```
+
+For each suspect, confirm whether the branch dropped a specific main fix before deciding:
+
+```bash
+git show <main_fix_sha> -- <file>                          # what main changed
+git diff origin/main HEAD -- <file> | grep '^-' | grep '<fix marker>'   # did the branch remove it?
+```
+
+Resolve a confirmed revert with `git checkout origin/main -- <file>` (take main's
+version). **But first** rule out the rare case where the branch's version is a genuine
+*improvement* over main (read both) — then keep the branch's and let it carry to main.
+Removal-dominated ≠ always a regression; addition-dominated files are usually legitimate
+feature work, so judge by content, not line count alone.
+
+### Step 1 — Find the overlap
+
+```bash
+# Files changed on the feature branch since it diverged from main
+git diff --name-only main...HEAD > /tmp/branch_files.txt
+
+# Files changed on main since the branch diverged
+MERGE_BASE=$(git merge-base main HEAD)
+git diff --name-only "$MERGE_BASE" main > /tmp/main_files.txt
+
+# Intersection — files touched on BOTH sides
+comm -12 <(sort /tmp/branch_files.txt) <(sort /tmp/main_files.txt)
+```
+
+### Step 2 — Triage each overlap file
+
+For every file in the intersection:
+
+1. `git log --oneline "$MERGE_BASE"..main -- <file>` — what changed on main?
+2. `git log --oneline "$MERGE_BASE"..HEAD -- <file>` — what changed on the branch?
+3. `git diff main HEAD -- <file>` — what does the merge resolution need to do?
+
+Classify each as:
+- **Branch wins** — branch change is a superset or intentional update; main's change is already absorbed.
+- **Main wins** — main has a fix/update the branch should adopt; cherry-pick or rebase.
+- **Conflict** — both sides changed the same region; requires manual resolution.
+
+### Step 3 — High-risk areas (always check)
+
+| Path | Risk |
+|------|------|
+| `cumulusci.yml` | Flow/task additions on main not present on branch; merge produces duplicates or stale references |
+| `datasets/sfdmu/` | externalId, operation, or CSV changes on main overwritten by branch's older copy |
+| `tasks/` | Bug fixes on main regressed by branch's older task version |
+| `unpackaged/post_ux/` | Auto-generated; any manual edit on either side is wrong — run `assemble_and_deploy_ux` post-merge |
+| `docs/` + `.cursor/skills/` | Doc-consistency changes on main (task renames, flag table updates) lost if branch has older versions |
+| `orgs/` | Scratch def pins; branch may carry a stale instance pin (see feedback_scratch_org_instance) |
+
+### Step 4 — For each "main wins" file
+
+```bash
+# Cherry-pick the main-side change onto the branch
+git checkout main -- <file>       # take main's version wholesale, OR
+git diff main HEAD -- <file>      # review and merge selectively
+```
+
+Then re-run `python scripts/validate_sfdmu_v5_datasets.py` (for data plan
+files) and `python scripts/ai/generate_cci_reference.py` (if cumulusci.yml
+was touched).
+
+### When to run
+
+- Before opening a PR that merges a branch > 2 weeks old against main.
+- Before requesting a merge review when main has had active commits since the branch diverged.
+- After a rebase onto main — verify the rebase did not silently drop main-side changes.
+
 ## Validation Checks
 
 - Every comment has an in-thread reply (resolution + SHA, or refutation), a 👍 on the
