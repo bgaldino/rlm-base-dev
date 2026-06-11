@@ -93,7 +93,7 @@ templates/
 │   └── constraints/                    # 2 constraints overrides (OrderItem, QuoteLineItem)
 ├── applications/
 │   ├── base/                           # RLM_Revenue_Cloud.app-meta.xml (core/minimal)
-│   ├── quantumbit/                     # RLM_Revenue_Cloud QB variant (selected when qb=true)
+│   ├── quantumbit/                     # RLM_Revenue_Cloud QB variant (selected when quantumbit=true)
 │   ├── tso/                            # RLM_Revenue_Cloud TSO variant (selected when tso=true)
 │   └── conditional/
 │       ├── billing/                    # standard__BillingConsole (conditional)
@@ -151,7 +151,7 @@ created at runtime by `create_approval_email_templates`.
 
 ```yaml
 feature: approvals          # Informational label
-feature_flag: qb            # Controls whether this patch group is active (checked at CCI level, not in YAML)
+feature_flag: quantumbit    # Controls whether this patch group is active (checked at CCI level, not in YAML; must be a UX_KNOWN_FLAGS name)
 patches:
   - type: insert_action
     after: "CreateContract"   # Insert after this action value; omit to append
@@ -206,7 +206,7 @@ No patching — layouts are copied as-is.
 
 **Versioned selection** for `RLM_Revenue_Cloud.app-meta.xml` (highest-priority active flag wins):
 - `tso=true` → `templates/applications/tso/`
-- `qb=true` → `templates/applications/quantumbit/`
+- `quantumbit=true` → `templates/applications/quantumbit/`
 - fallback → `templates/applications/base/`
 
 **Conditional standalone apps** (copied when their flag is active):
