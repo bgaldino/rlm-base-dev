@@ -54,6 +54,15 @@ CCI receives the redacted placeholder instead of the real token and sends a malf
 Set `SF_TEMP_SHOW_SECRETS=true` in the environment so `sf` exposes the token to CCI. Pick the
 scope that matches how you run CCI.
 
+### Already handled in-repo via direnv
+
+This repo's tracked **`.envrc`** already exports `SF_TEMP_SHOW_SECRETS=true` (see the
+*Salesforce CLI token redaction opt-out* block, `.envrc:34-47`). If you use **direnv**
+(the repo's standard setup — see `docs/guides/dev-environment-setup.md`), the flag is
+applied automatically whenever your shell is inside the repo, and any CCI command you run
+there inherits it. The scopes below are for processes direnv doesn't reach — a shell where
+direnv isn't hooked, or a GUI-launched IDE that never triggers `.envrc`.
+
 ### Quick / one-off
 
 Prefix any CCI command:
@@ -85,9 +94,10 @@ On **Windows**, set it as a user environment variable instead — `setx SF_TEMP_
 
 ### Durable — IDE launched from the macOS Dock
 
-The shell profile does **not** cover an app launched from the Dock (Cursor / VS Code), because
-macOS GUI apps don't source `~/.zshrc`. To cover the IDE process itself and anything it spawns,
-set the variable in the GUI login session with a LaunchAgent.
+Neither a shell profile nor direnv covers an app launched from the Dock (Cursor / VS Code):
+macOS GUI apps don't source `~/.zshenv`/`~/.zshrc`, and direnv only fires inside a hooked
+shell. To cover the IDE process itself and anything it spawns, set the variable in the GUI
+login session with a LaunchAgent.
 
 Create `~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist` (replace `example`
 with your own identifier — e.g. your username — keeping the filename and the `Label` below
@@ -178,8 +188,12 @@ pipx upgrade cumulusci                       # or to a specific fixed version
 launchctl unload -w ~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist   # -w mirrors the -w used on load
 rm ~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist
 launchctl unsetenv SF_TEMP_SHOW_SECRETS
-# remove the `export SF_TEMP_SHOW_SECRETS=true` line from ~/.zshenv
+# remove the `export SF_TEMP_SHOW_SECRETS=true` line from ~/.zshenv (personal scope)
 ```
+
+**Repo scope:** the in-repo `.envrc` export (`.envrc:34-47`) is the shared, committed
+copy — remove that block in the same PR that upgrades CumulusCI (and delete the
+`.github/workflows/check-cci-token-fix.yml` watcher), so it stops applying for everyone.
 
 Verify `cci org info CCI_ALIAS` still works **without** the flag, then delete this note's entry
 from the troubleshooting skill.
