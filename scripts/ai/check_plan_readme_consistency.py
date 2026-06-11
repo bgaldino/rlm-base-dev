@@ -10,8 +10,12 @@ For each plan directory (one containing `export.json` + `README.md`) it derives
 ground truth from export.json + the CSVs and compares it to two structured
 locations in the README:
 
-  1. The **object table**  — markdown table with `Object`, `Operation`,
-     `External ID`, and/or `Records` columns.
+  1. The **object table** — the canonical *load* table: a markdown table with an
+     `Object` column AND an `Operation` column (other columns such as `External ID`,
+     `Records`, `v5 Notes` are optional). Tables that lack an `Operation` column —
+     e.g. dated "Schema Analysis" / "ExternalId Assessment" tables — are deliberately
+     NOT treated as the object table, so a README whose only object-style table has
+     no `Operation` column is reported as "Skipped".
   2. The **file-structure listing** — lines like `Foo.csv   # 315 records`.
 
 Free-form prose and dated changelog/history counts are intentionally NOT parsed,
@@ -20,7 +24,8 @@ and where the data is canonical).
 
 Findings:
   ERROR  record-count mismatch; README references an object/CSV absent from the plan
-  WARN   operation / externalId mismatch (more parse-sensitive)
+  WARN   operation / externalId mismatch; a non-excluded plan object missing from the
+         README object table (these are more parse-sensitive)
 
 Exit code is non-zero if any ERROR is found, so this can gate a PR. WARN-only
 runs exit 0. Use `--strict` to also fail on warnings.
@@ -48,10 +53,12 @@ IGNORE_MARKER = "readme-check: ignore"
 
 def csv_row_count(path: str) -> int:
     """Data-row count (excludes header), via the csv module so embedded newlines
-    inside quoted fields don't inflate the count the way `wc -l` would."""
+    inside quoted fields don't inflate the count the way `wc -l` would. Streams
+    the reader instead of materializing the file, so memory stays constant
+    regardless of how large a plan's CSV grows."""
     with open(path, newline="", encoding="utf-8-sig") as fh:
-        rows = list(csv.reader(fh))
-    return max(0, len(rows) - 1) if rows else 0
+        n = sum(1 for _ in csv.reader(fh))
+    return max(0, n - 1)
 
 
 def object_name(obj: dict) -> str:
@@ -180,11 +187,13 @@ def check_plan(plan_dir: str):
     rel = os.path.relpath(readme, REPO_ROOT)
 
     parsed_anything = False
+    object_table_found = False
 
     # 1) Object-table rows
     seen_objects = set()
     for row in parse_object_tables(lines):
         parsed_anything = True
+        object_table_found = True
         name = row["object"]
         seen_objects.add(name)
         ln = row["line"]
@@ -237,6 +246,17 @@ def check_plan(plan_dir: str):
         if claimed not in set(counts[name]):
             actual = counts[name][0] if len(counts[name]) == 1 else counts[name]
             errors.append(f"{rel}:{idx_} `{name}.csv` record count README={claimed} actual={actual}")
+
+    # 3) Missing objects — a non-excluded export.json object that the README's object
+    # table never lists (so a README can't silently omit objects and still pass).
+    # Only enforced when an object table exists, and reported as WARN since some
+    # READMEs legitimately tabulate a subset.
+    if object_table_found:
+        for name, variants in plan.items():
+            if all(v["excluded"] for v in variants):
+                continue
+            if name not in seen_objects:
+                warns.append(f"{rel} object `{name}` is in export.json but absent from the README object table")
 
     return errors, warns, parsed_anything
 
