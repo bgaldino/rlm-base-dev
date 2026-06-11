@@ -6,19 +6,21 @@ SFDMU data plan for QuantumBit (QB) Partner Relationship Management (PRM). Creat
 
 ### Flow: `prepare_prm`
 
-This plan is executed as **step 9** of the `prepare_prm` flow (when `prm=true` and `qb=true`).
+This plan is executed as **step 8** of the `prepare_prm` flow (when `prm=true` and `qb=true`).
+
+The flow uses non-contiguous numeric step keys (step 4 is intentionally absent in `cumulusci.yml`); they are reproduced here as defined.
 
 | Step | Task                              | Description                                                |
 |------|-----------------------------------|------------------------------------------------------------|
 | 1    | `create_partner_central`          | Create Partner Central community                           |
 | 2    | `patch_network_email_for_deploy`  | Replace placeholder email in rlm.network-meta.xml with Network's actual EmailSenderAddress (immutable) |
-| 3    | `setup_prm_org_email`             | Create org-wide email address for PRM                      |
-| 4    | `deploy_post_prm`                 | Deploy PRM Experience Bundle metadata                      |
+| 3    | `deploy_post_prm`                 | Deploy PRM Experience Bundle metadata                      |
 | 5    | `revert_network_email_after_deploy` | Restore placeholder email in rlm.network-meta.xml        |
 | 6    | `publish_community`               | Publish the Partner Central community                      |
-| 7    | `deploy_sharing_rules`            | Deploy sharing rules for PRM                               |
-| 8    | `assign_permission_sets`         | Assign `RLM_PRM` permission set                            |
-| 9    | `insert_quantumbit_prm_data`      | Runs this SFDMU plan (2-pass)                              |
+| 7    | `assign_permission_sets`         | Assign `RLM_PRM` permission set                            |
+| 8    | `insert_quantumbit_prm_data`      | Runs this SFDMU plan (2-pass)                              |
+| 9    | `manage_context_definition`       | Activate the PartnerAccount context definition plan        |
+| 10   | flow: `prepare_prm_pricing`       | Deploy PRM pricing metadata and data (when `prm_pricing=true`) |
 
 ### Task Definition
 
@@ -112,7 +114,7 @@ and deployed by the baseline `deploy_post_prm` task:
 
 ### Permission Set: `RLM_PRM`
 
-Grants full read/edit access to all 6 custom fields above. Assigned in step 8 of the `prepare_prm` flow before the data load, ensuring SFDMU can write to the custom fields.
+Grants full read/edit access to all 6 custom fields above. Assigned in step 7 of the `prepare_prm` flow before the data load, ensuring SFDMU can write to the custom fields.
 
 ## Composite External IDs
 
@@ -135,7 +137,7 @@ No auto-numbered Name fields are used as external IDs.
 
 This plan has **no upstream data plan dependencies** — it creates its own Account records.
 
-This plan is independent of the product catalog (qb-pcm) and can be loaded in any order relative to other QB plans. However, the `prepare_prm` flow runs metadata deployment, community setup, and permission assignment (steps 1-8) before this data load (step 9).
+This plan is independent of the product catalog (qb-pcm) and can be loaded in any order relative to other QB plans. However, the `prepare_prm` flow runs metadata deployment, community setup, and permission assignment (steps 1-7) before this data load (step 8).
 
 ## File Structure
 

@@ -29,7 +29,7 @@ insert_qb_dro_data:
 
 ## Data Plan Overview
 
-The plan uses a **single SFDMU pass** with 14 objects. No activation is required.
+The plan uses a **single SFDMU pass** with 17 objects (13 loaded + 3 ReadOnly lookups + 1 excluded). No activation is required.
 
 ```
 Single Pass (SFDMU)
@@ -44,21 +44,24 @@ Upsert all DRO objects in dependency order
 
 | #  | Object                          | Operation | External ID                                                        | Records | v5 Notes |
 |----|---------------------------------|-----------|--------------------------------------------------------------------|---------|----------|
-| 1  | Product2                        | Update    | `StockKeepingUnit`                                                 | 164     | |
+| 1  | Product2                        | Update    | `StockKeepingUnit`                                                 | 313     | |
 | 2  | ProductFulfillmentDecompRule    | Upsert    | `Name`                                                             | 21      | Consolidated service line decomps; removed standalone QB-DB-TOKEN rules |
 | 3  | ValTfrmGrp                      | Upsert    | `Name`                                                             | 0       | |
 | 4  | ValTfrm                         | Upsert    | `Name`                                                             | 0       | |
 | 5  | FulfillmentStepDefinitionGroup  | Upsert    | `Name`                                                             | 5       | Consolidated from 10 → 5 groups; all typed `Fulfillment` |
-| 6  | FulfillmentStepDefinition       | Upsert    | `Name`                                                             | 10      | Simplified from 17; removed Order Processing/Asset Conversion/Tenant Provisioning steps |
-| 7  | FulfillmentStepDependencyDef    | Upsert    | `Name`                                                             | 9       | Simplified from 13; removed dependencies on deleted steps |
-| 8  | ProductFulfillmentScenario      | Upsert    | `Name`                                                             | 10      | Simplified from 13; removed standalone QB-DB-TOKEN scenarios |
-| 9  | FulfillmentWorkspace            | Upsert    | `Name`                                                             | 1       | QuantumBit Complete Solution Bundle (Ramp Deal Orchestration removed) |
-| 10 | FulfillmentWorkspaceItem        | Upsert    | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`    | 4       | `deleteOldData: true` (auto-number Name) |
-| 11 | FulfillmentFalloutRule          | Upsert    | `Name`                                                             | 3       | |
-| 12 | FulfillmentStepJeopardyRule     | Upsert    | `Name`                                                             | 6       | |
-| 13 | FulfillmentTaskAssignmentRule   | Upsert    | `Name`                                                             | 0       | |
+| 6  | User                            | ReadOnly  | `Name`                                                             | 1       | Lookup only — dynamic user resolution for AssignedTo |
+| 7  | Group                           | ReadOnly  | `Name`                                                             | 0       | Lookup only — Queue references (`WHERE Type = 'Queue'`) |
+| 8  | IntegrationProviderDef          | ReadOnly  | `DeveloperName`                                                    | 4       | Lookup only — referenced by FSD/FFR/FSJR |
+| 9  | FulfillmentStepDefinition       | Upsert    | `Name`                                                             | 10      | Simplified from 17; removed Order Processing/Asset Conversion/Tenant Provisioning steps |
+| 10 | FulfillmentStepDependencyDef    | Upsert    | `Name`                                                             | 9       | Simplified from 13; removed dependencies on deleted steps |
+| 11 | ProductFulfillmentScenario      | Upsert    | `Name`                                                             | 10      | Simplified from 13; removed standalone QB-DB-TOKEN scenarios |
+| 12 | FulfillmentWorkspace            | Upsert    | `Name`                                                             | 1       | QuantumBit Complete Solution Bundle (Ramp Deal Orchestration removed) |
+| 13 | FulfillmentWorkspaceItem        | Upsert    | `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`    | 4       | `deleteOldData: true` (auto-number Name) |
+| 14 | FulfillmentFalloutRule          | Upsert    | `Name`                                                             | 3       | |
+| 15 | FulfillmentStepJeopardyRule     | Upsert    | `Name`                                                             | 6       | |
+| 16 | FulfillmentTaskAssignmentRule   | Upsert    | `Name`                                                             | 0       | |
 
-**Note:** Objects 3-4 (ValTfrmGrp, ValTfrm) and Object 13 (FulfillmentTaskAssignmentRule) have empty CSVs (0 data records) — placeholders for future data. ProductDecompEnrichmentRule was removed (0 records). Product2 is Update-only (sets `CustomDecompositionScope`, `DecompositionScope`, `FulfillmentQtyCalcMethod`).
+**Note:** Objects 3-4 (ValTfrmGrp, ValTfrm) and Object 16 (FulfillmentTaskAssignmentRule) have empty CSVs (0 data records) — placeholders for future data. ProductDecompEnrichmentRule is excluded (`excluded: true` in export.json) and has no CSV on disk. Product2 is Update-only (sets `CustomDecompositionScope`, `DecompositionScope`, `FulfillmentQtyCalcMethod`).
 
 ## Dynamic User Resolution
 
@@ -80,23 +83,23 @@ Product2 Update sets DRO-specific fields (`CustomDecompositionScope`, `Decomposi
 
 ValTfrmGrp and ValTfrm are empty placeholders for value transformation groups and mappings. These may be needed for attribute mapping during decomposition in future configurations.
 
-### Enrichment Rules (Object 5) — Placeholder
+### Enrichment Rules — Excluded
 
-ProductDecompEnrichmentRule is an empty placeholder for decomposition enrichment rules that map attributes between source and destination products.
+ProductDecompEnrichmentRule is present in export.json with `excluded: true` (it has no CSV on disk). It would map attributes between source and destination products for decomposition enrichment, but is not loaded in the current plan.
 
-### Fulfillment Steps (Objects 6-8)
+### Fulfillment Steps (Objects 5, 9-10)
 
 Three-level hierarchy: FulfillmentStepDefinitionGroup (5 groups: Finance, Platform, Services, Provisioning & Activation, Usage Provisioning & Activation — all typed `Fulfillment`) -> FulfillmentStepDefinition (10 steps like "Provision Licensing/Features", "Activate Tokens") -> FulfillmentStepDependencyDef (9 dependency links between steps).
 
-### Fulfillment Scenarios (Object 9)
+### Fulfillment Scenarios (Object 11)
 
 ProductFulfillmentScenario (10 records) maps products to their fulfillment step groups and actions (e.g., "Finance Service", "QuantumBit Database Provisioning").
 
-### Workspaces (Objects 10-11)
+### Workspaces (Objects 12-13)
 
 FulfillmentWorkspace (1 workspace: QuantumBit Complete Solution Bundle) with FulfillmentWorkspaceItem (4 items) defining the UI layout for fulfillment management.
 
-### Rules (Objects 12-14)
+### Rules (Objects 14-16)
 
 FulfillmentFalloutRule (3 rules) for error handling, FulfillmentStepJeopardyRule (6 rules) for SLA monitoring, and FulfillmentTaskAssignmentRule (0 records — placeholder).
 
@@ -123,20 +126,19 @@ All external IDs use portable, human-readable fields:
 
 **Auto-numbered Name fields**: FulfillmentWorkspaceItem uses an auto-number Name — matched via its parent composite key with `deleteOldData: true` for functional idempotency.
 
-## Extra CSV Files Not in export.json
+## Lookup CSVs and Extra Files
 
-Several CSV files exist in the directory but are **not referenced** in `export.json`:
+`User.csv`, `Group.csv`, and `IntegrationProviderDef.csv` are **referenced in `export.json`** as `ReadOnly` lookup objects (not "extra" files):
 
-- `IntegrationProviderDef.csv` (1 record — `DeveloperName`)
 - `User.csv` (1 record — placeholder for dynamic user resolution; required for AssignedTo lookup)
-- `UserAndGroup.csv` (1 record — placeholder for dynamic user resolution)
-- `AttributeDefinition.csv` (empty)
-- `AttributePicklistValue.csv` (empty)
-- `ExpressionSet.csv` (empty)
-- `FlowOrchestration.csv` (empty)
-- `ProductClassification.csv` (empty)
+- `Group.csv` (0 records — Queue lookup; `WHERE Type = 'Queue'`)
+- `IntegrationProviderDef.csv` (4 records — `DeveloperName`; referenced by FSD/FFR/FSJR)
 
-These may be SFDMU artifacts from previous runs, supporting data for the dynamic user resolution, or placeholders for future schema expansion.
+One CSV exists in the directory but is **not referenced** in `export.json`:
+
+- `UserAndGroup.csv` (1 record — placeholder for dynamic user resolution)
+
+This is a supporting file for the dynamic user resolution mechanism; it is not loaded as an object by the plan.
 
 ## Dependencies
 
@@ -151,17 +153,16 @@ These may be SFDMU artifacts from previous runs, supporting data for the dynamic
 
 ```
 qb-dro/
-├── export.json                          # SFDMU data plan (single pass, 14 objects)
+├── export.json                          # SFDMU data plan (single pass, 17 objects)
 ├── README.md                            # This file
 │
 │  Source CSVs — Products
-├── Product2.csv                         # 164 records (Update only)
+├── Product2.csv                         # 313 records (Update only)
 │
 │  Source CSVs — Decomposition
 ├── ProductFulfillmentDecompRule.csv     # 21 records
 ├── ValTfrmGrp.csv                       # 0 records (placeholder)
 ├── ValTfrm.csv                          # 0 records (placeholder)
-├── ProductDecompEnrichmentRule.csv      # 0 records (placeholder)
 │
 │  Source CSVs — Fulfillment Steps
 ├── FulfillmentStepDefinitionGroup.csv   # 5 records
@@ -178,15 +179,13 @@ qb-dro/
 ├── FulfillmentStepJeopardyRule.csv      # 6 records
 ├── FulfillmentTaskAssignmentRule.csv    # 0 records (placeholder)
 │
-│  Source CSVs — Supporting (not in export.json)
-├── IntegrationProviderDef.csv           # 1 record (reference)
+│  Source CSVs — ReadOnly lookups (in export.json)
 ├── User.csv                             # 1 record (dynamic user placeholder; required for AssignedTo)
+├── Group.csv                            # 0 records (Queue lookup)
+├── IntegrationProviderDef.csv           # 4 records (DeveloperName reference)
+│
+│  Source CSVs — Supporting (not in export.json)
 ├── UserAndGroup.csv                     # 1 record (dynamic user placeholder)
-├── AttributeDefinition.csv              # 0 records (placeholder)
-├── AttributePicklistValue.csv           # 0 records (placeholder)
-├── ExpressionSet.csv                    # 0 records (placeholder)
-├── FlowOrchestration.csv               # 0 records (placeholder)
-├── ProductClassification.csv            # 0 records (placeholder)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
@@ -258,12 +257,12 @@ Several DRO objects reference objects that are **not in the current export.json*
 
 | Referenced Object           | Referenced By                                              | Notes                            |
 |-----------------------------|------------------------------------------------------------|----------------------------------|
-| `IntegrationProviderDef`    | FulfillmentStepDefinition, FulfillmentFalloutRule, FulfillmentStepJeopardyRule | CSV exists but not in export.json |
-| `ExpressionSet`             | FulfillmentStepDefinition (ExecuteOnRuleId, ResumeOnRuleId), FulfillmentTaskAssignmentRule (ConditionId), ProductDecompEnrichmentRule (CalculationDefinitionId) | Empty CSV exists as placeholder   |
+| `IntegrationProviderDef`    | FulfillmentStepDefinition, FulfillmentFalloutRule, FulfillmentStepJeopardyRule | In export.json as ReadOnly lookup |
+| `ExpressionSet`             | FulfillmentStepDefinition (ExecuteOnRuleId, ResumeOnRuleId), FulfillmentTaskAssignmentRule (ConditionId), ProductDecompEnrichmentRule (CalculationDefinitionId) | Not referenced anywhere in plan  |
 | `Ruleset`                   | FulfillmentStepDefinition (ExecuteOnRuleId, ResumeOnRuleId), FulfillmentTaskAssignmentRule (ConditionId), ProductFulfillmentScenario (ScenarioRuleId), ProductFulfillmentDecompRule (ExecuteOnRuleId) | Not referenced anywhere in plan  |
 | `DecisionMatrixDefinition`  | ProductDecompEnrichmentRule (CalculationDefinitionId)      | Not referenced anywhere in plan  |
-| `AttributePicklistValue`    | ValTfrm (InputPicklistValueId, OutputPicklistValueId)      | Empty CSV exists as placeholder  |
-| `Group`                     | FulfillmentFalloutRule (FalloutQueueId), FulfillmentTaskAssignmentRule (SourceId, DestinationId) | Queue references                |
+| `AttributePicklistValue`    | ValTfrm (InputPicklistValueId, OutputPicklistValueId)      | Not referenced anywhere in plan  |
+| `Group`                     | FulfillmentFalloutRule (FalloutQueueId), FulfillmentTaskAssignmentRule (SourceId, DestinationId) | In export.json as ReadOnly lookup (Queue references) |
 
 ### Plan for Polymorphic Field Support
 
@@ -332,9 +331,9 @@ Similarly, `ProductFulfillmentScenario` has `SourceIdentifier` and `SourceClassI
 1. **Fix auto-num Name externalIds**: Replace `Name` on FulfillmentFalloutRule, FulfillmentStepJeopardyRule, ValTfrm, and ProductDecompEnrichmentRule with portable composite keys or human-readable Names
 2. **Add missing 260 fields to SOQL**: Add `RunAsUserId`, `ExecuteOnConditionData`, `ResumeOnConditionData`, `ExecuteOnRuleId` to FulfillmentStepDefinition; `ConditionData`, `UsageType` to FulfillmentTaskAssignmentRule; `ScenarioRuleId` to ProductFulfillmentScenario; `ExecuteOnRuleId` to ProductFulfillmentDecompRule
 3. **Handle polymorphic fields**: Implement `$ObjectType` suffix handling for ExpressionSet/Ruleset/DecisionMatrixDefinition polymorphic targets when these features are used
-4. **Add IntegrationProviderDef to export.json**: The CSV exists and is referenced by 3 objects — add as Readonly or Upsert
+4. **IntegrationProviderDef in export.json**: Already present as a `ReadOnly` lookup (4 records, `DeveloperName`) — referenced by FSD/FFR/FSJR
 5. **Extraction available**: Use `extract_qb_dro_data` (Data Management - Extract). Run all extracts: `cci flow run run_qb_extracts --org <org>`. Idempotency: `test_qb_dro_idempotency` / `cci flow run run_qb_idempotency_tests --org <org>`.
-6. **Clean up extra CSVs**: Remove or document the CSV files that are not referenced in `export.json` (AttributeDefinition, AttributePicklistValue, ExpressionSet, FlowOrchestration, ProductClassification)
+6. **Clean up extra CSVs**: One CSV in the directory is not referenced in `export.json` — `UserAndGroup.csv` (supporting file for dynamic user resolution). Remove it or document it.
 7. **Populate placeholder objects**: Investigate whether ValTfrmGrp, ValTfrm, ProductDecompEnrichmentRule, and FulfillmentTaskAssignmentRule should have data for 260 DRO features
 8. **Review dynamic user resolution**: Ensure the `__DRO_ASSIGNED_TO_USER__` replacement mechanism works correctly in all target org types (scratch, sandbox, production)
 9. **Consistency**: Uses `objectSets` wrapper — consider switching to flat `objects` array if appropriate

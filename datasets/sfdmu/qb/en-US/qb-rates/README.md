@@ -41,11 +41,11 @@ PriceBookRateCard, RateAdjustmentByTier      (RateCardEntry -> Active)
 
 | # | Object               | Operation | External ID                                                                          | Records |
 |---|----------------------|-----------|--------------------------------------------------------------------------------------|---------|
-| 1 | Product2             | Update    | `StockKeepingUnit`                                                                   | 164     |
+| 1 | Product2             | Update    | `StockKeepingUnit`                                                                   | 9       |
 | 2 | RateCard             | Upsert    | `Name;Type`                                                                          | 3       |
-| 3 | PriceBookRateCard    | Upsert    | `PriceBook.Name;RateCard.Name;RateCardType`                                          | 2       |
-| 4 | RateCardEntry        | Upsert    | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 19     |
-| 5 | RateAdjustmentByTier | Upsert    | `Product.StockKeepingUnit;RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 21 |
+| 3 | PriceBookRateCard    | Upsert (+deleteOldData) | `PriceBook.Name;RateCard.Name;RateCardType`                                          | 2       |
+| 4 | RateCardEntry        | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 20     |
+| 5 | RateAdjustmentByTier | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 22 |
 
 **Note:** Product2 is an `Update` operation — it only sets `UsageModelType` on existing products (created by qb-pcm). RateCardEntry records are inserted in `Draft` status. RateAdjustmentByTier uses `RateCard.Name` (portable) in its composite key instead of `RateCardEntry.Name` (auto-numbered), with a separate `RateCardEntry.$$...` column in the CSV for parent RCE lookup resolution.
 
@@ -94,7 +94,7 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 | Standard Price Book  | Base Rate Card  | —    |
 | Standard Price Book  | Tier Rate Card  | —    |
 
-## Rate Card Entries (19 records)
+## Rate Card Entries (20 records)
 
 ### Base Rate Card Entries (flat per-unit rates)
 
@@ -125,7 +125,7 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 | QB-QTY-CMT       | UR-CPUTIME      | USD       | Term Annual   |
 | QB-QTY-CMT       | UR-DATASTORAGE  | USD       | Term Annual   |
 
-## Rate Adjustments by Tier (21 records)
+## Rate Adjustments by Tier (22 records)
 
 ### QB-DB — Compute Time (Override tiers, USD/minute)
 
@@ -228,11 +228,11 @@ qb-rates/
 ├── README.md                  # This file
 │
 │  Source CSVs (data to load)
-├── Product2.csv               # 165 records (Update UsageModelType only)
+├── Product2.csv               # 9 records (Update UsageModelType only)
 ├── RateCard.csv               # 3 records
-├── PriceBookRateCard.csv      # 3 records
-├── RateCardEntry.csv          # 19 records (Draft status)
-├── RateAdjustmentByTier.csv   # 21 records
+├── PriceBookRateCard.csv      # 2 records
+├── RateCardEntry.csv          # 20 records (Draft status)
+├── RateAdjustmentByTier.csv   # 22 records
 │
 │  Lookup Reference CSVs (for SFDMU resolution)
 ├── Pricebook2.csv             # Standard Price Book
@@ -277,14 +277,14 @@ Schema was queried against a 260 scratch org. Findings below.
 
 ### Schema Concerns
 
-**`RateCard.Status` — NOT in 260 schema!**
+**`RateCard.Status` — RESOLVED.**
 
-The current SOQL query includes `Status`:
+The `RateCard` SOQL query no longer includes `Status` (the field does not exist on `RateCard` in 260). The current query is:
 ```sql
-SELECT Description, EffectiveFrom, EffectiveTo, Name, Status, Type FROM RateCard ORDER BY Name ASC
+SELECT Description, EffectiveFrom, EffectiveTo, Name, Type FROM RateCard
 ```
 
-However, the 260 schema describe for `RateCard` returns only:
+The 260 schema describe for `RateCard` returns only:
 
 | Field          | Type     | Updateable | In Current SOQL? |
 |----------------|----------|------------|-------------------|
@@ -294,16 +294,16 @@ However, the 260 schema describe for `RateCard` returns only:
 | `EffectiveFrom`| DATETIME | Yes        | Yes               |
 | `EffectiveTo`  | DATETIME | Yes        | Yes               |
 
-**`Status` is not a field on `RateCard` in 260.** This was also confirmed in prior testing (error: "No such column 'Status' on entity 'RateCard'"). The SOQL query includes it but the field does not exist — SFDMU may handle this gracefully by ignoring unknown fields, or it may cause an error. **Needs urgent validation.**
+`Status` has been removed from the query and `RateCard.csv` has no `Status` column.
 
-**Note:** `RateCardEntry` *does* have a `Status` field (confirmed in schema), so the confusion may be between the two objects.
+**Note:** `RateCardEntry` *does* have a `Status` field (confirmed in schema), so the prior confusion was between the two objects.
 
 ### Field Coverage Audit
 
 | Object               | Status | Notes                                                    |
 |----------------------|--------|----------------------------------------------------------|
 | Product2             | ✅     | Update only (UsageModelType) — correct                   |
-| RateCard             | ⚠️     | `Status` field not in 260 schema — must be removed       |
+| RateCard             | ✅     | `Status` removed from SOQL/CSV (not a 260 field) — correct |
 | PriceBookRateCard    | ✅     | All fields present (Name auto-generated, read-only)      |
 | RateCardEntry        | ✅     | All fields present including Status, RateNegotiation     |
 | RateAdjustmentByTier | ✅     | All updateable fields present (4: AdjType, AdjValue, LB, UB) |
@@ -351,7 +351,7 @@ Only 4 fields are updateable: `AdjustmentType`, `AdjustmentValue`, `LowerBound`,
 | UsageResource        | qb-rating    | Lookup CSV |
 | Pricebook2           | qb-pricing   | Lookup CSV |
 | RateCard             | This plan    | Upsert     |
-| RateCardEntry        | This plan    | Upsert     |
+| RateCardEntry        | This plan    | Insert (+deleteOldData) |
 
 ## External ID / Composite Key Analysis (Confirmed via Org Describe)
 
@@ -373,7 +373,7 @@ Only 4 fields are updateable: `AdjustmentType`, `AdjustmentValue`, `LowerBound`,
 |----------------------|-------------------------------------|----------|------------|
 | Product2             | `StockKeepingUnit`                  | No*      | ✅ OK — platform-enforced unique when RLM enabled |
 | RateCard             | `Name;Type`                         | No       | ✅ OK — 2-field composite, few records |
-| PriceBookRateCard    | `PriceBook.Name;RateCard.Name;Type` | No       | ✅ OK — 3-field composite |
+| PriceBookRateCard    | `PriceBook.Name;RateCard.Name;RateCardType` | No       | ✅ OK — 3-field composite |
 | RateCardEntry        | 4-field composite                   | No       | ✅ OK — comprehensive |
 | RateAdjustmentByTier | 6-field composite                   | No       | ✅ OK — tier bounds ensure uniqueness |
 
@@ -390,7 +390,5 @@ The 6-field RABT key avoids using `RateCardEntry.Name` (auto-numbered) by instea
 
 ## Optimization Opportunities
 
-1. **Remove `Status` from RateCard SOQL**: Field does not exist in 260 schema — must be removed to prevent query errors
-2. **Fix `excludeIdsFromCSVFiles`**: Currently set to `"false"` — change to `"true"` for portability
-3. **Validate RateCard.Status in CSV**: Check if `RateCard.csv` has a Status column and remove it if present
-4. **Document read-only field strategy**: Many RABT and RCE fields are read-only (auto-populated) but included in SOQL for extraction — document this dual-purpose pattern clearly
+1. **Fix `excludeIdsFromCSVFiles`**: Currently set to `"false"` — change to `"true"` for portability
+2. **Document read-only field strategy**: Many RABT and RCE fields are read-only (auto-populated) but included in SOQL for extraction — document this dual-purpose pattern clearly

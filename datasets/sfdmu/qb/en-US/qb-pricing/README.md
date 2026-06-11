@@ -54,7 +54,7 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 2  | ProrationPolicy              | Update    |              | `Name`                                                                                                  | 1       |
 | 3  | ProductSellingModel          | Readonly  |              | `Name;SellingModelType`                                                                                 | 9       |
 | 4  | AttributeDefinition          | Readonly  |              | `Code`                                                                                                  | 39      |
-| 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 164     |
+| 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 315     |
 | 6  | CostBook                     | Upsert    |              | `Name`                                                                                                  | 1       |
 | 7  | Pricebook2                   | Upsert    |              | `Name;IsStandard`                                                                                       | 1       |
 | 8  | PriceAdjustmentTier          | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom` | 3 |
@@ -63,7 +63,7 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 11 | AttributeAdjustmentCondition | Insert    | ✓            | `AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit`                          | 4       |
 | 12 | AttributeBasedAdjustment     | Insert    | ✓            | `AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 4 |
 | 13 | BundleBasedAdjustment        | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 2 |
-| 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 114     |
+| 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 265     |
 | 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 2 |
 | 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 87      |
 
@@ -97,7 +97,7 @@ Currency types (7 currencies including USD, CAD, EUR, etc.) and proration policy
 
 ### Pricebooks and Entries (Objects 6, 14)
 
-One non-standard pricebook with 114 pricebook entries mapping products to selling models with unit prices and currency.
+One non-standard pricebook with 265 pricebook entries mapping products to selling models with unit prices and currency.
 
 ### Price Adjustments (Objects 8-9, 10-12, 13)
 
@@ -128,7 +128,7 @@ Several objects use complex multi-field composite keys:
 | AttributeAdjustmentCondition | 3-field composite | Yes            |
 | AttributeBasedAdjustment     | 5-field composite | Yes            |
 | BundleBasedAdjustment        | 8-field composite | Yes            |
-| PricebookEntry               | 4-field composite | Yes            |
+| PricebookEntry               | 3-field composite | Yes            |
 | PricebookEntryDerivedPrice   | 8-field composite | Yes            |
 | CostBookEntry                | 3-field composite | Yes            |
 
@@ -185,11 +185,11 @@ qb-pricing/
 │  Source CSVs — Readonly Parents (lookup context)
 ├── ProductSellingModel.csv              # 9 records (Readonly)
 ├── AttributeDefinition.csv              # 39 records (Readonly)
-├── Product2.csv                         # 164 records (Readonly)
+├── Product2.csv                         # 315 records (Readonly)
 │
 │  Source CSVs — Pricebooks
 ├── Pricebook2.csv                       # 1 record
-├── PricebookEntry.csv                   # 114 records
+├── PricebookEntry.csv                   # 265 records
 ├── PricebookEntryDerivedPrice.csv       # 2 records
 │
 │  Source CSVs — Price Adjustments
@@ -217,7 +217,7 @@ qb-pricing/
 
 **Org-backed idempotency validated** — consecutive runs of
 `delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data` produce
-identical record counts (216 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 114 PBE,
+identical record counts (367 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 265 PBE,
 2 PEDP, 87 CBE). The static SFDMU validator may still flag extraction-safety
 issues for relationship traversal fields in this plan; treat those as follow-up
 items before relying on extraction round-trips.
@@ -326,11 +326,11 @@ This timestamp Name cascades to 2 dependent objects:
 | ProrationPolicy              | 1 (`Name`) | Simple | No |
 | Pricebook2                   | 2 (`Name;IsStandard`) | Low | No — `Name` alone isn't unique (Standard + custom can share names) |
 | CostBook                     | 1 (`Name`) | Low | N/A (already simplified) |
-| PriceAdjustmentSchedule      | 3 (`Name;Currency;PB.Name`) | Medium | No — Name alone may not be unique across pricebooks |
+| PriceAdjustmentSchedule      | 2 (`Name;CurrencyIsoCode`) | Medium | No |
 | PriceAdjustmentTier          | **9** fields | **Very High** | Possible — investigate if a subset guarantees uniqueness |
 | AttributeBasedAdjustment     | 5 fields | High | No — multi-dimensional adjustment targeting |
 | BundleBasedAdjustment        | **8** fields | **Very High** | No — bundle hierarchy requires all dimensions |
-| PricebookEntry               | 4 fields | Medium | No — PBE is Product+PB+PSM+Currency |
+| PricebookEntry               | 3 fields | Medium | No — PBE is Product+PSM+Currency |
 | PricebookEntryDerivedPrice   | **8** fields | **Very High** | Possible — contributing product may be enough to narrow |
 | CostBookEntry                | 3 fields | Medium | No |
 
