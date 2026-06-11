@@ -58,13 +58,28 @@ restore_terminal() {
 trap restore_terminal EXIT INT TERM
 
 if [[ ! -x "$VENV_PYTHON" ]]; then
-  if ! python -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then
-    echo "tui-cci requires Python 3.11+ (current: $(python -c 'import sys; print(sys.version.split()[0])' 2>/dev/null || echo unknown))."
+  # Resolve a bootstrap interpreter to create the venv. Prefer python3 — many
+  # systems (notably Linux) ship only `python3` with no bare `python`, so a
+  # hard-coded `python` would spuriously fail here under `set -euo pipefail`.
+  BOOTSTRAP_PYTHON=""
+  for candidate in python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      BOOTSTRAP_PYTHON="$candidate"
+      break
+    fi
+  done
+  if [[ -z "$BOOTSTRAP_PYTHON" ]] \
+    || ! "$BOOTSTRAP_PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then
+    current="unknown"
+    if [[ -n "$BOOTSTRAP_PYTHON" ]]; then
+      current="$("$BOOTSTRAP_PYTHON" -c 'import sys; print(sys.version.split()[0])' 2>/dev/null || echo unknown)"
+    fi
+    echo "tui-cci requires Python 3.11+ (current: $current)."
     exit 1
   fi
   echo "Creating scoped TUI virtual environment at $VENV_DIR..."
   mkdir -p "$ROOT_DIR/.harness"
-  python -m venv "$VENV_DIR"
+  "$BOOTSTRAP_PYTHON" -m venv "$VENV_DIR"
   "$VENV_PYTHON" -m pip install -r "$REQ_FILE"
 fi
 

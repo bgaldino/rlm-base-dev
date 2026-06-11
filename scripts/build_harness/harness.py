@@ -2,7 +2,7 @@
 """Local build profiling harness for prepare_rlm_org.
 
 This runner is intentionally both human-friendly and AI-agent friendly:
-- Stable subcommands: run / resume / report
+- Stable subcommands: run / resume / report / prune
 - Deterministic exit codes for automation
 - Structured machine-readable outputs per run
 - Checkpoint-based resume from last successful top-level prepare_rlm_org step

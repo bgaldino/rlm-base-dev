@@ -307,7 +307,7 @@ for interactive TTY launches when `TERM` is missing or `dumb`, and always
 - `tests/build_harness/test_tui_app.py` - TUI pure helpers and app-level behavior
 - `tests/build_harness/test_tui_launcher.py` - `tui-cci` launcher behavior
 - `tests/build_harness/test_tui_runner.py` - TUI build runner wiring and flag-group parser behavior
-- `tests/build_harness/test_harness_cli.py` - run/resume/report CLI guardrails and path safety
+- `tests/build_harness/test_harness_cli.py` - run/resume/report/prune CLI guardrails and path safety
 
 Use tests first for parser, evaluator, cleanup, and resume-safety changes. Mock subprocesses for TUI runner coverage instead of creating real orgs.
 
