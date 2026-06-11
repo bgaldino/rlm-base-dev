@@ -12,6 +12,14 @@ on:
     # Weekly, Monday 09:23 UTC (off-minute to avoid the top-of-hour fleet pile-up).
     - cron: "23 9 * * 1"
 
+# Serialize runs so a manual workflow_dispatch overlapping the scheduled run can't
+# both pass the "no existing issue" check and create duplicates. cancel-in-progress
+# is false so the first run finishes (and creates the issue) before the queued one
+# runs and sees it.
+concurrency:
+  group: check-cci-token-fix
+  cancel-in-progress: false
+
 # Read-only floor; the job elevates only issues:write.
 permissions:
   contents: read

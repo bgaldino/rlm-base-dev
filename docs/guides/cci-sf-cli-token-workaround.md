@@ -37,8 +37,8 @@ org — never use it to "refresh" a token.)
 
 ## Root cause
 
-CumulusCI **4.10.0** (the latest release as of 2026-06) reads an org's access token by parsing
-the output of `sf org display`. Salesforce CLI **>= 2.13.0** now **redacts secrets** from that
+CumulusCI **4.10.0** (the version affected by this bug — the workflow's `BASELINE`) reads an
+org's access token by parsing the output of `sf org display`. Salesforce CLI **>= 2.13.0** now **redacts secrets** from that
 output by default:
 
 ```
@@ -166,7 +166,7 @@ If a newer release exists, confirm from its changelog that it addresses the
 ```bash
 pipx upgrade cumulusci                       # or to a specific fixed version
 # then remove the workaround:
-launchctl unload ~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist
+launchctl unload -w ~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist   # -w mirrors the -w used on load
 rm ~/Library/LaunchAgents/com.example.sf-temp-show-secrets.plist
 launchctl unsetenv SF_TEMP_SHOW_SECRETS
 # remove the `export SF_TEMP_SHOW_SECRETS=true` line from ~/.zshrc
