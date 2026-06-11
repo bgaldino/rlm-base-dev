@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**39 feature flags**, **80 configuration values**, **34 YAML anchors** under `project.custom`.
+**40 feature flags**, **84 configuration values**, **36 YAML anchors** under `project.custom`.
 
 ---
 
@@ -35,12 +35,13 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
 | `personas` | `True` | 10 flow step(s) |
-| `prm` | `True` | 8 flow step(s) |
+| `prm` | `True` | 23 flow step(s) |
 | `prm_exp_bundle` | `False` | 4 flow step(s) |
+| `prm_pricing` | `True` | 15 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
-| `procedureplans` | `True` | 5 flow step(s) |
+| `procedureplans` | `True` | 6 flow step(s) |
 | `q3` | `False` | 7 flow step(s) |
-| `qb` | `True` | 23 flow step(s) |
+| `qb` | `True` | 24 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
 | `ramps` | `True` | 4 flow step(s) |
@@ -243,6 +244,21 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 7 → `assign_permission_sets`
 - `prepare_prm` step 8 → `insert_quantumbit_prm_data`
 - `prepare_prm` step 9 → `manage_context_definition`
+- `prepare_prm` step 10 → `prepare_prm_pricing`
+- `deploy_post_prm_pricing` step 1 → `deploy_post_prm_pricing_objects`
+- `deploy_post_prm_pricing` step 2 → `deploy_post_prm_pricing_decision_tables`
+- `deploy_post_prm_pricing` step 3 → `configure_pricing_recipe_table_mappings`
+- `deploy_post_prm_pricing` step 4 → `apply_context_prm_pricing`
+- `deploy_post_prm_pricing` step 5 → `deploy_post_prm_pricing_expression_sets`
+- `deploy_post_prm_pricing` step 6 → `deploy_post_prm_pricing_flows`
+- `deploy_post_prm_pricing` step 7 → `deploy_post_prm_pricing_permissionsets`
+- `prepare_prm_pricing` step 1 → `deactivate_prm_expression_sets`
+- `prepare_prm_pricing` step 2 → `deploy_post_prm_pricing`
+- `prepare_prm_pricing` step 3 → `assign_permission_sets`
+- `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
+- `prepare_prm_pricing` step 5 → `activate_prm_expression_sets`
+- `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
+- `refresh_all_decision_tables` step 7 → `refresh_dt_prm_pricing`
 
 ### `prm_exp_bundle` (default: `False`)
 
@@ -251,8 +267,27 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_prm` step 5 → `revert_network_email_after_deploy`
 - `prepare_prm` step 7 → `assign_permission_sets`
 
+### `prm_pricing` (default: `True`)
+
+- `prepare_prm` step 10 → `prepare_prm_pricing`
+- `deploy_post_prm_pricing` step 1 → `deploy_post_prm_pricing_objects`
+- `deploy_post_prm_pricing` step 2 → `deploy_post_prm_pricing_decision_tables`
+- `deploy_post_prm_pricing` step 3 → `configure_pricing_recipe_table_mappings`
+- `deploy_post_prm_pricing` step 4 → `apply_context_prm_pricing`
+- `deploy_post_prm_pricing` step 5 → `deploy_post_prm_pricing_expression_sets`
+- `deploy_post_prm_pricing` step 6 → `deploy_post_prm_pricing_flows`
+- `deploy_post_prm_pricing` step 7 → `deploy_post_prm_pricing_permissionsets`
+- `prepare_prm_pricing` step 1 → `deactivate_prm_expression_sets`
+- `prepare_prm_pricing` step 2 → `deploy_post_prm_pricing`
+- `prepare_prm_pricing` step 3 → `assign_permission_sets`
+- `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
+- `prepare_prm_pricing` step 5 → `activate_prm_expression_sets`
+- `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
+- `refresh_all_decision_tables` step 7 → `refresh_dt_prm_pricing`
+
 ### `procedureplans` (default: `True`)
 
+- `prepare_prm_pricing` step 6 → `apply_procedure_plan_overlay`
 - `prepare_procedureplans` step 1 → `deploy_post_procedureplans`
 - `prepare_procedureplans` step 2 → `activate_procedure_plan_expression_sets`
 - `prepare_procedureplans` step 3 → `create_procedure_plan_definition`
@@ -279,6 +314,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing` step 2 → `insert_billing_data`
 - `prepare_billing` step 4 → `create_sequence_policies`
 - `prepare_prm` step 8 → `insert_quantumbit_prm_data`
+- `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_rating` step 1 → `delete_qb_rates_data`
 - `prepare_rating` step 2 → `delete_qb_rating_data`
@@ -425,12 +461,15 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `contracts_extraction_context_base_reference` | `ContractsExtractionContext__stdctx` |
 | `contracts_extraction_context_default_mapping` | `DocExtrctPersistenceMapping` |
 | `contracts_extraction_context_name` | `RLM_ContractsExtractionContext` |
+| `core_pricing_recipe_table_mappings` | `datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json` |
 | `default_context_start_date` | `2020-01-01T00:00:00.000Z` |
 | `default_context_ttl` | `30` |
 | `fulfillment_asset_context_base_reference` | `FulfillmentAssetContext__stdctx` |
 | `fulfillment_asset_context_default_mapping` | `FulfillAssetEntitiesMapping` |
 | `fulfillment_asset_context_name` | `RLM_FulfillmentAssetContext` |
 | `locale` | `en_US` |
+| `prm_pricing_procedure_plan_overlay` | `datasets/procedure_plan_overlays/prm_pricing.json` |
+| `prm_pricing_recipe_table_mappings` | `datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json` |
 | `procedure_plan_definition_description` | `Procedure Plan Definition for Quote Pricing` |
 | `procedure_plan_definition_developer_name` | `RLM_Quote_Pricing_Procedure_Plan` |
 | `procedure_plan_definition_name` | `RLM_Quote_Pricing_Procedure_Plan` |
@@ -466,6 +505,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_pcm_constraints_data_dir` | `datasets/constraints/qb/QuantumBitPCM` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |
 | `quantumbit_prm_dataset` | `datasets/sfdmu/qb/en-US/qb-prm` |
+| `quantumbit_prm_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-prm-pricing` |
 | `quantumbit_product_dataset` | `datasets/sfdmu/qb/en-US/qb-pcm` |
 | `quantumbit_product_image_dataset` | `datasets/sfdmu/qb/en-US/qb-product-images` |
 | `quantumbit_rates_dataset` | `datasets/sfdmu/qb/en-US/qb-rates` |
@@ -541,6 +581,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 - `Asset_Action_Source_Entries_Decision_Table_V2`
 - `Derived_Pricing_Entries_Decision_Table`
+
+### `dt_prm_pricing_decision_tables`
+
+*1 items:*
+
+- `RLM_Channel_Program_Level_Partner`
 
 ### `dt_rating_decision_tables`
 
@@ -640,6 +686,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_PRM`
+
+### `ps_prm_pricing`
+
+*1 items:*
+
+- `RLM_PRM_Pricing`
 
 ### `ps_quantumbit`
 

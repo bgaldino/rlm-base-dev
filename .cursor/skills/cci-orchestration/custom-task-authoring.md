@@ -375,6 +375,7 @@ tasks:
 | `rlm_manage_expression_sets.py` | `ManageExpressionSets` | Expression set version management |
 | `rlm_manage_flows.py` | `ManageFlows` | Flow management (activate/deactivate) |
 | `rlm_manage_transaction_processing_types.py` | `ManageTransactionProcessingTypes` | TPT management via Tooling API |
+| `rlm_configure_pricing_recipe_table_mappings.py` | `ConfigurePricingRecipeTableMappings` | PricingRecipeTableMapping ensure/list operations via Tooling API |
 | `rlm_ux_assembly.py` | `AssembleAndDeployUX` | Dynamic UX metadata assembly + deploy |
 | `rlm_ux_utils.py` | *(shared utility — no task class)* | `UX_KNOWN_FLAGS`, `_STANDALONE_ORDER`, `get_ux_feature_flags()`, `resolve_flexipage_sources()` — single source of truth for all UX tasks |
 | `rlm_stamp_commit.py` | `StampGitCommit` | Git commit stamping into org |
@@ -391,6 +392,7 @@ tasks:
 | `rlm_docgen.py` | `FixDocumentTemplateBinaries` | Fix DocumentTemplate content binaries |
 | `rlm_create_approval_email_templates.py` | `CreateApprovalEmailTemplates` | Create Lightning Email Templates via REST |
 | `rlm_create_procedure_plan_def.py` | `CreateProcedurePlanDefinition`, `ActivateProcedurePlanVersion` | Procedure Plan via Connect API |
+| `rlm_apply_procedure_plan_overlay.py` | `ApplyProcedurePlanOverlay` | JSON-driven procedure-plan overlays with guarded activation |
 | `rlm_repair_pricing_schedules.py` | `EnsurePricingSchedules` | Ensure pricing schedules exist |
 | `rlm_recalculate_permission_set_groups.py` | `RecalculatePermissionSetGroups` | PSG recalculation + polling |
 | `rlm_assign_permission_set_groups.py` | `AssignPermissionSetGroupsTolerant` | PSG assignment with warning tolerance |

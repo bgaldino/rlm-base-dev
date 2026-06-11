@@ -3,13 +3,13 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**225 tasks** across **10 groups**.
+**240 tasks** across **10 groups**.
 
 ---
 
 ## Data Maintenance
 
-*4 task(s)*
+*5 task(s)*
 
 ### `delete_draft_billing_records`
 
@@ -49,13 +49,25 @@
 
 ### `delete_quantumbit_pricing_data`
 
-**Description:** Delete all Insert-operation records from the qb-pricing plan (PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic: clears all records of each type regardless of which data shape populated them. Run before insert_quantumbit_pricing_data when layering multiple pricing shapes. Note: CostBookEntry is currently excluded (empty CSV) and will not be deleted.
+**Description:** Delete all Insert-operation records from the qb-pricing plan (CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic: clears all records of each type regardless of which data shape populated them. Run before insert_quantumbit_pricing_data when layering multiple pricing shapes.
 
 **Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
 
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-pricing`
+
+---
+
+### `delete_quantumbit_prm_pricing_data`
+
+**Description:** Delete all records from the qb-prm-pricing plan (ChannelProgramMember, ChannelProgramLevel, ChannelProgram, Account) in reverse plan order (children first). Run before insert_quantumbit_prm_pricing_data when resetting PRM pricing overlay data.
+
+**Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
 
 ---
 
@@ -81,7 +93,7 @@
 
 ## Data Management - Extract
 
-*16 task(s)*
+*17 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -203,6 +215,18 @@
 
 ---
 
+### `extract_qb_prm_pricing_data`
+
+**Description:** Extract qb-prm-pricing (PRM pricing overlay) from org to CSV. Output in datasets/sfdmu/extractions/qb-prm-pricing/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
+
+**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
+
+---
+
 ### `extract_qb_product_images_data`
 
 **Description:** Extract qb-product-images from org to CSV. Output in datasets/sfdmu/extractions/qb-product-images/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
@@ -278,7 +302,7 @@
 
 ## Data Management - Idempotency
 
-*14 task(s)*
+*15 task(s)*
 
 ### `test_qb_approvals_idempotency`
 
@@ -394,6 +418,19 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm`
+- `use_extraction_roundtrip`: `False`
+
+---
+
+### `test_qb_prm_pricing_idempotency`
+
+**Description:** Idempotency test for qb-prm-pricing (PRM pricing overlay).
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -761,19 +798,7 @@
 
 ## Partner Relationship Management
 
-*3 task(s)*
-
-### `deploy_post_prm_tso`
-
-**Description:** Deploy TSO-only PRM experience overlay containing the View Vouchers page (requires Referral and Voucher objects enabled in TSO orgs).
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_prm_tso`
-
----
+*2 task(s)*
 
 ### `patch_network_email_for_deploy`
 
@@ -793,7 +818,7 @@
 
 ## Revenue Lifecycle Management
 
-*136 task(s)*
+*149 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -879,6 +904,19 @@
 **Options:**
 
 - `path`: `scripts/apex/activatePriceAdjustmentSchedules.apex`
+
+---
+
+### `activate_prm_expression_sets`
+
+**Description:** Activate PRM pricing expression set versions via Tooling API
+
+**Class:** `tasks.rlm_manage_expression_sets.ManageExpressionSets`
+
+**Options:**
+
+- `operation`: `activate_versions`
+- `metadata_path`: `unpackaged/post_prm_pricing/expressionSetDefinition`
 
 ---
 
@@ -988,6 +1026,23 @@
 
 ---
 
+### `apply_context_prm_pricing`
+
+**Description:** Adds PRM pricing context attributes and Quote/QuoteLineItem mappings to RLM_SalesTransactionContext (PartnerAccount, distributor account, and partner/distributor pricing fields) using an additive Context Service plan.
+
+**Class:** `tasks.rlm_context_service.ManageContextDefinition`
+
+**Options:**
+
+- `developer_name`: `RLM_SalesTransactionContext`
+- `plan_file`: `datasets/context_plans/PrmPricing/manifest.json`
+- `translate_plan`: `True`
+- `deactivate_before`: `False`
+- `activate`: `True`
+- `verify`: `True`
+
+---
+
 ### `apply_context_ramp_mode`
 
 **Description:** Adds RampMode__c (SalesTransactionItem) and GroupRampMode__c (SalesTransactionGroup) context attributes to the Sales Transaction context definition and maps them to QuoteLineItem.RLM_RampMode__c and QuoteLineGroup.RLM_RampMode__c (QuoteEntitiesMapping) and OrderItem.RLM_RampMode__c and OrderItemGroup.RLM_RampMode__c (OrderEntitiesMapping).
@@ -1002,6 +1057,21 @@
 - `deactivate_before`: `False`
 - `activate`: `True`
 - `verify`: `True`
+
+---
+
+### `apply_procedure_plan_overlay`
+
+**Description:** Apply a Procedure Plan overlay from JSON with resolved IDs and a guarded deactivate/apply/verify/reactivate sequence.
+
+**Class:** `tasks.rlm_apply_procedure_plan_overlay.ApplyProcedurePlanOverlay`
+
+**Options:**
+
+- `overlay_file`: `datasets/procedure_plan_overlays/prm_pricing.json`
+- `developerName`: `RLM_Quote_Pricing_Procedure_Plan`
+- `verify`: `True`
+- `activate_after_apply`: `True`
 
 ---
 
@@ -1044,6 +1114,22 @@
 
 ---
 
+### `configure_core_pricing_recipe_table_mappings`
+
+**Description:** Ensure core PricingRecipeTableMapping rows exist for NGPDefaultRecipe (RLM_CostBookEntries as a ListPrice table). Uses Tooling API for idempotent create/update without metadata deploy.
+
+**Class:** `tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings`
+
+**Options:**
+
+- `operation`: `ensure`
+- `input_file`: `datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json`
+- `api_version`: `None`
+- `dry_run`: `False`
+- `skip_missing_tables`: `False`
+
+---
+
 ### `configure_core_pricing_setup`
 
 **Description:** Configure Salesforce Pricing Setup (CorePricingSetup) page: set the default Pricing Procedure (Robot test). Must run after the Pricing Procedure expression set is deployed and activated.
@@ -1055,6 +1141,22 @@
 - `suite`: `robot/rlm-base/tests/setup/configure_core_pricing_setup.robot`
 - `outputdir`: `robot/rlm-base/results`
 - `pricing_procedure`: `RLM Revenue Management Default Pricing Procedure`
+
+---
+
+### `configure_pricing_recipe_table_mappings`
+
+**Description:** Ensure PRM PricingRecipeTableMapping rows exist for NGPDefaultRecipe: RLM_Channel_Program_Level_Partner as PriceAdjustmentMatrix, plus idempotent coverage for the shared RLM_CostBookEntries ListPrice mapping. Uses Tooling API for create/update without metadata deploy.
+
+**Class:** `tasks.rlm_configure_pricing_recipe_table_mappings.ConfigurePricingRecipeTableMappings`
+
+**Options:**
+
+- `operation`: `ensure`
+- `input_file`: `datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json`
+- `api_version`: `None`
+- `dry_run`: `False`
+- `skip_missing_tables`: `False`
 
 ---
 
@@ -1228,6 +1330,19 @@
 
 - `operation`: `deactivate_versions`
 - `metadata_path`: `force-app/main/default/expressionSetDefinition`
+
+---
+
+### `deactivate_prm_expression_sets`
+
+**Description:** Deactivate PRM pricing expression set versions via Tooling API
+
+**Class:** `tasks.rlm_manage_expression_sets.ManageExpressionSets`
+
+**Options:**
+
+- `operation`: `deactivate_versions`
+- `metadata_path`: `unpackaged/post_prm_pricing/expressionSetDefinition`
 
 ---
 
@@ -1508,6 +1623,67 @@
 **Options:**
 
 - `path`: `unpackaged/post_personas`
+
+---
+
+### `deploy_post_prm_pricing_decision_tables`
+
+**Description:** Deploy PRM pricing decision tables (RLM_Channel_Program_Level_Partner) from unpackaged/post_prm_pricing/decisionTables.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_prm_pricing/decisionTables`
+
+---
+
+### `deploy_post_prm_pricing_expression_sets`
+
+**Description:** Deploy PRM pricing expression set definitions (RLM_PRM_DISTI_Pricing_Procedure) from unpackaged/post_prm_pricing/expressionSetDefinition.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_prm_pricing/expressionSetDefinition`
+- `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//ExpressionSetDefinition/versions/variables/value...`
+
+---
+
+### `deploy_post_prm_pricing_flows`
+
+**Description:** Deploy PRM pricing automation flows (RLM_Create_New_Quote, RLM_Update_Channel_Program_Member) from unpackaged/post_prm_pricing/flows.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_prm_pricing/flows`
+
+---
+
+### `deploy_post_prm_pricing_objects`
+
+**Description:** Deploy PRM pricing custom fields (Account, Quote, QuoteLineItem, ChannelProgramLevel, ChannelProgramMember) from unpackaged/post_prm_pricing/objects.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_prm_pricing/objects`
+
+---
+
+### `deploy_post_prm_pricing_permissionsets`
+
+**Description:** Deploy PRM pricing permission sets (RLM_PRM_Pricing) from unpackaged/post_prm_pricing/permissionsets.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_prm_pricing/permissionsets`
 
 ---
 
@@ -2136,6 +2312,18 @@
 
 ---
 
+### `insert_quantumbit_prm_pricing_data`
+
+**Description:** Insert QuantumBit PRM pricing overlay data using a 3-pass SFDMU plan. Pass 1 upserts scoped Accounts, ChannelProgram, and ChannelProgramLevel records. Pass 2 updates IsPartner state and upserts ChannelProgramMember records. Pass 3 updates Account self-lookups after both sides of the relationship exist.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-prm-pricing`
+
+---
+
 ### `insert_quantumbit_product_image_data`
 
 **Description:** Insert QuantumBit Product Image Data
@@ -2414,6 +2602,18 @@
 **Options:**
 
 - `developerNames`: `['Asset_Action_Source_Entries_Decision_Table_V2', 'Derived_Pricing_Entries_Decision_Table']`
+
+---
+
+### `refresh_dt_prm_pricing`
+
+**Description:** Refresh PRM pricing decision tables (RLM_Channel_Program_Level_Partner). Run when prm and prm_pricing flags are both true.
+
+**Class:** `tasks.rlm_refresh_decision_table.RefreshDecisionTable`
+
+**Options:**
+
+- `developerNames`: `['RLM_Channel_Program_Level_Partner']`
 
 ---
 

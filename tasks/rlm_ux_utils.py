@@ -22,13 +22,16 @@ UX_KNOWN_FLAGS: List[str] = [
     "quantumbit", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
     "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
     "payments", "constraints", "analytics", "procedureplans", "large_stx",
-    "collections", "personas",
+    "collections", "personas", "prm_pricing",
 ]
 
 #: Profile templates only assembled when the personas feature flag is true.
 PERSONAS_PROFILES: List[str] = [
     "RLM Sales Representative.profile-meta.xml",
 ]
+
+#: LWC identifier for the Sales Transaction Line Editor component in Quote flexipages.
+SALES_TXN_LINE_EDITOR_IDENTIFIER = "runtime_rca_salesTxnLineTable"
 
 #: Standalone flexipage dirs in deploy order (last writer wins).
 #: Each entry is (directory_name, flag_key).
@@ -44,6 +47,7 @@ _STANDALONE_ORDER: List[Tuple[str, str]] = [
     ("docgen",      "docgen"),
     ("approvals",   "quantumbit"),  # approvals deploys with quantumbit flow
     ("collections", "collections"),
+    ("prm_pricing", "prm_pricing"),
 ]
 
 
