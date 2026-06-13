@@ -25,11 +25,14 @@
         headerTitle                    = {!S_01_DataManager.headerTitle}
         currencyCode                   = {!S_01_DataManager.currencyCode}
         searchResultOptionId           = {!S_01_DataManager.searchResultOptionId}
+        favoriteData                   = {!S_01_DataManager.favoriteData}
+        contextMetadata                = {!S_01_DataManager.contextMetadata}
         optionGroups                   = {!S_01_DataManager.optionGroups}
         messages                       = {!S_01_DataManager.messages}
         summary                        = {!S_01_DataManager.summary}
         attributeCategories            = {!S_01_DataManager.attributeCategories}
         transactionRecord              = {!S_01_DataManager.transactionRecord}
+        navigationInformation          = {!S_01_DataManager.navigationInformation}
         addedNodes                     = {!S_01_DataManager.addedNodes}
         salesTransactionItems          = {!S_01_DataManager.salesTransactionItems}
         isDesignTime                   = {!S_01_DataManager.isDesignTime}
@@ -108,6 +111,20 @@
         label="Search Result Option ID"
         description="Option ID returned from a product search that triggered this configuration session."
       />
+      <property
+        name="favoriteData"
+        type="String"
+        role="inputOnly"
+        label="Favorite Data"
+        description="Optional JSON/string payload for favorite configuration context."
+      />
+      <property
+        name="contextMetadata"
+        type="String"
+        role="inputOnly"
+        label="Context Metadata"
+        description="Optional JSON/string metadata describing the current configurator context."
+      />
 
       <!-- ── Complex Apex-typed objects ───────────────────────────────── -->
       <property
@@ -146,11 +163,18 @@
         description="The SalesTransactionItem record being configured."
       />
       <property
+        name="navigationInformation"
+        type="apex://ProductConfig.NavigationInfo[]"
+        role="inputOnly"
+        label="Navigation Information"
+        description="NavigationInfo entries describing the configurable navigation state."
+      />
+      <property
         name="addedNodes"
-        type="apex://ProductConfig.OptionGroup[]"
+        type="apex://ProductConfig.SalesTransactionItem[]"
         role="inputOnly"
         label="Added Nodes"
-        description="Option groups that have been added to the configuration in the current session."
+        description="SalesTransactionItem records that were added during the current configuration session."
       />
       <property
         name="salesTransactionItems"

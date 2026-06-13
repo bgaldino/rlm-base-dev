@@ -137,6 +137,30 @@ export default class RlmConfiguratorDebugger extends LightningElement {
   @api currencyCode;
   // Default Flow mapping: {!S_01_DataManager.searchResultOptionId}
   @api searchResultOptionId;
+  // Optional Flow mapping: {!S_01_DataManager.favoriteData}
+  @api
+  set favoriteData(value) {
+    this._favoriteData = value;
+    this._favoriteDataDeserialized = this._deserializeJsonString(
+      value,
+      "favoriteData"
+    );
+  }
+  get favoriteData() {
+    return this._favoriteData;
+  }
+  // Optional Flow mapping: {!S_01_DataManager.contextMetadata}
+  @api
+  set contextMetadata(value) {
+    this._contextMetadata = value;
+    this._contextMetadataDeserialized = this._deserializeJsonString(
+      value,
+      "contextMetadata"
+    );
+  }
+  get contextMetadata() {
+    return this._contextMetadata;
+  }
 
   // ── @api: Complex objects (Apex-typed via Flow bindings) ──────────────────
   // Reserved for future Flow binding; not exposed in current metadata.
@@ -153,7 +177,9 @@ export default class RlmConfiguratorDebugger extends LightningElement {
   @api searchInfo;
   // Default Flow mapping: {!S_01_DataManager.transactionRecord}
   @api transactionRecord;
-  // Default Flow mapping: {!S_01_DataManager.addedNodes}
+  // Optional Flow mapping: {!S_01_DataManager.navigationInformation}
+  @api navigationInformation;
+  // Default Flow mapping: {!S_01_DataManager.addedNodes} (SalesTransactionItem[])
   @api addedNodes;
   // Default Flow mapping: {!S_01_DataManager.salesTransactionItems}
   @api salesTransactionItems;
@@ -260,10 +286,15 @@ export default class RlmConfiguratorDebugger extends LightningElement {
   _stateSearchDebounceId = null;
   _isStateSearchPending = false;
   _pendingStateSearchScroll = false;
+  _stateRefreshTick = 0;
   _logEntrySequence = 0;
   _hasAutoInstantPricingAttempted = false;
   _autoInstantPricingRetryCount = 0;
   _autoInstantPricingRetryTimeoutId = null;
+  _favoriteData = null;
+  _favoriteDataDeserialized = null;
+  _contextMetadata = null;
+  _contextMetadataDeserialized = null;
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   connectedCallback() {
@@ -327,6 +358,10 @@ export default class RlmConfiguratorDebugger extends LightningElement {
       isExpanded: false,
     };
     this._lmsLog = [entry, ...this._lmsLog].slice(0, MAX_LOG_ENTRIES);
+    // Keep State tab synced even if upstream mutates objects in place.
+    this._stateRefreshTick += 1;
+    this._refreshStateSearchMatchesIfNeeded();
+    this._pendingStateSearchScroll = this._stateSearchMatches.length > 0;
   }
 
   // ── Publish with race-condition guard ─────────────────────────────────────
@@ -360,6 +395,8 @@ export default class RlmConfiguratorDebugger extends LightningElement {
 
   // ── State snapshot (rendered on State tab) ────────────────────────────────
   get stateSnapshot() {
+    // Manual refresh button increments this value to force a fresh render pass.
+    this._stateRefreshTick;
     return JSON.stringify(
       {
         transactionId: this.transactionId,
@@ -369,6 +406,10 @@ export default class RlmConfiguratorDebugger extends LightningElement {
         origin: this.origin,
         headerTitle: this.headerTitle,
         currencyCode: this.currencyCode,
+        favoriteData: this.favoriteData,
+        favoriteDataDeserialized: this.favoriteDataDeserialized,
+        contextMetadata: this.contextMetadata,
+        contextMetadataDeserialized: this.contextMetadataDeserialized,
         isApiInProgress: this.isApiInProgress,
         currentApiDuration: this.currentApiDurationLabel,
         apiTimings: this._apiTimings,
@@ -385,6 +426,7 @@ export default class RlmConfiguratorDebugger extends LightningElement {
         salesTransactionItems: this.salesTransactionItems,
         addedNodes: this.addedNodes,
         transactionRecord: this.transactionRecord,
+        navigationInformation: this.navigationInformation,
         navigationRoute: this.navigationRoute,
         tabs: this.tabs,
         searchInfo: this.searchInfo,
@@ -401,13 +443,25 @@ export default class RlmConfiguratorDebugger extends LightningElement {
       optionGroups: this._optionGroups ?? null,
       attributeCategories: this.attributeCategories ?? null,
       salesTransactionItems: this.salesTransactionItems ?? null,
+      addedNodes: this.addedNodes ?? null,
+      navigationInformation: this.navigationInformation ?? null,
       summary: this.summary ?? null,
+      favoriteData: this.favoriteDataDeserialized,
+      contextMetadata: this.contextMetadataDeserialized,
     };
     return JSON.stringify(snippets[this._activeStateSubtab], null, 2);
   }
 
   get activeStateSubtab() {
     return this._activeStateSubtab;
+  }
+
+  get favoriteDataDeserialized() {
+    return this._favoriteDataDeserialized;
+  }
+
+  get contextMetadataDeserialized() {
+    return this._contextMetadataDeserialized;
   }
 
   // ── Tab getters ───────────────────────────────────────────────────────────
@@ -562,6 +616,13 @@ export default class RlmConfiguratorDebugger extends LightningElement {
   // ── Handlers: state tab ───────────────────────────────────────────────────
   handleCopyState() {
     this._copyToClipboard(this.activeStateJson);
+  }
+
+  handleRefreshState() {
+    this._stateRefreshTick += 1;
+    this._refreshStateSearchMatchesIfNeeded();
+    this._pendingStateSearchScroll = this._stateSearchMatches.length > 0;
+    this._clearWindowSelection();
   }
 
   handleStateSubtabActive(event) {
@@ -920,6 +981,25 @@ export default class RlmConfiguratorDebugger extends LightningElement {
 
   _coerceBoolean(value) {
     return value === true || value === "true";
+  }
+
+  _deserializeJsonString(value, propertyName) {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+
+    if (typeof value !== "string") {
+      return value;
+    }
+
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      return {
+        _parseError: `Invalid serialized JSON in ${propertyName}: ${error.message}`,
+        rawValue: value,
+      };
+    }
   }
 
   _maybeAutoEnableInstantPricing() {

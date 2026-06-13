@@ -119,8 +119,28 @@
                 onactive={handleStateSubtabActive}
               ></lightning-tab>
               <lightning-tab
+                label="Added Nodes"
+                value="addedNodes"
+                onactive={handleStateSubtabActive}
+              ></lightning-tab>
+              <lightning-tab
+                label="Navigation Information"
+                value="navigationInformation"
+                onactive={handleStateSubtabActive}
+              ></lightning-tab>
+              <lightning-tab
                 label="Summary"
                 value="summary"
+                onactive={handleStateSubtabActive}
+              ></lightning-tab>
+              <lightning-tab
+                label="Favorite Data"
+                value="favoriteData"
+                onactive={handleStateSubtabActive}
+              ></lightning-tab>
+              <lightning-tab
+                label="Context Metadata"
+                value="contextMetadata"
                 onactive={handleStateSubtabActive}
               ></lightning-tab>
             </lightning-tabset>
@@ -165,6 +185,13 @@
                 onclick={handleClearStateSearch}
                 disabled={isStateSearchClearDisabled}
               ></lightning-button-icon>
+              <lightning-button
+                label="Refresh"
+                icon-name="utility:refresh"
+                onclick={handleRefreshState}
+                variant="neutral"
+                size="small"
+              ></lightning-button>
               <lightning-button
                 label="Copy"
                 icon-name="utility:copy"
