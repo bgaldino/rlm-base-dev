@@ -513,9 +513,6 @@ project:
     sales_transaction_context_name: &sales_transaction_context_name RLM_SalesTransactionContext
     sales_transaction_context_default_mapping: &sales_transaction_context_default_mapping QuoteEntitiesMapping
     sales_transaction_context_base_reference: &sales_transaction_context_base_reference SalesTransactionContext__stdctx
-    #Badger MFG Sales Transaction Context
-    mfg_sales_transaction_context_name: &mfg_sales_transaction_context_name MFG_SalesTransactionContext
-
     product_discovery_context_name: &product_discovery_context_name RLM_ProductDiscoveryContext
     product_discovery_context_default_mapping: &product_discovery_context_default_mapping ProductDiscoveryMapping
     product_discovery_context_base_reference: &product_discovery_context_base_reference ProductDiscoveryContext__stdctx
@@ -767,21 +764,6 @@ tasks:
       name: *sales_transaction_context_name
       description: "Extension of Standard Sales Transaction Context Definition"
       developerName: *sales_transaction_context_name
-      baseReference: *sales_transaction_context_base_reference
-      startDate: *default_context_start_date
-      contextTtl: *default_context_ttl
-      defaultMapping: *sales_transaction_context_default_mapping
-      activate: true
-
-#MFG Sales Transaction Context
-  extend_context_sales_transaction_mfg:
-    group: Revenue Lifecycle Management
-    description: Extend Standard Sales Transaction Context
-    class_path: tasks.rlm_extend_stdctx.ExtendStandardContext
-    options:
-      name: *mfg_sales_transaction_context_name
-      description: "Extension of Standard Sales Transaction Context Definition"
-      developerName: *mfg_sales_transaction_context_name
       baseReference: *sales_transaction_context_base_reference
       startDate: *default_context_start_date
       contextTtl: *default_context_ttl
