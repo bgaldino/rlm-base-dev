@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation     Configure Revenue Settings page: set default procedures (Pricing,
 ...               Usage Rating), enable Instant Pricing, and set the Create Orders
-...               from Quote screen flow. Must run after all data and metadata has
+...               and Create Contracts from Quote screen flows. Must run after all data and metadata has
 ...               been deployed and before decision table refresh. Asset Context is
 ...               configured separately via enable_constraints_settings.
 ...
@@ -22,6 +22,7 @@ ${MANUAL_LOGIN_WAIT}                    90s
 ${PRICING_PROCEDURE}                    RLM Revenue Management Default Pricing Procedure
 ${USAGE_RATING_PROCEDURE}               RLM Default Rating Discovery Procedure
 ${CREATE_ORDERS_FLOW}                   RLM_CreateOrdersFromQuote
+${CREATE_CONTRACTS_FLOW}                ${EMPTY}
 ${MANAGE_ASSETS_FLOW}                   ${EMPTY}
 
 *** Test Cases ***
@@ -31,7 +32,8 @@ Configure Revenue Settings
     ...    2. Set Up Usage Rating (combobox-recipe in setup assistant step)
     ...    3. Enable Instant Pricing toggle
     ...    4. Set Up Flow for Creating Orders from Quotes (text + Save)
-    ...    5. Set Up Flow for Managing Assets (text + Save, conditional)
+    ...    5. Set Up Flow for Creating Contracts from Quotes (text + Save, conditional)
+    ...    6. Set Up Flow for Managing Assets (text + Save, conditional)
     Open Revenue Settings Page
     Set Procedure Field    Set Up Salesforce Pricing    ${PRICING_PROCEDURE}
     Dismiss Toast If Present
@@ -48,6 +50,10 @@ Configure Revenue Settings
     Dismiss Toast If Present
     Set Create Orders Flow    ${CREATE_ORDERS_FLOW}
     Dismiss Toast If Present
+    IF    $CREATE_CONTRACTS_FLOW != ""
+        Set Create Contracts Flow    ${CREATE_CONTRACTS_FLOW}
+        Dismiss Toast If Present
+    END
     IF    $MANAGE_ASSETS_FLOW != ""
         Set Manage Assets Flow    ${MANAGE_ASSETS_FLOW}
         Dismiss Toast If Present
@@ -249,97 +255,76 @@ Set Create Orders Flow
     [Documentation]    Sets the "Set Up Flow for Creating Orders from Quotes" text field
     ...    to the specified flow API name and clicks Save.
     [Arguments]    ${flow_api_name}
-    ${section}=    Set Variable    xpath=//*[contains(normalize-space(text()), 'Set Up Flow for Creating Orders from Quotes')]
-    ${found}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    20s    2s    _Scroll To Element    ${section}
-    IF    not ${found}
-        Log    WARNING: "Set Up Flow for Creating Orders from Quotes" section not found. Skipping.    WARN
-        RETURN
-    END
-    Sleep    1s
-    ${input}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Creating Orders from Quotes')]/following::input[@type='text' or (not(@type) and not(@role='switch'))])[1]
-    ${input_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${input}    timeout=10s
-    IF    not ${input_found}
-        ${input}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Creating Orders from Quotes')]/following::input[not(@type='checkbox') and not(@role='switch') and not(@type='hidden')])[1]
-        ${input_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${input}    timeout=5s
-    END
-    IF    not ${input_found}
-        Log    WARNING: Could not find input field for "Set Up Flow for Creating Orders from Quotes". Skipping.    WARN
-        Capture Page Screenshot
-        RETURN
-    END
-    Scroll Element Into View    ${input}
-    ${current}=    Get Value    ${input}
-    ${current_stripped}=    Strip String    ${current}
-    ${target_stripped}=    Strip String    ${flow_api_name}
-    IF    $current_stripped == $target_stripped
-        Log    Create Orders Flow is already set to "${flow_api_name}". No change needed.
-        RETURN
-    END
-    Click Element    ${input}
-    Press Keys    ${input}    CTRL+a    DELETE
-    Input Text    ${input}    ${flow_api_name}
-    Sleep    1s
-    ${save_btn}=    Set Variable    xpath=(//*[contains(normalize-space(text()), 'Creating Orders from Quotes')]/following::button[normalize-space(.)='Save'])[1]
-    ${save_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${save_btn}    timeout=10s
-    IF    not ${save_found}
-        ${save_btn}=    Set Variable    xpath=(//button[normalize-space(.)='Save'])[last()]
-        ${save_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${save_btn}    timeout=5s
-    END
-    IF    not ${save_found}
-        Log    WARNING: Could not find Save button. Skipping.    WARN
-        Capture Page Screenshot
-        RETURN
-    END
-    Scroll Element Into View    ${save_btn}
-    Click Element    ${save_btn}
-    Sleep    3s    reason=Allow save to complete
-    Capture Page Screenshot
-    Log    Create Orders Flow set to "${flow_api_name}" and saved.
+    Set Flow Text Input In Step    Set Up Flow for Creating Orders from Quotes    ${flow_api_name}    Create Orders Flow
+
+Set Create Contracts Flow
+    [Documentation]    Sets the "Set Up Flow for Creating Contracts from Quotes" text field
+    ...    to the specified flow API name and clicks Save. This section uses the
+    ...    same contract-price-flow-input component pattern as the ARC Assets flow.
+    [Arguments]    ${flow_api_name}
+    Set Flow Text Input In Step    Set Up Flow for Creating Contracts from Quotes    ${flow_api_name}    Create Contracts Flow
 
 Set Manage Assets Flow
     [Documentation]    Sets the "Set Up Flow for Managing Assets" text field
     ...    to the specified flow API name and clicks Save. Same pattern as
     ...    Set Create Orders Flow but targets the ARC flow input section.
     [Arguments]    ${flow_api_name}
-    ${step_li}=    Set Variable    xpath=//li[.//span[contains(normalize-space(text()), 'Set Up Flow for Managing Assets')]]
-    ${title_span}=    Set Variable    xpath=//span[contains(normalize-space(text()), 'Set Up Flow for Managing Assets')]
+    Set Flow Text Input In Step    Set Up Flow for Managing Assets    ${flow_api_name}    Manage Assets Flow
+
+Set Flow Text Input In Step
+    [Documentation]    Sets a Revenue Settings text input inside a setup-assistant <li>.
+    ...    Uses JavaScript value assignment and button click so the sticky Setup
+    ...    search header cannot intercept Selenium clicks after scrollIntoView.
+    [Arguments]    ${step_title}    ${flow_api_name}    ${log_label}
+    ${step_li}=    Set Variable    xpath=//li[.//span[contains(normalize-space(text()), '${step_title}')]]
+    ${title_span}=    Set Variable    xpath=//span[contains(normalize-space(text()), '${step_title}')]
     ${found}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    20s    2s    _Scroll To Element    ${title_span}
     IF    not ${found}
-        Log    WARNING: "Set Up Flow for Managing Assets" section not found. Skipping.    WARN
+        Log    WARNING: "${step_title}" section not found. Skipping.    WARN
         RETURN
     END
     Sleep    1s
-    ${input}=    Set Variable    ${step_li}//input[@type='text']
+    ${input}=    Set Variable    ${step_li}//input[@type='text' and not(@role='combobox')]
     ${input_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${input}    timeout=10s
     IF    not ${input_found}
-        Log    WARNING: Could not find input field for "Set Up Flow for Managing Assets". Skipping.    WARN
+        Log    WARNING: Could not find input field for "${step_title}". Skipping.    WARN
         Capture Page Screenshot
         RETURN
     END
-    Scroll Element Into View    ${input}
+    ${input_el}=    Get WebElement    ${input}
+    Execute JavaScript    arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});
+    ...    ARGUMENTS    ${input_el}
     ${current}=    Get Value    ${input}
     ${current_stripped}=    Strip String    ${current}
     ${target_stripped}=    Strip String    ${flow_api_name}
     IF    $current_stripped == $target_stripped
-        Log    Manage Assets Flow is already set to "${flow_api_name}". No change needed.
+        Log    ${log_label} is already set to "${flow_api_name}". No change needed.
         RETURN
     END
-    Click Element    ${input}
-    Press Keys    ${input}    CTRL+a    DELETE
-    Input Text    ${input}    ${flow_api_name}
+    Execute JavaScript
+    ...    var input = arguments[0], value = arguments[1];
+    ...    var setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    ...    setter.call(input, value);
+    ...    input.dispatchEvent(new Event('input', {bubbles: true, composed: true}));
+    ...    input.dispatchEvent(new Event('change', {bubbles: true, composed: true}));
+    ...    input.blur();
+    ...    ARGUMENTS    ${input_el}    ${flow_api_name}
     Sleep    1s
     ${save_btn}=    Set Variable    ${step_li}//button[normalize-space(.)='Save']
     ${save_found}=    Run Keyword And Return Status    Wait Until Element Is Visible    ${save_btn}    timeout=10s
     IF    not ${save_found}
-        Log    WARNING: Could not find Save button for Manage Assets Flow. Skipping.    WARN
+        Log    WARNING: Could not find Save button for ${log_label}. Skipping.    WARN
         Capture Page Screenshot
         RETURN
     END
-    Scroll Element Into View    ${save_btn}
-    Click Element    ${save_btn}
+    ${save_el}=    Get WebElement    ${save_btn}
+    Execute JavaScript
+    ...    arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});
+    ...    arguments[0].click();
+    ...    ARGUMENTS    ${save_el}
     Sleep    3s    reason=Allow save to complete
     Capture Page Screenshot
-    Log    Manage Assets Flow set to "${flow_api_name}" and saved.
+    Log    ${log_label} set to "${flow_api_name}" and saved.
 
 Dismiss Toast If Present
     [Documentation]    Clicks the close button on any visible Salesforce toast messages.

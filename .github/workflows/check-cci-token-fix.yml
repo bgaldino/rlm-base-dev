@@ -1,0 +1,88 @@
+name: Check CumulusCI token-fix availability
+
+# Watches for a CumulusCI release newer than the one affected by the sf-CLI
+# token-redaction bug (see docs/guides/cci-sf-cli-token-workaround.md). When a
+# newer release appears on PyPI, it opens a tracking issue so the team can check
+# whether the release fixes the bug and, if so, drop the SF_TEMP_SHOW_SECRETS
+# workaround. Remove this workflow once the workaround is gone.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Weekly, Monday 09:23 UTC (off-minute to avoid the top-of-hour fleet pile-up).
+    - cron: "23 9 * * 1"
+
+# Serialize runs so a manual workflow_dispatch overlapping the scheduled run can't
+# both pass the "no existing issue" check and create duplicates. cancel-in-progress
+# is false so the first run finishes (and creates the issue) before the queued one
+# runs and sees it.
+concurrency:
+  group: check-cci-token-fix
+  cancel-in-progress: false
+
+# Default permissions floor for any job that does NOT declare its own `permissions`.
+# NOTE: a job-level `permissions:` block REPLACES this floor (it does not merge) —
+# every scope the job omits becomes `none`. So each job must list every scope it needs.
+permissions:
+  contents: read
+
+jobs:
+  check-pypi:
+    runs-on: ubuntu-latest
+    # Replaces the floor above. This job only calls PyPI (curl) and the GitHub issues
+    # API (gh) — it never checks out the repo — so `issues: write` is the complete
+    # least-privilege set; `contents` is intentionally `none` here.
+    permissions:
+      issues: write
+    env:
+      # The CumulusCI version affected by the bug. Bump this when the workaround
+      # is removed / CCI is upgraded, or this workflow keeps firing.
+      BASELINE: "4.10.0"
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Query PyPI for the latest CumulusCI release
+        id: pypi
+        run: |
+          set -euo pipefail
+          # Compare with PEP 440 semantics (packaging.Version) — `sort -V` can mis-order
+          # pre/post/dev releases (e.g. 4.11.0rc1 vs 4.11.0). PyPI versions are PEP 440.
+          python3 -m pip install --quiet --disable-pip-version-check packaging
+          curl -fsSL https://pypi.org/pypi/cumulusci/json -o "$RUNNER_TEMP/cci.json"
+          OUT=$(python3 -c 'import sys,json; from packaging.version import Version as V; d=json.load(open(sys.argv[2])); l=d["info"]["version"]; print(l, "true" if V(l)>V(sys.argv[1]) else "false")' "$BASELINE" "$RUNNER_TEMP/cci.json")
+          LATEST=${OUT%% *}
+          IS_NEWER=${OUT##* }
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+          echo "is_newer=$IS_NEWER" >> "$GITHUB_OUTPUT"
+          echo "Latest CumulusCI on PyPI: $LATEST (baseline $BASELINE, PEP 440 compare)"
+
+      - name: Open tracking issue when a newer release exists
+        if: steps.pypi.outputs.is_newer == 'true'
+        env:
+          LATEST: ${{ steps.pypi.outputs.latest }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TITLE="Re-evaluate SF_TEMP_SHOW_SECRETS workaround — CumulusCI $LATEST available"
+          # Don't open a duplicate: reuse any issue with the same title, open OR
+          # closed. The title is version-specific, so closing this issue suppresses
+          # re-creation for the same release (the team chose not to act on it) while
+          # a genuinely newer release gets a new title — and thus a fresh issue.
+          EXISTING=$(gh issue list --repo "$REPO" --state all --search "in:title \"$TITLE\"" \
+            --json number,state --jq '.[0] | select(.) | "\(.number) (\(.state))"')
+          if [ -n "$EXISTING" ]; then
+            echo "Tracking issue already exists: #$EXISTING — not re-creating."
+            exit 0
+          fi
+          {
+            printf 'CumulusCI **%s** is now on PyPI (baseline affected by the bug: **%s**).\n\n' "$LATEST" "$BASELINE"
+            printf '**Action:** check the [CumulusCI release notes](https://github.com/SFDO-Tooling/CumulusCI/releases) '
+            printf 'for whether this release reads the org access token via `sf org auth show-access-token` instead of '
+            printf 'parsing `sf org display`.\n\n'
+            printf 'If it does, the `SF_TEMP_SHOW_SECRETS=true` workaround can be removed:\n'
+            printf -- '- Upgrade CumulusCI, then follow `docs/guides/cci-sf-cli-token-workaround.md` -> "Removal steps".\n'
+            printf -- '- Bump `BASELINE` in `.github/workflows/check-cci-token-fix.yml` (or delete the workflow once the '
+            printf 'workaround is gone) so it stops firing.\n\n'
+            printf 'If the release does **not** fix it, close this issue; it reopens on the next newer release.\n\n'
+            printf '_Opened automatically by the `Check CumulusCI token-fix availability` workflow._\n'
+          } > "$RUNNER_TEMP/issue_body.md"
+          gh issue create --repo "$REPO" --title "$TITLE" --body-file "$RUNNER_TEMP/issue_body.md"

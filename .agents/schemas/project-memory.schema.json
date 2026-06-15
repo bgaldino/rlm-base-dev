@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/rlm-base-dev/project-memory.schema.json",
+  "title": "Revenue Cloud Base Foundations Project Memory",
+  "description": "Deterministic machine-readable project memory for AI agents working on rlm-base-dev.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "last_updated_utc",
+    "repository",
+    "key_directories",
+    "high_risk_safety_constraints",
+    "generated_reference_freshness",
+    "external_systems",
+    "forbidden_write_locations",
+    "last_successful_optimization_run",
+    "unresolved_recommendations"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "last_updated_utc": { "type": "string", "format": "date-time" },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "project_name", "default_branch", "active_work_branch", "source_format", "salesforce_release"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "project_name": { "type": "string", "minLength": 1 },
+        "default_branch": { "type": "string", "minLength": 1 },
+        "active_work_branch": { "type": "string", "minLength": 1 },
+        "source_format": { "type": "string", "enum": ["sfdx"] },
+        "salesforce_release": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["number", "name", "api_version", "prior_ga_release", "prior_ga_api_version"],
+          "properties": {
+            "number": { "type": "string", "pattern": "^[0-9]+$" },
+            "name": { "type": "string", "minLength": 1 },
+            "api_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
+            "prior_ga_release": { "type": "string", "pattern": "^[0-9]+$" },
+            "prior_ga_api_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" }
+          }
+        }
+      }
+    },
+    "key_directories": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/pathNote" }
+    },
+    "high_risk_safety_constraints": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/stableItem" }
+    },
+    "generated_reference_freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["last_checked_utc", "source_of_truth", "regeneration_command", "files"],
+      "properties": {
+        "last_checked_utc": { "type": "string", "format": "date-time" },
+        "source_of_truth": { "type": "string", "minLength": 1 },
+        "regeneration_command": { "type": "string", "minLength": 1 },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "last_modified_utc", "freshness_source", "regenerator"],
+            "properties": {
+              "path": { "type": "string", "minLength": 1 },
+              "last_modified_utc": { "type": "string", "format": "date-time" },
+              "freshness_source": { "type": "string", "enum": ["filesystem_mtime", "generated_metadata", "manual"] },
+              "regenerator": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "external_systems": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "purpose", "notes"],
+        "properties": {
+          "id": { "$ref": "#/$defs/stableId" },
+          "name": { "type": "string", "minLength": 1 },
+          "purpose": { "type": "string", "minLength": 1 },
+          "minimum_version": { "type": "string" },
+          "manifest_path": { "type": "string" },
+          "notes": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "forbidden_write_locations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "reason"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "last_successful_optimization_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date", "type", "notes"],
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "type": { "type": "string", "minLength": 1 },
+        "notes": { "type": "string", "minLength": 1 }
+      }
+    },
+    "unresolved_recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "summary", "rationale"],
+        "properties": {
+          "id": { "$ref": "#/$defs/stableId" },
+          "status": { "type": "string", "enum": ["open", "accepted", "deferred", "blocked"] },
+          "summary": { "type": "string", "minLength": 1 },
+          "rationale": { "type": "string", "minLength": 1 },
+          "suggested_command": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "stableId": { "type": "string", "pattern": "^[A-Z][A-Z0-9]+(?:-[A-Z0-9]+)+$" },
+    "stableItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "summary", "details"],
+      "properties": {
+        "id": { "$ref": "#/$defs/stableId" },
+        "summary": { "type": "string", "minLength": 1 },
+        "details": { "type": "string", "minLength": 1 }
+      }
+    },
+    "pathNote": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "owner", "notes"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "owner": { "type": "string", "minLength": 1 },
+        "notes": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

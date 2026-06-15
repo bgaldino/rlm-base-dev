@@ -239,7 +239,7 @@ class RecalculatePermissionSetGroups(BaseTask):
     def _api_version(self) -> str:
         return (
             getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "66.0")
+            or getattr(self.project_config, "project__package__api_version", "67.0")
         )
 
     def _headers(self):

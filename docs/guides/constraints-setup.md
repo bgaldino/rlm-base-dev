@@ -4,7 +4,7 @@ This document describes the `prepare_constraints` flow, its dependencies, and ho
 
 ## Flow Order (prepare_constraints)
 
-The `prepare_constraints` flow runs nine steps grouped into two phases:
+The `prepare_constraints` flow runs twelve steps grouped into two phases:
 
 ### Phase 1: Metadata Setup (steps 1-4)
 
@@ -12,22 +12,25 @@ These steps run when the `constraints` flag is `true`:
 
 | Step | Task | Condition | Purpose |
 |------|------|-----------|---------|
-| 1 | `insert_qb_transactionprocessingtypes_data` | `constraints` + `qb` | Load TransactionProcessingType SFDMU records |
+| 1 | `insert_qb_transactionprocessingtypes_data` | `constraints` + `quantumbit` | Load TransactionProcessingType SFDMU records |
 | 2 | `deploy_post_constraints` | `constraints` | Deploy constraint-related metadata |
-| 3 | `assign_permission_sets` | `tso` + `constraints` | Assign constraint permission sets |
+| 3 | `assign_permission_sets` | `constraints` | Assign constraint permission sets |
 | 4 | `apply_context_constraint_engine_node_status` | `constraints` | Apply context attribute mappings |
 
-### Phase 2: Constraint Data Loading (steps 5-9)
+### Phase 2: Constraint Data Loading (steps 5-12)
 
-These steps run when `constraints_data` is `true` (steps 6-9 also require `qb`):
+These steps run when `constraints_data` is `true` (steps 6-12 also require `qb`):
 
 | Step | Task | Condition | Purpose |
 |------|------|-----------|---------|
 | 5 | `enable_constraints_settings` | `constraints_data` | Set Default Transaction Type to "Advanced Configurator", set Asset Context for Product Configurator, and enable Constraints Engine toggle via Robot Framework browser automation |
-| 6 | `validate_cml` | `constraints_data` + `qb` | Validate CML files against QuantumBitComplete data |
-| 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import the QuantumBitComplete constraint model |
+| 6 | `validate_cml` | `constraints_data` + `qb` | Structure-validate **all** `scripts/cml/*.cml` files; cross-reference ESC associations **only** against the QuantumBitComplete data dir (other models, incl. QuantumBitBundle, get structure-only validation — their ESC coverage is not checked here) |
+| 7 | `import_cml` (QuantumBitComplete) | `constraints_data` + `qb` | Import the QuantumBitComplete constraint model (imported but left **inactive**) |
 | 8 | `import_cml` (Server2) | `constraints_data` + `qb` | Import the Server2 constraint model |
-| 9 | `manage_expression_sets` | `constraints_data` + `qb` | Activate QuantumBitComplete_V1 and Server2_V1 |
+| 9 | `import_cml` (QuantumBitPCM) | `constraints_data` + `qb` | Import the QuantumBitPCM constraint model (imported but left **inactive**) |
+| 10 | `import_cml` (QuantumBitBundle) | `constraints_data` + `qb` | Import the combined QuantumBitBundle model (QuantumBitComplete bundle + QuantumBitPCM virtual-quote rules) |
+| 11 | `manage_expression_sets` (deactivate) | `constraints_data` + `qb` | Deactivate `QuantumBitComplete_V1` and `QuantumBitPCM_V1` first, so re-running on an existing org reliably switches to Bundle (no-op on a fresh build) |
+| 12 | `manage_expression_sets` (activate) | `constraints_data` + `qb` | Activate **Server2_V1 and QuantumBitBundle_V1 only** (only one QuantumBit model can be active at a time; QuantumBitBundle is the active combined model). See `datasets/constraints/README.md`. |
 
 **Important:** Phase 2 uses the Python-based CML utility (`tasks/rlm_cml.py`) instead of SFDMU. The old SFDMU constraint data plans (`qb-constraints-product`, `qb-constraints-component`, etc.) are deprecated and archived in `datasets/sfdmu/_archived/`.
 
@@ -36,8 +39,9 @@ These steps run when `constraints_data` is `true` (steps 6-9 also require `qb`):
 | Flag | Default | Purpose |
 |------|---------|---------|
 | `constraints` | `true` | Enable constraint metadata deployment (steps 1-4) |
-| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-9) |
-| `qb` | `true` | QuantumBit dataset family gate |
+| `constraints_data` | `true` | Enable constraint data loading and activation (steps 5-12) |
+| `quantumbit` | `true` | QuantumBit-specific prerequisites (step 1) |
+| `qb` | `true` | QuantumBit dataset family gate (steps 6-12) |
 
 To load constraint data, set `constraints_data: true` in `cumulusci.yml` or override at runtime:
 
@@ -51,8 +55,10 @@ Constraint model data is stored in `datasets/constraints/qb/` with one directory
 
 ```
 datasets/constraints/qb/
-├── QuantumBitComplete/   # 43 ESC records, 22 products
-├── Server2/              # 81 ESC records, 41 products
+├── QuantumBitComplete/   # 55 ESC records (28 Type + 27 Port), 28 products — imported, inactive
+├── Server2/              # 81 ESC records (41 Type + 40 Port), 41 products — active
+├── QuantumBitPCM/        # 12 ESC records (12 Type, 0 Port), 12 products — imported, inactive
+├── QuantumBitBundle/     # 59 ESC records (32 Type + 27 Port), 32 products — active (Complete bundle + PCM rules)
 └── README.md             # Detailed CML utility documentation
 ```
 
@@ -109,7 +115,7 @@ Before constraint data can be imported, three Revenue Settings must be configure
 
 The `enable_constraints_settings` task (step 5) automates all three using Robot Framework browser automation, following the same pattern as `enable_document_builder_toggle`. It requires the same Robot Framework / SeleniumLibrary / webdriver-manager dependencies (see [Prerequisites](../README.md#installation)).
 
-The Asset Context field uses the same combobox-recipe LWC pattern as the Pricing and Usage Rating fields — a `div.container-combobox-recipe` inside its own `<li>` setup-assistant step. All XPath selectors are scoped to the Asset Context `<li>` element to prevent cross-section interference. The automation clears any previously set value (pill) before selecting the target, and `configure_revenue_settings` (step 27 in `prepare_rlm_org`) does **not** touch this field, preventing accidental clearing of the value set during the constraints phase.
+The Asset Context field uses the same combobox-recipe LWC pattern as the Pricing and Usage Rating fields — a `div.container-combobox-recipe` inside its own `<li>` setup-assistant step. All XPath selectors are scoped to the Asset Context `<li>` element to prevent cross-section interference. The automation clears any previously set value (pill) before selecting the target, and `configure_revenue_settings` (step 24 in `prepare_rlm_org`) does **not** touch this field, preventing accidental clearing of the value set during the constraints phase.
 
 All values are configurable via `cumulusci.yml` task options:
 
@@ -127,9 +133,9 @@ cci task run enable_constraints_settings --org <org>
 
 ## Revenue Settings Automation
 
-In addition to the constraints-specific settings above, the `prepare_rlm_org` flow includes two final configuration steps that run after all data/metadata is deployed and before decision table refresh:
+In addition to the constraints-specific settings above, the `prepare_rlm_org` flow includes two Revenue Cloud configuration steps that run after the core data/metadata is deployed (and before the feature-extension, UX, and decision-table-refresh steps):
 
-### configure_revenue_settings (step 27 of prepare_rlm_org)
+### configure_revenue_settings (step 24 of prepare_rlm_org)
 
 Automates general Revenue Settings page configuration via Robot Framework:
 
@@ -137,10 +143,12 @@ Automates general Revenue Settings page configuration via Robot Framework:
 - **Usage Rating Procedure** -- set to `RLM Default Rating Discovery Procedure` (combobox-recipe, `<li>`-scoped; page reload between Pricing and Usage Rating ensures clean dropdown state)
 - **Instant Pricing** toggle -- enabled (shadow DOM toggle via JavaScript)
 - **Create Orders Flow** -- set to `RLM_CreateOrdersFromQuote` (text input)
+- **Create Contracts Flow** -- optionally set to `RLM_CreateContractFromQuote` (text input, QuantumBit/TSO orgs)
+- **Manage Assets Flow** -- optionally set to `RLM_ARC_Assets` (text input, QuantumBit/TSO orgs)
 
 All values are configurable via `cumulusci.yml` task options. All procedure field selectors are scoped to their parent `<li>` setup-assistant step, making it impossible to accidentally interact with the Asset Context field. The Asset Context field is **not** configured in this step; it is handled exclusively by `enable_constraints_settings`.
 
-### reconfigure_pricing_discovery (step 28 of prepare_rlm_org)
+### reconfigure_pricing_discovery (step 25 of prepare_rlm_org)
 
 Salesforce autoproc creates `Salesforce_Default_Pricing_Discovery_Procedure` in scratch orgs with an incorrect context definition. This Python CCI task performs a deactivate-reconfigure-reactivate cycle via REST API:
 

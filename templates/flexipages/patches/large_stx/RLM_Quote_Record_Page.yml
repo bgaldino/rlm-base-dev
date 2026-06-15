@@ -1,0 +1,9 @@
+feature: large_stx
+feature_flag: large_stx
+# Adds the Large Deal field to Quote Information on the quote record page.
+patches:
+  - type: add_facet_field
+    facet: "Quote Information"
+    after: "StartDate"
+    fields:
+      - "IsLargeDeal"

@@ -10,6 +10,7 @@ already exists, it logs a message and skips creation.
 Reference:
 https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/connect_resources_get_procedure_plan_definition_records.htm
 """
+import time
 from typing import Any, Dict, Optional
 
 import requests
@@ -20,6 +21,14 @@ try:
 except ImportError:
     BaseSalesforceTask = object
     TaskOptionsError = Exception
+
+
+_REQUEST_TIMEOUT = 30  # seconds — prevents hangs on unstable networks/CI
+
+
+def _soql_escape(value: str) -> str:
+    """Escape a string for use in a SOQL literal (single-quoted value)."""
+    return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
 class CreateProcedurePlanDefinition(BaseSalesforceTask):
@@ -105,7 +114,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
             or getattr(
                 self.project_config,
                 "project__package__api_version",
-                "66.0",
+                "67.0",
             )
         )
 
@@ -122,15 +131,10 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
 
     # -- SOQL helpers --------------------------------------------------
 
-    @staticmethod
-    def _soql_escape(value: str) -> str:
-        """Escape a string for use in a SOQL literal (single-quoted value)."""
-        return value.replace("\\", "\\\\").replace("'", "\\'")
-
     def _soql_query(self, soql: str) -> list:
         """Execute a SOQL query and return all records."""
         url = f"{self._base_url}/query"
-        resp = requests.get(url, headers=self._headers, params={"q": soql})
+        resp = requests.get(url, headers=self._headers, params={"q": soql}, timeout=_REQUEST_TIMEOUT)
         if resp.status_code != 200:
             self.logger.error(
                 "SOQL query failed (%s): %s", resp.status_code, resp.text
@@ -140,7 +144,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
         records = body.get("records", [])
         while not body.get("done", True) and body.get("nextRecordsUrl"):
             nurl = f"{self.org_config.instance_url}{body['nextRecordsUrl']}"
-            resp = requests.get(nurl, headers=self._headers)
+            resp = requests.get(nurl, headers=self._headers, timeout=_REQUEST_TIMEOUT)
             if resp.status_code != 200:
                 break
             body = resp.json()
@@ -151,7 +155,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
 
     def _definition_exists(self, developer_name: str) -> bool:
         """Return True if a ProcedurePlanDefinition with this DeveloperName exists."""
-        safe = self._soql_escape(developer_name)
+        safe = _soql_escape(developer_name)
         records = self._soql_query(
             f"SELECT Id FROM ProcedurePlanDefinition "
             f"WHERE DeveloperName = '{safe}'"
@@ -162,7 +166,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
 
     def _get_context_definition_id_by_label(self, label: str) -> Optional[str]:
         """Query ContextDefinition by MasterLabel and return its Id."""
-        safe = self._soql_escape(label)
+        safe = _soql_escape(label)
         records = self._soql_query(
             f"SELECT Id FROM ContextDefinition WHERE MasterLabel = '{safe}'"
         )
@@ -234,7 +238,7 @@ class CreateProcedurePlanDefinition(BaseSalesforceTask):
         self.logger.info(
             "Creating ProcedurePlanDefinition '%s' via Connect API ...", dev_name
         )
-        resp = requests.post(url, headers=self._headers, json=body)
+        resp = requests.post(url, headers=self._headers, json=body, timeout=_REQUEST_TIMEOUT)
 
         if resp.ok:
             result = resp.json() if resp.content else {}
@@ -280,8 +284,15 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
     }
 
     @property
+    def _api_version(self) -> str:
+        return (
+            getattr(self.org_config, "api_version", None)
+            or getattr(self.project_config, "project__package__api_version", "67.0")
+        )
+
+    @property
     def _base_url(self):
-        return f"{self.org_config.instance_url}/services/data/v66.0"
+        return f"{self.org_config.instance_url}/services/data/v{self._api_version}"
 
     @property
     def _headers(self):
@@ -292,13 +303,16 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
 
     def _run_task(self):
         dev_name = self.options["developerName"]
+        safe_dev_name = _soql_escape(dev_name)
 
         query = (
-            "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
-            f"WHERE ProcedurePlanDefinition.DeveloperName = '{dev_name}'"
+            "SELECT Id, IsActive, Rank, EffectiveFrom FROM ProcedurePlanDefinitionVersion "
+            f"WHERE ProcedurePlanDefinition.DeveloperName = '{safe_dev_name}' "
+            "ORDER BY IsActive DESC, Rank DESC, EffectiveFrom DESC "
+            "LIMIT 1"
         )
         url = f"{self._base_url}/query/?q={requests.utils.requote_uri(query)}"
-        resp = requests.get(url, headers=self._headers)
+        resp = requests.get(url, headers=self._headers, timeout=_REQUEST_TIMEOUT)
         resp.raise_for_status()
         records = resp.json().get("records", [])
 
@@ -318,7 +332,7 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
             return
 
         patch_url = f"{self._base_url}/sobjects/ProcedurePlanDefinitionVersion/{version_id}"
-        patch_resp = requests.patch(patch_url, headers=self._headers, json={"IsActive": True})
+        patch_resp = requests.patch(patch_url, headers=self._headers, json={"IsActive": True}, timeout=_REQUEST_TIMEOUT)
 
         if patch_resp.ok or patch_resp.status_code == 204:
             self.logger.info(
@@ -331,5 +345,121 @@ class ActivateProcedurePlanVersion(BaseSalesforceTask):
             )
             raise TaskOptionsError(
                 f"Failed to activate ProcedurePlanDefinitionVersion: "
+                f"{patch_resp.status_code} {patch_resp.text}"
+            )
+
+
+class DeactivateProcedurePlanVersion(BaseSalesforceTask):
+    """Deactivate a ProcedurePlanDefinitionVersion by its parent definition's DeveloperName.
+
+    Queries for the PPDV linked to the given DeveloperName and patches
+    IsActive = false via the sObject REST API. Idempotent: if already
+    inactive, logs and returns.
+    """
+
+    task_options = {
+        "developerName": {
+            "description": "DeveloperName of the parent ProcedurePlanDefinition",
+            "required": True,
+        },
+        "max_wait_seconds": {
+            "description": "Maximum seconds to wait for IsActive=false confirmation",
+            "required": False,
+        },
+        "poll_interval_seconds": {
+            "description": "Polling interval in seconds while waiting for deactivation",
+            "required": False,
+        },
+    }
+
+    @property
+    def _api_version(self) -> str:
+        return (
+            getattr(self.org_config, "api_version", None)
+            or getattr(self.project_config, "project__package__api_version", "67.0")
+        )
+
+    @property
+    def _base_url(self):
+        return f"{self.org_config.instance_url}/services/data/v{self._api_version}"
+
+    @property
+    def _headers(self):
+        return {
+            "Authorization": f"Bearer {self.org_config.access_token}",
+            "Content-Type": "application/json",
+        }
+
+    def _run_task(self):
+        dev_name = self.options["developerName"]
+        safe_dev_name = _soql_escape(dev_name)
+        max_wait_seconds = int(self.options.get("max_wait_seconds", 20))
+        poll_interval_seconds = int(self.options.get("poll_interval_seconds", 2))
+
+        query = (
+            "SELECT Id, IsActive, Rank, EffectiveFrom FROM ProcedurePlanDefinitionVersion "
+            f"WHERE ProcedurePlanDefinition.DeveloperName = '{safe_dev_name}' "
+            "ORDER BY IsActive DESC, Rank DESC, EffectiveFrom DESC "
+            "LIMIT 1"
+        )
+        url = f"{self._base_url}/query/?q={requests.utils.requote_uri(query)}"
+        resp = requests.get(url, headers=self._headers, timeout=_REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        records = resp.json().get("records", [])
+
+        if not records:
+            raise TaskOptionsError(
+                f"No ProcedurePlanDefinitionVersion found for DeveloperName '{dev_name}'"
+            )
+
+        version = records[0]
+        version_id = version["Id"]
+
+        if not version.get("IsActive"):
+            self.logger.info(
+                "ProcedurePlanDefinitionVersion %s is already inactive. Skipping.",
+                version_id,
+            )
+            return
+
+        patch_url = f"{self._base_url}/sobjects/ProcedurePlanDefinitionVersion/{version_id}"
+        patch_resp = requests.patch(patch_url, headers=self._headers, json={"IsActive": False}, timeout=_REQUEST_TIMEOUT)
+
+        if patch_resp.ok or patch_resp.status_code == 204:
+            self.logger.info(
+                "ProcedurePlanDefinitionVersion %s deactivated successfully.", version_id
+            )
+            # Confirm state transition by querying the specific version by Id.
+            verify_query = (
+                f"SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
+                f"WHERE Id = '{version_id}'"
+            )
+            verify_url = f"{self._base_url}/query/?q={requests.utils.requote_uri(verify_query)}"
+            waited = 0
+            while waited <= max_wait_seconds:
+                verify_resp = requests.get(verify_url, headers=self._headers, timeout=_REQUEST_TIMEOUT)
+                verify_resp.raise_for_status()
+                verify_records = verify_resp.json().get("records", [])
+                if verify_records and not verify_records[0].get("IsActive"):
+                    self.logger.info(
+                        "Confirmed PPDV %s is inactive after %ss.",
+                        version_id,
+                        waited,
+                    )
+                    return
+                time.sleep(poll_interval_seconds)
+                waited += poll_interval_seconds
+
+            raise TaskOptionsError(
+                f"PPDV {version_id} did not report IsActive=false within "
+                f"{max_wait_seconds}s after deactivation patch."
+            )
+        else:
+            self.logger.error(
+                "Failed to deactivate PPDV %s (%s): %s",
+                version_id, patch_resp.status_code, patch_resp.text,
+            )
+            raise TaskOptionsError(
+                f"Failed to deactivate ProcedurePlanDefinitionVersion: "
                 f"{patch_resp.status_code} {patch_resp.text}"
             )

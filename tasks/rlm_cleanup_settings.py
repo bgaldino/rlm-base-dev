@@ -51,17 +51,19 @@ class CleanupSettingsForDev(BaseTask):
             org_features = self._read_org_features(org_config_file)
             self.logger.info(f"Detected {len(org_features)} features in org definition")
         else:
-            # Fallback: Try to detect based on org name or username
+            # Fallback (scratch orgs only): use ent.json (max feature set) to
+            # conservatively preserve settings rather than incorrectly removing
+            # supported ones. Non-scratch orgs without a config_file get no
+            # feature detection — cleanup proceeds without feature context.
             try:
-                if hasattr(self.org_config, 'username'):
-                    username = self.org_config.username
-                    if 'enhanced' in username.lower():
-                        # Try dev-enhanced.json
-                        enhanced_config = Path.cwd() / "orgs" / "dev-enhanced.json"
-                        if enhanced_config.exists():
-                            org_features = self._read_org_features(str(enhanced_config))
-                            self.logger.info(f"Detected {len(org_features)} features from dev-enhanced.json (fallback)")
-            except (AttributeError, Exception) as e:
+                if (hasattr(self, 'org_config')
+                        and getattr(self.org_config, 'scratch', False)
+                        and getattr(self.org_config, 'username', None)):
+                    ent_config = Path.cwd() / "orgs" / "ent.json"
+                    if ent_config.exists():
+                        org_features = self._read_org_features(str(ent_config))
+                        self.logger.info(f"Detected {len(org_features)} features from ent.json (scratch org fallback)")
+            except Exception as e:
                 self.logger.debug(f"Could not use fallback config detection: {e}")
         
         settings_path = Path(path) / "2_settings"

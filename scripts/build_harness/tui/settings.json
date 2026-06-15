@@ -1,0 +1,6 @@
+{
+  "default_org_shape": "ent",
+  "theme_mode": "auto",
+  "persistent_logging": true,
+  "delete_org_on_failure": true
+}

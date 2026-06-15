@@ -16,6 +16,8 @@ from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.sfdx import SFDXBaseTask
 from cumulusci.core.exceptions import TaskOptionsError
 
+_REQUEST_TIMEOUT = 30  # seconds — prevents hangs on slow networks or CI
+
 
 class ManageContextDefinition(SFDXBaseTask):
     task_options = {
@@ -188,6 +190,8 @@ class ManageContextDefinition(SFDXBaseTask):
             if resolved_attrs:
                 self._post_context_attributes(context_id, {"contextAttributes": resolved_attrs}, dry_run)
                 detail = self._fetch_context_definition(context_id)
+            if self._sync_context_attribute_properties(context_id, plan["contextAttributesByName"], dry_run):
+                detail = self._fetch_context_definition(context_id)
 
         if translate_plan and plan.get("mappingRules"):
             if not isinstance(detail, dict):
@@ -326,6 +330,8 @@ class ManageContextDefinition(SFDXBaseTask):
             resolved_attrs = self._resolve_context_attributes_by_name(context_id, plan["contextAttributesByName"])
             if resolved_attrs:
                 self._post_context_attributes(context_id, {"contextAttributes": resolved_attrs}, dry_run)
+                detail = self._fetch_context_definition(context_id)
+            if self._sync_context_attribute_properties(context_id, plan["contextAttributesByName"], dry_run):
                 detail = self._fetch_context_definition(context_id)
 
         # 5. Apply mapping rules (all IDs now available).
@@ -479,6 +485,7 @@ class ManageContextDefinition(SFDXBaseTask):
         if dry_run:
             self.logger.info(f"[dry-run] {method.upper()} {url} {kwargs.get('json')}")
             return {}
+        kwargs.setdefault("timeout", _REQUEST_TIMEOUT)
         response = requests.request(method, url, **kwargs)
         if response.ok:
             if response.text:
@@ -1172,15 +1179,102 @@ class ManageContextDefinition(SFDXBaseTask):
             attr_name = spec.get("name")
             if attr_name and (node_name, attr_name) in attr_index:
                 continue
-            resolved.append(
-                {
-                    "contextNodeId": node_index[node_name],
-                    "name": attr_name,
-                    "dataType": spec.get("dataType", "STRING"),
-                    "fieldType": spec.get("fieldType", "INPUTOUTPUT"),
-                }
-            )
+            attr_payload = {
+                "contextNodeId": node_index[node_name],
+                "name": attr_name,
+                "dataType": spec.get("dataType", "STRING"),
+                "fieldType": spec.get("fieldType", "INPUTOUTPUT"),
+            }
+            if "isTransient" in spec:
+                attr_payload["isTransient"] = self._as_bool(spec.get("isTransient"))
+            resolved.append(attr_payload)
         return resolved
+
+    def _sync_context_attribute_properties(
+        self, context_id: str, attr_specs: Any, dry_run: bool
+    ) -> bool:
+        """Patch mutable properties on existing context attributes.
+
+        The create path is idempotent and skips attributes that already exist, so
+        changes such as isTransient need a separate update path for reruns.
+        """
+        if not isinstance(attr_specs, list):
+            raise TaskOptionsError("contextAttributesByName must be a list")
+
+        detail = self._fetch_context_definition(context_id)
+        versions = detail.get("contextDefinitionVersionList", []) if isinstance(detail, dict) else []
+        nodes = versions[0].get("contextNodes", []) if versions else []
+        attr_index: Dict[tuple, Dict[str, Any]] = {}
+
+        def walk_nodes(node_list):
+            for node in node_list or []:
+                if not isinstance(node, dict):
+                    continue
+                node_name = node.get("name")
+                attrs_container = node.get("attributes", {})
+                if isinstance(attrs_container, list):
+                    attrs = attrs_container
+                else:
+                    if not isinstance(attrs_container, dict):
+                        attrs_container = {}
+                    attrs = attrs_container.get("contextAttributes", [])
+                for attr in attrs or []:
+                    if not isinstance(attr, dict):
+                        continue
+                    attr_name = attr.get("name")
+                    attr_id = attr.get("contextAttributeId")
+                    if node_name and attr_name and attr_id:
+                        attr_index[(node_name, attr_name)] = attr
+                child_nodes_container = node.get("childNodes", {})
+                if isinstance(child_nodes_container, list):
+                    child_nodes = child_nodes_container
+                else:
+                    if not isinstance(child_nodes_container, dict):
+                        child_nodes_container = {}
+                    child_nodes = child_nodes_container.get("contextNodes", [])
+                walk_nodes(child_nodes)
+
+        walk_nodes(nodes)
+
+        changed = False
+        for spec in attr_specs:
+            if not isinstance(spec, dict) or "isTransient" not in spec:
+                continue
+            attr = attr_index.get((spec.get("nodeName"), spec.get("name")))
+            if not attr:
+                continue
+            desired = self._as_bool(spec.get("isTransient"))
+            current = attr.get("isTransient")
+            if current is None:
+                current = attr.get("IsTransient")
+            if self._as_bool(current) == desired:
+                continue
+            attr_id = attr.get("contextAttributeId")
+            self.logger.info(
+                "Updating ContextAttribute %s.%s IsTransient=%s",
+                spec.get("nodeName"),
+                spec.get("name"),
+                desired,
+            )
+            self._patch_context_attribute(attr_id, {"IsTransient": desired}, dry_run)
+            changed = True
+        return changed
+
+    def _patch_context_attribute(self, context_attribute_id: str, payload: Dict[str, Any], dry_run: bool):
+        url, headers = self._build_url_and_headers(
+            f"sobjects/ContextAttribute/{context_attribute_id}"
+        )
+        self._make_request("patch", url, headers=headers, json=payload, dry_run=dry_run)
+
+    @staticmethod
+    def _as_bool(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return False
+        if isinstance(value, (int, float)):
+            return value != 0
+        return str(value).lower() in {"1", "true", "yes"}
 
     def _translate_mapping_rules(self, mapping_rules, detail, developer_name=None):
         if not isinstance(mapping_rules, list):

@@ -1,9 +1,17 @@
 from abc import abstractmethod
 import json
+import time
 import requests
+from requests.exceptions import ConnectionError, Timeout, ChunkedEncodingError
 
 from cumulusci.core.keychain import BaseProjectKeychain
 from cumulusci.tasks.sfdx import SFDXBaseTask
+
+# Network resilience settings for long-running Salesforce APIs
+_CONNECT_TIMEOUT = 30       # seconds to establish TCP connection
+_READ_TIMEOUT = 600         # seconds to wait for response (context APIs can take 5-10 min)
+_MAX_RETRIES = 3            # total attempts on transient failures
+_RETRY_BACKOFF = 30         # seconds between retries (doubles each attempt)
 
 
 # ExtendStandardContext is a custom task that extends the SFDXBaseTask provided by CumulusCI.
@@ -50,6 +58,12 @@ class ExtendStandardContext(SFDXBaseTask):
         "plan_file": {
             "description": "Optional JSON plan with nodes/mappings/tags to apply after creation",
             "required": False,
+        },
+        "allow_skip_if_unavailable": {
+            "description": "If true, skip gracefully when the base context definition "
+                           "is not available (UNKNOWN_EXCEPTION). Use for optional contexts "
+                           "whose base may not be provisioned. Defaults to false.",
+            "required": False,
         }
     }
 
@@ -86,23 +100,134 @@ class ExtendStandardContext(SFDXBaseTask):
 
     # Core logic to extend an existing context definition
     def _extend_context_definition(self):
-        self.logger.info(f"[1/4] Creating context definition: {self.options.get('developerName')}...")
-        self.logger.info("      (this API call may take up to 5 minutes on some org types — please wait)")
+        developer_name = self.options.get("developerName")
+        self.logger.info(f"[1/4] Creating context definition: {developer_name}...")
+        self.logger.info("      (this API call may take 5-10 minutes on some org types — please wait)")
         url, headers = self._build_url_and_headers("connect/context-definitions")
         payload = {
             "name": self.options.get("name"),
             "description": self.options.get("description"),
-            "developerName": self.options.get("developerName"),
+            "developerName": developer_name,
             "baseReference": self.options.get("baseReference"),
             "startDate": self.options.get("startDate"),
             "contextTtl": self.options.get("contextTtl")
         }
+        # POST is NOT idempotent — default retryable=None means no retry for POST.
+        # If the network drops after the server processes the request, we recover
+        # the context definition ID by querying the org (see _recover_context_id).
+        self.context_id = None
+        self._last_response_status = None
+        self._last_response_body = None
         response = self._make_request("post", url, headers=headers, json=payload)
-        if response:
+        if response is not None:
             self.context_id = response.get("contextDefinitionId")
-            if self.context_id:
-                self.logger.info(f"      Context Definition ID: {self.context_id}")
-                self._process_context_id()
+        # Determine how to handle failure:
+        # - UNKNOWN_EXCEPTION = base context definition not available in this org.
+        #   This is expected for optional contexts (e.g. Contracts when CLM feature
+        #   is not fully enabled). Skip gracefully.
+        # - DUPLICATE_VALUE = context definition already exists. Recover the ID
+        #   and continue with configuration (set default mapping, activate, etc.).
+        # - Other API errors (401, 403, 400, etc.) = fail loudly.
+        # - Network error (no response status) = attempt recovery by querying org.
+        if not self.context_id:
+            allow_skip = str(self.options.get("allow_skip_if_unavailable", "false")).lower() == "true"
+            if self._last_response_status is not None and self._is_missing_base_context_error():
+                if allow_skip:
+                    self.logger.warning(
+                        f"      Base context definition not available for '{developer_name}'. "
+                        f"Skipping — allow_skip_if_unavailable is set."
+                    )
+                    return
+                raise RuntimeError(
+                    f"Base context definition not available for '{developer_name}'. "
+                    f"Salesforce returned UNKNOWN_EXCEPTION. If this context is optional, "
+                    f"set allow_skip_if_unavailable: true in the task options."
+                )
+            if self._last_response_status is not None and self._is_duplicate_value_error():
+                self.logger.info(
+                    f"      Context definition '{developer_name}' already exists. "
+                    f"Recovering ID to continue configuration..."
+                )
+                self.context_id = self._recover_context_id(developer_name)
+            elif self._last_response_status is not None:
+                # Non-recoverable API error (auth, validation, etc.) — fail loudly
+                raise RuntimeError(
+                    f"Salesforce API error creating context definition '{developer_name}': "
+                    f"HTTP {self._last_response_status} — {self._last_response_body[:300]}"
+                )
+            else:
+                # Network failure or missing ID in response — attempt recovery
+                self.logger.warning(
+                    f"      contextDefinitionId not in response — attempting to recover by developerName..."
+                )
+                self.context_id = self._recover_context_id(developer_name)
+        if self.context_id:
+            self.logger.info(f"      Context Definition ID: {self.context_id}")
+            self._process_context_id()
+        else:
+            raise RuntimeError(
+                f"Could not obtain context definition ID for '{developer_name}' "
+                f"after creation and recovery attempts. The org may need manual inspection."
+            )
+
+    def _is_missing_base_context_error(self):
+        """Check if the last API error indicates the base context is unavailable.
+
+        Salesforce returns UNKNOWN_EXCEPTION when the base context definition
+        referenced by baseReference does not exist in the org (feature not enabled).
+        """
+        return self._has_error_code("UNKNOWN_EXCEPTION")
+
+    def _is_duplicate_value_error(self):
+        """Check if the last API error indicates the context definition already exists.
+
+        Salesforce returns DUPLICATE_VALUE when a definition with the same
+        Name or DeveloperName already exists. The task should recover the
+        existing ID and continue with configuration steps.
+        """
+        return self._has_error_code("DUPLICATE_VALUE")
+
+    def _has_error_code(self, error_code):
+        """Check if the last response body contains a specific Salesforce errorCode."""
+        if not self._last_response_body:
+            return False
+        try:
+            errors = json.loads(self._last_response_body)
+            if isinstance(errors, list):
+                return any(
+                    e.get("errorCode") == error_code for e in errors
+                )
+        except (ValueError, TypeError):
+            pass
+        return False
+
+    def _recover_context_id(self, developer_name):
+        """Query the org for an existing context definition by developerName."""
+        self.logger.info(f"      Querying for existing context definition '{developer_name}'...")
+        # Wait briefly for server-side commit to propagate
+        time.sleep(10)
+        # Use the direct lookup endpoint (avoids paging the full list)
+        url, headers = self._build_url_and_headers(
+            f"connect/context-definitions/{developer_name}"
+        )
+        for attempt in range(1, _MAX_RETRIES + 1):
+            # Disable _make_request's own retries — this loop owns the backoff
+            response = self._make_request("get", url, headers=headers, retryable=False)
+            if response is not None:
+                # The API returns isSuccess:false for unknown definitions
+                if response.get("isSuccess") is not False:
+                    ctx_id = response.get("contextDefinitionId")
+                    if ctx_id:
+                        self.logger.info(f"      Recovered context definition from org.")
+                        return ctx_id
+            if attempt < _MAX_RETRIES:
+                wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
+                self.logger.warning(
+                    f"      Context definition not found yet (attempt {attempt}/{_MAX_RETRIES}). "
+                    f"Waiting {wait}s for server-side commit..."
+                )
+                time.sleep(wait)
+        return None
 
     # Post-process after getting the context ID - typically to process the version list
     def _process_context_id(self):
@@ -111,7 +236,7 @@ class ExtendStandardContext(SFDXBaseTask):
             f"connect/context-definitions/{self.context_id}"
         )
         response = self._make_request("get", url, headers=headers)
-        if response:
+        if response is not None:
             version_list = response.get("contextDefinitionVersionList", [])
             self.logger.info(f"      Found {len(version_list)} version(s)")
             if version_list:
@@ -212,7 +337,7 @@ class ExtendStandardContext(SFDXBaseTask):
             f"connect/context-definitions/{self.context_id}"
         )
         response = self._make_request("get", url, headers=headers)
-        if not response:
+        if response is None:
             return []
         versions = response.get("contextDefinitionVersionList", [])
         if not versions:
@@ -277,16 +402,65 @@ class ExtendStandardContext(SFDXBaseTask):
         }
         return url, headers
 
-    # Make an HTTP request using the requests library and handle the response
-    def _make_request(self, method, url, **kwargs):
-        response = requests.request(method, url, **kwargs)
-        if response.ok:
-            return response.json()
-        else:
-            self.logger.error(
-                f"Failed {method.upper()} request to {url}: {response.text}"
-            )
-            return None
+    # Make an HTTP request with optional retry logic for transient network failures.
+    # Context definition APIs can take 5-10 minutes; intermediate network
+    # devices (NAT gateways, load balancers) may drop idle TCP connections.
+    #
+    # retryable: controls retry behavior on network errors and 5xx responses.
+    #   None (default) = auto: retry GET/PATCH (idempotent), don't retry POST
+    #   True  = force retry regardless of method
+    #   False = never retry
+    def _make_request(self, method, url, retryable=None, **kwargs):
+        kwargs.setdefault("timeout", (_CONNECT_TIMEOUT, _READ_TIMEOUT))
+        if retryable is None:
+            retryable = method.lower() in ("get", "patch", "put", "delete", "head", "options")
+        max_attempts = _MAX_RETRIES if retryable else 1
+        last_exc = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                response = requests.request(method, url, **kwargs)
+                if response.ok:
+                    if response.status_code == 204 or not response.text.strip():
+                        return {}
+                    try:
+                        return response.json()
+                    except ValueError:
+                        self.logger.warning(
+                            f"      Non-JSON response body on {response.status_code}: "
+                            f"{response.text[:200]}"
+                        )
+                        return {}
+                # 5xx = server-side transient; retry if allowed.
+                if response.status_code >= 500 and attempt < max_attempts:
+                    wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
+                    self.logger.warning(
+                        f"      Received {response.status_code} on attempt {attempt}/{max_attempts}. "
+                        f"Retrying in {wait}s..."
+                    )
+                    time.sleep(wait)
+                    continue
+                self.logger.error(
+                    f"Failed {method.upper()} request to {url}: {response.text}"
+                )
+                self._last_response_status = response.status_code
+                self._last_response_body = response.text
+                return None
+            except (ConnectionError, Timeout, ChunkedEncodingError, OSError) as exc:
+                last_exc = exc
+                if attempt < max_attempts:
+                    wait = _RETRY_BACKOFF * (2 ** (attempt - 1))
+                    self.logger.warning(
+                        f"      Network error on attempt {attempt}/{max_attempts}: {exc}. "
+                        f"Retrying in {wait}s..."
+                    )
+                    time.sleep(wait)
+                else:
+                    self.logger.error(
+                        f"Failed {method.upper()} request to {url} after {max_attempts} attempt(s): {last_exc}"
+                    )
+                    self._last_response_status = None
+                    self._last_response_body = None
+        return None
 
     # Abstract method to get the keychain class, needs to be implemented by subclasses
     @abstractmethod

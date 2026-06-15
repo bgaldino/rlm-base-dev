@@ -1,0 +1,2 @@
+ApiName,Description,ExpressionSetDefinitionId,Id,InterfaceSourceType,Name,ResourceInitializationType,UsageType
+QuantumBitBundle,,,,Constraint,QuantumBit Bundle,Off,Constraint

@@ -11,10 +11,18 @@ Library           ${EXECDIR}/robot/rlm-base/resources/ChromeOptionsHelper.py
 # Default timeout for waiting for setup page and toggle elements
 ${SETUP_PAGE_LOAD_TIMEOUT}    20s
 ${TOGGLE_CLICK_TIMEOUT}       10s
+# Password used to complete a forced "Change Your Password" reset if frontdoor
+# login lands there (safety net; the set_scratch_org_password CCI task normally
+# clears the must-reset flag first). Keep in sync with
+# scripts/apex/setScratchOrgPassword.apex.
+${SCRATCH_NEW_PASSWORD}       Cumulus1234!
 # Shared JS helper — pierces lightning-input → lightning-primitive-input-toggle → input.
 # Prepended to both _EnsureShadowDOMToggle and _VerifyToggleViaShadowDOM JS blocks so
 # the implementation lives in one place.
 ${_JS_GET_INPUT_FROM_TOGGLE}    function getInputFromToggle(li){if(!li.shadowRoot)return null;var inp=li.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');if(inp)return inp;var n=li.shadowRoot.querySelector('lightning-primitive-input-toggle');if(n&&n.shadowRoot)return n.shadowRoot.querySelector('input[role="switch"],input[type="checkbox"]');return null;}
+# Canonical depth-limited shadow-DOM search (.cursor/rules/robot-tests.mdc). Use this
+# instead of an unbounded recursive walk so traversal can't run away on complex pages.
+${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
 
 *** Keywords ***
 Get Authenticated Setup Page Url
@@ -77,6 +85,46 @@ _Wait For Login If Needed
     ...    AND    Sleep    ${MANUAL_LOGIN_WAIT}
     ...    AND    Go To    ${target_url}
     ...    AND    Sleep    2s
+    _Handle Change Password If Needed    ${target_url}
+
+_Handle Change Password If Needed
+    [Documentation]    Safety net for scratch org definitions (e.g. the TSO-derived
+    ...    tfid-cdo-rlm template) that flag the admin user to reset password at next
+    ...    login. When that happens, frontdoor (sf org open --url-only) redirects to
+    ...    "Change Your Password" instead of the requested Setup page, so every toggle
+    ...    lookup fails on the wrong page. The set_scratch_org_password CCI task
+    ...    (prepare_core step 1) normally clears the flag before any UI step; this
+    ...    keyword completes the reset in-browser if the page is still reached, then
+    ...    returns to the target Setup URL.
+    [Arguments]    ${target_url}
+    ${title}=    Get Title
+    ${title_lower}=    Convert To Lower Case    ${title}
+    ${is_change_pw}=    Run Keyword And Return Status    Should Contain    ${title_lower}    change your password
+    Return From Keyword If    not ${is_change_pw}
+    Log    "Change Your Password" page detected; completing reset in-browser and continuing.
+    ${pw_inputs}=    Get WebElements    css:input[type="password"]
+    ${count}=    Get Length    ${pw_inputs}
+    Run Keyword If    ${count} == 0    Fail
+    ...    msg=Change Your Password page reached but no password inputs found. Run `cci task run set_scratch_org_password` against this org, then retry.
+    # New Password + Confirm New Password take the same value; frontdoor reset
+    # does not require the current password. Input Password masks the value in log.html.
+    FOR    ${el}    IN    @{pw_inputs}
+        Input Password    ${el}    ${SCRATCH_NEW_PASSWORD}
+    END
+    ${clicked}=    Run Keyword And Return Status    Click Element
+    ...    xpath=//*[(self::input or self::button) and (contains(translate(@value,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'change password') or contains(translate(normalize-space(.),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'change password'))]
+    Run Keyword If    not ${clicked}    Click Element    css:input[type="submit"], button[type="submit"]
+    Wait Until Keyword Succeeds    20s    2s    _Change Password Page Gone
+    Go To    ${target_url}
+    Wait Until Page Contains Element    css:body    timeout=${SETUP_PAGE_LOAD_TIMEOUT}
+    Sleep    3s    reason=Allow Setup page to load after password change
+
+_Change Password Page Gone
+    [Documentation]    Succeeds once the browser has navigated away from the
+    ...    "Change Your Password" page (drives Wait Until Keyword Succeeds).
+    ${title}=    Get Title
+    ${title_lower}=    Convert To Lower Case    ${title}
+    Should Not Contain    ${title_lower}    change your password
 
 Enable Toggle By Label
     [Documentation]    Finds a toggle by its visible label (e.g. "Document Builder") and turns it ON. Verifies the toggle is on after click; fails if it did not enable.
@@ -137,11 +185,28 @@ _VerifyToggleByEnabledTextOneCheck
 
 _VerifyDocumentBuilderEnabled
     [Arguments]    ${section}    ${label}
-    ${ok}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    6s    2s    _SectionShouldContainEnabled    ${section}
-    Run Keyword If    ${ok}    Log    Toggle "${label}" verified ON via section text.
+    ${ok}=    Run Keyword And Return Status    Wait Until Keyword Succeeds    6s    2s    _Document Builder Toggle Should Be On
+    Run Keyword If    ${ok}    Log    Toggle "${label}" verified ON via shadow DOM JS.
     Run Keyword If    not ${ok}    Run Keywords
     ...    Capture Page Screenshot    filename=document_builder_toggle_verification_failed.png
-    ...    AND    Log    WARNING: Toggle "${label}" section still shows Disabled after click. If deploy_post_docgen fails, enable Document Builder manually in Setup → Revenue Settings and re-run deploy_post_docgen.    WARN
+    ...    AND    Log    WARNING: Toggle "${label}" could not be verified as enabled via shadow DOM. If deploy_post_docgen fails, enable Document Builder manually in Setup → Revenue Settings and re-run deploy_post_docgen.    WARN
+
+_Document Builder Toggle Should Be On
+    ${state}=    _Get Document Builder Toggle State
+    Should Be Equal    ${state}    on
+    ...    msg=Document Builder toggle is not on (got: ${state})
+
+_Get Document Builder Toggle State
+    ${state}=    Execute JavaScript
+    ...    return (function() {
+    ...        ${_JS_FIND_EL}
+    ...        var el = findEl(document, 'input[name="documentBuilderEnabled"]', 0);
+    ...        if (!el) return 'not_found';
+    ...        return el.checked ? 'on' : 'off';
+    ...    })()
+    Should Not Be Equal    ${state}    not_found
+    ...    msg=Document Builder input[name="documentBuilderEnabled"] not yet rendered
+    RETURN    ${state}
 
 _SectionShouldContainEnabled
     [Arguments]    ${section}
@@ -274,22 +339,20 @@ _EnsureToggleByLabel
     Run Keyword If    not ${turn_on} and ${is_on}    Sleep    1s    reason=Allow toggle to update
 
 _EnsureDocumentBuilderToggle
-    [Documentation]    For Document Builder: check section text to see if already Enabled/Disabled, then click ONCE via JS only if needed. Avoids the multiple-click problem that toggles it back off.
+    [Documentation]    For Document Builder: read the shadow-DOM input state, then click ONCE via JS only if needed. Avoids the multiple-click problem that toggles it back off.
     [Arguments]    ${turn_on}=True
     ${section}=    Set Variable    xpath=//*[normalize-space(.)='Document Builder']/ancestor::*[.//*[@role='switch'] or .//input[@type='checkbox']][1]
     Wait Until Keyword Succeeds    15s    2s    Get WebElement    ${section}
     Sleep    1s    reason=Allow section to render
-    ${section_text}=    Get Text    ${section}
-    ${has_enabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Enabled
-    ${has_disabled}=    Run Keyword And Return Status    Should Contain    ${section_text}    Disabled
+    ${state}=    Wait Until Keyword Succeeds    15s    2s    _Get Document Builder Toggle State
     # Already in desired state -- do nothing
-    Run Keyword If    ${turn_on} and ${has_enabled}    Log    Document Builder is already Enabled. No click needed.
-    Return From Keyword If    ${turn_on} and ${has_enabled}
-    Run Keyword If    not ${turn_on} and ${has_disabled}    Log    Document Builder is already Disabled. No click needed.
-    Return From Keyword If    not ${turn_on} and ${has_disabled}
+    Run Keyword If    ${turn_on} and "${state}" == "on"    Log    Document Builder is already Enabled. No click needed.
+    Return From Keyword If    ${turn_on} and "${state}" == "on"
+    Run Keyword If    not ${turn_on} and "${state}" == "off"    Log    Document Builder is already Disabled. No click needed.
+    Return From Keyword If    not ${turn_on} and "${state}" == "off"
     # Need to toggle -- click exactly once via JS (pierces shadow DOM)
-    Log    Document Builder is currently ${{" Enabled" if ${has_enabled} else "Disabled"}}. Clicking once to toggle.
-    Execute JavaScript    (function(){ function findInShadows(root){ var el=root.querySelector("input[name=documentBuilderEnabled]"); if(el)return el; var list=root.querySelectorAll("*"); for(var i=0;i<list.length;i++){ if(list[i].shadowRoot){ var r=findInShadows(list[i].shadowRoot); if(r)return r; } } return null; } var el=document.querySelector("input[name=documentBuilderEnabled]")||findInShadows(document.body); if(el)el.click(); })()
+    Log    Document Builder is currently ${state}. Clicking once to toggle.
+    Execute JavaScript    (function(){ ${_JS_FIND_EL} var el=findEl(document, 'input[name="documentBuilderEnabled"]', 0); if(el)(el.closest('label')||el).click(); })()
     Sleep    3s    reason=Allow toggle state to update after JS click
 
 _EnsureShadowDOMToggle

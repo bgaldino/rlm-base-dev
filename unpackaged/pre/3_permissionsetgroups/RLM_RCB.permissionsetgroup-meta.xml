@@ -7,6 +7,7 @@
     <permissionSets>force__BillingAdvancedPaymentAdministrator</permissionSets>
     <permissionSets>force__BillingAdvancedPaymentOperations</permissionSets>
     <permissionSets>force__BillingCollectionsAndRecoverySpecialist</permissionSets>
+    <permissionSets>force__CollectionsAndRecoveryAdmin</permissionSets>
     <permissionSets>force__DataProcessingEngineUser</permissionSets>
     <permissionSets>force__DocGenDesigner</permissionSets>
     <permissionSets>force__RevenueLifecycleManagementAccountingAdmin</permissionSets>

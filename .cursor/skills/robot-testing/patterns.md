@@ -21,6 +21,7 @@ robot/rlm-base/
 │       ├── enable_analytics.robot
 │       ├── enable_document_builder.robot
 │       ├── enable_constraints_settings.robot
+│       ├── enable_timeline.robot
 │       └── reorder_app_launcher.robot
 ├── resources/
 │   ├── E2ECommon.robot               # ~1250 lines — main E2E keywords
@@ -47,9 +48,10 @@ robot/rlm-base/
 | `configure_revenue_settings` | `ConfigureRevenueSettings` | `tests/setup/configure_revenue_settings.robot` |
 | `configure_core_pricing_setup` | `ConfigureCorePricingSetup` | `tests/setup/configure_core_pricing_setup.robot` |
 | `configure_product_discovery_settings` | `ConfigureProductDiscoverySettings` | `tests/setup/configure_product_discovery_settings.robot` |
-| `enable_analytics_replication` | `EnableAnalyticsReplication` | `tests/setup/enable_analytics.robot` |
+| `enable_analytics_replication` | `EnableAnalyticsReplication` | `tests/setup/enable_analytics.robot` (clicks "Enable CRM Analytics" on `InsightsSetupGettingStarted/home` in the main Lightning DOM; legacy `InsightsSetupSettings` VF iframe removed in 262+) |
 | `enable_document_builder_toggle` | `EnableDocumentBuilderToggle` | `tests/setup/enable_document_builder.robot` |
 | `enable_constraints_settings` | `EnableConstraintsSettings` | `tests/setup/enable_constraints_settings.robot` |
+| `enable_timeline` | `EnableTimeline` | `tests/setup/enable_timeline.robot` |
 | `reorder_app_launcher` | `ReorderAppLauncher` | `tests/setup/reorder_app_launcher.robot` |
 
 ### E2E tasks (run on demand)

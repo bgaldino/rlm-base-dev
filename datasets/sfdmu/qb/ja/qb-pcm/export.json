@@ -138,6 +138,6 @@
       "externalId": "Name"
     }
   ],
-  "apiVersion": "66.0",
+  "apiVersion": "67.0",
   "excludeIdsFromCSVFiles": "true"
 }

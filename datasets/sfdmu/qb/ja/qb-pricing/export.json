@@ -1,5 +1,5 @@
 {
-  "apiVersion": "66.0",
+  "apiVersion": "67.0",
   "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {
@@ -43,7 +43,7 @@
         {
           "query": "SELECT Name, IsDefault, EffectiveFrom, EffectiveTo FROM CostBook",
           "operation": "Upsert",
-          "externalId": "Name;IsDefault",
+          "externalId": "Name",
           "excluded": false
         },
         {

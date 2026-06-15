@@ -112,13 +112,30 @@ selenium-screenshot*.png
 **/*.tsbuildinfo
 agents256*/**
 unpackaged/*bak/**
-.claude/
+# Cross-repo skill manifest + shared slash commands are tracked artifacts;
+# everything else under .claude/ (settings.local.json, worktrees/, launch.json)
+# stays local. Pattern is .claude/* (not .claude/) so the negations below work —
+# git refuses to re-include a file whose parent directory itself is ignored.
+.claude/*
+!.claude/skill-manifest.yml
+!.claude/commands/
 datasets/sfdmu/reconcile/**
 datasets/sfdmu/extractions/**
 datasets/sfdmu/**/*.csv.bak
 datasets/bre/exports/**
 # Writeback/drift artifacts
 *.bak
+# ERD orphan-cleanup local backups — covers both the current naming
+# (erd-data.json.batchN.bak, caught by *.bak above) and legacy variants
+# (.bak2, .bak.batchN) produced by earlier helper versions.
+docs/erds/erd-data.json.bak*
+# Intermediate orphan-cleanup batch reports — produced per run by
+# scripts/erd/orphan_batch_helper.py validate (orphan-candidates-after-batchN.md)
+# and the initial scan (orphan-candidates.md, orphan-candidates-dual-org.md,
+# orphan-candidates-after-cleanup.md). The cleanup's final outcome is already
+# baked into docs/erds/erd-data.json and docs/erds/validation-report.md, so
+# these intermediates are local-only artifacts.
+docs/erds/orphan-candidates*.md
 unpackaged/post_ux/drift_report.json
 tmp-metadata/
 .cursor/plans/**
@@ -131,3 +148,27 @@ dev
 postman/archive/
 core.code-workspace
 unpackaged/post_manufacturing/test/**
+docs/salesforce/260/solution-overview-spring-26-billing.pdf
+docs/salesforce/260/solution-overview-spring-26.pdf
+docs/salesforce/262/solution-overview-summer-26-billing.pdf
+docs/salesforce/262/solution-overview-summer-26-rca.pdf
+docs/salesforce/260/revenue-cloud-spring-26-2026-01-15.pdf
+docs/salesforce/262/salesforce-release-notes-summer-26-2026-05-07.pdf
+
+# Large vendor reference PDFs — kept on disk locally, snapshots in docs/salesforce/{version}/help/ replace them for AI grounding
+docs/salesforce/*/revenue-cloud-*.pdf
+docs/salesforce/*/salesforce-release-notes-*.pdf
+
+# LibreOffice / soffice artifacts (lock files, scratch tmp files left behind when headless conversions crash)
+.~lock.*#
+*.tmp
+
+# Internal AI-agent / core-investigation artifacts (core-code Q&A, platform-bug writeups,
+# design plans, research notes). Local only — they reference internal Salesforce core and
+# MUST NOT ship to the customer/partner Salesforce Labs mirror. Keep them uncommitted.
+.agents/artifacts/
+docs/analysis/*-core-code-*.md
+
+# Build harness artifacts
+.harness/
+scripts/build_harness/tui/settings.local.json

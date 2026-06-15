@@ -19,3 +19,15 @@
 *.pdf binary
 *.zip binary
 *.asset binary
+
+# Generated artifacts — collapse in GitHub diff UI and skip from PR review tools.
+# Salesforce Help portal snapshots are produced by tasks/rlm_snapshot_help.py;
+# review the tooling, not the per-article output.
+docs/salesforce/*/help/articles/** linguist-generated=true
+docs/salesforce/*/help/manifest.json linguist-generated=true
+docs/salesforce/*/help/index.md linguist-generated=true
+# Salesforce atlas Developer Guide snapshots are produced by
+# tasks/rlm_snapshot_dev_guide.py; review the tooling, not the per-page output.
+docs/salesforce/*/dev-guide/articles/** linguist-generated=true
+docs/salesforce/*/dev-guide/manifest.json linguist-generated=true
+docs/salesforce/*/dev-guide/index.md linguist-generated=true

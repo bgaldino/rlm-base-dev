@@ -10,7 +10,7 @@
                             <value>BrowseCatalog</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RLM_Create_Ramp_Schedule_V4</value>
+                            <value>CreateRampSchedule</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Quote.RLM_Create_Proposal</value>
@@ -19,7 +19,7 @@
                             <value>CreateOrder</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RLM_CreateContract</value>
+                            <value>CreateContract</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Quote.RLM_Submit_for_Approval</value>
@@ -32,9 +32,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteAdjustment</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>UpdateContractFromSObject</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Edit</value>
@@ -53,9 +50,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>PrintableView</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>CreateContractFromSObject</value>
                         </valueListItems>
                         <valueListItems>
                             <value>headlessPricingAction</value>
@@ -79,6 +73,10 @@
                     <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
+                    <name>hideSlackAction</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
                     <name>numVisibleActions</name>
                     <value>4</value>
                 </componentInstanceProperties>
@@ -98,6 +96,13 @@
                 </componentInstanceProperties>
                 <componentName>runtime_sales_pathassistant:pathAssistant</componentName>
                 <identifier>runtime_sales_pathassistant_pathAssistant</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue>{!$User.Profile.Name}</leftValue>
+                        <operator>NE</operator>
+                        <rightValue>RLM Sales Representative</rightValue>
+                    </criteria>
+                </visibilityRule>
             </componentInstance>
         </itemInstances>
         <name>header</name>
@@ -161,6 +166,30 @@
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.TotalPrice</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.RLM_Distributor_Discount_Percent__c</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.RLM_Distributor_Unit_Price__c</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.PartnerDiscountPercent</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.PartnerUnitPrice</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.RLM_Partner_Net_Total_Price__c</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.TotalCost</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.Margin</value>
+                        </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.MarginAmount</value>
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteLineItem.QuoteLineGroup.SegmentType[QuoteLineGroup]</value>

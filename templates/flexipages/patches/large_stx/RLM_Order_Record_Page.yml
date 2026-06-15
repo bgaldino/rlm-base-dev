@@ -1,0 +1,37 @@
+feature: large_stx
+feature_flag: large_stx
+# Adds the "Prepare for Activation" screen action to the Order highlights panel.
+# Large-deal orders bypass inline validation at activation and must be
+# preprocessed first (preProcessSalesTransaction). Anchored after Edit so it
+# sits just before the standard ActivateOrder action. The component self-gates:
+# it no-ops for non-large-deal or already-activated orders.
+patches:
+  - type: insert_action
+    after: "Edit"
+    actions:
+      # Show only for large-deal Draft orders that have not completed preprocessing.
+      # RLM_Preprocessing_Complete__c is a formula (LEFT(PreprocessingStatus,1)="C"),
+      # which is billing-agnostic: complete is "CNNN" (billing off) or "CCCC" (on).
+      - name: "Order.RLM_Prepare_For_Activation"
+        visibility:
+          - field: "Record.IsLargeDeal"
+            operator: "EQUAL"
+            value: "true"
+          - field: "Record.Status"
+            operator: "EQUAL"
+            value: "Draft"
+          - field: "Record.RLM_Preprocessing_Complete__c"
+            operator: "EQUAL"
+            value: "false"
+  # Surface the preprocessing fields in the System Information section so users
+  # can watch the bitmask + derived flag while preparing/activating large deals.
+  # PreprocessingStatus is standard; RLM_Preprocessing_Complete__c is large_stx-
+  # only, so these live in the patch (not base) to keep large_stx=false builds valid.
+  - type: add_facet_field
+    after: "OrchestrationSbmsStatus"
+    fields:
+      - "PreprocessingStatus"
+  - type: add_facet_field
+    after: "ValidationResult"
+    fields:
+      - "RLM_Preprocessing_Complete__c"

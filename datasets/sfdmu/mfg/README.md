@@ -13,6 +13,20 @@ This directory holds SFDMU v5 data plans for the Manufacturing data shape, follo
 
 ---
 
+## Current MFG plans
+
+The plans that exist on disk live under `mfg/en-US/`. Each has its own
+`export.json` (no per-plan README). All target API v67.0.
+
+| Plan | Description | Key objects (operation, externalId) |
+|------|-------------|--------------------------------------|
+| `mfg-configflow` | Product configuration flows and their per-product assignments | `ProductConfigurationFlow` (Insert, `FlowIdentifier`); `ProductConfigFlowAssignment` (Upsert, `ProductConfigurationFlow.FlowIdentifier;Product.StockKeepingUnit`) |
+| `mfg-constraints-p` | Constraint-model **Type** associations for products | `ExpressionSetConstraintObj` (Upsert, `ConstraintModelTag;ExpressionSet.ApiName`) |
+| `mfg-constraints-prc` | Constraint-model **Port** associations for product-related components | `ExpressionSetConstraintObj` (Upsert, `ConstraintModelTag;ExpressionSet.ApiName`) |
+| `mfg-multicurrency` | Full single-pass catalog seed (35 objects) for the multicurrency MFG shape | `UnitOfMeasure`, `CurrencyType`, `ProductCatalog`, `ProductCategory`, `ProductSellingModel`, `AttributeDefinition`, `Product2`, `Pricebook2`, `PricebookEntry`, … |
+
+---
+
 ## Directory Structure
 
 ```
@@ -30,6 +44,18 @@ datasets/sfdmu/mfg/
 ```
 
 Each plan directory contains an `export.json`, one CSV per object, and `source/` / `target/` sub-directories used for post-processing and idempotency checking.
+
+## Adding a new MFG plan
+
+1. **Create the plan directory:** `datasets/sfdmu/mfg/en-US/mfg-<name>/`
+2. **Add export.json and CSVs** using the same format as QB plans (see [qb-pcm README](../qb/en-US/qb-pcm/README.md) or [qb-rating README](../qb/en-US/qb-rating/README.md)). Use single-pass (flat `objects`) or multi-pass (`objectSets`) as needed.
+3. **Wire in cumulusci.yml:**
+   - Under **DATA PLAN NAMES AND PATHS**: add an anchor, e.g.  
+     `mfg_<name>_dataset: &mfg_<name>_dataset "datasets/sfdmu/mfg/en-US/mfg-<name>"`
+   - Add a load task using `LoadSFDMUData` with `pathtoexportjson: *mfg_<name>_dataset`.
+   - Add an extract task in group **Data Management - Extract** using `ExtractSFDMUData` with the same anchor.
+   - Add an idempotency task in group **Data Management - Idempotency** using `TestSFDMUIdempotency` with the same anchor.
+4. **Add a README** in the plan directory documenting objects, external IDs, and load order.
 
 ---
 

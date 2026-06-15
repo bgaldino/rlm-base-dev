@@ -18,12 +18,22 @@ Usage:
 No external dependencies beyond PyYAML.
 """
 import argparse
+import importlib
+import importlib.util
 import re
 import sys
 from collections import defaultdict
 from pathlib import Path
 
-import yaml
+# PyYAML is optional at import time. Any import-time failure — module missing,
+# a broken/partial install, a SyntaxError or runtime error in the module, or a
+# find_spec error — leaves yaml as None so load_cci() emits clean guidance.
+yaml = None
+try:
+    if importlib.util.find_spec("yaml") is not None:
+        yaml = importlib.import_module("yaml")
+except Exception:
+    yaml = None
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 CCI_YML = ROOT / "cumulusci.yml"
@@ -40,9 +50,27 @@ HEADER_NOTE = (
 # YAML loading
 # ---------------------------------------------------------------------------
 
+def _pyyaml_error() -> str:
+    return (
+        "generate_cci_reference.py needs PyYAML for full cumulusci.yml parsing, "
+        "but it is not available (not installed, or failed to import).\n"
+        "Activate the project CumulusCI environment, or install PyYAML with one of:\n"
+        "  - pipx inject cumulusci PyYAML\n"
+        "  - python -m pip install PyYAML\n"
+        "  - python -m pip install cumulusci\n"
+    )
+
+
 def load_cci() -> dict:
-    with open(CCI_YML, "r") as f:
-        return yaml.safe_load(f)
+    if yaml is None:
+        raise SystemExit(_pyyaml_error())
+    try:
+        with open(CCI_YML, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except (OSError, UnicodeDecodeError) as exc:
+        raise SystemExit(f"ERROR: cannot read {CCI_YML}: {exc}")
+    except yaml.YAMLError as exc:
+        raise SystemExit(f"ERROR: cannot parse {CCI_YML}: {exc}")
 
 
 # ---------------------------------------------------------------------------
@@ -50,7 +78,8 @@ def load_cci() -> dict:
 # ---------------------------------------------------------------------------
 
 def generate_tasks_reference(data: dict) -> str:
-    tasks: dict = data.get("tasks", {})
+    # `or {}` guards an empty top-level `tasks:` (YAML null) against AttributeError.
+    tasks: dict = data.get("tasks") or {}
     by_group: dict[str, list] = defaultdict(list)
 
     for name, cfg in sorted(tasks.items()):
@@ -149,7 +178,7 @@ def _format_step(step_num, step_cfg, indent=0) -> list[str]:
 
 
 def generate_flows_reference(data: dict) -> str:
-    flows: dict = data.get("flows", {})
+    flows: dict = data.get("flows") or {}
     by_group: dict[str, list] = defaultdict(list)
 
     for name, cfg in flows.items():
@@ -208,8 +237,8 @@ def generate_flows_reference(data: dict) -> str:
 def _scan_when_clauses(data: dict) -> dict[str, list[str]]:
     """Scan all when: clauses in flows and build a flag → [usage context] map."""
     usage: dict[str, list[str]] = defaultdict(list)
-    flows = data.get("flows", {})
-    custom_keys = set(data.get("project", {}).get("custom", {}).keys())
+    flows = data.get("flows") or {}
+    custom_keys = set((data.get("project") or {}).get("custom", {}).keys())
 
     for flow_name, flow_cfg in flows.items():
         if not flow_cfg or "steps" not in flow_cfg:
@@ -238,7 +267,7 @@ def _scan_when_clauses(data: dict) -> dict[str, list[str]]:
 
 
 def generate_feature_flags(data: dict) -> str:
-    custom: dict = data.get("project", {}).get("custom", {})
+    custom: dict = (data.get("project") or {}).get("custom") or {}
     usage_map = _scan_when_clauses(data)
 
     boolean_flags = []
@@ -375,8 +404,8 @@ def main():
         print(f"ERROR: {CCI_YML} not found", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Parsing {CCI_YML.relative_to(ROOT)} ...")
     data = load_cci()
+    print(f"Parsed {CCI_YML.relative_to(ROOT)}.")
 
     generate_all = not (args.tasks_only or args.flows_only or args.flags_only)
 

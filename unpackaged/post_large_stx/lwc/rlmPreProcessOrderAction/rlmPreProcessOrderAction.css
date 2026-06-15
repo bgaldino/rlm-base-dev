@@ -1,0 +1,22 @@
+.msg-info {
+  background-color: #eef4ff;
+  border: 1px solid #c9defe;
+}
+
+.msg-success {
+  background-color: #ebf7e6;
+  border: 1px solid #b7e1a1;
+}
+
+.msg-error {
+  background-color: #fef1ee;
+  border: 1px solid #f5c6bd;
+}
+
+dt.slds-item_label {
+  width: 40%;
+}
+
+dd.slds-item_detail {
+  width: 60%;
+}

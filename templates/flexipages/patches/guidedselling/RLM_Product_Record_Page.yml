@@ -1,0 +1,84 @@
+feature: guidedselling
+feature_flag: guidedselling
+# Adds guided-selling Product2 fields to the Product record Details tab.
+patches:
+  - type: insert_after_xml
+    anchor: |-
+      <name>Facet-0c7c6745-b043-4551-a759-983b62e14c5a</name>
+              <type>Facet</type>
+          </flexiPageRegions>
+    xml: |2
+          <flexiPageRegions>
+              <itemInstances>
+                  <fieldInstance>
+                      <fieldInstanceProperties>
+                          <name>uiBehavior</name>
+                          <value>none</value>
+                      </fieldInstanceProperties>
+                      <fieldItem>Record.RLM_Primary_Goal__c</fieldItem>
+                      <identifier>RecordRLMPrimaryGoalField</identifier>
+                  </fieldInstance>
+              </itemInstances>
+              <itemInstances>
+                  <fieldInstance>
+                      <fieldInstanceProperties>
+                          <name>uiBehavior</name>
+                          <value>none</value>
+                      </fieldInstanceProperties>
+                      <fieldItem>Record.RLM_Timeline__c</fieldItem>
+                      <identifier>RecordRLMTimelineField</identifier>
+                  </fieldInstance>
+              </itemInstances>
+              <itemInstances>
+                  <fieldInstance>
+                      <fieldInstanceProperties>
+                          <name>uiBehavior</name>
+                          <value>none</value>
+                      </fieldInstanceProperties>
+                      <fieldItem>Record.RLM_Platform_Control__c</fieldItem>
+                      <identifier>RecordRLMPlatformControlField</identifier>
+                  </fieldInstance>
+              </itemInstances>
+              <name>Facet-guidedselling-fields</name>
+              <type>Facet</type>
+          </flexiPageRegions>
+          <flexiPageRegions>
+              <itemInstances>
+                  <componentInstance>
+                      <componentInstanceProperties>
+                          <name>body</name>
+                          <value>Facet-guidedselling-fields</value>
+                      </componentInstanceProperties>
+                      <componentName>flexipage:column</componentName>
+                      <identifier>flexipage_columnGuidedSelling</identifier>
+                  </componentInstance>
+              </itemInstances>
+              <name>Facet-guidedselling-columns</name>
+              <type>Facet</type>
+          </flexiPageRegions>
+
+  - type: insert_after_xml
+    anchor: |-
+      <componentName>flexipage:fieldSection</componentName>
+                      <identifier>flexipage_fieldSection4</identifier>
+                  </componentInstance>
+              </itemInstances>
+    xml: |2
+              <itemInstances>
+                  <componentInstance>
+                      <componentInstanceProperties>
+                          <name>columns</name>
+                          <value>Facet-guidedselling-columns</value>
+                      </componentInstanceProperties>
+                      <componentInstanceProperties>
+                          <name>horizontalAlignment</name>
+                          <value>true</value>
+                      </componentInstanceProperties>
+                      <componentInstanceProperties>
+                          <name>label</name>
+                          <value>Guided Selling</value>
+                      </componentInstanceProperties>
+                      <componentName>flexipage:fieldSection</componentName>
+                      <identifier>flexipage_fieldSectionGuidedSelling</identifier>
+                  </componentInstance>
+              </itemInstances>

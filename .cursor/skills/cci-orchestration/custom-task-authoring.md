@@ -125,7 +125,7 @@ class ManageDecisionTables(BaseTask):
         }
 
         # REST API call
-        url = f"{instance_url}/services/data/v66.0/query/"
+        url = f"{instance_url}/services/data/v67.0/query/"
         params = {"q": "SELECT Id, DeveloperName FROM DecisionTable"}
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
@@ -234,7 +234,7 @@ tso_mode = self.project_config.project__custom__tso
 custom = dict(self.project_config.config.get("project", {}).get("custom", {}))
 
 # API version
-api_version = self.project_config.project__package__api_version  # "66.0"
+api_version = self.project_config.project__package__api_version  # "67.0" for Release 262
 ```
 
 ---
@@ -260,7 +260,7 @@ cmd = ["sf", "data", "query", "--target-org", self.org_config.access_token]  # F
 ```python
 # CORRECT — use access_token + instance_url directly
 headers = {"Authorization": f"Bearer {self.org_config.access_token}"}
-url = f"{self.org_config.instance_url}/services/data/v66.0/query/"
+url = f"{self.org_config.instance_url}/services/data/v67.0/query/"
 ```
 
 ### `org_config` properties reference
@@ -301,7 +301,7 @@ the username always works.
 
 ```python
 headers = {"Authorization": f"Bearer {self.org_config.access_token}"}
-url = f"{self.org_config.instance_url}/services/data/v66.0/query/"
+url = f"{self.org_config.instance_url}/services/data/v67.0/query/"
 resp = requests.get(url, headers=headers, params={"q": soql})
 resp.raise_for_status()
 records = resp.json().get("records", [])
@@ -310,14 +310,14 @@ records = resp.json().get("records", [])
 ### Tooling API
 
 ```python
-url = f"{self.org_config.instance_url}/services/data/v66.0/tooling/query/"
+url = f"{self.org_config.instance_url}/services/data/v67.0/tooling/query/"
 resp = requests.get(url, headers=headers, params={"q": tooling_soql})
 ```
 
 ### Connect API
 
 ```python
-url = f"{self.org_config.instance_url}/services/data/v66.0/connect/..."
+url = f"{self.org_config.instance_url}/services/data/v67.0/connect/..."
 resp = requests.post(url, headers=headers, json=payload)
 ```
 
@@ -375,6 +375,7 @@ tasks:
 | `rlm_manage_expression_sets.py` | `ManageExpressionSets` | Expression set version management |
 | `rlm_manage_flows.py` | `ManageFlows` | Flow management (activate/deactivate) |
 | `rlm_manage_transaction_processing_types.py` | `ManageTransactionProcessingTypes` | TPT management via Tooling API |
+| `rlm_configure_pricing_recipe_table_mappings.py` | `ConfigurePricingRecipeTableMappings` | PricingRecipeTableMapping ensure/list operations via Tooling API |
 | `rlm_ux_assembly.py` | `AssembleAndDeployUX` | Dynamic UX metadata assembly + deploy |
 | `rlm_ux_utils.py` | *(shared utility — no task class)* | `UX_KNOWN_FLAGS`, `_STANDALONE_ORDER`, `get_ux_feature_flags()`, `resolve_flexipage_sources()` — single source of truth for all UX tasks |
 | `rlm_stamp_commit.py` | `StampGitCommit` | Git commit stamping into org |
@@ -391,6 +392,7 @@ tasks:
 | `rlm_docgen.py` | `FixDocumentTemplateBinaries` | Fix DocumentTemplate content binaries |
 | `rlm_create_approval_email_templates.py` | `CreateApprovalEmailTemplates` | Create Lightning Email Templates via REST |
 | `rlm_create_procedure_plan_def.py` | `CreateProcedurePlanDefinition`, `ActivateProcedurePlanVersion` | Procedure Plan via Connect API |
+| `rlm_apply_procedure_plan_overlay.py` | `ApplyProcedurePlanOverlay` | JSON-driven procedure-plan overlays with guarded activation |
 | `rlm_repair_pricing_schedules.py` | `EnsurePricingSchedules` | Ensure pricing schedules exist |
 | `rlm_recalculate_permission_set_groups.py` | `RecalculatePermissionSetGroups` | PSG recalculation + polling |
 | `rlm_assign_permission_set_groups.py` | `AssignPermissionSetGroupsTolerant` | PSG assignment with warning tolerance |

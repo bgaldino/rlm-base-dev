@@ -1,11 +1,11 @@
 # Revenue Cloud Base Foundations
 
-**Salesforce Release:** 260 (Spring '26)
-**API Version:** 66.0
+**Salesforce Release:** 262 (Summer '26)
+**API Version:** 67.0
 
 This repository automates the creation and configuration of Salesforce environments that require Revenue Cloud (formerly Revenue Lifecycle Management) functionality.
 
-The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches exist for different release scenarios.
+The `main` branch targets Salesforce Release 262 (Summer '26), promoted from the `262` upgrade branch. Release 260 (Spring '26) is the prior GA reference, preserved on the `release/260` branch. See `docs/upgrades/262-upgrade-plan.md` for the upgrade workstream history.
 
 ## Table of Contents
 
@@ -15,6 +15,7 @@ The main branch targets Salesforce Release 260 (Spring '26, GA). Other branches 
 - [Installation](#installation)
   - [Setup for headless robot runs](#setup-for-headless-robot-runs)
 - [Quick Start](#quick-start)
+- [Build Harness and TUI](#build-harness-and-tui)
 - [Feature Flags](#feature-flags)
 - [Manufacturing](#manufacturing)
 - [Custom Tasks](#custom-tasks)
@@ -364,8 +365,8 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Installation (macOS): `brew install nvm` then `nvm install --lts` (recommended) — see Step 3 in the macOS setup guide
    - Verify: `node --version`
 
-8. **Python** (for custom tasks)
-   - Python 3.8 or later; **3.12 recommended** for CumulusCI (3.13 is acceptable; 3.14 has known dependency compatibility issues)
+8. **Python** (for custom tasks and the repo's AI/schema-diff scripts)
+   - Python 3.10 or later; **3.12 recommended** for CumulusCI (3.13 is what the CI workflow uses and is the dev-environment-setup default; 3.14 has known dependency compatibility issues). The 3.10 floor matches what the schema-diff and skill-manifest scripts already use (PEP 604 unions).
    - macOS: use [pyenv](https://github.com/pyenv/pyenv) — `brew install pyenv` — to manage versions
    - Required packages are included with CumulusCI; use a venv for local script development
 
@@ -391,7 +392,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
    #### Setup for headless robot runs
 
-   Required if you use `prepare_docgen`, `enable_document_builder_toggle`, `enable_constraints_settings`, `configure_revenue_settings`, or `reorder_app_launcher`:
+   Required if you use Robot-backed setup tasks such as `prepare_docgen`, `enable_document_builder_toggle`, `enable_constraints_settings`, `configure_revenue_settings`, `configure_core_pricing_setup`, `configure_product_discovery_settings`, `enable_timeline`, or `reorder_app_launcher`:
 
    1. **Python packages** — Robot Framework, selenium (4.10+), SeleniumLibrary, webdriver-manager, urllib3. Keep them in the **same environment as CumulusCI** so CCI tasks can run the `robot` command. A full dependency set is in **`robot/requirements.txt`**. If you use **pipx** for CumulusCI (recommended):
      ```bash
@@ -449,8 +450,8 @@ For the full architecture — shell config responsibilities, the per-project `.e
 # Create a basic dev scratch org
 cci org scratch dev <org-alias>
 
-# Create an enhanced dev scratch org (with additional features)
-cci org scratch dev_enhanced <org-alias>
+# Create an enterprise scratch org (with additional features like SalesCloudEinstein)
+cci org scratch ent <org-alias>
 ```
 
 ### Deploy to an Existing Org
@@ -465,7 +466,7 @@ cci flow run prepare_rlm_org
 
 ### Reset default or target scratch org and run full flow
 
-To remove your current default (or target) scratch org, create a new one, and run the full RLM prepare flow (includes billing data when applicable), use your scratch org config and alias (e.g. `beta`, `dev`, `dev_enhanced`—see `orgs/` and `cumulusci.yml` under `orgs.scratch`):
+To remove your current default (or target) scratch org, create a new one, and run the full RLM prepare flow (includes billing data when applicable), use your scratch org config and alias (e.g. `beta`, `dev`, `ent`—see `orgs/` and `cumulusci.yml` under `orgs.scratch`):
 
 ```bash
 # Delete existing scratch org (use the same alias you created it with)
@@ -486,6 +487,26 @@ Decision tables under `unpackaged/pre/5_decisiontables` are deployed by this flo
 cci flow list
 cci task list
 ```
+
+## Build Harness and TUI
+
+Use the local build harness to profile, resume, and report on `prepare_rlm_org`
+runs across the standard `dev` and `ent` scratch org scenarios:
+
+```bash
+python scripts/build_harness/harness.py run
+python scripts/build_harness/harness.py report --run-id <run_id>
+```
+
+For an interactive scratch org build manager, launch the Textual TUI from the
+repo root:
+
+```bash
+./tui-cci
+```
+
+See [`docs/guides/build-harness.md`](docs/guides/build-harness.md) for the full
+CLI/TUI workflow, run artifacts, resume behavior, and test commands.
 
 ## Feature Flags
 
@@ -528,13 +549,15 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `einstein` | `true` | Use Einstein AI |
 | `agents` | `false` | Deploy Agentforce Agent configurations |
 | `prm` | `true` | Use Partner Relationship Management |
-| `prm_exp_bundle` | `false` | Use PRM Experience Bundle |
+| `prm_exp_bundle` | `true` | Use PRM Experience Bundle |
+| `prm_pricing` | `true` | Enable PRM pricing metadata/tasks (`prepare_prm_pricing`) |
 | `commerce` | `false` | Use Commerce |
 | `breconfig` | `false` | Business Rules Engine configuration |
 | `docgen` | `true` | Use Document Generation |
 | `constraints` | `true` | Use Constraint Builder (metadata setup) |
-| `guidedselling` | `false` | Use Guided Selling |
+| `guidedselling` | `true` | Use Guided Selling |
 | `procedureplans` | `true` | Use Procedure Plans |
+| `large_stx` | `false` | Deploy Large Sales Transaction metadata (large-deal reprice / preprocess / setup-quote) via `prepare_large_stx` at step 27 |
 
 ### Manufacturing Flags
 
@@ -554,8 +577,8 @@ These flags control the Manufacturing feature suite (`prepare_manufacturing`, in
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `sharingsettings` | `false` | Deploy Sharing Settings |
-| `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 27. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
+| `personas` | `true` | Deploy persona profiles + permission set groups and create the Sales Rep user via `prepare_personas` at step 28 |
+| `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 29. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
 
 ## Manufacturing
 
@@ -699,6 +722,7 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `extract_qb_rates_data` | Data Management - Extract | Extract qb-rates from org to CSV | See `cumulusci.yml` |
 | `extract_qb_transactionprocessingtypes_data` | Data Management - Extract | Extract qb-transactionprocessingtypes from org to CSV | See `cumulusci.yml` |
 | `extract_qb_guidedselling_data` | Data Management - Extract | Extract qb-guidedselling from org to CSV | See `cumulusci.yml` |
+| `extract_qb_guidedselling_products_data` | Data Management - Extract | Extract qb-guidedselling-products from org to CSV | [qb-guidedselling-products README](datasets/sfdmu/qb/en-US/qb-guidedselling-products/README.md) |
 | `test_qb_pcm_idempotency` | Data Management - Idempotency | Idempotency test for qb-pcm (supports extraction roundtrip) | [qb-pcm README](datasets/sfdmu/qb/en-US/qb-pcm/README.md) |
 | `test_qb_pricing_idempotency` | Data Management - Idempotency | Idempotency test for qb-pricing | See `cumulusci.yml` |
 | `test_qb_product_images_idempotency` | Data Management - Idempotency | Idempotency test for qb-product-images | See `cumulusci.yml` |
@@ -707,9 +731,12 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `test_qb_rating_idempotency` | Data Management - Idempotency | Idempotency test for qb-rating | See `cumulusci.yml` |
 | `test_qb_rates_idempotency` | Data Management - Idempotency | Idempotency test for qb-rates | See `cumulusci.yml` |
 | `test_qb_transactionprocessingtypes_idempotency` | Data Management - Idempotency | Idempotency test for qb-transactionprocessingtypes | See `cumulusci.yml` |
-| `test_qb_guidedselling_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling | See `cumulusci.yml` |
+| `test_qb_guidedselling_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling (legacy plan; standalone — intentionally excluded from `run_qb_idempotency_tests`, preservation-only until CSVs are regenerated from a canonical org) | See `cumulusci.yml` |
+| `test_qb_guidedselling_products_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling-products | [qb-guidedselling-products README](datasets/sfdmu/qb/en-US/qb-guidedselling-products/README.md) |
 | `extract_qb_prm_data` | Data Management - Extract | Extract qb-prm (partner relationship management) from org to CSV | See `cumulusci.yml` |
 | `test_qb_prm_idempotency` | Data Management - Idempotency | Idempotency test for qb-prm | See `cumulusci.yml` |
+| `extract_qb_prm_pricing_data` | Data Management - Extract | Extract qb-prm-pricing (PRM pricing overlay) from org to CSV | [qb-prm-pricing README](datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) |
+| `test_qb_prm_pricing_idempotency` | Data Management - Idempotency | Idempotency test for qb-prm-pricing | [qb-prm-pricing README](datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) |
 | `post_process_extraction` | Revenue Lifecycle Management | Post-process extracted CSVs (composite keys, header normalization) for re-import; see `scripts/post_process_extraction.py` | See `cumulusci.yml` |
 | `load_sfdmu_data` | Revenue Lifecycle Management | Load SFDMU data plans (generic; supports simulation, object_sets, dynamic DRO user) | See `cumulusci.yml` |
 | `export_cml` | Revenue Lifecycle Management | Export constraint model data (CSVs + blob) from an org | [Constraints Utility Guide](datasets/constraints/README.md) |
@@ -719,7 +746,7 @@ cci flow run run_qb_idempotency_tests --org <org>
 
 Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. **Post-process runs by default** after extraction; re-import-ready CSVs are in `<timestamp>/processed/`. To skip post-process (raw SFDMU output only), pass `run_post_process: false` (e.g. `cci task run extract_qb_pcm_data --org <org> -o run_post_process false`). You can also run `post_process_extraction` manually for an existing extraction. See [Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md).
 
-**Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All nine plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script.
+**Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All ten plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling, qb-guidedselling-products) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script. Additional one-off tasks exist for overlays and adjacent plans such as qb-prm, qb-prm-pricing, qb-approvals, qb-billing, qb-tax, and scratch data; run those tasks directly unless they are explicitly added to the batch flows.
 
 ### Apex Execution Tasks
 
@@ -750,7 +777,9 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `manage_transaction_processing_types` | `rlm_manage_transaction_processing_types.py` | Manage TransactionProcessingType records (list, upsert, delete) | [Constraints Setup](docs/guides/constraints-setup.md) |
 | `manage_context_definition` | `rlm_context_service.py` | Modify context definitions via Context Service API | [Context Service Utility](docs/references/context-service-utility.md) |
 | `extend_standard_context` | `rlm_extend_stdctx.py` | Extend standard context definitions with custom attributes | [Context Service Utility](docs/references/context-service-utility.md) |
-| `assemble_and_deploy_ux` | `rlm_ux_assembly.py` | Assemble UX metadata (flexipages, layouts, applications, app menus, profiles, compact layouts, list views, object bindings) from `templates/` into `unpackaged/post_ux/` and optionally deploy. Supports `metadata_type` (specific type or `all`) and `metadata_name` (single file by full source filename). Called by `prepare_ux` at step 27. | [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) |
+| `configure_core_pricing_recipe_table_mappings` | `rlm_configure_pricing_recipe_table_mappings.py` | Ensure core `PricingRecipeTableMapping` records exist for `NGPDefaultRecipe` and `RLM_CostBookEntries` | [PRM Pricing Metadata](unpackaged/post_prm_pricing/README.md) |
+| `configure_pricing_recipe_table_mappings` | `rlm_configure_pricing_recipe_table_mappings.py` | Ensure PRM pricing lookup table mappings exist for `NGPDefaultRecipe` | [PRM Pricing Metadata](unpackaged/post_prm_pricing/README.md) |
+| `assemble_and_deploy_ux` | `rlm_ux_assembly.py` | Assemble UX metadata (flexipages, layouts, applications, profiles, compact layouts, list views, object bindings) from `templates/` into `unpackaged/post_ux/` and optionally deploy. Supports `metadata_type` (specific type or `all`) and `metadata_name` (single file by full source filename). Called by `prepare_ux` at step 29. | [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) |
 
 ### Decision Table Refresh Tasks
 
@@ -793,7 +822,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 
 | Task Name | Module | Description |
 |-----------|--------|-------------|
-| `delete_quantumbit_pricing_data` | `tasks.rlm_sfdmu.DeleteSFDMUData` | Delete all Insert-operation records from the qb-pricing plan (PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice) in reverse plan order (children first). Shape-agnostic — reads `export.json` at runtime. Runs automatically as step 1 of `prepare_pricing_data`. |
+| `delete_quantumbit_pricing_data` | `tasks.rlm_sfdmu.DeleteSFDMUData` | Delete all Insert-operation records from the qb-pricing plan (CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic — reads `export.json` at runtime. Runs automatically as step 1 of `prepare_pricing_data`. |
 | `delete_qb_rates_data` | `scripts/apex/deleteQbRatesData.apex` | Delete all qb-rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard) in dependency order. Use before re-running `insert_qb_rates_data` or `test_qb_rates_idempotency` when duplicates exist. |
 | `delete_qb_rating_data` | `scripts/apex/deleteQbRatingData.apex` | Delete all qb-rating data (PUG, PURP, PUR, rating policies, etc.) in dependency order. Use before re-running `insert_qb_rating_data` when duplicates exist. |
 | `delete_draft_billing_records` | `scripts/apex/deleteDraftBillingRecords.apex` | Delete all draft billing-related records (BillingTreatmentItem, BillingTreatment, BillingPolicy, PaymentTermItem, PaymentTerm) in dependency order. Use before re-running the billing data plan to avoid duplicates. |
@@ -808,12 +837,16 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `create_tax_engine` | `rlm_sfdmu.py` | Create tax engine records | See `cumulusci.yml` |
 | `validate_setup` | `rlm_validate_setup.py` | Validate local developer setup: Python, CumulusCI, Salesforce CLI, SFDMU plugin version, Node.js, Robot Framework, selenium (4.10+), SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, urllib3. Auto-fixes outdated SFDMU and robot deps (including selenium) when `auto_fix=true`/`auto_fix_robot=true`. No org required. | See `cumulusci.yml` |
 | `enable_document_builder_toggle` | `rlm_enable_document_builder_toggle.py` | Enable Document Builder, Document Templates Export, and Design Document Templates via Robot Framework browser automation | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `enable_timeline` | `rlm_enable_timeline.py` | Enable the Timeline setup toggle required by billing UI flexipages that reference the Timeline component | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
 | `fix_document_template_binaries` | `rlm_docgen.py` | Corrects DocumentTemplate ContentDocument binaries after a batch metadata deploy (Salesforce assigns the same binary to all templates; this task uploads the correct `.dt` binary to each). Run automatically as step 8 of `prepare_docgen`. | [DocGen Setup](docs/guides/docgen-setup.md) |
 | `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/guides/constraints-setup.md) |
-| `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow (Robot Framework) | See `cumulusci.yml` |
+| `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow, and (optionally) Create Contracts Flow and Manage Assets Flow (Robot Framework) | See `cumulusci.yml` |
+| `configure_core_pricing_setup` | `rlm_configure_core_pricing_setup.py` | Configure Salesforce Pricing Setup (CorePricingSetup) default Pricing Procedure via Robot Framework | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `configure_product_discovery_settings` | `rlm_configure_product_discovery_settings.py` | Set the Product Discovery default catalog to QuantumBit Software via Robot Framework | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
 | `reconfigure_pricing_discovery` | `rlm_reconfigure_expression_set.py` | Reconfigure autoproc `Salesforce_Default_Pricing_Discovery_Procedure`: fix context definition, rank, start date | See `cumulusci.yml` |
 | `create_procedure_plan_definition` | `rlm_create_procedure_plan_def.py` | Create Procedure Plan Definition + inactive Version via Connect API (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
 | `activate_procedure_plan_version` | `rlm_create_procedure_plan_def.py` | Activate ProcedurePlanDefinitionVersion after data load (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
+| `apply_procedure_plan_overlay` | `rlm_apply_procedure_plan_overlay.py` | Apply and verify a procedure-plan overlay with a guarded deactivate/reactivate boundary | [procedure plan overlays README](datasets/procedure_plan_overlays/README.md) |
 | `deploy_billing_id_settings` | (CCI Deploy) | Deploy Billing Settings with org-specific record IDs resolved via XPath transform SOQL queries | See `cumulusci.yml` |
 | `deploy_billing_template_settings` | (CCI Deploy) | Re-enable Invoice Email/PDF toggles to trigger default template auto-creation (cycle step 3) | See `cumulusci.yml` |
 | `ensure_pricing_schedules` | `rlm_repair_pricing_schedules.py` | Ensure pricing schedules exist before expression set deploy | See `cumulusci.yml` |
@@ -846,18 +879,16 @@ cci task run robot_order_from_quote --org beta
 
 ### App Launcher
 
-`assemble_and_deploy_ux` assembles `templates/appMenus/base/AppSwitcher.appMenu-meta.xml` and attempts a Metadata API deploy (step 27, gated by `ux=true`). When that deploy succeeds it becomes the **org-default** App Launcher order — new users inherit it automatically. The deploy is skipped gracefully on orgs where the AppMenu contains managed ConnectedApp or Network entries (Salesforce cannot validate those references); in that case the template is **not** applied as the org default.
+App Launcher ordering is applied **dynamically** by `reorder_app_launcher` (step 2 of `prepare_ux`, step 29 of `prepare_rlm_org`, on all `ux=true` orgs). `assemble_and_deploy_ux` does **not** assemble or deploy appMenus — it only removes any stale `appMenus/` output left by older assembler versions. The task queries `AppMenuItem` via REST SOQL, builds an ordered `ApplicationId` list from its `priority_app_labels` option (a display-label priority list; see the task description for the default), and submits it to `AppLauncherController/saveOrder` via Aura XHR as a **user-level customization** for the automation user. No UI drag, and no Metadata API deploy — which is necessary because Salesforce blocks AppSwitcher Metadata API deployment on orgs whose AppMenu contains managed ConnectedApp or Network entries (the common Trialforce case), and `AppMenuItem.SortOrder` is read-only via all other APIs. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
 
-On all `ux=true` orgs, `reorder_app_launcher` (step 2 of `prepare_ux`) applies the template order as a **user-level customization** for the automation user — it queries `AppMenuItem` via REST SOQL, builds an ordered `ApplicationId` list, and submits it to `AppLauncherController/saveOrder` via Aura XHR. No UI drag required. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
-
-To capture a customized order from an org and commit it as the new template:
+To capture the running user's current order as a versioned reference snapshot:
 
 ```bash
-# Capture your customized App Launcher order from the default org
+# Writes templates/appMenus/base/AppSwitcher.appMenu-meta.xml — a reference snapshot, no deploy.
 python scripts/sync_appmenu_from_user.py
-# Writes directly to templates/appMenus/base/AppSwitcher.appMenu-meta.xml — no deploy.
-# Then run prepare_ux or assemble_and_deploy_ux to deploy.
 ```
+
+The snapshot is **not** consumed by `reorder_app_launcher` (which orders by `priority_app_labels`); use it to review the current order or to inform that label list.
 
 ### Using Custom Tasks
 
@@ -938,7 +969,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 | Flow | Description |
 |------|-------------|
-| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (30 steps). This is the primary flow for full org setup. |
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (33 steps). This is the primary flow for full org setup. |
 
 #### prepare_rlm_org Step Order
 
@@ -972,12 +1003,15 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 26 | `prepare_revenue_settings` | Always (steps skipped internally when `manufacturing=true`) |
 | 27 | `prepare_pricing_discovery` | Always |
 | 28 | `prepare_ramp_builder` | Always |
-| 29 | `prepare_ux` | `ux` |
-| 30 | `prepare_manufacturing` | `manufacturing` |
-| 31 | `refresh_all_decision_tables` | Always |
-| 32 | `stamp_git_commit` | Always |
+| 29 | `prepare_large_stx` | `large_stx` |
+| 30 | `prepare_personas` | `personas` |
+| 31 | `prepare_ux` | `ux` |
+| 32 | `prepare_manufacturing` | `manufacturing` |
+| 33 | `refresh_all_decision_tables` | Always |
+| 34 | `rebuild_search_index` | Always |
+| 35 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles base UX metadata. Step 30 (`prepare_manufacturing`) is gated by `manufacturing` (default `true`) and runs the full Manufacturing feature suite including a second UX assembly pass for MFG-specific pages. Step 26 (`prepare_revenue_settings`) runs as a flow step but all internal tasks are skipped when `manufacturing=true` — `prepare_mfg_revenue_settings` handles Revenue Settings configuration instead. Step 31 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 32 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 31 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 32 (`prepare_manufacturing`) is gated by `manufacturing` (default `true`) and runs the full Manufacturing feature suite including a second UX assembly pass for MFG-specific pages. Step 26 (`prepare_revenue_settings`) runs as a flow step but all internal tasks are skipped when `manufacturing=true` — `prepare_mfg_revenue_settings` handles Revenue Settings configuration instead. Step 33 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 34 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 35 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 
@@ -985,8 +1019,8 @@ Use these flows to run all QB extract tasks or all QB idempotency tests by group
 
 | Flow | Description |
 |------|-------------|
-| `run_qb_extracts` | Runs all 9 Data Management - Extract tasks (extract_qb_pcm_data, extract_qb_pricing_data, extract_qb_product_images_data, extract_qb_dro_data, extract_qb_clm_data, extract_qb_rating_data, extract_qb_rates_data, extract_qb_transactionprocessingtypes_data, extract_qb_guidedselling_data). Requires `--org`. Output in `datasets/sfdmu/extractions/<plan>/<timestamp>/`. |
-| `run_qb_idempotency_tests` | Runs all 9 Data Management - Idempotency tasks (test_qb_*_idempotency for the same plans). Loads each plan twice and fails if any object's record count increases. qb-pcm uses extraction roundtrip by default. Requires `--org`. |
+| `run_qb_extracts` | Runs all 10 Data Management - Extract tasks (extract_qb_pcm_data, extract_qb_pricing_data, extract_qb_product_images_data, extract_qb_dro_data, extract_qb_clm_data, extract_qb_rating_data, extract_qb_rates_data, extract_qb_transactionprocessingtypes_data, extract_qb_guidedselling_data, extract_qb_guidedselling_products_data). Requires `--org`. Output in `datasets/sfdmu/extractions/<plan>/<timestamp>/`. |
+| `run_qb_idempotency_tests` | Runs all 9 Data Management - Idempotency tasks, including `test_qb_guidedselling_products_idempotency`. Loads each plan twice and fails if any object's record count increases. qb-pcm uses extraction roundtrip by default. Requires `--org`. |
 
 See [Data Management Tasks](#data-management-tasks) for per-task details and group listing.
 
@@ -1006,17 +1040,17 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_clm` | Load CLM data | `clm`, `clm_data` |
 | `prepare_docgen` | Create docgen library, enable Document Builder + Document Templates Export + Design Document Templates toggles, deploy metadata | `docgen` |
 | `prepare_billing` | Load billing data, activate flows/records, deploy ID-based settings via XPath transforms, trigger default template auto-creation (3-step cycle) | `billing`, `qb`, `q3`, `refresh` |
-| `prepare_prm` | Create community, patch Network email (placeholder → Network's current EmailSenderAddress), deploy PRM metadata, revert Network email to placeholder, publish community, sharing rules, assign RLM_PRM permission set, load PRM data | `prm`, `prm_exp_bundle`, `sharingsettings`, `qb` |
+| `prepare_prm` | Create community, patch Network email, deploy PRM metadata, revert Network email, publish community, assign RLM_PRM permission set, load PRM data; optionally invokes `prepare_prm_pricing` when `prm_pricing=true` | `prm`, `prm_exp_bundle`, `prm_pricing`, `qb` |
 | `prepare_tax` | Create tax engine, load data, activate records | `tax`, `qb`, `q3`, `refresh` |
 | `prepare_rating` | Load rating + rates data, activate | `rating`, `rates`, `qb`, `q3`, `refresh` |
 | `extract_rating` | Extract rating and rates data from an org | -- |
 | `prepare_agents` | Deploy Agentforce agents, settings, permissions | `agents` |
-| `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce` |
+| `refresh_all_decision_tables` | Sync pricing, refresh all DT categories | `rating`, `commerce`, `prm`, `prm_pricing` |
 | `prepare_decision_tables` | Activate decision tables | Scratch only |
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
 | `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |
 | `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, configure settings, import CML models, activate | `constraints`, `constraints_data`, `qb` |
-| `prepare_guidedselling` | Load guided selling data, deploy metadata | `guidedselling`, `qb` |
+| `prepare_guidedselling` | Assign guided selling permissions, deploy Guided Selling metadata, and update Product2 guided-selling field values | `guidedselling`, `qb` |
 | `prepare_payments` | Deploy payments site, publish community, deploy settings | `payments` |
 
 ### Manufacturing Flows
@@ -1074,9 +1108,9 @@ The Manufacturing feature suite is orchestrated by `prepare_manufacturing`, invo
 
 | Flow | Description | Feature Flag |
 |------|-------------|--------------|
-| `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 27 of `prepare_rlm_org`. | `ux` |
+| `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 29 of `prepare_rlm_org`. | `ux` |
 
-**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → qb → tso → constraints → ramps → collections → utils → docgen → approvals`) followed by sequential YAML patch application. One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing, rates, and ramps are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
+**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`) followed by sequential YAML patch application (order: `quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections → prm_pricing`). One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing, rates, and ramps are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
 
 ### Utility Flows and Tasks
 
@@ -1189,12 +1223,17 @@ datasets/sfdmu/
 | qb-rating | `datasets/sfdmu/qb/en-US/qb-rating/` | Rating design-time data | [README](datasets/sfdmu/qb/en-US/qb-rating/README.md) |
 | qb-rates | `datasets/sfdmu/qb/en-US/qb-rates/` | Rates data | [README](datasets/sfdmu/qb/en-US/qb-rates/README.md) |
 | qb-prm | `datasets/sfdmu/qb/en-US/qb-prm/` | Partner Relationship Management (channel programs, levels, members) | [README](datasets/sfdmu/qb/en-US/qb-prm/README.md) |
+| qb-prm-pricing | `datasets/sfdmu/qb/en-US/qb-prm-pricing/` | PRM pricing overlay data (partner accounts, channel programs, member pricing, account self-lookups) | [README](datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) |
 
 #### Procedure Plans Data Plan
 
 | Data Plan | Directory | Description | Documentation |
 |-----------|-----------|-------------|---------------|
 | procedure-plans | `datasets/sfdmu/procedure-plans/` | Procedure Plan sections and options with expression set links (2-pass upsert + Connect API + activation) | [README](datasets/sfdmu/procedure-plans/README.md) |
+
+Procedure-plan overlays that require resolved parent IDs live under
+`datasets/procedure_plan_overlays/` and are applied by dedicated CCI tasks
+rather than SFDMU.
 
 #### Archived Data Plans
 
@@ -1213,8 +1252,10 @@ Constraint model data is managed by the Python-based CML utility (`tasks/rlm_cml
 |-------|-----------|-------------|---------------|
 | QuantumBitComplete | `datasets/constraints/qb/QuantumBitComplete/` | 43 | [Constraints Utility Guide](datasets/constraints/README.md) |
 | Server2 | `datasets/constraints/qb/Server2/` | 81 | [Constraints Utility Guide](datasets/constraints/README.md) |
-| GeneratorSet | `datasets/constraints/mfg/GeneratorSet/` | — | [Constraints Utility Guide](datasets/constraints/README.md) |
-| Fuel_Cell | `datasets/constraints/mfg/Fuel_Cell/` | — | [Constraints Utility Guide](datasets/constraints/README.md) |
+| QuantumBitPCM | `datasets/constraints/qb/QuantumBitPCM/` | 12 | [Constraints Utility Guide](datasets/constraints/README.md) |
+| QuantumBitBundle | `datasets/constraints/qb/QuantumBitBundle/` | 59 | [Constraints Utility Guide](datasets/constraints/README.md) |
+| GeneratorSet | `datasets/constraints/mfg/genSet/` | 467 | [Constraints Utility Guide](datasets/constraints/README.md) |
+| Fuel_Cell | `datasets/constraints/mfg/fuelCell/` | 29 | [Constraints Utility Guide](datasets/constraints/README.md) |
 
 For details on exporting new models, importing into target orgs, polymorphic ID resolution, and CCI integration, see the [Constraints Utility Guide](datasets/constraints/README.md).
 
@@ -1227,6 +1268,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Dev Environment Setup](docs/guides/dev-environment-setup.md) | Canonical local toolchain architecture — shell config layout, direnv `.envrc` per-project pinning, major-line update strategy, replication on new workstations |
 | [Constraints Utility Guide](datasets/constraints/README.md) | CML constraint model export, import, validate -- architecture, workflows, polymorphic resolution |
 | [Constraints Setup](docs/guides/constraints-setup.md) | `prepare_constraints` flow order, feature flags, deployment phases |
+| [CumulusCI Reference](docs/references/cci-task-reference.md) | Stable index for generated CCI task, flow, and feature flag references |
 | [Decision Table Examples](docs/references/decision-table-examples.md) | Comprehensive examples for Decision Table management tasks |
 | [Task Examples](docs/references/task-examples.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/references/context-service-utility.md) | Context Service utility usage and plan examples |
@@ -1254,12 +1296,13 @@ Each SFDMU data plan has its own detailed README documenting objects, fields, lo
 - [qb-rating README](datasets/sfdmu/qb/en-US/qb-rating/README.md) -- Rating
 - [qb-rates README](datasets/sfdmu/qb/en-US/qb-rates/README.md) -- Rates
 - [qb-prm README](datasets/sfdmu/qb/en-US/qb-prm/README.md) -- Partner Relationship Management
+- [qb-prm-pricing README](datasets/sfdmu/qb/en-US/qb-prm-pricing/README.md) -- PRM Pricing Overlay
 - [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) -- Procedure Plans
 - [mfg README](datasets/sfdmu/mfg/README.md) -- Manufacturing data shape (add plans under mfg/en-US/; same patterns as qb)
 
 ### Robot Framework
 
-- [Robot Setup README](robot/rlm-base/tests/setup/README.md) -- Browser automation for setup page toggles and picklists (Document Builder, Constraints Settings, Revenue Settings)
+- [Robot Setup README](robot/rlm-base/tests/setup/README.md) -- Browser automation for setup page toggles and picklists (Document Builder, Constraints Settings, Revenue Settings, Pricing Setup, Product Discovery, Timeline)
 - [E2E Test Framework](docs/features/e2e-test-framework.md) -- End-to-end UI tests (Quote-to-Order flow), shadow DOM architecture, and debugging guide
 
 ### Configuration Files
@@ -1293,7 +1336,7 @@ rlm-base-dev/
 │   ├── applications/           # RLM_Revenue_Cloud variants (base, quantumbit, tso, manufacturing) + standalones
 │   │   └── patches/            # Feature-conditional actionOverride patches (billing, rates, ramps)
 │   ├── appMenus/
-│   │   └── base/               # AppSwitcher (always assembled; deploy skipped if org has managed entries)
+│   │   └── base/               # AppSwitcher snapshot (reference only; not assembled/deployed — order applied via reorder_app_launcher)
 │   ├── objects/                # Object-level UX bindings + compact layouts + list views
 │   │   ├── base/               # Always-on (actionOverrides, compactLayoutAssignment, compactLayouts, listViews)
 │   │   ├── billing/            # Billing feature (TransactionJournal)
@@ -1389,10 +1432,12 @@ rlm-base-dev/
 │   ├── constraints/            # CML constraint model data plans
 │   │   ├── qb/
 │   │   │   ├── QuantumBitComplete/
-│   │   │   └── Server2/
+│   │   │   ├── Server2/
+│   │   │   ├── QuantumBitPCM/
+│   │   │   └── QuantumBitBundle/
 │   │   ├── mfg/
-│   │   │   ├── GeneratorSet/   # Industrial generator set constraint model
-│   │   │   └── Fuel_Cell/      # Fuel cell product constraint model
+│   │   │   ├── genSet/         # Industrial generator set constraint model
+│   │   │   └── fuelCell/       # Fuel cell product constraint model
 │   │   └── README.md           # Constraints utility guide
 │   └── context_plans/          # Context definition update plans (JSON manifests)
 │       ├── ConstraintEngineNodeStatus/  # Adds ConstraintEngineNodeStatus to SalesTransaction context
@@ -1457,7 +1502,7 @@ cci flow run prepare_rlm_org -o ux false
 ### Assemble and Deploy UX Metadata
 
 ```bash
-# Assemble all UX metadata and deploy (same as step 27)
+# Assemble all UX metadata and deploy (same as step 29)
 cci flow run prepare_ux
 
 # Dry-run only — inspect unpackaged/post_ux/ without deploying
@@ -1485,7 +1530,7 @@ cci flow run prepare_rlm_org
 cci flow run prepare_constraints --org <org> -o constraints_data true
 ```
 
-This will validate CML files, import both QuantumBitComplete and Server2 models, and activate their expression sets. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
+This will validate CML files, import all three constraint models (QuantumBitComplete, Server2, and QuantumBitPCM), and activate their expression sets. See [Constraints Setup](docs/guides/constraints-setup.md) for flow details.
 
 ### Export a Constraint Model
 
@@ -1502,14 +1547,17 @@ See the [Constraints Utility Guide](datasets/constraints/README.md) for full exp
 ### App Launcher order
 
 ```bash
-# Capture your customized App Launcher order from the default org (writes to templates/appMenus/base/)
+# Capture the running user's order as a reference snapshot (writes templates/appMenus/base/; no deploy)
 python scripts/sync_appmenu_from_user.py
 
-# Deploy App Launcher + reorder (runs automatically as step 1+2 of prepare_ux on all ux=true orgs)
+# Apply the App Launcher order (runs as step 2 of prepare_ux on all ux=true orgs)
 cci flow run prepare_ux --org <org>
 
-# Assemble and deploy AppSwitcher metadata only (reorder_app_launcher runs separately)
-cci task run assemble_and_deploy_ux -o metadata_type appmenus --org <org>
+# Apply the App Launcher order only, without the rest of prepare_ux
+# (reorder_app_launcher orders by its priority_app_labels option via Aura saveOrder; assemble_and_deploy_ux
+#  does NOT handle appMenus, and AppSwitcher can't deploy via the Metadata API when the AppMenu contains
+#  managed ConnectedApp/Network entries — the Trialforce case)
+cci task run reorder_app_launcher --org <org>
 ```
 
 ### Load Product Data
@@ -1662,7 +1710,9 @@ When contributing to this project:
 
 ## Branch Information
 
-- **main**: Salesforce Release 260 (Spring '26, GA)
+- **`main`**: Salesforce Release 262 (Summer '26, API v67.0) — current GA target (promoted from `262`)
+- **`262`**: Retained Release 262 upgrade branch — now equivalent to `main`
+- **`release/260`**: Salesforce Release 260 (Spring '26, GA) — prior GA reference
 - Other branches exist for different release scenarios and preview features
 
 ## Additional Resources
@@ -1670,10 +1720,11 @@ When contributing to this project:
 - [CumulusCI Documentation](https://cumulusci.readthedocs.io/)
 - [Salesforce CLI Documentation](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_reference.meta/sfdx_cli_reference/)
 - [SFDMU Documentation](https://help.sfdmu.com/)
-- [Revenue Cloud Developer Guide (Release 260)](https://developer.salesforce.com/docs/atlas.en-us.260.0.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm)
+- [Revenue Cloud Developer Guide](https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (latest)
+- [Revenue Cloud Developer Guide (Release 260)](https://developer.salesforce.com/docs/atlas.en-us.260.0.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (prior GA reference)
 - [Revenue Cloud Help Documentation](https://help.salesforce.com/s/articleView?id=ind.revenue_lifecycle_management_get_started.htm&type=5)
 
-**Note:** This project works with all Revenue Cloud capabilities documented in both the Developer Guide and Help Documentation for Release 260 (Spring '26).
+**Note:** This project works with the Revenue Cloud capabilities documented for Release 262 (Summer '26). Release 260 (Spring '26) is the prior GA reference; pre-release-freeze 262 schema/behavior changes are tracked in `docs/upgrades/262-upgrade-plan.md`.
 
 ## License
 

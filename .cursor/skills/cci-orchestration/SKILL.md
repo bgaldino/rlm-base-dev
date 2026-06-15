@@ -161,11 +161,10 @@ This project's `cumulusci.yml` (~3275 lines) is organized into these sections:
 
 ### 1. Scratch Org Definitions (`orgs.scratch`)
 
-21 scratch org configs, each referencing a JSON definition in `orgs/`. Key orgs:
-- `beta` — general-purpose development
-- `dev-sb0` — sandbox-like development
-- `tfid-*` — Trialforce-based orgs for various configurations
-- `dev_preview` / `dev_previous` — API version testing
+Scratch org configs in `orgs/` (organized into subfolders). Key orgs:
+- `beta` / `dev` / `ent` — standard development (root)
+- `orgs/internal/` — sandbox-derived shapes (dev-sb0, dev-r1, ent-sb0, etc.)
+- `orgs/tfid/` — Trialforce-based orgs (tfid-cdo, tfid-sdo, tfid-qb-tso, etc.)
 
 ### 2. Project Settings (`project`)
 
@@ -174,7 +173,7 @@ project:
   name: rlm-base
   package:
     name: rlm-base
-    api_version: "66.0"    # Spring '26
+    api_version: "67.0"    # Summer '26 (Release 262)
   source_format: sfdx
 ```
 
@@ -241,7 +240,7 @@ either a built-in CCI class or a custom class in `tasks/`.
 ### 6. Flows (`flows`)
 
 41 flows organized as a hierarchy. The main entry point is `prepare_rlm_org`
-(31 steps), which calls sub-flows:
+(33 steps), which calls sub-flows:
 
 ```
 prepare_rlm_org
@@ -251,31 +250,33 @@ prepare_rlm_org
 ├── 4. prepare_payments
 ├── 5. deploy_full (force-app/main/default)
 ├── 6. prepare_price_adjustment_schedules
-├── 7. prepare_payments (re-run)
-├── 8. prepare_quantumbit (utils, approvals, QB metadata)
-├── 9. prepare_product_data (PCM, Q3, product images)
-├── 10. prepare_pricing_data (pricing delete + insert)
-├── 11. prepare_docgen
-├── 12. prepare_dro
-├── 13. prepare_tax
-├── 14. prepare_billing
-├── 15. prepare_analytics
-├── 16. prepare_clm
-├── 17. prepare_rating (delete, insert, activate for rating+rates)
-├── 18. activate_and_deploy_expression_sets
-├── 19. prepare_tso (TSO-specific PSLs, PSGs, deploy)
-├── 20. prepare_procedureplans
-├── 21. prepare_prm
-├── 22. prepare_agents
-├── 23. prepare_constraints
-├── 24. prepare_guidedselling
-├── 25. prepare_revenue_settings
-├── 26. prepare_pricing_discovery
-├── 27. prepare_ramp_builder
-├── 28. prepare_ux (when: ux=true)
-├── 29. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
-├── 30. refresh_all_decision_tables
-└── 31. stamp_git_commit
+├── 7. prepare_quantumbit (utils, approvals, QB metadata)
+├── 8. prepare_product_data (PCM, Q3, product images)
+├── 9. prepare_pricing_data (pricing delete + insert)
+├── 10. prepare_docgen
+├── 11. prepare_dro
+├── 12. prepare_tax
+├── 13. prepare_billing
+├── 14. prepare_analytics
+├── 15. prepare_clm
+├── 16. prepare_rating (delete, insert, activate for rating+rates)
+├── 17. activate_and_deploy_expression_sets
+├── 18. prepare_tso (TSO-specific PSLs, PSGs, deploy)
+├── 19. prepare_procedureplans
+├── 20. prepare_prm
+├── 21. prepare_agents
+├── 22. prepare_constraints
+├── 23. prepare_guidedselling
+├── 24. prepare_revenue_settings
+├── 25. prepare_pricing_discovery
+├── 26. prepare_ramp_builder
+├── 27. prepare_large_stx (when: large_stx=true)
+├── 28. prepare_personas (when: personas=true)
+├── 29. prepare_ux (when: ux=true)
+├── 30. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
+├── 31. refresh_all_decision_tables
+├── 32. rebuild_search_index (PCM catalog search index, async)
+└── 33. stamp_git_commit
 ```
 
 > For the complete flow listing with all steps and `when:` conditions, read
@@ -371,11 +372,11 @@ cci task run test_qb_pricing_idempotency --org beta
 # Activate records
 cci task run activate_rating_records --org beta
 
-# Deploy and assemble UX
-cci task run assemble_and_deploy_ux --org dev-sb0
+# Deploy and assemble UX (deploys to your DEFAULT cci org — no --org flag)
+cci task run assemble_and_deploy_ux
 
-# UX dry-run (assemble only, no deploy)
-cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+# UX dry-run (assemble only, no deploy; local — no org needed)
+cci task run assemble_and_deploy_ux -o deploy false
 
 # Capture UX drift from org
 cci flow run capture_ux_drift --org dev-sb0
@@ -404,6 +405,7 @@ cci flow info prepare_rlm_org
 ## Related Skills
 
 - **SFDMU Data Plans** — `.cursor/skills/sfdmu-data-plans/SKILL.md`
+- **Build Harness** — `.cursor/skills/build-harness/SKILL.md`
 - **Revenue Cloud Data Model** — `.cursor/skills/revenue-cloud-data-model/SKILL.md`
 - **Repository Integration** — `.cursor/skills/repo-integration/SKILL.md`
 - **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`

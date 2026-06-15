@@ -1,7 +1,7 @@
 {
-  "assembled_at": "2026-04-06T04:17:40.278813Z",
+  "assembled_at": "2026-06-11T02:54:06.761778Z",
   "feature_flags": {
-    "qb": true,
+    "quantumbit": true,
     "billing": true,
     "billing_ui": true,
     "tax": true,
@@ -9,7 +9,7 @@
     "rates": true,
     "clm": true,
     "dro": true,
-    "guidedselling": false,
+    "guidedselling": true,
     "ramps": true,
     "tso": false,
     "prm": true,
@@ -19,7 +19,10 @@
     "constraints": true,
     "analytics": true,
     "procedureplans": true,
-    "collections": false
+    "large_stx": false,
+    "collections": false,
+    "personas": true,
+    "prm_pricing": true
   },
   "assembled": [
     {
@@ -32,6 +35,16 @@
           "feature": "utils",
           "patch_type": "insert_action",
           "description": "insert actions: Account.RLM_QuickQuote"
+        },
+        {
+          "feature": "prm_pricing",
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <name>Facet-233dc5b6-35f9-467e-b1da-f02d79f91713</name>"
+        },
+        {
+          "feature": "prm_pricing",
+          "patch_type": "add_component",
+          "description": "add component: flexipage:fieldSection"
         }
       ]
     },
@@ -128,6 +141,20 @@
     },
     {
       "type": "flexipage",
+      "name": "RLM_Channel_Program_Level_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Channel_Program_Level_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/prm_pricing/RLM_Channel_Program_Level_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Channel_Program_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Channel_Program_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/prm_pricing/RLM_Channel_Program_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
       "name": "RLM_Collection_Rule_Builder.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Collection_Rule_Builder.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing_ui/RLM_Collection_Rule_Builder.flexipage-meta.xml",
@@ -145,6 +172,13 @@
       "name": "RLM_Contract_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Contract_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Contract_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Dispute_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Dispute_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing_ui/RLM_Dispute_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -246,6 +280,11 @@
       "patches": [
         {
           "feature": "billing_ui",
+          "patch_type": "insert_action",
+          "description": "insert actions: PreviewInvoices, BillNow"
+        },
+        {
+          "feature": "billing_ui",
           "patch_type": "insert_after_xml",
           "description": "insert XML after <name>detailTabContent</name>"
         },
@@ -253,11 +292,6 @@
           "feature": "billing_ui",
           "patch_type": "insert_after_xml",
           "description": "insert XML after <identifier>detailTab</identifier>"
-        },
-        {
-          "feature": "billing_ui",
-          "patch_type": "insert_after_xml",
-          "description": "insert XML after <value>BrowseCatalog</value>"
         },
         {
           "feature": "billing_ui",
@@ -297,7 +331,23 @@
       "name": "RLM_Product_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Product_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Product_Record_Page.flexipage-meta.xml",
-      "patches": []
+      "patches": [
+        {
+          "feature": "guidedselling",
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <name>Facet-0c7c6745-b043-4551-a759-983b62e14c5a</name>"
+        },
+        {
+          "feature": "guidedselling",
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <identifier>flexipage_fieldSection4</identifier>"
+        },
+        {
+          "feature": "constraints",
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <identifier>runtime_industries_pricing_pricingDiscountCalendar</identifier>"
+        }
+      ]
     },
     {
       "type": "flexipage",
@@ -381,27 +431,17 @@
         {
           "feature": "ramp_builder",
           "patch_type": "insert_action",
-          "description": "insert actions: Quote.RLM_Create_Ramp_Schedule_V4, Quote.RLM_Create_Proposal"
+          "description": "insert actions: Quote.RLM_Create_Proposal"
         },
         {
-          "feature": "ramp_builder",
-          "patch_type": "insert_action",
-          "description": "insert actions: Quote.RLM_Submit_for_Approval"
+          "feature": "personas",
+          "patch_type": "insert_after_xml",
+          "description": "insert XML after <identifier>runtime_sales_pathassistant_pathAssistant</identifier>"
         },
         {
-          "feature": "ramp_builder",
-          "patch_type": "add_display_field",
-          "description": "add display field: QuoteLineItem.RLM_Approval__c"
-        },
-        {
-          "feature": "ramp_builder",
-          "patch_type": "add_facet_field",
-          "description": "add fields to Quote Information: RLM_Approval_Status__c, RLM_Payment_Terms__c"
-        },
-        {
-          "feature": "ramp_builder",
-          "patch_type": "add_facet_field",
-          "description": "add fields to System Information: RLM_Approval_Level__c"
+          "feature": "prm_pricing",
+          "patch_type": "add_sales_txn_line_editor_field",
+          "description": "add Sales Transaction Line Editor displayFields: QuoteLineItem.RLM_Distributor_Discount_Percent__c, QuoteLineItem.RLM_Distributor_Unit_Price__c, QuoteLineItem.PartnerDiscountPercent, QuoteLineItem.PartnerUnitPrice, QuoteLineItem.RLM_Partner_Net_Total_Price__c, QuoteLineItem.TotalCost, QuoteLineItem.Margin, QuoteLineItem.MarginAmount"
         }
       ]
     },
@@ -759,9 +799,21 @@
       ]
     },
     {
+      "type": "profile",
+      "name": "RLM Sales Representative.profile-meta.xml",
+      "dest": "unpackaged/post_ux/profiles/RLM Sales Representative.profile-meta.xml",
+      "patches": []
+    },
+    {
       "type": "CustomObject",
       "name": "Asset.object-meta.xml",
       "dest": "unpackaged/post_ux/objects/Asset/Asset.object-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "CustomObject",
+      "name": "Contract.object-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contract/Contract.object-meta.xml",
       "source": "objects/base"
     },
     {
@@ -802,20 +854,50 @@
     },
     {
       "type": "compactLayout",
+      "name": "RLM_Contract_Compact_Layout.compactLayout-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contract/compactLayouts/RLM_Contract_Compact_Layout.compactLayout-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "compactLayout",
       "name": "RLM_Quote_Compact_Layout.compactLayout-meta.xml",
       "dest": "unpackaged/post_ux/objects/Quote/compactLayouts/RLM_Quote_Compact_Layout.compactLayout-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "listView",
-      "name": "All_Assets.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Asset/listViews/All_Assets.listView-meta.xml",
+      "name": "AllAccounts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Account/listViews/AllAccounts.listView-meta.xml",
       "source": "objects/base"
     },
     {
       "type": "listView",
-      "name": "All_Products.listView-meta.xml",
-      "dest": "unpackaged/post_ux/objects/Product2/listViews/All_Products.listView-meta.xml",
+      "name": "AllAssets.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Asset/listViews/AllAssets.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "AllContacts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contact/listViews/AllContacts.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "AllContracts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Contract/listViews/AllContracts.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "AllOrders.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Order/listViews/AllOrders.listView-meta.xml",
+      "source": "objects/base"
+    },
+    {
+      "type": "listView",
+      "name": "AllProducts.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/Product2/listViews/AllProducts.listView-meta.xml",
       "source": "objects/base"
     },
     {

@@ -13,12 +13,6 @@
                             <value>Invoice.Apply_Payment</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>FeedItem.TextPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.ContentPost</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>Global.NewEvent</value>
                         </valueListItems>
                         <valueListItems>
@@ -38,21 +32,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>Global.NewLead</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.ContentNote</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.RypplePost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.LinkPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.PollPost</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>FeedItem.QuestionPost</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Edit</value>

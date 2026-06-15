@@ -18,7 +18,7 @@ control order):
 
 The `force-app/` Admin profile is **classAccesses only**:
 - Step 5 (`deploy_full`): profile with no layout assignments
-- Step 27 (`prepare_ux`): full profile from `templates/profiles/base/` + patches
+- Step 29 (`prepare_ux`): full profile from `templates/profiles/base/` + patches
 
 ### Object metadata strip-and-build
 
@@ -26,7 +26,7 @@ These standard objects have `actionOverrides` and `compactLayoutAssignment`
 in `templates/objects/base/` (NOT `force-app/`):
 - Asset, Quote, Order, OrderItem, QuoteLineItem, FulfillmentOrderLineItem
 
-They deploy at step 27 after referenced flexipages exist. The `force-app/`
+They deploy at step 29 after referenced flexipages exist. The `force-app/`
 paths are forceignored.
 
 ### Metadata dependencies
@@ -55,6 +55,7 @@ paths are forceignored.
 | 7 | qb-rating | qb-pcm + qb-billing (UsageResourceBillingPolicy) |
 | 8 | qb-rates | qb-pcm + qb-rating (PURs must exist) + qb-pricing (PriceBook2) |
 | 9 | qb-approvals | post_approvals metadata + email templates |
+| 10 | qb-guidedselling-products | qb-pcm + `deploy_post_guidedselling` Product2 fields |
 
 ## Deletion Order
 
@@ -122,11 +123,14 @@ Reverse dependency order (children before parents):
 | 20 | prepare_prm | PRM community + data |
 | 21 | prepare_agents | Agent classes + deploy |
 | 22 | prepare_constraints | Constraints + CML |
-| 23 | prepare_guidedselling | Guided selling data |
+| 23 | prepare_guidedselling | Guided selling PSets + metadata + Product2 field values (qb-guidedselling-products) |
 | 24 | prepare_revenue_settings | Revenue Settings (Robot) |
 | 25 | prepare_pricing_discovery | Pricing discovery refresh |
 | 26 | prepare_ramp_builder | Ramp builder metadata |
-| 27 | prepare_ux | UX assembly + deploy (when `ux`) |
-| 28 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
-| 29 | refresh_all_decision_tables | DT cache refresh |
-| 30 | stamp_git_commit | Always last |
+| 27 | prepare_large_stx | Large-deal sales-transaction metadata (when `large_stx`) |
+| 28 | prepare_personas | Persona profiles + PSGs + Sales Rep scratch user (when `personas`) |
+| 29 | prepare_ux | UX assembly + deploy (when `ux`) |
+| 30 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
+| 31 | refresh_all_decision_tables | DT cache refresh |
+| 32 | rebuild_search_index | PCM catalog search index build (async) |
+| 33 | stamp_git_commit | Always last |
