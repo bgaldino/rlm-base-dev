@@ -1307,47 +1307,6 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
-                    <name>direction</name>
-                    <value>ltr</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>display</name>
-                    <value>Display OmniScript on page</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>inlineLabel</name>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>inlineVariant</name>
-                    <value>brand</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>language</name>
-                    <value>English</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>subType</name>
-                    <value>QuoteProposal</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>theme</name>
-                    <value>lightning</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>type</name>
-                    <value>doc</value>
-                </componentInstanceProperties>
-                <componentName>runtime_omnistudio:omniscript</componentName>
-                <identifier>runtime_omnistudio_omniscript</identifier>
-            </componentInstance>
-        </itemInstances>
-        <name>Facet-d0f2d930-7a5f-4608-9b42-96c0370b8e64</name>
-        <type>Facet</type>
-    </flexiPageRegions>
-    <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
                     <name>appliedRebateTypeTabCheckbox</name>
                     <value>true</value>
                 </componentInstanceProperties>
