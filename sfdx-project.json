@@ -28,7 +28,6 @@
     { "path": "unpackaged/post_manufacturing_core" },
     { "path": "unpackaged/post_manufacturing_docgen" },
     { "path": "unpackaged/post_manufacturing_guidedselling" },
-    { "path": "unpackaged/post_manufacturing_pricing" },
     { "path": "unpackaged/post_manufacturing_rebates" },
     { "path": "unpackaged/post_manufacturing_ux" },
     { "path": "unpackaged/post_manufacturing_visualization" },
