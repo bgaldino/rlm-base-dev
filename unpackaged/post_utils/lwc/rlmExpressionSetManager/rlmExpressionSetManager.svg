@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100px" height="100px" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="10" width="80" height="80" rx="12" ry="12" fill="#4A90D9"/>
+    <!-- Left curly brace -->
+    <path d="M 32 35 Q 28 35 28 39 L 28 46 Q 28 50 24 50 Q 28 50 28 54 L 28 61 Q 28 65 32 65"
+          fill="none" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <!-- Three horizontal lines -->
+    <line x1="40" y1="40" x2="68" y2="40" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <line x1="40" y1="50" x2="68" y2="50" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <line x1="40" y1="60" x2="68" y2="60" stroke="white" stroke-width="3" stroke-linecap="round"/>
+</svg>
