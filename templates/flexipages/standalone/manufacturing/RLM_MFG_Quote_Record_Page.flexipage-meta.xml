@@ -19,7 +19,7 @@
                             <value>Quote.RLM_MFG_Create_Sales_Agreement</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RLM_CreateContract</value>
+                            <value>CreateContract</value>
                         </valueListItems>
                         <valueListItems>
                             <value>GenerateQuoteDocument</value>

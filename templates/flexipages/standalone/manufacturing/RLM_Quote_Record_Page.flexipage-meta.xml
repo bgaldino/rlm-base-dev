@@ -25,7 +25,7 @@
                             <value>Quote.RLM_MFG_Create_Service_Contract</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RLM_CreateContract</value>
+                            <value>CreateContract</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Edit</value>
