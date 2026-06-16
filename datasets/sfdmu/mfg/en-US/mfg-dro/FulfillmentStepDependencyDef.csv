@@ -1,7 +1,7 @@
 DependencyScope,DependsOnStepDefinition.Name,FulfillmentStepDefinition.Name,IsCompensateInReverse,Name,PropagateStateToDependentStep
-Plan,Validate Order Info,Convert Order to Asset,false,Wait on Provision Before Converting,#N/A
+Plan,Validate Order Info,Assetize Order,false,Wait on Provision Before Converting,#N/A
 Plan,Validate Order Info,Stage New Tenant for Provisioning,false,Require Validation Before Provisioning,#N/A
-Plan,Convert Order to Asset,Initiate Billing,false,Asset Conversion then Bill,#N/A
+Plan,Assetize Order,Initiate Billing,false,Asset Conversion then Bill,#N/A
 Plan,Initiate Billing,Post Invoice,false,Receive Payment,#N/A
 Plan,Post Invoice,Receive Payment,false,Post to Pay,#N/A
 Plan,IoT Health Check,Review IoT Report,false,Health Check to Review Report,#N/A
