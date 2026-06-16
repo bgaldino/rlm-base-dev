@@ -170,7 +170,7 @@ project:
     mfg_aaf: true             # Badger MFG Advanced Account Forecast
     mfg_rebates: true         # Badger MFG Rebates
     mfg_guidedselling: true   # Badger MFG Guided Selling
-    mfg_docgen: true          # Badger MFG OmniStudio Document Generation
+    mfg_docgen: true          # Badger MFG Document Generation
     mfg_visuals: true         # Badger MFG 3D Visualization (RenderDraw) and configuration flows
 
 #------------------------------#
@@ -1391,7 +1391,7 @@ tasks:
     group: Manufacturing
     description: >
       Activate the latest version of each Manufacturing OmniStudio DocumentTemplate
-      (Badger_Proposal, Price_Contract). DocumentTemplates always deploy as inactive.
+      (RLM_MFG_Sales_Proposal_Document, Price_Contract). DocumentTemplates always deploy as inactive.
       Run after deploy_mfg_doc_templates.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
@@ -1403,9 +1403,9 @@ tasks:
       Corrects Manufacturing DocumentTemplate ContentDocument binaries after a batch
       metadata deploy. Same Salesforce metadata API bug as fix_document_template_binaries:
       all DocumentTemplates deployed together receive the same ContentDocument binary
-      (first alphabetically — Badger_Proposal wins, Price_Contract gets the wrong binary).
-      Uploads the correct .dt binary from unpackaged/post_manufacturing_docgen/documentTemplates
-      for each template. Run after deploy_mfg_doc_templates + activate_mfg_docgen_templates.
+      (first alphabetically). Uploads the correct .dt binary from
+      unpackaged/post_manufacturing_docgen/documentTemplates for each template.
+      Run after deploy_mfg_doc_templates + activate_mfg_docgen_templates.
     class_path: tasks.rlm_docgen.FixDocumentTemplateBinaries
     options:
       templates_dir: unpackaged/post_manufacturing_docgen/documentTemplates
@@ -1890,44 +1890,16 @@ tasks:
 
   deploy_mfg_omni_datatransforms:
     description: >
-      Deploy Manufacturing OmniDataTransforms for document generation (Quote/Contract extraction,
-      field mapping, and template name extraction used by the doc gen OmniScript).
+      Deploy Manufacturing OmniDataTransforms for document generation
+      (RLMQuoteProposalExtract, RLMQuoteProposalTransform, getContract, tfContract).
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
       path: unpackaged/post_manufacturing_docgen/omniDataTransforms
 
-  deploy_mfg_omni_integration_procedures:
-    description: >
-      Deploy Manufacturing OmniIntegrationProcedure for document generation orchestration
-      (doc_Generation_Procedure). Must deploy after OmniDataTransforms.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Manufacturing
-    options:
-      path: unpackaged/post_manufacturing_docgen/omniIntegrationProcedures
-
-  deploy_mfg_omni_base_docgen_script:
-    description: >
-      Deploy Manufacturing base document generation OmniScript (doc_GenerationCore_English).
-      Orchestrates the core document generation flow for proposals and contracts.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Manufacturing
-    options:
-      path: unpackaged/post_manufacturing_docgen/base_docgen_omniscript/omniScripts
-
-  deploy_mfg_omni_quote_script:
-    description: >
-      Deploy Manufacturing Quote Proposal OmniScript (doc_QuoteProposal_English).
-      Provides the user-facing UI for generating quote proposal documents.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Manufacturing
-    options:
-      path: unpackaged/post_manufacturing_docgen/quote_omniscript/omniScripts
-
   deploy_mfg_doc_templates:
     description: >
-      Deploy Manufacturing document templates (Badger_Proposal and Price_Contract).
-      Must deploy after OmniScripts that reference these templates.
+      Deploy Manufacturing document templates (RLM_MFG_Sales_Proposal_Document and Price_Contract).
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Manufacturing
     options:
@@ -3886,10 +3858,10 @@ flows:
     description: >
       Full Manufacturing feature setup: deploys core metadata (assets, theme, fields, Apex),
       assigns Manufacturing permission sets and groups (with propagation sleep), deploys all
-      business process flows and Quick Actions, context plan extensions,
-      seed data (PCM, pricing, DRO, CML, tax, billing),
+      business process flows and Quick Actions, context plan extensions, document generation
+      (ODTs and document templates), seed data (PCM, pricing, DRO, CML, tax, billing),
       guided selling, rebates, advanced account forecasting,
-      UX assembly, and theme activation. Gated by manufacturing=true in prepare_rlm_org (step 30).
+      UX assembly, and theme activation. Gated by manufacturing=true in prepare_rlm_org (step 32).
     steps:
       1:
         flow: prepare_mfg_core
@@ -3901,26 +3873,29 @@ flows:
       4:
         flow: prepare_mfg_context_plan
       5:
-        flow: prepare_mfg_data
+        flow: prepare_mfg_docgen
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
       6:
+        flow: prepare_mfg_data
+      7:
         task: update_product_fulfillment_decomp_rules
         when: project_config.project__custom__dro and project_config.project__custom__manufacturing
-      7:
-        flow: prepare_mfg_visuals
       8:
-        flow: prepare_mfg_guided_selling
+        flow: prepare_mfg_visuals
       9:
-        flow: prepare_mfg_rebates
+        flow: prepare_mfg_guided_selling
       10:
-        flow: prepare_mfg_aaf
+        flow: prepare_mfg_rebates
       11:
+        flow: prepare_mfg_aaf
+      12:
         task: util_sleep
         when: project_config.project__custom__manufacturing
         options:
           seconds: *sleep_default
-      12:
-        flow: prepare_mfg_ux
       13:
+        flow: prepare_mfg_ux
+      14:
         task: activate_mfg_theme
         when: project_config.project__custom__manufacturing
 
@@ -4754,32 +4729,22 @@ flows:
   prepare_mfg_docgen:
     group: Manufacturing
     description: >
-      Deploy Manufacturing OmniStudio document generation components in dependency order:
-      OmniDataTransforms, OmniIntegrationProcedure, base doc gen OmniScript, Quote Proposal
-      OmniScript, and document templates (Badger_Proposal, Price_Contract). After deploying
-      templates, activates them (step 6) and fixes the Salesforce batch-deploy binary bug
-      that causes all templates to receive the same ContentDocument binary (step 7).
-      Gated by manufacturing=true and mfg_docgen=true.
+      Deploy Manufacturing document generation components: OmniDataTransforms (Quote/Contract
+      extraction and mapping), and document templates (RLM_MFG_Sales_Proposal_Document,
+      Price_Contract). After deploying templates, activates them (step 2) and fixes the
+      Salesforce batch-deploy binary bug that causes all templates to receive the same
+      ContentDocument binary (step 3). Gated by manufacturing=true and mfg_docgen=true.
     steps:
       1:
         task: deploy_mfg_omni_datatransforms
         when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
       2:
-        task: deploy_mfg_omni_integration_procedures
-        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
-      3:
-        task: deploy_mfg_omni_base_docgen_script
-        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
-      4:
-        task: deploy_mfg_omni_quote_script
-        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
-      5:
         task: deploy_mfg_doc_templates
         when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
-      6:
+      3:
         task: activate_mfg_docgen_templates
         when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
-      7:
+      4:
         task: fix_mfg_document_template_binaries
         when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_docgen
 

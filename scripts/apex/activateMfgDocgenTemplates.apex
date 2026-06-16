@@ -1,8 +1,8 @@
 // Activate the latest version of each Manufacturing DocumentTemplate.
-// Targets Badger_Proposal and Price_Contract (not prefixed with RLM_).
+// Targets RLM_MFG_Sales_Proposal_Document and Price_Contract.
 // Finds the highest version per name and sets IsActive = true.
 
-Set<String> mfgTemplateNames = new Set<String>{ 'Badger_Proposal', 'Price_Contract' };
+Set<String> mfgTemplateNames = new Set<String>{ 'RLM_MFG_Sales_Proposal_Document', 'Price_Contract' };
 
 Map<String, DocumentTemplate> latestByName = new Map<String, DocumentTemplate>();
 

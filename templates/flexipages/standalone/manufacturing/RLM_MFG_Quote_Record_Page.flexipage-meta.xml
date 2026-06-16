@@ -16,6 +16,9 @@
                             <value>Quote.RLM_Submit_for_Approval</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>Quote.RLM_Create_Proposal</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>Quote.RLM_MFG_Create_Sales_Agreement</value>
                         </valueListItems>
                         <valueListItems>
@@ -61,6 +64,10 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>hideChatterActions</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>hideSlackAction</name>
                     <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
