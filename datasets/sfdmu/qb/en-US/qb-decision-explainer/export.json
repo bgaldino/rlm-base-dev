@@ -1,0 +1,32 @@
+{
+  "apiVersion": "67.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "name": "Decision Explainer for Configuration Logs",
+      "objects": [
+        {
+          "query": "SELECT DeveloperName, MasterLabel, ApplicationUsageType FROM ApplicationSubtypeDefinition WHERE DeveloperName = 'SolverPath'",
+          "operation": "Upsert",
+          "externalId": "DeveloperName"
+        },
+        {
+          "query": "SELECT DeveloperName, MasterLabel, ApplicationUsageType FROM BusinessProcessTypeDef WHERE DeveloperName = 'SolverPath'",
+          "operation": "Upsert",
+          "externalId": "DeveloperName"
+        },
+        {
+          "query": "SELECT DeveloperName, MasterLabel, ApplicationType, ApplicationSubtype.DeveloperName, ProcessType.DeveloperName, ActionLogSchemaType, IsInternal, Description FROM ExplainabilityActionDef WHERE DeveloperName = 'SolverPath'",
+          "operation": "Upsert",
+          "externalId": "DeveloperName"
+        },
+        {
+          "query": "SELECT DeveloperName, MasterLabel, ExplainabilityActionDef.DeveloperName, IsActive, Description, DefinitionVersion FROM ExplainabilityActionVersion WHERE DeveloperName = 'SolverPath'",
+          "operation": "Upsert",
+          "externalId": "DeveloperName"
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

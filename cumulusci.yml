@@ -556,6 +556,7 @@ project:
     quantumbit_prm_dataset: &quantumbit_prm_dataset "datasets/sfdmu/qb/en-US/qb-prm"                                 # QuantumBit PRM data
     quantumbit_prm_pricing_dataset: &quantumbit_prm_pricing_dataset "datasets/sfdmu/qb/en-US/qb-prm-pricing"         # QuantumBit PRM pricing overlay data
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
+    quantumbit_decision_explainer_dataset: &quantumbit_decision_explainer_dataset "datasets/sfdmu/qb/en-US/qb-decision-explainer"   # QuantumBit Decision Explainer (Configuration Logs)
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
     prm_pricing_procedure_plan_overlay: &prm_pricing_procedure_plan_overlay "datasets/procedure_plan_overlays/prm_pricing.json" # PRM pricing Procedure Plan overlay
@@ -2021,6 +2022,13 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_approvals_dataset
+
+  insert_qb_decision_explainer_data:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit Decision Explainer data (Configuration Logs setup)
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_decision_explainer_dataset
 
   deactivate_decision_tables:
     group: Revenue Lifecycle Management
@@ -3520,16 +3528,19 @@ flows:
         task: deploy_post_utils
         when: project_config.project__custom__quantumbit
       2:
-        flow: prepare_approvals
+        task: insert_qb_decision_explainer_data
+        when: project_config.project__custom__quantumbit
       3:
+        flow: prepare_approvals
+      4:
         task: deploy_quantumbit
         when: project_config.project__custom__quantumbit
-      4:
+      5:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit
         options:
           api_names: *ps_quantumbit
-      5:
+      6:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:
