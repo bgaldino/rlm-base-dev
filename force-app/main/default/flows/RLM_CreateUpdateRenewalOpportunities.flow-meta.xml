@@ -220,6 +220,7 @@
     </actionCalls>
     <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Cloned from template runtime_revenue_arcflows__RenewalOpp. Customization: TotalPrice assignments removed from all OpportunityLineItem create/update nodes. Salesforce only allows setting UnitPrice OR TotalPrice on OLI, not both. The flow sets UnitPrice (weighted average) and Quantity; Salesforce auto-calculates TotalPrice.</description>
     <assignments>
         <description>Adds the asset price and asset quantity  in the loop to the TotalAssetPriceAmount and TotalAssetQuantity variables, respectively.</description>
         <name>AddAssetPriceToTotalAssetPriceAndQuantityToTotalAssetQuantity</name>
@@ -338,13 +339,6 @@
             </value>
         </assignmentItems>
         <assignmentItems>
-            <assignToReference>opportunityProductToCreate.TotalPrice</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>IterateOverAssets.totalLineAmount</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
             <assignToReference>OpportunityProductsToCreate</assignToReference>
             <operator>Add</operator>
             <value>
@@ -408,13 +402,6 @@
             <operator>Assign</operator>
             <value>
                 <elementReference>IterateOverAssets.endDate</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>opportunityProductToUpdate.TotalPrice</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>IterateOverAssets.totalLineAmount</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -501,13 +488,6 @@
             </value>
         </assignmentItems>
         <assignmentItems>
-            <assignToReference>opportunityProductToCreate.TotalPrice</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>IterateOverOpportunityProducts.TotalPrice</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
             <assignToReference>OpportunityProductsWithOpportunityIdForAllProducts</assignToReference>
             <operator>Add</operator>
             <value>
@@ -578,13 +558,6 @@
             <operator>Assign</operator>
             <value>
                 <elementReference>IterateOverOpportunityProductsToCreate.AssetId</elementReference>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
-            <assignToReference>opportunityProductToCreate.TotalPrice</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <elementReference>IterateOverOpportunityProductsToCreate.TotalPrice</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
