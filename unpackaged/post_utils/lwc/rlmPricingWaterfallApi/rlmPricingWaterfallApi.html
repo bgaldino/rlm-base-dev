@@ -1,0 +1,132 @@
+<template>
+  <lightning-card title="Price Waterfall (API)" icon-name="standard:price_book_entry">
+    <lightning-button-icon
+      slot="actions"
+      icon-name="utility:refresh"
+      alternative-text="Refresh"
+      onclick={handleRefresh}
+    ></lightning-button-icon>
+
+    <div class="slds-card__body slds-card__body_inner">
+      <template lwc:if={isLoading}>
+        <div class="slds-align_absolute-center slds-p-around_medium">
+          <lightning-spinner alternative-text="Loading waterfall" size="small"></lightning-spinner>
+        </div>
+      </template>
+
+      <template lwc:if={error}>
+        <div class="slds-box slds-theme_error slds-m-bottom_small">
+          <p class="slds-text-body_small">{error}</p>
+        </div>
+      </template>
+
+      <template lwc:if={noWaterfall}>
+        <p class="slds-text-body_regular slds-text-color_weak slds-p-around_medium">
+          No pricing waterfall data available. Pricing may not have run yet.
+        </p>
+      </template>
+
+      <template lwc:if={hasData}>
+        <div class="slds-box slds-box_x-small slds-theme_shade slds-m-bottom_small">
+          <span class="slds-text-body_small slds-text-color_weak">API: </span>
+          <code class="mono">{apiPath}</code>
+        </div>
+
+        <div class="slds-m-bottom_small">
+          <lightning-input
+            type="search"
+            label="Search"
+            variant="label-hidden"
+            placeholder="Search steps and JSON..."
+            value={searchTerm}
+            onchange={handleSearch}
+          ></lightning-input>
+        </div>
+
+        <div class="slds-button-group slds-m-bottom_small" role="group">
+          <lightning-button
+            variant="neutral"
+            label={debugButtonLabel}
+            icon-name={debugButtonIcon}
+            onclick={toggleDebug}
+          ></lightning-button>
+          <template lwc:if={showDebug}>
+            <lightning-button
+              variant="neutral"
+              label={copyLabel}
+              icon-name="utility:copy_to_clipboard"
+              onclick={handleCopyJson}
+            ></lightning-button>
+          </template>
+        </div>
+
+        <template lwc:if={showDebug}>
+          <section class="slds-m-bottom_medium">
+            <pre class="debug-json slds-box slds-theme_shade">{filteredDebugJson}</pre>
+          </section>
+        </template>
+
+        <section class="slds-m-bottom_medium">
+          <h2 class="slds-text-heading_small slds-m-bottom_x-small">Pricing Output</h2>
+          <table class="slds-table slds-table_cell-buffer slds-table_bordered">
+            <tbody>
+              <template for:each={outputFields} for:item="field">
+                <tr key={field.key}>
+                  <td class="slds-text-color_weak">{field.label}</td>
+                  <td class="slds-text-align_right mono">{field.value}</td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </section>
+
+        <section>
+          <h2 class="slds-text-heading_small slds-m-bottom_x-small">
+            Waterfall Steps ({stepCount})
+          </h2>
+          <template for:each={waterfallSteps} for:item="step">
+            <div key={step.key} class="step-card slds-m-bottom_x-small">
+              <div class="slds-grid slds-grid_vertical-align-center slds-gutters_xx-small">
+                <div class="slds-col slds-no-flex">
+                  <span class="step-sequence">{step.sequence}</span>
+                </div>
+                <div class="slds-col slds-no-flex">
+                  <span class="slds-text-title_bold">{step.name}</span>
+                </div>
+                <template lwc:if={step.elementType}>
+                  <div class="slds-col slds-no-flex">
+                    <span class="slds-badge">{step.elementType}</span>
+                  </div>
+                </template>
+              </div>
+
+              <template lwc:if={step.hasOutputs}>
+                <div class="slds-m-top_x-small">
+                  <p class="slds-text-title_caps slds-m-bottom_xx-small">Output</p>
+                  <template for:each={step.outputParameters} for:item="param">
+                    <div key={param.key} class="slds-grid slds-grid_spread slds-text-body_small">
+                      <span class="slds-text-color_weak">{param.label}</span>
+                      <span class="mono">{param.value}</span>
+                    </div>
+                  </template>
+                </div>
+              </template>
+
+              <template lwc:if={step.hasAdjustments}>
+                <div class="slds-m-top_x-small">
+                  <p class="slds-text-title_caps slds-m-bottom_xx-small">Adjustments</p>
+                  <template for:each={step.adjustments} for:item="adj">
+                    <div key={adj.key} class="slds-grid slds-grid_spread slds-text-body_small">
+                      <span class="slds-text-color_weak">{adj.name}</span>
+                      <span class="mono">{adj.value}</span>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+        </section>
+      </template>
+    </div>
+  </lightning-card>
+</template>

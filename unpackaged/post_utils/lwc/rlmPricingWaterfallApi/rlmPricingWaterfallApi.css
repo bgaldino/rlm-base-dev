@@ -1,0 +1,35 @@
+.mono {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.debug-json {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.step-card {
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--slds-g-color-brand-base-50, #0070d2);
+  background-color: var(--slds-g-color-neutral-base-95, #fafaf9);
+  border-radius: 0.25rem;
+}
+
+.step-sequence {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background-color: var(--slds-g-color-brand-base-50, #0070d2);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}

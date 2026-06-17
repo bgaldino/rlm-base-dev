@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>RLM Pricing Waterfall (API)</masterLabel>
+    <description>Displays pricing waterfall steps for a line item via the Connect API.</description>
+    <targets>
+        <target>lightning__RecordPage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__RecordPage">
+            <objects>
+                <object>QuoteLineItem</object>
+                <object>OrderItem</object>
+            </objects>
+            <property name="usageType" type="String" label="Usage Type" description="Waterfall type to retrieve." default="Pricing" datasource="Pricing,Rating,Discovery"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>
