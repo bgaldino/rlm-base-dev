@@ -47,6 +47,12 @@
       "fieldType": "INPUTOUTPUT"
     },
     {
+      "nodeName": "SalesTransactionItem",
+      "name": "CoveredAsset__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
       "nodeName": "AssetActionSource",
       "name": "AssetConstraintEngineNodeStatus__c",
       "dataType": "STRING",
@@ -139,6 +145,14 @@
       "mappingType": "SOBJECT",
       "sObject": "QuoteLineItem",
       "sObjectField": "RLM_ConstraintEngineNodeStatus__c"
+    },
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "CoveredAsset__c",
+      "mappingType": "SOBJECT",
+      "sObject": "QuoteLineItem",
+      "sObjectField": "RLM_MFG_Covered_Asset__c"
     },
     {
       "mappingName": "QuoteEntitiesMapping",
@@ -498,6 +512,11 @@
       "nodeName": "SalesTransactionItem",
       "attributeName": "ConstraintEngineNodeStatus__c",
       "name": "ConstraintEngineNodeStatus__c"
+    },
+    {
+      "nodeName": "SalesTransactionItem",
+      "attributeName": "CoveredAsset__c",
+      "name": "CoveredAsset__c"
     },
     {
       "nodeName": "AssetActionSource",

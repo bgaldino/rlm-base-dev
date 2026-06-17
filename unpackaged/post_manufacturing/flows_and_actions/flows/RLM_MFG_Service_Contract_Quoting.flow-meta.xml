@@ -10,6 +10,9 @@
         <connector>
             <targetReference>Open_Quote</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>Quote_Creation_Error</targetReference>
+        </faultConnector>
         <dataTypeMappings>
             <typeName>T__assets</typeName>
             <typeValue>Asset</typeValue>
@@ -68,7 +71,7 @@
         <nameSegment>c:OpenSObject</nameSegment>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>61.0</apiVersion>
+    <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>Create RLM Quote for Service Contract Quoting</description>
     <environments>Default</environments>
@@ -100,7 +103,7 @@
         <locationY>134</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>get_Pricebooks</targetReference>
+            <targetReference>Check_Assets_Exist</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -108,6 +111,13 @@
             <operator>EqualTo</operator>
             <value>
                 <elementReference>recordId.Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>ParentId</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>true</booleanValue>
             </value>
         </filters>
         <getFirstRecordOnly>false</getFirstRecordOnly>
@@ -119,9 +129,9 @@
         <label>get PB Entry for Service Contract</label>
         <locationX>176</locationX>
         <locationY>890</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
-            <targetReference>Create_Service_Contract_Quote</targetReference>
+            <targetReference>Check_PB_Entry_Found</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
@@ -205,6 +215,56 @@
         <object>ProductRelationshipType</object>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
+    <decisions>
+        <name>Check_Assets_Exist</name>
+        <label>Check Assets Exist</label>
+        <locationX>176</locationX>
+        <locationY>188</locationY>
+        <defaultConnector>
+            <targetReference>get_Pricebooks</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Assets Found</defaultConnectorLabel>
+        <rules>
+            <name>No_Assets_Rule</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>get_Assets</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>No_Assets_Found</targetReference>
+            </connector>
+            <label>No Assets</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Check_PB_Entry_Found</name>
+        <label>Check PB Entry Found</label>
+        <locationX>176</locationX>
+        <locationY>944</locationY>
+        <defaultConnector>
+            <targetReference>Create_Service_Contract_Quote</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Entry Found</defaultConnectorLabel>
+        <rules>
+            <name>PB_Entry_Missing_Rule</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>get_PB_Entry_for_Service_Contract</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>PB_Entry_Not_Found</targetReference>
+            </connector>
+            <label>No Entry Found</label>
+        </rules>
+    </decisions>
     <screens>
         <name>AssetsScreen</name>
         <label>Asset List</label>
@@ -227,19 +287,19 @@
             <inputParameters>
                 <name>label</name>
                 <value>
-                    <stringValue>Select Asset</stringValue>
+                    <stringValue>Select Assets</stringValue>
                 </value>
             </inputParameters>
             <inputParameters>
                 <name>selectionMode</name>
                 <value>
-                    <stringValue>SINGLE_SELECT</stringValue>
+                    <stringValue>MULTI_SELECT_CHECKBOX</stringValue>
                 </value>
             </inputParameters>
             <inputParameters>
                 <name>minRowSelection</name>
                 <value>
-                    <numberValue>0.0</numberValue>
+                    <numberValue>1.0</numberValue>
                 </value>
             </inputParameters>
             <inputParameters>
@@ -251,7 +311,7 @@
             <inputParameters>
                 <name>maxRowSelection</name>
                 <value>
-                    <numberValue>1.0</numberValue>
+                    <numberValue>50.0</numberValue>
                 </value>
             </inputParameters>
             <inputParameters>
@@ -411,6 +471,54 @@
                     <stringValue>12</stringValue>
                 </width>
             </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>No_Assets_Found</name>
+        <label>No Assets Found</label>
+        <locationX>374</locationX>
+        <locationY>188</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>No_Assets_Message</name>
+            <fieldText>No assets are associated with this account. Please ensure assets exist before creating a service contract quote.</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>PB_Entry_Not_Found</name>
+        <label>Pricebook Entry Not Found</label>
+        <locationX>374</locationX>
+        <locationY>944</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>PB_Entry_Not_Found_Message</name>
+            <fieldText>No pricebook entry was found for the selected service contract product and price book combination. Please verify your pricebook setup and try again.</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Quote_Creation_Error</name>
+        <label>Quote Creation Error</label>
+        <locationX>374</locationX>
+        <locationY>998</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Quote_Creation_Error_Message</name>
+            <fieldText>An error occurred while creating the service contract quote: {!$Flow.FaultMessage}</fieldText>
+            <fieldType>DisplayText</fieldType>
         </fields>
         <showFooter>true</showFooter>
         <showHeader>true</showHeader>

@@ -1,187 +1,203 @@
-global class RLM_MFG_ServiceContractQuote{
-//see https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_GraphRequest.htm
-    @InvocableMethod(label='Create Service Contract Quote' description='Creates a service contract quote and returns the quote id' category='Quote')
-    public static List<String> createUpdateQuote(List<svcContractRequest> svcContractRequests){
+public with sharing class RLM_MFG_ServiceContractQuote {
+
+    @InvocableMethod(label='Create Service Contract Quote' description='Creates a service contract quote for one or more assets and returns the quote id' category='Quote')
+    public static List<String> createUpdateQuote(List<svcContractRequest> svcContractRequests) {
+        if (svcContractRequests == null || svcContractRequests.isEmpty()
+                || svcContractRequests[0].assets == null || svcContractRequests[0].assets.isEmpty()) {
+            return new List<String>();
+        }
+
         List<Id> myAssetIds = new List<Id>();
-        for(sObject myObject : svcContractRequests[0].assets){
+        for (sObject myObject : svcContractRequests[0].assets) {
             myAssetIds.add(myObject.Id);
         }
-        
-        List<Contact> quoteContacts = [SELECT Id, Name FROM Contact LIMIT 1];
-        String contactId = quoteContacts[0].Id;
-        
-        List<Asset> myAssets = new List<Asset>();
-        myAssets=[SELECT Id, AccountId FROM Asset WHERE Id in :myAssetIds];
-        //System.debug('========0=======');
-        List<String> myIds=new List<String>();
-        String productId=svcContractRequests[0].productId;
-        String priceBookId=svcContractRequests[0].priceBookId;
-        String priceBookEntryId=svcContractRequests[0].priceBookEntryId;
-        String productRelationshipTypeId=svcContractRequests[0].productRelationshipTypeId;
-        //System.debug('========1======='+productId);
-        //get options
-        List<ProductRelatedComponent> options = [SELECT Id, Quantity, ChildProductId FROM ProductRelatedComponent WHERE ParentProductId=:productId AND IsComponentRequired=TRUE];
-        List<Id> optionIds = new List<Id>();
-        for(ProductRelatedComponent myPRC : options){
-            System.debug('CHILD======='+myPRC.ChildProductId);
-            optionIds.add(myPRC.ChildProductId);
+
+        // Restrict to root (parent) assets only — child asset IDs are discarded
+        List<Asset> myAssets = [SELECT Id, AccountId FROM Asset WHERE Id IN :myAssetIds AND ParentId = null];
+        if (myAssets.isEmpty()) {
+            return new List<String>();
         }
-        //System.debug('========2=======');
-        //get PBEs for options
-        List<PriceBookEntry> pbes = [SELECT Id,Product2Id  FROM PriceBookEntry WHERE Product2Id in :optionIds AND Pricebook2Id=:priceBookId];
-        Map<String,String> optionPBEs = new Map<String, String>();
-        for(PriceBookEntry pbe : pbes){
+
+        Id accountId = myAssets[0].AccountId;
+
+        // Resolve account name and address to populate quote fields
+        List<Account> accounts = [
+            SELECT Id, Name, BillingStreet, BillingCity, BillingPostalCode, BillingCountry,
+                   ShippingStreet, ShippingCity, ShippingPostalCode, ShippingCountry
+            FROM Account WHERE Id = :accountId LIMIT 1
+        ];
+        Account acct = accounts.isEmpty() ? null : accounts[0];
+
+        // Primary contact for the account — used for BillToContactId / ContactId
+        List<Contact> contacts = [SELECT Id FROM Contact WHERE AccountId = :accountId LIMIT 1];
+        Id contactId = contacts.isEmpty() ? null : contacts[0].Id;
+
+        String productId               = svcContractRequests[0].productId;
+        String priceBookId             = svcContractRequests[0].priceBookId;
+        String priceBookEntryId        = svcContractRequests[0].priceBookEntryId;
+        String productRelationshipTypeId = svcContractRequests[0].productRelationshipTypeId;
+
+        // Required bundle components for the selected service contract product
+        List<ProductRelatedComponent> options = [
+            SELECT Id, Quantity, ChildProductId
+            FROM ProductRelatedComponent
+            WHERE ParentProductId = :productId AND IsComponentRequired = TRUE
+        ];
+        List<Id> optionIds = new List<Id>();
+        for (ProductRelatedComponent prc : options) {
+            optionIds.add(prc.ChildProductId);
+        }
+
+        // Map child product Id -> PricebookEntry Id for fast lookup
+        List<PriceBookEntry> pbes = [
+            SELECT Id, Product2Id
+            FROM PriceBookEntry
+            WHERE Product2Id IN :optionIds AND Pricebook2Id = :priceBookId
+        ];
+        Map<String, String> optionPBEs = new Map<String, String>();
+        for (PriceBookEntry pbe : pbes) {
             optionPBEs.put(pbe.Product2Id, pbe.Id);
         }
-        //System.debug('========3=======');
-        //Quote Setup
-        PlaceQuote.RecordResource quoteRecord = new PlaceQuote.RecordResource(Quote.getSobjectType(),'POST');
-        //PlaceQuote.RecordResource quoteRecord = new PlaceQuote.RecordResource(Quote.getSobjectType(),'PATCH',qId);
-        Map<String,Object> quoteFieldValues = new Map<String,Object>();
-        //quoteFieldValues.put('Id',qId);
-        //quoteFieldValues.put('CalculationStatus','NotStarted');
-       
-        quoteFieldValues.put('Name','Service Contract Quote');
-        
-        quoteFieldValues.put('BillToContactId',contactId);
-        quoteFieldValues.put('ContactId',contactId);
-        quoteFieldValues.put('BillingStreet','415 Mission St');
-        quoteFieldValues.put('BillingCity','San Francisco');
-        quoteFieldValues.put('BillingPostalCode','94105');
-        quoteFieldValues.put('BillingCountry','USA');
-        quoteFieldValues.put('ShippingStreet','415 Mission St');
-        quoteFieldValues.put('ShippingCity','San Francisco');
-        quoteFieldValues.put('ShippingPostalCode','94105');
-        quoteFieldValues.put('ShippingCountry','USA');
-       
-        //quoteFieldValues.put('OpportunityId','0061Q000012RlcfQAC');
-        quoteFieldValues.put('QuoteAccountId',myAssets[0].AccountId);
-        //quoteFieldValues.put('Pricebook2Id','01sa5000001R7T3AAK');
-        quoteFieldValues.put('Pricebook2Id',priceBookId);
-        quoteRecord.fieldValues = quoteFieldValues;
-        PlaceQuote.RecordWithReferenceRequest quoteItemRecords = new PlaceQuote.RecordWithReferenceRequest('refQuote',quoteRecord);
-        List<PlaceQuote.RecordWithReferenceRequest> listOfRecords = new List<PlaceQuote.RecordWithReferenceRequest>();
-        listOfRecords.add(quoteItemRecords);
-        //System.debug('========4=======');
-        
-        Date todaysDate = Date.today();
-        Date startDate = todaysDate.addDays(10);
-        Date endDate = todaysDate.addDays(374);
-        String startDateStr = String.valueOf(startDate);
-        String endDateStr = String.valueOf(endDate);
-        
-        integer counter=0;
-        for(Asset myAsset : myAssets){
-            //System.debug('========5======='+counter);
-            counter++;
-            //Quote Line Set-up
-            PlaceQuote.RecordResource quoteLineItemRecord1 = new PlaceQuote.RecordResource(QuoteLineItem.getSobjectType(),'POST');
-            Map<String,Object> quoteLineItemFieldValues = new Map<String,Object>();
-            quoteLineItemFieldValues.put('Product2Id',productId);
-            //quoteLineItemFieldValues.put('Product2Id','01tWt000002V0IjIAK');
-            quoteLineItemFieldValues.put('PricebookEntryId',priceBookEntryId);
-            //quoteLineItemFieldValues.put('PricebookEntryId','01uWt000000crBNIAY');
-            quoteLineItemFieldValues.put('Quantity','1.0');
-            quoteLineItemFieldValues.put('RLM_MFG_Covered_Asset__c',myAsset.Id);
-            //quoteLineItemFieldValues.put('UnitPrice','15.0');
-            //quoteLineItemFieldValues.put('StartDate','2024-09-01');
-            //quoteLineItemFieldValues.put('EndDate','2025-08-31');
-            quoteLineItemFieldValues.put('StartDate',startDateStr);
-            quoteLineItemFieldValues.put('EndDate',endDateStr);
-            quoteLineItemFieldValues.put('PeriodBoundary','Anniversary');
-            quoteLineItemFieldValues.put('BillingFrequency','Annual');
-            quoteLineItemFieldValues.put('QuoteId','@{refQuote.id}');
-            quoteLineItemRecord1.fieldValues = quoteLineItemFieldValues;
-            
-            PlaceQuote.RecordWithReferenceRequest quoteLineItemRecords1 = new PlaceQuote.RecordWithReferenceRequest('refQuoteItem1_'+counter,quoteLineItemRecord1);
-            listOfRecords.add(quoteLineItemRecords1);
-            //System.debug('========6======='+counter);
-            //Quote OPTIONS Line Set-up
-            integer countOption = 0;
-            for(ProductRelatedComponent myPRC : options){
-                countOption++;
-                //System.debug('========7======='+counter+'>'+countOption);
-                PlaceQuote.RecordResource quoteLineItemRecord2 = new PlaceQuote.RecordResource(QuoteLineItem.getSobjectType(),'POST');
-                Map<String,Object> quoteLineItemFieldValues2 = new Map<String,Object>();
-                quoteLineItemFieldValues2.put('Product2Id',myPRC.ChildProductId);
-                quoteLineItemFieldValues2.put('PricebookEntryId',optionPBEs.get(myPRC.ChildProductId));
-                quoteLineItemFieldValues2.put('Quantity','1.0');
-                quoteLineItemFieldValues2.put('RLM_MFG_Covered_Asset__c',myAsset.Id);
-                //quoteLineItemFieldValues.put('UnitPrice','15.0');
-                //quoteLineItemFieldValues2.put('StartDate','2024-09-01');
-                //quoteLineItemFieldValues2.put('EndDate','2025-08-31');
-                quoteLineItemFieldValues2.put('StartDate',startDateStr);
-                quoteLineItemFieldValues2.put('EndDate',endDateStr);
-                quoteLineItemFieldValues2.put('PeriodBoundary','Anniversary');
-                quoteLineItemFieldValues2.put('BillingFrequency','Annual');
-                quoteLineItemFieldValues2.put('QuoteId','@{refQuote.id}');
-                quoteLineItemRecord2.fieldValues = quoteLineItemFieldValues2;
-                //System.debug('========8======='+counter+'>'+countOption);
-                PlaceQuote.RecordWithReferenceRequest quoteLineItemRecords2 = new PlaceQuote.RecordWithReferenceRequest('refQuoteItem_'+counter+'_'+countOption,quoteLineItemRecord2);
-                //System.debug('========9======='+counter+'>'+countOption);
-            
-                //QLR
-                // Create Quote Line Relationship
-                PlaceQuote.RecordResource qlr1 = new PlaceQuote.RecordResource(QuoteLineRelationship.getSobjectType(),'POST');
-                Map<String,Object> qlrFields = new Map<String,Object>();
-                qlrFields.put('ProductRelationshipTypeId', productRelationshipTypeId);
-                qlrFields.put('ProductRelatedComponentId', myPRC.Id);
-                qlrFields.put('MainQuoteLineId', '@{refQuoteItem1_'+counter+'.id}');
-                qlrFields.put('AssociatedQuoteLineId', '@{refQuoteItem_'+counter+'_'+countOption+'.id}');
-                qlrFields.put('AssociatedQuoteLinePricing', 'IncludedInBundlePrice');
-                qlr1.fieldValues = qlrFields;
-                //System.debug('========10======='+counter+'>'+countOption);
-                PlaceQuote.RecordWithReferenceRequest qlr = new PlaceQuote.RecordWithReferenceRequest('QuoteLineRelationship_'+counter+'_'+countOption, qlr1);
-                //System.debug('========11======='+counter+'>'+countOption);
-                listOfRecords.add(quoteLineItemRecords2);
-                //System.debug('========12======='+counter+'>'+countOption);
-                listOfRecords.add(qlr);
-                //System.debug('========13======='+counter+'>'+countOption);
-             }
-        }
-           
-        //System.debug('========14=======');
-        
-        //execute
-        PlaceQuote.GraphRequest graph = new PlaceQuote.GraphRequest('test',listOfRecords);
-        PlaceQuote.ConfigurationOptionsInput cInput = new PlaceQuote.ConfigurationOptionsInput();
-        cInput.validateProductCatalog=false;
-        cInput.validateAmendRenewCancel=false;
-        cInput.executeConfigurationRules=false;
-        cInput.addDefaultConfiguration=false;
-        
-        System.debug(graph);
-        System.debug(cInput);
-        //System.debug('========15=======');
-        //Place Quote Call
-        //PlaceQuote.PlaceQuoteResponse resp = PlaceQuote.PlaceQuoteRLMApexProcessor.execute(PlaceQuote.PricingPreferenceEnum.System,graph, PlaceQuote.ConfigurationInputEnum.RunAndAllowErrors,cInput);
-        PlaceQuote.PlaceQuoteResponse resp = PlaceQuote.PlaceQuoteRLMApexProcessor.execute(PlaceQuote.PricingPreferenceEnum.System,graph, PlaceQuote.ConfigurationInputEnum.Skip,cInput);
-        System.debug(resp);
-        
-        myIds.add(resp.quoteId);
-        
-        return myIds;
-        
-    }
-    
-    global class svcContractRequest {
-        @InvocableVariable(required=true)
-        global List<sObject> assets;
-        
-        @InvocableVariable(required=true)
-        global String productId;
-        
-        @InvocableVariable(required=true)
-        global String priceBookId;
-        
-        @InvocableVariable(required=true)
-        global String priceBookEntryId;
-        
-        @InvocableVariable(required=true)
-        global String productRelationshipTypeId;
-        
-        
-    }
-    
 
+        // ── Quote header ──────────────────────────────────────────────────────────
+        RevSalesTrxn.RecordResource quoteRecord = new RevSalesTrxn.RecordResource(Quote.getSobjectType(), 'POST');
+        Map<String, Object> quoteFieldValues = new Map<String, Object>();
+        String acctName = (acct != null && acct.Name != null) ? acct.Name : '';
+        quoteFieldValues.put('Name', 'Service Contract Quote - ' + acctName);
+        quoteFieldValues.put('QuoteAccountId', accountId);
+        quoteFieldValues.put('Pricebook2Id', priceBookId);
+
+        if (contactId != null) {
+            quoteFieldValues.put('BillToContactId', contactId);
+            quoteFieldValues.put('ContactId', contactId);
+        }
+
+        if (acct != null) {
+            if (acct.BillingStreet    != null) quoteFieldValues.put('BillingStreet',     acct.BillingStreet);
+            if (acct.BillingCity      != null) quoteFieldValues.put('BillingCity',       acct.BillingCity);
+            if (acct.BillingPostalCode!= null) quoteFieldValues.put('BillingPostalCode', acct.BillingPostalCode);
+            if (acct.BillingCountry   != null) quoteFieldValues.put('BillingCountry',    acct.BillingCountry);
+            if (acct.ShippingStreet   != null) quoteFieldValues.put('ShippingStreet',    acct.ShippingStreet);
+            if (acct.ShippingCity     != null) quoteFieldValues.put('ShippingCity',      acct.ShippingCity);
+            if (acct.ShippingPostalCode!= null) quoteFieldValues.put('ShippingPostalCode',acct.ShippingPostalCode);
+            if (acct.ShippingCountry  != null) quoteFieldValues.put('ShippingCountry',   acct.ShippingCountry);
+        }
+
+        quoteRecord.fieldValues = quoteFieldValues;
+        RevSalesTrxn.RecordWithReferenceRequest quoteRef =
+            new RevSalesTrxn.RecordWithReferenceRequest('refQuote', quoteRecord);
+
+        List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords =
+            new List<RevSalesTrxn.RecordWithReferenceRequest>{ quoteRef };
+
+        Date startDate    = Date.today().addDays(10);
+        Date endDate      = Date.today().addDays(374);
+        String startDateStr = String.valueOf(startDate);
+        String endDateStr   = String.valueOf(endDate);
+
+        // ── One QLI (+ required component QLIs + QLRs) per selected asset ────────
+        // RLM_MFG_Covered_Asset__c is included in the graph and preserved by PST
+        // via the CoveredAsset__c attribute registered in RLM_SalesTransactionContext.
+        Integer assetCounter = 0;
+        for (Asset myAsset : myAssets) {
+            assetCounter++;
+            String parentRef = 'refQuoteItem1_' + assetCounter;
+
+            // Service contract product line
+            RevSalesTrxn.RecordResource qliRecord = new RevSalesTrxn.RecordResource(QuoteLineItem.getSobjectType(), 'POST');
+            Map<String, Object> qliFields = new Map<String, Object>();
+            qliFields.put('Product2Id',             productId);
+            qliFields.put('PricebookEntryId',        priceBookEntryId);
+            qliFields.put('Quantity',                '1.0');
+            qliFields.put('StartDate',               startDateStr);
+            qliFields.put('EndDate',                 endDateStr);
+            qliFields.put('PeriodBoundary',          'Anniversary');
+            qliFields.put('BillingFrequency',        'Annual');
+            qliFields.put('QuoteId',                 '@{refQuote.id}');
+            qliFields.put('RLM_MFG_Covered_Asset__c', (String) myAsset.Id);
+            qliRecord.fieldValues = qliFields;
+            listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest(parentRef, qliRecord));
+
+            // Required bundle component lines + QuoteLineRelationships
+            Integer optionCounter = 0;
+            for (ProductRelatedComponent prc : options) {
+                optionCounter++;
+                String childRef = 'refQuoteItem_' + assetCounter + '_' + optionCounter;
+
+                RevSalesTrxn.RecordResource optionRecord = new RevSalesTrxn.RecordResource(QuoteLineItem.getSobjectType(), 'POST');
+                Map<String, Object> optionFields = new Map<String, Object>();
+                optionFields.put('Product2Id',             prc.ChildProductId);
+                optionFields.put('PricebookEntryId',        optionPBEs.get(prc.ChildProductId));
+                optionFields.put('Quantity',                '1.0');
+                optionFields.put('StartDate',               startDateStr);
+                optionFields.put('EndDate',                 endDateStr);
+                optionFields.put('PeriodBoundary',          'Anniversary');
+                optionFields.put('BillingFrequency',        'Annual');
+                optionFields.put('QuoteId',                 '@{refQuote.id}');
+                optionFields.put('RLM_MFG_Covered_Asset__c', (String) myAsset.Id);
+                optionRecord.fieldValues = optionFields;
+                listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest(childRef, optionRecord));
+
+                // Quote Line Relationship linking component to parent line
+                RevSalesTrxn.RecordResource qlrRecord = new RevSalesTrxn.RecordResource(QuoteLineRelationship.getSobjectType(), 'POST');
+                Map<String, Object> qlrFields = new Map<String, Object>();
+                qlrFields.put('ProductRelationshipTypeId',  productRelationshipTypeId);
+                qlrFields.put('ProductRelatedComponentId',  prc.Id);
+                qlrFields.put('MainQuoteLineId',            '@{' + parentRef + '.id}');
+                qlrFields.put('AssociatedQuoteLineId',      '@{' + childRef + '.id}');
+                qlrFields.put('AssociatedQuoteLinePricing', 'IncludedInBundlePrice');
+                qlrRecord.fieldValues = qlrFields;
+                listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest(
+                    'QuoteLineRelationship_' + assetCounter + '_' + optionCounter, qlrRecord));
+            }
+        }
+
+        // ── Execute Place Sales Transaction ───────────────────────────────────────
+        // RLM_SalesTransactionContext (QuoteEntitiesMapping, isDefault=true) is applied
+        // automatically by PST for Quote transactions. CoveredAsset__c registered as
+        // INPUTOUTPUT on SalesTransactionItem allows PST to preserve RLM_MFG_Covered_Asset__c.
+        RevSalesTrxn.ConfigurationOptionsInput configOptions = new RevSalesTrxn.ConfigurationOptionsInput();
+        configOptions.validateProductCatalog    = false;
+        configOptions.validateAmendRenewCancel  = false;
+        configOptions.executeConfigurationRules = false;
+        configOptions.addDefaultConfiguration  = false;
+
+        RevSalesTrxn.GraphRequest graph = new RevSalesTrxn.GraphRequest('svcContractGraph', listOfRecords);
+
+        RevSalesTrxn.PlaceSalesTransactionResponse resp =
+            RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
+                graph,
+                RevSalesTrxn.PricingPreferenceEnum.SYSTEM,
+                RevSalesTrxn.ConfigurationExecutionEnum.SKIP,
+                configOptions,
+                null
+            );
+
+        if (resp == null || !resp.isSuccess) {
+            String errDetail = (resp != null && resp.errorResponse != null)
+                ? String.valueOf(resp.errorResponse) : 'PST execution failed';
+            throw new RLM_MFG_ServiceContractQuoteException(errDetail);
+        }
+
+        return new List<String>{ resp.salesTransactionId };
+    }
+
+    public class svcContractRequest {
+        @InvocableVariable(required=true)
+        public List<sObject> assets;
+
+        @InvocableVariable(required=true)
+        public String productId;
+
+        @InvocableVariable(required=true)
+        public String priceBookId;
+
+        @InvocableVariable(required=true)
+        public String priceBookEntryId;
+
+        @InvocableVariable(required=true)
+        public String productRelationshipTypeId;
+    }
+
+    public class RLM_MFG_ServiceContractQuoteException extends Exception {}
 }
