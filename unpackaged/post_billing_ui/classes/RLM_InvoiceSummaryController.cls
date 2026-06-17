@@ -80,32 +80,41 @@ public with sharing class RLM_InvoiceSummaryController {
         Set<Id> disputedInvoiceIds = new Set<Id>();
         Map<Id, Decimal> disputeByInvoice = new Map<Id, Decimal>();
 
-        if (!caseIds.isEmpty()) {
-            String dispQuery = 'SELECT Id, DisputedAmount, InvoiceId';
-            if (isMultiCurrency) {
-                dispQuery += ', CurrencyIsoCode';
-            }
-            dispQuery += ' FROM Dispute WHERE CaseId IN :caseIds';
-
-            for (SObject d : Database.query(dispQuery)) {
-                Decimal amt = (Decimal)d.get('DisputedAmount');
-                if (amt == null || amt <= 0) continue;
-
-                // Convert to account currency if multi-currency
+        // Dispute and its CaseId/InvoiceId lookups are license-gated billing
+        // extensions absent from a baseline build, so gate on Schema describe and
+        // run inside try/catch — the bar simply reports zero disputes where the
+        // billing dispute feature isn't provisioned rather than throwing.
+        if (!caseIds.isEmpty() && disputeHasFields(new Set<String>{ 'CaseId', 'InvoiceId' })) {
+            try {
+                String dispQuery = 'SELECT Id, DisputedAmount, InvoiceId';
                 if (isMultiCurrency) {
-                    String dispCurr = (String)d.get('CurrencyIsoCode');
-                    amt = convertCurrency(amt, dispCurr, targetCurrency, convRates);
+                    dispQuery += ', CurrencyIsoCode';
                 }
+                dispQuery += ' FROM Dispute WHERE CaseId IN :caseIds';
 
-                data.disputeAmount += amt;
-                data.disputeCount++;
+                for (SObject d : Database.query(dispQuery)) {
+                    Decimal amt = (Decimal)d.get('DisputedAmount');
+                    if (amt == null || amt <= 0) continue;
 
-                Id invId = (Id)d.get('InvoiceId');
-                if (invId != null) {
-                    disputedInvoiceIds.add(invId);
-                    Decimal prev = disputeByInvoice.containsKey(invId) ? disputeByInvoice.get(invId) : 0;
-                    disputeByInvoice.put(invId, prev + amt);
+                    // Convert to account currency if multi-currency
+                    if (isMultiCurrency) {
+                        String dispCurr = (String)d.get('CurrencyIsoCode');
+                        amt = convertCurrency(amt, dispCurr, targetCurrency, convRates);
+                    }
+
+                    data.disputeAmount += amt;
+                    data.disputeCount++;
+
+                    Id invId = (Id)d.get('InvoiceId');
+                    if (invId != null) {
+                        disputedInvoiceIds.add(invId);
+                        Decimal prev = disputeByInvoice.containsKey(invId) ? disputeByInvoice.get(invId) : 0;
+                        disputeByInvoice.put(invId, prev + amt);
+                    }
                 }
+            } catch (Exception e) {
+                // Dispute fields not available (billing dispute feature not provisioned) — keep zero defaults.
+                System.debug(LoggingLevel.WARN, 'RLM_InvoiceSummaryController dispute query skipped: ' + e.getMessage());
             }
         }
 
@@ -204,5 +213,25 @@ public with sharing class RLM_InvoiceSummaryController {
         Decimal fromRate = rates.containsKey(fromCurr) ? rates.get(fromCurr) : 1;
         Decimal toRate = rates.containsKey(toCurr) ? rates.get(toCurr) : 1;
         return amount.divide(fromRate, 10, RoundingMode.HALF_UP) * toRate;
+    }
+
+    /**
+     * True only when the Dispute object exists AND exposes every named field in
+     * this org. Dispute and its CaseId/InvoiceId lookups are license-gated billing
+     * extensions absent from a baseline build, so callers must gate dynamic SOQL
+     * on this before referencing those fields.
+     */
+    private static Boolean disputeHasFields(Set<String> fieldNames) {
+        if (!Schema.getGlobalDescribe().containsKey('Dispute')) {
+            return false;
+        }
+        Map<String, Schema.SObjectField> dFields =
+            Schema.getGlobalDescribe().get('Dispute').getDescribe().fields.getMap();
+        for (String f : fieldNames) {
+            if (!dFields.containsKey(f)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

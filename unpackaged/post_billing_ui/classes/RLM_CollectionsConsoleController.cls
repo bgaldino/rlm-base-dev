@@ -57,25 +57,36 @@ public with sharing class RLM_CollectionsConsoleController {
             }
 
             // Query disputes linked to these invoices for the dispute-reason display.
-            // Dispute.InvoiceId is a billing-extension field the Apex compiler in some
-            // org configs does not surface for *static* SOQL (the same constraint that
-            // drove the dynamic-query pattern in RLM_BillingCaseMetricsController). Use
-            // dynamic SOQL + dynamic field access so the class compiles regardless, and
-            // resolve InvoiceId at runtime. (The org's custom Dispute.Invoice__c field is
-            // not part of this repo; the standard InvoiceId lookup is used instead.)
-            List<Dispute> disputes = Database.query(
-                'SELECT InvoiceId, DisputeType, DisputeSubtype, Description ' +
-                'FROM Dispute WHERE InvoiceId IN :invoiceIds',
-                AccessLevel.USER_MODE
-            );
-            for (Dispute d : disputes) {
-                Id dispInvoiceId = (Id) d.get('InvoiceId');
-                if (!disputeReasonByInvoice.containsKey(dispInvoiceId)) {
-                    String reason = d.DisputeType;
-                    if (String.isNotBlank(d.DisputeSubtype)) {
-                        reason += ' - ' + d.DisputeSubtype;
+            // Dispute and its InvoiceId lookup are license-gated billing extensions:
+            // present at runtime only when the billing dispute feature is provisioned,
+            // and not surfaced to the Apex compiler for static SOQL. In a baseline build
+            // the field (and sometimes the object) is absent entirely, so guard with a
+            // Schema describe and run dynamic SOQL (USER_MODE) inside try/catch — the
+            // panel omits dispute reasons where the feature isn't enabled rather than
+            // throwing. (The org's custom Dispute.Invoice__c field is not part of this
+            // repo; the standard InvoiceId lookup is used instead.)
+            if (disputeFieldAvailable('InvoiceId')) {
+                try {
+                    List<Dispute> disputes = Database.query(
+                        'SELECT InvoiceId, DisputeType, DisputeSubtype, Description ' +
+                        'FROM Dispute WHERE InvoiceId IN :invoiceIds',
+                        AccessLevel.USER_MODE
+                    );
+                    for (Dispute d : disputes) {
+                        Id dispInvoiceId = (Id) d.get('InvoiceId');
+                        if (!disputeReasonByInvoice.containsKey(dispInvoiceId)) {
+                            String reason = (String) d.get('DisputeType');
+                            String subtype = (String) d.get('DisputeSubtype');
+                            if (String.isNotBlank(subtype)) {
+                                reason += ' - ' + subtype;
+                            }
+                            disputeReasonByInvoice.put(dispInvoiceId, reason);
+                        }
                     }
-                    disputeReasonByInvoice.put(dispInvoiceId, reason);
+                } catch (Exception e) {
+                    // Dispute / Dispute.InvoiceId not available (billing dispute feature
+                    // not provisioned in this org) — omit dispute reasons.
+                    System.debug(LoggingLevel.WARN, 'RLM_CollectionsConsoleController dispute reason query skipped: ' + e.getMessage());
                 }
             }
         }
@@ -97,6 +108,23 @@ public with sharing class RLM_CollectionsConsoleController {
         }
 
         return results;
+    }
+
+    /**
+     * True only when the Dispute object exists AND exposes the named field in this
+     * org. Dispute and its InvoiceId/CaseId lookups are license-gated billing
+     * extensions absent from a baseline build, so callers must gate dynamic SOQL
+     * on this before referencing those fields.
+     */
+    private static Boolean disputeFieldAvailable(String fieldName) {
+        if (!Schema.getGlobalDescribe().containsKey('Dispute')) {
+            return false;
+        }
+        return Schema.getGlobalDescribe()
+            .get('Dispute')
+            .getDescribe()
+            .fields.getMap()
+            .containsKey(fieldName);
     }
 
     public class DelinquentWrapper {
