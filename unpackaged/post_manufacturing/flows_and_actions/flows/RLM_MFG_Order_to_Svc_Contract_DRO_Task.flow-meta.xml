@@ -55,6 +55,30 @@
         </inputParameters>
         <nameSegment>RLM_MFG_OrderToServiceContract</nameSegment>
         <offset>0</offset>
+        <outputParameters>
+            <assignToReference>serviceContractId</assignToReference>
+            <name>primaryServiceContractId</name>
+        </outputParameters>
+        <connector>
+            <targetReference>open_Service_Contract</targetReference>
+        </connector>
+    </actionCalls>
+    <actionCalls>
+        <name>open_Service_Contract</name>
+        <label>open Service Contract</label>
+        <locationX>176</locationX>
+        <locationY>890</locationY>
+        <actionName>c:OpenSObject</actionName>
+        <actionType>component</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>SObject</name>
+            <value>
+                <elementReference>serviceContractId</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>c:OpenSObject</nameSegment>
+        <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
     <apiVersion>67.0</apiVersion>
@@ -388,6 +412,13 @@
         <dataType>String</dataType>
         <isCollection>false</isCollection>
         <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>serviceContractId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
         <isOutput>false</isOutput>
     </variables>
 </Flow>
