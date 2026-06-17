@@ -569,15 +569,6 @@
                             <booleanValue>true</booleanValue>
                         </value>
                     </inputParameters>
-                    <inputParameters>
-                        <name>contextDefinition</name>
-                    </inputParameters>
-                    <inputParameters>
-                        <name>portion1SelectedFields</name>
-                    </inputParameters>
-                    <inputParameters>
-                        <name>portion2SelectedFields</name>
-                    </inputParameters>
                     <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
                     <isRequired>true</isRequired>
                     <storeOutputAutomatically>true</storeOutputAutomatically>
@@ -601,52 +592,6 @@
             <fields>
                 <name>S01_ProductConfiguratorUI_Section1_Column2</name>
                 <fieldType>Region</fieldType>
-                <fields>
-                    <name>placeholderBuffer</name>
-                    <fieldType>DisplayText</fieldType>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>top</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>8</stringValue>
-                        </width>
-                    </styleProperties>
-                </fields>
-                <fields>
-                    <name>DebugToggle</name>
-                    <extensionName>flowruntime:toggle</extensionName>
-                    <fieldType>ComponentInstance</fieldType>
-                    <inputParameters>
-                        <name>messageToggleActive</name>
-                        <value>
-                            <stringValue>Enabled</stringValue>
-                        </value>
-                    </inputParameters>
-                    <inputParameters>
-                        <name>label</name>
-                        <value>
-                            <stringValue>Debug</stringValue>
-                        </value>
-                    </inputParameters>
-                    <inputParameters>
-                        <name>messageToggleInactive</name>
-                        <value>
-                            <stringValue>Disabled</stringValue>
-                        </value>
-                    </inputParameters>
-                    <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
-                    <isRequired>true</isRequired>
-                    <storeOutputAutomatically>true</storeOutputAutomatically>
-                    <styleProperties>
-                        <verticalAlignment>
-                            <stringValue>bottom</stringValue>
-                        </verticalAlignment>
-                        <width>
-                            <stringValue>4</stringValue>
-                        </width>
-                    </styleProperties>
-                </fields>
                 <fields>
                     <name>S01_Summary</name>
                     <extensionName>runtime_industries_cfg:pricingSummary</extensionName>
