@@ -14,6 +14,9 @@
             <typeName>T__salesagreementProductSchedules</typeName>
             <typeValue>SalesAgreementProductSchedule</typeValue>
         </dataTypeMappings>
+        <faultConnector>
+            <targetReference>Order_Creation_Error</targetReference>
+        </faultConnector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>contractId</name>
@@ -76,7 +79,7 @@
         <offset>0</offset>
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </actionCalls>
-    <apiVersion>62.0</apiVersion>
+    <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <customProperties>
         <name>ScreenProgressIndicator</name>
@@ -84,7 +87,7 @@
             <stringValue>{&quot;location&quot;:&quot;top&quot;,&quot;type&quot;:&quot;simple&quot;}</stringValue>
         </value>
     </customProperties>
-    <description>V2 - Include ContractId Input &amp; new order start date for contracted pricing</description>
+    <description>V3 - PST API for order creation, dynamic account address and contact, error handling</description>
     <environments>Default</environments>
     <formulas>
         <name>salesagreementIdLEFT</name>
@@ -174,6 +177,22 @@
         <storeOutputAutomatically>true</storeOutputAutomatically>
     </recordLookups>
     <screens>
+        <name>Order_Creation_Error</name>
+        <label>Order Creation Error</label>
+        <locationX>440</locationX>
+        <locationY>674</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Order_Creation_Error_Message</name>
+            <fieldText>An error occurred while creating the order: {!$Flow.FaultMessage}</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
         <name>Select_an_Order_Date</name>
         <label>Select an Order Date</label>
         <locationX>176</locationX>
@@ -240,7 +259,7 @@
             <inputParameters>
                 <name>minRowSelection</name>
                 <value>
-                    <numberValue>0.0</numberValue>
+                    <numberValue>1.0</numberValue>
                 </value>
             </inputParameters>
             <inputParameters>
@@ -252,7 +271,7 @@
             <inputParameters>
                 <name>columns</name>
                 <value>
-                    <stringValue>[{&quot;apiName&quot;:&quot;Product_Name__c&quot;quot;apiName&quot;apiName&quot;:&quot;Product_Name__c&quot;quot;:&quot;apiName&quot;:&quot;Product_Name__c&quot;quot;RLM_MFG_Product_Name__c&quot;apiName&quot;:&quot;Product_Name__c&quot;quot;,&quot;guid&quot;:&quot;column-535d&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:0,&quot;label&quot;:&quot;Product Name&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;PlannedQuantity&quot;,&quot;guid&quot;:&quot;column-8f60&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:1,&quot;label&quot;:&quot;Planned Quantity&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;SalesPrice&quot;,&quot;guid&quot;:&quot;column-1624&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:2,&quot;label&quot;:&quot;Sales Price&quot;,&quot;type&quot;:&quot;currency&quot;}]</stringValue>
+                    <stringValue>[{&quot;apiName&quot;:&quot;RLM_MFG_Product_Name__c&quot;,&quot;guid&quot;:&quot;column-535d&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:0,&quot;label&quot;:&quot;Product Name&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;PlannedQuantity&quot;,&quot;guid&quot;:&quot;column-8f60&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:1,&quot;label&quot;:&quot;Planned Quantity&quot;,&quot;type&quot;:&quot;customRichText&quot;},{&quot;apiName&quot;:&quot;SalesPrice&quot;,&quot;guid&quot;:&quot;column-1624&quot;,&quot;editable&quot;:false,&quot;hasCustomHeaderLabel&quot;:false,&quot;customHeaderLabel&quot;:&quot;&quot;,&quot;wrapText&quot;:true,&quot;order&quot;:2,&quot;label&quot;:&quot;Sales Price&quot;,&quot;type&quot;:&quot;currency&quot;}]</stringValue>
                 </value>
             </inputParameters>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>

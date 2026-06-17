@@ -1,195 +1,144 @@
-global class RLM_MFG_SalesAgreementRLMOrder{
-    //see https://developer.salesforce.com/docs/atlas.en-us.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/apex_class_placequote_GraphRequest.htm
-        @InvocableMethod(label='Create Order from Sales Agreement' description='Creates an order from the sales agreement' category='Order')
-        public static List<String> createUpdateQuote(List<saProductListEntries> saProducts){
+public with sharing class RLM_MFG_SalesAgreementRLMOrder {
 
-
-            List<SalesAgreementProductSchedule> mySAProductSchedules = new List<SalesAgreementProductSchedule>();
-            mySAProductSchedules = saProducts[0].salesagreementProductSchedules;
-            
-            List<Contact> quoteContacts = [SELECT Id, Name FROM Contact LIMIT 1];
-            String contactId = quoteContacts[0].Id;
-            
-            //System.debug('========0=======');
-            List<String> myIds=new List<String>();
-            
-            string orderDateString = String.valueOf(saProducts[0].orderDate);
-            /*
-            //Order Setup
-            List<CommerceOrders.RecordWithReferenceRequest> recordNodes = new List<CommerceOrders.RecordWithReferenceRequest>();
-    
-			// Prepare for the Order 
-			Map<String,Object> orderFieldValues = new Map<String,Object>();
-			orderFieldValues.put('AccountId',saProducts[0].customerAcctId);
-			orderFieldValues.put('Pricebook2Id', saProducts[0].priceBookId);
-			orderFieldValues.put('EffectiveDate', orderDateString);
-            orderFieldValues.put('SalesAgreementId',saProducts[0].salesAgreementId);
-            orderFieldValues.put('Status','Draft');
-            
-            //create record object
-            CommerceOrders.RecordResource orderRecord = new CommerceOrders.RecordResource(Order.getSobjectType(), 'POST');
-			orderRecord.fieldValues = orderFieldValues;
-            system.debug('ORDER DEBUG BELOW');
-            system.debug(orderRecord);
-            
-            //create order lines & app usage
-            
-            CommerceOrders.RecordWithReferenceRequest orderRecordNode = new CommerceOrders.RecordWithReferenceRequest('refOrder', orderRecord);
-			recordNodes.add(orderRecordNode);
-
-			// Prepare for the App Usage Assignment
-			Map<String,Object> auaFieldValues = new Map<String,Object>();
-			auaFieldValues.put('AppUsageType', 'RevenueLifecycleManagement');
-			auaFieldValues.put('RecordId', '@{refOrder.id}');
-
-			CommerceOrders.RecordResource auaRecord = new CommerceOrders.RecordResource(AppUsageAssignment.getSobjectType(), 'POST');
-			auaRecord.fieldValues = auaFieldValues;
-
-			CommerceOrders.RecordWithReferenceRequest auaRecordNode = new CommerceOrders.RecordWithReferenceRequest('refAppTag', auaRecord);
-			recordNodes.add(auaRecordNode);
-
-			// Prepare for the Order Item
-			
-            integer counter=0;
-            for(SalesAgreementProductSchedule mySAProductSchedule : mySAProductSchedules){
-            	counter++;
-				Map<String,Object> oiFieldValues = new Map<String,Object>();
-				oiFieldValues.put('OrderId', '@{refOrder.id}');
-				oiFieldValues.put('PricebookEntryId',mySAProductSchedule.RLM_MFG_PricebookEntryId__c);
-				oiFieldValues.put('Product2Id',mySAProductSchedule.RLM_MFG_Product2Id__c);
-				oiFieldValues.put('Quantity', mySAProductSchedule.PlannedQuantity);
-				oiFieldValues.put('UnitPrice', mySAProductSchedule.SalesPrice);
-
-				CommerceOrders.RecordResource oiRecord = new CommerceOrders.RecordResource(OrderItem.getSobjectType(), 'POST');
-				oiRecord.fieldValues = oiFieldValues;
-
-				CommerceOrders.RecordWithReferenceRequest oiRecordNode = new CommerceOrders.RecordWithReferenceRequest('refOrderItem_'+counter, oiRecord);
-				recordNodes.add(oiRecordNode);
-                system.debug('ORDER NODES BELOW');
-                system.debug('record node here: '+ recordNodes);
-            }
-            
-            
-            CommerceOrders.PricingPreferenceEnum pricingPreference = CommerceOrders.PricingPreferenceEnum.System;
-			CommerceOrders.CatalogRatesPreferenceEnum catalogRatesPreference = CommerceOrders.CatalogRatesPreferenceEnum.Skip;
-			CommerceOrders.ConfigurationInputEnum configurationPreference = CommerceOrders.ConfigurationInputEnum.Skip;
-			CommerceOrders.ConfigurationOptionsInput configurationInput = new CommerceOrders.ConfigurationOptionsInput();
-			configurationInput.validateProductCatalog = false;
-			configurationInput.validateAmendRenewCancel = false;
-			configurationInput.executeConfigurationRules = false;
-			configurationInput.addDefaultConfiguration = false;
-            
-            CommerceOrders.GraphRequest graph = new CommerceOrders.GraphRequest('testGraph', recordNodes);
-            CommerceOrders.PlaceOrderResult result = CommerceOrders.PlaceOrderExecutor.execute(graph, pricingPreference, catalogRatesPreference, configurationPreference, configurationInput);
-            
-            
-            // Process any error, if exists
-            if (!result.success) {
-              List<ConnectApi.PlaceOrderErrorResponse> errors = result.responseError;
-              for (ConnectApi.PlaceOrderErrorResponse error : errors) {
-                System.debug(error.errorCode + ': ' + error.message);
-              }
-            }
-            */
-            
-
-            //Quote Setup
-            PlaceQuote.RecordResource quoteRecord = new PlaceQuote.RecordResource(Quote.getSobjectType(),'POST');
-            
-            Map<String,Object> quoteFieldValues = new Map<String,Object>();
-
-            quoteFieldValues.put('QuoteAccountId',saProducts[0].customerAcctId);
-            quoteFieldValues.put('Name','Sales Agreement Quote');
-            quoteFieldValues.put('Pricebook2Id',saProducts[0].priceBookId);
-            quoteFieldValues.put('StartDate',orderDateString);
-            quoteFieldValues.put('RLM_MFG_Sales_Agreement__c',saProducts[0].salesAgreementId);
-            quoteFieldValues.put('ContractId',saProducts[0].contractId);
-            
-            //bill to and ship to info
-            //
-            
-            quoteFieldValues.put('BillToContactId',contactId);
-            quoteFieldValues.put('ContactId',contactId);
-            quoteFieldValues.put('BillingStreet','415 Mission St');
-            quoteFieldValues.put('BillingCity','San Francisco');
-            quoteFieldValues.put('BillingPostalCode','94105');
-            quoteFieldValues.put('BillingCountry','USA');
-            quoteFieldValues.put('ShippingStreet','415 Mission St');
-            quoteFieldValues.put('ShippingCity','San Francisco');
-            quoteFieldValues.put('ShippingPostalCode','94105');
-            quoteFieldValues.put('ShippingCountry','USA');
-
-            //quoteFieldValues.put('Status','Draft');
-            quoteRecord.fieldValues = quoteFieldValues;
-            PlaceQuote.RecordWithReferenceRequest quoteItemRecords = new PlaceQuote.RecordWithReferenceRequest('refQuote',quoteRecord);
-            List<PlaceQuote.RecordWithReferenceRequest> listOfRecords = new List<PlaceQuote.RecordWithReferenceRequest>();
-            listOfRecords.add(quoteItemRecords);
-            //System.debug('========4=======');
-            
-            integer counter=0;
-            for(SalesAgreementProductSchedule mySAProductSchedule : mySAProductSchedules){
-                //System.debug('========5======='+counter);
-                counter++;
-                //Quote Line Set-up
-                PlaceQuote.RecordResource quoteLineItemRecord1 = new PlaceQuote.RecordResource(QuoteLineItem.getSobjectType(),'POST');
-                Map<String,Object> quoteLineItemFieldValues = new Map<String,Object>();
-                quoteLineItemFieldValues.put('Product2Id',mySAProductSchedule.RLM_MFG_Product2Id__c);
-                quoteLineItemFieldValues.put('PricebookEntryId',mySAProductSchedule.RLM_MFG_PricebookEntryId__c);
-                quoteLineItemFieldValues.put('Quantity',mySAProductSchedule.PlannedQuantity);
-                quoteLineItemFieldValues.put('StartDate',orderDateString);
-                //quoteLineItemFieldValues.put('EndDate',orderDateString);
-                quoteLineItemFieldValues.put('QuoteId','@{refQuote.id}');
-                quoteLineItemRecord1.fieldValues = quoteLineItemFieldValues;
-                
-                PlaceQuote.RecordWithReferenceRequest quoteLineItemRecords1 = new PlaceQuote.RecordWithReferenceRequest('refQuoteItem1_'+counter,quoteLineItemRecord1);
-                listOfRecords.add(quoteLineItemRecords1);
-                //System.debug('========6======='+counter);
-                }
-               
-               
-            //System.debug('========14=======');
-            
-            //execute
-            PlaceQuote.GraphRequest graph = new PlaceQuote.GraphRequest('test',listOfRecords);
-            PlaceQuote.ConfigurationOptionsInput cInput = new PlaceQuote.ConfigurationOptionsInput();
-            cInput.validateProductCatalog=false;
-            cInput.validateAmendRenewCancel=false;
-            cInput.executeConfigurationRules=false;
-            cInput.addDefaultConfiguration=false;
-            
-            System.debug(graph);
-            System.debug(cInput);
-            //System.debug('========15=======');
-            //Place Quote Call
-            //PlaceQuote.PlaceQuoteResponse resp = PlaceQuote.PlaceQuoteRLMApexProcessor.execute(PlaceQuote.PricingPreferenceEnum.System,graph, PlaceQuote.ConfigurationInputEnum.RunAndAllowErrors,cInput);
-            PlaceQuote.PlaceQuoteResponse resp = PlaceQuote.PlaceQuoteRLMApexProcessor.execute(PlaceQuote.PricingPreferenceEnum.System,graph, PlaceQuote.ConfigurationInputEnum.Skip,cInput);
-            System.debug(resp);
-            
-            myIds.add(resp.quoteId);
-            
-            return myIds;
-            
+    @InvocableMethod(label='Create Order from Sales Agreement' description='Creates an RLM order from a sales agreement using Place Sales Transaction' category='Order')
+    public static List<String> createOrder(List<saProductListEntries> saProducts) {
+        if (saProducts == null || saProducts.isEmpty()
+                || saProducts[0].salesagreementProductSchedules == null
+                || saProducts[0].salesagreementProductSchedules.isEmpty()) {
+            return new List<String>();
         }
-        
-        global class saProductListEntries {
-            @InvocableVariable(required=true)
-            global List<sObject> salesagreementProductSchedules;
 
-            @InvocableVariable(required=true)
-            global String priceBookId;
+        List<SalesAgreementProductSchedule> schedules =
+            (List<SalesAgreementProductSchedule>) saProducts[0].salesagreementProductSchedules;
 
-            @InvocableVariable(required=true)
-            global String salesAgreementId;
+        Id accountId    = (Id) saProducts[0].customerAcctId;
+        String pbId     = saProducts[0].priceBookId;
+        String saId     = saProducts[0].salesAgreementId;
+        String ctrId    = saProducts[0].contractId;
+        String orderDateStr = String.valueOf(saProducts[0].orderDate);
 
-            @InvocableVariable(required=true)
-            global String customerAcctId;
+        // Resolve account address for billing and shipping population
+        List<Account> accounts = [
+            SELECT Id, Name,
+                   BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry,
+                   ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry
+            FROM Account WHERE Id = :accountId LIMIT 1
+        ];
+        Account acct = accounts.isEmpty() ? null : accounts[0];
 
-            @InvocableVariable(required=true)
-            global Date orderDate;  
-            
-            @InvocableVariable(required=false)
-            global string contractId;  
+        // Primary contact for the account — used for BillToContactId
+        List<Contact> contacts = [SELECT Id FROM Contact WHERE AccountId = :accountId LIMIT 1];
+        Id contactId = contacts.isEmpty() ? null : contacts[0].Id;
+
+        // ── Order header ──────────────────────────────────────────────────────────
+        RevSalesTrxn.RecordResource orderRecord =
+            new RevSalesTrxn.RecordResource(Order.getSobjectType(), 'POST');
+        Map<String, Object> orderFields = new Map<String, Object>();
+        orderFields.put('AccountId',       accountId);
+        orderFields.put('Pricebook2Id',    pbId);
+        orderFields.put('EffectiveDate',   orderDateStr);
+        orderFields.put('SalesAgreementId', saId);
+        orderFields.put('Status',          'Draft');
+
+        if (ctrId != null) {
+            orderFields.put('ContractId', ctrId);
         }
-        
-    
+        if (contactId != null) {
+            orderFields.put('BillToContactId', contactId);
+        }
+        if (acct != null) {
+            if (acct.BillingStreet     != null) orderFields.put('BillingStreet',     acct.BillingStreet);
+            if (acct.BillingCity       != null) orderFields.put('BillingCity',       acct.BillingCity);
+            if (acct.BillingState      != null) orderFields.put('BillingState',      acct.BillingState);
+            if (acct.BillingPostalCode != null) orderFields.put('BillingPostalCode', acct.BillingPostalCode);
+            if (acct.BillingCountry    != null) orderFields.put('BillingCountry',    acct.BillingCountry);
+            if (acct.ShippingStreet    != null) orderFields.put('ShippingStreet',    acct.ShippingStreet);
+            if (acct.ShippingCity      != null) orderFields.put('ShippingCity',      acct.ShippingCity);
+            if (acct.ShippingState     != null) orderFields.put('ShippingState',     acct.ShippingState);
+            if (acct.ShippingPostalCode!= null) orderFields.put('ShippingPostalCode',acct.ShippingPostalCode);
+            if (acct.ShippingCountry   != null) orderFields.put('ShippingCountry',   acct.ShippingCountry);
+        }
+
+        orderRecord.fieldValues = orderFields;
+        List<RevSalesTrxn.RecordWithReferenceRequest> listOfRecords =
+            new List<RevSalesTrxn.RecordWithReferenceRequest>{
+                new RevSalesTrxn.RecordWithReferenceRequest('refOrder', orderRecord)
+            };
+
+        // ── AppUsageAssignment — marks this order as Revenue Cloud managed ────────
+        RevSalesTrxn.RecordResource auaRecord =
+            new RevSalesTrxn.RecordResource(AppUsageAssignment.getSobjectType(), 'POST');
+        auaRecord.fieldValues = new Map<String, Object>{
+            'AppUsageType' => 'RevenueLifecycleManagement',
+            'RecordId'     => '@{refOrder.id}'
+        };
+        listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest('refAppUsage', auaRecord));
+
+        // ── One OrderItem per selected product schedule ───────────────────────────
+        Integer counter = 0;
+        for (SalesAgreementProductSchedule schedule : schedules) {
+            counter++;
+            RevSalesTrxn.RecordResource oiRecord =
+                new RevSalesTrxn.RecordResource(OrderItem.getSobjectType(), 'POST');
+            Map<String, Object> oiFields = new Map<String, Object>();
+            oiFields.put('OrderId',          '@{refOrder.id}');
+            oiFields.put('Product2Id',       schedule.RLM_MFG_Product2Id__c);
+            oiFields.put('PricebookEntryId', schedule.RLM_MFG_PricebookEntryId__c);
+            oiFields.put('Quantity',         schedule.PlannedQuantity);
+            oiFields.put('UnitPrice',        schedule.SalesPrice);
+            oiRecord.fieldValues = oiFields;
+            listOfRecords.add(new RevSalesTrxn.RecordWithReferenceRequest(
+                'refOrderItem_' + counter, oiRecord));
+        }
+
+        // ── Execute Place Sales Transaction ───────────────────────────────────────
+        RevSalesTrxn.ConfigurationOptionsInput configOptions =
+            new RevSalesTrxn.ConfigurationOptionsInput();
+        configOptions.validateProductCatalog    = false;
+        configOptions.validateAmendRenewCancel  = false;
+        configOptions.executeConfigurationRules = false;
+        configOptions.addDefaultConfiguration  = false;
+
+        RevSalesTrxn.GraphRequest graph =
+            new RevSalesTrxn.GraphRequest('salesAgreementOrderGraph', listOfRecords);
+
+        RevSalesTrxn.PlaceSalesTransactionResponse resp =
+            RevSalesTrxn.PlaceSalesTransactionExecutor.execute(
+                graph,
+                RevSalesTrxn.PricingPreferenceEnum.SYSTEM,
+                RevSalesTrxn.ConfigurationExecutionEnum.SKIP,
+                configOptions,
+                null
+            );
+
+        if (resp == null || !resp.isSuccess) {
+            String errDetail = (resp != null && resp.errorResponse != null)
+                ? String.valueOf(resp.errorResponse) : 'PST order execution failed';
+            throw new RLM_MFG_SalesAgreementOrderException(errDetail);
+        }
+
+        return new List<String>{ resp.salesTransactionId };
     }
+
+    public class saProductListEntries {
+        @InvocableVariable(required=true)
+        public List<sObject> salesagreementProductSchedules;
+
+        @InvocableVariable(required=true)
+        public String priceBookId;
+
+        @InvocableVariable(required=true)
+        public String salesAgreementId;
+
+        @InvocableVariable(required=true)
+        public String customerAcctId;
+
+        @InvocableVariable(required=true)
+        public Date orderDate;
+
+        @InvocableVariable(required=false)
+        public String contractId;
+    }
+
+    public class RLM_MFG_SalesAgreementOrderException extends Exception {}
+}
