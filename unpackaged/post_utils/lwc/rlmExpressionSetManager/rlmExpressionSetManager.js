@@ -42,6 +42,7 @@ export default class RlmExpressionSetManager extends LightningElement {
     expressionSets = [];
     selectedRowIds = [];
     columns = COLUMNS;
+    sortedByColumn = 'usageType';
     sortedBy = 'usageType';
     sortDirection = 'desc';
     isLoading = false;
@@ -49,6 +50,7 @@ export default class RlmExpressionSetManager extends LightningElement {
     previousError = '';
     _contextData = [];
     _pollTimer;
+    _delayTimer;
     _pendingDefIds = [];
 
     async connectedCallback() {
@@ -134,6 +136,10 @@ export default class RlmExpressionSetManager extends LightningElement {
 
     // --- Event Handlers ---
 
+    handleDismissError() {
+        this.previousError = '';
+    }
+
     handleContextChange(event) {
         this.selectedContextId = event.detail.value;
         const selected = this._contextData.find(cd => cd.id === this.selectedContextId);
@@ -147,7 +153,9 @@ export default class RlmExpressionSetManager extends LightningElement {
     }
 
     handleSort(event) {
-        this.sortedBy = event.detail.fieldName;
+        const column = this.columns.find(c => c.fieldName === event.detail.fieldName);
+        this.sortedByColumn = event.detail.fieldName;
+        this.sortedBy = column?.sortingFieldName || event.detail.fieldName;
         this.sortDirection = event.detail.sortDirection;
         this.expressionSets = this.applySort([...this.expressionSets]);
     }
@@ -274,37 +282,41 @@ export default class RlmExpressionSetManager extends LightningElement {
     // --- Polling ---
 
     pollStatus(statusFn, contextId, defIds, initialDelay, onComplete) {
-        // Clear any prior timer (e.g. pollJobCompletion from connectedCallback)
-        // before scheduling new work. stopPolling clears isActing — restore it.
         this.stopPolling();
         this.isActing = true;
+        let isChecking = false;
+        const poll = async () => {
+            if (isChecking) return;
+            isChecking = true;
+            try {
+                const jobStatus = await getActiveJobStatus();
+                if (jobStatus.startsWith('failed:')) {
+                    this.stopPolling();
+                    this.previousError = jobStatus.substring(7);
+                    await this.loadExpressionSets();
+                    return;
+                }
+
+                const status = await statusFn({ contextDefinitionId: contextId, definitionIds: defIds });
+                if (status === 'complete') {
+                    this.stopPolling();
+                    onComplete(new Set(defIds));
+                }
+            } catch (error) {
+                this.stopPolling();
+                this.showToast('Error', 'Failed to check operation status.', 'error');
+            } finally {
+                isChecking = false;
+            }
+        };
         const startPolling = () => {
             // eslint-disable-next-line @lwc/lwc/no-async-operation
-            this._pollTimer = setInterval(async () => {
-                try {
-                    const jobStatus = await getActiveJobStatus();
-                    if (jobStatus.startsWith('failed:')) {
-                        this.stopPolling();
-                        this.previousError = jobStatus.substring(7);
-                        await this.loadExpressionSets();
-                        return;
-                    }
-
-                    const status = await statusFn({ contextDefinitionId: contextId, definitionIds: defIds });
-                    if (status === 'complete') {
-                        this.stopPolling();
-                        onComplete(new Set(defIds));
-                    }
-                } catch (error) {
-                    this.stopPolling();
-                    this.showToast('Error', 'Failed to check operation status.', 'error');
-                }
-            }, POLL_INTERVAL);
+            this._pollTimer = setInterval(poll, POLL_INTERVAL);
         };
 
         if (initialDelay > 0) {
             // eslint-disable-next-line @lwc/lwc/no-async-operation
-            setTimeout(startPolling, initialDelay);
+            this._delayTimer = setTimeout(startPolling, initialDelay);
         } else {
             startPolling();
         }
@@ -334,6 +346,10 @@ export default class RlmExpressionSetManager extends LightningElement {
     }
 
     stopPolling() {
+        if (this._delayTimer) {
+            clearTimeout(this._delayTimer);
+            this._delayTimer = null;
+        }
         if (this._pollTimer) {
             clearInterval(this._pollTimer);
             this._pollTimer = null;

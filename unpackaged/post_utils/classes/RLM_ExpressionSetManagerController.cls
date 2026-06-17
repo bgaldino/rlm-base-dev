@@ -336,23 +336,21 @@ public with sharing class RLM_ExpressionSetManagerController {
         public void execute(QueueableContext ctx) {
             String baseUrl = System.Url.getOrgDomainUrl().toExternalForm();
 
+            List<Object> subrequests = new List<Object>();
+            Integer refIdx = 0;
+
             // Recreate junctions for unlinked constraints
-            if (!needsJunction.isEmpty()) {
-                List<Object> subrequests = new List<Object>();
-                Integer refIdx = 0;
-                for (Id defId : needsJunction) {
-                    Map<String, Object> sub = new Map<String, Object>();
-                    sub.put('method', 'POST');
-                    sub.put('url', '/services/data/' + API_VERSION + '/sobjects/ExpressionSetDefinitionContextDefinition');
-                    sub.put('referenceId', 'junction_' + refIdx);
-                    sub.put('body', new Map<String, Object>{
-                        'ExpressionSetDefinitionId' => defId,
-                        'ContextDefinitionId' => contextDefinitionId
-                    });
-                    subrequests.add(sub);
-                    refIdx++;
-                }
-                sendCompositeInChunks(baseUrl, sessionId, subrequests);
+            for (Id defId : needsJunction) {
+                Map<String, Object> sub = new Map<String, Object>();
+                sub.put('method', 'POST');
+                sub.put('url', '/services/data/' + API_VERSION + '/sobjects/ExpressionSetDefinitionContextDefinition');
+                sub.put('referenceId', 'junction_' + refIdx);
+                sub.put('body', new Map<String, Object>{
+                    'ExpressionSetDefinitionId' => defId,
+                    'ContextDefinitionId' => contextDefinitionId
+                });
+                subrequests.add(sub);
+                refIdx++;
             }
 
             // Activate highest version per expression set
@@ -367,8 +365,6 @@ public with sharing class RLM_ExpressionSetManagerController {
             ];
 
             Set<Id> activated = new Set<Id>();
-            List<Object> subrequests = new List<Object>();
-            Integer refIdx = 0;
             for (ExpressionSetVersion v : allVersions) {
                 if (!activated.contains(v.ExpressionSetId)) {
                     subrequests.add(buildVersionPatch(v.Id, true, v.Rank, refIdx));
@@ -452,7 +448,7 @@ public with sharing class RLM_ExpressionSetManagerController {
 
     private static void sendComposite(String baseUrl, String sessionId, List<Object> subrequests) {
         Map<String, Object> compositeBody = new Map<String, Object>{
-            'allOrNone' => false,
+            'allOrNone' => true,
             'compositeRequest' => subrequests
         };
 

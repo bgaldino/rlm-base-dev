@@ -1,11 +1,18 @@
 <template>
     <lightning-card title="Expression Set Manager" icon-name="standard:activations">
-        <div class="slds-p-around_medium">
+        <section class="slds-p-around_medium" aria-label="Expression Set Manager">
 
             <template lwc:if={hasPreviousError}>
                 <div class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_small" role="alert">
                     <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small"></lightning-icon>
                     <span>Last operation failed: {previousError}</span>
+                    <lightning-button-icon
+                        icon-name="utility:close"
+                        alternative-text="Dismiss"
+                        variant="bare-inverse"
+                        class="slds-m-left_small"
+                        onclick={handleDismissError}>
+                    </lightning-button-icon>
                 </div>
             </template>
 
@@ -70,7 +77,7 @@
                         columns={columns}
                         selected-rows={selectedRowIds}
                         onrowselection={handleRowSelection}
-                        sorted-by={sortedBy}
+                        sorted-by={sortedByColumn}
                         sorted-direction={sortDirection}
                         onsort={handleSort}
                         resize-column-disabled>
@@ -78,14 +85,15 @@
                 </template>
 
                 <template lwc:if={showNoResults}>
-                    <div class="slds-m-top_medium slds-align_absolute-center">
+                    <div class="slds-m-top_medium slds-align_absolute-center slds-text-align_center">
                         <p class="slds-text-body_regular slds-text-color_weak">
-                            No Expression Sets found for this Context Definition.
+                            No Expression Sets found for this Context Definition.<br/>
+                            Link Expression Sets via the Context Definition setup page, then return here to activate them.
                         </p>
                     </div>
                 </template>
             </template>
 
-        </div>
+        </section>
     </lightning-card>
 </template>
