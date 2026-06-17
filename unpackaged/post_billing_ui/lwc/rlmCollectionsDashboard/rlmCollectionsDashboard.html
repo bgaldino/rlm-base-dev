@@ -59,12 +59,12 @@
                         <div class="aging-label">Aging</div>
                         <div class="aging-bar" role="list">
                             <template for:each={agingBuckets} for:item="bucket">
-                                <div key={bucket.key} class="aging-segment" class:aging-segment-selected={bucket.isSelected} data-key={bucket.key} style={bucket.segmentStyle} onclick={handleAgingBucketClick} role="button" tabindex="0" title={bucket.label}></div>
+                                <div key={bucket.key} class={bucket.segmentClass} data-key={bucket.key} style={bucket.segmentStyle} onclick={handleAgingBucketClick} onkeydown={handleAgingBucketKeydown} role="button" tabindex="0" aria-label={bucket.label} title={bucket.label}></div>
                             </template>
                         </div>
                         <div class="aging-legend">
                             <template for:each={agingBuckets} for:item="bucket">
-                                <button key={bucket.key} type="button" class="legend-item" class:legend-item-selected={bucket.isSelected} data-key={bucket.key} onclick={handleAgingBucketClick}>
+                                <button key={bucket.key} type="button" class={bucket.legendClass} data-key={bucket.key} onclick={handleAgingBucketClick}>
                                     <span class="legend-dot" style={bucket.dotStyle}></span>
                                     <span class="legend-text">{bucket.label}</span>
                                     <span class="legend-amount">{bucket.formatted}</span>
@@ -79,7 +79,7 @@
                         <template if:true={hasPaymentPromises}>
                             <div class="payment-promises-bar" role="img" aria-label="Total requested amount by status">
                                 <template for:each={paymentPromisesBuckets} for:item="bucket">
-                                    <div key={bucket.key} class="payment-promises-segment" style={bucket.segmentStyle} title={bucket.tooltip} data-status={bucket.key} onclick={handlePaymentPromiseClick} role="button" tabindex="0"></div>
+                                    <div key={bucket.key} class="payment-promises-segment" style={bucket.segmentStyle} title={bucket.tooltip} aria-label={bucket.tooltip} data-status={bucket.key} onclick={handlePaymentPromiseClick} onkeydown={handlePaymentPromiseKeydown} role="button" tabindex="0"></div>
                                 </template>
                             </div>
                             <div class="payment-promises-legend">

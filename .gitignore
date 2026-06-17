@@ -121,6 +121,8 @@ unpackaged/*bak/**
 !.claude/commands/
 datasets/sfdmu/reconcile/**
 datasets/sfdmu/extractions/**
+# Raw, unmodified org metadata/data extractions for drift comparison (never committed)
+extracted/**
 datasets/sfdmu/**/*.csv.bak
 datasets/bre/exports/**
 # Writeback/drift artifacts

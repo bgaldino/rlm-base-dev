@@ -1,0 +1,77 @@
+<template>
+    <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+    </template>
+
+    <template if:true={error}>
+        <div class="slds-text-color_error slds-p-around_small">{error}</div>
+    </template>
+
+    <template if:true={hasData}>
+        <div class="summary-container">
+
+            <!-- Top header row -->
+            <div class="header-row">
+                <div class="header-left">
+                    <span class="header-title">Account Balance</span>
+                    <template if:true={rlmBillingStatus}>
+                        <span class={statusClass}
+                              onmouseenter={handleStatusEnter}
+                              onmouseleave={handleStatusLeave}>{statusLabel}</span>
+                    </template>
+                </div>
+                <div class="header-right">
+                    <div class="header-total">
+                        <span class="total-label">Net Outstanding Balance</span>
+                        <span class="total-amount">{formattedNetBalance}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Arrow status bar -->
+            <template if:true={hasSegments}>
+                <div class="arrow-bar">
+                    <template for:each={segments} for:item="seg">
+                        <div key={seg.key} class={seg.segClass} style={seg.barStyle}>
+                            <span class="arrow-label">{seg.label}</span>
+                            <span class="arrow-amount">{seg.formattedAmount}</span>
+                            <span class="arrow-count">{seg.countLabel}</span>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Bottom metrics row -->
+            <div class="metrics-row">
+                <div class="metric" data-type="receivables"
+                     onmouseenter={handleBalEnter} onmouseleave={handleBalLeave}>
+                    <span class="metric-value">{formattedReceivables}</span>
+                    <span class="metric-label">Total Receivables</span>
+                </div>
+                <div class="metric-divider"></div>
+                <div class="metric" data-type="payables"
+                     onmouseenter={handleBalEnter} onmouseleave={handleBalLeave}>
+                    <span class="metric-value metric-payables">{formattedPayables}</span>
+                    <span class="metric-label">Payments &amp; Credits Balance</span>
+                </div>
+                <span class="metrics-spacer"></span>
+                <span class="open-invoices-count">{totalInvoiceLabel}</span>
+            </div>
+
+        </div>
+
+        <!-- Fixed-position tooltip for balance hover -->
+        <template if:true={showTooltip}>
+            <div class="bal-tooltip" style={tooltipStyle}>
+                <template for:each={tooltipLines} for:item="line">
+                    <span key={line.key} class="tooltip-line">{line.text}</span>
+                </template>
+            </div>
+        </template>
+
+        <!-- Fixed-position tooltip for status pill -->
+        <template if:true={showStatusTooltip}>
+            <div class="status-tooltip-fixed" style={statusTooltipStyle}>{statusDescription}</div>
+        </template>
+    </template>
+</template>

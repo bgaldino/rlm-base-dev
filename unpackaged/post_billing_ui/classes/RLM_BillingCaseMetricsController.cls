@@ -2,9 +2,12 @@
  * Apex controller for the Billing Case Metrics LWC.
  * Aggregates open billing cases, disputes, and disputed invoice data.
  *
- * Dispute object fields (IsClosed, DisputedAmount, InvoiceId) were removed
- * in release 262. Queries use Schema describe to check field availability
- * before executing.
+ * The Dispute object and its fields (IsClosed, DisputedAmount, InvoiceId) are
+ * license-gated billing extensions: present at runtime when the Revenue Cloud
+ * Billing license / Billing Operations User permission set are assigned, but not
+ * surfaced to the Apex compiler for static SOQL. Queries therefore use Schema
+ * describe to check availability and dynamic SOQL (USER_MODE) to execute, so the
+ * class compiles in every org and degrades gracefully where Dispute is absent.
  */
 public with sharing class RLM_BillingCaseMetricsController {
 
@@ -71,7 +74,7 @@ public with sharing class RLM_BillingCaseMetricsController {
                     metrics.put('totalDisputedAmount', amt != null ? (Decimal) amt : 0);
                 }
             } catch (Exception e) {
-                // Dispute field removed or object inaccessible — keep zero defaults.
+                // Dispute field not accessible (license/extension not enabled) — keep zero defaults.
                 System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController dispute aggregate failed: ' + e.getMessage());
             }
 
@@ -83,7 +86,7 @@ public with sharing class RLM_BillingCaseMetricsController {
                     );
                     metrics.put('disputedInvoices', (Integer) invAgg[0].get('cnt'));
                 } catch (Exception e) {
-                    // Dispute.InvoiceId removed or object inaccessible — keep zero default.
+                    // Dispute.InvoiceId not accessible (license/extension not enabled) — keep zero default.
                     System.debug(LoggingLevel.WARN, 'RLM_BillingCaseMetricsController disputed-invoice aggregate failed: ' + e.getMessage());
                 }
             }

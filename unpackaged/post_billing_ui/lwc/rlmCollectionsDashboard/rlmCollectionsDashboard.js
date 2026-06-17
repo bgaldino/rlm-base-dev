@@ -199,6 +199,13 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         'Draft':                 '00BWt00000A2mnaMAB'
     };
 
+    handlePaymentPromiseKeydown(event) {
+        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+            event.preventDefault();
+            this.handlePaymentPromiseClick(event);
+        }
+    }
+
     handlePaymentPromiseClick(event) {
         const status = event.currentTarget.dataset.status;
         const listViewId = this.psiListViewMap[status];
@@ -213,6 +220,13 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                     filterName: listViewId
                 }
             });
+        }
+    }
+
+    handleAgingBucketKeydown(event) {
+        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+            event.preventDefault();
+            this.handleAgingBucketClick(event);
         }
     }
 
@@ -413,6 +427,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             const pct = total > 0 ? (amt / total) * 100 : 0;
             const width = Math.max(pct, 0.5);
             const bg = colors[b.key] || '#64748b';
+            const isSelected = this.selectedAgingKey === b.key;
             return {
                 ...b,
                 amount: amt,
@@ -420,7 +435,9 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 widthPercent: width,
                 segmentStyle: `width: ${width}%; background-color: ${bg}; min-width: 2px;`,
                 dotStyle: `background-color: ${bg};`,
-                isSelected: this.selectedAgingKey === b.key
+                isSelected,
+                segmentClass: isSelected ? 'aging-segment aging-segment-selected' : 'aging-segment',
+                legendClass: isSelected ? 'legend-item legend-item-selected' : 'legend-item'
             };
         });
     }

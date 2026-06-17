@@ -1,0 +1,210 @@
+:host {
+    display: block;
+}
+
+.summary-container {
+    background: #ffffff;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* ── Header row ──────────────────────────────────────────── */
+.header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.35rem 0.75rem;
+    background: #fafaf9;
+    border-bottom: 1px solid #e5e5e5;
+}
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.header-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #181818;
+}
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+.header-invoice-count {
+    font-size: 0.68rem;
+    color: #706e6b;
+}
+.header-total {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.15;
+}
+.total-label {
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #706e6b;
+}
+.total-amount {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #014486;
+}
+
+/* ── Status pill ─────────────────────────────────────────── */
+.status-pill {
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.status-good { background: #d1fae5; color: #065f46; }
+.status-overdue { background: #fee2e2; color: #991b1b; }
+.status-partial { background: #fef3c7; color: #92400e; }
+.status-dispute { background: #ffedd5; color: #9a3412; }
+.status-credit { background: #dbeafe; color: #1e40af; }
+.status-delinquent { background: #fecaca; color: #7f1d1d; }
+.status-collections { background: #991b1b; color: #fff; }
+.status-written-off { background: #e2e8f0; color: #334155; }
+.status-no-activity { background: #f1f5f9; color: #64748b; }
+.status-settled { background: #bbf7d0; color: #14532d; }
+
+.status-tooltip-fixed {
+    position: fixed;
+    background: #1e293b;
+    color: #f1f5f9;
+    font-size: 0.72rem;
+    font-weight: 400;
+    padding: 0.4rem 0.65rem;
+    border-radius: 6px;
+    min-width: 200px;
+    max-width: 280px;
+    line-height: 1.4;
+    z-index: 10000;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    white-space: normal;
+    pointer-events: none;
+}
+
+/* ── Arrow status bar ────────────────────────────────────── */
+.arrow-bar {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    padding: 0.4rem 0.75rem;
+    min-height: 50px;
+    box-sizing: border-box;
+}
+.arrow-segment {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.25rem 0.9rem 0.25rem 1.3rem;
+    color: #fff;
+    z-index: 1;
+    flex: 1 1 0;
+    flex-basis: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+.seg-first { padding-left: 0.7rem; z-index: 4; }
+.seg-last { z-index: 1; }
+.arrow-segment:nth-child(2) { z-index: 3; }
+.arrow-segment:nth-child(3) { z-index: 2; }
+
+.arrow-label {
+    font-size: 0.55rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.92;
+    line-height: 1.1;
+}
+.arrow-amount {
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.15;
+}
+.arrow-count {
+    font-size: 0.55rem;
+    opacity: 0.85;
+    line-height: 1.1;
+}
+
+/* ── Bottom metrics ──────────────────────────────────────── */
+.metrics-row {
+    display: flex;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-top: 1px solid #e5e5e5;
+    background: #fafaf9;
+    gap: 0.8rem;
+}
+.metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: default;
+}
+.metric:hover {
+    opacity: 0.8;
+}
+.metric-value {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #181818;
+    line-height: 1.2;
+}
+.metric-payables {
+    color: #2e844a;
+}
+.metric-net-positive {
+    color: #2e844a;
+}
+.metric-label {
+    font-size: 0.58rem;
+    color: #706e6b;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.metric-divider {
+    width: 1px;
+    height: 22px;
+    background: #d8d8d8;
+}
+.metrics-spacer {
+    flex: 1;
+}
+.open-invoices-count {
+    font-size: 0.65rem;
+    color: #706e6b;
+    white-space: nowrap;
+}
+
+/* ── Hover tooltip ───────────────────────────────────────── */
+.bal-tooltip {
+    position: fixed;
+    z-index: 10000;
+    background: #181818;
+    color: #fff;
+    padding: 0.35rem 0.6rem;
+    border-radius: 5px;
+    font-size: 0.68rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.tooltip-line {
+    display: block;
+}

@@ -57,32 +57,28 @@ export default class RlmInvoiceAgingChart extends LightningElement {
         return this.recordId ? { accountId: this.recordId } : undefined;
     }
 
-    get queryInvoices() {
-        if (!this.recordId) return undefined;
-        return gql`
-            query InvoicesForAccount($accountId: ID!) {
-                uiapi {
-                    query {
-                        Invoice(
-                            where: { BillingAccountId: { eq: $accountId } }
-                            first: 2000
-                        ) {
-                            edges {
-                                node {
-                                    Id
-                                    Status { value }
-                                    DaysInvoiceOpen { value }
-                                    DaysInvoiceOverdue { value }
-                                    SettlementStatus { value }
-                                    Balance { value }
-                                }
+    queryInvoices = gql`
+        query InvoicesForAccount($accountId: ID!) {
+            uiapi {
+                query {
+                    Invoice(
+                        where: { BillingAccountId: { eq: $accountId } }
+                        first: 2000
+                    ) {
+                        edges {
+                            node {
+                                Id
+                                Status { value }
+                                DaysInvoiceOpen { value }
+                                DueDate { value }
+                                Balance { value }
                             }
                         }
                     }
                 }
             }
-        `;
-    }
+        }
+    `;
 
     processInvoices(data) {
         const edges = data?.uiapi?.query?.Invoice?.edges || [];
@@ -97,6 +93,9 @@ export default class RlmInvoiceAgingChart extends LightningElement {
         let totalOpenDays = 0;
         let maxOpenDays = 0;
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         edges.forEach((edge) => {
             const node = edge.node;
             const status = (node?.Status?.value || '').toLowerCase();
@@ -107,16 +106,14 @@ export default class RlmInvoiceAgingChart extends LightningElement {
             }
 
             const daysOpen = node?.DaysInvoiceOpen?.value ?? 0;
-            const daysOverdue = node?.DaysInvoiceOverdue?.value ?? 0;
-            const settlementStatus = (node?.SettlementStatus?.value || '').toLowerCase();
             const balance = Number(node?.Balance?.value ?? 0);
+            const dueDateValue = node?.DueDate?.value;
 
+            // Total = Posted
             total++;
 
-            // Open = Balance > 0 AND (Not Settled OR Partially Settled)
-            const isNotSettled = settlementStatus.includes('not settled');
-            const isPartiallySettled = settlementStatus.includes('partially') || (settlementStatus.includes('partial') && settlementStatus.includes('settled'));
-            const isOpen = balance > 0 && (isNotSettled || isPartiallySettled);
+            // Open = Posted AND Balance != 0 (subset of Total)
+            const isOpen = balance !== 0;
 
             if (isOpen) {
                 open++;
@@ -135,11 +132,15 @@ export default class RlmInvoiceAgingChart extends LightningElement {
                 } else {
                     b90plus++;
                 }
-            }
 
-            // Overdue = DaysInvoiceOverdue > 0 AND Balance > 0
-            if (daysOverdue > 0 && balance > 0) {
-                overdue++;
+                // Overdue = Posted AND Balance != 0 AND Today > Due Date (subset of Open)
+                if (dueDateValue) {
+                    const dueDate = new Date(dueDateValue);
+                    dueDate.setHours(0, 0, 0, 0);
+                    if (today > dueDate) {
+                        overdue++;
+                    }
+                }
             }
         });
 
@@ -155,21 +156,20 @@ export default class RlmInvoiceAgingChart extends LightningElement {
         this.maxBucketValue = Math.max(b0to30, b30to60, b60to90, b90plus, 1);
     }
 
-    // Computed bar styles for inline width
     get bar0to30Style() {
-        const pct = (this.bucket0to30 / this.maxBucketValue) * 100;
+        const pct = this.openInvoices > 0 ? (this.bucket0to30 / this.openInvoices) * 100 : 0;
         return `width: ${pct}%`;
     }
     get bar30to60Style() {
-        const pct = (this.bucket30to60 / this.maxBucketValue) * 100;
+        const pct = this.openInvoices > 0 ? (this.bucket30to60 / this.openInvoices) * 100 : 0;
         return `width: ${pct}%`;
     }
     get bar60to90Style() {
-        const pct = (this.bucket60to90 / this.maxBucketValue) * 100;
+        const pct = this.openInvoices > 0 ? (this.bucket60to90 / this.openInvoices) * 100 : 0;
         return `width: ${pct}%`;
     }
     get bar90plusStyle() {
-        const pct = (this.bucket90plus / this.maxBucketValue) * 100;
+        const pct = this.openInvoices > 0 ? (this.bucket90plus / this.openInvoices) * 100 : 0;
         return `width: ${pct}%`;
     }
 
