@@ -1,7 +1,7 @@
 import { LightningElement, api, wire } from "lwc";
 import { getRecord } from "lightning/uiRecordApi";
 import { NavigationMixin } from "lightning/navigation";
-import getAllPricingRuns from "@salesforce/apex/RLM_PricingWaterfallController.getAllPricingRuns";
+import getAllPricingRuns from "@salesforce/apex/RLM_PricingApiExecutionListController.getAllPricingRuns";
 
 const QLI_FIELDS = [
   "QuoteLineItem.PriceWaterfallIdentifier",
@@ -54,7 +54,7 @@ function confidenceBadgeClass(confidenceBand) {
   return "slds-badge confidence-badge";
 }
 
-export default class RlmPricingWaterfall extends NavigationMixin(LightningElement) {
+export default class RlmPricingApiExecutionList extends NavigationMixin(LightningElement) {
   @api recordId;
   @api historyPageSize = DEFAULT_HISTORY_PAGE_SIZE;
   @api showPriceSummary;
@@ -243,9 +243,6 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
     return this.currentRun?.lineCount ?? null;
   }
 
-  get currentTriggeredBy() {
-    return this.currentRun?.triggeredByName ?? null;
-  }
 
   get currentMatchSource() {
     return this._sanitizeDisplayValue(this.currentRun?.matchSource);
@@ -354,6 +351,8 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
     let prevTime = null;
     let groupIdx = 0;
 
+    const currentRunRef = this.currentRun;
+
     pagedRuns.forEach((run, idx) => {
       const runTime = run.createdDate ? new Date(run.createdDate).getTime() : null;
 
@@ -369,12 +368,11 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
           label: run.createdDate
             ? this._formatGroupLabel(new Date(run.createdDate))
             : "Unknown time",
-          // Non-separator fields kept undefined — template guards on isSeparator
         });
         prevTime = runTime;
       }
 
-      const isCurrent = this._isCurrentRun(run);
+      const isCurrent = this._matchesRun(currentRunRef, run);
       const paeId = run.pricingApiExecutionId;
       const matchSource = this._sanitizeDisplayValue(run.matchSource);
       const matchRelationshipRole = this._sanitizeDisplayValue(run.matchRelationshipRole);
@@ -395,7 +393,6 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
         lineStatus: run.lineStatus,
         createdDate: run.createdDate,
         lineCount: run.lineCount,
-        triggeredByName: run.triggeredByName,
         matchSource,
         matchRelationshipRole:
           matchRelationshipRole && matchRelationshipRole !== matchSource
@@ -502,7 +499,10 @@ export default class RlmPricingWaterfall extends NavigationMixin(LightningElemen
   }
 
   _isCurrentRun(run) {
-    const current = this.currentRun;
+    return this._matchesRun(this.currentRun, run);
+  }
+
+  _matchesRun(current, run) {
     if (!current || !run) return false;
 
     if (current.pricingApiExecutionId && run.pricingApiExecutionId) {

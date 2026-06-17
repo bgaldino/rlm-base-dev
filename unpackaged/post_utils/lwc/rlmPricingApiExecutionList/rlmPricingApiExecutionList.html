@@ -110,15 +110,6 @@
                   <p class="slds-text-color_weak slds-text-body_small">Waterfall Run ID</p>
                   <p class="slds-text-body_small run-id-text" title={_waterfallRunId}>{_waterfallRunId}</p>
                 </div>
-                <div class="slds-col execution-cell">
-                  <p class="slds-text-color_weak slds-text-body_small">Triggered By</p>
-                  <template if:true={currentTriggeredBy}>
-                    <p class="slds-text-body_small">{currentTriggeredBy}</p>
-                  </template>
-                  <template if:false={currentTriggeredBy}>
-                    <p class="slds-text-body_small slds-text-color_weak">—</p>
-                  </template>
-                </div>
               </div>
 
               <div class="current-execution-row">

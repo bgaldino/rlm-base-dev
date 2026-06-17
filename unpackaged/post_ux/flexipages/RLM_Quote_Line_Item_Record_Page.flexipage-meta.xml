@@ -224,8 +224,8 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentName>c:rlmPricingWaterfall</componentName>
-                <identifier>c_rlmPricingWaterfall</identifier>
+                <componentName>c:rlmPricingApiExecutionList</componentName>
+                <identifier>c_rlmPricingApiExecutionList</identifier>
             </componentInstance>
         </itemInstances>
         <name>priceWaterfallTabContent</name>

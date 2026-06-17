@@ -60,6 +60,7 @@ public with sharing class RLM_PricingWaterfallApiController {
                 SELECT PriceWaterfallIdentifier
                 FROM QuoteLineItem
                 WHERE Id = :recordId
+                WITH USER_MODE
                 LIMIT 1
             ];
             return qli.PriceWaterfallIdentifier;
@@ -68,6 +69,7 @@ public with sharing class RLM_PricingWaterfallApiController {
                 SELECT PriceWaterfallIdentifier
                 FROM OrderItem
                 WHERE Id = :recordId
+                WITH USER_MODE
                 LIMIT 1
             ];
             return oi.PriceWaterfallIdentifier;

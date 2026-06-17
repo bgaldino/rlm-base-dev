@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
-  <apiVersion>66.0</apiVersion>
+  <apiVersion>67.0</apiVersion>
   <isExposed>true</isExposed>
-  <masterLabel>RLM Pricing Waterfall</masterLabel>
+  <masterLabel>RLM Pricing API Execution List</masterLabel>
   <description>Pricing waterfall display for a sales transaction line. Shows price summary, execution status, and execution log from PricingProcessExecution records.</description>
   <targets>
     <target>lightning__RecordPage</target>

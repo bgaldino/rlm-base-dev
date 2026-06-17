@@ -1,14 +1,14 @@
 /**
- * @description Controller for the rlmPricingWaterfall LWC.
+ * @description Controller for the rlmPricingApiExecutionList LWC.
  *
  *              getAllPricingRuns(lineItemId) — returns the full history of
  *              PricingApiExecution runs for a sales transaction line item by querying
  *              PricingProcessExecution records whose ExecutionTypeKey ends
  *              with '_{lineItemId}' and ExecutionType = 'Pricing_Line'.
  *
- * @see rlmPricingWaterfall LWC
+ * @see rlmPricingApiExecutionList LWC
  */
-public with sharing class RLM_PricingWaterfallController {
+public with sharing class RLM_PricingApiExecutionListController {
     // Allow near-simultaneous execution records that can predate line insert by a few seconds.
     private static final Integer RUN_MATCH_TOLERANCE_SECONDS = 5;
     // For generic tokens (QLI0_0__*, OLI0_0__*), only consider a tight creation-time window.
@@ -34,8 +34,6 @@ public with sharing class RLM_PricingWaterfallController {
         @AuraEnabled public Datetime createdDate;
         /** Total number of lines priced in this API call */
         @AuraEnabled public Integer lineCount;
-        /** Name of the user who triggered pricing */
-        @AuraEnabled public String triggeredByName;
         /** QuoteLineItem/OrderItem id that matched this execution row */
         @AuraEnabled public String matchedLineItemId;
         /** Why the run matched (SelectedLine or RelatedLine) */
@@ -125,83 +123,43 @@ public with sharing class RLM_PricingWaterfallController {
             tokenToRole.put(scopedLineId, lineRoleById.get(scopedLineId));
         }
 
-        if (isQuoteLineItemType) {
-            for (QuoteLineItem qli : [
-                SELECT Id, PriceWaterfallIdentifier, CreatedDate
-                FROM QuoteLineItem
-                WHERE Id IN :scopedLineItemIds
-            ]) {
-                String token = extractTokenFromPriceWaterfallIdentifier(
-                    qli.PriceWaterfallIdentifier
-                );
-                String runIdFromIdentifier = extractRunIdFromPriceWaterfallIdentifier(
-                    qli.PriceWaterfallIdentifier
-                );
+        String lineObjectName = isQuoteLineItemType ? 'QuoteLineItem' : 'OrderItem';
+        String identifierQuery =
+            'SELECT Id, PriceWaterfallIdentifier, CreatedDate ' +
+            'FROM ' + lineObjectName + ' ' +
+            'WHERE Id IN :scopedLineItemIds';
+        for (SObject rec : Database.query(identifierQuery, AccessLevel.USER_MODE)) {
+            String recId = (String) rec.get('Id');
+            String identifier = (String) rec.get('PriceWaterfallIdentifier');
+            Datetime recCreatedDate = (Datetime) rec.get('CreatedDate');
 
-                if (!String.isBlank(token)) {
-                    tokenToLineId.put(token, qli.Id);
-                    tokenToRole.put(
-                        token,
-                        lineRoleById.containsKey((String) qli.Id)
-                            ? lineRoleById.get((String) qli.Id)
-                            : null
-                    );
-                }
+            String token = extractTokenFromPriceWaterfallIdentifier(identifier);
+            String runIdFromIdentifier = extractRunIdFromPriceWaterfallIdentifier(identifier);
 
-                if ((String) qli.Id == lineItemId) {
-                    seedLineCreatedDate = qli.CreatedDate;
-                    selectedIdentifierToken = token;
-                    selectedIdentifierIsGeneric = isGenericIdentifierToken(token);
-                    if (!String.isBlank(runIdFromIdentifier)) {
-                        selectedAnchorRunIds.add(runIdFromIdentifier);
-                    }
-                    if (!String.isBlank(token) && !selectedIdentifierIsGeneric) {
-                        scopedMatchTokens.add(token);
-                        selectedAnchorTokens.add(token);
-                    }
-                } else if (!String.isBlank(token) && !isGenericIdentifierToken(token)) {
-                    scopedMatchTokens.add(token);
-                    relatedIdentifierTokens.add(token);
-                }
+            if (!String.isBlank(token)) {
+                tokenToLineId.put(token, recId);
+                tokenToRole.put(
+                    token,
+                    lineRoleById.containsKey(recId)
+                        ? lineRoleById.get(recId)
+                        : null
+                );
             }
-        } else {
-            for (OrderItem oi : [
-                SELECT Id, PriceWaterfallIdentifier, CreatedDate
-                FROM OrderItem
-                WHERE Id IN :scopedLineItemIds
-            ]) {
-                String token = extractTokenFromPriceWaterfallIdentifier(
-                    oi.PriceWaterfallIdentifier
-                );
-                String runIdFromIdentifier = extractRunIdFromPriceWaterfallIdentifier(
-                    oi.PriceWaterfallIdentifier
-                );
 
-                if (!String.isBlank(token)) {
-                    tokenToLineId.put(token, oi.Id);
-                    tokenToRole.put(
-                        token,
-                        lineRoleById.containsKey((String) oi.Id)
-                            ? lineRoleById.get((String) oi.Id)
-                            : null
-                    );
+            if (recId == lineItemId) {
+                seedLineCreatedDate = recCreatedDate;
+                selectedIdentifierToken = token;
+                selectedIdentifierIsGeneric = isGenericIdentifierToken(token);
+                if (!String.isBlank(runIdFromIdentifier)) {
+                    selectedAnchorRunIds.add(runIdFromIdentifier);
                 }
-
-                if ((String) oi.Id == lineItemId) {
-                    seedLineCreatedDate = oi.CreatedDate;
-                    selectedIdentifierToken = token;
-                    selectedIdentifierIsGeneric = isGenericIdentifierToken(token);
-                    if (!String.isBlank(runIdFromIdentifier)) {
-                        selectedAnchorRunIds.add(runIdFromIdentifier);
-                    }
-                    if (!String.isBlank(token) && !selectedIdentifierIsGeneric) {
-                        scopedMatchTokens.add(token);
-                        selectedAnchorTokens.add(token);
-                    }
-                } else if (!String.isBlank(token) && !isGenericIdentifierToken(token)) {
+                if (!String.isBlank(token) && !selectedIdentifierIsGeneric) {
                     scopedMatchTokens.add(token);
-                    relatedIdentifierTokens.add(token);
+                    selectedAnchorTokens.add(token);
                 }
+            } else if (!String.isBlank(token) && !isGenericIdentifierToken(token)) {
+                scopedMatchTokens.add(token);
+                relatedIdentifierTokens.add(token);
             }
         }
 
@@ -233,7 +191,7 @@ public with sharing class RLM_PricingWaterfallController {
             String.join(anchorClauses, ' OR ') +
             ')' +
             minCreatedFilter;
-        for (PricingProcessExecution anchorPpe : (List<PricingProcessExecution>) Database.query(anchorQuery)) {
+        for (PricingProcessExecution anchorPpe : (List<PricingProcessExecution>) Database.query(anchorQuery, AccessLevel.USER_MODE)) {
             selectedAnchorExecutionKeys.add(anchorPpe.ExecutionKey);
         }
 
@@ -252,7 +210,7 @@ public with sharing class RLM_PricingWaterfallController {
                 ')' +
                 minCreatedFilter +
                 genericWindowUpperFilter;
-            for (PricingProcessExecution genericPpe : (List<PricingProcessExecution>) Database.query(genericTokenAnchorQuery)) {
+            for (PricingProcessExecution genericPpe : (List<PricingProcessExecution>) Database.query(genericTokenAnchorQuery, AccessLevel.USER_MODE)) {
                 selectedAnchorExecutionKeys.add(genericPpe.ExecutionKey);
             }
         }
@@ -274,7 +232,7 @@ public with sharing class RLM_PricingWaterfallController {
                 buildExecutionTypeKeyClause(relatedIdentifierTokens) +
                 ')' +
                 minCreatedFilter;
-            for (PricingProcessExecution relatedPpe : (List<PricingProcessExecution>) Database.query(relatedQuery)) {
+            for (PricingProcessExecution relatedPpe : (List<PricingProcessExecution>) Database.query(relatedQuery, AccessLevel.USER_MODE)) {
                 relatedExecutionKeys.add(relatedPpe.ExecutionKey);
             }
 
@@ -314,7 +272,7 @@ public with sharing class RLM_PricingWaterfallController {
                 ' ORDER BY CreatedDate ASC';
         }
         List<PricingProcessExecution> linePPEs =
-            (List<PricingProcessExecution>) Database.query(ppeQuery);
+            (List<PricingProcessExecution>) Database.query(ppeQuery, AccessLevel.USER_MODE);
 
         if (linePPEs.isEmpty()) {
             return new List<PricingRun>();
@@ -397,23 +355,16 @@ public with sharing class RLM_PricingWaterfallController {
             }
         }
 
-        // Fetch matching PricingApiExecution records (include CreatedById for user lookup)
+        // Fetch matching PricingApiExecution records
         Map<String, PricingApiExecution> paeByExecutionKey = new Map<String, PricingApiExecution>();
-        Set<Id> createdByIds = new Set<Id>();
         for (PricingApiExecution pae : [
-            SELECT Id, Name, ExecutionKey, Status, CreatedDate, CreatedById
+            SELECT Id, Name, ExecutionKey, Status, CreatedDate
             FROM PricingApiExecution
             WHERE ExecutionKey IN :executionKeys
+            WITH USER_MODE
             ORDER BY CreatedDate ASC
         ]) {
             paeByExecutionKey.put(pae.ExecutionKey, pae);
-            createdByIds.add(pae.CreatedById);
-        }
-
-        // Resolve user names
-        Map<Id, String> userNames = new Map<Id, String>();
-        for (User u : [SELECT Id, Name FROM User WHERE Id IN :createdByIds]) {
-            userNames.put(u.Id, u.Name);
         }
 
         // Count total lines priced per ExecutionKey (reveals scope of each batch)
@@ -423,6 +374,7 @@ public with sharing class RLM_PricingWaterfallController {
             FROM PricingProcessExecution
             WHERE ExecutionType = 'Pricing_Line'
               AND ExecutionKey IN :executionKeys
+            WITH USER_MODE
             GROUP BY ExecutionKey
         ]) {
             lineCountByKey.put(
@@ -459,7 +411,6 @@ public with sharing class RLM_PricingWaterfallController {
                 run.paeName               = pae.Name;
                 run.overallStatus         = pae.Status;
                 run.createdDate           = pae.CreatedDate;
-                run.triggeredByName       = userNames.get(pae.CreatedById);
             }
             runs.add(run);
         }
@@ -502,6 +453,7 @@ public with sharing class RLM_PricingWaterfallController {
                 WHERE MainQuoteLineId IN :frontier
                    OR AssociatedQuoteLineId IN :frontier
                    OR RootQuoteLineId IN :frontier
+                WITH USER_MODE
             ]) {
                 addRole(roleByLineId, nextFrontier, rel.MainQuoteLineId, 'MainQuoteLine');
                 addRole(
@@ -542,6 +494,7 @@ public with sharing class RLM_PricingWaterfallController {
                 WHERE MainOrderItemId IN :frontier
                    OR AssociatedOrderItemId IN :frontier
                    OR RootOrderItemId IN :frontier
+                WITH USER_MODE
             ]) {
                 addRole(
                     roleByLineId,
