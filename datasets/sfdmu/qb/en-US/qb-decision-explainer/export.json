@@ -24,6 +24,11 @@
           "query": "SELECT DeveloperName, MasterLabel, ExplainabilityActionDef.DeveloperName, IsActive, Description, DefinitionVersion FROM ExplainabilityActionVersion WHERE DeveloperName = 'SolverPath'",
           "operation": "Upsert",
           "externalId": "DeveloperName"
+        },
+        {
+          "query": "SELECT FlowIdentifier, Status, IsDefault FROM ProductConfigurationFlow WHERE FlowIdentifier = 'RLM_Debug_Configurator'",
+          "operation": "Upsert",
+          "externalId": "FlowIdentifier"
         }
       ]
     }

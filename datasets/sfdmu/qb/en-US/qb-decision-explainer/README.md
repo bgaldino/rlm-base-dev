@@ -4,7 +4,7 @@ SFDMU data plan for QuantumBit (QB) Decision Explainer setup — configures the 
 
 ## Data Plan Overview
 
-The plan uses a **single SFDMU pass** with 4 objects (all Upsert by `DeveloperName`). No activation step is required beyond record creation.
+The plan uses a **single SFDMU pass** with 5 objects (all Upsert). No activation step is required beyond record creation.
 
 ```
 Single Pass (SFDMU)
@@ -20,6 +20,7 @@ Upsert all Decision Explainer objects in dependency order
 | 2 | BusinessProcessTypeDef | Upsert | `DeveloperName` | 1 | `SolverPath`, ApplicationUsageType = `ExplainabilityService` |
 | 3 | ExplainabilityActionDef | Upsert | `DeveloperName` | 1 | References both parents via relationship traversal |
 | 4 | ExplainabilityActionVersion | Upsert | `DeveloperName` | 1 | Active version linked to ActionDef |
+| 5 | ProductConfigurationFlow | Upsert | `FlowIdentifier` | 1 | Registers `RLM_Debug_Configurator` flow as a configurator flow |
 
 ## Dependency Chain
 
@@ -28,6 +29,8 @@ ApplicationSubtypeDefinition (SolverPath)
 BusinessProcessTypeDef (SolverPath)
   └─ ExplainabilityActionDef (SolverPath)  ← references both parents
        └─ ExplainabilityActionVersion (SolverPath)  ← references ActionDef
+
+ProductConfigurationFlow (RLM_Debug_Configurator)  ← standalone
 ```
 
 ## Prerequisites
@@ -36,7 +39,7 @@ BusinessProcessTypeDef (SolverPath)
 
 ## Portability
 
-All external IDs use `DeveloperName` — a platform-enforced unique field on setup definition objects. Parent lookups use relationship traversal (`ApplicationSubtype.DeveloperName`, `ProcessType.DeveloperName`, `ExplainabilityActionDef.DeveloperName`) for cross-org portability.
+Decision Explainer objects use `DeveloperName` — a platform-enforced unique field on setup definition objects. Parent lookups use relationship traversal (`ApplicationSubtype.DeveloperName`, `ProcessType.DeveloperName`, `ExplainabilityActionDef.DeveloperName`) for cross-org portability. ProductConfigurationFlow uses `FlowIdentifier` (the flow API name) as its external ID.
 
 ## Idempotency
 
@@ -44,7 +47,8 @@ This plan is idempotent — re-running on an org that already has the `SolverPat
 
 ## Dependencies
 
-**Upstream:** None — these are standalone setup records.
+**Upstream:**
+- **post_utils metadata** — the `RLM_Debug_Configurator` flow must be deployed before the ProductConfigurationFlow record can reference it.
 
 **Downstream:**
 - Product Configurator runtime uses the Explainability Action framework to emit configuration logs when `explainabilityEnabled = true` is passed in the configurator options.
@@ -54,10 +58,11 @@ This plan is idempotent — re-running on an org that already has the `SolverPat
 
 ```
 qb-decision-explainer/
-├── export.json                          # SFDMU data plan (single pass, 4 objects)
+├── export.json                          # SFDMU data plan (single pass, 5 objects)
 ├── README.md                            # This file
 ├── ApplicationSubtypeDefinition.csv     # 1 record
 ├── BusinessProcessTypeDef.csv           # 1 record
 ├── ExplainabilityActionDef.csv          # 1 record
-└── ExplainabilityActionVersion.csv      # 1 record
+├── ExplainabilityActionVersion.csv      # 1 record
+└── ProductConfigurationFlow.csv         # 1 record
 ```
