@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**40 feature flags**, **84 configuration values**, **36 YAML anchors** under `project.custom`.
+**40 feature flags**, **85 configuration values**, **36 YAML anchors** under `project.custom`.
 
 ---
 
@@ -43,7 +43,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `q3` | `False` | 7 flow step(s) |
 | `qb` | `True` | 24 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 10 flow step(s) |
+| `quantumbit` | `True` | 11 flow step(s) |
 | `ramps` | `True` | 4 flow step(s) |
 | `rates` | `True` | 5 flow step(s) |
 | `rating` | `True` | 13 flow step(s) |
@@ -124,7 +124,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `calmdelete` (default: `True`)
 
-- `prepare_quantumbit` step 5 → `assign_permission_sets`
+- `prepare_quantumbit` step 6 → `assign_permission_sets`
 
 ### `clm` (default: `True`)
 
@@ -334,9 +334,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `quantumbit` (default: `True`)
 
 - `prepare_quantumbit` step 1 → `deploy_post_utils`
-- `prepare_quantumbit` step 3 → `deploy_quantumbit`
-- `prepare_quantumbit` step 4 → `assign_permission_sets`
+- `prepare_quantumbit` step 2 → `insert_qb_decision_explainer_data`
+- `prepare_quantumbit` step 4 → `deploy_quantumbit`
 - `prepare_quantumbit` step 5 → `assign_permission_sets`
+- `prepare_quantumbit` step 6 → `assign_permission_sets`
 - `prepare_constraints` step 1 → `insert_qb_transactionprocessingtypes_data`
 - `prepare_approvals` step 1 → `deploy_post_approvals`
 - `prepare_approvals` step 2 → `create_approval_email_templates`
@@ -499,6 +500,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_constraints_component_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-component` |
 | `quantumbit_constraints_data_dir` | `datasets/constraints/qb/QuantumBitComplete` |
 | `quantumbit_constraints_product_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-product` |
+| `quantumbit_decision_explainer_dataset` | `datasets/sfdmu/qb/en-US/qb-decision-explainer` |
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
 | `quantumbit_guidedselling_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling` |
 | `quantumbit_guidedselling_products_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling-products` |

@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**240 tasks** across **10 groups**.
+**241 tasks** across **10 groups**.
 
 ---
 
@@ -818,7 +818,7 @@
 
 ## Revenue Lifecycle Management
 
-*149 task(s)*
+*150 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -2200,6 +2200,18 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-constraints-product`
+
+---
+
+### `insert_qb_decision_explainer_data`
+
+**Description:** Insert QuantumBit Decision Explainer data (Configuration Logs setup)
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-decision-explainer`
 
 ---
 

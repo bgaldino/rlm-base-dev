@@ -40,54 +40,48 @@ If `automaticInstantPricing` is set to `true`, the debugger attempts a one-time
 `toggleInstantPricing` publish after LMS is ready, only when
 `isInstantPricingEnabled` is currently false.
 
-## In-Org Setup (One-Time)
+## In-Org Setup
 
-### Prerequisites
+### Automated (via CCI)
 
-- A scratch org or sandbox with Revenue Cloud (RLM) installed.
-- A product with an existing **Product Configurator** flow assigned
-  (configured via **Revenue Configurator** → product record).
-- Permission to edit flows.
+The `prepare_quantumbit` flow deploys everything automatically:
 
-### Step 1 — Deploy the component
+1. **`deploy_post_utils`** — deploys the LWC, the `RLM_Debug_Configurator` flow,
+   and the `RLM_ConfigDebug` permission set.
+2. **`insert_qb_decision_explainer_data`** — creates the Decision Explainer
+   records (Configuration Logs) and registers the flow as a
+   `ProductConfigurationFlow`.
+
+After the flow runs, assign `RLM_ConfigDebug` to users who need configuration
+log access, then assign the `RLM_Debug_Configurator` flow to a product via
+the **Revenue Configurator** section on the Product record.
+
+### Manual (standalone deploy)
 
 ```bash
+# Deploy the full post_utils bundle (LWC + flow + permission set)
 sf project deploy start \
-  --source-dir unpackaged/post_utils/lwc/rlmConfiguratorDebugger \
+  --source-dir unpackaged/post_utils \
   --target-org <your-org-alias>
+
+# Load Decision Explainer + ProductConfigurationFlow records
+cci task run insert_qb_decision_explainer_data --org <alias>
 ```
 
-Or deploy via CCI if the `post_utils` bundle is already part of a flow step:
+### Assigning the flow to a product
 
-```bash
-cci task run deploy --org <alias> \
-  -o path unpackaged/post_utils/lwc/rlmConfiguratorDebugger
-```
+1. Navigate to the Product record you want to debug.
+2. In the **Revenue Configurator** section, change **Configurator Flow** to
+   `RLM_Debug_Configurator`.
+3. Open the product in the Commerce / Sales flow to launch the configurator.
 
-### Step 2 — Clone the Product Configurator flow
+The debugger panel will appear. Use **Collapse** to hide it once testing is
+complete, or switch the product back to the standard configurator flow.
 
-> **Do not edit the managed Configurator flow directly.** Clone it first.
+### Flow variable bindings
 
-1. Setup → Flows → find **Product Configurator** (or the existing custom clone
-   your org uses).
-2. Click **Save As** → save as a new version or a new flow named
-   `Product_Configurator_Debug` (or similar).
-
-### Step 3 — Add the component to the flow
-
-1. Open the cloned flow in Flow Builder.
-2. Find the **Screen** element that contains the standard Configurator UI
-   component (look for the element labelled "Configurator" or similar).
-3. Add a new **Screen** element **after** the Configurator screen, or add the
-   debugger component as an additional element on the same Configurator screen
-   by dragging **RLM Configurator Debugger** from the component list on the
-   left.
-
-### Step 4 — Bind Flow variables
-
-With the **RLM Configurator Debugger** component selected in the Screen
-element, map each input property to the corresponding Flow output variable
-produced by the Data Manager:
+The `RLM_Debug_Configurator` flow ships pre-wired with all Data Manager
+bindings. For reference, these are the `@api` properties bound:
 
 | Component Property | Flow Variable |
 |-------------------|---------------|
@@ -118,16 +112,18 @@ produced by the Data Manager:
 | `isConfiguratorDisabled` | `{!isConfiguratorDisabled}` |
 | `automaticInstantPricing` | `true`/`false` (optional) |
 
-### Step 5 — Activate and assign
+### Configuration Logs setup
 
-1. **Save** and **Activate** the cloned flow.
-2. Navigate to the Product record you want to test.
-3. In the **Revenue Configurator** section, change **Configurator Flow** to
-   the newly cloned and activated flow.
-4. Open the product in the Commerce / Sales flow to launch the configurator.
+The `insert_qb_decision_explainer_data` task also creates the Decision
+Explainer framework records required for Configuration Logs:
 
-The debugger panel will appear. Use **Collapse** to hide it once testing is
-complete, or remove the component and re-activate the original flow.
+- `ApplicationSubtypeDefinition` — `SolverPath`
+- `BusinessProcessTypeDef` — `SolverPath`
+- `ExplainabilityActionDef` — `SolverPath`
+- `ExplainabilityActionVersion` — `SolverPath` (active)
+
+Assign the `RLM_ConfigDebug` permission set to users who need log access.
+Logs are viewable in the **Revenue Cloud Operations Console** app.
 
 ## Edit & Publish — Quick Reference
 

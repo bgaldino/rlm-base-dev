@@ -485,11 +485,12 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 **Steps:**
 
 1. **task** `deploy_post_utils`  `when: project_config.project__custom__quantumbit`
-2. **flow** `prepare_approvals`
-3. **task** `deploy_quantumbit`  `when: project_config.project__custom__quantumbit`
-4. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
+2. **task** `insert_qb_decision_explainer_data`  `when: project_config.project__custom__quantumbit`
+3. **flow** `prepare_approvals`
+4. **task** `deploy_quantumbit`  `when: project_config.project__custom__quantumbit`
+5. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit`
    - `api_names`: `['RLM_QuantumBit']`
-5. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
+6. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete`
    - `api_names`: `['RLM_CALM_SObject_Access']`
 
 ---
