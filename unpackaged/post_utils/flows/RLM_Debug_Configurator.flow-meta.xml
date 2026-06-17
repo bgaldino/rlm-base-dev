@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>66.0</apiVersion>
+    <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <description>Cloned from the Default Product Configurator flow in 262. Added in custom debugger LWC for examining JSON and sending messages in LMS channel</description>
     <environments>Default</environments>
@@ -1006,7 +1006,7 @@
             <targetReference>S01_ProductConfiguratorUI</targetReference>
         </connector>
     </start>
-    <status>Draft</status>
+    <status>Active</status>
     <variables>
         <name>configuratorContext</name>
         <apexClass>ProductConfig__ConfiguratorContext</apexClass>

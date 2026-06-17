@@ -237,7 +237,7 @@ export default class RlmConfiguratorDebugger extends LightningElement {
   // Default Flow mapping: {!S_01_DataManager.isApiInProgress}
   @api
   set isApiInProgress(value) {
-    const nextValue = value === true || value === "true";
+    const nextValue = this._coerceBoolean(value);
     const wasInProgress = this._isApiInProgress;
     this._isApiInProgress = nextValue;
 
@@ -344,7 +344,8 @@ export default class RlmConfiguratorDebugger extends LightningElement {
   }
 
   _handleLmsMessage(message) {
-    const payload = JSON.parse(JSON.stringify(message));
+    const json = JSON.stringify(message, null, 2);
+    const payload = JSON.parse(json);
     const receivedAtMs = Date.now();
     this._logEntrySequence = (this._logEntrySequence + 1) % 1000;
     const entry = {
@@ -354,7 +355,7 @@ export default class RlmConfiguratorDebugger extends LightningElement {
       action: payload?.action ?? "(no action)",
       apiTimingLabel: "",
       payload,
-      json: JSON.stringify(payload, null, 2),
+      json,
       isExpanded: false,
     };
     this._lmsLog = [entry, ...this._lmsLog].slice(0, MAX_LOG_ENTRIES);
@@ -437,8 +438,10 @@ export default class RlmConfiguratorDebugger extends LightningElement {
   }
 
   get activeStateJson() {
+    if (this._activeStateSubtab === "total") {
+      return this.stateSnapshot;
+    }
     const snippets = {
-      total: JSON.parse(this.stateSnapshot),
       messages: this.messages ?? null,
       optionGroups: this._optionGroups ?? null,
       attributeCategories: this.attributeCategories ?? null,
@@ -449,7 +452,7 @@ export default class RlmConfiguratorDebugger extends LightningElement {
       favoriteData: this.favoriteDataDeserialized,
       contextMetadata: this.contextMetadataDeserialized,
     };
-    return JSON.stringify(snippets[this._activeStateSubtab], null, 2);
+    return JSON.stringify(snippets[this._activeStateSubtab] ?? null, null, 2);
   }
 
   get activeStateSubtab() {
@@ -740,7 +743,9 @@ export default class RlmConfiguratorDebugger extends LightningElement {
         }
       }, 500);
     } catch (e) {
-      this._parseError = `JSON parse error: ${e.message}`;
+      this._parseError = e instanceof SyntaxError
+        ? `JSON parse error: ${e.message}`
+        : `Validation error: ${e.message}`;
     }
   }
 
@@ -835,7 +840,7 @@ export default class RlmConfiguratorDebugger extends LightningElement {
   }
 
   _refreshStateSearchMatchesIfNeeded() {
-    if (!this._stateSearchTerm.trim()) {
+    if (this._activeTab !== "state" || !this._stateSearchTerm.trim()) {
       return;
     }
     if (this.activeStateJson !== this._stateSearchSnapshot) {
@@ -872,7 +877,7 @@ export default class RlmConfiguratorDebugger extends LightningElement {
 
     const range = document.createRange();
     const matchEnd = matchStart + this._stateSearchTerm.trim().length;
-    if (matchEnd > textNode.textContent.length) {
+    if (matchStart >= textNode.textContent.length || matchEnd > textNode.textContent.length) {
       return;
     }
     range.setStart(textNode, matchStart);
