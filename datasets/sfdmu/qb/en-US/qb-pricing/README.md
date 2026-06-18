@@ -64,8 +64,8 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 12 | AttributeBasedAdjustment     | Insert    | ✓            | `AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 4 |
 | 13 | BundleBasedAdjustment        | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 2 |
 | 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 265     |
-| 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 2 |
-| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 87      |
+| 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 0 |
+| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 88      |
 
 ¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CBE → PEDP → PBE → BBA → ABA → AAC → PAT). Workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components always inserts instead of matching existing records ([forcedotcom/SFDX-Data-Move-Utility #781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)).
 
@@ -108,7 +108,7 @@ One non-standard pricebook with 265 pricebook entries mapping products to sellin
 
 ### Derived Pricing (Object 15)
 
-PricebookEntryDerivedPrice records that compute prices from contributing products via formulas.
+PricebookEntryDerivedPrice records that compute prices from contributing products via formulas. Currently 0 records — derived pricing is temporarily disabled; QB-SUPP-2000 (Software Maintenance) uses a fixed price until derived pricing support is restored.
 
 ### Cost Books (Objects 6, 16)
 
@@ -190,7 +190,7 @@ qb-pricing/
 │  Source CSVs — Pricebooks
 ├── Pricebook2.csv                       # 1 record
 ├── PricebookEntry.csv                   # 265 records
-├── PricebookEntryDerivedPrice.csv       # 2 records
+├── PricebookEntryDerivedPrice.csv       # 0 records
 │
 │  Source CSVs — Price Adjustments
 ├── PriceAdjustmentSchedule.csv          # 3 records (Update only)
@@ -206,7 +206,7 @@ qb-pricing/
 │
 │  Source CSVs — Cost Books
 ├── CostBook.csv                         # 1 record
-├── CostBookEntry.csv                    # 87 records
+├── CostBookEntry.csv                    # 88 records
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
@@ -217,8 +217,8 @@ qb-pricing/
 
 **Org-backed idempotency validated** — consecutive runs of
 `delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data` produce
-identical record counts (367 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 265 PBE,
-2 PEDP, 87 CBE). The static SFDMU validator may still flag extraction-safety
+identical record counts (366 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 265 PBE,
+0 PEDP, 88 CBE). The static SFDMU validator may still flag extraction-safety
 issues for relationship traversal fields in this plan; treat those as follow-up
 items before relying on extraction round-trips.
 

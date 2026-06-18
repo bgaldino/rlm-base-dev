@@ -104,7 +104,7 @@ QB-SSD 4TB;One-Time;USD,USD,true,false,Q-Drive NVX 4TB,Standard Price Book;true,
 QB-SSD 8TB;One-Time;USD,USD,true,false,Q-Drive NVX 8TB,Standard Price Book;true,QB-SSD 8TB,One-Time;OneTime,580
 QB-SUPP-1000;Term Annual;USD,USD,true,false,Silver Hardware Maintenance,Standard Price Book;true,QB-SUPP-1000,Term Annual;TermDefined,25000
 QB-SUPP-1005;Term Annual;USD,USD,true,false,Gold Hardware Maintenance,Standard Price Book;true,QB-SUPP-1005,Term Annual;TermDefined,30000
-QB-SUPP-2000;Term Annual;USD,USD,true,true,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,0
+QB-SUPP-2000;Term Annual;USD,USD,true,false,Software Maintenance,Standard Price Book;true,QB-SUPP-2000,Term Annual;TermDefined,5400
 QB-TOKENS-PACK;One-Time;USD,USD,true,false,QuantumBit Tokens Pack,Standard Price Book;true,QB-TOKENS-PACK,One-Time;OneTime,100
 QB-TRN-ESSNTLS;One-Time;USD,USD,true,false,QuantumBit Essentials Training,Standard Price Book;true,QB-TRN-ESSNTLS,One-Time;OneTime,8500
 QB-TRN-FUND;One-Time;USD,USD,true,false,QuantumBit Fundamentals Training,Standard Price Book;true,QB-TRN-FUND,One-Time;OneTime,6500
