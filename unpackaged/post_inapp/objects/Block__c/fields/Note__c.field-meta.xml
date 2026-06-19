@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Note__c</fullName>
+    <externalId>false</externalId>
+    <label>Note</label>
+    <length>255</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique> 
+    <inlineHelpText>Text that will be displayed on the button that will be used to trigger the action.</inlineHelpText>
+</CustomField>

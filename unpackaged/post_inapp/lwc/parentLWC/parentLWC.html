@@ -1,0 +1,19 @@
+<template>
+  <lightning-layout multiple-rows="true">
+    <lightning-layout-item class="slds-var-p-top_small" size="12">
+      <lightning-layout>
+        <lightning-layout-item class="slds-var-p-right_small" size="8">
+          <template if:false={hasNoData}>
+            <div class="slds-var-p-bottom_large">
+              <c-release-note onhasnodata={handleHasNoData}></c-release-note>
+            </div>
+          </template>
+          <c-appcontainer></c-appcontainer>
+        </lightning-layout-item>
+        <lightning-layout-item class="slds-var-p-left_small" size="4">
+          <c-right-container is-home={isHome}></c-right-container>
+        </lightning-layout-item>
+      </lightning-layout>
+    </lightning-layout-item>
+  </lightning-layout>
+</template>

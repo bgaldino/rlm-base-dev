@@ -1,0 +1,20 @@
+<template>
+  <lightning-layout multiple-rows="true">
+    <lightning-layout-item size="12">
+      <lightning-layout>
+        <lightning-layout-item padding="horizontal-small" size="8">
+          <div class="slds-var-p-bottom_large">
+            <c-app-overview-l-w-c page-id={pageId}></c-app-overview-l-w-c>
+          </div>
+          <c-setupconfiglwc page-id={pageId}></c-setupconfiglwc>
+        </lightning-layout-item>
+        <lightning-layout-item padding="horizontal-small" size="4">
+          <c-right-container
+            is-home={isHome}
+            page-id={pageId}
+          ></c-right-container>
+        </lightning-layout-item>
+      </lightning-layout>
+    </lightning-layout-item>
+  </lightning-layout>
+</template>

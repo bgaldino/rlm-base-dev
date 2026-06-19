@@ -1,0 +1,6 @@
+.cloudicon{
+    --slds-c-icon-color-foreground-default:rgba(1, 118, 211, 1);
+}
+.slds-box{
+    border: none;
+}

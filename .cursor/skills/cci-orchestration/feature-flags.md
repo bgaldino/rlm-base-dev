@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**40 feature flags**, **84 configuration values**, **36 YAML anchors** under `project.custom`.
+**41 feature flags**, **85 configuration values**, **37 YAML anchors** under `project.custom`.
 
 ---
 
@@ -31,6 +31,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
 | `guidedselling` | `True` | 4 flow step(s) |
+| `inapp` | `False` | 4 flow step(s) |
 | `large_stx` | `False` | 5 flow step(s) |
 | `payments` | `True` | 6 flow step(s) |
 | `pde` | `False` | — |
@@ -203,6 +204,13 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
 - `prepare_guidedselling` step 3 → `assign_permission_sets`
 - `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
+
+### `inapp` (default: `False`)
+
+- `prepare_rlm_org` step 30 → `prepare_inapp`
+- `prepare_inapp` step 1 → `deploy_post_inapp`
+- `prepare_inapp` step 2 → `assign_permission_sets`
+- `prepare_inapp` step 3 → `load_inapp_dataset`
 
 ### `large_stx` (default: `False`)
 
@@ -467,6 +475,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `fulfillment_asset_context_base_reference` | `FulfillmentAssetContext__stdctx` |
 | `fulfillment_asset_context_default_mapping` | `FulfillAssetEntitiesMapping` |
 | `fulfillment_asset_context_name` | `RLM_FulfillmentAssetContext` |
+| `inapp_dataset` | `datasets/sfdmu/inapp` |
 | `locale` | `en_US` |
 | `prm_pricing_procedure_plan_overlay` | `datasets/procedure_plan_overlays/prm_pricing.json` |
 | `prm_pricing_recipe_table_mappings` | `datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json` |
@@ -668,6 +677,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_Guided_Selling`
+
+### `ps_inapp`
+
+*1 items:*
+
+- `RLM_InApp_Learning`
 
 ### `ps_large_stx`
 

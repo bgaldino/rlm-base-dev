@@ -1,0 +1,43 @@
+<template>
+  <template if:true={sectionsWithBlocks}>
+    <template for:each={sectionsWithBlocks} for:item="sectionWithBlocks">
+      <div key={sectionWithBlocks.section.Id}>
+        <lightning-card>
+          <h3 slot="title" class="slds-align_absolute-center">
+            {sectionWithBlocks.section.Header__c}
+          </h3>
+          <template for:each={sectionWithBlocks.blocks} for:item="block">
+            <div
+              class="slds-border_bottom slds-var-p-around_medium"
+              key={block.blockId}
+            >
+              <h3 slot="title">
+                <b>{block.header}</b>
+              </h3>
+              <h4 slot="title">
+                <b>{block.subHeader}</b>
+              </h4>
+              <div>
+                <template if:true={block.description}>
+                  <p class="slds-var-p-top_small">
+                    <lightning-formatted-rich-text
+                      value={block.description}
+                    ></lightning-formatted-rich-text>
+                  </p>
+                </template>
+              </div>
+              <div slot="footer">
+                <p class="">
+                  <br />
+                  <a href="#" data-id={block.action} onclick={handleClick}
+                    >{block.actionText}</a
+                  >
+                </p>
+              </div>
+            </div>
+          </template>
+        </lightning-card>
+      </div>
+    </template>
+  </template>
+</template>

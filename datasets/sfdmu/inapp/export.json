@@ -1,0 +1,54 @@
+{
+  "apiVersion": "67.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT Id, DeveloperName, SobjectType FROM RecordType WHERE SobjectType IN ('Section__c', 'DynamicLink__c')",
+          "operation": "Readonly",
+          "externalId": "DeveloperName;SobjectType",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, Size__c, Type__c FROM Icon__c ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Active__c, Name, Type__c FROM Page__c ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Active__c, Header__c, Name, Sub_Header__c, Video_Link__c, RecordTypeId, Icon__c, Page__c, Icon__r.Name, Page__r.Name FROM Section__c ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT App_API_Name__c, Filter_Name__c, Identity__c, Link__c, Name, Object__c, Page_Name__c, Relationship_API_Name__c, Relative_Url__c, Setup_Page__c, Site_Name__c, Text_Value__c, Where_Condition__c, RecordTypeId, Page__c, Section__c, Page__r.Name, Section__r.Name FROM DynamicLink__c ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ActionText__c, Active__c, Description__c, Header__c, Name, Note__c, Sub_Header__c, Action__c, Icon__c, Action__r.Name, Icon__r.Name FROM Block__c ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Order_Sequence__c, Section__c, Block__c, Section__r.Name, Block__r.Name FROM SectionBlock__c ORDER BY Section__r.Name ASC, Block__r.Name ASC, Order_Sequence__c ASC",
+          "operation": "Insert",
+          "externalId": "Section__r.Name;Block__r.Name;Order_Sequence__c",
+          "deleteOldData": true,
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

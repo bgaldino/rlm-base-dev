@@ -1,0 +1,103 @@
+<template>
+  <template for:each={sectionsWithBlocks} for:item="sectionWithBlocks">
+    <div
+      key={sectionWithBlocks.section.Id}
+      class="slds-grid slds-grid_vertical"
+    >
+      <lightning-card>
+        <h3 slot="title" class="slds-align_absolute-center">
+          <template if:true={sectionWithBlocks.section.Icon__r}>
+            <lightning-icon
+              class="slds-var-m-right_small"
+              icon-name={sectionWithBlocks.section.Icon__r.Type__c}
+              size="small"
+            ></lightning-icon>
+          </template>
+          {sectionWithBlocks.section.Header__c}
+        </h3>
+        <lightning-formatted-rich-text
+          class="slds-var-p-right_small slds-var-p-left_x-large slds-line-clamp_small"
+          value={sectionWithBlocks.section.Sub_Header__c}
+        ></lightning-formatted-rich-text>
+        <div
+          class="slds-p-around_none slds-col slds-var-m-top_x-small slds-var-m-bottom_medium slds-m-horizontal_none"
+          style="min-height: 0; overflow-y: auto"
+        >
+          <lightning-layout horizontal-align="left" multiple-rows="true">
+            <template for:each={sectionWithBlocks.blocks} for:item="block">
+              <lightning-layout-item
+                key={block.blockId}
+                padding="around-small"
+                size="4"
+              >
+                <div
+                  class="slds-grid slds-grid_vertical slds-grow"
+                  style="height: 260px; position: relative"
+                >
+                  <div
+                    class="slds-col slds-grid_vertical slds-box slds-grow"
+                    style="min-height: 0; overflow-y: auto"
+                  >
+                    <h3
+                      slot="title"
+                      class="app-content-persona app-header-color" style="color: #000;"
+                    >
+                      <template if:true={block.icon}>
+                        <lightning-icon
+                          icon-name={block.icon}
+                          class="slds-var-m-right_small"
+                          size="x-small"
+                        ></lightning-icon>
+                      </template>
+                      <b>{block.header}</b>
+                    </h3>
+                    <div class="slds-var-p-top_medium slds-col slds-wrap">
+                      <h3
+                        slot="title"
+                        class="slds-var-p-right_small slds-var-p-vertical_x-small" style="color: #000;"
+                      >
+                        <template if:true={block.subHeader}>
+                          {block.subHeader}
+                        </template>
+                        <template if:false={block.subHeader}>
+                          <div class="slds-var-p-bottom_medium"></div>
+                        </template>
+                      </h3>
+                    </div>
+                    <div
+                      class="slds-var-p-bottom_small slds-col slds-var-p-vertical_x-small"
+                    >
+                      <lightning-formatted-rich-text
+                        class="slds-var-p-right_small slds-line-clamp_medium"
+                        title={block.plainDescription}
+                        value={block.description}
+                      ></lightning-formatted-rich-text>
+                    </div>
+                    <div
+                      slot="footer"
+                      class="slds-var-p-top_xx-large slds-col slds-col_bump-top slds-col_bump-top"
+                    >
+                      <lightning-button
+                        variant="brand"
+                        label={block.actionText}
+                        data-id={block.action}
+                        title={block.actionText}
+                        onclick={handleClick}
+                        class="slds-var-p-right_x-large slds-col_bump-top"
+                        style="
+                          position: absolute;
+                          bottom: 25px;
+                          padding: 10px 10px 10px 0px;
+                        "
+                      ></lightning-button>
+                    </div>
+                  </div>
+                </div>
+              </lightning-layout-item>
+            </template>
+          </lightning-layout>
+        </div>
+      </lightning-card>
+    </div>
+  </template>
+</template>

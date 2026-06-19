@@ -1,0 +1,50 @@
+<template>
+  <template if:true={sectionsWithBlocks}>
+    <template for:each={sectionsWithBlocks} for:item="sectionWithBlocks">
+      <div key={sectionWithBlocks.section.Id}>
+        <lightning-card>
+          <h3 slot="title">
+            <template if:true={sectionWithBlocks.section.Icon__r}>
+              <lightning-icon
+                class="slds-var-m-right_small"
+                icon-name={sectionWithBlocks.section.Icon__r.Type__c}
+                size="small"
+              ></lightning-icon>
+            </template>
+            {sectionWithBlocks.section.Header__c}
+          </h3>
+          <lightning-layout class="slds-grid slds-grid_vertical">
+            <lightning-layout-item
+              flexibility="auto"
+              padding="horizontal-medium"
+            >
+              <template for:each={sectionWithBlocks.blocks} for:item="block">
+                <p key={block.blockId} class="slds-var-p-left_xx-large">
+                  <lightning-formatted-rich-text
+                    value={block.description}
+                  ></lightning-formatted-rich-text>
+                </p>
+              </template>
+            </lightning-layout-item>
+            <template if:true={sectionWithBlocks.section.Video_Link__c}>
+              <lightning-layout-item
+                flexibility="auto"
+                padding="horizontal-medium"
+                class="slds-align_absolute-center slds-var-m-top_x-large"
+              >
+                <iframe
+                  width="660"
+                  height="320"
+                  src={sectionWithBlocks.section.Video_Link__c}
+                  style="border-radius: 12px"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen
+                ></iframe>
+              </lightning-layout-item>
+            </template>
+          </lightning-layout>
+        </lightning-card>
+      </div>
+    </template>
+  </template>
+</template>

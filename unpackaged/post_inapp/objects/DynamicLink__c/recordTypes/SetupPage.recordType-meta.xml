@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RecordType xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>SetupPage</fullName>
+    <active>true</active>
+    <label>Setup Page</label>
+    <picklistValues>
+        <picklist>Setup_Page__c</picklist>
+        <values>
+            <fullName>PermissionSet</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>Profile</fullName>
+            <default>false</default>
+        </values>
+        <values>
+            <fullName>User</fullName>
+            <default>false</default>
+        </values>
+    </picklistValues>
+</RecordType>

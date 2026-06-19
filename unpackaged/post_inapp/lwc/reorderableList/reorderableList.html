@@ -1,0 +1,28 @@
+<template>
+  <lightning-quick-action-panel header="Select Blocks">
+    <lightning-dual-listbox
+      name="selectBlocks"
+      label="Select Blocks"
+      source-label="Available Blocks"
+      selected-label="Selected Blocks"
+      options={blocks}
+      value={selectedBlocks}
+      onchange={handleOptionChange}
+    ></lightning-dual-listbox>
+    <div slot="footer">
+      <lightning-button
+        variant="neutral"
+        label="Cancel"
+        onclick={handleCancel}
+      ></lightning-button>
+      <lightning-button
+        variant="brand"
+        class="slds-m-left_x-small"
+        label="Save"
+        onclick={handleSave}
+        disabled={disabled}
+      >
+      </lightning-button>
+    </div>
+  </lightning-quick-action-panel>
+</template>

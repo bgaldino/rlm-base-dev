@@ -1,0 +1,9 @@
+.app-content-icon {
+  --slds-c-icon-color-foreground-default: rgba(1, 118, 211, 1);
+}
+.app-content-persona {
+  font-style: italic;
+}
+.app-details-btn-layout {
+  --slds-c-button-brand-color-background: rgba(0, 112, 210, 1);
+}

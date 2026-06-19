@@ -1,0 +1,33 @@
+<template>
+  <div class="welcome-card">
+    <template if:true={sectionsWithBlocks}>
+      <template for:each={sectionsWithBlocks} for:item="sectionBlocks">
+        <template if:true={sectionBlocks.section.Id}>
+          <div key={sectionBlocks.section.Id}>
+            <lightning-card>
+              <h3 slot="title">
+                <template if:true={sectionBlocks.section.Icon__r}>
+                  <lightning-icon
+                    class="slds-var-m-right_small"
+                    icon-name={sectionBlocks.section.Icon__r.Type__c}
+                    size="small"
+                  ></lightning-icon>
+                </template>
+                {getTiming.data} {getName.data} !
+              </h3>
+              <template for:each={sectionBlocks.blocks} for:item="block">
+                <p key={block.Id} class="slds-var-p-left_xx-large" style="color: #000;">
+                  <lightning-formatted-rich-text
+                    value={block.description}
+                  ></lightning-formatted-rich-text>
+                  You can access and play around with all new features for
+                  <b> remaining {getExpiryDays.data}</b> days.
+                </p>
+              </template>
+            </lightning-card>
+          </div>
+        </template>
+      </template>
+    </template>
+  </div>
+</template>

@@ -1,0 +1,54 @@
+<template>
+  <template if:true={sectionsWithBlocks}>
+    <template for:each={sectionsWithBlocks} for:item="sectionBlock">
+      <div key={sectionBlock.section.Id}>
+        <lightning-card>
+          <h3 slot="title">
+            <template if:true={sectionBlock.section.Icon__r}>
+              <lightning-icon
+                class="slds-var-m-right_small"
+                icon-name={sectionBlock.section.Icon__r.Type__c}
+                size="small"
+              ></lightning-icon>
+            </template>
+            {sectionBlock.section.Header__c}
+          </h3>
+          <lightning-layout class="slds-grid">
+            <template if:true={sectionBlock.blocks.length}>
+              <lightning-layout-item
+                flexibility="auto"
+                padding="horizontal-medium"
+                size={sectionBlock.contentSize}
+              >
+                <template for:each={sectionBlock.blocks} for:item="block">
+                  <p key={block.Id} class="slds-var-p-left_x-large">
+                    <lightning-formatted-rich-text
+                      value={block.description}
+                    ></lightning-formatted-rich-text>
+                  </p>
+                </template>
+              </lightning-layout-item>
+            </template>
+            <template if:true={sectionBlock.section.Video_Link__c}>
+              <lightning-layout-item
+                flexibility="auto"
+                padding="horizontal-medium"
+                size={sectionBlock.videoSize}
+                class="slds-align_absolute-center"
+              >
+                <iframe
+                  width="90%"
+                  height="240"
+                  src={sectionBlock.section.Video_Link__c}
+                  style="border-radius: 12px"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen
+                ></iframe>
+              </lightning-layout-item>
+            </template>
+          </lightning-layout>
+        </lightning-card>
+      </div>
+    </template>
+  </template>
+</template>

@@ -1,0 +1,15 @@
+<template>
+    <template if:true={dataLoaded}>
+    <div>
+        <lightning-card>
+            <p class="slds-p-horizontal_small">
+                <lightning-icon class="slds-m-right_small" icon-name="standard:account" size="small"></lightning-icon>
+                {appData.Type}
+            </p>
+            
+                <div class="slds-text-heading_medium slds-p-left_xx-large slds-text-title_bold">{appData.Name}</div>
+            
+        </lightning-card>
+    </div>
+    </template>
+</template>

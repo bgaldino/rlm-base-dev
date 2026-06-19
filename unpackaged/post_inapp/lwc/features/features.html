@@ -1,0 +1,12 @@
+<template>
+    <div class="slds-box slds-p-around_none slds-m-top_x-small slds-m-bottom_medium slds-m-horizontal_none app-card-container">
+        <lightning-layout style="display: block;">
+            <template if:true={dataLoaded} for:each={appData} for:item="app">
+            <lightning-layout-item class="app-card-div" key={app.Id}>
+                <div class="custom-box slds-box slds-p-around_medium slds-text-align_center app-div">{app.Name}</div>
+            </lightning-layout-item>
+        </template>
+        </lightning-layout>
+    </div>
+
+    </template>

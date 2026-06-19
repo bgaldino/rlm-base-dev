@@ -138,6 +138,7 @@ project:
 
     # ── Deployment Options ─────────────────────────────────────────────────────
     personas: true            # Persona profiles and permission set groups (post_personas)
+    inapp: false              # In-App Learning navigation framework (post_inapp + datasets/sfdmu/inapp). Opt-in: overrides the org Home page.
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -353,6 +354,10 @@ project:
       # Large STX-specific permission sets
       - RLM_LargeSalesTransaction
 
+    ps_inapp: &ps_inapp
+      # In-App Learning framework permission set
+      - RLM_InApp_Learning
+
     ps_persona_sales_rep: &ps_persona_sales_rep
       # Persona sales rep-specific permission sets
       - RLM_QuantumBit_Sales_Representative
@@ -554,6 +559,7 @@ project:
     quantumbit_guidedselling_products_dataset: &quantumbit_guidedselling_products_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling-products"   # QuantumBit guided selling Product2 field values
     quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
     quantumbit_prm_dataset: &quantumbit_prm_dataset "datasets/sfdmu/qb/en-US/qb-prm"                                 # QuantumBit PRM data
+    inapp_dataset: &inapp_dataset "datasets/sfdmu/inapp"                                                            # In-App Learning navigation content (Pages/Sections/Blocks/DynamicLinks)
     quantumbit_prm_pricing_dataset: &quantumbit_prm_pricing_dataset "datasets/sfdmu/qb/en-US/qb-prm-pricing"         # QuantumBit PRM pricing overlay data
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
@@ -1465,6 +1471,20 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_guidedselling
+
+  deploy_post_inapp:
+    group: Revenue Lifecycle Management
+    description: Deploy the In-App Learning navigation framework (objects, LWC, Apex, flexipages, Learning Home app)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_inapp
+
+  load_inapp_dataset:
+    group: Revenue Lifecycle Management
+    description: Load In-App Learning navigation content (Pages/Sections/Blocks/DynamicLinks) via SFDMU
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *inapp_dataset
 
   assemble_and_deploy_ux:
     group: UX Personalization
@@ -3316,12 +3336,15 @@ flows:
         flow: prepare_ux
         when: project_config.project__custom__ux
       30:
-        flow: prepare_scratch
+        flow: prepare_inapp
+        when: project_config.project__custom__inapp
       31:
-        flow: refresh_all_decision_tables
+        flow: prepare_scratch
       32:
-        task: rebuild_search_index
+        flow: refresh_all_decision_tables
       33:
+        task: rebuild_search_index
+      34:
         flow: stamp_git_commit
 
   prepare_core:
@@ -3554,6 +3577,22 @@ flows:
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
+
+  prepare_inapp:
+    group: Revenue Lifecycle Management
+    description: Deploy the In-App Learning framework, assign its permission set, and load the navigation content
+    steps:
+      1:
+        task: deploy_post_inapp
+        when: project_config.project__custom__inapp
+      2:
+        task: assign_permission_sets
+        when: project_config.project__custom__inapp
+        options:
+          api_names: *ps_inapp
+      3:
+        task: load_inapp_dataset
+        when: project_config.project__custom__inapp
 
   prepare_large_stx:
     group: Revenue Lifecycle Management

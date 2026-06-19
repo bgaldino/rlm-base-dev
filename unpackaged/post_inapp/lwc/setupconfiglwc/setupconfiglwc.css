@@ -1,0 +1,9 @@
+.settingsicon {
+  --slds-c-icon-color-foreground-default: rgba(1, 118, 211, 1);
+}
+
+.title-italic {
+  /* font-family: Segoe UI;*/
+  font-style: italic;
+  font-weight: var(--lwc-fontWeightRegular, 400);
+}
