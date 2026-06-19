@@ -1,6 +1,6 @@
 {
   "planName": "mfg",
-  "developerName": "MFG_SalesTransactionContext",
+  "developerName": "RLM_SalesTransactionContext",
   "contextMappings": {
     "contextMappings": [
       {
