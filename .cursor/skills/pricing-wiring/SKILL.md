@@ -3,7 +3,8 @@
 Use this skill when adding or changing pricing behavior that spans:
 
 - pricing recipes and recipe table mappings
-- pricing procedures (Expression Set Definitions)
+- pricing procedures (Expression Set Definitions) — authored via Metadata API
+  (source-controlled) or CRUD'd at runtime via the Connect API (section E)
 - procedure plans and plan overlays
 - layered feature patches on top of core pricing
 
@@ -19,6 +20,11 @@ pattern as PRM pricing without redesigning setup order each time.
 5. Validate on a clean org, then re-run for idempotency.
 6. Prefer `LookUpApiName` for decision table references; add `LookUpId` only when
    a known org/runtime issue requires it.
+7. For **authoring or CRUD'ing pricing procedures themselves** (Connect vs
+   Metadata API, overlays, dependency capture, the activation lifecycle), use the
+   **Expression Sets skill** (`.cursor/skills/expression-sets/SKILL.md`). This
+   skill (section E) covers only where that work slots into the pricing
+   layering model.
 
 ## DO NOT
 
@@ -30,6 +36,12 @@ pattern as PRM pricing without redesigning setup order each time.
 - **DO NOT** insert a procedure-plan section into an occupied sequence before moving the existing section out of that sequence.
 - **DO NOT** duplicate `LookUpId` parameters within a single expression-set step;
   this can produce a generic Metadata API "unexpected error" at deploy time.
+- **DO NOT** mutate the real shipped `RLM_DefaultPricingProcedure` (or any shipped
+  procedure) to experiment — test CRUD against a disposable clone, except for an
+  intentional, approved change. (For the full set of Expression Set CRUD safety
+  rules — HTML-entity normalization, version-id handling,
+  `resourceInitializationType` immutability, structural-vs-functional removal,
+  the three dependency scopes — see `.cursor/skills/expression-sets/SKILL.md`.)
 
 ---
 
@@ -188,6 +200,42 @@ Contract:
   unless the target org behavior confirms a `ContextAttrHydrationDetail` should
   exist.
 
+### E) Programmatic Procedure CRUD (Expression Sets)
+
+A pricing procedure **is** an Expression Set, so authoring or CRUD'ing the
+procedure itself — Connect API vs Metadata API, overlays, dependency capture,
+the deactivate→modify→reactivate lifecycle, HTML-entity normalization, version-id
+rules — is owned by a dedicated skill:
+
+> **Expression Sets skill:** `.cursor/skills/expression-sets/SKILL.md`
+> (task-level entry point). **Exhaustive reference:**
+> `docs/references/expression-set-connect-api-reference.md` (object/ID model,
+> OAS-confirmed schema enums, every known error + resolution, live verification
+> record). Both pinned to **Release 262 / API v67.0**.
+
+**What stays a pricing concern (this section):** *where* that CRUD slots into the
+pricing layering and flow order, and the pricing-specific facts the Expression
+Sets skill defers back here:
+
+- **`usageType: DefaultPricing`** for a pricing procedure (vs `Bre`); a wrong
+  value means the procedure won't surface in pricing UIs or be invocable.
+- **Procedure-plan cascade.** A pricing procedure referenced by an active
+  `ProcedurePlanDefinitionVersion` cannot have its ES version deactivated until
+  the plan version is deactivated first (the cascade the tasks perform). This is
+  the same lock described in **C) Procedure Plans and Overlays** above — keep
+  plan-version deactivation paired with any procedure mutation.
+- **Lookup placeholders.** Pricing-procedure steps carry `__LOOKUPID_*__` /
+  `__ATTRIBUTEPasID__` placeholders resolved by `find_replace` transforms at
+  deploy (see **B) Pricing Procedures** above) — keep source org-agnostic.
+- **Recipe-table mappings + context definitions** (sections A and D) are
+  pricing-procedure prerequisites the Expression Set engine does not know about;
+  satisfy them before deploying/activating the procedure.
+
+The shipped overlays under `datasets/expression_set_overlays/` are pricing
+examples (`map_line_item`, `discount_distribution`, `facility_quantity`); the
+Expression Sets skill walks through each. Always test procedure CRUD against a
+**disposable clone**, never the shipped `RLM_DefaultPricingProcedure`.
+
 ---
 
 ## Where to Wire in Flows
@@ -278,6 +326,15 @@ Note: there are two distinct deactivation gates:
    The plan version lock produces a generic "unexpected error" distinct from the
    expression set version lock.
 
+### Connect API mutation errors (gacks, `Error processing JSON`, `resourceInitializationType`, version-id)
+
+These are Expression Set CRUD mechanics, not pricing-layering issues — the full
+error register (HTML-entity gacks, generic-gack bisection, immutable
+`resourceInitializationType`, version-id handling, `contextDefinitions[].id`,
+admin permission) lives in **`.cursor/skills/expression-sets/SKILL.md`** and its
+reference's *Known errors & conditions* table. Come back here for the
+pricing-specific deploy error below.
+
 ### `ExpressionSetDefinition ... unexpected error occurred`
 
 When the deploy error is generic and points at a single expression set:
@@ -349,6 +406,16 @@ Use this quick checklist whenever pricing changes add or consume new context key
 
 ## Related References
 
+- **Expression Sets skill (CRUD, overlays, dependency capture):**
+  `.cursor/skills/expression-sets/SKILL.md` — the task-level entry point for
+  authoring/mutating procedures themselves (the work §E points to).
+- **Expression Set reference (exhaustive):**
+  `docs/references/expression-set-connect-api-reference.md` — object/ID model,
+  OAS-confirmed schema enums, every known error + resolution, Metadata API
+  authoring path, and the live verification record.
+- **Connect CRUD tasks:** `tasks/rlm_expression_set_connect.py`; pre-flight
+  validator `tasks/expression_set_schema.py`; tests `tests/test_expression_set_schema.py`.
+- **External doc link index:** `docs/salesforce/262/dev-guide/expression-set-business-apis-links.md`.
 - CCI orchestration skill: `.cursor/skills/cci-orchestration/SKILL.md`
 - Repository integration skill: `.cursor/skills/repo-integration/SKILL.md`
 - SFDMU data plans skill: `.cursor/skills/sfdmu-data-plans/SKILL.md`

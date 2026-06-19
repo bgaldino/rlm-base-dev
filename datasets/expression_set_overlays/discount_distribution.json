@@ -1,0 +1,574 @@
+{
+  "expressionSetApiName": "RLM_DefaultPricingProcedure",
+  "versionApiName": "RLM_DefaultPricingProcedure_V1",
+  "description": "Add header-discount distribution block: amount-based / percentage-based header-discount and header-price-override ListGroups (each with its AdvancedListFilter + AssignmentElement child) followed by the DiscountDistributionService element that spreads the header discount down to line items. Ships the 4 Constant_DDS_* version constants the steps reference (addVariables); context-resolved refs (__std fields, context tags) come from RLM_SalesTransactionContext.",
+  "addVariables": [
+    {
+      "collection": false,
+      "dataType": "Text",
+      "decimalPlaces": 2,
+      "description": "Constant_DDS_Amount",
+      "input": false,
+      "name": "Constant_DDS_Amount",
+      "output": false,
+      "type": "Constant",
+      "value": "Amount"
+    },
+    {
+      "collection": false,
+      "dataType": "Text",
+      "decimalPlaces": 2,
+      "description": "Constant_DDS_NetUnitPrice",
+      "input": false,
+      "name": "Constant_DDS_NetUnitPrice",
+      "output": false,
+      "type": "Constant",
+      "value": "NetUnitPrice"
+    },
+    {
+      "collection": false,
+      "dataType": "Text",
+      "decimalPlaces": 2,
+      "description": "Constant_DDS_Override",
+      "input": false,
+      "name": "Constant_DDS_Override",
+      "output": false,
+      "type": "Constant",
+      "value": "Override"
+    },
+    {
+      "collection": false,
+      "dataType": "Text",
+      "decimalPlaces": 2,
+      "description": "Constant_DDS_Percentage",
+      "input": false,
+      "name": "Constant_DDS_Percentage",
+      "output": false,
+      "type": "Constant",
+      "value": "Percentage"
+    }
+  ],
+  "addSteps": [
+    {
+      "name": "ListApplyAmountBasedHeaderDiscount",
+      "description": "",
+      "stepType": "ListGroup",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "placement": {
+        "afterStep": "AssignTotalLineAmounttoItemSubtotalandItemNetTotalPricetoItemTotalPrice"
+      }
+    },
+    {
+      "name": "ListOperation",
+      "description": "",
+      "stepType": "AdvancedListFilter",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "parentStep": "ListApplyAmountBasedHeaderDiscount",
+      "sequenceNumber": 1,
+      "advancedCondition": {
+        "conditionLogic": "1 AND 2 AND 3",
+        "criteria": [
+          {
+            "operator": "IsNotNull",
+            "sequenceNumber": 1,
+            "sourceFieldName": "AppliedDiscountAmount__std"
+          },
+          {
+            "operator": "IsNull",
+            "sequenceNumber": 2,
+            "sourceFieldName": "AppliedDiscount__std"
+          },
+          {
+            "operator": "IsNull",
+            "sequenceNumber": 3,
+            "sourceFieldName": "TotalPriceOverride__std"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssignAmountBasedHeaderDiscount",
+      "description": "Assignment",
+      "stepType": "BusinessKnowledgeModel",
+      "actionType": "AssignmentElement",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "parentStep": "ListApplyAmountBasedHeaderDiscount",
+      "sequenceNumber": 2,
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "section-0-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "AppliedDiscountAmount__std"
+          },
+          {
+            "input": true,
+            "name": "section-1-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "Constant_DDS_Amount"
+          },
+          {
+            "input": true,
+            "name": "sectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "2"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString1",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString2",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Currency\",\"name\":\"section-0-input1\",\"value\":\"AppliedDiscountAmount__std\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Numeric\",\"name\":\"section-0-output\",\"value\":\"HeaderDiscountValue\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString3",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-1-input1\",\"value\":\"Constant_DDS_Amount\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-1-output\",\"value\":\"HeaderDiscountType\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": false,
+            "name": "section-0-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "HeaderDiscountValue"
+          },
+          {
+            "input": false,
+            "name": "section-1-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "HeaderDiscountType"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ApplyPercentageBasedHeaderDiscount",
+      "description": "",
+      "stepType": "ListGroup",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "placement": {
+        "afterStep": "ListApplyAmountBasedHeaderDiscount"
+      }
+    },
+    {
+      "name": "PercentageBasedHeaderDiscount",
+      "description": "",
+      "stepType": "AdvancedListFilter",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "parentStep": "ApplyPercentageBasedHeaderDiscount",
+      "sequenceNumber": 1,
+      "advancedCondition": {
+        "conditionLogic": "1 AND 2 AND 3",
+        "criteria": [
+          {
+            "operator": "IsNull",
+            "sequenceNumber": 1,
+            "sourceFieldName": "AppliedDiscountAmount__std"
+          },
+          {
+            "operator": "IsNotNull",
+            "sequenceNumber": 2,
+            "sourceFieldName": "AppliedDiscount__std"
+          },
+          {
+            "operator": "IsNull",
+            "sequenceNumber": 3,
+            "sourceFieldName": "TotalPriceOverride__std"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssignPercentageBasedHeaderDiscount",
+      "description": "Assignment",
+      "stepType": "BusinessKnowledgeModel",
+      "actionType": "AssignmentElement",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "parentStep": "ApplyPercentageBasedHeaderDiscount",
+      "sequenceNumber": 2,
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "section-0-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "AppliedDiscount__std"
+          },
+          {
+            "input": true,
+            "name": "section-1-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "Constant_DDS_Percentage"
+          },
+          {
+            "input": true,
+            "name": "sectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "2"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString1",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString2",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Numeric\",\"name\":\"section-0-input1\",\"value\":\"AppliedDiscount__std\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Numeric\",\"name\":\"section-0-output\",\"value\":\"HeaderDiscountValue\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString3",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-1-input1\",\"value\":\"Constant_DDS_Percentage\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-1-output\",\"value\":\"HeaderDiscountType\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": false,
+            "name": "section-0-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "HeaderDiscountValue"
+          },
+          {
+            "input": false,
+            "name": "section-1-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "HeaderDiscountType"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ApplyHeaderPriceOverride",
+      "description": "",
+      "stepType": "ListGroup",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "placement": {
+        "afterStep": "ApplyPercentageBasedHeaderDiscount"
+      }
+    },
+    {
+      "name": "HeaderPriceOverride",
+      "description": "",
+      "stepType": "AdvancedListFilter",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "parentStep": "ApplyHeaderPriceOverride",
+      "sequenceNumber": 1,
+      "advancedCondition": {
+        "conditionLogic": "1 AND 2 AND 3",
+        "criteria": [
+          {
+            "operator": "IsNull",
+            "sequenceNumber": 1,
+            "sourceFieldName": "AppliedDiscountAmount__std"
+          },
+          {
+            "operator": "IsNull",
+            "sequenceNumber": 2,
+            "sourceFieldName": "AppliedDiscount__std"
+          },
+          {
+            "operator": "IsNotNull",
+            "sequenceNumber": 3,
+            "sourceFieldName": "TotalPriceOverride__std"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AssignTotalPriceOverride",
+      "description": "Assignment",
+      "stepType": "BusinessKnowledgeModel",
+      "actionType": "AssignmentElement",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "parentStep": "ApplyHeaderPriceOverride",
+      "sequenceNumber": 2,
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "section-0-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "TotalPriceOverride__std"
+          },
+          {
+            "input": true,
+            "name": "section-1-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "Constant_DDS_Override"
+          },
+          {
+            "input": true,
+            "name": "sectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "2"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString1",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString2",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Currency\",\"name\":\"section-0-input1\",\"value\":\"TotalPriceOverride__std\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Numeric\",\"name\":\"section-0-output\",\"value\":\"HeaderDiscountValue\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString3",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-1-input1\",\"value\":\"Constant_DDS_Override\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-1-output\",\"value\":\"HeaderDiscountType\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": false,
+            "name": "section-0-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "HeaderDiscountValue"
+          },
+          {
+            "input": false,
+            "name": "section-1-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "HeaderDiscountType"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DiscountDistributionService",
+      "description": "Discount Distribution Service",
+      "stepType": "BusinessKnowledgeModel",
+      "actionType": "DiscountDistributionService",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "placement": {
+        "afterStep": "ApplyHeaderPriceOverride"
+      },
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "DiscountType",
+            "output": false,
+            "type": "Parameter",
+            "value": "HeaderDiscountType"
+          },
+          {
+            "input": true,
+            "name": "DiscountValue",
+            "output": false,
+            "type": "Parameter",
+            "value": "HeaderDiscountValue"
+          },
+          {
+            "input": true,
+            "name": "SpreadLogic",
+            "output": false,
+            "type": "Parameter",
+            "value": "AdjustmentDistributionLogic__std"
+          },
+          {
+            "input": true,
+            "name": "InputSpreadType",
+            "output": false,
+            "type": "Parameter",
+            "value": "Constant_DDS_NetUnitPrice"
+          },
+          {
+            "input": true,
+            "name": "ListPrice",
+            "output": false,
+            "type": "Parameter",
+            "value": "NetUnitPrice"
+          },
+          {
+            "input": true,
+            "name": "Quantity",
+            "output": false,
+            "type": "Parameter",
+            "value": "LineItemQuantity"
+          },
+          {
+            "input": true,
+            "name": "LineItemId",
+            "output": false,
+            "type": "Parameter",
+            "value": "LineItem"
+          },
+          {
+            "input": true,
+            "name": "InputUnitPrice",
+            "output": false,
+            "type": "Parameter",
+            "value": "NetUnitPrice"
+          },
+          {
+            "input": true,
+            "name": "HeaderSubtotal",
+            "output": false,
+            "type": "Parameter",
+            "value": "TotalAmount"
+          },
+          {
+            "input": true,
+            "name": "LineFloorPrice",
+            "output": false,
+            "type": "Parameter",
+            "value": "MinimumNetUnitPrice"
+          },
+          {
+            "input": true,
+            "name": "FloorPricingEnabled",
+            "output": false,
+            "type": "Literal",
+            "value": "false"
+          },
+          {
+            "input": true,
+            "name": "RemainderAllowed",
+            "output": false,
+            "type": "Literal",
+            "value": "false"
+          },
+          {
+            "input": false,
+            "name": "SpreadValue",
+            "output": true,
+            "type": "Parameter",
+            "value": "LineItemDiscountValue"
+          },
+          {
+            "input": false,
+            "name": "SpreadType",
+            "output": true,
+            "type": "Parameter",
+            "value": "HeaderDistributionType"
+          },
+          {
+            "input": false,
+            "name": "LineItemDiscountType",
+            "output": true,
+            "type": "Parameter",
+            "value": "LineItemDiscountType"
+          },
+          {
+            "input": false,
+            "name": "NetUnitPrice",
+            "output": true,
+            "type": "Parameter",
+            "value": "NetUnitPrice"
+          },
+          {
+            "input": false,
+            "name": "Subtotal",
+            "output": true,
+            "type": "Parameter",
+            "value": "ItemNetTotalPrice"
+          }
+        ]
+      }
+    }
+  ]
+}
