@@ -53,7 +53,7 @@ true,Product Catalog Management - Solution Overview,Product Catalog Management L
 true,Usage Management - Solution Overview,Usage Management Left Top Section,,,Left_Top;Section__c,Rev-Product,Usage Management
 true,Transaction Management - Solution Overview,Transaction Management Left Top Section,,,Left_Top;Section__c,Rev-Orders,Transaction Management
 true,Dynamic Revenue Orchestrator - Solution Overview,DRO Left Top Section,,,Left_Top;Section__c,Rev-Orchestrator,Dynamic Revenue Orchestrator
-true,Revenue Cloud & Key Modules,Home Left Bottom,"<p>Create quotes and orders on one revenue platform. Power guided quoting, AI-assisted contracts, efficient fulfillment, and accurate billing — across any channel, with any revenue model.</p>",,Left_Bottom;Section__c,Apps,Home
+true,Agentforce Revenue Management & Key Modules,Home Left Bottom,"<p>Create quotes and orders on one revenue platform. Power guided quoting, AI-assisted contracts, efficient fulfillment, and accurate billing — across any channel, with any revenue model.</p>",,Left_Bottom;Section__c,Apps,Home
 true,Welcome,Home Welcome,,,Top;Section__c,Sparkles,Home
 true,,Greeting Admin,,,Top;Section__c,Sparkle,
 true,,Release Notes Section,,,Left_Top;Section__c,Sparkle,

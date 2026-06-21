@@ -148,6 +148,16 @@ the new-named record and leaves the old one as an orphan on re-load — on a fre
 new Name is created, but re-loading an existing org needs the old records deleted (done on
 ent-r1: the 2 orphans removed by Id; final state = the 2 new names only).
 
+**262 product rebrand (DONE).** Selective "Revenue Cloud" → "Agentforce Revenue Management"
+(`_ARM_RE` guarded regex in `scrub_text`, **in-app data only** — base rlm-base-dev refs untouched):
+**15 changed** (standalone product-name body prose + the "& Key Modules" nav header). **Kept:**
+record Names / composite keys (scrub_text never touches Name fields — e.g. "Revenue Cloud
+Fundamentals/Certification"), hyperlink labels ending `Revenue Cloud</strong>` / `:</strong>`
+(Trailhead module/trail/cert titles + Help-article headings), editions (" Billing"/" Advanced"),
+the app/journey name (" Learning"), the release header (" Summer"), and the "Data Sheet" title.
+Also: the Home green banner's old Salesforce Go setup CTA → "What's New in Summer '26"
+(`rewrite_home_relnotes` — the org is already configured, so the setup/Go framing was dropped).
+
 **Deferred (editorial — not blocking the load):**
 - **Wrong-vertical WebPages** `DynamicLink` "Release Notes" → Comms Summer '24 / Energy
   Winter '25; should point at Revenue Cloud release notes.

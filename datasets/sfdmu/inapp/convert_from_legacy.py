@@ -45,6 +45,21 @@ VERSION_TEXT_REMAPS = {
     # 262 capability rename — user-facing label only; app API name standard__PriceManagement unchanged.
     "Price Management": "Salesforce Pricing",
 }
+
+# 262 product rebrand: standalone "Revenue Cloud" -> "Agentforce Revenue Management", in body
+# prose + section headers ONLY (scrub_text is never applied to Name/key fields, so composite
+# keys like "Revenue Cloud Fundamentals" are auto-protected). KEEP, via negative lookahead:
+#  - hyperlink labels ("...Revenue Cloud</strong>"): Trailhead module/trail/cert titles + headings
+#  - editions: " Billing", " Advanced"
+#  - cert/Trailhead proper names: " Fundamentals", " Certification", " Consultant"
+#  - app/journey name: " Learning"; release header: " Summer"; doc title: " Data Sheet"
+# This branch (in-app integration) only — base rlm-base-dev "Revenue Cloud" refs untouched.
+ARM_NEW = "Agentforce Revenue Management"
+_ARM_KEEP = (" Billing", " Advanced", " Fundamentals", " Certification", " Consultant",
+             " Learning", " Summer", " Data Sheet")
+# also keep hyperlink labels that end "Revenue Cloud:</strong>" (the ":" guard) for consistency
+# with the other "...in Revenue Cloud</strong>" labels in the same lists.
+_ARM_RE = re.compile(r"Revenue Cloud(?!</strong>)(?!:)" + "".join("(?!%s)" % re.escape(k) for k in _ARM_KEEP))
 WRONG_VERTICAL_MARKERS = ("Communications_Summer_24", "energy_and_utilities_cloud_winter_25")
 # DynamicLink record-Name fixes (these Names are the SFDMU composite key; 0 lockstep refs):
 # a stale release label and a typo. Both link to the general rn_revenue (already release=262).
@@ -205,6 +220,10 @@ def rewrite_home_relnotes(desc, block_name):
     if block_name != HOME_RELNOTES_BLOCK or not desc:
         return desc
     desc = re.sub(r"<ul>.*?</ul>", lambda _m: HOME_262_BULLETS, desc, count=1, flags=re.S)
+    # The old green banner was a Salesforce Go setup CTA — meaningless on an already-configured
+    # learning org. Replace it with a neutral "what's new" header (no setup/Go framing).
+    desc = desc.replace("Launching Fast Revenue Cloud Setup with Salesforce Go!",
+                        "What's New in Summer '26")
     return desc.replace("Explore Winter&#39;26 Release Notes",
                         "Explore Summer &#39;26 Release Notes")
 
@@ -306,6 +325,9 @@ def scrub_text(s):
     s = s.replace("release=258", "release=262")        # pin bump
     for old, new in VERSION_TEXT_REMAPS.items():       # label renames (after ID remap)
         s = s.replace(old, new)
+    # 262 rebrand (after VERSION_TEXT_REMAPS so " Summer" guard protects the release header)
+    s = s.replace("with Salesforce Revenue Cloud.", "with " + ARM_NEW + ".")  # avoid "Salesforce Agentforce"
+    s = _ARM_RE.sub(ARM_NEW, s)
     return s
 
 
