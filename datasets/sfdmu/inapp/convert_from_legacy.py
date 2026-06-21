@@ -130,6 +130,16 @@ RN_ID_REMAP = {
 # (strip the host so `/lightning/...` resolves in whatever org the framework is deployed to).
 DEMO_ORG_HOST = "dwd000004pe09mag.lightning.force.com"
 
+# Billing "Dashboard Setup" link: was a placeholder Drive doc + "To Be Updated" -> the 262
+# Billing Operations Console Help article, with a grounded description (per user, 2026-06-21).
+DASHBOARD_SETUP_FIND = ('<a href="https://drive.google.com/file/d/10sW4qQu7eRak_GQN7lqhLO79GSwX437G/view" '
+                        'target="_blank"><strong>Dashboard Setup:</strong></a> To Be Updated.')
+DASHBOARD_SETUP_REPL = ('<a href="https://help.salesforce.com/s/articleView?id=ind.billing_operations_console.htm&amp;type=5" '
+                        'target="_blank"><strong>Dashboard Setup:</strong></a> <span style="color: rgb(0, 0, 0);">'
+                        'Monitor invoices, credit memos, and invoice schedules from the Billing Operations Console. '
+                        'View key financial metrics in summary cards and manage invoice batch runs with timely '
+                        'insights into revenue transaction log errors and failed invoices.</span>')
+
 # longest-first so no key is corrupted by a shorter substring match
 _HELP_KEYS = sorted(HELP_ID_REMAP, key=len, reverse=True)
 
@@ -277,6 +287,7 @@ def scrub_text(s):
     # the src is `/resource/...` so it no longer matches this strip; this only fires if an
     # image is unstaged.
     s = re.sub(r'<img\b[^>]*%s[^>]*>(\s*</img>)?' % re.escape(DEAD_IMG_HOST), "", s)
+    s = s.replace(DASHBOARD_SETUP_FIND, DASHBOARD_SETUP_REPL)   # Billing dashboard placeholder
     s = s.replace(TOKEN_FROM, TOKEN_TO)
     for old in _HELP_KEYS:                              # renamed Help article IDs
         s = s.replace(old, HELP_ID_REMAP[old])

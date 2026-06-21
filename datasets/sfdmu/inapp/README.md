@@ -134,6 +134,9 @@ not curl status). Fixed in `convert_from_legacy.py`:
 - **4 personal demo-org URLs** (`dwd…lightning.force.com`, DNS-dead) → relativized to `/lightning/…`
   (portable in any org; `DEMO_ORG_HOST` strip).
 - **1 malformed nav path** `/lightning/lightning/…BillingConsole…` → collapsed to `/lightning/…`.
+- **Billing "Dashboard Setup"** link (was a placeholder Drive doc + "To Be Updated") → the 262
+  **Billing Operations Console** Help article (`ind.billing_operations_console.htm`) with a grounded
+  description.
 Validated valid (left as-is): 55 `ind.*` articles, 35 RLM + 3 CLM dev-guide pages, 8 release-notes
 area pages, 16 Trailhead modules/trails, 4 YouTube + 1 Vidyard video, ideas/marketing pages.
 
@@ -142,8 +145,9 @@ area pages, 16 Trailhead modules/trails, 4 YouTube + 1 Vidyard video, ideas/mark
   a composite-**key** field, so a rename must ripple to its references in lockstep.
 - **Wrong-vertical WebPages** `DynamicLink` "Release Notes" → Comms Summer '24 / Energy
   Winter '25; should point at Revenue Cloud release notes.
-- **2× `drive.google.com`** hrefs (Billing Get Started doc; Home "Revenue Cloud Data Sheet") —
-  personal/auth-gated Drive files; need official replacements (content decision).
+- **1× `drive.google.com`** href (Home "Revenue Cloud Data Sheet", `1kvGZGF…`) — personal/auth-gated
+  Drive file; needs an official replacement (content decision). (The Billing "Dashboard Setup" Drive
+  link was replaced with the Operations Console Help article — see above.)
 
 ## Conversion mechanics (source → this plan)
 
