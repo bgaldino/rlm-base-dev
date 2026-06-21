@@ -68,7 +68,7 @@ export default class RightContainer extends NavigationMixin(LightningElement) {
         throw new Error("Application name is not defined");
       }
       const dynamicLink = this.dynamicLinksMap[appNameValue];
-      console.log("dynamicLink = " + dynamicLink.Link__c);
+      console.log("dynamicLink = " + dynamicLink.RLM_Learning_Link__c);
       const pageRef = await getPageReferenceByDynamicType(dynamicLink);
       console.log("pageRef: " + JSON.stringify(pageRef));
       try {

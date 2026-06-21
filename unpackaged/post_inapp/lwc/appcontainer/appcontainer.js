@@ -26,9 +26,9 @@ export default class Appcontainer extends NavigationMixin(LightningElement) {
           if (section.section && section.section.SectionBlocks__r) {
             section.section.SectionBlocks__r =
               section.section.SectionBlocks__r.map((block) => {
-                if (block.Block__r && block.Block__r.Description__c) {
-                  block.Block__r.PlainDescription__c = this.stripHtmlTags(
-                    block.Block__r.Description__c
+                if (block.RLM_Learning_Block__r && block.RLM_Learning_Block__r.RLM_Learning_Description__c) {
+                  block.RLM_Learning_Block__r.PlainDescription__c = this.stripHtmlTags(
+                    block.RLM_Learning_Block__r.RLM_Learning_Description__c
                   );
                 }
                 return block;
@@ -76,7 +76,7 @@ export default class Appcontainer extends NavigationMixin(LightningElement) {
       var appNameValue = event.target.dataset.id;
       console.log("inside handle on btn click for app = " + appNameValue);
       const dynamicLink = this.dynamicLinksMap[appNameValue];
-      console.log("dynamicLink  = " + dynamicLink.Link__c);
+      console.log("dynamicLink  = " + dynamicLink.RLM_Learning_Link__c);
       const pageRef = await getPageReferenceByDynamicType(dynamicLink);
       try {
         let url = await this[NavigationMixin.GenerateUrl](pageRef);

@@ -1,0 +1,73 @@
+RLM_Learning_Active__c,RLM_Learning_Header__c,Name,RLM_Learning_Sub_Header__c,RLM_Learning_Video_Link__c,RecordType.$$DeveloperName$SobjectType,RLM_Learning_Icon__r.Name,RLM_Learning_Page__r.Name
+true,Validate Setup,PCM_Check Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Product Catalog Management,PCM_Launch Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Customize Capabilities,PCM_Explore Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Product Configurator,ProductConfig_Launch Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Get Started,ProductConfig_Learn Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Validate Setup,ProductConfig_Validate,,,Detail;RLM_Learning_Section__c,,
+true,Customize Capabilities,ProductConfigurator Customise Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Get Started,Price Management Get Started Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Validate Setup,Price Management Validate Setup Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Customize Capabilities,Price Management Customize Capabilities Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Get Started,PCM_Learn Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Salesforce Pricing,Price Management Launch Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Get Started,Transaction Management Get Started Popup Text Section,,,Detail;RLM_Learning_Section__c,,
+true,Validate Setup,Transaction Management Validate Setup Popup,,,Detail;RLM_Learning_Section__c,,
+true,Transaction Management,Transaction Management Launch App Popup Text Section,,,Detail;RLM_Learning_Section__c,,
+true,Customize Capabilities,Transaction Management Customize Capabilities Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Get Started,DRO Get Started Section,,,Detail;RLM_Learning_Section__c,,
+true,Validate Setup,DRO Validate Setup Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Dynamic Revenue Orchestrator,DRO Launch App Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Customize Capabilities,DRO Customize Capabilities Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Get Started,Billing Get Started Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Validate Setup,Biling Validate Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Billing Management,Billing Launch App Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Customize Capabilities,Billing Customize Capabilities Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Get Started,Rate Management Get Started Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Validate Setup,Rate Management Validate Setup Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Rate Management,Rate Management Launch App Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Customize Capabilities,Rate Management Customize Capabilities Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Get Started,Salesforce Contracts Get Started Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Validate Setup,Salesforce Contracts Validate Setup Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Contract Lifecycle Management,Salesforce Contracts Launch App Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Customize Capabilities,Salesforce Contracts Customize Capabilities Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Get Started,Usage Management Get Started Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Validate Setup,Usage Management Validate Setup Section,,,Detail;RLM_Learning_Section__c,,
+true,Usage Management,Usage Management Launch App,,,Detail;RLM_Learning_Section__c,,
+true,Customize Capabilities,Usage Management Customize Capabilities Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,,Price Management Launch App Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Validate Setup,ProductConfig_Check Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Customize Capabilities,ProductConfig_Explore Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,,Home Learning Hub,,,Right;RLM_Learning_Section__c,,Home
+true,,Salesforce Contracts Right Section,,,Right;RLM_Learning_Section__c,,Salesforce Contracts
+true,,Product Catalog Management Learning Hub,,,Right;RLM_Learning_Section__c,,Product Catalog Management
+true,,Product Configurator Learning Hub Section,,,Right;RLM_Learning_Section__c,,Product Configurator
+true,,Usage Management Right Section,,,Right;RLM_Learning_Section__c,,Usage Management
+true,,Price Management Right Section,,,Right;RLM_Learning_Section__c,,Salesforce Pricing
+true,,Transaction Management Right Section,,,Right;RLM_Learning_Section__c,,Transaction Management
+true,,DRO Right Section,,,Right;RLM_Learning_Section__c,,Dynamic Revenue Orchestrator
+true,,Billing Right Section,,,Right;RLM_Learning_Section__c,,Billing Management
+true,,Rate Management Right Section,,,Right;RLM_Learning_Section__c,,Rate Management
+true,Salesforce Pricing - Solution Overview,Price Management Left Top Section,,,Left_Top;RLM_Learning_Section__c,Rev-Pricebookentries,Salesforce Pricing
+true,Product Catalog Management - Solution Overview,Product Catalog Management Left Top Section,,,Left_Top;RLM_Learning_Section__c,Rev-Product,Product Catalog Management
+true,Usage Management - Solution Overview,Usage Management Left Top Section,,,Left_Top;RLM_Learning_Section__c,Rev-Product,Usage Management
+true,Transaction Management - Solution Overview,Transaction Management Left Top Section,,,Left_Top;RLM_Learning_Section__c,Rev-Orders,Transaction Management
+true,Dynamic Revenue Orchestrator - Solution Overview,DRO Left Top Section,,,Left_Top;RLM_Learning_Section__c,Rev-Orchestrator,Dynamic Revenue Orchestrator
+true,Agentforce Revenue Management & Key Modules,Home Left Bottom,"<p>Create quotes and orders on one revenue platform. Power guided quoting, AI-assisted contracts, efficient fulfillment, and accurate billing — across any channel, with any revenue model.</p>",,Left_Bottom;RLM_Learning_Section__c,Apps,Home
+true,Welcome,Home Welcome,,,Top;RLM_Learning_Section__c,Sparkles,Home
+true,,Greeting Admin,,,Top;RLM_Learning_Section__c,Sparkle,
+true,,Release Notes Section,,,Left_Top;RLM_Learning_Section__c,Sparkle,
+true,Learning Tasks,Salesforce Contracts Left Bottom Section,,,Left_Bottom;RLM_Learning_Section__c,Task,Salesforce Contracts
+true,Learning Tasks,Product Catalog Management Left Bottom Section,<p>Follow these steps to implement and experience <strong>Product Catalog Management:</strong></p><p><br></p>,,Left_Bottom;RLM_Learning_Section__c,Task,Product Catalog Management
+true,Learning Tasks,Product Configurator Left Bottom Section,<p>Follow these steps to implement and experience <strong>Product Configurator</strong></p>,,Left_Bottom;RLM_Learning_Section__c,Task,Product Configurator
+true,Learning Tasks,Usage Management Left Bottom Section,<p>Follow these steps to implement and experience<strong> Usage Management</strong></p>,,Left_Bottom;RLM_Learning_Section__c,Task,Usage Management
+true,Learning Tasks,Price Management Left Bottom Section,<p>Follow these steps to implement and experience <strong>Salesforce Pricing</strong></p>,,Left_Bottom;RLM_Learning_Section__c,Task,Salesforce Pricing
+true,Learning Tasks,Transaction Management Left Bottom Section,<p>Follow these steps to implement and experience <strong>Transaction Management:</strong></p>,,Left_Bottom;RLM_Learning_Section__c,Task,Transaction Management
+true,Learning Tasks,DRO Left Bottom Section,<p>Follow these steps to implement and experience<strong> Dynamic Revenue Orchestrator</strong></p>,,Left_Bottom;RLM_Learning_Section__c,Task,Dynamic Revenue Orchestrator
+true,Learning Tasks,Billing Left Bottom Section,<p>Follow these steps to implement and experience <strong>Billing Management</strong></p>,,Left_Bottom;RLM_Learning_Section__c,Task,Billing Management
+true,Learning Tasks,Rate Management Left Bottom Section,<p>Follow these steps to implement and experience <strong>Rate Management</strong></p><h2><br></h2><p><br></p>,,Left_Bottom;RLM_Learning_Section__c,Task,Rate Management
+true,Revenue Cloud Summer '26 Release,Home Left Top,,https://play.vidyard.com/j9yYwcsJMaAtWqcJiX26Vm.html?autoplay=0&amp;custom_id=&amp;embed_button=0&amp;viral_sharing=0&amp,Left_Top;RLM_Learning_Section__c,Rev-Announcement,Home
+true,Product Configurator - Solution Overview,Product Configurator Left Top Section,,,Left_Top;RLM_Learning_Section__c,Rev-BundleConfig,Product Configurator
+true,Billing Management - Solution Overview,Billing Left Top Section,,,Left_Top;RLM_Learning_Section__c,Rev-Currency,Billing Management
+true,Rate Management - Solution Overview,Rate Management Left Top Section,,,Left_Top;RLM_Learning_Section__c,Rev-Taxrate,Rate Management
+true,Salesforce Contracts - Solution Overview,Salesforce Contracts Left Top Section,,,Left_Top;RLM_Learning_Section__c,Rev-Contractline,Salesforce Contracts

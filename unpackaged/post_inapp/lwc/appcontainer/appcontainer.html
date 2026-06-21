@@ -6,18 +6,18 @@
     >
       <lightning-card>
         <h3 slot="title" class="slds-align_absolute-center">
-          <template if:true={sectionWithBlocks.section.Icon__r}>
+          <template if:true={sectionWithBlocks.section.RLM_Learning_Icon__r}>
             <lightning-icon
               class="slds-var-m-right_small"
-              icon-name={sectionWithBlocks.section.Icon__r.Type__c}
+              icon-name={sectionWithBlocks.section.RLM_Learning_Icon__r.RLM_Learning_Type__c}
               size="small"
             ></lightning-icon>
           </template>
-          {sectionWithBlocks.section.Header__c}
+          {sectionWithBlocks.section.RLM_Learning_Header__c}
         </h3>
         <lightning-formatted-rich-text
           class="slds-var-p-right_small slds-var-p-left_x-large slds-line-clamp_small"
-          value={sectionWithBlocks.section.Sub_Header__c}
+          value={sectionWithBlocks.section.RLM_Learning_Sub_Header__c}
         ></lightning-formatted-rich-text>
         <div
           class="slds-p-around_none slds-col slds-var-m-top_x-small slds-var-m-bottom_medium slds-m-horizontal_none"

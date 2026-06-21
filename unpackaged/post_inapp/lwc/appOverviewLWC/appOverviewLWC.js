@@ -53,7 +53,7 @@ export default class AppOverviewLWC extends NavigationMixin(LightningElement) {
         const dynamicLink = await getDynamicLinkByIdentifier(identifier);
         let url = "";
         if (dynamicLink.RecordType.DeveloperName == "WebPage") {
-          url = dynamicLink.Link__c;
+          url = dynamicLink.RLM_Learning_Link__c;
         } else {
           const pageRef = await getPageReferenceByDynamicType(dynamicLink);
           if (
@@ -69,7 +69,7 @@ export default class AppOverviewLWC extends NavigationMixin(LightningElement) {
           "<a href='" +
           url +
           "' target='_blank' style='color: rgb(0,0,238);'>" +
-          dynamicLink.Text_Value__c +
+          dynamicLink.RLM_Learning_Text_Value__c +
           "</a>";
         content = content.replace(identifier, replaceString);
       } catch (error) {

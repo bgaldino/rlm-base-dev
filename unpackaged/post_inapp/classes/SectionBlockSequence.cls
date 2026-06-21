@@ -1,21 +1,21 @@
 public with sharing class SectionBlockSequence {
   @AuraEnabled(cacheable=true)
-  public static List<Block__c> getAllBlocks() {
-    return [SELECT Id, Name FROM Block__c WITH USER_MODE];
+  public static List<RLM_Learning_Block__c> getAllBlocks() {
+    return [SELECT Id, Name FROM RLM_Learning_Block__c WITH USER_MODE];
   }
 
   //get blocks for a section from the sectionblock entity
   @AuraEnabled(cacheable=false)
-  public static List<SectionBlock__c> getBlocksForSection(String sectionId) {
+  public static List<RLM_Learning_SectionBlock__c> getBlocksForSection(String sectionId) {
     if (String.isEmpty(sectionId)) {
       throw new AuraHandledException('Section Id cannot be null or empty.');
     }
     return [
-      SELECT Id, Block__c
-      FROM SectionBlock__c
-      WHERE Section__c = :sectionId
+      SELECT Id, RLM_Learning_Block__c
+      FROM RLM_Learning_SectionBlock__c
+      WHERE RLM_Learning_Section__c = :sectionId
       WITH USER_MODE
-      ORDER BY Order_Sequence__c ASC
+      ORDER BY RLM_Learning_Order_Sequence__c ASC
     ];
   }
 
@@ -25,10 +25,10 @@ public with sharing class SectionBlockSequence {
     List<String> blockIds
   ) {
     try {
-      List<SectionBlock__c> recordsToDelete = [
+      List<RLM_Learning_SectionBlock__c> recordsToDelete = [
         SELECT Id
-        FROM SectionBlock__c
-        WHERE Section__c = :sectionId
+        FROM RLM_Learning_SectionBlock__c
+        WHERE RLM_Learning_Section__c = :sectionId
         WITH USER_MODE
       ];
 
@@ -53,14 +53,14 @@ public with sharing class SectionBlockSequence {
           }
         }
       }
-      List<SectionBlock__c> junctionRecords = new List<SectionBlock__c>();
+      List<RLM_Learning_SectionBlock__c> junctionRecords = new List<RLM_Learning_SectionBlock__c>();
 
       // Create or update a record
       for (Integer i = 0; i < blockIds.size(); i++) {
-        SectionBlock__c record = new SectionBlock__c();
-        record.Section__c = sectionId;
-        record.Block__c = blockIds[i];
-        record.Order_Sequence__c = i + 1;
+        RLM_Learning_SectionBlock__c record = new RLM_Learning_SectionBlock__c();
+        record.RLM_Learning_Section__c = sectionId;
+        record.RLM_Learning_Block__c = blockIds[i];
+        record.RLM_Learning_Order_Sequence__c = i + 1;
         junctionRecords.add(record);
       }
       // Perform the upsert

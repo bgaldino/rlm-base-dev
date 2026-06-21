@@ -11,18 +11,18 @@
                 <div class="slds-p-around_none">
                   <lightning-card>
                     <h3 slot="title">
-                      <template if:true={sectionWithBlocks.section.Icon__r}>
+                      <template if:true={sectionWithBlocks.section.RLM_Learning_Icon__r}>
                         <lightning-icon
-                          icon-name={sectionWithBlocks.section.Icon__r.Type__c}
+                          icon-name={sectionWithBlocks.section.RLM_Learning_Icon__r.RLM_Learning_Type__c}
                           class="slds-var-m-right_small"
                           size="small"
                         ></lightning-icon>
                       </template>
-                      {sectionWithBlocks.section.Header__c}
+                      {sectionWithBlocks.section.RLM_Learning_Header__c}
                     </h3>
                     <p class="slds-var-p-left_xx-large slds-var-p-right_small">
                       <lightning-formatted-rich-text
-                        value={sectionWithBlocks.section.Sub_Header__c}
+                        value={sectionWithBlocks.section.RLM_Learning_Sub_Header__c}
                       ></lightning-formatted-rich-text>
                     </p>
                   </lightning-card>
@@ -128,7 +128,7 @@
             </lightning-formatted-rich-text>
             <lightning-formatted-rich-text
               class="slds-var-m-top_large"
-              value={dataModal.Description__c}
+              value={dataModal.RLM_Learning_Description__c}
             ></lightning-formatted-rich-text>
           </div>
 

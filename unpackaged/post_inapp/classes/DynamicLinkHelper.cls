@@ -1,5 +1,5 @@
 /**
- * Resolves DynamicLink__c navigation targets for the In-App Learning framework.
+ * Resolves RLM_Learning_DynamicLink__c navigation targets for the In-App Learning framework.
  *
  * Security posture (hardened per .cursor/skills/apex-security-hardening):
  *  - Every entry-reachable SOQL runs in USER_MODE (caller CRUD/FLS enforced).
@@ -7,33 +7,33 @@
  *  - Id parameters are validated with Id.valueOf; values placed inside string
  *    literals are escaped with String.escapeSingleQuotes.
  *  - `whereCondition` is an admin-authored SOQL fragment stored on
- *    DynamicLink__c.Where_Condition__c (only editable by users with the
+ *    RLM_Learning_DynamicLink__c.RLM_Learning_Where_Condition__c (only editable by users with the
  *    RLM_InApp_Learning permission set). It cannot be escaped because it
  *    legitimately contains quoted literals (e.g. Name = 'Infinitech'); USER_MODE
  *    constrains it to data the caller may already read and to read-only Id results.
  */
 public with sharing class DynamicLinkHelper {
   @AuraEnabled(cacheable=true)
-  public static DynamicLink__c getDynamicLinkByIdentity(String identifier) {
+  public static RLM_Learning_DynamicLink__c getDynamicLinkByIdentity(String identifier) {
     return [
       SELECT
         Id,
         Name,
-        App_API_Name__c,
-        Identity__c,
-        Object__c,
-        Page_Name__c,
-        Relationship_API_Name__c,
-        Text_Value__c,
-        Where_Condition__c,
+        RLM_Learning_App_API_Name__c,
+        RLM_Learning_Identity__c,
+        RLM_Learning_Object__c,
+        RLM_Learning_Page_Name__c,
+        RLM_Learning_Relationship_API_Name__c,
+        RLM_Learning_Text_Value__c,
+        RLM_Learning_Where_Condition__c,
         RecordType.DeveloperName,
-        Page__c,
-        Link__c,
-        Relative_Url__c,
-        Setup_Page__c,
-        Site_Name__c
-      FROM DynamicLink__c
-      WHERE Identity__c = :identifier
+        RLM_Learning_Page__c,
+        RLM_Learning_Link__c,
+        RLM_Learning_Relative_Url__c,
+        RLM_Learning_Setup_Page__c,
+        RLM_Learning_Site_Name__c
+      FROM RLM_Learning_DynamicLink__c
+      WHERE RLM_Learning_Identity__c = :identifier
       WITH USER_MODE
     ];
   }
@@ -85,19 +85,19 @@ public with sharing class DynamicLinkHelper {
       String whereCondition =
         'Label like \'%' + String.escapeSingleQuotes(objectAPIName) + '%\'';
       String query =
-        'SELECT Setup_Page_URL__c FROM Setup_Page_Map__mdt WHERE ' + whereCondition;
+        'SELECT RLM_Learning_Setup_Page_URL__c FROM RLM_Learning_Setup_Page_Map__mdt WHERE ' + whereCondition;
 
-      List<Setup_Page_Map__mdt> setupPage = Database.query(query, AccessLevel.USER_MODE);
+      List<RLM_Learning_Setup_Page_Map__mdt> setupPage = Database.query(query, AccessLevel.USER_MODE);
       if (setupPage.isEmpty()) {
         throw new AuraHandledException('No Setup Page record for ' + objectAPIName);
       }
-      if (String.isEmpty(setupPage[0].Setup_Page_URL__c)) {
+      if (String.isEmpty(setupPage[0].RLM_Learning_Setup_Page_URL__c)) {
         throw new AuraHandledException('No Setup Page url missing' + objectAPIName);
       }
       if (objectAPIName == 'Contact') {
         noRedirect = noRedirect + '&isContactEntityOverride=1';
       }
-      return base_url + setupPage[0].Setup_Page_URL__c + '/' + recordId + noRedirect;
+      return base_url + setupPage[0].RLM_Learning_Setup_Page_URL__c + '/' + recordId + noRedirect;
     } catch (Exception e) {
       throw new AuraHandledException(e.getMessage());
     }

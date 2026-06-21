@@ -48,11 +48,11 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
       }
       const dynamicLink = this.dynamicLinksMap[appNameValue];
       if (
-        dynamicLink.Section__c != null &&
-        dynamicLink.Section__c !== undefined
+        dynamicLink.RLM_Learning_Section__c != null &&
+        dynamicLink.RLM_Learning_Section__c !== undefined
       ) {
         const data = await getSectionWithBlockBySectionId({
-          sectionId: dynamicLink.Section__c
+          sectionId: dynamicLink.RLM_Learning_Section__c
         });
         const sectionWithBlock = data[0];
         const description = await this.replaceDynamicLinks(
@@ -62,8 +62,8 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
           // `label` is not included here in this example.
           // it is set on lightning-modal-header instead
           size: "medium",
-          header: sectionWithBlock.section.Header__c,
-          subHeader: sectionWithBlock.section.Sub_Header__c,
+          header: sectionWithBlock.section.RLM_Learning_Header__c,
+          subHeader: sectionWithBlock.section.RLM_Learning_Sub_Header__c,
           description: description
         });
       } else {
@@ -123,7 +123,7 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
         const dynamicLink = await getDynamicLinkByIdentifier(identifier);
         let url = "";
         if (dynamicLink.RecordType.DeveloperName === "WebPage") {
-          url = dynamicLink.Link__c;
+          url = dynamicLink.RLM_Learning_Link__c;
         } else {
           const pageRef = await getPageReferenceByDynamicType(dynamicLink);
           if (
@@ -148,7 +148,7 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
           "<a href='" +
           url +
           "' target='_blank' style='color: rgb(0,0,238);'>" +
-          dynamicLink.Text_Value__c +
+          dynamicLink.RLM_Learning_Text_Value__c +
           "</a>";
         content = content.replace(identifier, replaceString);
       } catch (error) {

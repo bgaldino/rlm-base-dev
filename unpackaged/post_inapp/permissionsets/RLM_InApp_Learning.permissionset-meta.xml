@@ -9,7 +9,7 @@
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>true</modifyAllRecords>
-        <object>Block__c</object>
+        <object>RLM_Learning_Block__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
     <objectPermissions>
@@ -18,7 +18,7 @@
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>true</modifyAllRecords>
-        <object>DynamicLink__c</object>
+        <object>RLM_Learning_DynamicLink__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
     <objectPermissions>
@@ -27,7 +27,7 @@
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>true</modifyAllRecords>
-        <object>Icon__c</object>
+        <object>RLM_Learning_Icon__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
     <objectPermissions>
@@ -36,7 +36,7 @@
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>true</modifyAllRecords>
-        <object>Page__c</object>
+        <object>RLM_Learning_Page__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
     <objectPermissions>
@@ -45,7 +45,7 @@
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>true</modifyAllRecords>
-        <object>Section__c</object>
+        <object>RLM_Learning_Section__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
     <objectPermissions>
@@ -54,177 +54,177 @@
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>true</modifyAllRecords>
-        <object>SectionBlock__c</object>
+        <object>RLM_Learning_SectionBlock__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Block__c.ActionText__c</field>
+        <field>RLM_Learning_Block__c.RLM_Learning_ActionText__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Block__c.Action__c</field>
+        <field>RLM_Learning_Block__c.RLM_Learning_Action__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Block__c.Active__c</field>
+        <field>RLM_Learning_Block__c.RLM_Learning_Active__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Block__c.Description__c</field>
+        <field>RLM_Learning_Block__c.RLM_Learning_Description__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Block__c.Header__c</field>
+        <field>RLM_Learning_Block__c.RLM_Learning_Header__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Block__c.Icon__c</field>
+        <field>RLM_Learning_Block__c.RLM_Learning_Icon__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Block__c.Note__c</field>
+        <field>RLM_Learning_Block__c.RLM_Learning_Note__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Block__c.Sub_Header__c</field>
+        <field>RLM_Learning_Block__c.RLM_Learning_Sub_Header__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.App_API_Name__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_App_API_Name__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Filter_Name__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Filter_Name__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Identity__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Identity__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Link__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Link__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Object__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Object__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Open_in_new_tab__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Open_in_new_tab__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Page_Name__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Page_Name__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Page__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Page__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Relationship_API_Name__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Relationship_API_Name__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Relative_Url__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Relative_Url__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Section__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Section__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Setup_Page__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Setup_Page__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Site_Name__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Site_Name__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Text_Value__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Text_Value__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>DynamicLink__c.Where_Condition__c</field>
+        <field>RLM_Learning_DynamicLink__c.RLM_Learning_Where_Condition__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Icon__c.Type__c</field>
+        <field>RLM_Learning_Icon__c.RLM_Learning_Type__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Page__c.Active__c</field>
+        <field>RLM_Learning_Page__c.RLM_Learning_Active__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Section__c.Active__c</field>
+        <field>RLM_Learning_Section__c.RLM_Learning_Active__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Section__c.Header__c</field>
+        <field>RLM_Learning_Section__c.RLM_Learning_Header__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Section__c.Icon__c</field>
+        <field>RLM_Learning_Section__c.RLM_Learning_Icon__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Section__c.Page__c</field>
+        <field>RLM_Learning_Section__c.RLM_Learning_Page__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Section__c.Sub_Header__c</field>
+        <field>RLM_Learning_Section__c.RLM_Learning_Sub_Header__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>Section__c.Video_Link__c</field>
+        <field>RLM_Learning_Section__c.RLM_Learning_Video_Link__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>SectionBlock__c.Block__c</field>
+        <field>RLM_Learning_SectionBlock__c.RLM_Learning_Block__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>SectionBlock__c.Order_Sequence__c</field>
+        <field>RLM_Learning_SectionBlock__c.RLM_Learning_Order_Sequence__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
-        <field>SectionBlock__c.Section__c</field>
+        <field>RLM_Learning_SectionBlock__c.RLM_Learning_Section__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <classAccesses>
@@ -244,103 +244,103 @@
         <enabled>true</enabled>
     </classAccesses>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.APINamePage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.APINamePage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.AppPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.AppPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.CommunityPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.CommunityPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.DPERecordPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.DPERecordPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.FlowRecordPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.FlowRecordPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.InAppDetailsPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.InAppDetailsPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.InAppPopup</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.InAppPopup</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.NamedPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.NamedPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.ObjectPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.ObjectPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.RecordPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.RecordPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.RecordRelationshipPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.RecordRelationshipPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.SetupPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.SetupPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.SurveyRecordPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.SurveyRecordPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>DynamicLink__c.WebPage</recordType>
+        <recordType>RLM_Learning_DynamicLink__c.WebPage</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>Section__c.Detail</recordType>
+        <recordType>RLM_Learning_Section__c.Detail</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>Section__c.Left_Bottom</recordType>
+        <recordType>RLM_Learning_Section__c.Left_Bottom</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>Section__c.Left_Top</recordType>
+        <recordType>RLM_Learning_Section__c.Left_Top</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>Section__c.Right</recordType>
+        <recordType>RLM_Learning_Section__c.Right</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <recordTypeVisibilities>
-        <recordType>Section__c.Top</recordType>
+        <recordType>RLM_Learning_Section__c.Top</recordType>
         <visible>true</visible>
     </recordTypeVisibilities>
     <tabSettings>
-        <tab>Block__c</tab>
+        <tab>RLM_Learning_Block__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>DynamicLink__c</tab>
+        <tab>RLM_Learning_DynamicLink__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>Icon__c</tab>
+        <tab>RLM_Learning_Icon__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>Page__c</tab>
+        <tab>RLM_Learning_Page__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>Section__c</tab>
+        <tab>RLM_Learning_Section__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>SectionBlock__c</tab>
+        <tab>RLM_Learning_SectionBlock__c</tab>
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>

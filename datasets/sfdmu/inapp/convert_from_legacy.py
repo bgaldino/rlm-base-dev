@@ -29,8 +29,8 @@ DEFAULT_SRC = "/Users/brian/Documents/GitHub/Enterprise/_industries/Industries-I
 OUT_DIR = Path(__file__).parent.absolute()
 
 # --- scrub / remap constants ---------------------------------------------------
-DEAD_BLOCK_IDS = {"Block__c-50", "Block__c-73"}        # unreferenced duplicate Names
-ORPHAN_SB_IDS = {"SectionBlock__c-1", "SectionBlock__c-2"}  # blank Section + Block
+DEAD_BLOCK_IDS = {"Block__c-50", "Block__c-73"}        # legacy source row-ids — unreferenced dup Names
+ORPHAN_SB_IDS = {"SectionBlock__c-1", "SectionBlock__c-2"}  # legacy source row-ids — blank Section + Block
 ACCT_FROM, ACCT_TO = "Mahesh", "Infinitech"            # demo account -> QB default account
 TOKEN_FROM, TOKEN_TO = "ACC_MAHESH_DYN_LINK", "ACC_INFINITECH_DYN_LINK"
 DEAD_IMG_HOST = "rlm258learnorg.file.force.com"
@@ -345,6 +345,9 @@ def main():
     src = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(DEFAULT_SRC)
     sql = src.read_text()
 
+    # NOTE: parse_table reads the LEGACY SQL dump, which uses the ORIGINAL (unprefixed) table
+    # names. Only the OUTPUT (write_csv object names + column headers + __r traversals) carries
+    # the RLM_Learning_ prefix. Do not prefix these source-side table names.
     icon = parse_table(sql, "Icon__c")            # id,Name,Size,Type
     page = parse_table(sql, "Page__c")            # id,Active,Name,Type
     section = parse_table(sql, "Section__c")      # id,Active,Header,Name,SubHeader,RT,Video,Icon,Page
@@ -356,7 +359,7 @@ def main():
     dl_rt = {r[0]: r[1] for r in parse_table(sql, "DynamicLink__c_rt_mapping")}
 
     # --- 262 capability rename: Page "Price Management" -> "Salesforce Pricing" --
-    # Mutating the source page row renames the Page record AND every Page__r.Name
+    # Mutating the source page row renames the Page record AND every RLM_Learning_Page__r.Name
     # reference (all resolved through page_n below), keeping the data consistent.
     pricing_renamed = 0
     for r in page:
@@ -370,9 +373,9 @@ def main():
         if r[14] == "Name = '%s'" % ACCT_FROM:
             r[14] = "Name = '%s'" % ACCT_TO
             r[5] = r[5].replace(ACCT_FROM, ACCT_TO)      # Name: "Account Name Mahesh" -> Infinitech
-            r[3] = r[3].replace(TOKEN_FROM, TOKEN_TO)    # Identity__c token
+            r[3] = r[3].replace(TOKEN_FROM, TOKEN_TO)    # RLM_Learning_Identity__c token
             remapped += 1
-        if any(mk in r[4] for mk in WRONG_VERTICAL_MARKERS):   # Link__c (Comms/Energy -> RC 262)
+        if any(mk in r[4] for mk in WRONG_VERTICAL_MARKERS):   # RLM_Learning_Link__c (Comms/Energy -> RC 262)
             r[4] = RC_262_RELNOTES
             relnotes_fixed += 1
         if r[5] in DL_NAME_REMAP:                        # stale/typo DynamicLink Names
@@ -391,33 +394,33 @@ def main():
     # null-vs-empty composite mismatch on unmanaged custom-object record types.
     rtc = lambda dev, sobj: f"{dev};{sobj}" if dev else ""
 
-    # --- Icon__c ---------------------------------------------------------------
-    write_csv("Icon__c", ["Name", "Size__c", "Type__c"],
+    # --- RLM_Learning_Icon__c ---------------------------------------------------------------
+    write_csv("RLM_Learning_Icon__c", ["Name", "RLM_Learning_Size__c", "RLM_Learning_Type__c"],
               [[r[1], r[2], r[3]] for r in icon])
 
-    # --- Page__c ---------------------------------------------------------------
-    write_csv("Page__c", ["Active__c", "Name", "Type__c"],
+    # --- RLM_Learning_Page__c ---------------------------------------------------------------
+    write_csv("RLM_Learning_Page__c", ["RLM_Learning_Active__c", "Name", "RLM_Learning_Type__c"],
               [[b(r[1]), r[2], r[3]] for r in page])
 
-    # --- Section__c ------------------------------------------------------------
-    write_csv("Section__c",
-              ["Active__c", "Header__c", "Name", "Sub_Header__c", "Video_Link__c",
-               "RecordType.$$DeveloperName$SobjectType", "Icon__r.Name", "Page__r.Name"],
+    # --- RLM_Learning_Section__c ------------------------------------------------------------
+    write_csv("RLM_Learning_Section__c",
+              ["RLM_Learning_Active__c", "RLM_Learning_Header__c", "Name", "RLM_Learning_Sub_Header__c", "RLM_Learning_Video_Link__c",
+               "RecordType.$$DeveloperName$SobjectType", "RLM_Learning_Icon__r.Name", "RLM_Learning_Page__r.Name"],
               [[b(r[1]), scrub_text(r[2]), r[3], scrub_text(r[4]), r[6],
-                rtc(sec_rt.get(r[5], ""), "Section__c"), icon_n.get(r[7], ""), page_n.get(r[8], "")]
+                rtc(sec_rt.get(r[5], ""), "RLM_Learning_Section__c"), icon_n.get(r[7], ""), page_n.get(r[8], "")]
                for r in section])
 
-    # --- DynamicLink__c --------------------------------------------------------
-    write_csv("DynamicLink__c",
-              ["App_API_Name__c", "Filter_Name__c", "Identity__c", "Link__c", "Name",
-               "Object__c", "Page_Name__c", "Relationship_API_Name__c", "Relative_Url__c",
-               "Setup_Page__c", "Site_Name__c", "Text_Value__c", "Where_Condition__c",
-               "RecordType.$$DeveloperName$SobjectType", "Page__r.Name", "Section__r.Name"],
+    # --- RLM_Learning_DynamicLink__c --------------------------------------------------------
+    write_csv("RLM_Learning_DynamicLink__c",
+              ["RLM_Learning_App_API_Name__c", "RLM_Learning_Filter_Name__c", "RLM_Learning_Identity__c", "RLM_Learning_Link__c", "Name",
+               "RLM_Learning_Object__c", "RLM_Learning_Page_Name__c", "RLM_Learning_Relationship_API_Name__c", "RLM_Learning_Relative_Url__c",
+               "RLM_Learning_Setup_Page__c", "RLM_Learning_Site_Name__c", "RLM_Learning_Text_Value__c", "RLM_Learning_Where_Condition__c",
+               "RecordType.$$DeveloperName$SobjectType", "RLM_Learning_Page__r.Name", "RLM_Learning_Section__r.Name"],
               [[r[1], r[2], r[3], scrub_text(r[4]), r[5], r[6], r[7], r[9], r[10], r[11], r[12],
-                scrub_text(r[13]), r[14], rtc(dl_rt.get(r[8], ""), "DynamicLink__c"), page_n.get(r[15], ""), sec_n.get(r[16], "")]
+                scrub_text(r[13]), r[14], rtc(dl_rt.get(r[8], ""), "RLM_Learning_DynamicLink__c"), page_n.get(r[15], ""), sec_n.get(r[16], "")]
                for r in dlink])
 
-    # --- Block__c (drop dead rows; rewrite cross-org images + Home 262 announcement) -
+    # --- RLM_Learning_Block__c (drop dead rows; rewrite cross-org images + Home 262 announcement) -
     img_rewrites = home_rewrites = sib_rewrites = 0
     block_rows = []
     for r in block:
@@ -435,12 +438,12 @@ def main():
         desc = sib_desc
         block_rows.append([scrub_text(r[1]), b(r[2]), scrub_text(desc), scrub_text(r[4]), r[5],
                            scrub_text(r[6]), scrub_text(r[7]), dl_n.get(r[8], ""), icon_n.get(r[9], "")])
-    write_csv("Block__c",
-              ["ActionText__c", "Active__c", "Description__c", "Header__c", "Name",
-               "Note__c", "Sub_Header__c", "Action__r.Name", "Icon__r.Name"],
+    write_csv("RLM_Learning_Block__c",
+              ["RLM_Learning_ActionText__c", "RLM_Learning_Active__c", "RLM_Learning_Description__c", "RLM_Learning_Header__c", "Name",
+               "RLM_Learning_Note__c", "RLM_Learning_Sub_Header__c", "RLM_Learning_Action__r.Name", "RLM_Learning_Icon__r.Name"],
               block_rows)
 
-    # --- SectionBlock__c (drop orphans) ---------------------------------------
+    # --- RLM_Learning_SectionBlock__c (drop orphans) ---------------------------------------
     # Composite externalId requires an SFDMU v5 `$$` key column: header is
     # `$$` + components joined by `$`; value is the component values joined by `;`.
     block_n = {r[0]: r[5] for r in block}
@@ -450,9 +453,9 @@ def main():
             continue
         s_name, b_name, order = sec_n.get(r[3], ""), block_n.get(r[2], ""), r[1]
         sb_rows.append([";".join([s_name, b_name, order]), s_name, b_name, order])
-    write_csv("SectionBlock__c",
-              ["$$Section__r.Name$Block__r.Name$Order_Sequence__c",
-               "Section__r.Name", "Block__r.Name", "Order_Sequence__c"],
+    write_csv("RLM_Learning_SectionBlock__c",
+              ["$$RLM_Learning_Section__r.Name$RLM_Learning_Block__r.Name$RLM_Learning_Order_Sequence__c",
+               "RLM_Learning_Section__r.Name", "RLM_Learning_Block__r.Name", "RLM_Learning_Order_Sequence__c"],
               sb_rows)
 
     print(f"\nScrub: dropped {len(DEAD_BLOCK_IDS)} dead blocks, {len(ORPHAN_SB_IDS)} orphan junctions")

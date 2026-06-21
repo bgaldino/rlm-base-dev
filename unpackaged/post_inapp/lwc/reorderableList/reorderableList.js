@@ -33,7 +33,7 @@ export default class ReorderableList extends LightningElement {
       };
     });
     this.selectedBlocks.push(
-      ...intialSelectedBlocks.map((block) => block.Block__c)
+      ...intialSelectedBlocks.map((block) => block.RLM_Learning_Block__c)
     );
   }
 

@@ -5,45 +5,45 @@
     {
       "objects": [
         {
-          "query": "SELECT Id, DeveloperName, SobjectType FROM RecordType WHERE SobjectType IN ('Section__c', 'DynamicLink__c')",
+          "query": "SELECT Id, DeveloperName, SobjectType FROM RecordType WHERE SobjectType IN ('RLM_Learning_Section__c', 'RLM_Learning_DynamicLink__c')",
           "operation": "Readonly",
           "externalId": "DeveloperName;SobjectType",
           "excluded": false
         },
         {
-          "query": "SELECT Name, Size__c, Type__c FROM Icon__c ORDER BY Name ASC",
+          "query": "SELECT Name, RLM_Learning_Size__c, RLM_Learning_Type__c FROM RLM_Learning_Icon__c ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
         },
         {
-          "query": "SELECT Active__c, Name, Type__c FROM Page__c ORDER BY Name ASC",
+          "query": "SELECT RLM_Learning_Active__c, Name, RLM_Learning_Type__c FROM RLM_Learning_Page__c ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
         },
         {
-          "query": "SELECT Active__c, Header__c, Name, Sub_Header__c, Video_Link__c, RecordTypeId, Icon__c, Page__c, Icon__r.Name, Page__r.Name FROM Section__c ORDER BY Name ASC",
+          "query": "SELECT RLM_Learning_Active__c, RLM_Learning_Header__c, Name, RLM_Learning_Sub_Header__c, RLM_Learning_Video_Link__c, RecordTypeId, RLM_Learning_Icon__c, RLM_Learning_Page__c, RLM_Learning_Icon__r.Name, RLM_Learning_Page__r.Name FROM RLM_Learning_Section__c ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
         },
         {
-          "query": "SELECT App_API_Name__c, Filter_Name__c, Identity__c, Link__c, Name, Object__c, Page_Name__c, Relationship_API_Name__c, Relative_Url__c, Setup_Page__c, Site_Name__c, Text_Value__c, Where_Condition__c, RecordTypeId, Page__c, Section__c, Page__r.Name, Section__r.Name FROM DynamicLink__c ORDER BY Name ASC",
+          "query": "SELECT RLM_Learning_App_API_Name__c, RLM_Learning_Filter_Name__c, RLM_Learning_Identity__c, RLM_Learning_Link__c, Name, RLM_Learning_Object__c, RLM_Learning_Page_Name__c, RLM_Learning_Relationship_API_Name__c, RLM_Learning_Relative_Url__c, RLM_Learning_Setup_Page__c, RLM_Learning_Site_Name__c, RLM_Learning_Text_Value__c, RLM_Learning_Where_Condition__c, RecordTypeId, RLM_Learning_Page__c, RLM_Learning_Section__c, RLM_Learning_Page__r.Name, RLM_Learning_Section__r.Name FROM RLM_Learning_DynamicLink__c ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
         },
         {
-          "query": "SELECT ActionText__c, Active__c, Description__c, Header__c, Name, Note__c, Sub_Header__c, Action__c, Icon__c, Action__r.Name, Icon__r.Name FROM Block__c ORDER BY Name ASC",
+          "query": "SELECT RLM_Learning_ActionText__c, RLM_Learning_Active__c, RLM_Learning_Description__c, RLM_Learning_Header__c, Name, RLM_Learning_Note__c, RLM_Learning_Sub_Header__c, RLM_Learning_Action__c, RLM_Learning_Icon__c, RLM_Learning_Action__r.Name, RLM_Learning_Icon__r.Name FROM RLM_Learning_Block__c ORDER BY Name ASC",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
         },
         {
-          "query": "SELECT Order_Sequence__c, Section__c, Block__c, Section__r.Name, Block__r.Name FROM SectionBlock__c ORDER BY Section__r.Name ASC, Block__r.Name ASC, Order_Sequence__c ASC",
+          "query": "SELECT RLM_Learning_Order_Sequence__c, RLM_Learning_Section__c, RLM_Learning_Block__c, RLM_Learning_Section__r.Name, RLM_Learning_Block__r.Name FROM RLM_Learning_SectionBlock__c ORDER BY RLM_Learning_Section__r.Name ASC, RLM_Learning_Block__r.Name ASC, RLM_Learning_Order_Sequence__c ASC",
           "operation": "Insert",
-          "externalId": "Section__r.Name;Block__r.Name;Order_Sequence__c",
+          "externalId": "RLM_Learning_Section__r.Name;RLM_Learning_Block__r.Name;RLM_Learning_Order_Sequence__c",
           "deleteOldData": true,
           "excluded": false
         }

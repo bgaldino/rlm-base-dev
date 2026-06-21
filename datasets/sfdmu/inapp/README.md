@@ -3,7 +3,7 @@
 > **Status: DRAFT / design preview.** SFDMU v5 conversion of the Industries In-App
 > Framework's legacy CumulusCI dataset
 > (`Industries-In-App-Framework/datasets/rlm/rlm.dataset.sql`). `export.json` is
-> complete; `Page__c.csv` is fully converted (10 rows); other CSVs are verified
+> complete; `RLM_Learning_Page__c.csv` is fully converted (10 rows); other CSVs are verified
 > samples until the conversion script runs. Loaded by the proposed `inapp` feature
 > (`unpackaged/post_inapp` + `project__custom__inapp`).
 
@@ -11,7 +11,7 @@
 
 Drives the **Learning Home** in-app navigation: a data-defined home page and
 per-capability detail pages (PCM, Pricing, Billing, DRO, Rating, Contracts, Usage)
-built from Pages → Sections → Blocks, with `DynamicLink__c` resolving in-app popups,
+built from Pages → Sections → Blocks, with `RLM_Learning_DynamicLink__c` resolving in-app popups,
 detail links, and external resources. All six objects are framework-owned custom
 objects shipped in `unpackaged/post_inapp`; the plan inserts into **no** RLM/QuantumBit
 object, so it cannot collide with the product/pricing datasets.
@@ -23,21 +23,21 @@ of six objects key on their unique `Name`; only the junction needs a true compos
 
 | # | Object | Operation | externalId | Records | Key type |
 |---|--------|-----------|------------|---------|----------|
-| 1 | `Icon__c`         | Upsert | `Name` | 22  | natural — direct, unique 22/22 |
-| 2 | `Page__c`         | Upsert | `Name` | 10  | natural — direct, unique 10/10 |
-| 3 | `Section__c`      | Upsert | `Name` | 72  | natural — direct, unique 72/72 |
-| 4 | `DynamicLink__c`  | Upsert | `Name` | 51  | natural — direct, unique 51/51 (`Identity__c` rejected: 4 blanks) |
-| 5 | `Block__c`        | Upsert | `Name` | 126 | natural — direct, unique 126/126 **after dead-row scrub** |
-| 6 | `SectionBlock__c` | **Insert + deleteOldData** | `Section__r.Name;Block__r.Name;Order_Sequence__c` | 120 | **composite** — 2 parent traversals + 1 direct field |
+| 1 | `RLM_Learning_Icon__c`         | Upsert | `Name` | 22  | natural — direct, unique 22/22 |
+| 2 | `RLM_Learning_Page__c`         | Upsert | `Name` | 10  | natural — direct, unique 10/10 |
+| 3 | `RLM_Learning_Section__c`      | Upsert | `Name` | 72  | natural — direct, unique 72/72 |
+| 4 | `RLM_Learning_DynamicLink__c`  | Upsert | `Name` | 51  | natural — direct, unique 51/51 (`RLM_Learning_Identity__c` rejected: 4 blanks) |
+| 5 | `RLM_Learning_Block__c`        | Upsert | `Name` | 126 | natural — direct, unique 126/126 **after dead-row scrub** |
+| 6 | `RLM_Learning_SectionBlock__c` | **Insert + deleteOldData** | `RLM_Learning_Section__r.Name;RLM_Learning_Block__r.Name;RLM_Learning_Order_Sequence__c` | 120 | **composite** — 2 parent traversals + 1 direct field |
 
 Total: **401 records** (405 source − 2 dead blocks − 2 orphan junction rows).
 
 ### Why this is SFDMU v5-compliant
 - **Bug 1 (all-multi-hop externalId fails):** the junction key includes the **direct**
-  field `Order_Sequence__c`, so it is not all-traversal. ✅
+  field `RLM_Learning_Order_Sequence__c`, so it is not all-traversal. ✅
 - **Bug 3/5 (relationship-traversal externalId never matches on Upsert → duplicates):**
   **confirmed on a live load** — the composite-traversal externalId does NOT match on
-  re-Upsert, so `SectionBlock__c` uses **`operation: Insert` + `deleteOldData: true`** (the
+  re-Upsert, so `RLM_Learning_SectionBlock__c` uses **`operation: Insert` + `deleteOldData: true`** (the
   CLAUDE.md Bug 5 fix). Verified idempotent: three consecutive loads hold the junction at
   120 (an Upsert junction doubled to 240). Repo precedent for composite-traversal +
   `deleteOldData`: `qb-dro` `FulfillmentWorkspaceItem`.
@@ -45,16 +45,16 @@ Total: **401 records** (405 source − 2 dead blocks − 2 orphan junction rows)
   Upsert; only the junction needs `deleteOldData`.
 - Each parent traversal references that parent's own externalId (`Name`), so resolution
   is unambiguous — which is **why the dead-block scrub is required** (see below): a
-  non-unique `Block.Name` would make `Block__r.Name` ambiguous.
+  non-unique `Block.Name` would make `RLM_Learning_Block__r.Name` ambiguous.
 
-Verified-unique: `Section__r.Name;Block__r.Name` is already unique 120/120; the
-`Order_Sequence__c` component is added for Bug-1 compliance and is harmless on this
+Verified-unique: `RLM_Learning_Section__r.Name;RLM_Learning_Block__r.Name` is already unique 120/120; the
+`RLM_Learning_Order_Sequence__c` component is added for Bug-1 compliance and is harmless on this
 static data.
 
 ## Record-type handling
 
-`Section__c` (5 RTs: `Detail`, `Left_Bottom`, `Left_Top`, `Right`, `Top`) and
-`DynamicLink__c` (14 RTs incl. `InAppPopup`, `InAppDetailsPage`, `AppPage`, `WebPage`,
+`RLM_Learning_Section__c` (5 RTs: `Detail`, `Left_Bottom`, `Left_Top`, `Right`, `Top`) and
+`RLM_Learning_DynamicLink__c` (14 RTs incl. `InAppPopup`, `InAppDetailsPage`, `AppPage`, `WebPage`,
 `RecordPage`) carry `RecordTypeId` in the query so SFDMU maps record types **by
 DeveloperName**; the CSVs provide a `RecordType.DeveloperName` column (the source
 18-char Ids are dropped). All referenced record types ship in `post_inapp`.
@@ -62,18 +62,18 @@ DeveloperName**; the CSVs provide a `RecordType.DeveloperName` column (the sourc
 ## Scrub & remap — applied by `convert_from_legacy.py`
 
 **Key-enabling (required for the composite scheme):**
-- **Dropped 2 unreferenced "dead" blocks** so `Block.Name` is unique: `Block__c-73`
+- **Dropped 2 unreferenced "dead" blocks** so `Block.Name` is unique: `RLM_Learning_Block__c-73`
   (`Product Catalog Management Top Block`, actually a mislabeled Product Configurator
-  block) and `Block__c-50` (`DRO Learning Block 3`, a "TBD" placeholder). Neither is
-  referenced by any `SectionBlock__c`, so dropping them changes nothing functionally.
-- **Dropped 2 orphan junction rows** `SectionBlock__c-1/-2` (blank Section + Block).
+  block) and `RLM_Learning_Block__c-50` (`DRO Learning Block 3`, a "TBD" placeholder). Neither is
+  referenced by any `RLM_Learning_SectionBlock__c`, so dropping them changes nothing functionally.
+- **Dropped 2 orphan junction rows** `RLM_Learning_SectionBlock__c-1/-2` (blank Section + Block).
 
 **Data remap → QuantumBit / rlm-base-dev defaults:**
 - **Account `Mahesh` → `Infinitech`.** The only record-specific data reference in the
   whole learning dataset was `DynamicLink` `ACC_MAHESH_DYN_LINK` (a `RecordPage` link:
-  `Object__c=Account`, `Where='Name=''Mahesh'''`). Remapped to `Name = 'Infinitech'`
+  `RLM_Learning_Object__c=Account`, `Where='Name=''Mahesh'''`). Remapped to `Name = 'Infinitech'`
   (the QuantumBit primary customer from `scratch_data/Account.csv`); the
-  `Identity__c`/`Name` were renamed to `ACC_INFINITECH_DYN_LINK` / `Account Name
+  `RLM_Learning_Identity__c`/`Name` were renamed to `ACC_INFINITECH_DYN_LINK` / `Account Name
   Infinitech` in lockstep.
 - **No product-SKU references to remap.** A full scan found the learning content is
   capability-level, not product-level. The product-shaped strings are either generic UI
@@ -81,7 +81,7 @@ DeveloperName**; the CSVs provide a `RecordType.DeveloperName` column (the sourc
   (`standard__PriceManagement`, `BillingConsole`, `SalesforceContracts`,
   `UsageManagement`, `RatingManagement`, `IndustriesEpc/Dfo`) — platform app links that
   resolve in any RLM org. These are left intact.
-- **15× cross-org images re-hosted (DONE).** `Block__c` rich text embedded
+- **15× cross-org images re-hosted (DONE).** `RLM_Learning_Block__c` rich text embedded
   `rlm258learnorg.file.force.com/servlet/rtaImage?eid=…` images, session-gated to the source
   org (HTTP 302→login, not 404), so they render broken anywhere else. The 15 binaries were
   retrieved from a 258-template scratch org and are now **self-hosted** in the
@@ -98,7 +98,7 @@ DeveloperName**; the CSVs provide a `RecordType.DeveloperName` column (the sourc
 
 ### Image re-host — how it works
 
-The 15 images are referenced only inside `Block__c.Description__c`. Full inventory (Block id,
+The 15 images are referenced only inside `RLM_Learning_Block__c.RLM_Learning_Description__c`. Full inventory (Block id,
 owning record `eid`, image `refid`, original filename, capability page) is in
 `.agents/artifacts/in-app-framework-stripped-images-manifest.md`.
 
@@ -225,12 +225,12 @@ stale and omits the dev-guide corpus). 262 = Summer '26; 258 = Winter '26.
 
 | Object | Header |
 |--------|--------|
-| `Icon__c` | `Name,Size__c,Type__c` |
-| `Page__c` | `Active__c,Name,Type__c` |
-| `Section__c` | `Active__c,Header__c,Name,Sub_Header__c,Video_Link__c,RecordType.DeveloperName,Icon__r.Name,Page__r.Name` |
-| `DynamicLink__c` | `App_API_Name__c,Filter_Name__c,Identity__c,Link__c,Name,Object__c,Page_Name__c,Relationship_API_Name__c,Relative_Url__c,Setup_Page__c,Site_Name__c,Text_Value__c,Where_Condition__c,RecordType.DeveloperName,Page__r.Name,Section__r.Name` |
-| `Block__c` | `ActionText__c,Active__c,Description__c,Header__c,Name,Note__c,Sub_Header__c,Action__r.Name,Icon__r.Name` |
-| `SectionBlock__c` | `$$Section__r.Name$Block__r.Name$Order_Sequence__c,Section__r.Name,Block__r.Name,Order_Sequence__c` |
+| `RLM_Learning_Icon__c` | `Name,RLM_Learning_Size__c,RLM_Learning_Type__c` |
+| `RLM_Learning_Page__c` | `RLM_Learning_Active__c,Name,RLM_Learning_Type__c` |
+| `RLM_Learning_Section__c` | `RLM_Learning_Active__c,RLM_Learning_Header__c,Name,RLM_Learning_Sub_Header__c,RLM_Learning_Video_Link__c,RecordType.DeveloperName,RLM_Learning_Icon__r.Name,RLM_Learning_Page__r.Name` |
+| `RLM_Learning_DynamicLink__c` | `RLM_Learning_App_API_Name__c,RLM_Learning_Filter_Name__c,RLM_Learning_Identity__c,RLM_Learning_Link__c,Name,RLM_Learning_Object__c,RLM_Learning_Page_Name__c,RLM_Learning_Relationship_API_Name__c,RLM_Learning_Relative_Url__c,RLM_Learning_Setup_Page__c,RLM_Learning_Site_Name__c,RLM_Learning_Text_Value__c,RLM_Learning_Where_Condition__c,RecordType.DeveloperName,RLM_Learning_Page__r.Name,RLM_Learning_Section__r.Name` |
+| `RLM_Learning_Block__c` | `RLM_Learning_ActionText__c,RLM_Learning_Active__c,RLM_Learning_Description__c,RLM_Learning_Header__c,Name,RLM_Learning_Note__c,RLM_Learning_Sub_Header__c,RLM_Learning_Action__r.Name,RLM_Learning_Icon__r.Name` |
+| `RLM_Learning_SectionBlock__c` | `$$RLM_Learning_Section__r.Name$RLM_Learning_Block__r.Name$RLM_Learning_Order_Sequence__c,RLM_Learning_Section__r.Name,RLM_Learning_Block__r.Name,RLM_Learning_Order_Sequence__c` |
 
 ## Org load — verified working + SFDMU requirements
 
@@ -241,7 +241,7 @@ resolve everything (each surfaced only on a live load):
 
 1. **Lookup fields must be in the query, not just the traversal.** Each lookup needs BOTH
    the `__c` field AND the `__r.Name` traversal in the `export.json` query (e.g.
-   `…, Icon__c, Page__c, Icon__r.Name, Page__r.Name`). With only the traversal, SFDMU
+   `…, RLM_Learning_Icon__c, RLM_Learning_Page__c, RLM_Learning_Icon__r.Name, RLM_Learning_Page__r.Name`). With only the traversal, SFDMU
    drops the lookup from the insert and the foreign key lands null.
 2. **RecordType is matched on a 2-part `DeveloperName;SobjectType` externalId.** A
    `RecordType` object (operation `Readonly`) is declared first in `export.json`, with a
@@ -251,15 +251,15 @@ resolve everything (each surfaced only on a live load):
 3. **The running user needs record-type visibility.** `RLM_InApp_Learning` includes
    `recordTypeVisibilities` for all 19 record types — without them the insert fails with
    "Record Type ID isn't valid for the user."
-4. **Permission-set hygiene:** required fields (`Icon__c.Size__c`, `Page__c.Type__c`) are
+4. **Permission-set hygiene:** required fields (`RLM_Learning_Icon__c.RLM_Learning_Size__c`, `RLM_Learning_Page__c.RLM_Learning_Type__c`) are
    excluded from FLS; the Section layouts' `<platformActionList>` (Chatter `RypplePost`)
    was stripped from `post_inapp` (invalid on scratch orgs).
 
 ### Junction idempotency — fixed ✅
 
-The composite-traversal externalId on `SectionBlock__c` does **not** match on re-Upsert
+The composite-traversal externalId on `RLM_Learning_SectionBlock__c` does **not** match on re-Upsert
 (CLAUDE.md SFDMU Bug 3/5) — a live load proved a re-run doubled the 120 junction rows to 240.
-**Fix applied:** `SectionBlock__c` uses **`operation: Insert` + `deleteOldData: true`**, which
+**Fix applied:** `RLM_Learning_SectionBlock__c` uses **`operation: Insert` + `deleteOldData: true`**, which
 wipes the junction and reinserts each run. Verified idempotent on `ent-r1`: three consecutive
 loads held it at 120 (total 401, no drift). `deleteOldData` only targets the junction (its
 parents are Upsert-idempotent on their `Name` key), and the junction has no inbound references,
