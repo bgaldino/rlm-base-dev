@@ -64,10 +64,22 @@ _ARM_RE = re.compile(r"Revenue Cloud(?!</strong>)(?!:)" + "".join("(?!%s)" % re.
 # their TITLES (verified live on trailhead.salesforce.com 2026-06-22). The ARM regex keeps
 # hyperlink labels by default, so relabel these two explicitly to match the new trail titles.
 # The ">...<" form on the second targets the link label only — never the Block Name/composite key.
+# Each value is the EXACT current Trailhead title (verified live 2026-06-22). For the two pricing
+# modules the live title kept "Price Management" (our label had "Salesforce Pricing" from the 262
+# VERSION_TEXT_REMAP, which over-applied to these external titles) — matching the exact title fixes
+# both. The Salesforce Revenue Cloud Consultant cert trail is NOT rebranded, so it's left as-is.
+# "Advanced ..." precedes "Salesforce Pricing ..." so the longer string is replaced first.
 TRAILHEAD_RELABEL = {
     "Boost Sales Efficiency with Revenue Cloud": "Boost Sales Efficiency with Agentforce Revenue Management",
     ">Revenue Cloud Fundamentals<": ">Agentforce Revenue Management Fundamentals<",
     "Configure Revenue Cloud": "Configure Agentforce Revenue Management",
+    "Advanced Salesforce Pricing with Revenue Cloud": "Advanced Price Management with Agentforce Revenue Management",
+    "Salesforce Pricing with Revenue Cloud": "Price Management with Agentforce Revenue Management",
+    "Product Configuration with Revenue Cloud": "Product Configuration with Agentforce Revenue Management",
+    "Product Catalog Management with Revenue Cloud": "Product Catalog Management with Agentforce Revenue Management",
+    "Efficient Sales with Revenue Cloud": "Efficient Sales with Agentforce Revenue Management",
+    "Asset Lifecycle Management with Revenue Cloud": "Asset Lifecycle Management with Agentforce Revenue Management",
+    "Billing Basics in Revenue Cloud": "Billing Basics in Agentforce Revenue Management",
 }
 WRONG_VERTICAL_MARKERS = ("Communications_Summer_24", "energy_and_utilities_cloud_winter_25")
 # DynamicLink record-Name fixes (these Names are the SFDMU composite key; 0 lockstep refs):
