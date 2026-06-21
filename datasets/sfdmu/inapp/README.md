@@ -122,15 +122,28 @@ block's area-level "Read More" link (already `release=262`) is preserved; the 25
 deep links were dropped. App label also aligned to source: "Learning Home" → "Revenue Cloud
 Learning Home".
 
+**External-link validation (DONE).** All 144 unique external URLs in the journey were verified
+(`ind.*` Help IDs + dev-guide pages cross-checked against the local 262 snapshots; release-notes,
+trailhead, YouTube, and the rest live-checked — note help.salesforce.com / developer.salesforce.com
+are SPAs that 200 on dead pages, so validity was confirmed by rendered title/content or oembed,
+not curl status). Fixed in `convert_from_legacy.py`:
+- **2 dead release-notes links** (404 at 262) → browser-verified 262 equivalents (`RN_ID_REMAP`):
+  `rn_salesforce_qoc` → `rn_transaction_management`; `rn_rate_management` → `rn_um_usage_management`.
+- **1 dead Help slug** `…salesforce_contracts_winter_23.htm` → `ind.qocal_contract_management_essentials.htm`
+  (added to `HELP_ID_REMAP`).
+- **4 personal demo-org URLs** (`dwd…lightning.force.com`, DNS-dead) → relativized to `/lightning/…`
+  (portable in any org; `DEMO_ORG_HOST` strip).
+- **1 malformed nav path** `/lightning/lightning/…BillingConsole…` → collapsed to `/lightning/…`.
+Validated valid (left as-is): 55 `ind.*` articles, 35 RLM + 3 CLM dev-guide pages, 8 release-notes
+area pages, 16 Trailhead modules/trails, 4 YouTube + 1 Vidyard video, ideas/marketing pages.
+
 **Deferred (editorial — not blocking the load):**
-- **Two remaining "Winter" references** (intentionally untouched by the sweep): the
-  `DynamicLink` Name **"Winter '25 Release Notes"** — link already points to 262, but the Name
-  is a composite-**key** field, so a rename must ripple to its references in lockstep; and the
-  `…salesforce_contracts_winter_23.htm` Help slug — an article **identifier**, not display text
-  (remap only if the 262 equivalent is confirmed).
+- **`DynamicLink` Name "Winter '25 Release Notes"** — link already points to 262, but the Name is
+  a composite-**key** field, so a rename must ripple to its references in lockstep.
 - **Wrong-vertical WebPages** `DynamicLink` "Release Notes" → Comms Summer '24 / Energy
   Winter '25; should point at Revenue Cloud release notes.
-- **4× `dwd…lightning.force.com` + 2× `drive.google.com`** hrefs in rich text — personal/dev-org links to re-point or drop.
+- **2× `drive.google.com`** hrefs (Billing Get Started doc; Home "Revenue Cloud Data Sheet") —
+  personal/auth-gated Drive files; need official replacements (content decision).
 
 ## Conversion mechanics (source → this plan)
 

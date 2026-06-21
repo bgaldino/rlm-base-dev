@@ -97,6 +97,7 @@ HELP_ID_REMAP = {
     "ind.sf_contracts_map_fields_for_opportunity_order_and_quote.htm": "ind.qocal_contract_management_essentials.htm",
     "ind.sf_contracts_invocable_actions_for_salesforce_contracts.htm": "ind.qocal_contract_management_essentials.htm",
     "ind.sf_contracts_contracts_ai_overview.htm": "ind.qocal_contract_management_essentials.htm",
+    "ind.sf_contracts_post-install_steps_for_salesforce_contracts_winter_23.htm": "ind.qocal_contract_management_essentials.htm",
     # Billing
     "ind.guided_setup_for_billing.htm": "ind.billing_guided_setup.htm",
     "ind.setup_guided.htm": "ind.billing_guided_setup.htm",
@@ -117,6 +118,18 @@ DEVGUIDE_ID_REMAP = {
     "transaction_management_overview": "quote_and_order_capture_standard_objects",
 }
 _DG = "revenue_lifecycle_management_dev_guide/"
+
+# release-notes area pages that 404 at release=262 -> browser-verified valid 262 equivalents.
+# (rn_salesforce_qoc and rn_rate_management have no 262 page; QOC -> Transaction Management,
+# Rate Management folded into Usage Management.)
+RN_ID_REMAP = {
+    "release-notes.rn_salesforce_qoc.htm": "release-notes.rn_transaction_management.htm",
+    "release-notes.rn_rate_management.htm": "release-notes.rn_um_usage_management.htm",
+}
+# personal demo org whose absolute Lightning URLs don't resolve anywhere else -> relativize
+# (strip the host so `/lightning/...` resolves in whatever org the framework is deployed to).
+DEMO_ORG_HOST = "dwd000004pe09mag.lightning.force.com"
+
 # longest-first so no key is corrupted by a shorter substring match
 _HELP_KEYS = sorted(HELP_ID_REMAP, key=len, reverse=True)
 
@@ -265,10 +278,14 @@ def scrub_text(s):
     # image is unstaged.
     s = re.sub(r'<img\b[^>]*%s[^>]*>(\s*</img>)?' % re.escape(DEAD_IMG_HOST), "", s)
     s = s.replace(TOKEN_FROM, TOKEN_TO)
-    for old in _HELP_KEYS:                              # 48 renamed Help article IDs
+    for old in _HELP_KEYS:                              # renamed Help article IDs
         s = s.replace(old, HELP_ID_REMAP[old])
     for old, new in DEVGUIDE_ID_REMAP.items():         # 2 renamed Dev Guide pages
         s = s.replace(_DG + old + ".htm", _DG + new + ".htm")
+    for old, new in RN_ID_REMAP.items():               # release-notes pages dead at 262
+        s = s.replace(old, new)
+    s = s.replace("https://" + DEMO_ORG_HOST, "")      # relativize personal demo-org URLs
+    s = s.replace("/lightning/lightning/", "/lightning/")  # fix malformed doubled nav path
     s = s.replace("release=258", "release=262")        # pin bump
     for old, new in VERSION_TEXT_REMAPS.items():       # label renames (after ID remap)
         s = s.replace(old, new)
