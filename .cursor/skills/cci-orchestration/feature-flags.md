@@ -32,7 +32,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `einstein` | `True` | 3 flow step(s) |
 | `guidedselling` | `True` | 4 flow step(s) |
 | `large_stx` | `False` | 5 flow step(s) |
-| `payments` | `True` | 6 flow step(s) |
+| `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
 | `personas` | `True` | 10 flow step(s) |
 | `prm` | `True` | 23 flow step(s) |
@@ -220,6 +220,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_payments` step 4 → `revert_payments_site_after_deploy`
 - `prepare_payments` step 5 → `publish_community`
 - `prepare_payments` step 6 → `deploy_post_payments_settings`
+- `prepare_payments` step 7 → `deploy_post_payments_ext`
+- `prepare_payments` step 8 → `assign_permission_sets`
 
 ### `personas` (default: `True`)
 

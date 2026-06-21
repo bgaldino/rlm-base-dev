@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**240 tasks** across **10 groups**.
+**241 tasks** across **10 groups**.
 
 ---
 
@@ -818,7 +818,7 @@
 
 ## Revenue Lifecycle Management
 
-*149 task(s)*
+*150 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1611,6 +1611,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_large_stx`
+
+---
+
+### `deploy_post_payments_ext`
+
+**Description:** Deploy Payments UI extensions from unpackaged/post_payments_ext: the RLM_RefundController Apex class (native ConnectApi.Payments.refund, no callout) and its test, the rlmRefundButton LWC (Issue Refund on Payment records), and the RLM_Payments permission set (Apex class access). Kept in a separate dir from unpackaged/post_payments so it can deploy without re-deploying the immutable Payments_Webhook CustomSite. The Payment record page that hosts the button deploys via assemble_and_deploy_ux (payments flag).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_payments_ext`
 
 ---
 

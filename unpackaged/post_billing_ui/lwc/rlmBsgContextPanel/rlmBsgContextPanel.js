@@ -129,8 +129,8 @@ export default class RlmBsgContextPanel extends NavigationMixin(LightningElement
     }
 
     get milestoneBilledPct() {
-        const billed = this.contextData?.bsBilledAmount || 0;
-        const pending = this.contextData?.bsPendingAmount || 0;
+        const billed = this.context?.bsBilledAmount || 0;
+        const pending = this.context?.bsPendingAmount || 0;
         const total = billed + pending;
         if (total <= 0) return '0';
         return Math.round((billed / total) * 100);
@@ -141,13 +141,13 @@ export default class RlmBsgContextPanel extends NavigationMixin(LightningElement
     }
 
     get formattedRefAmount() {
-        const billed = this.contextData?.bsBilledAmount || 0;
-        const pending = this.contextData?.bsPendingAmount || 0;
+        const billed = this.context?.bsBilledAmount || 0;
+        const pending = this.context?.bsPendingAmount || 0;
         return this._formatCurrency(billed + pending);
     }
 
     get formattedBilledAmount() {
-        return this._formatCurrency(this.contextData?.bsBilledAmount || 0);
+        return this._formatCurrency(this.context?.bsBilledAmount || 0);
     }
 
     get planStatusClass() {

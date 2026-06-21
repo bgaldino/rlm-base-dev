@@ -1176,7 +1176,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 # TSO template already contains all overrides; patches only run for non-TSO builds.
                 patches_applied = []
                 if not features.get("tso"):
-                    patch_features = ["billing", "rates", "ramps", "prm_pricing"]
+                    patch_features = ["billing", "payments", "rates", "ramps", "prm_pricing"]
                     for pf in patch_features:
                         if not features.get(pf):
                             continue

@@ -367,6 +367,9 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 5. **task** `publish_community`  `when: project_config.project__custom__payments`
    - `name`: `Payments Webhook`
 6. **task** `deploy_post_payments_settings`  `when: project_config.project__custom__payments`
+7. **task** `deploy_post_payments_ext`  `when: project_config.project__custom__payments`
+8. **task** `assign_permission_sets`  `when: project_config.project__custom__payments`
+   - `api_names`: `['RLM_Payments']`
 
 ---
 

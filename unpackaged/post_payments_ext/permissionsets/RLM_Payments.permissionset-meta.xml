@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>RLM_RefundController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>Grants access to the Revenue Cloud payments extensions, including the Apex controller behind the Issue Refund button on Payment records.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM Payments</label>
+</PermissionSet>

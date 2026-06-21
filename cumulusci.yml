@@ -1594,6 +1594,20 @@ tasks:
     options:
       path: unpackaged/post_payments_settings
 
+  deploy_post_payments_ext:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Payments UI extensions from unpackaged/post_payments_ext: the
+      RLM_RefundController Apex class (native ConnectApi.Payments.refund, no
+      callout) and its test, the rlmRefundButton LWC (Issue Refund on Payment
+      records), and the RLM_Payments permission set (Apex class access). Kept in
+      a separate dir from unpackaged/post_payments so it can deploy without
+      re-deploying the immutable Payments_Webhook CustomSite. The Payment record
+      page that hosts the button deploys via assemble_and_deploy_ux (payments flag).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_payments_ext
+
   ensure_pricing_schedules:
     description: Ensure pricing schedules exist before expression sets
     class_path: tasks.rlm_repair_pricing_schedules.EnsurePricingSchedules
@@ -4081,6 +4095,15 @@ flows:
       6:
         task: deploy_post_payments_settings
         when: project_config.project__custom__payments
+      7:
+        task: deploy_post_payments_ext
+        when: project_config.project__custom__payments
+      8:
+        task: assign_permission_sets
+        when: project_config.project__custom__payments
+        options:
+          api_names:
+            - RLM_Payments
 
   prepare_revenue_settings:
     group: Revenue Lifecycle Management
