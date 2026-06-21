@@ -60,6 +60,15 @@ unpackaged/post_docgen/omniDataTransforms/BillingDocumentGenerationGetInvoiceDet
 unpackaged/post_approvals/flexipages/RLM_Quote_Discount_Approval_Template.flexipage-meta.xml
 unpackaged/post_approvals/flexipages/RLM_Quote_Payment_Terms_Approval_Template.flexipage-meta.xml
 
+# Collections: RLM_Create_Case_for_Collection calls the BRE decision matrix
+# 'DetermineCaseReasonAndRelatedAttributes' (runDecisionMatrix), which is not captured in
+# this repo and is absent from target orgs, so the flow fails to deploy. Excluded from
+# deploy_post_collections until the matrix is provisioned + wired. The other five
+# collections flows deploy without it. See docs/features/dynamic-ux-assembly.md (Collections
+# follow-up) — TODO: capture/author the DetermineCaseReasonAndRelatedAttributes matrix, then
+# remove this exclusion.
+unpackaged/post_collections/flows/RLM_Create_Case_for_Collection.flow-meta.xml
+
 # force-app UX metadata — moved to templates/; deployed by prepare_ux (step 29). Guards prevent accidental re-introduction into deploy_full.
 force-app/main/default/flexipages
 force-app/main/default/layouts

@@ -110,9 +110,8 @@ templates/
 │   │   ├── BillingScheduleGroup/listViews/RLM_All_Billing_Schedule_Groups.listView-meta.xml
 │   │   ├── Invoice/listViews/RLM_Failed_Invoices.listView-meta.xml
 │   │   └── TransactionJournal/compactLayouts/RLM_Transaction_Journal_Compact_Layout.compactLayout-meta.xml
-│   └── collections/                    # Collections (active when collections=true, WIP)
-│       ├── Collection_Plan_Activity__c/listViews/All.listView-meta.xml
-│       └── CollectionPlan__c/listViews/RLM_All_Collection_Plans.listView-meta.xml
+│   └── collections/                    # Collections (active when collections=true)
+│       └── CollectionPlan/listViews/RLM_All_Collection_Plans.listView-meta.xml
 └── profiles/
     ├── base/                           # Full canonical profiles with all layout assignments
     │   ├── Admin.profile-meta.xml
@@ -235,10 +234,12 @@ Simple feature-conditional copy from `templates/objects/{feature}/` into
 
 Copy order: `base` (always) → `billing` → `tso` → `collections`
 
-> **Collections note**: The `CollectionPlan__c` list view path (`objects/listViews/`) in the
-> original `unpackaged/post_collections/` was missing the object name directory and has been
-> moved to `templates/objects/collections/CollectionPlan__c/listViews/` pending verification
-> of the correct object API name.
+> **Collections note**: The `RLM_All_Collection_Plans` list view lives at
+> `templates/objects/collections/CollectionPlan/listViews/` and targets the **native
+> `CollectionPlan`** object (verified: standard object, fields `Name`/`Status`/`DaysPastDue`/
+> `AccountId`/`OwnerId`). The earlier `CollectionPlan__c` directory name was incorrect and has
+> been corrected. (The stale homegrown `Collection_Plan_Activity__c` object — never used in
+> any current org — was removed entirely; collections uses native platform objects.)
 
 ---
 
@@ -451,7 +452,6 @@ unpackaged/post_billing/objects/Account/compactLayouts
 unpackaged/post_billing/objects/TransactionJournal/compactLayouts
 unpackaged/post_billing/objects/BillingScheduleGroup
 unpackaged/post_billing/objects/Invoice/listViews
-unpackaged/post_collections/objects/Collection_Plan_Activity__c/listViews
 unpackaged/post_collections/objects/listViews
 ```
 
@@ -468,10 +468,10 @@ detects this type and silently skips them. These pages are created at runtime by
 
 ### Collections objects path
 
-`RLM_All_Collection_Plans.listView-meta.xml` was stored in `post_collections/objects/listViews/`
-(missing the object name directory). It has been moved to
-`templates/objects/collections/CollectionPlan__c/listViews/`. The correct object API name
-must be verified and the file path corrected before `collections=true` deployments.
+`RLM_All_Collection_Plans.listView-meta.xml` now lives at
+`templates/objects/collections/CollectionPlan/listViews/` and targets the **native
+`CollectionPlan`** object (object API name verified against a live org). The list view is
+assembled into `post_ux/objects/CollectionPlan/listViews/` only when `collections=true`.
 
 ### tso=true not yet validated
 

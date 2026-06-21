@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**44 flows** across **5 groups**.
+**45 flows** across **5 groups**.
 
 ---
 
@@ -215,6 +215,14 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 **Steps:**
 
 1. **task** `insert_clm_data`  `when: project_config.project__custom__clm and project_config.project__custom__clm_data`
+
+---
+
+### `prepare_collections`
+
+**Steps:**
+
+1. **task** `deploy_post_collections`  `when: project_config.project__custom__collections`
 
 ---
 
@@ -541,6 +549,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 
 **Steps:**
 
+13.1. **flow** `prepare_collections`  `when: project_config.project__custom__collections`
 1. **flow** `prepare_core`
 2. **flow** `prepare_decision_tables`
 3. **flow** `prepare_expression_sets`

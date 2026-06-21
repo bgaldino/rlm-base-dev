@@ -1,0 +1,27 @@
+# tso patch — Collections Account record page (Disputes tab)
+#
+# Re-adds the two standard Billing Cases components into the "Disputes" tab facet
+# (Facet-3bbf5b27-690a-4d12-ae72-3ff50215c8e3). Both issue aggregate SOQL against
+# Dispute.InvoiceId/CaseId — license-gated billing-dispute extension fields that are
+# ABSENT in a baseline foundation build (the extended Dispute object is not provisioned),
+# where the standard components hard-error with an ApiQueryException. They are therefore
+# omitted from the base page
+# (templates/flexipages/standalone/collections/RLM_Collections_Account_Record_Page.flexipage-meta.xml)
+# and only re-added here when tso=true — the build shape that provisions the extended
+# Dispute object, where the components work. Mirrors patches/tso/RLM_Billing_Home_Page.yml.
+patches:
+  - type: add_component
+    region: Facet-3bbf5b27-690a-4d12-ae72-3ff50215c8e3
+    component: runtimeRevBillCase:billingCasesMetrics
+    identifier: runtimeRevBillCase_billingCasesMetrics
+    after_identifier: industries_service_excellence_actionLauncher
+    properties:
+      navigationLink: ""
+  - type: add_component
+    region: Facet-3bbf5b27-690a-4d12-ae72-3ff50215c8e3
+    component: runtimeRevBillCase:recentBillingCasesWrapper
+    identifier: runtimeRevBillCase_recentBillingCasesWrapper
+    after_identifier: runtimeRevBillCase_billingCasesMetrics
+    properties:
+      billingCaseType: "All"
+      maxRecords: "5"

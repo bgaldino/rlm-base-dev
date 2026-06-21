@@ -97,6 +97,7 @@ project:
     approvals: true           # Approvals
     tax: true                 # Tax engine
     calmdelete: true          # CALM Delete
+    collections: false        # Collections tier (post_collections: flows, quick actions, timelines, omniUiCard, queue) + CollectionConsole UX. Opt-in; native CollectionsAndRecoveryPsl is always assigned.
     large_stx: false          # Large Sales Transaction
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────
@@ -314,7 +315,6 @@ project:
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
-      #- RLM_Collection_Plan_Activity
 
     ps_guidedselling: &ps_guidedselling
       # Guided Selling runtime/configuration permission sets available before metadata deploy
@@ -3294,6 +3294,9 @@ flows:
         flow: prepare_tax
       13:
         flow: prepare_billing
+      13.1:
+        flow: prepare_collections
+        when: project_config.project__custom__collections
       14:
         flow: prepare_analytics
       15:
@@ -4104,6 +4107,18 @@ flows:
         options:
           api_names:
             - RLM_Payments
+
+  prepare_collections:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        task: deploy_post_collections
+        when: project_config.project__custom__collections
+    # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
+    # RLM_Collections_Account_Record_Page) and the standard__CollectionConsole app variant
+    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 29), gated on
+    # the same collections flag. The native CollectionsAndRecoveryPsl is always assigned via
+    # rlm_psl_api_names in prepare_core.
 
   prepare_revenue_settings:
     group: Revenue Lifecycle Management
