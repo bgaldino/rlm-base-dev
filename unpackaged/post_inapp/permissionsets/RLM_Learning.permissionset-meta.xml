@@ -2,7 +2,7 @@
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <description>Access to the In-App Learning navigation framework (Learning Home app, objects, Apex, tabs, record types). Replaces the legacy Admin profile grants for the inapp feature.</description>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>RLM In-App Learning</label>
+    <label>RLM Learning</label>
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>true</allowDelete>
@@ -344,7 +344,7 @@
         <visibility>Visible</visibility>
     </tabSettings>
     <tabSettings>
-        <tab>Learning_Application_Details_Page</tab>
+        <tab>RLM_Learning_Application_Details_Page</tab>
         <visibility>Visible</visibility>
     </tabSettings>
 </PermissionSet>

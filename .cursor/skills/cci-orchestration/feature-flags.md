@@ -682,7 +682,7 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 *1 items:*
 
-- `RLM_InApp_Learning`
+- `RLM_Learning`
 
 ### `ps_large_stx`
 

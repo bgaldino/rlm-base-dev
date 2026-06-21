@@ -142,11 +142,11 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
       pageReference = {
         type: "standard__app",
         attributes: {
-          appTarget: "c__Learning_Home",
+          appTarget: "c__RLM_Learning_Home",
           pageRef: {
             type: "standard__navItemPage",
             attributes: {
-              apiName: "Learning_Application_Details_Page"
+              apiName: "RLM_Learning_Application_Details_Page"
             }
           }
         }

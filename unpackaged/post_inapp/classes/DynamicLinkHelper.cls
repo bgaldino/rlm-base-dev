@@ -8,7 +8,7 @@
  *    literals are escaped with String.escapeSingleQuotes.
  *  - `whereCondition` is an admin-authored SOQL fragment stored on
  *    RLM_Learning_DynamicLink__c.RLM_Learning_Where_Condition__c (only editable by users with the
- *    RLM_InApp_Learning permission set). It cannot be escaped because it
+ *    RLM_Learning permission set). It cannot be escaped because it
  *    legitimately contains quoted literals (e.g. Name = 'Infinitech'); USER_MODE
  *    constrains it to data the caller may already read and to read-only Id results.
  */

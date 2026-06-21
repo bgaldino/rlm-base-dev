@@ -248,7 +248,7 @@ resolve everything (each surfaced only on a live load):
    source `RecordType.csv` (the 19 record types). The default 3-part composite
    (`…;NamespacePrefix;…`) fails because NamespacePrefix is null on unmanaged record types
    (SFDMU's null ≠ the CSV's empty string).
-3. **The running user needs record-type visibility.** `RLM_InApp_Learning` includes
+3. **The running user needs record-type visibility.** `RLM_Learning` includes
    `recordTypeVisibilities` for all 19 record types — without them the insert fails with
    "Record Type ID isn't valid for the user."
 4. **Permission-set hygiene:** required fields (`RLM_Learning_Icon__c.RLM_Learning_Size__c`, `RLM_Learning_Page__c.RLM_Learning_Type__c`) are

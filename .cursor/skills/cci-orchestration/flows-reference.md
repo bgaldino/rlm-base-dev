@@ -353,7 +353,7 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
 
 1. **task** `deploy_post_inapp`  `when: project_config.project__custom__inapp`
 2. **task** `assign_permission_sets`  `when: project_config.project__custom__inapp`
-   - `api_names`: `['RLM_InApp_Learning']`
+   - `api_names`: `['RLM_Learning']`
 3. **task** `load_inapp_dataset`  `when: project_config.project__custom__inapp`
 
 ---

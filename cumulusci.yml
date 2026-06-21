@@ -356,7 +356,7 @@ project:
 
     ps_inapp: &ps_inapp
       # In-App Learning framework permission set
-      - RLM_InApp_Learning
+      - RLM_Learning
 
     ps_persona_sales_rep: &ps_persona_sales_rep
       # Persona sales rep-specific permission sets
