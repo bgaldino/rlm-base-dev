@@ -228,19 +228,19 @@
         <readable>true</readable>
     </fieldPermissions>
     <classAccesses>
-        <apexClass>DynamicLinkHelper</apexClass>
+        <apexClass>RLM_Learning_DynamicLinkHelper</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>SectionBlockController</apexClass>
+        <apexClass>RLM_Learning_SectionBlockController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>SectionBlockSequence</apexClass>
+        <apexClass>RLM_Learning_SectionBlockSequence</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>UserInformation</apexClass>
+        <apexClass>RLM_Learning_UserInformation</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <recordTypeVisibilities>

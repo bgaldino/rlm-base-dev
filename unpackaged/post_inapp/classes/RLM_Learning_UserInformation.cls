@@ -1,4 +1,4 @@
-public with sharing class UserInformation {
+public with sharing class RLM_Learning_UserInformation {
     @AuraEnabled(cacheable=true)
     public static String getName() {
         String FirstName = UserInfo.getFirstName();

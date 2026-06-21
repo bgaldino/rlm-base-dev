@@ -1,5 +1,5 @@
 import { LightningElement, track, wire } from "lwc";
-import getSectionsWithBlocksByType from "@salesforce/apex/SectionBlockController.getSectionsWithBlocksByType";
+import getSectionsWithBlocksByType from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByType";
 import { CurrentPageReference } from "lightning/navigation";
 
 export default class ReleaseNote extends LightningElement {

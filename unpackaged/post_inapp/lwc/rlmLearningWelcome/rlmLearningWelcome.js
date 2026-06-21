@@ -1,8 +1,8 @@
 import { LightningElement, wire, track } from "lwc";
-import getSectionsWithBlocksByType from '@salesforce/apex/SectionBlockController.getSectionsWithBlocksByType';
-import getName from '@salesforce/apex/UserInformation.getName';
-import getTiming from '@salesforce/apex/UserInformation.getTiming';
-import getExpiryDays from '@salesforce/apex/UserInformation.getExpiryDays';
+import getSectionsWithBlocksByType from '@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByType';
+import getName from '@salesforce/apex/RLM_Learning_UserInformation.getName';
+import getTiming from '@salesforce/apex/RLM_Learning_UserInformation.getTiming';
+import getExpiryDays from '@salesforce/apex/RLM_Learning_UserInformation.getExpiryDays';
 
 export default class WelcomeEU extends LightningElement {
 

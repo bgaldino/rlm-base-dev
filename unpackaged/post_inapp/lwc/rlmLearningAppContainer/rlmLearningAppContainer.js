@@ -1,7 +1,7 @@
 import { LightningElement, track, wire } from "lwc";
 import { NavigationMixin } from "lightning/navigation";
-import getSectionsWithBlocksByType from "@salesforce/apex/SectionBlockController.getSectionsWithBlocksByType";
-import { getPageReferenceByDynamicType } from "c/commonFunctions";
+import getSectionsWithBlocksByType from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByType";
+import { getPageReferenceByDynamicType } from "c/rlmLearningCommonFunctions";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 
 export default class Appcontainer extends NavigationMixin(LightningElement) {

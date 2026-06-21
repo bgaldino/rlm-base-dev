@@ -1,8 +1,9 @@
 import { LightningElement, track, wire, api } from "lwc";
 import { NavigationMixin } from "lightning/navigation";
-import getSectionsWithBlocksByType from "@salesforce/apex/SectionBlockController.getSectionsWithBlocksByType";
-import getSectionsWithBlocksByPageId from "@salesforce/apex/SectionBlockController.getSectionsWithBlocksByPageId";
-import { getPageReferenceByDynamicType } from "c/commonFunctions";
+import { ShowToastEvent } from "lightning/platformShowToastEvent";
+import getSectionsWithBlocksByType from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByType";
+import getSectionsWithBlocksByPageId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByPageId";
+import { getPageReferenceByDynamicType } from "c/rlmLearningCommonFunctions";
 
 export default class RightContainer extends NavigationMixin(LightningElement) {
   @track sectionsWithBlocks = [];

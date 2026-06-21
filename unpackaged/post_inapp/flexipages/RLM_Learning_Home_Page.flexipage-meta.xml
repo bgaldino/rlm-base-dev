@@ -3,13 +3,13 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentName>welcomeEU</componentName>
+                <componentName>rlmLearningWelcome</componentName>
                 <identifier>c_welcomeEU</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
-                <componentName>parentLWC</componentName>
+                <componentName>rlmLearningParent</componentName>
                 <identifier>c_parentLWC</identifier>
             </componentInstance>
         </itemInstances>

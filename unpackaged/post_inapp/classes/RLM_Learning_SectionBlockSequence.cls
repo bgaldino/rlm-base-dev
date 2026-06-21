@@ -1,4 +1,4 @@
-public with sharing class SectionBlockSequence {
+public with sharing class RLM_Learning_SectionBlockSequence {
   @AuraEnabled(cacheable=true)
   public static List<RLM_Learning_Block__c> getAllBlocks() {
     return [SELECT Id, Name FROM RLM_Learning_Block__c WITH USER_MODE];

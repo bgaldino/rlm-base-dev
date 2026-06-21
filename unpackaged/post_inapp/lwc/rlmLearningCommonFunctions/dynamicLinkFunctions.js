@@ -1,8 +1,8 @@
-import getObjectIdFromQuery from "@salesforce/apex/DynamicLinkHelper.getObjectIdFromQuery";
-import getDynamicLinkByIdentity from "@salesforce/apex/DynamicLinkHelper.getDynamicLinkByIdentity";
-import getRecordIdFromDynamicLinkType from "@salesforce/apex/DynamicLinkHelper.getRecordIdFromDynamicLinkType";
-import getSiteUrl from "@salesforce/apex/DynamicLinkHelper.getSiteUrl";
-import getSetupPageLink from "@salesforce/apex/DynamicLinkHelper.getSetupPageLink";
+import getObjectIdFromQuery from "@salesforce/apex/RLM_Learning_DynamicLinkHelper.getObjectIdFromQuery";
+import getDynamicLinkByIdentity from "@salesforce/apex/RLM_Learning_DynamicLinkHelper.getDynamicLinkByIdentity";
+import getRecordIdFromDynamicLinkType from "@salesforce/apex/RLM_Learning_DynamicLinkHelper.getRecordIdFromDynamicLinkType";
+import getSiteUrl from "@salesforce/apex/RLM_Learning_DynamicLinkHelper.getSiteUrl";
+import getSetupPageLink from "@salesforce/apex/RLM_Learning_DynamicLinkHelper.getSetupPageLink";
 
 const getPageReferenceByDynamicType = async (dynamicLink) => {
   var pageReference;

@@ -1,13 +1,14 @@
 import { LightningElement, track, wire, api } from "lwc";
 import { NavigationMixin, CurrentPageReference } from "lightning/navigation";
-import sectionDetailModal from "c/sectionDetailModal";
-import getSectionsWithBlocksByPageId from "@salesforce/apex/SectionBlockController.getSectionsWithBlocksByPageId";
+import { ShowToastEvent } from "lightning/platformShowToastEvent";
+import rlmLearningSectionDetailModal from "c/rlmLearningSectionDetailModal";
+import getSectionsWithBlocksByPageId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByPageId";
 import {
   findDynamicLinkIdentifier,
   getDynamicLinkByIdentifier,
   getPageReferenceByDynamicType
-} from "c/commonFunctions";
-import getSectionWithBlockBySectionId from "@salesforce/apex/SectionBlockController.getSectionWithBlockBySectionId";
+} from "c/rlmLearningCommonFunctions";
+import getSectionWithBlockBySectionId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId";
 
 export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
   @track sectionsWithBlocks = [];
@@ -58,7 +59,7 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
         const description = await this.replaceDynamicLinks(
           sectionWithBlock.block.description
         );
-        const result = await sectionDetailModal.open({
+        const result = await rlmLearningSectionDetailModal.open({
           // `label` is not included here in this example.
           // it is set on lightning-modal-header instead
           size: "medium",

@@ -12,7 +12,7 @@
  *    legitimately contains quoted literals (e.g. Name = 'Infinitech'); USER_MODE
  *    constrains it to data the caller may already read and to read-only Id results.
  */
-public with sharing class DynamicLinkHelper {
+public with sharing class RLM_Learning_DynamicLinkHelper {
   @AuraEnabled(cacheable=true)
   public static RLM_Learning_DynamicLink__c getDynamicLinkByIdentity(String identifier) {
     return [

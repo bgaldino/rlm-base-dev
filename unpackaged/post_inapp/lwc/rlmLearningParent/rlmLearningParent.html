@@ -5,13 +5,13 @@
         <lightning-layout-item class="slds-var-p-right_small" size="8">
           <template if:false={hasNoData}>
             <div class="slds-var-p-bottom_large">
-              <c-release-note onhasnodata={handleHasNoData}></c-release-note>
+              <c-rlm-learning-release-note onhasnodata={handleHasNoData}></c-rlm-learning-release-note>
             </div>
           </template>
-          <c-appcontainer></c-appcontainer>
+          <c-rlm-learning-app-container></c-rlm-learning-app-container>
         </lightning-layout-item>
         <lightning-layout-item class="slds-var-p-left_small" size="4">
-          <c-right-container is-home={isHome}></c-right-container>
+          <c-rlm-learning-right-container is-home={isHome}></c-rlm-learning-right-container>
         </lightning-layout-item>
       </lightning-layout>
     </lightning-layout-item>

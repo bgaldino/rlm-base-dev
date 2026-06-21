@@ -3,7 +3,7 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentName>appDetailParent</componentName>
+                <componentName>rlmLearningAppDetailParent</componentName>
                 <identifier>c_appDetailParent</identifier>
             </componentInstance>
         </itemInstances>

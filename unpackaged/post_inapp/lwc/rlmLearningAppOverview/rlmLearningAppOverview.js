@@ -1,11 +1,11 @@
 import { LightningElement, track, wire, api } from "lwc";
 import { CurrentPageReference, NavigationMixin } from "lightning/navigation";
-import getSectionsWithBlocksByPageId from "@salesforce/apex/SectionBlockController.getSectionsWithBlocksByPageId";
+import getSectionsWithBlocksByPageId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByPageId";
 import {
   findDynamicLinkIdentifier,
   getDynamicLinkByIdentifier,
   getPageReferenceByDynamicType
-} from "c/commonFunctions";
+} from "c/rlmLearningCommonFunctions";
 
 export default class AppOverviewLWC extends NavigationMixin(LightningElement) {
   @track sectionsWithBlocks = [];

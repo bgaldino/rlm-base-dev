@@ -235,7 +235,7 @@ stale and omits the dev-guide corpus). 262 = Summer '26; 258 = Winter '26.
 ## Org load — verified working + SFDMU requirements
 
 Deployed + loaded + verified on scratch org `ent-r1` (2026-06-19). The framework's
-`SectionBlockController.getSectionsWithBlocksByType` returns fully-resolved sections →
+`RLM_Learning_SectionBlockController.getSectionsWithBlocksByType` returns fully-resolved sections →
 blocks → icons → dynamic links. Four non-obvious requirements were needed to make SFDMU
 resolve everything (each surfaced only on a live load):
 

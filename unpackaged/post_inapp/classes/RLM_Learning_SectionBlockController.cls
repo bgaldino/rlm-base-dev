@@ -1,4 +1,4 @@
-public with sharing class SectionBlockController {
+public with sharing class RLM_Learning_SectionBlockController {
   @AuraEnabled(cacheable=true)
   public static List<RLM_Learning_Section__c> getSectionsByType(
     String sectionType,
