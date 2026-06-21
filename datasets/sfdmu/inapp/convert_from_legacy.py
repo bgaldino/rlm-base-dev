@@ -52,11 +52,13 @@ VERSION_TEXT_REMAPS = {
 #  - hyperlink labels ("...Revenue Cloud</strong>"): Trailhead module/trail/cert titles + headings
 #  - editions: " Billing", " Advanced"
 #  - cert/Trailhead proper names: " Fundamentals", " Certification", " Consultant"
-#  - app/journey name: " Learning"; release header: " Summer"; doc title: " Data Sheet"
+#  - doc title: " Data Sheet"
+# (Per user 2026-06-22, the release header "Revenue Cloud Summer '26 Release", "Revenue Cloud
+#  Learning Journey", and the app "Revenue Cloud Learning Home" ARE now rebranded — so " Summer"
+#  and " Learning" are no longer kept. The cert "...Revenue Cloud Consultant" stays via " Consultant".)
 # This branch (in-app integration) only — base rlm-base-dev "Revenue Cloud" refs untouched.
 ARM_NEW = "Agentforce Revenue Management"
-_ARM_KEEP = (" Billing", " Advanced", " Fundamentals", " Certification", " Consultant",
-             " Learning", " Summer", " Data Sheet")
+_ARM_KEEP = (" Billing", " Advanced", " Fundamentals", " Certification", " Consultant", " Data Sheet")
 # also keep hyperlink labels that end "Revenue Cloud:</strong>" (the ":" guard) for consistency
 # with the other "...in Revenue Cloud</strong>" labels in the same lists.
 _ARM_RE = re.compile(r"Revenue Cloud(?!</strong>)(?!:)" + "".join("(?!%s)" % re.escape(k) for k in _ARM_KEEP))
@@ -150,8 +152,9 @@ HELP_ID_REMAP = {
     "ind.billing_setup_clone_order_to_schedule_flow.htm": "ind.billing.htm",
     "ind.billing_setup_salesforce_payments.htm": "ind.billing_setup_salesforce_payments_features.htm",
     "ind.collections_enable_timeline.htm": "ind.billing.htm",
-    # General (Home "Read Implementation Guide" -> start of the build)
-    "ind.setup_revenue_cloud.htm": "ind.product_catalog_introduction.htm",
+    # NOTE: ind.setup_revenue_cloud.htm ("Get Ready for Your Revenue Management Implementation")
+    # is the correct Home "Read Implementation Guide" link — renders live (it's just absent from
+    # the partial 262 snapshot), so it is intentionally NOT remapped.
 }
 
 # 2 stale atlas Dev Guide pages -> 262 equivalents (assets are QOCAL standard objects in 262).
