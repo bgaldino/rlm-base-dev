@@ -34,6 +34,8 @@ ORPHAN_SB_IDS = {"SectionBlock__c-1", "SectionBlock__c-2"}  # blank Section + Bl
 ACCT_FROM, ACCT_TO = "Mahesh", "Infinitech"            # demo account -> QB default account
 TOKEN_FROM, TOKEN_TO = "ACC_MAHESH_DYN_LINK", "ACC_INFINITECH_DYN_LINK"
 DEAD_IMG_HOST = "rlm258learnorg.file.force.com"
+STATIC_RESOURCE = "InAppLearningImages"            # self-hosted replacement for the 15 images
+SR_DIR = OUT_DIR.parents[2] / "unpackaged" / "post_inapp" / "staticresources" / STATIC_RESOURCE
 
 # --- 258 -> 262 (Summer '26) content updates -----------------------------------
 # Verified against docs/salesforce/262/ Help snapshot (838 articles) + dev-guide
@@ -128,14 +130,65 @@ def parse_table(sql, obj):
     return out
 
 
+def _slug(s):
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+
+def rewrite_block_images(desc, block_name):
+    """Point a Block's cross-org <img src> (dead learning-org host) at the
+    self-hosted `InAppLearningImages` static resource, matched by Block-Name slug.
+    The on-disk file supplies the real extension (mixed .png/.jpg). Returns desc
+    unchanged when no staged image matches (scrub_text then strips the dead tag),
+    so the converter still runs if images aren't staged."""
+    if not desc or DEAD_IMG_HOST not in desc:
+        return desc
+    fname = next((p.name for p in sorted(SR_DIR.glob(_slug(block_name) + ".*"))), None)
+    if not fname:
+        return desc
+    newsrc = "/resource/%s/%s" % (STATIC_RESOURCE, fname)
+    return re.sub(r'(<img\b[^>]*\bsrc=")[^"]*%s[^"]*(")' % re.escape(DEAD_IMG_HOST),
+                  lambda m: m.group(1) + newsrc + m.group(2), desc)
+
+
+# --- Home announcement: 258 -> 262 (Summer '26) marquee features ----------------
+# The Home "Launching Fast Revenue Cloud Setup" block listed four 258 features. Replace
+# them with four Summer '26 (262) headline features, each verified in
+# docs/salesforce/262/feature-index.md (release-wide RCA highlights + the per-area row
+# cited): Product Discovery w/ Constraint Rules (GA, PCM §), Accelerated Deal Approvals
+# in Slack (New, Transaction Mgmt §), Guided Ramp Creation w/ Trial Segments (GA,
+# Transaction Mgmt §), AI-Supported Bulk Contract Extraction (New, Contracts §).
+HOME_RELNOTES_BLOCK = "Home Left Top Block"
+_LI = '<li><strong style="background-color: transparent; font-size: 14px;">%s</strong>%s</li>'
+_QUAL = '<span style="background-color: transparent; font-size: 14px;">%s</span>'
+HOME_262_BULLETS = "<ul>" + "".join([
+    _LI % ("Product Discovery with Constraint Rules", _QUAL % " (Generally Available)"),
+    _LI % ("Accelerated Deal Approvals in Slack", _QUAL % "."),
+    _LI % ("Guided Ramp Creation with Trial Segments", _QUAL % "."),
+    _LI % ("AI-Supported Bulk Contract Extraction", _QUAL % "."),
+]) + "</ul>"
+
+
+def rewrite_home_relnotes(desc, block_name):
+    """On the Home announcement block, swap the 258 feature bullets for the 262
+    marquee list and fix the release-notes link label (the href is already
+    release=262). No-op on every other block."""
+    if block_name != HOME_RELNOTES_BLOCK or not desc:
+        return desc
+    desc = re.sub(r"<ul>.*?</ul>", lambda _m: HOME_262_BULLETS, desc, count=1, flags=re.S)
+    return desc.replace("Explore Winter&#39;26 Release Notes",
+                        "Explore Summer &#39;26 Release Notes")
+
+
 def scrub_text(s):
     """Apply all text/URL transforms for a non-key field: dead-image strip, token
     rename, 262 label renames, Help/Dev-Guide article-ID remap, and release pin bump."""
     if not s:
         return s
-    # Strip cross-org <img ... rlm258learnorg ...> tags (session-gated, render broken).
-    # PENDING: when the 15 binaries are obtained, change this from STRIP to REWRITE →
-    # `/resource/InAppLearningImages/<file>` (see README "Restoring the 15 stripped images").
+    # Fallback strip for any cross-org <img ... rlm258learnorg ...> tag NOT already
+    # rewritten to the static resource by rewrite_block_images() (DONE: the 15 binaries
+    # are self-hosted under /resource/InAppLearningImages/ — see README). After a rewrite
+    # the src is `/resource/...` so it no longer matches this strip; this only fires if an
+    # image is unstaged.
     s = re.sub(r'<img\b[^>]*%s[^>]*>(\s*</img>)?' % re.escape(DEAD_IMG_HOST), "", s)
     s = s.replace(TOKEN_FROM, TOKEN_TO)
     for old in _HELP_KEYS:                              # 48 renamed Help article IDs
@@ -231,13 +284,25 @@ def main():
                 scrub_text(r[13]), r[14], rtc(dl_rt.get(r[8], ""), "DynamicLink__c"), page_n.get(r[15], ""), sec_n.get(r[16], "")]
                for r in dlink])
 
-    # --- Block__c (drop dead rows) --------------------------------------------
+    # --- Block__c (drop dead rows; rewrite cross-org images + Home 262 announcement) -
+    img_rewrites = home_rewrites = 0
+    block_rows = []
+    for r in block:
+        if r[0] in DEAD_BLOCK_IDS:
+            continue
+        desc = rewrite_block_images(r[3], r[5])
+        if desc != r[3]:
+            img_rewrites += 1
+        home_desc = rewrite_home_relnotes(desc, r[5])
+        if home_desc != desc:
+            home_rewrites += 1
+        desc = home_desc
+        block_rows.append([scrub_text(r[1]), b(r[2]), scrub_text(desc), scrub_text(r[4]), r[5],
+                           scrub_text(r[6]), scrub_text(r[7]), dl_n.get(r[8], ""), icon_n.get(r[9], "")])
     write_csv("Block__c",
               ["ActionText__c", "Active__c", "Description__c", "Header__c", "Name",
                "Note__c", "Sub_Header__c", "Action__r.Name", "Icon__r.Name"],
-              [[scrub_text(r[1]), b(r[2]), scrub_text(r[3]), scrub_text(r[4]), r[5], scrub_text(r[6]),
-                scrub_text(r[7]), dl_n.get(r[8], ""), icon_n.get(r[9], "")]
-               for r in block if r[0] not in DEAD_BLOCK_IDS])
+              block_rows)
 
     # --- SectionBlock__c (drop orphans) ---------------------------------------
     # Composite externalId requires an SFDMU v5 `$$` key column: header is
@@ -260,7 +325,8 @@ def main():
     print(f"       {len(HELP_ID_REMAP)} renamed Help IDs + {len(DEVGUIDE_ID_REMAP)} Dev-Guide IDs remapped, "
           f"release pin 258 -> 262;")
     print(f"       {pricing_renamed} Page 'Price Management' -> 'Salesforce Pricing' (label)")
-    print(f"Images: dead '{DEAD_IMG_HOST}' <img> tags stripped from rich text")
+    print(f"Images: {img_rewrites} block <img> rewritten -> /resource/{STATIC_RESOURCE}/ (self-hosted)")
+    print(f"Home:   {home_rewrites} announcement block -> 262 marquee features + 'Summer 26' link label")
 
 
 if __name__ == "__main__":

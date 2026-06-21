@@ -81,38 +81,48 @@ DeveloperName**; the CSVs provide a `RecordType.DeveloperName` column (the sourc
   (`standard__PriceManagement`, `BillingConsole`, `SalesforceContracts`,
   `UsageManagement`, `RatingManagement`, `IndustriesEpc/Dfo`) — platform app links that
   resolve in any RLM org. These are left intact.
-- **15× cross-org images stripped (PENDING re-host — see below).** `Block__c` rich text
-  embedded `rlm258learnorg.file.force.com/servlet/rtaImage?eid=…` images. Verified: all 15
-  return HTTP 302→login (session-gated to the source org, not 404), so they render broken
-  in any other org; the binaries aren't carried by the dataset. The `<img>` tags are
-  stripped for now so no broken host ships. **This is the only blocker on opening the PR.**
+- **15× cross-org images re-hosted (DONE).** `Block__c` rich text embedded
+  `rlm258learnorg.file.force.com/servlet/rtaImage?eid=…` images, session-gated to the source
+  org (HTTP 302→login, not 404), so they render broken anywhere else. The 15 binaries were
+  retrieved from a 258-template scratch org and are now **self-hosted** in the
+  `InAppLearningImages` static resource; `convert_from_legacy.py` rewrites each `<img src>` to
+  `/resource/InAppLearningImages/<block-name-slug>.<ext>`. Verified served (HTTP 200,
+  matching content-type) on `ent-r1`.
+- **Home announcement updated to Summer '26 (DONE).** The `Home Left Top Block` listed four
+  258 features and an "Explore Winter'26 Release Notes" link label. `convert_from_legacy.py`
+  (`rewrite_home_relnotes`) swaps the bullets for four 262 marquee features — Product
+  Discovery with Constraint Rules (GA), Accelerated Deal Approvals in Slack, Guided Ramp
+  Creation with Trial Segments, AI-Supported Bulk Contract Extraction — each verified in
+  `docs/salesforce/262/feature-index.md`, and fixes the link label to "Summer '26" (the href
+  was already `release=262`).
 
-### Restoring the 15 stripped images — exact landing (do this when the binaries arrive)
+### Image re-host — how it works
 
-The original images live in the source org `rlm258learnorg` (inline images on the 15
-`Block__c.Description__c` rich-text fields). Full inventory (Block id, owning record `eid`,
-image `refid`, original filename, capability page) is in
-`.agents/artifacts/in-app-framework-stripped-images-manifest.md` (regenerable from the
-source `rlm.dataset.sql`).
+The 15 images are referenced only inside `Block__c.Description__c`. Full inventory (Block id,
+owning record `eid`, image `refid`, original filename, capability page) is in
+`.agents/artifacts/in-app-framework-stripped-images-manifest.md`.
 
-When the 15 binaries are obtained (source-org login or clone):
+- **Files:** `unpackaged/post_inapp/staticresources/InAppLearningImages/` (15 images, one per
+  image-bearing block, named `<block-name-slug>.<ext>`; mixed `.png`/`.jpg` per the actual
+  bytes) + `InAppLearningImages.resource-meta.xml` (`<contentType>application/zip</contentType>`,
+  deployed as a single zip static resource).
+- **URL rewrite:** `convert_from_legacy.py` `rewrite_block_images()` matches each block by
+  Name-slug to the staged file (the on-disk file supplies the real extension) and rewrites the
+  dead-host `<img src>` to `/resource/InAppLearningImages/<slug>.<ext>`. The `scrub_text` strip
+  remains as a fallback for any unstaged image. Re-running the converter is idempotent.
 
-1. **Image files → `unpackaged/post_inapp/staticresources/`** as a single zip static
-   resource: `InAppLearningImages.resource` (zip of the 15 images, named per the manifest,
-   e.g. `block-2-revenue-cloud-fundamentals.png`) + `InAppLearningImages.resource-meta.xml`
-   (`<contentType>application/zip</contentType>`). One static resource keeps the bundle tidy.
-2. **URL rewrite → `convert_from_legacy.py` `scrub_text()`:** flip the image handling from
-   *strip* to *rewrite* — replace each `…/servlet/rtaImage?…refid=<R>` with
-   `/resource/InAppLearningImages/<mapped-filename>` using a `refid → filename` map (15
-   entries, from the manifest). Then re-run the converter to regenerate the CSVs.
-3. **Reload** (`cci task run load_inapp_dataset --org <alias>`) and confirm the Learning
-   Home renders the images.
-4. Open the PR.
-
-No other files change — the images are referenced only inside `Block__c.Description__c`,
-which the converter owns.
+To refresh an image: replace the file in the static-resource dir, re-run the converter, reload
+(`cci task run load_inapp_dataset --org <alias>`).
 
 **Deferred (editorial — not blocking the load):**
+- **8 sibling "Winter'26" block headings** — beyond the Home block (done), eight learning
+  blocks (DRO, Billing, Usage, PCM, Pricing, Product Configurator, Salesforce Contracts,
+  Transaction Management) still carry "Winter'26 Release Notes / Features" headings, and each
+  likely lists 258 features below. A full 262 sweep means the same grounded treatment applied
+  to the Home block (heading → "Summer '26", bullets → verified 262 features). Plus: the
+  `DynamicLink` Name "Winter '25 Release Notes" (link already points to 262, but the Name is a
+  composite-key field → lockstep rename), and the `…salesforce_contracts_winter_23.htm` Help
+  slug (an article identifier, **not** display text — remap only if the 262 equivalent is known).
 - **Wrong-vertical WebPages** `DynamicLink` "Release Notes" → Comms Summer '24 / Energy
   Winter '25; should point at Revenue Cloud release notes.
 - **4× `dwd…lightning.force.com` + 2× `drive.google.com`** hrefs in rich text — personal/dev-org links to re-point or drop.
