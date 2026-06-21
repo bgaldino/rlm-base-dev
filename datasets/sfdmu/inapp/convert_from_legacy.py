@@ -60,6 +60,14 @@ _ARM_KEEP = (" Billing", " Advanced", " Fundamentals", " Certification", " Consu
 # also keep hyperlink labels that end "Revenue Cloud:</strong>" (the ":" guard) for consistency
 # with the other "...in Revenue Cloud</strong>" labels in the same lists.
 _ARM_RE = re.compile(r"Revenue Cloud(?!</strong>)(?!:)" + "".join("(?!%s)" % re.escape(k) for k in _ARM_KEEP))
+# Two Trailhead trails Salesforce rebranded Revenue Cloud -> Agentforce Revenue Management in
+# their TITLES (verified live on trailhead.salesforce.com 2026-06-22). The ARM regex keeps
+# hyperlink labels by default, so relabel these two explicitly to match the new trail titles.
+# The ">...<" form on the second targets the link label only — never the Block Name/composite key.
+TRAILHEAD_RELABEL = {
+    "Boost Sales Efficiency with Revenue Cloud": "Boost Sales Efficiency with Agentforce Revenue Management",
+    ">Revenue Cloud Fundamentals<": ">Agentforce Revenue Management Fundamentals<",
+}
 WRONG_VERTICAL_MARKERS = ("Communications_Summer_24", "energy_and_utilities_cloud_winter_25")
 # DynamicLink record-Name fixes (these Names are the SFDMU composite key; 0 lockstep refs):
 # a stale release label and a typo. Both link to the general rn_revenue (already release=262).
@@ -326,6 +334,8 @@ def scrub_text(s):
     for old, new in VERSION_TEXT_REMAPS.items():       # label renames (after ID remap)
         s = s.replace(old, new)
     # 262 rebrand (after VERSION_TEXT_REMAPS so " Summer" guard protects the release header)
+    for old, new in TRAILHEAD_RELABEL.items():         # rebranded Trailhead trail labels
+        s = s.replace(old, new)
     s = s.replace("with Salesforce Revenue Cloud.", "with " + ARM_NEW + ".")  # avoid "Salesforce Agentforce"
     s = _ARM_RE.sub(ARM_NEW, s)
     return s
