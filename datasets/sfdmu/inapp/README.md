@@ -103,12 +103,12 @@ owning record `eid`, image `refid`, original filename, capability page) is in
 `.agents/artifacts/in-app-framework-stripped-images-manifest.md`.
 
 - **Files:** `unpackaged/post_inapp/staticresources/InAppLearningImages/` (15 images, one per
-  image-bearing block, named `<block-name-slug>.<ext>`; mixed `.png`/`.jpg` per the actual
-  bytes) + `InAppLearningImages.resource-meta.xml` (`<contentType>application/zip</contentType>`,
-  deployed as a single zip static resource).
+  image-bearing block, named `<block-name-slug>.png` — all normalized to PNG; the 3 the source
+  served as JPEG were re-encoded) + `InAppLearningImages.resource-meta.xml`
+  (`<contentType>application/zip</contentType>`, deployed as a single zip static resource).
 - **URL rewrite:** `convert_from_legacy.py` `rewrite_block_images()` matches each block by
-  Name-slug to the staged file (the on-disk file supplies the real extension) and rewrites the
-  dead-host `<img src>` to `/resource/InAppLearningImages/<slug>.<ext>`. The `scrub_text` strip
+  Name-slug to the staged file (dir-scan picks up the on-disk extension) and rewrites the
+  dead-host `<img src>` to `/resource/InAppLearningImages/<slug>.png`. The `scrub_text` strip
   remains as a fallback for any unstaged image. Re-running the converter is idempotent.
 
 To refresh an image: replace the file in the static-resource dir, re-run the converter, reload

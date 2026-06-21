@@ -137,9 +137,10 @@ def _slug(s):
 def rewrite_block_images(desc, block_name):
     """Point a Block's cross-org <img src> (dead learning-org host) at the
     self-hosted `InAppLearningImages` static resource, matched by Block-Name slug.
-    The on-disk file supplies the real extension (mixed .png/.jpg). Returns desc
-    unchanged when no staged image matches (scrub_text then strips the dead tag),
-    so the converter still runs if images aren't staged."""
+    The on-disk file supplies the extension (all normalized to .png; dir-scan keeps
+    this robust if a format ever changes). Returns desc unchanged when no staged
+    image matches (scrub_text then strips the dead tag), so the converter still runs
+    if images aren't staged."""
     if not desc or DEAD_IMG_HOST not in desc:
         return desc
     fname = next((p.name for p in sorted(SR_DIR.glob(_slug(block_name) + ".*"))), None)
