@@ -254,9 +254,20 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         console.log('Send Reminder', accountId);
     }
 
-    handleLogCall(event) {
+    handleRaiseDispute(event) {
         const accountId = event.currentTarget.dataset.accountId;
-        console.log('Log Call', accountId);
+        if (accountId) {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__objectPage',
+                attributes: {
+                    objectApiName: 'Case',
+                    actionName: 'new'
+                },
+                state: {
+                    defaultFieldValues: `AccountId=${accountId}`
+                }
+            });
+        }
     }
 
     handleResolve(event) {

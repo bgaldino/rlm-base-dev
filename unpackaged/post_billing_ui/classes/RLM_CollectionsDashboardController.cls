@@ -93,8 +93,8 @@ public with sharing class RLM_CollectionsDashboardController {
         Boolean filterCurrency = String.isNotBlank(currencyCode);
         String invAccountField = getInvoiceAccountFieldName();
 
-        // Base invoice filter: unpaid = Balance > 0
-        String invWhere = ' Balance > 0 ';
+        // Base invoice filter: unpaid posted invoices only
+        String invWhere = ' Balance > 0 AND Status = \'Posted\' ';
         if (filterAccount && invAccountField != null) {
             invWhere += ' AND ' + invAccountField + ' = :accountId ';
         }
@@ -166,13 +166,13 @@ public with sharing class RLM_CollectionsDashboardController {
         data.unappliedPaymentBalance = unappliedPaymentBalance;
         data.unappliedPaymentCount = unappliedPaymentCount;
 
-        data.totalBalance = sumUnpaidInvoiceBalance + unappliedCredits + debitMemoNotInvoiced - unappliedPaymentBalance;
+        data.totalBalance = sumUnpaidInvoiceBalance + debitMemoNotInvoiced - unappliedCredits - unappliedPaymentBalance;
         data.totalOutstanding = sumUnpaidInvoiceBalance - unappliedPaymentBalance;
 
         data.totalBalanceBreakdown = new List<Map<String, Object>>();
         data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unpaid Invoices', 'amount' => sumUnpaidInvoiceBalance, 'color' => 'blue' });
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Credits', 'amount' => unappliedCredits, 'color' => 'green' });
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Debit Memo (not invoiced)', 'amount' => debitMemoNotInvoiced, 'color' => 'orange' });
+        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Debit Memos', 'amount' => debitMemoNotInvoiced, 'color' => 'orange' });
+        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Credits', 'amount' => -unappliedCredits, 'color' => 'green' });
         data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Payments', 'amount' => -unappliedPaymentBalance, 'color' => 'red' });
 
         data.agingBuckets = new List<Map<String, Object>>();
@@ -389,11 +389,12 @@ public with sharing class RLM_CollectionsDashboardController {
             Boolean hasBillToContact = invoiceHasBillToContactId();
             Integer thirtyDays = 30;
 
+            Decimal criticalMinBalance = 2000;
             String invWhere;
             if (hasDaysField) {
-                invWhere = ' Balance > 0 AND (DaysInvoiceOverdue >= :thirtyDays OR (DaysInvoiceOverdue = null AND DueDate != null AND DueDate < :thirtyDaysAgo)) ';
+                invWhere = ' Balance >= :criticalMinBalance AND (DaysInvoiceOverdue >= :thirtyDays OR (DaysInvoiceOverdue = null AND DueDate != null AND DueDate < :thirtyDaysAgo)) ';
             } else {
-                invWhere = ' Balance > 0 AND DueDate < :thirtyDaysAgo ';
+                invWhere = ' Balance >= :criticalMinBalance AND DueDate < :thirtyDaysAgo ';
             }
             if (filterAccount && invAccountField != null) invWhere += ' AND ' + invAccountField + ' = :accountId ';
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
@@ -521,23 +522,15 @@ public with sharing class RLM_CollectionsDashboardController {
     }
 
     private static void buildHighValueDelinquents(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date thirtyDaysAgo) {
-        Decimal minBalanceThreshold = 1000;
-        String invWhereStrict = ' Balance > :minBalanceThreshold AND DueDate < :thirtyDaysAgo ';
-        if (filterAccount) invWhereStrict += ' AND ' + invAccountField + ' = :accountId ';
-        if (filterCurrency && invoiceHasCurrencyField()) invWhereStrict += ' AND CurrencyIsoCode = :currencyCode ';
-        invWhereStrict += getInvoiceNotFullySettledStatusFilter();
+        Decimal minBalanceThreshold = 2000;
+        String invWhere = ' Balance > 0 AND DueDate < :thirtyDaysAgo ';
+        if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
+        if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
+        invWhere += getInvoiceNotFullySettledStatusFilter();
         List<Invoice> invs = new List<Invoice>();
         try {
-            invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhereStrict);
-        } catch (Exception e) { invs = new List<Invoice>(); }
-        if (invs.isEmpty()) {
-            String invWhereFallback = ' Balance > 0 AND DueDate < :thirtyDaysAgo ';
-            if (filterAccount) invWhereFallback += ' AND ' + invAccountField + ' = :accountId ';
-            if (filterCurrency && invoiceHasCurrencyField()) invWhereFallback += ' AND CurrencyIsoCode = :currencyCode ';
-            try {
-                invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhereFallback);
-            } catch (Exception e2) { return; }
-        }
+            invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere);
+        } catch (Exception e) { return; }
         Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
         Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
         for (Invoice inv : invs) {
@@ -549,12 +542,20 @@ public with sharing class RLM_CollectionsDashboardController {
             Integer existing = accountMaxDays.get(accId);
             if (existing == null || days > existing) accountMaxDays.put(accId, days);
         }
+        // Filter accounts below the $2000 threshold
+        Set<Id> qualifiedAccounts = new Set<Id>();
+        for (Id accId : accountBalance.keySet()) {
+            if (accountBalance.get(accId) >= minBalanceThreshold) {
+                qualifiedAccounts.add(accId);
+            }
+        }
+        if (qualifiedAccounts.isEmpty()) return;
         List<WorklistItem> highValue = new List<WorklistItem>();
-        Map<Id, String> accountNames = getAccountNames(accountBalance.keySet());
+        Map<Id, String> accountNames = getAccountNames(qualifiedAccounts);
         Map<Id, Id> accountToCollectionPlan = new Map<Id, Id>();
-        if (!accountBalance.keySet().isEmpty() && Schema.getGlobalDescribe().containsKey('CollectionPlan')) {
+        if (Schema.getGlobalDescribe().containsKey('CollectionPlan')) {
             try {
-                Set<Id> accIds = accountBalance.keySet();
+                Set<Id> accIds = qualifiedAccounts;
                 for (CollectionPlan cp : [SELECT Id, AccountId FROM CollectionPlan WHERE AccountId IN :accIds AND AccountId != null]) {
                     if (!accountToCollectionPlan.containsKey(cp.AccountId)) {
                         accountToCollectionPlan.put(cp.AccountId, cp.Id);
@@ -562,13 +563,13 @@ public with sharing class RLM_CollectionsDashboardController {
                 }
             } catch (Exception ex) { }
         }
-        for (Id accId : accountBalance.keySet()) {
+        for (Id accId : qualifiedAccounts) {
             WorklistItem item = new WorklistItem(accId, accountNames.get(accId), accountBalance.get(accId), accountMaxDays.get(accId), 'highValue', 'red', null, null);
             item.collectionPlanId = accountToCollectionPlan.get(accId);
             highValue.add(item);
         }
         sortByBalance(highValue);
-        for (Integer i = 0; i < Math.min(5, highValue.size()); i++) wl.highValueDelinquents.add(highValue[i]);
+        for (Integer i = 0; i < Math.min(10, highValue.size()); i++) wl.highValueDelinquents.add(highValue[i]);
     }
 
     private static String getInvoiceNotFullySettledStatusFilter() {

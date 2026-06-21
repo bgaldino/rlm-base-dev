@@ -206,14 +206,15 @@
                                                 </template>
                                                 <td class="actions-cell">
                                                     <template if:true={showActionButtons}>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleWriteOff}>Write Off</button>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleSendReminder}>Send Reminder</button>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleRaiseDispute}>Raise Dispute</button>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogTask}>Log a Task</button>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
                                                     </template>
                                                     <template if:false={showActionButtons}>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleSendReminder}>Send Reminder</button>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogCall}>Log Call</button>
-                                                        <button type="button" class="btn-action" data-case-id={row.caseId} onclick={handleResolve}>Resolve</button>
+                                                        <button type="button" class="btn-action" data-case-id={row.caseId} onclick={handleResolve}>Resolve Dispute</button>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogTask}>Log a Task</button>
                                                     </template>
                                                 </td>
                                             </template>
