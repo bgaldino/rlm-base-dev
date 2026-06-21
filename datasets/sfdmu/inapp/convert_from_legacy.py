@@ -180,6 +180,79 @@ def rewrite_home_relnotes(desc, block_name):
                         "Explore Summer &#39;26 Release Notes")
 
 
+# --- 8 area "what's new" blocks: 258 (Winter '26) bullets -> 262 (Summer '26) ----------
+# Each block heads its area's release-notes list. Swap the heading Winter'26 -> Summer '26
+# and replace the 258 bullets with that area's 262 features, each verified in
+# docs/salesforce/262/feature-index.md (tier shown for honesty — Summer '26 is still
+# preview). The area-level "Read More" link (outside the <ul>, already release=262) is
+# preserved; the 258 per-feature deep links are dropped (their IDs aren't verified at 262).
+SIBLING_262 = {
+    "Product Catalog Management Learning Block 1": [
+        ("Product Discovery with Constraint Rules", "Generally Available",
+         "Constraint Rules now enforce product compatibility and surface recommendations in real time during product discovery, with auto-save so products are added to a transaction without leaving discovery and a preview of existing quote lines."),
+        ("Product Variants", "Generally Available",
+         "Define and manage base products with their specific variants such as color, size, and material, for a consistent variant experience across B2B Commerce and Revenue Cloud quote-to-cash."),
+    ],
+    "Price Management Learning Block 1": [
+        ("CSV Based Decision Tables", "Generally Available",
+         "Source decision tables from CSV uploads that support more than 30 inputs and 5 outputs — create a decision table with Type CSV, upload the file, activate it, and map it to a pricing element in your pricing procedure."),
+        ("Pricing General Enhancements", "Generally Available",
+         "The Revenue Operations Console adds a date and time hover and a currency column, and the Map Line Items element now supports up to 100 default tags and runs within Parallel Execution."),
+    ],
+    "Product Configurator Learning Block 2": [
+        ("Group and Ramp Segment Scope Rules", "Generally Available",
+         "The Advanced Configurator now applies transaction scope rules to Quote Groups and Ramp Segments, resolving cases where scope rules previously failed when groups were present on a quote, especially group ramps."),
+        ("Product Loader and Default Component", "Generally Available",
+         "Automatically include default components from the product catalog when importing bundles, and use the new productField annotation to load standard or custom Product fields directly into CML attributes."),
+    ],
+    "Transaction Management Learning Block 2": [
+        ("Guided Ramp Schedule Generation with Trial and Prorated Segments", "Generally Available",
+         "Replace slow manual cloning for multi-year ramp deals with guided generation that supports free or trial segments and prorated stub periods; reps start from the Create Ramp Schedule action."),
+        ("Early Renewal for Ramped Asset", "Generally Available",
+         "Renew a ramped asset ahead of schedule by setting a future renewal start date — the renewal quote replaces the remainder of the existing ramp schedule with new ramp segments."),
+    ],
+    "DRO Learning Block 2": [
+        ("DRO Templates", "Beta",
+         "Stand up orchestration faster with pre-built Dynamic Revenue Orchestrator templates."),
+        ("DRO and OMS Interop", "Beta",
+         "Keep Dynamic Revenue Orchestrator and your Order Management System in real-time sync, closing the gap where teams previously managed two non-synced platforms."),
+    ],
+    "Salesforce Contracts Learning Hub Block 2": [
+        ("AI-Supported Bulk Contract Extraction", "New",
+         "Extract metadata at scale from existing contract PDFs to unlock historical data trapped in legacy documents, protecting margins and increasing renewal revenue."),
+        ("Advanced Approvals for Contracts", "New",
+         "Run multi-stakeholder, serial-approval workflows on Contracts using the Approvals framework."),
+    ],
+    "Usage Management Learning Block 2": [
+        ("Usage Product Guided Setup", "Enhanced",
+         "A streamlined guided setup flow for configuring usage products."),
+        ("Consumption Agent", "Enhanced",
+         "Agentforce-powered assistance for usage selling and consumption insights (requires Revenue Cloud Billing and Agentforce)."),
+    ],
+    "Billing Learning Hub Block 3": [
+        ("Statement of Account", "New",
+         "Generate a consolidated view that summarizes all billing transactions — invoices, payments, credits, debits, and refunds — for an account over a period, on demand from the Account page (requires Document Generation enabled in Billing Settings)."),
+        ("Advanced Amendments", "Enhanced",
+         "Generate accurate billing schedules for amendments tied to milestone billing, asset transfers, and coterminous contracts."),
+    ],
+}
+_SIB_LI = '<li><strong style="color: rgb(2, 80, 217);">%s (%s):</strong> %s</li>'
+# matches the 18px heading + "Winter'26" in any apostrophe encoding (&#39; / curly / straight)
+_WINTER_HEAD = '(<strong style="font-size: 18px;">)\\s*Winter\\s*(?:&#39;|’|\')?\\s*26'
+
+
+def rewrite_sibling_relnotes(desc, block_name):
+    """For the 8 area "what's new" blocks, swap the heading Winter'26 -> Summer '26 and
+    replace the 258 feature bullets with the area's verified 262 features. Preserves the
+    area-level "Read More" link; no-op on other blocks."""
+    spec = SIBLING_262.get(block_name)
+    if not spec or not desc:
+        return desc
+    desc = re.sub(_WINTER_HEAD, lambda m: m.group(1) + "Summer &#39;26", desc, count=1)
+    bullets = "<ul>" + "".join(_SIB_LI % (n, t, d) for (n, t, d) in spec) + "</ul>"
+    return re.sub(r"<ul>.*?</ul>", lambda _m: bullets, desc, count=1, flags=re.S)
+
+
 def scrub_text(s):
     """Apply all text/URL transforms for a non-key field: dead-image strip, token
     rename, 262 label renames, Help/Dev-Guide article-ID remap, and release pin bump."""
@@ -286,7 +359,7 @@ def main():
                for r in dlink])
 
     # --- Block__c (drop dead rows; rewrite cross-org images + Home 262 announcement) -
-    img_rewrites = home_rewrites = 0
+    img_rewrites = home_rewrites = sib_rewrites = 0
     block_rows = []
     for r in block:
         if r[0] in DEAD_BLOCK_IDS:
@@ -297,7 +370,10 @@ def main():
         home_desc = rewrite_home_relnotes(desc, r[5])
         if home_desc != desc:
             home_rewrites += 1
-        desc = home_desc
+        sib_desc = rewrite_sibling_relnotes(home_desc, r[5])
+        if sib_desc != home_desc:
+            sib_rewrites += 1
+        desc = sib_desc
         block_rows.append([scrub_text(r[1]), b(r[2]), scrub_text(desc), scrub_text(r[4]), r[5],
                            scrub_text(r[6]), scrub_text(r[7]), dl_n.get(r[8], ""), icon_n.get(r[9], "")])
     write_csv("Block__c",
@@ -328,6 +404,7 @@ def main():
     print(f"       {pricing_renamed} Page 'Price Management' -> 'Salesforce Pricing' (label)")
     print(f"Images: {img_rewrites} block <img> rewritten -> /resource/{STATIC_RESOURCE}/ (self-hosted)")
     print(f"Home:   {home_rewrites} announcement block -> 262 marquee features + 'Summer 26' link label")
+    print(f"Areas:  {sib_rewrites} area block(s) -> 262 features + 'Summer 26' heading (expect 8)")
 
 
 if __name__ == "__main__":

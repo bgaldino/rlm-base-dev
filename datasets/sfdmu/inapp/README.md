@@ -114,15 +114,20 @@ owning record `eid`, image `refid`, original filename, capability page) is in
 To refresh an image: replace the file in the static-resource dir, re-run the converter, reload
 (`cci task run load_inapp_dataset --org <alias>`).
 
+**262 area-block sweep (DONE).** The Home block + all 8 area "what's new" blocks (DRO, Billing,
+Usage, PCM, Pricing, Product Configurator, Salesforce Contracts, Transaction Management) now
+read "Summer '26" with verified 262 feature bullets (`rewrite_sibling_relnotes` in
+`convert_from_legacy.py`, grounded in `docs/salesforce/262/feature-index.md`, tiers shown). Each
+block's area-level "Read More" link (already `release=262`) is preserved; the 258 per-feature
+deep links were dropped. App label also aligned to source: "Learning Home" → "Revenue Cloud
+Learning Home".
+
 **Deferred (editorial — not blocking the load):**
-- **8 sibling "Winter'26" block headings** — beyond the Home block (done), eight learning
-  blocks (DRO, Billing, Usage, PCM, Pricing, Product Configurator, Salesforce Contracts,
-  Transaction Management) still carry "Winter'26 Release Notes / Features" headings, and each
-  likely lists 258 features below. A full 262 sweep means the same grounded treatment applied
-  to the Home block (heading → "Summer '26", bullets → verified 262 features). Plus: the
-  `DynamicLink` Name "Winter '25 Release Notes" (link already points to 262, but the Name is a
-  composite-key field → lockstep rename), and the `…salesforce_contracts_winter_23.htm` Help
-  slug (an article identifier, **not** display text — remap only if the 262 equivalent is known).
+- **Two remaining "Winter" references** (intentionally untouched by the sweep): the
+  `DynamicLink` Name **"Winter '25 Release Notes"** — link already points to 262, but the Name
+  is a composite-**key** field, so a rename must ripple to its references in lockstep; and the
+  `…salesforce_contracts_winter_23.htm` Help slug — an article **identifier**, not display text
+  (remap only if the 262 equivalent is confirmed).
 - **Wrong-vertical WebPages** `DynamicLink` "Release Notes" → Comms Summer '24 / Energy
   Winter '25; should point at Revenue Cloud release notes.
 - **4× `dwd…lightning.force.com` + 2× `drive.google.com`** hrefs in rich text — personal/dev-org links to re-point or drop.
