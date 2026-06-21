@@ -67,6 +67,7 @@ _ARM_RE = re.compile(r"Revenue Cloud(?!</strong>)(?!:)" + "".join("(?!%s)" % re.
 TRAILHEAD_RELABEL = {
     "Boost Sales Efficiency with Revenue Cloud": "Boost Sales Efficiency with Agentforce Revenue Management",
     ">Revenue Cloud Fundamentals<": ">Agentforce Revenue Management Fundamentals<",
+    "Configure Revenue Cloud": "Configure Agentforce Revenue Management",
 }
 WRONG_VERTICAL_MARKERS = ("Communications_Summer_24", "energy_and_utilities_cloud_winter_25")
 # DynamicLink record-Name fixes (these Names are the SFDMU composite key; 0 lockstep refs):
