@@ -46,6 +46,12 @@ VERSION_TEXT_REMAPS = {
     "Price Management": "Salesforce Pricing",
 }
 WRONG_VERTICAL_MARKERS = ("Communications_Summer_24", "energy_and_utilities_cloud_winter_25")
+# DynamicLink record-Name fixes (these Names are the SFDMU composite key; 0 lockstep refs):
+# a stale release label and a typo. Both link to the general rn_revenue (already release=262).
+DL_NAME_REMAP = {
+    "Winter '25 Release Notes": "Summer '26 Release Notes",
+    "Relese Notes Summary": "Release Notes Summary",
+}
 RC_262_RELNOTES = "https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&release=262&type=5"
 
 # 48 Help article IDs renamed/reorganized in 262 -> verified 262 equivalents.
@@ -337,7 +343,7 @@ def main():
             pricing_renamed += 1
 
     # --- REMAP demo account + fix wrong-vertical release-notes links ----------
-    remapped = relnotes_fixed = 0
+    remapped = relnotes_fixed = dl_renamed = 0
     for r in dlink:
         if r[14] == "Name = '%s'" % ACCT_FROM:
             r[14] = "Name = '%s'" % ACCT_TO
@@ -347,6 +353,9 @@ def main():
         if any(mk in r[4] for mk in WRONG_VERTICAL_MARKERS):   # Link__c (Comms/Energy -> RC 262)
             r[4] = RC_262_RELNOTES
             relnotes_fixed += 1
+        if r[5] in DL_NAME_REMAP:                        # stale/typo DynamicLink Names
+            r[5] = DL_NAME_REMAP[r[5]]
+            dl_renamed += 1
 
     # --- id -> Name maps (post-remap) for lookup resolution -------------------
     icon_n = {r[0]: r[1] for r in icon}
@@ -425,7 +434,7 @@ def main():
               sb_rows)
 
     print(f"\nScrub: dropped {len(DEAD_BLOCK_IDS)} dead blocks, {len(ORPHAN_SB_IDS)} orphan junctions")
-    print(f"Remap: {remapped} Account link Mahesh -> {ACCT_TO}")
+    print(f"Remap: {remapped} Account link Mahesh -> {ACCT_TO}; {dl_renamed} DynamicLink Name(s) fixed")
     print(f"262:   {relnotes_fixed} wrong-vertical link(s) -> RC 262; version Winter'26 -> Summer '26;")
     print(f"       {len(HELP_ID_REMAP)} renamed Help IDs + {len(DEVGUIDE_ID_REMAP)} Dev-Guide IDs remapped, "
           f"release pin 258 -> 262;")

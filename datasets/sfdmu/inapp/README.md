@@ -140,9 +140,15 @@ not curl status). Fixed in `convert_from_legacy.py`:
 Validated valid (left as-is): 55 `ind.*` articles, 35 RLM + 3 CLM dev-guide pages, 8 release-notes
 area pages, 16 Trailhead modules/trails, 4 YouTube + 1 Vidyard video, ideas/marketing pages.
 
+**DynamicLink Name fixes (DONE).** Two `DynamicLink` record Names (the SFDMU composite key)
+corrected via `DL_NAME_REMAP`: stale "Winter '25 Release Notes" → "Summer '26 Release Notes"
+(the last "Winter" reference in the dataset) and typo "Relese Notes Summary" → "Release Notes
+Summary". Both had 0 lockstep references. **Keyed-rename caveat:** Name-keyed Upsert *inserts*
+the new-named record and leaves the old one as an orphan on re-load — on a fresh build only the
+new Name is created, but re-loading an existing org needs the old records deleted (done on
+ent-r1: the 2 orphans removed by Id; final state = the 2 new names only).
+
 **Deferred (editorial — not blocking the load):**
-- **`DynamicLink` Name "Winter '25 Release Notes"** — link already points to 262, but the Name is
-  a composite-**key** field, so a rename must ripple to its references in lockstep.
 - **Wrong-vertical WebPages** `DynamicLink` "Release Notes" → Comms Summer '24 / Energy
   Winter '25; should point at Revenue Cloud release notes.
 - **1× `drive.google.com`** href (Home "Revenue Cloud Data Sheet", `1kvGZGF…`) — personal/auth-gated

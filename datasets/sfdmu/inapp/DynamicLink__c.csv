@@ -1,8 +1,8 @@
 App_API_Name__c,Filter_Name__c,Identity__c,Link__c,Name,Object__c,Page_Name__c,Relationship_API_Name__c,Relative_Url__c,Setup_Page__c,Site_Name__c,Text_Value__c,Where_Condition__c,RecordType.$$DeveloperName$SobjectType,Page__r.Name,Section__r.Name
 /lightning/app/standard__PriceManagement/page/home,,PCM_APP_DYN_LINK,,PCM App,,,,,,,,,AppPage;DynamicLink__c,,
 c__Learning_Home,,ACC_INFINITECH_DYN_LINK,,Account Name Infinitech,Account,,,,,,here,Name = 'Infinitech',RecordPage;DynamicLink__c,,
-,,,https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&release=262&type=5,Relese Notes Summary,,,,,,,,,WebPage;DynamicLink__c,,
-,,,https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&release=262&type=5,Winter '25 Release Notes,,,,,,,,,WebPage;DynamicLink__c,,
+,,,https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&release=262&type=5,Release Notes Summary,,,,,,,,,WebPage;DynamicLink__c,,
+,,,https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&release=262&type=5,Summer '26 Release Notes,,,,,,,,,WebPage;DynamicLink__c,,
 ,,PCM_Learn_DYN_LINK,,Product Catalog Management Get Started Popup,,,,,,,,,InAppPopup;DynamicLink__c,,Product Catalog Management Left Bottom Section
 ,,PCM_Validate_DYN_LINK,,PCM_Validate,,,,,,,,,InAppPopup;DynamicLink__c,,PCM_Check Popup Section
 ,,PCM_LAUNCH_DYN_LINK,,PCM_LAUNCH_LINK,,,,,,,,,InAppPopup;DynamicLink__c,,PCM_Launch Popup Section
