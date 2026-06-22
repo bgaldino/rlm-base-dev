@@ -1532,6 +1532,20 @@ tasks:
     options:
       path: unpackaged/post_collections
 
+  seed_collections_case_matrix:
+    group: Revenue Lifecycle Management
+    description: >
+      Seed and activate the Collections "Create Case for Collection" BRE setup:
+      the five sample CollectionPlanReason records (CPR01-CPR05) and the
+      DetermineCaseReasonAndRelatedAttributes decision matrix rows
+      (Code -> Reason/Priority/Type), then activate the matrix version. Idempotent;
+      includes a runtime self-check. Run after deploy_post_collections (which
+      deploys the DecisionMatrixDefinition schema). See
+      scripts/apex/seedCollectionsCaseMatrix.apex.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/seedCollectionsCaseMatrix.apex
+
   deploy_post_ramp_builder:
     group: Revenue Lifecycle Management
     description: >
@@ -3256,6 +3270,31 @@ tasks:
       article_id_prefix: ind.rev_agent
       mode: all
 
+  # Collections and Recovery — the billing-adjacent area covering Collection
+  # Plans, Collection Plan Reasons, dunning/treatment flows, Promise to Pay,
+  # write-offs, late fees, and the Create-Case-for-Collection automation. The
+  # Create Case flow (unpackaged/post_collections) invokes a BRE Decision
+  # Matrix (DetermineCaseReasonAndRelatedAttributes) that is authored per the
+  # Help docs in this area. Root given by the area landing page
+  # (ind.collections.htm). Prefix verified via `mode: discover` — adjust if a
+  # Recovery sub-prefix is discovered separately.
+  snapshot_collections_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 (Summer '26) Collections and Recovery area of
+      Salesforce Help. Covers Collection Plans, Collection Plan Reasons,
+      treatment/dunning flows, Promise to Pay, write-offs, late fees, and the
+      decision-matrix-driven Create Case automation. Root verified via the
+      Collections area landing page.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: collections
+      root_article_id: ind.collections.htm
+      article_id_prefix: ind.collections
+      mode: all
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
@@ -4113,6 +4152,9 @@ flows:
     steps:
       1:
         task: deploy_post_collections
+        when: project_config.project__custom__collections
+      2:
+        task: seed_collections_case_matrix
         when: project_config.project__custom__collections
     # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
     # RLM_Collections_Account_Record_Page) and the standard__CollectionConsole app variant

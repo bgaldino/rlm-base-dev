@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**241 tasks** across **10 groups**.
+**243 tasks** across **10 groups**.
 
 ---
 
@@ -503,7 +503,7 @@
 
 ## Documentation
 
-*14 task(s)*
+*15 task(s)*
 
 ### `snapshot_agents_help_262`
 
@@ -569,6 +569,23 @@
 - `area`: `billing`
 - `root_article_id`: `ind.billing.htm`
 - `article_id_prefix`: `ind.billing`
+- `mode`: `all`
+
+---
+
+### `snapshot_collections_help_262`
+
+**Description:** Snapshot the 262 (Summer '26) Collections and Recovery area of Salesforce Help. Covers Collection Plans, Collection Plan Reasons, treatment/dunning flows, Promise to Pay, write-offs, late fees, and the decision-matrix-driven Create Case automation. Root verified via the Collections area landing page.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `collections`
+- `root_article_id`: `ind.collections.htm`
+- `article_id_prefix`: `ind.collections`
 - `mode`: `all`
 
 ---
@@ -818,7 +835,7 @@
 
 ## Revenue Lifecycle Management
 
-*150 task(s)*
+*151 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -2670,6 +2687,18 @@
 **Description:** Restore the placeholder siteAdmin and siteGuestRecordDefaultOwner in Payments_Webhook.site-meta.xml after deploy_post_payments_site so the repo never stores the target org's real username. Run AFTER deploy_post_payments_site.
 
 **Class:** `tasks.rlm_community.RevertPaymentsSiteAfterDeploy`
+
+---
+
+### `seed_collections_case_matrix`
+
+**Description:** Seed and activate the Collections "Create Case for Collection" BRE setup: the five sample CollectionPlanReason records (CPR01-CPR05) and the DetermineCaseReasonAndRelatedAttributes decision matrix rows (Code -> Reason/Priority/Type), then activate the matrix version. Idempotent; includes a runtime self-check. Run after deploy_post_collections (which deploys the DecisionMatrixDefinition schema). See scripts/apex/seedCollectionsCaseMatrix.apex.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/seedCollectionsCaseMatrix.apex`
 
 ---
 

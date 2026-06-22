@@ -1,8 +1,8 @@
 {
   "release": "262",
   "release_name": "Summer '26",
-  "area": "(see 'areas' array — top-level reflects most recent run only)",
-  "source_root_url": "(see 'areas' array)",
+  "area": "collections",
+  "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.collections.htm&type=5&release=262",
   "snapshot_started": "2026-05-11",
   "capture_method": "release-enablement skill — Chrome MCP shadow-DOM walker",
   "notes": [
@@ -1714,6 +1714,875 @@
       "body_length": 8777,
       "file": "articles/ind.billing_view_billing_sched_group.htm.md",
       "area": "billing"
+    },
+    {
+      "article_id": "ind.collections.htm",
+      "title": "Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "body_length": 7119,
+      "file": "articles/ind.collections.htm.md"
+    },
+    {
+      "article_id": "ind.collections_add_cpstatus_picklist_values.htm",
+      "title": "Configure Picklist Values and Assign Field-Level Access",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_interaction_outcome.htm",
+      "body_length": 2818,
+      "file": "articles/ind.collections_add_cpstatus_picklist_values.htm.md"
+    },
+    {
+      "article_id": "ind.collections_add_related_cases_to_collection_plan.htm",
+      "title": "Add Related Cases to Collection Plan",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 807,
+      "file": "articles/ind.collections_add_related_cases_to_collection_plan.htm.md"
+    },
+    {
+      "article_id": "ind.collections_assign_object_permissions.htm",
+      "title": "Assign Object Permissions for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 2300,
+      "file": "articles/ind.collections_assign_object_permissions.htm.md"
+    },
+    {
+      "article_id": "ind.collections_basics.htm",
+      "title": "Collections and Recovery Basics",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections.htm",
+      "body_length": 3736,
+      "file": "articles/ind.collections_basics.htm.md"
+    },
+    {
+      "article_id": "ind.collections_capture_interaction_outcome.htm",
+      "title": "Capture Collections-Related Interaction",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_work_with_console_app.htm",
+      "body_length": 1626,
+      "file": "articles/ind.collections_capture_interaction_outcome.htm.md"
+    },
+    {
+      "article_id": "ind.collections_check_call_compliance.htm",
+      "title": "Check Call Compliance for Borrowers Linked to Collection Plan",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_work_with_console_app.htm",
+      "body_length": 844,
+      "file": "articles/ind.collections_check_call_compliance.htm.md"
+    },
+    {
+      "article_id": "ind.collections_clone_customize_docgen_templates.htm",
+      "title": "Clone and Customize the Predefined Document Generation Templates",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_docgen_templates.htm",
+      "body_length": 1066,
+      "file": "articles/ind.collections_clone_customize_docgen_templates.htm.md"
+    },
+    {
+      "article_id": "ind.collections_clone_customize_flexcard_collections_summary.htm",
+      "title": "Clone and Customize Prebuilt Flexcard for Collections Summary",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_insights_account_page.htm",
+      "body_length": 1030,
+      "file": "articles/ind.collections_clone_customize_flexcard_collections_summary.htm.md"
+    },
+    {
+      "article_id": "ind.collections_clone_dpe_account_summary.htm",
+      "title": "Clone and Customize the Predefined Data Processing Engine Definition for Collections Summary",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_insights_account_page.htm",
+      "body_length": 4708,
+      "file": "articles/ind.collections_clone_dpe_account_summary.htm.md"
+    },
+    {
+      "article_id": "ind.collections_clone_expression_set_template_for_payment_plans.htm",
+      "title": "Create an Expression Set from a Prebuilt Expression Set Template for Payment Plan Mapping",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_payment_plans_for_financial_hardships.htm",
+      "body_length": 1513,
+      "file": "articles/ind.collections_clone_expression_set_template_for_payment_plans.htm.md"
+    },
+    {
+      "article_id": "ind.collections_community_portal_setup.htm",
+      "title": "Setup and Configuration of Collections and Recovery Portal",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections.htm",
+      "body_length": 1503,
+      "file": "articles/ind.collections_community_portal_setup.htm.md"
+    },
+    {
+      "article_id": "ind.collections_community_user_profiles_permissions.htm",
+      "title": "Clone and Assign Permissions Sets for Collections and Recovery Portal",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_community_portal_setup.htm",
+      "body_length": 2799,
+      "file": "articles/ind.collections_community_user_profiles_permissions.htm.md"
+    },
+    {
+      "article_id": "ind.collections_compliance_prerequisites.htm",
+      "title": "Enable Financial Account Management Standard Objects and Configure Context Definitions",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_compliance_setup.htm",
+      "body_length": 1062,
+      "file": "articles/ind.collections_compliance_prerequisites.htm.md"
+    },
+    {
+      "article_id": "ind.collections_compliance_setup.htm",
+      "title": "Setup and Configuration for Call Compliance Checks",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 1410,
+      "file": "articles/ind.collections_compliance_setup.htm.md"
+    },
+    {
+      "article_id": "ind.collections_configure_case_management.htm",
+      "title": "Set Up Case Management for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 1484,
+      "file": "articles/ind.collections_configure_case_management.htm.md"
+    },
+    {
+      "article_id": "ind.collections_configure_direct_debit_setup.htm",
+      "title": "Set Up Mulesoft Integration for Direct Debit Request",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 1288,
+      "file": "articles/ind.collections_configure_direct_debit_setup.htm.md"
+    },
+    {
+      "article_id": "ind.collections_configure_max_ptp.htm",
+      "title": "Configure Maximum Promise to Pay Count",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_ptp.htm",
+      "body_length": 881,
+      "file": "articles/ind.collections_configure_max_ptp.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_action_launcher_deployment_for_portal.htm",
+      "title": "Create and Configure Action Launcher Deployment for Collections and Recovery Portal",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_community_portal_setup.htm",
+      "body_length": 1023,
+      "file": "articles/ind.collections_create_action_launcher_deployment_for_portal.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_actionable_lists.htm",
+      "title": "Create and Configure Prioritized Lists of Collection Plans with Actionable List Definitions",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_work_with_console_app.htm",
+      "body_length": 1254,
+      "file": "articles/ind.collections_create_actionable_lists.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_case_manually.htm",
+      "title": "Create Cases for Collection Plans",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_work_with_console_app.htm",
+      "body_length": 1027,
+      "file": "articles/ind.collections_create_case_manually.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_configure_external_client_app.htm",
+      "title": "Create and Configure an External Client App",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_compliance_setup.htm",
+      "body_length": 936,
+      "file": "articles/ind.collections_create_configure_external_client_app.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_custom_fields_account.htm",
+      "title": "Create Custom Account Fields for Collections Summary",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_insights_account_page.htm",
+      "body_length": 1542,
+      "file": "articles/ind.collections_create_custom_fields_account.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_decision_matrix_create_case.htm",
+      "title": "Create and Activate a Decision Matrix to Create a Case for a Collection Plan",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_configure_case_management.htm",
+      "body_length": 2852,
+      "file": "articles/ind.collections_create_decision_matrix_create_case.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_decision_matrix_for_segment.htm",
+      "title": "Create a Decision Matrix to Determine Collection Plan Segments",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_customize_bre_components_to_determine_segment.htm",
+      "body_length": 1429,
+      "file": "articles/ind.collections_create_decision_matrix_for_segment.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_decision_table_for_payment_plan_mapping.htm",
+      "title": "Create a Decision Table for Payment Plan Mapping",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_payment_plans_for_financial_hardships.htm",
+      "body_length": 1873,
+      "file": "articles/ind.collections_create_decision_table_for_payment_plan_mapping.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_experience_site.htm",
+      "title": "Create an Experience Site by Using the Collections and Recovery Portal Template",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_community_portal_setup.htm",
+      "body_length": 1696,
+      "file": "articles/ind.collections_create_experience_site.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_ip_compliance_check.htm",
+      "title": "Create and Configure Integration Definitions and Named Credentials",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_compliance_setup.htm",
+      "body_length": 2438,
+      "file": "articles/ind.collections_create_ip_compliance_check.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_object_field_aliases.htm",
+      "title": "Create Object Field Aliases for Collection Plan Fields",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_interaction_outcome.htm",
+      "body_length": 1350,
+      "file": "articles/ind.collections_create_object_field_aliases.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_payment_plan_types.htm",
+      "title": "Define Payment Plan Types to Create Payment Plans",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_payment_plans_for_financial_hardships.htm",
+      "body_length": 4363,
+      "file": "articles/ind.collections_create_payment_plan_types.htm.md"
+    },
+    {
+      "article_id": "ind.collections_create_payment_plans_to_manage_financial_hardships.htm",
+      "title": "Create Payment Plans to Manage Financial Hardships",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_work_with_console_app.htm",
+      "body_length": 1541,
+      "file": "articles/ind.collections_create_payment_plans_to_manage_financial_hardships.htm.md"
+    },
+    {
+      "article_id": "ind.collections_csv_import.htm",
+      "title": "Import Collection Data From CSV Files",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 729,
+      "file": "articles/ind.collections_csv_import.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_account_page.htm",
+      "title": "Customize Lightning Pages to View Collections Summary and Linked Collection Plans",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_insights_account_page.htm",
+      "body_length": 1737,
+      "file": "articles/ind.collections_customize_account_page.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_actionable_event_orchestration_procedure.htm",
+      "title": "Clone and Customize the Prebuilt Expression Set Template for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_customize_bre_components_to_determine_segment.htm",
+      "body_length": 2683,
+      "file": "articles/ind.collections_customize_actionable_event_orchestration_procedure.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_bre_components_to_determine_segment.htm",
+      "title": "Set Up Rule-Based Collection Segmentation",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 2749,
+      "file": "articles/ind.collections_customize_bre_components_to_determine_segment.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_case_page_layout.htm",
+      "title": "Customize the Case Lightning Record Page",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_configure_case_management.htm",
+      "body_length": 795,
+      "file": "articles/ind.collections_customize_case_page_layout.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_context_definition_for_segment.htm",
+      "title": "Clone and Customize the Prebuilt Context Definition for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_customize_bre_components_to_determine_segment.htm",
+      "body_length": 2064,
+      "file": "articles/ind.collections_customize_context_definition_for_segment.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_expression_set_legal_eligibility.htm",
+      "title": "Clone the Prebuilt Expression Set Template to Determine Legal Case Eligibility",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_interaction_outcome.htm",
+      "body_length": 1954,
+      "file": "articles/ind.collections_customize_expression_set_legal_eligibility.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_flow_case_closure.htm",
+      "title": "Customize the Prebuilt Flow to Close Collection Plan and Associated Cases",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_configure_case_management.htm",
+      "body_length": 1093,
+      "file": "articles/ind.collections_customize_flow_case_closure.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_flow_create_case.htm",
+      "title": "Customize the Prebuilt Flow to Create a Case for a Collection Plan",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_configure_case_management.htm",
+      "body_length": 825,
+      "file": "articles/ind.collections_customize_flow_create_case.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_flow_for_ptp.htm",
+      "title": "Customize the Prebuilt Flow to Create Promise to Pay Agreements",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_ptp.htm",
+      "body_length": 937,
+      "file": "articles/ind.collections_customize_flow_for_ptp.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_flow_send_payment_status.htm",
+      "title": "Customize the Prebuilt Flow to Send Payment Status Notifications",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_automated_payment_notification.htm",
+      "body_length": 906,
+      "file": "articles/ind.collections_customize_flow_send_payment_status.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_flow_send_reminder.htm",
+      "title": "Customize the Prebuilt Flow Template to Send a Reminder to Borrower with Payment Link",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_salesforce_payments.htm",
+      "body_length": 797,
+      "file": "articles/ind.collections_customize_flow_send_reminder.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_flow_update_payment.htm",
+      "title": "Customize the Prebuilt Flow to Update the Payment Details",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_auto_payments_received.htm",
+      "body_length": 770,
+      "file": "articles/ind.collections_customize_flow_update_payment.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_flows_outbound_calls.htm",
+      "title": "Customize Prebuilt Flows for Outbound Collections Dialer",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_outbound_dialer.htm",
+      "body_length": 10455,
+      "file": "articles/ind.collections_customize_flows_outbound_calls.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_generate_link_flow.htm",
+      "title": "Customize the Prebuilt Flow Template to Generate and Send a Payment Link",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_salesforce_payments.htm",
+      "body_length": 1185,
+      "file": "articles/ind.collections_customize_generate_link_flow.htm.md"
+    },
+    {
+      "article_id": "ind.collections_customize_omniscript_for_direct_debit.htm",
+      "title": "Customize the Prebuilt Omniscript for Direct Debit Request",
+      "status": "error",
+      "area": "collections",
+      "parent_article": "ind.collections_configure_direct_debit_setup.htm",
+      "error": "no H1 found (article may be 404 or unrendered)"
+    },
+    {
+      "article_id": "ind.collections_customize_page_check_compliance.htm",
+      "title": "Customize Lightning Pages to View Compliance Check Information",
+      "status": "error",
+      "area": "collections",
+      "parent_article": "ind.collections_compliance_setup.htm",
+      "error": "no H1 found (article may be 404 or unrendered)"
+    },
+    {
+      "article_id": "ind.collections_customize_page_hierarchical_view.htm",
+      "title": "Customize Lightning Pages to View Collection Plans and Related...",
+      "status": "error",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "error": "no H1 found (article may be 404 or unrendered)"
+    },
+    {
+      "article_id": "ind.collections_data_model.htm",
+      "title": "Collections and Recovery Data Model",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections.htm",
+      "body_length": 1427,
+      "file": "articles/ind.collections_data_model.htm.md"
+    },
+    {
+      "article_id": "ind.collections_edit_deployment_for_event_action.htm",
+      "title": "Customize the Preconfigured Action Launcher Deployment and Enable Interaction Summaries",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_interaction_outcome.htm",
+      "body_length": 1559,
+      "file": "articles/ind.collections_edit_deployment_for_event_action.htm.md"
+    },
+    {
+      "article_id": "ind.collections_editions_permissions.htm",
+      "title": "Editions and Permissions for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections.htm",
+      "body_length": 4538,
+      "file": "articles/ind.collections_editions_permissions.htm.md"
+    },
+    {
+      "article_id": "ind.collections_enable_borrower_details.htm",
+      "title": "Show Account and Contact Details on a Collection Plan Page",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 600,
+      "file": "articles/ind.collections_enable_borrower_details.htm.md"
+    },
+    {
+      "article_id": "ind.collections_enable_bre_components.htm",
+      "title": "Enable Business Rules Engine Components for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_customize_bre_components_to_determine_segment.htm",
+      "body_length": 969,
+      "file": "articles/ind.collections_enable_bre_components.htm.md"
+    },
+    {
+      "article_id": "ind.collections_enable_decision_table_access.htm",
+      "title": "Enable Decision Table Access for Collections",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_payment_plans_for_financial_hardships.htm",
+      "body_length": 506,
+      "file": "articles/ind.collections_enable_decision_table_access.htm.md"
+    },
+    {
+      "article_id": "ind.collections_enable_design_document_templates.htm",
+      "title": "Enable Design Document Templates",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_docgen_templates.htm",
+      "body_length": 397,
+      "file": "articles/ind.collections_enable_design_document_templates.htm.md"
+    },
+    {
+      "article_id": "ind.collections_enable_fls_case_object.htm",
+      "title": "Set Field-Level Security for Case Source",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 1010,
+      "file": "articles/ind.collections_enable_fls_case_object.htm.md"
+    },
+    {
+      "article_id": "ind.collections_enable_outbound_dialer.htm",
+      "title": "Turn on Features to Set Up Outbound Dialer for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_outbound_dialer.htm",
+      "body_length": 613,
+      "file": "articles/ind.collections_enable_outbound_dialer.htm.md"
+    },
+    {
+      "article_id": "ind.collections_enable_payment_status_notification.htm",
+      "title": "Enable Payment Status Notification",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_automated_payment_notification.htm",
+      "body_length": 517,
+      "file": "articles/ind.collections_enable_payment_status_notification.htm.md"
+    },
+    {
+      "article_id": "ind.collections_enable_timeline.htm",
+      "title": "Enable Timeline for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 887,
+      "file": "articles/ind.collections_enable_timeline.htm.md"
+    },
+    {
+      "article_id": "ind.collections_generate_docs_with_templates.htm",
+      "title": "Generate Collections-Related Documents with Document Templates",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_docgen_templates.htm",
+      "body_length": 642,
+      "file": "articles/ind.collections_generate_docs_with_templates.htm.md"
+    },
+    {
+      "article_id": "ind.collections_record_ptp.htm",
+      "title": "Record a Promise to Pay Commitment",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_work_with_console_app.htm",
+      "body_length": 1861,
+      "file": "articles/ind.collections_record_ptp.htm.md"
+    },
+    {
+      "article_id": "ind.collections_risk_score_assign_connector_permissions.htm",
+      "title": "Add Data Cloud Salesforce Connector Permissions for Collections Risk Score Predictions",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_risk_scores.htm",
+      "body_length": 2098,
+      "file": "articles/ind.collections_risk_score_assign_connector_permissions.htm.md"
+    },
+    {
+      "article_id": "ind.collections_risk_score_customize_data_transform.htm",
+      "title": "Customize the Training and Scoring Data Transforms Used for Collections Risk Score Predictions",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_risk_scores.htm",
+      "body_length": 2849,
+      "file": "articles/ind.collections_risk_score_customize_data_transform.htm.md"
+    },
+    {
+      "article_id": "ind.collections_risk_score_enable_fsc_std_objects.htm",
+      "title": "Enable Financial Account Management Standard Objects for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_risk_scores.htm",
+      "body_length": 589,
+      "file": "articles/ind.collections_risk_score_enable_fsc_std_objects.htm.md"
+    },
+    {
+      "article_id": "ind.collections_risk_score_feature_reference.htm",
+      "title": "Overview of Features and Assets of Tableau Next App for Collections",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_calculate_risk_scores.htm",
+      "body_length": 3022,
+      "file": "articles/ind.collections_risk_score_feature_reference.htm.md"
+    },
+    {
+      "article_id": "ind.collections_risk_score_set_up_copy_enrichment.htm",
+      "title": "Create a Copy Field Enrichment to Copy Risk Score from Data Model Object",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_risk_scores.htm",
+      "body_length": 1440,
+      "file": "articles/ind.collections_risk_score_set_up_copy_enrichment.htm.md"
+    },
+    {
+      "article_id": "ind.collections_risk_score_setup_datacloud.htm",
+      "title": "Get Started with Data 360 for Collections Risk Score Predictions",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_risk_scores.htm",
+      "body_length": 1085,
+      "file": "articles/ind.collections_risk_score_setup_datacloud.htm.md"
+    },
+    {
+      "article_id": "ind.collections_risk_score_upload_data.htm",
+      "title": "Import Collections and Recovery Data into Data 360",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_risk_scores.htm",
+      "body_length": 794,
+      "file": "articles/ind.collections_risk_score_upload_data.htm.md"
+    },
+    {
+      "article_id": "ind.collections_run_actionable_event_orchestration.htm",
+      "title": "Run the Actionable Event Orchestration by Using Connect API",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_customize_bre_components_to_determine_segment.htm",
+      "body_length": 1191,
+      "file": "articles/ind.collections_run_actionable_event_orchestration.htm.md"
+    },
+    {
+      "article_id": "ind.collections_run_dpe_outbound_dialer.htm",
+      "title": "Run Prebuilt Data Processing Engine Definition for Collections Outbound Dialer",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_outbound_dialer.htm",
+      "body_length": 1698,
+      "file": "articles/ind.collections_run_dpe_outbound_dialer.htm.md"
+    },
+    {
+      "article_id": "ind.collections_set_up_actionable_event_orchestration.htm",
+      "title": "Set Up an Actionable Event Orchestration for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_customize_bre_components_to_determine_segment.htm",
+      "body_length": 1596,
+      "file": "articles/ind.collections_set_up_actionable_event_orchestration.htm.md"
+    },
+    {
+      "article_id": "ind.collections_set_up_actionable_segmentation.htm",
+      "title": "Set Up Actionable Segmentation for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 3568,
+      "file": "articles/ind.collections_set_up_actionable_segmentation.htm.md"
+    },
+    {
+      "article_id": "ind.collections_set_up_campaigns.htm",
+      "title": "Set Up Collection Campaigns",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 2227,
+      "file": "articles/ind.collections_set_up_campaigns.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup.htm",
+      "title": "Set Up Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections.htm",
+      "body_length": 9561,
+      "file": "articles/ind.collections_setup.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_actionable_segmentation.htm",
+      "title": "Create an Actionable List Definition by Using Predefined Data Processing Engine Definition",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_outbound_dialer.htm",
+      "body_length": 1732,
+      "file": "articles/ind.collections_setup_actionable_segmentation.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_auto_payments_received.htm",
+      "title": "Configure Automatic Payments Received Updates",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 613,
+      "file": "articles/ind.collections_setup_auto_payments_received.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_automated_payment_notification.htm",
+      "title": "Configure Automatic Payment Status Notifications",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 621,
+      "file": "articles/ind.collections_setup_automated_payment_notification.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_calculate_risk_scores.htm",
+      "title": "Install and Configure the Tableau Next App for Collections Risk Score Predictions",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_risk_scores.htm",
+      "body_length": 4012,
+      "file": "articles/ind.collections_setup_calculate_risk_scores.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_docgen_templates.htm",
+      "title": "Set Up Document Generation Templates for Collections and Recovery Communication",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 813,
+      "file": "articles/ind.collections_setup_docgen_templates.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_insights_account_page.htm",
+      "title": "Set Up Account Summary for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 1963,
+      "file": "articles/ind.collections_setup_insights_account_page.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_interaction_outcome.htm",
+      "title": "Setup and Configuration for Capturing Customer Interaction Outcomes",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 2128,
+      "file": "articles/ind.collections_setup_interaction_outcome.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_outbound_dialer.htm",
+      "title": "Set Up Outbound Dialer for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 2469,
+      "file": "articles/ind.collections_setup_outbound_dialer.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_payment_plans_for_financial_hardships.htm",
+      "title": "Set Up Payment Plans to Manage Financial Hardships",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 1772,
+      "file": "articles/ind.collections_setup_payment_plans_for_financial_hardships.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_paynow.htm",
+      "title": "Set Up Pay Now for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_salesforce_payments.htm",
+      "body_length": 919,
+      "file": "articles/ind.collections_setup_paynow.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_ptp.htm",
+      "title": "Set Up Promise to Pay",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 647,
+      "file": "articles/ind.collections_setup_ptp.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_risk_scores.htm",
+      "title": "Set Up Tableau Next App to Predict Risk Scores for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 2550,
+      "file": "articles/ind.collections_setup_risk_scores.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_salesforce_payments.htm",
+      "title": "Configure Additional Payment Options for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 1449,
+      "file": "articles/ind.collections_setup_salesforce_payments.htm.md"
+    },
+    {
+      "article_id": "ind.collections_setup_service_cloud_voice_amazon_connect.htm",
+      "title": "Set Up Salesforce Voice with Amazon Connect",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup_outbound_dialer.htm",
+      "body_length": 3213,
+      "file": "articles/ind.collections_setup_service_cloud_voice_amazon_connect.htm.md"
+    },
+    {
+      "article_id": "ind.collections_submit_direct_debit_request.htm",
+      "title": "Request a Direct Debit for Collection Plans",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_work_with_console_app.htm",
+      "body_length": 874,
+      "file": "articles/ind.collections_submit_direct_debit_request.htm.md"
+    },
+    {
+      "article_id": "ind.collections_update_collection_segment_picklist_values.htm",
+      "title": "Add the Collection Plan Segment Picklist Values",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_customize_bre_components_to_determine_segment.htm",
+      "body_length": 617,
+      "file": "articles/ind.collections_update_collection_segment_picklist_values.htm.md"
+    },
+    {
+      "article_id": "ind.collections_usage_types.htm",
+      "title": "Billing Considerations for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 653,
+      "file": "articles/ind.collections_usage_types.htm.md"
+    },
+    {
+      "article_id": "ind.collections_use_preconfigured_deployment.htm",
+      "title": "Configure Action Launcher Deployment for Collections and Recovery",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_setup.htm",
+      "body_length": 1209,
+      "file": "articles/ind.collections_use_preconfigured_deployment.htm.md"
+    },
+    {
+      "article_id": "ind.collections_view_borrower_details.htm",
+      "title": "View a Collection Plan Record Details Page",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_work_with_console_app.htm",
+      "body_length": 1579,
+      "file": "articles/ind.collections_view_borrower_details.htm.md"
+    },
+    {
+      "article_id": "ind.collections_view_summary_on_account_pages.htm",
+      "title": "View Metrics and Linked Collection Plans on Account Pages",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections_work_with_console_app.htm",
+      "body_length": 1346,
+      "file": "articles/ind.collections_view_summary_on_account_pages.htm.md"
+    },
+    {
+      "article_id": "ind.collections_work_with_console_app.htm",
+      "title": "Work with Collections and Recovery Console App",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections.htm",
+      "body_length": 3747,
+      "file": "articles/ind.collections_work_with_console_app.htm.md"
+    },
+    {
+      "article_id": "ind.collections_work_with_experience_cloud_site.htm",
+      "title": "Manage Your Collection Activities from the Collections and Recovery Experience Cloud Site",
+      "status": "captured",
+      "area": "collections",
+      "parent_article": "ind.collections.htm",
+      "body_length": 1623,
+      "file": "articles/ind.collections_work_with_experience_cloud_site.htm.md"
     },
     {
       "article_id": "ind.dro_add_a_fulfillment_user.htm",
@@ -6781,11 +7650,11 @@
     }
   ],
   "stats": {
-    "discovered": 838,
-    "captured": 838,
+    "discovered": 935,
+    "captured": 932,
     "pending": 0,
-    "errored": 0,
-    "total_captured_body_chars": 1996158
+    "errored": 3,
+    "total_captured_body_chars": 2170948
   },
   "todo": [
     "Walk remaining child articles from each captured parent to discover sub-article IDs (Turn On Email Delivery, Method 2 milestone creation, etc.).",
@@ -6793,9 +7662,9 @@
     "Discover and capture: Generate Invoices (ind.billing_invoice_run.htm?), Create Billing Profiles, Manage Debit Memos, Manage Credit Memos.",
     "Formalize this snapshot workflow as a CCI task once the manual pass settles the patterns."
   ],
-  "last_updated": "2026-05-12T00:40:54Z",
-  "root_article_id": "(see 'areas' array)",
-  "article_id_prefix": "(see 'areas' array)",
+  "last_updated": "2026-06-21T22:53:38Z",
+  "root_article_id": "ind.collections.htm",
+  "article_id_prefix": "ind.collections",
   "areas": [
     {
       "area": "agents",
@@ -6946,6 +7815,21 @@
         "errored": 0,
         "total_captured_body_chars": 90517
       }
+    },
+    {
+      "area": "collections",
+      "root_article_id": "ind.collections.htm",
+      "article_id_prefix": "ind.collections",
+      "source_root_url": "https://help.salesforce.com/s/articleView?id=ind.collections.htm&type=5&release=262",
+      "last_updated": "2026-06-21T22:53:38Z",
+      "stats": {
+        "discovered": 97,
+        "captured": 94,
+        "pending": 0,
+        "errored": 3,
+        "total_captured_body_chars": 174790
+      },
+      "snapshot_started": "2026-06-21"
     }
   ]
 }

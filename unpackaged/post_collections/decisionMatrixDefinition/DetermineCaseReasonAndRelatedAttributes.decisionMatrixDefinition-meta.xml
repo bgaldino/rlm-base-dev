@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DecisionMatrixDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Determine Case Reason and Related Attributes</label>
+    <processType>Bre</processType>
+    <type>Standard</type>
+    <versions>
+        <fullName>DetermineCaseReasonAndRelatedAttributes_V1</fullName>
+        <columns>
+            <columnType>Input</columnType>
+            <dataType>Text</dataType>
+            <displaySequence>1</displaySequence>
+            <isWildcardColumn>false</isWildcardColumn>
+            <name>Code</name>
+        </columns>
+        <columns>
+            <columnType>Output</columnType>
+            <dataType>Text</dataType>
+            <displaySequence>2</displaySequence>
+            <isWildcardColumn>false</isWildcardColumn>
+            <name>Reason</name>
+        </columns>
+        <columns>
+            <columnType>Output</columnType>
+            <dataType>Text</dataType>
+            <displaySequence>3</displaySequence>
+            <isWildcardColumn>false</isWildcardColumn>
+            <name>Priority</name>
+        </columns>
+        <columns>
+            <columnType>Output</columnType>
+            <dataType>Text</dataType>
+            <displaySequence>4</displaySequence>
+            <isWildcardColumn>false</isWildcardColumn>
+            <name>Type</name>
+        </columns>
+        <decisionMatrixDefinition>DetermineCaseReasonAndRelatedAttributes</decisionMatrixDefinition>
+        <label>Determine Case Reason and Related Attributes V1</label>
+        <startDate>2026-01-01T00:00:00.000Z</startDate>
+        <status>Draft</status>
+        <versionNumber>1</versionNumber>
+    </versions>
+</DecisionMatrixDefinition>

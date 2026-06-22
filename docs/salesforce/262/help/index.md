@@ -1,19 +1,19 @@
 # Summer '26 Salesforce Help Snapshot
 
-Captures **10 functional areas** of Revenue Cloud Help: agents, approvals, billing, configurator, dro, pcm, pricing, rating, transaction_mgmt, usage.
+Captures **11 functional areas** of Revenue Cloud Help: agents, approvals, billing, collections, configurator, dro, pcm, pricing, rating, transaction_mgmt, usage.
 
 **Release:** Summer '26 (262)
-**Last updated:** 2026-05-12T00:40:54Z
+**Last updated:** 2026-06-21T22:53:38Z
 
 ## Overall Stats
 
 | Metric | Value |
 |:--|--:|
-| Discovered | 838 |
-| Captured | 838 |
+| Discovered | 935 |
+| Captured | 932 |
 | Pending | 0 |
-| Errored | 0 |
-| Total captured body chars | 1,996,158 |
+| Errored | 3 |
+| Total captured body chars | 2,170,948 |
 
 ## Per-Area Coverage
 
@@ -22,6 +22,7 @@ Captures **10 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | **agents** | [ind.rev_agent_overview.htm](https://help.salesforce.com/s/articleView?id=ind.rev_agent_overview.htm&type=5) | `ind.rev_agent` | 13 | 2026-05-12T00:40:54Z |
 | **approvals** | [ind.approvals_advanced_approvals.htm](https://help.salesforce.com/s/articleView?id=ind.approvals_advanced_approvals.htm&type=5) | `ind.approvals` | 34 | 2026-05-12T00:40:54Z |
 | **billing** | [ind.billing.htm](https://help.salesforce.com/s/articleView?id=ind.billing.htm&type=5) | `ind.billing` | 171 | 2026-05-12T00:40:54Z |
+| **collections** | [ind.collections.htm](https://help.salesforce.com/s/articleView?id=ind.collections.htm&type=5&release=262) | `ind.collections` | 94 | 2026-06-21T22:53:38Z |
 | **configurator** | [ind.product_configurator_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_configurator_introduction.htm&type=5) | `ind.product_configurator` | 76 | 2026-05-12T00:40:54Z |
 | **dro** | [ind.dro_dynamic_revenue_orchestrator.htm](https://help.salesforce.com/s/articleView?id=ind.dro_dynamic_revenue_orchestrator.htm&type=5) | `ind.dro` | 70 | 2026-05-12T00:40:54Z |
 | **pcm** | [ind.product_catalog_introduction.htm](https://help.salesforce.com/s/articleView?id=ind.product_catalog_introduction.htm&type=5) | `ind.product_catalog` | 107 | 2026-05-12T00:40:54Z |
@@ -262,6 +263,105 @@ Captures **10 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | [Period Boundary and Proration in Billing Cycles](./articles/ind.billing_understand_period_boundries.htm.md) | `ind.billing_understand_period_boundries.htm` | 1,198 |
 | [Tax Interface Extension](./articles/ind.billing_understand_tax_interface_extension.htm.md) | `ind.billing_understand_tax_interface_extension.htm` | 2,225 |
 | [Generated Billing Schedule Details](./articles/ind.billing_view_billing_sched_group.htm.md) | `ind.billing_view_billing_sched_group.htm` | 8,777 |
+
+## Captured — collections (94)
+
+| Article | ID | Bytes |
+|:--|:--|--:|
+| [Collections and Recovery](./articles/ind.collections.htm.md) | `ind.collections.htm` | 7,119 |
+| [Configure Picklist Values and Assign Field-Level Access](./articles/ind.collections_add_cpstatus_picklist_values.htm.md) | `ind.collections_add_cpstatus_picklist_values.htm` | 2,818 |
+| [Add Related Cases to Collection Plan](./articles/ind.collections_add_related_cases_to_collection_plan.htm.md) | `ind.collections_add_related_cases_to_collection_plan.htm` | 807 |
+| [Assign Object Permissions for Collections and Recovery](./articles/ind.collections_assign_object_permissions.htm.md) | `ind.collections_assign_object_permissions.htm` | 2,300 |
+| [Collections and Recovery Basics](./articles/ind.collections_basics.htm.md) | `ind.collections_basics.htm` | 3,736 |
+| [Capture Collections-Related Interaction](./articles/ind.collections_capture_interaction_outcome.htm.md) | `ind.collections_capture_interaction_outcome.htm` | 1,626 |
+| [Check Call Compliance for Borrowers Linked to Collection Plan](./articles/ind.collections_check_call_compliance.htm.md) | `ind.collections_check_call_compliance.htm` | 844 |
+| [Clone and Customize the Predefined Document Generation Templates](./articles/ind.collections_clone_customize_docgen_templates.htm.md) | `ind.collections_clone_customize_docgen_templates.htm` | 1,066 |
+| [Clone and Customize Prebuilt Flexcard for Collections Summary](./articles/ind.collections_clone_customize_flexcard_collections_summary.htm.md) | `ind.collections_clone_customize_flexcard_collections_summary.htm` | 1,030 |
+| [Clone and Customize the Predefined Data Processing Engine Definition for Collections Summary](./articles/ind.collections_clone_dpe_account_summary.htm.md) | `ind.collections_clone_dpe_account_summary.htm` | 4,708 |
+| [Create an Expression Set from a Prebuilt Expression Set Template for Payment Plan Mapping](./articles/ind.collections_clone_expression_set_template_for_payment_plans.htm.md) | `ind.collections_clone_expression_set_template_for_payment_plans.htm` | 1,513 |
+| [Setup and Configuration of Collections and Recovery Portal](./articles/ind.collections_community_portal_setup.htm.md) | `ind.collections_community_portal_setup.htm` | 1,503 |
+| [Clone and Assign Permissions Sets for Collections and Recovery Portal](./articles/ind.collections_community_user_profiles_permissions.htm.md) | `ind.collections_community_user_profiles_permissions.htm` | 2,799 |
+| [Enable Financial Account Management Standard Objects and Configure Context Definitions](./articles/ind.collections_compliance_prerequisites.htm.md) | `ind.collections_compliance_prerequisites.htm` | 1,062 |
+| [Setup and Configuration for Call Compliance Checks](./articles/ind.collections_compliance_setup.htm.md) | `ind.collections_compliance_setup.htm` | 1,410 |
+| [Set Up Case Management for Collections and Recovery](./articles/ind.collections_configure_case_management.htm.md) | `ind.collections_configure_case_management.htm` | 1,484 |
+| [Set Up Mulesoft Integration for Direct Debit Request](./articles/ind.collections_configure_direct_debit_setup.htm.md) | `ind.collections_configure_direct_debit_setup.htm` | 1,288 |
+| [Configure Maximum Promise to Pay Count](./articles/ind.collections_configure_max_ptp.htm.md) | `ind.collections_configure_max_ptp.htm` | 881 |
+| [Create and Configure Action Launcher Deployment for Collections and Recovery Portal](./articles/ind.collections_create_action_launcher_deployment_for_portal.htm.md) | `ind.collections_create_action_launcher_deployment_for_portal.htm` | 1,023 |
+| [Create and Configure Prioritized Lists of Collection Plans with Actionable List Definitions](./articles/ind.collections_create_actionable_lists.htm.md) | `ind.collections_create_actionable_lists.htm` | 1,254 |
+| [Create Cases for Collection Plans](./articles/ind.collections_create_case_manually.htm.md) | `ind.collections_create_case_manually.htm` | 1,027 |
+| [Create and Configure an External Client App](./articles/ind.collections_create_configure_external_client_app.htm.md) | `ind.collections_create_configure_external_client_app.htm` | 936 |
+| [Create Custom Account Fields for Collections Summary](./articles/ind.collections_create_custom_fields_account.htm.md) | `ind.collections_create_custom_fields_account.htm` | 1,542 |
+| [Create and Activate a Decision Matrix to Create a Case for a Collection Plan](./articles/ind.collections_create_decision_matrix_create_case.htm.md) | `ind.collections_create_decision_matrix_create_case.htm` | 2,852 |
+| [Create a Decision Matrix to Determine Collection Plan Segments](./articles/ind.collections_create_decision_matrix_for_segment.htm.md) | `ind.collections_create_decision_matrix_for_segment.htm` | 1,429 |
+| [Create a Decision Table for Payment Plan Mapping](./articles/ind.collections_create_decision_table_for_payment_plan_mapping.htm.md) | `ind.collections_create_decision_table_for_payment_plan_mapping.htm` | 1,873 |
+| [Create an Experience Site by Using the Collections and Recovery Portal Template](./articles/ind.collections_create_experience_site.htm.md) | `ind.collections_create_experience_site.htm` | 1,696 |
+| [Create and Configure Integration Definitions and Named Credentials](./articles/ind.collections_create_ip_compliance_check.htm.md) | `ind.collections_create_ip_compliance_check.htm` | 2,438 |
+| [Create Object Field Aliases for Collection Plan Fields](./articles/ind.collections_create_object_field_aliases.htm.md) | `ind.collections_create_object_field_aliases.htm` | 1,350 |
+| [Define Payment Plan Types to Create Payment Plans](./articles/ind.collections_create_payment_plan_types.htm.md) | `ind.collections_create_payment_plan_types.htm` | 4,363 |
+| [Create Payment Plans to Manage Financial Hardships](./articles/ind.collections_create_payment_plans_to_manage_financial_hardships.htm.md) | `ind.collections_create_payment_plans_to_manage_financial_hardships.htm` | 1,541 |
+| [Import Collection Data From CSV Files](./articles/ind.collections_csv_import.htm.md) | `ind.collections_csv_import.htm` | 729 |
+| [Customize Lightning Pages to View Collections Summary and Linked Collection Plans](./articles/ind.collections_customize_account_page.htm.md) | `ind.collections_customize_account_page.htm` | 1,737 |
+| [Clone and Customize the Prebuilt Expression Set Template for Collections and Recovery](./articles/ind.collections_customize_actionable_event_orchestration_procedure.htm.md) | `ind.collections_customize_actionable_event_orchestration_procedure.htm` | 2,683 |
+| [Set Up Rule-Based Collection Segmentation](./articles/ind.collections_customize_bre_components_to_determine_segment.htm.md) | `ind.collections_customize_bre_components_to_determine_segment.htm` | 2,749 |
+| [Customize the Case Lightning Record Page](./articles/ind.collections_customize_case_page_layout.htm.md) | `ind.collections_customize_case_page_layout.htm` | 795 |
+| [Clone and Customize the Prebuilt Context Definition for Collections and Recovery](./articles/ind.collections_customize_context_definition_for_segment.htm.md) | `ind.collections_customize_context_definition_for_segment.htm` | 2,064 |
+| [Clone the Prebuilt Expression Set Template to Determine Legal Case Eligibility](./articles/ind.collections_customize_expression_set_legal_eligibility.htm.md) | `ind.collections_customize_expression_set_legal_eligibility.htm` | 1,954 |
+| [Customize the Prebuilt Flow to Close Collection Plan and Associated Cases](./articles/ind.collections_customize_flow_case_closure.htm.md) | `ind.collections_customize_flow_case_closure.htm` | 1,093 |
+| [Customize the Prebuilt Flow to Create a Case for a Collection Plan](./articles/ind.collections_customize_flow_create_case.htm.md) | `ind.collections_customize_flow_create_case.htm` | 825 |
+| [Customize the Prebuilt Flow to Create Promise to Pay Agreements](./articles/ind.collections_customize_flow_for_ptp.htm.md) | `ind.collections_customize_flow_for_ptp.htm` | 937 |
+| [Customize the Prebuilt Flow to Send Payment Status Notifications](./articles/ind.collections_customize_flow_send_payment_status.htm.md) | `ind.collections_customize_flow_send_payment_status.htm` | 906 |
+| [Customize the Prebuilt Flow Template to Send a Reminder to Borrower with Payment Link](./articles/ind.collections_customize_flow_send_reminder.htm.md) | `ind.collections_customize_flow_send_reminder.htm` | 797 |
+| [Customize the Prebuilt Flow to Update the Payment Details](./articles/ind.collections_customize_flow_update_payment.htm.md) | `ind.collections_customize_flow_update_payment.htm` | 770 |
+| [Customize Prebuilt Flows for Outbound Collections Dialer](./articles/ind.collections_customize_flows_outbound_calls.htm.md) | `ind.collections_customize_flows_outbound_calls.htm` | 10,455 |
+| [Customize the Prebuilt Flow Template to Generate and Send a Payment Link](./articles/ind.collections_customize_generate_link_flow.htm.md) | `ind.collections_customize_generate_link_flow.htm` | 1,185 |
+| [Collections and Recovery Data Model](./articles/ind.collections_data_model.htm.md) | `ind.collections_data_model.htm` | 1,427 |
+| [Customize the Preconfigured Action Launcher Deployment and Enable Interaction Summaries](./articles/ind.collections_edit_deployment_for_event_action.htm.md) | `ind.collections_edit_deployment_for_event_action.htm` | 1,559 |
+| [Editions and Permissions for Collections and Recovery](./articles/ind.collections_editions_permissions.htm.md) | `ind.collections_editions_permissions.htm` | 4,538 |
+| [Show Account and Contact Details on a Collection Plan Page](./articles/ind.collections_enable_borrower_details.htm.md) | `ind.collections_enable_borrower_details.htm` | 600 |
+| [Enable Business Rules Engine Components for Collections and Recovery](./articles/ind.collections_enable_bre_components.htm.md) | `ind.collections_enable_bre_components.htm` | 969 |
+| [Enable Decision Table Access for Collections](./articles/ind.collections_enable_decision_table_access.htm.md) | `ind.collections_enable_decision_table_access.htm` | 506 |
+| [Enable Design Document Templates](./articles/ind.collections_enable_design_document_templates.htm.md) | `ind.collections_enable_design_document_templates.htm` | 397 |
+| [Set Field-Level Security for Case Source](./articles/ind.collections_enable_fls_case_object.htm.md) | `ind.collections_enable_fls_case_object.htm` | 1,010 |
+| [Turn on Features to Set Up Outbound Dialer for Collections and Recovery](./articles/ind.collections_enable_outbound_dialer.htm.md) | `ind.collections_enable_outbound_dialer.htm` | 613 |
+| [Enable Payment Status Notification](./articles/ind.collections_enable_payment_status_notification.htm.md) | `ind.collections_enable_payment_status_notification.htm` | 517 |
+| [Enable Timeline for Collections and Recovery](./articles/ind.collections_enable_timeline.htm.md) | `ind.collections_enable_timeline.htm` | 887 |
+| [Generate Collections-Related Documents with Document Templates](./articles/ind.collections_generate_docs_with_templates.htm.md) | `ind.collections_generate_docs_with_templates.htm` | 642 |
+| [Record a Promise to Pay Commitment](./articles/ind.collections_record_ptp.htm.md) | `ind.collections_record_ptp.htm` | 1,861 |
+| [Add Data Cloud Salesforce Connector Permissions for Collections Risk Score Predictions](./articles/ind.collections_risk_score_assign_connector_permissions.htm.md) | `ind.collections_risk_score_assign_connector_permissions.htm` | 2,098 |
+| [Customize the Training and Scoring Data Transforms Used for Collections Risk Score Predictions](./articles/ind.collections_risk_score_customize_data_transform.htm.md) | `ind.collections_risk_score_customize_data_transform.htm` | 2,849 |
+| [Enable Financial Account Management Standard Objects for Collections and Recovery](./articles/ind.collections_risk_score_enable_fsc_std_objects.htm.md) | `ind.collections_risk_score_enable_fsc_std_objects.htm` | 589 |
+| [Overview of Features and Assets of Tableau Next App for Collections](./articles/ind.collections_risk_score_feature_reference.htm.md) | `ind.collections_risk_score_feature_reference.htm` | 3,022 |
+| [Create a Copy Field Enrichment to Copy Risk Score from Data Model Object](./articles/ind.collections_risk_score_set_up_copy_enrichment.htm.md) | `ind.collections_risk_score_set_up_copy_enrichment.htm` | 1,440 |
+| [Get Started with Data 360 for Collections Risk Score Predictions](./articles/ind.collections_risk_score_setup_datacloud.htm.md) | `ind.collections_risk_score_setup_datacloud.htm` | 1,085 |
+| [Import Collections and Recovery Data into Data 360](./articles/ind.collections_risk_score_upload_data.htm.md) | `ind.collections_risk_score_upload_data.htm` | 794 |
+| [Run the Actionable Event Orchestration by Using Connect API](./articles/ind.collections_run_actionable_event_orchestration.htm.md) | `ind.collections_run_actionable_event_orchestration.htm` | 1,191 |
+| [Run Prebuilt Data Processing Engine Definition for Collections Outbound Dialer](./articles/ind.collections_run_dpe_outbound_dialer.htm.md) | `ind.collections_run_dpe_outbound_dialer.htm` | 1,698 |
+| [Set Up an Actionable Event Orchestration for Collections and Recovery](./articles/ind.collections_set_up_actionable_event_orchestration.htm.md) | `ind.collections_set_up_actionable_event_orchestration.htm` | 1,596 |
+| [Set Up Actionable Segmentation for Collections and Recovery](./articles/ind.collections_set_up_actionable_segmentation.htm.md) | `ind.collections_set_up_actionable_segmentation.htm` | 3,568 |
+| [Set Up Collection Campaigns](./articles/ind.collections_set_up_campaigns.htm.md) | `ind.collections_set_up_campaigns.htm` | 2,227 |
+| [Set Up Collections and Recovery](./articles/ind.collections_setup.htm.md) | `ind.collections_setup.htm` | 9,561 |
+| [Create an Actionable List Definition by Using Predefined Data Processing Engine Definition](./articles/ind.collections_setup_actionable_segmentation.htm.md) | `ind.collections_setup_actionable_segmentation.htm` | 1,732 |
+| [Configure Automatic Payments Received Updates](./articles/ind.collections_setup_auto_payments_received.htm.md) | `ind.collections_setup_auto_payments_received.htm` | 613 |
+| [Configure Automatic Payment Status Notifications](./articles/ind.collections_setup_automated_payment_notification.htm.md) | `ind.collections_setup_automated_payment_notification.htm` | 621 |
+| [Install and Configure the Tableau Next App for Collections Risk Score Predictions](./articles/ind.collections_setup_calculate_risk_scores.htm.md) | `ind.collections_setup_calculate_risk_scores.htm` | 4,012 |
+| [Set Up Document Generation Templates for Collections and Recovery Communication](./articles/ind.collections_setup_docgen_templates.htm.md) | `ind.collections_setup_docgen_templates.htm` | 813 |
+| [Set Up Account Summary for Collections and Recovery](./articles/ind.collections_setup_insights_account_page.htm.md) | `ind.collections_setup_insights_account_page.htm` | 1,963 |
+| [Setup and Configuration for Capturing Customer Interaction Outcomes](./articles/ind.collections_setup_interaction_outcome.htm.md) | `ind.collections_setup_interaction_outcome.htm` | 2,128 |
+| [Set Up Outbound Dialer for Collections and Recovery](./articles/ind.collections_setup_outbound_dialer.htm.md) | `ind.collections_setup_outbound_dialer.htm` | 2,469 |
+| [Set Up Payment Plans to Manage Financial Hardships](./articles/ind.collections_setup_payment_plans_for_financial_hardships.htm.md) | `ind.collections_setup_payment_plans_for_financial_hardships.htm` | 1,772 |
+| [Set Up Pay Now for Collections and Recovery](./articles/ind.collections_setup_paynow.htm.md) | `ind.collections_setup_paynow.htm` | 919 |
+| [Set Up Promise to Pay](./articles/ind.collections_setup_ptp.htm.md) | `ind.collections_setup_ptp.htm` | 647 |
+| [Set Up Tableau Next App to Predict Risk Scores for Collections and Recovery](./articles/ind.collections_setup_risk_scores.htm.md) | `ind.collections_setup_risk_scores.htm` | 2,550 |
+| [Configure Additional Payment Options for Collections and Recovery](./articles/ind.collections_setup_salesforce_payments.htm.md) | `ind.collections_setup_salesforce_payments.htm` | 1,449 |
+| [Set Up Salesforce Voice with Amazon Connect](./articles/ind.collections_setup_service_cloud_voice_amazon_connect.htm.md) | `ind.collections_setup_service_cloud_voice_amazon_connect.htm` | 3,213 |
+| [Request a Direct Debit for Collection Plans](./articles/ind.collections_submit_direct_debit_request.htm.md) | `ind.collections_submit_direct_debit_request.htm` | 874 |
+| [Add the Collection Plan Segment Picklist Values](./articles/ind.collections_update_collection_segment_picklist_values.htm.md) | `ind.collections_update_collection_segment_picklist_values.htm` | 617 |
+| [Billing Considerations for Collections and Recovery](./articles/ind.collections_usage_types.htm.md) | `ind.collections_usage_types.htm` | 653 |
+| [Configure Action Launcher Deployment for Collections and Recovery](./articles/ind.collections_use_preconfigured_deployment.htm.md) | `ind.collections_use_preconfigured_deployment.htm` | 1,209 |
+| [View a Collection Plan Record Details Page](./articles/ind.collections_view_borrower_details.htm.md) | `ind.collections_view_borrower_details.htm` | 1,579 |
+| [View Metrics and Linked Collection Plans on Account Pages](./articles/ind.collections_view_summary_on_account_pages.htm.md) | `ind.collections_view_summary_on_account_pages.htm` | 1,346 |
+| [Work with Collections and Recovery Console App](./articles/ind.collections_work_with_console_app.htm.md) | `ind.collections_work_with_console_app.htm` | 3,747 |
+| [Manage Your Collection Activities from the Collections and Recovery Experience Cloud Site](./articles/ind.collections_work_with_experience_cloud_site.htm.md) | `ind.collections_work_with_experience_cloud_site.htm` | 1,623 |
 
 ## Captured — configurator (76)
 
@@ -918,6 +1018,12 @@ Captures **10 functional areas** of Revenue Cloud Help: agents, approvals, billi
 | [View Liable Summaries](./articles/ind.um_view_liable_summary.htm.md) | `ind.um_view_liable_summary.htm` | 677 |
 | [Unified Usage Dashboard](./articles/ind.um_wallet_management.htm.md) | `ind.um_wallet_management.htm` | 897 |
 
+## Errored (3)
+
+- `ind.collections_customize_omniscript_for_direct_debit.htm` — Customize the Prebuilt Omniscript for Direct Debit Request — _no H1 found (article may be 404 or unrendered)_
+- `ind.collections_customize_page_check_compliance.htm` — Customize Lightning Pages to View Compliance Check Information — _no H1 found (article may be 404 or unrendered)_
+- `ind.collections_customize_page_hierarchical_view.htm` — Customize Lightning Pages to View Collection Plans and Related... — _no H1 found (article may be 404 or unrendered)_
+
 ---
 
-*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-05-12T00:40:54Z.*
+*Generated by `tasks.rlm_snapshot_help.SnapshotSalesforceHelp` on 2026-06-21T22:53:38Z.*
