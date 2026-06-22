@@ -102,6 +102,9 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
   }
 
   async replaceDynamicLinks(content) {
+    if (!content) {
+      return content;
+    }
     // Step 1: Identify all dynamic link identifiers
     const identifiers = [];
     let searchIndex = 0;

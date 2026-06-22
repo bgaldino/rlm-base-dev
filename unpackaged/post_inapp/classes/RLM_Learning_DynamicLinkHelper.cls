@@ -92,7 +92,9 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
         throw new AuraHandledException('No Setup Page record for ' + objectAPIName);
       }
       if (String.isEmpty(setupPage[0].RLM_Learning_Setup_Page_URL__c)) {
-        throw new AuraHandledException('No Setup Page url missing' + objectAPIName);
+        throw new AuraHandledException(
+          'Setup Page URL is blank for ' + objectAPIName
+        );
       }
       if (objectAPIName == 'Contact') {
         noRedirect = noRedirect + '&isContactEntityOverride=1';

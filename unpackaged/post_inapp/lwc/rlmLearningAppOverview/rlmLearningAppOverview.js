@@ -41,7 +41,7 @@ export default class AppOverviewLWC extends NavigationMixin(LightningElement) {
     for (let i = 0; i < this.sectionsWithBlocks[0].blocks.length; i++) {
       let description = this.sectionsWithBlocks[0].blocks[i].description;
       newBlocks.push({ ...this.sectionsWithBlocks[0].blocks[i] });
-      if (description.includes("DYN_LINK")) {
+      if (description && description.includes("DYN_LINK")) {
         newBlocks[i].description = await this.replaceDynamicLinks(description);
       }
     }
@@ -52,6 +52,9 @@ export default class AppOverviewLWC extends NavigationMixin(LightningElement) {
   }
 
   async replaceDynamicLinks(content) {
+    if (!content) {
+      return content;
+    }
     while (content.includes("DYN_LINK")) {
       const identifier = findDynamicLinkIdentifier(
         content,
