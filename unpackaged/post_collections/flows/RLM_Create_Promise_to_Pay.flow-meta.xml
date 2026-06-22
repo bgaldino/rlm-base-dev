@@ -135,7 +135,7 @@
         <nameSegment>emailSimple</nameSegment>
         <offset>0</offset>
     </actionCalls>
-    <apiVersion>63.0</apiVersion>
+    <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <description>Sets the field values for the Payment schedule items to be created. Sets PaymentScheduleId to PaymentScheduleId from CreatePaymentSchedule, Status to Draft, and RequestedAmount and TargetPaymentProcessingDate to values provided by the flow user in the ScreenCollectPromiseToPayForm screen. Then adds PaymentScheduleItem to the PaymentScheduleItems record collection.</description>
