@@ -78,7 +78,7 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
     }
     // record must be a real Id — validate before it goes into the returned URL.
     Id recordId = Id.valueOf(record);
-    String base_url = System.Url.getOrgDomainUrl().toExternalForm();
+    String baseUrl = System.Url.getOrgDomainUrl().toExternalForm();
     String noRedirect = '?noredirect=1';
     try {
       // objectAPIName sits inside a quoted LIKE literal, so escape it.
@@ -99,7 +99,7 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
       if (objectAPIName == 'Contact') {
         noRedirect = noRedirect + '&isContactEntityOverride=1';
       }
-      return base_url + setupPage[0].RLM_Learning_Setup_Page_URL__c + '/' + recordId + noRedirect;
+      return baseUrl + setupPage[0].RLM_Learning_Setup_Page_URL__c + '/' + recordId + noRedirect;
     } catch (Exception e) {
       throw new AuraHandledException(e.getMessage());
     }
@@ -109,8 +109,10 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
   public static String getSiteUrl(String networkId) {
     try {
       Id nId = Id.valueOf(networkId);
-      String url = Network.getLoginUrl(nId).substringBefore('.com');
-      return url + '.com';
+      // Extract scheme + host from the login URL rather than assuming a `.com`
+      // domain (Experience Cloud login URLs can have a path or non-.com host).
+      Url loginUrl = new Url(Network.getLoginUrl(nId));
+      return loginUrl.getProtocol() + '://' + loginUrl.getHost();
     } catch (Exception e) {
       throw new AuraHandledException(e.getMessage());
     }

@@ -33,6 +33,7 @@ public with sharing class RLM_Learning_SectionBlockController {
     if (String.isEmpty(pageId)) {
       throw new AuraHandledException('Page id cannot be null or empty.');
     }
+    Id pageIdValue = toId(pageId, 'Page id');
 
     List<RLM_Learning_Section__c> sections = [
       SELECT
@@ -63,7 +64,7 @@ public with sharing class RLM_Learning_SectionBlockController {
       WHERE
         RecordType.DeveloperName = :sectionType
         AND RLM_Learning_Active__c = TRUE
-        AND RLM_Learning_Page__c = :pageId
+        AND RLM_Learning_Page__c = :pageIdValue
       WITH USER_MODE
     ];
     return sections;
@@ -107,6 +108,7 @@ public with sharing class RLM_Learning_SectionBlockController {
     if (String.isEmpty(sectionId)) {
       throw new AuraHandledException('Section id cannot be null or empty.');
     }
+    Id sectionIdValue = toId(sectionId, 'Section id');
 
     List<RLM_Learning_Section__c> sections = [
       SELECT
@@ -134,7 +136,7 @@ public with sharing class RLM_Learning_SectionBlockController {
           ORDER BY RLM_Learning_Order_Sequence__c ASC
         )
       FROM RLM_Learning_Section__c
-      WHERE Id = :sectionId AND RLM_Learning_Active__c = TRUE
+      WHERE Id = :sectionIdValue AND RLM_Learning_Active__c = TRUE
       WITH USER_MODE
     ];
     if (sections.isEmpty()) {
@@ -269,5 +271,14 @@ public with sharing class RLM_Learning_SectionBlockController {
     }
 
     return result;
+  }
+
+  // Validate a String -> Id before binding it into SOQL (apex-classes rule).
+  private static Id toId(String value, String label) {
+    try {
+      return Id.valueOf(value);
+    } catch (Exception e) {
+      throw new AuraHandledException(label + ' is not a valid id.');
+    }
   }
 }
