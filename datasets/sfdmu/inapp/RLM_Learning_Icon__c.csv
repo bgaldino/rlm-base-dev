@@ -14,7 +14,7 @@ Rev-Orders,small,utility:orders
 Rev-Orchestrator,small,utility:orchestrator
 Apps,small,utility:apps
 Sparkles,small,utility:sparkles
-Sparkle,small,
+Sparkle,small,utility:sparkles
 Task,small,utility:task
 Rev-Announcement,small,utility:announcement
 People,small,utility:people

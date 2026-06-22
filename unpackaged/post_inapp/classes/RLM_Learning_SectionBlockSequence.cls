@@ -39,29 +39,12 @@ public with sharing class RLM_Learning_SectionBlockSequence {
       ];
 
       if (!recordsToDelete.isEmpty()) {
-        // Using Database.delete for finer error control
-        Database.DeleteResult[] results = Database.delete(
-          recordsToDelete,
-          false,
-          AccessLevel.USER_MODE
-        );
-
-        // Handle errors
-        for (Integer i = 0; i < results.size(); i++) {
-          if (!results[i].isSuccess()) {
-            // Log the error details
-            System.debug(
-              'Error deleting record with Id: ' + recordsToDelete[i].Id
-            );
-            System.debug(
-              'Error message: ' + results[i].getErrors()[0].getMessage()
-            );
-          }
-        }
+        // allOrNone = true: any delete failure throws and rolls back, so we never
+        // leave stale junction rows behind and then insert a duplicate set.
+        Database.delete(recordsToDelete, true, AccessLevel.USER_MODE);
       }
-      List<RLM_Learning_SectionBlock__c> junctionRecords = new List<RLM_Learning_SectionBlock__c>();
 
-      // Create or update a record
+      List<RLM_Learning_SectionBlock__c> junctionRecords = new List<RLM_Learning_SectionBlock__c>();
       for (Integer i = 0; i < blockIds.size(); i++) {
         RLM_Learning_SectionBlock__c record = new RLM_Learning_SectionBlock__c();
         record.RLM_Learning_Section__c = sectionId;
@@ -69,8 +52,8 @@ public with sharing class RLM_Learning_SectionBlockSequence {
         record.RLM_Learning_Order_Sequence__c = i + 1;
         junctionRecords.add(record);
       }
-      // Perform the upsert
-      upsert as user junctionRecords;
+      // These are always new rows (no Id / external id), so insert.
+      insert as user junctionRecords;
     } catch (Exception e) {
       throw new AuraHandledException(e.getMessage());
     }

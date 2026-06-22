@@ -76,7 +76,7 @@ export default class AppOverviewLWC extends NavigationMixin(LightningElement) {
         const replaceString =
           "<a href='" +
           url +
-          "' target='_blank' style='color: rgb(0,0,238);'>" +
+          "' target='_blank' rel='noopener noreferrer' style='color: rgb(0,0,238);'>" +
           dynamicLink.RLM_Learning_Text_Value__c +
           "</a>";
         content = content.replace(identifier, replaceString);

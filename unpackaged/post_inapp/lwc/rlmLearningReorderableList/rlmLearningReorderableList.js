@@ -13,7 +13,10 @@ export default class ReorderableList extends LightningElement {
 
   @api set recordId(value) {
     this._recordId = value;
-    this.getData().then();
+    this.getData().catch((error) => {
+      // eslint-disable-next-line no-console
+      console.error("Error loading reorderable blocks:", error);
+    });
   }
 
   get recordId() {
@@ -43,12 +46,11 @@ export default class ReorderableList extends LightningElement {
     this.selectedBlocks = event.detail.value;
   }
 
-  handleCancel(event) {
-    // Add your cancel button implementation here
+  handleCancel() {
     this.dispatchEvent(new CloseActionScreenEvent());
   }
 
-  async handleSave(e) {
+  async handleSave() {
     await updateSectionBlocks({
       sectionId: this.recordId,
       blockIds: this.selectedBlocks

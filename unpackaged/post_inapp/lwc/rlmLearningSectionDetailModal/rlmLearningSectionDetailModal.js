@@ -6,7 +6,7 @@ export default class SectionDetailModal extends LightningModal {
   @api subHeader = "";
   @api description = "";
 
-  handleOkay(event) {
+  handleOkay() {
     this.close();
   }
 }

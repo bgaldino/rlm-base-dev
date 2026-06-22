@@ -31,7 +31,7 @@ public with sharing class RLM_Learning_SectionBlockController {
     }
 
     if (String.isEmpty(pageId)) {
-      throw new AuraHandledException('Page type cannot be null or empty.');
+      throw new AuraHandledException('Page id cannot be null or empty.');
     }
 
     List<RLM_Learning_Section__c> sections = [

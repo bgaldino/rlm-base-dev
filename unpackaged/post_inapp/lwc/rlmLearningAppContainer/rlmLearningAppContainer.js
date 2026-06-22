@@ -69,7 +69,9 @@ export default class Appcontainer extends NavigationMixin(LightningElement) {
 
   async handleClick(event) {
     try {
-      const appNameValue = event.target.dataset.id;
+      // currentTarget = the element the handler is bound to (carries data-id);
+      // event.target may be an internal node of the base component.
+      const appNameValue = event.currentTarget.dataset.id;
       if (!appNameValue) {
         throw new Error("Action is undefined. Please update a action type");
       }

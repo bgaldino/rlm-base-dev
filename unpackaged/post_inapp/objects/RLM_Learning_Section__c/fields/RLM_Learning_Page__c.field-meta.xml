@@ -9,5 +9,5 @@
     <required>false</required>
     <trackTrending>false</trackTrending>
     <type>Lookup</type>
-    <inlineHelpText> The page you need this section to be associated to</inlineHelpText>
+    <inlineHelpText>The page you need this section to be associated to</inlineHelpText>
 </CustomField>

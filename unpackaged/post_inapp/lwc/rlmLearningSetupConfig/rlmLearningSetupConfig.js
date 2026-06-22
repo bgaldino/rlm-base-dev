@@ -1,5 +1,5 @@
 import { LightningElement, track, wire, api } from "lwc";
-import { NavigationMixin, CurrentPageReference } from "lightning/navigation";
+import { NavigationMixin } from "lightning/navigation";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import rlmLearningSectionDetailModal from "c/rlmLearningSectionDetailModal";
 import getSectionsWithBlocksByPageId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByPageId";
@@ -42,7 +42,7 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
   }
 
   async handleClick(event) {
-    const appNameValue = event.target.dataset.id;
+    const appNameValue = event.currentTarget.dataset.id;
     try {
       if (!appNameValue) {
         throw new Error("Application name is not defined");
@@ -62,7 +62,7 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
         const description = await this.replaceDynamicLinks(
           sectionWithBlock.block.description
         );
-        const result = await rlmLearningSectionDetailModal.open({
+        await rlmLearningSectionDetailModal.open({
           // `label` is not included here in this example.
           // it is set on lightning-modal-header instead
           size: "medium",
@@ -147,7 +147,7 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
         const replaceString =
           "<a href='" +
           url +
-          "' target='_blank' style='color: rgb(0,0,238);'>" +
+          "' target='_blank' rel='noopener noreferrer' style='color: rgb(0,0,238);'>" +
           dynamicLink.RLM_Learning_Text_Value__c +
           "</a>";
         content = content.replace(identifier, replaceString);

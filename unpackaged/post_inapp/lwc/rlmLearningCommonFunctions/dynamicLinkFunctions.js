@@ -4,6 +4,16 @@ import getRecordIdFromDynamicLinkType from "@salesforce/apex/RLM_Learning_Dynami
 import getSiteUrl from "@salesforce/apex/RLM_Learning_DynamicLinkHelper.getSiteUrl";
 import getSetupPageLink from "@salesforce/apex/RLM_Learning_DynamicLinkHelper.getSetupPageLink";
 
+// Apex lookups can legitimately return no rows when an admin-authored
+// whereCondition / name matches nothing. Throw a clear, actionable error
+// instead of a cryptic "cannot read property Id of undefined".
+const firstOrThrow = (rows, label) => {
+  if (!rows || rows.length === 0) {
+    throw new Error("No record found for " + label);
+  }
+  return rows[0];
+};
+
 const getPageReferenceByDynamicType = async (dynamicLink) => {
   var pageReference;
   switch (dynamicLink.RecordType.DeveloperName) {
@@ -70,7 +80,10 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         whereCondition: dynamicLink.RLM_Learning_Where_Condition__c
       });
       // get the id from the result
-      const objectId = SELECTQUERYRESULT[0].Id;
+      const objectId = firstOrThrow(
+        SELECTQUERYRESULT,
+        "RecordPage: " + dynamicLink.RLM_Learning_Object__c
+      ).Id;
 
       pageReference = {
         type: "standard__app",
@@ -94,7 +107,10 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         whereCondition: dynamicLink.RLM_Learning_Where_Condition__c
       });
       // get the id from the result
-      const objectResultId = SELECTRESULT[0].Id;
+      const objectResultId = firstOrThrow(
+        SELECTRESULT,
+        "RecordRelationshipPage: " + dynamicLink.RLM_Learning_Object__c
+      ).Id;
 
       pageReference = {
         type: "standard__app",
@@ -126,7 +142,10 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         whereCondition: "Name='" + dynamicLink.RLM_Learning_Site_Name__c + "'"
       });
       let siteUrl = await getSiteUrl({
-        networkId: communityPage[0].Id
+        networkId: firstOrThrow(
+          communityPage,
+          "CommunityPage: " + dynamicLink.RLM_Learning_Site_Name__c
+        ).Id
       });
       if (dynamicLink.RLM_Learning_Relative_Url__c) {
         siteUrl += dynamicLink.RLM_Learning_Relative_Url__c;
@@ -160,7 +179,9 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
       pageReference = {
         type: "standard__webPage",
         attributes: {
-          url: "/survey/builderApp.app?surveyId=" + survey[0].Id
+          url:
+            "/survey/builderApp.app?surveyId=" +
+            firstOrThrow(survey, "SurveyRecordPage").Id
         }
       };
       break;
@@ -174,7 +195,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         attributes: {
           url:
             "/builder_industries_dataprocessingengine/dataProcessingEngine.app?dataProcessingEngineId=" +
-            dpeRecord[0].Id
+            firstOrThrow(dpeRecord, "DPERecordPage").Id
         }
       };
       break;
@@ -188,7 +209,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         attributes: {
           url:
             "/builder_platform_interaction/flowBuilder.app?flowId=" +
-            flowActiveVersion[0].ActiveVersionId
+            firstOrThrow(flowActiveVersion, "FlowRecordPage").ActiveVersionId
         }
       };
       break;
@@ -199,7 +220,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
       });
       const setupPage = await getSetupPageLink({
         objectAPIName: dynamicLink.RLM_Learning_Setup_Page__c,
-        record: records[0].Id
+        record: firstOrThrow(records, "SetupPage").Id
       });
 
       pageReference = {
@@ -241,16 +262,18 @@ const getDynamicLinkByIdentifier = async (identifier) => {
 };
 
 const findDynamicLinkIdentifier = (input, middlePosition) => {
-  var spacePosition = middlePosition;
-  //Check for character which is non-capital alphabet or underscore
-  for (
-    ;
-    ((input.charCodeAt(spacePosition) >= 65 &&
-      input.charCodeAt(spacePosition) <= 90) ||
-      input.charCodeAt(spacePosition) == 95) != " ";
-    spacePosition--
-  ) {}
-
+  // Walk backwards from middlePosition while the character is part of the
+  // identifier (A-Z or "_"), stopping at the first character that is not (or the
+  // start of the string). "DYN_LINK" is 8 chars, hence the +8 upper bound.
+  const isIdentifierChar = (code) =>
+    (code >= 65 && code <= 90) || code === 95;
+  let spacePosition = middlePosition;
+  while (
+    spacePosition >= 0 &&
+    isIdentifierChar(input.charCodeAt(spacePosition))
+  ) {
+    spacePosition--;
+  }
   return input.substring(spacePosition + 1, middlePosition + 8);
 };
 export {

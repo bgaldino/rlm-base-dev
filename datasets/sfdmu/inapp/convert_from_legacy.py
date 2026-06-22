@@ -31,6 +31,10 @@ OUT_DIR = Path(__file__).parent.absolute()
 # --- scrub / remap constants ---------------------------------------------------
 DEAD_BLOCK_IDS = {"Block__c-50", "Block__c-73"}        # legacy source row-ids — unreferenced dup Names
 ORPHAN_SB_IDS = {"SectionBlock__c-1", "SectionBlock__c-2"}  # legacy source row-ids — blank Section + Block
+# Legacy Icon rows that ship a blank Type render as an empty <lightning-icon>.
+# Map them (by Name) to the intended SLDS utility icon. "Sparkle" mirrors its
+# twin "Sparkles" (utility:sparkles) and is used by active Sections.
+ICON_TYPE_REMAP = {"Sparkle": "utility:sparkles"}
 ACCT_FROM, ACCT_TO = "Mahesh", "Infinitech"            # demo account -> QB default account
 TOKEN_FROM, TOKEN_TO = "ACC_MAHESH_DYN_LINK", "ACC_INFINITECH_DYN_LINK"
 DEAD_IMG_HOST = "rlm258learnorg.file.force.com"
@@ -430,7 +434,7 @@ def main():
 
     # --- RLM_Learning_Icon__c ---------------------------------------------------------------
     write_csv("RLM_Learning_Icon__c", ["Name", "RLM_Learning_Size__c", "RLM_Learning_Type__c"],
-              [[r[1], r[2], r[3]] for r in icon])
+              [[r[1], r[2], r[3] if r[3] else ICON_TYPE_REMAP.get(r[1], "")] for r in icon])
 
     # --- RLM_Learning_Page__c ---------------------------------------------------------------
     write_csv("RLM_Learning_Page__c", ["RLM_Learning_Active__c", "Name", "RLM_Learning_Type__c"],

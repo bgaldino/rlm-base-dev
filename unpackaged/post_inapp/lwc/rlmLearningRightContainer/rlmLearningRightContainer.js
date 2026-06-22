@@ -16,6 +16,7 @@ export default class RightContainer extends NavigationMixin(LightningElement) {
     return this._pageId;
   }
   set pageId(value) {
+    this._pageId = value;
     if (value) {
       getSectionsWithBlocksByPageId({
         sectionType: "Right",
@@ -64,7 +65,7 @@ export default class RightContainer extends NavigationMixin(LightningElement) {
   async handleClick(event) {
     // Wired to an <a href="#">; prevent the default anchor jump.
     event.preventDefault();
-    const appNameValue = event.target.dataset.id;
+    const appNameValue = event.currentTarget.dataset.id;
     try {
       if (!appNameValue) {
         throw new Error("Application name is not defined");
