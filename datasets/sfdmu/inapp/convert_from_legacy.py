@@ -82,6 +82,8 @@ TRAILHEAD_RELABEL = {
     "Efficient Sales with Revenue Cloud": "Efficient Sales with Agentforce Revenue Management",
     "Asset Lifecycle Management with Revenue Cloud": "Asset Lifecycle Management with Agentforce Revenue Management",
     "Billing Basics in Revenue Cloud": "Billing Basics in Agentforce Revenue Management",
+    # Not an ARM rebrand — the cert prep trail's title changed Exam -> Certification.
+    "Consultant Exam": "Consultant Certification",
 }
 WRONG_VERTICAL_MARKERS = ("Communications_Summer_24", "energy_and_utilities_cloud_winter_25")
 # DynamicLink record-Name fixes (these Names are the SFDMU composite key; 0 lockstep refs):
