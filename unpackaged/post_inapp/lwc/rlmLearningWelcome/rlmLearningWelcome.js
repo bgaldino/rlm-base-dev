@@ -35,11 +35,9 @@ export default class RlmLearningWelcome extends LightningElement {
   @wire(getSectionsWithBlocksByType, { sectionType: '$sectionType', pageType: '$pageType' })
   wiredSections({ error, data }) {
     if (data) {
-      console.log('Wired Data:', data);
       this.sectionsWithBlocks = data;
     } else if (error) {
       this.error = error.body.message;
-      console.error('Error fetching section and blocks:', error);
     }
   }
 }

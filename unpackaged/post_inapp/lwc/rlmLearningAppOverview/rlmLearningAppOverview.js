@@ -7,7 +7,9 @@ import {
   getPageReferenceByDynamicType
 } from "c/rlmLearningCommonFunctions";
 
-export default class AppOverviewLWC extends NavigationMixin(LightningElement) {
+export default class RlmLearningAppOverview extends NavigationMixin(
+  LightningElement
+) {
   @track sectionsWithBlocks = [];
 
   sectionType = "Left_Top";
@@ -19,12 +21,10 @@ export default class AppOverviewLWC extends NavigationMixin(LightningElement) {
   })
   wiredSections({ error, data }) {
     if (data) {
-      console.log("Wired Data:", data);
       this.sectionsWithBlocks = [...data];
       this.checkForDynamicLinks();
     } else if (error) {
       this.error = error.body.message;
-      console.error("Error fetching section and blocks:", error);
     }
   }
 

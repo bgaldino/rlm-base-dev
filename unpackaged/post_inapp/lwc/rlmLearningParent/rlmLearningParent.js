@@ -1,6 +1,6 @@
 import { LightningElement } from "lwc";
 
-export default class ParentLWC extends LightningElement {
+export default class RlmLearningParent extends LightningElement {
   isHome = true;
   hasNoData = false;
   handleHasNoData() {

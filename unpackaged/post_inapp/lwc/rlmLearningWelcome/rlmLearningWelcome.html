@@ -13,7 +13,7 @@
                     size="small"
                   ></lightning-icon>
                 </template>
-                {getTiming.data} {getName.data} !
+                {getTiming.data} {getName.data}!
               </h3>
               <template for:each={sectionBlocks.blocks} for:item="block">
                 <p key={block.Id} class="slds-var-p-left_xx-large" style="color: #000;">
@@ -22,7 +22,7 @@
                   ></lightning-formatted-rich-text>
                   <template if:true={hasExpiryDays}>
                     You can access and play around with all new features for
-                    <b> remaining {expiryDaysDisplay}</b> days.
+                    <b>remaining {expiryDaysDisplay}</b> days.
                   </template>
                 </p>
               </template>

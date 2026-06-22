@@ -4,7 +4,9 @@ import getSectionsWithBlocksByType from "@salesforce/apex/RLM_Learning_SectionBl
 import { getPageReferenceByDynamicType } from "c/rlmLearningCommonFunctions";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 
-export default class Appcontainer extends NavigationMixin(LightningElement) {
+export default class RlmLearningAppContainer extends NavigationMixin(
+  LightningElement
+) {
   @track sectionsWithBlocks = [];
   @track error;
 
@@ -19,7 +21,6 @@ export default class Appcontainer extends NavigationMixin(LightningElement) {
   })
   wiredSections({ error, data }) {
     if (data) {
-      console.log("Wired Data:", data);
       this.sectionsWithBlocks = JSON.parse(JSON.stringify(data)).map(
         (section) => {
           // Process SectionBlocks__r
@@ -50,7 +51,6 @@ export default class Appcontainer extends NavigationMixin(LightningElement) {
       this.createDynamicLinksMap(data);
     } else if (error) {
       this.error = error.body.message;
-      console.error("Error fetching section and blocks:", error);
     }
   }
 
@@ -73,7 +73,7 @@ export default class Appcontainer extends NavigationMixin(LightningElement) {
       // event.target may be an internal node of the base component.
       const appNameValue = event.currentTarget.dataset.id;
       if (!appNameValue) {
-        throw new Error("Action is undefined. Please update a action type");
+        throw new Error("Action is undefined. Please update an action type.");
       }
       const dynamicLink = this.dynamicLinksMap[appNameValue];
       if (!dynamicLink) {
@@ -85,7 +85,6 @@ export default class Appcontainer extends NavigationMixin(LightningElement) {
         if (dynamicLink.RecordType.DeveloperName == "SetupPage") {
           url = pageRef.attributes.url;
         }
-        console.log("url: " + url);
         if (!url) {
           throw new Error("Unable to generate URL. Possibly an invalid link");
         }

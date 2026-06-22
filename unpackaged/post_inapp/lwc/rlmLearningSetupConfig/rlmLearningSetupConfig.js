@@ -10,7 +10,9 @@ import {
 } from "c/rlmLearningCommonFunctions";
 import getSectionWithBlockBySectionId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId";
 
-export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
+export default class RlmLearningSetupConfig extends NavigationMixin(
+  LightningElement
+) {
   @track sectionsWithBlocks = [];
 
   sectionType = "Left_Bottom";
@@ -26,7 +28,7 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
       this.sectionsWithBlocks = data;
       this.createDynamicLinksMap(data);
     } else if (error) {
-      console.error("Error fetching section and blocks:", error);
+      this.showToast(error, error.message);
     }
   }
 
@@ -77,7 +79,6 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
           if (dynamicLink.RecordType.DeveloperName == "SetupPage") {
             url = pageRef.attributes.url;
           }
-          console.log("url: " + url);
           if (!url) {
             throw new Error("Unable to generate URL. Possibly an invalid link");
           }
@@ -154,8 +155,7 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
           dynamicLink.RLM_Learning_Text_Value__c +
           "</a>";
         content = content.replace(identifier, replaceString);
-      } catch (error) {
-        console.error(`Error processing identifier "${identifier}":`, error);
+      } catch {
         // Skip this identifier and continue
       }
     }

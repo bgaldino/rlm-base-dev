@@ -4,7 +4,7 @@ import getAllBlocks from "@salesforce/apex/RLM_Learning_SectionBlockSequence.get
 import getBlocksForSection from "@salesforce/apex/RLM_Learning_SectionBlockSequence.getBlocksForSection";
 import updateSectionBlocks from "@salesforce/apex/RLM_Learning_SectionBlockSequence.updateSectionBlocks";
 
-export default class ReorderableList extends LightningElement {
+export default class RlmLearningReorderableList extends LightningElement {
   @api objectApiName;
   @track blocks = [];
   @track selectedBlocks = [];
@@ -13,9 +13,8 @@ export default class ReorderableList extends LightningElement {
 
   @api set recordId(value) {
     this._recordId = value;
-    this.getData().catch((error) => {
-      // eslint-disable-next-line no-console
-      console.error("Error loading reorderable blocks:", error);
+    this.getData().catch(() => {
+      // Non-fatal: the block list simply won't pre-populate.
     });
   }
 

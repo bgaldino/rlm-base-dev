@@ -5,7 +5,9 @@ import getSectionsWithBlocksByType from "@salesforce/apex/RLM_Learning_SectionBl
 import getSectionsWithBlocksByPageId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByPageId";
 import { getPageReferenceByDynamicType } from "c/rlmLearningCommonFunctions";
 
-export default class RightContainer extends NavigationMixin(LightningElement) {
+export default class RlmLearningRightContainer extends NavigationMixin(
+  LightningElement
+) {
   @track sectionsWithBlocks = [];
   @track error;
 
@@ -23,12 +25,11 @@ export default class RightContainer extends NavigationMixin(LightningElement) {
         pageId: value
       })
         .then((data) => {
-          console.log("Learning Data:", data);
           this.sectionsWithBlocks = data;
           this.createDynamicLinksMap(data);
         })
         .catch((error) => {
-          console.error("Error fetching section and blocks:", error);
+          this.showToast(error, error.message);
         });
     }
   }
@@ -41,12 +42,11 @@ export default class RightContainer extends NavigationMixin(LightningElement) {
         pageType: "Home"
       })
         .then((data) => {
-          console.log("Learning Data:", data);
           this.sectionsWithBlocks = data;
           this.createDynamicLinksMap(data);
         })
         .catch((error) => {
-          console.error("Error fetching section and blocks:", error);
+          this.showToast(error, error.message);
         });
     }
   }
@@ -75,13 +75,11 @@ export default class RightContainer extends NavigationMixin(LightningElement) {
         throw new Error("No dynamic link found for " + appNameValue);
       }
       const pageRef = await getPageReferenceByDynamicType(dynamicLink);
-      console.log("pageRef: " + JSON.stringify(pageRef));
       try {
         let url = await this[NavigationMixin.GenerateUrl](pageRef);
         if (dynamicLink.RecordType.DeveloperName == "SetupPage") {
           url = pageRef.attributes.url;
         }
-        console.log("url: " + url);
         if (!url) {
           throw new Error("Unable to generate URL. Possibly an invalid link");
         }

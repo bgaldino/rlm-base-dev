@@ -4,13 +4,13 @@
         <itemInstances>
             <componentInstance>
                 <componentName>rlmLearningWelcome</componentName>
-                <identifier>c_welcomeEU</identifier>
+                <identifier>c_rlmLearningWelcome</identifier>
             </componentInstance>
         </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentName>rlmLearningParent</componentName>
-                <identifier>c_parentLWC</identifier>
+                <identifier>c_rlmLearningParent</identifier>
             </componentInstance>
         </itemInstances>
         <name>main</name>
