@@ -1,5 +1,5 @@
 RLM_Learning_App_API_Name__c,RLM_Learning_Filter_Name__c,RLM_Learning_Identity__c,RLM_Learning_Link__c,Name,RLM_Learning_Object__c,RLM_Learning_Page_Name__c,RLM_Learning_Relationship_API_Name__c,RLM_Learning_Relative_Url__c,RLM_Learning_Setup_Page__c,RLM_Learning_Site_Name__c,RLM_Learning_Text_Value__c,RLM_Learning_Where_Condition__c,RecordType.$$DeveloperName$SobjectType,RLM_Learning_Page__r.Name,RLM_Learning_Section__r.Name
-/lightning/app/standard__PriceManagement/page/home,,PCM_APP_DYN_LINK,,PCM App,,,,,,,,,AppPage;RLM_Learning_DynamicLink__c,,
+standard__IndustriesEpc,,PCM_APP_DYN_LINK,,PCM App,,,,,,,,,AppPage;RLM_Learning_DynamicLink__c,,
 c__Learning_Home,,ACC_INFINITECH_DYN_LINK,,Account Name Infinitech,Account,,,,,,here,Name = 'Infinitech',RecordPage;RLM_Learning_DynamicLink__c,,
 ,,,https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&release=262&type=5,Release Notes Summary,,,,,,,,,WebPage;RLM_Learning_DynamicLink__c,,
 ,,,https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&release=262&type=5,Summer '26 Release Notes,,,,,,,,,WebPage;RLM_Learning_DynamicLink__c,,
@@ -50,3 +50,4 @@ c__Learning_Home,,ACC_INFINITECH_DYN_LINK,,Account Name Infinitech,Account,,,,,,
 ,,DRO_DYN_LINK,,DRO Details Page Link,,,,,,,Go to Dynamic Revenue Orchestrator,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Dynamic Revenue Orchestrator,
 ,,Billing_Management_DYN_LINK,,Billing Management Details Page Link,,,,,,,Go to Billing Management,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Billing Management,
 ,,Rate_Management_DYN_LINK,,Rate Management Details Page Link,,,,,,,Go to Rate Management,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Rate Management,
+standard__PriceManagement,,PRICING_APP_DYN_LINK,,Pricing App,,,,,,,,,AppPage;RLM_Learning_DynamicLink__c,,

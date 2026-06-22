@@ -30,7 +30,8 @@ public with sharing class RLM_Learning_UserInformation {
             if (objList.isEmpty() || objList[0].TrialExpirationDate == null) {
                 return null;
             }
-            Date earliestDate = Date.valueOf(objList[0].TrialExpirationDate);
+            // TrialExpirationDate is a Datetime; take its date portion.
+            Date earliestDate = objList[0].TrialExpirationDate.date();
             Integer daysBetween = Date.today().daysBetween(earliestDate);
             // Clamp so an already-expired org never shows negative "days remaining".
             return daysBetween < 0 ? 0 : daysBetween;

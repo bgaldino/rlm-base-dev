@@ -26,11 +26,11 @@ of six objects key on their unique `Name`; only the junction needs a true compos
 | 1 | `RLM_Learning_Icon__c`         | Upsert | `Name` | 22  | natural — direct, unique 22/22 |
 | 2 | `RLM_Learning_Page__c`         | Upsert | `Name` | 10  | natural — direct, unique 10/10 |
 | 3 | `RLM_Learning_Section__c`      | Upsert | `Name` | 72  | natural — direct, unique 72/72 |
-| 4 | `RLM_Learning_DynamicLink__c`  | Upsert | `Name` | 51  | natural — direct, unique 51/51 (`RLM_Learning_Identity__c` rejected: 4 blanks) |
+| 4 | `RLM_Learning_DynamicLink__c`  | Upsert | `Name` | 52  | natural — direct, unique 52/52 (`RLM_Learning_Identity__c` rejected: 4 blanks) |
 | 5 | `RLM_Learning_Block__c`        | Upsert | `Name` | 126 | natural — direct, unique 126/126 **after dead-row scrub** |
 | 6 | `RLM_Learning_SectionBlock__c` | **Insert + deleteOldData** | `RLM_Learning_Section__r.Name;RLM_Learning_Block__r.Name;RLM_Learning_Order_Sequence__c` | 120 | **composite** — 2 parent traversals + 1 direct field |
 
-Total: **401 records** (405 source − 2 dead blocks − 2 orphan junction rows).
+Total: **402 records** (405 source − 2 dead blocks − 2 orphan junction rows + 1 split Pricing/PCM AppPage link).
 
 ### Why this is SFDMU v5-compliant
 - **Bug 1 (all-multi-hop externalId fails):** the junction key includes the **direct**

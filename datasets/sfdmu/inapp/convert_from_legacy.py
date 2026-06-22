@@ -420,6 +420,28 @@ def main():
             r[5] = DL_NAME_REMAP[r[5]]
             dl_renamed += 1
 
+    # --- Split the shared "PCM App" AppPage DynamicLink (Pricing vs PCM) -------
+    # The single legacy AppPage link stored a full URL in App_API_Name (invalid as a
+    # standard__app appTarget) and was reused by both the Pricing block and the PCM
+    # "Get Started" block. Point "PCM App" at the PCM app, add a dedicated Pricing
+    # App link, and repoint the Pricing block's action. App API names come from the
+    # blocks' own inline launch links (PriceManagement / IndustriesEpc).
+    app_split = 0
+    pcm = next((r for r in dlink if r[3] == "PCM_APP_DYN_LINK"), None)
+    if pcm is not None:
+        pcm[1] = "standard__IndustriesEpc"               # App_API_Name: PCM app (was a Pricing URL)
+        pricing_app = list(pcm)                          # clone the AppPage row for Pricing
+        pricing_app[0] = pcm[0] + "_PRICING"             # synthetic source id
+        pricing_app[1] = "standard__PriceManagement"     # App_API_Name: Pricing app
+        pricing_app[3] = "PRICING_APP_DYN_LINK"          # Identity
+        pricing_app[5] = "Pricing App"                   # Name
+        dlink.append(pricing_app)
+        dl_rt[pricing_app[0]] = dl_rt.get(pcm[0], "")    # same AppPage record type
+        for br in block:                                 # Pricing block -> the new Pricing App link
+            if br[5] == "Price Management Launch App Popup Text Block":
+                br[8] = pricing_app[0]
+                app_split += 1
+
     # --- id -> Name maps (post-remap) for lookup resolution -------------------
     icon_n = {r[0]: r[1] for r in icon}
     page_n = {r[0]: r[2] for r in page}
@@ -474,7 +496,7 @@ def main():
         if sib_desc != home_desc:
             sib_rewrites += 1
         desc = sib_desc
-        block_rows.append([scrub_text(r[1]), b(r[2]), scrub_text(desc), scrub_text(r[4]), r[5],
+        block_rows.append([scrub_text(r[1]).replace("Lauch", "Launch"), b(r[2]), scrub_text(desc), scrub_text(r[4]), r[5],
                            scrub_text(r[6]), scrub_text(r[7]), dl_n.get(r[8], ""), icon_n.get(r[9], "")])
     write_csv("RLM_Learning_Block__c",
               ["RLM_Learning_ActionText__c", "RLM_Learning_Active__c", "RLM_Learning_Description__c", "RLM_Learning_Header__c", "Name",
