@@ -92,22 +92,31 @@ The example mixes a billable Infinitech `post` spec with a Global Media
 
 ## Verifying in the org
 
-Use the manifest ids, or query by the run-id tag. Substitute your run id /
-order number:
+The per-run manifest (`scripts/demo_data/out/<run_id>.json`) is the source of
+truth — it lists every id by object. Prefer querying by those ids. Substitute your
+order id / invoice number:
 
 ```bash
-# The Posted invoice for an order (correlation is deterministic via the billing schedule).
+# The Posted invoice for an order — only works AFTER post (the tool stamps
+# ReferenceEntityId once the invoice is Posted; it is null while Draft).
 sf data query --target-org <sf-alias> -q "
   SELECT Id, InvoiceNumber, Status, TotalAmount, Description
   FROM Invoice WHERE ReferenceEntityId = '<orderId>'"
 
-# Everything a run created, by tag:
+# Quotes carry the run id in Description (filterable on Quote):
 sf data query --target-org <sf-alias> -q "
   SELECT Id, Name FROM Quote WHERE Description LIKE 'DEMO-%'"
+
+# Orders: query by the ids in the manifest — Order.Description is NOT
+# SOQL-filterable ("field 'Description' can not be filtered in a query call"),
+# so a `WHERE Description LIKE 'DEMO-%'` on Order fails. Use the id instead:
 sf data query --target-org <sf-alias> -q "
-  SELECT Id, OrderNumber, Status FROM Order WHERE Description LIKE 'DEMO-%'"
+  SELECT Id, OrderNumber, Status FROM Order WHERE Id = '<orderId>'"
 ```
 
+> `Order.Description` is set (the run-id tag) but **cannot be used in a SOQL
+> `WHERE`** — filter orders by id from the manifest, not by the tag.
+>
 > `Invoice.ReferenceEntityId` is **null on freshly generated** invoices and is set
 > by the tool only **after posting** (Draft rejects the write). The deterministic
 > back-link that always works is `InvoiceLine.BillingScheduleId` — see CONTRACTS.md
@@ -115,22 +124,38 @@ sf data query --target-org <sf-alias> -q "
 
 ## Cleanup
 
-Each run is additive with no dedup, so clean up explicitly when done.
+Each run is additive with no dedup, so clean up explicitly when done. **Drive
+cleanup from the manifest ids** (`scripts/demo_data/out/<run_id>.json`), not from
+SOQL tag filters — `Order.Description` is not SOQL-filterable (see Verifying
+above), so a `WHERE Description LIKE 'DEMO-%'` sweep on Order fails.
 
-- **By manifest** — the per-run JSON in `scripts/demo_data/out/` lists every id.
-- **By tag** — all records carry the run id (`Name`/`Description` on
-  Opportunity/Quote; `Description` on Order/Invoice):
+Delete **child → parent**: assets and orders first, then quotes, then the
+opportunity.
 
-  ```bash
-  # Delete demo orders (deletable); quotes/opportunities likewise.
-  sf data query --target-org <sf-alias> -q \
-    "SELECT Id FROM Order WHERE Description LIKE 'DEMO-%'" --json \
-    | jq -r '.result.records[].Id' \
-    | xargs -I{} sf data delete record --sobject Order --record-id {} --target-org <sf-alias>
-  ```
+```bash
+# Pull the ids for a run from its manifest.
+M=scripts/demo_data/out/<run_id>.json
+jq -r '.asset_ids[]?'  "$M" | xargs -I{} sf data delete record --sobject Asset    --record-id {} --target-org <sf-alias>
+jq -r '.quote_id // empty' "$M" | xargs -I{} sf data delete record --sobject Quote --record-id {} --target-org <sf-alias>
+jq -r '.opportunity_id // empty' "$M" | xargs -I{} sf data delete record --sobject Opportunity --record-id {} --target-org <sf-alias>
+```
 
-**Posted Invoices and Assets generally cannot be deleted** — plan demo orgs as
-disposable scratch/sandbox, not as something you scrub clean repeatedly.
+**Activated orders cannot be deleted directly** ("unable to modify activated or
+superseded order"). Revert the order to `Draft` first, then delete:
+
+```bash
+OID=$(jq -r '.order_id' "$M")
+sf data update record --sobject Order --record-id "$OID" --values "Status=Draft" --target-org <sf-alias>
+sf data delete record --sobject Order --record-id "$OID" --target-org <sf-alias>
+```
+
+**What you cannot delete** (platform-managed — left behind; plan demo orgs as
+disposable scratch/sandbox, not something you scrub clean repeatedly):
+
+- **Posted Invoices** — "you can only delete an invoice if its status is Draft or
+  Canceled," and `Invoice.Status` is not directly writable to `Canceled`. A *Draft*
+  invoice (a `--target-stage invoice` run) **is** deletable.
+- **BillingSchedules** — "insufficient access rights on object id"; system-managed.
 
 ## Troubleshooting
 

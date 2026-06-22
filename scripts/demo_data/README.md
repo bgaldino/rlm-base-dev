@@ -124,16 +124,26 @@ created (quote, order, billing schedules, assets, invoice). This directory is
 **git-ignored** — it's runtime output, not source. The manifest is the source of
 truth for verification and cleanup.
 
-Cleanup options:
+**Drive cleanup from the manifest ids** — delete the ids the run recorded
+(child → parent: assets/order, then quote, then opportunity). Every record also
+carries the run id in `Description` for ad-hoc inspection, but note **`Order.Description`
+is not SOQL-filterable** ("field 'Description' can not be filtered in a query
+call"), so a `WHERE Description LIKE 'DEMO-%'` sweep on Order fails — filter orders
+by id. `Quote.Description` *is* filterable.
 
-- **By manifest** — delete the ids the run recorded.
-- **By tag** — every record carries the run id: `Opportunity`/`Quote` in `Name`
-  and `Description`, `Order` and `Invoice` in `Description`. Bulk:
-  `... WHERE Description LIKE 'DEMO-%'`.
+Deletability (verified live):
 
-Note **Posted invoices and Assets generally cannot be deleted**; Opportunities,
-Quotes, and Orders can. There is no dedup/idempotency — re-running adds a fresh
-batch with a new run id (by design).
+- **Opportunities, Quotes, Assets** — deletable.
+- **Activated Orders** — must be reverted to `Status=Draft` first (`sf data update
+  record --sobject Order --record-id <id> --values "Status=Draft"`), then deletable.
+- **Posted Invoices** — **not** deletable (only Draft/Canceled are; `Invoice.Status`
+  isn't directly writable to Canceled). A `--target-stage invoice` Draft invoice is.
+- **BillingSchedules** — **not** deletable (system-managed: "insufficient access
+  rights on object id").
+
+See [`docs/guides/demo-data-generator.md`](../../docs/guides/demo-data-generator.md)
+→ *Cleanup* for copy-paste recipes. There is no dedup/idempotency — re-running adds
+a fresh batch with a new run id (by design).
 
 ## Known limitations
 
