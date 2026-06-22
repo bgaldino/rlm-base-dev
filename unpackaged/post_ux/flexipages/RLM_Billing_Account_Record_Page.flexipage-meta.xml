@@ -24,6 +24,9 @@
                         <valueListItems>
                             <value>Account.RLM_Generate_Account_Statement</value>
                         </valueListItems>
+                        <valueListItems>
+                            <value>Account.RLM_Create_Billing_Schedule_Group</value>
+                        </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
                 <componentInstanceProperties>

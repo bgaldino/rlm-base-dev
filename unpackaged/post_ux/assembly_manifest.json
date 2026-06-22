@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-06-21T18:46:52.402989Z",
+  "assembled_at": "2026-06-22T02:40:15.070963Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -88,7 +88,13 @@
       "name": "RLM_Billing_Account_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Account_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing_ui/RLM_Billing_Account_Record_Page.flexipage-meta.xml",
-      "patches": []
+      "patches": [
+        {
+          "feature": "billing_ui",
+          "patch_type": "insert_action",
+          "description": "insert actions: Account.RLM_Create_Billing_Schedule_Group"
+        }
+      ]
     },
     {
       "type": "flexipage",

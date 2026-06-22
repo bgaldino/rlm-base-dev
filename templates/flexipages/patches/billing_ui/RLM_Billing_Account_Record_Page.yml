@@ -1,0 +1,13 @@
+feature: billing_ui
+feature_flag: billing_ui
+# Adds the "Create Billing Schedule Group" screen action (rlmBillingScheduleGroupModal)
+# to the Account highlights panel, after the Generate Account Statement action.
+# Gated on billing_ui: the quick action (Account.RLM_Create_Billing_Schedule_Group)
+# and its LWC/service ship in the post_billing_ui tier, so the action only resolves
+# when billing_ui=true. Baseline builds (billing_ui=false) never assemble this page
+# or insert this action.
+patches:
+  - type: insert_action
+    after: "Account.RLM_Generate_Account_Statement"
+    actions:
+      - "Account.RLM_Create_Billing_Schedule_Group"
