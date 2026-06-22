@@ -198,7 +198,7 @@ public with sharing class RLM_Learning_SectionBlockController {
       throw new AuraHandledException('Section type cannot be null or empty.');
     }
     if (String.isEmpty(pageId)) {
-      throw new AuraHandledException('Page type cannot be null or empty.');
+      throw new AuraHandledException('Page id cannot be null or empty.');
     }
 
     return getResultFromSections(getSectionsByPageId(sectionType, pageId));

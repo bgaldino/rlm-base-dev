@@ -20,8 +20,10 @@
                   <lightning-formatted-rich-text
                     value={block.description}
                   ></lightning-formatted-rich-text>
-                  You can access and play around with all new features for
-                  <b> remaining {getExpiryDays.data}</b> days.
+                  <template if:true={hasExpiryDays}>
+                    You can access and play around with all new features for
+                    <b> remaining {expiryDaysDisplay}</b> days.
+                  </template>
                 </p>
               </template>
             </lightning-card>

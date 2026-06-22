@@ -17,10 +17,10 @@ export default class ReleaseNote extends LightningElement {
       console.log("Wired Data:", data);
       this.sectionsWithBlocks = data.map(section => ({
         ...section,
-        contentSize: section.section.RLM_Learning_Video_Link__c ? '7' : '12',
-        videoSize: section.blocks && section.blocks.length > 0 ? '5' : '7'
+        contentSize: section.section.RLM_Learning_Video_Link__c ? 7 : 12,
+        videoSize: section.blocks && section.blocks.length > 0 ? 5 : 7
       }));
-      if (this.sectionsWithBlocks.length == 0) {
+      if (this.sectionsWithBlocks.length === 0) {
         this.dispatchEvent(new CustomEvent("hasnodata"));
       }
     } else if (error) {

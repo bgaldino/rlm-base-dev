@@ -5,5 +5,5 @@
     <required>false</required>
     <trackTrending>false</trackTrending>
     <type>Url</type>
-    <inlineHelpText>The URL link must be prefix with https or http.</inlineHelpText>
+    <inlineHelpText>The URL must begin with http:// or https://.</inlineHelpText>
 </CustomField>
