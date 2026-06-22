@@ -203,9 +203,27 @@ class SfRestClient:
 
     # ----- transport dispatch ------------------------------------------------
     def _request(self, method: str, path: str, body: Any = None) -> Any:
+        path = self._normalize_path(path)
         if self.transport == "cli":
             return self._request_cli(method, path, body)
         return self._request_requests(method, path, body)
+
+    @staticmethod
+    def _normalize_path(path: str) -> str:
+        """Reduce ``path`` to a service-relative path (``/services/...``).
+
+        Some responses hand back an absolute URL (e.g. post's ``statusURL``)
+        rather than the relative form the rest of the tool passes. Both
+        transports assume relative: ``requests`` prepends ``instance_url`` and
+        the cli transport feeds ``path`` straight to ``sf api request rest``.
+        Strip any scheme+host so an absolute URL works through either transport.
+        """
+        if path.startswith(("http://", "https://")):
+            from urllib.parse import urlsplit
+
+            parts = urlsplit(path)
+            return parts.path + (f"?{parts.query}" if parts.query else "")
+        return path
 
     def _request_requests(self, method: str, path: str, body: Any) -> Any:
         url = f"{self.instance_url}{path}"

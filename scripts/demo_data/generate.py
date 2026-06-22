@@ -112,7 +112,13 @@ def _print_plan(
 
     total = 0
     for i, r in enumerate(resolved):
-        head = "opportunity" if r.spec.with_opportunity else "quote"
+        # The chain starts at 'opportunity' when one is prepended OR the target
+        # stage is 'opportunity' itself; otherwise the minimum is 'quote'. Clamp
+        # to effective_stage so a quote-only run never shows an empty range.
+        starts_with_opp = r.spec.with_opportunity or r.effective_stage == "opportunity"
+        head = "opportunity" if starts_with_opp else "quote"
+        if STAGES.index(head) > STAGES.index(r.effective_stage):
+            head = r.effective_stage
         stages_run = STAGES[STAGES.index(head): STAGES.index(r.effective_stage) + 1]
         total += r.spec.count
         print(f"\n--- Spec {i + 1}/{len(resolved)}  (x{r.spec.count}) ---")
@@ -200,12 +206,17 @@ def run_scenario(
     m = Manifest(run_id=run_id)
     stage = _effective_stage(target_stage, account)
     stop_at = STAGES.index(stage)
+    # target_stage 'opportunity' means "stop after the opportunity", so it
+    # implies creating one even when the --with-opportunity prepend flag is off.
+    want_opportunity = with_opportunity or stop_at == STAGES.index("opportunity")
     try:
-        if with_opportunity and ctx.opportunity_stage:
+        if want_opportunity and ctx.opportunity_stage:
             m.opportunity_id = lifecycle.create_opportunity(
                 client, account, ctx.opportunity_stage, run_id
             )
             m.reached_stage = "opportunity"
+        if stop_at == STAGES.index("opportunity"):
+            return m
 
         # quote (PST) -- always the minimum
         try:
@@ -259,6 +270,13 @@ def run_scenario(
     except LifecycleError as exc:
         m.error = str(exc)
         log.error("scenario %s failed: %s", run_id, exc)
+    except Exception as exc:  # noqa: BLE001 -- isolate one scenario's failure
+        # SfApiError / SfCliError (non-2xx, retries exhausted) and any
+        # unexpected error (e.g. KeyError on a malformed response) must be
+        # recorded on the manifest, not propagate out of fut.result() and
+        # abort the whole batch -- the manifest is how cleanup finds partials.
+        m.error = f"{type(exc).__name__}: {exc}"
+        log.error("scenario %s failed: %s", run_id, m.error, exc_info=log.isEnabledFor(logging.DEBUG))
     return m
 
 

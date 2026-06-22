@@ -19,6 +19,7 @@ activation hard-fails FAILED_ACTIVATION without it.
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -37,6 +38,14 @@ _SHIPPING_FIELDS = [
 
 # Poll cadence for async/derived records (asset, billing schedule).
 _POLL_INTERVAL = 5  # seconds between poll ticks
+
+# Assets carry no order/billing FK (CONTRACTS.md), so concurrent scenarios on
+# the same account+product can only be told apart by which asset id each one
+# claims first. This process-wide registry hands each asset id to exactly one
+# scenario, so two manifests never record the same asset id. (Attribution is
+# still best-effort -- a window match isn't a hard link -- but no duplicates.)
+_claimed_asset_ids: set[str] = set()
+_claimed_asset_lock = threading.Lock()
 
 
 class LifecycleError(RuntimeError):
@@ -284,6 +293,11 @@ def poll_assets(
     Asset has no order FK, so correlate by account + product + a created-date
     window (CONTRACTS.md). ``since_iso`` is a SOQL datetime literal (UTC, e.g.
     2026-06-22T22:00:00Z) captured just before activation.
+
+    Under concurrency, sibling scenarios on the same account+product share this
+    query window, so we claim only asset ids no other scenario has taken yet
+    (``_claimed_asset_ids``) -- preventing the same asset id landing in two
+    manifests. Per-scenario attribution remains best-effort.
     """
     deadline = time.monotonic() + timeout
     soql = (
@@ -294,9 +308,12 @@ def poll_assets(
     while time.monotonic() < deadline:
         rows = client.query(soql)
         if rows:
-            ids = [r["Id"] for r in rows]
-            log.info("order assets: %d asset(s) for %s/%s", len(ids), account.name, product.sku)
-            return ids
+            with _claimed_asset_lock:
+                ids = [r["Id"] for r in rows if r["Id"] not in _claimed_asset_ids]
+                _claimed_asset_ids.update(ids)
+            if ids:
+                log.info("order assets: %d asset(s) for %s/%s", len(ids), account.name, product.sku)
+                return ids
         time.sleep(_POLL_INTERVAL)
     # Assets are a nicety, not the billing gate -- log but don't hard-fail.
     log.warning(
