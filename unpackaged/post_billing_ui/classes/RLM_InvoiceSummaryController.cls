@@ -57,7 +57,8 @@ public with sharing class RLM_InvoiceSummaryController {
 
         if (isMultiCurrency) {
             for (SObject ct : Database.query(
-                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true'
+                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true',
+                AccessLevel.USER_MODE
             )) {
                 convRates.put((String)ct.get('IsoCode'), (Decimal)ct.get('ConversionRate'));
             }
@@ -67,13 +68,13 @@ public with sharing class RLM_InvoiceSummaryController {
         String invQuery = 'SELECT Id, Balance, DueDate, Status, SettlementStatus';
         if (isMultiCurrency) invQuery += ', CurrencyIsoCode';
         invQuery += ' FROM Invoice WHERE BillingAccountId = :accountId AND Status = \'Posted\' AND Balance > 0 AND SettlementStatus != \'Settled\'';
-        List<SObject> invoices = Database.query(invQuery);
+        List<SObject> invoices = Database.query(invQuery, AccessLevel.USER_MODE);
 
         // ── 2. Disputes via open Cases ──────────────────────────
         // Query open cases for the account, then get Dispute records
         // linked to those cases. Sum DisputedAmount converted to account currency.
         Set<Id> caseIds = new Set<Id>();
-        for (Case c : [SELECT Id FROM Case WHERE AccountId = :accountId AND IsClosed = false]) {
+        for (Case c : [SELECT Id FROM Case WHERE AccountId = :accountId AND IsClosed = false WITH USER_MODE]) {
             caseIds.add(c.Id);
         }
 
@@ -92,7 +93,7 @@ public with sharing class RLM_InvoiceSummaryController {
                 }
                 dispQuery += ' FROM Dispute WHERE CaseId IN :caseIds';
 
-                for (SObject d : Database.query(dispQuery)) {
+                for (SObject d : Database.query(dispQuery, AccessLevel.USER_MODE)) {
                     Decimal amt = (Decimal)d.get('DisputedAmount');
                     if (amt == null || amt <= 0) continue;
 
@@ -122,7 +123,7 @@ public with sharing class RLM_InvoiceSummaryController {
         String dmQuery = 'SELECT Id, TotalAmount';
         if (isMultiCurrency) dmQuery += ', CurrencyIsoCode';
         dmQuery += ' FROM DebitMemo WHERE AccountId = :accountId AND Status = \'Posted\'';
-        for (SObject dm : Database.query(dmQuery)) {
+        for (SObject dm : Database.query(dmQuery, AccessLevel.USER_MODE)) {
             Decimal amt = (Decimal)dm.get('TotalAmount');
             if (amt == null || amt <= 0) continue;
             if (isMultiCurrency) {
@@ -139,7 +140,7 @@ public with sharing class RLM_InvoiceSummaryController {
             + ' WHERE PaymentSchedule.CollectionPlanItemId != null'
             + ' AND PaymentSchedule.CollectionPlanItem.CollectionPlan.AccountId = \'' + String.escapeSingleQuotes(String.valueOf(accountId)) + '\''
             + ' AND Status NOT IN (\'Processed\', \'Canceled\')';
-        for (SObject psi : Database.query(psiQuery)) {
+        for (SObject psi : Database.query(psiQuery, AccessLevel.USER_MODE)) {
             Decimal amt = (Decimal)psi.get('RequestedAmount');
             if (amt == null || amt <= 0) continue;
             if (isMultiCurrency) {
@@ -150,6 +151,42 @@ public with sharing class RLM_InvoiceSummaryController {
         }
 
         // ── 5. Classify invoices ────────────────────────────────
+        classifyInvoices(invoices, data, today, isMultiCurrency, targetCurrency, convRates);
+
+        data.totalDue += data.debitAmount;
+
+        // ── 6. Paid — invoices fully settled in last 30 days ────
+        // Count is # of fully-settled invoices in window.
+        // Amount uses NetPaymentsApplied (actual cash applied to those invoices).
+        String paidInvQuery = 'SELECT Id, NetPaymentsApplied';
+        if (isMultiCurrency) paidInvQuery += ', CurrencyIsoCode';
+        paidInvQuery += ' FROM Invoice WHERE BillingAccountId = :accountId'
+                     + ' AND Status = \'Posted\''
+                     + ' AND SettlementStatus = \'Settled\''
+                     + ' AND FullSettlementDate = LAST_N_DAYS:30';
+        for (SObject inv : Database.query(paidInvQuery, AccessLevel.USER_MODE)) {
+            Decimal applied = (Decimal)inv.get('NetPaymentsApplied');
+            applied = applied != null ? applied : 0;
+            if (isMultiCurrency) {
+                applied = convertCurrency(applied, (String)inv.get('CurrencyIsoCode'), targetCurrency, convRates);
+            }
+            data.paidAmount += applied;
+            data.paidCount++;
+        }
+
+        return data;
+    }
+
+    /**
+     * Classify posted invoices into current/overdue buckets and derive the billing-period
+     * window. Extracted as a test seam so the projection can be unit-tested with synthetic
+     * in-memory invoices (Invoice is system-managed and not insertable in tests).
+     */
+    @TestVisible
+    private static void classifyInvoices(
+        List<SObject> invoices, InvoiceSummaryData data, Date today,
+        Boolean isMultiCurrency, String targetCurrency, Map<String, Decimal> convRates
+    ) {
         Date minDate = null;
         Date maxDate = null;
 
@@ -180,34 +217,12 @@ public with sharing class RLM_InvoiceSummaryController {
             }
         }
 
-        data.totalDue += data.debitAmount;
-
         data.totalInvoices = invoices.size();
         data.periodStart = minDate;
         data.periodEnd = maxDate != null ? maxDate : today;
-
-        // ── 6. Paid — invoices fully settled in last 30 days ────
-        // Count is # of fully-settled invoices in window.
-        // Amount uses NetPaymentsApplied (actual cash applied to those invoices).
-        String paidInvQuery = 'SELECT Id, NetPaymentsApplied';
-        if (isMultiCurrency) paidInvQuery += ', CurrencyIsoCode';
-        paidInvQuery += ' FROM Invoice WHERE BillingAccountId = :accountId'
-                     + ' AND Status = \'Posted\''
-                     + ' AND SettlementStatus = \'Settled\''
-                     + ' AND FullSettlementDate = LAST_N_DAYS:30';
-        for (SObject inv : Database.query(paidInvQuery)) {
-            Decimal applied = (Decimal)inv.get('NetPaymentsApplied');
-            applied = applied != null ? applied : 0;
-            if (isMultiCurrency) {
-                applied = convertCurrency(applied, (String)inv.get('CurrencyIsoCode'), targetCurrency, convRates);
-            }
-            data.paidAmount += applied;
-            data.paidCount++;
-        }
-
-        return data;
     }
 
+    @TestVisible
     private static Decimal convertCurrency(Decimal amount, String fromCurr, String toCurr, Map<String, Decimal> rates) {
         if (fromCurr == toCurr || amount == 0) return amount;
         Decimal fromRate = rates.containsKey(fromCurr) ? rates.get(fromCurr) : 1;

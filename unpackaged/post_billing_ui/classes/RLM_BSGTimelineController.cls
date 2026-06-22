@@ -129,7 +129,8 @@ public with sharing class RLM_BSGTimelineController {
             // Suspension fields may not be available in all API versions — use dynamic query
             try {
                 List<SObject> suspList = Database.query(
-                    'SELECT BillingSuspensionDate, BillingResumptionDate FROM BillingScheduleGroup WHERE Id = :recordId LIMIT 1'
+                    'SELECT BillingSuspensionDate, BillingResumptionDate FROM BillingScheduleGroup WHERE Id = :recordId LIMIT 1',
+                    AccessLevel.USER_MODE
                 );
                 if (!suspList.isEmpty()) {
                     Object suspVal = suspList[0].get('BillingSuspensionDate');
@@ -214,7 +215,7 @@ public with sharing class RLM_BSGTimelineController {
                 : (Decimal) bmpList[0].get('ReferenceItemAmount');
 
             List<BillingScheduleGroup> bsgList = [
-                SELECT TotalBilledAmount FROM BillingScheduleGroup WHERE Id = :recordId LIMIT 1
+                SELECT TotalBilledAmount FROM BillingScheduleGroup WHERE Id = :recordId WITH USER_MODE LIMIT 1
             ];
             Decimal groupBilledAmount = bsgList.isEmpty() ? null : bsgList[0].TotalBilledAmount;
 

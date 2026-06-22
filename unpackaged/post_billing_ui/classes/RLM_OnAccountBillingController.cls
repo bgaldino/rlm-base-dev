@@ -14,7 +14,8 @@ public with sharing class RLM_OnAccountBillingController {
 
         if (isMultiCurrency) {
             List<SObject> accs = Database.query(
-                'SELECT CurrencyIsoCode FROM Account WHERE Id = :accountId LIMIT 1'
+                'SELECT CurrencyIsoCode FROM Account WHERE Id = :accountId LIMIT 1',
+                AccessLevel.USER_MODE
             );
             if (!accs.isEmpty()) {
                 accountCurrency = (String) accs[0].get('CurrencyIsoCode');
@@ -84,6 +85,7 @@ public with sharing class RLM_OnAccountBillingController {
         Integer totalInvoices = [
             SELECT COUNT() FROM Invoice
             WHERE BillingAccountId = :accountId AND Status = 'Posted'
+            WITH USER_MODE
         ];
         info.put('totalInvoices', totalInvoices);
 
@@ -94,6 +96,7 @@ public with sharing class RLM_OnAccountBillingController {
               AND Status = 'Posted'
               AND Balance > 0
               AND DueDate < :today
+            WITH USER_MODE
         ];
         info.put('overdueCount', overdueCount);
 
@@ -104,6 +107,7 @@ public with sharing class RLM_OnAccountBillingController {
               AND Status = 'Posted'
               AND Balance > 0
               AND DueDate < :delinquentThreshold
+            WITH USER_MODE
         ];
         info.put('delinquentCount', delinquentCount);
 
@@ -116,6 +120,7 @@ public with sharing class RLM_OnAccountBillingController {
                   AND Status = 'Posted'
                   AND Balance > 0
                   AND DueDate < :today
+                WITH USER_MODE
             ]) {
                 if (inv.Balance < inv.TotalAmountWithTax) {
                     partiallyPaidOverdueCount++;
@@ -132,6 +137,7 @@ public with sharing class RLM_OnAccountBillingController {
             WHERE BillingAccountId = :accountId
               AND Status = 'Posted'
               AND Balance > 0
+            WITH USER_MODE
         ];
         info.put('openWithBalance', openWithBalance);
 
@@ -142,6 +148,7 @@ public with sharing class RLM_OnAccountBillingController {
                 SELECT COUNT() FROM Invoice
                 WHERE BillingAccountId = :accountId
                   AND Status = 'WrittenOff'
+                WITH USER_MODE
             ];
         } catch (Exception e) {
             // Status value may not exist
@@ -154,7 +161,8 @@ public with sharing class RLM_OnAccountBillingController {
             List<AggregateResult> dRes = Database.query(
                 'SELECT COUNT(Id) cnt FROM Dispute '
                 + 'WHERE Invoice.BillingAccountId = :accountId '
-                + 'AND Status != \'Closed\''
+                + 'AND Status != \'Closed\'',
+                AccessLevel.USER_MODE
             );
             if (!dRes.isEmpty() && dRes[0].get('cnt') != null) {
                 disputeCount = (Integer) dRes[0].get('cnt');
@@ -170,6 +178,7 @@ public with sharing class RLM_OnAccountBillingController {
             Integer collectionPlanCount = [
                 SELECT COUNT() FROM CollectionPlan
                 WHERE AccountId = :accountId
+                WITH USER_MODE
                 LIMIT 1
             ];
             inCollections = collectionPlanCount > 0;
@@ -205,7 +214,7 @@ public with sharing class RLM_OnAccountBillingController {
 
         Decimal total = 0;
         try {
-            for (AggregateResult ar : Database.query(query)) {
+            for (AggregateResult ar : Database.query(query, AccessLevel.USER_MODE)) {
                 Decimal amount = ar.get('total') != null ? (Decimal) ar.get('total') : 0;
                 if (isMultiCurrency) {
                     String sourceCurrency = (String) ar.get('curr');
@@ -247,7 +256,8 @@ public with sharing class RLM_OnAccountBillingController {
         Map<String, Decimal> rates = new Map<String, Decimal>();
         try {
             for (SObject ct : Database.query(
-                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true'
+                'SELECT IsoCode, ConversionRate FROM CurrencyType WHERE IsActive = true',
+                AccessLevel.USER_MODE
             )) {
                 rates.put((String) ct.get('IsoCode'), (Decimal) ct.get('ConversionRate'));
             }
@@ -262,7 +272,8 @@ public with sharing class RLM_OnAccountBillingController {
         try {
             for (SObject dcr : Database.query(
                 'SELECT IsoCode, ConversionRate FROM DatedConversionRate '
-                + 'WHERE StartDate <= TODAY AND NextStartDate > TODAY'
+                + 'WHERE StartDate <= TODAY AND NextStartDate > TODAY',
+                AccessLevel.USER_MODE
             )) {
                 rates.put((String) dcr.get('IsoCode'), (Decimal) dcr.get('ConversionRate'));
             }

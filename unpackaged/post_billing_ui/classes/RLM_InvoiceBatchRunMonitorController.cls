@@ -17,6 +17,7 @@ public with sharing class RLM_InvoiceBatchRunMonitorController {
             SELECT Status, COUNT(Id) cnt
             FROM Invoice
             WHERE InvoiceBatchRunId = :invoiceBatchRunId
+            WITH USER_MODE
             GROUP BY Status
         ];
 

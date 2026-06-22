@@ -2,13 +2,12 @@ public with sharing class RLM_CollectionsConsoleController {
 
     @AuraEnabled(cacheable=true)
     public static List<DelinquentWrapper> getHighValueDelinquents() {
-        List<DelinquentWrapper> results = new List<DelinquentWrapper>();
-
         List<Invoice> invoices = [
             SELECT Id, BillingAccountId, BillingAccount.Name, Balance,
                    DaysInvoiceOverdue, DocumentNumber
             FROM Invoice
             WHERE Balance > 2000 AND DaysInvoiceOverdue > 30
+            WITH USER_MODE
             ORDER BY Balance DESC
             LIMIT 50
         ];
@@ -33,6 +32,7 @@ public with sharing class RLM_CollectionsConsoleController {
                      LIMIT 1)
                 FROM PaymentSchedule
                 WHERE ReferenceEntityId IN :invoiceIds
+                WITH USER_MODE
             ];
             for (PaymentSchedule ps : schedules) {
                 if (!ps.PaymentScheduleItems.isEmpty()) {
@@ -48,6 +48,7 @@ public with sharing class RLM_CollectionsConsoleController {
                 SELECT InvoiceId, CollectionPlanId, CollectionPlan.Name
                 FROM CollectionPlanItem
                 WHERE InvoiceId IN :invoiceIds
+                WITH USER_MODE
             ];
             for (CollectionPlanItem cpi : planItems) {
                 if (!collectionPlanByInvoice.containsKey(cpi.InvoiceId)) {
@@ -91,6 +92,26 @@ public with sharing class RLM_CollectionsConsoleController {
             }
         }
 
+        return buildDelinquents(
+            invoices, latestPtpByInvoice, collectionPlanByInvoice,
+            collectionPlanIdByInvoice, disputeReasonByInvoice
+        );
+    }
+
+    /**
+     * Assemble delinquent worklist wrappers from the queried invoices and the related-record
+     * maps. Extracted so the projection logic can be unit-tested with synthetic in-memory
+     * records (the underlying Invoice object is system-managed and not insertable in tests).
+     */
+    @TestVisible
+    private static List<DelinquentWrapper> buildDelinquents(
+        List<Invoice> invoices,
+        Map<Id, Date> latestPtpByInvoice,
+        Map<Id, String> collectionPlanByInvoice,
+        Map<Id, Id> collectionPlanIdByInvoice,
+        Map<Id, String> disputeReasonByInvoice
+    ) {
+        List<DelinquentWrapper> results = new List<DelinquentWrapper>();
         for (Invoice inv : invoices) {
             DelinquentWrapper w = new DelinquentWrapper();
             w.Id = inv.Id;
@@ -106,7 +127,6 @@ public with sharing class RLM_CollectionsConsoleController {
             w.ptpDate = latestPtpByInvoice.get(inv.Id);
             results.add(w);
         }
-
         return results;
     }
 

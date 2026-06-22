@@ -429,6 +429,28 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.dashboardData?.totalOutstanding != null ? this.dashboardData.totalOutstanding : 0;
     }
 
+    // Pre-formatted KPI values: LWC templates can't call methods in bindings (LWC1060),
+    // so currency formatting is done here and bound as plain properties.
+    get receivablesOutstandingFormatted() {
+        return this.formatCurrency(this.receivablesOutstandingValue);
+    }
+
+    get currentDueFormatted() {
+        return this.formatCurrency(this.currentDueValue);
+    }
+
+    get overdueFormatted() {
+        return this.formatCurrency(this.overdueValue);
+    }
+
+    get unappliedPaymentBalanceFormatted() {
+        return this.formatCurrency(this.unappliedPaymentBalanceValue);
+    }
+
+    get totalBalanceFormatted() {
+        return this.formatCurrency(this.totalBalanceValue);
+    }
+
     get agingBuckets() {
         if (!this.dashboardData?.agingBuckets) return [];
         const total = this.dashboardData.agingBuckets.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
@@ -518,6 +540,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             return list.map((item, idx) => ({
                 ...item,
                 uniqueKey: `critical-inv-${item.invoiceId || idx}`,
+                balanceFormatted: this.formatCurrency(item.balance),
                 invoiceUrl: item.invoiceId ? `/lightning/r/Invoice/${item.invoiceId}/view` : '#',
                 accountUrl: item.billingAccountId ? `/lightning/r/Account/${item.billingAccountId}/view` : null,
                 contactUrl: item.billToContactId ? `/lightning/r/Contact/${item.billToContactId}/view` : null,
@@ -531,6 +554,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             return {
                 ...item,
                 uniqueKey: `${item.accountId || 'row'}-${idx}`,
+                balanceFormatted: this.formatCurrency(item.balance),
                 accountUrl: `/lightning/r/Account/${item.accountId}/view`,
                 invoiceNumber: null,
                 invoiceUrl: null,

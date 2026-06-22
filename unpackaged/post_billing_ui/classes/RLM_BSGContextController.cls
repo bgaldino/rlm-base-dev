@@ -112,76 +112,100 @@ public with sharing class RLM_BSGContextController {
     public static BSGContext getBSGContext(String recordId) {
         BSGContext ctx = new BSGContext();
 
-        BillingScheduleGroup bsg = [
-            SELECT Id, BillingScheduleGroupNumber, ProductName, Product2Id,
-                   BillingType, BillingMethod, BillingTermUnit, BillingTerm,
-                   AnchorProdtBillingSchdGrpId, BindingInstanceId,
-                   BillingArrangementId, TotalBilledAmount, EndDate
-            FROM BillingScheduleGroup
-            WHERE Id = :recordId
-            LIMIT 1
-        ];
-
-        ctx.bsgNumber = bsg.BillingScheduleGroupNumber;
-        ctx.productName = bsg.ProductName;
-        ctx.billingType = bsg.BillingType;
-        ctx.billingMethod = bsg.BillingMethod;
-        ctx.billingTermUnit = bsg.BillingTermUnit;
-        ctx.billingTerm = bsg.BillingTerm;
-
-        // Fetch BS-level billed/pending for % calculation
-        List<BillingSchedule> bsForAmounts = [
-            SELECT BilledAmount, PendingAmount
-            FROM BillingSchedule
-            WHERE BillingScheduleGroupId = :recordId
-            LIMIT 1
-        ];
-        if (!bsForAmounts.isEmpty()) {
-            ctx.bsBilledAmount = bsForAmounts[0].BilledAmount;
-            ctx.bsPendingAmount = bsForAmounts[0].PendingAmount;
-        }
-
-        // 1. Check for Milestone. BillingSchedule.BillingMilestonePlanId and the
-        // BillingMilestonePlan(Item) objects are license-gated billing extensions that are
-        // not surfaced to the Apex compiler for static SOQL (compile visibility can also lag
-        // behind entitlement propagation in a fresh org), so query them dynamically.
-        Id milestonePlanId = findMilestonePlanId(recordId);
-        if (milestonePlanId != null) {
-            ctx.viewType = 'milestone';
-            ctx.milestonePlan = getMilestonePlan(milestonePlanId, bsg.TotalBilledAmount);
-        }
-
-        // 2. Check for Bundle relationships
-        if (ctx.viewType == null) {
-            List<BsgRelationship> asMain = [
-                SELECT Id, AssociatedBsgId, AssociatedBsgRole, AssociatedBsgPricing
-                FROM BsgRelationship WHERE MainBsgId = :recordId LIMIT 50
-            ];
-            List<BsgRelationship> asComponent = [
-                SELECT Id, MainBsgId, MainBsgRole
-                FROM BsgRelationship WHERE AssociatedBsgId = :recordId LIMIT 1
-            ];
-
-            if (!asMain.isEmpty() || !asComponent.isEmpty()) {
-                ctx.viewType = 'bundle';
-                ctx.bundle = getBundleData(recordId, bsg, asMain, asComponent);
-            }
-        }
-
-        // 3. Check for Usage
-        if (ctx.viewType == null && bsg.BillingMethod == 'Usage') {
-            ctx.viewType = 'usage';
-            ctx.usage = getUsageData(recordId, bsg);
-        }
-
-        // 4. Fallback
-        if (ctx.viewType == null) {
+        // Validate the inbound id up front so a malformed/stale/cross-type id returns a
+        // clean 'standard' context instead of surfacing a raw QueryException to the LWC.
+        Id bsgRecordId;
+        try {
+            bsgRecordId = Id.valueOf(recordId);
+        } catch (Exception e) {
             ctx.viewType = 'standard';
+            return ctx;
         }
 
-        // 5. Check for Billing Arrangement (applies to any view type)
-        if (bsg.BillingArrangementId != null) {
-            ctx.arrangement = getArrangementData(bsg.BillingArrangementId);
+        try {
+            List<BillingScheduleGroup> bsgList = [
+                SELECT Id, BillingScheduleGroupNumber, ProductName, Product2Id,
+                       BillingType, BillingMethod, BillingTermUnit, BillingTerm,
+                       AnchorProdtBillingSchdGrpId, BindingInstanceId,
+                       BillingArrangementId, TotalBilledAmount, EndDate
+                FROM BillingScheduleGroup
+                WHERE Id = :bsgRecordId
+                WITH USER_MODE
+                LIMIT 1
+            ];
+            if (bsgList.isEmpty()) {
+                ctx.viewType = 'standard';
+                return ctx;
+            }
+            BillingScheduleGroup bsg = bsgList[0];
+
+            ctx.bsgNumber = bsg.BillingScheduleGroupNumber;
+            ctx.productName = bsg.ProductName;
+            ctx.billingType = bsg.BillingType;
+            ctx.billingMethod = bsg.BillingMethod;
+            ctx.billingTermUnit = bsg.BillingTermUnit;
+            ctx.billingTerm = bsg.BillingTerm;
+
+            // Fetch BS-level billed/pending for % calculation
+            List<BillingSchedule> bsForAmounts = [
+                SELECT BilledAmount, PendingAmount
+                FROM BillingSchedule
+                WHERE BillingScheduleGroupId = :bsgRecordId
+                WITH USER_MODE
+                LIMIT 1
+            ];
+            if (!bsForAmounts.isEmpty()) {
+                ctx.bsBilledAmount = bsForAmounts[0].BilledAmount;
+                ctx.bsPendingAmount = bsForAmounts[0].PendingAmount;
+            }
+
+            // 1. Check for Milestone. BillingSchedule.BillingMilestonePlanId and the
+            // BillingMilestonePlan(Item) objects are license-gated billing extensions that are
+            // not surfaced to the Apex compiler for static SOQL (compile visibility can also lag
+            // behind entitlement propagation in a fresh org), so query them dynamically.
+            Id milestonePlanId = findMilestonePlanId(bsgRecordId);
+            if (milestonePlanId != null) {
+                ctx.viewType = 'milestone';
+                ctx.milestonePlan = getMilestonePlan(milestonePlanId, bsg.TotalBilledAmount);
+            }
+
+            // 2. Check for Bundle relationships
+            if (ctx.viewType == null) {
+                List<BsgRelationship> asMain = [
+                    SELECT Id, AssociatedBsgId, AssociatedBsgRole, AssociatedBsgPricing
+                    FROM BsgRelationship WHERE MainBsgId = :bsgRecordId WITH USER_MODE LIMIT 50
+                ];
+                List<BsgRelationship> asComponent = [
+                    SELECT Id, MainBsgId, MainBsgRole
+                    FROM BsgRelationship WHERE AssociatedBsgId = :bsgRecordId WITH USER_MODE LIMIT 1
+                ];
+
+                if (!asMain.isEmpty() || !asComponent.isEmpty()) {
+                    ctx.viewType = 'bundle';
+                    ctx.bundle = getBundleData(bsgRecordId, bsg, asMain, asComponent);
+                }
+            }
+
+            // 3. Check for Usage
+            if (ctx.viewType == null && bsg.BillingMethod == 'Usage') {
+                ctx.viewType = 'usage';
+                ctx.usage = getUsageData(bsgRecordId, bsg);
+            }
+
+            // 4. Fallback
+            if (ctx.viewType == null) {
+                ctx.viewType = 'standard';
+            }
+
+            // 5. Check for Billing Arrangement (applies to any view type)
+            if (bsg.BillingArrangementId != null) {
+                ctx.arrangement = getArrangementData(bsg.BillingArrangementId);
+            }
+        } catch (Exception e) {
+            // Degrade gracefully to a standard view rather than throwing to the client.
+            if (ctx.viewType == null) {
+                ctx.viewType = 'standard';
+            }
         }
 
         return ctx;
@@ -279,22 +303,6 @@ public with sharing class RLM_BSGContextController {
             mainBsgId = recordId;
         } else {
             bd.isMainBundle = false;
-            mainBsgId = asComponent[0].MainBsgId;
-            // Keep walking up if this parent is itself a component
-            Set<Id> visited = new Set<Id>{ recordId };
-            Id cursor = mainBsgId;
-            while (cursor != null && !visited.contains(cursor)) {
-                visited.add(cursor);
-                List<BsgRelationship> parentRel = [
-                    SELECT MainBsgId FROM BsgRelationship
-                    WHERE AssociatedBsgId = :cursor LIMIT 1
-                ];
-                if (parentRel.isEmpty()) break;
-                cursor = parentRel[0].MainBsgId;
-            }
-            // cursor is now the visited node; the last valid mainBsgId is one step back
-            mainBsgId = (new List<Id>(visited))[visited.size() - 1];
-            // Actually re-check: walk from recordId up to root
             mainBsgId = findRootBsgId(recordId);
         }
 
@@ -302,11 +310,18 @@ public with sharing class RLM_BSGContextController {
         if (mainBsgId == recordId) {
             mainBsg = currentBsg;
         } else {
-            mainBsg = [
+            List<BillingScheduleGroup> mainBsgList = [
                 SELECT Id, BillingScheduleGroupNumber, ProductName, BillingType,
                        BillingMethod, BillingTermUnit, BillingTerm, EndDate
-                FROM BillingScheduleGroup WHERE Id = :mainBsgId LIMIT 1
+                FROM BillingScheduleGroup WHERE Id = :mainBsgId WITH USER_MODE LIMIT 1
             ];
+            if (mainBsgList.isEmpty()) {
+                // Root resolved to a record the user can't see / no longer exists; fall back.
+                mainBsg = currentBsg;
+                mainBsgId = recordId;
+            } else {
+                mainBsg = mainBsgList[0];
+            }
         }
 
         bd.mainBsgId = mainBsg.Id;
@@ -324,11 +339,13 @@ public with sharing class RLM_BSGContextController {
     private static Id findRootBsgId(Id bsgId) {
         Set<Id> visited = new Set<Id>();
         Id current = bsgId;
+        // Linear walk up the parent chain. Each level depends on the prior result so it
+        // can't be batched, but the visited set bounds it and guards against cycles.
         while (current != null && !visited.contains(current)) {
             visited.add(current);
             List<BsgRelationship> parentRel = [
                 SELECT MainBsgId FROM BsgRelationship
-                WHERE AssociatedBsgId = :current LIMIT 1
+                WHERE AssociatedBsgId = :current WITH USER_MODE LIMIT 1
             ];
             if (parentRel.isEmpty()) return current;
             current = parentRel[0].MainBsgId;
@@ -337,35 +354,74 @@ public with sharing class RLM_BSGContextController {
     }
 
     private static void collectChildComponents(
-        Id parentBsgId, Id currentRecordId, Integer depth,
+        Id mainBsgId, Id currentRecordId, Integer startDepth,
         List<BundleComponentData> result
     ) {
-        if (depth > 5) return; // safety limit
-
-        List<BsgRelationship> childRels = [
-            SELECT AssociatedBsgId FROM BsgRelationship WHERE MainBsgId = :parentBsgId
-        ];
-        if (childRels.isEmpty()) return;
-
-        Set<Id> childIds = new Set<Id>();
-        for (BsgRelationship rel : childRels) {
-            childIds.add(rel.AssociatedBsgId);
+        // Breadth-first load of the descendant hierarchy: one relationship query per level
+        // (≤5 levels) keyed off the whole frontier, instead of issuing 3 queries per node.
+        // The flat result list is then assembled in depth-first display order in memory.
+        Map<Id, List<Id>> parentToChildren = new Map<Id, List<Id>>();
+        Set<Id> allChildIds = new Set<Id>();
+        Set<Id> frontier = new Set<Id>{ mainBsgId };
+        Set<Id> seenParents = new Set<Id>();
+        Integer level = 0;
+        while (!frontier.isEmpty() && level < 5) {
+            frontier.removeAll(seenParents);
+            if (frontier.isEmpty()) break;
+            seenParents.addAll(frontier);
+            Set<Id> nextFrontier = new Set<Id>();
+            for (BsgRelationship rel : [
+                SELECT MainBsgId, AssociatedBsgId FROM BsgRelationship
+                WHERE MainBsgId IN :frontier WITH USER_MODE
+            ]) {
+                if (!parentToChildren.containsKey(rel.MainBsgId)) {
+                    parentToChildren.put(rel.MainBsgId, new List<Id>());
+                }
+                parentToChildren.get(rel.MainBsgId).add(rel.AssociatedBsgId);
+                allChildIds.add(rel.AssociatedBsgId);
+                nextFrontier.add(rel.AssociatedBsgId);
+            }
+            frontier = nextFrontier;
+            level++;
         }
 
-        // Check which children are themselves sub-bundles
-        Map<Id, Boolean> isSubBundleMap = new Map<Id, Boolean>();
-        for (Id cid : childIds) isSubBundleMap.put(cid, false);
-        for (AggregateResult ar : [
-            SELECT MainBsgId FROM BsgRelationship
-            WHERE MainBsgId IN :childIds GROUP BY MainBsgId
-        ]) {
-            isSubBundleMap.put((Id)ar.get('MainBsgId'), true);
-        }
+        if (allChildIds.isEmpty()) return;
 
-        for (BillingScheduleGroup comp : [
+        // Any child that is itself a parent in the map is a sub-bundle.
+        Set<Id> subBundleIds = new Set<Id>(parentToChildren.keySet());
+
+        Map<Id, BillingScheduleGroup> bsgById = new Map<Id, BillingScheduleGroup>([
             SELECT Id, ProductName, BillingMethod, BillingTermUnit, BillingTerm, EndDate
-            FROM BillingScheduleGroup WHERE Id IN :childIds ORDER BY ProductName ASC
-        ]) {
+            FROM BillingScheduleGroup WHERE Id IN :allChildIds WITH USER_MODE
+        ]);
+
+        appendComponentsDfs(mainBsgId, currentRecordId, startDepth, parentToChildren,
+                            subBundleIds, bsgById, result, new Set<Id>());
+    }
+
+    @TestVisible
+    private static void appendComponentsDfs(
+        Id parentBsgId, Id currentRecordId, Integer depth,
+        Map<Id, List<Id>> parentToChildren, Set<Id> subBundleIds,
+        Map<Id, BillingScheduleGroup> bsgById, List<BundleComponentData> result,
+        Set<Id> emitted
+    ) {
+        if (depth > 5) return; // safety limit
+        List<Id> childIds = parentToChildren.get(parentBsgId);
+        if (childIds == null || childIds.isEmpty()) return;
+
+        // Sort siblings by ProductName to preserve the original (ORDER BY ProductName) display order.
+        List<BsgNameSort> sorted = new List<BsgNameSort>();
+        for (Id cid : childIds) {
+            if (bsgById.containsKey(cid)) sorted.add(new BsgNameSort(bsgById.get(cid)));
+        }
+        sorted.sort();
+
+        for (BsgNameSort wrapper : sorted) {
+            BillingScheduleGroup comp = wrapper.bsg;
+            if (emitted.contains(comp.Id)) continue; // diamond / cycle guard
+            emitted.add(comp.Id);
+
             BundleComponentData bcd = new BundleComponentData();
             bcd.bsgId = comp.Id;
             bcd.productName = comp.ProductName;
@@ -373,16 +429,27 @@ public with sharing class RLM_BSGContextController {
             bcd.billingFrequency = formatFrequency(comp.BillingTerm, comp.BillingTermUnit);
             bcd.isCurrent = (comp.Id == currentRecordId);
             bcd.depth = depth;
-            bcd.isSubBundle = isSubBundleMap.get(comp.Id) == true;
+            bcd.isSubBundle = subBundleIds.contains(comp.Id);
             result.add(bcd);
 
-            // Recurse into sub-bundles
             if (bcd.isSubBundle) {
-                collectChildComponents(comp.Id, currentRecordId, depth + 1, result);
+                appendComponentsDfs(comp.Id, currentRecordId, depth + 1, parentToChildren,
+                                    subBundleIds, bsgById, result, emitted);
             }
         }
     }
 
+    private class BsgNameSort implements Comparable {
+        BillingScheduleGroup bsg;
+        BsgNameSort(BillingScheduleGroup b) { this.bsg = b; }
+        public Integer compareTo(Object other) {
+            String a = bsg.ProductName == null ? '' : bsg.ProductName;
+            String b = ((BsgNameSort) other).bsg.ProductName == null ? '' : ((BsgNameSort) other).bsg.ProductName;
+            return a.compareTo(b);
+        }
+    }
+
+    @TestVisible
     private static String deriveChargeType(String billingMethod, String termUnit, Date endDate) {
         if (billingMethod == 'Usage') return 'Usage';
         if (termUnit != null && termUnit.equalsIgnoreCase('OneTime')) return 'One-Time';
@@ -390,6 +457,7 @@ public with sharing class RLM_BSGContextController {
         return 'Termed Subscription';
     }
 
+    @TestVisible
     private static String formatFrequency(Integer term, String unit) {
         if (unit != null && unit.equalsIgnoreCase('OneTime')) return 'One-Time';
         String t = (term != null ? String.valueOf(term) : '1');
@@ -410,6 +478,7 @@ public with sharing class RLM_BSGContextController {
             SELECT UsageResourceId, UsageResource.Name
             FROM BillingSchedule
             WHERE BillingScheduleGroupId = :recordId AND UsageResourceId != null
+            WITH USER_MODE
             LIMIT 1
         ];
         if (!bsList.isEmpty()) {
@@ -417,12 +486,14 @@ public with sharing class RLM_BSGContextController {
         }
 
         if (bsg.AnchorProdtBillingSchdGrpId != null) {
-            BillingScheduleGroup anchorBsg = [
+            List<BillingScheduleGroup> anchorList = [
                 SELECT Id, BillingScheduleGroupNumber, ProductName
-                FROM BillingScheduleGroup WHERE Id = :bsg.AnchorProdtBillingSchdGrpId LIMIT 1
+                FROM BillingScheduleGroup WHERE Id = :bsg.AnchorProdtBillingSchdGrpId WITH USER_MODE LIMIT 1
             ];
-            ud.anchorBsgNumber = anchorBsg.BillingScheduleGroupNumber;
-            ud.anchorProductName = anchorBsg.ProductName;
+            if (!anchorList.isEmpty()) {
+                ud.anchorBsgNumber = anchorList[0].BillingScheduleGroupNumber;
+                ud.anchorProductName = anchorList[0].ProductName;
+            }
         }
 
         ud.siblings = new List<UsageSiblingData>();
@@ -432,6 +503,7 @@ public with sharing class RLM_BSGContextController {
                 FROM BillingScheduleGroup
                 WHERE AnchorProdtBillingSchdGrpId = :bsg.AnchorProdtBillingSchdGrpId
                   AND BillingMethod = 'Usage'
+                WITH USER_MODE
             ];
 
             Set<Id> siblingIds = new Set<Id>();
@@ -445,6 +517,7 @@ public with sharing class RLM_BSGContextController {
                     SELECT BillingScheduleGroupId, UsageResource.Name
                     FROM BillingSchedule
                     WHERE BillingScheduleGroupId IN :siblingIds AND UsageResourceId != null
+                    WITH USER_MODE
                 ]) {
                     bsgToResourceName.put(bs.BillingScheduleGroupId, bs.UsageResource.Name);
                 }
@@ -469,10 +542,14 @@ public with sharing class RLM_BSGContextController {
     private static ArrangementData getArrangementData(Id arrangementId) {
         ArrangementData ad = new ArrangementData();
 
-        BillingArrangement ba = [
+        List<BillingArrangement> baList = [
             SELECT Id, Name, Status
-            FROM BillingArrangement WHERE Id = :arrangementId LIMIT 1
+            FROM BillingArrangement WHERE Id = :arrangementId WITH USER_MODE LIMIT 1
         ];
+        if (baList.isEmpty()) {
+            return ad;
+        }
+        BillingArrangement ba = baList[0];
 
         ad.arrangementId = ba.Id;
         ad.arrangementName = ba.Name;
@@ -484,6 +561,7 @@ public with sharing class RLM_BSGContextController {
                    BillingAccountId, BillingPercentage, ShouldBillRemainder
             FROM BillingArrangementLine
             WHERE BillingArrangementId = :arrangementId
+            WITH USER_MODE
             ORDER BY BillingPercentage DESC
         ]) {
             ArrangementLineData ald = new ArrangementLineData();

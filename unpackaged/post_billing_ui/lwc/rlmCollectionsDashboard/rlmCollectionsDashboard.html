@@ -26,25 +26,25 @@
                         <div class="pulse-cards">
                             <div class="pulse-card card-receivables">
                                 <div class="pulse-card-label">Receivables Outstanding</div>
-                                <div class="pulse-card-value">{formatCurrency(receivablesOutstandingValue)}</div>
+                                <div class="pulse-card-value">{receivablesOutstandingFormatted}</div>
                                 <div class="pulse-card-meta">{invoiceCount} invoices</div>
                             </div>
                             <div class="pulse-card card-current">
                                 <div class="pulse-card-label">Current Due</div>
-                                <div class="pulse-card-value">{formatCurrency(currentDueValue)}</div>
+                                <div class="pulse-card-value">{currentDueFormatted}</div>
                             </div>
                             <div class="pulse-card card-overdue pulse-urgency">
                                 <div class="pulse-card-label">Overdue</div>
-                                <div class="pulse-card-value pulse-value-urgency">{formatCurrency(overdueValue)}</div>
+                                <div class="pulse-card-value pulse-value-urgency">{overdueFormatted}</div>
                             </div>
                             <div class="pulse-card card-unapplied pulse-action">
                                 <div class="pulse-card-label">Unapplied Payments</div>
-                                <div class="pulse-card-value pulse-value-action">{formatCurrency(unappliedPaymentBalanceValue)}</div>
+                                <div class="pulse-card-value pulse-value-action">{unappliedPaymentBalanceFormatted}</div>
                                 <div class="pulse-card-meta">{unappliedPaymentCount} records · Action required</div>
                             </div>
                             <div class="pulse-card card-total-balance">
                                 <div class="pulse-card-label">Total Balance</div>
-                                <div class="pulse-card-value">{formatCurrency(totalBalanceValue)}</div>
+                                <div class="pulse-card-value">{totalBalanceFormatted}</div>
                                 <div class="pulse-card-breakdown">
                                     <template for:each={totalBalanceBreakdown} for:item="row">
                                         <div key={row.label} class={row.lineClass}><span>{row.label}</span><span>{row.formatted}</span></div>
@@ -156,7 +156,7 @@
                                                         <span>{row.invoiceNumber}</span>
                                                     </template>
                                                 </td>
-                                                <td class="num">{formatCurrency(row.balance)}</td>
+                                                <td class="num">{row.balanceFormatted}</td>
                                                 <td class="num"><template if:true={row.daysInvoiceOverdue}>{row.daysInvoiceOverdue}</template><template if:false={row.daysInvoiceOverdue}>—</template></td>
                                                 <td>
                                                     <template if:true={row.contactUrl}>
@@ -184,7 +184,7 @@
                                                     <span class="health-dot health-{row.healthScore}" title={row.healthScore}></span>
                                                     <a href={row.accountUrl} class="customer-name">{row.accountName}</a>
                                                 </td>
-                                                <td class="num">{formatCurrency(row.balance)}</td>
+                                                <td class="num">{row.balanceFormatted}</td>
                                                 <td class="num"><template if:true={row.daysOverdue}>{row.daysOverdue}</template><template if:false={row.daysOverdue}>—</template></td>
                                                 <td class="num">{row.ptpDateFormatted}</td>
                                                 <td class="dispute-cell" title={row.disputeReason}>{row.disputeReasonShort}</td>
