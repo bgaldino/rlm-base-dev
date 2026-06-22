@@ -15,16 +15,26 @@ CCI alias ``beta`` maps to the sf alias ``rlm-base__beta`` -- pass the sf one.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
+import os
 import sys
+from datetime import datetime, timezone
 from typing import Optional
 
+from . import lifecycle
 from .auth import DEFAULT_API_VERSION, SfApiError, SfCliError, SfRestClient
-from .discovery import DiscoveryError, OrgContext, discover
+from .discovery import Account, DiscoveryError, OrgContext, Product, discover
+from .lifecycle import LifecycleError, Manifest
 
 log = logging.getLogger("demo_data")
 
 STAGES = ["opportunity", "quote", "order", "activate", "invoice", "post"]
+
+# Stages implemented as of Phase 2 (invoice/post land in Phase 3).
+_IMPLEMENTED_MAX_STAGE = "activate"
+
+MANIFEST_DIR = os.path.join(os.path.dirname(__file__), "out")
 
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
@@ -112,11 +122,101 @@ def _print_plan(args: argparse.Namespace, ctx: OrgContext) -> None:
     print(f"\nBilling-ready accounts available: "
           f"{', '.join(a.name for a in ctx.billing_ready_accounts) or '(none)'}")
     print(f"Billable products available     : {len(ctx.products)}")
-    print("\n(no records were created — drop --dry-run to execute once Phase 2 lands)\n")
+    if STAGES.index(capped) > STAGES.index(_IMPLEMENTED_MAX_STAGE):
+        print(f"\nNote: stages past '{_IMPLEMENTED_MAX_STAGE}' "
+              f"(invoice/post) are not yet implemented (Phase 3) — a live run "
+              f"would stop at '{_IMPLEMENTED_MAX_STAGE}'.")
+    print("\n(no records were created — drop --dry-run to execute)\n")
 
 
 def ctx_api(args: argparse.Namespace) -> str:
     return args.api_version if args.api_version != "latest" else "latest"
+
+
+def _effective_stage(target_stage: str, account: Account) -> str:
+    """Resolve the stage a scenario will actually reach.
+
+    Caps at what's implemented, and at 'activate' for accounts that aren't
+    billing-ready (can't reach invoice/post).
+    """
+    stage = target_stage
+    if STAGES.index(stage) > STAGES.index(_IMPLEMENTED_MAX_STAGE):
+        stage = _IMPLEMENTED_MAX_STAGE
+    if not account.is_billing_ready and STAGES.index(stage) > STAGES.index("activate"):
+        stage = "activate"
+    return stage
+
+
+def run_scenario(
+    client: SfRestClient,
+    ctx: OrgContext,
+    run_id: str,
+    target_stage: str,
+    account: Account,
+    product: Product,
+    with_opportunity: bool,
+    quantity: int,
+    poll_timeout: int,
+) -> Manifest:
+    """Drive one transaction through the lifecycle up to ``target_stage``.
+
+    Records every created id in the manifest as it goes -- including on partial
+    failure (PST commits the quote header even on a failed place), so cleanup
+    can find orphans.
+    """
+    m = Manifest(run_id=run_id)
+    stage = _effective_stage(target_stage, account)
+    stop_at = STAGES.index(stage)
+    try:
+        if with_opportunity and ctx.opportunity_stage:
+            m.opportunity_id = lifecycle.create_opportunity(
+                client, account, ctx.opportunity_stage, run_id
+            )
+            m.reached_stage = "opportunity"
+
+        # quote (PST) -- always the minimum
+        try:
+            m.quote_id = lifecycle.place_sales_transaction(
+                client, account, product, ctx.pricebook_id, run_id,
+                quantity=quantity, opportunity_id=m.opportunity_id,
+            )
+        except LifecycleError as exc:
+            # PST may have committed the quote header even on failure.
+            if exc.record_id:
+                m.quote_id = exc.record_id
+            raise
+        m.reached_stage = "quote"
+        if stop_at == STAGES.index("quote"):
+            return m
+
+        m.order_id, m.order_number = lifecycle.create_order_from_quote(client, m.quote_id)
+        m.reached_stage = "order"
+        if stop_at == STAGES.index("order"):
+            return m
+
+        # activate: set shipping first (mandatory), capture timestamp for asset poll
+        lifecycle.set_shipping_address(client, m.order_id, account)
+        since = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        lifecycle.activate_order(client, m.order_id)
+        m.reached_stage = "activate"
+        m.billing_schedule_ids = lifecycle.poll_billing_schedules(
+            client, m.order_id, timeout=poll_timeout
+        )
+        m.asset_ids = lifecycle.poll_assets(
+            client, account, product, since, timeout=poll_timeout
+        )
+    except LifecycleError as exc:
+        m.error = str(exc)
+        log.error("scenario %s failed: %s", run_id, exc)
+    return m
+
+
+def _write_manifest(m: Manifest) -> str:
+    os.makedirs(MANIFEST_DIR, exist_ok=True)
+    path = os.path.join(MANIFEST_DIR, f"{m.run_id}.json")
+    with open(path, "w") as f:
+        json.dump(m.to_dict(), f, indent=2)
+    return path
 
 
 def main(argv: Optional[list[str]] = None) -> int:
@@ -151,11 +251,49 @@ def main(argv: Optional[list[str]] = None) -> int:
             return 3
         return 0
 
-    # Phase 2 wires lifecycle.py here.
-    print("Live execution is not yet wired (Phase 2). Re-run with --dry-run to "
-          "preview the plan. See scripts/demo_data/CONTRACTS.md for the locked "
-          "lifecycle contracts.", file=sys.stderr)
-    return 1
+    # ----- live execution (Phase 2: up to activate) -----
+    try:
+        account = (ctx.default_account() if not args.account
+                   else next(a for a in ctx.billing_ready_accounts
+                             if a.name == args.account))
+        product = ctx.default_product()
+    except (DiscoveryError, StopIteration):
+        print(f"ERROR: could not resolve a usable account/product for the run.",
+              file=sys.stderr)
+        return 3
+
+    target_stage = args.target_stage or "post"
+    count = args.count or 1
+    base_run_id = "DEMO-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    effective = _effective_stage(target_stage, account)
+    if effective != target_stage:
+        print(f"Note: capping target_stage '{target_stage}' -> '{effective}' "
+              f"(account billing_ready={account.is_billing_ready}; "
+              f"implemented through '{_IMPLEMENTED_MAX_STAGE}').", file=sys.stderr)
+
+    manifests: list[Manifest] = []
+    failures = 0
+    for i in range(count):
+        run_id = base_run_id if count == 1 else f"{base_run_id}-{i + 1:03d}"
+        m = run_scenario(
+            client, ctx, run_id, target_stage, account, product,
+            with_opportunity=args.with_opportunity,
+            quantity=1,
+            poll_timeout=args.poll_timeout,
+        )
+        path = _write_manifest(m)
+        manifests.append(m)
+        status = "OK" if not m.error else "FAILED"
+        print(f"[{i + 1}/{count}] {run_id}: {status} "
+              f"reached={m.reached_stage} order={m.order_number or '-'} "
+              f"manifest={path}")
+        if m.error:
+            failures += 1
+
+    print(f"\nDone: {count - failures}/{count} scenario(s) succeeded "
+          f"(reached '{effective}'). Manifests in {MANIFEST_DIR}/")
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":
