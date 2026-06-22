@@ -161,7 +161,6 @@ public with sharing class RLM_Learning_SectionBlockController {
     sectionMap.put('block', blockMap);
     result.add(sectionMap);
 
-    System.debug('Result being returned: ' + JSON.serialize(result));
     return result;
   }
 
@@ -197,13 +196,37 @@ public with sharing class RLM_Learning_SectionBlockController {
   private static List<Map<String, Object>> getResultFromSections(
     List<RLM_Learning_Section__c> sections
   ) {
+    // First pass: collect every referenced DynamicLink id across all sections/blocks
+    // so the lookup query runs ONCE, instead of once per block inside the loops.
+    Set<String> allDynamicLinkIds = new Set<String>();
+    for (RLM_Learning_Section__c section : sections) {
+      for (RLM_Learning_SectionBlock__c sectionBlock : section.SectionBlocks__r) {
+        String action = sectionBlock.RLM_Learning_Block__r.RLM_Learning_Action__c;
+        if (action != null) {
+          allDynamicLinkIds.add(action);
+        }
+      }
+    }
+
+    // Single bulk query, keyed by Id for per-section mapping below.
+    Map<String, RLM_Learning_DynamicLink__c> dynamicLinksById = new Map<String, RLM_Learning_DynamicLink__c>();
+    for (
+      RLM_Learning_DynamicLink__c link : getDynamicLinks(
+        new List<String>(allDynamicLinkIds)
+      )
+    ) {
+      dynamicLinksById.put(String.valueOf(link.Id), link);
+    }
+
     List<Map<String, Object>> result = new List<Map<String, Object>>();
 
     for (RLM_Learning_Section__c section : sections) {
       Map<String, Object> sectionMap = new Map<String, Object>();
-      List<String> dynamicLinkIds = new List<String>();
+      List<Map<String, Object>> blocks = new List<Map<String, Object>>();
+      // De-duplicated set of this section's action ids, so each section carries only
+      // its own dynamic links (preserves the prior per-section grouping).
+      Set<String> sectionActionIds = new Set<String>();
       sectionMap.put('section', section);
-      sectionMap.put('blocks', new List<Map<String, Object>>());
 
       for (RLM_Learning_SectionBlock__c sectionBlock : section.SectionBlocks__r) {
         Map<String, Object> blockMap = new Map<String, Object>();
@@ -215,17 +238,26 @@ public with sharing class RLM_Learning_SectionBlockController {
         blockMap.put('action', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Action__c);
         blockMap.put('actionText', sectionBlock.RLM_Learning_Block__r.RLM_Learning_ActionText__c);
         blockMap.put('description', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Description__c);
-        if (sectionBlock.RLM_Learning_Block__r.RLM_Learning_Action__c != null) {
-          dynamicLinkIds.add(sectionBlock.RLM_Learning_Block__r.RLM_Learning_Action__c);
-        }
 
-        sectionMap.put('dynamicLinks', getDynamicLinks(dynamicLinkIds));
-        ((List<Map<String, Object>>) sectionMap.get('blocks')).add(blockMap);
+        String action = sectionBlock.RLM_Learning_Block__r.RLM_Learning_Action__c;
+        if (action != null) {
+          sectionActionIds.add(action);
+        }
+        blocks.add(blockMap);
       }
+
+      List<RLM_Learning_DynamicLink__c> sectionDynamicLinks = new List<RLM_Learning_DynamicLink__c>();
+      for (String linkId : sectionActionIds) {
+        if (dynamicLinksById.containsKey(linkId)) {
+          sectionDynamicLinks.add(dynamicLinksById.get(linkId));
+        }
+      }
+
+      sectionMap.put('blocks', blocks);
+      sectionMap.put('dynamicLinks', sectionDynamicLinks);
       result.add(sectionMap);
     }
 
-    System.debug('Result being returned: ' + JSON.serialize(result));
     return result;
   }
 }
