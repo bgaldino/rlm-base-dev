@@ -19,12 +19,23 @@ import json
 import logging
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
 from . import lifecycle
 from .auth import DEFAULT_API_VERSION, SfApiError, SfCliError, SfRestClient
-from .discovery import Account, DiscoveryError, OrgContext, Product, discover
+from .config import ConfigError, ScenarioSpec, load_scenarios
+from .discovery import (
+    Account,
+    DiscoveryError,
+    OrgContext,
+    Product,
+    discover,
+    resolve_account,
+    resolve_product,
+)
 from .lifecycle import LifecycleError, Manifest
 
 log = logging.getLogger("demo_data")
@@ -88,44 +99,37 @@ def _setup_logging(verbosity: int) -> None:
     logging.basicConfig(level=level, format="%(message)s")
 
 
-def _print_plan(args: argparse.Namespace, ctx: OrgContext) -> None:
-    """Human-readable dry-run summary of what a run would do."""
-    target_stage = args.target_stage or "post"
-    count = args.count or 1
-    acct = ctx.default_account()
-    prod = ctx.default_product()
-    stages_run = STAGES[STAGES.index("opportunity") if args.with_opportunity
-                         else STAGES.index("quote"): STAGES.index(target_stage) + 1]
-
+def _print_plan(
+    args: argparse.Namespace, ctx: OrgContext, resolved: list["ResolvedSpec"]
+) -> None:
+    """Human-readable dry-run summary of what a run would do (no writes)."""
     print("\n=== Demo Data Generator — DRY RUN (no writes) ===")
     print(f"Org              : {args.org}  (api v{ctx_api(args)})  transport={args.transport}")
     print(f"Pricebook        : {ctx.pricebook_name} ({ctx.pricebook_id})")
     print(f"Legal entity     : {ctx.legal_entity_name}")
     print(f"Opportunity stage: {ctx.opportunity_stage}")
-    print(f"\nAccount          : {acct.name} ({acct.id})  "
-          f"billing_ready={acct.is_billing_ready}")
-    print(f"Product          : {prod.sku} — {prod.name}  "
-          f"${prod.unit_price}  (PBE {prod.pricebook_entry_id})")
-    print(f"\nWould generate   : {count} transaction(s), target_stage={target_stage}")
+    print(f"Concurrency      : {max(1, args.concurrency)}")
 
-    # Cap stage if the account cannot be billed.
-    capped = target_stage
-    if not acct.is_billing_ready and target_stage in ("invoice", "post"):
-        capped = "activate"
-        print(f"⚠  Account is not billing-ready (no BillingAccount) — "
-              f"would cap at '{capped}' instead of '{target_stage}'.")
-        stages_run = STAGES[STAGES.index(stages_run[0]): STAGES.index(capped) + 1]
+    total = 0
+    for i, r in enumerate(resolved):
+        head = "opportunity" if r.spec.with_opportunity else "quote"
+        stages_run = STAGES[STAGES.index(head): STAGES.index(r.effective_stage) + 1]
+        total += r.spec.count
+        print(f"\n--- Spec {i + 1}/{len(resolved)}  (x{r.spec.count}) ---")
+        print(f"  Account      : {r.account.name} ({r.account.id})  "
+              f"billing_ready={r.account.is_billing_ready}")
+        print(f"  Product      : {r.product.sku} — {r.product.name}  "
+              f"${r.product.unit_price} x{r.spec.quantity}  "
+              f"(PBE {r.product.pricebook_entry_id})")
+        if r.effective_stage != r.spec.target_stage:
+            print(f"  ⚠  target_stage '{r.spec.target_stage}' capped to "
+                  f"'{r.effective_stage}' (billing_ready={r.account.is_billing_ready}).")
+        print(f"  Stages       : {' → '.join(stages_run)}")
 
-    print(f"\nLifecycle stages this run would execute:")
-    for s in stages_run:
-        print(f"  • {s}")
-    print(f"\nBilling-ready accounts available: "
+    print(f"\nWould generate   : {total} transaction(s) total")
+    print(f"Billing-ready accounts available: "
           f"{', '.join(a.name for a in ctx.billing_ready_accounts) or '(none)'}")
     print(f"Billable products available     : {len(ctx.products)}")
-    if STAGES.index(capped) > STAGES.index(_IMPLEMENTED_MAX_STAGE):
-        print(f"\nNote: stages past '{_IMPLEMENTED_MAX_STAGE}' "
-              f"(invoice/post) are not yet implemented (Phase 3) — a live run "
-              f"would stop at '{_IMPLEMENTED_MAX_STAGE}'.")
     print("\n(no records were created — drop --dry-run to execute)\n")
 
 
@@ -145,6 +149,35 @@ def _effective_stage(target_stage: str, account: Account) -> str:
     if not account.is_billing_ready and STAGES.index(stage) > STAGES.index("activate"):
         stage = "activate"
     return stage
+
+
+@dataclass
+class ResolvedSpec:
+    """A :class:`ScenarioSpec` bound to concrete org records, ready to fan out.
+
+    ``account``/``product`` are resolved once per spec (not per repetition) so a
+    ``count: 25`` spec issues two discovery queries, not fifty.
+    """
+
+    spec: ScenarioSpec
+    account: Account
+    product: Product
+    effective_stage: str
+
+
+def _resolve_spec(
+    client: SfRestClient, ctx: OrgContext, spec: ScenarioSpec
+) -> ResolvedSpec:
+    """Bind a spec's account/product names to org records (raises DiscoveryError)."""
+    if spec.account:
+        account = resolve_account(client, spec.account)
+    else:
+        account = ctx.default_account()
+    product = (resolve_product(client, spec.product_sku)
+               if spec.product_sku else ctx.default_product())
+    effective = _effective_stage(spec.target_stage, account)
+    return ResolvedSpec(spec=spec, account=account, product=product,
+                        effective_stage=effective)
 
 
 def run_scenario(
@@ -261,56 +294,71 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"ERROR: discovery failed:\n  {exc}", file=sys.stderr)
         return 3
 
-    if args.dry_run:
-        try:
-            _print_plan(args, ctx)
-        except DiscoveryError as exc:
-            print(f"ERROR: cannot plan a run:\n  {exc}", file=sys.stderr)
-            return 3
-        return 0
-
-    # ----- live execution (Phase 2: up to activate) -----
+    # ----- resolve the run plan (specs -> concrete account/product) -----
     try:
-        account = (ctx.default_account() if not args.account
-                   else next(a for a in ctx.billing_ready_accounts
-                             if a.name == args.account))
-        product = ctx.default_product()
-    except (DiscoveryError, StopIteration):
-        print(f"ERROR: could not resolve a usable account/product for the run.",
+        specs = load_scenarios(args)
+    except ConfigError as exc:
+        print(f"ERROR: bad config:\n  {exc}", file=sys.stderr)
+        return 4
+    try:
+        resolved = [_resolve_spec(client, ctx, s) for s in specs]
+    except DiscoveryError as exc:
+        print(f"ERROR: could not resolve a scenario's account/product:\n  {exc}",
               file=sys.stderr)
         return 3
 
-    target_stage = args.target_stage or "post"
-    count = args.count or 1
+    if args.dry_run:
+        _print_plan(args, ctx, resolved)
+        return 0
+
+    # ----- live execution -----
+    for r in resolved:
+        if r.effective_stage != r.spec.target_stage:
+            print(f"Note: capping '{r.account.name}/{r.product.sku}' target_stage "
+                  f"'{r.spec.target_stage}' -> '{r.effective_stage}' "
+                  f"(billing_ready={r.account.is_billing_ready}; "
+                  f"implemented through '{_IMPLEMENTED_MAX_STAGE}').",
+                  file=sys.stderr)
+
+    # Expand (spec x count) into a flat job list, each with a unique run_id.
     base_run_id = "DEMO-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    jobs: list[tuple[str, ResolvedSpec]] = []
+    single = len(resolved) == 1 and resolved[0].spec.count == 1
+    for r in resolved:
+        for _ in range(r.spec.count):
+            run_id = base_run_id if single else f"{base_run_id}-{len(jobs) + 1:03d}"
+            jobs.append((run_id, r))
+    total = len(jobs)
 
-    effective = _effective_stage(target_stage, account)
-    if effective != target_stage:
-        print(f"Note: capping target_stage '{target_stage}' -> '{effective}' "
-              f"(account billing_ready={account.is_billing_ready}; "
-              f"implemented through '{_IMPLEMENTED_MAX_STAGE}').", file=sys.stderr)
-
-    manifests: list[Manifest] = []
-    failures = 0
-    for i in range(count):
-        run_id = base_run_id if count == 1 else f"{base_run_id}-{i + 1:03d}"
-        m = run_scenario(
-            client, ctx, run_id, target_stage, account, product,
-            with_opportunity=args.with_opportunity,
-            quantity=1,
+    def _one(run_id: str, r: ResolvedSpec) -> Manifest:
+        return run_scenario(
+            client, ctx, run_id, r.spec.target_stage, r.account, r.product,
+            with_opportunity=r.spec.with_opportunity,
+            quantity=r.spec.quantity,
             poll_timeout=args.poll_timeout,
         )
-        path = _write_manifest(m)
-        manifests.append(m)
-        status = "OK" if not m.error else "FAILED"
-        print(f"[{i + 1}/{count}] {run_id}: {status} "
-              f"reached={m.reached_stage} order={m.order_number or '-'} "
-              f"manifest={path}")
-        if m.error:
-            failures += 1
 
-    print(f"\nDone: {count - failures}/{count} scenario(s) succeeded "
-          f"(reached '{effective}'). Manifests in {MANIFEST_DIR}/")
+    concurrency = max(1, min(args.concurrency, total))
+    print(f"Running {total} scenario(s) across {len(resolved)} spec(s), "
+          f"concurrency={concurrency}, run base {base_run_id} ...")
+
+    failures = 0
+    done = 0
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
+        futures = [pool.submit(_one, rid, r) for rid, r in jobs]
+        for fut in as_completed(futures):
+            m = fut.result()
+            path = _write_manifest(m)
+            done += 1
+            status = "OK" if not m.error else "FAILED"
+            print(f"[{done}/{total}] {m.run_id}: {status} "
+                  f"reached={m.reached_stage} order={m.order_number or '-'} "
+                  f"manifest={path}")
+            if m.error:
+                failures += 1
+
+    print(f"\nDone: {total - failures}/{total} scenario(s) succeeded. "
+          f"Manifests in {MANIFEST_DIR}/")
     return 1 if failures else 0
 
 

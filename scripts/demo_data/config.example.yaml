@@ -1,0 +1,40 @@
+# Demo Data Generator — example config (all fields OPTIONAL).
+#
+#   python -m scripts.demo_data.generate --org <sf-alias> --config scripts/demo_data/config.example.yaml
+#
+# Anything omitted is auto-discovered from the target org (billing-ready
+# account, preferred QB product, standard pricebook, legal entity, open
+# opportunity stage). CLI flags override the `defaults` block below; an
+# explicit per-scenario value is the most specific intent and wins over both.
+#
+# `--org` takes an sf CLI alias / username ONLY (e.g. rlm-base__jun17_1), NOT a
+# CCI alias. The CCI alias `beta` maps to sf alias `rlm-base__beta` — pass the
+# sf one (see CLAUDE.md "Org Identity").
+
+# Broad defaults applied to every scenario unless the scenario overrides them.
+defaults:
+  target_stage: post          # opportunity | quote | order | activate | invoice | post
+  with_opportunity: false     # prepend an Opportunity the quote links to
+  # opportunity_stage: Prospecting   # else first open stage is auto-discovered
+
+# When there is NO `scenarios:` block, a single spec is run and `volume.scenarios`
+# sets its count (CLI --count still overrides). Ignored when `scenarios:` is set.
+volume:
+  scenarios: 5
+
+# Optional explicit scenario mix. Each entry is one shape run `count` times.
+# Remove this block to let `defaults` + `volume` + discovery drive everything.
+scenarios:
+  # Billable account -> full chain to a Posted invoice.
+  - account: "Infinitech"
+    target_stage: post
+    with_opportunity: true
+    products:
+      - sku: "QB-API-FLEX"     # only the first product is placed today
+        quantity: 1
+    count: 10
+
+  # Pipeline-only account (no BillingAccount) -> auto-capped at 'quote'.
+  - account: "Global Media"
+    target_stage: quote
+    count: 15

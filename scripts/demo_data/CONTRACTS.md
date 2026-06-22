@@ -184,13 +184,19 @@ live — all verified on `rlm-base__jun17_1`:
    (`InvoiceLine` also has `ReferenceEntityItemId` → OrderItem/QuoteLineItem and
    `BillingScheduleGroupId` as secondary keys.)
 
-2. **`Invoice.ReferenceEntityId` is `updateable=true` → we can stamp it ourselves.**
+2. **`Invoice.ReferenceEntityId` is `updateable=true` → we can stamp it ourselves,
+   but ONLY once Posted (Draft rejects it).**
    Verified: `PATCH /sobjects/Invoice/<id> {"ReferenceEntityId":"<orderId>"}` (Order
-   is in its `referenceTo`) succeeds (204), and **`Invoice WHERE ReferenceEntityId =
-   '<orderId>'` then returns the row** — i.e. we can *make* the plan's original
-   poll-by-orderId work by writing the FK after generate. Optional: do this as part
-   of draft tagging so the org data also reads naturally (invoice→order link
-   visible in UI), not just for our polling.
+   is in its `referenceTo`) succeeds (204) on a **Posted** invoice, and **`Invoice
+   WHERE ReferenceEntityId = '<orderId>'` then returns the row** — i.e. we can *make*
+   the plan's original poll-by-orderId work by writing the FK.
+   ⚠️ **CORRECTION (Phase 3, re-verified):** the same PATCH on a **Draft** invoice is
+   **rejected** — HTTP 400 `INVALID_FIELD_FOR_INSERT_UPDATE` *"Can't change this
+   field's value on Draft invoices."* Phase 0's success was on an already-Posted
+   invoice. So this link must be written **after** `post`, not during draft tagging.
+   The tool splits this out: `tag_invoice` (Description, at draft time) vs.
+   `link_invoice_to_order` (ReferenceEntityId, after post). It is purely cosmetic —
+   correlation already works via `InvoiceLine.BillingScheduleId` (path 1).
 
 3. **`Invoice.Description` is `updateable=true` and writable even after Posted.**
    Verified: `PATCH {"Description":"DEMO-<run_id>"}` on a **Posted** invoice
@@ -213,11 +219,14 @@ Dead ends (do not rely on):
 
 #### Locked correlation strategy
 - **generate** → poll `InvoiceLine.BillingScheduleId = <bsId>` for the InvoiceId
-  (deterministic). Then PATCH the invoice's `Description = DEMO-<run_id>` and
-  (optional) `ReferenceEntityId = <orderId>` for natural org linkage + bulk cleanup.
+  (deterministic). Then PATCH the invoice's `Description = DEMO-<run_id>` (writable on
+  Draft; survives posting). Do **not** PATCH `ReferenceEntityId` here — Draft rejects it.
 - **post** → we already hold the invoice id; confirm completion via the returned
   `statusURL` AsyncOperationTracker reaching `Completed` (fallback: poll
-  `Invoice.Status = Posted`).
+  `Invoice.Status = Posted`). **`InvoiceNumber` is assigned at post time — it is
+  `null` while Draft**, so read it back after post completes (the manifest's
+  human-readable invoice number comes from here, not from generate). Then PATCH
+  `ReferenceEntityId = <orderId>` for natural org linkage (Posted-only; cosmetic).
 - **assets** (bonus find) → `AsyncOperationTracker` rows with
   `JobType='AssetizationAsyncJob'` carry **`ReferenceEntityId = <orderId>`**, giving
   a deterministic activation→asset correlation alongside the account+product+date poll.

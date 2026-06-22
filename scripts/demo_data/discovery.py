@@ -123,6 +123,31 @@ def discover_accounts(client: SfRestClient, account_name: Optional[str] = None) 
     return accounts
 
 
+def resolve_account(client: SfRestClient, name: str) -> Account:
+    """Resolve any account by Name, billing-ready or not.
+
+    Unlike :func:`discover_accounts` (which lists only accounts that *have* a
+    BillingAccount), this resolves an account the user pinned in config even
+    when it has no BillingAccount -- a quote-only "pipeline" account such as
+    Global Media. We look up the Account, then check for a BillingAccount so the
+    returned ``Account.is_billing_ready`` correctly caps the stage downstream.
+    """
+    rows = client.query(
+        f"SELECT Id, Name FROM Account WHERE Name = '{_sql_escape(name)}' LIMIT 1"
+    )
+    if not rows:
+        raise DiscoveryError(f"account '{name}' not found in the org")
+    acct_id = rows[0]["Id"]
+    ba = client.query(
+        f"SELECT Id FROM BillingAccount WHERE AccountId = '{acct_id}' LIMIT 1"
+    )
+    return Account(
+        id=acct_id,
+        name=rows[0].get("Name", name),
+        billing_account_id=ba[0]["Id"] if ba else None,
+    )
+
+
 def discover_products(
     client: SfRestClient,
     sku: Optional[str] = None,
@@ -152,6 +177,17 @@ def discover_products(
     log.info("discovered %d billable product(s)%s", len(products),
              f" for SKU {sku}" if sku else "")
     return products
+
+
+def resolve_product(client: SfRestClient, sku: str) -> Product:
+    """Resolve a single billable product by SKU (active PBE on standard PB)."""
+    products = discover_products(client, sku=sku, limit=1)
+    if not products:
+        raise DiscoveryError(
+            f"product SKU '{sku}' has no active PricebookEntry on the standard "
+            f"pricebook (check the product/pricebook setup)"
+        )
+    return products[0]
 
 
 def _discover_standard_pricebook(client: SfRestClient) -> tuple[str, str]:
