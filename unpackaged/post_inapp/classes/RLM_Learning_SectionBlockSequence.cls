@@ -24,6 +24,12 @@ public with sharing class RLM_Learning_SectionBlockSequence {
     String sectionId,
     List<String> blockIds
   ) {
+    if (String.isEmpty(sectionId)) {
+      throw new AuraHandledException('Section Id cannot be null or empty.');
+    }
+    if (blockIds == null) {
+      throw new AuraHandledException('Block Ids cannot be null.');
+    }
     try {
       List<RLM_Learning_SectionBlock__c> recordsToDelete = [
         SELECT Id

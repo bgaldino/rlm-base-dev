@@ -1,9 +1,7 @@
 public with sharing class RLM_Learning_UserInformation {
     @AuraEnabled(cacheable=true)
     public static String getName() {
-        String FirstName = UserInfo.getFirstName();
-        System.Debug('FirstName-' + FirstName);
-        return FirstName;
+        return UserInfo.getFirstName();
     }
 
     @AuraEnabled(cacheable=true)

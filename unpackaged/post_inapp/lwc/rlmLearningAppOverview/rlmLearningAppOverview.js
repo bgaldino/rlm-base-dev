@@ -29,6 +29,14 @@ export default class AppOverviewLWC extends NavigationMixin(LightningElement) {
   }
 
   async checkForDynamicLinks() {
+    // The wire fires with `data` truthy even when it's an empty array, so guard
+    // against a missing first section / blocks before dereferencing.
+    if (
+      !this.sectionsWithBlocks.length ||
+      !this.sectionsWithBlocks[0].blocks
+    ) {
+      return;
+    }
     const newBlocks = [];
     for (let i = 0; i < this.sectionsWithBlocks[0].blocks.length; i++) {
       let description = this.sectionsWithBlocks[0].blocks[i].description;

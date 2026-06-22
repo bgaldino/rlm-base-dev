@@ -42,12 +42,15 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
   }
 
   async handleClick(event) {
-    var appNameValue = event.target.dataset.id;
+    const appNameValue = event.target.dataset.id;
     try {
       if (!appNameValue) {
         throw new Error("Application name is not defined");
       }
       const dynamicLink = this.dynamicLinksMap[appNameValue];
+      if (!dynamicLink) {
+        throw new Error("No dynamic link found for " + appNameValue);
+      }
       if (
         dynamicLink.RLM_Learning_Section__c != null &&
         dynamicLink.RLM_Learning_Section__c !== undefined
@@ -85,13 +88,9 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
           ) {
             this[NavigationMixin.Navigate](pageRef);
           } else {
-            const windowContextNameUniqueStr = Math.random()
-              .toString(36)
-              .substring(2, 7);
-            console.log(windowContextNameUniqueStr);
-            const windowContextNameUUID = crypto.randomUUID();
-            window.open("", windowContextNameUUID);
-            window.open(url, windowContextNameUUID);
+            // Open external links in a new tab with noopener/noreferrer to prevent
+            // reverse-tabnabbing (the opened page can't reach window.opener).
+            window.open(url, "_blank", "noopener,noreferrer");
           }
         } catch (error) {
           this.showToast(error, error.message);
@@ -158,10 +157,6 @@ export default class Setupconfiglwc extends NavigationMixin(LightningElement) {
       }
     }
     return content;
-  }
-
-  hideModalBox() {
-    this.isShowModal = false;
   }
 
   showToast(error, errorMessage) {

@@ -21,7 +21,7 @@ export default class ReorderableList extends LightningElement {
   }
 
   async getData() {
-    var [availableBlocks, intialSelectedBlocks] = await Promise.all([
+    const [availableBlocks, initialSelectedBlocks] = await Promise.all([
       getAllBlocks(),
       getBlocksForSection({ sectionId: this.recordId })
     ]);
@@ -32,8 +32,10 @@ export default class ReorderableList extends LightningElement {
         value: block.Id
       };
     });
-    this.selectedBlocks.push(
-      ...intialSelectedBlocks.map((block) => block.RLM_Learning_Block__c)
+    // Assign (don't push) so re-opening the quick action / re-setting recordId
+    // doesn't accumulate duplicate selections.
+    this.selectedBlocks = initialSelectedBlocks.map(
+      (block) => block.RLM_Learning_Block__c
     );
   }
 

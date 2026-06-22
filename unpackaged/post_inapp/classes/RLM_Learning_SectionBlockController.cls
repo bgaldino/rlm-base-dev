@@ -137,6 +137,16 @@ public with sharing class RLM_Learning_SectionBlockController {
       WHERE Id = :sectionId AND RLM_Learning_Active__c = TRUE
       WITH USER_MODE
     ];
+    if (sections.isEmpty()) {
+      throw new AuraHandledException(
+        'No active section found for the given id.'
+      );
+    }
+    if (sections[0].SectionBlocks__r.isEmpty()) {
+      throw new AuraHandledException(
+        'No active blocks found for the given section.'
+      );
+    }
     List<Map<String, Object>> result = new List<Map<String, Object>>();
 
     Map<String, Object> sectionMap = new Map<String, Object>();

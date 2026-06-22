@@ -62,14 +62,17 @@ export default class RightContainer extends NavigationMixin(LightningElement) {
   }
 
   async handleClick(event) {
+    // Wired to an <a href="#">; prevent the default anchor jump.
+    event.preventDefault();
     const appNameValue = event.target.dataset.id;
     try {
-      console.log("inside handle on btn click for app = " + appNameValue);
       if (!appNameValue) {
         throw new Error("Application name is not defined");
       }
       const dynamicLink = this.dynamicLinksMap[appNameValue];
-      console.log("dynamicLink = " + dynamicLink.RLM_Learning_Link__c);
+      if (!dynamicLink) {
+        throw new Error("No dynamic link found for " + appNameValue);
+      }
       const pageRef = await getPageReferenceByDynamicType(dynamicLink);
       console.log("pageRef: " + JSON.stringify(pageRef));
       try {
@@ -88,13 +91,9 @@ export default class RightContainer extends NavigationMixin(LightningElement) {
         ) {
           this[NavigationMixin.Navigate](pageRef);
         } else {
-          const windowContextNameUniqueStr = Math.random()
-            .toString(36)
-            .substring(2, 7);
-          console.log(windowContextNameUniqueStr);
-          const windowContextNameUUID = crypto.randomUUID();
-          window.open("", windowContextNameUUID);
-          window.open(url, windowContextNameUUID);
+          // Open external links in a new tab with noopener/noreferrer to prevent
+          // reverse-tabnabbing (the opened page can't reach window.opener).
+          window.open(url, "_blank", "noopener,noreferrer");
         }
       } catch (error) {
         this.showToast(error, error.message);

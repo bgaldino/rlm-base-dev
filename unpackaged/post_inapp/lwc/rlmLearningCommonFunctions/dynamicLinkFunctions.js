@@ -218,7 +218,14 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
       };
       break;
   }
-  if (dynamicLink.RLM_Learning_Page__c != null && dynamicLink.RLM_Learning_Page__c !== undefined) {
+  // Only page references that carry a pageRef (standard__app navItem/named/object/record
+  // pages) can take a state. WebPage/CommunityPage/etc. references have only `url`, so
+  // guard against writing state onto a missing pageRef (would throw a TypeError).
+  if (
+    dynamicLink.RLM_Learning_Page__c != null &&
+    dynamicLink.RLM_Learning_Page__c !== undefined &&
+    pageReference.attributes.pageRef
+  ) {
     pageReference.attributes.pageRef.state = {
       c__pageId: dynamicLink.RLM_Learning_Page__c
     };
