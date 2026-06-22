@@ -3,6 +3,10 @@
     <description>Access to the In-App Learning navigation framework (Learning Home app, objects, Apex, tabs, record types). Replaces the legacy Admin profile grants for the inapp feature.</description>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Learning</label>
+    <applicationVisibilities>
+        <application>RLM_Learning_Home</application>
+        <visible>true</visible>
+    </applicationVisibilities>
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>true</allowDelete>
