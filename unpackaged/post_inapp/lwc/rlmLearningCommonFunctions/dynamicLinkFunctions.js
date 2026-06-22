@@ -4,6 +4,16 @@ import getRecordIdFromDynamicLinkType from "@salesforce/apex/RLM_Learning_Dynami
 import getSiteUrl from "@salesforce/apex/RLM_Learning_DynamicLinkHelper.getSiteUrl";
 import getSetupPageLink from "@salesforce/apex/RLM_Learning_DynamicLinkHelper.getSetupPageLink";
 
+// Escape a value for safe inclusion in HTML built by string concatenation
+// (attribute values and text content) before it is rendered as rich text.
+const escapeHtml = (value) =>
+  String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 // Apex lookups can legitimately return no rows when an admin-authored
 // whereCondition / name matches nothing. Throw a clear, actionable error
 // instead of a cryptic "cannot read property Id of undefined".
@@ -139,7 +149,15 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
     case "CommunityPage":
       const communityPage = await getRecordIdFromDynamicLinkType({
         dyanmicLinkType: dynamicLink.RecordType.DeveloperName,
-        whereCondition: "Name='" + dynamicLink.RLM_Learning_Site_Name__c + "'"
+        // Escape single quotes so a site name like "Bob's Portal" can't break the
+        // SOQL literal (USER_MODE on the Apex side already bounds the query).
+        whereCondition:
+          "Name='" +
+          String(dynamicLink.RLM_Learning_Site_Name__c || "").replace(
+            /'/g,
+            "\\'"
+          ) +
+          "'"
       });
       let siteUrl = await getSiteUrl({
         networkId: firstOrThrow(
@@ -279,5 +297,6 @@ const findDynamicLinkIdentifier = (input, middlePosition) => {
 export {
   getDynamicLinkByIdentifier,
   getPageReferenceByDynamicType,
-  findDynamicLinkIdentifier
+  findDynamicLinkIdentifier,
+  escapeHtml
 };

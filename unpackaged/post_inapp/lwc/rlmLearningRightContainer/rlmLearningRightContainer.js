@@ -63,8 +63,6 @@ export default class RlmLearningRightContainer extends NavigationMixin(
   }
 
   async handleClick(event) {
-    // Wired to an <a href="#">; prevent the default anchor jump.
-    event.preventDefault();
     const appNameValue = event.currentTarget.dataset.id;
     try {
       if (!appNameValue) {

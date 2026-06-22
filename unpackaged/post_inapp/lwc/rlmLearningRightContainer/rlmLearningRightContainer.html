@@ -27,12 +27,12 @@
                 </template>
               </div>
               <div slot="footer">
-                <p class="">
-                  <br />
-                  <a href="#" data-id={block.action} onclick={handleClick}
-                    >{block.actionText}</a
-                  >
-                </p>
+                <lightning-button
+                  variant="base"
+                  data-id={block.action}
+                  label={block.actionText}
+                  onclick={handleClick}
+                ></lightning-button>
               </div>
             </div>
           </template>

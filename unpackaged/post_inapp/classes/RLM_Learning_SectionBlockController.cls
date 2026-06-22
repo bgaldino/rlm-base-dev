@@ -158,8 +158,8 @@ public with sharing class RLM_Learning_SectionBlockController {
     blockMap.put('blockId', sectionBlock.RLM_Learning_Block__r.Id);
     blockMap.put('header', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Header__c);
     blockMap.put('subHeader', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Sub_Header__c);
-    blockMap.put('icon', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Icon__r.RLM_Learning_Type__c);
-    blockMap.put('iconSize', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Icon__r.RLM_Learning_Size__c);
+    blockMap.put('icon', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Icon__r?.RLM_Learning_Type__c);
+    blockMap.put('iconSize', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Icon__r?.RLM_Learning_Size__c);
     blockMap.put('action', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Action__c);
     blockMap.put('actionText', sectionBlock.RLM_Learning_Block__r.RLM_Learning_ActionText__c);
     blockMap.put('description', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Description__c);
@@ -243,8 +243,8 @@ public with sharing class RLM_Learning_SectionBlockController {
         blockMap.put('blockId', sectionBlock.RLM_Learning_Block__r.Id);
         blockMap.put('header', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Header__c);
         blockMap.put('subHeader', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Sub_Header__c);
-        blockMap.put('icon', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Icon__r.RLM_Learning_Type__c);
-        blockMap.put('iconSize', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Icon__r.RLM_Learning_Size__c);
+        blockMap.put('icon', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Icon__r?.RLM_Learning_Type__c);
+        blockMap.put('iconSize', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Icon__r?.RLM_Learning_Size__c);
         blockMap.put('action', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Action__c);
         blockMap.put('actionText', sectionBlock.RLM_Learning_Block__r.RLM_Learning_ActionText__c);
         blockMap.put('description', sectionBlock.RLM_Learning_Block__r.RLM_Learning_Description__c);

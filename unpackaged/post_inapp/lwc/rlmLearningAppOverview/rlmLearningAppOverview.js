@@ -4,7 +4,8 @@ import getSectionsWithBlocksByPageId from "@salesforce/apex/RLM_Learning_Section
 import {
   findDynamicLinkIdentifier,
   getDynamicLinkByIdentifier,
-  getPageReferenceByDynamicType
+  getPageReferenceByDynamicType,
+  escapeHtml
 } from "c/rlmLearningCommonFunctions";
 
 export default class RlmLearningAppOverview extends NavigationMixin(
@@ -78,9 +79,9 @@ export default class RlmLearningAppOverview extends NavigationMixin(
         }
         const replaceString =
           "<a href='" +
-          url +
+          escapeHtml(url) +
           "' target='_blank' rel='noopener noreferrer' style='color: rgb(0,0,238);'>" +
-          dynamicLink.RLM_Learning_Text_Value__c +
+          escapeHtml(dynamicLink.RLM_Learning_Text_Value__c) +
           "</a>";
         content = content.replace(identifier, replaceString);
       } catch (error) {

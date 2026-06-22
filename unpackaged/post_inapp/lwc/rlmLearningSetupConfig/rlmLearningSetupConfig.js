@@ -6,7 +6,8 @@ import getSectionsWithBlocksByPageId from "@salesforce/apex/RLM_Learning_Section
 import {
   findDynamicLinkIdentifier,
   getDynamicLinkByIdentifier,
-  getPageReferenceByDynamicType
+  getPageReferenceByDynamicType,
+  escapeHtml
 } from "c/rlmLearningCommonFunctions";
 import getSectionWithBlockBySectionId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId";
 
@@ -150,9 +151,9 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
         }
         const replaceString =
           "<a href='" +
-          url +
+          escapeHtml(url) +
           "' target='_blank' rel='noopener noreferrer' style='color: rgb(0,0,238);'>" +
-          dynamicLink.RLM_Learning_Text_Value__c +
+          escapeHtml(dynamicLink.RLM_Learning_Text_Value__c) +
           "</a>";
         content = content.replace(identifier, replaceString);
       } catch {
