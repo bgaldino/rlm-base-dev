@@ -204,21 +204,27 @@ def _slug(s):
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
+def _img_alt(block_name):
+    """A clean, human-readable alt from the Block topic — strips the administrative
+    'Learning [Hub] Block N' suffix (e.g. 'Billing Learning Hub Block 1' -> 'Billing')."""
+    return re.sub(r"\s+Learning(\s+Hub)?\s+Block\s+\d+$", "", block_name).strip() or block_name
+
+
 def rewrite_block_images(desc, block_name):
-    """Point a Block's cross-org <img src> (dead learning-org host) at the
-    self-hosted `InAppLearningImages` static resource, matched by Block-Name slug.
-    The on-disk file supplies the extension (all normalized to .png; dir-scan keeps
-    this robust if a format ever changes). Returns desc unchanged when no staged
-    image matches (scrub_text then strips the dead tag), so the converter still runs
-    if images aren't staged."""
+    """Rebuild a Block's cross-org <img> (dead learning-org host): point src at the
+    self-hosted `InAppLearningImages` static resource (matched by Block-Name slug; the
+    on-disk file supplies the extension, all normalized to .png) AND replace the stale
+    alt (originally the upload filename, e.g. 'Screenshot 2025-10-06….png') with a
+    topic-derived alt. Returns desc unchanged when no staged image matches (scrub_text
+    then strips the dead tag), so the converter still runs if images aren't staged."""
     if not desc or DEAD_IMG_HOST not in desc:
         return desc
     fname = next((p.name for p in sorted(SR_DIR.glob(_slug(block_name) + ".*"))), None)
     if not fname:
         return desc
-    newsrc = "/resource/%s/%s" % (STATIC_RESOURCE, fname)
-    return re.sub(r'(<img\b[^>]*\bsrc=")[^"]*%s[^"]*(")' % re.escape(DEAD_IMG_HOST),
-                  lambda m: m.group(1) + newsrc + m.group(2), desc)
+    new_tag = '<img src="/resource/%s/%s" alt="%s">' % (STATIC_RESOURCE, fname, _img_alt(block_name))
+    return re.sub(r'<img\b[^>]*%s[^>]*>(\s*</img>)?' % re.escape(DEAD_IMG_HOST),
+                  lambda _m: new_tag, desc)
 
 
 # --- Home announcement: 258 -> 262 (Summer '26) marquee features ----------------
