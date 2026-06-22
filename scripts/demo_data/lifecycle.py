@@ -303,3 +303,166 @@ def poll_assets(
         "no Asset for %s/%s within %ds (continuing)", account.name, product.sku, timeout
     )
     return []
+
+
+# Invoice/BillingSchedule terminal-state sets (CONTRACTS.md picklists).
+_INVOICE_FAIL = {"Error", "Split Error"}
+_INVOICE_DRAFT_OK = {"Draft", "Split Draft"}
+_INVOICE_POSTED_OK = {"Posted", "Split Posted"}
+
+
+# ---------------------------------------------------------------------------
+# Step 6a -- Generate invoice (Draft). Async, ~10-15s lag, NO statusURL.
+# Correlate via InvoiceLine.BillingScheduleId; tag while still mutable.
+# ---------------------------------------------------------------------------
+def generate_invoice(
+    client: SfRestClient,
+    billing_schedule_ids: list[str],
+    run_id: str,
+    timeout: int = 180,
+) -> tuple[str, str]:
+    """Generate a Draft invoice from billing schedule(s); return (id, number).
+
+    CONTRACTS.md: generate is async and returns only
+    ``{requestIdentifier, success, errors}`` -- no statusURL, no tracker. The
+    invoice row appears ~10-15s later. Correlate deterministically via
+    ``InvoiceLine.BillingScheduleId`` (the id we passed in), NOT by
+    ReferenceEntityId (null as-generated) or CorrelationIdentifier (not
+    persisted).
+    """
+    if not billing_schedule_ids:
+        raise LifecycleError("invoice", "no billing schedule ids to invoice")
+    body = {
+        "billingScheduleIds": billing_schedule_ids,
+        "action": "Draft",
+        "invoiceDate": _iso_today(),
+        "targetDate": _iso_today(),
+        "correlationId": run_id,
+    }
+    result = client.post(
+        f"/services/data/v{client.api_version}/commerce/invoicing/invoices/collection/actions/generate",
+        body,
+    )
+    if not result or not result.get("success"):
+        errs = result.get("errors") if isinstance(result, dict) else result
+        raise LifecycleError("invoice", f"generate failed: {errs}")
+
+    # Poll for the generated invoice via the billing schedule back-link.
+    bs_id = billing_schedule_ids[0]
+    soql = (
+        "SELECT InvoiceId, Invoice.Status, Invoice.InvoiceNumber "
+        f"FROM InvoiceLine WHERE BillingScheduleId = '{bs_id}'"
+    )
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        rows = client.query(soql)
+        rows = [r for r in rows if r.get("InvoiceId")]
+        if rows:
+            inv = rows[0]
+            invoice_id = inv["InvoiceId"]
+            status = (inv.get("Invoice") or {}).get("Status")
+            number = (inv.get("Invoice") or {}).get("InvoiceNumber")
+            if status in _INVOICE_FAIL:
+                raise LifecycleError(
+                    "invoice", f"generated invoice in {status}", record_id=invoice_id
+                )
+            log.info("invoice %s generated (status=%s)", invoice_id, status)
+            return invoice_id, number
+        time.sleep(_POLL_INTERVAL)
+    raise LifecycleError(
+        "invoice",
+        f"no invoice for billing schedule {bs_id} within {timeout}s",
+        record_id=bs_id,
+    )
+
+
+def tag_invoice(client: SfRestClient, invoice_id: str, run_id: str) -> None:
+    """Stamp run_id on the (Draft) invoice via Description.
+
+    Description is PATCH-writable on both Draft and Posted invoices and survives
+    posting, so the run_id pseudo-tag enables bulk cleanup by
+    ``Description LIKE 'DEMO-%'``. The order FK (ReferenceEntityId) is NOT
+    settable on Draft invoices (verified: "Can't change this field's value on
+    Draft invoices") -- use ``link_invoice_to_order`` after posting for that.
+    """
+    client.patch(_sobject_path(client, "Invoice", invoice_id), {"Description": run_id})
+    log.info("invoice %s tagged (%s)", invoice_id, run_id)
+
+
+def link_invoice_to_order(client: SfRestClient, invoice_id: str, order_id: str) -> None:
+    """Set Invoice.ReferenceEntityId -> Order so poll-by-orderId reads naturally.
+
+    Optional/cosmetic: correlation already works via InvoiceLine.BillingScheduleId.
+    ReferenceEntityId is only writable once the invoice is Posted (Draft rejects
+    it), so call this AFTER post_invoice.
+    """
+    client.patch(
+        _sobject_path(client, "Invoice", invoice_id),
+        {"ReferenceEntityId": order_id},
+    )
+    log.info("invoice %s linked to order %s", invoice_id, order_id)
+
+
+# ---------------------------------------------------------------------------
+# Step 6b -- Post invoice. Returns statusURL -> AsyncOperationTracker.
+# ---------------------------------------------------------------------------
+def post_invoice(
+    client: SfRestClient,
+    invoice_id: str,
+    run_id: str,
+    timeout: int = 180,
+) -> Optional[str]:
+    """Post a Draft invoice and confirm completion; return the InvoiceNumber.
+
+    CONTRACTS.md: post returns a ``statusURL`` to an AsyncOperationTracker
+    (unlike generate). We poll that tracker to Completed; if no statusURL comes
+    back, fall back to polling Invoice.Status = Posted. The human-readable
+    InvoiceNumber is assigned at post time (null while Draft), so we read it
+    back once posting completes.
+    """
+    body = {"invoiceIds": [invoice_id], "correlationId": run_id}
+    result = client.post(
+        f"/services/data/v{client.api_version}/commerce/invoicing/invoices/collection/actions/post",
+        body,
+    )
+    if not result or not result.get("success"):
+        errs = result.get("errors") if isinstance(result, dict) else result
+        raise LifecycleError("post", f"post failed: {errs}", record_id=invoice_id)
+
+    def _invoice_number() -> Optional[str]:
+        rows = client.query(f"SELECT InvoiceNumber FROM Invoice WHERE Id = '{invoice_id}'")
+        return rows[0].get("InvoiceNumber") if rows else None
+
+    status_url = result.get("statusURL") if isinstance(result, dict) else None
+    deadline = time.monotonic() + timeout
+    if status_url:
+        while time.monotonic() < deadline:
+            tracker = client.get(status_url)
+            tstatus = tracker.get("Status") if isinstance(tracker, dict) else None
+            if tstatus == "Completed":
+                number = _invoice_number()
+                log.info("invoice %s posted (tracker Completed, %s)", invoice_id, number)
+                return number
+            if tstatus in ("Failed", "Error"):
+                raise LifecycleError(
+                    "post", f"post tracker {tstatus}", record_id=invoice_id
+                )
+            time.sleep(_POLL_INTERVAL)
+    else:
+        # Fallback: poll the invoice status directly.
+        soql = f"SELECT Status, InvoiceNumber FROM Invoice WHERE Id = '{invoice_id}'"
+        while time.monotonic() < deadline:
+            rows = client.query(soql)
+            status = rows[0].get("Status") if rows else None
+            if status in _INVOICE_POSTED_OK:
+                number = rows[0].get("InvoiceNumber")
+                log.info("invoice %s posted (status=%s, %s)", invoice_id, status, number)
+                return number
+            if status in _INVOICE_FAIL:
+                raise LifecycleError(
+                    "post", f"invoice in {status} after post", record_id=invoice_id
+                )
+            time.sleep(_POLL_INTERVAL)
+    raise LifecycleError(
+        "post", f"post did not complete within {timeout}s", record_id=invoice_id
+    )

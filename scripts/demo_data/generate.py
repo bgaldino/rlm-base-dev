@@ -31,8 +31,8 @@ log = logging.getLogger("demo_data")
 
 STAGES = ["opportunity", "quote", "order", "activate", "invoice", "post"]
 
-# Stages implemented as of Phase 2 (invoice/post land in Phase 3).
-_IMPLEMENTED_MAX_STAGE = "activate"
+# Full lifecycle implemented as of Phase 3 (through post).
+_IMPLEMENTED_MAX_STAGE = "post"
 
 MANIFEST_DIR = os.path.join(os.path.dirname(__file__), "out")
 
@@ -205,6 +205,24 @@ def run_scenario(
         m.asset_ids = lifecycle.poll_assets(
             client, account, product, since, timeout=poll_timeout
         )
+        if stop_at == STAGES.index("activate"):
+            return m
+
+        # invoice: generate Draft, correlate, tag Description while mutable
+        m.invoice_id, m.invoice_number = lifecycle.generate_invoice(
+            client, m.billing_schedule_ids, run_id, timeout=poll_timeout
+        )
+        lifecycle.tag_invoice(client, m.invoice_id, run_id)
+        m.reached_stage = "invoice"
+        if stop_at == STAGES.index("invoice"):
+            return m
+
+        # post, then link invoice -> order (ReferenceEntityId is Posted-only)
+        m.invoice_number = lifecycle.post_invoice(
+            client, m.invoice_id, run_id, timeout=poll_timeout
+        )
+        m.reached_stage = "post"
+        lifecycle.link_invoice_to_order(client, m.invoice_id, m.order_id)
     except LifecycleError as exc:
         m.error = str(exc)
         log.error("scenario %s failed: %s", run_id, exc)
