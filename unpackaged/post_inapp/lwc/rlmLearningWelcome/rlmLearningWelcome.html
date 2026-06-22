@@ -11,12 +11,13 @@
                     class="slds-var-m-right_small"
                     icon-name={sectionBlocks.section.RLM_Learning_Icon__r.RLM_Learning_Type__c}
                     size="small"
+                    alternative-text="Section icon"
                   ></lightning-icon>
                 </template>
                 {getTiming.data} {getName.data}!
               </h3>
               <template for:each={sectionBlocks.blocks} for:item="block">
-                <p key={block.Id} class="slds-var-p-left_xx-large" style="color: #000;">
+                <p key={block.Id} class="slds-var-p-left_xx-large">
                   <lightning-formatted-rich-text
                     value={block.description}
                   ></lightning-formatted-rich-text>

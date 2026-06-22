@@ -54,7 +54,7 @@ export default class RlmLearningReorderableList extends LightningElement {
       sectionId: this.recordId,
       blockIds: this.selectedBlocks
     });
-    // Close the modal window and display a success toast
+    // Close the quick action.
     this.dispatchEvent(new CloseActionScreenEvent());
   }
 }

@@ -9,6 +9,7 @@
                 class="slds-var-m-right_small"
                 icon-name={sectionBlock.section.RLM_Learning_Icon__r.RLM_Learning_Type__c}
                 size="small"
+                alternative-text="Section icon"
               ></lightning-icon>
             </template>
             {sectionBlock.section.RLM_Learning_Header__c}
@@ -43,6 +44,8 @@
                   src={sectionBlock.section.RLM_Learning_Video_Link__c}
                   style="border-radius: 12px"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
                   allowfullscreen
                 ></iframe>
               </lightning-layout-item>

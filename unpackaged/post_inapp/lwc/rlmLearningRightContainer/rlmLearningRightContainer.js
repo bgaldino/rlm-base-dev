@@ -52,7 +52,7 @@ export default class RlmLearningRightContainer extends NavigationMixin(
   }
 
   createDynamicLinksMap(data) {
-    //got through data array by reading dynamicLinks map value and creating a map of dynamicLink and pageReference
+    // Go through the data array, building a map of dynamicLink id -> dynamicLink.
     data.forEach((sectionWithBlocks) => {
       sectionWithBlocks.dynamicLinks.forEach((dynamicLink) => {
         this.dynamicLinksMap[dynamicLink.Id] = JSON.parse(
