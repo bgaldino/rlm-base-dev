@@ -293,3 +293,25 @@ of these is a real ordering hazard observed on `rlm-base__jun17_1`:
 Probes ran as the org admin (`rlm-base__jun17_1`) and all calls succeeded. `TODO`:
 determine the minimal PSL/PS for a non-admin running user (likely the RLM/Billing
 permission sets the build assigns). Not blocking the happy path on an admin-auth org.
+
+## Phase 5 (Composite) — DECIDED: skipped
+
+The plan gated Composite on *"only if Phase 0 proved CRUD round-trips matter."*
+They do **not**, so Composite is **not implemented** and is intentionally dropped:
+
+- The lifecycle spine is **async-poll-bound**, not request-bound. Wall-clock is
+  dominated by the generate (~10–15s) and post (~12s) polling barriers, plus
+  BillingSchedule/Asset waits — not by HTTP round-trip count. Batching the handful
+  of non-Connect CRUD calls (Opportunity create, tag/link PATCHes) into one
+  Composite request saves a few hundred ms against ~30s of unavoidable polling.
+- The Connect **action** endpoints (PST place, createOrderFromQuote, activate,
+  invoice generate/post) **cannot** be Composite-merged anyway — Composite is for
+  the sObject/connect-record REST API, and each action has a polling barrier before
+  the next. The spine stays sequential regardless.
+- The real throughput win — **scenario-level concurrency** (Phase 4, thread pool,
+  session-per-worker) — overlaps those poll waits across independent scenarios and
+  is already shipped. That is where the parallelism budget belongs.
+
+Revisit only if a future profiling run shows CRUD round-trips are a measurable
+fraction of wall-clock (they are not today). `SfRestClient` is the single place a
+`composite()` verb would land if that ever changes.
