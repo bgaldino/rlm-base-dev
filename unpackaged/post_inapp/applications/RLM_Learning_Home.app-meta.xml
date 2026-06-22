@@ -18,7 +18,7 @@
     <isNavPersonalizationDisabled>false</isNavPersonalizationDisabled>
     <isNavTabPersistenceDisabled>false</isNavTabPersistenceDisabled>
     <isOmniPinnedViewEnabled>false</isOmniPinnedViewEnabled>
-    <label>Revenue Cloud Learning Home</label>
+    <label>Revenue Management Learning Home</label>
     <navType>Standard</navType>
     <profileActionOverrides>
         <actionName>Tab</actionName>
