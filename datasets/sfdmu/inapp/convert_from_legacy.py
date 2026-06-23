@@ -21,11 +21,16 @@ Usage:
   python datasets/sfdmu/inapp/convert_from_legacy.py [path/to/rlm.dataset.sql]
 """
 import csv
+import os
 import re
 import sys
 from pathlib import Path
 
-DEFAULT_SRC = "/Users/brian/Documents/GitHub/Enterprise/_industries/Industries-In-App-Framework/datasets/rlm/rlm.dataset.sql"
+# The legacy source SQL lives in the sibling Industries-In-App-Framework repo, NOT in this
+# repo. Provide its path as the first CLI argument, or via the RLM_INAPP_LEGACY_SQL env var.
+# There is no baked-in default — the script is run only to regenerate the CSVs when that
+# external source changes, so it stays portable and never embeds a personal filesystem path.
+ENV_SRC = "RLM_INAPP_LEGACY_SQL"
 OUT_DIR = Path(__file__).parent.absolute()
 
 # --- scrub / remap constants ---------------------------------------------------
@@ -427,13 +432,23 @@ def write_csv(name, header, rows):
 
 
 def main():
-    src = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(DEFAULT_SRC)
+    src_arg = sys.argv[1] if len(sys.argv) > 1 else os.environ.get(ENV_SRC)
+    if not src_arg:
+        sys.exit(
+            f"usage: {Path(sys.argv[0]).name} <path-to-rlm.dataset.sql>\n"
+            f"Provide the legacy source SQL path as the first argument, or set the "
+            f"{ENV_SRC} environment variable. It points to "
+            f"Industries-In-App-Framework/datasets/rlm/rlm.dataset.sql (a sibling repo, "
+            f"not in this one). This script regenerates the CSVs from that legacy dump and "
+            f"is only needed when the source content changes."
+        )
+    src = Path(src_arg)
     if not src.exists():
         sys.exit(
             f"Legacy source SQL not found: {src}\n"
             f"Pass the path to Industries-In-App-Framework/datasets/rlm/rlm.dataset.sql "
-            f"as the first argument (or update DEFAULT_SRC). This script regenerates the "
-            f"CSVs from that legacy dump and is only needed when the source content changes."
+            f"as the first argument (or via {ENV_SRC}). This script regenerates the CSVs "
+            f"from that legacy dump and is only needed when the source content changes."
         )
     sql = src.read_text()
 
