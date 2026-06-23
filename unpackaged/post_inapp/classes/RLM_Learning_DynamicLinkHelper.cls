@@ -124,10 +124,17 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
   public static String getSiteUrl(String networkId) {
     try {
       Id nId = Id.valueOf(networkId);
-      // Extract scheme + host from the login URL rather than assuming a `.com`
-      // domain (Experience Cloud login URLs can have a path or non-.com host).
-      Url loginUrl = new Url(Network.getLoginUrl(nId));
-      return loginUrl.getProtocol() + '://' + loginUrl.getHost();
+      // The login URL is "<scheme>://<host>[/<sitePrefix>]/s/login". The site base
+      // URL is everything before "/s/", which preserves a path-based site prefix
+      // (e.g. "/customers") that getProtocol()+getHost() alone would drop. Fall back
+      // to scheme://host when there is no "/s/" segment (path-less site).
+      String loginUrl = Network.getLoginUrl(nId);
+      Integer sIndex = loginUrl == null ? -1 : loginUrl.indexOf('/s/');
+      if (sIndex > 0) {
+        return loginUrl.substring(0, sIndex);
+      }
+      Url parsed = new Url(loginUrl);
+      return parsed.getProtocol() + '://' + parsed.getHost();
     } catch (Exception e) {
       throw new AuraHandledException(e.getMessage());
     }

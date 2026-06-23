@@ -33,7 +33,7 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
       this.sectionsWithBlocks = data;
       this.createDynamicLinksMap(data);
     } else if (error) {
-      this.showToast(error, error.message);
+      this.showToast(error);
     }
   }
 
@@ -72,8 +72,8 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
           sectionWithBlock.block.description
         );
         await rlmLearningSectionDetailModal.open({
-          // `label` is not included here in this example.
-          // it is set on lightning-modal-header instead
+          // The modal header is driven by the `header` property below (rendered by
+          // lightning-modal-header), not by the modal's `label` option.
           size: "medium",
           header: sectionWithBlock.section.RLM_Learning_Header__c,
           subHeader: sectionWithBlock.section.RLM_Learning_Sub_Header__c,
@@ -102,11 +102,11 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
             this[NavigationMixin.Navigate](pageRef);
           }
         } catch (error) {
-          this.showToast(error, error.message);
+          this.showToast(error);
         }
       }
     } catch (error) {
-      this.showToast(error, error.message);
+      this.showToast(error);
     }
   }
 
@@ -180,10 +180,14 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
     return content;
   }
 
-  showToast(error, errorMessage) {
+  showToast(error) {
     const toastEvent = new ShowToastEvent({
       title: "Error",
-      message: reduceErrorMessage(error, errorMessage),
+      // reduceErrorMessage already falls back through array/object bodies,
+      // error.message, then a non-empty "Unknown error" default — so no caller
+      // fallback is needed (passing error.message, which is undefined/"" for many
+      // Apex/LDS errors, would only risk overriding that default).
+      message: reduceErrorMessage(error),
       variant: "error"
     });
     this.dispatchEvent(toastEvent);

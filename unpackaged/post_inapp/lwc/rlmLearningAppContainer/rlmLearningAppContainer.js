@@ -93,17 +93,21 @@ export default class RlmLearningAppContainer extends NavigationMixin(
           this[NavigationMixin.Navigate](pageRef);
         }
       } catch (error) {
-        this.showToast(error, error.message);
+        this.showToast(error);
       }
     } catch (error) {
-      this.showToast(error, error.message);
+      this.showToast(error);
     }
   }
 
-  showToast(error, errorMessage) {
+  showToast(error) {
     const toastEvent = new ShowToastEvent({
       title: "Error",
-      message: reduceErrorMessage(error, errorMessage),
+      // reduceErrorMessage already falls back through array/object bodies,
+      // error.message, then a non-empty "Unknown error" default — so no caller
+      // fallback is needed (passing error.message, which is undefined/"" for many
+      // Apex/LDS errors, would only risk overriding that default).
+      message: reduceErrorMessage(error),
       variant: "error"
     });
     this.dispatchEvent(toastEvent);
