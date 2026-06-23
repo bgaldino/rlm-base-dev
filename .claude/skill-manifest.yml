@@ -113,7 +113,7 @@ foundations:
       path: .cursor/skills/expression-sets/SKILL.md
       purpose: "Expression Set (pricing procedure, etc.) programmatic CRUD + overlay authoring via Connect/Metadata API; dependency capture; activation lifecycle"
       consumed_by_pmos: [spec, technical-review]
-      provenance: hand-authored + live verification (Connect API probing) + OAS-grounded schema
+      provenance: hand-authored + disposable-clone validation + OAS-grounded schema
       sub_skills:
         - docs/references/expression-set-connect-api-reference.md
       caveats:

@@ -11,19 +11,16 @@
 > `.cursor/skills/pricing-wiring/SKILL.md`.
 >
 > Scope: programmatically reading and mutating pricing procedures during org
-> setup/configuration. Two paths are available and both handle nested (real)
+> setup/configuration. Two paths are available and both handle nested
 > procedures: the **Connect API** for runtime/programmatic edits, and the
-> **Metadata API** for source-controlled authoring. Facts are marked empirical
-> (live probing) vs. spec-confirmed (generated OAS). The
-> [Live verification record](#live-verification-record) at the end is the
-> standing evidence behind the claims here.
+> **Metadata API** for source-controlled authoring. Use the verification
+> checklist at the end before applying Connect mutations to a real target.
 
-## What works
+## Supported Management Paths
 
 - **Connect API — full CRUD on expression sets, including nested pricing
   procedures.** GET (export), POST (create), PATCH (replace / declarative
-  overlay), DELETE. Proven against a real 92-step / 57-nested-child pricing
-  procedure (POST create + PATCH edit).
+  overlay), DELETE.
 - **Mutations must normalize HTML entities first.** Connect GET escapes
   JSON-in-string values (`customElement.parameters[].value`,
   `advancedCondition.criteria[].value`, formula text) as `&quot;`/`&#39;`. The
@@ -32,7 +29,7 @@
   `true`). See [HTML-entity normalization](#html-entity-normalization).
 - **Metadata API — source-controlled authoring.** Edit `expressionSetDefinition`
   metadata and deploy it (`cumulusci.tasks.salesforce.Deploy`). This is how all
-  11 shipped procedures get into the org and gives specific, actionable
+  shipped procedures get into the org and gives specific, actionable
   validation errors. See [Metadata API authoring](#metadata-api-authoring).
 - **Pre-flight schema validation** (`tasks/expression_set_schema.py`) runs before
   any Connect call, so a malformed payload fails locally with an actionable
@@ -72,10 +69,12 @@ before the Connect call (`normalize_html_entities`, default `true`).
 | `ProcedurePlanOption` → `ProcedurePlanDefinitionVersion` | — | A procedure plan referencing the ES; blocks the ES version's deactivation until its plan version is deactivated (the reason for the cascade). |
 
 **Resolution SOQL** (`ExpressionSetConnectBase`):
-- api name → `9QL`: `SELECT Id FROM ExpressionSet WHERE ExpressionSetDefinition.DeveloperName = '…'`
-- `9QL` → version (source of truth for identity / `IsActive`):
-  `SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion WHERE ExpressionSetId = '9QL…' ORDER BY VersionNumber DESC`
-- referencing plans: `SELECT Id, ProcedurePlanSection.ProcedurePlanVersionId FROM ProcedurePlanOption WHERE ExpressionSetDefinitionId = '9QA…'`
+- api name → runtime expression set:
+  `SELECT Id FROM ExpressionSet WHERE ExpressionSetDefinition.DeveloperName = '…'`
+- runtime expression set → version (source of truth for identity / `IsActive`):
+  `SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion WHERE ExpressionSetId = '<ExpressionSetId>' ORDER BY IsActive DESC, VersionNumber DESC`
+- referencing plans:
+  `SELECT Id, ProcedurePlanSection.ProcedurePlanVersionId FROM ProcedurePlanOption WHERE ExpressionSetDefinitionId = '<ExpressionSetDefinitionId>'`
 
 ---
 
@@ -125,15 +124,6 @@ worry about).
 `expressionSetDefinition` XML carries the *same* entities, but in XML `&quot;`/
 `&apos;` are an entity layer the XML parser decodes (→ `"`/`'`) before the engine
 sees the value. JSON has no such layer, so the Connect path unescapes explicitly.
-The entity counts match exactly between the two representations of
-`RLM_DefaultPricingProcedure`:
-
-| Entity | JSON export | Deployed XML |
-|---|---|---|
-| `&quot;` | 604 | 604 |
-| `&#39;` / `&apos;` | 38 | 38 |
-| `&amp;` | 0 | 0 |
-
 The validator (`tasks/expression_set_schema.py`) emits a **warning** when a value
 still contains HTML entities, flagging raw GET output before it reaches the org.
 
@@ -168,7 +158,7 @@ handle the first three automatically.
 | Semantic rule-builder errors, e.g. `Select list filter as the first element in list group` | The step graph is genuinely invalid (ordering/shape). | Fix the graph; these messages are specific. The Metadata API surfaces the same class of message on deploy. |
 | `FIELD_INTEGRITY_EXCEPTION` on a Tooling `Metadata` PATCH that appends a step | Appending a step to an existing version via Tooling PATCH is unreliable. | Prefer create-with-content (a new `ExpressionSetDefinitionVersion`) or the Metadata API deploy. |
 
-> A real mutation failure can still be reported as a generic gack by the
+> A real mutation failure can still be reported as an opaque server error by the
 > PATCH/POST handler, so when a failure is opaque, **bisect the
 > payload** — POST/Tooling *validation* messages are more specific than a PATCH's
 > generic response. PATCH/CREATE/DELETE require
@@ -180,9 +170,8 @@ handle the first three automatically.
 ## Verified schema (OAS-confirmed)
 
 Sourced from the generated Connect API OpenAPI spec (the closest published spec
-to v67.0) and cross-checked against live GET exports of the seeded procedures
-(92-step DPP, 11-step PDP). These are the enums the validator enforces. The
-validator passes both seeded procedures with 0 errors.
+to v67.0) and cross-checked against seeded procedure exports. These are the
+enums the validator enforces.
 
 **Top-level** (`ExpressionSetInputRepresentation`): `apiName`, `name`,
 `description`, `usageType`, `interfaceSourceType`, `resourceInitializationType`,
@@ -321,7 +310,7 @@ The apply task ignores it; the validator checks its shape and uses it to silence
 the custom-reference warning. (`__std`/standard fields don't belong here — they
 ship with the standard context.)
 
-Worked examples:
+Shipped overlay examples:
 - `discount_distribution.json` — references **19** names: **4** version-level
   constants (`Constant_DDS_Amount` = `"Amount"`, `_Percentage`, `_Override`,
   `_NetUnitPrice`, all `Constant`/`Text`) shipped in `addVariables`; the rest are
@@ -340,33 +329,18 @@ Worked examples:
 A `removeSteps` (or any PATCH) that passes validation and reactivates is **not**
 proof it is correct. Connect/engine validation is **structural** (the graph shape
 is legal; every variable still has *a* producer) — **not functional** (the
-*right* producer feeds a given line subset). Worked example (observed on a
-disposable clone): removing the **Derived Price** element (`actionType:
-DerivedPricing`, outputs `NetUnitPrice` / `ItemNetTotalPrice`) **succeeded and
-reactivated** — because other steps also output those variables, so the graph
-stayed structurally valid — yet the `ListGroup` that filtered derived-pricing
-lines was left with nothing computing their price, **silently mispricing** that
-scenario with no error. Before removing a step, check what consumes its outputs
-and whether a filter/`ListGroup` selecting its target line subset is orphaned; do
-removals on a disposable clone and verify with a test repricing, not by "it
-reactivated."
+*right* producer feeds a given line subset). Removing a price-producing element
+can leave a filter/`ListGroup` selecting that subset with no correct producer,
+even if another step produces the same output variable elsewhere. Before
+removing a step, check what consumes its outputs and whether a filter/`ListGroup`
+selecting its target line subset is orphaned; do removals on a disposable clone
+and verify with a test repricing, not by "it reactivated."
 
-> **Nested-child apply path — live-confirmed.** Both the flat single-step path
-> (Map Line Item) and the nested child-step path (`parentStep` set, no
-> `placement`) are live-verified — see the [Live verification
-> record](#live-verification-record) for the concrete run. Two engine/task bugs
-> were found and fixed while proving the nested path, both now covered by unit
-> tests:
-> 1. `_add_steps` routed placement-less child steps through the top-level branch,
->    overwriting each child's `sequenceNumber` with `max_top_level + 1` and
->    collapsing siblings onto one slot. Fixed: a step carrying `parentStep`
->    appends with its per-parent `sequenceNumber` preserved.
-> 2. The overlay/definition cross-check validated every `placement.afterStep`/
->    `beforeStep` only against pre-existing steps, so it wrongly rejected a step
->    placed after a **sibling added earlier in the same overlay** (chained
->    `ListGroup` blocks). It now also accepts earlier `addSteps` entries as
->    placement targets (a *forward* reference — to a step added later — is still
->    an error).
+**Nested-child overlay rules:** Child steps carry `parentStep` and keep their
+per-parent `sequenceNumber`; they do not use top-level `placement`. A later
+`addSteps` entry may place itself after/before a sibling added earlier in the
+same overlay, because `_add_steps` processes entries in array order. Forward
+references to steps added later remain invalid.
 
 ---
 
@@ -378,9 +352,9 @@ metadata and deploy it via the repo's pipeline
 `deploy_post_prm_pricing_expression_sets` tasks). All 11 shipped procedures load
 this way.
 
-Characteristics (empirical, v67.0):
-- **Handles nested step graphs** — the shipped metadata for every procedure
-  contains the full nested graph and deploys.
+Characteristics:
+- **Handles nested step graphs** — shipped metadata contains the full nested
+  graph and deploys.
 - **Validation errors are specific and actionable** — e.g. *"ListGroup can not be
   empty"*, *"a filter can't be the last or only step element in a group"*,
   *"Select list filter as the first element in list group"*, *"Local variables
@@ -430,15 +404,10 @@ JSON blob** into the element editor — there is no documented API path.
 - The canonical mapping maps pricing variables → `ItemDetail*__std` outputs via
   BKM `BreakdownLineMapping` (`MapLineItemNodeInput: SalesTransactionItem`,
   `MapLineItemNodeOutput: SalesTransactionItemDetail`).
-- **The Connect overlay path works** — confirmed live. The overlay at
-  `datasets/expression_set_overlays/map_line_item.json` was extracted from a
-  real GET of a procedure that already had the element (57 `customElement.parameters`,
-  18 `sectionJsonStringN` `whereConditions` field-mappings) and applied
-  end-to-end via `apply_expression_set_overlay` onto a clean shipped
-  `RLM_DefaultPricingProcedure` (92 → 93 steps; the Map Line Item element lands
-  at sequenceNumber 2, right after Pricing Setting). Author the
-  `sectionJsonStringN` values **unescaped** (`normalize_html_entities` leaves
-  clean values as-is).
+- The Connect overlay at `datasets/expression_set_overlays/map_line_item.json`
+  is the supported programmatic form of the same element. It should be placed
+  immediately after the pricing-settings step. Author the `sectionJsonStringN`
+  values **unescaped** (`normalize_html_entities` leaves clean values as-is).
 - **Automation options:** (a) the Connect overlay above, or (b) author the Map
   Line Item step as an `expressionSetDefinition` `<steps>` block and deploy via
   the Metadata API (see [above](#metadata-api-authoring)) — `BreakdownLineMapping`
@@ -455,7 +424,7 @@ JSON blob** into the element editor — there is no documented API path.
   → referenced `DecisionTable`s. Keyed by **version Id** (`9QM`); the `9QL`
   variant returns `INVALID_ID_FIELD`.
 - **Tooling base:** `{instance}/services/data/v67.0/tooling/sobjects/ExpressionSetDefinitionVersion`
-- **Token for raw API probes:** `yes | sf org auth show-access-token --target-org <sf_alias>`,
+- **Token for manual API checks:** `yes | sf org auth show-access-token --target-org <sf_alias>`,
   or pull `instanceUrl`/`accessToken` from `sf org display --json`.
 - **Validate a payload offline:** `python scripts/ai/validate_expression_set.py <file.json> [--overlay|--definition]`
 
@@ -464,81 +433,27 @@ platform behavior may change.
 
 ---
 
-## <a name="live-verification-record"></a>Live verification record
+## Verification Checklist
 
-A factual log of live probes run against a 262 scratch org to verify the behavior
-documented above. This is the standing evidence behind the claims in this
-reference. All mutation probes used disposable `ZZ_*` Expression Sets, deleted and
-confirmed gone with zero-record SOQL afterward; no shipped procedure was mutated
-during verification.
+Use this checklist before applying Connect mutations to a real target org.
 
-### Verification campaign
-
-One campaign against a 262 scratch org, in four phases:
-
-| Phase | What it covered |
-| --- | --- |
-| id model & flat CRUD | id-model resolution, structural GET, dependencies, guardrails, flat create/delete, invocation probe. |
-| PATCH preconditions | Flat PATCH preconditions — active-version guard, `ResourceInitializationType` immutability, escaped-formula rejection. |
-| Flat PATCH success | Flat PATCH success with an unescaped payload (the same shape that failed escaped above). |
-| Nested round-trip | A 92-step / 57-nested-child clone POSTs (201) and PATCHes (200) with `normalize_html_entities` on, and reproduces the opaque gack on demand with it off. |
-
-A separate later check applied the Map Line Item overlay end-to-end onto a clean
-shipped `RLM_DefaultPricingProcedure` (92 → 93 steps; element at sequenceNumber 2)
-via `apply_expression_set_overlay` — see [Map Line Item](#map-line-item-to-detail-item).
-
-The **nested-child overlay** path was then proven the same way: a clean clone
-with the discount-distribution steps + their 4 `Constant_DDS_*` constants removed
-(83 steps / 20 variables, mirroring a target that lacks the feature) had
-`discount_distribution.json` applied — **83 → 93 steps**, all four subtrees'
-children landing at their per-parent `sequenceNumber` (1, 2), all 4 `addVariables`
-constants created (**20 → 24 variables**), version reactivated, clone deleted.
-A second nested overlay (`facility_quantity.json`, the all-three-dependency-scopes
-example) was likewise applied to a clean clone (**96 → 103 steps**, the
-`FormulaBasedPricing` child's formula round-tripped, `HospitalPrice` constant
-added). No shipped procedure was mutated in either run.
-
-### Capability matrix
-
-| Capability | Endpoint / Model | Live result | Status |
-| --- | --- | --- | --- |
-| Resolve runtime object model | SOQL on `ExpressionSetDefinition`, `ExpressionSet`, `ExpressionSetVersion` | `RLM_DefaultPricingProcedure` → `9QA` definition, `9QL` ExpressionSet, `9QM` active version | Works |
-| Structural export | `GET /connect/business-rules/expression-set/{9QL}` | 200; returned `DefaultPricing`, 1 version, 92 steps, 24 variables | Works |
-| Dependencies | `GET /connect/business-rules/expression-set/version/{9QM}/dependencies` | 200 with `9QM`; `9QL` returns `INVALID_ID_FIELD` | Works (`9QM` only) |
-| Guardrails | `GET /connect/business-rules/guardrails?componentNames=ExpressionSet` | 200; returned `MaxEsCrudConnectApi` and execution rate limits | Works |
-| Create | `POST /connect/business-rules/expression-set` | 201 for a flat 1-step `Bre` ES; 201 for a 92-step / 57-nested-child clone (entities normalized, `contextDefinitions[].id` kept) | Works (flat & nested) |
-| Replace / overlay | `PATCH /connect/business-rules/expression-set/{9QL}` | 200 after deactivating the version, keeping the version `id`, stripping top-level `id`, and normalizing HTML entities — for flat and for a nested-child edit on the 92-step clone | Works (flat & nested) |
-| Active-version guard | `PATCH /connect/business-rules/expression-set/{9QL}` while active | `INVALID_INPUT: An enabled Expression Set Version cannot be updated/deleted.` | Works as designed |
-| Delete | `DELETE /connect/business-rules/expression-set/{9QL}` | 204 after the version was inactive; follow-up SOQL returned zero records | Works |
-| Invocation | `POST /connect/business-rules/expressionSet/{apiName}` | `INVALID_INPUT: The rule name … is invalid` for a disposable flat `Bre` ES | Open (see below) |
-
-### Error register
-
-The error classes reproduced live, with the phase that surfaced each. The cause
-and handling for every one is in [Known errors & conditions](#known-errors--conditions)
-above; this is the index of what was actually observed.
-
-| Error observed | Phase |
-| --- | --- |
-| `INVALID_ID_FIELD: Invalid identifier: 9QL…` (dependencies endpoint) | id model & flat CRUD |
-| `An enabled Expression Set Version cannot be updated/deleted.` | PATCH preconditions |
-| `The resourceInitializationType is set to null and cannot be changed.` | PATCH preconditions |
-| `Specify a valid formula … Syntax error. Found '&'` (flat, escaped) | PATCH preconditions |
-| `INVALID_INPUT: Error processing JSON` (nested, escaped) | Nested round-trip |
-| `Specify a valid data type for the … variable` (POST create, `contextDefinitions[].id` stripped) | Nested round-trip |
-| `Select list filter as the first element in list group.` (hand-authored `ListGroup`) | id model & flat CRUD |
-
-### Open items
-
-- **Invocation.** `POST /connect/business-rules/expressionSet/{apiName}` returned
-  `INVALID_INPUT: The rule name … is invalid` for a disposable flat `Bre` ES.
-  Resolving it needs a known-valid invocable Expression Set and the exact input
-  contract — not yet verified.
+1. Run the local validator on every definition or overlay payload.
+2. Export the target expression set and confirm the overlay's anchors, update
+   targets, removal targets, and required variables exist in that live shape.
+3. For create/import testing, POST a uniquely named disposable clone and validate
+   the exported clone before applying overlays.
+4. Apply overlays to the disposable clone first, with `verify: true` and
+   `normalize_html_entities` left at its default.
+5. Re-export the clone and confirm the intended steps and variables landed.
+6. Confirm the clone version and any cascaded procedure-plan versions are active
+   after a successful run.
+7. Delete disposable clones after inspection, unless the clone is intentionally
+   retained for reviewer validation.
+8. For removals, run a functional pricing test; structural validation alone is
+   not sufficient.
 
 ### Docs note
 
-The public **Expression Set Input** page lists a narrow `usageType` set, while
-live behavior accepts `DefaultPricing` and `Bre` in this org. Treat public enum
-listings as incomplete unless confirmed against the generated OAS spec or live
-org behavior (the validator's enums are OAS-sourced — see
-[Verified schema](#verified-schema-oas-confirmed) above).
+Public enum listings can lag generated API schemas. Treat the generated OAS spec
+and target-org behavior as the authority for enum support; the validator's enums
+are OAS-sourced — see [Verified schema](#verified-schema-oas-confirmed).

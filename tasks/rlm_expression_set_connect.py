@@ -432,7 +432,13 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         self, es_def_id: str, dry_run: bool
     ) -> List[str]:
         """Deactivate any active procedure plan versions referencing this ES.
-        Returns list of version IDs that were deactivated."""
+        Returns list of version IDs that were deactivated.
+
+        If setup fails partway through, rollback only the procedure-plan
+        versions this cascade already deactivated. Connect PATCH failures later
+        in the lifecycle intentionally keep cascaded versions deactivated for
+        inspection; this rollback is only for pre-mutation cascade setup.
+        """
         options = self._find_referencing_procedure_plans(es_def_id)
         if not options:
             return []
@@ -443,25 +449,43 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
             if vid:
                 version_ids.add(vid)
         deactivated = []
-        for vid in version_ids:
-            records = self._soql_query(
-                "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
-                f"WHERE Id = '{self._soql_escape(vid)}'"
-            )
-            if records and records[0].get("IsActive"):
-                if dry_run:
-                    self.logger.info(
-                        "[dry-run] Would deactivate ProcedurePlanDefinitionVersion %s",
-                        vid,
-                    )
-                else:
-                    self._patch_sobject(
-                        "ProcedurePlanDefinitionVersion", vid, {"IsActive": False}
-                    )
-                    self.logger.info(
-                        "Deactivated ProcedurePlanDefinitionVersion %s (cascade).", vid
-                    )
-                deactivated.append(vid)
+        try:
+            for vid in sorted(version_ids):
+                records = self._soql_query(
+                    "SELECT Id, IsActive FROM ProcedurePlanDefinitionVersion "
+                    f"WHERE Id = '{self._soql_escape(vid)}'"
+                )
+                if records and records[0].get("IsActive"):
+                    if dry_run:
+                        self.logger.info(
+                            "[dry-run] Would deactivate ProcedurePlanDefinitionVersion %s",
+                            vid,
+                        )
+                    else:
+                        self._patch_sobject(
+                            "ProcedurePlanDefinitionVersion", vid, {"IsActive": False}
+                        )
+                        self.logger.info(
+                            "Deactivated ProcedurePlanDefinitionVersion %s (cascade).",
+                            vid,
+                        )
+                    deactivated.append(vid)
+        except Exception as exc:
+            if deactivated and not dry_run:
+                try:
+                    self._cascade_reactivate_procedure_plans(deactivated, False)
+                except Exception as rollback_exc:
+                    raise TaskOptionsError(
+                        "Cascade deactivation failed after deactivating "
+                        f"ProcedurePlanDefinitionVersion(s) {deactivated}, and "
+                        f"rollback also failed: {rollback_exc}"
+                    ) from exc
+                raise TaskOptionsError(
+                    "Cascade deactivation failed after deactivating "
+                    f"ProcedurePlanDefinitionVersion(s) {deactivated}; "
+                    "rolled them back before aborting."
+                ) from exc
+            raise
         return deactivated
 
     def _cascade_reactivate_procedure_plans(

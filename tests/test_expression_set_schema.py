@@ -48,6 +48,39 @@ class _OverlayApplier(ApplyExpressionSetOverlay):
         self.options = {}
 
 
+class _CascadeTask(Connect):
+    """Bare instance for testing cascade deactivate/reactivate behavior."""
+
+    def __init__(self, states, fail_on_deactivate=None):
+        import logging
+
+        self.logger = logging.getLogger("test_cascade_task")
+        self.logger.addHandler(logging.NullHandler())
+        self.options = {}
+        self.states = dict(states)
+        self.fail_on_deactivate = fail_on_deactivate
+        self.patch_calls = []
+
+    def _find_referencing_procedure_plans(self, es_def_id):
+        return [
+            {"ProcedurePlanSection": {"ProcedurePlanVersionId": vid}}
+            for vid in self.states
+        ]
+
+    def _soql_query(self, soql):
+        for vid, active in self.states.items():
+            if f"'{vid}'" in soql:
+                return [{"Id": vid, "IsActive": active}]
+        return []
+
+    def _patch_sobject(self, sobject, record_id, payload):
+        self.patch_calls.append((sobject, record_id, dict(payload)))
+        active = payload.get("IsActive")
+        if active is False and record_id == self.fail_on_deactivate:
+            raise RuntimeError(f"simulated deactivate failure for {record_id}")
+        self.states[record_id] = active
+
+
 def check(name, condition):
     RESULTS.append((name, bool(condition)))
     print(f"  [{'PASS' if condition else 'FAIL'}] {name}")
@@ -522,6 +555,66 @@ def test_add_steps_preserves_child_sequence():
     check(
         "child steps keep distinct per-parent sequenceNumber (1, 2)",
         filter_seq == 1 and assign_seq == 2,
+    )
+
+
+def test_cascade_deactivate_returns_successfully_deactivated_versions():
+    task = _CascadeTask({"PPV_A": True, "PPV_B": True, "PPV_C": False})
+
+    deactivated = task._cascade_deactivate_procedure_plans("ESD", dry_run=False)
+
+    check(
+        "cascade deactivate returns only active procedure plan versions it changed",
+        deactivated == ["PPV_A", "PPV_B"],
+    )
+    check(
+        "cascade deactivate sets active procedure plan versions inactive",
+        task.states == {"PPV_A": False, "PPV_B": False, "PPV_C": False},
+    )
+
+
+def test_cascade_deactivate_rolls_back_partial_failure():
+    task = _CascadeTask(
+        {"PPV_A": True, "PPV_B": True},
+        fail_on_deactivate="PPV_B",
+    )
+
+    error = None
+    try:
+        task._cascade_deactivate_procedure_plans("ESD", dry_run=False)
+    except Exception as exc:
+        error = exc
+
+    check(
+        "cascade partial failure raises with rollback context",
+        error is not None and "rolled them back" in str(error),
+    )
+    check(
+        "cascade partial failure reactivates already-deactivated versions",
+        task.states == {"PPV_A": True, "PPV_B": True},
+    )
+    check(
+        "cascade partial failure attempts rollback after failed deactivate",
+        task.patch_calls == [
+            ("ProcedurePlanDefinitionVersion", "PPV_A", {"IsActive": False}),
+            ("ProcedurePlanDefinitionVersion", "PPV_B", {"IsActive": False}),
+            ("ProcedurePlanDefinitionVersion", "PPV_A", {"IsActive": True}),
+        ],
+    )
+
+
+def test_cascade_deactivate_dry_run_does_not_patch():
+    task = _CascadeTask({"PPV_A": True, "PPV_B": True})
+
+    deactivated = task._cascade_deactivate_procedure_plans("ESD", dry_run=True)
+
+    check(
+        "cascade dry-run reports active procedure plan versions",
+        deactivated == ["PPV_A", "PPV_B"],
+    )
+    check(
+        "cascade dry-run does not patch or mutate active state",
+        task.patch_calls == [] and task.states == {"PPV_A": True, "PPV_B": True},
     )
 
 

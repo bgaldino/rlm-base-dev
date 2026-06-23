@@ -16,8 +16,8 @@ context definitions), read `.cursor/skills/pricing-wiring/SKILL.md`.
 
 > **Pinned to Release 262 / API v67.0.** Re-verify enums and behavior on the
 > target release at merge time. The exhaustive detail — object/ID model,
-> OAS-confirmed schema enums, every known error + resolution, and the standing
-> live-verification record — lives in the detail file
+> OAS-confirmed schema enums, every known error + resolution, and the
+> verification checklist — lives in the detail file
 > **`docs/references/expression-set-connect-api-reference.md`**. This skill is
 > the task-level entry point.
 
@@ -52,7 +52,7 @@ context definitions), read `.cursor/skills/pricing-wiring/SKILL.md`.
 ## DO NOT
 
 - **DO NOT** send raw Connect GET output back in a PATCH/POST without
-  HTML-unescaping it first — the escaped `&quot;`/`&#39;` values gack the engine
+  HTML-unescaping it first — the escaped `&quot;`/`&#39;` values make engine parsing fail
   (flat: `Syntax error. Found '&'`; nested: opaque `INVALID_INPUT: Error
   processing JSON`). The mutation tasks do this automatically; only set
   `normalize_html_entities: false` to reproduce the failure.
@@ -89,7 +89,7 @@ context definitions), read `.cursor/skills/pricing-wiring/SKILL.md`.
 | Author/modify a procedure in git (source-controlled) | This skill → [Metadata API authoring](#metadata-api-authoring) |
 | Capture a known-good element from one org and add it to another | This skill → [Authoring overlays](#authoring-overlays) |
 | Where ES CRUD fits in the **pricing** setup order (recipes, plans, context) | `.cursor/skills/pricing-wiring/SKILL.md` |
-| Object/ID model, full schema enums, every error + resolution, evidence log | Detail file: `docs/references/expression-set-connect-api-reference.md` |
+| Object/ID model, full schema enums, every error + resolution, verification checklist | Detail file: `docs/references/expression-set-connect-api-reference.md` |
 | Writing the Python task class itself | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
 
 ---
@@ -296,7 +296,7 @@ For new-version semantics rather than in-place edit, prefer **create-with-conten
 ## Examples
 
 Shipped overlays in `datasets/expression_set_overlays/` are the canonical
-worked examples. Capture each from a live GET, HTML-unescape, validate,
+examples. Capture each from a live GET, HTML-unescape, validate,
 cross-check, then apply to a **disposable clone** before any real target.
 
 | Overlay | Shape | Dependency scopes demonstrated |
@@ -312,10 +312,10 @@ tokenize formula text, which the validator does.
 ### Map Line Item — special case
 
 Salesforce's **documented** authoring path is the **UI paste** (the
-`lds-adapters-industries-rule-builder` BKM `BreakdownLineMapping` blob), but
-**the Connect overlay path also works** (`map_line_item.json`, captured from a
-live GET — the Map Line Item element lands at `sequenceNumber` 2, right after
-Pricing Setting). Author the `sectionJsonStringN` values **unescaped**.
+`lds-adapters-industries-rule-builder` BKM `BreakdownLineMapping` blob). The
+Connect overlay at `map_line_item.json` is the supported programmatic form and
+should place the Map Line Item element right after Pricing Setting. Author the
+`sectionJsonStringN` values **unescaped**.
 Alternative: author it as an `expressionSetDefinition` `<steps>` block and deploy
 via the Metadata API (identical shape).
 
@@ -334,7 +334,7 @@ python scripts/ai/validate_expression_set.py <path> --overlay   # CLI form
 # Validator/schema unit tests (self-contained check() runner, no pytest)
 python tests/test_expression_set_schema.py        # expect: all pass
 
-# Token for raw API probes
+# Token for manual API checks
 yes | sf org auth show-access-token --target-org <sf_alias>
 ```
 
@@ -361,7 +361,7 @@ Checklist:
 ## Related References
 
 - **Exhaustive detail (object/ID model, OAS schema enums, every error +
-  resolution, Metadata authoring, live verification record):**
+  resolution, Metadata authoring, verification checklist):**
   `docs/references/expression-set-connect-api-reference.md`
 - **Pricing layering model (recipes, recipe-table mappings, procedure plans,
   context definitions) — where ES CRUD fits in pricing setup:**

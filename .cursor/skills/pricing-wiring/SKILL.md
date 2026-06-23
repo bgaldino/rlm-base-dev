@@ -210,8 +210,8 @@ rules — is owned by a dedicated skill:
 > **Expression Sets skill:** `.cursor/skills/expression-sets/SKILL.md`
 > (task-level entry point). **Exhaustive reference:**
 > `docs/references/expression-set-connect-api-reference.md` (object/ID model,
-> OAS-confirmed schema enums, every known error + resolution, live verification
-> record). Both pinned to **Release 262 / API v67.0**.
+> OAS-confirmed schema enums, every known error + resolution, verification
+> checklist). Both pinned to **Release 262 / API v67.0**.
 
 **What stays a pricing concern (this section):** *where* that CRUD slots into the
 pricing layering and flow order, and the pricing-specific facts the Expression
@@ -326,10 +326,10 @@ Note: there are two distinct deactivation gates:
    The plan version lock produces a generic "unexpected error" distinct from the
    expression set version lock.
 
-### Connect API mutation errors (gacks, `Error processing JSON`, `resourceInitializationType`, version-id)
+### Connect API mutation errors (`Error processing JSON`, `resourceInitializationType`, version-id)
 
 These are Expression Set CRUD mechanics, not pricing-layering issues — the full
-error register (HTML-entity gacks, generic-gack bisection, immutable
+error register (HTML-entity parsing failures, opaque-error bisection, immutable
 `resourceInitializationType`, version-id handling, `contextDefinitions[].id`,
 admin permission) lives in **`.cursor/skills/expression-sets/SKILL.md`** and its
 reference's *Known errors & conditions* table. Come back here for the
@@ -412,7 +412,7 @@ Use this quick checklist whenever pricing changes add or consume new context key
 - **Expression Set reference (exhaustive):**
   `docs/references/expression-set-connect-api-reference.md` — object/ID model,
   OAS-confirmed schema enums, every known error + resolution, Metadata API
-  authoring path, and the live verification record.
+  authoring path, and the verification checklist.
 - **Connect CRUD tasks:** `tasks/rlm_expression_set_connect.py`; pre-flight
   validator `tasks/expression_set_schema.py`; tests `tests/test_expression_set_schema.py`.
 - **External doc link index:** `docs/salesforce/262/dev-guide/expression-set-business-apis-links.md`.

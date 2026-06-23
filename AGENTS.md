@@ -326,7 +326,7 @@ Read the sub-file only when you need that specific detail:
 | `release-enablement/resume-enablement-work.md` | Release Enablement | Cross-workstation handoff — read when picking up enablement work in a fresh conversation. 4-step re-orientation + tool grants + restart prompt template |
 | `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
 | `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
-| `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, live verification record |
+| `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
 
 ### File-Specific Rules (Cursor Only)
 
