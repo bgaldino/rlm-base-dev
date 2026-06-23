@@ -1,5 +1,5 @@
 import { LightningElement, track, wire, api } from "lwc";
-import { CurrentPageReference, NavigationMixin } from "lightning/navigation";
+import { NavigationMixin } from "lightning/navigation";
 import getSectionsWithBlocksByPageId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByPageId";
 import {
   findDynamicLinkIdentifier,
@@ -102,12 +102,5 @@ export default class RlmLearningAppOverview extends NavigationMixin(
       }
     }
     return content;
-  }
-
-  @wire(CurrentPageReference)
-  getStateParameters(currentPageReference) {
-    if (currentPageReference) {
-      this.appNameValue = currentPageReference.state?.c__appName;
-    }
   }
 }

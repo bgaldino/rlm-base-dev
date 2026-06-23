@@ -37,6 +37,8 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
 
   createDynamicLinksMap(data) {
     // Go through the data array, building a map of dynamicLink id -> dynamicLink.
+    // Reset first so a wire re-run (e.g. a new pageId) doesn't retain stale entries.
+    this.dynamicLinksMap = {};
     data.forEach((sectionWithBlocks) => {
       sectionWithBlocks.dynamicLinks.forEach((dynamicLink) => {
         this.dynamicLinksMap[dynamicLink.Id] = JSON.parse(
