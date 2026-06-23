@@ -46,11 +46,14 @@ const safeVideoUrl = (url) => {
 
 // Validate a URL before it becomes a standard__webPage navigation target: allow
 // only http(s) absolute URLs or app-relative paths, blocking unsafe schemes
-// (javascript:, data:, vbscript:, ...). Throws on anything else so the caller's
+// (javascript:, data:, vbscript:, ...). An app-relative path must start with a
+// SINGLE "/" — protocol-relative URLs ("//host", or "/\host" which browsers
+// normalize to "//host") are rejected so mis-authored data can't navigate off-site
+// without an explicit http(s):// URL. Throws on anything else so the caller's
 // try/catch surfaces it instead of navigating somewhere unsafe.
 const requireSafeUrl = (url) => {
   const trimmed = String(url == null ? "" : url).trim();
-  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("/")) {
+  if (/^https?:\/\//i.test(trimmed) || /^\/(?![/\\])/.test(trimmed)) {
     return trimmed;
   }
   throw new Error("Unsafe or invalid link URL: " + url);
