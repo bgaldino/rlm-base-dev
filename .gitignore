@@ -169,6 +169,7 @@ docs/salesforce/*/salesforce-release-notes-*.pdf
 # design plans, research notes). Local only — they reference internal Salesforce core and
 # MUST NOT ship to the customer/partner Salesforce Labs mirror. Keep them uncommitted.
 .agents/artifacts/
+.agents/adapters/artifacts/
 docs/analysis/*-core-code-*.md
 
 # Build harness artifacts
