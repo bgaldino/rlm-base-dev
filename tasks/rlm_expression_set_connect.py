@@ -1617,23 +1617,29 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
         # Whole expression set: an active ProcedurePlanDefinitionVersion
         # referencing this ES can lock the ES version (mirrors the apply/import
         # lifecycle). Cascade-deactivate referencing procedure plan versions
-        # first, then deactivate the ES version, then DELETE. If the Connect
-        # DELETE fails (or anything between cascade and DELETE), restore the
-        # cascaded procedure plan versions so the cluster is left in the same
-        # state the user saw — the ES version stays deactivated (intentional:
-        # re-enabling a definition we tried to delete is worse than leaving it
-        # offline for inspection).
+        # first, then deactivate the ES version, then DELETE.
+        #
+        # If anything between cascade and DELETE fails, restore the cluster to
+        # the exact pre-attempt state — both the ES version AND the cascaded
+        # procedure plans. Unlike apply/import (where a failed PATCH may have
+        # corrupted the definition mid-write), a failed DELETE leaves the
+        # record byte-identical, so re-enabling is safe. Restoring only the
+        # plans would leave them referencing a deactivated ES — worse than the
+        # state the user saw before the delete attempt.
         es_def_id = self._get_expression_set_definition_id(api_name)
         esv = self._resolve_version_by_es_id(es_id)
+        esv_was_active = bool(esv.get("IsActive"))
         cascaded_ppvs: List[str] = []
+        esv_deactivated_by_us = False
         try:
             cascaded_ppvs = self._cascade_deactivate_procedure_plans(
                 es_def_id, dry_run
             )
-            if bool(esv.get("IsActive")):
+            if esv_was_active:
                 self._set_version_active(esv["Id"], False, dry_run)
                 if not dry_run:
                     self._wait_for_version_state(esv["Id"], False)
+                    esv_deactivated_by_us = True
 
             if dry_run:
                 self.logger.info(
@@ -1642,15 +1648,33 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
                 return
             self._delete_expression_set_via_connect(es_id)
         except Exception:
-            if cascaded_ppvs and not dry_run:
-                try:
-                    self._cascade_reactivate_procedure_plans(cascaded_ppvs, False)
-                except Exception as rb_exc:
+            if not dry_run:
+                rollback_errors = []
+                # Reactivate the ES version FIRST so that when we re-enable
+                # the procedure plans they reference an active definition.
+                if esv_deactivated_by_us:
+                    try:
+                        self._set_version_active(esv["Id"], True, False)
+                        self._wait_for_version_state(esv["Id"], True)
+                    except Exception as rb_exc:
+                        rollback_errors.append(
+                            f"ExpressionSetVersion {esv['Id']}: {rb_exc}"
+                        )
+                if cascaded_ppvs:
+                    try:
+                        self._cascade_reactivate_procedure_plans(
+                            cascaded_ppvs, False
+                        )
+                    except Exception as rb_exc:
+                        rollback_errors.append(
+                            f"ProcedurePlanDefinitionVersion(s) "
+                            f"{cascaded_ppvs}: {rb_exc}"
+                        )
+                if rollback_errors:
                     self.logger.error(
-                        "Delete failed AND rollback reactivation of "
-                        "ProcedurePlanDefinitionVersion(s) %s also failed: %s. "
+                        "Delete failed AND rollback reactivation failed: %s. "
                         "Manual intervention required.",
-                        cascaded_ppvs, rb_exc,
+                        "; ".join(rollback_errors),
                     )
             raise
         self.logger.info("Deleted expression set %s (%s).", api_name, es_id)

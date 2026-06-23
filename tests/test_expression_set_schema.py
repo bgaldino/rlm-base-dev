@@ -26,6 +26,7 @@ from tasks.expression_set_schema import (  # noqa: E402
 from tasks.rlm_expression_set_connect import (  # noqa: E402
     ExpressionSetConnectBase as Connect,
     ApplyExpressionSetOverlay,
+    DeleteExpressionSet,
 )
 
 RESULTS = []
@@ -1092,6 +1093,148 @@ def test_apply_overlay_dangling_parentstep_caught_locally():
 
 
 # ---- removeVariables shape (PR #246 live-verification follow-up) ----
+
+def test_delete_rollback_restores_es_version_when_delete_fails():
+    # Reviewer (samcheck) flagged a worse inconsistent state: on whole-ES
+    # delete failure we restored cascaded procedure plans but left the ES
+    # version deactivated, so plans could become active again pointing at an
+    # inactive ES. Unlike apply/import (where a failed PATCH may have
+    # corrupted the definition mid-write), a failed DELETE leaves the record
+    # byte-identical, so reactivation is safe. The fix reactivates the ES
+    # FIRST so the plans never reference a deactivated definition.
+    import logging
+
+    class _DeleteTask(DeleteExpressionSet):
+        def __init__(self):
+            self.logger = logging.getLogger("test_delete_task")
+            self.logger.addHandler(logging.NullHandler())
+            self.options = {
+                "expression_set_api_name": "ESX",
+                "confirm": True,
+                "dry_run": False,
+            }
+            self.calls = []
+
+        # Stub everything DeleteExpressionSet._run_task touches.
+        def _get_expression_set_id(self, api_name):
+            return "ES_ID"
+
+        def _get_expression_set_definition_id(self, api_name):
+            return "ESD_ID"
+
+        def _resolve_version_by_es_id(self, es_id):
+            return {"Id": "ESV_ID", "IsActive": True}
+
+        def _cascade_deactivate_procedure_plans(self, es_def_id, dry_run):
+            self.calls.append(("cascade_deactivate", es_def_id))
+            return ["PPDV_1"]
+
+        def _set_version_active(self, vid, active, dry_run):
+            self.calls.append(("set_version_active", vid, active))
+
+        def _wait_for_version_state(self, vid, active):
+            self.calls.append(("wait_version", vid, active))
+
+        def _delete_expression_set_via_connect(self, es_id):
+            self.calls.append(("delete_attempt", es_id))
+            raise RuntimeError("simulated DELETE failure")
+
+        def _cascade_reactivate_procedure_plans(self, vids, dry_run):
+            self.calls.append(("cascade_reactivate", tuple(vids)))
+
+    task = _DeleteTask()
+    try:
+        task._run_task()
+    except RuntimeError:
+        pass  # expected — DELETE failure re-raises
+
+    # Sequence must be: cascade-deactivate → ES off → DELETE attempt →
+    # ES BACK ON (with confirm) → plans BACK ON.
+    op_names = [c[0] for c in task.calls]
+    check(
+        "delete failure rolls back ES reactivation before plans",
+        op_names == [
+            "cascade_deactivate",
+            "set_version_active",   # initial deactivate (False)
+            "wait_version",         # wait False
+            "delete_attempt",
+            "set_version_active",   # rollback reactivate (True)
+            "wait_version",         # wait True
+            "cascade_reactivate",   # then plans
+        ],
+    )
+    check(
+        "rollback set_version_active(True) called on the same ES version",
+        task.calls[4] == ("set_version_active", "ESV_ID", True),
+    )
+    check(
+        "rollback waits for active before re-enabling plans",
+        task.calls[5] == ("wait_version", "ESV_ID", True),
+    )
+    check(
+        "rollback reactivates the same cascaded plans that were deactivated",
+        task.calls[6] == ("cascade_reactivate", ("PPDV_1",)),
+    )
+
+
+def test_delete_rollback_skips_es_reactivation_when_already_inactive():
+    # If the ES version was inactive before the delete attempt, the rollback
+    # must NOT activate it (we never deactivated it ourselves).
+    import logging
+
+    class _DeleteTask(DeleteExpressionSet):
+        def __init__(self):
+            self.logger = logging.getLogger("test_delete_task_inactive")
+            self.logger.addHandler(logging.NullHandler())
+            self.options = {
+                "expression_set_api_name": "ESX",
+                "confirm": True,
+                "dry_run": False,
+            }
+            self.calls = []
+
+        def _get_expression_set_id(self, api_name):
+            return "ES_ID"
+
+        def _get_expression_set_definition_id(self, api_name):
+            return "ESD_ID"
+
+        def _resolve_version_by_es_id(self, es_id):
+            return {"Id": "ESV_ID", "IsActive": False}  # already inactive
+
+        def _cascade_deactivate_procedure_plans(self, es_def_id, dry_run):
+            self.calls.append(("cascade_deactivate", es_def_id))
+            return ["PPDV_1"]
+
+        def _set_version_active(self, vid, active, dry_run):
+            self.calls.append(("set_version_active", vid, active))
+
+        def _wait_for_version_state(self, vid, active):
+            self.calls.append(("wait_version", vid, active))
+
+        def _delete_expression_set_via_connect(self, es_id):
+            self.calls.append(("delete_attempt", es_id))
+            raise RuntimeError("simulated DELETE failure")
+
+        def _cascade_reactivate_procedure_plans(self, vids, dry_run):
+            self.calls.append(("cascade_reactivate", tuple(vids)))
+
+    task = _DeleteTask()
+    try:
+        task._run_task()
+    except RuntimeError:
+        pass
+
+    op_names = [c[0] for c in task.calls]
+    check(
+        "delete failure does NOT reactivate an ES version that was already inactive",
+        "set_version_active" not in op_names,
+    )
+    check(
+        "delete failure still reactivates cascaded plans when ES was pre-inactive",
+        op_names == ["cascade_deactivate", "delete_attempt", "cascade_reactivate"],
+    )
+
 
 def test_overlay_removevariables_accepts_string_list():
     # Live test surfaced that _remove_variables crashed with a cryptic
