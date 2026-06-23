@@ -53,6 +53,12 @@ This resolves auth + discovery and prints the planned account/product/pricebook,
 the stages each spec would run, and any stage caps — **without creating anything**.
 Always start here to confirm discovery picked sane records.
 
+Composable CLI equivalent:
+
+```bash
+python -m scripts.txn_data_harness.cli plan --org <sf-alias>
+```
+
 ### 2. Single full chain
 
 ```bash
@@ -62,6 +68,12 @@ python -m scripts.txn_data_harness.generate --org <sf-alias> --count 1 --target-
 Watch the log walk the chain. On success the manifest at
 `scripts/txn_data_harness/out/<run_id>.json` carries `reached_stage: "post"` and a
 populated `invoice_number` (e.g. `INV-US-06-2026-000003`).
+
+Composable CLI equivalent:
+
+```bash
+python -m scripts.txn_data_harness.cli run --org <sf-alias> --count 1 --target-stage post -v
+```
 
 ### 3. Stage stops
 
@@ -109,6 +121,58 @@ Accepted forms: exact (`"2026-03-15"`, `today`, `"+30"`/`"-15"` relative days); 
 range list `["2026-01-01", "+90"]` or map `{from: …, to: …}`; or a window
 `{around: <anchor>, plus_or_minus: N}` (anchor ± N days). The drawn date is
 recorded as `start_date` in each run manifest.
+
+## Composable step commands
+
+For AI agents and manual recovery work, use the subcommand entry point:
+
+```bash
+python -m scripts.txn_data_harness.cli inspect --latest
+python -m scripts.txn_data_harness.cli inspect --manifest scripts/txn_data_harness/out/<run_id>.json
+```
+
+`inspect` prints a compact JSON summary of the manifest: reached stage, error,
+record ids, line count, start date, and invoice number.
+
+To continue a partial run, pass the manifest plus enough target context to rebuild
+the step state. New manifests record `account_name` and line details, but pass
+`--account` explicitly for older manifests or when you want to be unambiguous:
+
+```bash
+python -m scripts.txn_data_harness.cli step --org <sf-alias> \
+  --manifest scripts/txn_data_harness/out/<run_id>.json \
+  --account Infinitech \
+  --to-stage invoice
+```
+
+The step command uses the same step registry as full runs, so it preserves the
+hard barriers from `CONTRACTS.md`: quote before order, shipping before activate,
+poll BillingSchedules after activation, generate a Draft invoice before post, and
+link `Invoice.ReferenceEntityId` only after posting.
+
+### Batch reports and pruning
+
+Every run writes a batch report alongside the manifests
+(`out/<base_run_id>-report.json` + `.md`): success/failure counts, a histogram of
+how far scenarios got, and a failure-signature rollup. Rebuild it from disk later
+with `report`, and clean up accumulated manifests by age with `prune`:
+
+```bash
+python -m scripts.txn_data_harness.cli report <base_run_id>            # JSON
+python -m scripts.txn_data_harness.cli report <base_run_id> --markdown
+python -m scripts.txn_data_harness.cli prune --older-than 7d           # dry run
+python -m scripts.txn_data_harness.cli prune --older-than 7d --yes     # delete
+```
+
+`prune` only ever touches the harness's own `out/` directory.
+
+### Transient-failure retries
+
+Both `generate`/`cli run` retry **transient** scenario failures (network timeouts,
+`UNABLE_TO_LOCK_ROW`, `REQUEST_LIMIT_EXCEEDED`, HTTP 429/5xx) up to `--max-retries`
+times (default 2), resuming from the last checkpointed stage. **Deterministic**
+failures (missing field, unmet precondition) fail fast. The manifest records the
+final `attempts` and `failure_class`.
 
 ## Verifying in the org
 
@@ -185,7 +249,7 @@ disposable scratch/sandbox, not something you scrub clean repeatedly):
 | `discovery failed` / `could not resolve … account/product` (exit 3) | No billing-ready account, or the pinned `--account`/`--product` name/SKU doesn't exist. Run `--dry-run` to see what discovery found. |
 | `bad config` (exit 4) | Malformed YAML or an invalid `target_stage`/`count`. The message names the offending scenario index. |
 | Scenario capped to `order` unexpectedly | The account has no `BillingAccount` — it can't be activated/invoiced. Pin a billing-ready account (Infinitech) or accept the cap (quotes + orders still land). |
-| Product won't place (PST fails) | A clean `PricebookEntry` isn't sufficient for a complex bundle (needs component/attribute/selling-model wiring). Pin a known-good SKU like `QB-API-FLEX`. |
+| Product won't place (PST fails) | A clean `PricebookEntry` isn't sufficient for every product. Default-configured bundles (e.g. `QB-COMPLETE`) **do** place — PST expands the component graph server-side. Bundles whose mandatory slots need user choice will fail; pin a known-good SKU like `QB-API-FLEX` or `QB-COMPLETE`. |
 | Invoice step times out | Billing async lag exceeded `--poll-timeout`. Raise it (default 180s) or check `RevenueTransactionErrorLog` in the org. |
 | `INVALID_AUTH_HEADER` from CCI (not this tool) | Unrelated CLI token-redaction bug — see [cci-sf-cli-token-workaround.md](cci-sf-cli-token-workaround.md). This tool uses `sf` directly and is unaffected. |
 

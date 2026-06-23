@@ -138,17 +138,30 @@ If you pin a SKU with no such PBE, the run errors clearly (exit 3).
 > [`../CONTRACTS.md`](../CONTRACTS.md) → *Selling models*). Products that require
 > component/attribute wiring to configure/price do **not** — see below.
 
-## Not handled yet — bundles and usage
+## Bundles — default-configured only
 
-These are real limitations, not config you're missing:
+Bundles **do work** for SKUs whose components are all defaultable. The harness still
+sends a single flat line per `products:` entry, but PST expands the bundle
+server-side using its default component graph and returns a fully configured set of
+child `QuoteLineItem`s wired to the parent via `ParentQuoteLineItemId`. Activation,
+billing schedule generation, invoice draft, and posting all succeed.
 
-- **Bundle products are NOT supported.** A bundle (e.g. `QB-COMPLETE`,
-  `QB-BDL-*`) needs its **component lines** sent in the PST graph (child
-  QuoteLineItems wired to the parent, plus attribute/selling-model configuration).
-  The tool emits only one flat line, so a bundle would either fail to place or
-  produce an incomplete/unconfigured quote. **Pin a simple SKU** (`QB-API-FLEX`)
-  for now. Adding bundle support means extending `place_sales_transaction` in
-  [`lifecycle.py`](../lifecycle.py) to build the component graph.
+Live-verified on R262 (jun17_1) with `QB-COMPLETE` → quote `0Q…Kc5p0AC`, 5 lines
+(1 root Bundle + 4 child Simple), order `00000153` activated, invoice
+`INV-US-06-2026-000038` Posted at $91,000.
+
+Caveats:
+
+- **Configuration is whatever the bundle defaults to.** You cannot influence
+  attribute values, selling-model choices on child slots, or component selection
+  from the YAML. `quantity:` and `discount_percent:` apply to the **root line**
+  only; child quantities/prices come from the bundle definition.
+- **Bundles whose components require user choice** (mandatory attributes with no
+  default, or required slots with multiple optional components) will likely fail
+  to place. Only default-configured bundles like `QB-COMPLETE` are confirmed.
+
+## Not handled yet — usage
+
 - **Usage / consumption is NOT supported.** Usage-priced products (the `*-BLNG`
   metered SKUs, token/quantity/monetary **commit** products, etc.) bill from
   **usage feeds / consumption schedules** that this tool does not create. It
@@ -157,9 +170,8 @@ These are real limitations, not config you're missing:
   not realistic usage data. Generating usage records is a separate feature
   (would post `UsageInput`/consumption data after activation).
 
-If you need bundle or usage demo data today, build those quotes through the UI or
-a dedicated flow — this generator is for the flat-line Opportunity→…→Invoice
-spine at volume.
+If you need usage demo data today, build those quotes through the UI or a
+dedicated flow.
 
 ## See also
 

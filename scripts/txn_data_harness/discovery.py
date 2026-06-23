@@ -15,10 +15,12 @@ All field names here are verified live against ``rlm-base__jun17_1`` (v67.0):
 * Legal entity default: ``Default Legal Entity - US``.
 * Opportunity stage: first open (``IsClosed = false``) active stage.
 
-Note: a clean PricebookEntry is necessary but not sufficient for a complex
-bundle to *place* (bundles also need component/attribute/selling-model wiring).
-The optional PST probe is reserved for a future hardening pass; today this
-module surfaces candidates and the first live transaction proves placement.
+Note: a clean PricebookEntry is necessary but not sufficient for every product.
+Default-configured bundles (e.g. ``QB-COMPLETE``) place cleanly -- PST expands
+the bundle's component graph server-side from defaults. Bundles whose mandatory
+slots require user choice will fail to place. The optional PST probe is
+reserved for a future hardening pass; today this module surfaces candidates and
+the first live transaction proves placement.
 """
 
 from __future__ import annotations

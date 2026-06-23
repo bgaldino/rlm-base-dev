@@ -28,14 +28,33 @@ billing-ready account and a billable product; config lets one run mix shapes.
 # Dry run — resolve auth + discovery and print the plan; NO writes.
 python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --dry-run
 
+# Equivalent composable CLI form.
+python -m scripts.txn_data_harness.cli plan --org rlm-base__jun17_1
+
 # One full chain to a Posted invoice.
 python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --count 1 --target-stage post
+
+# Equivalent composable CLI form.
+python -m scripts.txn_data_harness.cli run --org rlm-base__jun17_1 --count 1 --target-stage post
 
 # 25 transactions, 4 in parallel.
 python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --count 25 --concurrency 4
 
 # Config-driven mixed run (billable + pipeline-only accounts).
 python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --config scripts/txn_data_harness/config.example.yaml
+```
+
+The original `generate` module remains the compatibility entry point. The
+subcommand CLI in `cli.py` exposes the same run behavior plus `plan`, `inspect`,
+`step`, `report`, and `prune` commands for humans and AI agents that need smaller
+composable actions:
+
+```bash
+python -m scripts.txn_data_harness.cli inspect --latest
+python -m scripts.txn_data_harness.cli step --org rlm-base__jun17_1 \
+  --manifest DEMO-20260622T120000Z --account Infinitech --to-stage invoice
+python -m scripts.txn_data_harness.cli report DEMO-20260622T120000Z   # batch summary from disk
+python -m scripts.txn_data_harness.cli prune --older-than 7d          # dry run; --yes to delete
 ```
 
 ## ⚠ `--org` takes an *sf CLI* alias, not a CCI alias
@@ -63,6 +82,7 @@ python -m scripts.txn_data_harness.generate --org beta ...             # ❌ CCI
 | `--opportunity-stage` | first open | Pin the Opportunity `StageName`. |
 | `--concurrency` | 4 | Parallel scenario workers (thread pool). |
 | `--poll-timeout` | 180 | Async poll timeout (seconds) per billing step. |
+| `--max-retries` | 2 | Retries for **transient** scenario failures (resumes from last checkpoint); `0` disables. |
 | `--api-version` | `67.0` | API version; `latest` queries the org for newest. |
 | `--transport` | `requests` | `requests` (native) or `cli` (`sf api request rest` proxy). |
 | `--no-probe` / `--keep-probes` | — | **Reserved, currently no-ops** (the discovery PST probe is not implemented — see Limitations). |
@@ -89,6 +109,22 @@ With `-v` (INFO) / `-vv` (DEBUG) each lifecycle step also logs, **prefixed with 
 emitting scenario's run id** (`DEMO-...-004 | order 801... activated`) so interleaved
 output from concurrent workers stays attributable. Lines outside any scenario
 (discovery, etc.) use `-` as the prefix. Errors always print regardless of `-v`.
+
+After the batch, a report is written to `out/<base_run_id>-report.json` (and a
+`.md` companion) with success/failure counts, a histogram of how far each scenario
+got, and a failure-signature rollup. Regenerate it later with
+`cli report <base_run_id>`.
+
+### Transient-failure retries
+
+A flaky lifecycle (async billing polls, row locks, rate limits) is the common
+failure mode. Failures are classified (`failure.py`): **transient** ones — network
+timeouts, `UNABLE_TO_LOCK_ROW`, `REQUEST_LIMIT_EXCEEDED`, HTTP 429/5xx — are
+retried up to `--max-retries` times (default 2) with exponential backoff,
+**resuming from the last checkpointed stage** rather than redoing completed steps.
+**Deterministic** failures (a missing field, a precondition like "quote_id is
+required before order") fail fast and are never retried. The manifest records the
+`attempts` count and the final `failure_class`.
 
 ## Lifecycle stages
 
@@ -138,9 +174,12 @@ sets its count.
 - **Multi-line via a product pool** — a scenario's `products:` list is a pool; each
   transaction places a random non-empty subset as flat lines (per-line qty/discount
   ranges). One SKU per quote is just a one-entry pool.
-- **Bundles are not supported** — each line is flat, so pin simple SKUs like
-  `QB-API-FLEX`; bundles (`QB-COMPLETE`, `QB-BDL-*`) need a component graph this
-  tool doesn't build.
+- **Bundles work for default configurations** — the tool sends one flat line, but
+  PST expands the bundle's default component graph server-side and returns the
+  configured child lines. Live-verified end-to-end on `QB-COMPLETE` (R262). You
+  cannot influence attribute or selling-model choices from YAML; bundles that
+  require user input on mandatory slots will fail to place. See **Bundles caveat**
+  below for the known invoice-poller workaround.
 - **Usage / consumption is not supported** — metered/commit SKUs (`*-BLNG`,
   token/quantity/monetary commit) would invoice with no usage behind them.
 
@@ -172,8 +211,16 @@ The manifest is **checkpointed after every lifecycle stage** (write-then-rename,
 the file on disk is always valid JSON), not just on completion. If the process is
 killed or crashes mid-run, every scenario that had started still leaves a manifest
 recording the ids created so far — so the partial org records can be found and
-cleaned up. There is no resume: re-running starts a fresh batch (clean up the
-partials from their manifests first).
+cleaned up. Within a run, a **transient** failure is retried from that last
+checkpoint (see *Transient-failure retries*). Across invocations there is no
+automatic resume — re-running `generate`/`cli run` starts a fresh batch — but the
+`cli step --manifest <id> --to-stage <stage>` command will continue a specific
+manifest from its `reached_stage` (clean up unwanted partials from their manifests
+first).
+
+Old manifests accumulate in `out/`; prune them by age with
+`cli prune --older-than 7d` (dry run by default; `--yes` to delete — only `out/`
+is ever touched).
 
 **Drive cleanup from the manifest ids** — delete the ids the run recorded
 (child → parent: assets/order, then quote, then opportunity). Every record also
@@ -198,11 +245,12 @@ a fresh batch with a new run id (by design).
 
 ## Known limitations
 
-- **Flat lines only (no bundle component graph).** Multi-line quotes **are**
-  supported — a scenario's `products:` pool is placed as a random non-empty subset
-  of flat lines per transaction, each with its own quantity/discount (see
-  `scenarios/README.md`). What's *not* supported is a single line that expands into
-  a configured **bundle** (component/attribute graph); each line stays flat.
+- **Bundles — default configuration only.** The harness submits one flat input
+  line per `products:` entry; PST expands a bundle's default component graph
+  server-side, so `QB-COMPLETE`-style SKUs place, activate, and post cleanly
+  (live-verified R262 → posted invoice, 5 lines). You cannot drive attribute
+  values or selling-model choices for child slots — only default-configured
+  bundles succeed.
 - **`--no-probe` / `--keep-probes` are no-ops.** The discovery PST probe (place a
   throwaway quote to prove a product before fanning out volume) was scoped but not
   implemented; the flags are reserved for it. Discovery currently surfaces
@@ -224,12 +272,20 @@ a fresh batch with a new run id (by design).
 
 ```
 scripts/txn_data_harness/
+  cli.py               # subcommands: plan/run/step/inspect/report/prune
   generate.py          # CLI entry: argparse, spec resolution, concurrency loop
   auth.py              # SfRestClient: transport-agnostic REST (requests | cli)
   discovery.py         # org introspection: accounts, products, pricebook, legal entity
   lifecycle.py         # the 6 lifecycle steps + async polling (transcribed from CONTRACTS.md)
+  models.py            # shared execution models (Manifest, LineItem, resolved specs)
+  runner.py            # resolved-plan execution, batching, checkpoint + retry policy
+  steps.py             # composable step registry over lifecycle.py calls
+  failure.py           # transient/deterministic/unknown failure classifier (retry decisions)
+  report.py            # batch report: counts, stage histogram, failure-signature rollup
+  manifests.py         # manifest write/load/list/inspect + retention prune helpers
   config.py            # YAML/JSON spec load + validate + merge
   config.example.yaml  # worked example
+  AI_TOOLS.md          # AI-safe command recipes and verification rules
   CONTRACTS.md         # live-verified endpoint/body/async contracts (read before editing lifecycle.py)
-  out/                 # per-run manifests (git-ignored)
+  out/                 # per-run manifests + batch reports (git-ignored)
 ```

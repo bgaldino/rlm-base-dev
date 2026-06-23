@@ -70,6 +70,16 @@ foundations:
         - "Skill banner is v67.0 / Release 262 (PR #176), but underlying Postman collections at postman/docs/ were extracted from v66.0 — payload examples should be re-extracted from v67.0 collections before being cited verbatim"
         - "Skill self-describes as 'reference, not source of truth'"
 
+    - id: txn-data-harness
+      path: .cursor/skills/txn-data-harness/SKILL.md
+      purpose: "Plan, generate, inspect, continue, verify, and clean up Revenue Cloud transaction demo data via scripts/txn_data_harness"
+      consumed_by_pmos: [demo-script, demo-flow, sales-enablement]
+      tooling:
+        - scripts/txn_data_harness/cli.py
+        - scripts/txn_data_harness/generate.py
+      grounding_inputs:
+        - foundations.grounding.qb_scenario
+
     - id: revenue-cloud-docs
       path: .cursor/skills/revenue-cloud-docs/SKILL.md
       purpose: "Help portal mirror access patterns; grep/extract/diff"

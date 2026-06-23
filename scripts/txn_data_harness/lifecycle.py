@@ -21,12 +21,12 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any, Optional
 
 from .auth import SfRestClient
 from .discovery import Account, Product
+from .models import LineItem
 
 log = logging.getLogger("txn_data_harness.lifecycle")
 
@@ -58,57 +58,6 @@ class LifecycleError(RuntimeError):
         self.detail = detail
         self.record_id = record_id
         super().__init__(f"[{step}] {detail}" + (f" (id={record_id})" if record_id else ""))
-
-
-@dataclass
-class Manifest:
-    """Source-of-truth record of everything a scenario created, by stage.
-
-    Written even on partial failure (PST commits the quote header even when the
-    place reports isSuccess:false), so cleanup can find orphans. ``run_id`` is
-    the durable tag stamped on records and passed as invoice correlationId.
-    """
-
-    run_id: str
-    opportunity_id: Optional[str] = None
-    quote_id: Optional[str] = None
-    order_id: Optional[str] = None
-    order_number: Optional[str] = None
-    billing_schedule_ids: list[str] = field(default_factory=list)
-    asset_ids: list[str] = field(default_factory=list)
-    invoice_id: Optional[str] = None
-    invoice_number: Optional[str] = None
-    # The line StartDate placed on this quote (ISO; drawn from the scenario's
-    # start_date range, or None when defaulted to today) -- recorded so a run's
-    # spread over time is auditable from the manifests.
-    start_date: Optional[str] = None
-    # The lines actually placed on the quote (sku/quantity/discount per line),
-    # since a scenario draws a random product subset + per-line qty/discount.
-    lines: list[dict] = field(default_factory=list)
-    reached_stage: Optional[str] = None
-    error: Optional[str] = None
-
-    def to_dict(self) -> dict:
-        return dict(self.__dict__)
-
-
-@dataclass
-class LineItem:
-    """One resolved quote line to place: a product at a quantity, opt. discount.
-
-    ``discount_percent`` (0..100) sets the line's ``Discount``; ``None`` => none.
-    ``period_boundary`` / ``billing_frequency`` set the line's proration period
-    start (``PeriodBoundary``) and billing cadence (``BillingFrequency``). Some
-    term products (e.g. QB-LIC-CLOUD) carry a proration policy that *requires*
-    both at place time; they're not derivable from SellingModelType, so the
-    config supplies them per product (CONTRACTS.md "Selling models").
-    """
-
-    product: Product
-    quantity: int = 1
-    discount_percent: Optional[float] = None
-    period_boundary: Optional[str] = None
-    billing_frequency: Optional[str] = None
 
 
 def _iso_today() -> str:
@@ -434,9 +383,15 @@ def generate_invoice(
     CONTRACTS.md: generate is async and returns only
     ``{requestIdentifier, success, errors}`` -- no statusURL, no tracker. The
     invoice row appears ~10-15s later. Correlate deterministically via
-    ``InvoiceLine.BillingScheduleId`` (the id we passed in), NOT by
+    ``InvoiceLine.BillingScheduleId`` (the ids we passed in), NOT by
     ReferenceEntityId (null as-generated) or CorrelationIdentifier (not
     persisted).
+
+    All schedules in one generate call land on a single Invoice (single-invoice
+    per generate; see CONTRACTS.md). Poll via ``IN (…)`` across every schedule
+    we submitted -- a bundle activates into one BillingSchedule per component
+    and some slots can have ``TotalAmount = 0`` with no resulting InvoiceLine,
+    so any one schedule is not a safe anchor.
     """
     if not billing_schedule_ids:
         raise LifecycleError("invoice", "no billing schedule ids to invoice")
@@ -455,11 +410,12 @@ def generate_invoice(
         errs = result.get("errors") if isinstance(result, dict) else result
         raise LifecycleError("invoice", f"generate failed: {errs}")
 
-    # Poll for the generated invoice via the billing schedule back-link.
-    bs_id = billing_schedule_ids[0]
+    # Poll for the generated invoice via the billing schedule back-link across
+    # all submitted schedules -- the first one to surface an InvoiceLine wins.
+    in_list = ", ".join(f"'{i}'" for i in billing_schedule_ids)
     soql = (
         "SELECT InvoiceId, Invoice.Status, Invoice.InvoiceNumber "
-        f"FROM InvoiceLine WHERE BillingScheduleId = '{bs_id}'"
+        f"FROM InvoiceLine WHERE BillingScheduleId IN ({in_list})"
     )
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -480,8 +436,8 @@ def generate_invoice(
         time.sleep(_POLL_INTERVAL)
     raise LifecycleError(
         "invoice",
-        f"no invoice for billing schedule {bs_id} within {timeout}s",
-        record_id=bs_id,
+        f"no invoice for {len(billing_schedule_ids)} billing schedule(s) within {timeout}s",
+        record_id=billing_schedule_ids[0],
     )
 
 

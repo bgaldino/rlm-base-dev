@@ -8,10 +8,11 @@
 # using one spec per SKU; use 11-randomized-product-mix.yaml for multi-line
 # invoices drawn from a product pool.
 #
-# NOTE: only simpler products place cleanly without bundle/attribute wiring.
-# QB-API-FLEX is the proven-good baseline. The others below are plausible simple
-# products — if any fails to place at volume, drop it or pin a known-good SKU
-# (a failing spec is isolated; it won't abort the others).
+# NOTE: simple products (term/evergreen/one-time) and default-configured bundles
+# place cleanly. QB-API-FLEX is the proven-good simple baseline; QB-COMPLETE is
+# the proven-good bundle (PST expands its component graph from defaults). The
+# others below are plausible — if any fails to place at volume, drop it or pin
+# a known-good SKU (a failing spec is isolated; it won't abort the others).
 scenarios:
   - account: "Infinitech"
     target_stage: post
