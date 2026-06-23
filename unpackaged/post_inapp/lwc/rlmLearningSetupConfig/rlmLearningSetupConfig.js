@@ -81,7 +81,7 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
         try {
           const pageRef = await getPageReferenceByDynamicType(dynamicLink);
           let url = await this[NavigationMixin.GenerateUrl](pageRef);
-          if (dynamicLink.RecordType.DeveloperName == "SetupPage") {
+          if (dynamicLink.RecordType.DeveloperName === "SetupPage") {
             url = pageRef.attributes.url;
           }
           if (!url) {
@@ -138,7 +138,7 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
           const pageRef = await getPageReferenceByDynamicType(dynamicLink);
           if (
             dynamicLink.RecordType.DeveloperName === "SetupPage" ||
-            dynamicLink.RecordType.DeveloperName == "CommunityPage"
+            dynamicLink.RecordType.DeveloperName === "CommunityPage"
           ) {
             url = pageRef.attributes.url;
           } else {

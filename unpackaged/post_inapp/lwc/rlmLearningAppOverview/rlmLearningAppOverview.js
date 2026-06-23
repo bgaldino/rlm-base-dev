@@ -5,7 +5,8 @@ import {
   findDynamicLinkIdentifier,
   getDynamicLinkByIdentifier,
   getPageReferenceByDynamicType,
-  escapeHtml
+  escapeHtml,
+  safeVideoUrl
 } from "c/rlmLearningCommonFunctions";
 
 export default class RlmLearningAppOverview extends NavigationMixin(
@@ -24,7 +25,14 @@ export default class RlmLearningAppOverview extends NavigationMixin(
   })
   wiredSections({ error, data }) {
     if (data) {
-      this.sectionsWithBlocks = [...data];
+      // Only embed an allowlisted https video host; otherwise no iframe is rendered.
+      this.sectionsWithBlocks = data.map((s) => ({
+        ...s,
+        section: {
+          ...s.section,
+          safeVideoLink: safeVideoUrl(s.section.RLM_Learning_Video_Link__c)
+        }
+      }));
       this.checkForDynamicLinks();
     } else if (error) {
       this.error = error?.body?.message || error?.message || "Unknown error";
@@ -66,13 +74,13 @@ export default class RlmLearningAppOverview extends NavigationMixin(
       try {
         const dynamicLink = await getDynamicLinkByIdentifier(identifier);
         let url = "";
-        if (dynamicLink.RecordType.DeveloperName == "WebPage") {
+        if (dynamicLink.RecordType.DeveloperName === "WebPage") {
           url = dynamicLink.RLM_Learning_Link__c;
         } else {
           const pageRef = await getPageReferenceByDynamicType(dynamicLink);
           if (
-            dynamicLink.RecordType.DeveloperName == "SetupPage" ||
-            dynamicLink.RecordType.DeveloperName == "CommunityPage"
+            dynamicLink.RecordType.DeveloperName === "SetupPage" ||
+            dynamicLink.RecordType.DeveloperName === "CommunityPage"
           ) {
             url = pageRef.attributes.url;
           } else {

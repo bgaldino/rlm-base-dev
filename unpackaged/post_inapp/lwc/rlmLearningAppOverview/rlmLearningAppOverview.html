@@ -27,7 +27,7 @@
                 </p>
               </template>
             </lightning-layout-item>
-            <template if:true={sectionWithBlocks.section.RLM_Learning_Video_Link__c}>
+            <template if:true={sectionWithBlocks.section.safeVideoLink}>
               <lightning-layout-item
                 flexibility="auto"
                 padding="horizontal-medium"
@@ -37,7 +37,7 @@
                   title="Learning video"
                   width="660"
                   height="320"
-                  src={sectionWithBlocks.section.RLM_Learning_Video_Link__c}
+                  src={sectionWithBlocks.section.safeVideoLink}
                   style="border-radius: 12px"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   referrerpolicy="strict-origin-when-cross-origin"

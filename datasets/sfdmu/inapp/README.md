@@ -1,10 +1,9 @@
-# In-App Learning Navigation — SFDMU Data Plan (DRAFT)
+# In-App Learning Navigation — SFDMU Data Plan
 
-> **Status: DRAFT / design preview.** SFDMU v5 conversion of the Industries In-App
-> Framework's legacy CumulusCI dataset
-> (`Industries-In-App-Framework/datasets/rlm/rlm.dataset.sql`). `export.json` is
-> complete; `RLM_Learning_Page__c.csv` is fully converted (10 rows); other CSVs are verified
-> samples until the conversion script runs. Loaded by the proposed `inapp` feature
+> SFDMU v5 conversion of the Industries In-App Framework's legacy CumulusCI dataset
+> (`Industries-In-App-Framework/datasets/rlm/rlm.dataset.sql`). All CSVs are generated
+> by `convert_from_legacy.py` and pass the v5 + README-consistency validators; the
+> plan is deployed and data-loaded on a 262 scratch org. Loaded by the `inapp` feature
 > (`unpackaged/post_inapp` + `project__custom__inapp`).
 
 ## What this loads

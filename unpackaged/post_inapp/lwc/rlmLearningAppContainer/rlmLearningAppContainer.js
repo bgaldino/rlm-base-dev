@@ -71,7 +71,7 @@ export default class RlmLearningAppContainer extends NavigationMixin(
       const pageRef = await getPageReferenceByDynamicType(dynamicLink);
       try {
         let url = await this[NavigationMixin.GenerateUrl](pageRef);
-        if (dynamicLink.RecordType.DeveloperName == "SetupPage") {
+        if (dynamicLink.RecordType.DeveloperName === "SetupPage") {
           url = pageRef.attributes.url;
         }
         if (!url) {

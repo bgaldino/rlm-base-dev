@@ -14,6 +14,36 @@ const escapeHtml = (value) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+// Allowlist for embedded video <iframe> src values: only https URLs from known
+// video hosts may be embedded, so admin-authored / mis-imported data can't embed
+// an arbitrary origin. Returns the url when allowed, otherwise null.
+const ALLOWED_VIDEO_HOSTS = new Set([
+  "play.vidyard.com",
+  "vidyard.com",
+  "www.youtube.com",
+  "youtube.com",
+  "www.youtube-nocookie.com",
+  "youtube-nocookie.com",
+  "player.vimeo.com",
+  "vimeo.com"
+]);
+
+const safeVideoUrl = (url) => {
+  if (!url) {
+    return null;
+  }
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch (e) {
+    return null;
+  }
+  if (parsed.protocol !== "https:") {
+    return null;
+  }
+  return ALLOWED_VIDEO_HOSTS.has(parsed.host.toLowerCase()) ? url : null;
+};
+
 // Apex lookups can legitimately return no rows when an admin-authored
 // whereCondition / name matches nothing. Throw a clear, actionable error
 // instead of a cryptic "cannot read property Id of undefined".
@@ -302,5 +332,6 @@ export {
   getDynamicLinkByIdentifier,
   getPageReferenceByDynamicType,
   findDynamicLinkIdentifier,
-  escapeHtml
+  escapeHtml,
+  safeVideoUrl
 };
