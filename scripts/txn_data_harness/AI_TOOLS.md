@@ -8,8 +8,7 @@ unless you are changing the harness itself.
 
 1. Always plan first with `--dry-run` / `cli plan`; do not write records until the
    account, product, stage caps, and target org look correct.
-2. `--org` is an **sf CLI alias or username**, not a CCI alias. Example:
-   `rlm-base__beta`, not `beta`.
+2. `--org` is an **sf CLI alias or username**, not a CCI-only alias.
 3. Treat every run as additive. Re-running creates new records with a new run id.
 4. Use manifest ids for verification and cleanup. Do not rely on
    `Order.Description` SOQL filters; that field is not filterable.
@@ -118,9 +117,9 @@ Deletes manifest JSON in `out/` older than the retention window (`7d` / `24h` /
 ```yaml
 # Place a 3-year subscription on a TermDefined product.
 scenarios:
-  - account: "Infinitech"
+  - account: "<billing-ready-account-name>"
     products:
-      - sku: QB-API-FLEX
+      - sku: "<term-defined-sku>"
         term: {count: 3, unit: Annual}
 ```
 
@@ -128,18 +127,18 @@ scenarios:
 # Place a 4-quarter (1-year on a Quarterly SOM) subscription. The SKU MUST
 # be bound to a PBE whose ProductSellingModel.PricingTermUnit = "Quarterly".
 scenarios:
-  - account: "Infinitech"
+  - account: "<billing-ready-account-name>"
     products:
-      - sku: QB-LIC-QTR
+      - sku: "<quarterly-term-sku>"
         term: {count: 4, unit: Quarterly}
 ```
 
 ```yaml
 # Bare-int form -- count only; unit follows the resolved PSM.
 scenarios:
-  - account: "Infinitech"
+  - account: "<billing-ready-account-name>"
     products:
-      - sku: QB-API-FLEX
+      - sku: "<term-defined-sku>"
         term: 24
 ```
 
@@ -174,23 +173,23 @@ the explicit date and prorates `PricingTermCount` against the actual span
 # Scenario-level co-term: every TermDefined line on the quote anchors to
 # 2027-01-14 regardless of individual cadences.
 scenarios:
-  - account: "Infinitech"
+  - account: "<billing-ready-account-name>"
     term: {count: 1, unit: Annual}
     end_date: "2027-01-14"
     products:
-      - sku: QB-LIC-CLOUD
-      - sku: QB-API-FLEX
+      - sku: "<term-defined-sku>"
+      - sku: "<another-term-defined-sku>"
 ```
 
 ```yaml
 # Per-line relative offset. Supported units: d, mo, q, y.
 scenarios:
-  - account: "Infinitech"
+  - account: "<billing-ready-account-name>"
     products:
-      - sku: QB-API-FLEX
+      - sku: "<term-defined-sku>"
         term: 12
         end_date: "12mo"   # 12 calendar months from StartDate (day-clamp)
-      - sku: QB-LIC-QTR
+      - sku: "<quarterly-term-sku>"
         term: {count: 4, unit: Quarterly}
         end_date: "3q"     # 9 calendar months
 ```

@@ -11,25 +11,26 @@ python -m scripts.txn_data_harness.generate --org <sf-alias> \
 Always `--dry-run` first — it resolves auth + discovery and prints the plan
 (account, product, stages, any auto-caps) **without writing anything**.
 
-> `<sf-alias>` is an **sf** CLI alias (e.g. `rlm-base__beta`), not a CCI alias.
+> `<sf-alias>` is an **sf** CLI alias or username, not a CCI alias.
 
 ## The examples
 
 | File | Stage | Volume | What it's for |
-|------|-------|--------|----------------|
+| ---- | ----- | ------ | -------------- |
 | `01-smoke-test.yaml` | `post` | 1 | Fastest end-to-end proof: one full chain to a Posted invoice. **Run this first** on a new org. |
 | `02-pipeline-quotes.yaml` | `quote` | 40 | Opportunities + quotes only (no billing). Cheap, fast pipeline data; works on any account. |
 | `03-activated-orders.yaml` | `activate` | 15 | Activated orders → Assets + BillingSchedules, but not invoiced. Installed-base / asset demos. |
 | `04-draft-invoices.yaml` | `invoice` | 10 | Draft (unposted) invoices — demo the review/approval step; Draft invoices are deletable. |
 | `05-posted-invoices-volume.yaml` | `post` | 50 | Bulk billed invoices. The heavy one — run with `--concurrency`. |
 | `06-mixed-stages.yaml` | mixed | 55 | A realistic spread: lots of pipeline, fewer activated, fewest billed. "Lived-in" org. |
-| `07-multi-account.yaml` | `post`/capped | 30 | Billable + pipeline-only accounts; shows the auto-cap (Global Media → `order`). |
+| `07-multi-account.yaml` | `post`/capped | 30 | Billable + pipeline-only accounts; shows the auto-cap to `order` for accounts without `BillingAccount`. |
 | `08-product-mix.yaml` | `post` | 30 | Posted invoices across several SKUs so invoices aren't all one line item. |
 | `09-quantity-spread.yaml` | `post` | 35 | Same product, varied quantities → a range of invoice amounts (small/medium/large deals). |
 | `10-randomized-discounts.yaml` | `post` | 35 | Per-line discounts drawn from a range → a spread of discounted invoice amounts. |
 | `11-randomized-product-mix.yaml` | `post` | 25 | A product **pool** placed as a random non-empty subset → varied multi-line invoices (1–N lines, mixed SKUs, per-line qty + discount ranges). |
 | `12-usage-consumption.yaml` | `usage` | 5 | Usage-based products (`QB-DB`, `QB-TOKENS-PACK`) with `TransactionJournal` consumption rows against each activated asset. Stops at `usage`; kick off org-wide rating separately. |
 | `13-multi-year-terms.yaml` | `post` | 5 | Multi-year and non-month subscription cadences: 1-Annual, 3-Annual, bare-int (count-only) form, PSM-default fallback, and mixed terms on one quote. Exercises the per-line `(count, unit)` term model. |
+| `14-end-date-overrides.yaml` | `post` | 5 | Explicit `EndDate` override examples for co-terming and off-cycle spans: absolute anchors, day/month/quarter/year offsets, per-line overrides, and mixed cadence quotes. |
 
 These are tuned for the **QuantumBit (QB)** demo org. The only values that are
 org-specific are the **account names** (`Infinitech`, `Global Media`) and the
@@ -52,7 +53,7 @@ Every field below is valid in a `scenarios:` entry **and** in the `defaults`
 block (where it applies to all scenarios unless the scenario overrides it).
 
 | Field | Type | Default | Meaning |
-|-------|------|---------|---------|
+| ----- | ---- | ------- | ------- |
 | `account` | string | auto | Account **Name** (not id). Omit → first billing-ready account discovered. A pinned account need not be billing-ready (it caps at `order`). |
 | `target_stage` | enum | `post` | How far to run: `opportunity` \| `quote` \| `order` \| `activate` \| `usage` \| `invoice` \| `post`. Hierarchical — each stage runs all stages before it. `usage` writes TransactionJournals for any line that declares a `usage:` block (skipped silently otherwise); see [Usage-based products](#usage-based-products) below. |
 | `with_opportunity` | bool | `false` | Prepend an Opportunity the quote links to. (`target_stage: opportunity` implies one even if this is false.) |
@@ -76,7 +77,7 @@ block (where it applies to all scenarios unless the scenario overrides it).
 
 ### Precedence (most specific wins)
 
-```
+```text
 per-scenario field  >  CLI flag  >  config `defaults`  >  built-in default
 ```
 
@@ -210,8 +211,8 @@ Rules:
   unit: Annual}` and an `end_date` only one year out, the line is
   billed for one year and `SubscriptionTerm` is stored verbatim as 2
   (no cross-validation). Author both fields consistently if you want
-  them to agree. Probed live on `rlm-base__jun17_1` 2026-06-23; see
-  `../CONTRACTS.md` → *Probed edge cases*.
+  them to agree. See `../CONTRACTS.md` → *Probed edge cases* for the live
+  evidence behind this rule.
 - **`EndDate` carries through to `BillingSchedule.TotalAmount`.**
   Activation emits **one** `BillingSchedule` row per `OrderItem`
   spanning the full deal — it is **not** fanned out into per-period
@@ -237,16 +238,16 @@ exist. Requirements, by what you want to reach:
 ### Accounts
 
 | To reach… | The account needs… | How it's checked |
-|-----------|--------------------|-------------------|
+| --------- | ------------------ | ----------------- |
 | `quote` / `order` | just to **exist** (by Name) | `Account WHERE Name = '…'` |
 | `activate` / `invoice` / `post` | a **`BillingAccount`** (`BillingAccount.AccountId` → the Account) | `BillingAccount WHERE AccountId = '…'` |
 
 An account with **no** BillingAccount still runs `quote → order`, then is
 auto-capped at `order` with a warning — the run doesn't fail. (Activation
-generates BillingSchedules/Assets, which need the account's billing setup.) In the
-QB org, **only Infinitech** is pre-wired with a BillingAccount; **Global Media** is
-pipeline-only. To make another account billable, create a `BillingAccount` (plus
-the billing setup it implies) for it.
+generates BillingSchedules/Assets, which need the account's billing setup.) The
+bundled QB examples use **Infinitech** as the billing-ready account and **Global
+Media** as the pipeline-only account. To make another account billable, create a
+`BillingAccount` (plus the billing setup it implies) for it.
 
 ### Products
 

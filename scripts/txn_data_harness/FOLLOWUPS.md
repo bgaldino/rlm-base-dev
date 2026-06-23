@@ -6,6 +6,11 @@ a live org belong there. This file is the inverse: known gaps, things
 that *look* like they work but haven't been live-verified, anomalies
 spotted in passing, and probes that would generalize a finding.
 
+This is an evidence notebook, not an operator guide. It may include observed org
+aliases, run ids, dates, order numbers, and invoice numbers so a future probe can
+be retraced. Treat those values as evidence only; user-facing docs should use
+placeholders or explicitly labeled QB example data.
+
 ## How to use this file
 
 - **Adding an item.** When you spot a gap or anomaly while working on

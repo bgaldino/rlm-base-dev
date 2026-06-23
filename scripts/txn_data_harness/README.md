@@ -3,7 +3,7 @@
 Generate realistic, high-volume Revenue Cloud demo data by driving the **real
 transaction lifecycle** against a target org:
 
-```
+```text
 (Opportunity) → Quote → Order → Activate → Invoice (Draft) → Post
 ```
 
@@ -52,30 +52,30 @@ composable actions:
 ```bash
 python -m scripts.txn_data_harness.cli inspect --latest
 python -m scripts.txn_data_harness.cli step --org <your-sf-alias> \
-  --manifest DEMO-20260622T120000Z --account "<account-name>" --to-stage invoice
-python -m scripts.txn_data_harness.cli report DEMO-20260622T120000Z   # batch summary from disk
+  --manifest <run-id-or-path> --account "<account-name>" --to-stage invoice
+python -m scripts.txn_data_harness.cli report <base-run-id>           # batch summary from disk
 python -m scripts.txn_data_harness.cli prune --older-than 7d          # dry run; --yes to delete
 ```
 
 ## ⚠ `--org` takes an *sf CLI* alias, not a CCI alias
 
 CCI and the `sf` CLI use **different alias registries**. This tool talks to the
-`sf` CLI only, so `--org` must be an **sf alias or username**. The CCI alias
-`beta` maps to the sf alias `rlm-base__beta` — pass the **sf** one:
+`sf` CLI only, so `--org` must be an **sf alias or username**. If a CCI alias
+maps to a differently named sf alias, pass the **sf** alias:
 
 ```bash
-python -m scripts.txn_data_harness.generate --org rlm-base__beta ...   # ✅ sf alias
-python -m scripts.txn_data_harness.generate --org beta ...             # ❌ CCI alias — won't resolve
+python -m scripts.txn_data_harness.generate --org <sf-alias> ...       # sf alias or username
+python -m scripts.txn_data_harness.generate --org <cci-alias> ...      # fails if not also an sf alias
 ```
 
 ## CLI flags
 
 | Flag | Default | Purpose |
-|------|---------|---------|
+| ------ | ------- | ------- |
 | `--org` | *(required)* | Target org: sf alias or username (NOT a CCI alias). |
 | `--config` | — | YAML/JSON config file (all fields optional). |
 | `--count` | 1 | Transactions to generate (overrides config). |
-| `--target-stage` | `post` | How far to run: `opportunity`\|`quote`\|`order`\|`activate`\|`invoice`\|`post`. |
+| `--target-stage` | `post` | How far to run: `opportunity`\|`quote`\|`order`\|`activate`\|`usage`\|`invoice`\|`post`. |
 | `--account` | auto | Pin the account by **Name**. |
 | `--product` | auto (QB-preferred) | Pin the product by **SKU**. |
 | `--with-opportunity` | off | Prepend an Opportunity the quote links to. |
@@ -97,18 +97,19 @@ Exit codes: `0` success · `1` one or more scenarios failed · `2` auth ·
 A startup line announces the batch, then one line prints **as each scenario
 completes** (completion order, not submission order):
 
-```
-Running 10 scenario(s) across 1 spec(s), concurrency=3, run base DEMO-20260622T... ...
-[1/10] DEMO-...-001: OK reached=post order=00000123 manifest=.../out/....json
-[2/10] DEMO-...-004: FAILED reached=order order=00000126 manifest=.../out/....json
+```text
+Running 10 scenario(s) across 1 spec(s), concurrency=3, run base DEMO-<timestamp> ...
+[1/10] DEMO-<timestamp>-001: OK reached=post order=<order-id> manifest=.../out/....json
+[2/10] DEMO-<timestamp>-004: FAILED reached=order order=<order-id> manifest=.../out/....json
 ...
 Done: 9/10 scenario(s) succeeded. Manifests in .../out/
 ```
 
 With `-v` (INFO) / `-vv` (DEBUG) each lifecycle step also logs, **prefixed with the
-emitting scenario's run id** (`DEMO-...-004 | order 801... activated`) so interleaved
-output from concurrent workers stays attributable. Lines outside any scenario
-(discovery, etc.) use `-` as the prefix. Errors always print regardless of `-v`.
+emitting scenario's run id** (`DEMO-<timestamp>-004 | order <order-id> activated`)
+so interleaved output from concurrent workers stays attributable. Lines outside
+any scenario (discovery, etc.) use `-` as the prefix. Errors always print
+regardless of `-v`.
 
 After the batch, a report is written to `out/<base_run_id>-report.json` (and a
 `.md` companion) with success/failure counts, a histogram of how far each scenario
@@ -131,11 +132,12 @@ required before order") fail fast and are never retried. The manifest records th
 `target_stage` is hierarchical — each stage runs everything before it.
 
 | Stage | Produces | Needs a BillingAccount? |
-|-------|----------|--------------------------|
+| ----- | -------- | ------------------------ |
 | `opportunity` | Opportunity (opt-in head) | no |
 | `quote` | Quote (+ line) via Place Sales Transaction | no |
 | `order` | Order via createOrderFromQuote | no |
 | `activate` | Activated Order → BillingSchedule(s) + Asset(s) | **yes** |
+| `usage` | TransactionJournal consumption rows for opted-in usage lines | **yes** |
 | `invoice` | Draft Invoice (+ lines), tagged | **yes** |
 | `post` | Posted Invoice (InvoiceNumber assigned) | **yes** |
 
@@ -144,16 +146,16 @@ pipeline + order demo data), but **activation** generates BillingSchedules and
 Assets that require the account's billing setup, so the tool **auto-caps** such
 scenarios at `order` and warns, rather than failing the run. This lets one config
 mix billable-account invoices with pipeline-only-account orders in the same run.
-(In the bundled QB demo dataset, the billing-ready account is **Infinitech** and
-the pipeline-only account is **Global Media**; on your own dataset, substitute
-whichever account names play those roles.)
+The bundled QB example configs use **Infinitech** as the billing-ready account
+and **Global Media** as the pipeline-only account; substitute equivalent account
+names for another dataset.
 
 ## Config
 
 All fields optional — anything omitted is auto-discovered. Precedence
 (most-specific wins):
 
-```
+```text
 per-scenario field  >  CLI flag  >  config `defaults`  >  built-in default
 ```
 
@@ -161,7 +163,8 @@ per-scenario field  >  CLI flag  >  config `defaults`  >  built-in default
 account/product a valid target** are documented in
 [`scenarios/README.md`](scenarios/README.md), alongside ready-to-run example
 configs (smoke test, pipeline quotes, draft/posted invoices, mixed stages,
-multi-account, product/quantity spreads, randomized discounts). Start there.
+multi-account, product/quantity spreads, randomized discounts, usage
+consumption, and term/end-date examples). Start there.
 
 [`config.example.yaml`](config.example.yaml) is the original single-file worked
 example. With no `scenarios:` block, a single spec runs and `volume.scenarios`
@@ -171,9 +174,9 @@ sets its count.
 
 - **Account** — exists by Name to reach `quote`/`order`; needs a
   **`BillingAccount`** to reach `activate`/`invoice`/`post` (else auto-capped at
-  `order`). In the bundled QB demo dataset, `Infinitech` is the billing-ready
-  account and `Global Media` is pipeline-only — substitute equivalents for your
-  own dataset.
+  `order`). The bundled QB examples use `Infinitech` for a billing-ready account
+  and `Global Media` for a pipeline-only account; substitute equivalents for
+  your dataset.
 - **Product** — needs an active `PricebookEntry` on the **standard** pricebook.
 - **Subscription term** — per-line `term: {count, unit}` (or bare int) for
   `TermDefined` products drives `SubscriptionTerm` / `SubscriptionTermUnit`;
@@ -197,14 +200,15 @@ sets its count.
   ranges). One SKU per quote is just a one-entry pool.
 - **Bundles work for default configurations** — the tool sends one flat line, but
   PST expands the bundle's default component graph server-side and returns the
-  configured child lines. Live-verified end-to-end on `QB-COMPLETE` (R262). You
+  configured child lines. `QB-COMPLETE` is the confirmed bundled-QB example. You
   cannot influence attribute or selling-model choices from YAML; bundles that
   require user input on mandatory slots will fail to place. See **Bundles caveat**
   below for the known invoice-poller workaround.
-- **Usage / consumption is not supported** — metered/commit SKUs (`*-BLNG`,
-  token/quantity/monetary commit) would invoice with no usage behind them.
-
-See [`scenarios/README.md`](scenarios/README.md) → *Not handled yet* for detail.
+- **Usage / consumption is opt-in** — add a per-product `usage:` block to write
+  `TransactionJournal` rows after activation. `target_stage: usage` stops after
+  journals so you can run `cli rate --org <sf-alias>` once for the batch; rating
+  is org-wide and asynchronous. See `scenarios/README.md` →
+  *Usage-based products* and `scenarios/12-usage-consumption.yaml`.
 
 ## Auth & transport
 
@@ -244,16 +248,13 @@ Old manifests accumulate in `out/`; prune them by age with
 is ever touched).
 
 **Drive cleanup from the manifest ids** — delete the ids the run recorded
-(child → parent: assets/order, then quote, then opportunity). Every record also
-carries the run id in `Description` for ad-hoc inspection, but note **neither
-`Order.Description` nor `Quote.Description` is SOQL-filterable** on this org
-("field 'Description' can not be filtered in a query call"), so a
-`WHERE Description LIKE 'DEMO-%'` sweep fails on both — filter by id, not
-description. (Live-verified `2026-06-23` on `rlm-base__jun17_1`: the
-Quote.Description filter previously documented as working returns
-`INVALID_FIELD`.)
+(child → parent: assets/order, then quote, then opportunity). Records carry the
+run id in `Description` for ad-hoc inspection, but standard description fields
+are not a reliable SOQL cleanup key across orgs. In particular,
+`Order.Description` is not filterable in this flow. Filter by manifest ids, not
+by `Description`.
 
-Deletability (verified live):
+Deletability to assume:
 
 - **Opportunities, Quotes, Assets** — deletable.
 - **Activated Orders** — must be reverted to `Status=Draft` first (`sf data update
@@ -271,10 +272,10 @@ a fresh batch with a new run id (by design).
 
 - **Bundles — default configuration only.** The harness submits one flat input
   line per `products:` entry; PST expands a bundle's default component graph
-  server-side, so default-configured bundle SKUs (example: `QB-COMPLETE`)
-  place, activate, and post cleanly (live-verified R262 → posted invoice, 5
-  lines). You cannot drive attribute values or selling-model choices for child
-  slots — only default-configured bundles succeed.
+  server-side, so default-configured bundle SKUs (example: `QB-COMPLETE`) place,
+  activate, and post cleanly in the bundled QB dataset. You cannot drive
+  attribute values or selling-model choices for child slots — only
+  default-configured bundles succeed.
 - **`--no-probe` / `--keep-probes` are no-ops.** The discovery PST probe (place a
   throwaway quote to prove a product before fanning out volume) was scoped but not
   implemented; the flags are reserved for it. Discovery currently surfaces
@@ -296,13 +297,13 @@ a fresh batch with a new run id (by design).
 
 ## Layout
 
-```
+```text
 scripts/txn_data_harness/
   cli.py               # subcommands: plan/run/step/inspect/report/prune
   generate.py          # CLI entry: argparse, spec resolution, concurrency loop
   auth.py              # SfRestClient: transport-agnostic REST (requests | cli)
   discovery.py         # org introspection: accounts, products, pricebook, legal entity
-  lifecycle.py         # the 6 lifecycle steps + async polling (transcribed from CONTRACTS.md)
+  lifecycle.py         # lifecycle API calls, usage journals, and async polling contracts
   models.py            # shared execution models (Manifest, LineItem, resolved specs)
   runner.py            # resolved-plan execution, batching, checkpoint + retry policy
   steps.py             # composable step registry over lifecycle.py calls

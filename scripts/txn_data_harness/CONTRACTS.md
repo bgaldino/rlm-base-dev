@@ -12,6 +12,11 @@
 > [`FOLLOWUPS.md`](FOLLOWUPS.md) — pair-edit the two when a probe lands a
 > new answer (write the verified contract here, move the open entry there
 > into *Resolved*).
+>
+> **Evidence notebook.** Unlike the user-facing README and guide, this file may
+> include observed org aliases, run ids, invoice numbers, dates, and record
+> identifiers as proof of a probe. Treat those values as evidence only, never as
+> reusable inputs.
 
 ## Environment verified
 
