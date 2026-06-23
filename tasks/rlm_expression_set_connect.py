@@ -661,6 +661,26 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
                 ]
         return stripped
 
+    @staticmethod
+    def _rewrite_version_id(payload: dict, target_version_id: str) -> dict:
+        """Rewrite versions[0].id to the target org's version id for PATCH.
+
+        An export-from-source/import-into-target workflow carries the source
+        org's version id in the payload, while the Connect PATCH endpoint
+        matches on the target version id. Without this rewrite the server
+        rejects or mis-binds the version. Idempotent when the id already
+        matches (same-org re-import).
+        """
+        versions = payload.get("versions")
+        if not isinstance(versions, list) or not versions:
+            return payload
+        # Only rewrite the first/active version — the PATCH operates on a
+        # single version at a time, matching the one resolved in `esv`.
+        first = versions[0]
+        if isinstance(first, dict):
+            first["id"] = target_version_id
+        return payload
+
     # -- HTML-entity normalization -------------------------------------
     #
     # The Connect GET serializer HTML-escapes JSON-in-string content: a pricing
@@ -933,6 +953,18 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             overlay, preflight_definition, version_api_name
         )
         self._check_version_name_consistency(es_id, esv, preflight_definition)
+
+        # Simulate the merge on the preflight snapshot and validate the merged
+        # graph BEFORE deactivation. The cross-check only catches typo'd
+        # targets; structural local failures (e.g. removing a ListGroup parent
+        # but not its children, leaving a dangling parentStep) can still raise
+        # only inside the post-deactivation mutate(). Catching them here means
+        # a purely local validation failure never leaves the version or its
+        # cascaded procedure plans deactivated. The inner mutate() keeps its
+        # own validation as a last guard against drift between this preflight
+        # snapshot and the post-deactivation GET.
+        simulated = self._apply_overlay(preflight_definition, overlay)
+        self._preflight_validate_definition(simulated)
 
         # Align ResourceInitializationType to the value the PATCH body will
         # carry (GET fabricates "Off" over a stored null), before touching
@@ -1447,7 +1479,15 @@ class ImportExpressionSet(ExpressionSetConnectBase):
                 if dry_run:
                     self.logger.info("[dry-run] Would PATCH expression set %s.", es_id)
                     return
+                # Rewrite versions[0].id to the TARGET org's version id.
+                # _strip_readonly_fields keeps versions[].id (PATCH needs it to
+                # match in place), but in an export-from-source/import-into-
+                # target workflow the payload carries the SOURCE org's id (a
+                # 9QM...). The endpoint expects the target version id resolved
+                # in `esv` above; without this rewrite the server rejects or
+                # mis-binds the version. Same-org re-import is a no-op.
                 patch_payload = self._strip_readonly_fields(payload)
+                patch_payload = self._rewrite_version_id(patch_payload, esv["Id"])
                 patch_payload = self._normalize_html_entities(patch_payload)
                 self._patch_expression_set_via_connect(es_id, patch_payload)
                 self.logger.info("Imported (updated) expression set %s.", es_id)
@@ -1566,19 +1606,45 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
             self._delete_single_version(version_api_name, dry_run)
             return
 
-        # Whole expression set: deactivate any enabled version first.
+        # Whole expression set: an active ProcedurePlanDefinitionVersion
+        # referencing this ES can lock the ES version (mirrors the apply/import
+        # lifecycle). Cascade-deactivate referencing procedure plan versions
+        # first, then deactivate the ES version, then DELETE. If the Connect
+        # DELETE fails (or anything between cascade and DELETE), restore the
+        # cascaded procedure plan versions so the cluster is left in the same
+        # state the user saw — the ES version stays deactivated (intentional:
+        # re-enabling a definition we tried to delete is worse than leaving it
+        # offline for inspection).
+        es_def_id = self._get_expression_set_definition_id(api_name)
         esv = self._resolve_version_by_es_id(es_id)
-        if bool(esv.get("IsActive")):
-            self._set_version_active(esv["Id"], False, dry_run)
-            if not dry_run:
-                self._wait_for_version_state(esv["Id"], False)
-
-        if dry_run:
-            self.logger.info(
-                "[dry-run] Would DELETE expression set %s (%s).", api_name, es_id
+        cascaded_ppvs: List[str] = []
+        try:
+            cascaded_ppvs = self._cascade_deactivate_procedure_plans(
+                es_def_id, dry_run
             )
-            return
-        self._delete_expression_set_via_connect(es_id)
+            if bool(esv.get("IsActive")):
+                self._set_version_active(esv["Id"], False, dry_run)
+                if not dry_run:
+                    self._wait_for_version_state(esv["Id"], False)
+
+            if dry_run:
+                self.logger.info(
+                    "[dry-run] Would DELETE expression set %s (%s).", api_name, es_id
+                )
+                return
+            self._delete_expression_set_via_connect(es_id)
+        except Exception:
+            if cascaded_ppvs and not dry_run:
+                try:
+                    self._cascade_reactivate_procedure_plans(cascaded_ppvs, False)
+                except Exception as rb_exc:
+                    self.logger.error(
+                        "Delete failed AND rollback reactivation of "
+                        "ProcedurePlanDefinitionVersion(s) %s also failed: %s. "
+                        "Manual intervention required.",
+                        cascaded_ppvs, rb_exc,
+                    )
+            raise
         self.logger.info("Deleted expression set %s (%s).", api_name, es_id)
 
     def _delete_single_version(self, version_api_name: str, dry_run: bool):

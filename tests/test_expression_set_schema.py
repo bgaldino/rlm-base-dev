@@ -1012,6 +1012,85 @@ def test_build_step_applies_required_defaults():
     )
 
 
+# ---- Round 2 review fixes ----
+
+def test_rewrite_version_id_replaces_source_id():
+    # PR #246 review: an export-from-source/import-into-target carries the
+    # source org's 9QM... version id in versions[0].id; PATCH needs the target
+    # org's resolved id.
+    payload = {
+        "apiName": "X",
+        "versions": [{"id": "9QM_source_001", "apiName": "X_V1"}],
+    }
+    rewritten = Connect._rewrite_version_id(payload, "9QM_target_999")
+    check(
+        "_rewrite_version_id replaces source version id with target",
+        rewritten["versions"][0]["id"] == "9QM_target_999",
+    )
+
+
+def test_rewrite_version_id_idempotent_when_already_matches():
+    payload = {"versions": [{"id": "9QM_target", "apiName": "V1"}]}
+    rewritten = Connect._rewrite_version_id(payload, "9QM_target")
+    check(
+        "_rewrite_version_id is a no-op when ids match (same-org re-import)",
+        rewritten["versions"][0]["id"] == "9QM_target",
+    )
+
+
+def test_rewrite_version_id_handles_empty_versions():
+    # Defensive — shouldn't reach here in practice (validator requires
+    # versions[0]) but the helper must not crash.
+    check(
+        "_rewrite_version_id tolerates missing versions list",
+        Connect._rewrite_version_id({"apiName": "X"}, "abc") == {"apiName": "X"},
+    )
+    check(
+        "_rewrite_version_id tolerates empty versions list",
+        Connect._rewrite_version_id({"versions": []}, "abc") == {"versions": []},
+    )
+
+
+def test_apply_overlay_dangling_parentstep_caught_locally():
+    # PR #246 review (3463489841): removing a parent step but leaving its
+    # children produces a dangling parentStep that only the post-merge
+    # validation catches. The simulated merge before _run_connect_mutation
+    # must surface this so we never deactivate the version on a purely local
+    # validation failure.
+    applier = _OverlayApplier()
+    definition = {
+        "apiName": "TestES",
+        "versions": [{
+            "apiName": "TestES_V1",
+            "steps": [
+                {"name": "Parent", "stepType": "BusinessKnowledgeModel",
+                 "sequenceNumber": 1, "actionType": "PricingSettings"},
+                {"name": "Child", "stepType": "BusinessKnowledgeModel",
+                 "sequenceNumber": 1, "parentStep": "Parent"},
+            ],
+        }],
+    }
+    overlay = {"removeSteps": [{"name": "Parent"}]}
+    merged = applier._apply_overlay(definition, overlay)
+    # The child still references the removed parent.
+    children = [
+        s for s in merged["versions"][0]["steps"] if s.get("parentStep") == "Parent"
+    ]
+    check(
+        "_apply_overlay leaves dangling parentStep when only parent is removed",
+        len(children) == 1,
+    )
+    # ... and the definition-level validator catches it.
+    r = validate_definition(merged)
+    check(
+        "validate_definition flags dangling parentStep on the merged definition",
+        not r.passed and any(
+            "parentStep" in i.message or "parent" in i.message.lower()
+            for i in r.errors
+        ),
+    )
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     print(f"Running {len(tests)} validator test groups...\n")
