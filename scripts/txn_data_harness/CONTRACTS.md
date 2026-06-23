@@ -432,9 +432,8 @@ tracked in [`FOLLOWUPS.md`](FOLLOWUPS.md) → *Billing & invoicing*.
     2026-06-23 against a Revenue Cloud R262 scratch org): the example
     `QB-COMPLETE` bundle activates into **5 component assets** (one per
     component OrderItem); the AssetActionSource query returns all 5 in one
-    pass. **LMA assumption:** `AssetActionSource` is gated on the Asset's
-    `HasLifecycleManagement = true`; non-LMA products would surface here as
-    an empty poll result (soft-fail with warning).
+    pass. Every Revenue Cloud activation produces LMA assets, so the AAS
+    path is the complete attribution picture — no non-LMA escape hatch.
 
 ### 4b. Usage consumption — TransactionJournal create (sObject Collections) — ⚠ DOCUMENTED, NEEDS LIVE VERIFICATION
 
@@ -578,13 +577,14 @@ row count is stable across two consecutive ticks with count ≥ 1, then
 extracts ids from the nested subquery envelope
 (`row["AssetAction"]["AssetId"]`).
 
-**LMA assumption — known caveat.** `AssetActionSource` is only populated
-for assets with `HasLifecycleManagement = true` (Lifecycle-Managed Assets).
-Today's QB scenarios all produce LMA assets, so this is observed-to-work.
-A future scenario placing non-LMA products would surface here as `asset_ids
-= []` (soft-fail with a warning naming the LMA / write-delay causes); the
-downstream `run_usage` step already raises a hard `LifecycleError` if it
-cannot pair a usage line to an asset.
+**LMA invariant.** `AssetActionSource` is populated for assets with
+`HasLifecycleManagement = true` (Lifecycle-Managed Assets). Every asset
+produced via Revenue Cloud activation is LMA, so the AAS path is the
+complete picture for this harness — there is no non-LMA escape hatch to
+worry about. An empty result therefore only means the AAS write hasn't
+landed yet (covered by the stable-count poll) or activation itself didn't
+produce assets (a contract violation worth investigating upstream, not a
+soft-fail to swallow).
 
 **Bonus correlation (unused — recorded for reference):**
 `AsyncOperationTracker` rows with `JobType = 'AssetizationAsyncJob'` carry

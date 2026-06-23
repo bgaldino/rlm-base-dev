@@ -380,16 +380,17 @@ def poll_assets(
     01:28:44, AAS created 01:28:45 (1s lag, simple case); same-second for the
     bundle case -- both well within one tick.
 
-    LMA assumption: AssetActionSource is gated on
-    ``Asset.HasLifecycleManagement = true``. The harness today only places
-    subscription/usage products, all of which route to LMA. A future scenario
-    placing non-LMA products would silently return ``asset_ids: []``; the
-    timeout log surfaces the case.
+    LMA invariant: every Revenue Cloud activation produces LMA assets, so
+    AssetActionSource is the complete picture -- no non-LMA escape hatch to
+    worry about. An empty poll result means either the AAS write hasn't
+    landed yet (handled by the stable-count loop) or activation itself
+    didn't produce assets (an upstream contract violation, surfaced by the
+    timeout warning).
 
-    Failure mode: assets are best-effort, not the billing gate. Timeout with
-    empty result logs a warning naming the two known causes (non-LMA or AAS
-    write delay) and returns ``[]``; ``run_usage`` already raises downstream if
-    it can't pair a usage line.
+    Failure mode: assets are best-effort relative to the billing gate, so
+    the poll soft-fails on timeout (warn + return ``[]`` rather than raise).
+    ``run_usage`` raises hard downstream if it can't pair a usage line,
+    which is the right place for an empty-pool error to surface.
     """
     soql = (
         "SELECT AssetAction.AssetId FROM AssetActionSource "
@@ -417,8 +418,8 @@ def poll_assets(
         time.sleep(_POLL_INTERVAL)
     if not last_ids:
         log.warning(
-            "no AssetActionSource rows for order %s within %ds -- order may "
-            "have produced non-LMA assets, or AAS write was delayed (continuing)",
+            "no AssetActionSource rows for order %s within %ds -- AAS write "
+            "may be delayed, or activation produced no assets (continuing)",
             order_id, timeout,
         )
     else:

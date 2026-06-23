@@ -480,8 +480,9 @@ def test_poll_assets_waits_for_count_to_stabilize(fake_client, no_sleep) -> None
 def test_poll_assets_returns_empty_on_timeout_with_warning(
     fake_client, no_sleep, caplog
 ) -> None:
-    """No AAS rows (e.g. non-LMA products or AAS write significantly delayed)
-    must soft-fail: log a warning and return ``[]`` rather than hang or raise.
+    """No AAS rows (write significantly delayed, or upstream activation did
+    not emit any) must soft-fail: log a warning and return ``[]`` rather
+    than hang or raise.
     """
     fake_client.query_responses.append([])
 
