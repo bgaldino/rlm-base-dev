@@ -33,6 +33,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from .auth import SfRestClient
+from .term import Term
 
 log = logging.getLogger("txn_data_harness.discovery")
 
@@ -87,6 +88,13 @@ class Product:
     # TermDefined accepts (and requires) EndDate; Evergreen/OneTime reject it
     # at createOrderFromQuote. None if the org didn't return it.
     selling_model_type: Optional[str] = None
+    # ProductSellingModel.Name -- what scenarios pin via ``selling_model:`` to
+    # disambiguate when a SKU has multiple active PBEs (one per model).
+    selling_model_name: Optional[str] = None
+    # The selling model's declared default term. Used as the per-line fallback
+    # when neither the scenario nor the product option overrides it.
+    pricing_term: Optional[int] = None
+    pricing_term_unit: Optional[str] = None
     # ProductUsageResource bindings (empty for non-usage products); populated
     # lazily by ``attach_usage_bindings`` once the caller knows which products
     # need them (avoids extra SOQL on non-usage scenarios).
@@ -100,6 +108,13 @@ class Product:
     def needs_end_date(self) -> bool:
         """Only term-defined products take an EndDate (verified live, CONTRACTS.md)."""
         return self.selling_model_type == "TermDefined"
+
+    @property
+    def default_term(self) -> Optional[Term]:
+        """The PSM's declared term, or ``None`` if either half is missing."""
+        if self.pricing_term and self.pricing_term_unit:
+            return Term(count=int(self.pricing_term), unit=self.pricing_term_unit)
+        return None
 
 
 @dataclass
@@ -195,7 +210,9 @@ def discover_products(
     """Return billable products (active PBE on the standard pricebook)."""
     soql = (
         "SELECT Id, UnitPrice, Product2Id, Product2.Name, "
-        "Product2.StockKeepingUnit, ProductSellingModel.SellingModelType "
+        "Product2.StockKeepingUnit, ProductSellingModel.SellingModelType, "
+        "ProductSellingModel.Name, "
+        "ProductSellingModel.PricingTerm, ProductSellingModel.PricingTermUnit "
         "FROM PricebookEntry "
         "WHERE Pricebook2.IsStandard = true AND IsActive = true "
         "AND Product2.IsActive = true"
@@ -214,21 +231,62 @@ def discover_products(
             pricebook_entry_id=r["Id"],
             unit_price=r.get("UnitPrice"),
             selling_model_type=psm.get("SellingModelType"),
+            selling_model_name=psm.get("Name"),
+            pricing_term=psm.get("PricingTerm"),
+            pricing_term_unit=psm.get("PricingTermUnit"),
         ))
     log.info("discovered %d billable product(s)%s", len(products),
              f" for SKU {sku}" if sku else "")
     return products
 
 
-def resolve_product(client: SfRestClient, sku: str) -> Product:
-    """Resolve a single billable product by SKU (active PBE on standard PB)."""
-    products = discover_products(client, sku=sku, limit=1)
-    if not products:
+def resolve_product(
+    client: SfRestClient,
+    sku: str,
+    selling_model: Optional[str] = None,
+) -> Product:
+    """Resolve a single billable product by SKU (active PBE on standard PB).
+
+    A SKU can carry multiple active PBEs -- one per ``ProductSellingModel``
+    (e.g. a license sold under Annual, Quarterly, and Semi-Annual). When that
+    happens and the caller hasn't pinned ``selling_model``, this fails with
+    the candidate names rather than silently returning whichever PBE the SOQL
+    happens to return first. Pass ``selling_model`` (matching
+    ``ProductSellingModel.Name``) to disambiguate.
+    """
+    # Query without LIMIT so we can detect ambiguity. Bound generously to
+    # protect against runaway SKU/PBE setups; real catalogs see < 5.
+    candidates = discover_products(client, sku=sku, limit=25)
+    if not candidates:
         raise DiscoveryError(
             f"product SKU '{sku}' has no active PricebookEntry on the standard "
             f"pricebook (check the product/pricebook setup)"
         )
-    return products[0]
+    if selling_model is not None:
+        matches = [p for p in candidates if p.selling_model_name == selling_model]
+        if not matches:
+            available = ", ".join(
+                sorted({p.selling_model_name or "<unnamed>" for p in candidates})
+            )
+            raise DiscoveryError(
+                f"product SKU '{sku}' has no PBE bound to ProductSellingModel "
+                f"'{selling_model}' (available: {available})"
+            )
+        if len(matches) > 1:
+            raise DiscoveryError(
+                f"product SKU '{sku}' has {len(matches)} active PBEs bound to "
+                f"ProductSellingModel '{selling_model}'; expected exactly one"
+            )
+        return matches[0]
+    if len(candidates) > 1:
+        names = ", ".join(
+            sorted({p.selling_model_name or "<unnamed>" for p in candidates})
+        )
+        raise DiscoveryError(
+            f"product SKU '{sku}' has {len(candidates)} active PBEs across "
+            f"selling models ({names}); pin one with `selling_model:` in config"
+        )
+    return candidates[0]
 
 
 def discover_usage_bindings(

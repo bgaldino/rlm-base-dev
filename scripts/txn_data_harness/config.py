@@ -31,7 +31,17 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Optional
 
+from .term import END_DATE_UNITS, VALID_TERM_UNITS, EndDateOverride, Term
+
 log = logging.getLogger("txn_data_harness.config")
+
+# YAML conveniences -> canonical PricingTermUnit. ``Years`` is the only alias
+# we accept (per plan); anything else is rejected with a clear error.
+_TERM_UNIT_ALIASES = {"Years": "Annual"}
+
+# Defensive upper bound on `term: N`. Real demos won't exceed a handful of
+# years; this catches typos like `term: 360` (months mistakenly multiplied).
+_MAX_TERM_COUNT = 120
 
 # Built-in defaults (lowest precedence). target_stage caps/resolution happen in
 # generate.py against the resolved account -- this is just the requested stage.
@@ -110,6 +120,21 @@ class ProductOption:
     billing_frequency: Optional[str] = None
     # Opt-in usage consumption; ``None`` => no TransactionJournals emitted.
     usage: Optional[UsageSpec] = None
+    # Subscription term override. ``None`` => fall back to the scenario default
+    # then the resolved PSM's PricingTerm. A bare-int config lands as
+    # ``Term(N, None)`` here; the runner promotes ``unit`` from the resolved PSM.
+    term: Optional[Term] = None
+    # ProductSellingModel.Name pin for SKUs with multiple active PBEs (one per
+    # selling model). ``None`` => let ``resolve_product`` fail loudly if the
+    # SKU is ambiguous, rather than silently picking one.
+    selling_model: Optional[str] = None
+    # Explicit EndDate override. ``None`` => let the platform derive EndDate
+    # from StartDate + SubscriptionTerm/Unit (the default Branch A behavior).
+    # Set => the harness writes EndDate on the line, which the platform honors
+    # and prorates PricingTermCount against (~0.27% drift vs derived EndDate
+    # in the worst case). Requires a TermDefined product with a `term:` also
+    # set -- co-term shorthand is incoherent without a cadence.
+    end_date: Optional[EndDateOverride] = None
 
 
 @dataclass
@@ -132,6 +157,14 @@ class ScenarioSpec:
     # lifecycle defaults each line StartDate to today. A single date is drawn once
     # per transaction and applied to all of that quote's lines.
     start_date: Optional[tuple[date, date]] = None
+    # Scenario-level subscription term default applied to every line that
+    # doesn't pin its own ``term``. ``None`` => fall back to each resolved PSM's
+    # declared PricingTerm.
+    term: Optional[Term] = None
+    # Scenario-level EndDate override applied to every TermDefined line that
+    # doesn't pin its own ``end_date``. Co-term shorthand: a scenario can pin
+    # one EndDate so all of a quote's lines end on the same calendar anchor.
+    end_date: Optional[EndDateOverride] = None
 
 
 def _load_file(path: str) -> dict:
@@ -205,6 +238,183 @@ def _coerce_discount(value: Any, where: str) -> Optional[tuple[float, float]]:
     if lo < 0 or hi > 100:
         raise ConfigError(f"{where}: discount percent must be within 0..100")
     return (lo, hi)
+
+
+def _coerce_term_unit(value: Any, where: str) -> str:
+    """Normalize a PricingTermUnit value with the one allowed alias.
+
+    Salesforce picklists are case-sensitive on write; the harness mirrors
+    that strictness rather than silently lower/title-casing input.
+    """
+    if not isinstance(value, str):
+        raise ConfigError(f"{where}: term.unit must be a string")
+    canon = _TERM_UNIT_ALIASES.get(value, value)
+    if canon not in VALID_TERM_UNITS:
+        raise ConfigError(
+            f"{where}: term.unit must be one of "
+            f"{', '.join(sorted(VALID_TERM_UNITS))} (got {value!r}; "
+            f"only alias is 'Years' -> 'Annual')"
+        )
+    return canon
+
+
+def _coerce_term(value: Any, where: str) -> Optional[Term]:
+    """Normalize a ``term`` config into a :class:`Term`.
+
+    Two shapes:
+
+    * Bare positive int (``term: 36``) -> ``Term(36, None)``. The runner
+      promotes ``unit`` from the resolved PSM's ``PricingTermUnit`` once the
+      PBE is known, since the platform binds the line to a PBE whose model
+      already declares a unit.
+    * Mapping (``term: {count: 3, unit: Annual}``) -> ``Term(3, "Annual")``.
+      The runner enforces ``unit == psm.pricing_term_unit`` post-resolution
+      (after ``Years -> Annual`` aliasing) and raises ``ConfigError`` on a
+      mismatch; switching PSMs is never implicit.
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):  # Python: True/False are ints. Reject explicitly.
+        raise ConfigError(f"{where}: term must be an int or a mapping (got bool)")
+    if isinstance(value, int):
+        if value < 1:
+            raise ConfigError(f"{where}: term must be >= 1 (got {value})")
+        if value > _MAX_TERM_COUNT:
+            raise ConfigError(
+                f"{where}: term must be <= {_MAX_TERM_COUNT} (got {value}); "
+                f"typo? remember the unit comes from the selling model"
+            )
+        return Term(count=value, unit=None)
+    if isinstance(value, dict):
+        if "count" not in value:
+            raise ConfigError(f"{where}: term mapping requires 'count'")
+        try:
+            count = int(value["count"])
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(f"{where}: term.count must be an integer") from exc
+        if count < 1:
+            raise ConfigError(f"{where}: term.count must be >= 1 (got {count})")
+        if count > _MAX_TERM_COUNT:
+            raise ConfigError(
+                f"{where}: term.count must be <= {_MAX_TERM_COUNT} (got {count})"
+            )
+        unit_raw = value.get("unit")
+        unit = _coerce_term_unit(unit_raw, where) if unit_raw is not None else None
+        return Term(count=count, unit=unit)
+    raise ConfigError(
+        f"{where}: term must be an int or a mapping {{count, unit}} "
+        f"(got {type(value).__name__})"
+    )
+
+
+# Defensive upper bound on a relative end_date offset. Sized so that no realistic
+# multi-year subscription (max term 120 of any unit) gets clipped, but a typo
+# like ``"3650d"`` is caught.
+_MAX_END_DATE_OFFSET = 365 * 20  # 20 years in days
+_MAX_END_DATE_MONTHS = 12 * 20   # 20 years in calendar months
+
+
+def _parse_relative_end_date(token: str, where: str) -> EndDateOverride:
+    """Parse a ``"<int><unit>"`` token into an :class:`EndDateOverride`.
+
+    Units: ``d`` (days), ``mo`` (calendar months), ``q`` (quarters = 3 mo),
+    ``y`` (years = 12 mo). The bare ``"m"`` suffix is rejected as ambiguous --
+    the user must spell ``"mo"``.
+    """
+    # Longest suffix first so ``"mo"`` matches before ``"o"`` would.
+    for suffix in ("mo", "d", "q", "y"):
+        if token.endswith(suffix):
+            digits = token[: -len(suffix)]
+            break
+    else:
+        if token.endswith("m"):
+            raise ConfigError(
+                f"{where}: end_date unit 'm' is ambiguous -- use 'mo' for months "
+                f"(got {token!r})"
+            )
+        raise ConfigError(
+            f"{where}: end_date relative offset must end in one of "
+            f"{', '.join(sorted(END_DATE_UNITS))} (got {token!r})"
+        )
+    try:
+        count = int(digits)
+    except ValueError as exc:
+        raise ConfigError(
+            f"{where}: end_date offset must be <int><unit> (got {token!r})"
+        ) from exc
+    if count <= 0:
+        raise ConfigError(
+            f"{where}: end_date offset must be positive (got {token!r}); "
+            f"end_date only supports forward offsets from StartDate"
+        )
+    if suffix == "d":
+        if count > _MAX_END_DATE_OFFSET:
+            raise ConfigError(
+                f"{where}: end_date offset {count}d exceeds {_MAX_END_DATE_OFFSET}d "
+                f"(20 years); typo?"
+            )
+        return EndDateOverride(days=count)
+    months = {"mo": count, "q": count * 3, "y": count * 12}[suffix]
+    if months > _MAX_END_DATE_MONTHS:
+        raise ConfigError(
+            f"{where}: end_date offset {token} exceeds {_MAX_END_DATE_MONTHS} "
+            f"months (20 years); typo?"
+        )
+    return EndDateOverride(months=months)
+
+
+def _coerce_end_date(value: Any, where: str) -> Optional[EndDateOverride]:
+    """Normalize an ``end_date`` config into an :class:`EndDateOverride`.
+
+    Accepts:
+
+      * ``None`` -> ``None`` (platform derives EndDate from StartDate+Term).
+      * Absolute ISO date: ``"2027-01-14"`` or a YAML-parsed ``date``.
+      * Bare positive int: ``364`` -> 364 days forward from StartDate.
+      * Suffixed string: ``"12mo"``, ``"1y"``, ``"3q"``, ``"364d"``.
+
+    Rejected:
+
+      * Negative offsets / zero (forward-only by design).
+      * Ambiguous ``"12m"`` (must spell ``"12mo"``).
+      * Any other unit suffix.
+
+    The override is resolved against the line's drawn StartDate at lifecycle
+    time -- carried unresolved here so a scenario-level ``end_date`` co-terms
+    every line on a quote to the same calendar anchor.
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):  # Python: True/False are ints. Reject explicitly.
+        raise ConfigError(f"{where}: end_date must not be a bool")
+    if isinstance(value, date):  # PyYAML parses bare YYYY-MM-DD as a date.
+        return EndDateOverride(absolute=value)
+    if isinstance(value, int):
+        if value <= 0:
+            raise ConfigError(
+                f"{where}: end_date offset must be positive (got {value}); "
+                f"end_date only supports forward offsets from StartDate"
+            )
+        if value > _MAX_END_DATE_OFFSET:
+            raise ConfigError(
+                f"{where}: end_date offset {value} days exceeds "
+                f"{_MAX_END_DATE_OFFSET} (20 years); typo?"
+            )
+        return EndDateOverride(days=value)
+    if isinstance(value, str):
+        tok = value.strip()
+        if not tok:
+            raise ConfigError(f"{where}: end_date must not be empty")
+        # Absolute ISO date string.
+        try:
+            return EndDateOverride(absolute=date.fromisoformat(tok))
+        except ValueError:
+            pass  # not an ISO date -- try the relative-offset path.
+        return _parse_relative_end_date(tok, where)
+    raise ConfigError(
+        f"{where}: end_date must be an ISO date, an int (days), or "
+        f"<int><unit> (d/mo/q/y); got {type(value).__name__}"
+    )
 
 
 def _coerce_quantity(value: Any, where: str) -> tuple[int, int]:
@@ -446,6 +656,9 @@ def _coerce_product_option(
         raise ConfigError(f"{where}: each product needs an 'sku'")
     qty = raw["quantity"] if "quantity" in raw else default_qty
     disc = raw["discount"] if "discount" in raw else default_discount
+    selling_model = raw.get("selling_model")
+    if selling_model is not None and not isinstance(selling_model, str):
+        raise ConfigError(f"{where}: selling_model must be a string")
     return ProductOption(
         sku=raw["sku"],
         quantity=_coerce_quantity(qty, where),
@@ -457,6 +670,9 @@ def _coerce_product_option(
             raw.get("billing_frequency"), where, "billing_frequency",
             _VALID_BILLING_FREQUENCIES),
         usage=_coerce_usage(raw.get("usage"), where),
+        term=_coerce_term(raw.get("term"), where),
+        selling_model=selling_model,
+        end_date=_coerce_end_date(raw.get("end_date"), where),
     )
 
 
@@ -513,6 +729,8 @@ def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
         opportunity_stage=merged.get("opportunity_stage"),
         count=count,
         start_date=_coerce_start_date(merged.get("start_date"), where),
+        term=_coerce_term(merged.get("term"), where),
+        end_date=_coerce_end_date(merged.get("end_date"), where),
     )
 
 

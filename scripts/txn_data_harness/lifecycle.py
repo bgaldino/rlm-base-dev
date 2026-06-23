@@ -28,6 +28,7 @@ from typing import Any, Optional
 from .auth import SfRestClient
 from .discovery import Account, Product
 from .models import LineItem
+from .term import Term
 
 log = logging.getLogger("txn_data_harness.lifecycle")
 
@@ -100,7 +101,6 @@ def place_sales_transaction(
     pricebook_id: str,
     run_id: str,
     opportunity_id: Optional[str] = None,
-    term_months: int = 12,
     start_date: Optional[date] = None,
 ) -> str:
     """Place a quote with one or more lines. Returns the Quote id.
@@ -128,15 +128,30 @@ def place_sales_transaction(
       * PST commits the Quote header even on isSuccess:false -> caller records
         the returned id for cleanup regardless.
 
-    ``start_date`` (default today) sets every line's ``StartDate`` and anchors the
-    TermDefined ``EndDate`` (start + term); pass a per-transaction date to spread
-    quotes over time.
+    Term handling is per-line (see ``LineItem.term``). For TermDefined
+    products the harness writes the author-input fields ``SubscriptionTerm`` +
+    ``SubscriptionTermUnit`` -- the platform derives ``EndDate`` from
+    ``StartDate`` + those two fields (live-verified on R262 against
+    ``rlm-base__jun17_1``: input SubscriptionTerm=1 Annual + StartDate=2026-01-15
+    read back as EndDate=2027-01-14, platform's inclusive ``start + term - 1
+    day`` convention). The same input also drives platform recalculation of the
+    auto-calc fields ``PricingTerm`` / ``PricingTermCount``; the harness writes
+    neither.
+
+    When ``line.end_date`` is set, the harness ALSO writes an explicit
+    ``EndDate`` (resolved against the line's StartDate). The platform honors
+    the override and prorates ``PricingTermCount`` against the actual span,
+    e.g. an explicit Jan 15 -> Jan 15 next year (366 days) yields
+    ``PricingTermCount = 366/365 = 1.0027`` instead of the derived 1.0. Used
+    for co-terming a multi-line quote to a single calendar anchor.
+
+    ``start_date`` (default today) sets every line's ``StartDate``; the
+    platform anchors the TermDefined ``EndDate`` off it. Pass a
+    per-transaction date to spread quotes over time.
     """
     if not lines:
         raise LifecycleError("quote", "no lines to place")
-    start = start_date or date.today()
-    start_iso = start.isoformat()
-    end_iso = (start + timedelta(days=term_months * 30)).isoformat()
+    start_iso = (start_date or date.today()).isoformat()
     quote_record: dict[str, Any] = {
         "attributes": {"method": "POST", "type": "Quote"},
         "Name": f"{run_id} Quote",
@@ -157,10 +172,26 @@ def place_sales_transaction(
             "Quantity": str(line.quantity),
             "StartDate": start_iso,
         }
-        # Only term-defined products take an EndDate; Evergreen/OneTime reject it
-        # at createOrderFromQuote (verified live -- CONTRACTS.md "Selling models").
+        # Only term-defined products take a term / EndDate. The runner is
+        # responsible for ensuring TermDefined lines arrive with a Term and
+        # non-TermDefined lines arrive with ``term is None``.
         if line.product.needs_end_date:
-            line_record["EndDate"] = end_iso
+            if line.term is None:
+                raise LifecycleError(
+                    "quote",
+                    f"TermDefined product '{line.product.sku}' has no resolved "
+                    f"term; runner must populate LineItem.term",
+                )
+            line_record["SubscriptionTerm"] = line.term.count
+            line_record["SubscriptionTermUnit"] = line.term.unit
+            # Opt-in EndDate override: when set, the platform honors the
+            # explicit date and prorates PricingTermCount against the
+            # actual span (e.g. 366/365 == 1.0027 for a Jan 15 -> Jan 15
+            # next year input). Without an override the platform derives
+            # EndDate from StartDate + SubscriptionTerm (Branch A).
+            if line.end_date is not None:
+                line_start = start_date or date.today()
+                line_record["EndDate"] = line.end_date.resolve(line_start).isoformat()
         if line.discount_percent is not None:
             line_record["Discount"] = line.discount_percent
         # Products with a proration policy require these at place time; not
@@ -187,6 +218,11 @@ def place_sales_transaction(
     summary = ", ".join(
         f"{l.product.sku} x{l.quantity}"
         + (f" @{l.discount_percent}%off" if l.discount_percent is not None else "")
+        + (
+            f" term={l.term.count}{l.term.unit}"
+            if l.term is not None
+            else ""
+        )
         for l in lines
     )
     log.info("quote %s placed (%d line(s): %s)", quote_id, len(lines), summary)

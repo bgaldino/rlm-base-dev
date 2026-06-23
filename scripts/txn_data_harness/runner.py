@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from .auth import SfRestClient
-from .config import ScenarioSpec
+from .config import ConfigError, ScenarioSpec
 from .config import ProductOption
 from .discovery import (
     Account,
@@ -39,6 +39,7 @@ from .models import (
     ResolvedUsageTarget,
 )
 from .steps import StepContext, execute_step
+from .term import EndDateOverride, Term
 
 log = logging.getLogger("txn_data_harness.runner")
 
@@ -135,6 +136,89 @@ def _resolve_usage(
     )
 
 
+_DEFAULT_TERM = Term(count=12, unit="Months")
+
+
+def _resolve_term(opt: ProductOption, spec: ScenarioSpec, product: Product) -> Optional[Term]:
+    """Apply the 4-step term fallback + unit-vs-PSM consistency rule.
+
+    Returns ``None`` for non-TermDefined products so the lifecycle skips both
+    EndDate and SubscriptionTerm writes. For TermDefined:
+
+    1. line override (``opt.term``)
+    2. scenario default (``spec.term``)
+    3. product's discovered ``default_term``
+    4. ``Term(12, "Months")`` fallback
+
+    After picking, the unit must equal the resolved PSM's ``PricingTermUnit``.
+    A bare-int config (``unit=None``) promotes to the PSM unit. An explicit
+    unit that disagrees raises ``ConfigError`` -- switching PSMs is never
+    implicit; the author must pin a matching ``selling_model:``.
+    """
+    if not product.needs_end_date:
+        # Evergreen / OneTime: reject explicit term config loudly.
+        if opt.term is not None:
+            raise ConfigError(
+                f"product '{product.sku}' selling model is "
+                f"{product.selling_model_type}; 'term' is only valid for "
+                f"TermDefined products"
+            )
+        return None
+
+    chosen = opt.term or spec.term or product.default_term or _DEFAULT_TERM
+    # Subtle: an explicit end_date override is incoherent without a cadence
+    # (the platform still computes PricingTerm/PricingTermCount off the term
+    # fields, so the line still needs a SubscriptionTerm). Falling through to
+    # _DEFAULT_TERM when end_date is set but neither line/scenario/PSM declares
+    # a term would silently force 12-Months -- demand the author be explicit.
+    if (opt.end_date is not None or spec.end_date is not None) and not (
+        opt.term or spec.term or product.default_term
+    ):
+        raise ConfigError(
+            f"product '{product.sku}' has an end_date override but no term "
+            f"is declared on the line, scenario, or selling model; "
+            f"end_date requires an accompanying term: (the platform still "
+            f"derives PricingTermCount from SubscriptionTerm)"
+        )
+    psm_unit = product.pricing_term_unit
+    if chosen.unit is None:
+        # Bare int from config: count override only; unit follows the PSM.
+        # Fall back to ``Months`` only when the PSM doesn't declare a unit
+        # (legacy/incomplete metadata) so demos still place.
+        return Term(count=chosen.count, unit=psm_unit or "Months")
+    if psm_unit is not None and chosen.unit != psm_unit:
+        raise ConfigError(
+            f"product '{product.sku}' is bound to selling model "
+            f"'{product.selling_model_name}' with PricingTermUnit "
+            f"'{psm_unit}', but term.unit was '{chosen.unit}'. Pin a matching "
+            f"selling_model: in config or change the unit; the harness will "
+            f"not implicitly switch PBEs."
+        )
+    return chosen
+
+
+def _resolve_end_date(
+    opt: ProductOption, spec: ScenarioSpec, product: Product
+) -> Optional[EndDateOverride]:
+    """Pick the line's EndDate override: line wins over scenario.
+
+    Rejected on non-TermDefined products (Evergreen / OneTime reject EndDate
+    at place time, so we fail loud at config-resolve time instead). Returns
+    ``None`` when neither line nor scenario sets one -- the platform derives
+    EndDate from StartDate + SubscriptionTerm (Branch A, default).
+    """
+    chosen = opt.end_date or spec.end_date
+    if chosen is None:
+        return None
+    if not product.needs_end_date:
+        raise ConfigError(
+            f"product '{product.sku}' selling model is "
+            f"{product.selling_model_type}; 'end_date' is only valid for "
+            f"TermDefined products (Evergreen/OneTime reject EndDate)"
+        )
+    return chosen
+
+
 def resolve_spec(client: SfRestClient, ctx: OrgContext, spec: ScenarioSpec) -> ResolvedSpec:
     """Bind a spec's account + product pool to org records."""
     if spec.account:
@@ -142,7 +226,11 @@ def resolve_spec(client: SfRestClient, ctx: OrgContext, spec: ScenarioSpec) -> R
     else:
         account = ctx.default_account()
     products = [
-        (resolve_product(client, opt.sku) if opt.sku else ctx.default_product())
+        (
+            resolve_product(client, opt.sku, selling_model=opt.selling_model)
+            if opt.sku
+            else ctx.default_product()
+        )
         for opt in spec.products
     ]
     # Only fetch usage bindings for products that actually opted in.
@@ -159,6 +247,8 @@ def resolve_spec(client: SfRestClient, ctx: OrgContext, spec: ScenarioSpec) -> R
             period_boundary=opt.period_boundary,
             billing_frequency=opt.billing_frequency,
             usage=_resolve_usage(client, product, opt),
+            term=_resolve_term(opt, spec, product),
+            end_date=_resolve_end_date(opt, spec, product),
         )
         for product, opt in zip(products, spec.products)
     ]
@@ -199,6 +289,8 @@ def draw_lines(options: list[ResolvedOption]) -> list[LineItem]:
             period_boundary=opt.period_boundary,
             billing_frequency=opt.billing_frequency,
             usage=opt.usage,
+            term=opt.term,
+            end_date=opt.end_date,
         ))
     return lines
 

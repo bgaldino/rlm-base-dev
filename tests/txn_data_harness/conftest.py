@@ -26,6 +26,7 @@ def pipeline_account() -> Account:
 
 @pytest.fixture
 def term_product() -> Product:
+    """Monthly TermDefined product (12 × Months default from the PSM)."""
     return Product(
         id="01tTERM",
         name="Additional API Flex",
@@ -33,6 +34,42 @@ def term_product() -> Product:
         pricebook_entry_id="01uTERM",
         unit_price=450.0,
         selling_model_type="TermDefined",
+        selling_model_name="Term Monthly",
+        pricing_term=12,
+        pricing_term_unit="Months",
+    )
+
+
+@pytest.fixture
+def annual_term_product() -> Product:
+    """Annual TermDefined product (default term 1 × Annual). Used by tests
+    exercising the non-month PricingTermUnit code path."""
+    return Product(
+        id="01tANNUAL",
+        name="Cloud License",
+        sku="QB-LIC-CLOUD",
+        pricebook_entry_id="01uANNUAL",
+        unit_price=1200.0,
+        selling_model_type="TermDefined",
+        selling_model_name="Term Annual",
+        pricing_term=1,
+        pricing_term_unit="Annual",
+    )
+
+
+@pytest.fixture
+def quarterly_term_product() -> Product:
+    """Quarterly TermDefined product (default term 4 × Quarterly)."""
+    return Product(
+        id="01tQTR",
+        name="Quarterly License",
+        sku="QB-LIC-QTR",
+        pricebook_entry_id="01uQTR",
+        unit_price=300.0,
+        selling_model_type="TermDefined",
+        selling_model_name="Term Quarterly",
+        pricing_term=4,
+        pricing_term_unit="Quarterly",
     )
 
 
@@ -45,6 +82,7 @@ def evergreen_product() -> Product:
         pricebook_entry_id="01uEVER",
         unit_price=2000.0,
         selling_model_type="Evergreen",
+        selling_model_name="Evergreen",
     )
 
 

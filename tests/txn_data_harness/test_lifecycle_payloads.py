@@ -13,7 +13,7 @@ from scripts.txn_data_harness.lifecycle import (
     poll_assets,
     post_invoice,
 )
-from scripts.txn_data_harness.models import LineItem
+from scripts.txn_data_harness.models import EndDateOverride, LineItem, Term
 
 
 @pytest.fixture
@@ -38,6 +38,7 @@ def test_place_sales_transaction_builds_quote_graph_payload(
             discount_percent=25,
             period_boundary="Anniversary",
             billing_frequency="Monthly",
+            term=Term(12, "Months"),
         ),
         LineItem(product=evergreen_product, quantity=1),
     ]
@@ -63,7 +64,15 @@ def test_place_sales_transaction_builds_quote_graph_payload(
 
     term_line = records[1]["record"]
     assert term_line["StartDate"] == "2026-01-15"
-    assert term_line["EndDate"] == "2027-01-10"
+    # EndDate is platform-derived from StartDate + SubscriptionTerm/Unit
+    # (live-verified Branch A on rlm-base__jun17_1: input 1×Annual /
+    # 2026-01-15 reads back as 2027-01-14). The harness writes the author
+    # inputs only -- never EndDate, PricingTerm, or PricingTermCount.
+    assert "EndDate" not in term_line
+    assert term_line["SubscriptionTerm"] == 12
+    assert term_line["SubscriptionTermUnit"] == "Months"
+    assert "PricingTerm" not in term_line
+    assert "PricingTermCount" not in term_line
     assert term_line["Discount"] == 25
     assert term_line["PeriodBoundary"] == "Anniversary"
     assert term_line["BillingFrequency"] == "Monthly"
@@ -71,7 +80,247 @@ def test_place_sales_transaction_builds_quote_graph_payload(
 
     evergreen_line = records[2]["record"]
     assert evergreen_line["StartDate"] == "2026-01-15"
+    # Evergreen lines: no EndDate AND no SubscriptionTerm fields (validated
+    # against the engine's "can't specify EndDate for evergreen/one-time order
+    # products" rule -- the same applies to derived term fields).
     assert "EndDate" not in evergreen_line
+    assert "SubscriptionTerm" not in evergreen_line
+    assert "SubscriptionTermUnit" not in evergreen_line
+
+
+def test_place_sales_transaction_writes_quarterly_term(
+    fake_client, billable_account, quarterly_term_product
+) -> None:
+    """Non-month PricingTermUnit round-trips end-to-end through the place graph.
+
+    Regression for the prior ``term_months`` collapse: a 4-Quarterly subscription
+    used to be expressed as 12 months, losing the cadence the platform needs to
+    derive billing schedules.
+    """
+    fake_client.post_responses.append({
+        "isSuccess": True,
+        "salesTransactionId": "0Q0QTR",
+        "errorResponse": [],
+    })
+    lines = [
+        LineItem(
+            product=quarterly_term_product,
+            quantity=1,
+            term=Term(4, "Quarterly"),
+        ),
+    ]
+
+    place_sales_transaction(
+        fake_client,
+        billable_account,
+        lines,
+        pricebook_id="01sSTANDARD",
+        run_id="DEMO-QTR",
+        start_date=date(2026, 1, 15),
+    )
+
+    _path, body = fake_client.posts[0]
+    line = body["graph"]["records"][1]["record"]
+    assert line["SubscriptionTerm"] == 4
+    assert line["SubscriptionTermUnit"] == "Quarterly"
+    # EndDate is platform-derived (Branch A); the harness never writes it.
+    assert "EndDate" not in line
+
+
+def test_place_sales_transaction_mixed_terms_on_one_quote(
+    fake_client, billable_account, term_product, annual_term_product, evergreen_product
+) -> None:
+    """Multiple lines with different cadences + an Evergreen on the same quote.
+
+    Verifies term writes are per-line (not per-quote) and that the Evergreen
+    line never carries term fields.
+    """
+    fake_client.post_responses.append({
+        "isSuccess": True,
+        "salesTransactionId": "0QMIXED",
+        "errorResponse": [],
+    })
+    lines = [
+        LineItem(product=term_product, quantity=1, term=Term(12, "Months")),
+        LineItem(product=annual_term_product, quantity=1, term=Term(3, "Annual")),
+        LineItem(product=evergreen_product, quantity=1),
+    ]
+
+    place_sales_transaction(
+        fake_client,
+        billable_account,
+        lines,
+        pricebook_id="01sSTANDARD",
+        run_id="DEMO-MIX",
+        start_date=date(2026, 1, 15),
+    )
+
+    records = fake_client.posts[0][1]["graph"]["records"]
+    monthly_line = records[1]["record"]
+    annual_line = records[2]["record"]
+    evergreen_line = records[3]["record"]
+
+    assert monthly_line["SubscriptionTerm"] == 12
+    assert monthly_line["SubscriptionTermUnit"] == "Months"
+    assert "EndDate" not in monthly_line
+
+    assert annual_line["SubscriptionTerm"] == 3
+    assert annual_line["SubscriptionTermUnit"] == "Annual"
+    assert "EndDate" not in annual_line
+
+    assert "SubscriptionTerm" not in evergreen_line
+    assert "SubscriptionTermUnit" not in evergreen_line
+    assert "EndDate" not in evergreen_line
+
+
+def test_place_sales_transaction_writes_absolute_end_date_override(
+    fake_client, billable_account, annual_term_product
+) -> None:
+    """Absolute ``end_date`` override is written to the line verbatim.
+
+    A 366-day span on a 1×Annual line drives ~0.27% proration into
+    PricingTermCount at the platform layer (accepted drift for explicit
+    end_date co-term scenarios).
+    """
+    fake_client.post_responses.append({
+        "isSuccess": True,
+        "salesTransactionId": "0QABS",
+        "errorResponse": [],
+    })
+    lines = [
+        LineItem(
+            product=annual_term_product,
+            quantity=1,
+            term=Term(1, "Annual"),
+            end_date=EndDateOverride(absolute=date(2027, 1, 15)),
+        ),
+    ]
+
+    place_sales_transaction(
+        fake_client,
+        billable_account,
+        lines,
+        pricebook_id="01sSTANDARD",
+        run_id="DEMO-ABS",
+        start_date=date(2026, 1, 15),
+    )
+
+    line = fake_client.posts[0][1]["graph"]["records"][1]["record"]
+    assert line["SubscriptionTerm"] == 1
+    assert line["SubscriptionTermUnit"] == "Annual"
+    assert line["EndDate"] == "2027-01-15"
+
+
+def test_place_sales_transaction_resolves_days_offset_against_start_date(
+    fake_client, billable_account, term_product
+) -> None:
+    """Relative ``days`` override resolves against the line's StartDate."""
+    fake_client.post_responses.append({
+        "isSuccess": True,
+        "salesTransactionId": "0QDAY",
+        "errorResponse": [],
+    })
+    lines = [
+        LineItem(
+            product=term_product,
+            quantity=1,
+            term=Term(12, "Months"),
+            end_date=EndDateOverride(days=364),
+        ),
+    ]
+
+    place_sales_transaction(
+        fake_client,
+        billable_account,
+        lines,
+        pricebook_id="01sSTANDARD",
+        run_id="DEMO-DAY",
+        start_date=date(2026, 1, 15),
+    )
+
+    line = fake_client.posts[0][1]["graph"]["records"][1]["record"]
+    # 2026-01-15 + 364 days = 2027-01-14 (platform's inclusive convention).
+    assert line["EndDate"] == "2027-01-14"
+
+
+def test_place_sales_transaction_month_math_clamps_short_target_month(
+    fake_client, billable_account, annual_term_product
+) -> None:
+    """Jan 31 + 1mo clamps to Feb 28 (or 29 in a leap year) via ``_add_months``."""
+    fake_client.post_responses.append({
+        "isSuccess": True,
+        "salesTransactionId": "0QCLAMP",
+        "errorResponse": [],
+    })
+    lines = [
+        LineItem(
+            product=annual_term_product,
+            quantity=1,
+            term=Term(1, "Annual"),
+            end_date=EndDateOverride(months=1),
+        ),
+    ]
+
+    place_sales_transaction(
+        fake_client,
+        billable_account,
+        lines,
+        pricebook_id="01sSTANDARD",
+        run_id="DEMO-CLAMP",
+        start_date=date(2025, 1, 31),  # 2025 is non-leap -> Feb 28
+    )
+
+    line = fake_client.posts[0][1]["graph"]["records"][1]["record"]
+    assert line["EndDate"] == "2025-02-28"
+
+
+def test_place_sales_transaction_omits_end_date_when_override_unset(
+    fake_client, billable_account, term_product
+) -> None:
+    """No override -> platform derives EndDate (Branch A); harness writes nothing."""
+    fake_client.post_responses.append({
+        "isSuccess": True,
+        "salesTransactionId": "0QBR-A",
+        "errorResponse": [],
+    })
+    lines = [LineItem(product=term_product, quantity=1, term=Term(12, "Months"))]
+
+    place_sales_transaction(
+        fake_client,
+        billable_account,
+        lines,
+        pricebook_id="01sSTANDARD",
+        run_id="DEMO-BR-A",
+        start_date=date(2026, 1, 15),
+    )
+
+    line = fake_client.posts[0][1]["graph"]["records"][1]["record"]
+    assert "EndDate" not in line
+
+
+def test_place_sales_transaction_raises_when_term_product_missing_term(
+    fake_client, billable_account, term_product
+) -> None:
+    """TermDefined line without a resolved term is a runner bug -- fail loud.
+
+    The runner is responsible for populating ``LineItem.term`` on TermDefined
+    lines; if a line reaches the lifecycle without one, we'd silently emit a
+    payload missing EndDate and PST would reject it with END_DATE_MISSING. The
+    explicit guard surfaces the real cause at the layer that knows it.
+    """
+    from scripts.txn_data_harness.lifecycle import LifecycleError
+
+    with pytest.raises(LifecycleError, match="no resolved term"):
+        place_sales_transaction(
+            fake_client,
+            billable_account,
+            [LineItem(product=term_product, quantity=1, term=None)],
+            pricebook_id="01sSTANDARD",
+            run_id="DEMO-BUG",
+            start_date=date(2026, 1, 15),
+        )
+    # Guard runs before the HTTP call -- no POST issued.
+    assert fake_client.posts == []
 
 
 def test_generate_invoice_posts_draft_request_and_polls_by_billing_schedule(fake_client) -> None:

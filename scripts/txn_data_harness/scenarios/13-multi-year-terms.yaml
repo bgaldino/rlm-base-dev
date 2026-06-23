@@ -1,0 +1,74 @@
+# Multi-year and non-monthly subscription terms.
+#
+#   python -m scripts.txn_data_harness.cli run --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/13-multi-year-terms.yaml
+#
+# Exercises the per-line ``(count, unit)`` term model added in W1. Each
+# scenario in this file stresses a different cadence:
+#
+#   * single-year vs multi-year Annual deals (matches the platform's most
+#     common subscription shape)
+#   * Quarterly cadence (verifies the non-month code path)
+#   * PSM-default fallback (no ``term:`` -- the harness uses
+#     ``ProductSellingModel.PricingTerm`` from discovery)
+#   * mixed-term quote (two TermDefined lines + an Evergreen on one order)
+#
+# A bare-int ``term: N`` overrides the count only; the unit is taken from
+# the resolved PSM. An explicit ``term: {count, unit}`` must match the
+# PSM's ``PricingTermUnit``; mismatch raises ConfigError at plan time.
+#
+# Prereqs: QB pricing dataset loaded so QB-API-FLEX (and any multi-PBE
+# SKUs you swap in) exist in the org.
+scenarios:
+
+  # 1-year Annual deal -- a typical renewal-driver subscription.
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+        term: {count: 1, unit: Annual}
+    count: 1
+
+  # 3-year Annual deal -- exercises multi-year EndDate calculation.
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+        term: {count: 3, unit: Annual}
+    count: 1
+
+  # Bare-int form: the runner promotes the unit from the PSM.
+  # Useful when you want a friendly "give me 24 of whatever this product
+  # is measured in" without re-declaring the unit.
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+        term: 24
+    count: 1
+
+  # PSM-default fallback: no ``term:`` block -> harness uses the PSM's
+  # declared ``PricingTerm`` / ``PricingTermUnit`` from discovery. Catches
+  # regressions where we'd accidentally start writing a hardcoded default.
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 1
+
+  # Mixed terms on one quote: a 12-month line and a 3-year Annual line
+  # on the same order. Confirms term writes are per-line, not per-quote.
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+        term: {count: 12, unit: Months}
+      - sku: "QB-API-FLEX"
+        quantity: 1
+        term: {count: 3, unit: Annual}
+    count: 1

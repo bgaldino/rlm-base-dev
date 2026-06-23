@@ -13,8 +13,24 @@ from typing import Optional
 
 from .config import ScenarioSpec
 from .discovery import Account, Product
+from .term import EndDateOverride, Term
 
 STAGES = ["opportunity", "quote", "order", "activate", "usage", "invoice", "post"]
+
+# Re-export Term + EndDateOverride so external callers can import the value
+# objects from ``models`` without needing to know about the neutral term module.
+__all__ = [
+    "STAGES",
+    "IMPLEMENTED_MAX_STAGE",
+    "EndDateOverride",
+    "Manifest",
+    "LineItem",
+    "ResolvedOption",
+    "ResolvedSpec",
+    "ResolvedUsageSpec",
+    "ResolvedUsageTarget",
+    "Term",
+]
 
 # Full lifecycle implemented by the harness.
 IMPLEMENTED_MAX_STAGE = "post"
@@ -107,6 +123,16 @@ class LineItem:
     # When set, run_usage emits TransactionJournals against the activated
     # asset for each target resource.
     usage: Optional[ResolvedUsageSpec] = None
+    # Subscription term for TermDefined lines. ``None`` for Evergreen/OneTime
+    # (the lifecycle never writes SubscriptionTerm there). The runner promotes
+    # bare-int config (``Term(N, None)``) to the bound PSM's unit before this
+    # field is read by ``lifecycle.place_sales_transaction``.
+    term: Optional[Term] = None
+    # Explicit EndDate override resolved against this line's StartDate inside
+    # the lifecycle. ``None`` => let the platform derive EndDate from the
+    # SubscriptionTerm fields (default Branch A path). Only valid on
+    # TermDefined lines; the runner enforces this at resolve time.
+    end_date: Optional[EndDateOverride] = None
 
     def to_manifest_record(self) -> dict:
         rec: dict = {
@@ -118,6 +144,10 @@ class LineItem:
             rec["period_boundary"] = self.period_boundary
         if self.billing_frequency is not None:
             rec["billing_frequency"] = self.billing_frequency
+        if self.term is not None:
+            rec["term"] = {"count": self.term.count, "unit": self.term.unit}
+        if self.end_date is not None:
+            rec["end_date"] = self.end_date.to_dict()
         if self.usage is not None:
             rec["usage"] = {
                 "quantity": list(self.usage.quantity),
@@ -156,6 +186,16 @@ class LineItem:
                     for t in usage_raw.get("targets", [])
                 ],
             )
+        term_raw = record.get("term")
+        term = (
+            Term(count=int(term_raw["count"]), unit=term_raw.get("unit"))
+            if term_raw is not None
+            else None
+        )
+        end_date_raw = record.get("end_date")
+        end_date = (
+            EndDateOverride.from_dict(end_date_raw) if end_date_raw is not None else None
+        )
         return cls(
             product=product,
             quantity=int(record.get("quantity", 1)),
@@ -163,6 +203,8 @@ class LineItem:
             period_boundary=record.get("period_boundary"),
             billing_frequency=record.get("billing_frequency"),
             usage=usage,
+            term=term,
+            end_date=end_date,
         )
 
 
@@ -176,6 +218,14 @@ class ResolvedOption:
     period_boundary: Optional[str] = None
     billing_frequency: Optional[str] = None
     usage: Optional[ResolvedUsageSpec] = None
+    # Author-supplied term override carried through to per-line draws. The
+    # runner reconciles this against the resolved PSM's PricingTermUnit and
+    # populates ``LineItem.term`` for the lifecycle layer.
+    term: Optional[Term] = None
+    # Resolved EndDate override (line- or scenario-level) carried through to
+    # per-line draws. Resolved against the drawn StartDate inside the
+    # lifecycle so a scenario-level override co-terms every line on the quote.
+    end_date: Optional[EndDateOverride] = None
 
 
 @dataclass
