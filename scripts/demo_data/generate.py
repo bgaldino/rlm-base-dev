@@ -15,6 +15,7 @@ CCI alias ``beta`` maps to the sf alias ``rlm-base__beta`` -- pass the sf one.
 from __future__ import annotations
 
 import argparse
+import contextvars
 import json
 import logging
 import os
@@ -39,6 +40,13 @@ from .discovery import (
 from .lifecycle import LifecycleError, Manifest
 
 log = logging.getLogger("demo_data")
+
+# Per-scenario run id, set by each worker thread so concurrent step logs can be
+# attributed to the scenario that emitted them. A ContextVar is inherited per
+# thread/task without cross-worker bleed (unlike a plain module global).
+_current_run_id: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "demo_data_run_id", default="-"
+)
 
 STAGES = ["opportunity", "quote", "order", "activate", "invoice", "post"]
 
@@ -90,13 +98,25 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
+class _RunIdFilter(logging.Filter):
+    """Attach the current scenario's run id to every record as ``run_id``."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.run_id = _current_run_id.get()
+        return True
+
+
 def _setup_logging(verbosity: int) -> None:
     level = logging.WARNING
     if verbosity == 1:
         level = logging.INFO
     elif verbosity >= 2:
         level = logging.DEBUG
-    logging.basicConfig(level=level, format="%(message)s")
+    # Prefix every line with the emitting scenario's run id so interleaved
+    # logs from concurrent workers stay attributable; "-" outside any scenario.
+    logging.basicConfig(level=level, format="%(run_id)s | %(message)s")
+    for handler in logging.getLogger().handlers:
+        handler.addFilter(_RunIdFilter())
 
 
 def _print_plan(
@@ -203,18 +223,27 @@ def run_scenario(
     failure (PST commits the quote header even on a failed place), so cleanup
     can find orphans.
     """
+    _current_run_id.set(run_id)
     m = Manifest(run_id=run_id)
     stage = _effective_stage(target_stage, account)
     stop_at = STAGES.index(stage)
     # target_stage 'opportunity' means "stop after the opportunity", so it
     # implies creating one even when the --with-opportunity prepend flag is off.
     want_opportunity = with_opportunity or stop_at == STAGES.index("opportunity")
+
+    def checkpoint() -> None:
+        # Persist the manifest after every stage so a kill (or crash) mid-run
+        # still leaves a record of every id created so far -- the only way to
+        # find and clean up partials, since Order.Description isn't filterable.
+        _write_manifest(m)
+
     try:
         if want_opportunity and ctx.opportunity_stage:
             m.opportunity_id = lifecycle.create_opportunity(
                 client, account, ctx.opportunity_stage, run_id
             )
             m.reached_stage = "opportunity"
+            checkpoint()
         if stop_at == STAGES.index("opportunity"):
             return m
 
@@ -225,16 +254,20 @@ def run_scenario(
                 quantity=quantity, opportunity_id=m.opportunity_id,
             )
         except LifecycleError as exc:
-            # PST may have committed the quote header even on failure.
+            # PST may have committed the quote header even on failure -- record
+            # the orphan id before re-raising so cleanup can find it.
             if exc.record_id:
                 m.quote_id = exc.record_id
+                checkpoint()
             raise
         m.reached_stage = "quote"
+        checkpoint()
         if stop_at == STAGES.index("quote"):
             return m
 
         m.order_id, m.order_number = lifecycle.create_order_from_quote(client, m.quote_id)
         m.reached_stage = "order"
+        checkpoint()
         if stop_at == STAGES.index("order"):
             return m
 
@@ -249,6 +282,7 @@ def run_scenario(
         m.asset_ids = lifecycle.poll_assets(
             client, account, product, since, timeout=poll_timeout
         )
+        checkpoint()
         if stop_at == STAGES.index("activate"):
             return m
 
@@ -258,6 +292,7 @@ def run_scenario(
         )
         lifecycle.tag_invoice(client, m.invoice_id, run_id)
         m.reached_stage = "invoice"
+        checkpoint()
         if stop_at == STAGES.index("invoice"):
             return m
 
@@ -266,25 +301,35 @@ def run_scenario(
             client, m.invoice_id, run_id, timeout=poll_timeout
         )
         m.reached_stage = "post"
+        checkpoint()
         lifecycle.link_invoice_to_order(client, m.invoice_id, m.order_id)
     except LifecycleError as exc:
         m.error = str(exc)
-        log.error("scenario %s failed: %s", run_id, exc)
+        log.error("scenario failed: %s", exc)
     except Exception as exc:  # noqa: BLE001 -- isolate one scenario's failure
         # SfApiError / SfCliError (non-2xx, retries exhausted) and any
         # unexpected error (e.g. KeyError on a malformed response) must be
         # recorded on the manifest, not propagate out of fut.result() and
         # abort the whole batch -- the manifest is how cleanup finds partials.
         m.error = f"{type(exc).__name__}: {exc}"
-        log.error("scenario %s failed: %s", run_id, m.error, exc_info=log.isEnabledFor(logging.DEBUG))
+        log.error("scenario failed: %s", m.error, exc_info=log.isEnabledFor(logging.DEBUG))
+    finally:
+        # Always flush the final state (records the error field on failure, and
+        # the post-link / terminal stage on success).
+        checkpoint()
     return m
 
 
 def _write_manifest(m: Manifest) -> str:
+    # Write-then-rename so a kill mid-write never leaves a truncated/corrupt
+    # manifest -- checkpointing is only useful if the file on disk is always
+    # valid JSON. rename within the same dir is atomic on POSIX.
     os.makedirs(MANIFEST_DIR, exist_ok=True)
     path = os.path.join(MANIFEST_DIR, f"{m.run_id}.json")
-    with open(path, "w") as f:
+    tmp = f"{path}.tmp"
+    with open(tmp, "w") as f:
         json.dump(m.to_dict(), f, indent=2)
+    os.replace(tmp, path)
     return path
 
 
@@ -366,7 +411,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         futures = [pool.submit(_one, rid, r) for rid, r in jobs]
         for fut in as_completed(futures):
             m = fut.result()
-            path = _write_manifest(m)
+            # run_scenario already checkpointed the manifest to this path (incl.
+            # in its finally), so we just report it -- no second write needed.
+            path = os.path.join(MANIFEST_DIR, f"{m.run_id}.json")
             done += 1
             status = "OK" if not m.error else "FAILED"
             print(f"[{done}/{total}] {m.run_id}: {status} "
