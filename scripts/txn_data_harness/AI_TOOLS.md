@@ -54,10 +54,29 @@ stage-reached histogram, and a failure-signature rollup.
 ```bash
 python -m scripts.txn_data_harness.cli inspect --latest
 python -m scripts.txn_data_harness.cli inspect --manifest scripts/txn_data_harness/out/<run_id>.json
+python -m scripts.txn_data_harness.cli inspect --latest --json    # machine-readable
 ```
 
 Use inspect after every run. It returns JSON with `run_id`, account, reached
-stage, error, line count, created ids, and invoice number.
+stage, error, line count, created ids, invoice number, and `usage_journal_ids`.
+Pass `--json` for scripted workflows (the `path` field can be piped into
+`cli step --manifest`).
+
+### Rate (usage orchestration — one-shot, ~15 min, org-wide)
+
+```bash
+python -m scripts.txn_data_harness.cli rate --org <sf-alias>
+python -m scripts.txn_data_harness.cli rate --org <sf-alias> --flow-name <flow>
+```
+
+Invokes `RLM_UsageOrchestrationController.startOrchestration(...)` via
+anonymous Apex to start `RLM_OrchestrateUsageManagement` (or another flow
+via `--flow-name`). The job runs asynchronously, processes **every** usage
+product in the org, and typically takes ~15 minutes. Fires and exits — no
+polling. Run **once per batch** after `usage`-stage scenarios finish, then
+monitor in Setup → Monitor Workflow Services and verify rated output by
+SOQL (`TransactionJournal.Status` flips `Pending → Processed`, `UsageSummary`
+rows appear).
 
 ### Continue To A Stage
 

@@ -28,6 +28,7 @@ Always `--dry-run` first — it resolves auth + discovery and prints the plan
 | `09-quantity-spread.yaml` | `post` | 35 | Same product, varied quantities → a range of invoice amounts (small/medium/large deals). |
 | `10-randomized-discounts.yaml` | `post` | 35 | Per-line discounts drawn from a range → a spread of discounted invoice amounts. |
 | `11-randomized-product-mix.yaml` | `post` | 25 | A product **pool** placed as a random non-empty subset → varied multi-line invoices (1–N lines, mixed SKUs, per-line qty + discount ranges). |
+| `12-usage-consumption.yaml` | `usage` | 5 | Usage-based products (`QB-DB`, `QB-TOKENS-PACK`) with `TransactionJournal` consumption rows against each activated asset. Stops at `usage`; kick off org-wide rating separately. |
 
 These are tuned for the **QuantumBit (QB)** demo org. The only values that are
 org-specific are the **account names** (`Infinitech`, `Global Media`) and the
@@ -52,7 +53,7 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | Field | Type | Default | Meaning |
 |-------|------|---------|---------|
 | `account` | string | auto | Account **Name** (not id). Omit → first billing-ready account discovered. A pinned account need not be billing-ready (it caps at `order`). |
-| `target_stage` | enum | `post` | How far to run: `opportunity` \| `quote` \| `order` \| `activate` \| `invoice` \| `post`. Hierarchical — each stage runs all stages before it. |
+| `target_stage` | enum | `post` | How far to run: `opportunity` \| `quote` \| `order` \| `activate` \| `usage` \| `invoice` \| `post`. Hierarchical — each stage runs all stages before it. `usage` writes TransactionJournals for any line that declares a `usage:` block (skipped silently otherwise); see [Usage-based products](#usage-based-products) below. |
 | `with_opportunity` | bool | `false` | Prepend an Opportunity the quote links to. (`target_stage: opportunity` implies one even if this is false.) |
 | `opportunity_stage` | string | first open | Pin the Opportunity `StageName`. Must be a valid **open** stage in the org or the run errors with the valid list. |
 | `product` | string | auto (QB-preferred) | Product **SKU** for a single-product pool. Shorthand for a one-entry `products:` list. |
@@ -160,18 +161,50 @@ Caveats:
   default, or required slots with multiple optional components) will likely fail
   to place. Only default-configured bundles like `QB-COMPLETE` are confirmed.
 
-## Not handled yet — usage
+## Usage-based products
 
-- **Usage / consumption is NOT supported.** Usage-priced products (the `*-BLNG`
-  metered SKUs, token/quantity/monetary **commit** products, etc.) bill from
-  **usage feeds / consumption schedules** that this tool does not create. It
-  places a term line with start/end dates and lets the billing engine generate a
-  schedule — so a usage product would invoice with **no consumption behind it**,
-  not realistic usage data. Generating usage records is a separate feature
-  (would post `UsageInput`/consumption data after activation).
+Usage SKUs (`QB-DB`, `QB-TOKENS-PACK`, the token/quantity/monetary commit
+products, etc.) are opted in per-line by adding a `usage:` block to a product
+entry. After activation, the new `usage` stage writes
+`TransactionJournal` consumption rows against the line's asset, one set per
+`ProductUsageResource` binding the product carries (so `QB-DB` writes rows for
+both `UR-DATASTORAGE` and `UR-CPUTIME` by default).
 
-If you need usage demo data today, build those quotes through the UI or a
-dedicated flow.
+```yaml
+products:
+  - sku: QB-DB
+    quantity: 1
+    usage:
+      quantity: [100, 500]      # per-row quantity (scalar or [min, max])
+      records_per_line: [5, 10] # journals per binding, per asset
+      days_back: 30             # spread ActivityDate across N days back
+      resource: UR-CPUTIME      # optional UsageResource.Code; omit for all bindings
+      unit_of_measure: hr       # optional UoM.UnitCode; requires explicit resource
+```
+
+Every TJ row is tagged with a deterministic
+`UniqueIdentifier = txn-harness-<run_id>-<asset_id>-<target_idx>-<row_idx>`,
+so a retried run dedupes against rows the prior attempt already wrote.
+
+The rating/billing job that turns these into `UsageSummary` / liable-summary
+records runs across **every** usage product in the org and takes ~15 minutes,
+so the harness exposes it as a one-shot top-level command instead of a
+per-scenario stage:
+
+```bash
+python -m scripts.txn_data_harness.cli rate --org <sf-alias>
+```
+
+Run rating once after the batch of `usage`-stage scenarios completes; the
+example config above is at `scenarios/12-usage-consumption.yaml`.
+
+### Not handled yet — verifying rated output
+
+Tooling for confirming the rating job *finished* (polling
+`AsyncOperationTracker` for the orchestration flow, checking
+`UsageSummary.Status`) is not in scope; the `rate` subcommand fires the flow
+and exits. Monitor progress in **Setup → Monitor Workflow Services**, then
+verify rated output by SOQL (see the harness guide).
 
 ## See also
 

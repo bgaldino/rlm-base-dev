@@ -14,10 +14,40 @@ from typing import Optional
 from .config import ScenarioSpec
 from .discovery import Account, Product
 
-STAGES = ["opportunity", "quote", "order", "activate", "invoice", "post"]
+STAGES = ["opportunity", "quote", "order", "activate", "usage", "invoice", "post"]
 
 # Full lifecycle implemented by the harness.
 IMPLEMENTED_MAX_STAGE = "post"
+
+
+@dataclass
+class ResolvedUsageTarget:
+    """One (UsageResource, UoM) the harness will write journals for.
+
+    Multi-resource products (e.g. QB-DB grants UR-DATASTORAGE and UR-CPUTIME)
+    resolve to one target per binding, each carrying its own UoM id so the per-
+    resource defaults aren't collapsed onto a single class.
+    """
+
+    resource_id: str
+    resource_code: str
+    uom_id: str
+    uom_code: Optional[str] = None
+
+
+@dataclass
+class ResolvedUsageSpec:
+    """A ``UsageSpec`` bound to concrete UsageResource/UoM ids.
+
+    The numeric ranges + ``days_back`` survive resolution unchanged; sampling
+    happens per-row inside ``lifecycle.create_usage_journals`` so the same spec
+    instance round-trips across retries.
+    """
+
+    quantity: tuple[float, float]
+    records_per_line: tuple[int, int]
+    days_back: int
+    targets: list[ResolvedUsageTarget] = field(default_factory=list)
 
 
 @dataclass
@@ -37,6 +67,9 @@ class Manifest:
     order_number: Optional[str] = None
     billing_schedule_ids: list[str] = field(default_factory=list)
     asset_ids: list[str] = field(default_factory=list)
+    # TransactionJournal ids written by the ``usage`` stage. Tagged with
+    # deterministic ``UniqueIdentifier``s so retries dedupe by query.
+    usage_journal_ids: list[str] = field(default_factory=list)
     invoice_id: Optional[str] = None
     invoice_number: Optional[str] = None
     # The line StartDate placed on this quote (ISO; drawn from the scenario's
@@ -71,9 +104,12 @@ class LineItem:
     discount_percent: Optional[float] = None
     period_boundary: Optional[str] = None
     billing_frequency: Optional[str] = None
+    # When set, run_usage emits TransactionJournals against the activated
+    # asset for each target resource.
+    usage: Optional[ResolvedUsageSpec] = None
 
     def to_manifest_record(self) -> dict:
-        rec = {
+        rec: dict = {
             "sku": self.product.sku,
             "quantity": self.quantity,
             "discount_percent": self.discount_percent,
@@ -82,7 +118,52 @@ class LineItem:
             rec["period_boundary"] = self.period_boundary
         if self.billing_frequency is not None:
             rec["billing_frequency"] = self.billing_frequency
+        if self.usage is not None:
+            rec["usage"] = {
+                "quantity": list(self.usage.quantity),
+                "records_per_line": list(self.usage.records_per_line),
+                "days_back": self.usage.days_back,
+                "targets": [
+                    {
+                        "resource_id": t.resource_id,
+                        "resource_code": t.resource_code,
+                        "uom_id": t.uom_id,
+                        "uom_code": t.uom_code,
+                    }
+                    for t in self.usage.targets
+                ],
+            }
         return rec
+
+    @classmethod
+    def from_manifest_record(cls, record: dict, product: Product) -> "LineItem":
+        usage = None
+        usage_raw = record.get("usage")
+        if usage_raw:
+            qlo, qhi = usage_raw["quantity"]
+            rlo, rhi = usage_raw["records_per_line"]
+            usage = ResolvedUsageSpec(
+                quantity=(float(qlo), float(qhi)),
+                records_per_line=(int(rlo), int(rhi)),
+                days_back=int(usage_raw.get("days_back", 0)),
+                targets=[
+                    ResolvedUsageTarget(
+                        resource_id=t["resource_id"],
+                        resource_code=t["resource_code"],
+                        uom_id=t["uom_id"],
+                        uom_code=t.get("uom_code"),
+                    )
+                    for t in usage_raw.get("targets", [])
+                ],
+            )
+        return cls(
+            product=product,
+            quantity=int(record.get("quantity", 1)),
+            discount_percent=record.get("discount_percent"),
+            period_boundary=record.get("period_boundary"),
+            billing_frequency=record.get("billing_frequency"),
+            usage=usage,
+        )
 
 
 @dataclass
@@ -94,6 +175,7 @@ class ResolvedOption:
     discount: Optional[tuple[float, float]]
     period_boundary: Optional[str] = None
     billing_frequency: Optional[str] = None
+    usage: Optional[ResolvedUsageSpec] = None
 
 
 @dataclass

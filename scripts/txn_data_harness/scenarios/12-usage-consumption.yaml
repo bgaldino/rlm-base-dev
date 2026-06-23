@@ -1,0 +1,33 @@
+# Usage-based products with TransactionJournal consumption.
+#
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/12-usage-consumption.yaml
+#
+# Stops at the new `usage` stage after writing TransactionJournals against each
+# activated asset. The rating engine that turns those rows into UsageSummary /
+# liable-summary records runs across the entire org (~15 minutes), so kick it
+# off once per batch via the harness CLI rather than per scenario:
+#
+#   python -m scripts.txn_data_harness.cli rate --org <sf-alias>
+#
+# Prereq: the QB rating dataset must be loaded (insert_qb_rating_data) so the
+# usage SKUs (QB-DB, QB-TOKENS-PACK, ...) and their ProductUsageResource
+# bindings exist in the org.
+scenarios:
+  - account: "Infinitech"
+    target_stage: usage
+    products:
+      - sku: "QB-DB"                    # grants UR-DATASTORAGE + UR-CPUTIME
+        quantity: 1
+        usage:
+          quantity: [100, 500]
+          records_per_line: [5, 10]
+          days_back: 30                 # spread ActivityDate over last 30 days
+      - sku: "QB-TOKENS-PACK"
+        quantity: 1
+        usage:
+          resource: "QB-TOKEN"           # explicit (single binding, optional)
+          quantity: [1000, 5000]
+          records_per_line: [3, 5]
+          days_back: 14
+    count: 5

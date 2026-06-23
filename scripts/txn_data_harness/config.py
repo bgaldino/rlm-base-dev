@@ -45,7 +45,9 @@ _BUILTIN_DEFAULTS: dict[str, Any] = {
     "discount": None,
 }
 
-_VALID_STAGES = {"opportunity", "quote", "order", "activate", "invoice", "post"}
+_VALID_STAGES = {
+    "opportunity", "quote", "order", "activate", "usage", "invoice", "post",
+}
 
 # QuoteLineItem picklists (verified live against rlm-base__jun17_1, v67.0). Some
 # term products carry a proration policy that requires both at place time.
@@ -59,6 +61,28 @@ _VALID_BILLING_FREQUENCIES = {
 
 class ConfigError(RuntimeError):
     """The config file is malformed or contains an invalid value."""
+
+
+@dataclass
+class UsageSpec:
+    """Opt-in usage-consumption shape for a usage-based product line.
+
+    Carries unresolved user intent: a ``UsageResource.Code`` (or ``None`` to use
+    all of the product's bindings), per-row quantity range, journals-per-line
+    count range, and an ``ActivityDate`` spread window. Bound to concrete
+    resource/UoM ids at ``resolve_spec`` time once discovery has fetched the
+    product's usage bindings.
+
+    ``unit_of_measure`` overrides the resource's default UoM by ``UnitCode``;
+    it requires an explicit ``resource`` (otherwise it's ambiguous which of a
+    product's bindings the override applies to).
+    """
+
+    quantity: tuple[float, float]
+    records_per_line: tuple[int, int]
+    days_back: int = 0
+    resource: Optional[str] = None
+    unit_of_measure: Optional[str] = None
 
 
 @dataclass
@@ -82,6 +106,8 @@ class ProductOption:
     # so set per product. ``None`` => omit from the line.
     period_boundary: Optional[str] = None
     billing_frequency: Optional[str] = None
+    # Opt-in usage consumption; ``None`` => no TransactionJournals emitted.
+    usage: Optional[UsageSpec] = None
 
 
 @dataclass
@@ -210,6 +236,101 @@ def _coerce_quantity(value: Any, where: str) -> tuple[int, int]:
     return (lo, hi)
 
 
+def _coerce_float_range(value: Any, where: str, field: str) -> tuple[float, float]:
+    """Normalize a numeric range into ``(lo, hi)`` floats. Scalar => ``(x, x)``."""
+    if isinstance(value, (list, tuple)):
+        if len(value) != 2:
+            raise ConfigError(
+                f"{where}: {field} range must have exactly 2 values [min, max]"
+            )
+        lo, hi = value
+    else:
+        lo = hi = value
+    try:
+        lo, hi = float(lo), float(hi)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(f"{where}: {field} must be number(s)") from exc
+    if lo > hi:
+        raise ConfigError(f"{where}: {field} min ({lo}) > max ({hi})")
+    if lo < 0:
+        raise ConfigError(f"{where}: {field} must be >= 0 (got {lo})")
+    return (lo, hi)
+
+
+def _coerce_int_range(
+    value: Any, where: str, field: str, *, minimum: int = 1
+) -> tuple[int, int]:
+    """Normalize a non-negative int range. Scalar => ``(x, x)``."""
+    if isinstance(value, (list, tuple)):
+        if len(value) != 2:
+            raise ConfigError(
+                f"{where}: {field} range must have exactly 2 values [min, max]"
+            )
+        lo, hi = value
+    else:
+        lo = hi = value
+
+    def as_int(raw: Any, label: str) -> int:
+        if isinstance(raw, float) and not raw.is_integer():
+            raise ConfigError(f"{where}: {field} {label} must be an integer")
+        try:
+            return int(raw)
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(f"{where}: {field} must be integer(s)") from exc
+
+    lo, hi = as_int(lo, "min"), as_int(hi, "max")
+    if lo > hi:
+        raise ConfigError(f"{where}: {field} min ({lo}) > max ({hi})")
+    if lo < minimum:
+        raise ConfigError(f"{where}: {field} must be >= {minimum} (got {lo})")
+    return (lo, hi)
+
+
+def _coerce_usage(raw: Any, where: str) -> Optional[UsageSpec]:
+    """Build a :class:`UsageSpec` from a product entry's ``usage:`` block."""
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}: 'usage' must be a mapping")
+    if "quantity" not in raw:
+        raise ConfigError(f"{where}: usage requires 'quantity' (number or [min, max])")
+    if "records_per_line" not in raw:
+        raise ConfigError(
+            f"{where}: usage requires 'records_per_line' (int or [min, max])"
+        )
+
+    quantity = _coerce_float_range(raw["quantity"], where, "usage.quantity")
+    records = _coerce_int_range(
+        raw["records_per_line"], where, "usage.records_per_line", minimum=1
+    )
+    days_raw = raw.get("days_back", 0)
+    try:
+        days_back = int(days_raw)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(f"{where}: usage.days_back must be an integer") from exc
+    if days_back < 0:
+        raise ConfigError(f"{where}: usage.days_back must be >= 0 (got {days_back})")
+
+    resource = raw.get("resource")
+    if resource is not None and not isinstance(resource, str):
+        raise ConfigError(f"{where}: usage.resource must be a string code")
+    uom = raw.get("unit_of_measure")
+    if uom is not None and not isinstance(uom, str):
+        raise ConfigError(f"{where}: usage.unit_of_measure must be a string UnitCode")
+    if uom is not None and resource is None:
+        raise ConfigError(
+            f"{where}: usage.unit_of_measure requires an explicit usage.resource"
+        )
+
+    return UsageSpec(
+        quantity=quantity,
+        records_per_line=records,
+        days_back=days_back,
+        resource=resource,
+        unit_of_measure=uom,
+    )
+
+
 def _parse_date_token(value: Any, where: str) -> date:
     """Resolve one date token to a concrete ``date``.
 
@@ -333,6 +454,7 @@ def _coerce_product_option(
         billing_frequency=_coerce_enum(
             raw.get("billing_frequency"), where, "billing_frequency",
             _VALID_BILLING_FREQUENCIES),
+        usage=_coerce_usage(raw.get("usage"), where),
     )
 
 

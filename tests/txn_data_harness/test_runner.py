@@ -84,7 +84,7 @@ def test_remaining_steps_fresh_run_uses_full_sequence() -> None:
 
 def test_remaining_steps_resumes_after_reached_stage() -> None:
     assert remaining_steps("quote", "post", with_opportunity=False) == [
-        "order", "activate", "invoice", "post",
+        "order", "activate", "usage", "invoice", "post",
     ]
 
 

@@ -71,9 +71,15 @@ def list_manifests(manifest_dir: Path = MANIFEST_DIR) -> list[Path]:
 
 
 def summarize_manifest(m: Manifest) -> dict[str, Any]:
-    """Return a compact machine-friendly summary for inspect commands."""
+    """Return a compact machine-friendly summary for inspect commands.
+
+    ``path`` (on-disk manifest path) is included so scripted workflows can read
+    it from ``cli inspect --json`` and pipe it into a follow-up resume command.
+    ``usage_journal_ids`` carries the TJ count + first few ids for quick review.
+    """
     return {
         "run_id": m.run_id,
+        "path": str(manifest_path(m.run_id)),
         "account": m.account_name or m.account_id,
         "reached_stage": m.reached_stage,
         "attempts": m.attempts,
@@ -81,6 +87,10 @@ def summarize_manifest(m: Manifest) -> dict[str, Any]:
         "error": m.error,
         "start_date": m.start_date,
         "line_count": len(m.lines),
+        "usage_journals": {
+            "count": len(m.usage_journal_ids),
+            "ids": m.usage_journal_ids[:5],
+        },
         "ids": {
             "opportunity": m.opportunity_id,
             "quote": m.quote_id,

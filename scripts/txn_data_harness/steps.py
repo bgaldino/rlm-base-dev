@@ -111,6 +111,55 @@ def run_activate(ctx: StepContext, manifest: Manifest) -> Manifest:
     return manifest
 
 
+def run_usage(ctx: StepContext, manifest: Manifest) -> Manifest:
+    """Write TransactionJournal consumption rows for lines with ``usage``.
+
+    Skip silently when no line opts in. Pair assets to lines by ``Product2Id``
+    -- ``poll_assets`` returns ids ordered by id, not by quote-line order, so
+    a positional zip would misroute journals when SKUs differ. Duplicate-SKU
+    lines consume the per-product asset pool 1:1 by popping the head.
+    """
+    usage_lines = [l for l in ctx.lines if l.usage is not None]
+    if not usage_lines:
+        manifest.reached_stage = "usage"
+        return manifest
+    if not manifest.asset_ids:
+        raise LifecycleError(
+            "usage", "no asset_ids on manifest; activate must run before usage"
+        )
+
+    asset_to_product = lifecycle.fetch_assets_product_ids(
+        ctx.client, manifest.asset_ids
+    )
+    product_to_assets: dict[str, list[str]] = {}
+    for aid, pid in asset_to_product.items():
+        product_to_assets.setdefault(pid, []).append(aid)
+
+    journal_ids: list[str] = []
+    for line in usage_lines:
+        candidates = product_to_assets.get(line.product.id, [])
+        if not candidates:
+            raise LifecycleError(
+                "usage",
+                f"no asset found for usage line {line.product.sku} "
+                f"(product {line.product.id})",
+            )
+        asset_id = candidates.pop(0)
+        journal_ids.extend(
+            lifecycle.create_usage_journals(
+                ctx.client,
+                asset_id,
+                ctx.account.id,
+                line,
+                ctx.run_id,
+                now=datetime.now(timezone.utc),
+            )
+        )
+    manifest.usage_journal_ids = journal_ids
+    manifest.reached_stage = "usage"
+    return manifest
+
+
 def run_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
     manifest.invoice_id, manifest.invoice_number = lifecycle.generate_invoice(
         ctx.client, manifest.billing_schedule_ids, ctx.run_id, timeout=ctx.poll_timeout
@@ -156,6 +205,12 @@ STEP_REGISTRY: dict[str, StepSpec] = {
         requires=("billing_ready_account", "order_id"),
         outputs=("billing_schedule_ids", "asset_ids"),
         handler=run_activate,
+    ),
+    "usage": StepSpec(
+        name="usage",
+        requires=("asset_ids",),
+        outputs=("usage_journal_ids",),
+        handler=run_usage,
     ),
     "invoice": StepSpec(
         name="invoice",

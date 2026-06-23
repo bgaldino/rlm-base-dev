@@ -19,9 +19,10 @@ activation hard-fails FAILED_ACTIVATION without it.
 from __future__ import annotations
 
 import logging
+import random
 import threading
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
 from .auth import SfRestClient
@@ -360,6 +361,164 @@ def poll_assets(
         len(claimed_for_this_order), expected_count, account.name, skus, timeout,
     )
     return claimed_for_this_order
+
+
+# ---------------------------------------------------------------------------
+# Step 5b -- Usage consumption. Write TransactionJournal rows against the
+# activated asset(s). Idempotent via deterministic ``UniqueIdentifier``.
+# ---------------------------------------------------------------------------
+_TJ_CHUNK = 200  # sObject Collections max records per call.
+
+
+def fetch_assets_product_ids(
+    client: SfRestClient, asset_ids: list[str]
+) -> dict[str, str]:
+    """Map ``Asset.Id -> Product2Id`` for the given assets.
+
+    ``poll_assets`` returns ids ordered by id, not by quote-line order, so the
+    usage step pairs assets to lines by ``Product2Id`` rather than by index.
+    """
+    if not asset_ids:
+        return {}
+    in_list = ", ".join(f"'{i}'" for i in asset_ids)
+    rows = client.query(
+        f"SELECT Id, Product2Id FROM Asset WHERE Id IN ({in_list})"
+    )
+    return {r["Id"]: r["Product2Id"] for r in rows if r.get("Product2Id")}
+
+
+def _draw_float(rng: random.Random, lo: float, hi: float) -> float:
+    if lo == hi:
+        return lo
+    return rng.uniform(lo, hi)
+
+
+def _draw_int(rng: random.Random, lo: int, hi: int) -> int:
+    if lo == hi:
+        return lo
+    return rng.randint(lo, hi)
+
+
+def _spread_dates(now: datetime, count: int, days_back: int) -> list[date]:
+    """Spread ``count`` ActivityDates evenly across the last ``days_back`` days.
+
+    ``days_back == 0`` keeps every row on ``now.date()``. Otherwise the spread
+    is deterministic given ``count`` and ``days_back`` -- last row is ``now``,
+    first row is ``now - days_back``, intermediates linearly spaced -- so a
+    retry under the same scheme produces the same dates.
+    """
+    today = now.date()
+    if days_back <= 0 or count <= 1:
+        return [today] * count
+    step = days_back / (count - 1)
+    return [today - timedelta(days=int(round(step * (count - 1 - i)))) for i in range(count)]
+
+
+def create_usage_journals(
+    client: SfRestClient,
+    asset_id: str,
+    account_id: str,
+    line: LineItem,
+    run_id: str,
+    *,
+    now: Optional[datetime] = None,
+) -> list[str]:
+    """Write TransactionJournal consumption rows for one asset/line.
+
+    Emits ``records_per_line`` rows **per resolved usage target** (one resource
+    binding => one set of rows; QB-DB resolves to two targets so we write two
+    sets). Tags every row with a deterministic
+    ``UniqueIdentifier = txn-harness-<run_id>-<asset_id>-<target_idx>-<row_idx>``
+    so retries are idempotent: we pre-query existing identifiers and skip
+    creates that already landed, returning ``existing_ids | new_ids`` so the
+    manifest converges on the full id set across attempts.
+
+    Posts via sObject Collections with ``allOrNone: true`` per chunk -- a bad
+    chunk aborts cleanly and the retry path reuses the same identifiers.
+    """
+    spec = line.usage
+    if spec is None or not spec.targets:
+        return []
+    if now is None:
+        now = datetime.now(timezone.utc)
+    rng = random.Random(f"{run_id}:{asset_id}")
+
+    # Build the full expected (UniqueIdentifier, payload) set.
+    expected: list[tuple[str, dict]] = []
+    for t_idx, target in enumerate(spec.targets):
+        n_rows = _draw_int(rng, *spec.records_per_line)
+        dates = _spread_dates(now, n_rows, spec.days_back)
+        for r_idx in range(n_rows):
+            uid = f"txn-harness-{run_id}-{asset_id}-{t_idx}-{r_idx}"
+            qty = _draw_float(rng, *spec.quantity)
+            day_iso = dates[r_idx].isoformat()
+            payload = {
+                "attributes": {"type": "TransactionJournal"},
+                "ReferenceRecordId": asset_id,
+                "AccountId": account_id,
+                "UsageResourceId": target.resource_id,
+                "QuantityUnitOfMeasureId": target.uom_id,
+                "Quantity": qty,
+                "ActivityDate": day_iso,
+                "StartDate": day_iso,
+                "EndDate": day_iso,
+                "UsageType": "UsageManagement",
+                "Status": "Pending",
+                "UniqueIdentifier": uid,
+            }
+            expected.append((uid, payload))
+
+    if not expected:
+        return []
+
+    # Pre-flight: which UniqueIdentifiers already exist? Idempotent retry.
+    expected_uids = [uid for uid, _ in expected]
+    existing_by_uid: dict[str, str] = {}
+    for i in range(0, len(expected_uids), _TJ_CHUNK):
+        chunk = expected_uids[i:i + _TJ_CHUNK]
+        in_list = ", ".join(f"'{u}'" for u in chunk)
+        rows = client.query(
+            f"SELECT Id, UniqueIdentifier FROM TransactionJournal "
+            f"WHERE UniqueIdentifier IN ({in_list})"
+        )
+        for r in rows:
+            existing_by_uid[r["UniqueIdentifier"]] = r["Id"]
+
+    to_create = [p for uid, p in expected if uid not in existing_by_uid]
+    new_ids: list[str] = []
+    path = f"/services/data/v{client.api_version}/composite/sobjects"
+    for i in range(0, len(to_create), _TJ_CHUNK):
+        chunk = to_create[i:i + _TJ_CHUNK]
+        result = client.post(path, {"allOrNone": True, "records": chunk})
+        if not isinstance(result, list):
+            raise LifecycleError(
+                "usage",
+                f"sObject Collections returned unexpected shape: {result!r}",
+            )
+        failures: list[dict] = []
+        for entry in result:
+            if entry.get("success"):
+                new_ids.append(entry["id"])
+            else:
+                failures.append(entry)
+        if failures:
+            raise LifecycleError(
+                "usage",
+                f"TransactionJournal create failures ({len(failures)}/{len(chunk)}): "
+                f"{failures[:3]}",
+            )
+
+    existing_ids = list(existing_by_uid.values())
+    if existing_ids:
+        log.info(
+            "usage: reused %d existing TJ id(s) for asset %s",
+            len(existing_ids), asset_id,
+        )
+    log.info(
+        "usage: wrote %d new TJ row(s) for asset %s across %d target(s)",
+        len(new_ids), asset_id, len(spec.targets),
+    )
+    return existing_ids + new_ids
 
 
 # Invoice/BillingSchedule terminal-state sets (CONTRACTS.md picklists).

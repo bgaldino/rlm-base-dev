@@ -54,6 +54,25 @@ class Account:
 
 
 @dataclass
+class UsageResourceBinding:
+    """One ProductUsageResource row: a usage resource a product grants.
+
+    A usage product carries 1..N bindings (e.g. QB-DB grants UR-DATASTORAGE and
+    UR-CPUTIME). ``resource_code`` is the user-facing identifier surfaced in
+    scenario YAML; ``uom_class_id`` enables overriding the default UoM by
+    UnitCode the same way RLM_UsageUploaderController validates it.
+    """
+
+    resource_id: str
+    resource_code: str
+    resource_name: Optional[str]
+    uom_class_id: Optional[str]
+    default_uom_id: Optional[str]
+    default_uom_code: Optional[str]
+    default_uom_name: Optional[str]
+
+
+@dataclass
 class Product:
     id: str
     name: str
@@ -65,6 +84,10 @@ class Product:
     # TermDefined accepts (and requires) EndDate; Evergreen/OneTime reject it
     # at createOrderFromQuote. None if the org didn't return it.
     selling_model_type: Optional[str] = None
+    # ProductUsageResource bindings (empty for non-usage products); populated
+    # lazily by ``attach_usage_bindings`` once the caller knows which products
+    # need them (avoids extra SOQL on non-usage scenarios).
+    usage_bindings: list[UsageResourceBinding] = field(default_factory=list)
 
     @property
     def is_qb(self) -> bool:
@@ -202,6 +225,84 @@ def resolve_product(client: SfRestClient, sku: str) -> Product:
             f"pricebook (check the product/pricebook setup)"
         )
     return products[0]
+
+
+def discover_usage_bindings(
+    client: SfRestClient, product_ids: list[str]
+) -> dict[str, list[UsageResourceBinding]]:
+    """Return per-product usage resource bindings keyed by Product2 Id.
+
+    ``ProductUsageResource.ProductId`` is the FK (relationship name
+    ``ProductOffer``) -- *not* ``Product2Id``. Status is not filtered: QB seed
+    records ship as ``Draft`` and are still the bindings the org actually uses.
+    """
+    if not product_ids:
+        return {}
+    quoted = ",".join(f"'{_sql_escape(pid)}'" for pid in product_ids)
+    soql = (
+        "SELECT ProductId, UsageResourceId, "
+        "UsageResource.Code, UsageResource.Name, "
+        "UsageResource.UnitOfMeasureClassId, "
+        "UsageResource.DefaultUnitOfMeasureId, "
+        "UsageResource.DefaultUnitOfMeasure.UnitCode, "
+        "UsageResource.DefaultUnitOfMeasure.Name "
+        f"FROM ProductUsageResource WHERE ProductId IN ({quoted})"
+    )
+    by_product: dict[str, list[UsageResourceBinding]] = {}
+    for r in client.query(soql):
+        ur = r.get("UsageResource") or {}
+        duom = ur.get("DefaultUnitOfMeasure") or {}
+        binding = UsageResourceBinding(
+            resource_id=r["UsageResourceId"],
+            resource_code=ur.get("Code", r["UsageResourceId"]),
+            resource_name=ur.get("Name"),
+            uom_class_id=ur.get("UnitOfMeasureClassId"),
+            default_uom_id=ur.get("DefaultUnitOfMeasureId"),
+            default_uom_code=duom.get("UnitCode"),
+            default_uom_name=duom.get("Name"),
+        )
+        by_product.setdefault(r["ProductId"], []).append(binding)
+    log.info(
+        "discovered usage bindings for %d/%d product(s)",
+        len(by_product), len(product_ids),
+    )
+    return by_product
+
+
+def attach_usage_bindings(
+    client: SfRestClient, products: list[Product]
+) -> None:
+    """Populate ``Product.usage_bindings`` in place for the given products."""
+    bindings = discover_usage_bindings(client, [p.id for p in products])
+    for p in products:
+        p.usage_bindings = bindings.get(p.id, [])
+
+
+def resolve_uom_override(
+    client: SfRestClient, binding: UsageResourceBinding, unit_code: str
+) -> str:
+    """Resolve a UoM UnitCode override against the resource's UoM class.
+
+    Mirrors ``RLM_UsageUploaderController.validateUsageEntries``: the candidate
+    UoM must share the resource's ``UnitOfMeasureClassId`` and be ``Active``.
+    """
+    if binding.uom_class_id is None:
+        raise DiscoveryError(
+            f"resource '{binding.resource_code}' has no UnitOfMeasureClassId; "
+            f"cannot validate UoM override '{unit_code}'"
+        )
+    recs = client.query(
+        "SELECT Id FROM UnitOfMeasure "
+        f"WHERE UnitCode = '{_sql_escape(unit_code)}' "
+        f"AND UnitOfMeasureClassId = '{_sql_escape(binding.uom_class_id)}' "
+        "AND Status = 'Active' LIMIT 1"
+    )
+    if not recs:
+        raise DiscoveryError(
+            f"UoM '{unit_code}' is not an active unit in the UoM class for "
+            f"resource '{binding.resource_code}'"
+        )
+    return recs[0]["Id"]
 
 
 def _discover_standard_pricebook(client: SfRestClient) -> tuple[str, str]:

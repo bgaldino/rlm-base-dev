@@ -14,7 +14,17 @@ from typing import Callable, Optional
 
 from .auth import SfRestClient
 from .config import ScenarioSpec
-from .discovery import Account, DiscoveryError, OrgContext, resolve_account, resolve_product
+from .config import ProductOption
+from .discovery import (
+    Account,
+    DiscoveryError,
+    OrgContext,
+    Product,
+    attach_usage_bindings,
+    resolve_account,
+    resolve_product,
+    resolve_uom_override,
+)
 from .failure import classify_exception
 from .lifecycle import LifecycleError
 from .manifests import manifest_path, write_manifest
@@ -25,6 +35,8 @@ from .models import (
     Manifest,
     ResolvedOption,
     ResolvedSpec,
+    ResolvedUsageSpec,
+    ResolvedUsageTarget,
 )
 from .steps import StepContext, execute_step
 
@@ -64,21 +76,91 @@ def effective_stage(target_stage: str, account: Account) -> str:
     return stage
 
 
+def _resolve_usage(
+    client: SfRestClient, product: Product, opt: ProductOption
+) -> Optional[ResolvedUsageSpec]:
+    """Bind a ``UsageSpec`` against the product's discovered resource bindings.
+
+    Fails fast when the product has no bindings, when an explicit ``resource``
+    code doesn't exist on the product, or when a ``unit_of_measure`` override
+    isn't an active unit in the resource's UoM class.
+    """
+    if opt.usage is None:
+        return None
+    spec = opt.usage
+    if not product.usage_bindings:
+        raise DiscoveryError(
+            f"product '{product.sku}' has no ProductUsageResource bindings; "
+            f"cannot emit usage journals"
+        )
+    if spec.resource:
+        match = next(
+            (b for b in product.usage_bindings if b.resource_code == spec.resource),
+            None,
+        )
+        if match is None:
+            codes = ", ".join(b.resource_code for b in product.usage_bindings)
+            raise DiscoveryError(
+                f"product '{product.sku}' has no usage resource '{spec.resource}' "
+                f"(available: {codes})"
+            )
+        bindings = [match]
+    else:
+        bindings = list(product.usage_bindings)
+
+    targets: list[ResolvedUsageTarget] = []
+    for binding in bindings:
+        if spec.unit_of_measure:
+            uom_id = resolve_uom_override(client, binding, spec.unit_of_measure)
+            uom_code = spec.unit_of_measure
+        else:
+            if not binding.default_uom_id:
+                raise DiscoveryError(
+                    f"usage resource '{binding.resource_code}' has no "
+                    f"DefaultUnitOfMeasureId and no override was provided"
+                )
+            uom_id = binding.default_uom_id
+            uom_code = binding.default_uom_code
+        targets.append(ResolvedUsageTarget(
+            resource_id=binding.resource_id,
+            resource_code=binding.resource_code,
+            uom_id=uom_id,
+            uom_code=uom_code,
+        ))
+    return ResolvedUsageSpec(
+        quantity=spec.quantity,
+        records_per_line=spec.records_per_line,
+        days_back=spec.days_back,
+        targets=targets,
+    )
+
+
 def resolve_spec(client: SfRestClient, ctx: OrgContext, spec: ScenarioSpec) -> ResolvedSpec:
     """Bind a spec's account + product pool to org records."""
     if spec.account:
         account = resolve_account(client, spec.account)
     else:
         account = ctx.default_account()
+    products = [
+        (resolve_product(client, opt.sku) if opt.sku else ctx.default_product())
+        for opt in spec.products
+    ]
+    # Only fetch usage bindings for products that actually opted in.
+    usage_products = [
+        p for p, opt in zip(products, spec.products) if opt.usage is not None
+    ]
+    if usage_products:
+        attach_usage_bindings(client, usage_products)
     options = [
         ResolvedOption(
-            product=(resolve_product(client, opt.sku) if opt.sku else ctx.default_product()),
+            product=product,
             quantity=opt.quantity,
             discount=opt.discount,
             period_boundary=opt.period_boundary,
             billing_frequency=opt.billing_frequency,
+            usage=_resolve_usage(client, product, opt),
         )
-        for opt in spec.products
+        for product, opt in zip(products, spec.products)
     ]
     return ResolvedSpec(
         spec=spec,
@@ -116,6 +198,7 @@ def draw_lines(options: list[ResolvedOption]) -> list[LineItem]:
             discount_percent=discount,
             period_boundary=opt.period_boundary,
             billing_frequency=opt.billing_frequency,
+            usage=opt.usage,
         ))
     return lines
 

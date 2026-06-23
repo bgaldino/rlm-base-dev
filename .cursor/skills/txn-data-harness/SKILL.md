@@ -20,6 +20,18 @@ manifest.
    until the manifest and SOQL verification agree.
 7. **Read `CONTRACTS.md` before changing lifecycle code:** endpoint shapes and
    async barriers are live-verified there.
+8. **Usage products are opt-in:** add a `usage:` block to a `products[]` entry
+   to write `TransactionJournal` consumption rows after activation. The new
+   `usage` stage sits between `activate` and `invoice` and is a no-op for
+   lines that don't declare a `usage:` block.
+9. **Tag TJ rows with `UniqueIdentifier`, never `Description`:** the v262
+   `TransactionJournal` object has no `Description` field. The harness writes
+   `UniqueIdentifier = txn-harness-<run_id>-<asset_id>-<target_idx>-<row_idx>`
+   so retries dedupe and bulk cleanup filters cleanly.
+10. **Run `cli rate` separately, once per batch:** rating
+    (`RLM_OrchestrateUsageManagement`) is asynchronous, takes ~15 minutes,
+    and rates **every** usage product in the org. It is intentionally not a
+    per-scenario stage and not a CCI task.
 
 ## DO NOT
 

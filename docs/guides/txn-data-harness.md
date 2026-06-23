@@ -102,6 +102,57 @@ The example mixes a billable Infinitech `post` spec with a Global Media
 `order`-stage spec; the latter auto-caps at `order` (no BillingAccount) but still
 leaves behind quotes and orders. Drop `--dry-run` to execute.
 
+### Usage products
+
+Usage-based SKUs (`QB-DB`, `QB-TOKENS-PACK`, the token/quantity/monetary
+commit products) opt in to consumption generation by adding a `usage:`
+block to a `products[]` entry. After activation, the new `usage` stage
+writes `TransactionJournal` rows against each line's asset, one set per
+`ProductUsageResource` binding (so `QB-DB` writes for both `UR-DATASTORAGE`
+and `UR-CPUTIME`).
+
+```yaml
+scenarios:
+  - account: Infinitech
+    target_stage: usage          # stop after journals; rate separately
+    products:
+      - sku: QB-DB
+        quantity: 1
+        usage:
+          quantity: [100, 500]       # per-row quantity range (or scalar)
+          records_per_line: [5, 10]  # rows per binding, per asset
+          days_back: 30              # spread ActivityDate over last N days
+          # resource: UR-CPUTIME     # optional UsageResource.Code; default = all bindings
+          # unit_of_measure: hr      # optional UoM override (requires explicit resource)
+    count: 5
+```
+
+Every TJ row is tagged with a deterministic
+`UniqueIdentifier = txn-harness-<run_id>-<asset_id>-<target_idx>-<row_idx>`,
+so a retried run dedupes against rows the prior attempt already wrote and
+bulk cleanup can `WHERE UniqueIdentifier LIKE 'txn-harness-%'`.
+
+The rating/billing job that turns those rows into `UsageSummary` records
+runs across **every** usage product in the org (~15 minutes), so the
+harness exposes it as a one-shot subcommand rather than a per-scenario
+stage:
+
+```bash
+python -m scripts.txn_data_harness.cli rate --org <sf-alias>
+```
+
+Fire it once per batch after the `usage`-stage scenarios complete; the job
+is async and returns immediately. Monitor in **Setup → Monitor Workflow
+Services**, then verify rated output:
+
+```bash
+sf data query --target-org <sf-alias> -q "
+  SELECT COUNT(Id), Status FROM TransactionJournal
+  WHERE UniqueIdentifier LIKE 'txn-harness-%' GROUP BY Status"
+```
+
+The example scenario is at `scripts/txn_data_harness/scenarios/12-usage-consumption.yaml`.
+
 ### Spreading quotes over time (`start_date`)
 
 By default each quote's line StartDate is today. Set a scenario's `start_date` to

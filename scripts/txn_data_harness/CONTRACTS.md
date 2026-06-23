@@ -233,6 +233,118 @@ order products" at `createOrderFromQuote`) before the rule was encoded.
   - `Asset`: 1 row for the line's `Product2Id` under the account (no ReferenceEntityId
     field — poll by account+product as planned).
 
+### 4b. Usage consumption — TransactionJournal create (sObject Collections) — ⚠ DOCUMENTED, NEEDS LIVE VERIFICATION
+
+Bound to `unpackaged/post_utils/classes/RLM_UsageUploaderController.cls` (the
+canonical in-org TJ writer) and the v262 `TransactionJournal` /
+`ProductUsageResource` field docs under `docs/salesforce/262/dev-guide/`.
+**Live verification against a scratch org with the QB rating dataset loaded
+(`insert_qb_rating_data`) is required before merging behavioral changes here.**
+
+- **Endpoint:** `POST /services/data/v67.0/composite/sobjects`
+- **Body (verified shape — chunked at 200 records per call):**
+  ```json
+  {
+    "allOrNone": true,
+    "records": [
+      {
+        "attributes": {"type": "TransactionJournal"},
+        "ReferenceRecordId": "<assetId>",
+        "AccountId": "<accountId>",
+        "UsageResourceId": "<usageResourceId>",
+        "QuantityUnitOfMeasureId": "<unitOfMeasureId>",
+        "Quantity": 123.45,
+        "ActivityDate": "2026-06-22",
+        "StartDate": "2026-06-22",
+        "EndDate":   "2026-06-22",
+        "UsageType": "UsageManagement",
+        "Status":    "Pending",
+        "UniqueIdentifier": "txn-harness-<run_id>-<assetId>-<targetIdx>-<rowIdx>"
+      }
+    ]
+  }
+  ```
+- **Response:** standard sObject Collections `[{success, id, errors}, …]` per
+  input record.
+- **Tag column is `UniqueIdentifier`, NOT `Description`.** `TransactionJournal`
+  has no `Description` field per the v262 dev guide. `UniqueIdentifier` is
+  `Create+Filter+idLookup`, which is exactly what the harness needs for
+  idempotent retry and bulk cleanup (`WHERE UniqueIdentifier LIKE
+  'txn-harness-%'`).
+- **`UsageType` picklist value used: `UsageManagement`.** Matches
+  `RLM_UsageUploaderController.cls` (`buildTransactionJournal`).
+- **`Status = Pending` on create.** Becomes `Processed` after the rating job
+  completes; that is the verification signal that rating ran end-to-end.
+- **`ActivityDate`, `StartDate`, `EndDate` are all set to the same day** for
+  single-day usage rows (the QB demo shape). `days_back` spreads
+  `ActivityDate` across the last N days but each row still uses one calendar
+  day for all three.
+- **Idempotent retry contract (lifecycle-side):** before posting, the harness
+  pre-queries `SELECT Id, UniqueIdentifier FROM TransactionJournal WHERE
+  UniqueIdentifier IN (…)` for the expected ids, excludes already-present
+  rows from the POST, and returns `existing_ids ∪ new_ids`. A retry under
+  the same `run_id` converges on the complete TJ id set whether the prior
+  attempt wrote zero, some, or all rows.
+- **Partial-failure isolation:** `allOrNone: true` per chunk. A bad row
+  aborts the chunk; the harness raises `LifecycleError("usage", …)` and the
+  manifest records zero new ids for that chunk so the retry can reuse the
+  same `UniqueIdentifier`s.
+- **TODO live-verify on a scratch org:** end-to-end run of
+  `scenarios/12-usage-consumption.yaml`, then `SELECT COUNT(Id), Status FROM
+  TransactionJournal WHERE UniqueIdentifier LIKE 'txn-harness-%' GROUP BY
+  Status` showing the expected `Pending` count before rating and `Processed`
+  count after `cli rate`.
+
+### 4c. ProductUsageResource discovery SOQL — ⚠ DOCUMENTED, NEEDS LIVE VERIFICATION
+
+Bound to the v262 `ProductUsageResource` field doc and the seed CSV at
+`datasets/sfdmu/qb/en-US/qb-rating/ProductUsageResource.csv`. Live-verify
+the binding count against the QB seed once `insert_qb_rating_data` runs.
+
+```sql
+SELECT ProductId,
+       UsageResourceId,
+       UsageResource.Code,
+       UsageResource.Name,
+       UsageResource.UnitOfMeasureClassId,
+       UsageResource.DefaultUnitOfMeasureId,
+       UsageResource.DefaultUnitOfMeasure.UnitCode,
+       UsageResource.DefaultUnitOfMeasure.Name,
+       Status
+FROM ProductUsageResource
+WHERE ProductId IN (…)
+```
+
+- **FK is `ProductId`** (relationship to `Product2`), NOT `Product2Id` — the
+  field doc and the seed CSV's `Product.StockKeepingUnit` matcher both
+  confirm.
+- **User-facing identifier is `UsageResource.Code`** (e.g. `UR-CPUTIME`,
+  `UR-DATASTORAGE`, `QB-TOKEN`), not `Name`. The QB seed CSV keys on Code.
+- **Do NOT filter by `Status`.** The QB seed loads bindings as `Draft` (per
+  `ProductUsageResource.csv`); filtering on `Active` would surface zero
+  bindings against the seeded org. If a future pass adds a status filter,
+  make it `IN ('Draft','Active')`.
+- **Override path (`usage.unit_of_measure` in the YAML):** when a scenario
+  pins a UoM code, resolve it via `SELECT Id FROM UnitOfMeasure WHERE
+  UnitCode = :code AND UnitOfMeasureClassId = :binding.uom_class_id AND
+  Status = 'Active'`. The class-id constraint mirrors
+  `RLM_UsageUploaderController.cls:240` — a UoM is only valid against the
+  resource if it shares the resource's class.
+
+### 4d. Asset → Product2 map — ⚠ DOCUMENTED, NEEDS LIVE VERIFICATION
+
+```sql
+SELECT Id, Product2Id FROM Asset WHERE Id IN (…)
+```
+
+- Used by the `usage` step to pair each `LineItem` to the correct activated
+  Asset by `Product2Id`. `poll_assets` returns ids ordered by `Id`, not by
+  the order of input lines (`CONTRACTS.md` already notes this for the
+  Asset-poll path), so a mixed-SKU scenario must NOT pair by list index.
+- Duplicate-SKU lines (the same Product2 used on two lines) consume the
+  asset pool **1:1 in order** (`steps.run_usage` pops the candidate list)
+  so each TJ batch lands on a distinct asset.
+
 ### 5. Billing Schedule create — ✅ NOT NEEDED for QB (activation auto-generates)
 - Verified: activating the order produced a `BillingSchedule` (Status
   `ReadyForInvoicing`) automatically. The explicit create endpoint is a fallback

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import subprocess
 import sys
+import tempfile
+from pathlib import Path
 from typing import Optional
 
 from . import generate
@@ -106,24 +110,74 @@ def _cmd_inspect(args: argparse.Namespace) -> int:
         manifest = load_manifest(str(manifests[0]))
     else:
         manifest = load_manifest(args.manifest)
+    # --json is the explicit machine-readable flag, but since summarize_manifest
+    # already returns a plain dict the default print is already JSON. Keep the
+    # flag for forward compatibility (a future human-readable default).
     print(json.dumps(summarize_manifest(manifest), indent=2))
     return 0
 
 
 def _lines_from_manifest(client: SfRestClient, manifest) -> list[LineItem]:
+    """Rebuild ``LineItem``s from a manifest, including any resolved usage spec.
+
+    ``LineItem.to_manifest_record`` writes the resolved usage targets (with
+    UsageResource + UoM ids) so we don't need a second discovery pass for the
+    common case of resuming an ``activate`` run to ``usage``.
+    """
     lines: list[LineItem] = []
     for rec in manifest.lines:
         sku = rec.get("sku")
         if not sku:
             continue
-        lines.append(LineItem(
-            product=resolve_product(client, sku),
-            quantity=int(rec.get("quantity", 1)),
-            discount_percent=rec.get("discount_percent"),
-            period_boundary=rec.get("period_boundary"),
-            billing_frequency=rec.get("billing_frequency"),
-        ))
+        lines.append(
+            LineItem.from_manifest_record(rec, resolve_product(client, sku))
+        )
     return lines
+
+
+_FLOW_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
+
+
+def _cmd_rate(args: argparse.Namespace) -> int:
+    """Kick off the org-wide usage rating/billing orchestration.
+
+    Invokes ``RLM_UsageOrchestrationController.startOrchestration(<flow>)``
+    via anonymous Apex (``sf apex run``). The job is asynchronous, runs ~15
+    minutes, and rates every usage product in the org -- run it ONCE per batch
+    of generated usage data, not per scenario.
+    """
+    flow = args.flow_name
+    if not _FLOW_NAME_RE.match(flow):
+        print(
+            f"ERROR: --flow-name must match [A-Za-z0-9_]+ (got {flow!r})",
+            file=sys.stderr,
+        )
+        return 1
+    snippet = f"RLM_UsageOrchestrationController.startOrchestration('{flow}');\n"
+    with tempfile.NamedTemporaryFile(
+        "w", suffix=".apex", delete=False, encoding="utf-8"
+    ) as tmp:
+        tmp.write(snippet)
+        tmp_path = tmp.name
+    try:
+        print(
+            f"Kicking off usage orchestration flow '{flow}' against org "
+            f"'{args.org}'. The job is async and rates ALL usage products in "
+            f"the org (~15 minutes). Monitor progress in Setup -> Monitor "
+            f"Workflow Services."
+        )
+        proc = subprocess.run(
+            ["sf", "apex", "run", "--target-org", args.org, "--file", tmp_path],
+            capture_output=True, text=True,
+        )
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+    if proc.stdout:
+        print(proc.stdout, end="")
+    if proc.returncode != 0:
+        print(proc.stderr, file=sys.stderr, end="")
+        return proc.returncode
+    return 0
 
 
 def _cmd_step(args: argparse.Namespace) -> int:
@@ -242,7 +296,19 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     group = inspect.add_mutually_exclusive_group(required=True)
     group.add_argument("--manifest", help="Run id or manifest path.")
     group.add_argument("--latest", action="store_true", help="Inspect the newest manifest.")
+    inspect.add_argument("--json", action="store_true",
+                         help="Print JSON (current default; reserved for forward use).")
     inspect.set_defaults(func=_cmd_inspect)
+
+    rate = sub.add_parser(
+        "rate",
+        help="Kick off org-wide usage rating/billing orchestration (~15 min, one-shot).",
+    )
+    rate.add_argument("--org", required=True,
+                      help="Target org: sf CLI alias or username.")
+    rate.add_argument("--flow-name", default="RLM_OrchestrateUsageManagement",
+                      help="Autolaunched flow API name (default: RLM_OrchestrateUsageManagement).")
+    rate.set_defaults(func=_cmd_rate)
 
     step = sub.add_parser("step", help="Run steps from a manifest to a target stage.")
     _add_run_args(step)
