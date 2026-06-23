@@ -139,15 +139,11 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
           } else {
             url = await this[NavigationMixin.GenerateUrl](pageRef);
           }
-          try {
-            if (!url) {
-              throw new Error(
-                "Unable to generate URL. Possibly an invalid link"
-              );
-            }
-          } catch (error) {
-            this.showToast(error, error.message);
-          }
+        }
+        if (!url) {
+          // Couldn't resolve a URL — leave the DYN_LINK placeholder unchanged
+          // rather than injecting a broken <a href="">.
+          continue;
         }
         const replaceString =
           "<a href='" +

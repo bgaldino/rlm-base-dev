@@ -249,6 +249,17 @@ private class RLM_Learning_FrameworkTest {
   @IsTest
   static void dynamicLinkHelper_guards() {
     Boolean blankObj = false, unknownObj = false, blankSetup = false, badType = false;
+    Boolean blankIdentity = false, missingIdentity = false;
+    try {
+      RLM_Learning_DynamicLinkHelper.getDynamicLinkByIdentity('');
+    } catch (AuraHandledException e) {
+      blankIdentity = true;
+    }
+    try {
+      RLM_Learning_DynamicLinkHelper.getDynamicLinkByIdentity('NO_SUCH_IDENTITY');
+    } catch (AuraHandledException e) {
+      missingIdentity = true;
+    }
     try {
       RLM_Learning_DynamicLinkHelper.getObjectIdFromQuery('', '');
     } catch (AuraHandledException e) {
@@ -276,7 +287,7 @@ private class RLM_Learning_FrameworkTest {
       badType = true;
     }
     Assert.isTrue(
-      blankObj && unknownObj && blankSetup && badType,
+      blankObj && unknownObj && blankSetup && badType && blankIdentity && missingIdentity,
       'each helper guard should throw'
     );
   }

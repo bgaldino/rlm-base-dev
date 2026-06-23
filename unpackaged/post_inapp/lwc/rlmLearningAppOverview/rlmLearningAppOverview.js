@@ -77,6 +77,15 @@ export default class RlmLearningAppOverview extends NavigationMixin(
             url = await this[NavigationMixin.GenerateUrl](pageRef);
           }
         }
+        if (!url) {
+          // No URL resolved — replace the placeholder with plain text instead of
+          // injecting a broken <a href="">, and let the loop progress.
+          content = content.replace(
+            identifier,
+            escapeHtml(dynamicLink.RLM_Learning_Text_Value__c)
+          );
+          continue;
+        }
         const replaceString =
           "<a href='" +
           escapeHtml(url) +

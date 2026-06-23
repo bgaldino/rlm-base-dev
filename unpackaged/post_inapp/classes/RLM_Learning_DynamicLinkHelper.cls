@@ -15,7 +15,10 @@
 public with sharing class RLM_Learning_DynamicLinkHelper {
   @AuraEnabled(cacheable=true)
   public static RLM_Learning_DynamicLink__c getDynamicLinkByIdentity(String identifier) {
-    return [
+    if (String.isEmpty(identifier)) {
+      throw new AuraHandledException('Identifier cannot be null or empty.');
+    }
+    List<RLM_Learning_DynamicLink__c> links = [
       SELECT
         Id,
         Name,
@@ -35,7 +38,14 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
       FROM RLM_Learning_DynamicLink__c
       WHERE RLM_Learning_Identity__c = :identifier
       WITH USER_MODE
+      LIMIT 1
     ];
+    if (links.isEmpty()) {
+      throw new AuraHandledException(
+        'No dynamic link found for identifier: ' + identifier
+      );
+    }
+    return links[0];
   }
 
   // Refuted PMD false-positive: object is schema-allow-listed, the query runs in
@@ -68,10 +78,7 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
     }
   }
 
-  // Refuted PMD false-positive: the only interpolated value (objectAPIName) is passed
-  // through String.escapeSingleQuotes into a LIKE literal; query runs in USER_MODE.
   @AuraEnabled(cacheable=true)
-  @SuppressWarnings('PMD.ApexSOQLInjection')
   public static String getSetupPageLink(String objectAPIName, String record) {
     if (String.isEmpty(objectAPIName)) {
       throw new AuraHandledException('Setup page Name cannot be null or empty.');
@@ -81,13 +88,16 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
     String baseUrl = System.Url.getOrgDomainUrl().toExternalForm();
     String noRedirect = '?noredirect=1';
     try {
-      // objectAPIName sits inside a quoted LIKE literal, so escape it.
-      String whereCondition =
-        'Label like \'%' + String.escapeSingleQuotes(objectAPIName) + '%\'';
-      String query =
-        'SELECT RLM_Learning_Setup_Page_URL__c FROM RLM_Learning_Setup_Page_Map__mdt WHERE ' + whereCondition;
-
-      List<RLM_Learning_Setup_Page_Map__mdt> setupPage = Database.query(query, AccessLevel.USER_MODE);
+      // Exact match on DeveloperName: a LIKE '%x%' could match the wrong record
+      // (e.g. PermissionSet also matches PermissionSetGroup). The bind variable
+      // also removes the dynamic-SOQL injection surface.
+      List<RLM_Learning_Setup_Page_Map__mdt> setupPage = [
+        SELECT RLM_Learning_Setup_Page_URL__c
+        FROM RLM_Learning_Setup_Page_Map__mdt
+        WHERE DeveloperName = :objectAPIName
+        WITH USER_MODE
+        LIMIT 1
+      ];
       if (setupPage.isEmpty()) {
         throw new AuraHandledException('No Setup Page record for ' + objectAPIName);
       }
