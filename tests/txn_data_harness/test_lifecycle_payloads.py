@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from scripts.txn_data_harness.lifecycle import (
+    count_order_items,
     generate_invoice,
     place_sales_transaction,
     post_invoice,
@@ -132,6 +133,34 @@ def test_generate_invoice_single_schedule_still_polls_with_in_clause(fake_client
 
     assert invoice_id == "INV-ID"
     assert "BillingScheduleId IN ('BS-1')" in fake_client.queries[0]
+
+
+def test_count_order_items_returns_total_from_count_query(fake_client) -> None:
+    fake_client.query_responses.append([{"total": 7}])
+
+    n = count_order_items(fake_client, "801ORDER")
+
+    assert n == 7
+    assert (
+        "SELECT COUNT(Id) total FROM OrderItem WHERE OrderId = '801ORDER'"
+        in fake_client.queries[0]
+    )
+
+
+def test_count_order_items_falls_back_to_one_on_empty_result(fake_client) -> None:
+    # Defensive: an order with zero OrderItems is a deterministic failure
+    # downstream anyway, but the helper should not crash on an empty record list.
+    fake_client.query_responses.append([])
+
+    assert count_order_items(fake_client, "801ORDER") == 1
+
+
+def test_count_order_items_handles_expr0_alias(fake_client) -> None:
+    # Some SF responses surface COUNT(Id) under the auto-generated ``expr0``
+    # key if the alias is dropped; the helper falls back to it defensively.
+    fake_client.query_responses.append([{"expr0": 5}])
+
+    assert count_order_items(fake_client, "801ORDER") == 5
 
 
 def test_post_invoice_uses_status_url_and_reads_invoice_number(fake_client) -> None:

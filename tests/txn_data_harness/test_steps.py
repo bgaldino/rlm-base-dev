@@ -6,7 +6,7 @@ import pytest
 
 from scripts.txn_data_harness.lifecycle import LifecycleError
 from scripts.txn_data_harness.models import LineItem, Manifest
-from scripts.txn_data_harness.steps import StepContext, execute_step, run_quote
+from scripts.txn_data_harness.steps import StepContext, execute_step, run_activate, run_quote
 
 
 def _ctx(fake_client, org_context, billable_account, term_product, checkpoint=None) -> StepContext:
@@ -79,6 +79,60 @@ def test_activate_step_requires_order_id(fake_client, org_context, billable_acco
             _ctx(fake_client, org_context, billable_account, term_product),
             Manifest(run_id="DEMO-1"),
         )
+
+
+def test_run_activate_uses_order_item_count_for_expected_count(
+    monkeypatch, fake_client, org_context, billable_account, term_product
+) -> None:
+    """Bundle case: one input LineItem expands into many OrderItems on the
+    order. ``run_activate`` must derive ``expected_count`` from the OrderItem
+    count, not ``len(ctx.lines)``, or the polls return before the
+    bundle-expanded billing schedules / assets have all materialized.
+    """
+    captured: dict[str, int] = {}
+
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.set_shipping_address",
+        lambda *_a, **_kw: None,
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.activate_order",
+        lambda *_a, **_kw: None,
+    )
+
+    def fake_count(_client, order_id):
+        assert order_id == "801ORDER"
+        return 7  # bundle expanded to seven OrderItems
+
+    def fake_bs(_client, _order_id, expected_count, timeout):
+        captured["bs"] = expected_count
+        return [f"BS-{i}" for i in range(expected_count)]
+
+    def fake_assets(_client, _account, _products, _since, expected_count, timeout):
+        captured["assets"] = expected_count
+        return ["A-1"]
+
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.count_order_items", fake_count
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.poll_billing_schedules", fake_bs
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.poll_assets", fake_assets
+    )
+
+    ctx = _ctx(fake_client, org_context, billable_account, term_product)
+    # One input line (the bundle root) on the scenario, even though the
+    # server-side bundle expansion produced seven OrderItems.
+    assert len(ctx.lines) == 1
+    manifest = Manifest(run_id="DEMO-1", order_id="801ORDER")
+
+    run_activate(ctx, manifest)
+
+    assert captured == {"bs": 7, "assets": 7}
+    assert len(manifest.billing_schedule_ids) == 7
+    assert manifest.reached_stage == "activate"
 
 
 def test_post_step_requires_invoice_id(fake_client, org_context, billable_account, term_product) -> None:

@@ -91,13 +91,21 @@ def run_activate(ctx: StepContext, manifest: Manifest) -> Manifest:
     if not manifest.order_id:
         raise LifecycleError("activate", "order_id is required before activation")
     lifecycle.set_shipping_address(ctx.client, manifest.order_id, ctx.account)
+    # OrderItem rows are the materialized line set after server-side bundle
+    # expansion -- one input line carrying a bundle SKU produces many
+    # OrderItems, and downstream activation produces one BillingSchedule (and
+    # typically one Asset) per OrderItem. Using ``len(ctx.lines)`` here would
+    # let the polls return as soon as the *input* count is met, before bundle
+    # expansion finishes writing the rest -- a real risk on default-configured
+    # bundles. See CONTRACTS.md "Bundles -- PST auto-expands ...".
+    expected_count = lifecycle.count_order_items(ctx.client, manifest.order_id)
     since = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     lifecycle.activate_order(ctx.client, manifest.order_id)
     manifest.reached_stage = "activate"
     manifest.billing_schedule_ids = lifecycle.poll_billing_schedules(
         ctx.client,
         manifest.order_id,
-        expected_count=len(ctx.lines),
+        expected_count=expected_count,
         timeout=ctx.poll_timeout,
     )
     manifest.asset_ids = lifecycle.poll_assets(
@@ -105,7 +113,7 @@ def run_activate(ctx: StepContext, manifest: Manifest) -> Manifest:
         ctx.account,
         [l.product for l in ctx.lines],
         since,
-        expected_count=len(ctx.lines),
+        expected_count=expected_count,
         timeout=ctx.poll_timeout,
     )
     return manifest

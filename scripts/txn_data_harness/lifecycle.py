@@ -371,6 +371,29 @@ def poll_assets(
 _TJ_CHUNK = 200  # sObject Collections max records per call.
 
 
+def count_order_items(client: SfRestClient, order_id: str) -> int:
+    """Return the number of OrderItem rows on ``order_id``.
+
+    ``createOrderFromQuote`` materializes one OrderItem per (bundle-expanded)
+    QuoteLineItem, so this is the source of truth for "how many billing
+    schedules and assets should activation produce" -- a bundle places as one
+    input line but expands into many OrderItems server-side, and the input-line
+    count under-counts the real downstream fan-out. Callers use this to set
+    ``expected_count`` for the BillingSchedule and Asset polls.
+
+    ``client.query`` strips the response's ``totalSize`` and only returns
+    ``records``, so we use ``COUNT(Id) total`` to surface the count inside a
+    record. Falls back to ``1`` if the query returns nothing -- activation
+    against an empty Order is already a deterministic failure downstream.
+    """
+    rows = client.query(
+        f"SELECT COUNT(Id) total FROM OrderItem WHERE OrderId = '{order_id}'"
+    )
+    if not rows:
+        return 1
+    return int(rows[0].get("total") or rows[0].get("expr0") or 1)
+
+
 def fetch_assets_product_ids(
     client: SfRestClient, asset_ids: list[str]
 ) -> dict[str, str]:

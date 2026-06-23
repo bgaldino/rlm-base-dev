@@ -159,11 +159,10 @@ default-configured bundle on your pricebook):
 - The YAML's `quantity:` / `discount_percent:` apply to the **root** line only.
   Child quantities and prices come from the bundle definition.
 - One BillingSchedule is created per child component slot at activation, **not**
-  one per input line. The harness's `expected_count = len(ctx.lines)` heuristic
-  in `steps.py:run_activate` will see the *first* schedule reach
-  `ReadyForInvoicing` and continue, but it under-counts what's actually there —
-  acceptable today (the invoice gathers them all) but worth knowing if anyone
-  tightens the wait condition.
+  one per input line. `steps.py:run_activate` derives `expected_count` from
+  `count_order_items(orderId)` (a `SELECT COUNT(Id) FROM OrderItem` against the
+  freshly-created order) so the BillingSchedule and Asset polls wait for the
+  full bundle-expanded fan-out, not just the input-line count.
 - Some bundle slots produce a `BillingSchedule` with `TotalAmount = 0` (a $0
   root slot, e.g.). No `InvoiceLine` is created against a $0 schedule, so the
   invoice-correlation poll **must** scan across all schedules in the generate
