@@ -1,11 +1,12 @@
 # Product mix — posted invoices across several QB SKUs.
 #
-#   python -m scripts.demo_data.generate --org <sf-alias> \
-#       --config scripts/demo_data/scenarios/08-product-mix.yaml --concurrency 3
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/08-product-mix.yaml --concurrency 3
 #
 # Spreads billed invoices across different products so invoice/revenue demos
-# aren't all the same line item. One spec per SKU (the tool places ONE line per
-# quote today, so vary the product across specs, not within a `products:` list).
+# aren't all the same line item. This file keeps exactly one SKU per invoice by
+# using one spec per SKU; use 11-randomized-product-mix.yaml for multi-line
+# invoices drawn from a product pool.
 #
 # NOTE: only simpler products place cleanly without bundle/attribute wiring.
 # QB-API-FLEX is the proven-good baseline. The others below are plausible simple

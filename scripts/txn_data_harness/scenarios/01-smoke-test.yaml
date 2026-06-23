@@ -1,7 +1,7 @@
 # Smoke test — one full chain to a Posted invoice.
 #
-#   python -m scripts.demo_data.generate --org <sf-alias> \
-#       --config scripts/demo_data/scenarios/01-smoke-test.yaml
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/01-smoke-test.yaml
 #
 # The fastest end-to-end proof that the org + auth + the whole lifecycle work:
 # a single transaction driven all the way to a Posted invoice. Run this first

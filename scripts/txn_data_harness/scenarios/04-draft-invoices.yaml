@@ -1,7 +1,7 @@
 # Draft invoices — generate but do not post.
 #
-#   python -m scripts.demo_data.generate --org <sf-alias> \
-#       --config scripts/demo_data/scenarios/04-draft-invoices.yaml
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/04-draft-invoices.yaml
 #
 # Stops at `invoice`: each transaction produces a Draft invoice (tagged, with
 # lines) that is NOT posted. Use this to demo the invoice-review / approval step,

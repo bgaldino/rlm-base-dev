@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import subprocess
 import tempfile
 import threading
@@ -37,7 +38,7 @@ from typing import Any, Optional
 
 import requests
 
-log = logging.getLogger("demo_data.auth")
+log = logging.getLogger("txn_data_harness.auth")
 
 DEFAULT_API_VERSION = "67.0"  # v262 baseline; do not silently float to latest.
 
@@ -258,8 +259,13 @@ class SfRestClient:
             tmp = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
             json.dump(body, tmp)
             tmp.flush()
+            tmp.close()
             args += ["--body", f"@{tmp.name}"]
-        proc = subprocess.run(args, capture_output=True, text=True)
+        try:
+            proc = subprocess.run(args, capture_output=True, text=True)
+        finally:
+            if tmp is not None:
+                os.unlink(tmp.name)
         out = proc.stdout.strip()
         if proc.returncode != 0:
             raise SfApiError(

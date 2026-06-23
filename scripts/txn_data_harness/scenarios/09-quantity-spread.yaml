@@ -1,7 +1,7 @@
 # Quantity spread — varied deal sizes for realistic invoice amounts.
 #
-#   python -m scripts.demo_data.generate --org <sf-alias> \
-#       --config scripts/demo_data/scenarios/09-quantity-spread.yaml --concurrency 3
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/09-quantity-spread.yaml --concurrency 3
 #
 # Same product, different quantities per spec, so the resulting invoices span a
 # range of amounts (small / medium / large deals) rather than a single value —

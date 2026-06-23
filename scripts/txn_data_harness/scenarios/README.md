@@ -1,11 +1,11 @@
-# Demo Data Generator — example scenario configs
+# Transaction Data Harness — example scenario configs
 
 Ready-to-run `--config` files for common demo-data shapes. Each is a small,
 commented YAML you can run as-is or copy and tweak.
 
 ```bash
-python -m scripts.demo_data.generate --org <sf-alias> \
-    --config scripts/demo_data/scenarios/01-smoke-test.yaml [--dry-run]
+python -m scripts.txn_data_harness.generate --org <sf-alias> \
+    --config scripts/txn_data_harness/scenarios/01-smoke-test.yaml [--dry-run]
 ```
 
 Always `--dry-run` first — it resolves auth + discovery and prints the plan
@@ -23,7 +23,7 @@ Always `--dry-run` first — it resolves auth + discovery and prints the plan
 | `04-draft-invoices.yaml` | `invoice` | 10 | Draft (unposted) invoices — demo the review/approval step; Draft invoices are deletable. |
 | `05-posted-invoices-volume.yaml` | `post` | 50 | Bulk billed invoices. The heavy one — run with `--concurrency`. |
 | `06-mixed-stages.yaml` | mixed | 55 | A realistic spread: lots of pipeline, fewer activated, fewest billed. "Lived-in" org. |
-| `07-multi-account.yaml` | `post`/capped | 30 | Billable + pipeline-only accounts; shows the auto-cap (Global Media → `activate`). |
+| `07-multi-account.yaml` | `post`/capped | 30 | Billable + pipeline-only accounts; shows the auto-cap (Global Media → `order`). |
 | `08-product-mix.yaml` | `post` | 30 | Posted invoices across several SKUs so invoices aren't all one line item. |
 | `09-quantity-spread.yaml` | `post` | 35 | Same product, varied quantities → a range of invoice amounts (small/medium/large deals). |
 | `10-randomized-discounts.yaml` | `post` | 35 | Per-line discounts drawn from a range → a spread of discounted invoice amounts. |
@@ -51,7 +51,7 @@ block (where it applies to all scenarios unless the scenario overrides it).
 
 | Field | Type | Default | Meaning |
 |-------|------|---------|---------|
-| `account` | string | auto | Account **Name** (not id). Omit → first billing-ready account discovered. A pinned account need not be billing-ready (it caps at `activate`). |
+| `account` | string | auto | Account **Name** (not id). Omit → first billing-ready account discovered. A pinned account need not be billing-ready (it caps at `order`). |
 | `target_stage` | enum | `post` | How far to run: `opportunity` \| `quote` \| `order` \| `activate` \| `invoice` \| `post`. Hierarchical — each stage runs all stages before it. |
 | `with_opportunity` | bool | `false` | Prepend an Opportunity the quote links to. (`target_stage: opportunity` implies one even if this is false.) |
 | `opportunity_stage` | string | first open | Pin the Opportunity `StageName`. Must be a valid **open** stage in the org or the run errors with the valid list. |
@@ -60,6 +60,7 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | `quantity` | int ≥ 1, or `[min, max]` | `1` | Line quantity. A scalar fixes it; a `[min, max]` range draws an integer **per line** (so a pool/`count > 1` yields a spread). A `products[].quantity` overrides this for that entry. |
 | `count` | int ≥ 1 | `1` | How many times to run this shape. |
 | `discount` | number or `[min, max]` | none | Line-discount **percent** (0..100). A scalar (`10`) fixes it; a range draws a value **per line** (so `count > 1` yields a spread). May sit on the scenario or on a `products[]` entry (per-product wins, like `quantity`). |
+| `start_date` | date / range / window | today | The quote line **StartDate** (anchors the term `EndDate` = start + term). One date is drawn **per transaction** and applied to all of that quote's lines, so a range spreads quotes over time. Forms: exact (`"2026-03-15"`, `today`, `"+30"`/`"-15"` relative days); range list `["2026-01-01", "+90"]` or map `{from:…, to:…}`; window `{around: <anchor>, plus_or_minus: N}` (anchor ± N days, anchor defaults to today). |
 
 ### `defaults` vs `volume` vs `scenarios`
 
@@ -105,13 +106,15 @@ exist. Requirements, by what you want to reach:
 
 | To reach… | The account needs… | How it's checked |
 |-----------|--------------------|-------------------|
-| `quote` / `order` / `activate` | just to **exist** (by Name) | `Account WHERE Name = '…'` |
-| `invoice` / `post` | a **`BillingAccount`** (`BillingAccount.AccountId` → the Account) | `BillingAccount WHERE AccountId = '…'` |
+| `quote` / `order` | just to **exist** (by Name) | `Account WHERE Name = '…'` |
+| `activate` / `invoice` / `post` | a **`BillingAccount`** (`BillingAccount.AccountId` → the Account) | `BillingAccount WHERE AccountId = '…'` |
 
-An account with **no** BillingAccount is auto-capped at `activate` with a
-warning — the run doesn't fail. In the QB org, **only Infinitech** is pre-wired
-with a BillingAccount; **Global Media** is pipeline-only. To make another account
-billable, create a `BillingAccount` (plus the billing setup it implies) for it.
+An account with **no** BillingAccount still runs `quote → order`, then is
+auto-capped at `order` with a warning — the run doesn't fail. (Activation
+generates BillingSchedules/Assets, which need the account's billing setup.) In the
+QB org, **only Infinitech** is pre-wired with a BillingAccount; **Global Media** is
+pipeline-only. To make another account billable, create a `BillingAccount` (plus
+the billing setup it implies) for it.
 
 ### Products
 
@@ -162,6 +165,6 @@ spine at volume.
 
 - [`../README.md`](../README.md) — CLI flags, exit codes, auth/transport, output.
 - [`../config.example.yaml`](../config.example.yaml) — the original worked example.
-- [`../../../docs/guides/demo-data-generator.md`](../../../docs/guides/demo-data-generator.md)
+- [`../../../docs/guides/txn-data-harness.md`](../../../docs/guides/txn-data-harness.md)
   — operational how-to: verification SOQL, cleanup recipes, troubleshooting.
 - [`../CONTRACTS.md`](../CONTRACTS.md) — the live-verified lifecycle contracts.

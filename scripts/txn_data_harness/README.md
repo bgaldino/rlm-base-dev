@@ -1,4 +1,4 @@
-# Demo Data Generator
+# Transaction Data Harness
 
 Generate realistic, high-volume Revenue Cloud demo data by driving the **real
 transaction lifecycle** against a target org:
@@ -18,7 +18,7 @@ It is **standalone** — not part of `prepare_rlm_org`. Each run is **additive**
 billing-ready account and a billable product; config lets one run mix shapes.
 
 > Full how-to (verification steps, troubleshooting, cleanup recipes) lives in
-> [`docs/guides/demo-data-generator.md`](../../docs/guides/demo-data-generator.md).
+> [`docs/guides/txn-data-harness.md`](../../docs/guides/txn-data-harness.md).
 > The live-verified endpoint/body/async contracts are locked in
 > [`CONTRACTS.md`](CONTRACTS.md) — read it before changing `lifecycle.py`.
 
@@ -26,16 +26,16 @@ billing-ready account and a billable product; config lets one run mix shapes.
 
 ```bash
 # Dry run — resolve auth + discovery and print the plan; NO writes.
-python -m scripts.demo_data.generate --org rlm-base__jun17_1 --dry-run
+python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --dry-run
 
 # One full chain to a Posted invoice.
-python -m scripts.demo_data.generate --org rlm-base__jun17_1 --count 1 --target-stage post
+python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --count 1 --target-stage post
 
 # 25 transactions, 4 in parallel.
-python -m scripts.demo_data.generate --org rlm-base__jun17_1 --count 25 --concurrency 4
+python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --count 25 --concurrency 4
 
 # Config-driven mixed run (billable + pipeline-only accounts).
-python -m scripts.demo_data.generate --org rlm-base__jun17_1 --config scripts/demo_data/config.example.yaml
+python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --config scripts/txn_data_harness/config.example.yaml
 ```
 
 ## ⚠ `--org` takes an *sf CLI* alias, not a CCI alias
@@ -45,8 +45,8 @@ CCI and the `sf` CLI use **different alias registries**. This tool talks to the
 `beta` maps to the sf alias `rlm-base__beta` — pass the **sf** one:
 
 ```bash
-python -m scripts.demo_data.generate --org rlm-base__beta ...   # ✅ sf alias
-python -m scripts.demo_data.generate --org beta ...             # ❌ CCI alias — won't resolve
+python -m scripts.txn_data_harness.generate --org rlm-base__beta ...   # ✅ sf alias
+python -m scripts.txn_data_harness.generate --org beta ...             # ❌ CCI alias — won't resolve
 ```
 
 ## CLI flags
@@ -99,14 +99,16 @@ output from concurrent workers stays attributable. Lines outside any scenario
 | `opportunity` | Opportunity (opt-in head) | no |
 | `quote` | Quote (+ line) via Place Sales Transaction | no |
 | `order` | Order via createOrderFromQuote | no |
-| `activate` | Activated Order → BillingSchedule(s) + Asset(s) | no |
+| `activate` | Activated Order → BillingSchedule(s) + Asset(s) | **yes** |
 | `invoice` | Draft Invoice (+ lines), tagged | **yes** |
 | `post` | Posted Invoice (InvoiceNumber assigned) | **yes** |
 
-An account **without** a BillingAccount can't reach `invoice`/`post`; the tool
-**auto-caps** such scenarios at `activate` and warns, rather than failing the run.
-This lets one config mix billable Infinitech orders with Global Media pipeline
-quotes. (In QB, only **Infinitech** is pre-wired with a BillingAccount.)
+An account **without** a BillingAccount still goes `quote → order` (useful
+pipeline + order demo data), but **activation** generates BillingSchedules and
+Assets that require the account's billing setup, so the tool **auto-caps** such
+scenarios at `order` and warns, rather than failing the run. This lets one config
+mix billable Infinitech invoices with Global Media pipeline orders. (In QB, only
+**Infinitech** is pre-wired with a BillingAccount.)
 
 ## Config
 
@@ -129,9 +131,9 @@ sets its count.
 
 ### Targets, bundles, and usage (at a glance)
 
-- **Account** — exists by Name to reach `quote`/`order`/`activate`; needs a
-  **`BillingAccount`** to reach `invoice`/`post` (else auto-capped at `activate`).
-  In QB only **Infinitech** is billable; **Global Media** is pipeline-only.
+- **Account** — exists by Name to reach `quote`/`order`; needs a
+  **`BillingAccount`** to reach `activate`/`invoice`/`post` (else auto-capped at
+  `order`). In QB only **Infinitech** is billable; **Global Media** is pipeline-only.
 - **Product** — needs an active `PricebookEntry` on the **standard** pricebook.
 - **Multi-line via a product pool** — a scenario's `products:` list is a pool; each
   transaction places a random non-empty subset as flat lines (per-line qty/discount
@@ -161,7 +163,7 @@ See [`scenarios/README.md`](scenarios/README.md) → *Not handled yet* for detai
 
 ## Manifests & cleanup
 
-Every scenario writes `scripts/demo_data/out/<run_id>.json` listing all ids it
+Every scenario writes `scripts/txn_data_harness/out/<run_id>.json` listing all ids it
 created (quote, order, billing schedules, assets, invoice). This directory is
 **git-ignored** — it's runtime output, not source. The manifest is the source of
 truth for verification and cleanup.
@@ -190,7 +192,7 @@ Deletability (verified live):
 - **BillingSchedules** — **not** deletable (system-managed: "insufficient access
   rights on object id").
 
-See [`docs/guides/demo-data-generator.md`](../../docs/guides/demo-data-generator.md)
+See [`docs/guides/txn-data-harness.md`](../../docs/guides/txn-data-harness.md)
 → *Cleanup* for copy-paste recipes. There is no dedup/idempotency — re-running adds
 a fresh batch with a new run id (by design).
 
@@ -221,7 +223,7 @@ a fresh batch with a new run id (by design).
 ## Layout
 
 ```
-scripts/demo_data/
+scripts/txn_data_harness/
   generate.py          # CLI entry: argparse, spec resolution, concurrency loop
   auth.py              # SfRestClient: transport-agnostic REST (requests | cli)
   discovery.py         # org introspection: accounts, products, pricebook, legal entity

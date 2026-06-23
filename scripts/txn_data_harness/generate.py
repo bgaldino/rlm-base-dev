@@ -1,6 +1,6 @@
 """CLI entry point for the demo data generator.
 
-    python -m scripts.demo_data.generate --org <sf-alias> [options]
+    python -m scripts.txn_data_harness.generate --org <sf-alias> [options]
 
 Phase 1 scope: resolve auth + discovery and, under ``--dry-run``, print the
 planned account/product/pricebook and the lifecycle calls that *would* run --
@@ -23,7 +23,7 @@ import random
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from . import lifecycle
@@ -40,13 +40,13 @@ from .discovery import (
 )
 from .lifecycle import LifecycleError, LineItem, Manifest
 
-log = logging.getLogger("demo_data")
+log = logging.getLogger("txn_data_harness")
 
 # Per-scenario run id, set by each worker thread so concurrent step logs can be
 # attributed to the scenario that emitted them. A ContextVar is inherited per
 # thread/task without cross-worker bleed (unlike a plain module global).
 _current_run_id: contextvars.ContextVar[str] = contextvars.ContextVar(
-    "demo_data_run_id", default="-"
+    "txn_data_harness_run_id", default="-"
 )
 
 STAGES = ["opportunity", "quote", "order", "activate", "invoice", "post"]
@@ -59,7 +59,7 @@ MANIFEST_DIR = os.path.join(os.path.dirname(__file__), "out")
 
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        prog="python -m scripts.demo_data.generate",
+        prog="python -m scripts.txn_data_harness.generate",
         description="Generate realistic Revenue Cloud demo data by driving the "
                     "real transaction lifecycle against a target org.",
     )
@@ -89,9 +89,9 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
     # Probe / safety.
     p.add_argument("--no-probe", action="store_true",
-                   help="Skip the discovery PST probe (trust the config).")
+                   help="Reserved for future PST probes; currently no-op.")
     p.add_argument("--keep-probes", action="store_true",
-                   help="Do not delete probe quotes after discovery.")
+                   help="Reserved for future PST probes; currently no-op.")
     p.add_argument("--dry-run", action="store_true",
                    help="Resolve auth+discovery and print planned calls; no writes.")
     p.add_argument("-v", "--verbose", action="count", default=0,
@@ -136,7 +136,7 @@ def _print_plan(
     args: argparse.Namespace, ctx: OrgContext, resolved: list["ResolvedSpec"]
 ) -> None:
     """Human-readable dry-run summary of what a run would do (no writes)."""
-    print("\n=== Demo Data Generator — DRY RUN (no writes) ===")
+    print("\n=== Transaction Data Harness — DRY RUN (no writes) ===")
     print(f"Org              : {args.org}  (api v{ctx_api(args)})  transport={args.transport}")
     print(f"Pricebook        : {ctx.pricebook_name} ({ctx.pricebook_id})")
     print(f"Legal entity     : {ctx.legal_entity_name}")
@@ -166,6 +166,11 @@ def _print_plan(
                   f"${opt.product.unit_price} {_fmt_qty(opt.quantity)}  "
                   f"{_fmt_discount(opt.discount)}".rstrip()
                   + f"  (PBE {opt.product.pricebook_entry_id})")
+        rng = r.start_date_range
+        if rng is not None:
+            lo, hi = rng
+            print(f"  Start date   : {lo.isoformat()}"
+                  + (f" → {hi.isoformat()} (drawn per quote)" if hi != lo else ""))
         if r.effective_stage != r.spec.target_stage:
             print(f"  ⚠  target_stage '{r.spec.target_stage}' capped to "
                   f"'{r.effective_stage}' (billing_ready={r.account.is_billing_ready}).")
@@ -185,14 +190,16 @@ def ctx_api(args: argparse.Namespace) -> str:
 def _effective_stage(target_stage: str, account: Account) -> str:
     """Resolve the stage a scenario will actually reach.
 
-    Caps at what's implemented, and at 'activate' for accounts that aren't
-    billing-ready (can't reach invoice/post).
+    Caps at what's implemented, and at 'order' for accounts that aren't
+    billing-ready: such accounts can still go quote -> order (useful pipeline
+    demo data), but activation generates BillingSchedules/Assets and needs the
+    account's billing setup, so it's capped before 'activate'.
     """
     stage = target_stage
     if STAGES.index(stage) > STAGES.index(_IMPLEMENTED_MAX_STAGE):
         stage = _IMPLEMENTED_MAX_STAGE
-    if not account.is_billing_ready and STAGES.index(stage) > STAGES.index("activate"):
-        stage = "activate"
+    if not account.is_billing_ready and STAGES.index(stage) > STAGES.index("order"):
+        stage = "order"
     return stage
 
 
@@ -203,6 +210,8 @@ class ResolvedOption:
     product: Product
     quantity: tuple[int, int]
     discount: Optional[tuple[float, float]]
+    period_boundary: Optional[str] = None
+    billing_frequency: Optional[str] = None
 
 
 @dataclass
@@ -219,6 +228,24 @@ class ResolvedSpec:
     options: list[ResolvedOption]
     effective_stage: str
 
+    @property
+    def start_date_range(self) -> Optional[tuple[date, date]]:
+        return self.spec.start_date
+
+
+def _draw_start_date(rng: Optional[tuple[date, date]]) -> Optional[date]:
+    """Pick one StartDate from a ``(lo, hi)`` range (uniform over the days).
+
+    ``None`` range => ``None`` (lifecycle defaults to today). ``lo == hi`` returns
+    that exact date. Otherwise a day is chosen uniformly across the span, so a
+    ``count: N`` spec spreads its quotes across the window.
+    """
+    if rng is None:
+        return None
+    lo, hi = rng
+    span = (hi - lo).days
+    return lo if span <= 0 else lo + timedelta(days=random.randint(0, span))
+
 
 def _resolve_spec(
     client: SfRestClient, ctx: OrgContext, spec: ScenarioSpec
@@ -234,6 +261,8 @@ def _resolve_spec(
                      else ctx.default_product()),
             quantity=opt.quantity,
             discount=opt.discount,
+            period_boundary=opt.period_boundary,
+            billing_frequency=opt.billing_frequency,
         )
         for opt in spec.products
     ]
@@ -262,8 +291,11 @@ def _draw_lines(options: list["ResolvedOption"]) -> list[LineItem]:
         if opt.discount is not None:
             dlo, dhi = opt.discount
             discount = round(random.uniform(dlo, dhi), 2)
-        lines.append(LineItem(product=opt.product, quantity=quantity,
-                              discount_percent=discount))
+        lines.append(LineItem(
+            product=opt.product, quantity=quantity, discount_percent=discount,
+            period_boundary=opt.period_boundary,
+            billing_frequency=opt.billing_frequency,
+        ))
     return lines
 
 
@@ -276,6 +308,7 @@ def run_scenario(
     lines: list[LineItem],
     with_opportunity: bool,
     poll_timeout: int,
+    start_date: Optional[date] = None,
 ) -> Manifest:
     """Drive one transaction (one or more lines) through the lifecycle.
 
@@ -285,11 +318,18 @@ def run_scenario(
     """
     _current_run_id.set(run_id)
     m = Manifest(run_id=run_id)
-    m.lines = [
-        {"sku": l.product.sku, "quantity": l.quantity,
-         "discount_percent": l.discount_percent}
-        for l in lines
-    ]
+    if start_date is not None:
+        m.start_date = start_date.isoformat()
+    def _line_record(l: LineItem) -> dict:
+        rec = {"sku": l.product.sku, "quantity": l.quantity,
+               "discount_percent": l.discount_percent}
+        if l.period_boundary is not None:
+            rec["period_boundary"] = l.period_boundary
+        if l.billing_frequency is not None:
+            rec["billing_frequency"] = l.billing_frequency
+        return rec
+
+    m.lines = [_line_record(l) for l in lines]
     stage = _effective_stage(target_stage, account)
     stop_at = STAGES.index(stage)
     # target_stage 'opportunity' means "stop after the opportunity", so it
@@ -316,7 +356,7 @@ def run_scenario(
         try:
             m.quote_id = lifecycle.place_sales_transaction(
                 client, account, lines, ctx.pricebook_id, run_id,
-                opportunity_id=m.opportunity_id,
+                opportunity_id=m.opportunity_id, start_date=start_date,
             )
         except LifecycleError as exc:
             # PST may have committed the quote header even on failure -- record
@@ -342,10 +382,11 @@ def run_scenario(
         lifecycle.activate_order(client, m.order_id)
         m.reached_stage = "activate"
         m.billing_schedule_ids = lifecycle.poll_billing_schedules(
-            client, m.order_id, timeout=poll_timeout
+            client, m.order_id, expected_count=len(lines), timeout=poll_timeout
         )
         m.asset_ids = lifecycle.poll_assets(
-            client, account, [l.product for l in lines], since, timeout=poll_timeout
+            client, account, [l.product for l in lines], since,
+            expected_count=len(lines), timeout=poll_timeout
         )
         checkpoint()
         if stop_at == STAGES.index("activate"):
@@ -465,6 +506,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             _draw_lines(r.options),
             with_opportunity=r.spec.with_opportunity,
             poll_timeout=args.poll_timeout,
+            start_date=_draw_start_date(r.start_date_range),
         )
 
     concurrency = max(1, min(args.concurrency, total))

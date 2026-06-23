@@ -1,7 +1,7 @@
 # Randomized discounts — posted invoices with a spread of line discounts.
 #
-#   python -m scripts.demo_data.generate --org <sf-alias> \
-#       --config scripts/demo_data/scenarios/10-randomized-discounts.yaml \
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/10-randomized-discounts.yaml \
 #       --concurrency 3
 #
 # Each line gets a discount % drawn at random from the given range (per line, so

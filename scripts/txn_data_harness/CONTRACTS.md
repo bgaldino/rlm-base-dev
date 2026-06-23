@@ -1,11 +1,9 @@
-# Demo Sales Data Generator — Locked Contracts (Phase 0)
+# Transaction Data Harness — Locked Contracts (Phase 0)
 
-> **Status:** in progress. Read-only describes are verified live against sf alias
-> `rlm-base__jun17_1` (API v67.0 confirmed available). Live-POST bodies/response
-> shapes for the action endpoints are still **TODO** (task #2) and marked below.
->
-> No tool code (`lifecycle.py` etc.) is written until every `TODO (live)` here is
-> filled in. `lifecycle.py` is then a direct transcription of this file.
+> **Status:** implemented and live-verified against sf alias `rlm-base__jun17_1`
+> (API v67.0). `lifecycle.py` is a direct transcription of the endpoint bodies,
+> response shapes, async barriers, and sequencing rules captured here. Re-verify
+> against a live org and update this file before changing lifecycle behavior.
 
 ## Environment verified
 
@@ -56,8 +54,8 @@ the reason. Never treat a poll timeout as success.
 
 ## Lifecycle steps — endpoints, bodies, responses
 
-Documented-first (DG = v262 dev-guide). `TODO (live)` = must be confirmed with a
-real call in task #2 before transcription.
+Documented-first (DG = v262 dev-guide), then transcribed into `lifecycle.py` after
+live verification against the target org.
 
 ### 1. Opportunity (optional head)
 - **Endpoint:** `POST /services/data/v67.0/sobjects/Opportunity`

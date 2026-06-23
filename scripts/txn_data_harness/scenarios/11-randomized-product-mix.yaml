@@ -1,0 +1,43 @@
+# Randomized product mix — multi-line quotes from a product pool.
+#
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/11-randomized-product-mix.yaml \
+#       --concurrency 3
+#
+# Each transaction places a RANDOM NON-EMPTY SUBSET of the `products:` pool as
+# quote lines — a three-product pool yields anywhere from one to three lines, so
+# the resulting orders/invoices vary in shape (not every invoice is the same SKU
+# set). Per line, `quantity` and `discount` may each be a scalar or a [min, max]
+# range drawn per line.
+#
+# This is the realistic "lived-in billing" shape: varied multi-line invoices with
+# a spread of quantities and discounts. Use `08-product-mix.yaml` instead if you
+# want exactly one SKU per invoice (one spec per product).
+scenarios:
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-API-FLEX"          # Additional API Flex (100M) — $450
+        quantity: [1, 5]            # small-to-medium volume
+        discount: [5, 15]
+      - sku: "QB-API"               # Additional API — $2000
+        quantity: [1, 3]
+        discount: [10, 25]
+    count: 25
+
+# Proration knobs (`period_boundary` / `billing_frequency`) are supported per
+# product — some term products carry a proration policy whose PST place REQUIRES
+# both (without them the line fails with INVALID_PERIOD_BOUNDARY / "BillingFrequency
+# can't be null"); they are not derivable from the selling model, so set them on
+# the line. They were verified live to make such a product *place*. Example:
+#
+#   - sku: "QB-LIC-CLOUD"
+#     quantity: [1, 10]
+#     period_boundary: "AlignToCalendar"   # AlignToCalendar | Anniversary | DayOfPeriod | LastDayOfPeriod
+#     billing_frequency: "Annual"          # MilestonePlan | Monthly | Quarterly | Semi-Annual | Annual
+#
+# QB-LIC-CLOUD is intentionally kept OUT of the pool above: in the reference org it
+# places and activates but generates NO BillingSchedule (no error logged; identical
+# OrderItem billing config to the billable QB-API-FLEX — boundary value makes no
+# difference), so it can't reach a posted invoice. Only add proration products here
+# once they're confirmed to bill end-to-end in your target org.

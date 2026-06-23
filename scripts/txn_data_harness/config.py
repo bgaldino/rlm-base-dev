@@ -27,9 +27,10 @@ import json
 import logging
 import os
 from dataclasses import dataclass
+from datetime import date
 from typing import Any, Optional
 
-log = logging.getLogger("demo_data.config")
+log = logging.getLogger("txn_data_harness.config")
 
 # Built-in defaults (lowest precedence). target_stage caps/resolution happen in
 # generate.py against the resolved account -- this is just the requested stage.
@@ -45,6 +46,15 @@ _BUILTIN_DEFAULTS: dict[str, Any] = {
 }
 
 _VALID_STAGES = {"opportunity", "quote", "order", "activate", "invoice", "post"}
+
+# QuoteLineItem picklists (verified live against rlm-base__jun17_1, v67.0). Some
+# term products carry a proration policy that requires both at place time.
+_VALID_PERIOD_BOUNDARIES = {
+    "AlignToCalendar", "Anniversary", "DayOfPeriod", "LastDayOfPeriod",
+}
+_VALID_BILLING_FREQUENCIES = {
+    "MilestonePlan", "Monthly", "Quarterly", "Semi-Annual", "Annual",
+}
 
 
 class ConfigError(RuntimeError):
@@ -66,6 +76,12 @@ class ProductOption:
     sku: Optional[str]
     quantity: tuple[int, int]
     discount: Optional[tuple[float, float]] = None
+    # Proration period start (``PeriodBoundary``) + billing cadence
+    # (``BillingFrequency``). Required at place time for products carrying a
+    # proration policy (e.g. QB-LIC-CLOUD); not derivable from the selling model,
+    # so set per product. ``None`` => omit from the line.
+    period_boundary: Optional[str] = None
+    billing_frequency: Optional[str] = None
 
 
 @dataclass
@@ -83,6 +99,11 @@ class ScenarioSpec:
     with_opportunity: bool
     opportunity_stage: Optional[str]
     count: int
+    # Inclusive ``(lo, hi)`` range the quote's line StartDate is drawn from, per
+    # transaction -- the knob for spreading quotes over time. ``None`` => the
+    # lifecycle defaults each line StartDate to today. A single date is drawn once
+    # per transaction and applied to all of that quote's lines.
+    start_date: Optional[tuple[date, date]] = None
 
 
 def _load_file(path: str) -> dict:
@@ -173,15 +194,119 @@ def _coerce_quantity(value: Any, where: str) -> tuple[int, int]:
         lo, hi = value
     else:
         lo = hi = value
-    try:
-        lo, hi = int(lo), int(hi)
-    except (TypeError, ValueError) as exc:
-        raise ConfigError(f"{where}: quantity must be integer(s)") from exc
+    def as_int(raw: Any, label: str) -> int:
+        if isinstance(raw, float) and not raw.is_integer():
+            raise ConfigError(f"{where}: quantity {label} must be an integer")
+        try:
+            return int(raw)
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(f"{where}: quantity must be integer(s)") from exc
+
+    lo, hi = as_int(lo, "min"), as_int(hi, "max")
     if lo > hi:
         raise ConfigError(f"{where}: quantity min ({lo}) > max ({hi})")
     if lo < 1:
         raise ConfigError(f"{where}: quantity must be >= 1 (got {lo})")
     return (lo, hi)
+
+
+def _parse_date_token(value: Any, where: str) -> date:
+    """Resolve one date token to a concrete ``date``.
+
+    Accepts ``today``, a relative day offset (``+30`` / ``-15`` / ``+30d`` ==
+    today +/- N days), or an ISO ``YYYY-MM-DD`` string. Used for both ends of a
+    ``start_date`` range and for a ``around:`` anchor.
+    """
+    if isinstance(value, date):  # PyYAML parses bare YYYY-MM-DD as a date
+        return value
+    if not isinstance(value, str):
+        raise ConfigError(f"{where}: date must be a string (got {value!r})")
+    tok = value.strip()
+    if tok.lower() == "today":
+        return date.today()
+    if tok and tok[0] in "+-":
+        digits = tok[1:-1] if tok.lower().endswith("d") else tok[1:]
+        try:
+            days = int(digits)
+        except ValueError as exc:
+            raise ConfigError(
+                f"{where}: relative date must be +N / -N / +Nd (got {value!r})"
+            ) from exc
+        from datetime import timedelta
+        return date.today() + timedelta(days=(-days if tok[0] == "-" else days))
+    try:
+        return date.fromisoformat(tok)
+    except ValueError as exc:
+        raise ConfigError(
+            f"{where}: date must be ISO YYYY-MM-DD, 'today', or +/-N (got {value!r})"
+        ) from exc
+
+
+def _coerce_start_date(value: Any, where: str) -> Optional[tuple[date, date]]:
+    """Normalize a ``start_date`` spec into an inclusive ``(lo, hi)`` date range.
+
+    A concrete date is drawn uniformly from ``[lo, hi]`` per transaction (so a
+    range spreads quotes over time). Accepts:
+
+      * unset / ``None`` -> ``None`` (lifecycle defaults the line StartDate to today)
+      * exact: ``"2026-03-15"`` / ``today`` / ``"+30"`` -> ``(d, d)``
+      * range list: ``["2026-01-01", "2026-03-31"]`` -> ``(lo, hi)``
+      * range map: ``{from: ..., to: ...}`` -> ``(lo, hi)``
+      * window map: ``{around: <anchor>, plus_or_minus: N}`` -> ``(anchor-N, anchor+N)``
+        (``around`` defaults to today; ``plus_or_minus`` is a day count >= 0)
+    """
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        if "around" in value or "anchor" in value:
+            anchor = _parse_date_token(
+                value.get("around", value.get("anchor", "today")), where)
+            pm_raw = value.get("plus_or_minus", value.get("pm", 0))
+            try:
+                pm = int(pm_raw)
+            except (TypeError, ValueError) as exc:
+                raise ConfigError(
+                    f"{where}: start_date plus_or_minus must be an integer"
+                ) from exc
+            if pm < 0:
+                raise ConfigError(f"{where}: start_date plus_or_minus must be >= 0")
+            from datetime import timedelta
+            return (anchor - timedelta(days=pm), anchor + timedelta(days=pm))
+        if "from" in value or "to" in value:
+            lo = _parse_date_token(value["from"], where) if "from" in value else date.today()
+            hi = _parse_date_token(value["to"], where) if "to" in value else lo
+        else:
+            raise ConfigError(
+                f"{where}: start_date map needs 'around'/'anchor' or 'from'/'to'"
+            )
+    elif isinstance(value, (list, tuple)):
+        if len(value) != 2:
+            raise ConfigError(
+                f"{where}: start_date range must have exactly 2 values [from, to]"
+            )
+        lo = _parse_date_token(value[0], where)
+        hi = _parse_date_token(value[1], where)
+    else:
+        d = _parse_date_token(value, where)
+        return (d, d)
+    if lo > hi:
+        raise ConfigError(
+            f"{where}: start_date range start ({lo}) is after end ({hi})"
+        )
+    return (lo, hi)
+
+
+def _coerce_enum(
+    value: Any, where: str, field: str, valid: set[str]
+) -> Optional[str]:
+    """Validate an optional picklist value against ``valid`` (None => omit)."""
+    if value is None:
+        return None
+    if not isinstance(value, str) or value not in valid:
+        raise ConfigError(
+            f"{where}: {field} must be one of {', '.join(sorted(valid))} (got {value!r})"
+        )
+    return value
 
 
 def _coerce_product_option(
@@ -191,7 +316,8 @@ def _coerce_product_option(
 
     Per-entry ``quantity``/``discount`` win over the scenario-level fallbacks
     (``default_qty``/``default_discount``), mirroring how a scenario field wins
-    over ``defaults``.
+    over ``defaults``. ``period_boundary``/``billing_frequency`` are per-product
+    only (no scenario-level fallback) -- they're product-specific proration knobs.
     """
     if not isinstance(raw, dict) or not raw.get("sku"):
         raise ConfigError(f"{where}: each product needs an 'sku'")
@@ -201,6 +327,12 @@ def _coerce_product_option(
         sku=raw["sku"],
         quantity=_coerce_quantity(qty, where),
         discount=_coerce_discount(disc, where),
+        period_boundary=_coerce_enum(
+            raw.get("period_boundary"), where, "period_boundary",
+            _VALID_PERIOD_BOUNDARIES),
+        billing_frequency=_coerce_enum(
+            raw.get("billing_frequency"), where, "billing_frequency",
+            _VALID_BILLING_FREQUENCIES),
     )
 
 
@@ -234,11 +366,18 @@ def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
         ]
     else:
         # No explicit pool: a single (possibly auto-discovered) product line.
+        # Scenario-level proration knobs apply to this one line if set.
         products = [
             ProductOption(
                 sku=merged.get("product"),
                 quantity=_coerce_quantity(default_qty, where),
                 discount=_coerce_discount(default_discount, where),
+                period_boundary=_coerce_enum(
+                    merged.get("period_boundary"), where, "period_boundary",
+                    _VALID_PERIOD_BOUNDARIES),
+                billing_frequency=_coerce_enum(
+                    merged.get("billing_frequency"), where, "billing_frequency",
+                    _VALID_BILLING_FREQUENCIES),
             )
         ]
 
@@ -249,6 +388,7 @@ def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
         with_opportunity=bool(merged.get("with_opportunity", False)),
         opportunity_stage=merged.get("opportunity_stage"),
         count=count,
+        start_date=_coerce_start_date(merged.get("start_date"), where),
     )
 
 

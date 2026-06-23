@@ -1,6 +1,6 @@
-# Demo Data Generator — example config (all fields OPTIONAL).
+# Transaction Data Harness — example config (all fields OPTIONAL).
 #
-#   python -m scripts.demo_data.generate --org <sf-alias> --config scripts/demo_data/config.example.yaml
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> --config scripts/txn_data_harness/config.example.yaml
 #
 # Anything omitted is auto-discovered from the target org (billing-ready
 # account, preferred QB product, standard pricebook, legal entity, open
@@ -30,11 +30,22 @@ scenarios:
     target_stage: post
     with_opportunity: true
     products:
-      - sku: "QB-API-FLEX"     # only the first product is placed today
+      - sku: "QB-API-FLEX"     # one-entry product pool; add more SKUs for multi-line quotes
         quantity: 1
     count: 10
 
-  # Pipeline-only account (no BillingAccount) -> auto-capped at 'quote'.
+  # Pipeline account (no BillingAccount): quote -> order works, but activation
+  # needs billing setup, so a higher target_stage auto-caps at 'order'. Set
+  # target_stage: order to leave behind Orders (not just Quotes) for this account.
   - account: "Global Media"
-    target_stage: quote
+    target_stage: order
     count: 15
+
+# Spreading quotes over time — set `start_date` (scenario-level; one date is
+# drawn per transaction and applied to all of that quote's lines, anchoring the
+# term EndDate too). Omit it to default each line StartDate to today. Forms:
+#   start_date: "2026-03-15"                  # exact
+#   start_date: "+30"                         # relative: today + 30 days (also -15, +30d)
+#   start_date: ["2026-01-01", "2026-03-31"]  # range: drawn uniformly per quote
+#   start_date: {from: "2026-01-01", to: "+90"}            # range (map form)
+#   start_date: {around: "2026-06-01", plus_or_minus: 14}  # +/- N days around an anchor

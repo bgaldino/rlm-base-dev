@@ -1,11 +1,11 @@
-# Guide: Demo Data Generator
+# Guide: Transaction Data Harness
 
 How to populate a Revenue Cloud org with realistic, high-volume demo data —
 Opportunities, Quotes, Orders, activated Assets, Billing Schedules, and **Posted
 Invoices** — by driving the real transaction lifecycle.
 
-The tool lives at [`scripts/demo_data/`](../../scripts/demo_data/); its
-[`README.md`](../../scripts/demo_data/README.md) is the CLI/flag/config reference.
+The tool lives at [`scripts/txn_data_harness/`](../../scripts/txn_data_harness/); its
+[`README.md`](../../scripts/txn_data_harness/README.md) is the CLI/flag/config reference.
 This guide is the **operational** companion: how to run it against a live org,
 verify the output, and clean up afterward.
 
@@ -24,7 +24,7 @@ to run the actual chain:
 
 Every endpoint, body, response shape, and async-polling rule the tool relies on is
 live-verified and locked in
-[`scripts/demo_data/CONTRACTS.md`](../../scripts/demo_data/CONTRACTS.md). Read it
+[`scripts/txn_data_harness/CONTRACTS.md`](../../scripts/txn_data_harness/CONTRACTS.md). Read it
 before changing `lifecycle.py`.
 
 ## Prerequisites
@@ -36,9 +36,9 @@ before changing `lifecycle.py`.
   ```
 - **Pass an `sf` alias, not a CCI alias.** The CCI alias `beta` maps to the sf
   alias `rlm-base__beta` — use the sf one. (See CLAUDE.md → *Org Identity*.)
-- A billing-ready account (one with a `BillingAccount`) to reach `invoice`/`post`.
-  In QB only **Infinitech** is pre-wired; **Global Media** has none and is capped at
-  `quote`/`order`/`activate`.
+- A billing-ready account (one with a `BillingAccount`) to reach
+  `activate`/`invoice`/`post`. In QB only **Infinitech** is pre-wired; **Global
+  Media** has none and is capped at `order` (it still produces quotes + orders).
 - PyYAML (already in the repo's Python env) if you use `--config`.
 
 ## Step-by-step
@@ -46,7 +46,7 @@ before changing `lifecycle.py`.
 ### 1. Dry run first (no writes)
 
 ```bash
-python -m scripts.demo_data.generate --org <sf-alias> --dry-run
+python -m scripts.txn_data_harness.generate --org <sf-alias> --dry-run
 ```
 
 This resolves auth + discovery and prints the planned account/product/pricebook,
@@ -56,24 +56,24 @@ Always start here to confirm discovery picked sane records.
 ### 2. Single full chain
 
 ```bash
-python -m scripts.demo_data.generate --org <sf-alias> --count 1 --target-stage post -v
+python -m scripts.txn_data_harness.generate --org <sf-alias> --count 1 --target-stage post -v
 ```
 
 Watch the log walk the chain. On success the manifest at
-`scripts/demo_data/out/<run_id>.json` carries `reached_stage: "post"` and a
+`scripts/txn_data_harness/out/<run_id>.json` carries `reached_stage: "post"` and a
 populated `invoice_number` (e.g. `INV-US-06-2026-000003`).
 
 ### 3. Stage stops
 
 ```bash
-python -m scripts.demo_data.generate --org <sf-alias> --target-stage activate   # stops after activation
-python -m scripts.demo_data.generate --org <sf-alias> --target-stage invoice    # leaves a Draft invoice
+python -m scripts.txn_data_harness.generate --org <sf-alias> --target-stage activate   # stops after activation
+python -m scripts.txn_data_harness.generate --org <sf-alias> --target-stage invoice    # leaves a Draft invoice
 ```
 
 ### 4. Volume + concurrency
 
 ```bash
-python -m scripts.demo_data.generate --org <sf-alias> --count 25 --concurrency 4
+python -m scripts.txn_data_harness.generate --org <sf-alias> --count 25 --concurrency 4
 ```
 
 Re-run to confirm batches **accumulate** — each run gets a distinct
@@ -83,16 +83,36 @@ high values are untested against API limits and billing-engine async contention.
 ### 5. Mixed config run
 
 ```bash
-python -m scripts.demo_data.generate --org <sf-alias> --config scripts/demo_data/config.example.yaml --dry-run
+python -m scripts.txn_data_harness.generate --org <sf-alias> --config scripts/txn_data_harness/config.example.yaml --dry-run
 ```
 
 The example mixes a billable Infinitech `post` spec with a Global Media
-`quote`-only spec; the latter auto-caps because it has no BillingAccount. Drop
-`--dry-run` to execute.
+`order`-stage spec; the latter auto-caps at `order` (no BillingAccount) but still
+leaves behind quotes and orders. Drop `--dry-run` to execute.
+
+### Spreading quotes over time (`start_date`)
+
+By default each quote's line StartDate is today. Set a scenario's `start_date` to
+back- or forward-date quotes — one date is drawn **per transaction** and applied
+to that quote's lines (it also anchors the term `EndDate` = start + term), so a
+range spreads a `count: N` spec across the window:
+
+```yaml
+scenarios:
+  - account: "Infinitech"
+    target_stage: post
+    start_date: ["2026-01-01", "2026-03-31"]   # each quote drawn within Q1
+    count: 30
+```
+
+Accepted forms: exact (`"2026-03-15"`, `today`, `"+30"`/`"-15"` relative days); a
+range list `["2026-01-01", "+90"]` or map `{from: …, to: …}`; or a window
+`{around: <anchor>, plus_or_minus: N}` (anchor ± N days). The drawn date is
+recorded as `start_date` in each run manifest.
 
 ## Verifying in the org
 
-The per-run manifest (`scripts/demo_data/out/<run_id>.json`) is the source of
+The per-run manifest (`scripts/txn_data_harness/out/<run_id>.json`) is the source of
 truth — it lists every id by object. Prefer querying by those ids. Substitute your
 order id / invoice number:
 
@@ -125,7 +145,7 @@ sf data query --target-org <sf-alias> -q "
 ## Cleanup
 
 Each run is additive with no dedup, so clean up explicitly when done. **Drive
-cleanup from the manifest ids** (`scripts/demo_data/out/<run_id>.json`), not from
+cleanup from the manifest ids** (`scripts/txn_data_harness/out/<run_id>.json`), not from
 SOQL tag filters — `Order.Description` is not SOQL-filterable (see Verifying
 above), so a `WHERE Description LIKE 'DEMO-%'` sweep on Order fails.
 
@@ -134,7 +154,7 @@ opportunity.
 
 ```bash
 # Pull the ids for a run from its manifest.
-M=scripts/demo_data/out/<run_id>.json
+M=scripts/txn_data_harness/out/<run_id>.json
 jq -r '.asset_ids[]?'  "$M" | xargs -I{} sf data delete record --sobject Asset    --record-id {} --target-org <sf-alias>
 jq -r '.quote_id // empty' "$M" | xargs -I{} sf data delete record --sobject Quote --record-id {} --target-org <sf-alias>
 jq -r '.opportunity_id // empty' "$M" | xargs -I{} sf data delete record --sobject Opportunity --record-id {} --target-org <sf-alias>
@@ -164,7 +184,7 @@ disposable scratch/sandbox, not something you scrub clean repeatedly):
 | `ERROR: could not authenticate` (exit 2) | `sf` can't resolve `--org`. Confirm the **sf** alias (not CCI) with `sf org display --target-org <alias>`. |
 | `discovery failed` / `could not resolve … account/product` (exit 3) | No billing-ready account, or the pinned `--account`/`--product` name/SKU doesn't exist. Run `--dry-run` to see what discovery found. |
 | `bad config` (exit 4) | Malformed YAML or an invalid `target_stage`/`count`. The message names the offending scenario index. |
-| Scenario capped to `activate` unexpectedly | The account has no `BillingAccount` — it can't be invoiced. Pin a billing-ready account (Infinitech) or accept the cap. |
+| Scenario capped to `order` unexpectedly | The account has no `BillingAccount` — it can't be activated/invoiced. Pin a billing-ready account (Infinitech) or accept the cap (quotes + orders still land). |
 | Product won't place (PST fails) | A clean `PricebookEntry` isn't sufficient for a complex bundle (needs component/attribute/selling-model wiring). Pin a known-good SKU like `QB-API-FLEX`. |
 | Invoice step times out | Billing async lag exceeded `--poll-timeout`. Raise it (default 180s) or check `RevenueTransactionErrorLog` in the org. |
 | `INVALID_AUTH_HEADER` from CCI (not this tool) | Unrelated CLI token-redaction bug — see [cci-sf-cli-token-workaround.md](cci-sf-cli-token-workaround.md). This tool uses `sf` directly and is unaffected. |

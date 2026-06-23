@@ -17,8 +17,8 @@ All field names here are verified live against ``rlm-base__jun17_1`` (v67.0):
 
 Note: a clean PricebookEntry is necessary but not sufficient for a complex
 bundle to *place* (bundles also need component/attribute/selling-model wiring).
-Phase 2 adds an optional PST "probe" that actually places a quote to prove a
-product before fanning out volume; this module just surfaces candidates.
+The optional PST probe is reserved for a future hardening pass; today this
+module surfaces candidates and the first live transaction proves placement.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from typing import Optional
 
 from .auth import SfRestClient
 
-log = logging.getLogger("demo_data.discovery")
+log = logging.getLogger("txn_data_harness.discovery")
 
 DEFAULT_LEGAL_ENTITY = "Default Legal Entity - US"
 # Known-good QB catalog prefix; preferred when picking a default product.

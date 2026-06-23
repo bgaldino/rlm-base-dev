@@ -2,7 +2,7 @@
 
 Each function isolates one lifecycle step behind a single call so the rest of
 the tool is endpoint/shape-agnostic. Bodies, response shapes, ordering hazards,
-and async behavior are exactly as locked in ``scripts/demo_data/CONTRACTS.md``
+and async behavior are exactly as locked in ``scripts/txn_data_harness/CONTRACTS.md``
 (verified against ``rlm-base__jun17_1`` v67.0). When changing anything here,
 re-verify against the org and update CONTRACTS.md in the same change.
 
@@ -28,7 +28,7 @@ from typing import Any, Optional
 from .auth import SfRestClient
 from .discovery import Account, Product
 
-log = logging.getLogger("demo_data.lifecycle")
+log = logging.getLogger("txn_data_harness.lifecycle")
 
 # Account shipping fields copied onto the order before activation.
 _SHIPPING_FIELDS = [
@@ -38,6 +38,8 @@ _SHIPPING_FIELDS = [
 
 # Poll cadence for async/derived records (asset, billing schedule).
 _POLL_INTERVAL = 5  # seconds between poll ticks
+
+_BILLING_SCHEDULE_SUCCESS = {"ReadyForInvoicing", "CompletelyBilled"}
 
 # Assets carry no order/billing FK (CONTRACTS.md), so concurrent scenarios on
 # the same account+product can only be told apart by which asset id each one
@@ -76,6 +78,10 @@ class Manifest:
     asset_ids: list[str] = field(default_factory=list)
     invoice_id: Optional[str] = None
     invoice_number: Optional[str] = None
+    # The line StartDate placed on this quote (ISO; drawn from the scenario's
+    # start_date range, or None when defaulted to today) -- recorded so a run's
+    # spread over time is auditable from the manifests.
+    start_date: Optional[str] = None
     # The lines actually placed on the quote (sku/quantity/discount per line),
     # since a scenario draws a random product subset + per-line qty/discount.
     lines: list[dict] = field(default_factory=list)
@@ -91,11 +97,18 @@ class LineItem:
     """One resolved quote line to place: a product at a quantity, opt. discount.
 
     ``discount_percent`` (0..100) sets the line's ``Discount``; ``None`` => none.
+    ``period_boundary`` / ``billing_frequency`` set the line's proration period
+    start (``PeriodBoundary``) and billing cadence (``BillingFrequency``). Some
+    term products (e.g. QB-LIC-CLOUD) carry a proration policy that *requires*
+    both at place time; they're not derivable from SellingModelType, so the
+    config supplies them per product (CONTRACTS.md "Selling models").
     """
 
     product: Product
     quantity: int = 1
     discount_percent: Optional[float] = None
+    period_boundary: Optional[str] = None
+    billing_frequency: Optional[str] = None
 
 
 def _iso_today() -> str:
@@ -146,6 +159,7 @@ def place_sales_transaction(
     run_id: str,
     opportunity_id: Optional[str] = None,
     term_months: int = 12,
+    start_date: Optional[date] = None,
 ) -> str:
     """Place a quote with one or more lines. Returns the Quote id.
 
@@ -171,9 +185,16 @@ def place_sales_transaction(
         evergreen/one-time order products"). StartDate is safe for all.
       * PST commits the Quote header even on isSuccess:false -> caller records
         the returned id for cleanup regardless.
+
+    ``start_date`` (default today) sets every line's ``StartDate`` and anchors the
+    TermDefined ``EndDate`` (start + term); pass a per-transaction date to spread
+    quotes over time.
     """
     if not lines:
         raise LifecycleError("quote", "no lines to place")
+    start = start_date or date.today()
+    start_iso = start.isoformat()
+    end_iso = (start + timedelta(days=term_months * 30)).isoformat()
     quote_record: dict[str, Any] = {
         "attributes": {"method": "POST", "type": "Quote"},
         "Name": f"{run_id} Quote",
@@ -192,14 +213,20 @@ def place_sales_transaction(
             "Product2Id": line.product.id,
             "PricebookEntryId": line.product.pricebook_entry_id,
             "Quantity": str(line.quantity),
-            "StartDate": _iso_today(),
+            "StartDate": start_iso,
         }
         # Only term-defined products take an EndDate; Evergreen/OneTime reject it
         # at createOrderFromQuote (verified live -- CONTRACTS.md "Selling models").
         if line.product.needs_end_date:
-            line_record["EndDate"] = _iso_days(term_months * 30)
+            line_record["EndDate"] = end_iso
         if line.discount_percent is not None:
             line_record["Discount"] = line.discount_percent
+        # Products with a proration policy require these at place time; not
+        # derivable from the selling model, so they come from config per product.
+        if line.period_boundary is not None:
+            line_record["PeriodBoundary"] = line.period_boundary
+        if line.billing_frequency is not None:
+            line_record["BillingFrequency"] = line.billing_frequency
         records.append({"referenceId": f"refQuoteLine{i}", "record": line_record})
 
     body = {
@@ -287,18 +314,22 @@ def activate_order(client: SfRestClient, order_id: str) -> None:
 def poll_billing_schedules(
     client: SfRestClient,
     order_id: str,
+    expected_count: int = 1,
     timeout: int = 180,
 ) -> list[str]:
     """Wait for activation to auto-generate BillingSchedule(s) for the order.
 
     Correlate by BillingSchedule.ReferenceEntityId = orderId. Treat Status
-    'Error' as terminal failure; a timeout with zero rows is also a failure.
+    'Error' as terminal failure; only terminal success statuses unblock the
+    invoice step. Multi-line orders can produce several schedules, so wait for
+    the expected count instead of returning on the first row.
     """
     deadline = time.monotonic() + timeout
     soql = (
         "SELECT Id, Status FROM BillingSchedule "
         f"WHERE ReferenceEntityId = '{order_id}'"
     )
+    expected_count = max(1, expected_count)
     while time.monotonic() < deadline:
         rows = client.query(soql)
         if rows:
@@ -309,13 +340,21 @@ def poll_billing_schedules(
                     f"BillingSchedule in Error for order {order_id}: {errored}",
                     record_id=errored[0],
                 )
-            ids = [r["Id"] for r in rows]
-            log.info("order %s generated %d billing schedule(s)", order_id, len(ids))
-            return ids
+            ready = [
+                r["Id"] for r in rows
+                if r.get("Status") in _BILLING_SCHEDULE_SUCCESS
+            ]
+            if len(ready) >= expected_count:
+                log.info(
+                    "order %s generated %d/%d ready billing schedule(s)",
+                    order_id, len(ready), expected_count,
+                )
+                return ready
         time.sleep(_POLL_INTERVAL)
     raise LifecycleError(
         "billing_schedule",
-        f"no BillingSchedule for order {order_id} within {timeout}s",
+        f"fewer than {expected_count} ready BillingSchedule(s) for order "
+        f"{order_id} within {timeout}s",
         record_id=order_id,
     )
 
@@ -325,6 +364,7 @@ def poll_assets(
     account: Account,
     products: list[Product],
     since_iso: str,
+    expected_count: int = 1,
     timeout: int = 180,
 ) -> list[str]:
     """Wait for activation-generated Asset(s) across the order's product(s).
@@ -341,6 +381,7 @@ def poll_assets(
     """
     product_ids = sorted({p.id for p in products})
     skus = "/".join(sorted({p.sku for p in products}))
+    expected_count = max(1, min(expected_count, len(product_ids)))
     deadline = time.monotonic() + timeout
     in_list = ", ".join(f"'{pid}'" for pid in product_ids)
     soql = (
@@ -348,6 +389,7 @@ def poll_assets(
         f"WHERE AccountId = '{account.id}' AND Product2Id IN ({in_list}) "
         f"AND CreatedDate >= {since_iso}"
     )
+    claimed_for_this_order: list[str] = []
     while time.monotonic() < deadline:
         rows = client.query(soql)
         if rows:
@@ -355,14 +397,20 @@ def poll_assets(
                 ids = [r["Id"] for r in rows if r["Id"] not in _claimed_asset_ids]
                 _claimed_asset_ids.update(ids)
             if ids:
-                log.info("order assets: %d asset(s) for %s/%s", len(ids), account.name, skus)
-                return ids
+                claimed_for_this_order.extend(ids)
+                if len(claimed_for_this_order) >= expected_count:
+                    log.info(
+                        "order assets: %d/%d asset(s) for %s/%s",
+                        len(claimed_for_this_order), expected_count, account.name, skus,
+                    )
+                    return claimed_for_this_order
         time.sleep(_POLL_INTERVAL)
     # Assets are a nicety, not the billing gate -- log but don't hard-fail.
     log.warning(
-        "no Asset for %s/%s within %ds (continuing)", account.name, skus, timeout
+        "only found %d/%d Asset(s) for %s/%s within %ds (continuing)",
+        len(claimed_for_this_order), expected_count, account.name, skus, timeout,
     )
-    return []
+    return claimed_for_this_order
 
 
 # Invoice/BillingSchedule terminal-state sets (CONTRACTS.md picklists).
@@ -426,8 +474,9 @@ def generate_invoice(
                 raise LifecycleError(
                     "invoice", f"generated invoice in {status}", record_id=invoice_id
                 )
-            log.info("invoice %s generated (status=%s)", invoice_id, status)
-            return invoice_id, number
+            if status in _INVOICE_DRAFT_OK:
+                log.info("invoice %s generated (status=%s)", invoice_id, status)
+                return invoice_id, number
         time.sleep(_POLL_INTERVAL)
     raise LifecycleError(
         "invoice",
