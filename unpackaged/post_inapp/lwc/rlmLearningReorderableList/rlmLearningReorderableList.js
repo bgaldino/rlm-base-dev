@@ -4,6 +4,7 @@ import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getAllBlocks from "@salesforce/apex/RLM_Learning_SectionBlockSequence.getAllBlocks";
 import getBlocksForSection from "@salesforce/apex/RLM_Learning_SectionBlockSequence.getBlocksForSection";
 import updateSectionBlocks from "@salesforce/apex/RLM_Learning_SectionBlockSequence.updateSectionBlocks";
+import { reduceErrorMessage } from "c/rlmLearningCommonFunctions";
 
 export default class RlmLearningReorderableList extends LightningElement {
   @api objectApiName;
@@ -64,12 +65,12 @@ export default class RlmLearningReorderableList extends LightningElement {
   }
 
   showToast(title, error) {
-    const message =
-      error && error.body && error.body.message
-        ? error.body.message
-        : (error && error.message) || "Unknown error";
     this.dispatchEvent(
-      new ShowToastEvent({ title, message, variant: "error" })
+      new ShowToastEvent({
+        title,
+        message: reduceErrorMessage(error),
+        variant: "error"
+      })
     );
   }
 }

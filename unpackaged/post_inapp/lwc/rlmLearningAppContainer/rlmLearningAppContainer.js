@@ -1,7 +1,10 @@
 import { LightningElement, track, wire } from "lwc";
 import { NavigationMixin } from "lightning/navigation";
 import getSectionsWithBlocksByType from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByType";
-import { getPageReferenceByDynamicType } from "c/rlmLearningCommonFunctions";
+import {
+  getPageReferenceByDynamicType,
+  reduceErrorMessage
+} from "c/rlmLearningCommonFunctions";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 
 export default class RlmLearningAppContainer extends NavigationMixin(
@@ -100,7 +103,7 @@ export default class RlmLearningAppContainer extends NavigationMixin(
   showToast(error, errorMessage) {
     const toastEvent = new ShowToastEvent({
       title: "Error",
-      message: error.body ? error.body.message : errorMessage,
+      message: reduceErrorMessage(error, errorMessage),
       variant: "error"
     });
     this.dispatchEvent(toastEvent);

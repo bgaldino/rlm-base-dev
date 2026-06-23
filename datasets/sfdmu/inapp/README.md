@@ -260,9 +260,16 @@ The composite-traversal externalId on `RLM_Learning_SectionBlock__c` does **not*
 (CLAUDE.md SFDMU Bug 3/5) — a live load proved a re-run doubled the 120 junction rows to 240.
 **Fix applied:** `RLM_Learning_SectionBlock__c` uses **`operation: Insert` + `deleteOldData: true`**, which
 wipes the junction and reinserts each run. Verified idempotent on `ent-r1`: three consecutive
-loads held it at 120 (total 401, no drift). `deleteOldData` only targets the junction (its
+loads held it at 120 (total 402, no drift). `deleteOldData` only targets the junction (its
 parents are Upsert-idempotent on their `Name` key), and the junction has no inbound references,
 so the per-run wipe is safe.
+
+> ⚠️ **Operational caveat — reorder edits reset on every load.** Because the junction is
+> wiped and reinserted, **any in-org changes to section/block ordering made through the UI
+> (the `RLM_Learning_SectionBlockSequence` reorder quick action) are reset to the dataset's
+> values on the next `prepare_inapp` / `load_inapp_dataset` run.** This is intentional — the
+> dataset is the source of truth for ordering. To persist a new order, change it in the CSVs
+> (`RLM_Learning_Order_Sequence__c`) rather than only in the org.
 
 ## Run
 

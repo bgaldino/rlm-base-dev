@@ -66,6 +66,25 @@ const firstOrThrow = (rows, label) => {
   return rows[0];
 };
 
+// Salesforce wire/Apex/LDS errors arrive in several shapes: { body: { message } },
+// { body: [{ message }, ...] } (FIELD_/DML errors), or a plain { message }. Reduce any
+// of them to one human-readable string so a toast never renders blank, falling back to
+// `fallback` when nothing usable is present.
+const reduceErrorMessage = (error, fallback = "Unknown error") => {
+  if (!error) {
+    return fallback;
+  }
+  const body = error.body;
+  if (Array.isArray(body)) {
+    const joined = body
+      .map((e) => e && e.message)
+      .filter(Boolean)
+      .join(", ");
+    return joined || fallback;
+  }
+  return (body && body.message) || error.message || fallback;
+};
+
 const getPageReferenceByDynamicType = async (dynamicLink) => {
   var pageReference;
   switch (dynamicLink.RecordType.DeveloperName) {
@@ -353,5 +372,6 @@ export {
   findDynamicLinkIdentifier,
   escapeHtml,
   safeVideoUrl,
-  requireSafeUrl
+  requireSafeUrl,
+  reduceErrorMessage
 };

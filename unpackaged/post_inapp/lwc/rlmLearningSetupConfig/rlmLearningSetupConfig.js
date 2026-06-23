@@ -8,7 +8,8 @@ import {
   getDynamicLinkByIdentifier,
   getPageReferenceByDynamicType,
   escapeHtml,
-  requireSafeUrl
+  requireSafeUrl,
+  reduceErrorMessage
 } from "c/rlmLearningCommonFunctions";
 import getSectionWithBlockBySectionId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId";
 
@@ -182,7 +183,7 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
   showToast(error, errorMessage) {
     const toastEvent = new ShowToastEvent({
       title: "Error",
-      message: error.body ? error.body.message : errorMessage,
+      message: reduceErrorMessage(error, errorMessage),
       variant: "error"
     });
     this.dispatchEvent(toastEvent);
