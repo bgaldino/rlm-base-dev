@@ -86,7 +86,7 @@ const reduceErrorMessage = (error, fallback = "Unknown error") => {
 };
 
 const getPageReferenceByDynamicType = async (dynamicLink) => {
-  var pageReference;
+  let pageReference;
   switch (dynamicLink.RecordType.DeveloperName) {
     case "NamedPage":
       pageReference = {

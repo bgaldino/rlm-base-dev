@@ -153,12 +153,12 @@
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>Private</externalSharingModel>
-    <label>DynamicLink</label>
+    <label>Dynamic Link</label>
     <nameField>
-        <label>DynamicLink Name</label>
+        <label>Dynamic Link Name</label>
         <type>Text</type>
     </nameField>
-    <pluralLabel>DynamicLinks</pluralLabel>
+    <pluralLabel>Dynamic Links</pluralLabel>
     <searchLayouts></searchLayouts>
     <sharingModel>ReadWrite</sharingModel>
     <visibility>Public</visibility>

@@ -2,7 +2,7 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>RLM_Learning_ActionText__c</fullName>
     <externalId>false</externalId>
-    <label>ActionText</label>
+    <label>Action Text</label>
     <length>255</length>
     <required>false</required>
     <trackTrending>false</trackTrending>

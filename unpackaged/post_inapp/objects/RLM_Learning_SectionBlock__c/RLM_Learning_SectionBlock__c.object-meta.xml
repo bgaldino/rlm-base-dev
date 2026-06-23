@@ -153,13 +153,13 @@
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
     <externalSharingModel>Private</externalSharingModel>
-    <label>SectionBlock</label>
+    <label>Section Block</label>
     <nameField>
         <displayFormat>SectionBlock-{000}</displayFormat>
-        <label>SectionBlock Name</label>
+        <label>Section Block Name</label>
         <type>AutoNumber</type>
     </nameField>
-    <pluralLabel>SectionBlocks</pluralLabel>
+    <pluralLabel>Section Blocks</pluralLabel>
     <searchLayouts></searchLayouts>
     <sharingModel>ReadWrite</sharingModel>
     <visibility>Public</visibility>
