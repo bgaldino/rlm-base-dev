@@ -1268,7 +1268,15 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
         return variables
 
     def _remove_variables(self, variables: list, to_remove: list) -> list:
-        names = {v["name"] for v in to_remove}
+        # Accept either bare strings or {"name": "..."} entries — variables
+        # have no other field to address, so a list of names is the natural
+        # shape. removeSteps requires objects (it could grow extra keys).
+        names = set()
+        for entry in to_remove:
+            if isinstance(entry, str):
+                names.add(entry)
+            elif isinstance(entry, dict) and entry.get("name"):
+                names.add(entry["name"])
         original_count = len(variables)
         variables = [v for v in variables if v.get("name") not in names]
         removed = original_count - len(variables)

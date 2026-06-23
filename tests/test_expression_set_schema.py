@@ -1091,6 +1091,71 @@ def test_apply_overlay_dangling_parentstep_caught_locally():
     )
 
 
+# ---- removeVariables shape (PR #246 live-verification follow-up) ----
+
+def test_overlay_removevariables_accepts_string_list():
+    # Live test surfaced that _remove_variables crashed with a cryptic
+    # "string indices must be integers" when given a bare list of names —
+    # the natural shape for an operation that has no other field to address.
+    # Schema must accept it, and the helper must remove by name.
+    overlay = {"removeVariables": ["v1", "v2"]}
+    r = validate_overlay(overlay)
+    check(
+        "validator accepts removeVariables: [string, string]",
+        r.passed,
+    )
+    applier = _OverlayApplier()
+    remaining = applier._remove_variables(
+        [{"name": "v1"}, {"name": "v2"}, {"name": "keep"}],
+        ["v1", "v2"],
+    )
+    check(
+        "_remove_variables removes by bare-string name",
+        [v["name"] for v in remaining] == ["keep"],
+    )
+
+
+def test_overlay_removevariables_accepts_object_list():
+    # Object shape stays supported for parity with removeSteps and so the
+    # JSON can grow future fields without a breaking change.
+    overlay = {"removeVariables": [{"name": "v1"}, {"name": "v2"}]}
+    r = validate_overlay(overlay)
+    check(
+        "validator accepts removeVariables: [{name}, {name}]",
+        r.passed,
+    )
+    applier = _OverlayApplier()
+    remaining = applier._remove_variables(
+        [{"name": "v1"}, {"name": "v2"}, {"name": "keep"}],
+        [{"name": "v1"}, {"name": "v2"}],
+    )
+    check(
+        "_remove_variables removes by object-with-name",
+        [v["name"] for v in remaining] == ["keep"],
+    )
+
+
+def test_overlay_removevariables_rejects_bad_shape():
+    overlay = {"removeVariables": [123]}
+    r = validate_overlay(overlay)
+    check(
+        "validator rejects non-string non-object removeVariables entry",
+        not r.passed and _has_error_containing(r, "string name or an object"),
+    )
+    overlay = {"removeVariables": [""]}
+    r = validate_overlay(overlay)
+    check(
+        "validator rejects empty-string removeVariables entry",
+        not r.passed and _has_error_containing(r, "non-empty"),
+    )
+    overlay = {"removeVariables": [{"notName": "v1"}]}
+    r = validate_overlay(overlay)
+    check(
+        "validator rejects object entry without 'name'",
+        not r.passed and _has_error_containing(r, "name"),
+    )
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     print(f"Running {len(tests)} validator test groups...\n")

@@ -618,6 +618,28 @@ def validate_overlay(overlay: dict) -> ValidationResult:
                 if name:
                     added_var_names.add(name)
 
+    remove_vars = overlay.get("removeVariables", [])
+    if not isinstance(remove_vars, list):
+        result.error("removeVariables", "must be a list.")
+    else:
+        for i, entry in enumerate(remove_vars):
+            if isinstance(entry, str):
+                if not entry:
+                    result.error(
+                        f"removeVariables[{i}]", "variable name must be non-empty."
+                    )
+            elif isinstance(entry, dict):
+                if not entry.get("name"):
+                    result.error(
+                        f"removeVariables[{i}]",
+                        "object entry requires a non-empty 'name'.",
+                    )
+            else:
+                result.error(
+                    f"removeVariables[{i}]",
+                    "must be a string name or an object with a 'name'.",
+                )
+
     _validate_external_dependencies(overlay.get("externalDependencies"), result)
     _warn_undeclared_external_dependencies(overlay, result)
 
