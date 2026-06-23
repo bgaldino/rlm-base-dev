@@ -231,9 +231,11 @@ Sets skill defers back here:
   pricing-procedure prerequisites the Expression Set engine does not know about;
   satisfy them before deploying/activating the procedure.
 
-The shipped overlays under `datasets/expression_set_overlays/` are pricing
-examples (`map_line_item`, `discount_distribution`, `facility_quantity`); the
-Expression Sets skill walks through each. Always test procedure CRUD against a
+The shipped overlays under `datasets/expression_set_overlays/` are generally
+applicable pricing examples (`map_line_item`, `discount_distribution`). More
+environment-specific reference overlays live under
+`docs/references/expression-set-overlay-examples/`; the Expression Sets skill
+walks through both categories. Always test procedure CRUD against a
 **disposable clone**, never the shipped `RLM_DefaultPricingProcedure`.
 
 ---

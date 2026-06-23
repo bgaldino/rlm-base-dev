@@ -295,19 +295,24 @@ For new-version semantics rather than in-place edit, prefer **create-with-conten
 
 ## Examples
 
-Shipped overlays in `datasets/expression_set_overlays/` are the canonical
-examples. Capture each from a live GET, HTML-unescape, validate,
-cross-check, then apply to a **disposable clone** before any real target.
+Shipped overlays in `datasets/expression_set_overlays/` are generally
+applicable examples. Environment-specific examples live under
+`docs/references/expression-set-overlay-examples/` so they remain available for
+study without looking like safe default overlays. Capture each from a live GET,
+HTML-unescape, validate, cross-check, then apply to a **disposable clone** before
+any real target.
 
 | Overlay | Shape | Dependency scopes demonstrated |
 |---|---|---|
 | `map_line_item.json` | flat, single step (`actionType: BreakdownLineMapping`; maps `SalesTransactionItem` → `SalesTransactionItemDetail`, 18 `sectionJsonStringN` field-mappings) | standard context only — no `addVariables`, no `externalDependencies` |
 | `discount_distribution.json` | **nested** — 3 `ListGroup` parents (each with an `AdvancedListFilter` + `AssignmentElement` child) feeding a `DiscountDistributionService` element | ships 4 `Constant_DDS_*` constants in `addVariables`; rest standard context (incl. `__std` discount fields) → no `externalDependencies` |
-| `facility_quantity.json` | **nested** — 2 `ListGroup` blocks, incl. a `FormulaBasedPricing` child computing `SalesTransaction_Hospitals__c - ItemStartQuantity` | **all three scopes**: `HospitalPrice` in `addVariables`; the custom field `SalesTransaction_Hospitals__c` (mapped into `RLM_SalesTransactionContext`) in `externalDependencies`; `ItemProductCode`/`ItemStartQuantity`/etc. standard context |
+| `docs/references/expression-set-overlay-examples/facility-quantity.overlay.example.json` | **Environment-specific reference** — 2 `ListGroup` blocks, incl. a `FormulaBasedPricing` child computing `SalesTransaction_Hospitals__c - ItemStartQuantity` | **all three scopes**: `HospitalPrice` in `addVariables`; the custom field `SalesTransaction_Hospitals__c` (mapped into `RLM_SalesTransactionContext`) in `externalDependencies`; `ItemProductCode`/`ItemStartQuantity`/etc. standard context |
 
-`facility_quantity.json` also shows that a custom field can be referenced inside
-a `Formula` string, not just a `Parameter` — so the dependency scan must
-tokenize formula text, which the validator does.
+The facility-quantity example is intentionally not in
+`datasets/expression_set_overlays/`: it depends on an org-specific custom field,
+context mapping, and procedure-shape anchor. It also shows that a custom field
+can be referenced inside a `Formula` string, not just a `Parameter`, so the
+dependency scan must tokenize formula text, which the validator does.
 
 ### Map Line Item — special case
 

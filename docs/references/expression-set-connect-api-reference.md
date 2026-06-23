@@ -261,6 +261,11 @@ each with an `AdvancedListFilter` + `AssignmentElement` child, followed by the
 `DiscountDistributionService` element, **plus** 4 `Constant_DDS_*` version
 constants in `addVariables`).
 
+Environment-specific examples belong under
+`docs/references/expression-set-overlay-examples/`, not the shipped overlay
+directory, so authors can study their dependency patterns without treating them
+as broadly applicable payloads.
+
 ### Capture the steps' dependencies, not just the steps
 
 An `addSteps` element references variables/fields by name — in
@@ -310,19 +315,22 @@ The apply task ignores it; the validator checks its shape and uses it to silence
 the custom-reference warning. (`__std`/standard fields don't belong here — they
 ship with the standard context.)
 
-Shipped overlay examples:
+Overlay examples:
 - `discount_distribution.json` — references **19** names: **4** version-level
   constants (`Constant_DDS_Amount` = `"Amount"`, `_Percentage`, `_Override`,
   `_NetUnitPrice`, all `Constant`/`Text`) shipped in `addVariables`; the rest are
   standard context (`__std` discount fields + standard tags). No custom external
   dependency, so no `externalDependencies` block.
-- `facility_quantity.json` — ships the `HospitalPrice` constant in
-  `addVariables` and declares the **custom field
+- `docs/references/expression-set-overlay-examples/facility-quantity.overlay.example.json`
+  — environment-specific reference overlay. It ships the `HospitalPrice`
+  constant in `addVariables` and declares the **custom field
   `SalesTransaction_Hospitals__c` (mapped into `RLM_SalesTransactionContext`)**
   in `externalDependencies`. It references that field as a filter
   `sourceFieldName`, a `Parameter`, **and** inside a `Formula`
   (`SalesTransaction_Hospitals__c - ItemStartQuantity`). `ItemProductCode`,
-  `ItemStartQuantity`, etc. are standard context.
+  `ItemStartQuantity`, etc. are standard context. Because it depends on a custom
+  field, matching context mapping, and target procedure anchor, keep it as a
+  reference/example unless the target environment is known to match.
 
 ### Removing steps — validation is structural, not functional
 

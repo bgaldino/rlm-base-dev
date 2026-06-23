@@ -288,6 +288,21 @@ def test_shipped_discount_distribution_ships_constants():
     )
 
 
+def test_reference_facility_quantity_example_passes():
+    # Environment-specific example retained outside the shipped overlay folder:
+    # validates all-three-scope dependency capture without implying broad
+    # applicability to every org.
+    path = (
+        "docs/references/expression-set-overlay-examples/"
+        "facility-quantity.overlay.example.json"
+    )
+    if not os.path.exists(path):
+        print("  [SKIP] facility-quantity example not present")
+        return
+    r = validate_overlay(json.load(open(path)))
+    check("reference facility-quantity example validates clean", r.passed and not r.errors)
+
+
 # ---- External-dependency detection (custom field / context node) ----
 
 def test_extdep_warns_on_undeclared_custom_field():
