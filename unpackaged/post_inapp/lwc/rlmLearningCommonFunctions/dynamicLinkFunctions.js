@@ -281,10 +281,14 @@ const getDynamicLinkByIdentifier = async (identifier) => {
 
 const findDynamicLinkIdentifier = (input, middlePosition) => {
   // Walk backwards from middlePosition while the character is part of the
-  // identifier (A-Z or "_"), stopping at the first character that is not (or the
-  // start of the string). "DYN_LINK" is 8 chars, hence the +8 upper bound.
+  // identifier (A-Z, a-z, 0-9 or "_"), stopping at the first character that is not
+  // (or the start of the string). Identity values are mixed-case (e.g.
+  // "PriceManagement_Getstarted_DYN_LINK"). "DYN_LINK" is 8 chars, hence the +8.
   const isIdentifierChar = (code) =>
-    (code >= 65 && code <= 90) || code === 95;
+    (code >= 48 && code <= 57) || // 0-9
+    (code >= 65 && code <= 90) || // A-Z
+    (code >= 97 && code <= 122) || // a-z
+    code === 95; // _
   let spacePosition = middlePosition;
   while (
     spacePosition >= 0 &&

@@ -12,10 +12,19 @@ public with sharing class RLM_Learning_SectionBlockController {
       throw new AuraHandledException('Page type cannot be null or empty.');
     }
     List<RLM_Learning_Page__c> result = [
-      SELECT Id FROM RLM_Learning_Page__c WHERE RLM_Learning_Type__c = :pageType WITH USER_MODE
+      SELECT Id
+      FROM RLM_Learning_Page__c
+      WHERE RLM_Learning_Type__c = :pageType AND RLM_Learning_Active__c = TRUE
+      WITH USER_MODE
+      ORDER BY Name
     ];
     if (result.isEmpty()) {
-      throw new AuraHandledException('No Page type is available.');
+      throw new AuraHandledException('No active page found for type: ' + pageType);
+    }
+    if (result.size() > 1) {
+      throw new AuraHandledException(
+        'Multiple active pages found for type: ' + pageType
+      );
     }
     String pageId = result[0].Id;
     return getSectionsByPageId(sectionType, pageId);

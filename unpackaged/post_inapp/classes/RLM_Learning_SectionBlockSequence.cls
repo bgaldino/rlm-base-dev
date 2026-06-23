@@ -1,7 +1,15 @@
 public with sharing class RLM_Learning_SectionBlockSequence {
   @AuraEnabled(cacheable=true)
   public static List<RLM_Learning_Block__c> getAllBlocks() {
-    return [SELECT Id, Name FROM RLM_Learning_Block__c WITH USER_MODE];
+    // Only active blocks (the home renders active blocks only), ordered for a
+    // deterministic picker.
+    return [
+      SELECT Id, Name
+      FROM RLM_Learning_Block__c
+      WHERE RLM_Learning_Active__c = TRUE
+      WITH USER_MODE
+      ORDER BY Name
+    ];
   }
 
   //get blocks for a section from the sectionblock entity

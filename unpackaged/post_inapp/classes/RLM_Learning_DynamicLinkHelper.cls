@@ -84,11 +84,15 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
     if (String.isEmpty(objectAPIName)) {
       throw new AuraHandledException('Setup page Name cannot be null or empty.');
     }
-    // record must be a real Id — validate before it goes into the returned URL.
-    Id recordId = Id.valueOf(record);
+    if (String.isEmpty(record)) {
+      throw new AuraHandledException('Record id cannot be null or empty.');
+    }
     String baseUrl = System.Url.getOrgDomainUrl().toExternalForm();
     String noRedirect = '?noredirect=1';
     try {
+      // record must be a real Id — validate inside the try so a bad value surfaces
+      // as a clear AuraHandledException, not a raw TypeException.
+      Id recordId = Id.valueOf(record);
       // Exact match on DeveloperName: a LIKE '%x%' could match the wrong record
       // (e.g. PermissionSet also matches PermissionSetGroup). The bind variable
       // also removes the dynamic-SOQL injection surface.
