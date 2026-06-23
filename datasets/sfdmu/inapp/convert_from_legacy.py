@@ -381,6 +381,13 @@ def write_csv(name, header, rows):
 
 def main():
     src = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(DEFAULT_SRC)
+    if not src.exists():
+        sys.exit(
+            f"Legacy source SQL not found: {src}\n"
+            f"Pass the path to Industries-In-App-Framework/datasets/rlm/rlm.dataset.sql "
+            f"as the first argument (or update DEFAULT_SRC). This script regenerates the "
+            f"CSVs from that legacy dump and is only needed when the source content changes."
+        )
     sql = src.read_text()
 
     # NOTE: parse_table reads the LEGACY SQL dump, which uses the ORIGINAL (unprefixed) table

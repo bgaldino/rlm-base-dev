@@ -6,7 +6,8 @@ import {
   getDynamicLinkByIdentifier,
   getPageReferenceByDynamicType,
   escapeHtml,
-  safeVideoUrl
+  safeVideoUrl,
+  requireSafeUrl
 } from "c/rlmLearningCommonFunctions";
 
 export default class RlmLearningAppOverview extends NavigationMixin(
@@ -75,7 +76,7 @@ export default class RlmLearningAppOverview extends NavigationMixin(
         const dynamicLink = await getDynamicLinkByIdentifier(identifier);
         let url = "";
         if (dynamicLink.RecordType.DeveloperName === "WebPage") {
-          url = dynamicLink.RLM_Learning_Link__c;
+          url = requireSafeUrl(dynamicLink.RLM_Learning_Link__c);
         } else {
           const pageRef = await getPageReferenceByDynamicType(dynamicLink);
           if (

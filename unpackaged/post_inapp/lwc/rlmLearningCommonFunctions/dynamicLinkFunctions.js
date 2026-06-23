@@ -345,5 +345,6 @@ export {
   getPageReferenceByDynamicType,
   findDynamicLinkIdentifier,
   escapeHtml,
-  safeVideoUrl
+  safeVideoUrl,
+  requireSafeUrl
 };

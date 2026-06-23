@@ -7,7 +7,8 @@ import {
   findDynamicLinkIdentifier,
   getDynamicLinkByIdentifier,
   getPageReferenceByDynamicType,
-  escapeHtml
+  escapeHtml,
+  requireSafeUrl
 } from "c/rlmLearningCommonFunctions";
 import getSectionWithBlockBySectionId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId";
 
@@ -133,7 +134,7 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
         const dynamicLink = await getDynamicLinkByIdentifier(identifier);
         let url = "";
         if (dynamicLink.RecordType.DeveloperName === "WebPage") {
-          url = dynamicLink.RLM_Learning_Link__c;
+          url = requireSafeUrl(dynamicLink.RLM_Learning_Link__c);
         } else {
           const pageRef = await getPageReferenceByDynamicType(dynamicLink);
           if (

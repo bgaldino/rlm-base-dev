@@ -97,9 +97,9 @@ DeveloperName**; the CSVs provide a `RecordType.DeveloperName` column (the sourc
 
 ### Image re-host — how it works
 
-The 15 images are referenced only inside `RLM_Learning_Block__c.RLM_Learning_Description__c`. Full inventory (Block id,
-owning record `eid`, image `refid`, original filename, capability page) is in
-`.agents/artifacts/in-app-framework-stripped-images-manifest.md`.
+The 15 images are referenced only inside `RLM_Learning_Block__c.RLM_Learning_Description__c`. The block→image
+mapping (filename slug + alt text) is encoded in `convert_from_legacy.py` (`rewrite_block_images`), which re-points
+each legacy `<img>` to `/resource/InAppLearningImages/<block-name-slug>.png`.
 
 - **Files:** `unpackaged/post_inapp/staticresources/InAppLearningImages/` (15 images, one per
   image-bearing block, named `<block-name-slug>.png` — all normalized to PNG; the 3 the source
