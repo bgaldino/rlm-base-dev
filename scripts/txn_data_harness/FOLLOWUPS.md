@@ -207,6 +207,114 @@ spotted in passing, and probes that would generalize a finding.
   - Whether `Status = Canceled` ever appears for a schedule we
     created (vs. only the row-locking transient path).
 
+### Deferred from /code-review (2026-06-23)
+
+A high-effort review surfaced these on the `feat/txn-data-harness`
+branch. Three findings (silent `Months` fallback in
+`runner._resolve_term`, `parse_retention` duplication, and the
+`_coerce_*` range duplication) were fixed in the same pass; the rest
+land here because each needs either live verification or a wider
+design decision.
+
+- `[gap]` **`poll_assets` stable-count convergence is too aggressive
+  under staggered AAS writes.** `lifecycle.py:404-418` exits as soon
+  as the AAS-derived asset id count is non-empty AND stable across
+  two consecutive `_POLL_INTERVAL` (5s) ticks. If `OrderItem`
+  expansion finishes asynchronously and AAS rows land in waves
+  (e.g. 3 of 5 on tick 2, the other 2 on tick 4), the predicate
+  fires on the partial set and the poll returns an incomplete list.
+  `run_usage` (`steps.py:147`) hard-fails with `"no asset found"`
+  on the orphan SKUs; same-SKU bundles could pair the wrong asset
+  positionally. The CONTRACTS.md timing note ("Asset created
+  01:28:44, AAS created 01:28:45") covers the well-behaved case
+  only.
+  - `[probe]` Activate a bundle that expands to >5 OrderItems and
+    record AAS write timestamps for each row. If max spread > 5s,
+    the current 2-tick window is unsafe.
+  - **Possible fixes:** require N≥3 stable ticks, OR derive an
+    expected lower bound from `count_order_items` and require the
+    last poll to match it, OR add a minimum-stability-duration tied
+    to OrderItem count.
+  - Ref: `lifecycle.py:340-431` (`poll_assets`); `steps.py:113-117`
+    (call site); CONTRACTS.md → *Asset attribution*.
+
+- `[gap]` **`EndDate` override anchors on `date.today()` when
+  `start_date` is None.** `lifecycle.py:192-194` resolves
+  `line.end_date` against `start_date or date.today()`. The
+  `StartDate` written to the QuoteLineItem (`line 154`) defaults the
+  same way, so a single call lands consistently — but on a resumed
+  scenario where `start_date` was None at original-place time and
+  the resume happens across a date boundary (or the manifest
+  carries a serialized override with no anchor recorded), the
+  override and StartDate could disagree by a day. The class of bug
+  is subtle and easy to miss in CI.
+  - `[probe]` Resume an `end_date=mo:12` scenario across midnight
+    UTC and confirm the EndDate readback matches StartDate + 12mo
+    from the original-place day, not the resume day.
+  - **Possible fix:** persist the resolved EndDate (not the
+    unresolved override) on the manifest once the line places, so
+    resume never re-resolves.
+  - Ref: `lifecycle.py:154,192-194`; `models.py:115-205`
+    (`LineItem` serialization).
+
+- `[gap]` **`poll_assets` soft-fails empty on timeout, making
+  zero-asset activations invisible.** `lifecycle.py:419-431` logs a
+  warning and returns `[]` when the poll never converges. A
+  scenario with no usage lines never trips `run_usage`'s
+  empty-pool check, so the manifest records
+  `reached_stage="activate"` and the batch report shows SUCCESS
+  even though the activation produced no attributable assets. This
+  is intentional per the docstring (assets are best-effort relative
+  to the billing gate), but the silence makes it impossible to
+  detect activation-asset gaps after the run.
+  - **Possible fixes:** record `manifest.asset_poll_status`
+    (`"converged"` / `"timeout_empty"` / `"timeout_partial"`) so
+    the batch report can surface it, OR add a CLI flag that
+    promotes `timeout_empty` to a failure when `usage_lines` is
+    empty.
+  - Ref: `lifecycle.py:340-431`; `report.py:build_batch_report`.
+
+- `[gap]` **`_SHIPPING_FIELDS` hardcoded to 5 US-style fields.**
+  `lifecycle.py:36-39` queries
+  `Shipping{Street,City,State,PostalCode,Country}` and copies them
+  to the order. Non-US address layouts (`ShippingAddress__c`
+  compounds, JP-style Prefecture/Postal) won't surface and
+  activation hard-fails `FAILED_ACTIVATION` with no harness-side
+  diagnostic. Adjacent to the open `[verify] Bill to Contact +
+  Billing Address requirement` item above.
+  - **Possible fix:** make `_SHIPPING_FIELDS` configurable via
+    `discovery.OrgContext` (e.g. include any custom shipping field
+    discovered on Account's schema), or derive from describe.
+
+- `[anomaly]` **`set_shipping_address` re-queries Account.Shipping
+  fields once per order.** `lifecycle.py:258-277` issues a SOQL for
+  the 5 shipping fields on every activation, even when many orders
+  share the same account. A 50-scenario batch against one account
+  spends 50 round-trips on identical reads. The discovery `Account`
+  dataclass already exists; carrying the shipping payload at
+  discovery time eliminates the per-order query. Pure efficiency;
+  no correctness impact.
+  - Ref: `lifecycle.py:258-277`; `discovery.py:179` (`resolve_account`).
+
+- `[gap]` **`poll_assets` hardcodes `CategoryEnum='Initial Sale'`.**
+  Correct for the activation path under test; not parameterized.
+  An amendment/renewal scenario reusing `poll_assets` would
+  silently return `[]` or just the initial-sale rows. Pre-emptive
+  altitude fix: thread a `category_enum` kwarg through now to
+  avoid the inevitable `poll_assets_for_amendment` copy.
+  - Ref: `lifecycle.py:399`; CONTRACTS.md → *Asset attribution*.
+
+- `[gap]` **`_BILLING_SCHEDULE_SUCCESS` enum set hardcoded.**
+  `lifecycle.py:44` pins
+  `{"ReadyForInvoicing", "CompletelyBilled"}`. A schema rename or
+  new picklist value (e.g. `"PartiallyBilled"` becoming terminal)
+  would make every activation poll time out after 180s with a
+  generic `"fewer than N ready BillingSchedule(s)"` error pointing
+  at activation rather than at the harness's stale enum list.
+  - **Possible fix:** derive from `BillingSchedule.Status` picklist
+    describe (cache per-run), or expose as config.
+  - Ref: `lifecycle.py:44,323`.
+
 ### Cleanup
 
 - `[gap]` **Activated → Draft revert side effects on

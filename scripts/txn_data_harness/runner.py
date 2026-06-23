@@ -183,9 +183,20 @@ def _resolve_term(opt: ProductOption, spec: ScenarioSpec, product: Product) -> O
     psm_unit = product.pricing_term_unit
     if chosen.unit is None:
         # Bare int from config: count override only; unit follows the PSM.
-        # Fall back to ``Months`` only when the PSM doesn't declare a unit
-        # (legacy/incomplete metadata) so demos still place.
-        return Term(count=chosen.count, unit=psm_unit or "Months")
+        # If the PSM doesn't declare a unit either (legacy/incomplete
+        # metadata), refuse to guess -- a silent ``Months`` fallback would
+        # write the wrong SubscriptionTermUnit on a non-monthly PSM and
+        # the platform validation error would point miles from the cause.
+        if psm_unit is None:
+            raise ConfigError(
+                f"product '{product.sku}' was given a bare-int term "
+                f"({chosen.count}) but the resolved selling model "
+                f"'{product.selling_model_name}' has no PricingTermUnit "
+                f"on its metadata, so the harness cannot infer the unit. "
+                f"Pin it explicitly with term: {{count: {chosen.count}, "
+                f"unit: <Months|Annual|Quarterly|Semi-Annual>}}."
+            )
+        return Term(count=chosen.count, unit=psm_unit)
     if psm_unit is not None and chosen.unit != psm_unit:
         raise ConfigError(
             f"product '{product.sku}' is bound to selling model "

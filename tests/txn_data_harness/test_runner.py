@@ -294,6 +294,23 @@ class TestResolveTerm:
         opt = _opt(term=Term(4, None))
         assert _resolve_term(opt, spec, quarterly_term_product) == Term(4, "Quarterly")
 
+    def test_bare_int_with_missing_psm_unit_raises(self, term_product):
+        """Bare-int term + PSM missing ``PricingTermUnit`` must fail loud.
+
+        A silent ``Months`` fallback would write the wrong SubscriptionTermUnit
+        on a non-monthly PSM and the platform validation error would point
+        miles from the cause. Force the author to pin the unit explicitly.
+        """
+        from dataclasses import replace
+        bare = replace(term_product, pricing_term_unit=None)
+        spec = ScenarioSpec(
+            account=None, products=[], target_stage="post",
+            with_opportunity=False, opportunity_stage=None, count=1,
+        )
+        opt = _opt(term=Term(4, None))
+        with pytest.raises(ConfigError, match="PricingTermUnit"):
+            _resolve_term(opt, spec, bare)
+
     def test_explicit_matching_unit_passes(self, quarterly_term_product):
         spec = ScenarioSpec(
             account=None, products=[], target_stage="post",

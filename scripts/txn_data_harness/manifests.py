@@ -5,11 +5,25 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
-import re
 from pathlib import Path
 from typing import Any
 
+from scripts.build_harness.harness.io import parse_retention
+
 from .models import Manifest
+
+__all__ = [
+    "MANIFEST_DIR",
+    "load_manifest",
+    "list_manifests",
+    "manifest_path",
+    "parse_retention",
+    "prune_old_runs",
+    "resolve_manifest_path",
+    "summarize_manifest",
+    "write_json",
+    "write_manifest",
+]
 
 MANIFEST_DIR = Path(__file__).resolve().parent / "out"
 
@@ -101,27 +115,6 @@ def summarize_manifest(m: Manifest) -> dict[str, Any]:
         },
         "invoice_number": m.invoice_number,
     }
-
-
-_RETENTION_RE = re.compile(r"^\s*(\d+)\s*([smhdw])\s*$", re.IGNORECASE)
-_RETENTION_UNITS = {
-    "s": "seconds", "m": "minutes", "h": "hours", "d": "days", "w": "weeks",
-}
-
-
-def parse_retention(value: str) -> dt.timedelta:
-    """Parse retention text like ``7d``/``24h``/``30m`` into a timedelta.
-
-    Ported from build_harness io.py. Rejects zero, negatives, and bad units.
-    """
-    match = _RETENTION_RE.match(value or "")
-    if not match:
-        raise ValueError(f"Invalid retention '{value}'. Use <int><unit> like 7d, 24h, 30m.")
-    amount = int(match.group(1))
-    if amount <= 0:
-        raise ValueError("Retention must be greater than zero.")
-    unit = _RETENTION_UNITS[match.group(2).lower()]
-    return dt.timedelta(**{unit: amount})
 
 
 def _is_safe_manifest_dir(manifest_dir: Path, safe_root: Path = MANIFEST_DIR) -> bool:

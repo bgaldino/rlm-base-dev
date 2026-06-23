@@ -212,6 +212,23 @@ def _cli_overrides(args: Any) -> dict[str, Any]:
     return overrides
 
 
+def _scalar_or_pair(value: Any, where: str, field: str) -> tuple[Any, Any]:
+    """Unpack ``v`` or ``[lo, hi]`` into a ``(lo, hi)`` pair of raw values.
+
+    Shared by every numeric-range coercion below. Type-coercion and bound
+    validation live in the callers so each can express its own rules
+    (int vs float, >=0 vs >=1, percent cap, etc.) with field-specific
+    error messages.
+    """
+    if isinstance(value, (list, tuple)):
+        if len(value) != 2:
+            raise ConfigError(
+                f"{where}: {field} range must have exactly 2 values [min, max]"
+            )
+        return value[0], value[1]
+    return value, value
+
+
 def _coerce_discount(value: Any, where: str) -> Optional[tuple[float, float]]:
     """Normalize a discount into an inclusive ``(min, max)`` percent range.
 
@@ -221,14 +238,7 @@ def _coerce_discount(value: Any, where: str) -> Optional[tuple[float, float]]:
     """
     if value is None:
         return None
-    if isinstance(value, (list, tuple)):
-        if len(value) != 2:
-            raise ConfigError(
-                f"{where}: discount range must have exactly 2 values [min, max]"
-            )
-        lo, hi = value
-    else:
-        lo = hi = value
+    lo, hi = _scalar_or_pair(value, where, "discount")
     try:
         lo, hi = float(lo), float(hi)
     except (TypeError, ValueError) as exc:
@@ -424,40 +434,12 @@ def _coerce_quantity(value: Any, where: str) -> tuple[int, int]:
     (``[1, 10]`` -> ``(1, 10)``). Both bounds must be integers >= 1 and
     ``min <= max``.
     """
-    if isinstance(value, (list, tuple)):
-        if len(value) != 2:
-            raise ConfigError(
-                f"{where}: quantity range must have exactly 2 values [min, max]"
-            )
-        lo, hi = value
-    else:
-        lo = hi = value
-    def as_int(raw: Any, label: str) -> int:
-        if isinstance(raw, float) and not raw.is_integer():
-            raise ConfigError(f"{where}: quantity {label} must be an integer")
-        try:
-            return int(raw)
-        except (TypeError, ValueError) as exc:
-            raise ConfigError(f"{where}: quantity must be integer(s)") from exc
-
-    lo, hi = as_int(lo, "min"), as_int(hi, "max")
-    if lo > hi:
-        raise ConfigError(f"{where}: quantity min ({lo}) > max ({hi})")
-    if lo < 1:
-        raise ConfigError(f"{where}: quantity must be >= 1 (got {lo})")
-    return (lo, hi)
+    return _coerce_int_range(value, where, "quantity", minimum=1)
 
 
 def _coerce_float_range(value: Any, where: str, field: str) -> tuple[float, float]:
     """Normalize a numeric range into ``(lo, hi)`` floats. Scalar => ``(x, x)``."""
-    if isinstance(value, (list, tuple)):
-        if len(value) != 2:
-            raise ConfigError(
-                f"{where}: {field} range must have exactly 2 values [min, max]"
-            )
-        lo, hi = value
-    else:
-        lo = hi = value
+    lo, hi = _scalar_or_pair(value, where, field)
     try:
         lo, hi = float(lo), float(hi)
     except (TypeError, ValueError) as exc:
@@ -473,14 +455,7 @@ def _coerce_int_range(
     value: Any, where: str, field: str, *, minimum: int = 1
 ) -> tuple[int, int]:
     """Normalize a non-negative int range. Scalar => ``(x, x)``."""
-    if isinstance(value, (list, tuple)):
-        if len(value) != 2:
-            raise ConfigError(
-                f"{where}: {field} range must have exactly 2 values [min, max]"
-            )
-        lo, hi = value
-    else:
-        lo = hi = value
+    lo, hi = _scalar_or_pair(value, where, field)
 
     def as_int(raw: Any, label: str) -> int:
         if isinstance(raw, float) and not raw.is_integer():
