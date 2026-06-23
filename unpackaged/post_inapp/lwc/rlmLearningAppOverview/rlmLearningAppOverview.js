@@ -14,7 +14,9 @@ export default class RlmLearningAppOverview extends NavigationMixin(
   @track sectionsWithBlocks = [];
 
   sectionType = "Left_Top";
-  @api pageId = "";
+  // Left undefined so the wire doesn't fire (and the controller doesn't throw on a
+  // blank id) until a real page id is set by the parent.
+  @api pageId;
 
   @wire(getSectionsWithBlocksByPageId, {
     sectionType: "$sectionType",
@@ -25,7 +27,7 @@ export default class RlmLearningAppOverview extends NavigationMixin(
       this.sectionsWithBlocks = [...data];
       this.checkForDynamicLinks();
     } else if (error) {
-      this.error = error.body.message;
+      this.error = error?.body?.message || error?.message || "Unknown error";
     }
   }
 

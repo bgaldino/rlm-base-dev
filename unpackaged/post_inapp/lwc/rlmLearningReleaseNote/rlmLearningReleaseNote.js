@@ -24,7 +24,7 @@ export default class RlmLearningReleaseNote extends LightningElement {
         this.dispatchEvent(new CustomEvent("hasnodata"));
       }
     } else if (error) {
-      this.error = error.body.message;
+      this.error = error?.body?.message || error?.message || "Unknown error";
     }
   }
 }

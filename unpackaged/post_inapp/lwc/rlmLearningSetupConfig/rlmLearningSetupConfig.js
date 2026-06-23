@@ -17,7 +17,9 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
   @track sectionsWithBlocks = [];
 
   sectionType = "Left_Bottom";
-  @api pageId = "";
+  // Left undefined so the wire doesn't fire (and the controller doesn't throw on a
+  // blank id) until a real page id is set by the parent.
+  @api pageId;
   dynamicLinksMap = {};
 
   @wire(getSectionsWithBlocksByPageId, {

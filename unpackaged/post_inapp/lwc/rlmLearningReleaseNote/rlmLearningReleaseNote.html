@@ -22,7 +22,7 @@
                 size={sectionBlock.contentSize}
               >
                 <template for:each={sectionBlock.blocks} for:item="block">
-                  <p key={block.Id} class="slds-var-p-left_x-large">
+                  <p key={block.blockId} class="slds-var-p-left_x-large">
                     <lightning-formatted-rich-text
                       value={block.description}
                     ></lightning-formatted-rich-text>

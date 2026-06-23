@@ -37,7 +37,7 @@ export default class RlmLearningWelcome extends LightningElement {
     if (data) {
       this.sectionsWithBlocks = data;
     } else if (error) {
-      this.error = error.body.message;
+      this.error = error?.body?.message || error?.message || "Unknown error";
     }
   }
 }
