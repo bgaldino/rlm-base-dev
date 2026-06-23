@@ -21,6 +21,15 @@ export default class RlmLearningWelcome extends LightningElement {
   @wire(getExpiryDays)
   getExpiryDays;
 
+  // Build the greeting only once the wired timing/name resolve, so the title never
+  // flashes "undefined undefined!" on first render.
+  get greeting() {
+    const timing = this.getTiming && this.getTiming.data;
+    const name = this.getName && this.getName.data;
+    const text = `${timing || ""} ${name || ""}`.trim();
+    return text ? `${text}!` : "";
+  }
+
   // Normalize the wire result: null on non-trial orgs (countdown hidden), but
   // keep 0 visible (an expired trial should still render "remaining 0 days").
   get expiryDaysDisplay() {

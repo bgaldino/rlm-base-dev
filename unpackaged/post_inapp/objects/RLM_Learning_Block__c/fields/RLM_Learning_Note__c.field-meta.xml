@@ -7,6 +7,6 @@
     <required>false</required>
     <trackTrending>false</trackTrending>
     <type>Text</type>
-    <unique>false</unique> 
+    <unique>false</unique>
     <inlineHelpText>Text that will be displayed on the button that will be used to trigger the action.</inlineHelpText>
 </CustomField>
