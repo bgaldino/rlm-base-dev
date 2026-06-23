@@ -1,5 +1,4 @@
 .title-italic {
-  /* font-family: Segoe UI;*/
   font-style: italic;
   font-weight: var(--lwc-fontWeightRegular, 400);
 }

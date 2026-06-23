@@ -178,7 +178,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
       break;
     case "CommunityPage":
       const communityPage = await getRecordIdFromDynamicLinkType({
-        dyanmicLinkType: dynamicLink.RecordType.DeveloperName,
+        dynamicLinkType: dynamicLink.RecordType.DeveloperName,
         // Escape single quotes so a site name like "Bob's Portal" can't break the
         // SOQL literal (USER_MODE on the Apex side already bounds the query).
         whereCondition:
@@ -221,7 +221,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
       break;
     case "SurveyRecordPage":
       const survey = await getRecordIdFromDynamicLinkType({
-        dyanmicLinkType: dynamicLink.RecordType.DeveloperName,
+        dynamicLinkType: dynamicLink.RecordType.DeveloperName,
         whereCondition: dynamicLink.RLM_Learning_Where_Condition__c
       });
       pageReference = {
@@ -235,7 +235,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
       break;
     case "DPERecordPage":
       const dpeRecord = await getRecordIdFromDynamicLinkType({
-        dyanmicLinkType: dynamicLink.RecordType.DeveloperName,
+        dynamicLinkType: dynamicLink.RecordType.DeveloperName,
         whereCondition: dynamicLink.RLM_Learning_Where_Condition__c
       });
       pageReference = {
@@ -249,7 +249,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
       break;
     case "FlowRecordPage":
       const flowActiveVersion = await getRecordIdFromDynamicLinkType({
-        dyanmicLinkType: dynamicLink.RecordType.DeveloperName,
+        dynamicLinkType: dynamicLink.RecordType.DeveloperName,
         whereCondition: dynamicLink.RLM_Learning_Where_Condition__c
       });
       pageReference = {

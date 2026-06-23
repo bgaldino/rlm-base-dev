@@ -133,25 +133,25 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
     }
   }
 
-  // Refuted PMD false-positive: dyanmicLinkType is switch-constrained, queries run in
+  // Refuted PMD false-positive: dynamicLinkType is switch-constrained, queries run in
   // USER_MODE, and `whereCondition` is admin-authored config. SFGE reports 0 violations.
   @AuraEnabled(cacheable=true)
   @SuppressWarnings('PMD.ApexSOQLInjection')
   public static List<SObject> getRecordIdFromDynamicLinkType(
-    String dyanmicLinkType,
+    String dynamicLinkType,
     String whereCondition
   ) {
-    if (String.isEmpty(dyanmicLinkType)) {
+    if (String.isEmpty(dynamicLinkType)) {
       throw new AuraHandledException('DynamicLinkType cannot be null or empty.');
     }
     if (String.isEmpty(whereCondition)) {
       throw new AuraHandledException('Where Condition cannot be null or empty.');
     }
     try {
-      // dyanmicLinkType is constrained by the switch; whereCondition is admin-authored
+      // dynamicLinkType is constrained by the switch; whereCondition is admin-authored
       // config (see class doc). Every branch executes in USER_MODE.
       String query = '';
-      switch on dyanmicLinkType {
+      switch on dynamicLinkType {
         when 'SurveyRecordPage' {
           query =
             'Select Id from SurveyVersion Where SurveyId in (Select Id from Survey Where ' +
@@ -175,7 +175,7 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
         }
         when else {
           throw new AuraHandledException(
-            'Unsupported dynamic link type: ' + dyanmicLinkType
+            'Unsupported dynamic link type: ' + dynamicLinkType
           );
         }
       }
