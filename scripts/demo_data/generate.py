@@ -38,7 +38,7 @@ from .discovery import (
     resolve_account,
     resolve_product,
 )
-from .lifecycle import LifecycleError, Manifest
+from .lifecycle import LifecycleError, LineItem, Manifest
 
 log = logging.getLogger("demo_data")
 
@@ -120,6 +120,18 @@ def _setup_logging(verbosity: int) -> None:
         handler.addFilter(_RunIdFilter())
 
 
+def _fmt_qty(qty: tuple[int, int]) -> str:
+    lo, hi = qty
+    return f"x{lo}" if lo == hi else f"x{lo}–{hi} (random)"
+
+
+def _fmt_discount(discount: Optional[tuple[float, float]]) -> str:
+    if discount is None:
+        return ""
+    lo, hi = discount
+    return f"@ {lo:g}% off" if lo == hi else f"@ {lo:g}–{hi:g}% off (random)"
+
+
 def _print_plan(
     args: argparse.Namespace, ctx: OrgContext, resolved: list["ResolvedSpec"]
 ) -> None:
@@ -145,13 +157,15 @@ def _print_plan(
         print(f"\n--- Spec {i + 1}/{len(resolved)}  (x{r.spec.count}) ---")
         print(f"  Account      : {r.account.name} ({r.account.id})  "
               f"billing_ready={r.account.is_billing_ready}")
-        print(f"  Product      : {r.product.sku} — {r.product.name}  "
-              f"${r.product.unit_price} x{r.spec.quantity}  "
-              f"(PBE {r.product.pricebook_entry_id})")
-        if r.spec.discount is not None:
-            lo, hi = r.spec.discount
-            disc = f"{lo:g}%" if lo == hi else f"{lo:g}–{hi:g}% (random per line)"
-            print(f"  Discount     : {disc}")
+        pool = len(r.options)
+        if pool > 1:
+            print(f"  Product pool : {pool} products — a random non-empty subset "
+                  f"is placed per transaction (multi-line)")
+        for opt in r.options:
+            print(f"    • {opt.product.sku} — {opt.product.name}  "
+                  f"${opt.product.unit_price} {_fmt_qty(opt.quantity)}  "
+                  f"{_fmt_discount(opt.discount)}".rstrip()
+                  + f"  (PBE {opt.product.pricebook_entry_id})")
         if r.effective_stage != r.spec.target_stage:
             print(f"  ⚠  target_stage '{r.spec.target_stage}' capped to "
                   f"'{r.effective_stage}' (billing_ready={r.account.is_billing_ready}).")
@@ -183,32 +197,74 @@ def _effective_stage(target_stage: str, account: Account) -> str:
 
 
 @dataclass
+class ResolvedOption:
+    """A :class:`ProductOption` bound to a concrete org Product."""
+
+    product: Product
+    quantity: tuple[int, int]
+    discount: Optional[tuple[float, float]]
+
+
+@dataclass
 class ResolvedSpec:
     """A :class:`ScenarioSpec` bound to concrete org records, ready to fan out.
 
-    ``account``/``product`` are resolved once per spec (not per repetition) so a
-    ``count: 25`` spec issues two discovery queries, not fifty.
+    ``account``/``options`` are resolved once per spec (not per repetition) so a
+    ``count: 25`` spec issues its discovery queries twice, not fifty times. Each
+    transaction draws a random non-empty subset of ``options`` for its lines.
     """
 
     spec: ScenarioSpec
     account: Account
-    product: Product
+    options: list[ResolvedOption]
     effective_stage: str
 
 
 def _resolve_spec(
     client: SfRestClient, ctx: OrgContext, spec: ScenarioSpec
 ) -> ResolvedSpec:
-    """Bind a spec's account/product names to org records (raises DiscoveryError)."""
+    """Bind a spec's account + product pool to org records (raises DiscoveryError)."""
     if spec.account:
         account = resolve_account(client, spec.account)
     else:
         account = ctx.default_account()
-    product = (resolve_product(client, spec.product_sku)
-               if spec.product_sku else ctx.default_product())
+    options = [
+        ResolvedOption(
+            product=(resolve_product(client, opt.sku) if opt.sku
+                     else ctx.default_product()),
+            quantity=opt.quantity,
+            discount=opt.discount,
+        )
+        for opt in spec.products
+    ]
     effective = _effective_stage(spec.target_stage, account)
-    return ResolvedSpec(spec=spec, account=account, product=product,
+    return ResolvedSpec(spec=spec, account=account, options=options,
                         effective_stage=effective)
+
+
+def _draw_lines(options: list["ResolvedOption"]) -> list[LineItem]:
+    """Pick this transaction's lines from the resolved product pool.
+
+    Each option is included independently with 50% probability, so a two-product
+    pool yields one OR both lines across transactions; if the coin-flips drop
+    everything, one option is chosen at random (a quote always needs >= 1 line).
+    A single-option pool is therefore always placed (deterministic). Per line,
+    quantity and discount are drawn from their ``(min, max)`` ranges.
+    """
+    chosen = [opt for opt in options if random.random() < 0.5]
+    if not chosen:
+        chosen = [random.choice(options)]
+    lines: list[LineItem] = []
+    for opt in chosen:
+        qlo, qhi = opt.quantity
+        quantity = random.randint(qlo, qhi)
+        discount = None
+        if opt.discount is not None:
+            dlo, dhi = opt.discount
+            discount = round(random.uniform(dlo, dhi), 2)
+        lines.append(LineItem(product=opt.product, quantity=quantity,
+                              discount_percent=discount))
+    return lines
 
 
 def run_scenario(
@@ -217,21 +273,23 @@ def run_scenario(
     run_id: str,
     target_stage: str,
     account: Account,
-    product: Product,
+    lines: list[LineItem],
     with_opportunity: bool,
-    quantity: int,
     poll_timeout: int,
-    discount_percent: Optional[float] = None,
 ) -> Manifest:
-    """Drive one transaction through the lifecycle up to ``target_stage``.
+    """Drive one transaction (one or more lines) through the lifecycle.
 
-    Records every created id in the manifest as it goes -- including on partial
-    failure (PST commits the quote header even on a failed place), so cleanup
-    can find orphans.
+    Runs up to ``target_stage``. Records every created id in the manifest as it
+    goes -- including on partial failure (PST commits the quote header even on a
+    failed place), so cleanup can find orphans.
     """
     _current_run_id.set(run_id)
     m = Manifest(run_id=run_id)
-    m.discount_percent = discount_percent
+    m.lines = [
+        {"sku": l.product.sku, "quantity": l.quantity,
+         "discount_percent": l.discount_percent}
+        for l in lines
+    ]
     stage = _effective_stage(target_stage, account)
     stop_at = STAGES.index(stage)
     # target_stage 'opportunity' means "stop after the opportunity", so it
@@ -257,9 +315,8 @@ def run_scenario(
         # quote (PST) -- always the minimum
         try:
             m.quote_id = lifecycle.place_sales_transaction(
-                client, account, product, ctx.pricebook_id, run_id,
-                quantity=quantity, opportunity_id=m.opportunity_id,
-                discount_percent=discount_percent,
+                client, account, lines, ctx.pricebook_id, run_id,
+                opportunity_id=m.opportunity_id,
             )
         except LifecycleError as exc:
             # PST may have committed the quote header even on failure -- record
@@ -288,7 +345,7 @@ def run_scenario(
             client, m.order_id, timeout=poll_timeout
         )
         m.asset_ids = lifecycle.poll_assets(
-            client, account, product, since, timeout=poll_timeout
+            client, account, [l.product for l in lines], since, timeout=poll_timeout
         )
         checkpoint()
         if stop_at == STAGES.index("activate"):
@@ -385,7 +442,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     # ----- live execution -----
     for r in resolved:
         if r.effective_stage != r.spec.target_stage:
-            print(f"Note: capping '{r.account.name}/{r.product.sku}' target_stage "
+            skus = "/".join(o.product.sku for o in r.options)
+            print(f"Note: capping '{r.account.name}/{skus}' target_stage "
                   f"'{r.spec.target_stage}' -> '{r.effective_stage}' "
                   f"(billing_ready={r.account.is_billing_ready}; "
                   f"implemented through '{_IMPLEMENTED_MAX_STAGE}').",
@@ -402,18 +460,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     total = len(jobs)
 
     def _one(run_id: str, r: ResolvedSpec) -> Manifest:
-        # Draw the line discount per scenario so a count>1 spec gets a spread of
-        # values; a scalar config (min==max) yields a fixed discount.
-        discount = None
-        if r.spec.discount is not None:
-            lo, hi = r.spec.discount
-            discount = round(random.uniform(lo, hi), 2)
         return run_scenario(
-            client, ctx, run_id, r.spec.target_stage, r.account, r.product,
+            client, ctx, run_id, r.spec.target_stage, r.account,
+            _draw_lines(r.options),
             with_opportunity=r.spec.with_opportunity,
-            quantity=r.spec.quantity,
             poll_timeout=args.poll_timeout,
-            discount_percent=discount,
         )
 
     concurrency = max(1, min(args.concurrency, total))

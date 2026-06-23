@@ -52,25 +52,37 @@ class ConfigError(RuntimeError):
 
 
 @dataclass
+class ProductOption:
+    """One product in a scenario's **pool**, with its own quantity/discount.
+
+    A scenario places a random non-empty subset of its pool as quote lines (so a
+    two-entry pool yields one OR both lines per transaction). ``sku`` ``None`` =>
+    auto-discover the preferred product. ``quantity`` is an inclusive
+    ``(min, max)`` integer range drawn **per line** (a scalar becomes ``(x, x)``);
+    ``discount`` is the line-discount **percent**, same ``(min, max)`` shape, or
+    ``None`` for no discount.
+    """
+
+    sku: Optional[str]
+    quantity: tuple[int, int]
+    discount: Optional[tuple[float, float]] = None
+
+
+@dataclass
 class ScenarioSpec:
     """One un-resolved transaction shape, run ``count`` times.
 
-    ``account`` / ``product_sku`` are ``None`` => auto-discover (default
-    billing-ready account / preferred QB product).
-
-    ``discount`` is the line-discount **percent** to apply, as a
-    ``(min, max)`` inclusive range from which a value is drawn **per line**
-    (a scalar in config becomes ``(x, x)``); ``None`` => no discount.
+    ``account`` ``None`` => auto-discover the default billing-ready account.
+    ``products`` is the line **pool** (always >= 1 entry); each transaction
+    places a random non-empty subset of it (see :class:`ProductOption`).
     """
 
     account: Optional[str]
-    product_sku: Optional[str]
+    products: list[ProductOption]
     target_stage: str
     with_opportunity: bool
     opportunity_stage: Optional[str]
-    quantity: int
     count: int
-    discount: Optional[tuple[float, float]] = None
 
 
 def _load_file(path: str) -> dict:
@@ -146,6 +158,52 @@ def _coerce_discount(value: Any, where: str) -> Optional[tuple[float, float]]:
     return (lo, hi)
 
 
+def _coerce_quantity(value: Any, where: str) -> tuple[int, int]:
+    """Normalize a quantity into an inclusive ``(min, max)`` integer range.
+
+    Accepts a scalar (``5`` -> ``(5, 5)``) or a 2-element list/tuple
+    (``[1, 10]`` -> ``(1, 10)``). Both bounds must be integers >= 1 and
+    ``min <= max``.
+    """
+    if isinstance(value, (list, tuple)):
+        if len(value) != 2:
+            raise ConfigError(
+                f"{where}: quantity range must have exactly 2 values [min, max]"
+            )
+        lo, hi = value
+    else:
+        lo = hi = value
+    try:
+        lo, hi = int(lo), int(hi)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(f"{where}: quantity must be integer(s)") from exc
+    if lo > hi:
+        raise ConfigError(f"{where}: quantity min ({lo}) > max ({hi})")
+    if lo < 1:
+        raise ConfigError(f"{where}: quantity must be >= 1 (got {lo})")
+    return (lo, hi)
+
+
+def _coerce_product_option(
+    raw: Any, where: str, default_qty: Any, default_discount: Any
+) -> ProductOption:
+    """Build one :class:`ProductOption` from a ``products[]`` entry (a mapping).
+
+    Per-entry ``quantity``/``discount`` win over the scenario-level fallbacks
+    (``default_qty``/``default_discount``), mirroring how a scenario field wins
+    over ``defaults``.
+    """
+    if not isinstance(raw, dict) or not raw.get("sku"):
+        raise ConfigError(f"{where}: each product needs an 'sku'")
+    qty = raw["quantity"] if "quantity" in raw else default_qty
+    disc = raw["discount"] if "discount" in raw else default_discount
+    return ProductOption(
+        sku=raw["sku"],
+        quantity=_coerce_quantity(qty, where),
+        discount=_coerce_discount(disc, where),
+    )
+
+
 def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
     stage = merged.get("target_stage") or "post"
     if stage not in _VALID_STAGES:
@@ -154,51 +212,43 @@ def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
             f"(valid: {', '.join(sorted(_VALID_STAGES))})"
         )
 
-    # A scenario may carry either `product: "SKU"` or a `products:` list; we
-    # place a single line per quote today, so take the first and warn on extras.
-    product_sku = merged.get("product")
-    quantity = merged.get("quantity", 1)
-    discount_raw = merged.get("discount")
-    products = merged.get("products")
-    if products:
-        if not isinstance(products, list):
-            raise ConfigError(f"{where}: 'products' must be a list")
-        first = products[0]
-        if not isinstance(first, dict) or not first.get("sku"):
-            raise ConfigError(f"{where}: each product needs an 'sku'")
-        product_sku = first["sku"]
-        quantity = first.get("quantity", quantity)
-        # A per-product discount overrides the scenario-level one (mirrors qty).
-        if "discount" in first:
-            discount_raw = first["discount"]
-        if len(products) > 1:
-            log.warning(
-                "%s: %d products listed but only the first (%s) is placed "
-                "(multi-line orders are not yet supported); the rest are ignored",
-                where, len(products), product_sku,
-            )
-
-    discount = _coerce_discount(discount_raw, where)
-
     try:
         count = int(merged.get("count", 1))
-        quantity = int(quantity)
     except (TypeError, ValueError) as exc:
-        raise ConfigError(f"{where}: count/quantity must be integers") from exc
+        raise ConfigError(f"{where}: count must be an integer") from exc
     if count < 1:
         raise ConfigError(f"{where}: count must be >= 1 (got {count})")
-    if quantity < 1:
-        raise ConfigError(f"{where}: quantity must be >= 1 (got {quantity})")
+
+    # Scenario-level quantity/discount are the fallback each product entry
+    # inherits unless it sets its own; `product:` is shorthand for a one-entry
+    # pool. `products:` is the pool a transaction draws a random subset from.
+    default_qty = merged.get("quantity", 1)
+    default_discount = merged.get("discount")
+    products_raw = merged.get("products")
+    if products_raw:
+        if not isinstance(products_raw, list):
+            raise ConfigError(f"{where}: 'products' must be a list")
+        products = [
+            _coerce_product_option(p, f"{where}.products[{i}]", default_qty, default_discount)
+            for i, p in enumerate(products_raw)
+        ]
+    else:
+        # No explicit pool: a single (possibly auto-discovered) product line.
+        products = [
+            ProductOption(
+                sku=merged.get("product"),
+                quantity=_coerce_quantity(default_qty, where),
+                discount=_coerce_discount(default_discount, where),
+            )
+        ]
 
     return ScenarioSpec(
         account=merged.get("account"),
-        product_sku=product_sku,
+        products=products,
         target_stage=stage,
         with_opportunity=bool(merged.get("with_opportunity", False)),
         opportunity_stage=merged.get("opportunity_stage"),
-        quantity=quantity,
         count=count,
-        discount=discount,
     )
 
 

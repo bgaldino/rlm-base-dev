@@ -58,10 +58,20 @@ class Product:
     sku: Optional[str]
     pricebook_entry_id: str
     unit_price: Optional[float]
+    # SellingModelType of the PBE's bound ProductSellingModel: 'TermDefined',
+    # 'Evergreen', or 'OneTime'. Drives the line's date fields -- only
+    # TermDefined accepts (and requires) EndDate; Evergreen/OneTime reject it
+    # at createOrderFromQuote. None if the org didn't return it.
+    selling_model_type: Optional[str] = None
 
     @property
     def is_qb(self) -> bool:
         return bool(self.sku and self.sku.startswith(QB_SKU_PREFIX))
+
+    @property
+    def needs_end_date(self) -> bool:
+        """Only term-defined products take an EndDate (verified live, CONTRACTS.md)."""
+        return self.selling_model_type == "TermDefined"
 
 
 @dataclass
@@ -156,7 +166,7 @@ def discover_products(
     """Return billable products (active PBE on the standard pricebook)."""
     soql = (
         "SELECT Id, UnitPrice, Product2Id, Product2.Name, "
-        "Product2.StockKeepingUnit "
+        "Product2.StockKeepingUnit, ProductSellingModel.SellingModelType "
         "FROM PricebookEntry "
         "WHERE Pricebook2.IsStandard = true AND IsActive = true "
         "AND Product2.IsActive = true"
@@ -167,12 +177,14 @@ def discover_products(
     products: list[Product] = []
     for r in client.query(soql):
         p = r.get("Product2") or {}
+        psm = r.get("ProductSellingModel") or {}
         products.append(Product(
             id=r["Product2Id"],
             name=p.get("Name", r["Product2Id"]),
             sku=p.get("StockKeepingUnit"),
             pricebook_entry_id=r["Id"],
             unit_price=r.get("UnitPrice"),
+            selling_model_type=psm.get("SellingModelType"),
         ))
     log.info("discovered %d billable product(s)%s", len(products),
              f" for SKU {sku}" if sku else "")

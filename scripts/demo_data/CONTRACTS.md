@@ -131,6 +131,39 @@ Live probe (quote `0Q0WI000003KPGf0AO`, SKU `QB-API-FLEX` @ $450, qty 2, **25%**
 has **no** `NetUnitPrice`/`Amount` columns — use `ChargeAmount`; `Invoice` has no
 `NetAmount` — use `TotalAmount`.
 
+#### Selling models — line date rules (✅ VERIFIED LIVE)
+
+The line's date fields are **selling-model-dependent**, and the model is resolved
+from the **PricebookEntry**, not from anything writable on the line. This drove a
+real multi-line failure (`INVALID_INPUT` "You can't specify EndDate for evergreen
+order products" at `createOrderFromQuote`) before the rule was encoded.
+
+- **`PricebookEntry` binds a single `ProductSellingModelId`.** The engine resolves
+  the selling model from the PBE used on the line — **not** from
+  `ProductSellingModelOption.IsDefault`. To sell a product under a different model,
+  use the PBE bound to that model.
+- **`ProductSellingModelId` is unwritable on `QuoteLineItem` even as admin** —
+  `PATCH`/place both fail FLS `INVALID_API_INPUT` / "You do not have the access on
+  field QuoteLineItem : ProductSellingModelId." You cannot pin the model from the
+  line; it comes from the PBE.
+- **`SellingModelType` picklist = `{OneTime, TermDefined, Evergreen}`.** EndDate
+  rule, verified at `createOrderFromQuote` for all three:
+
+  | `SellingModelType` | `StartDate` | `EndDate` | Behavior |
+  |--------------------|-------------|-----------|----------|
+  | **TermDefined**    | safe        | **required** | rejects `END_DATE_MISSING` without it |
+  | **Evergreen**      | safe        | **rejected** | `INVALID_INPUT` "can't specify EndDate for evergreen order products" |
+  | **OneTime**        | safe        | **rejected** | same — only term-defined takes an EndDate |
+
+- **Implementation:** `discovery.py` captures `ProductSellingModel.SellingModelType`
+  onto each `Product`; `Product.needs_end_date` is `True` only for `TermDefined`,
+  and `place_sales_transaction` sets `EndDate` on the line **only** when
+  `needs_end_date`. `StartDate` is always set (safe for all three). A multi-line
+  quote mixing a TermDefined and an Evergreen product was live-verified through to a
+  Posted invoice (`INV-US-06-2026-000006`, order `00000118`): per-line quantities and
+  discounts (QB-API-FLEX x2 @20% → NetUnitPrice 360; QB-API x1 @10% → NetUnitPrice
+  1800) both survived.
+
 ### 3. Order — Create Order from Quote — ✅ VERIFIED LIVE
 - **Endpoint (PRIMARY, works):** `POST /services/data/v67.0/actions/standard/createOrderFromQuote`
 - **Body:** `{ "inputs": [ { "quoteRecordId": "<quoteId>" } ] }`

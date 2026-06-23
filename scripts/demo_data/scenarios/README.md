@@ -27,6 +27,7 @@ Always `--dry-run` first — it resolves auth + discovery and prints the plan
 | `08-product-mix.yaml` | `post` | 30 | Posted invoices across several SKUs so invoices aren't all one line item. |
 | `09-quantity-spread.yaml` | `post` | 35 | Same product, varied quantities → a range of invoice amounts (small/medium/large deals). |
 | `10-randomized-discounts.yaml` | `post` | 35 | Per-line discounts drawn from a range → a spread of discounted invoice amounts. |
+| `11-randomized-product-mix.yaml` | `post` | 25 | A product **pool** placed as a random non-empty subset → varied multi-line invoices (1–N lines, mixed SKUs, per-line qty + discount ranges). |
 
 These are tuned for the **QuantumBit (QB)** demo org. The only values that are
 org-specific are the **account names** (`Infinitech`, `Global Media`) and the
@@ -54,9 +55,9 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | `target_stage` | enum | `post` | How far to run: `opportunity` \| `quote` \| `order` \| `activate` \| `invoice` \| `post`. Hierarchical — each stage runs all stages before it. |
 | `with_opportunity` | bool | `false` | Prepend an Opportunity the quote links to. (`target_stage: opportunity` implies one even if this is false.) |
 | `opportunity_stage` | string | first open | Pin the Opportunity `StageName`. Must be a valid **open** stage in the org or the run errors with the valid list. |
-| `product` | string | auto (QB-preferred) | Product **SKU** for the single line. Shorthand for a one-entry `products:` list. |
-| `products` | list | — | List of `{sku, quantity}`. **Only the first entry is placed** today (one line per quote — see Limitations); extras are logged and ignored. |
-| `quantity` | int ≥ 1 | `1` | Line quantity. A `products[].quantity` overrides this for that entry. |
+| `product` | string | auto (QB-preferred) | Product **SKU** for a single-product pool. Shorthand for a one-entry `products:` list. |
+| `products` | list | — | The line **pool**: a list of `{sku, quantity?, discount?}` entries. Each transaction places a **random non-empty subset** of the pool as **multiple** quote lines (a 3-entry pool yields 1–3 lines; if the dice exclude everything, one entry is forced so every quote has ≥1 line). Per-entry `quantity`/`discount` override the scenario-level values for that entry. |
+| `quantity` | int ≥ 1, or `[min, max]` | `1` | Line quantity. A scalar fixes it; a `[min, max]` range draws an integer **per line** (so a pool/`count > 1` yields a spread). A `products[].quantity` overrides this for that entry. |
 | `count` | int ≥ 1 | `1` | How many times to run this shape. |
 | `discount` | number or `[min, max]` | none | Line-discount **percent** (0..100). A scalar (`10`) fixes it; a range draws a value **per line** (so `count > 1` yields a spread). May sit on the scenario or on a `products[]` entry (per-product wins, like `quantity`). |
 
@@ -126,9 +127,13 @@ WHERE Pricebook2.IsStandard = true AND IsActive = true
 If you pin a SKU with no such PBE, the run errors clearly (exit 3).
 
 > ⚠️ **A clean PricebookEntry is necessary but not sufficient for every product.**
-> The tool places a **single flat line** (Product2 + PBE + Quantity + Start/End
-> dates). Simple term/one-time products like **`QB-API-FLEX`** place cleanly.
-> Products that require more wiring to configure/price do **not** — see below.
+> The tool places one or more **flat lines** (each Product2 + PBE + Quantity +
+> dates + optional Discount) — multiple lines per quote when a `products:` pool is
+> given, but every line is still flat. Simple term/one-time/evergreen products like
+> **`QB-API-FLEX`** and **`QB-API`** place cleanly (the line's `EndDate` is set only
+> for **term-defined** selling models — evergreen/one-time reject it; see
+> [`../CONTRACTS.md`](../CONTRACTS.md) → *Selling models*). Products that require
+> component/attribute wiring to configure/price do **not** — see below.
 
 ## Not handled yet — bundles and usage
 

@@ -76,12 +76,26 @@ class Manifest:
     asset_ids: list[str] = field(default_factory=list)
     invoice_id: Optional[str] = None
     invoice_number: Optional[str] = None
-    discount_percent: Optional[float] = None  # line discount applied, if any
+    # The lines actually placed on the quote (sku/quantity/discount per line),
+    # since a scenario draws a random product subset + per-line qty/discount.
+    lines: list[dict] = field(default_factory=list)
     reached_stage: Optional[str] = None
     error: Optional[str] = None
 
     def to_dict(self) -> dict:
         return dict(self.__dict__)
+
+
+@dataclass
+class LineItem:
+    """One resolved quote line to place: a product at a quantity, opt. discount.
+
+    ``discount_percent`` (0..100) sets the line's ``Discount``; ``None`` => none.
+    """
+
+    product: Product
+    quantity: int = 1
+    discount_percent: Optional[float] = None
 
 
 def _iso_today() -> str:
@@ -127,17 +141,17 @@ def create_opportunity(
 def place_sales_transaction(
     client: SfRestClient,
     account: Account,
-    product: Product,
+    lines: list[LineItem],
     pricebook_id: str,
     run_id: str,
-    quantity: int = 1,
     opportunity_id: Optional[str] = None,
     term_months: int = 12,
-    discount_percent: Optional[float] = None,
 ) -> str:
-    """Place a quote. Returns the Quote id (salesTransactionId).
+    """Place a quote with one or more lines. Returns the Quote id.
 
-    ``discount_percent`` (0..100), when given, sets the line's ``Discount``
+    Each :class:`LineItem` becomes a QuoteLineItem in the place graph, so a
+    scenario can place a **multi-line** quote (one referenceId per line). A
+    line's ``discount_percent`` (0..100), when given, sets its ``Discount``
     (a standard percent field, createable). PST runs with ``pricingPref:
     "System"``, so the pricing engine *consumes* the discount and reflects it in
     the derived net prices, which flow through to the posted invoice. Verified
@@ -149,11 +163,17 @@ def place_sales_transaction(
 
     Gotchas locked in CONTRACTS.md:
       * use QuoteAccountId (AccountId is not writable on the graph record)
-      * do NOT send ProductSellingModelId on the line (FLS error)
-      * term/subscription lines need StartDate + EndDate (else END_DATE_MISSING)
+      * do NOT send ProductSellingModelId on the line (FLS error -- verified
+        unwritable even as admin; the engine resolves the model from the PBE)
+      * EndDate is selling-model-dependent (set by ``product.needs_end_date``):
+        TermDefined REQUIRES it (else END_DATE_MISSING); Evergreen and OneTime
+        REJECT it at createOrderFromQuote ("can't specify EndDate for
+        evergreen/one-time order products"). StartDate is safe for all.
       * PST commits the Quote header even on isSuccess:false -> caller records
         the returned id for cleanup regardless.
     """
+    if not lines:
+        raise LifecycleError("quote", "no lines to place")
     quote_record: dict[str, Any] = {
         "attributes": {"method": "POST", "type": "Quote"},
         "Name": f"{run_id} Quote",
@@ -164,28 +184,28 @@ def place_sales_transaction(
     if opportunity_id:
         quote_record["OpportunityId"] = opportunity_id
 
-    line_record = {
-        "attributes": {"method": "POST", "type": "QuoteLineItem"},
-        "QuoteId": "@{refQuote.id}",
-        "Product2Id": product.id,
-        "PricebookEntryId": product.pricebook_entry_id,
-        "Quantity": str(quantity),
-        "StartDate": _iso_today(),
-        "EndDate": _iso_days(term_months * 30),
-    }
-    if discount_percent is not None:
-        line_record["Discount"] = discount_percent
+    records: list[dict[str, Any]] = [{"referenceId": "refQuote", "record": quote_record}]
+    for i, line in enumerate(lines):
+        line_record: dict[str, Any] = {
+            "attributes": {"method": "POST", "type": "QuoteLineItem"},
+            "QuoteId": "@{refQuote.id}",
+            "Product2Id": line.product.id,
+            "PricebookEntryId": line.product.pricebook_entry_id,
+            "Quantity": str(line.quantity),
+            "StartDate": _iso_today(),
+        }
+        # Only term-defined products take an EndDate; Evergreen/OneTime reject it
+        # at createOrderFromQuote (verified live -- CONTRACTS.md "Selling models").
+        if line.product.needs_end_date:
+            line_record["EndDate"] = _iso_days(term_months * 30)
+        if line.discount_percent is not None:
+            line_record["Discount"] = line.discount_percent
+        records.append({"referenceId": f"refQuoteLine{i}", "record": line_record})
 
     body = {
         "pricingPref": "System",
         "taxPref": "Skip",
-        "graph": {
-            "graphId": "createQuote",
-            "records": [
-                {"referenceId": "refQuote", "record": quote_record},
-                {"referenceId": "refQuoteLine0", "record": line_record},
-            ],
-        },
+        "graph": {"graphId": "createQuote", "records": records},
     }
     result = client.post(
         f"/services/data/v{client.api_version}/connect/rev/sales-transaction/actions/place",
@@ -195,8 +215,12 @@ def place_sales_transaction(
     if not result or not result.get("isSuccess"):
         errs = result.get("errorResponse") if isinstance(result, dict) else result
         raise LifecycleError("quote", f"PST place failed: {errs}", record_id=quote_id)
-    disc = f" ({discount_percent}% discount)" if discount_percent is not None else ""
-    log.info("quote %s placed%s", quote_id, disc)
+    summary = ", ".join(
+        f"{l.product.sku} x{l.quantity}"
+        + (f" @{l.discount_percent}%off" if l.discount_percent is not None else "")
+        for l in lines
+    )
+    log.info("quote %s placed (%d line(s): %s)", quote_id, len(lines), summary)
     return quote_id
 
 
@@ -299,25 +323,29 @@ def poll_billing_schedules(
 def poll_assets(
     client: SfRestClient,
     account: Account,
-    product: Product,
+    products: list[Product],
     since_iso: str,
     timeout: int = 180,
 ) -> list[str]:
-    """Wait for activation-generated Asset(s).
+    """Wait for activation-generated Asset(s) across the order's product(s).
 
-    Asset has no order FK, so correlate by account + product + a created-date
+    Asset has no order FK, so correlate by account + product(s) + a created-date
     window (CONTRACTS.md). ``since_iso`` is a SOQL datetime literal (UTC, e.g.
-    2026-06-22T22:00:00Z) captured just before activation.
+    2026-06-22T22:00:00Z) captured just before activation. A multi-line order
+    spans several products, so we poll for all of them in one query.
 
     Under concurrency, sibling scenarios on the same account+product share this
     query window, so we claim only asset ids no other scenario has taken yet
     (``_claimed_asset_ids``) -- preventing the same asset id landing in two
     manifests. Per-scenario attribution remains best-effort.
     """
+    product_ids = sorted({p.id for p in products})
+    skus = "/".join(sorted({p.sku for p in products}))
     deadline = time.monotonic() + timeout
+    in_list = ", ".join(f"'{pid}'" for pid in product_ids)
     soql = (
         "SELECT Id FROM Asset "
-        f"WHERE AccountId = '{account.id}' AND Product2Id = '{product.id}' "
+        f"WHERE AccountId = '{account.id}' AND Product2Id IN ({in_list}) "
         f"AND CreatedDate >= {since_iso}"
     )
     while time.monotonic() < deadline:
@@ -327,12 +355,12 @@ def poll_assets(
                 ids = [r["Id"] for r in rows if r["Id"] not in _claimed_asset_ids]
                 _claimed_asset_ids.update(ids)
             if ids:
-                log.info("order assets: %d asset(s) for %s/%s", len(ids), account.name, product.sku)
+                log.info("order assets: %d asset(s) for %s/%s", len(ids), account.name, skus)
                 return ids
         time.sleep(_POLL_INTERVAL)
     # Assets are a nicety, not the billing gate -- log but don't hard-fail.
     log.warning(
-        "no Asset for %s/%s within %ds (continuing)", account.name, product.sku, timeout
+        "no Asset for %s/%s within %ds (continuing)", account.name, skus, timeout
     )
     return []
 

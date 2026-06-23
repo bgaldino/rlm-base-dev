@@ -133,9 +133,12 @@ sets its count.
   **`BillingAccount`** to reach `invoice`/`post` (else auto-capped at `activate`).
   In QB only **Infinitech** is billable; **Global Media** is pipeline-only.
 - **Product** — needs an active `PricebookEntry` on the **standard** pricebook.
-- **Bundles are not supported** — the tool places a single flat line, so pin a
-  simple SKU like `QB-API-FLEX`; bundles (`QB-COMPLETE`, `QB-BDL-*`) need a
-  component graph this tool doesn't build.
+- **Multi-line via a product pool** — a scenario's `products:` list is a pool; each
+  transaction places a random non-empty subset as flat lines (per-line qty/discount
+  ranges). One SKU per quote is just a one-entry pool.
+- **Bundles are not supported** — each line is flat, so pin simple SKUs like
+  `QB-API-FLEX`; bundles (`QB-COMPLETE`, `QB-BDL-*`) need a component graph this
+  tool doesn't build.
 - **Usage / consumption is not supported** — metered/commit SKUs (`*-BLNG`,
   token/quantity/monetary commit) would invoice with no usage behind them.
 
@@ -193,9 +196,11 @@ a fresh batch with a new run id (by design).
 
 ## Known limitations
 
-- **Single line per quote.** A scenario's `products:` list accepts multiple
-  entries, but only the **first** is placed today (the rest are logged and
-  ignored). Multi-line orders/invoices are not yet supported.
+- **Flat lines only (no bundle component graph).** Multi-line quotes **are**
+  supported — a scenario's `products:` pool is placed as a random non-empty subset
+  of flat lines per transaction, each with its own quantity/discount (see
+  `scenarios/README.md`). What's *not* supported is a single line that expands into
+  a configured **bundle** (component/attribute graph); each line stays flat.
 - **`--no-probe` / `--keep-probes` are no-ops.** The discovery PST probe (place a
   throwaway quote to prove a product before fanning out volume) was scoped but not
   implemented; the flags are reserved for it. Discovery currently surfaces
