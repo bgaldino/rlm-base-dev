@@ -124,8 +124,12 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
       const identifier = findDynamicLinkIdentifier(content, startIndex);
       identifiers.push(identifier);
 
-      // Move the search index past the current identifier
-      searchIndex = startIndex + identifier.length;
+      // Advance past the "DYN_LINK" marker only. `startIndex` is the start of the
+      // "DYN_LINK" substring while `identifier` also spans the prefix that precedes it,
+      // so `startIndex + identifier.length` would overshoot the token end (startIndex + 8)
+      // by the prefix length and could skip a following token. The marker ends at
+      // startIndex + "DYN_LINK".length, the correct skip-free resume point.
+      searchIndex = startIndex + "DYN_LINK".length;
     }
 
     // Step 2: Process each identifier in a for loop with try-catch

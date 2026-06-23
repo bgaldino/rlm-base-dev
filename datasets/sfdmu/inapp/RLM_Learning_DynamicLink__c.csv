@@ -12,10 +12,10 @@ c__Learning_Home,,ACC_INFINITECH_DYN_LINK,,Account Name Infinitech,Account,,,,,,
 ,,ProdConfig_Validate_DYN_LINK,,ProdConfig_ValidateSetup Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,ProductConfig_Validate
 ,,ProductConfig_Customize_DYN_LINK,,ProductConfig_Customise_Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,ProductConfigurator Customise Popup Section
 ,,PriceManagement_Getstarted_DYN_LINK,,Price Management Get Started Popup,,,,,,,Get Started,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Get Started Popup Section
-,,PriceManagament_Validate_DYN_LINK,,Price Management Validate Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Validate Setup Popup Section
+,,PriceManagement_Validate_DYN_LINK,,Price Management Validate Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Validate Setup Popup Section
 ,,PriceManagement_Customize_DYN_LINK,,Price Management Customize Capabilities Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Customize Capabilities Popup Section
 ,,,,Popup for Instructions for User,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,PCM_Learn Popup Section
-,,PCM_LEAN_DYN_LINK,,Product Catalog Management Learn Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,PCM_Learn Popup Section
+,,PCM_LEARN_DYN_LINK,,Product Catalog Management Learn Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,PCM_Learn Popup Section
 ,,PriceManagement_Launch_DYN_LINK,,Price Management Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Launch Popup Section
 ,,TransactionManagement_Getstarted_DYN_LINK,,Transaction Management Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Transaction Management Get Started Popup Text Section
 ,,TransactionManagement_ValidatesSetup_DYN_LINK,,Transaction Management Validate Setup Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Transaction Management Validate Setup Popup
@@ -36,10 +36,10 @@ c__Learning_Home,,ACC_INFINITECH_DYN_LINK,,Account Name Infinitech,Account,,,,,,
 ,,SalesforceContracts_GetStarted_DYN_LINK,,Salesforce Contracts Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Salesforce Contracts Get Started Popup Section
 ,,SalesforceContracts_ValidateSetup_DYN_LINK,,Salesforce Contracts Validate Setup Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Salesforce Contracts Validate Setup Popup Section
 ,,SalesforceContracts_LaunchApp_DYN_LINK,,Salesforce Contracts Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Salesforce Contracts Launch App Popup Section
-,,SalesforeContracts_Customize_DYN_LINK,,Salesforce Contracts Customize Capabilities Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Salesforce Contracts Customize Capabilities Popup Section
-,,UsageManagament_GetStarted_DYN_LINK,,Usage Management Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Usage Management Get Started Popup Section
+,,SalesforceContracts_Customize_DYN_LINK,,Salesforce Contracts Customize Capabilities Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Salesforce Contracts Customize Capabilities Popup Section
+,,UsageManagement_GetStarted_DYN_LINK,,Usage Management Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Usage Management Get Started Popup Section
 ,,UsageManagement_ValidateSetup_DYN_LINK,,Usage Management Validate Setup Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Usage Management Validate Setup Section
-,,UsageManagament_LauchApp_DYN_LINK,,Usage Management Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Usage Management Launch App
+,,UsageManagement_LaunchApp_DYN_LINK,,Usage Management Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Usage Management Launch App
 ,,UsageManagement_CustomizeCapabilities_DYN_LINK,,Usage Management Customize Capabilities Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Usage Management Customize Capabilities Popup Section
 ,,Salesforce_Contracts_DYN_LINK,,Salesforce Contracts Details Page Link,,,,,,,Go to Salesforce Contracts,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Salesforce Contracts,
 ,,CENTER_AGENT_DYN_LINK,,Product Catalog Management Details Page Link,,,,,,,Go to Product Catalog Management,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Product Catalog Management,

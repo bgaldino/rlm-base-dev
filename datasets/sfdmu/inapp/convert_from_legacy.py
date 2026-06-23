@@ -37,6 +37,19 @@ ORPHAN_SB_IDS = {"SectionBlock__c-1", "SectionBlock__c-2"}  # legacy source row-
 ICON_TYPE_REMAP = {"Sparkle": "utility:sparkles"}
 ACCT_FROM, ACCT_TO = "Mahesh", "Infinitech"            # demo account -> QB default account
 TOKEN_FROM, TOKEN_TO = "ACC_MAHESH_DYN_LINK", "ACC_INFINITECH_DYN_LINK"
+# Spelling typos baked into legacy DynamicLink Identity values (the DYN_LINK placeholder
+# identifiers that persist in target orgs). Fixed at the source and applied to BOTH the
+# Identity column AND block descriptions — mirroring the TOKEN_FROM/TOKEN_TO sync — so an
+# embedded DYN_LINK placeholder can never drift from its Identity. None of these tokens are
+# currently embedded in any description, so the description pass is defensive (no-op today).
+# Keys are specific enough not to match correct prose ("Management" is untouched; the bare
+# "Managament" misspelling has no legitimate occurrence).
+IDENTITY_TYPO_FIXES = {
+    "Managament": "Management",                 # PriceManagament_/UsageManagament_
+    "PCM_LEAN_": "PCM_LEARN_",
+    "SalesforeContracts_": "SalesforceContracts_",
+    "LauchApp_": "LaunchApp_",
+}
 DEAD_IMG_HOST = "rlm258learnorg.file.force.com"
 STATIC_RESOURCE = "InAppLearningImages"            # self-hosted replacement for the 15 images
 SR_DIR = OUT_DIR.parents[2] / "unpackaged" / "post_inapp" / "staticresources" / STATIC_RESOURCE
@@ -381,6 +394,8 @@ def scrub_text(s):
     s = re.sub(r'<img\b[^>]*%s[^>]*>(\s*</img>)?' % re.escape(DEAD_IMG_HOST), "", s)
     s = s.replace(DASHBOARD_SETUP_FIND, DASHBOARD_SETUP_REPL)   # Billing dashboard placeholder
     s = s.replace(TOKEN_FROM, TOKEN_TO)
+    for bad, good in IDENTITY_TYPO_FIXES.items():      # keep any embedded DYN_LINK token in sync
+        s = s.replace(bad, good)
     for old in _HELP_KEYS:                              # renamed Help article IDs
         s = s.replace(old, HELP_ID_REMAP[old])
     for old, new in DEVGUIDE_ID_REMAP.items():         # 2 renamed Dev Guide pages
@@ -452,7 +467,7 @@ def main():
             section_renamed += 1
 
     # --- REMAP demo account + fix wrong-vertical release-notes links ----------
-    remapped = relnotes_fixed = dl_renamed = 0
+    remapped = relnotes_fixed = dl_renamed = id_typos_fixed = 0
     for r in dlink:
         if r[14] == "Name = '%s'" % ACCT_FROM:
             r[14] = "Name = '%s'" % ACCT_TO
@@ -465,6 +480,12 @@ def main():
         if r[5] in DL_NAME_REMAP:                        # stale/typo DynamicLink Names
             r[5] = DL_NAME_REMAP[r[5]]
             dl_renamed += 1
+        fixed = r[3]                                     # RLM_Learning_Identity__c: fix baked-in typos
+        for bad, good in IDENTITY_TYPO_FIXES.items():
+            fixed = fixed.replace(bad, good)
+        if fixed != r[3]:
+            r[3] = fixed
+            id_typos_fixed += 1
 
     # --- Split the shared "PCM App" AppPage DynamicLink (Pricing vs PCM) -------
     # The single legacy AppPage link stored a full URL in App_API_Name (invalid as a
@@ -565,7 +586,8 @@ def main():
               sb_rows)
 
     print(f"\nScrub: dropped {len(DEAD_BLOCK_IDS)} dead blocks, {len(ORPHAN_SB_IDS)} orphan junctions")
-    print(f"Remap: {remapped} Account link Mahesh -> {ACCT_TO}; {dl_renamed} DynamicLink Name(s) fixed")
+    print(f"Remap: {remapped} Account link Mahesh -> {ACCT_TO}; {dl_renamed} DynamicLink Name(s) fixed; "
+          f"{id_typos_fixed} DynamicLink Identity typo(s) fixed")
     print(f"262:   {relnotes_fixed} wrong-vertical link(s) -> RC 262; version Winter'26 -> Summer '26;")
     print(f"       {len(HELP_ID_REMAP)} renamed Help IDs + {len(DEVGUIDE_ID_REMAP)} Dev-Guide IDs remapped, "
           f"release pin 258 -> 262;")
