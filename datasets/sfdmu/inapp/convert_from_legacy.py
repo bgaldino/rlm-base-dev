@@ -90,11 +90,23 @@ TRAILHEAD_RELABEL = {
     "Consultant Exam": "Consultant Certification",
 }
 WRONG_VERTICAL_MARKERS = ("Communications_Summer_24", "energy_and_utilities_cloud_winter_25")
-# DynamicLink record-Name fixes (these Names are the SFDMU composite key; 0 lockstep refs):
-# a stale release label and a typo. Both link to the general rn_revenue (already release=262).
+# DynamicLink record-Name fixes (these Names are the SFDMU externalId). The remap runs
+# before dl_n is built, so any lockstep reference resolves to the corrected Name:
+#  - the two release-notes labels (a stale release label + a typo) have 0 lockstep refs;
+#  - "DRO Customize Capabilties" -> "...Capabilities" IS referenced by a block via
+#    RLM_Learning_Action__r.Name (resolved through dl_n), which updates in lockstep.
 DL_NAME_REMAP = {
     "Winter '25 Release Notes": "Summer '26 Release Notes",
     "Relese Notes Summary": "Release Notes Summary",
+    "DRO Customize Capabilties": "DRO Customize Capabilities",
+}
+
+# Section record-Name fix (this Name is the SFDMU externalId). Mutating the source section
+# row before the id->Name maps build propagates the corrected Name to every reference that
+# resolves through sec_n: RLM_Learning_Section__r.Name on DynamicLink + SectionBlock and the
+# SectionBlock composite externalId column.
+SECTION_NAME_REMAP = {
+    "Biling Validate Popup Section": "Billing Validate Popup Section",
 }
 RC_262_RELNOTES = "https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&release=262&type=5"
 
@@ -337,9 +349,28 @@ def rewrite_sibling_relnotes(desc, block_name):
     return re.sub(r"<ul>.*?</ul>", lambda _m: bullets, desc, count=1, flags=re.S)
 
 
+# A new-tab anchor (target="_blank") without rel="noopener noreferrer" lets the opened
+# page reach back through window.opener (reverse-tabnabbing). Add a rel to every such
+# anchor that lacks one; anchors that already carry a rel or don't open a new tab are
+# left untouched. Applied to all scrubbed rich-text fields so the whole class is swept.
+_ANCHOR_OPEN_RE = re.compile(r"<a\b[^>]*>", re.I)
+
+
+def add_noopener_rel(s):
+    def _fix(m):
+        tag = m.group(0)
+        if re.search(r"\brel\s*=", tag, re.I):
+            return tag                                   # already has a rel attribute
+        if not re.search(r"""target\s*=\s*["']_blank["']""", tag, re.I):
+            return tag                                   # not a new-tab anchor
+        return tag[:-1] + ' rel="noopener noreferrer">'  # insert before the closing '>'
+    return _ANCHOR_OPEN_RE.sub(_fix, s)
+
+
 def scrub_text(s):
     """Apply all text/URL transforms for a non-key field: dead-image strip, token
-    rename, 262 label renames, Help/Dev-Guide article-ID remap, and release pin bump."""
+    rename, 262 label renames, Help/Dev-Guide article-ID remap, release pin bump, and
+    rel="noopener noreferrer" hardening on new-tab anchors."""
     if not s:
         return s
     # Fallback strip for any cross-org <img ... rlm258learnorg ...> tag NOT already
@@ -366,6 +397,7 @@ def scrub_text(s):
         s = s.replace(old, new)
     s = s.replace("with Salesforce Revenue Cloud.", "with " + ARM_NEW + ".")  # avoid "Salesforce Agentforce"
     s = _ARM_RE.sub(ARM_NEW, s)
+    s = add_noopener_rel(s)                            # harden new-tab anchors
     return s
 
 
@@ -411,6 +443,13 @@ def main():
         if r[2] == "Price Management":
             r[2] = "Salesforce Pricing"
             pricing_renamed += 1
+
+    # --- Fix the "Biling" section-Name typo at the source (before maps build) ---
+    section_renamed = 0
+    for r in section:
+        if r[3] in SECTION_NAME_REMAP:
+            r[3] = SECTION_NAME_REMAP[r[3]]
+            section_renamed += 1
 
     # --- REMAP demo account + fix wrong-vertical release-notes links ----------
     remapped = relnotes_fixed = dl_renamed = 0
@@ -530,7 +569,8 @@ def main():
     print(f"262:   {relnotes_fixed} wrong-vertical link(s) -> RC 262; version Winter'26 -> Summer '26;")
     print(f"       {len(HELP_ID_REMAP)} renamed Help IDs + {len(DEVGUIDE_ID_REMAP)} Dev-Guide IDs remapped, "
           f"release pin 258 -> 262;")
-    print(f"       {pricing_renamed} Page 'Price Management' -> 'Salesforce Pricing' (label)")
+    print(f"       {pricing_renamed} Page 'Price Management' -> 'Salesforce Pricing' (label); "
+          f"{section_renamed} Section Name typo fixed")
     print(f"Images: {img_rewrites} block <img> rewritten -> /resource/{STATIC_RESOURCE}/ (self-hosted)")
     print(f"Home:   {home_rewrites} announcement block -> 262 marquee features + 'Summer 26' link label")
     print(f"Areas:  {sib_rewrites} area block(s) -> 262 features + 'Summer 26' heading (expect 8)")

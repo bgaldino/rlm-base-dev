@@ -20,7 +20,7 @@ true,Validate Setup,DRO Validate Setup Popup Section,,,Detail;RLM_Learning_Secti
 true,Dynamic Revenue Orchestrator,DRO Launch App Popup Section,,,Detail;RLM_Learning_Section__c,,
 true,Customize Capabilities,DRO Customize Capabilities Popup Section,,,Detail;RLM_Learning_Section__c,,
 true,Get Started,Billing Get Started Popup Section,,,Detail;RLM_Learning_Section__c,,
-true,Validate Setup,Biling Validate Popup Section,,,Detail;RLM_Learning_Section__c,,
+true,Validate Setup,Billing Validate Popup Section,,,Detail;RLM_Learning_Section__c,,
 true,Billing Management,Billing Launch App Popup Section,,,Detail;RLM_Learning_Section__c,,
 true,Customize Capabilities,Billing Customize Capabilities Popup Section,,,Detail;RLM_Learning_Section__c,,
 true,Get Started,Rate Management Get Started Popup Section,,,Detail;RLM_Learning_Section__c,,

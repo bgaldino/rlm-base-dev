@@ -24,9 +24,9 @@ c__Learning_Home,,ACC_INFINITECH_DYN_LINK,,Account Name Infinitech,Account,,,,,,
 ,,DRO_Getstarted_DYN_LINK,,DRO Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,DRO Get Started Section
 ,,DRO_Validate_DYN_LINK,,DRO Validate Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,DRO Validate Setup Popup Section
 ,,DRO_LaunchApp_DYN_LINK,,DRO Launch App,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,DRO Launch App Popup Section
-,,,,DRO Customize Capabilties,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,DRO Customize Capabilities Popup Section
+,,,,DRO Customize Capabilities,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,DRO Customize Capabilities Popup Section
 ,,Billing_Getstarted_DYN_LINK,,Billing Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Billing Get Started Popup Section
-,,Billing_Validate_DYN_LINK,,Billing Validate Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Biling Validate Popup Section
+,,Billing_Validate_DYN_LINK,,Billing Validate Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Billing Validate Popup Section
 ,,Billing_LaunchApp_DYN_LINK,,Billing Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Billing Launch App Popup Section
 ,,Billing_Customize_DYN_LINK,,Billing Customize Capabilities,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Billing Customize Capabilities Popup Section
 ,,RateManagement_GetStarted_DYN_LINK,,Rate Management Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Rate Management Get Started Popup Section
