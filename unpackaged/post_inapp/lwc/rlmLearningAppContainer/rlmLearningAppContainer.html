@@ -16,7 +16,7 @@
               class="slds-var-m-right_small"
               icon-name={sectionWithBlocks.section.RLM_Learning_Icon__r.RLM_Learning_Type__c}
               size="small"
-              alternative-text=""
+              alternative-text={sectionWithBlocks.section.RLM_Learning_Header__c}
             ></lightning-icon>
           </template>
           {sectionWithBlocks.section.RLM_Learning_Header__c}
@@ -52,7 +52,7 @@
                           icon-name={block.icon}
                           class="slds-var-m-right_small"
                           size="x-small"
-                          alternative-text=""
+                          alternative-text={block.header}
                         ></lightning-icon>
                       </template>
                       <b>{block.header}</b>
