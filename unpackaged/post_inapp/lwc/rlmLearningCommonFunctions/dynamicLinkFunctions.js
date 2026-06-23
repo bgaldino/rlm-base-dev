@@ -44,6 +44,18 @@ const safeVideoUrl = (url) => {
   return ALLOWED_VIDEO_HOSTS.has(parsed.host.toLowerCase()) ? url : null;
 };
 
+// Validate a URL before it becomes a standard__webPage navigation target: allow
+// only http(s) absolute URLs or app-relative paths, blocking unsafe schemes
+// (javascript:, data:, vbscript:, ...). Throws on anything else so the caller's
+// try/catch surfaces it instead of navigating somewhere unsafe.
+const requireSafeUrl = (url) => {
+  const trimmed = String(url == null ? "" : url).trim();
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith("/")) {
+    return trimmed;
+  }
+  throw new Error("Unsafe or invalid link URL: " + url);
+};
+
 // Apex lookups can legitimately return no rows when an admin-authored
 // whereCondition / name matches nothing. Throw a clear, actionable error
 // instead of a cryptic "cannot read property Id of undefined".
@@ -172,7 +184,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
       pageReference = {
         type: "standard__webPage",
         attributes: {
-          url: dynamicLink.RLM_Learning_Link__c
+          url: requireSafeUrl(dynamicLink.RLM_Learning_Link__c)
         }
       };
       break;
@@ -201,7 +213,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
       pageReference = {
         type: "standard__webPage",
         attributes: {
-          url: siteUrl
+          url: requireSafeUrl(siteUrl)
         }
       };
       break;
@@ -282,7 +294,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
       pageReference = {
         type: "standard__webPage",
         attributes: {
-          url: dynamicLink.RLM_Learning_Link__c
+          url: requireSafeUrl(dynamicLink.RLM_Learning_Link__c)
         }
       };
       break;
