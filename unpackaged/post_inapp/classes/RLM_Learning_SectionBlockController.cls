@@ -80,6 +80,7 @@ public with sharing class RLM_Learning_SectionBlockController {
           Id,
           Name,
           RLM_Learning_App_API_Name__c,
+          RLM_Learning_Open_in_new_tab__c,
           RLM_Learning_Identity__c,
           RLM_Learning_Object__c,
           RLM_Learning_Filter_Name__c,

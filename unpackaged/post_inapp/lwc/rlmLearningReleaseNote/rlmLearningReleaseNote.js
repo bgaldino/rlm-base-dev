@@ -17,7 +17,8 @@ export default class RlmLearningReleaseNote extends LightningElement {
       this.sectionsWithBlocks = data.map(section => ({
         ...section,
         contentSize: section.section.RLM_Learning_Video_Link__c ? 7 : 12,
-        videoSize: section.blocks && section.blocks.length > 0 ? 5 : 7
+        // Full width for a video with no accompanying blocks; otherwise share the row.
+        videoSize: section.blocks && section.blocks.length > 0 ? 5 : 12
       }));
       if (this.sectionsWithBlocks.length === 0) {
         this.dispatchEvent(new CustomEvent("hasnodata"));

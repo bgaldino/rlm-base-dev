@@ -21,10 +21,12 @@
                   <lightning-formatted-rich-text
                     value={block.description}
                   ></lightning-formatted-rich-text>
-                  <template if:true={hasExpiryDays}>
-                    You can access and play around with all new features for
-                    <b>remaining {expiryDaysDisplay}</b> days.
-                  </template>
+                </p>
+              </template>
+              <template if:true={hasExpiryDays}>
+                <p class="slds-var-p-left_xx-large">
+                  You can access and play around with all new features for
+                  <b>remaining {expiryDaysDisplay}</b> days.
                 </p>
               </template>
             </lightning-card>

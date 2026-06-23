@@ -1,5 +1,6 @@
 import { LightningElement, track, api } from "lwc";
 import { CloseActionScreenEvent } from "lightning/actions";
+import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getAllBlocks from "@salesforce/apex/RLM_Learning_SectionBlockSequence.getAllBlocks";
 import getBlocksForSection from "@salesforce/apex/RLM_Learning_SectionBlockSequence.getBlocksForSection";
 import updateSectionBlocks from "@salesforce/apex/RLM_Learning_SectionBlockSequence.updateSectionBlocks";
@@ -13,8 +14,8 @@ export default class RlmLearningReorderableList extends LightningElement {
 
   @api set recordId(value) {
     this._recordId = value;
-    this.getData().catch(() => {
-      // Non-fatal: the block list simply won't pre-populate.
+    this.getData().catch((error) => {
+      this.showToast("Couldn't load blocks", error);
     });
   }
 
@@ -50,11 +51,25 @@ export default class RlmLearningReorderableList extends LightningElement {
   }
 
   async handleSave() {
-    await updateSectionBlocks({
-      sectionId: this.recordId,
-      blockIds: this.selectedBlocks
-    });
-    // Close the quick action.
-    this.dispatchEvent(new CloseActionScreenEvent());
+    try {
+      await updateSectionBlocks({
+        sectionId: this.recordId,
+        blockIds: this.selectedBlocks
+      });
+      // Close the quick action only after a successful save.
+      this.dispatchEvent(new CloseActionScreenEvent());
+    } catch (error) {
+      this.showToast("Couldn't save blocks", error);
+    }
+  }
+
+  showToast(title, error) {
+    const message =
+      error && error.body && error.body.message
+        ? error.body.message
+        : (error && error.message) || "Unknown error";
+    this.dispatchEvent(
+      new ShowToastEvent({ title, message, variant: "error" })
+    );
   }
 }

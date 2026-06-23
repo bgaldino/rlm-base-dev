@@ -81,16 +81,17 @@ export default class RlmLearningRightContainer extends NavigationMixin(
         if (!url) {
           throw new Error("Unable to generate URL. Possibly an invalid link");
         }
-        if (
-          dynamicLink.RecordType.DeveloperName == "InAppDetailsPage" ||
-          dynamicLink.RecordType.DeveloperName == "WebPage" ||
-          dynamicLink.RecordType.DeveloperName == "CommunityPage"
-        ) {
-          this[NavigationMixin.Navigate](pageRef);
-        } else {
-          // Open external links in a new tab with noopener/noreferrer to prevent
-          // reverse-tabnabbing (the opened page can't reach window.opener).
+        // In-app SPA navigation only for the in-app detail page (or links not
+        // flagged for a new tab); everything else — including external WebPage /
+        // CommunityPage links — opens a new tab with noopener/noreferrer to
+        // prevent reverse-tabnabbing.
+        const openInNewTab =
+          dynamicLink.RLM_Learning_Open_in_new_tab__c === true ||
+          dynamicLink.RecordType.DeveloperName !== "InAppDetailsPage";
+        if (openInNewTab) {
           window.open(url, "_blank", "noopener,noreferrer");
+        } else {
+          this[NavigationMixin.Navigate](pageRef);
         }
       } catch (error) {
         this.showToast(error, error.message);
