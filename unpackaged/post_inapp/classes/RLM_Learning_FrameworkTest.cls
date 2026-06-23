@@ -30,6 +30,7 @@ private class RLM_Learning_FrameworkTest {
     insert page;
 
     RLM_Learning_DynamicLink__c dl = new RLM_Learning_DynamicLink__c(
+      Name = 'Test DynamicLink',
       RecordTypeId = webPageRt,
       RLM_Learning_Identity__c = 'TEST_DYN_LINK',
       RLM_Learning_Link__c = 'https://example.com'
@@ -37,6 +38,7 @@ private class RLM_Learning_FrameworkTest {
     insert dl;
 
     RLM_Learning_Section__c sec = new RLM_Learning_Section__c(
+      Name = 'Test Section',
       RecordTypeId = sectionTopRt,
       RLM_Learning_Page__c = page.Id,
       RLM_Learning_Icon__c = icon.Id,
@@ -49,6 +51,7 @@ private class RLM_Learning_FrameworkTest {
 
     // Second section with no blocks, to exercise the empty-blocks guard.
     RLM_Learning_Section__c secEmpty = new RLM_Learning_Section__c(
+      Name = 'Test Empty Section',
       RecordTypeId = sectionRightRt,
       RLM_Learning_Page__c = page.Id,
       RLM_Learning_Active__c = true,
