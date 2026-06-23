@@ -254,6 +254,50 @@ write `SubscriptionTerm`/`SubscriptionTermUnit`/`EndDate` (matches the
 `createOrderFromQuote` "can't specify EndDate for evergreen order products"
 gate above).
 
+#### Proration fields — `billing_frequency` and `period_boundary` (✅ VERIFIED LIVE, 2026-06-23)
+
+When a `Product2` carries a **proration policy** (e.g. `TEST-SUB`,
+`QB-LIC-CLOUD`), the line **requires both** `billing_frequency` and
+`period_boundary` at place time, or PST fails fast:
+
+```
+FIELD_INTEGRITY_EXCEPTION: "When the SellingModelType is Evergreen or
+Term-Defined, BillingFrequency can't be null: Billing Frequency"
+```
+
+These are **not derivable from the selling model** — they encode how
+the platform should slice the billing span — so the harness writes
+whatever the line config says and never auto-fills. Both `Evergreen`
+and `TermDefined` lines hit this same gate when a proration policy is
+attached; SKUs without a policy (e.g. `QB-API-FLEX`) place fine without
+either field.
+
+**Evergreen-only sub-rule (`period_boundary: Anniversary` required at
+order creation).** An Evergreen line places fine on the quote with any
+of the four boundary values, but `createOrderFromQuote` rejects
+anything except `Anniversary`:
+
+```
+INVALID_INPUT: "Evergreen order products must have an Anniversary
+period boundary."
+```
+
+Live-verified: `TEST-SUB` @ Evergreen Monthly with `period_boundary:
+AlignToCalendar` placed (quote `0Q0WI000003LOtd0AG`) but failed
+`createOrderFromQuote`; the same scenario with `period_boundary:
+Anniversary` ran end-to-end to Posted `INV-US-06-2026-000086` and
+generated `BillingSchedule BS-000000132` (`BillingMethod=Evergreen`,
+`BillingTerm=1 Month`, `BillingPeriodAmount=$35`, `EndDate=null`,
+`Status=ReadyForInvoicing`, `NextBillingDate=2026-07-23`).
+`TermDefined` lines accept all four boundary values
+(`AlignToCalendar`, `Anniversary`, `DayOfPeriod`, `LastDayOfPeriod`).
+
+**Authoring rule for scenarios:** for any Evergreen SKU with a
+proration policy, pin `period_boundary: Anniversary` plus a matching
+`billing_frequency` (e.g. `Monthly` to match `Evergreen Monthly`).
+Without both, the run fails at place (no `billing_frequency`) or at
+order creation (`AlignToCalendar` on Evergreen).
+
 #### Explicit `EndDate` override — co-term path (✅ ACCEPTED LIVE, prorates)
 
 The harness also exposes an **opt-in** `end_date:` per-line (or scenario-

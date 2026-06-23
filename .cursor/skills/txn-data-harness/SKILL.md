@@ -23,6 +23,10 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
    batch.
 8. **Lifecycle/API changes require contracts:** read `CONTRACTS.md`, update
    tests, and live-verify the changed behavior before presenting it as verified.
+9. **`--count` does NOT override per-scenario `count:`** in a config. Precedence is
+   per-scenario > CLI > `defaults` > builtins, so passing `--count 1` against a
+   config whose scenarios pin `count: 100` runs all 100. To smoke a multi-scenario
+   config, edit the per-scenario `count:` (or comment scenarios out) instead.
 
 ## DO NOT
 
@@ -96,7 +100,11 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
      --config scripts/txn_data_harness/scenarios/01-smoke-test.yaml
    ```
 
-3. Run one smoke scenario:
+3. Run one smoke scenario. Pick a config whose scenarios already have a small
+   `count:` (e.g. `01-smoke-test.yaml`); `--count` will NOT shrink a config that
+   pins `count:` per scenario (see Quick Rule 9). For a high-volume config,
+   edit the per-scenario `count:` to 1 (or copy the scenario out) before
+   smoking.
 
    ```bash
    python -m scripts.txn_data_harness.cli run --org <sf-alias> \

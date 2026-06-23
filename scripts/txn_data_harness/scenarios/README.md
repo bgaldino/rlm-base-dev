@@ -86,6 +86,13 @@ but a scenario that pins `target_stage: post` still wins over the CLI flag.
 (`--with-opportunity` is a store_true flag — it can only *enable*; pin
 `with_opportunity: false` on a scenario to opt it out.)
 
+**Common gotcha — `--count` and per-scenario `count:`.** Passing `--count 1` to
+smoke-test a config whose scenarios pin `count: 100` does **not** shrink the run:
+the per-scenario value wins. To smoke a multi-scenario config, edit the
+per-scenario `count:` (or temporarily comment out scenarios) rather than passing
+`--count`. `--count` only takes effect when no `--config` is given, or against a
+config whose `count` lives in `defaults:` (not on a scenario).
+
 This table is the same contract enforced in
 [`config.py`](../config.py) (`_coerce_spec` / `load_scenarios`).
 

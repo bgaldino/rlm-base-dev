@@ -26,15 +26,21 @@ scenarios:
     count: 25
 
 # Proration knobs (`period_boundary` / `billing_frequency`) are supported per
-# product — some term products carry a proration policy whose PST place REQUIRES
-# both (without them the line fails with INVALID_PERIOD_BOUNDARY / "BillingFrequency
-# can't be null"); they are not derivable from the selling model, so set them on
-# the line. They were verified live to make such a product *place*. Example:
+# product — some products carry a proration policy whose PST place REQUIRES both
+# (without them the line fails FIELD_INTEGRITY_EXCEPTION "BillingFrequency can't
+# be null"); they are not derivable from the selling model, so set them on the
+# line. Both apply to TermDefined and Evergreen lines. Example:
 #
 #   - sku: "QB-LIC-CLOUD"
 #     quantity: [1, 10]
 #     period_boundary: "AlignToCalendar"   # AlignToCalendar | Anniversary | DayOfPeriod | LastDayOfPeriod
 #     billing_frequency: "Annual"          # MilestonePlan | Monthly | Quarterly | Semi-Annual | Annual
+#
+# Evergreen sub-rule: Evergreen lines REQUIRE `period_boundary: Anniversary` —
+# the other three values place on the quote but fail createOrderFromQuote with
+# INVALID_INPUT "Evergreen order products must have an Anniversary period
+# boundary." (Verified live: TEST-SUB @ Evergreen Monthly + Anniversary +
+# Monthly posted end-to-end in `rlm-base__jun17_1`, 2026-06-23 — see CONTRACTS.md.)
 #
 # QB-LIC-CLOUD is intentionally kept OUT of the pool above: in the reference org it
 # places and activates but generates NO BillingSchedule (no error logged; identical

@@ -40,6 +40,11 @@ python -m scripts.txn_data_harness.cli run --org <sf-alias> \
 Start with a smoke test before volume. Increase `--concurrency` gradually; higher
 values are not broadly tested against API limits and async billing contention.
 
+`--count N` does NOT shrink a `--config` whose scenarios pin `count:` (per-scenario
+wins over CLI; see `scenarios/README.md` → Precedence). To smoke a multi-scenario
+config, edit the per-scenario `count:` to 1 (or copy the scenario you want into a
+temporary file) rather than relying on `--count`.
+
 Transient failures (network blips, `UNABLE_TO_LOCK_ROW`, rate limits) are retried
 automatically, resuming from the last checkpointed stage. Tune with
 `--max-retries N` (default 2; `0` disables). Deterministic failures (e.g. a

@@ -74,7 +74,7 @@ python -m scripts.txn_data_harness.generate --org <cci-alias> ...      # fails i
 | ------ | ------- | ------- |
 | `--org` | *(required)* | Target org: sf alias or username (NOT a CCI alias). |
 | `--config` | — | YAML/JSON config file (all fields optional). |
-| `--count` | 1 | Transactions to generate (overrides config). |
+| `--count` | 1 | Transactions to generate. Overrides `defaults.count` in a config, but **per-scenario `count:` wins** (precedence: builtins < config `defaults` < CLI < per-scenario). To shrink a multi-scenario config for a smoke run, edit the per-scenario `count:` rather than passing `--count`. |
 | `--target-stage` | `post` | How far to run: `opportunity`\|`quote`\|`order`\|`activate`\|`usage`\|`invoice`\|`post`. |
 | `--account` | auto | Pin the account by **Name**. |
 | `--product` | auto (QB-preferred) | Pin the product by **SKU**. |
