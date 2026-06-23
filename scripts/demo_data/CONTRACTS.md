@@ -110,6 +110,27 @@ real call in task #2 before transcription.
      plan's "probes leave real artifacts" rule → probe quotes must be tagged and
      cleaned up.
 
+#### Line discounts — ✅ VERIFIED LIVE (survives PST → order → posted invoice)
+Set `Discount` (a standard **percent** field on QuoteLineItem, `createable:true`)
+on the line record in the place graph. With `pricingPref: "System"` the engine
+applies it to the derived net prices, and those flow through to the posted invoice.
+
+Live probe (quote `0Q0WI000003KPGf0AO`, SKU `QB-API-FLEX` @ $450, qty 2, **25%**):
+
+| Where | Field | Value | Note |
+|-------|-------|-------|------|
+| QuoteLineItem | `UnitPrice` / `ListPrice` | 450 | undiscounted |
+| QuoteLineItem | `NetUnitPrice` | **337.50** | 450 × 0.75 → 25% applied |
+| QuoteLineItem | `NetTotalPrice` | 667.60 | discounted line total (prorated term) |
+| QuoteLineItem | `Discount` | **0** | ⚠ engine consumes the input; does **not** round-trip it onto this field |
+| Invoice | `Status` / `TotalAmount` | Posted / **667.60** | discounted amount reached the posted invoice |
+| InvoiceLine | `ChargeAmount` | 667.60 | matches |
+
+**Key gotcha:** verify a discount by the **net prices**, not by reading back
+`QuoteLineItem.Discount` (it reads `0` post-place even when applied). `InvoiceLine`
+has **no** `NetUnitPrice`/`Amount` columns — use `ChargeAmount`; `Invoice` has no
+`NetAmount` — use `TotalAmount`.
+
 ### 3. Order — Create Order from Quote — ✅ VERIFIED LIVE
 - **Endpoint (PRIMARY, works):** `POST /services/data/v67.0/actions/standard/createOrderFromQuote`
 - **Body:** `{ "inputs": [ { "quoteRecordId": "<quoteId>" } ] }`

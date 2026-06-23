@@ -19,6 +19,7 @@ import contextvars
 import json
 import logging
 import os
+import random
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -147,6 +148,10 @@ def _print_plan(
         print(f"  Product      : {r.product.sku} — {r.product.name}  "
               f"${r.product.unit_price} x{r.spec.quantity}  "
               f"(PBE {r.product.pricebook_entry_id})")
+        if r.spec.discount is not None:
+            lo, hi = r.spec.discount
+            disc = f"{lo:g}%" if lo == hi else f"{lo:g}–{hi:g}% (random per line)"
+            print(f"  Discount     : {disc}")
         if r.effective_stage != r.spec.target_stage:
             print(f"  ⚠  target_stage '{r.spec.target_stage}' capped to "
                   f"'{r.effective_stage}' (billing_ready={r.account.is_billing_ready}).")
@@ -216,6 +221,7 @@ def run_scenario(
     with_opportunity: bool,
     quantity: int,
     poll_timeout: int,
+    discount_percent: Optional[float] = None,
 ) -> Manifest:
     """Drive one transaction through the lifecycle up to ``target_stage``.
 
@@ -225,6 +231,7 @@ def run_scenario(
     """
     _current_run_id.set(run_id)
     m = Manifest(run_id=run_id)
+    m.discount_percent = discount_percent
     stage = _effective_stage(target_stage, account)
     stop_at = STAGES.index(stage)
     # target_stage 'opportunity' means "stop after the opportunity", so it
@@ -252,6 +259,7 @@ def run_scenario(
             m.quote_id = lifecycle.place_sales_transaction(
                 client, account, product, ctx.pricebook_id, run_id,
                 quantity=quantity, opportunity_id=m.opportunity_id,
+                discount_percent=discount_percent,
             )
         except LifecycleError as exc:
             # PST may have committed the quote header even on failure -- record
@@ -394,11 +402,18 @@ def main(argv: Optional[list[str]] = None) -> int:
     total = len(jobs)
 
     def _one(run_id: str, r: ResolvedSpec) -> Manifest:
+        # Draw the line discount per scenario so a count>1 spec gets a spread of
+        # values; a scalar config (min==max) yields a fixed discount.
+        discount = None
+        if r.spec.discount is not None:
+            lo, hi = r.spec.discount
+            discount = round(random.uniform(lo, hi), 2)
         return run_scenario(
             client, ctx, run_id, r.spec.target_stage, r.account, r.product,
             with_opportunity=r.spec.with_opportunity,
             quantity=r.spec.quantity,
             poll_timeout=args.poll_timeout,
+            discount_percent=discount,
         )
 
     concurrency = max(1, min(args.concurrency, total))

@@ -41,6 +41,7 @@ _BUILTIN_DEFAULTS: dict[str, Any] = {
     "product": None,
     "quantity": 1,
     "count": 1,
+    "discount": None,
 }
 
 _VALID_STAGES = {"opportunity", "quote", "order", "activate", "invoice", "post"}
@@ -56,6 +57,10 @@ class ScenarioSpec:
 
     ``account`` / ``product_sku`` are ``None`` => auto-discover (default
     billing-ready account / preferred QB product).
+
+    ``discount`` is the line-discount **percent** to apply, as a
+    ``(min, max)`` inclusive range from which a value is drawn **per line**
+    (a scalar in config becomes ``(x, x)``); ``None`` => no discount.
     """
 
     account: Optional[str]
@@ -65,6 +70,7 @@ class ScenarioSpec:
     opportunity_stage: Optional[str]
     quantity: int
     count: int
+    discount: Optional[tuple[float, float]] = None
 
 
 def _load_file(path: str) -> dict:
@@ -112,6 +118,34 @@ def _cli_overrides(args: Any) -> dict[str, Any]:
     return overrides
 
 
+def _coerce_discount(value: Any, where: str) -> Optional[tuple[float, float]]:
+    """Normalize a discount into an inclusive ``(min, max)`` percent range.
+
+    Accepts a scalar (``10`` -> ``(10, 10)``) or a 2-element list/tuple
+    (``[5, 25]`` -> ``(5.0, 25.0)``). Returns ``None`` for an unset discount.
+    Percents must be within ``0..100`` and ``min <= max``.
+    """
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple)):
+        if len(value) != 2:
+            raise ConfigError(
+                f"{where}: discount range must have exactly 2 values [min, max]"
+            )
+        lo, hi = value
+    else:
+        lo = hi = value
+    try:
+        lo, hi = float(lo), float(hi)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(f"{where}: discount must be number(s)") from exc
+    if lo > hi:
+        raise ConfigError(f"{where}: discount min ({lo}) > max ({hi})")
+    if lo < 0 or hi > 100:
+        raise ConfigError(f"{where}: discount percent must be within 0..100")
+    return (lo, hi)
+
+
 def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
     stage = merged.get("target_stage") or "post"
     if stage not in _VALID_STAGES:
@@ -124,6 +158,7 @@ def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
     # place a single line per quote today, so take the first and warn on extras.
     product_sku = merged.get("product")
     quantity = merged.get("quantity", 1)
+    discount_raw = merged.get("discount")
     products = merged.get("products")
     if products:
         if not isinstance(products, list):
@@ -133,12 +168,17 @@ def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
             raise ConfigError(f"{where}: each product needs an 'sku'")
         product_sku = first["sku"]
         quantity = first.get("quantity", quantity)
+        # A per-product discount overrides the scenario-level one (mirrors qty).
+        if "discount" in first:
+            discount_raw = first["discount"]
         if len(products) > 1:
             log.warning(
                 "%s: %d products listed but only the first (%s) is placed "
                 "(multi-line orders are not yet supported); the rest are ignored",
                 where, len(products), product_sku,
             )
+
+    discount = _coerce_discount(discount_raw, where)
 
     try:
         count = int(merged.get("count", 1))
@@ -158,6 +198,7 @@ def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
         opportunity_stage=merged.get("opportunity_stage"),
         quantity=quantity,
         count=count,
+        discount=discount,
     )
 
 

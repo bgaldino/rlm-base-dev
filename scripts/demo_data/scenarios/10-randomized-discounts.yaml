@@ -1,0 +1,45 @@
+# Randomized discounts — posted invoices with a spread of line discounts.
+#
+#   python -m scripts.demo_data.generate --org <sf-alias> \
+#       --config scripts/demo_data/scenarios/10-randomized-discounts.yaml \
+#       --concurrency 3
+#
+# Each line gets a discount % drawn at random from the given range (per line, so
+# a count>N spec produces a spread), applied via the QuoteLineItem `Discount`
+# field. The pricing engine reflects it in the line's net price and it flows
+# through to the posted invoice amount (live-verified). A scalar (e.g.
+# `discount: 10`) fixes the value.
+#
+# Note: verify a discount by the net price (QuoteLineItem.NetUnitPrice /
+# Invoice.TotalAmount), not by reading back QuoteLineItem.Discount — the engine
+# consumes the input and that field reads 0 post-place. See ../CONTRACTS.md.
+#
+# `discount` may sit on the scenario or on a `products:` entry (the per-product
+# value wins). Percent is 0..100; the range is [min, max] inclusive.
+scenarios:
+  # Modest, everyday discounting.
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+        discount: [5, 15]
+    count: 20
+
+  # Aggressive end-of-quarter discounting on larger deals.
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 10
+        discount: [20, 40]
+    count: 10
+
+  # A fixed 10% scenario-level discount (scalar form).
+  - account: "Infinitech"
+    target_stage: post
+    discount: 10
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 5

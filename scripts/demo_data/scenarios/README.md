@@ -26,6 +26,7 @@ Always `--dry-run` first — it resolves auth + discovery and prints the plan
 | `07-multi-account.yaml` | `post`/capped | 30 | Billable + pipeline-only accounts; shows the auto-cap (Global Media → `activate`). |
 | `08-product-mix.yaml` | `post` | 30 | Posted invoices across several SKUs so invoices aren't all one line item. |
 | `09-quantity-spread.yaml` | `post` | 35 | Same product, varied quantities → a range of invoice amounts (small/medium/large deals). |
+| `10-randomized-discounts.yaml` | `post` | 35 | Per-line discounts drawn from a range → a spread of discounted invoice amounts. |
 
 These are tuned for the **QuantumBit (QB)** demo org. The only values that are
 org-specific are the **account names** (`Infinitech`, `Global Media`) and the
@@ -57,6 +58,7 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | `products` | list | — | List of `{sku, quantity}`. **Only the first entry is placed** today (one line per quote — see Limitations); extras are logged and ignored. |
 | `quantity` | int ≥ 1 | `1` | Line quantity. A `products[].quantity` overrides this for that entry. |
 | `count` | int ≥ 1 | `1` | How many times to run this shape. |
+| `discount` | number or `[min, max]` | none | Line-discount **percent** (0..100). A scalar (`10`) fixes it; a range draws a value **per line** (so `count > 1` yields a spread). May sit on the scenario or on a `products[]` entry (per-product wins, like `quantity`). |
 
 ### `defaults` vs `volume` vs `scenarios`
 
@@ -78,6 +80,19 @@ but a scenario that pins `target_stage: post` still wins over the CLI flag.
 
 This table is the same contract enforced in
 [`config.py`](../config.py) (`_coerce_spec` / `load_scenarios`).
+
+### Discounts
+
+`discount` sets the QuoteLineItem `Discount` percent on the placed line. Because
+PST prices with `pricingPref: "System"`, the engine **applies** it to the derived
+net prices and it flows through to the **posted invoice** — live-verified: a 25%
+discount drove a $450 line to a `NetUnitPrice` of 337.50 and a Posted invoice
+`TotalAmount` to match (see [`../CONTRACTS.md`](../CONTRACTS.md) → *Line discounts*).
+
+⚠️ **Verify a discount by the net price, not the `Discount` field.** The engine
+consumes the input but reads `QuoteLineItem.Discount` back as `0` post-place — the
+discount lives in `NetUnitPrice`/`NetTotalPrice` (and `Invoice.TotalAmount` /
+`InvoiceLine.ChargeAmount`), not that column.
 
 ## What makes an account / product a valid target
 

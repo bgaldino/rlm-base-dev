@@ -76,6 +76,7 @@ class Manifest:
     asset_ids: list[str] = field(default_factory=list)
     invoice_id: Optional[str] = None
     invoice_number: Optional[str] = None
+    discount_percent: Optional[float] = None  # line discount applied, if any
     reached_stage: Optional[str] = None
     error: Optional[str] = None
 
@@ -132,8 +133,19 @@ def place_sales_transaction(
     quantity: int = 1,
     opportunity_id: Optional[str] = None,
     term_months: int = 12,
+    discount_percent: Optional[float] = None,
 ) -> str:
     """Place a quote. Returns the Quote id (salesTransactionId).
+
+    ``discount_percent`` (0..100), when given, sets the line's ``Discount``
+    (a standard percent field, createable). PST runs with ``pricingPref:
+    "System"``, so the pricing engine *consumes* the discount and reflects it in
+    the derived net prices, which flow through to the posted invoice. Verified
+    live (CONTRACTS.md "Line discounts"): a 25% input drove QuoteLineItem
+    ``NetUnitPrice`` to 337.50 (= 450 x 0.75) and the Posted Invoice
+    ``TotalAmount`` to the discounted figure. NOTE: the engine does not
+    round-trip the input onto ``QuoteLineItem.Discount`` -- that field reads back
+    ``0`` post-place; the discount lives in the net prices, not that column.
 
     Gotchas locked in CONTRACTS.md:
       * use QuoteAccountId (AccountId is not writable on the graph record)
@@ -161,6 +173,8 @@ def place_sales_transaction(
         "StartDate": _iso_today(),
         "EndDate": _iso_days(term_months * 30),
     }
+    if discount_percent is not None:
+        line_record["Discount"] = discount_percent
 
     body = {
         "pricingPref": "System",
@@ -181,7 +195,8 @@ def place_sales_transaction(
     if not result or not result.get("isSuccess"):
         errs = result.get("errorResponse") if isinstance(result, dict) else result
         raise LifecycleError("quote", f"PST place failed: {errs}", record_id=quote_id)
-    log.info("quote %s placed", quote_id)
+    disc = f" ({discount_percent}% discount)" if discount_percent is not None else ""
+    log.info("quote %s placed%s", quote_id, disc)
     return quote_id
 
 

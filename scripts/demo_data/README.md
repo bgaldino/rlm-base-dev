@@ -121,7 +121,7 @@ per-scenario field  >  CLI flag  >  config `defaults`  >  built-in default
 account/product a valid target** are documented in
 [`scenarios/README.md`](scenarios/README.md), alongside ready-to-run example
 configs (smoke test, pipeline quotes, draft/posted invoices, mixed stages,
-multi-account, product/quantity spreads). Start there.
+multi-account, product/quantity spreads, randomized discounts). Start there.
 
 [`config.example.yaml`](config.example.yaml) is the original single-file worked
 example. With no `scenarios:` block, a single spec runs and `volume.scenarios`
