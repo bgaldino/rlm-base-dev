@@ -25,19 +25,10 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 sys.path.insert(0, REPO_ROOT)
 
 from tasks.expression_set_schema import (  # noqa: E402
-    OVERLAY_OPS,
+    detect_kind,
     validate_definition,
     validate_overlay,
 )
-
-
-def _detect_kind(data: dict) -> str:
-    if isinstance(data, dict) and data.keys() & OVERLAY_OPS:
-        return "overlay"
-    if isinstance(data, dict) and "versions" in data:
-        return "definition"
-    # Default to overlay — it's the more common author-facing artifact.
-    return "overlay"
 
 
 def main(argv=None) -> int:
@@ -67,7 +58,7 @@ def main(argv=None) -> int:
     elif args.overlay:
         kind = "overlay"
     else:
-        kind = _detect_kind(data)
+        kind = detect_kind(data)
 
     result = validate_definition(data) if kind == "definition" else validate_overlay(data)
 

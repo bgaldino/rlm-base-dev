@@ -164,6 +164,9 @@ OVERLAY_OPS = {
 # early rather than as an opaque server gack.
 _HTML_ENTITY_RE = re.compile(r"&(?:quot|amp|lt|gt|apos|#\d+|#x[0-9a-fA-F]+);")
 
+# Identifier tokenizer for Formula param values and externalDependencies entries.
+_IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
 
 def _contains_html_entities(value) -> bool:
     return isinstance(value, str) and bool(_HTML_ENTITY_RE.search(value))
@@ -409,6 +412,20 @@ def _validate_sequence_numbers(
 # ----------------------------------------------------------------------
 # Public API
 # ----------------------------------------------------------------------
+
+
+def detect_kind(data) -> str:
+    """Return 'overlay' or 'definition' for an arbitrary parsed JSON payload.
+
+    A dict carrying any OVERLAY_OPS key is an overlay; one with a ``versions``
+    array is a definition; anything else defaults to overlay (the more common
+    author-facing shape).
+    """
+    if isinstance(data, dict) and data.keys() & OVERLAY_OPS:
+        return "overlay"
+    if isinstance(data, dict) and "versions" in data:
+        return "definition"
+    return "overlay"
 
 
 def validate_definition(defn: dict) -> ValidationResult:
@@ -659,7 +676,7 @@ def _declared_external_dependency_tokens(overlay: dict) -> Set[str]:
     for key in ("customFields", "contextNodes", "contextFields"):
         for entry in deps.get(key, []) or []:
             if isinstance(entry, str):
-                tokens.update(re.findall(r"[A-Za-z_][A-Za-z0-9_]*", entry))
+                tokens.update(_IDENTIFIER_RE.findall(entry))
     return tokens
 
 
@@ -823,8 +840,7 @@ def _step_all_refs(step: dict) -> "tuple[Set[str], Set[str]]":
         if not isinstance(p, dict) or p.get("type") != "Formula":
             continue
         # Formula params are inputs; tokenize identifier-like names.
-        for tok in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", str(p.get("value", ""))):
-            consumed.add(tok)
+        consumed.update(_IDENTIFIER_RE.findall(str(p.get("value", ""))))
     return consumed, produced
 
 

@@ -66,8 +66,8 @@ except ImportError:
     TaskOptionsError = Exception
 
 from tasks.expression_set_schema import (
-    OVERLAY_OPS,
     RESOURCE_INIT_TYPES,
+    detect_kind,
     validate_definition,
     validate_overlay,
     validate_overlay_against_definition,
@@ -75,6 +75,15 @@ from tasks.expression_set_schema import (
 
 
 _REQUEST_TIMEOUT = 120
+
+
+def _parse_bool_option(value: Any, default: bool) -> bool:
+    """Parse a CCI bool option: None → default, bool → as-is, string → truthy match."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).lower() in ("true", "1", "yes")
 
 
 class ExpressionSetConnectBase(BaseSalesforceTask):
@@ -742,13 +751,7 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
 
     # -- Utility -------------------------------------------------------
 
-    @staticmethod
-    def _bool_option(value: Any, default: bool) -> bool:
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return value
-        return str(value).lower() in ("true", "1", "yes")
+    _bool_option = staticmethod(_parse_bool_option)
 
     def _int_option(self, name: str, default: int, minimum: int = 0) -> int:
         """Read an int option, raising a clear TaskOptionsError on a non-numeric
@@ -1625,13 +1628,7 @@ class ValidateExpressionSet(BaseTask):
         },
     }
 
-    @staticmethod
-    def _bool_option(value, default):
-        if value is None:
-            return default
-        if isinstance(value, bool):
-            return value
-        return str(value).lower() in ("true", "1", "yes")
+    _bool_option = staticmethod(_parse_bool_option)
 
     def _run_task(self):
         path = Path(self.options["file"])
@@ -1639,11 +1636,7 @@ class ValidateExpressionSet(BaseTask):
             raise TaskOptionsError(f"File not found: {path}")
         data = json.loads(path.read_text(encoding="utf-8"))
 
-        kind = self.options.get("kind")
-        if not kind:
-            kind = "overlay" if (isinstance(data, dict) and data.keys() & OVERLAY_OPS) \
-                else ("definition" if isinstance(data, dict) and "versions" in data
-                      else "overlay")
+        kind = self.options.get("kind") or detect_kind(data)
 
         result = validate_definition(data) if kind == "definition" else validate_overlay(data)
 
