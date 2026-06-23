@@ -75,6 +75,7 @@ public with sharing class RLM_Learning_SectionBlockController {
         AND RLM_Learning_Active__c = TRUE
         AND RLM_Learning_Page__c = :pageIdValue
       WITH USER_MODE
+      ORDER BY Name
     ];
     return sections;
   }

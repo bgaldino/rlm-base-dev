@@ -6,7 +6,9 @@ public with sharing class RLM_Learning_UserInformation {
 
     @AuraEnabled(cacheable=true)
     public static String getTiming() {
-        return timingForHour(System.now().hour());
+        // System.now().hour() is GMT; format('H') renders in the running user's
+        // timezone so the greeting matches the user's local part-of-day.
+        return timingForHour(Integer.valueOf(System.now().format('H')));
     }
 
     @TestVisible
