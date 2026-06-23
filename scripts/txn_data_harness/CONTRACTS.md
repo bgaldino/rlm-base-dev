@@ -129,6 +129,45 @@ Live probe (quote `0Q0WI000003KPGf0AO`, SKU `QB-API-FLEX` @ $450, qty 2, **25%**
 has **no** `NetUnitPrice`/`Amount` columns — use `ChargeAmount`; `Invoice` has no
 `NetAmount` — use `TotalAmount`.
 
+#### Bundles — PST auto-expands default-configured bundles (✅ VERIFIED LIVE R262)
+
+Sending one flat input line whose `Product2Id` is a **`ProductClass = 'Bundle'`**
+SKU does **not** fail. PST resolves the bundle's component graph server-side and
+returns a fully configured set of child `QuoteLineItem`s wired to the parent via
+`ParentQuoteLineItemId`, each with its own `ProductSellingModelId`, quantity, and
+list/total price. The harness's single input line places the configured bundle
+end-to-end — no client-side component graph is needed.
+
+Live probe (org `rlm-base__jun17_1`, account `Infinitech`, SKU `QB-COMPLETE`,
+qty 1):
+
+| Where | Result |
+|-------|--------|
+| Input PST graph | **1** flat line: `Product2Id = <QB-COMPLETE>` |
+| Resulting `QuoteLineItem` rows | **5** — 1 Bundle root (`ParentQuoteLineItemId = null`, `TotalPrice = 0`) + 4 Simple children (`QB-DB`, `QB-API-REQT`, `QB-SRV-OG-PSH`, `QB-API-MGMT`) all linked via `ParentQuoteLineItemId = <root>` |
+| `Quote.GrandTotal` | **$91,000** — sum of priced child lines |
+| Downstream | `createOrderFromQuote` → activation → 7 `BillingSchedule`s → 1 Asset → Draft invoice → Posted `INV-US-06-2026-000039` |
+
+**Caveats:**
+
+- Only **default-configured** bundles are exercised. Bundles with mandatory slots
+  requiring user choice (no default, or required attributes with no default
+  value) are expected to fail at PST place — the harness has no way to express
+  those choices.
+- The YAML's `quantity:` / `discount_percent:` apply to the **root** line only.
+  Child quantities and prices come from the bundle definition.
+- One BillingSchedule is created per child component slot at activation, **not**
+  one per input line. The harness's `expected_count = len(ctx.lines)` heuristic
+  in `steps.py:run_activate` will see the *first* schedule reach
+  `ReadyForInvoicing` and continue, but it under-counts what's actually there —
+  acceptable today (the invoice gathers them all) but worth knowing if anyone
+  tightens the wait condition.
+- Some bundle slots produce a `BillingSchedule` with `TotalAmount = 0` (a $0
+  root slot, e.g.). No `InvoiceLine` is created against a $0 schedule, so the
+  invoice-correlation poll **must** scan across all schedules in the generate
+  call — picking any single id (e.g. `[0]`) risks polling the one that never
+  yields a row. See *Invoice correlation* below.
+
 #### Selling models — line date rules (✅ VERIFIED LIVE)
 
 The line's date fields are **selling-model-dependent**, and the model is resolved
@@ -223,18 +262,28 @@ poll-by-orderId returns 0 rows *as generated*. Investigated three correlation pa
 live — all verified on `rlm-base__jun17_1`:
 
 1. **PRIMARY — `InvoiceLine.BillingScheduleId` back-link (deterministic, zero extra writes).**
-   We already hold the `billingScheduleId` we passed to `generate`. `InvoiceLine`
+   We already hold the `billingScheduleId`(s) we passed to `generate`. `InvoiceLine`
    carries **`BillingScheduleId`** (→ BillingSchedule) and exposes the parent via
-   `Invoice.*`. Verified query:
+   `Invoice.*`. Verified query — use `IN (…)` across **every** schedule submitted
+   to that generate call, not just one:
    ```sql
    SELECT InvoiceId, Invoice.Status, Invoice.InvoiceNumber
    FROM   InvoiceLine
-   WHERE  BillingScheduleId = '<bsId we passed to generate>'
+   WHERE  BillingScheduleId IN ('<bs1>', '<bs2>', ...)
    ```
-   → returns the exact invoice. **This is the locked correlation for generate.** No
+   → returns the exact invoice. All submitted schedules land on a **single
+   Invoice** (single-invoice per generate, verified), so the first row with a
+   non-null `InvoiceId` wins. **This is the locked correlation for generate.** No
    account+recency guessing; survives concurrent runs against the same account.
    (`InvoiceLine` also has `ReferenceEntityItemId` → OrderItem/QuoteLineItem and
    `BillingScheduleGroupId` as secondary keys.)
+
+   ⚠ **Do not poll a single `BillingScheduleId =`.** Bundles activate into one
+   schedule per child slot; zero-amount slots (e.g. a $0 bundle root) produce
+   **no** `InvoiceLine`, so the invoice is real but the single-id query hangs
+   until timeout. Live-verified: `QB-COMPLETE` activated into 7 schedules; the
+   first was `TotalAmount = 0` and yielded no InvoiceLine, the invoice
+   (`3ttWI0000007zpxYAA`, $91,000) was visible immediately via the other six.
 
 2. **`Invoice.ReferenceEntityId` is `updateable=true` → we can stamp it ourselves,
    but ONLY once Posted (Draft rejects it).**
@@ -270,9 +319,11 @@ Dead ends (do not rely on):
   assetization jobs appeared) — so there is no generate tracker to query.
 
 #### Locked correlation strategy
-- **generate** → poll `InvoiceLine.BillingScheduleId = <bsId>` for the InvoiceId
-  (deterministic). Then PATCH the invoice's `Description = DEMO-<run_id>` (writable on
-  Draft; survives posting). Do **not** PATCH `ReferenceEntityId` here — Draft rejects it.
+- **generate** → poll `InvoiceLine.BillingScheduleId IN (<all submitted bsIds>)`
+  for the InvoiceId (deterministic; works for both single-line and bundle cases —
+  see the warning above about single-id polls hanging on $0 bundle slots). Then
+  PATCH the invoice's `Description = DEMO-<run_id>` (writable on Draft; survives
+  posting). Do **not** PATCH `ReferenceEntityId` here — Draft rejects it.
 - **post** → we already hold the invoice id; confirm completion via the returned
   `statusURL` AsyncOperationTracker reaching `Completed` (fallback: poll
   `Invoice.Status = Posted`). **`InvoiceNumber` is assigned at post time — it is

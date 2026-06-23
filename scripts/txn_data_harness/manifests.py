@@ -55,11 +55,16 @@ def load_manifest(run_id_or_path: str, manifest_dir: Path = MANIFEST_DIR) -> Man
 
 
 def list_manifests(manifest_dir: Path = MANIFEST_DIR) -> list[Path]:
-    """Return known manifest files, newest first."""
+    """Return known manifest files, newest first.
+
+    Excludes ``<base>-report.json`` batch summaries (see ``report.py``), which
+    share the directory but have a different schema and would crash
+    ``Manifest.from_dict``.
+    """
     if not manifest_dir.exists():
         return []
     return sorted(
-        manifest_dir.glob("*.json"),
+        (p for p in manifest_dir.glob("*.json") if not p.name.endswith("-report.json")),
         key=lambda p: p.stat().st_mtime,
         reverse=True,
     )
