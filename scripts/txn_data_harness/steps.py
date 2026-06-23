@@ -99,7 +99,6 @@ def run_activate(ctx: StepContext, manifest: Manifest) -> Manifest:
     # expansion finishes writing the rest -- a real risk on default-configured
     # bundles. See CONTRACTS.md "Bundles -- PST auto-expands ...".
     expected_count = lifecycle.count_order_items(ctx.client, manifest.order_id)
-    since = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     lifecycle.activate_order(ctx.client, manifest.order_id)
     manifest.reached_stage = "activate"
     manifest.billing_schedule_ids = lifecycle.poll_billing_schedules(
@@ -108,12 +107,12 @@ def run_activate(ctx: StepContext, manifest: Manifest) -> Manifest:
         expected_count=expected_count,
         timeout=ctx.poll_timeout,
     )
+    # Asset poll is deterministic via AssetActionSource -- no expected_count
+    # needed; it converges on a stable per-order count (handles bundle
+    # expansion + AAS write lag in one). See CONTRACTS.md "Asset attribution".
     manifest.asset_ids = lifecycle.poll_assets(
         ctx.client,
-        ctx.account,
-        [l.product for l in ctx.lines],
-        since,
-        expected_count=expected_count,
+        manifest.order_id,
         timeout=ctx.poll_timeout,
     )
     return manifest

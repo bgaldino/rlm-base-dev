@@ -81,15 +81,16 @@ def test_activate_step_requires_order_id(fake_client, org_context, billable_acco
         )
 
 
-def test_run_activate_uses_order_item_count_for_expected_count(
+def test_run_activate_uses_order_item_count_for_bs_and_order_id_for_assets(
     monkeypatch, fake_client, org_context, billable_account, term_product
 ) -> None:
     """Bundle case: one input LineItem expands into many OrderItems on the
-    order. ``run_activate`` must derive ``expected_count`` from the OrderItem
-    count, not ``len(ctx.lines)``, or the polls return before the
-    bundle-expanded billing schedules / assets have all materialized.
+    order. ``run_activate`` must derive the BS poll's ``expected_count`` from
+    the OrderItem count (not ``len(ctx.lines)``), and pass the manifest's
+    ``order_id`` to ``poll_assets`` so the AssetActionSource path can
+    attribute every bundle-expanded asset back to this order.
     """
-    captured: dict[str, int] = {}
+    captured: dict[str, object] = {}
 
     monkeypatch.setattr(
         "scripts.txn_data_harness.steps.lifecycle.set_shipping_address",
@@ -105,12 +106,12 @@ def test_run_activate_uses_order_item_count_for_expected_count(
         return 7  # bundle expanded to seven OrderItems
 
     def fake_bs(_client, _order_id, expected_count, timeout):
-        captured["bs"] = expected_count
+        captured["bs_expected"] = expected_count
         return [f"BS-{i}" for i in range(expected_count)]
 
-    def fake_assets(_client, _account, _products, _since, expected_count, timeout):
-        captured["assets"] = expected_count
-        return ["A-1"]
+    def fake_assets(_client, order_id, timeout):
+        captured["assets_order_id"] = order_id
+        return [f"A-{i}" for i in range(5)]
 
     monkeypatch.setattr(
         "scripts.txn_data_harness.steps.lifecycle.count_order_items", fake_count
@@ -130,8 +131,9 @@ def test_run_activate_uses_order_item_count_for_expected_count(
 
     run_activate(ctx, manifest)
 
-    assert captured == {"bs": 7, "assets": 7}
+    assert captured == {"bs_expected": 7, "assets_order_id": "801ORDER"}
     assert len(manifest.billing_schedule_ids) == 7
+    assert len(manifest.asset_ids) == 5
     assert manifest.reached_stage == "activate"
 
 

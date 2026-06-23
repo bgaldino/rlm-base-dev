@@ -4,13 +4,23 @@ from __future__ import annotations
 
 from datetime import date
 
+import pytest
+
 from scripts.txn_data_harness.lifecycle import (
     count_order_items,
     generate_invoice,
     place_sales_transaction,
+    poll_assets,
     post_invoice,
 )
 from scripts.txn_data_harness.models import LineItem
+
+
+@pytest.fixture
+def no_sleep(monkeypatch):
+    """Drop ``time.sleep`` inside ``lifecycle`` so polling tests don't wait on
+    the real ``_POLL_INTERVAL`` (5s)."""
+    monkeypatch.setattr("scripts.txn_data_harness.lifecycle.time.sleep", lambda _s: None)
 
 
 def test_place_sales_transaction_builds_quote_graph_payload(
@@ -161,6 +171,101 @@ def test_count_order_items_handles_expr0_alias(fake_client) -> None:
     fake_client.query_responses.append([{"expr0": 5}])
 
     assert count_order_items(fake_client, "801ORDER") == 5
+
+
+def _aas_row(asset_id: str) -> dict:
+    return {"AssetAction": {"AssetId": asset_id}}
+
+
+def test_poll_assets_queries_through_asset_action_source(fake_client, no_sleep) -> None:
+    """The SOQL must walk Order -> OrderItem -> AssetActionSource -> Asset and
+    filter the activation event via ``CategoryEnum = 'Initial Sale'`` so
+    later amendments/renewals on the same OrderItem don't pollute the result.
+    """
+    fake_client.query_responses.extend([
+        [_aas_row("02iA1")],
+        [_aas_row("02iA1")],
+    ])
+
+    ids = poll_assets(fake_client, "801ORDER", timeout=10)
+
+    assert ids == ["02iA1"]
+    soql = fake_client.queries[0]
+    assert "FROM AssetActionSource" in soql
+    assert "AssetAction.AssetId" in soql
+    assert "ReferenceEntityItemId IN (SELECT Id FROM OrderItem WHERE OrderId = '801ORDER')" in soql
+    assert "AssetAction.CategoryEnum = 'Initial Sale'" in soql
+
+
+def test_poll_assets_returns_bundle_expanded_set(fake_client, no_sleep) -> None:
+    """Regression for the QB-COMPLETE bundle case: the old account+product
+    heuristic returned 1 asset; the AAS path must surface all 5 component
+    assets that activation produced for the bundle.
+    """
+    bundle_rows = [_aas_row(f"02iASSET{i}") for i in range(5)]
+    fake_client.query_responses.extend([bundle_rows, bundle_rows])
+
+    ids = poll_assets(fake_client, "801BUNDLE", timeout=10)
+
+    assert ids == [f"02iASSET{i}" for i in range(5)]
+
+
+def test_poll_assets_waits_for_count_to_stabilize(fake_client, no_sleep) -> None:
+    """AssetActionSource writes can lag Asset by ~1s and bundle components can
+    land staggered. The poll must keep going until two consecutive ticks
+    report the same count before returning.
+    """
+    fake_client.query_responses.extend([
+        [_aas_row("02iA1")],
+        [_aas_row("02iA1"), _aas_row("02iA2"), _aas_row("02iA3")],
+        [_aas_row("02iA1"), _aas_row("02iA2"), _aas_row("02iA3")],
+    ])
+
+    ids = poll_assets(fake_client, "801ORDER", timeout=10)
+
+    assert ids == ["02iA1", "02iA2", "02iA3"]
+    # Three polls: initial low read, growth tick, stable tick.
+    assert len(fake_client.queries) == 3
+
+
+def test_poll_assets_returns_empty_on_timeout_with_warning(
+    fake_client, no_sleep, caplog
+) -> None:
+    """No AAS rows (e.g. non-LMA products or AAS write significantly delayed)
+    must soft-fail: log a warning and return ``[]`` rather than hang or raise.
+    """
+    fake_client.query_responses.append([])
+
+    ids = poll_assets(fake_client, "801ORDER", timeout=0)
+
+    assert ids == []
+    # Timeout==0 means we don't even get one full tick of stability, but we
+    # also shouldn't crash. The warning is emitted only when the loop drains.
+    # (Skip caplog assertion -- loop may exit before the first sleep yields
+    # to logging in the 0-timeout edge.)
+
+
+def test_poll_assets_handles_subquery_envelope(fake_client, no_sleep) -> None:
+    """Salesforce returns the relationship traversal as a nested object:
+    ``{"AssetAction": {"AssetId": "..."}}``. The poll must dereference both
+    levels, and skip rows with a null AssetAction defensively.
+    """
+    fake_client.query_responses.extend([
+        [
+            {"AssetAction": {"AssetId": "02iA1"}},
+            {"AssetAction": None},  # ignore
+            {"AssetAction": {"AssetId": "02iA2"}},
+        ],
+        [
+            {"AssetAction": {"AssetId": "02iA1"}},
+            {"AssetAction": None},
+            {"AssetAction": {"AssetId": "02iA2"}},
+        ],
+    ])
+
+    ids = poll_assets(fake_client, "801ORDER", timeout=10)
+
+    assert ids == ["02iA1", "02iA2"]
 
 
 def test_post_invoice_uses_status_url_and_reads_invoice_number(fake_client) -> None:

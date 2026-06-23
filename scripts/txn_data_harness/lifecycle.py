@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import logging
 import random
-import threading
 import time
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
@@ -42,14 +41,6 @@ _SHIPPING_FIELDS = [
 _POLL_INTERVAL = 5  # seconds between poll ticks
 
 _BILLING_SCHEDULE_SUCCESS = {"ReadyForInvoicing", "CompletelyBilled"}
-
-# Assets carry no order/billing FK (CONTRACTS.md), so concurrent scenarios on
-# the same account+product can only be told apart by which asset id each one
-# claims first. This process-wide registry hands each asset id to exactly one
-# scenario, so two manifests never record the same asset id. (Attribution is
-# still best-effort -- a window match isn't a hard link -- but no duplicates.)
-_claimed_asset_ids: set[str] = set()
-_claimed_asset_lock = threading.Lock()
 
 
 class LifecycleError(RuntimeError):
@@ -312,56 +303,95 @@ def poll_billing_schedules(
 
 def poll_assets(
     client: SfRestClient,
-    account: Account,
-    products: list[Product],
-    since_iso: str,
-    expected_count: int = 1,
+    order_id: str,
     timeout: int = 180,
 ) -> list[str]:
-    """Wait for activation-generated Asset(s) across the order's product(s).
+    """Wait for activation-generated Asset(s) attributable to ``order_id``.
 
-    Asset has no order FK, so correlate by account + product(s) + a created-date
-    window (CONTRACTS.md). ``since_iso`` is a SOQL datetime literal (UTC, e.g.
-    2026-06-22T22:00:00Z) captured just before activation. A multi-line order
-    spans several products, so we poll for all of them in one query.
+    Asset has no direct order FK, but the data model exposes a deterministic
+    one-hop linkage via AssetActionSource (CONTRACTS.md "Asset attribution"):
 
-    Under concurrency, sibling scenarios on the same account+product share this
-    query window, so we claim only asset ids no other scenario has taken yet
-    (``_claimed_asset_ids``) -- preventing the same asset id landing in two
-    manifests. Per-scenario attribution remains best-effort.
+        Order -> OrderItem
+              -> AssetActionSource.ReferenceEntityItemId
+              -> AssetAction.AssetId
+              -> Asset
+
+    We query AssetActionSource rows whose ``ReferenceEntityItemId`` points at
+    one of this order's OrderItems, filtered to ``CategoryEnum = 'Initial Sale'``
+    so amendments/renewals/cancellations on the same OrderItem (under different
+    CategoryEnum values) never bleed into an activation poll.
+
+    Why this beats the prior account+product+created-date heuristic:
+
+      * Bundles: a one-line input like QB-COMPLETE expands server-side into N
+        component OrderItems with different Product2Ids. The old SOQL was keyed
+        on the input line's Product2Id, so it never saw the component assets.
+        Live: order 801WI00001HsyrdYAB produced 5 assets; the old poll captured
+        1. The AAS path returns all 5.
+      * Concurrency: the old SOQL also matched peer scenarios' assets in the
+        same account+product+time window, and a process-global claim registry
+        papered over duplicate ids at the cost of greedy over-attribution
+        (peers timed out with empty asset_ids). The AAS path is per-order, so
+        siblings on the same account+product never collide.
+      * Replay/clock-skew: drops the client-side ``since_iso`` window entirely.
+
+    Exit condition: ``expected_count`` is not derivable at call time -- bundles
+    decouple OrderItem count from asset count, and ``count_order_items`` would
+    over-count for any future scenario with non-asset-producing component
+    OrderItems. Instead, the poll converges when the AAS-returned count is
+    stable across two consecutive ``_POLL_INTERVAL`` ticks with count >= 1.
+    Live timing measured against rlm-base__jun17_1 (2026-06-23): Asset created
+    01:28:44, AAS created 01:28:45 (1s lag, simple case); same-second for the
+    bundle case -- both well within one tick.
+
+    LMA assumption: AssetActionSource is gated on
+    ``Asset.HasLifecycleManagement = true``. The harness today only places
+    subscription/usage products, all of which route to LMA. A future scenario
+    placing non-LMA products would silently return ``asset_ids: []``; the
+    timeout log surfaces the case.
+
+    Failure mode: assets are best-effort, not the billing gate. Timeout with
+    empty result logs a warning naming the two known causes (non-LMA or AAS
+    write delay) and returns ``[]``; ``run_usage`` already raises downstream if
+    it can't pair a usage line.
     """
-    product_ids = sorted({p.id for p in products})
-    skus = "/".join(sorted({p.sku for p in products}))
-    expected_count = max(1, min(expected_count, len(product_ids)))
-    deadline = time.monotonic() + timeout
-    in_list = ", ".join(f"'{pid}'" for pid in product_ids)
     soql = (
-        "SELECT Id FROM Asset "
-        f"WHERE AccountId = '{account.id}' AND Product2Id IN ({in_list}) "
-        f"AND CreatedDate >= {since_iso}"
+        "SELECT AssetAction.AssetId FROM AssetActionSource "
+        f"WHERE ReferenceEntityItemId IN ("
+        f"SELECT Id FROM OrderItem WHERE OrderId = '{order_id}'"
+        f") AND AssetAction.CategoryEnum = 'Initial Sale'"
     )
-    claimed_for_this_order: list[str] = []
+    deadline = time.monotonic() + timeout
+    prev_ids: list[str] = []
+    last_ids: list[str] = []
     while time.monotonic() < deadline:
         rows = client.query(soql)
-        if rows:
-            with _claimed_asset_lock:
-                ids = [r["Id"] for r in rows if r["Id"] not in _claimed_asset_ids]
-                _claimed_asset_ids.update(ids)
-            if ids:
-                claimed_for_this_order.extend(ids)
-                if len(claimed_for_this_order) >= expected_count:
-                    log.info(
-                        "order assets: %d/%d asset(s) for %s/%s",
-                        len(claimed_for_this_order), expected_count, account.name, skus,
-                    )
-                    return claimed_for_this_order
+        last_ids = [
+            r["AssetAction"]["AssetId"]
+            for r in rows
+            if r.get("AssetAction") and r["AssetAction"].get("AssetId")
+        ]
+        if last_ids and len(last_ids) == len(prev_ids):
+            log.info(
+                "order %s assets: %d asset(s) attributed via AssetActionSource",
+                order_id, len(last_ids),
+            )
+            return last_ids
+        prev_ids = last_ids
         time.sleep(_POLL_INTERVAL)
-    # Assets are a nicety, not the billing gate -- log but don't hard-fail.
-    log.warning(
-        "only found %d/%d Asset(s) for %s/%s within %ds (continuing)",
-        len(claimed_for_this_order), expected_count, account.name, skus, timeout,
-    )
-    return claimed_for_this_order
+    if not last_ids:
+        log.warning(
+            "no AssetActionSource rows for order %s within %ds -- order may "
+            "have produced non-LMA assets, or AAS write was delayed (continuing)",
+            order_id, timeout,
+        )
+    else:
+        log.warning(
+            "order %s asset count never stabilized within %ds; returning %d "
+            "asset(s) from last poll (may be incomplete)",
+            order_id, timeout, len(last_ids),
+        )
+    return last_ids
 
 
 # ---------------------------------------------------------------------------

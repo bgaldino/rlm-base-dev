@@ -231,8 +231,17 @@ order products" at `createOrderFromQuote`) before the rule was encoded.
   step 5 needed for QB products):
   - `BillingSchedule`: 1 row, `Status=ReadyForInvoicing`, `ReferenceEntityId=<orderId>`,
     `BillingAccountId=<acct>`, `TotalAmount=450`. Poll by `ReferenceEntityId`.
-  - `Asset`: 1 row for the line's `Product2Id` under the account (no ReferenceEntityId
-    field — poll by account+product as planned).
+  - `Asset`: no direct order FK, but a deterministic one-hop linkage via
+    `AssetActionSource` (see §4d "Asset attribution" below). Poll
+    `AssetActionSource.ReferenceEntityItemId IN (SELECT Id FROM OrderItem
+    WHERE OrderId = '<orderId>')` filtered to
+    `AssetAction.CategoryEnum = 'Initial Sale'`. **Bundle case** (live-verified
+    2026-06-23 against a Revenue Cloud R262 scratch org): the example
+    `QB-COMPLETE` bundle activates into **5 component assets** (one per
+    component OrderItem); the AssetActionSource query returns all 5 in one
+    pass. **LMA assumption:** `AssetActionSource` is gated on the Asset's
+    `HasLifecycleManagement = true`; non-LMA products would surface here as
+    an empty poll result (soft-fail with warning).
 
 ### 4b. Usage consumption — TransactionJournal create (sObject Collections) — ⚠ DOCUMENTED, NEEDS LIVE VERIFICATION
 
@@ -332,16 +341,74 @@ WHERE ProductId IN (…)
   `RLM_UsageUploaderController.cls:240` — a UoM is only valid against the
   resource if it shares the resource's class.
 
-### 4d. Asset → Product2 map — ⚠ DOCUMENTED, NEEDS LIVE VERIFICATION
+### 4d. Asset attribution — ✅ VERIFIED LIVE R262 (deterministic via AssetActionSource)
+
+`Asset` has no direct `OrderId`/`OrderItemId` FK, so naive correlation by
+account + product + a `CreatedDate >= since` window (the prior approach)
+**fails on two real cases**:
+
+1. **Bundles** — a one-line input like `QB-COMPLETE` expands server-side
+   into N component OrderItems with different `Product2Id`s. A query keyed
+   on the input line's `Product2Id` misses every component asset.
+   Live-verified: the example `QB-COMPLETE` bundle produced **5** assets;
+   the old account+product+window poll returned **1**.
+2. **Concurrency / replay** — peer scenarios on the same account+product
+   within the same window were indistinguishable; the old code used a
+   process-global claim set to dedupe, but the *first* poller greedy-claimed
+   every visible row, leaving peers with empty `asset_ids`.
+
+The data model exposes a one-hop deterministic linkage:
+
+```
+Order ─< OrderItem ─< AssetActionSource ─> AssetAction ─> Asset
+```
+
+`AssetActionSource.ReferenceEntityItemId` is a polymorphic lookup that, on
+the activation event, points at the OrderItem. `AssetAction.CategoryEnum`
+distinguishes the activation row (`'Initial Sale'`) from later
+amendments/renewals/cancellations on the same OrderItem.
+
+**Locked correlation query (poll_assets):**
+
+```sql
+SELECT AssetAction.AssetId
+FROM   AssetActionSource
+WHERE  ReferenceEntityItemId IN (SELECT Id FROM OrderItem WHERE OrderId = '<orderId>')
+  AND  AssetAction.CategoryEnum = 'Initial Sale'
+```
+
+**Convergence (no `expected_count` parameter):** assets and bundle
+components can land staggered, and `AssetActionSource` writes lag the Asset
+write by up to ~1s (live-measured: Asset created 01:28:44, AAS created
+01:28:45 on rlm-base scratch org 2026-06-23). The poll returns when the
+row count is stable across two consecutive ticks with count ≥ 1, then
+extracts ids from the nested subquery envelope
+(`row["AssetAction"]["AssetId"]`).
+
+**LMA assumption — known caveat.** `AssetActionSource` is only populated
+for assets with `HasLifecycleManagement = true` (Lifecycle-Managed Assets).
+Today's QB scenarios all produce LMA assets, so this is observed-to-work.
+A future scenario placing non-LMA products would surface here as `asset_ids
+= []` (soft-fail with a warning naming the LMA / write-delay causes); the
+downstream `run_usage` step already raises a hard `LifecycleError` if it
+cannot pair a usage line to an asset.
+
+**Bonus correlation (unused — recorded for reference):**
+`AsyncOperationTracker` rows with `JobType = 'AssetizationAsyncJob'` carry
+`ReferenceEntityId = <orderId>` and reach `Completed` once activation
+finishes. Useful as a completion signal, but redundant with the AAS poll
+which already converges on row stability.
+
+### 4d.1. Asset → Product2 map (lookup helper)
 
 ```sql
 SELECT Id, Product2Id FROM Asset WHERE Id IN (…)
 ```
 
 - Used by the `usage` step to pair each `LineItem` to the correct activated
-  Asset by `Product2Id`. `poll_assets` returns ids ordered by `Id`, not by
-  the order of input lines (`CONTRACTS.md` already notes this for the
-  Asset-poll path), so a mixed-SKU scenario must NOT pair by list index.
+  Asset by `Product2Id`. `poll_assets` returns ids in `AssetActionSource`
+  row order, not input-line order, so a mixed-SKU scenario must NOT pair by
+  list index.
 - Duplicate-SKU lines (the same Product2 used on two lines) consume the
   asset pool **1:1 in order** (`steps.run_usage` pops the candidate list)
   so each TJ batch lands on a distinct asset.
@@ -444,9 +511,10 @@ Dead ends (do not rely on):
   `null` while Draft**, so read it back after post completes (the manifest's
   human-readable invoice number comes from here, not from generate). Then PATCH
   `ReferenceEntityId = <orderId>` for natural org linkage (Posted-only; cosmetic).
-- **assets** (bonus find) → `AsyncOperationTracker` rows with
-  `JobType='AssetizationAsyncJob'` carry **`ReferenceEntityId = <orderId>`**, giving
-  a deterministic activation→asset correlation alongside the account+product+date poll.
+- **assets** → deterministic via `AssetActionSource` (see §4d). The
+  `AsyncOperationTracker` row with `JobType='AssetizationAsyncJob'` and
+  `ReferenceEntityId = <orderId>` is a redundant completion signal; the AAS
+  poll already converges on row stability without it.
 
 #### Timing observed (single record, indicative only)
 - PST place, createOrderFromQuote, Order Status PATCH: effectively synchronous.
