@@ -1,0 +1,24 @@
+# Sales pipeline — opportunities + quotes only (no billing).
+#
+#   python -m scripts.demo_data.generate --org <sf-alias> \
+#       --config scripts/demo_data/scenarios/02-pipeline-quotes.yaml
+#
+# High-volume, cheap demo data for the *pipeline* stages: each transaction gets
+# an Opportunity head and a Quote, and stops there. No order, no billing — so it
+# runs fast and needs no BillingAccount. Good for populating pipeline dashboards.
+defaults:
+  target_stage: quote
+  with_opportunity: true         # prepend an Opportunity the quote links to
+
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 20
+
+  - account: "Global Media"      # no BillingAccount — fine, we stop at quote anyway
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 20

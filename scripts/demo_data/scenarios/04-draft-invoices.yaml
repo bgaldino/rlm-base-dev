@@ -1,0 +1,18 @@
+# Draft invoices — generate but do not post.
+#
+#   python -m scripts.demo_data.generate --org <sf-alias> \
+#       --config scripts/demo_data/scenarios/04-draft-invoices.yaml
+#
+# Stops at `invoice`: each transaction produces a Draft invoice (tagged, with
+# lines) that is NOT posted. Use this to demo the invoice-review / approval step,
+# or to leave deletable invoices behind — a Draft invoice CAN be deleted, a
+# Posted one cannot. Requires a billing-ready account (Infinitech).
+defaults:
+  target_stage: invoice
+
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 10

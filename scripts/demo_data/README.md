@@ -72,6 +72,24 @@ python -m scripts.demo_data.generate --org beta ...             # ❌ CCI alias 
 Exit codes: `0` success · `1` one or more scenarios failed · `2` auth ·
 `3` discovery/resolution · `4` bad config.
 
+### Output & progress
+
+A startup line announces the batch, then one line prints **as each scenario
+completes** (completion order, not submission order):
+
+```
+Running 10 scenario(s) across 1 spec(s), concurrency=3, run base DEMO-20260622T... ...
+[1/10] DEMO-...-001: OK reached=post order=00000123 manifest=.../out/....json
+[2/10] DEMO-...-004: FAILED reached=order order=00000126 manifest=.../out/....json
+...
+Done: 9/10 scenario(s) succeeded. Manifests in .../out/
+```
+
+With `-v` (INFO) / `-vv` (DEBUG) each lifecycle step also logs, **prefixed with the
+emitting scenario's run id** (`DEMO-...-004 | order 801... activated`) so interleaved
+output from concurrent workers stays attributable. Lines outside any scenario
+(discovery, etc.) use `-` as the prefix. Errors always print regardless of `-v`.
+
 ## Lifecycle stages
 
 `target_stage` is hierarchical — each stage runs everything before it.
@@ -99,8 +117,29 @@ All fields optional — anything omitted is auto-discovered. Precedence
 per-scenario field  >  CLI flag  >  config `defaults`  >  built-in default
 ```
 
-See [`config.example.yaml`](config.example.yaml) for a worked example. With no
-`scenarios:` block, a single spec runs and `volume.scenarios` sets its count.
+**Full scenario schema** (every field, types, defaults) and **what makes an
+account/product a valid target** are documented in
+[`scenarios/README.md`](scenarios/README.md), alongside ready-to-run example
+configs (smoke test, pipeline quotes, draft/posted invoices, mixed stages,
+multi-account, product/quantity spreads). Start there.
+
+[`config.example.yaml`](config.example.yaml) is the original single-file worked
+example. With no `scenarios:` block, a single spec runs and `volume.scenarios`
+sets its count.
+
+### Targets, bundles, and usage (at a glance)
+
+- **Account** — exists by Name to reach `quote`/`order`/`activate`; needs a
+  **`BillingAccount`** to reach `invoice`/`post` (else auto-capped at `activate`).
+  In QB only **Infinitech** is billable; **Global Media** is pipeline-only.
+- **Product** — needs an active `PricebookEntry` on the **standard** pricebook.
+- **Bundles are not supported** — the tool places a single flat line, so pin a
+  simple SKU like `QB-API-FLEX`; bundles (`QB-COMPLETE`, `QB-BDL-*`) need a
+  component graph this tool doesn't build.
+- **Usage / consumption is not supported** — metered/commit SKUs (`*-BLNG`,
+  token/quantity/monetary commit) would invoice with no usage behind them.
+
+See [`scenarios/README.md`](scenarios/README.md) → *Not handled yet* for detail.
 
 ## Auth & transport
 
@@ -123,6 +162,13 @@ Every scenario writes `scripts/demo_data/out/<run_id>.json` listing all ids it
 created (quote, order, billing schedules, assets, invoice). This directory is
 **git-ignored** — it's runtime output, not source. The manifest is the source of
 truth for verification and cleanup.
+
+The manifest is **checkpointed after every lifecycle stage** (write-then-rename, so
+the file on disk is always valid JSON), not just on completion. If the process is
+killed or crashes mid-run, every scenario that had started still leaves a manifest
+recording the ids created so far — so the partial org records can be found and
+cleaned up. There is no resume: re-running starts a fresh batch (clean up the
+partials from their manifests first).
 
 **Drive cleanup from the manifest ids** — delete the ids the run recorded
 (child → parent: assets/order, then quote, then opportunity). Every record also

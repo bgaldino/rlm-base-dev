@@ -1,0 +1,15 @@
+# Smoke test — one full chain to a Posted invoice.
+#
+#   python -m scripts.demo_data.generate --org <sf-alias> \
+#       --config scripts/demo_data/scenarios/01-smoke-test.yaml
+#
+# The fastest end-to-end proof that the org + auth + the whole lifecycle work:
+# a single transaction driven all the way to a Posted invoice. Run this first
+# against a new org before any volume run. Expect ~30-45s (billing async waits).
+scenarios:
+  - account: "Infinitech"        # the only QB account pre-wired with a BillingAccount
+    target_stage: post
+    products:
+      - sku: "QB-API-FLEX"       # known-good, places cleanly (simple term product)
+        quantity: 1
+    count: 1

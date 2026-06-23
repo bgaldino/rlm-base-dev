@@ -1,0 +1,34 @@
+# Product mix — posted invoices across several QB SKUs.
+#
+#   python -m scripts.demo_data.generate --org <sf-alias> \
+#       --config scripts/demo_data/scenarios/08-product-mix.yaml --concurrency 3
+#
+# Spreads billed invoices across different products so invoice/revenue demos
+# aren't all the same line item. One spec per SKU (the tool places ONE line per
+# quote today, so vary the product across specs, not within a `products:` list).
+#
+# NOTE: only simpler products place cleanly without bundle/attribute wiring.
+# QB-API-FLEX is the proven-good baseline. The others below are plausible simple
+# products — if any fails to place at volume, drop it or pin a known-good SKU
+# (a failing spec is isolated; it won't abort the others).
+scenarios:
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-API-FLEX"          # Additional API Flex (100M)
+        quantity: 1
+    count: 10
+
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-API"               # Additional API
+        quantity: 5
+    count: 10
+
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-LIC-CLOUD"         # Cloud License (Monthly)
+        quantity: 3
+    count: 10

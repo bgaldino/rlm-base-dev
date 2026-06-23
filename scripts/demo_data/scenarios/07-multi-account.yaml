@@ -1,0 +1,23 @@
+# Multi-account — billable + pipeline-only accounts in one run.
+#
+#   python -m scripts.demo_data.generate --org <sf-alias> \
+#       --config scripts/demo_data/scenarios/07-multi-account.yaml --concurrency 3
+#
+# Demonstrates the auto-cap: Infinitech (has a BillingAccount) runs the full
+# chain to `post`, while Global Media (no BillingAccount) is automatically capped
+# at `activate` with a warning instead of failing the run. One config, two account
+# profiles — the tool does the right thing for each.
+scenarios:
+  - account: "Infinitech"
+    target_stage: post
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 15
+
+  - account: "Global Media"      # no BillingAccount -> auto-capped to 'activate'
+    target_stage: post           # requested 'post'; the tool caps + warns
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 15

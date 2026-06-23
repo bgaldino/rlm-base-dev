@@ -1,0 +1,18 @@
+# Activated orders — stop at activate (Assets + BillingSchedules, no invoice).
+#
+#   python -m scripts.demo_data.generate --org <sf-alias> \
+#       --config scripts/demo_data/scenarios/03-activated-orders.yaml
+#
+# Drives each transaction through order activation, which auto-generates
+# BillingSchedule(s) and Asset(s) — but stops before invoicing. Useful for asset
+# / installed-base demos and for billing-schedule-ready (but not yet billed) data.
+# Activation does NOT need a BillingAccount, so any account works.
+defaults:
+  target_stage: activate
+
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 2
+    count: 15
