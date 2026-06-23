@@ -33,10 +33,10 @@ public with sharing class RLM_Learning_UserInformation {
                 return null;
             }
             // TrialExpirationDate is a Datetime; take its date portion.
-            Date earliestDate = objList[0].TrialExpirationDate.date();
-            Integer daysBetween = Date.today().daysBetween(earliestDate);
+            Date trialExpirationDate = objList[0].TrialExpirationDate.date();
+            Integer daysRemaining = Date.today().daysBetween(trialExpirationDate);
             // Clamp so an already-expired org never shows negative "days remaining".
-            return daysBetween < 0 ? 0 : daysBetween;
+            return daysRemaining < 0 ? 0 : daysRemaining;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
         }

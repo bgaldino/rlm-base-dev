@@ -63,10 +63,14 @@ export default class RlmLearningAppOverview extends NavigationMixin(
       }
     }
     /* eslint-enable no-await-in-loop */
-    this.sectionsWithBlocks[0] = {
-      ...this.sectionsWithBlocks[0],
+    // Reassign the whole array (new reference) rather than mutating index 0 in place,
+    // so LWC reliably re-renders with the DYN_LINK-replaced descriptions.
+    const updatedSections = [...this.sectionsWithBlocks];
+    updatedSections[0] = {
+      ...updatedSections[0],
       blocks: newBlocks
     };
+    this.sectionsWithBlocks = updatedSections;
   }
 
   async replaceDynamicLinks(content) {
