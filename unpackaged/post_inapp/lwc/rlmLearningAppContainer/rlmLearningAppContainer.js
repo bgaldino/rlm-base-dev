@@ -107,8 +107,17 @@ export default class RlmLearningAppContainer extends NavigationMixin(
   }
 
   stripHtmlTags(htmlString) {
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = htmlString;
-    return tempDiv.textContent || tempDiv.innerText || "";
+    // Strip tags and decode the common entities without assigning to innerHTML
+    // (forbidden by @lwc/lwc/no-inner-html). Used only to derive a plain-text
+    // tooltip (`title`) from the block's rich-text description.
+    return String(htmlString || "")
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&")
+      .trim();
   }
 }

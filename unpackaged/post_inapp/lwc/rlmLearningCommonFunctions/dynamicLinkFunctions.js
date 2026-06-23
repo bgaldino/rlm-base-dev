@@ -35,7 +35,7 @@ const safeVideoUrl = (url) => {
   let parsed;
   try {
     parsed = new URL(url);
-  } catch (e) {
+  } catch {
     return null;
   }
   if (parsed.protocol !== "https:") {
@@ -125,7 +125,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         };
       }
       break;
-    case "RecordPage":
+    case "RecordPage": {
       // execute select query and get the id
       const SELECTQUERYRESULT = await getObjectIdFromQuery({
         objectAPIName: dynamicLink.RLM_Learning_Object__c,
@@ -152,7 +152,8 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         }
       };
       break;
-    case "RecordRelationshipPage":
+    }
+    case "RecordRelationshipPage": {
       // execute select query and get the id
       const SELECTRESULT = await getObjectIdFromQuery({
         objectAPIName: dynamicLink.RLM_Learning_Object__c,
@@ -180,6 +181,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         }
       };
       break;
+    }
     case "WebPage":
       pageReference = {
         type: "standard__webPage",
@@ -188,7 +190,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         }
       };
       break;
-    case "CommunityPage":
+    case "CommunityPage": {
       const communityPage = await getRecordIdFromDynamicLinkType({
         dynamicLinkType: dynamicLink.RecordType.DeveloperName,
         // Escape single quotes so a site name like "Bob's Portal" can't break the
@@ -217,6 +219,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         }
       };
       break;
+    }
     case "InAppDetailsPage":
       pageReference = {
         type: "standard__app",
@@ -231,7 +234,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         }
       };
       break;
-    case "SurveyRecordPage":
+    case "SurveyRecordPage": {
       const survey = await getRecordIdFromDynamicLinkType({
         dynamicLinkType: dynamicLink.RecordType.DeveloperName,
         whereCondition: dynamicLink.RLM_Learning_Where_Condition__c
@@ -245,7 +248,8 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         }
       };
       break;
-    case "DPERecordPage":
+    }
+    case "DPERecordPage": {
       const dpeRecord = await getRecordIdFromDynamicLinkType({
         dynamicLinkType: dynamicLink.RecordType.DeveloperName,
         whereCondition: dynamicLink.RLM_Learning_Where_Condition__c
@@ -259,7 +263,8 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         }
       };
       break;
-    case "FlowRecordPage":
+    }
+    case "FlowRecordPage": {
       const flowActiveVersion = await getRecordIdFromDynamicLinkType({
         dynamicLinkType: dynamicLink.RecordType.DeveloperName,
         whereCondition: dynamicLink.RLM_Learning_Where_Condition__c
@@ -273,7 +278,8 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         }
       };
       break;
-    case "SetupPage":
+    }
+    case "SetupPage": {
       const records = await getObjectIdFromQuery({
         objectAPIName: dynamicLink.RLM_Learning_Setup_Page__c,
         whereCondition: dynamicLink.RLM_Learning_Where_Condition__c
@@ -290,6 +296,7 @@ const getPageReferenceByDynamicType = async (dynamicLink) => {
         }
       };
       break;
+    }
     default:
       pageReference = {
         type: "standard__webPage",

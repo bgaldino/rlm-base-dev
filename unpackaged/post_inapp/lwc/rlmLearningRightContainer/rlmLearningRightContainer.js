@@ -1,4 +1,4 @@
-import { LightningElement, track, wire, api } from "lwc";
+import { LightningElement, track, api } from "lwc";
 import { NavigationMixin } from "lightning/navigation";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getSectionsWithBlocksByType from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByType";

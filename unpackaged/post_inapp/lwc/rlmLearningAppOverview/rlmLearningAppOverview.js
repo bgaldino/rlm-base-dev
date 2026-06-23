@@ -50,6 +50,10 @@ export default class RlmLearningAppOverview extends NavigationMixin(
       return;
     }
     const newBlocks = [];
+    // Resolve each block's DYN_LINK placeholders one block at a time: the imperative
+    // Apex lookups are intentionally serialized to keep block order deterministic and
+    // avoid a burst of parallel calls.
+    /* eslint-disable no-await-in-loop */
     for (let i = 0; i < this.sectionsWithBlocks[0].blocks.length; i++) {
       let description = this.sectionsWithBlocks[0].blocks[i].description;
       newBlocks.push({ ...this.sectionsWithBlocks[0].blocks[i] });
@@ -57,6 +61,7 @@ export default class RlmLearningAppOverview extends NavigationMixin(
         newBlocks[i].description = await this.replaceDynamicLinks(description);
       }
     }
+    /* eslint-enable no-await-in-loop */
     this.sectionsWithBlocks[0] = {
       ...this.sectionsWithBlocks[0],
       blocks: newBlocks
@@ -67,6 +72,9 @@ export default class RlmLearningAppOverview extends NavigationMixin(
     if (!content) {
       return content;
     }
+    // Sequential by necessity: each iteration mutates `content` (replacing the resolved
+    // DYN_LINK placeholder), so the next indexOf/replace depends on the prior result.
+    /* eslint-disable no-await-in-loop */
     while (content.includes("DYN_LINK")) {
       const identifier = findDynamicLinkIdentifier(
         content,
@@ -110,6 +118,7 @@ export default class RlmLearningAppOverview extends NavigationMixin(
         content = content.replace(identifier, "");
       }
     }
+    /* eslint-enable no-await-in-loop */
     return content;
   }
 }

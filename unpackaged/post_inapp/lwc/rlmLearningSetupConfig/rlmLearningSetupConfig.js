@@ -132,7 +132,10 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
       searchIndex = startIndex + "DYN_LINK".length;
     }
 
-    // Step 2: Process each identifier in a for loop with try-catch
+    // Step 2: Process each identifier in a for loop with try-catch.
+    // Sequential by necessity: each iteration mutates `content` (replacing the resolved
+    // DYN_LINK placeholder), so a later replace must run on the prior result.
+    /* eslint-disable no-await-in-loop */
     for (const identifier of identifiers) {
       try {
         const dynamicLink = await getDynamicLinkByIdentifier(identifier);
@@ -172,6 +175,7 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
         content = content.replace(identifier, "");
       }
     }
+    /* eslint-enable no-await-in-loop */
     return content;
   }
 
