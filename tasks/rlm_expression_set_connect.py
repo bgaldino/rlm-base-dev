@@ -127,20 +127,27 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         return value.replace("\\", "\\\\").replace("'", "\\'")
 
     def _soql_query(self, soql: str) -> List[dict]:
+        # Raise on HTTP failure rather than returning []. Callers like
+        # ImportExpressionSet use an empty result to decide whether to
+        # POST-create vs PATCH-update; swallowing a 401/500 here would route a
+        # transient error into the create path and risk duplicate definitions.
         url = f"{self._base_url}/query"
         resp = requests.get(
             url, headers=self._headers, params={"q": soql}, timeout=_REQUEST_TIMEOUT
         )
         if resp.status_code != 200:
-            self.logger.error("SOQL failed (%s): %s", resp.status_code, resp.text)
-            return []
+            raise TaskOptionsError(
+                f"SOQL query failed ({resp.status_code}): {resp.text}"
+            )
         body = resp.json()
         records: List[dict] = body.get("records", [])
         while not body.get("done", True) and body.get("nextRecordsUrl"):
             nurl = f"{self.org_config.instance_url}{body['nextRecordsUrl']}"
             resp = requests.get(nurl, headers=self._headers, timeout=_REQUEST_TIMEOUT)
             if resp.status_code != 200:
-                break
+                raise TaskOptionsError(
+                    f"SOQL pagination failed ({resp.status_code}): {resp.text}"
+                )
             body = resp.json()
             records.extend(body.get("records", []))
         return records
@@ -302,13 +309,16 @@ class ExpressionSetConnectBase(BaseSalesforceTask):
         current = records[0].get("ResourceInitializationType")
         if current:
             # Immutable once set. If the body wants a different value the PATCH
-            # would be rejected — surface it rather than silently mismatching.
+            # would be rejected — fail fast BEFORE _run_connect_mutation
+            # deactivates the version, so we don't leave the version (and any
+            # cascaded procedure plan versions) deactivated on a guaranteed
+            # PATCH failure.
             if desired and desired != current:
-                self.logger.warning(
-                    "ExpressionSet %s ResourceInitializationType is already '%s' "
-                    "and is immutable; the payload's '%s' cannot be applied and "
-                    "the PATCH body must match the stored value.",
-                    es_id, current, desired,
+                raise TaskOptionsError(
+                    f"ExpressionSet {es_id} ResourceInitializationType is "
+                    f"already '{current}' and is immutable; the payload's "
+                    f"'{desired}' cannot be applied. Update the payload to "
+                    f"match the stored value before retrying."
                 )
             return
         if dry_run:
@@ -1157,43 +1167,36 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
             )
         return steps
 
+    # Overlay-only metadata that must NOT be forwarded to the Connect payload.
+    # `placement` directs _add_steps to compute sequenceNumber and never goes
+    # to the API. Add new overlay-local keys here as the schema evolves.
+    _OVERLAY_ONLY_STEP_KEYS = frozenset({"placement"})
+
     def _build_step(self, step_def: dict) -> dict:
-        step = {
-            "name": step_def["name"],
-            "description": step_def.get("description", ""),
-            "sequenceNumber": step_def.get("sequenceNumber", 1),
-            "stepType": step_def.get("stepType", "BusinessKnowledgeModel"),
-            "resultIncluded": step_def.get("resultIncluded", False),
-            "shouldExposeExecPathMsgOnly": step_def.get(
-                "shouldExposeExecPathMsgOnly", True
-            ),
-            "shouldExposeConditionDetails": step_def.get(
-                "shouldExposeConditionDetails", False
-            ),
-            "shouldShowExplExternally": step_def.get(
-                "shouldShowExplExternally", False
-            ),
+        # Pass through every field the overlay author wrote (minus overlay-only
+        # metadata), so a future step field — e.g. populated
+        # passedMessageTokenMappings — survives apply. The validator already
+        # gates step shape (stepType enum, required keys, customElement
+        # parameter shape) before we get here, so any unknown field is the
+        # author's responsibility. Sensible defaults still fill in the small
+        # set of required-by-engine flags when an overlay omits them.
+        defaults = {
+            "description": "",
+            "sequenceNumber": 1,
+            "stepType": "BusinessKnowledgeModel",
+            "resultIncluded": False,
+            "shouldExposeExecPathMsgOnly": True,
+            "shouldExposeConditionDetails": False,
+            "shouldShowExplExternally": False,
         }
-        if step_def.get("parentStep"):
-            step["parentStep"] = step_def["parentStep"]
-        if step_def.get("label"):
-            step["label"] = step_def["label"]
-        if step_def.get("customElement"):
-            step["customElement"] = step_def["customElement"]
-        if step_def.get("lookupTable"):
-            step["lookupTable"] = step_def["lookupTable"]
-        if step_def.get("conditionExpression"):
-            step["conditionExpression"] = step_def["conditionExpression"]
-        if step_def.get("advancedCondition"):
-            step["advancedCondition"] = step_def["advancedCondition"]
-        if step_def.get("actionType"):
-            step["actionType"] = step_def["actionType"]
-        if step_def.get("aggregation"):
-            step["aggregation"] = step_def["aggregation"]
-        if step_def.get("assignment"):
-            step["assignment"] = step_def["assignment"]
-        if step_def.get("subExpression"):
-            step["subExpression"] = step_def["subExpression"]
+        step = {k: v for k, v in step_def.items()
+                if k not in self._OVERLAY_ONLY_STEP_KEYS}
+        if "name" not in step:
+            # _validate_step requires name; defensive — never reached after
+            # validation.
+            raise TaskOptionsError("addSteps entry is missing 'name'.")
+        for key, value in defaults.items():
+            step.setdefault(key, value)
         return step
 
     def _find_step_sequence(self, steps: list, name: str) -> int:
@@ -1216,13 +1219,20 @@ class ApplyExpressionSetOverlay(ExpressionSetConnectBase):
     def _add_variables(self, variables: list, to_add: list) -> list:
         existing_names = {v.get("name") for v in variables}
         for var_def in to_add:
-            if var_def["name"] in existing_names:
+            name = var_def["name"]
+            if name in existing_names:
+                # Covers both names already on the live definition AND names
+                # we've just appended from an earlier addVariables entry — so
+                # an overlay with two entries for the same name skips the
+                # second instead of appending a duplicate the Connect API
+                # would then reject after the version was already deactivated.
                 self.logger.info(
-                    "Variable '%s' already exists, skipping.", var_def["name"]
+                    "Variable '%s' already exists, skipping.", name
                 )
                 continue
             variables.append(var_def)
-            self.logger.info("Added variable '%s'.", var_def["name"])
+            existing_names.add(name)
+            self.logger.info("Added variable '%s'.", name)
         return variables
 
     def _remove_variables(self, variables: list, to_remove: list) -> list:

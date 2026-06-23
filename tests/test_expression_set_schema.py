@@ -914,6 +914,104 @@ def test_clean_definition_no_entity_warning():
     )
 
 
+# ---- Duplicate-variable detection (PR #246 review) ----
+
+def test_overlay_addvariables_duplicate_errors():
+    # Two addVariables entries with the same name → engine rejects the second
+    # PATCH after the version has already been deactivated. Validator must
+    # catch this offline so the failure happens before any mutation.
+    overlay = {
+        "addVariables": [
+            {"name": "dup", "type": "Constant", "dataType": "Text", "value": "a"},
+            {"name": "dup", "type": "Constant", "dataType": "Text", "value": "b"},
+        ]
+    }
+    r = validate_overlay(overlay)
+    check(
+        "overlay validator flags duplicate addVariables name",
+        not r.passed and _has_error_containing(r, "duplicate added variable name 'dup'"),
+    )
+
+
+def test_definition_variables_duplicate_errors():
+    d = {
+        "apiName": "Dup_Vars",
+        "versions": [{
+            "apiName": "Dup_Vars_V1",
+            "variables": [
+                {"name": "dup", "type": "Constant", "dataType": "Text", "value": "a"},
+                {"name": "dup", "type": "Constant", "dataType": "Text", "value": "b"},
+            ],
+            "steps": [],
+        }],
+    }
+    r = validate_definition(d)
+    check(
+        "definition validator flags duplicate variable name",
+        not r.passed and _has_error_containing(r, "duplicate variable name 'dup'"),
+    )
+
+
+def test_add_variables_helper_dedups_within_block():
+    # _add_variables: even if validator is bypassed (skip_validation:true), the
+    # apply helper must not append the same name twice within one overlay.
+    applier = _OverlayApplier()
+    result = applier._add_variables(
+        [],
+        [
+            {"name": "x", "type": "Constant", "dataType": "Text", "value": "a"},
+            {"name": "x", "type": "Constant", "dataType": "Text", "value": "b"},
+        ],
+    )
+    check(
+        "_add_variables dedups duplicates within one addVariables block",
+        len(result) == 1 and result[0]["value"] == "a",
+    )
+
+
+# ---- _build_step pass-through (PR #246 review) ----
+
+def test_build_step_preserves_unknown_overlay_fields():
+    # The earlier _build_step allow-listed a subset of fields and silently
+    # dropped anything else (e.g. populated passedMessageTokenMappings). A
+    # future captured step would validate clean, apply successfully, and then
+    # lose that behavior. Pass-through ensures the field reaches the payload.
+    applier = _OverlayApplier()
+    step_def = {
+        "name": "S", "stepType": "BusinessKnowledgeModel",
+        "passedMessageTokenMappings": [{"token": "x", "value": "1"}],
+        "hasNestedExplainability": True,
+        "placement": {"sequenceNumber": 1},
+    }
+    built = applier._build_step(step_def)
+    check(
+        "_build_step forwards passedMessageTokenMappings",
+        built.get("passedMessageTokenMappings") == [{"token": "x", "value": "1"}],
+    )
+    check(
+        "_build_step forwards hasNestedExplainability",
+        built.get("hasNestedExplainability") is True,
+    )
+    check(
+        "_build_step strips overlay-only placement before sending",
+        "placement" not in built,
+    )
+
+
+def test_build_step_applies_required_defaults():
+    applier = _OverlayApplier()
+    built = applier._build_step({"name": "Minimal"})
+    check(
+        "_build_step still fills required defaults when overlay omits them",
+        (
+            built.get("stepType") == "BusinessKnowledgeModel"
+            and built.get("resultIncluded") is False
+            and built.get("shouldExposeExecPathMsgOnly") is True
+            and built.get("sequenceNumber") == 1
+        ),
+    )
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     print(f"Running {len(tests)} validator test groups...\n")

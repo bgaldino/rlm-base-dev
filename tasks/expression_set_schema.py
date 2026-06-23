@@ -527,8 +527,18 @@ def validate_definition(defn: dict) -> ValidationResult:
         if not isinstance(variables, list):
             result.error(f"{vloc}.variables", "must be a list.")
         else:
+            seen_var_names: Set[str] = set()
             for vri, var in enumerate(variables):
                 _validate_variable(var, f"{vloc}.variables[{vri}]", result)
+                if isinstance(var, dict):
+                    name = var.get("name")
+                    if name and name in seen_var_names:
+                        result.error(
+                            f"{vloc}.variables[{vri}]",
+                            f"duplicate variable name '{name}'.",
+                        )
+                    if name:
+                        seen_var_names.add(name)
 
     return result
 
@@ -595,8 +605,18 @@ def validate_overlay(overlay: dict) -> ValidationResult:
     if not isinstance(add_vars, list):
         result.error("addVariables", "must be a list.")
     else:
+        added_var_names: Set[str] = set()
         for i, var in enumerate(add_vars):
             _validate_variable(var, f"addVariables[{i}]", result)
+            if isinstance(var, dict):
+                name = var.get("name")
+                if name and name in added_var_names:
+                    result.error(
+                        f"addVariables[{i}]",
+                        f"duplicate added variable name '{name}'.",
+                    )
+                if name:
+                    added_var_names.add(name)
 
     _validate_external_dependencies(overlay.get("externalDependencies"), result)
     _warn_undeclared_external_dependencies(overlay, result)
