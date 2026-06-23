@@ -1,15 +1,22 @@
 # Transaction Data Harness — example config (all fields OPTIONAL).
 #
-#   python -m scripts.txn_data_harness.generate --org <sf-alias> --config scripts/txn_data_harness/config.example.yaml
+#   python -m scripts.txn_data_harness.generate --org <your-sf-alias> --config scripts/txn_data_harness/config.example.yaml
 #
 # Anything omitted is auto-discovered from the target org (billing-ready
 # account, preferred QB product, standard pricebook, legal entity, open
 # opportunity stage). CLI flags override the `defaults` block below; an
 # explicit per-scenario value is the most specific intent and wins over both.
 #
-# `--org` takes an sf CLI alias / username ONLY (e.g. rlm-base__jun17_1), NOT a
+# `--org` takes an sf CLI alias / username ONLY (e.g. `rlm-base__beta`), NOT a
 # CCI alias. The CCI alias `beta` maps to sf alias `rlm-base__beta` — pass the
 # sf one (see CLAUDE.md "Org Identity").
+#
+# The account names and SKUs below (`Infinitech`, `Global Media`,
+# `QB-API-FLEX`) are from the bundled QB demo dataset and are illustrative
+# only. Substitute any account on your org for `account:` (it just needs a
+# `BillingAccount` to reach `activate`/`invoice`/`post`; without one the
+# scenario auto-caps at `order`) and any SKU on the standard pricebook for
+# `sku:`.
 
 # Broad defaults applied to every scenario unless the scenario overrides them.
 defaults:

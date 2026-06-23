@@ -26,22 +26,22 @@ billing-ready account and a billable product; config lets one run mix shapes.
 
 ```bash
 # Dry run — resolve auth + discovery and print the plan; NO writes.
-python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --dry-run
+python -m scripts.txn_data_harness.generate --org <your-sf-alias> --dry-run
 
 # Equivalent composable CLI form.
-python -m scripts.txn_data_harness.cli plan --org rlm-base__jun17_1
+python -m scripts.txn_data_harness.cli plan --org <your-sf-alias>
 
 # One full chain to a Posted invoice.
-python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --count 1 --target-stage post
+python -m scripts.txn_data_harness.generate --org <your-sf-alias> --count 1 --target-stage post
 
 # Equivalent composable CLI form.
-python -m scripts.txn_data_harness.cli run --org rlm-base__jun17_1 --count 1 --target-stage post
+python -m scripts.txn_data_harness.cli run --org <your-sf-alias> --count 1 --target-stage post
 
 # 25 transactions, 4 in parallel.
-python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --count 25 --concurrency 4
+python -m scripts.txn_data_harness.generate --org <your-sf-alias> --count 25 --concurrency 4
 
 # Config-driven mixed run (billable + pipeline-only accounts).
-python -m scripts.txn_data_harness.generate --org rlm-base__jun17_1 --config scripts/txn_data_harness/config.example.yaml
+python -m scripts.txn_data_harness.generate --org <your-sf-alias> --config scripts/txn_data_harness/config.example.yaml
 ```
 
 The original `generate` module remains the compatibility entry point. The
@@ -51,8 +51,8 @@ composable actions:
 
 ```bash
 python -m scripts.txn_data_harness.cli inspect --latest
-python -m scripts.txn_data_harness.cli step --org rlm-base__jun17_1 \
-  --manifest DEMO-20260622T120000Z --account Infinitech --to-stage invoice
+python -m scripts.txn_data_harness.cli step --org <your-sf-alias> \
+  --manifest DEMO-20260622T120000Z --account "<account-name>" --to-stage invoice
 python -m scripts.txn_data_harness.cli report DEMO-20260622T120000Z   # batch summary from disk
 python -m scripts.txn_data_harness.cli prune --older-than 7d          # dry run; --yes to delete
 ```
@@ -143,8 +143,10 @@ An account **without** a BillingAccount still goes `quote → order` (useful
 pipeline + order demo data), but **activation** generates BillingSchedules and
 Assets that require the account's billing setup, so the tool **auto-caps** such
 scenarios at `order` and warns, rather than failing the run. This lets one config
-mix billable Infinitech invoices with Global Media pipeline orders. (In QB, only
-**Infinitech** is pre-wired with a BillingAccount.)
+mix billable-account invoices with pipeline-only-account orders in the same run.
+(In the bundled QB demo dataset, the billing-ready account is **Infinitech** and
+the pipeline-only account is **Global Media**; on your own dataset, substitute
+whichever account names play those roles.)
 
 ## Config
 
@@ -169,7 +171,9 @@ sets its count.
 
 - **Account** — exists by Name to reach `quote`/`order`; needs a
   **`BillingAccount`** to reach `activate`/`invoice`/`post` (else auto-capped at
-  `order`). In QB only **Infinitech** is billable; **Global Media** is pipeline-only.
+  `order`). In the bundled QB demo dataset, `Infinitech` is the billing-ready
+  account and `Global Media` is pipeline-only — substitute equivalents for your
+  own dataset.
 - **Product** — needs an active `PricebookEntry` on the **standard** pricebook.
 - **Multi-line via a product pool** — a scenario's `products:` list is a pool; each
   transaction places a random non-empty subset as flat lines (per-line qty/discount
@@ -247,22 +251,24 @@ a fresh batch with a new run id (by design).
 
 - **Bundles — default configuration only.** The harness submits one flat input
   line per `products:` entry; PST expands a bundle's default component graph
-  server-side, so `QB-COMPLETE`-style SKUs place, activate, and post cleanly
-  (live-verified R262 → posted invoice, 5 lines). You cannot drive attribute
-  values or selling-model choices for child slots — only default-configured
-  bundles succeed.
+  server-side, so default-configured bundle SKUs (example: `QB-COMPLETE`)
+  place, activate, and post cleanly (live-verified R262 → posted invoice, 5
+  lines). You cannot drive attribute values or selling-model choices for child
+  slots — only default-configured bundles succeed.
 - **`--no-probe` / `--keep-probes` are no-ops.** The discovery PST probe (place a
   throwaway quote to prove a product before fanning out volume) was scoped but not
   implemented; the flags are reserved for it. Discovery currently surfaces
   candidates by `PricebookEntry` only — a clean PBE is necessary but not sufficient
-  for a complex bundle to *place*. Pin a known-good SKU (e.g. `QB-API-FLEX`) if a
-  product fails to place.
+  for a complex bundle to *place*. Pin a known-good SKU (example: `QB-API-FLEX`
+  in the QB demo dataset; substitute any term-defined SKU on the standard
+  pricebook for your dataset) if a product fails to place.
 - **Concurrency is lightly tested.** Verified at `--concurrency 3`. Higher values
   are untested against Salesforce API limits and billing-engine async contention —
   raise gradually for large volume runs.
-- **Permission set unconfirmed.** Verified only as an org **admin**. The minimal
-  PSL/PS for a non-admin/integration running user is an open `TODO` (see
-  `CONTRACTS.md`).
+- **Designed for admin invocation.** The harness is verified end-to-end as an
+  org **admin** — that is the assumed invoker. The minimal PSL/PS for a
+  non-admin/integration user is out of scope and intentionally not specified
+  here.
 - **Composite batching intentionally skipped** (Phase 5). The lifecycle is
   async-poll-bound, not request-bound, so Composite would save negligible
   wall-clock; scenario-level concurrency is the real win. See `CONTRACTS.md`

@@ -4,23 +4,26 @@ With no pinned config, ``discover()`` queries the target org for a known-good
 combination of account / product / pricebook / legal entity / opportunity stage
 so the generator can run against a fresh org with zero configuration.
 
-All field names here are verified live against ``rlm-base__jun17_1`` (v67.0):
+All field names here are verified live against a Revenue Cloud R262 scratch
+org (API v67.0):
 
-* Billing-ready accounts come from ``BillingAccount.AccountId`` -> ``Account``
-  (only Infinitech is pre-wired in QB; Global Media has no BillingAccount).
-  ``BillingAccount`` has **no** ``Status`` field -- do not query one.
+* Billing-ready accounts come from ``BillingAccount.AccountId`` -> ``Account``.
+  (In the bundled QB demo dataset, ``Infinitech`` is the billing-ready account
+  and ``Global Media`` is pipeline-only; other datasets will have different
+  names.) ``BillingAccount`` has **no** ``Status`` field -- do not query one.
 * Billable products: active ``PricebookEntry`` on the **standard** pricebook
-  with an active ``Product2``. ``QB-`` SKUs are the known-good QB catalog.
+  with an active ``Product2``. ``QB-`` SKUs are the known-good catalog in the
+  bundled QB demo dataset; any active SKU works.
 * Standard pricebook: ``Pricebook2 WHERE IsStandard = true``.
 * Legal entity default: ``Default Legal Entity - US``.
 * Opportunity stage: first open (``IsClosed = false``) active stage.
 
 Note: a clean PricebookEntry is necessary but not sufficient for every product.
-Default-configured bundles (e.g. ``QB-COMPLETE``) place cleanly -- PST expands
-the bundle's component graph server-side from defaults. Bundles whose mandatory
-slots require user choice will fail to place. The optional PST probe is
-reserved for a future hardening pass; today this module surfaces candidates and
-the first live transaction proves placement.
+Default-configured bundles (example: ``QB-COMPLETE``) place cleanly -- PST
+expands the bundle's component graph server-side from defaults. Bundles whose
+mandatory slots require user choice will fail to place. The optional PST probe
+is reserved for a future hardening pass; today this module surfaces candidates
+and the first live transaction proves placement.
 """
 
 from __future__ import annotations
@@ -163,9 +166,10 @@ def resolve_account(client: SfRestClient, name: str) -> Account:
 
     Unlike :func:`discover_accounts` (which lists only accounts that *have* a
     BillingAccount), this resolves an account the user pinned in config even
-    when it has no BillingAccount -- a quote-only "pipeline" account such as
-    Global Media. We look up the Account, then check for a BillingAccount so the
-    returned ``Account.is_billing_ready`` correctly caps the stage downstream.
+    when it has no BillingAccount -- a quote-only "pipeline" account (example:
+    ``Global Media`` in the bundled QB demo dataset). We look up the Account,
+    then check for a BillingAccount so the returned ``Account.is_billing_ready``
+    correctly caps the stage downstream.
     """
     rows = client.query(
         f"SELECT Id, Name FROM Account WHERE Name = '{_sql_escape(name)}' LIMIT 1"

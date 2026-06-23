@@ -11,7 +11,7 @@ python -m scripts.txn_data_harness.generate --org <sf-alias> \
 Always `--dry-run` first — it resolves auth + discovery and prints the plan
 (account, product, stages, any auto-caps) **without writing anything**.
 
-> `<sf-alias>` is an **sf** CLI alias (e.g. `rlm-base__jun17_1`), not a CCI alias.
+> `<sf-alias>` is an **sf** CLI alias (e.g. `rlm-base__beta`), not a CCI alias.
 
 ## The examples
 
@@ -147,9 +147,9 @@ server-side using its default component graph and returns a fully configured set
 child `QuoteLineItem`s wired to the parent via `ParentQuoteLineItemId`. Activation,
 billing schedule generation, invoice draft, and posting all succeed.
 
-Live-verified on R262 (jun17_1) with `QB-COMPLETE` → quote `0Q…Kc5p0AC`, 5 lines
-(1 root Bundle + 4 child Simple), order `00000153` activated, invoice
-`INV-US-06-2026-000038` Posted at $91,000.
+Live-verified on a Revenue Cloud R262 scratch org with `QB-COMPLETE` → 5 lines
+(1 root Bundle + 4 child Simple) on the quote, the resulting order activated,
+and the invoice posted at $91,000.
 
 Caveats:
 

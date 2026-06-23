@@ -4,8 +4,9 @@ A run is described by a list of :class:`ScenarioSpec` -- each spec is one
 account/product shape repeated ``count`` times. With no config file the tool
 synthesizes a single spec from CLI flags + built-in defaults, so it runs against
 a fresh org with zero configuration; a ``--config`` file lets one run mix several
-shapes (e.g. billable Infinitech ``post`` orders + Global Media ``quote``-only
-pipeline data).
+shapes (e.g. billable-account ``post`` orders + pipeline-only-account
+``quote``-only pipeline data, in any combination of accounts available in the
+target org).
 
 Specs here are *un-resolved*: they carry account *names* and product *SKUs*, not
 org ids. ``generate.py`` resolves them against discovery so this module stays a
@@ -49,8 +50,9 @@ _VALID_STAGES = {
     "opportunity", "quote", "order", "activate", "usage", "invoice", "post",
 }
 
-# QuoteLineItem picklists (verified live against rlm-base__jun17_1, v67.0). Some
-# term products carry a proration policy that requires both at place time.
+# QuoteLineItem picklists (verified live against a Revenue Cloud R262 scratch
+# org, API v67.0). Some term products carry a proration policy that requires
+# both at place time.
 _VALID_PERIOD_BOUNDARIES = {
     "AlignToCalendar", "Anniversary", "DayOfPeriod", "LastDayOfPeriod",
 }

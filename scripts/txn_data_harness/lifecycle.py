@@ -3,8 +3,9 @@
 Each function isolates one lifecycle step behind a single call so the rest of
 the tool is endpoint/shape-agnostic. Bodies, response shapes, ordering hazards,
 and async behavior are exactly as locked in ``scripts/txn_data_harness/CONTRACTS.md``
-(verified against ``rlm-base__jun17_1`` v67.0). When changing anything here,
-re-verify against the org and update CONTRACTS.md in the same change.
+(verified against a Revenue Cloud R262 scratch org, API v67.0). When changing
+anything here, re-verify against the org and update CONTRACTS.md in the same
+change.
 
 Step ordering (hard barriers -- see CONTRACTS.md "Timing & Sequencing"):
 

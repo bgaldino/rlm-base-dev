@@ -1,13 +1,14 @@
 # Transaction Data Harness — Locked Contracts (Phase 0)
 
-> **Status:** implemented and live-verified against sf alias `rlm-base__jun17_1`
-> (API v67.0). `lifecycle.py` is a direct transcription of the endpoint bodies,
-> response shapes, async barriers, and sequencing rules captured here. Re-verify
-> against a live org and update this file before changing lifecycle behavior.
+> **Status:** implemented and live-verified against a Revenue Cloud R262
+> scratch org with the bundled QB demo dataset (API v67.0). `lifecycle.py` is a
+> direct transcription of the endpoint bodies, response shapes, async barriers,
+> and sequencing rules captured here. Re-verify against a live org and update
+> this file before changing lifecycle behavior.
 
 ## Environment verified
 
-- **Org:** `rlm-base__jun17_1`
+- **Org:** Revenue Cloud R262 scratch org with the QB demo dataset loaded.
 - **API version:** `67.0` is present (org max == `67.0`); the tool defaults to `67.0`.
 - **Auth (verified):**
   - Token → `sf org auth show-access-token --target-org <alias> --json` returns
@@ -113,7 +114,7 @@ Set `Discount` (a standard **percent** field on QuoteLineItem, `createable:true`
 on the line record in the place graph. With `pricingPref: "System"` the engine
 applies it to the derived net prices, and those flow through to the posted invoice.
 
-Live probe (quote `0Q0WI000003KPGf0AO`, SKU `QB-API-FLEX` @ $450, qty 2, **25%**):
+Live probe (one quote, example SKU `QB-API-FLEX` @ $450, qty 2, **25%**; substitute any term-defined SKU on your standard pricebook):
 
 | Where | Field | Value | Note |
 |-------|-------|-------|------|
@@ -138,8 +139,9 @@ returns a fully configured set of child `QuoteLineItem`s wired to the parent via
 list/total price. The harness's single input line places the configured bundle
 end-to-end — no client-side component graph is needed.
 
-Live probe (org `rlm-base__jun17_1`, account `Infinitech`, SKU `QB-COMPLETE`,
-qty 1):
+Live probe (R262 scratch org, billing-ready account from the QB demo dataset
+— `Infinitech` in QB — example bundle SKU `QB-COMPLETE`, qty 1; substitute any
+default-configured bundle on your pricebook):
 
 | Where | Result |
 |-------|--------|
@@ -221,7 +223,7 @@ order products" at `createOrderFromQuote`) before the rule was encoded.
   "Enter the shipping address associated with the account" if the **Order** has no
   shipping address. `createOrderFromQuote` does **not** copy the account's shipping
   address to the order (order ShippingStreet/City/... came back null even though
-  Infinitech has a ShippingAddress). **Fix:** before activating, `PATCH` the order
+  the source account had a populated ShippingAddress). **Fix:** before activating, `PATCH` the order
   with `ShippingStreet/ShippingCity/ShippingState/ShippingPostalCode/ShippingCountry`
   (copied from the account). After that, activation succeeds.
 - **`PATCH` returns 204 No Content (empty body) on success** — the client must treat
@@ -371,7 +373,7 @@ SELECT Id, Product2Id FROM Asset WHERE Id IN (…)
 `Invoice.ReferenceEntityId` is **null on freshly generated** invoices (the billing
 engine does not stamp it for billing-schedule-generated invoices), so the plan's
 poll-by-orderId returns 0 rows *as generated*. Investigated three correlation paths
-live — all verified on `rlm-base__jun17_1`:
+live — all verified on a Revenue Cloud R262 scratch org:
 
 1. **PRIMARY — `InvoiceLine.BillingScheduleId` back-link (deterministic, zero extra writes).**
    We already hold the `billingScheduleId`(s) we passed to `generate`. `InvoiceLine`
@@ -393,9 +395,10 @@ live — all verified on `rlm-base__jun17_1`:
    ⚠ **Do not poll a single `BillingScheduleId =`.** Bundles activate into one
    schedule per child slot; zero-amount slots (e.g. a $0 bundle root) produce
    **no** `InvoiceLine`, so the invoice is real but the single-id query hangs
-   until timeout. Live-verified: `QB-COMPLETE` activated into 7 schedules; the
-   first was `TotalAmount = 0` and yielded no InvoiceLine, the invoice
-   (`3ttWI0000007zpxYAA`, $91,000) was visible immediately via the other six.
+   until timeout. Live-verified: a default-configured bundle (example:
+   `QB-COMPLETE`) activated into 7 schedules; the first was `TotalAmount = 0`
+   and yielded no InvoiceLine, but the $91,000 invoice was visible
+   immediately via the other six.
 
 2. **`Invoice.ReferenceEntityId` is `updateable=true` → we can stamp it ourselves,
    but ONLY once Posted (Draft rejects it).**
@@ -456,7 +459,7 @@ Dead ends (do not rely on):
 ## Timing & Sequencing (live-verified — read before writing `lifecycle.py`)
 
 The chain is **sequential with hard barriers**, not a fire-and-forget batch. Each
-of these is a real ordering hazard observed on `rlm-base__jun17_1`:
+of these is a real ordering hazard observed on a live R262 scratch org:
 
 1. **Synchronous spine, async tail.** PST place → createOrderFromQuote → Order
    `Status` PATCH all return their result inline (no polling). The billing tail
@@ -505,9 +508,10 @@ of these is a real ordering hazard observed on `rlm-base__jun17_1`:
    each other's poll waits), not parallelizing within one record's chain.
 
 ## Required permission sets
-Probes ran as the org admin (`rlm-base__jun17_1`) and all calls succeeded. `TODO`:
-determine the minimal PSL/PS for a non-admin running user (likely the RLM/Billing
-permission sets the build assigns). Not blocking the happy path on an admin-auth org.
+Probes ran as an org admin and all calls succeeded. The harness is designed to
+run as an admin; the minimal PSL/PS for a non-admin integration user is out of
+scope for this contract (likely the RLM/Billing permission sets the build
+assigns).
 
 ## Phase 5 (Composite) — DECIDED: skipped
 

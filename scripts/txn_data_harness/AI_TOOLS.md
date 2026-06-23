@@ -83,7 +83,7 @@ rows appear).
 ```bash
 python -m scripts.txn_data_harness.cli step --org <sf-alias> \
   --manifest scripts/txn_data_harness/out/<run_id>.json \
-  --account Infinitech \
+  --account "<billing-ready-account-name>" \
   --to-stage invoice
 ```
 
@@ -156,7 +156,8 @@ Stop and ask for guidance when:
 - The plan caps a scenario unexpectedly, especially from `post` to `order`.
 - A product fails PST placement; a clean PricebookEntry is not enough for bundles
   whose mandatory slots need user input, or other products needing unsupported
-  configuration. **Default-configured bundles** (e.g. `QB-COMPLETE`) **do** place
+  configuration. **Default-configured bundles** (example: `QB-COMPLETE` from
+  the bundled QB demo dataset; any default-configured bundle works) **do** place
   — PST expands the component graph from defaults.
 - A run reaches `post` in the manifest but org verification cannot find the
   invoice by manifest id.
