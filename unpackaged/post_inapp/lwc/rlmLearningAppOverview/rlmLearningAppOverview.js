@@ -14,6 +14,7 @@ export default class RlmLearningAppOverview extends NavigationMixin(
   LightningElement
 ) {
   @track sectionsWithBlocks = [];
+  @track error;
 
   sectionType = "Left_Top";
   // Left undefined so the wire doesn't fire (and the controller doesn't throw on a

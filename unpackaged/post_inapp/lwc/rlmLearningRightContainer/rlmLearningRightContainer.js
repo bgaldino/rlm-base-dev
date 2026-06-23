@@ -12,7 +12,6 @@ export default class RlmLearningRightContainer extends NavigationMixin(
   LightningElement
 ) {
   @track sectionsWithBlocks = [];
-  @track error;
 
   @api isHome;
   _pageId;

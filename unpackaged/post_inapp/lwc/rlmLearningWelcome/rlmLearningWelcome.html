@@ -1,5 +1,10 @@
 <template>
   <div class="welcome-card">
+    <template if:true={error}>
+      <div class="slds-text-color_error slds-p-around_small" role="alert">
+        {error}
+      </div>
+    </template>
     <template if:true={sectionsWithBlocks}>
       <template for:each={sectionsWithBlocks} for:item="sectionBlocks">
         <template if:true={sectionBlocks.section.Id}>
