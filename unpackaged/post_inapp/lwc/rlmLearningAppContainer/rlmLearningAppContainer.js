@@ -23,20 +23,7 @@ export default class RlmLearningAppContainer extends NavigationMixin(
     if (data) {
       this.sectionsWithBlocks = JSON.parse(JSON.stringify(data)).map(
         (section) => {
-          // Process SectionBlocks__r
-          if (section.section && section.section.SectionBlocks__r) {
-            section.section.SectionBlocks__r =
-              section.section.SectionBlocks__r.map((block) => {
-                if (block.RLM_Learning_Block__r && block.RLM_Learning_Block__r.RLM_Learning_Description__c) {
-                  block.RLM_Learning_Block__r.PlainDescription__c = this.stripHtmlTags(
-                    block.RLM_Learning_Block__r.RLM_Learning_Description__c
-                  );
-                }
-                return block;
-              });
-          }
-
-          // Process blocks array
+          // Derive a plain-text description for the block tooltip.
           if (section.blocks) {
             section.blocks = section.blocks.map((block) => {
               if (block.description) {

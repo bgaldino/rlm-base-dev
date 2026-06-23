@@ -144,8 +144,12 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
           }
         }
         if (!url) {
-          // Couldn't resolve a URL — leave the DYN_LINK placeholder unchanged
-          // rather than injecting a broken <a href="">.
+          // Couldn't resolve a URL — show the link text as plain text rather than
+          // a broken <a href=""> or the raw DYN_LINK token.
+          content = content.replace(
+            identifier,
+            escapeHtml(dynamicLink.RLM_Learning_Text_Value__c)
+          );
           continue;
         }
         const replaceString =
@@ -156,7 +160,9 @@ export default class RlmLearningSetupConfig extends NavigationMixin(
           "</a>";
         content = content.replace(identifier, replaceString);
       } catch {
-        // Skip this identifier and continue
+        // Couldn't resolve this identifier — drop the placeholder so a raw
+        // DYN_LINK token isn't left visible in the modal body.
+        content = content.replace(identifier, "");
       }
     }
     return content;

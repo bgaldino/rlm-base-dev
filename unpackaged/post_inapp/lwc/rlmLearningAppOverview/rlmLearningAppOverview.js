@@ -95,8 +95,10 @@ export default class RlmLearningAppOverview extends NavigationMixin(
           escapeHtml(dynamicLink.RLM_Learning_Text_Value__c) +
           "</a>";
         content = content.replace(identifier, replaceString);
-      } catch (error) {
-        return content;
+      } catch {
+        // Couldn't resolve this identifier — drop the placeholder so a raw
+        // DYN_LINK token isn't left visible, and keep processing the rest.
+        content = content.replace(identifier, "");
       }
     }
     return content;

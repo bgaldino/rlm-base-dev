@@ -9,5 +9,5 @@
     <trackTrending>false</trackTrending>
     <type>Text</type>
     <unique>false</unique>
-    <inlineHelpText>Lightning icon name in format "iconType:iconName" </inlineHelpText>
+    <inlineHelpText>Lightning icon name in format "iconType:iconName"</inlineHelpText>
 </CustomField>
