@@ -5,6 +5,13 @@
 > direct transcription of the endpoint bodies, response shapes, async barriers,
 > and sequencing rules captured here. Re-verify against a live org and update
 > this file before changing lifecycle behavior.
+>
+> **Scope guard.** Only behaviors that have been **probed live** belong in
+> this file. Open questions, anomalies awaiting characterization, and
+> probes that would generalize a finding live in
+> [`FOLLOWUPS.md`](FOLLOWUPS.md) — pair-edit the two when a probe lands a
+> new answer (write the verified contract here, move the open entry there
+> into *Resolved*).
 
 ## Environment verified
 
@@ -114,16 +121,16 @@ Set `Discount` (a standard **percent** field on QuoteLineItem, `createable:true`
 on the line record in the place graph. With `pricingPref: "System"` the engine
 applies it to the derived net prices, and those flow through to the posted invoice.
 
-Live probe (one quote, example SKU `QB-API-FLEX` @ $450, qty 2, **25%**; substitute any term-defined SKU on your standard pricebook):
+Live probe (one quote, example SKU `QB-API-FLEX` @ $450, qty 2, **25%**, 1×Annual term, StartDate 2026-01-15; substitute any term-defined SKU on your standard pricebook). Re-verified `2026-06-23` on `rlm-base__jun17_1`:
 
 | Where | Field | Value | Note |
 |-------|-------|-------|------|
 | QuoteLineItem | `UnitPrice` / `ListPrice` | 450 | undiscounted |
 | QuoteLineItem | `NetUnitPrice` | **337.50** | 450 × 0.75 → 25% applied |
-| QuoteLineItem | `NetTotalPrice` | 667.60 | discounted line total (prorated term) |
+| QuoteLineItem | `NetTotalPrice` | **676.85** | discounted line total (prorated; the platform `PricingTermCount` reads back 1.0027 for a 366-day window, so net total ≈ 2 × 337.50 × 1.0027) |
 | QuoteLineItem | `Discount` | **0** | ⚠ engine consumes the input; does **not** round-trip it onto this field |
-| Invoice | `Status` / `TotalAmount` | Posted / **667.60** | discounted amount reached the posted invoice |
-| InvoiceLine | `ChargeAmount` | 667.60 | matches |
+| Invoice | `Status` / `TotalAmount` | Posted / matches `NetTotalPrice` | discounted amount reached the posted invoice |
+| InvoiceLine | `ChargeAmount` | matches | |
 
 **Key gotcha:** verify a discount by the **net prices**, not by reading back
 `QuoteLineItem.Discount` (it reads `0` post-place even when applied). `InvoiceLine`
@@ -201,6 +208,192 @@ order products" at `createOrderFromQuote`) before the rule was encoded.
   Posted invoice (`INV-US-06-2026-000006`, order `00000118`): per-line quantities and
   discounts (QB-API-FLEX x2 @20% → NetUnitPrice 360; QB-API x1 @10% → NetUnitPrice
   1800) both survived.
+
+#### Subscription term fields — per-line, `(count, unit)` (✅ VERIFIED LIVE — Branch A)
+
+`PricingTerm` and `PricingTermCount` on `QuoteLineItem` are **auto-calculated**
+from the PBE-bound `ProductSellingModel` and the author-input subscription
+fields; the harness **must not** write them. The author-input fields are
+**`SubscriptionTerm`** (int) and **`SubscriptionTermUnit`** (picklist —
+`{Months, Quarterly, Semi-Annual, Annual}` per `ProductSellingModel.csv`).
+`PricingTermUnit` does NOT include `Years` or `Days`; `Years` is accepted as a
+config alias that maps to `Annual` and is the only alias supported.
+
+`discovery.py` captures `ProductSellingModel.PricingTerm` and
+`PricingTermUnit` onto each `Product` (alongside `selling_model_name`); the
+runner resolves a per-line `Term(count, unit)` via the chain
+`line override → scenario default → product.default_term → Term(12, "Months")`.
+Bare-int config promotes the unit from the PSM; an explicit unit must equal
+the PSM's `PricingTermUnit` (the line is bound to a PBE whose SOM already
+declares one — incoherent units are rejected at plan time with both values
+quoted). Multi-PBE SKUs (one SKU sold under several selling models) require an
+explicit `selling_model: "<PSM Name>"` selector; the resolver fails fast with
+the candidate names rather than picking arbitrarily.
+
+`place_sales_transaction` writes (per `TermDefined` line only):
+
+- `SubscriptionTerm` = `term.count`
+- `SubscriptionTermUnit` = `term.unit`
+
+**`EndDate` is platform-derived — the harness never writes it.** Live-verified
+`2026-06-23` against `rlm-base__jun17_1` (R262): a probe sending `StartDate =
+2026-01-15`, `SubscriptionTerm = 1`, `SubscriptionTermUnit = Annual`, and **no
+`EndDate`** read back `EndDate = 2027-01-14`, `PricingTerm = 1`, and
+`PricingTermCount = 1.0`. The platform uses an inclusive
+`start + term - 1 day` convention (Jan 15 → Jan 14 next year), which is more
+correct than the old harness's `start + term` (Jan 15 → Jan 15) and avoids
+overlap if amendments roll forward off the same boundary.
+
+Evergreen and OneTime lines reject any `term` config at parse time and never
+write `SubscriptionTerm`/`SubscriptionTermUnit`/`EndDate` (matches the
+`createOrderFromQuote` "can't specify EndDate for evergreen order products"
+gate above).
+
+#### Explicit `EndDate` override — co-term path (✅ ACCEPTED LIVE, prorates)
+
+The harness also exposes an **opt-in** `end_date:` per-line (or scenario-
+level) override. When set, the place graph writes a calendar `EndDate`
+**alongside** `SubscriptionTerm` / `SubscriptionTermUnit` and the platform
+honors the explicit date — recalculating `PricingTermCount` against the
+actual span instead of the derived inclusive default. Concretely:
+
+- Input: `StartDate = 2026-01-15`, `SubscriptionTerm = 1`,
+  `SubscriptionTermUnit = Annual`, `EndDate = 2027-01-15` (366-day span).
+- Readback (live-verified R262): `EndDate = 2027-01-15`,
+  `PricingTermCount ≈ 1.0027` (i.e. 366 ÷ 365 — proration drift accepted
+  for the explicit-anchor case).
+
+This is the supported way to co-term a multi-line quote (one calendar
+anchor, mixed cadences underneath) or land on a fiscal-quarter boundary.
+The harness rejects the override on Evergreen / OneTime products at
+config-resolve time (same rule as `EndDate`) and requires an accompanying
+`term:` so `SubscriptionTerm` is still derivable for billing schedules.
+See `scenarios/README.md` → *Explicit `EndDate` overrides* for the YAML
+shape and unit grammar.
+
+##### Probed edge cases (live, `rlm-base__jun17_1`, 2026-06-23)
+
+Two ad-hoc PST probes against `QB-API-FLEX` (Term Annual PSM)
+clarified what the platform actually does at the boundaries — both
+matter when authoring scenarios or reading back results.
+
+**1. `SubscriptionTermUnit` + `EndDate` *without* `SubscriptionTerm`.**
+PST accepts it. The line places, `SubscriptionTerm` reads back as
+`null`, and `PricingTerm` / `PricingTermCount` auto-calculate from
+`StartDate + EndDate + Unit`:
+
+| Input | StartDate | EndDate | SubTerm | SubTermUnit | PricingTerm | PricingTermCount |
+|---|---|---|---|---|---|---|
+| Unit+EndDate only | 2026-01-15 | 2027-01-15 | `null` | Annual | 1 | 1.0027 |
+
+The harness still **requires** an accompanying `term:` at config time
+(raises `ConfigError`): leaving `SubscriptionTerm` null at place time
+leaves billing-schedule fan-out under-specified for downstream
+activation/invoicing, and silent fallback to `Term(12, Months)` would
+be surprising. The platform's tolerance is documented here for
+completeness, not exposed as a config shape.
+
+**2. `SubscriptionTerm` and `EndDate` *disagree*.** PST accepts every
+combination tried; `EndDate` wins for the auto-calculated
+`PricingTermCount` and `SubscriptionTerm` is stored verbatim with no
+cross-validation:
+
+| Input | StartDate | EndDate | SubTerm in | SubTermUnit in | SubTerm read | SubTermUnit read | PricingTerm | PricingTermCount |
+|---|---|---|---|---|---|---|---|---|
+| Term 2y, End 1y | 2026-01-15 | 2027-01-15 | 2 | Annual | 2 | Annual | 1 | 1.0027 |
+| Term 1y, End 2y | 2026-01-15 | 2028-01-15 | 1 | Annual | 1 | Annual | 1 | 2.0027 |
+| Term 6mo, End 3mo, **wrong unit** | 2026-01-15 | 2026-04-15 | 6 | **Months** | 6 | **Annual** ⚠ | 1 | 0.2493 |
+
+Implications:
+
+- **`EndDate` wins the pricing math.** Pricing is computed as
+  `(EndDate − StartDate) / 365` days irrespective of the
+  `SubscriptionTerm` value sent in. Treat `EndDate` as the source of
+  truth for what the customer will be billed against; treat
+  `SubscriptionTerm` as an informational cadence marker (and the
+  input billing-schedules read).
+- **`SubscriptionTerm` is not validated against the date span.**
+  Sending `Term=2, End=1y` does *not* error; the line places with
+  `SubscriptionTerm=2` stored but `PricingTermCount=1.0027`. Authors
+  who care about both fields agreeing must keep them consistent in
+  config (the harness's `end_date.resolve()` is the place to do this).
+- **`SubscriptionTermUnit` can be silently coerced.** Row 3 sent
+  `Months`; the platform stored `Annual` — apparently snapping to the
+  PBE's PSM unit when the input conflicts. The harness's existing
+  unit-vs-PSM consistency guard (`runner._resolve_term` raises on
+  mismatch) protects against this silently happening through the
+  normal config path.
+
+Both probes were against `QB-API-FLEX` (Term Annual SOM) on
+`rlm-base__jun17_1` (R262); replicate on a Quarterly / Semi-Annual SOM
+before generalizing the "EndDate wins" wording beyond Annual.
+
+#### BillingSchedule fan-out across `end_date` scenarios (✅ VERIFIED LIVE, `rlm-base__jun17_1`, 2026-06-23)
+
+Activated all 9 scenarios from `scenarios/14-end-date-overrides.yaml`
+(run `DEMO-20260623T142853Z`, orders 00000156–00000164) and read back
+the resulting `BillingSchedule` rows. Key findings:
+
+| # | SKU / PSM | Start → End | Span (d) | Qty | UnitPrice | BillingPeriodAmount | TotalAmount | BillingTerm / Unit |
+|---|-----------|-------------|----------|-----|-----------|---------------------|-------------|--------------------|
+| 1 | QB-API-FLEX / Annual | 2026-04-01 → 2029-03-31 | 1095 | 1 | 450 | 450 | 1350.00 | 1 Year |
+| 2 | QB-API-FLEX / Annual (leap) | 2028-02-29 → 2029-02-28 | 365 | 1 | 450 | 450 | 451.23 | 1 Year |
+| 3 | QB-API / Monthly (Aug 31 +1mo) | 2026-08-31 → 2026-09-30 | 30 | 1 | 1500 | 1500 | 1548.39 | 1 Month |
+| 4 | QB-API / Monthly (Jan 31 +1mo) | 2027-01-31 → 2027-02-28 | 28 | 1 | 1500 | 1500 | 1548.39 | 1 Month |
+| 5 | QB-API / Monthly (90d ramp) | 2026-07-01 → 2026-09-29 | 90 | 1 | 1500 | 1500 | 4450.00 | 1 Month |
+| 6 | QB-API / Monthly (3q) | 2026-05-15 → 2027-02-15 | 276 | 1 | 1500 | 1500 | 13553.57 | 1 Month |
+| 7 | QB-API-FLEX / Annual (co-term, qty 3) | 2026-06-15 → 2027-12-31 | 564 | 3 | 450 | 1350 | 2087.70 | 1 Year |
+| 8 | QB-API-FLEX / Annual (730d) | 2026-10-07 → 2028-10-06 | 730 | 1 | 450 | 450 | 900.00 | 1 Year |
+| 9 | QB-API-FLEX / Annual (per-line override) | 2026-09-15 → 2027-06-30 | 288 | 2 | 450 | 900 | 712.60 | 1 Year |
+
+Every schedule: `Status=ReadyForInvoicing`, `BillingType=Advance`,
+`BillingTerm=1` (Year for Annual SOMs, Month for Monthly SOMs),
+`PricingTermUnit` = PSM unit.
+
+Implications for the harness:
+
+- **One BillingSchedule row per OrderItem at activation.** The 3-year
+  Annual deal (#1) is *not* fanned out into three rows at activation
+  time — it's a single row spanning the full deal with
+  `TotalAmount = 1350` and `BillingPeriodAmount = 450`. Periodic
+  fan-out happens lazily through `NextBillingDate` advancing as
+  invoices post; the activation-time view is one row regardless of
+  span.
+- **`BillingTerm` is the *period* length, not the *deal* length.**
+  Always `1`, with `BillingTermUnit` taking the PSM's cadence
+  (`Year` / `Month`). The deal length lives in
+  `BillingScheduleStartDate` → `BillingScheduleEndDate`.
+- **`TotalAmount` is prorated against the actual day span** — same
+  365-day math as `PricingTermCount` (above), not derived from
+  `SubscriptionTerm`. So `EndDate` continues to be the source of
+  truth into the billing layer: scenario #2's leap-year span
+  (366 days) bills `451.23 ≈ 450 × (366/365)`; scenario #8's exact
+  2-year span (730 days) bills `900 = 450 × 2` with no drift.
+- **`Quantity` multiplies `BillingPeriodAmount`, not `UnitPrice`.**
+  Scenarios #7 (qty 3) and #9 (qty 2) keep `UnitPrice=450` and lift
+  the period amount to `1350` / `900` respectively. `TotalAmount`
+  layers proration on top of that.
+- **Monthly-Advance short-span schedules over-bill the period
+  amount.** Scenarios #3 (30-day Sep) and #4 (28-day Feb) both
+  produced `TotalAmount = 1548.39` against a `BillingPeriodAmount =
+  1500` — i.e. the engine prorated *up* even though the span was
+  ≤ one "period" by `BillingTermUnit`. The matching 1548.39 across
+  30- and 28-day spans suggests a fixed internal day denominator
+  (~30.97) rather than calendar-month days. **Not yet
+  characterized**; treat Monthly proration math as TBD until
+  probed against a wider span set (e.g. true 31-day month, 60-day
+  span).
+
+Per-line `end_date` override path (scenario #9) only emitted one
+`OrderItem` for the qty-2 line. The qty-1 line that pinned its own
+`"6mo"` offset wasn't drawn — the `products:` pool randomizes per
+transaction, so a `count: 1` scenario does not always exercise both
+lines. To live-verify per-line `end_date:` override on the same
+quote, run scenario #9 with `count: 3+` until both SKUs land.
+
+Open questions raised by this run (Monthly proration denominator,
+Quarterly / Semi-Annual fan-out, per-line override coverage) are
+tracked in [`FOLLOWUPS.md`](FOLLOWUPS.md) → *Billing & invoicing*.
 
 ### 3. Order — Create Order from Quote — ✅ VERIFIED LIVE
 - **Endpoint (PRIMARY, works):** `POST /services/data/v67.0/actions/standard/createOrderFromQuote`

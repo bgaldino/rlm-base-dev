@@ -113,6 +113,120 @@ Deletes manifest JSON in `out/` older than the retention window (`7d` / `24h` /
 `30m`). Defaults to a dry run; pass `--yes` to delete. Only the harness's own
 `out/` directory can be pruned.
 
+### Recipes — subscription terms
+
+```yaml
+# Place a 3-year subscription on a TermDefined product.
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: QB-API-FLEX
+        term: {count: 3, unit: Annual}
+```
+
+```yaml
+# Place a 4-quarter (1-year on a Quarterly SOM) subscription. The SKU MUST
+# be bound to a PBE whose ProductSellingModel.PricingTermUnit = "Quarterly".
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: QB-LIC-QTR
+        term: {count: 4, unit: Quarterly}
+```
+
+```yaml
+# Bare-int form -- count only; unit follows the resolved PSM.
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: QB-API-FLEX
+        term: 24
+```
+
+Rules to keep in mind when authoring `term:`:
+
+- `unit` is the `ProductSellingModel.PricingTermUnit` picklist: `Months`,
+  `Quarterly`, `Semi-Annual`, `Annual`. `Years` is accepted as an alias for
+  `Annual`. Anything else (e.g. `Days`) raises `ConfigError`.
+- An explicit `unit` must equal the resolved PSM's `PricingTermUnit`; the
+  harness will not implicitly switch PBEs. Pin `selling_model: "<PSM Name>"`
+  on the product entry when a SKU has multiple PBEs.
+- `term` is for **TermDefined** products only. The platform rejects `EndDate`
+  (and the SubscriptionTerm fields) on Evergreen / OneTime lines, so the
+  config layer raises before the call goes out.
+- The harness writes `SubscriptionTerm` and `SubscriptionTermUnit` **only**;
+  it never writes `EndDate`, `PricingTerm`, or `PricingTermCount`. The
+  platform derives `EndDate` (inclusive `start + term - 1 day`) and
+  recalculates the pricing-term fields from your inputs + the PBE. Verify a
+  term by reading all of those back.
+
+Full schema in `scenarios/README.md` → *Subscription terms*.
+
+### Recipes — explicit `end_date` (co-term / off-cycle)
+
+When the demo needs a **specific** `EndDate` (co-terming a multi-line
+quote to one calendar anchor; landing on a fiscal-quarter boundary; an
+off-cycle ramp), pin `end_date:` alongside `term:`. The platform honors
+the explicit date and prorates `PricingTermCount` against the actual span
+(~0.27% drift for a 366-day "1×Annual" line).
+
+```yaml
+# Scenario-level co-term: every TermDefined line on the quote anchors to
+# 2027-01-14 regardless of individual cadences.
+scenarios:
+  - account: "Infinitech"
+    term: {count: 1, unit: Annual}
+    end_date: "2027-01-14"
+    products:
+      - sku: QB-LIC-CLOUD
+      - sku: QB-API-FLEX
+```
+
+```yaml
+# Per-line relative offset. Supported units: d, mo, q, y.
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: QB-API-FLEX
+        term: 12
+        end_date: "12mo"   # 12 calendar months from StartDate (day-clamp)
+      - sku: QB-LIC-QTR
+        term: {count: 4, unit: Quarterly}
+        end_date: "3q"     # 9 calendar months
+```
+
+Rules for `end_date:`:
+
+- **Requires a `term:`**. The platform still needs `SubscriptionTerm` for
+  billing-schedule derivation; `end_date` only overrides the anchor.
+- **TermDefined only.** Evergreen / OneTime reject `EndDate`; the config
+  layer raises before the call goes out.
+- **Units:** `d` (days), `mo` (calendar months, day-clamped), `q` (= 3 mo),
+  `y` (= 12 mo). Bare `m` is **rejected** (ambiguous between months /
+  minutes / meters — spell it `mo`).
+- **Forms:** absolute ISO date (`"2027-01-14"`), bare int = days (`364`),
+  or `"<n><unit>"`.
+- **Forward-only.** Zero / negative offsets reject. Range 1d–20y.
+- **Line wins over scenario.** A line that pins its own `end_date:`
+  overrides the scenario default for just that line.
+- **`EndDate` wins pricing math.** `PricingTermCount` is computed from
+  `(EndDate − StartDate) / 365` regardless of the `SubscriptionTerm`
+  value. Keep `term:` and `end_date:` consistent or the readback will
+  surprise you. (See `CONTRACTS.md` → *Probed edge cases*.)
+- **One `BillingSchedule` per `OrderItem` at activation.** A
+  multi-year deal is **not** fanned out into per-period rows at
+  activation — it's a single row spanning the deal, with
+  `BillingTerm = 1` / `BillingTermUnit` = PSM cadence and
+  `TotalAmount` prorated against the actual `(EndDate − StartDate)`
+  span (same 365-day math as `PricingTermCount`). Periodic
+  invoicing advances `NextBillingDate` lazily as invoices post.
+  Monthly-SOM short spans (28- and 30-day) over-bill the period
+  amount — proration math TBD; treat as a known gap. See
+  `CONTRACTS.md` → *BillingSchedule fan-out across `end_date`
+  scenarios*.
+
+Full schema in `scenarios/README.md` → *Explicit `EndDate` overrides*.
+
 ## Decision Flow
 
 ```mermaid

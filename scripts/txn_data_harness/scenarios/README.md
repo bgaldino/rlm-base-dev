@@ -29,6 +29,7 @@ Always `--dry-run` first — it resolves auth + discovery and prints the plan
 | `10-randomized-discounts.yaml` | `post` | 35 | Per-line discounts drawn from a range → a spread of discounted invoice amounts. |
 | `11-randomized-product-mix.yaml` | `post` | 25 | A product **pool** placed as a random non-empty subset → varied multi-line invoices (1–N lines, mixed SKUs, per-line qty + discount ranges). |
 | `12-usage-consumption.yaml` | `usage` | 5 | Usage-based products (`QB-DB`, `QB-TOKENS-PACK`) with `TransactionJournal` consumption rows against each activated asset. Stops at `usage`; kick off org-wide rating separately. |
+| `13-multi-year-terms.yaml` | `post` | 5 | Multi-year and non-month subscription cadences: 1-Annual, 3-Annual, bare-int (count-only) form, PSM-default fallback, and mixed terms on one quote. Exercises the per-line `(count, unit)` term model. |
 
 These are tuned for the **QuantumBit (QB)** demo org. The only values that are
 org-specific are the **account names** (`Infinitech`, `Global Media`) and the
@@ -61,7 +62,10 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | `quantity` | int ≥ 1, or `[min, max]` | `1` | Line quantity. A scalar fixes it; a `[min, max]` range draws an integer **per line** (so a pool/`count > 1` yields a spread). A `products[].quantity` overrides this for that entry. |
 | `count` | int ≥ 1 | `1` | How many times to run this shape. |
 | `discount` | number or `[min, max]` | none | Line-discount **percent** (0..100). A scalar (`10`) fixes it; a range draws a value **per line** (so `count > 1` yields a spread). May sit on the scenario or on a `products[]` entry (per-product wins, like `quantity`). |
-| `start_date` | date / range / window | today | The quote line **StartDate** (anchors the term `EndDate` = start + term). One date is drawn **per transaction** and applied to all of that quote's lines, so a range spreads quotes over time. Forms: exact (`"2026-03-15"`, `today`, `"+30"`/`"-15"` relative days); range list `["2026-01-01", "+90"]` or map `{from:…, to:…}`; window `{around: <anchor>, plus_or_minus: N}` (anchor ± N days, anchor defaults to today). |
+| `start_date` | date / range / window | today | The quote line **StartDate** (the platform anchors the line's `EndDate` off this + the term). One date is drawn **per transaction** and applied to all of that quote's lines, so a range spreads quotes over time. Forms: exact (`"2026-03-15"`, `today`, `"+30"`/`"-15"` relative days); range list `["2026-01-01", "+90"]` or map `{from:…, to:…}`; window `{around: <anchor>, plus_or_minus: N}` (anchor ± N days, anchor defaults to today). |
+| `term` | int, or `{count, unit}` | PSM default → `{12, Months}` | Subscription cadence for **TermDefined** lines only. Drives `QuoteLineItem.SubscriptionTerm` / `SubscriptionTermUnit`; the platform derives `EndDate` from those + `StartDate`. A bare int (`term: 36`) overrides count only — unit follows the resolved PSM. A map (`{count: 3, unit: Annual}`) sets both; `unit` must match the resolved PSM's `PricingTermUnit`. Picklist: `Months`, `Quarterly`, `Semi-Annual`, `Annual`. Alias: `Years -> Annual`. Range 1–120. Rejected on `Evergreen` / `OneTime` products. Falls back through line → scenario → `ProductSellingModel.PricingTerm` → `(12, Months)`. May sit on the scenario (default for all lines) or on a `products[]` entry (per-line wins). |
+| `end_date` | ISO date, int (days), or `"<n><unit>"` | unset (platform derives) | **Optional** explicit `EndDate` override for **TermDefined** lines only. Requires an accompanying `term:` — a cadence is still needed for `SubscriptionTerm` / billing-schedule derivation. Forms: absolute (`"2027-01-14"` or a YAML date), bare int = days (`364`), suffixed offset (`"364d"`, `"12mo"`, `"3q"`, `"1y"`). Supported units: `d` (days), `mo` (calendar months, day-clamped), `q` (3 months), `y` (12 months). Bare `"m"` is **rejected** as ambiguous. Forward-only (zero/negative reject). Range 1d–20y. The override is resolved against the line's drawn `StartDate` at place time, so a scenario-level `end_date:` co-terms every line on the quote to the same calendar anchor. The platform honors the explicit date and prorates `PricingTermCount` against the actual span (~0.27% drift vs the derived 365/366-day default). |
+| `selling_model` | string | auto | Pin the `ProductSellingModel.Name` for SKUs that have **multiple** active PBEs (e.g. one Annual + one Quarterly). Required only when a SKU is ambiguous; the resolver errors with the candidate list otherwise. Omit when the SKU has a single active PBE on the standard pricebook (the common case). |
 
 ### `defaults` vs `volume` vs `scenarios`
 
@@ -96,6 +100,133 @@ discount drove a $450 line to a `NetUnitPrice` of 337.50 and a Posted invoice
 consumes the input but reads `QuoteLineItem.Discount` back as `0` post-place — the
 discount lives in `NetUnitPrice`/`NetTotalPrice` (and `Invoice.TotalAmount` /
 `InvoiceLine.ChargeAmount`), not that column.
+
+### Subscription terms
+
+For TermDefined products, `term` is the **author input** that drives the line's
+cadence — it writes `QuoteLineItem.SubscriptionTerm` + `SubscriptionTermUnit`
+and the **platform** derives `EndDate` from `StartDate` + those two fields
+(inclusive `start + term - 1 day` — e.g. a 1×Annual line starting 2026-01-15
+ends 2027-01-14). `PricingTerm` / `PricingTermCount` are **auto-calculated**
+by the platform from these inputs and the PBE; the harness writes none of
+them.
+
+```yaml
+# 3-year deal -- explicit (count, unit). Unit must match the PSM bound to
+# the PBE (i.e. the SKU must actually be sold under an Annual selling model;
+# pin selling_model: if the SKU has more than one).
+- sku: QB-LIC-CLOUD
+  term: {count: 3, unit: Annual}
+
+# 4-quarter deal on a Quarterly SOM.
+- sku: QB-LIC-QTR
+  term: {count: 4, unit: Quarterly}
+
+# Bare int -- count only. The harness fills in the unit from the resolved
+# PSM ("give me 24 of whatever this product is measured in").
+- sku: QB-API-FLEX
+  term: 24
+
+# No `term` -- harness uses the PSM's discovered PricingTerm / PricingTermUnit
+# (and falls back to (12, Months) if the PSM declares none).
+- sku: QB-API-FLEX
+```
+
+Rules:
+
+- **Unit must match the PSM.** An explicit `term.unit` that disagrees with the
+  resolved `ProductSellingModel.PricingTermUnit` raises `ConfigError`. Pin a
+  matching `selling_model:` instead — the harness will not implicitly switch
+  PBEs.
+- **`Years` alias.** `unit: Years` is accepted and mapped to `Annual`. Other
+  unit names (e.g. `Days`) are rejected.
+- **Bounds.** `1 <= count <= 120`. The cap catches typos like `360`.
+- **Evergreen / OneTime products reject `term`** at config-load time —
+  `createOrderFromQuote` rejects `EndDate` (and `SubscriptionTerm`) on those
+  selling models. Omit the key entirely; the line places without a term.
+- **Multi-PBE SKUs.** If a SKU has more than one active PBE on the standard
+  pricebook, the resolver fails fast with the candidate `ProductSellingModel`
+  names — set `selling_model:` to disambiguate.
+
+See [`13-multi-year-terms.yaml`](13-multi-year-terms.yaml) for a worked example
+covering the bare-int form, an explicit Annual cadence, PSM-default fallback,
+and a mixed-term quote.
+
+### Explicit `EndDate` overrides (co-terming)
+
+When you want a specific calendar `EndDate` — for co-terming a multi-line
+quote to the same anchor, or for off-cycle ramp deals — pin `end_date:`
+alongside `term:`. The platform honors the explicit date and prorates
+`PricingTermCount` against the actual span (a 366-day span on a 1×Annual
+line yields `PricingTermCount = 1.0027` vs the derived 1.0; accepted drift).
+
+```yaml
+# Absolute calendar anchor at scenario level -- every TermDefined line on
+# the quote co-terms to 2027-01-14 regardless of cadence.
+scenarios:
+  - end_date: "2027-01-14"
+    term: {count: 1, unit: Annual}
+    products:
+      - sku: QB-LIC-CLOUD
+      - sku: QB-API-FLEX
+
+# Per-line relative offsets. Units: d / mo / q / y.
+- sku: QB-API-FLEX
+  term: 12
+  end_date: "12mo"     # 12 calendar months from StartDate (day-clamped)
+
+- sku: QB-LIC-CLOUD
+  term: {count: 1, unit: Annual}
+  end_date: "1y"       # equivalent to 12mo
+
+- sku: QB-LIC-QTR
+  term: {count: 4, unit: Quarterly}
+  end_date: "3q"       # 9 calendar months from StartDate
+
+- sku: QB-API-FLEX
+  term: 12
+  end_date: 364        # bare int -> days. Lands on platform's inclusive
+                       # convention (start + 364 days for a "1-year" line).
+```
+
+Rules:
+
+- **Requires a `term:`** — line, scenario, or PSM. `end_date` without a
+  cadence raises `ConfigError` (`SubscriptionTerm` is still needed for
+  billing-schedule derivation, and silently falling through to
+  `Term(12, Months)` would be surprising).
+- **TermDefined only.** `Evergreen` / `OneTime` products reject `EndDate`
+  at place time; the harness fails fast at resolve time instead.
+- **Forward-only.** Zero and negative offsets are rejected.
+- **`m` is ambiguous** between months/minutes/meters; spell it `mo`.
+  Other unit suffixes (`w`, `h`, …) are rejected.
+- **Day clamp on months.** Jan 31 + `1mo` lands on Feb 28 (or 29 in a
+  leap year); Aug 31 + `1mo` lands on Sep 30.
+- **Line wins over scenario.** A scenario-level `end_date:` is co-term
+  shorthand; any line that pins its own overrides for just that line.
+- **`EndDate` wins the pricing math.** When `end_date:` is set, the
+  platform computes `PricingTermCount` as `(EndDate − StartDate) / 365`
+  days — *not* from `SubscriptionTerm`. If you pin `term: {count: 2,
+  unit: Annual}` and an `end_date` only one year out, the line is
+  billed for one year and `SubscriptionTerm` is stored verbatim as 2
+  (no cross-validation). Author both fields consistently if you want
+  them to agree. Probed live on `rlm-base__jun17_1` 2026-06-23; see
+  `../CONTRACTS.md` → *Probed edge cases*.
+- **`EndDate` carries through to `BillingSchedule.TotalAmount`.**
+  Activation emits **one** `BillingSchedule` row per `OrderItem`
+  spanning the full deal — it is **not** fanned out into per-period
+  rows at activation. Periodic invoicing advances `NextBillingDate`
+  lazily as invoices post. `BillingTerm` is the period length
+  (always `1`, with `BillingTermUnit` taking the PSM cadence —
+  `Year` for Annual, `Month` for Monthly), and `TotalAmount` is
+  prorated against the actual `(EndDate − StartDate)` span using
+  the same 365-day math as `PricingTermCount`. `Quantity`
+  multiplies `BillingPeriodAmount`, not `UnitPrice`. **Caveat for
+  Monthly SOMs:** short spans (28- and 30-day) both billed
+  `1548.39` against `BillingPeriodAmount = 1500` — Monthly
+  proration appears to use an internal day denominator (~30.97),
+  not calendar days. See `../CONTRACTS.md` →
+  *BillingSchedule fan-out across `end_date` scenarios*.
 
 ## What makes an account / product a valid target
 

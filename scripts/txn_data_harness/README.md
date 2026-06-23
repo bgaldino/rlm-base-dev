@@ -175,6 +175,23 @@ sets its count.
   account and `Global Media` is pipeline-only — substitute equivalents for your
   own dataset.
 - **Product** — needs an active `PricebookEntry` on the **standard** pricebook.
+- **Subscription term** — per-line `term: {count, unit}` (or bare int) for
+  `TermDefined` products drives `SubscriptionTerm` / `SubscriptionTermUnit`;
+  the platform derives `EndDate` from those + `StartDate`. Defaults to the
+  PSM's discovered
+  `PricingTerm`/`PricingTermUnit`; falls back to `(12, Months)`. Multi-PBE SKUs
+  need an explicit `selling_model:`. Evergreen / OneTime lines reject `term`.
+  See `scenarios/README.md` → *Subscription terms* for the rules and
+  `scenarios/13-multi-year-terms.yaml` for worked examples.
+- **Explicit `end_date` override** (optional) — when set, the harness
+  writes a calendar `EndDate` on the line and the platform prorates
+  `PricingTermCount` against the actual span. Forms: absolute ISO date
+  (`"2027-01-14"`), bare int days (`364`), or suffixed offset
+  (`"364d"` / `"12mo"` / `"3q"` / `"1y"`). Supported units: `d`/`mo`/`q`/`y`
+  (bare `m` is rejected as ambiguous — spell it `mo`). Co-term shorthand:
+  pin `end_date:` at scenario level and every TermDefined line anchors to
+  the same date. Requires an accompanying `term:`; TermDefined-only. See
+  `scenarios/README.md` → *Explicit `EndDate` overrides*.
 - **Multi-line via a product pool** — a scenario's `products:` list is a pool; each
   transaction places a random non-empty subset as flat lines (per-line qty/discount
   ranges). One SKU per quote is just a one-entry pool.
@@ -228,10 +245,13 @@ is ever touched).
 
 **Drive cleanup from the manifest ids** — delete the ids the run recorded
 (child → parent: assets/order, then quote, then opportunity). Every record also
-carries the run id in `Description` for ad-hoc inspection, but note **`Order.Description`
-is not SOQL-filterable** ("field 'Description' can not be filtered in a query
-call"), so a `WHERE Description LIKE 'DEMO-%'` sweep on Order fails — filter orders
-by id. `Quote.Description` *is* filterable.
+carries the run id in `Description` for ad-hoc inspection, but note **neither
+`Order.Description` nor `Quote.Description` is SOQL-filterable** on this org
+("field 'Description' can not be filtered in a query call"), so a
+`WHERE Description LIKE 'DEMO-%'` sweep fails on both — filter by id, not
+description. (Live-verified `2026-06-23` on `rlm-base__jun17_1`: the
+Quote.Description filter previously documented as working returns
+`INVALID_FIELD`.)
 
 Deletability (verified live):
 
@@ -293,5 +313,6 @@ scripts/txn_data_harness/
   config.example.yaml  # worked example
   AI_TOOLS.md          # AI-safe command recipes and verification rules
   CONTRACTS.md         # live-verified endpoint/body/async contracts (read before editing lifecycle.py)
+  FOLLOWUPS.md         # open questions / anomalies / probes that would generalize a finding (companion to CONTRACTS.md)
   out/                 # per-run manifests + batch reports (git-ignored)
 ```
