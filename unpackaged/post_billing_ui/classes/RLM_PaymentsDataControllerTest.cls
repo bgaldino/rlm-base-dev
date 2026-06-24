@@ -31,6 +31,33 @@ private class RLM_PaymentsDataControllerTest {
         System.assert(true, 'getPaymentScheduleItems executes for the all-items and filtered branches.');
     }
 
+    // PaymentScheduleItem is Apex-createable, so the account-options aggregate (GROUP BY
+    // PaymentAccountId) can be exercised with real data: a seeded item's account must appear.
+    @isTest
+    static void getAccountOptions_withSeededItem_includesAccount() {
+        Account acc = new Account(Name = 'RLM Payments Account Option Test');
+        insert acc;
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 100);
+        insert ps;
+        insert new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+            RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft');
+
+        Test.startTest();
+        List<Map<String, String>> options = RLM_PaymentsDataController.getAccountOptions();
+        Test.stopTest();
+
+        Boolean found = false;
+        for (Map<String, String> option : options) {
+            if (option.get('value') == String.valueOf(acc.Id)) {
+                found = true;
+                System.assertEquals('RLM Payments Account Option Test', option.get('label'),
+                    'The account label should match the seeded account name.');
+            }
+        }
+        System.assert(found, 'An account with a PaymentScheduleItem should appear in the options.');
+        System.assert(options.size() >= 2, 'Sentinel "All Accounts" plus the seeded account.');
+    }
+
     private static void runQuietly(Id recordId, String currencyCode) {
         try {
             List<RLM_PaymentsDataController.PaymentStatusSummary> result =
