@@ -90,6 +90,7 @@ public with sharing class RLM_BSGTimelineController {
                        BillDayOfMonth, CancellationDate, StartDate, EndDate
                 FROM BillingScheduleGroup
                 WHERE Id = :recordId
+                WITH USER_MODE
                 LIMIT 1
             ];
             
@@ -108,6 +109,7 @@ public with sharing class RLM_BSGTimelineController {
                        BillingTermUnit
                 FROM BillingSchedule
                 WHERE BillingScheduleGroupId = :recordId
+                WITH USER_MODE
                 ORDER BY BillingScheduleStartDate ASC, CreatedDate ASC
             ];
             
