@@ -1701,7 +1701,7 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
         records = self._soql_query(
             "SELECT Id, IsActive FROM ExpressionSetVersion "
             f"WHERE ApiName = '{safe_name}' "
-            f"AND ExpressionSetDefinitionId = '{safe_es_id}'"
+            f"AND ExpressionSetId = '{safe_es_id}'"
         )
         if not records:
             raise TaskOptionsError(

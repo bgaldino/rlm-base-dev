@@ -1342,7 +1342,10 @@ def test_delete_single_version_scoped_to_expression_set():
             self.delete_calls = []
 
         def _get_expression_set_id(self, api_name):
-            return "ES_ID"
+            # 9QL = runtime ExpressionSet Id (distinct from any 9QA
+            # ExpressionSetDefinition Id) — the version-scope filter must use
+            # ExpressionSetId, not ExpressionSetDefinitionId.
+            return "9QL000000000001"
 
         def _soql_query(self, q):
             self.last_query = q
@@ -1361,8 +1364,10 @@ def test_delete_single_version_scoped_to_expression_set():
     task = _DeleteTask([{"Id": "ESV_OK", "IsActive": False}])
     task._run_task()
     check(
-        "single-version SOQL filters by ExpressionSetDefinitionId",
-        "ExpressionSetDefinitionId = 'ES_ID'" in (task.last_query or ""),
+        "single-version SOQL filters by ExpressionSetId (runtime FK, not "
+        "ExpressionSetDefinitionId)",
+        "ExpressionSetId = '9QL000000000001'" in (task.last_query or "")
+        and "ExpressionSetDefinitionId" not in (task.last_query or ""),
     )
     check(
         "single-version SOQL still filters by ApiName",
