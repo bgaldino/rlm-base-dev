@@ -24,6 +24,7 @@ export default class RlmLearningAppContainer extends NavigationMixin(
   })
   wiredSections({ error, data }) {
     if (data) {
+      this.error = undefined; // clear any prior error when a later wire succeeds
       this.sectionsWithBlocks = JSON.parse(JSON.stringify(data)).map(
         (section) => {
           // Derive a plain-text description for the block tooltip.
@@ -63,13 +64,13 @@ export default class RlmLearningAppContainer extends NavigationMixin(
     try {
       // currentTarget = the element the handler is bound to (carries data-id);
       // event.target may be an internal node of the base component.
-      const appNameValue = event.currentTarget.dataset.id;
-      if (!appNameValue) {
+      const dynamicLinkId = event.currentTarget.dataset.id;
+      if (!dynamicLinkId) {
         throw new Error("Action is undefined. Please update an action type.");
       }
-      const dynamicLink = this.dynamicLinksMap[appNameValue];
+      const dynamicLink = this.dynamicLinksMap[dynamicLinkId];
       if (!dynamicLink) {
-        throw new Error("No dynamic link found for " + appNameValue);
+        throw new Error("No dynamic link found for " + dynamicLinkId);
       }
       const pageRef = await getPageReferenceByDynamicType(dynamicLink);
       try {

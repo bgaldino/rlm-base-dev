@@ -58,6 +58,7 @@ export default class RlmLearningWelcome extends LightningElement {
   })
   wiredSections({ error, data }) {
     if (data) {
+      this.error = undefined; // clear any prior error when a later wire succeeds
       this.sectionsWithBlocks = data;
     } else if (error) {
       this.error = error?.body?.message || error?.message || "Unknown error";

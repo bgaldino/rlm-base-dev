@@ -67,14 +67,14 @@ export default class RlmLearningRightContainer extends NavigationMixin(
   }
 
   async handleClick(event) {
-    const appNameValue = event.currentTarget.dataset.id;
+    const dynamicLinkId = event.currentTarget.dataset.id;
     try {
-      if (!appNameValue) {
-        throw new Error("Application name is not defined");
+      if (!dynamicLinkId) {
+        throw new Error("Dynamic link id is not defined");
       }
-      const dynamicLink = this.dynamicLinksMap[appNameValue];
+      const dynamicLink = this.dynamicLinksMap[dynamicLinkId];
       if (!dynamicLink) {
-        throw new Error("No dynamic link found for " + appNameValue);
+        throw new Error("No dynamic link found for " + dynamicLinkId);
       }
       const pageRef = await getPageReferenceByDynamicType(dynamicLink);
       try {

@@ -15,6 +15,7 @@ export default class RlmLearningReleaseNote extends LightningElement {
   })
   wiredSections({ error, data }) {
     if (data) {
+      this.error = undefined; // clear any prior error when a later wire succeeds
       this.sectionsWithBlocks = data.map((section) => {
         // Only embed an allowlisted https video host; otherwise no iframe is rendered.
         const videoLink = safeVideoUrl(section.section.RLM_Learning_Video_Link__c);

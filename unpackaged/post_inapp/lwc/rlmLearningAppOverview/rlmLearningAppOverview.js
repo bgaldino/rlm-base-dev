@@ -27,6 +27,7 @@ export default class RlmLearningAppOverview extends NavigationMixin(
   })
   wiredSections({ error, data }) {
     if (data) {
+      this.error = undefined; // clear any prior error when a later wire succeeds
       // Only embed an allowlisted https video host; otherwise no iframe is rendered.
       this.sectionsWithBlocks = data.map((s) => ({
         ...s,
