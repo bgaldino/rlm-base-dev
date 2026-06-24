@@ -317,14 +317,23 @@ private class RLM_Learning_FrameworkTest {
         // feature/data may be absent in a scratch org — branch still executed
       }
     }
-    try {
-      RLM_Learning_DynamicLinkHelper.getSetupPageLink(
-        'PermissionSet',
-        UserInfo.getUserId()
-      );
-    } catch (Exception e) {
-      // no matching Setup_Page_Map record is acceptable
-    }
+    // The PermissionSet Setup_Page_Map record ships with this feature, so this resolves
+    // to a real URL — assert the query string is well-formed (the configured URL already
+    // has "?address=", so noredirect must be appended with "&", not a second "?").
+    PermissionSet ps = [SELECT Id FROM PermissionSet LIMIT 1];
+    String setupUrl = RLM_Learning_DynamicLinkHelper.getSetupPageLink(
+      'PermissionSet',
+      ps.Id
+    );
+    Assert.isTrue(
+      setupUrl.contains('&noredirect=1'),
+      'noredirect must be appended with & when the URL already has a query string: ' +
+        setupUrl
+    );
+    Assert.isFalse(
+      setupUrl.contains('?noredirect=1'),
+      'noredirect must not introduce a second "?": ' + setupUrl
+    );
     try {
       RLM_Learning_DynamicLinkHelper.getSiteUrl('0DB000000000001AAA');
     } catch (Exception e) {

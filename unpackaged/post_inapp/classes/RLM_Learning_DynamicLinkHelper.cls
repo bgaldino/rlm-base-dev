@@ -88,7 +88,6 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
       throw new AuraHandledException('Record id cannot be null or empty.');
     }
     String baseUrl = System.Url.getOrgDomainUrl().toExternalForm();
-    String noRedirect = '?noredirect=1';
     try {
       // record must be a real Id — validate inside the try so a bad value surfaces
       // as a clear AuraHandledException, not a raw TypeException.
@@ -111,10 +110,14 @@ public with sharing class RLM_Learning_DynamicLinkHelper {
           'Setup Page URL is blank for ' + objectAPIName
         );
       }
+      String url = baseUrl + setupPage[0].RLM_Learning_Setup_Page_URL__c + '/' + recordId;
+      // The configured Setup page URLs already carry a query string (e.g. ".../page?address="),
+      // so start the extra params with '&' when a '?' is already present (use '?' only if not).
+      String noRedirect = (url.contains('?') ? '&' : '?') + 'noredirect=1';
       if (objectAPIName == 'Contact') {
         noRedirect = noRedirect + '&isContactEntityOverride=1';
       }
-      return baseUrl + setupPage[0].RLM_Learning_Setup_Page_URL__c + '/' + recordId + noRedirect;
+      return url + noRedirect;
     } catch (Exception e) {
       throw new AuraHandledException(e.getMessage());
     }
