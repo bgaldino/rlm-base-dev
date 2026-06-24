@@ -4,22 +4,10 @@ public with sharing class RLM_Learning_UserInformation {
         return UserInfo.getFirstName();
     }
 
-    @AuraEnabled(cacheable=true)
-    public static String getTiming() {
-        // System.now().hour() is GMT; format('H') renders in the running user's
-        // timezone so the greeting matches the user's local part-of-day.
-        return timingForHour(Integer.valueOf(System.now().format('H')));
-    }
-
-    @TestVisible
-    private static String timingForHour(Integer hour) {
-        if (hour < 12) {
-            return 'Morning';
-        } else if (hour >= 12 && hour < 17) {
-            return 'Afternoon';
-        }
-        return 'Evening';
-    }
+    // Note: part-of-day ("Morning"/"Afternoon"/"Evening") is computed client-side in
+    // rlmLearningWelcome from the browser's local time. It is intentionally NOT an Apex
+    // method here: a cacheable @AuraEnabled built on System.now() is non-deterministic
+    // and its result can be cached and go stale.
 
     @AuraEnabled(cacheable=true)
     public static Integer getExpiryDays(){

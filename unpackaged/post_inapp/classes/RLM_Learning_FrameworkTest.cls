@@ -346,24 +346,8 @@ private class RLM_Learning_FrameworkTest {
   @IsTest
   static void userInformation_paths() {
     // None should throw; getExpiryDays returns null on non-trial orgs.
+    // (Part-of-day greeting moved to the client; no Apex getTiming/timingForHour.)
     RLM_Learning_UserInformation.getName();
-    Assert.isNotNull(
-      RLM_Learning_UserInformation.getTiming(),
-      'timing returned'
-    );
     RLM_Learning_UserInformation.getExpiryDays();
-    // Cover all time-of-day branches deterministically.
-    Assert.areEqual(
-      'Morning',
-      RLM_Learning_UserInformation.timingForHour(9)
-    );
-    Assert.areEqual(
-      'Afternoon',
-      RLM_Learning_UserInformation.timingForHour(13)
-    );
-    Assert.areEqual(
-      'Evening',
-      RLM_Learning_UserInformation.timingForHour(20)
-    );
   }
 }

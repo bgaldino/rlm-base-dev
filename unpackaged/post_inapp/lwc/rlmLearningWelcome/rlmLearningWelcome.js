@@ -1,7 +1,6 @@
 import { LightningElement, wire, track } from "lwc";
 import getSectionsWithBlocksByType from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByType";
 import getName from "@salesforce/apex/RLM_Learning_UserInformation.getName";
-import getTiming from "@salesforce/apex/RLM_Learning_UserInformation.getTiming";
 import getExpiryDays from "@salesforce/apex/RLM_Learning_UserInformation.getExpiryDays";
 
 export default class RlmLearningWelcome extends LightningElement {
@@ -15,18 +14,30 @@ export default class RlmLearningWelcome extends LightningElement {
   @wire(getName)
   getName;
 
-  @wire(getTiming)
-  getTiming;
-
   @wire(getExpiryDays)
   getExpiryDays;
 
-  // Build the greeting only once the wired timing/name resolve, so the title never
-  // flashes "undefined undefined!" on first render.
+  // Part-of-day is derived from the browser's local time rather than a cacheable
+  // Apex wire: a cacheable Apex method must be deterministic, and one built on
+  // System.now() can be cached and go stale (e.g. still "Morning" in the afternoon).
+  // The client clock is always fresh and already in the user's local timezone.
+  get timing() {
+    const hour = new Date().getHours();
+    if (hour < 12) {
+      return "Morning";
+    }
+    if (hour < 17) {
+      return "Afternoon";
+    }
+    return "Evening";
+  }
+
+  // Build the greeting; `timing` is always present (client-computed), so the title
+  // never flashes "undefined undefined!" — it shows e.g. "Morning!" until the wired
+  // name resolves, then "Morning <name>!".
   get greeting() {
-    const timing = this.getTiming && this.getTiming.data;
     const name = this.getName && this.getName.data;
-    const text = `${timing || ""} ${name || ""}`.trim();
+    const text = `${this.timing} ${name || ""}`.trim();
     return text ? `${text}!` : "";
   }
 
