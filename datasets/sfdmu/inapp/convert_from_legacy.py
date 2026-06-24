@@ -21,6 +21,7 @@ Usage:
   python datasets/sfdmu/inapp/convert_from_legacy.py [path/to/rlm.dataset.sql]
 """
 import csv
+import html
 import os
 import re
 import sys
@@ -421,6 +422,16 @@ def scrub_text(s):
     return s
 
 
+def clean_video_url(value):
+    """Decode HTML entities in a Video Link URL so the raw `&` query separators survive.
+    The LWC binds this string straight into the iframe `src` PROPERTY, which does not
+    HTML-decode, so a stored `&amp;` would reach the browser literally and break the
+    autoplay/embed_button/viral_sharing params. Also drops a dangling trailing `&`."""
+    if not value:
+        return value
+    return html.unescape(value).rstrip("&")
+
+
 def write_csv(name, header, rows):
     path = OUT_DIR / f"{name}.csv"
     with open(path, "w", newline="") as f:
@@ -548,7 +559,7 @@ def main():
     write_csv("RLM_Learning_Section__c",
               ["RLM_Learning_Active__c", "RLM_Learning_Header__c", "Name", "RLM_Learning_Sub_Header__c", "RLM_Learning_Video_Link__c",
                "RecordType.$$DeveloperName$SobjectType", "RLM_Learning_Icon__r.Name", "RLM_Learning_Page__r.Name"],
-              [[b(r[1]), scrub_text(r[2]), r[3], scrub_text(r[4]), r[6],
+              [[b(r[1]), scrub_text(r[2]), r[3], scrub_text(r[4]), clean_video_url(r[6]),
                 rtc(sec_rt.get(r[5], ""), "RLM_Learning_Section__c"), icon_n.get(r[7], ""), page_n.get(r[8], "")]
                for r in section])
 
