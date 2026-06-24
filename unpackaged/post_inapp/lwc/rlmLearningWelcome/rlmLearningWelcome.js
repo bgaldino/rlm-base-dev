@@ -1,16 +1,16 @@
 import { LightningElement, wire, track } from "lwc";
-import getSectionsWithBlocksByType from '@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByType';
-import getName from '@salesforce/apex/RLM_Learning_UserInformation.getName';
-import getTiming from '@salesforce/apex/RLM_Learning_UserInformation.getTiming';
-import getExpiryDays from '@salesforce/apex/RLM_Learning_UserInformation.getExpiryDays';
+import getSectionsWithBlocksByType from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByType";
+import getName from "@salesforce/apex/RLM_Learning_UserInformation.getName";
+import getTiming from "@salesforce/apex/RLM_Learning_UserInformation.getTiming";
+import getExpiryDays from "@salesforce/apex/RLM_Learning_UserInformation.getExpiryDays";
 
 export default class RlmLearningWelcome extends LightningElement {
 
   @track sectionsWithBlocks = [];
   @track error;
 
-  sectionType = 'Top';
-  pageType = 'Home';
+  sectionType = "Top";
+  pageType = "Home";
 
   @wire(getName)
   getName;
@@ -41,7 +41,10 @@ export default class RlmLearningWelcome extends LightningElement {
     return this.expiryDaysDisplay !== null;
   }
 
-  @wire(getSectionsWithBlocksByType, { sectionType: '$sectionType', pageType: '$pageType' })
+  @wire(getSectionsWithBlocksByType, {
+    sectionType: "$sectionType",
+    pageType: "$pageType"
+  })
   wiredSections({ error, data }) {
     if (data) {
       this.sectionsWithBlocks = data;
