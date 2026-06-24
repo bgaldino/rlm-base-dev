@@ -20,12 +20,15 @@ private class RLM_InvoiceProductSummaryControllerTest {
         System.assert(threw, 'A non-existent invoice should raise an AuraHandledException.');
     }
 
-    // No invoice lines -> nothing to update; the method returns without DML or error.
+    // No invoice lines -> nothing to update; the method must return without writing any records.
     @isTest
     static void saveLineAttributes_unknownInvoice_noOp() {
         Test.startTest();
+        Integer rowsBefore = Limits.getDmlRows();
         RLM_InvoiceProductSummaryController.saveLineAttributes(fakeInvoiceId());
+        Integer rowsAfter = Limits.getDmlRows();
         Test.stopTest();
-        System.assert(true, 'saveLineAttributes completes without error when there are no lines.');
+        System.assertEquals(rowsBefore, rowsAfter,
+            'A non-existent invoice has no lines, so no records may be updated.');
     }
 }

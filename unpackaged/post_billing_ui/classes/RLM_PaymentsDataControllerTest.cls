@@ -36,8 +36,9 @@ private class RLM_PaymentsDataControllerTest {
             List<RLM_PaymentsDataController.PaymentStatusSummary> result =
                 RLM_PaymentsDataController.getPaymentScheduleItems(recordId, currencyCode);
             System.assertNotEquals(null, result, 'A non-null summary list is returned when the query succeeds.');
-        } catch (Exception e) {
-            // Org-schema dependent fields may be absent in this org; the branch still executed.
+        } catch (System.QueryException e) {
+            // Only an org-schema gap (e.g. ParentReferenceEntityId absent) is tolerated here.
+            // Any other exception type is a real defect and is allowed to fail the test.
         }
     }
 }
