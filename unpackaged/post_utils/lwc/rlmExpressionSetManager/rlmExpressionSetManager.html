@@ -3,14 +3,24 @@
         <section class="slds-p-around_medium" aria-label="Expression Set Manager">
 
             <template lwc:if={hasPreviousError}>
-                <div class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_small" role="alert">
+                <div
+                    class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_small"
+                    role="alert"
+                    tabindex="-1"
+                    data-error-alert>
                     <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small"></lightning-icon>
-                    <span>Last operation failed: {previousError}</span>
+                    <span class="slds-col slds-grow">Last operation failed: {previousError}</span>
+                    <lightning-button
+                        label="Retry"
+                        variant="neutral"
+                        class="slds-m-left_small"
+                        onclick={handleRetryError}>
+                    </lightning-button>
                     <lightning-button-icon
                         icon-name="utility:close"
                         alternative-text="Dismiss"
                         variant="bare-inverse"
-                        class="slds-m-left_small"
+                        class="slds-m-left_x-small"
                         onclick={handleDismissError}>
                     </lightning-button-icon>
                 </div>
@@ -46,7 +56,7 @@
                     </div>
 
                     <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
-                        <h3 class="slds-col slds-grow slds-text-heading_small">Expression Sets</h3>
+                        <h2 class="slds-col slds-grow slds-text-heading_small">Expression Sets</h2>
                         <div class="slds-col slds-grow-none slds-grid slds-grid_vertical-align-center">
                             <template lwc:if={isActing}>
                                 <lightning-spinner alternative-text="Processing" size="small" class="slds-m-right_small"></lightning-spinner>
