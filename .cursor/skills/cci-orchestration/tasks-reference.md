@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**245 tasks** across **10 groups**.
+**246 tasks** across **10 groups**.
 
 ---
 
@@ -835,7 +835,7 @@
 
 ## Revenue Lifecycle Management
 
-*153 task(s)*
+*154 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1497,6 +1497,18 @@
 
 ---
 
+### `deploy_collections_case_flow`
+
+**Description:** Deploy the RLM_Create_Case_for_Collection flow from unpackaged/post_collections_case_flow. This flow invokes the DetermineCaseReasonAndRelatedAttributes decision matrix as an action, which only exists once the matrix has an active version. The matrix is activated by seed_collections_case_matrix (Apex-seeded rows, not metadata), so this flow must deploy AFTER that seed — otherwise the deploy fails with "We can't find the DetermineCaseReasonAndRelatedAttributes action." Kept separate from deploy_post_collections for exactly this ordering reason.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_collections_case_flow`
+
+---
+
 ### `deploy_context_definitions`
 
 **Description:** Deploy Context Definitions
@@ -1597,7 +1609,7 @@
 
 ### `deploy_post_collections`
 
-**Description:** Deploy Collections metadata from unpackaged/post_collections (flows, objects, omniUiCard, permissionsets, queues, quickActions, tabs, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore.
+**Description:** Deploy Collections metadata from unpackaged/post_collections (flows, objects, omniUiCard, permissionsets, queues, quickActions, tabs, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore. The RLM_Create_Case_for_Collection flow is NOT here — it lives in unpackaged/post_collections_case_flow and is deployed by deploy_collections_case_flow AFTER seed_collections_case_matrix activates the decision matrix it invokes.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 

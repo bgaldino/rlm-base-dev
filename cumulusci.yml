@@ -1547,7 +1547,10 @@ tasks:
       omniUiCard, permissionsets, queues, quickActions, tabs,
       timelineObjectDefinitions). Flexipages and applications for collections are
       deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded
-      here via .forceignore.
+      here via .forceignore. The RLM_Create_Case_for_Collection flow is NOT here —
+      it lives in unpackaged/post_collections_case_flow and is deployed by
+      deploy_collections_case_flow AFTER seed_collections_case_matrix activates the
+      decision matrix it invokes.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_collections
@@ -1565,6 +1568,21 @@ tasks:
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/seedCollectionsCaseMatrix.apex
+
+  deploy_collections_case_flow:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy the RLM_Create_Case_for_Collection flow from
+      unpackaged/post_collections_case_flow. This flow invokes the
+      DetermineCaseReasonAndRelatedAttributes decision matrix as an action, which
+      only exists once the matrix has an active version. The matrix is activated by
+      seed_collections_case_matrix (Apex-seeded rows, not metadata), so this flow
+      must deploy AFTER that seed — otherwise the deploy fails with "We can't find
+      the DetermineCaseReasonAndRelatedAttributes action." Kept separate from
+      deploy_post_collections for exactly this ordering reason.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_collections_case_flow
 
   deploy_post_ramp_builder:
     group: Revenue Lifecycle Management
@@ -4194,6 +4212,12 @@ flows:
         when: project_config.project__custom__collections
       2:
         task: seed_collections_case_matrix
+        when: project_config.project__custom__collections
+      3:
+        # Must run after seed_collections_case_matrix: the flow invokes the
+        # DetermineCaseReasonAndRelatedAttributes matrix action, which only exists
+        # once the matrix version is activated by the seed step above.
+        task: deploy_collections_case_flow
         when: project_config.project__custom__collections
     # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
     # RLM_Collections_Account_Record_Page) and the standard__CollectionConsole app variant

@@ -224,6 +224,7 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 1. **task** `deploy_post_collections`  `when: project_config.project__custom__collections`
 2. **task** `seed_collections_case_matrix`  `when: project_config.project__custom__collections`
+3. **task** `deploy_collections_case_flow`  `when: project_config.project__custom__collections`
 
 ---
 
