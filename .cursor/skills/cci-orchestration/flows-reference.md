@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**44 flows** across **5 groups**.
+**45 flows** across **5 groups**.
 
 ---
 
@@ -345,6 +345,19 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 ---
 
+### `prepare_inapp`
+
+Deploy the In-App Learning framework, assign its permission set, and load the navigation content
+
+**Steps:**
+
+1. **task** `deploy_post_inapp`  `when: project_config.project__custom__inapp`
+2. **task** `assign_permission_sets`  `when: project_config.project__custom__inapp`
+   - `api_names`: `['RLM_Learning']`
+3. **task** `load_inapp_dataset`  `when: project_config.project__custom__inapp`
+
+---
+
 ### `prepare_large_stx`
 
 **Steps:**
@@ -567,10 +580,11 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 27. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
 28. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
 29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-30. **flow** `prepare_scratch`
-31. **flow** `refresh_all_decision_tables`
-32. **task** `rebuild_search_index`
-33. **flow** `stamp_git_commit`
+30. **flow** `prepare_inapp`  `when: project_config.project__custom__inapp`
+31. **flow** `prepare_scratch`
+32. **flow** `refresh_all_decision_tables`
+33. **task** `rebuild_search_index`
+34. **flow** `stamp_git_commit`
 
 ---
 
