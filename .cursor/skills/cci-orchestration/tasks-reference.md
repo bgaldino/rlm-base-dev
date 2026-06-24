@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**246 tasks** across **10 groups**.
+**247 tasks** across **10 groups**.
 
 ---
 
@@ -835,7 +835,7 @@
 
 ## Revenue Lifecycle Management
 
-*154 task(s)*
+*155 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1322,6 +1322,18 @@
 **Options:**
 
 - `path`: `scripts/apex/createTaxEngine.apex`
+
+---
+
+### `deactivate_collections_case_matrix`
+
+**Description:** Disable the DetermineCaseReasonAndRelatedAttributes decision-matrix version before (re)deploying the DecisionMatrixDefinition. A metadata deploy can't migrate a matrix version while an active (enabled) version with that name exists, so a second prepare_collections run fails without this. No-op on a first run (matrix not deployed yet). seed_collections_case_matrix re-enables it afterward. Run before deploy_post_collections. See scripts/apex/deactivateCollectionsCaseMatrix.apex.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/deactivateCollectionsCaseMatrix.apex`
 
 ---
 

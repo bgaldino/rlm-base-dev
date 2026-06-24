@@ -1555,6 +1555,20 @@ tasks:
     options:
       path: unpackaged/post_collections
 
+  deactivate_collections_case_matrix:
+    group: Revenue Lifecycle Management
+    description: >
+      Disable the DetermineCaseReasonAndRelatedAttributes decision-matrix version
+      before (re)deploying the DecisionMatrixDefinition. A metadata deploy can't
+      migrate a matrix version while an active (enabled) version with that name
+      exists, so a second prepare_collections run fails without this. No-op on a
+      first run (matrix not deployed yet). seed_collections_case_matrix re-enables
+      it afterward. Run before deploy_post_collections. See
+      scripts/apex/deactivateCollectionsCaseMatrix.apex.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deactivateCollectionsCaseMatrix.apex
+
   seed_collections_case_matrix:
     group: Revenue Lifecycle Management
     description: >
@@ -4208,12 +4222,18 @@ flows:
     group: Revenue Lifecycle Management
     steps:
       1:
-        task: deploy_post_collections
+        # Idempotency: disable any already-active matrix version so the
+        # DecisionMatrixDefinition redeploy in step 2 can migrate it. No-op on a
+        # first run (matrix not deployed yet).
+        task: deactivate_collections_case_matrix
         when: project_config.project__custom__collections
       2:
-        task: seed_collections_case_matrix
+        task: deploy_post_collections
         when: project_config.project__custom__collections
       3:
+        task: seed_collections_case_matrix
+        when: project_config.project__custom__collections
+      4:
         # Must run after seed_collections_case_matrix: the flow invokes the
         # DetermineCaseReasonAndRelatedAttributes matrix action, which only exists
         # once the matrix version is activated by the seed step above.
