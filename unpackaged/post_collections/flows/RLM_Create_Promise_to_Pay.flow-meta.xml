@@ -320,7 +320,7 @@
             <assignToReference>totalOverdueAmount</assignToReference>
             <operator>Assign</operator>
             <value>
-                <elementReference>GetCollectionPlan.null__NotFound</elementReference>
+                <elementReference>GetCollectionPlan.TotalInvoiceBalance</elementReference>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -739,7 +739,7 @@
         <connector>
             <targetReference>SetPaymentSchedulesCount</targetReference>
         </connector>
-        <filterLogic>1 AND ( 2 OR 3 )</filterLogic>
+        <filterLogic>1 AND 2</filterLogic>
         <filters>
             <field>ReferenceEntityId</field>
             <operator>EqualTo</operator>
@@ -753,10 +753,6 @@
             <value>
                 <stringValue>PromiseToPay</stringValue>
             </value>
-        </filters>
-        <filters>
-            <field>Type</field>
-            <operator>EqualTo</operator>
         </filters>
         <getFirstRecordOnly>false</getFirstRecordOnly>
         <object>PaymentSchedule</object>
@@ -1785,7 +1781,7 @@
             <targetReference>GetCollectionPlan</targetReference>
         </connector>
     </start>
-    <status>InvalidDraft</status>
+    <status>Active</status>
     <textTemplates>
         <description>Stores the body of the email notifying the borrower about the promise to pay commitment details.</description>
         <name>Email2BodyTextTemplate</name>
