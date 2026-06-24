@@ -15,20 +15,50 @@ private class RLM_PaymentsDataControllerTest {
         System.assert(currencyOptions.size() >= 1, 'The "All Currencies" sentinel option is always present.');
     }
 
-    // PaymentScheduleItem rows are system-managed and not insertable in Apex tests, so both the
-    // all-items branch (null filters) and the account/currency-filtered branch drive empty paths.
-    // The query selects fields (e.g. ParentReferenceEntityId) that are only present when certain
-    // billing features are enabled; accept either a non-null list or a graceful query failure.
+    // The all-items branch (null filters) always returns one summary per tracked status with zero
+    // totals when there is no data.
     @isTest
-    static void getPaymentScheduleItems_noData_executesBothBranches() {
-        Account acc = new Account(Name = 'RLM Payments Data Test');
+    static void getPaymentScheduleItems_noData_returnsZeroedSummaries() {
+        Test.startTest();
+        List<RLM_PaymentsDataController.PaymentStatusSummary> summaries =
+            RLM_PaymentsDataController.getPaymentScheduleItems(null, null);
+        Test.stopTest();
+
+        System.assertEquals(5, summaries.size(),
+            'Failed/Ready/Applied/Draft/Processing summaries are always returned.');
+        for (RLM_PaymentsDataController.PaymentStatusSummary s : summaries) {
+            System.assertEquals(0, s.itemCount, 'No data -> zero items for ' + s.status);
+            System.assertEquals(0, s.totalRequestedAmount, 'No data -> zero total for ' + s.status);
+        }
+    }
+
+    // PaymentScheduleItem is Apex-createable, so the per-status summarization can be exercised with
+    // real data. Two Draft items for an account drive the account-filtered branch and addItem().
+    @isTest
+    static void getPaymentScheduleItems_seededDraftItems_summarized() {
+        Account acc = new Account(Name = 'RLM PSI Summary Test');
         insert acc;
+        PaymentSchedule ps = new PaymentSchedule(Status = 'Draft', TotalRequestedAmount = 150);
+        insert ps;
+        insert new List<PaymentScheduleItem>{
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+                RequestedAmount = 100, TargetPaymentProcessingDate = Date.today(), Status = 'Draft'),
+            new PaymentScheduleItem(PaymentScheduleId = ps.Id, PaymentAccountId = acc.Id,
+                RequestedAmount = 50, TargetPaymentProcessingDate = Date.today(), Status = 'Draft')
+        };
 
         Test.startTest();
-        runQuietly(null, null);
-        runQuietly(acc.Id, 'USD');
+        List<RLM_PaymentsDataController.PaymentStatusSummary> summaries =
+            RLM_PaymentsDataController.getPaymentScheduleItems(acc.Id, null);
         Test.stopTest();
-        System.assert(true, 'getPaymentScheduleItems executes for the all-items and filtered branches.');
+
+        RLM_PaymentsDataController.PaymentStatusSummary draft = null;
+        for (RLM_PaymentsDataController.PaymentStatusSummary s : summaries) {
+            if (s.status == 'Draft') { draft = s; }
+        }
+        System.assertNotEquals(null, draft, 'A Draft summary should be present.');
+        System.assertEquals(2, draft.itemCount, 'Two Draft items were seeded.');
+        System.assertEquals(150, draft.totalRequestedAmount, 'Draft requested total is 100 + 50.');
     }
 
     // PaymentScheduleItem is Apex-createable, so the account-options aggregate (GROUP BY
@@ -56,16 +86,5 @@ private class RLM_PaymentsDataControllerTest {
         }
         System.assert(found, 'An account with a PaymentScheduleItem should appear in the options.');
         System.assert(options.size() >= 2, 'Sentinel "All Accounts" plus the seeded account.');
-    }
-
-    private static void runQuietly(Id recordId, String currencyCode) {
-        try {
-            List<RLM_PaymentsDataController.PaymentStatusSummary> result =
-                RLM_PaymentsDataController.getPaymentScheduleItems(recordId, currencyCode);
-            System.assertNotEquals(null, result, 'A non-null summary list is returned when the query succeeds.');
-        } catch (System.QueryException e) {
-            // Only an org-schema gap (e.g. ParentReferenceEntityId absent) is tolerated here.
-            // Any other exception type is a real defect and is allowed to fail the test.
-        }
     }
 }

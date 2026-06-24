@@ -69,7 +69,7 @@ public with sharing class RLM_PaymentsDataController {
                 SELECT Id, PaymentScheduleItemNumber, Status, RequestedAmount,
                        ProcessedAmount, TargetPaymentProcessingDate,
                        PaymentScheduleId, PaymentAccountId, CurrencyIsoCode,
-                       PaymentId, ParentReferenceEntityId
+                       PaymentId
                 FROM PaymentScheduleItem
                 WHERE PaymentAccountId = :recordId AND CurrencyIsoCode = :currencyCode
                 WITH USER_MODE ORDER BY Status, TargetPaymentProcessingDate
@@ -79,7 +79,7 @@ public with sharing class RLM_PaymentsDataController {
                 SELECT Id, PaymentScheduleItemNumber, Status, RequestedAmount,
                        ProcessedAmount, TargetPaymentProcessingDate,
                        PaymentScheduleId, PaymentAccountId, CurrencyIsoCode,
-                       PaymentId, ParentReferenceEntityId
+                       PaymentId
                 FROM PaymentScheduleItem
                 WHERE PaymentAccountId = :recordId
                 WITH USER_MODE ORDER BY Status, TargetPaymentProcessingDate
@@ -89,7 +89,7 @@ public with sharing class RLM_PaymentsDataController {
                 SELECT Id, PaymentScheduleItemNumber, Status, RequestedAmount,
                        ProcessedAmount, TargetPaymentProcessingDate,
                        PaymentScheduleId, PaymentAccountId, CurrencyIsoCode,
-                       PaymentId, ParentReferenceEntityId
+                       PaymentId
                 FROM PaymentScheduleItem
                 WHERE CurrencyIsoCode = :currencyCode
                 WITH USER_MODE ORDER BY Status, TargetPaymentProcessingDate
@@ -99,7 +99,7 @@ public with sharing class RLM_PaymentsDataController {
                 SELECT Id, PaymentScheduleItemNumber, Status, RequestedAmount,
                        ProcessedAmount, TargetPaymentProcessingDate,
                        PaymentScheduleId, PaymentAccountId, CurrencyIsoCode,
-                       PaymentId, ParentReferenceEntityId
+                       PaymentId
                 FROM PaymentScheduleItem
                 WITH USER_MODE ORDER BY Status, TargetPaymentProcessingDate
             ];
