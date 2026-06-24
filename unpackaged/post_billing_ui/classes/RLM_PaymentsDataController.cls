@@ -15,14 +15,14 @@ public with sharing class RLM_PaymentsDataController {
         for (AggregateResult ar : [
             SELECT PaymentAccountId FROM PaymentScheduleItem
             WHERE PaymentAccountId != null
-            GROUP BY PaymentAccountId
+            WITH USER_MODE GROUP BY PaymentAccountId
         ]) {
             accountIds.add((Id) ar.get('PaymentAccountId'));
         }
         if (accountIds.isEmpty()) {
             return options;
         }
-        for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds ORDER BY Name]) {
+        for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds WITH USER_MODE ORDER BY Name]) {
             options.add(new Map<String, String>{ 'value' => a.Id, 'label' => a.Name });
         }
         return options;
@@ -37,7 +37,7 @@ public with sharing class RLM_PaymentsDataController {
             SELECT IsoCode, IsCorporate
             FROM CurrencyType
             WHERE IsActive = true
-            ORDER BY IsCorporate DESC, IsoCode ASC
+            WITH USER_MODE ORDER BY IsCorporate DESC, IsoCode ASC
         ]) {
             if (String.isNotBlank(ct.IsoCode)) {
                 options.add(new Map<String, String>{ 'value' => ct.IsoCode, 'label' => ct.IsoCode });
@@ -72,7 +72,7 @@ public with sharing class RLM_PaymentsDataController {
                        PaymentId, ParentReferenceEntityId
                 FROM PaymentScheduleItem
                 WHERE PaymentAccountId = :recordId AND CurrencyIsoCode = :currencyCode
-                ORDER BY Status, TargetPaymentProcessingDate
+                WITH USER_MODE ORDER BY Status, TargetPaymentProcessingDate
             ];
         } else if (filterByAccount) {
             items = [
@@ -82,7 +82,7 @@ public with sharing class RLM_PaymentsDataController {
                        PaymentId, ParentReferenceEntityId
                 FROM PaymentScheduleItem
                 WHERE PaymentAccountId = :recordId
-                ORDER BY Status, TargetPaymentProcessingDate
+                WITH USER_MODE ORDER BY Status, TargetPaymentProcessingDate
             ];
         } else if (filterByCurrency) {
             items = [
@@ -92,7 +92,7 @@ public with sharing class RLM_PaymentsDataController {
                        PaymentId, ParentReferenceEntityId
                 FROM PaymentScheduleItem
                 WHERE CurrencyIsoCode = :currencyCode
-                ORDER BY Status, TargetPaymentProcessingDate
+                WITH USER_MODE ORDER BY Status, TargetPaymentProcessingDate
             ];
         } else {
             items = [
@@ -101,7 +101,7 @@ public with sharing class RLM_PaymentsDataController {
                        PaymentScheduleId, PaymentAccountId, CurrencyIsoCode,
                        PaymentId, ParentReferenceEntityId
                 FROM PaymentScheduleItem
-                ORDER BY Status, TargetPaymentProcessingDate
+                WITH USER_MODE ORDER BY Status, TargetPaymentProcessingDate
             ];
         }
         
@@ -123,7 +123,7 @@ public with sharing class RLM_PaymentsDataController {
                        Invoice.DueDate, Invoice.InvoiceDate, Invoice.CurrencyIsoCode
                 FROM PaymentLineInvoice
                 WHERE PaymentId IN :paymentIds
-                ORDER BY Invoice.InvoiceNumber
+                WITH USER_MODE ORDER BY Invoice.InvoiceNumber
             ];
             for (PaymentLineInvoice pli : paymentLines) {
                 if (!paymentInvoiceMap.containsKey(pli.PaymentId)) {
@@ -139,7 +139,7 @@ public with sharing class RLM_PaymentsDataController {
             try {
                 List<SObject> schedules = Database.query(
                     'SELECT Id, ReferenceEntityId FROM PaymentSchedule WHERE Id IN :scheduleIds AND ReferenceEntityId != null'
-                );
+                , AccessLevel.USER_MODE);
                 for (SObject ps : schedules) {
                     Id refId = (Id) ps.get('ReferenceEntityId');
                     if (refId != null) scheduleToInvoiceId.put((Id) ps.get('Id'), refId);
@@ -157,7 +157,7 @@ public with sharing class RLM_PaymentsDataController {
                 SELECT Id, InvoiceNumber, DocumentNumber, TotalAmount, Balance, Status,
                        DueDate, InvoiceDate, CurrencyIsoCode
                 FROM Invoice
-                WHERE Id IN :invoiceIds
+                WHERE Id IN :invoiceIds WITH USER_MODE
             ]) {
                 invoiceByIdMap.put(inv.Id, new InvoiceWrapper(inv));
             }

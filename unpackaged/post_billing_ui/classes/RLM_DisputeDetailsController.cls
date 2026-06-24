@@ -15,7 +15,7 @@ public with sharing class RLM_DisputeDetailsController {
         Map<String, String> invoiceNames = new Map<String, String>();
         if (invoiceIds != null && !invoiceIds.isEmpty()) {
             try {
-                for (Invoice inv : [SELECT Id, DocumentNumber FROM Invoice WHERE Id IN :invoiceIds]) {
+                for (Invoice inv : [SELECT Id, DocumentNumber FROM Invoice WHERE Id IN :invoiceIds WITH USER_MODE]) {
                     invoiceNames.put(inv.Id, inv.DocumentNumber);
                 }
             } catch (Exception e) {
@@ -30,7 +30,7 @@ public with sharing class RLM_DisputeDetailsController {
         if (invoiceLineIds != null && !invoiceLineIds.isEmpty()) {
             // Always fetch Name
             try {
-                for (InvoiceLine il : [SELECT Id, Name FROM InvoiceLine WHERE Id IN :invoiceLineIds]) {
+                for (InvoiceLine il : [SELECT Id, Name FROM InvoiceLine WHERE Id IN :invoiceLineIds WITH USER_MODE]) {
                     lineNames.put(il.Id, il.Name);
                 }
             } catch (Exception e) {
@@ -39,7 +39,7 @@ public with sharing class RLM_DisputeDetailsController {
 
             // Attempt Balance separately via dynamic SOQL
             try {
-                List<SObject> lines = Database.query('SELECT Id, Balance FROM InvoiceLine WHERE Id IN :invoiceLineIds');
+                List<SObject> lines = Database.query('SELECT Id, Balance FROM InvoiceLine WHERE Id IN :invoiceLineIds', AccessLevel.USER_MODE);
                 for (SObject il : lines) {
                     Object balVal = il.get('Balance');
                     if (balVal != null) {
@@ -117,11 +117,11 @@ public with sharing class RLM_DisputeDetailsController {
         // Query and update using the discovered field name
         try {
             String query = 'SELECT Id, ' + approvedFieldApi + ' FROM DisputeItem WHERE Id IN :itemIds';
-            List<SObject> records = Database.query(query);
+            List<SObject> records = Database.query(query, AccessLevel.USER_MODE);
             for (SObject rec : records) {
                 rec.put(approvedFieldApi, amountMap.get(rec.Id));
             }
-            update records;
+            update as user records;
         } catch (Exception e) {
             throw new AuraHandledException('Save failed (field: ' + approvedFieldApi + '): ' + e.getMessage());
         }
