@@ -1611,7 +1611,7 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
         es_id = self._get_expression_set_id(api_name)
 
         if version_api_name:
-            self._delete_single_version(version_api_name, dry_run)
+            self._delete_single_version(version_api_name, es_id, api_name, dry_run)
             return
 
         # Whole expression set: an active ProcedurePlanDefinitionVersion
@@ -1652,23 +1652,37 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
                 rollback_errors = []
                 # Reactivate the ES version FIRST so that when we re-enable
                 # the procedure plans they reference an active definition.
+                # If the ES rollback fails — or we never deactivated it
+                # because it was already inactive — DO NOT reactivate the
+                # cascaded plans: doing so would point active traffic at an
+                # inactive ES, the exact worse state we're trying to avoid.
+                es_rollback_safe = not esv_deactivated_by_us
                 if esv_deactivated_by_us:
                     try:
                         self._set_version_active(esv["Id"], True, False)
                         self._wait_for_version_state(esv["Id"], True)
+                        es_rollback_safe = True
                     except Exception as rb_exc:
                         rollback_errors.append(
                             f"ExpressionSetVersion {esv['Id']}: {rb_exc}"
                         )
                 if cascaded_ppvs:
-                    try:
-                        self._cascade_reactivate_procedure_plans(
-                            cascaded_ppvs, False
-                        )
-                    except Exception as rb_exc:
+                    if es_rollback_safe:
+                        try:
+                            self._cascade_reactivate_procedure_plans(
+                                cascaded_ppvs, False
+                            )
+                        except Exception as rb_exc:
+                            rollback_errors.append(
+                                f"ProcedurePlanDefinitionVersion(s) "
+                                f"{cascaded_ppvs}: {rb_exc}"
+                            )
+                    else:
                         rollback_errors.append(
-                            f"ProcedurePlanDefinitionVersion(s) "
-                            f"{cascaded_ppvs}: {rb_exc}"
+                            f"ProcedurePlanDefinitionVersion(s) {cascaded_ppvs} "
+                            f"LEFT DEACTIVATED — ES version rollback failed, so "
+                            f"reactivating the plans would point them at an "
+                            f"inactive ES"
                         )
                 if rollback_errors:
                     self.logger.error(
@@ -1679,15 +1693,21 @@ class DeleteExpressionSet(ExpressionSetConnectBase):
             raise
         self.logger.info("Deleted expression set %s (%s).", api_name, es_id)
 
-    def _delete_single_version(self, version_api_name: str, dry_run: bool):
-        safe = self._soql_escape(version_api_name)
+    def _delete_single_version(
+        self, version_api_name: str, es_id: str, api_name: str, dry_run: bool,
+    ):
+        safe_name = self._soql_escape(version_api_name)
+        safe_es_id = self._soql_escape(es_id)
         records = self._soql_query(
             "SELECT Id, IsActive FROM ExpressionSetVersion "
-            f"WHERE ApiName = '{safe}'"
+            f"WHERE ApiName = '{safe_name}' "
+            f"AND ExpressionSetDefinitionId = '{safe_es_id}'"
         )
         if not records:
             raise TaskOptionsError(
-                f"ExpressionSetVersion '{version_api_name}' not found."
+                f"ExpressionSetVersion '{version_api_name}' not found under "
+                f"expression set '{api_name}' ({es_id}). Verify the version "
+                f"name belongs to this expression set."
             )
         version_id = records[0]["Id"]
         if bool(records[0].get("IsActive")):

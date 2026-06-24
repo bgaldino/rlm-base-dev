@@ -1236,6 +1236,157 @@ def test_delete_rollback_skips_es_reactivation_when_already_inactive():
     )
 
 
+def test_delete_rollback_skips_plan_reactivation_when_es_rollback_fails():
+    # Reviewer: if the ES-version rollback fails, reactivating the cascaded
+    # procedure plans recreates the exact inconsistent state the rollback
+    # was meant to avoid (active plans pointing at an inactive ES). The
+    # rollback must leave the plans deactivated in that case and surface
+    # the ES failure for manual intervention.
+    import logging
+
+    captured_errors = []
+
+    class _DeleteTask(DeleteExpressionSet):
+        def __init__(self):
+            self.logger = logging.getLogger("test_delete_task_es_rb_fail")
+            self.logger.addHandler(logging.NullHandler())
+            # Capture logger.error calls so we can assert on the message.
+            orig = self.logger.error
+
+            def _capture(msg, *args, **kw):
+                captured_errors.append(msg % args if args else msg)
+                orig(msg, *args, **kw)
+
+            self.logger.error = _capture
+            self.options = {
+                "expression_set_api_name": "ESX",
+                "confirm": True,
+                "dry_run": False,
+            }
+            self.calls = []
+
+        def _get_expression_set_id(self, api_name):
+            return "ES_ID"
+
+        def _get_expression_set_definition_id(self, api_name):
+            return "ESD_ID"
+
+        def _resolve_version_by_es_id(self, es_id):
+            return {"Id": "ESV_ID", "IsActive": True}
+
+        def _cascade_deactivate_procedure_plans(self, es_def_id, dry_run):
+            self.calls.append(("cascade_deactivate", es_def_id))
+            return ["PPDV_1", "PPDV_2"]
+
+        def _set_version_active(self, vid, active, dry_run):
+            self.calls.append(("set_version_active", vid, active))
+            # Fail ONLY on the rollback reactivate (active=True), letting the
+            # initial deactivate (active=False) succeed.
+            if active is True:
+                raise RuntimeError(f"simulated reactivate failure for {vid}")
+
+        def _wait_for_version_state(self, vid, active):
+            self.calls.append(("wait_version", vid, active))
+
+        def _delete_expression_set_via_connect(self, es_id):
+            self.calls.append(("delete_attempt", es_id))
+            raise RuntimeError("simulated DELETE failure")
+
+        def _cascade_reactivate_procedure_plans(self, vids, dry_run):
+            self.calls.append(("cascade_reactivate", tuple(vids)))
+
+    task = _DeleteTask()
+    try:
+        task._run_task()
+    except RuntimeError:
+        pass  # expected — DELETE failure re-raises
+
+    op_names = [c[0] for c in task.calls]
+    check(
+        "ES rollback failure does NOT reactivate the cascaded plans",
+        "cascade_reactivate" not in op_names,
+    )
+    check(
+        "ES rollback failure DOES attempt to reactivate the ES version",
+        ("set_version_active", "ESV_ID", True) in task.calls,
+    )
+    check(
+        "rollback error message names both the ES failure and the plans left deactivated",
+        any(
+            "ExpressionSetVersion ESV_ID" in e
+            and "LEFT DEACTIVATED" in e
+            and "PPDV_1" in e
+            for e in captured_errors
+        ),
+    )
+
+
+def test_delete_single_version_scoped_to_expression_set():
+    # Reviewer: single-version delete queries by ApiName only. Two
+    # expression sets can have similarly-named versions; the destructive
+    # path must require the version to belong to the named expression set.
+    import logging
+
+    class _DeleteTask(DeleteExpressionSet):
+        def __init__(self, soql_response):
+            self.logger = logging.getLogger("test_delete_single")
+            self.logger.addHandler(logging.NullHandler())
+            self.options = {
+                "expression_set_api_name": "ESX",
+                "version_api_name": "ESX_V1",
+                "confirm": True,
+                "dry_run": False,
+            }
+            self.last_query = None
+            self._soql_response = soql_response
+            self.delete_calls = []
+
+        def _get_expression_set_id(self, api_name):
+            return "ES_ID"
+
+        def _soql_query(self, q):
+            self.last_query = q
+            return self._soql_response
+
+        def _set_version_active(self, *_a, **_kw):
+            pass
+
+        def _wait_for_version_state(self, *_a, **_kw):
+            pass
+
+        def _delete_sobject(self, sobject, record_id):
+            self.delete_calls.append((sobject, record_id))
+
+    # Happy path: SOQL is scoped, delete proceeds.
+    task = _DeleteTask([{"Id": "ESV_OK", "IsActive": False}])
+    task._run_task()
+    check(
+        "single-version SOQL filters by ExpressionSetDefinitionId",
+        "ExpressionSetDefinitionId = 'ES_ID'" in (task.last_query or ""),
+    )
+    check(
+        "single-version SOQL still filters by ApiName",
+        "ApiName = 'ESX_V1'" in (task.last_query or ""),
+    )
+    check(
+        "single-version delete proceeds when version belongs to the ES",
+        task.delete_calls == [("ExpressionSetVersion", "ESV_OK")],
+    )
+
+    # Mismatch: version exists with that name but under a DIFFERENT ES → SOQL
+    # returns empty (scope filter excludes it). Must raise, not delete.
+    task = _DeleteTask([])
+    raised = False
+    try:
+        task._run_task()
+    except Exception as exc:
+        raised = "not found under expression set 'ESX'" in str(exc)
+    check(
+        "single-version delete refuses when name belongs to a different ES",
+        raised and not task.delete_calls,
+    )
+
+
 def test_overlay_removevariables_accepts_string_list():
     # Live test surfaced that _remove_variables crashed with a cryptic
     # "string indices must be integers" when given a bare list of names —
