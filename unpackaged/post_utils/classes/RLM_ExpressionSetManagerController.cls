@@ -86,15 +86,11 @@ public with sharing class RLM_ExpressionSetManagerController {
             WHERE ExpressionSetDefinitionId IN :allDefIds
         ];
 
-        Map<Id, Id> setToDefMap = new Map<Id, Id>();
-        Map<Id, Id> defToSetMap = new Map<Id, Id>();
-        Map<Id, String> defToUsageType = new Map<Id, String>();
+        Map<Id, ExpressionSet> setByDefId = new Map<Id, ExpressionSet>();
         Set<Id> setIds = new Set<Id>();
         for (ExpressionSet es : sets) {
             setIds.add(es.Id);
-            setToDefMap.put(es.Id, es.ExpressionSetDefinitionId);
-            defToSetMap.put(es.ExpressionSetDefinitionId, es.Id);
-            defToUsageType.put(es.ExpressionSetDefinitionId, es.UsageType);
+            setByDefId.put(es.ExpressionSetDefinitionId, es);
         }
 
         List<ExpressionSetVersion> versions = [
@@ -104,13 +100,12 @@ public with sharing class RLM_ExpressionSetManagerController {
             ORDER BY ExpressionSetId, VersionNumber DESC
         ];
 
-        Map<Id, List<ExpressionSetVersion>> versionsByDef = new Map<Id, List<ExpressionSetVersion>>();
+        Map<Id, List<ExpressionSetVersion>> versionsBySetId = new Map<Id, List<ExpressionSetVersion>>();
         for (ExpressionSetVersion v : versions) {
-            Id defId = setToDefMap.get(v.ExpressionSetId);
-            if (!versionsByDef.containsKey(defId)) {
-                versionsByDef.put(defId, new List<ExpressionSetVersion>());
+            if (!versionsBySetId.containsKey(v.ExpressionSetId)) {
+                versionsBySetId.put(v.ExpressionSetId, new List<ExpressionSetVersion>());
             }
-            versionsByDef.get(defId).add(v);
+            versionsBySetId.get(v.ExpressionSetId).add(v);
         }
 
         List<ExpressionSetInfo> results = new List<ExpressionSetInfo>();
@@ -118,8 +113,9 @@ public with sharing class RLM_ExpressionSetManagerController {
             ExpressionSetDefinition def = defs.get(defId);
             if (def == null) continue;
 
-            List<ExpressionSetVersion> defVersions = versionsByDef.containsKey(defId)
-                ? versionsByDef.get(defId)
+            ExpressionSet es = setByDefId.get(defId);
+            List<ExpressionSetVersion> defVersions = (es != null && versionsBySetId.containsKey(es.Id))
+                ? versionsBySetId.get(es.Id)
                 : new List<ExpressionSetVersion>();
 
             Boolean hasActive = false;
@@ -130,14 +126,13 @@ public with sharing class RLM_ExpressionSetManagerController {
                 }
             }
 
-            Boolean isLinked = linkedDefIds.contains(defId);
             results.add(new ExpressionSetInfo(
                 def,
-                defToSetMap.get(defId),
-                defToUsageType.get(defId),
+                es != null ? es.Id : null,
+                es != null ? es.UsageType : null,
                 defVersions,
                 hasActive,
-                isLinked
+                linkedDefIds.contains(defId)
             ));
         }
         return results;
@@ -186,15 +181,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             throw new AuraHandledException('Insufficient access to deactivate Expression Sets.');
         }
         String sessionId = getApiSessionId();
-        // Identify which are Constraint type — those need junction deletion
-        Set<Id> constraintDefIds = new Set<Id>();
-        for (ExpressionSet es : [
-            SELECT ExpressionSetDefinitionId FROM ExpressionSet
-            WHERE ExpressionSetDefinitionId IN :definitionIds
-            AND UsageType = 'Constraint'
-        ]) {
-            constraintDefIds.add(es.ExpressionSetDefinitionId);
-        }
+        Set<Id> constraintDefIds = getConstraintDefIds(definitionIds);
         System.enqueueJob(new DeactivateQueueable(contextDefinitionId, definitionIds, constraintDefIds, sessionId));
     }
 
@@ -203,15 +190,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         Integer activeCount = countActiveVersions(definitionIds);
         if (activeCount > 0) return 'in_progress';
 
-        // Also verify constraint junctions are deleted
-        Set<Id> constraintDefIds = new Set<Id>();
-        for (ExpressionSet es : [
-            SELECT ExpressionSetDefinitionId FROM ExpressionSet
-            WHERE ExpressionSetDefinitionId IN :definitionIds
-            AND UsageType = 'Constraint'
-        ]) {
-            constraintDefIds.add(es.ExpressionSetDefinitionId);
-        }
+        Set<Id> constraintDefIds = getConstraintDefIds(definitionIds);
         if (!constraintDefIds.isEmpty()) {
             Integer remaining = [
                 SELECT COUNT()
@@ -380,6 +359,18 @@ public with sharing class RLM_ExpressionSetManagerController {
     }
 
     // --- Shared Helpers ---
+
+    private static Set<Id> getConstraintDefIds(List<Id> definitionIds) {
+        Set<Id> constraintDefIds = new Set<Id>();
+        for (ExpressionSet es : [
+            SELECT ExpressionSetDefinitionId FROM ExpressionSet
+            WHERE ExpressionSetDefinitionId IN :definitionIds
+            AND UsageType = 'Constraint'
+        ]) {
+            constraintDefIds.add(es.ExpressionSetDefinitionId);
+        }
+        return constraintDefIds;
+    }
 
     private static Set<Id> getExpressionSetIds(List<Id> definitionIds) {
         Set<Id> setIds = new Set<Id>();

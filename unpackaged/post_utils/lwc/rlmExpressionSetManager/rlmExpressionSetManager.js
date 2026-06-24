@@ -48,10 +48,10 @@ export default class RlmExpressionSetManager extends LightningElement {
     isLoading = false;
     isActing = false;
     previousError = '';
+    contextDefUrl = '';
     _contextData = [];
     _pollTimer;
     _delayTimer;
-    _pendingDefIds = [];
 
     async connectedCallback() {
         try {
@@ -126,14 +126,6 @@ export default class RlmExpressionSetManager extends LightningElement {
         return `slds-notify slds-notify_alert slds-alert_${this.statusVariant}`;
     }
 
-    get contextDefUrl() {
-        const idParam = btoa(`"${this.selectedContextId}"`);
-        const nameParam = btoa(`"${this.selectedContextDevName}"`);
-        const tab = btoa('"details"');
-        const status = btoa('"Active"');
-        return `/lightning/setup/ContextManagementSetupNode/home#contextIdFromLandingPage=${idParam}&contextDefinitionNameFromLandingPage=${nameParam}&activeTab=${tab}&status=${status}`;
-    }
-
     // --- Event Handlers ---
 
     handleDismissError() {
@@ -144,8 +136,17 @@ export default class RlmExpressionSetManager extends LightningElement {
         this.selectedContextId = event.detail.value;
         const selected = this._contextData.find(cd => cd.id === this.selectedContextId);
         this.selectedContextDevName = selected ? selected.developerName : '';
+        this.contextDefUrl = this.buildContextDefUrl();
         this.selectedRowIds = [];
         this.loadExpressionSets();
+    }
+
+    buildContextDefUrl() {
+        const idParam = btoa(`"${this.selectedContextId}"`);
+        const nameParam = btoa(`"${this.selectedContextDevName}"`);
+        const tab = btoa('"details"');
+        const status = btoa('"Active"');
+        return `/lightning/setup/ContextManagementSetupNode/home#contextIdFromLandingPage=${idParam}&contextDefinitionNameFromLandingPage=${nameParam}&activeTab=${tab}&status=${status}`;
     }
 
     handleRowSelection(event) {
@@ -196,7 +197,6 @@ export default class RlmExpressionSetManager extends LightningElement {
         try {
             await deactivateExpressionSets({ contextDefinitionId: this.selectedContextId, definitionIds: defIds });
             this.showToast('Deactivating', `Deactivating ${defIds.length} Expression Set(s)...`, 'info');
-            this._pendingDefIds = defIds;
             this.pollStatus(getDeactivateStatus, this.selectedContextId, defIds, 0, (ids) => {
                 this.expressionSets = this.expressionSets.map(es =>
                     ids.has(es.definitionId)
@@ -232,7 +232,6 @@ export default class RlmExpressionSetManager extends LightningElement {
         try {
             await activateExpressionSets({ contextDefinitionId: this.selectedContextId, definitionIds: defIds });
             this.showToast('Activating', `Activating ${defIds.length} Expression Set(s)...`, 'info');
-            this._pendingDefIds = defIds;
             this.pollStatus(getActivateStatus, this.selectedContextId, defIds, ACTIVATE_DELAY, () => {
                 this.showToast('Activated', 'Expression Sets activated successfully.', 'success');
                 this.loadExpressionSets();
@@ -250,7 +249,7 @@ export default class RlmExpressionSetManager extends LightningElement {
         try {
             const data = await getLinkedExpressionSets({ contextDefinitionId: this.selectedContextId });
             const rows = data.map(es => {
-                const latest = [...es.versions].sort((a, b) => b.versionNumber - a.versionNumber)[0];
+                const latest = es.versions[0];
                 return {
                     ...es,
                     recordUrl: `/lightning/r/ExpressionSet/${es.expressionSetId}/view`,
