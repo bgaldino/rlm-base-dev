@@ -511,20 +511,6 @@
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>
-                    <name>maxEARContainerHeight</name>
-                    <value>500</value>
-                </componentInstanceProperties>
-                <componentInstanceProperties>
-                    <name>shouldDisplayFiltersOnRight</name>
-                    <value>false</value>
-                </componentInstanceProperties>
-                <componentName>forceKnowledge:articleSearchDesktop</componentName>
-                <identifier>forceKnowledge_articleSearchDesktop</identifier>
-            </componentInstance>
-        </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentInstanceProperties>
                     <name>flowLayout</name>
                     <value>oneColumn</value>
                 </componentInstanceProperties>
