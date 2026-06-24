@@ -1,0 +1,130 @@
+import { LightningElement, track, wire, api } from "lwc";
+import { NavigationMixin } from "lightning/navigation";
+import getSectionsWithBlocksByPageId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByPageId";
+import {
+  findDynamicLinkIdentifier,
+  getDynamicLinkByIdentifier,
+  getPageReferenceByDynamicType,
+  escapeHtml,
+  safeVideoUrl,
+  requireSafeUrl
+} from "c/rlmLearningCommonFunctions";
+
+export default class RlmLearningAppOverview extends NavigationMixin(
+  LightningElement
+) {
+  @track sectionsWithBlocks = [];
+  @track error;
+
+  sectionType = "Left_Top";
+  // Left undefined so the wire doesn't fire (and the controller doesn't throw on a
+  // blank id) until a real page id is set by the parent.
+  @api pageId;
+
+  @wire(getSectionsWithBlocksByPageId, {
+    sectionType: "$sectionType",
+    pageId: "$pageId"
+  })
+  wiredSections({ error, data }) {
+    if (data) {
+      this.error = undefined; // clear any prior error when a later wire succeeds
+      // Only embed an allowlisted https video host; otherwise no iframe is rendered.
+      this.sectionsWithBlocks = data.map((s) => ({
+        ...s,
+        section: {
+          ...s.section,
+          safeVideoLink: safeVideoUrl(s.section.RLM_Learning_Video_Link__c)
+        }
+      }));
+      this.checkForDynamicLinks();
+    } else if (error) {
+      this.error = error?.body?.message || error?.message || "Unknown error";
+    }
+  }
+
+  async checkForDynamicLinks() {
+    // The wire fires with `data` truthy even when it's an empty array, so guard
+    // against a missing first section / blocks before dereferencing.
+    if (
+      !this.sectionsWithBlocks.length ||
+      !this.sectionsWithBlocks[0].blocks
+    ) {
+      return;
+    }
+    const newBlocks = [];
+    // Resolve each block's DYN_LINK placeholders one block at a time: the imperative
+    // Apex lookups are intentionally serialized to keep block order deterministic and
+    // avoid a burst of parallel calls.
+    /* eslint-disable no-await-in-loop */
+    for (let i = 0; i < this.sectionsWithBlocks[0].blocks.length; i++) {
+      let description = this.sectionsWithBlocks[0].blocks[i].description;
+      newBlocks.push({ ...this.sectionsWithBlocks[0].blocks[i] });
+      if (description && description.includes("DYN_LINK")) {
+        newBlocks[i].description = await this.replaceDynamicLinks(description);
+      }
+    }
+    /* eslint-enable no-await-in-loop */
+    // Reassign the whole array (new reference) rather than mutating index 0 in place,
+    // so LWC reliably re-renders with the DYN_LINK-replaced descriptions.
+    const updatedSections = [...this.sectionsWithBlocks];
+    updatedSections[0] = {
+      ...updatedSections[0],
+      blocks: newBlocks
+    };
+    this.sectionsWithBlocks = updatedSections;
+  }
+
+  async replaceDynamicLinks(content) {
+    if (!content) {
+      return content;
+    }
+    // Sequential by necessity: each iteration mutates `content` (replacing the resolved
+    // DYN_LINK placeholder), so the next indexOf/replace depends on the prior result.
+    /* eslint-disable no-await-in-loop */
+    while (content.includes("DYN_LINK")) {
+      const identifier = findDynamicLinkIdentifier(
+        content,
+        content.indexOf("DYN_LINK")
+      );
+      try {
+        const dynamicLink = await getDynamicLinkByIdentifier(identifier);
+        let url = "";
+        if (dynamicLink.RecordType.DeveloperName === "WebPage") {
+          url = requireSafeUrl(dynamicLink.RLM_Learning_Link__c);
+        } else {
+          const pageRef = await getPageReferenceByDynamicType(dynamicLink);
+          if (
+            dynamicLink.RecordType.DeveloperName === "SetupPage" ||
+            dynamicLink.RecordType.DeveloperName === "CommunityPage"
+          ) {
+            url = pageRef.attributes.url;
+          } else {
+            url = await this[NavigationMixin.GenerateUrl](pageRef);
+          }
+        }
+        if (!url) {
+          // No URL resolved — replace the placeholder with plain text instead of
+          // injecting a broken <a href="">, and let the loop progress.
+          content = content.replace(
+            identifier,
+            escapeHtml(dynamicLink.RLM_Learning_Text_Value__c)
+          );
+          continue;
+        }
+        const replaceString =
+          "<a href='" +
+          escapeHtml(url) +
+          "' target='_blank' rel='noopener noreferrer' style='color: rgb(0,0,238);'>" +
+          escapeHtml(dynamicLink.RLM_Learning_Text_Value__c) +
+          "</a>";
+        content = content.replace(identifier, replaceString);
+      } catch {
+        // Couldn't resolve this identifier — drop the placeholder so a raw
+        // DYN_LINK token isn't left visible, and keep processing the rest.
+        content = content.replace(identifier, "");
+      }
+    }
+    /* eslint-enable no-await-in-loop */
+    return content;
+  }
+}
