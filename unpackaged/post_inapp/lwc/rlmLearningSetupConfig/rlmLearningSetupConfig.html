@@ -1,0 +1,83 @@
+<template>
+  <template if:true={sectionsWithBlocks}>
+    <template for:each={sectionsWithBlocks} for:item="sectionWithBlocks">
+      <div key={sectionWithBlocks.section.Id}>
+        <lightning-card>
+          <div
+            class="slds-p-around_none slds-var-m-top_x-small slds-var-m-bottom_medium"
+          >
+            <lightning-layout multiple-rows="true">
+              <lightning-layout-item size="12">
+                <div class="slds-p-around_none">
+                  <lightning-card>
+                    <h3 slot="title">
+                      <template if:true={sectionWithBlocks.section.RLM_Learning_Icon__r}>
+                        <lightning-icon
+                          icon-name={sectionWithBlocks.section.RLM_Learning_Icon__r.RLM_Learning_Type__c}
+                          class="slds-var-m-right_small"
+                          size="small"
+                          alternative-text={sectionWithBlocks.section.RLM_Learning_Header__c}
+                        ></lightning-icon>
+                      </template>
+                      {sectionWithBlocks.section.RLM_Learning_Header__c}
+                    </h3>
+                    <p class="slds-var-p-left_xx-large slds-var-p-right_small">
+                      <lightning-formatted-rich-text
+                        value={sectionWithBlocks.section.RLM_Learning_Sub_Header__c}
+                      ></lightning-formatted-rich-text>
+                    </p>
+                  </lightning-card>
+                </div>
+              </lightning-layout-item>
+              <template for:each={sectionWithBlocks.blocks} for:item="block">
+                <lightning-layout-item
+                  size="12"
+                  key={block.blockId}
+                  class="slds-var-p-right_x-large slds-var-p-left_xx-large slds-var-p-bottom_x-small"
+                >
+                  <div class="slds-box slds-p-around_none">
+                    <lightning-card>
+                      <h3 slot="title" class="slds-var-m-left_small">
+                        <template if:true={block.icon}>
+                          <lightning-icon
+                            icon-name={block.icon}
+                            class="slds-var-m-right_small"
+                            size="x-small"
+                            alternative-text={block.header}
+                          ></lightning-icon>
+                        </template>
+                        {block.header}
+                      </h3>
+                      <p
+                        slot="title"
+                        class="title-italic slds-text-body_small slds-var-m-left_x-large slds-var-p-left_x-small slds-line-clamp"
+                      >
+                        {block.subHeader}
+                      </p>
+                      <div
+                        class="slds-var-p-left_large slds-var-m-left_x-large"
+                      >
+                        <lightning-formatted-rich-text
+                          class="desc slds-line-clamp"
+                          value={block.description}
+                        ></lightning-formatted-rich-text>
+                      </div>
+                      <lightning-button
+                        variant="brand"
+                        data-id={block.action}
+                        label={block.actionText}
+                        slot="actions"
+                        onclick={handleClick}
+                        class="slds-var-m-left_x-small slds-var-p-top_medium"
+                      ></lightning-button>
+                    </lightning-card>
+                  </div>
+                </lightning-layout-item>
+              </template>
+            </lightning-layout>
+          </div>
+        </lightning-card>
+      </div>
+    </template>
+  </template>
+</template>

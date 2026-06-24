@@ -1,0 +1,131 @@
+import { LightningElement, track, wire } from "lwc";
+import { NavigationMixin } from "lightning/navigation";
+import getSectionsWithBlocksByType from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByType";
+import {
+  getPageReferenceByDynamicType,
+  reduceErrorMessage
+} from "c/rlmLearningCommonFunctions";
+import { ShowToastEvent } from "lightning/platformShowToastEvent";
+
+export default class RlmLearningAppContainer extends NavigationMixin(
+  LightningElement
+) {
+  @track sectionsWithBlocks = [];
+  @track error;
+
+  sectionType = "Left_Bottom";
+  pageType = "Home";
+
+  dynamicLinksMap = {};
+
+  @wire(getSectionsWithBlocksByType, {
+    sectionType: "$sectionType",
+    pageType: "$pageType"
+  })
+  wiredSections({ error, data }) {
+    if (data) {
+      this.error = undefined; // clear any prior error when a later wire succeeds
+      this.sectionsWithBlocks = JSON.parse(JSON.stringify(data)).map(
+        (section) => {
+          // Derive a plain-text description for the block tooltip.
+          if (section.blocks) {
+            section.blocks = section.blocks.map((block) => {
+              if (block.description) {
+                block.plainDescription = this.stripHtmlTags(block.description);
+              }
+              return block;
+            });
+          }
+          return section;
+        }
+      );
+      this.createDynamicLinksMap(data);
+    } else if (error) {
+      this.error = error?.body?.message || error?.message || "Unknown error";
+    }
+  }
+
+  createDynamicLinksMap(data) {
+    // Go through the data array, building a map of dynamicLink id -> dynamicLink.
+    // Reset first so a wire re-run doesn't retain stale entries.
+    this.dynamicLinksMap = {};
+    data.forEach((sectionWithBlocks) => {
+      if (sectionWithBlocks.dynamicLinks) {
+        sectionWithBlocks.dynamicLinks.forEach((dynamicLink) => {
+          this.dynamicLinksMap[dynamicLink.Id] = JSON.parse(
+            JSON.stringify(dynamicLink)
+          );
+        });
+      }
+    });
+  }
+
+  async handleClick(event) {
+    try {
+      // currentTarget = the element the handler is bound to (carries data-id);
+      // event.target may be an internal node of the base component.
+      const dynamicLinkId = event.currentTarget.dataset.id;
+      if (!dynamicLinkId) {
+        throw new Error("Action is undefined. Please update an action type.");
+      }
+      const dynamicLink = this.dynamicLinksMap[dynamicLinkId];
+      if (!dynamicLink) {
+        throw new Error("No dynamic link found for " + dynamicLinkId);
+      }
+      const pageRef = await getPageReferenceByDynamicType(dynamicLink);
+      try {
+        let url = await this[NavigationMixin.GenerateUrl](pageRef);
+        if (dynamicLink.RecordType.DeveloperName === "SetupPage") {
+          url = pageRef.attributes.url;
+        }
+        if (!url) {
+          throw new Error("Unable to generate URL. Possibly an invalid link");
+        }
+        // In-app SPA navigation only for the in-app detail page (or links not
+        // flagged for a new tab); everything else — including external WebPage /
+        // CommunityPage links — opens a new tab with noopener/noreferrer to
+        // prevent reverse-tabnabbing.
+        const openInNewTab =
+          dynamicLink.RLM_Learning_Open_in_new_tab__c === true ||
+          dynamicLink.RecordType.DeveloperName !== "InAppDetailsPage";
+        if (openInNewTab) {
+          window.open(url, "_blank", "noopener,noreferrer");
+        } else {
+          this[NavigationMixin.Navigate](pageRef);
+        }
+      } catch (error) {
+        this.showToast(error);
+      }
+    } catch (error) {
+      this.showToast(error);
+    }
+  }
+
+  showToast(error) {
+    const toastEvent = new ShowToastEvent({
+      title: "Error",
+      // reduceErrorMessage already falls back through array/object bodies,
+      // error.message, then a non-empty "Unknown error" default — so no caller
+      // fallback is needed (passing error.message, which is undefined/"" for many
+      // Apex/LDS errors, would only risk overriding that default).
+      message: reduceErrorMessage(error),
+      variant: "error"
+    });
+    this.dispatchEvent(toastEvent);
+  }
+
+  stripHtmlTags(htmlString) {
+    // Strip tags and decode the common entities without assigning to innerHTML
+    // (forbidden by @lwc/lwc/no-inner-html). Used only to derive a plain-text
+    // tooltip (`title`) from the block's rich-text description.
+    return String(htmlString || "")
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&amp;/g, "&")
+      .trim();
+  }
+}

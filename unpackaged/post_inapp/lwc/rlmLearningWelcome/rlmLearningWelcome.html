@@ -1,0 +1,43 @@
+<template>
+  <div class="welcome-card">
+    <template if:true={error}>
+      <div class="slds-text-color_error slds-p-around_small" role="alert">
+        {error}
+      </div>
+    </template>
+    <template if:true={sectionsWithBlocks}>
+      <template for:each={sectionsWithBlocks} for:item="sectionBlocks">
+        <template if:true={sectionBlocks.section.Id}>
+          <div key={sectionBlocks.section.Id}>
+            <lightning-card>
+              <h3 slot="title">
+                <template if:true={sectionBlocks.section.RLM_Learning_Icon__r}>
+                  <lightning-icon
+                    class="slds-var-m-right_small"
+                    icon-name={sectionBlocks.section.RLM_Learning_Icon__r.RLM_Learning_Type__c}
+                    size="small"
+                    alternative-text={sectionBlocks.section.RLM_Learning_Header__c}
+                  ></lightning-icon>
+                </template>
+                {greeting}
+              </h3>
+              <template for:each={sectionBlocks.blocks} for:item="block">
+                <p key={block.blockId} class="slds-var-p-left_xx-large">
+                  <lightning-formatted-rich-text
+                    value={block.description}
+                  ></lightning-formatted-rich-text>
+                </p>
+              </template>
+              <template if:true={hasExpiryDays}>
+                <p class="slds-var-p-left_xx-large">
+                  You can access and play around with all new features for
+                  <b>remaining {expiryDaysDisplay}</b> days.
+                </p>
+              </template>
+            </lightning-card>
+          </div>
+        </template>
+      </template>
+    </template>
+  </div>
+</template>

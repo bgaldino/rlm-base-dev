@@ -1,0 +1,195 @@
+import { LightningElement, track, wire, api } from "lwc";
+import { NavigationMixin } from "lightning/navigation";
+import { ShowToastEvent } from "lightning/platformShowToastEvent";
+import rlmLearningSectionDetailModal from "c/rlmLearningSectionDetailModal";
+import getSectionsWithBlocksByPageId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionsWithBlocksByPageId";
+import {
+  findDynamicLinkIdentifier,
+  getDynamicLinkByIdentifier,
+  getPageReferenceByDynamicType,
+  escapeHtml,
+  requireSafeUrl,
+  reduceErrorMessage
+} from "c/rlmLearningCommonFunctions";
+import getSectionWithBlockBySectionId from "@salesforce/apex/RLM_Learning_SectionBlockController.getSectionWithBlockBySectionId";
+
+export default class RlmLearningSetupConfig extends NavigationMixin(
+  LightningElement
+) {
+  @track sectionsWithBlocks = [];
+
+  sectionType = "Left_Bottom";
+  // Left undefined so the wire doesn't fire (and the controller doesn't throw on a
+  // blank id) until a real page id is set by the parent.
+  @api pageId;
+  dynamicLinksMap = {};
+
+  @wire(getSectionsWithBlocksByPageId, {
+    sectionType: "$sectionType",
+    pageId: "$pageId"
+  })
+  wiredSections({ error, data }) {
+    if (data) {
+      this.sectionsWithBlocks = data;
+      this.createDynamicLinksMap(data);
+    } else if (error) {
+      this.showToast(error);
+    }
+  }
+
+  createDynamicLinksMap(data) {
+    // Go through the data array, building a map of dynamicLink id -> dynamicLink.
+    // Reset first so a wire re-run (e.g. a new pageId) doesn't retain stale entries.
+    this.dynamicLinksMap = {};
+    data.forEach((sectionWithBlocks) => {
+      sectionWithBlocks.dynamicLinks.forEach((dynamicLink) => {
+        this.dynamicLinksMap[dynamicLink.Id] = JSON.parse(
+          JSON.stringify(dynamicLink)
+        );
+      });
+    });
+  }
+
+  async handleClick(event) {
+    const dynamicLinkId = event.currentTarget.dataset.id;
+    try {
+      if (!dynamicLinkId) {
+        throw new Error("Dynamic link id is not defined");
+      }
+      const dynamicLink = this.dynamicLinksMap[dynamicLinkId];
+      if (!dynamicLink) {
+        throw new Error("No dynamic link found for " + dynamicLinkId);
+      }
+      if (
+        dynamicLink.RLM_Learning_Section__c != null &&
+        dynamicLink.RLM_Learning_Section__c !== undefined
+      ) {
+        const data = await getSectionWithBlockBySectionId({
+          sectionId: dynamicLink.RLM_Learning_Section__c
+        });
+        const sectionWithBlock = data[0];
+        const description = await this.replaceDynamicLinks(
+          sectionWithBlock.block.description
+        );
+        await rlmLearningSectionDetailModal.open({
+          // The modal header is driven by the `header` property below (rendered by
+          // lightning-modal-header), not by the modal's `label` option.
+          size: "medium",
+          header: sectionWithBlock.section.RLM_Learning_Header__c,
+          subHeader: sectionWithBlock.section.RLM_Learning_Sub_Header__c,
+          description: description
+        });
+      } else {
+        try {
+          const pageRef = await getPageReferenceByDynamicType(dynamicLink);
+          let url = await this[NavigationMixin.GenerateUrl](pageRef);
+          if (dynamicLink.RecordType.DeveloperName === "SetupPage") {
+            url = pageRef.attributes.url;
+          }
+          if (!url) {
+            throw new Error("Unable to generate URL. Possibly an invalid link");
+          }
+          // In-app SPA navigation only for the in-app detail page (or links not
+          // flagged for a new tab); everything else — including external WebPage /
+          // CommunityPage links — opens a new tab with noopener/noreferrer to
+          // prevent reverse-tabnabbing.
+          const openInNewTab =
+            dynamicLink.RLM_Learning_Open_in_new_tab__c === true ||
+            dynamicLink.RecordType.DeveloperName !== "InAppDetailsPage";
+          if (openInNewTab) {
+            window.open(url, "_blank", "noopener,noreferrer");
+          } else {
+            this[NavigationMixin.Navigate](pageRef);
+          }
+        } catch (error) {
+          this.showToast(error);
+        }
+      }
+    } catch (error) {
+      this.showToast(error);
+    }
+  }
+
+  async replaceDynamicLinks(content) {
+    if (!content) {
+      return content;
+    }
+    // Step 1: Identify all dynamic link identifiers
+    const identifiers = [];
+    let searchIndex = 0;
+
+    while (true) {
+      const startIndex = content.indexOf("DYN_LINK", searchIndex);
+      if (startIndex === -1) break;
+
+      const identifier = findDynamicLinkIdentifier(content, startIndex);
+      identifiers.push(identifier);
+
+      // Advance past the "DYN_LINK" marker only. `startIndex` is the start of the
+      // "DYN_LINK" substring while `identifier` also spans the prefix that precedes it,
+      // so `startIndex + identifier.length` would overshoot the token end (startIndex + 8)
+      // by the prefix length and could skip a following token. The marker ends at
+      // startIndex + "DYN_LINK".length, the correct skip-free resume point.
+      searchIndex = startIndex + "DYN_LINK".length;
+    }
+
+    // Step 2: Process each identifier in a for loop with try-catch.
+    // Sequential by necessity: each iteration mutates `content` (replacing the resolved
+    // DYN_LINK placeholder), so a later replace must run on the prior result.
+    /* eslint-disable no-await-in-loop */
+    for (const identifier of identifiers) {
+      try {
+        const dynamicLink = await getDynamicLinkByIdentifier(identifier);
+        let url = "";
+        if (dynamicLink.RecordType.DeveloperName === "WebPage") {
+          url = requireSafeUrl(dynamicLink.RLM_Learning_Link__c);
+        } else {
+          const pageRef = await getPageReferenceByDynamicType(dynamicLink);
+          if (
+            dynamicLink.RecordType.DeveloperName === "SetupPage" ||
+            dynamicLink.RecordType.DeveloperName === "CommunityPage"
+          ) {
+            url = pageRef.attributes.url;
+          } else {
+            url = await this[NavigationMixin.GenerateUrl](pageRef);
+          }
+        }
+        if (!url) {
+          // Couldn't resolve a URL — show the link text as plain text rather than
+          // a broken <a href=""> or the raw DYN_LINK token.
+          content = content.replace(
+            identifier,
+            escapeHtml(dynamicLink.RLM_Learning_Text_Value__c)
+          );
+          continue;
+        }
+        const replaceString =
+          "<a href='" +
+          escapeHtml(url) +
+          "' target='_blank' rel='noopener noreferrer' style='color: rgb(0,0,238);'>" +
+          escapeHtml(dynamicLink.RLM_Learning_Text_Value__c) +
+          "</a>";
+        content = content.replace(identifier, replaceString);
+      } catch {
+        // Couldn't resolve this identifier — drop the placeholder so a raw
+        // DYN_LINK token isn't left visible in the modal body.
+        content = content.replace(identifier, "");
+      }
+    }
+    /* eslint-enable no-await-in-loop */
+    return content;
+  }
+
+  showToast(error) {
+    const toastEvent = new ShowToastEvent({
+      title: "Error",
+      // reduceErrorMessage already falls back through array/object bodies,
+      // error.message, then a non-empty "Unknown error" default — so no caller
+      // fallback is needed (passing error.message, which is undefined/"" for many
+      // Apex/LDS errors, would only risk overriding that default).
+      message: reduceErrorMessage(error),
+      variant: "error"
+    });
+    this.dispatchEvent(toastEvent);
+  }
+}

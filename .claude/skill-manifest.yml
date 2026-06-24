@@ -114,6 +114,13 @@ foundations:
       purpose: "SFDMU v5 plan authoring + composite-key patterns"
       consumed_by_pmos: []
 
+    - id: inapp-framework
+      path: .cursor/skills/inapp-framework/SKILL.md
+      purpose: "Maintain the temporary In-App Learning framework (inapp): SFDMU plan + convert_from_legacy.py, per-release content remaps, RLM_Learning_*/rlmLearning* naming, deploy/reload/verify"
+      consumed_by_pmos: []
+      tooling:
+        - datasets/sfdmu/inapp/convert_from_legacy.py
+
     - id: repo-integration
       path: .cursor/skills/repo-integration/SKILL.md
       purpose: "Adding new features to Foundations"

@@ -1,0 +1,53 @@
+RLM_Learning_App_API_Name__c,RLM_Learning_Filter_Name__c,RLM_Learning_Identity__c,RLM_Learning_Link__c,Name,RLM_Learning_Object__c,RLM_Learning_Page_Name__c,RLM_Learning_Relationship_API_Name__c,RLM_Learning_Relative_Url__c,RLM_Learning_Setup_Page__c,RLM_Learning_Site_Name__c,RLM_Learning_Text_Value__c,RLM_Learning_Where_Condition__c,RecordType.$$DeveloperName$SobjectType,RLM_Learning_Page__r.Name,RLM_Learning_Section__r.Name
+standard__IndustriesEpc,,PCM_APP_DYN_LINK,,PCM App,,,,,,,,,AppPage;RLM_Learning_DynamicLink__c,,
+c__Learning_Home,,ACC_INFINITECH_DYN_LINK,,Account Name Infinitech,Account,,,,,,here,Name = 'Infinitech',RecordPage;RLM_Learning_DynamicLink__c,,
+,,,https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&release=262&type=5,Release Notes Summary,,,,,,,,,WebPage;RLM_Learning_DynamicLink__c,,
+,,,https://help.salesforce.com/s/articleView?id=release-notes.rn_revenue.htm&release=262&type=5,Summer '26 Release Notes,,,,,,,,,WebPage;RLM_Learning_DynamicLink__c,,
+,,PCM_Learn_DYN_LINK,,Product Catalog Management Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Product Catalog Management Left Bottom Section
+,,PCM_Validate_DYN_LINK,,PCM_Validate,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,PCM_Check Popup Section
+,,PCM_LAUNCH_DYN_LINK,,PCM_LAUNCH_LINK,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,PCM_Launch Popup Section
+,,PCM_EXPLORE_DYN_LINK,,PCM_Explore,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,PCM_Explore Popup Section
+,,ProductConfig_Launch_DYN_LINK,,ProductConfig_Launch,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,ProductConfig_Launch Popup Section
+,,ProductConfig_Learn_DYN_LINK,,ProductConfig_Learn,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,ProductConfig_Learn Popup Section
+,,ProdConfig_Validate_DYN_LINK,,ProdConfig_ValidateSetup Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,ProductConfig_Validate
+,,ProductConfig_Customize_DYN_LINK,,ProductConfig_Customise_Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,ProductConfigurator Customise Popup Section
+,,PriceManagement_Getstarted_DYN_LINK,,Price Management Get Started Popup,,,,,,,Get Started,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Get Started Popup Section
+,,PriceManagement_Validate_DYN_LINK,,Price Management Validate Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Validate Setup Popup Section
+,,PriceManagement_Customize_DYN_LINK,,Price Management Customize Capabilities Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Customize Capabilities Popup Section
+,,,,Popup for Instructions for User,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,PCM_Learn Popup Section
+,,PCM_LEARN_DYN_LINK,,Product Catalog Management Learn Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,PCM_Learn Popup Section
+,,PriceManagement_Launch_DYN_LINK,,Price Management Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Price Management Launch Popup Section
+,,TransactionManagement_Getstarted_DYN_LINK,,Transaction Management Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Transaction Management Get Started Popup Text Section
+,,TransactionManagement_ValidatesSetup_DYN_LINK,,Transaction Management Validate Setup Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Transaction Management Validate Setup Popup
+,,TransactionManagement_LaunchApp_DYN_LINK,,Transaction Management Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Transaction Management Launch App Popup Text Section
+,,TransactionManagement_CustomizeCapabilities_DYN_LINK,,Transaction Management Customize Capabilities Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Transaction Management Customize Capabilities Popup Section
+,,DRO_Getstarted_DYN_LINK,,DRO Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,DRO Get Started Section
+,,DRO_Validate_DYN_LINK,,DRO Validate Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,DRO Validate Setup Popup Section
+,,DRO_LaunchApp_DYN_LINK,,DRO Launch App,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,DRO Launch App Popup Section
+,,,,DRO Customize Capabilities,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,DRO Customize Capabilities Popup Section
+,,Billing_Getstarted_DYN_LINK,,Billing Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Billing Get Started Popup Section
+,,Billing_Validate_DYN_LINK,,Billing Validate Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Billing Validate Popup Section
+,,Billing_LaunchApp_DYN_LINK,,Billing Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Billing Launch App Popup Section
+,,Billing_Customize_DYN_LINK,,Billing Customize Capabilities,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Billing Customize Capabilities Popup Section
+,,RateManagement_GetStarted_DYN_LINK,,Rate Management Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Rate Management Get Started Popup Section
+,,RateManagement_ValidateSetup_DYN_LINK,,Rate Management Validate Setup Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Rate Management Validate Setup Popup Section
+,,RateManagement_LaunchApp_DYN_LINK,,Rate Management Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Rate Management Launch App Popup Section
+,,RateManagement_CustomizeCapabilities_DYN_LINK,,Rate Management Customize Capabilities Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Rate Management Customize Capabilities Popup Section
+,,SalesforceContracts_GetStarted_DYN_LINK,,Salesforce Contracts Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Salesforce Contracts Get Started Popup Section
+,,SalesforceContracts_ValidateSetup_DYN_LINK,,Salesforce Contracts Validate Setup Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Salesforce Contracts Validate Setup Popup Section
+,,SalesforceContracts_LaunchApp_DYN_LINK,,Salesforce Contracts Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Salesforce Contracts Launch App Popup Section
+,,SalesforceContracts_Customize_DYN_LINK,,Salesforce Contracts Customize Capabilities Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Salesforce Contracts Customize Capabilities Popup Section
+,,UsageManagement_GetStarted_DYN_LINK,,Usage Management Get Started Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Usage Management Get Started Popup Section
+,,UsageManagement_ValidateSetup_DYN_LINK,,Usage Management Validate Setup Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Usage Management Validate Setup Section
+,,UsageManagement_LaunchApp_DYN_LINK,,Usage Management Launch App Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Usage Management Launch App
+,,UsageManagement_CustomizeCapabilities_DYN_LINK,,Usage Management Customize Capabilities Popup,,,,,,,,,InAppPopup;RLM_Learning_DynamicLink__c,,Usage Management Customize Capabilities Popup Section
+,,Salesforce_Contracts_DYN_LINK,,Salesforce Contracts Details Page Link,,,,,,,Go to Salesforce Contracts,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Salesforce Contracts,
+,,CENTER_AGENT_DYN_LINK,,Product Catalog Management Details Page Link,,,,,,,Go to Product Catalog Management,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Product Catalog Management,
+,,Product_Configurator_DYN_LINK,,Product Configurator Details Page Link,,,,,,,Go to Product Configurator Management,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Product Configurator,
+,,Usage_Management_DYN_LINK,,Usage Management Details Page Link,,,,,,,Go to Usage Management,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Usage Management,
+,,Price_Management_DYN_LINK,,Price Management Details Page Link,,,,,,,Go to Salesforce Pricing,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Salesforce Pricing,
+,,Transaction_Management_DYN_LINK,,Transaction Management Details Page Link,,,,,,,Go to Transaction Management,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Transaction Management,
+,,DRO_DYN_LINK,,DRO Details Page Link,,,,,,,Go to Dynamic Revenue Orchestrator,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Dynamic Revenue Orchestrator,
+,,Billing_Management_DYN_LINK,,Billing Management Details Page Link,,,,,,,Go to Billing Management,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Billing Management,
+,,Rate_Management_DYN_LINK,,Rate Management Details Page Link,,,,,,,Go to Rate Management,,InAppDetailsPage;RLM_Learning_DynamicLink__c,Rate Management,
+standard__PriceManagement,,PRICING_APP_DYN_LINK,,Pricing App,,,,,,,,,AppPage;RLM_Learning_DynamicLink__c,,

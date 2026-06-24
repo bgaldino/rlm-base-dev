@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**243 tasks** across **10 groups**.
+**245 tasks** across **10 groups**.
 
 ---
 
@@ -835,7 +835,7 @@
 
 ## Revenue Lifecycle Management
 
-*151 task(s)*
+*153 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1619,6 +1619,18 @@
 
 ---
 
+### `deploy_post_inapp`
+
+**Description:** Deploy the In-App Learning navigation framework (objects, LWC, Apex, flexipages, Learning Home app)
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_inapp`
+
+---
+
 ### `deploy_post_large_stx`
 
 **Description:** Deploy Large Sales Transaction metadata
@@ -2386,6 +2398,18 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-tax`
+
+---
+
+### `load_inapp_dataset`
+
+**Description:** Load In-App Learning navigation content (Pages/Sections/Blocks/DynamicLinks) via SFDMU
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/inapp`
 
 ---
 

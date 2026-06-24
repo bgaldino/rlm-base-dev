@@ -1,0 +1,59 @@
+<template>
+  <template if:true={error}>
+    <div class="slds-text-color_error slds-p-around_small" role="alert">
+      {error}
+    </div>
+  </template>
+  <template if:true={sectionsWithBlocks}>
+    <template for:each={sectionsWithBlocks} for:item="sectionWithBlocks">
+      <div key={sectionWithBlocks.section.Id}>
+        <lightning-card>
+          <h3 slot="title">
+            <template if:true={sectionWithBlocks.section.RLM_Learning_Icon__r}>
+              <lightning-icon
+                class="slds-var-m-right_small"
+                icon-name={sectionWithBlocks.section.RLM_Learning_Icon__r.RLM_Learning_Type__c}
+                size="small"
+                alternative-text={sectionWithBlocks.section.RLM_Learning_Header__c}
+              ></lightning-icon>
+            </template>
+            {sectionWithBlocks.section.RLM_Learning_Header__c}
+          </h3>
+          <lightning-layout class="slds-grid slds-grid_vertical">
+            <lightning-layout-item
+              flexibility="auto"
+              padding="horizontal-medium"
+            >
+              <template for:each={sectionWithBlocks.blocks} for:item="block">
+                <p key={block.blockId} class="slds-var-p-left_xx-large">
+                  <lightning-formatted-rich-text
+                    value={block.description}
+                  ></lightning-formatted-rich-text>
+                </p>
+              </template>
+            </lightning-layout-item>
+            <template if:true={sectionWithBlocks.section.safeVideoLink}>
+              <lightning-layout-item
+                flexibility="auto"
+                padding="horizontal-medium"
+                class="slds-align_absolute-center slds-var-m-top_x-large"
+              >
+                <iframe
+                  title="Learning video"
+                  width="660"
+                  height="320"
+                  src={sectionWithBlocks.section.safeVideoLink}
+                  style="border-radius: 12px"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                  allowfullscreen
+                ></iframe>
+              </lightning-layout-item>
+            </template>
+          </lightning-layout>
+        </lightning-card>
+      </div>
+    </template>
+  </template>
+</template>
