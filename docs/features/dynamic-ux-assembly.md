@@ -15,16 +15,17 @@ Dynamic UX Assembly replaces the previous approach of maintaining duplicate, han
 UX metadata files scattered across every `unpackaged/post_*` feature directory. Instead, a
 single late-stage CCI task (`assemble_and_deploy_ux`) builds the correct version of every
 UX artifact from composable templates and feature-flag-driven logic, then deploys them all
-in one `sf project deploy start` call at **step 29** of `prepare_rlm_org` (immediately
-before `prepare_scratch` at step 30 and `refresh_all_decision_tables` at step 31).
+in one `sf project deploy start` call at **step 30** of `prepare_rlm_org` (followed by
+`prepare_inapp` at step 31, `prepare_scratch` at step 32, and `refresh_all_decision_tables`
+at step 33).
 
 ### Problems it solves
 
 | Before | After |
 |--------|-------|
 | 19+ copies of `RLM_Quote_Record_Page.flexipage-meta.xml` across `post_*` directories, each needing manual sync | One base template + per-feature YAML patch files; assembly is automatic |
-| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 29 after all objects exist |
-| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 29 |
+| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 30 after all objects exist |
+| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 30 |
 | No gate — UX always deployed even during isolated feature testing | `ux: true` feature flag in `cumulusci.yml`; set `ux: false` to bypass entirely |
 | Compact layouts and list views in feature `unpackaged/post_*` dirs, not conditionally assembled | Moved to `templates/objects/`; assembled with feature-conditional copy order |
 
@@ -40,8 +41,8 @@ ux: true   # Set false to skip prepare_ux entirely (useful for isolated feature 
 `prepare_ux` runs only when `ux=true`:
 
 ```yaml
-# prepare_rlm_org step 29
-29:
+# prepare_rlm_org step 30
+30:
   flow: prepare_ux
   when: project_config.project__custom__ux
 ```
@@ -110,9 +111,8 @@ templates/
 │   │   ├── BillingScheduleGroup/listViews/RLM_All_Billing_Schedule_Groups.listView-meta.xml
 │   │   ├── Invoice/listViews/RLM_Failed_Invoices.listView-meta.xml
 │   │   └── TransactionJournal/compactLayouts/RLM_Transaction_Journal_Compact_Layout.compactLayout-meta.xml
-│   └── collections/                    # Collections (active when collections=true, WIP)
-│       ├── Collection_Plan_Activity__c/listViews/All.listView-meta.xml
-│       └── CollectionPlan__c/listViews/RLM_All_Collection_Plans.listView-meta.xml
+│   └── collections/                    # Collections (active when collections=true)
+│       └── CollectionPlan/listViews/RLM_All_Collection_Plans.listView-meta.xml
 └── profiles/
     ├── base/                           # Full canonical profiles with all layout assignments
     │   ├── Admin.profile-meta.xml
@@ -219,7 +219,7 @@ No patching — layouts are copied as-is.
 - Early-stage profiles in `force-app/main/default/profiles/` and `unpackaged/post_*/profiles/`
   are **stripped** of `layoutAssignment` and `applicationVisibilities` elements. They deploy
   at step 5 with only `classAccesses` (and other non-personalization grants).
-- At step 29, `_assemble_profiles` reads the **base template** (full layout assignments +
+- At step 30, `_assemble_profiles` reads the **base template** (full layout assignments +
   app visibility) from `templates/profiles/base/` and applies feature patches:
 
 | Patch file | Activates when | Effect |
@@ -235,10 +235,12 @@ Simple feature-conditional copy from `templates/objects/{feature}/` into
 
 Copy order: `base` (always) → `billing` → `tso` → `collections`
 
-> **Collections note**: The `CollectionPlan__c` list view path (`objects/listViews/`) in the
-> original `unpackaged/post_collections/` was missing the object name directory and has been
-> moved to `templates/objects/collections/CollectionPlan__c/listViews/` pending verification
-> of the correct object API name.
+> **Collections note**: The `RLM_All_Collection_Plans` list view lives at
+> `templates/objects/collections/CollectionPlan/listViews/` and targets the **native
+> `CollectionPlan`** object (verified: standard object, fields `Name`/`Status`/`DaysPastDue`/
+> `AccountId`/`OwnerId`). The earlier `CollectionPlan__c` directory name was incorrect and has
+> been corrected. (The stale homegrown `Collection_Plan_Activity__c` object — never used in
+> any current org — was removed entirely; collections uses native platform objects.)
 
 ---
 
@@ -288,7 +290,7 @@ cci flow run prepare_ux --org dev-sb0
 ```
 
 Two-step flow: runs `assemble_and_deploy_ux` (full assembly + deploy) then
-`reorder_app_launcher`. Runs as step 29 of `prepare_rlm_org` when `ux=true`.
+`reorder_app_launcher`. Runs as step 30 of `prepare_rlm_org` when `ux=true`.
 
 ---
 
@@ -451,7 +453,6 @@ unpackaged/post_billing/objects/Account/compactLayouts
 unpackaged/post_billing/objects/TransactionJournal/compactLayouts
 unpackaged/post_billing/objects/BillingScheduleGroup
 unpackaged/post_billing/objects/Invoice/listViews
-unpackaged/post_collections/objects/Collection_Plan_Activity__c/listViews
 unpackaged/post_collections/objects/listViews
 ```
 
@@ -468,10 +469,10 @@ detects this type and silently skips them. These pages are created at runtime by
 
 ### Collections objects path
 
-`RLM_All_Collection_Plans.listView-meta.xml` was stored in `post_collections/objects/listViews/`
-(missing the object name directory). It has been moved to
-`templates/objects/collections/CollectionPlan__c/listViews/`. The correct object API name
-must be verified and the file path corrected before `collections=true` deployments.
+`RLM_All_Collection_Plans.listView-meta.xml` now lives at
+`templates/objects/collections/CollectionPlan/listViews/` and targets the **native
+`CollectionPlan`** object (object API name verified against a live org). The list view is
+assembled into `post_ux/objects/CollectionPlan/listViews/` only when `collections=true`.
 
 ### tso=true not yet validated
 
@@ -544,7 +545,7 @@ content parity.
 After Phases 2 and 3 pass independently:
 
 1. Run `cci flow run prepare_rlm_org --org <fresh-org>` end-to-end
-2. Confirm all UX deploys succeed at step 29
+2. Confirm all UX deploys succeed at step 30
 3. Spot-check record pages in the org UI:
    - Quote Record Page: all actions present in correct order
    - Profile layout assignments: Admin profile can open all expected record pages
