@@ -23,7 +23,7 @@ from .cli_args import add_generate_args
 from .config import ConfigError, load_scenarios
 from .discovery import DiscoveryError, OrgContext, discover
 from .handlers import SCENARIO_HANDLERS
-from .models import IMPLEMENTED_MAX_STAGE, STAGES, STAGES_QUOTE, Manifest, ResolvedSpec
+from .models import IMPLEMENTED_MAX_STAGE, Manifest, ResolvedSpec
 from .report import build_batch_report, write_batch_report
 from .runner import current_run_id, run_batch
 
@@ -76,14 +76,24 @@ def _fmt_discount(discount: Optional[tuple[float, float]]) -> str:
 
 
 def _print_pst_spec(r: "ResolvedSpec", index: int, total: int) -> int:
-    """Render one PST resolved spec; return its transaction count."""
+    """Render one PST resolved spec; return its transaction count.
+
+    Reads the kind's stage list from its handler rather than hard-coding
+    ``STAGES_QUOTE`` so the same renderer works once :class:`SalesTxnOrderHandler`
+    is registered in Phase 3 (its STAGES omits ``quote_placed``).
+    """
+    handler = SCENARIO_HANDLERS[r.spec.kind]
+    stages = handler.STAGES
     starts_with_opp = r.spec.with_opportunity or r.effective_stage == "opportunity_created"
-    head = "opportunity_created" if starts_with_opp else "quote_placed"
-    if STAGES_QUOTE.index(head) > STAGES_QUOTE.index(r.effective_stage):
+    # Quote-path head is ``quote_placed``; order-path head is ``order_draft``.
+    # Take the second stage in the handler's list -- the first is always
+    # ``opportunity_created``.
+    head = "opportunity_created" if starts_with_opp else stages[1]
+    if stages.index(head) > stages.index(r.effective_stage):
         head = r.effective_stage
-    stages_run = STAGES_QUOTE[STAGES_QUOTE.index(head): STAGES_QUOTE.index(r.effective_stage) + 1]
+    stages_run = stages[stages.index(head): stages.index(r.effective_stage) + 1]
     print(f"\n--- Spec {index + 1}/{total}  (x{r.spec.count}) ---")
-    print(f"  Kind         : sales_txn_quote")
+    print(f"  Kind         : {r.spec.kind}")
     print(f"  Account      : {r.account.name} ({r.account.id})  "
           f"billing_ready={r.account.is_billing_ready}")
     pool = len(r.options)

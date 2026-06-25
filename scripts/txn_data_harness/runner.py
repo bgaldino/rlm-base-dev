@@ -334,10 +334,25 @@ def remaining_steps(reached_stage: Optional[str], target_stage: str,
     return STAGES[STAGES.index(reached_stage) + 1: STAGES.index(target_stage) + 1]
 
 
+# Public stage -> internal step name for the quote-path. The step registry now
+# uses internal names (``order_from_quote``); legacy callers of run_steps still
+# pass public stages (``order_draft``), so the runner translates inline.
+# Phase 4 will remove this once the legacy run_scenario goes away.
+_PUBLIC_TO_INTERNAL_QUOTE = {"order_draft": "order_from_quote"}
+
+
 def run_steps(step_names: list[str], ctx: StepContext, manifest: Manifest) -> Manifest:
-    """Execute a list of named lifecycle steps, checkpointing after each one."""
+    """Execute a list of named lifecycle steps, checkpointing after each one.
+
+    Accepts public stage names (``order_draft``, ``invoice_posted``, ...) and
+    translates the one quote-path divergence (``order_draft`` ->
+    ``order_from_quote``) before dispatching through the step registry. New
+    code should go through :class:`SalesTransactionBaseHandler.run` instead --
+    this helper exists for the legacy ``run_scenario`` retry-policy tests.
+    """
     for step in step_names:
-        manifest = execute_step(step, ctx, manifest)
+        internal = _PUBLIC_TO_INTERNAL_QUOTE.get(step, step)
+        manifest = execute_step(internal, ctx, manifest)
         write_manifest(manifest)
     return manifest
 
@@ -362,6 +377,13 @@ def run_scenario(
     kind: str = "sales_txn_quote",
 ) -> Manifest:
     """Drive one transaction through the requested lifecycle stages.
+
+    Legacy entry point. Phase 2 moved the production retry+dispatch loop onto
+    :class:`scripts.txn_data_harness.handlers.sales_transaction_base.
+    SalesTransactionBaseHandler` so each kind owns its own STEP_GRAPH; the PST
+    handlers no longer call this function. The body remains here because the
+    retry-policy tests in ``tests/txn_data_harness/test_runner.py`` exercise
+    it directly and a removal would have outsized blast radius for Phase 2.
 
     Transient failures (network blips, row locks, rate limits — see failure.py)
     are retried up to ``max_retries`` times, resuming from the last checkpointed

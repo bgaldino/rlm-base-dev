@@ -285,14 +285,17 @@ def test_run_batch_emits_start_and_completion_callbacks(
     started = []
     completed = []
 
-    def fake_run_scenario(*_args, **kwargs):
-        # ``run_batch`` now dispatches through ``SCENARIO_HANDLERS[kind].run``,
-        # and ``SalesTransactionHandler.run`` calls ``runner.run_scenario`` with
-        # all-keyword args. Accept any positional/keyword shape so the fake stays
-        # robust to harmless call-site changes.
-        return Manifest(run_id=kwargs.get("run_id") or _args[2], reached_stage="invoice_posted")
+    def fake_handler_run(self, **kwargs):
+        # ``run_batch`` dispatches through ``SCENARIO_HANDLERS[kind].run``;
+        # Phase 2 moved the retry/dispatch loop onto the base handler, so
+        # patch the handler method directly instead of the legacy
+        # ``runner.run_scenario`` (which the production path no longer calls).
+        return Manifest(run_id=kwargs["run_id"], reached_stage="invoice_posted")
 
-    monkeypatch.setattr("scripts.txn_data_harness.runner.run_scenario", fake_run_scenario)
+    from scripts.txn_data_harness.handlers.sales_txn_quote import (
+        SalesTxnQuoteHandler,
+    )
+    monkeypatch.setattr(SalesTxnQuoteHandler, "run", fake_handler_run)
 
     result = run_batch(
         client=object(),

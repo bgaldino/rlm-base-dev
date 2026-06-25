@@ -305,6 +305,21 @@ def run_promote_to_posted(ctx: StepContext, manifest: Manifest) -> Manifest:
     return manifest
 
 
+def run_order_direct(ctx: StepContext, manifest: Manifest) -> Manifest:
+    """Direct-Order PST: place an Order via the same PST `place` endpoint with
+    Order/OrderItem graph entities (no Quote).
+
+    Phase 2 stub. The full implementation lands in Phase 3 once the
+    Phase 0 live probe characterizes the direct-order PST contract. Until then
+    the ``sales_txn_order`` kind is unregistered (handlers/__init__.py omits it,
+    config.py rejects it), so this step is unreachable via supported flows.
+    """
+    raise NotImplementedError(
+        "order_direct is Phase 3 -- requires the live PST direct-Order probe "
+        "(see docs/contracts-sales-txn-order.md) before implementation"
+    )
+
+
 STEP_REGISTRY: dict[str, StepSpec] = {
     "opportunity_created": StepSpec(
         name="opportunity_created",
@@ -318,11 +333,21 @@ STEP_REGISTRY: dict[str, StepSpec] = {
         outputs=("quote_id",),
         handler=run_quote,
     ),
-    "order_draft": StepSpec(
-        name="order_draft",
+    # PST quote-path order creation. ``SalesTxnQuoteHandler`` maps public stage
+    # ``order_draft`` -> internal step ``order_from_quote`` via its STEP_GRAPH.
+    "order_from_quote": StepSpec(
+        name="order_from_quote",
         requires=("quote_id",),
         outputs=("order_id", "order_number"),
         handler=run_order,
+    ),
+    # PST direct-order step (Phase 3). Registered here but unreachable until
+    # SalesTxnOrderHandler is registered in handlers/__init__.py.
+    "order_direct": StepSpec(
+        name="order_direct",
+        requires=("account", "lines", "pricebook_id"),
+        outputs=("order_id", "order_number"),
+        handler=run_order_direct,
     ),
     "order_activated": StepSpec(
         name="order_activated",

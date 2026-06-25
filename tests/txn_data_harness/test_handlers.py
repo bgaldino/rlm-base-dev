@@ -22,8 +22,9 @@ from scripts.txn_data_harness.config import ConfigError, _coerce_spec
 from scripts.txn_data_harness.handlers import (
     SCENARIO_HANDLERS,
     SalesTransactionHandler,
+    SalesTxnQuoteHandler,
 )
-from scripts.txn_data_harness.handlers.sales_transaction import STEP_GRAPH
+from scripts.txn_data_harness.handlers.sales_txn_quote import STEP_GRAPH
 from scripts.txn_data_harness.manifests import (
     load_manifest,
     summarize_manifest,
@@ -35,8 +36,22 @@ from scripts.txn_data_harness.runner import stage_sequence
 
 def test_sales_txn_quote_handler_registered() -> None:
     handler = SCENARIO_HANDLERS["sales_txn_quote"]
-    assert isinstance(handler, SalesTransactionHandler)
+    assert isinstance(handler, SalesTxnQuoteHandler)
     assert handler.kind == "sales_txn_quote"
+
+
+def test_sales_transaction_handler_is_alias_for_quote_handler() -> None:
+    """``SalesTransactionHandler`` is a pre-Phase-4 back-compat alias for
+    :class:`SalesTxnQuoteHandler` so existing imports keep working until
+    the kind split lands. Phase 4 will drop the alias."""
+    assert SalesTransactionHandler is SalesTxnQuoteHandler
+
+
+def test_sales_txn_order_kind_is_unregistered_until_phase3() -> None:
+    """``sales_txn_order`` is a valid kind name (so configs can opt into it
+    once Phase 3 lands) but has no registered handler. Look-up through
+    :data:`SCENARIO_HANDLERS` must surface the gap loudly."""
+    assert "sales_txn_order" not in SCENARIO_HANDLERS
 
 
 @pytest.mark.parametrize(

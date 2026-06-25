@@ -70,9 +70,25 @@ def test_execute_step_rejects_unknown_step(fake_client, org_context, billable_ac
 
 
 def test_order_step_requires_quote_id(fake_client, org_context, billable_account, term_product) -> None:
+    # Step registry uses internal names after the Phase 2 split; the
+    # quote-path's public ``order_draft`` stage maps to ``order_from_quote``
+    # via :class:`SalesTxnQuoteHandler.STEP_GRAPH`.
     with pytest.raises(LifecycleError, match="quote_id is required"):
         execute_step(
-            "order_draft",
+            "order_from_quote",
+            _ctx(fake_client, org_context, billable_account, term_product),
+            Manifest(run_id="DEMO-1"),
+        )
+
+
+def test_order_direct_step_is_phase3_stub(
+    fake_client, org_context, billable_account, term_product
+) -> None:
+    """``order_direct`` is registered for Phase 3 but raises NotImplementedError
+    until the live PST direct-Order probe ships."""
+    with pytest.raises(NotImplementedError, match="Phase 3"):
+        execute_step(
+            "order_direct",
             _ctx(fake_client, org_context, billable_account, term_product),
             Manifest(run_id="DEMO-1"),
         )
