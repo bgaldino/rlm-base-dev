@@ -1,0 +1,22 @@
+feature: billing_ui
+feature_flag: billing_ui
+# Re-adds the post_billing_ui LWCs that the Collections Account record page reuses. These
+# components ship in the post_billing_ui tier (deployed only when billing_ui=true), so
+# referencing them from the base collections page broke deploy on a collections=true,
+# billing_ui=false build ("couldn't retrieve design time component information" — the LWCs
+# were never deployed). They are therefore omitted from the base page and re-added here,
+# only when billing_ui=true, each in its original region/position:
+#   - rlmAccountBalanceCard → "header" region, after the highlights panel
+#   - rlmInvoiceAgingChart  → first component in its invoices facet region,
+#                             before the Invoices related list (lst_dynamicRelatedList5)
+patches:
+  - type: add_component
+    region: header
+    component: rlmAccountBalanceCard
+    identifier: c_rlmAccountBalanceCard
+    after_identifier: record_flexipage_dynamicHighlights
+  - type: add_component
+    region: Facet-89ccf8cc-b885-4af4-8c3b-c9beede8de35
+    component: rlmInvoiceAgingChart
+    identifier: c_rlmInvoiceAgingChart
+    before_identifier: lst_dynamicRelatedList5
