@@ -1,0 +1,491 @@
+:host {
+    display: block;
+}
+
+.ctx-panel {
+    padding: 0.75rem 1rem;
+}
+
+/* ── Human language summary ────────────────── */
+.billing-summary-text {
+    font-size: 0.8rem;
+    color: #444;
+    line-height: 1.55;
+    padding: 0.5rem 0.65rem;
+    margin-bottom: 0.75rem;
+    background: #f8f9fb;
+    border-left: 3px solid #0176d3;
+    border-radius: 0 4px 4px 0;
+}
+.arrangement-info-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+    padding: 0.45rem 0.65rem;
+    margin-bottom: 0.75rem;
+    background: #ecfdf3;
+    border-left: 3px solid #2e844a;
+    border-radius: 0 4px 4px 0;
+}
+.arr-info-icon {
+    --slds-c-icon-color-foreground-default: #2e844a;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.arr-info-text {
+    font-size: 0.78rem;
+    color: #1b5e20;
+    line-height: 1.5;
+}
+
+/* ── Badges ────────────────────────────────── */
+.ctx-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.6;
+    vertical-align: middle;
+}
+.ctx-badge-active {
+    background: #e6f7ee;
+    color: #0e6027;
+}
+.ctx-badge-info {
+    background: #e5f0ff;
+    color: #0b5cab;
+}
+.ctx-badge-billed {
+    background: #d4edda;
+    color: #155724;
+}
+.ctx-badge-ready {
+    background: #fff3e0;
+    color: #c25e00;
+}
+.ctx-badge-waiting {
+    background: #fef3cd;
+    color: #856404;
+}
+.ctx-badge-cancelled {
+    background: #fde8e8;
+    color: #c23934;
+}
+.ctx-badge-default {
+    background: #f0f0f0;
+    color: #555;
+}
+.ctx-badge-usage {
+    background: #fff3e0;
+    color: #c25e00;
+}
+
+/* ── Plan header ───────────────────────────── */
+.plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e5e5e5;
+}
+.plan-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.plan-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.plan-header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+/* Reset native <button> used as an inline text link so it reads/looks like a link
+   while keeping native keyboard accessibility (Enter/Space, focus ring). */
+.link-button {
+    appearance: none;
+    background: none;
+    border: none;
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    text-align: left;
+}
+.plan-link {
+    color: #0176d3;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: none;
+}
+.plan-link:hover {
+    text-decoration: underline;
+}
+.plan-ref-amount {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #032d60;
+}
+.plan-ref-sub {
+    font-size: 0.7rem;
+    color: #706e6b;
+}
+
+/* ── Progress bar ──────────────────────────── */
+.milestone-progress-container {
+    height: 8px;
+    background: #e8e8e8;
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+}
+.milestone-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #0e6027, #2e844a);
+    border-radius: 4px;
+    transition: width 0.6s ease;
+}
+
+/* ── Milestone table ───────────────────────── */
+.ms-table {
+    width: 100%;
+}
+.ms-table-header {
+    display: flex;
+    padding: 0.4rem 0;
+    border-bottom: 2px solid #e5e5e5;
+    gap: 0.5rem;
+}
+.ms-table-row {
+    display: flex;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+    align-items: center;
+    gap: 0.5rem;
+}
+.ms-table-row:last-child {
+    border-bottom: none;
+}
+.ms-th,
+.ms-td {
+    font-size: 0.78rem;
+}
+.ms-th {
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #706e6b;
+    letter-spacing: 0.04em;
+    font-size: 0.7rem;
+}
+.ms-td {
+    color: #181818;
+}
+.ms-td-icon {
+    width: 24px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ms-th-name {
+    flex: 2;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.ms-th-pct {
+    flex: 1;
+    text-align: center;
+}
+.ms-th-amount {
+    flex: 1.2;
+    text-align: right;
+}
+.ms-td.ms-th-amount {
+    font-weight: 600;
+    color: #032d60;
+}
+.ms-th-status {
+    flex: 1.2;
+    text-align: center;
+}
+.ms-th-date {
+    flex: 1;
+    text-align: right;
+}
+.ms-name {
+    font-weight: 600;
+    color: #181818;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ms-type-pill {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: #f3f3f3;
+    color: #706e6b;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.ms-icon-invoiced {
+    --slds-c-icon-color-foreground-default: #0e6027;
+}
+.ms-icon-ready {
+    --slds-c-icon-color-foreground-default: #fe9339;
+}
+.ms-icon-waiting {
+    --slds-c-icon-color-foreground-default: #706e6b;
+}
+.ms-icon-pending {
+    --slds-c-icon-color-foreground-default: #706e6b;
+}
+.ms-icon-cancelled {
+    --slds-c-icon-color-foreground-default: #c23934;
+}
+
+/* ── Bundle tree ───────────────────────────── */
+.bundle-tree {
+    display: flex;
+    flex-direction: column;
+}
+.tree-parent {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.25rem;
+    border-bottom: 1px solid #e5e5e5;
+    font-weight: 600;
+}
+.tree-child {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.25rem;
+    border-bottom: 1px solid #f3f3f3;
+}
+.tree-child:last-child {
+    border-bottom: none;
+}
+.tree-current {
+    background: #eaf4ff;
+    border-left: 3px solid #0176d3;
+    border-radius: 0 4px 4px 0;
+}
+.tree-icon-parent {
+    --slds-c-icon-color-foreground-default: #0176d3;
+    flex-shrink: 0;
+}
+.tree-icon-child {
+    --slds-c-icon-color-foreground-default: #b0adab;
+    flex-shrink: 0;
+}
+.tree-charge-type {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.tree-ct-evergreen {
+    background: #e6f7ee;
+    color: #0e6027;
+}
+.tree-ct-termed {
+    background: #e5f0ff;
+    color: #0b5cab;
+}
+.tree-ct-onetime {
+    background: #f0f0f0;
+    color: #555;
+}
+.tree-ct-usage {
+    background: #fff3e0;
+    color: #c25e00;
+}
+.tree-ct-milestone {
+    background: #fef3cd;
+    color: #856404;
+}
+.tree-freq {
+    font-size: 0.72rem;
+    color: #706e6b;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* ── Common table ──────────────────────────── */
+.bundle-table,
+.usage-table,
+.arrangement-table {
+    width: 100%;
+}
+.bt-header {
+    display: flex;
+    padding: 0.4rem 0;
+    border-bottom: 2px solid #e5e5e5;
+}
+.bt-header .bt-col {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #706e6b;
+    letter-spacing: 0.04em;
+}
+.bt-row {
+    display: flex;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid #f0f0f0;
+    align-items: center;
+}
+.bt-row:last-child {
+    border-bottom: none;
+}
+.bt-col {
+    font-size: 0.8rem;
+    color: #181818;
+}
+.bt-col-product {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.bt-col-pricing {
+    flex: 1.2;
+    text-align: center;
+}
+.bt-col-freq {
+    flex: 1;
+    text-align: center;
+}
+.bt-col-type {
+    flex: 0.8;
+    text-align: center;
+}
+.bt-col-amount {
+    flex: 1;
+    text-align: right;
+    font-weight: 600;
+    color: #032d60;
+}
+.bt-bsg-num {
+    font-size: 0.7rem;
+    color: #706e6b;
+}
+
+/* ── Usage view ────────────────────────────── */
+.usage-header {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e5e5e5;
+    flex-wrap: wrap;
+}
+.usage-anchor-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.usage-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #706e6b;
+    letter-spacing: 0.03em;
+}
+.usage-resource-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #032d60;
+}
+.usage-section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #706e6b;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.4rem;
+}
+.usage-current-row {
+    background: #f0f8ff;
+    border-left: 3px solid #0176d3;
+}
+.bt-col-resource {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.bt-col-overage {
+    flex: 1;
+    text-align: right;
+    font-weight: 600;
+    color: #032d60;
+}
+
+/* ── Billing Arrangement ───────────────────── */
+.arrangement-section {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 2px solid #e5e5e5;
+}
+.arrangement-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+.arrangement-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #032d60;
+}
+.arrangement-name {
+    font-size: 0.75rem;
+    color: #706e6b;
+    margin-left: auto;
+}
+.arr-icon {
+    --slds-c-icon-color-foreground-default: #0176d3;
+}
+.arr-account-name {
+    font-weight: 500;
+}
+
+/* ── Standard view ─────────────────────────── */
+.standard-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.std-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid #f3f3f3;
+}
+.std-label {
+    font-size: 0.75rem;
+    color: #706e6b;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.std-value {
+    font-size: 0.85rem;
+    color: #181818;
+    font-weight: 500;
+}

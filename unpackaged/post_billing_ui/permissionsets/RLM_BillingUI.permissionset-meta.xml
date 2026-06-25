@@ -21,6 +21,10 @@
         <readable>true</readable>
     </fieldPermissions>
     <classAccesses>
+        <apexClass>RLM_BSGContextController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>RLM_BSGTimelineController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -30,6 +34,14 @@
     </classAccesses>
     <classAccesses>
         <apexClass>RLM_BillingScheduleGroupController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_BillingScheduleGroupService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_CollectionsConsoleController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
@@ -45,11 +57,23 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>RLM_InvoiceBatchRunMonitorController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>RLM_InvoiceProductSummaryController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
+        <apexClass>RLM_InvoiceSummaryController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
         <apexClass>RLM_InvoiceTaxSummaryController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>RLM_OnAccountBillingController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>

@@ -64,14 +64,15 @@
                     <!-- Billing Schedule Rows -->
                     <div class="timeline-rows">
                         <template for:each={billingSchedules} for:item="schedule">
-                            <div key={schedule.id} class="schedule-row" data-schedule-id={schedule.id} onclick={handleScheduleClick}>
+                            <div key={schedule.id} class="schedule-row" data-schedule-id={schedule.id}>
                                 <div class="name-column">
                                     <div class="schedule-name">
                                         <lightning-button
                                             variant="base"
                                             label={schedule.scheduleNumber}
                                             class="schedule-link"
-                                            data-schedule-id={schedule.id}>
+                                            data-schedule-id={schedule.id}
+                                            onclick={handleScheduleClick}>
                                         </lightning-button>
                                     </div>
                                     <div class="schedule-category">

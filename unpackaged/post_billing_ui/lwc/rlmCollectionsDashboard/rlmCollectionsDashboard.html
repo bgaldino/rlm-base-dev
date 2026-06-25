@@ -26,25 +26,25 @@
                         <div class="pulse-cards">
                             <div class="pulse-card card-receivables">
                                 <div class="pulse-card-label">Receivables Outstanding</div>
-                                <div class="pulse-card-value">{formatCurrency(receivablesOutstandingValue)}</div>
+                                <div class="pulse-card-value">{receivablesOutstandingFormatted}</div>
                                 <div class="pulse-card-meta">{invoiceCount} invoices</div>
                             </div>
                             <div class="pulse-card card-current">
                                 <div class="pulse-card-label">Current Due</div>
-                                <div class="pulse-card-value">{formatCurrency(currentDueValue)}</div>
+                                <div class="pulse-card-value">{currentDueFormatted}</div>
                             </div>
                             <div class="pulse-card card-overdue pulse-urgency">
                                 <div class="pulse-card-label">Overdue</div>
-                                <div class="pulse-card-value pulse-value-urgency">{formatCurrency(overdueValue)}</div>
+                                <div class="pulse-card-value pulse-value-urgency">{overdueFormatted}</div>
                             </div>
                             <div class="pulse-card card-unapplied pulse-action">
                                 <div class="pulse-card-label">Unapplied Payments</div>
-                                <div class="pulse-card-value pulse-value-action">{formatCurrency(unappliedPaymentBalanceValue)}</div>
+                                <div class="pulse-card-value pulse-value-action">{unappliedPaymentBalanceFormatted}</div>
                                 <div class="pulse-card-meta">{unappliedPaymentCount} records · Action required</div>
                             </div>
                             <div class="pulse-card card-total-balance">
                                 <div class="pulse-card-label">Total Balance</div>
-                                <div class="pulse-card-value">{formatCurrency(totalBalanceValue)}</div>
+                                <div class="pulse-card-value">{totalBalanceFormatted}</div>
                                 <div class="pulse-card-breakdown">
                                     <template for:each={totalBalanceBreakdown} for:item="row">
                                         <div key={row.label} class={row.lineClass}><span>{row.label}</span><span>{row.formatted}</span></div>
@@ -59,12 +59,12 @@
                         <div class="aging-label">Aging</div>
                         <div class="aging-bar" role="list">
                             <template for:each={agingBuckets} for:item="bucket">
-                                <div key={bucket.key} class="aging-segment" class:aging-segment-selected={bucket.isSelected} data-key={bucket.key} style={bucket.segmentStyle} onclick={handleAgingBucketClick} role="button" tabindex="0" title={bucket.label}></div>
+                                <div key={bucket.key} class={bucket.segmentClass} data-key={bucket.key} style={bucket.segmentStyle} onclick={handleAgingBucketClick} onkeydown={handleAgingBucketKeydown} role="button" tabindex="0" aria-label={bucket.label} title={bucket.label}></div>
                             </template>
                         </div>
                         <div class="aging-legend">
                             <template for:each={agingBuckets} for:item="bucket">
-                                <button key={bucket.key} type="button" class="legend-item" class:legend-item-selected={bucket.isSelected} data-key={bucket.key} onclick={handleAgingBucketClick}>
+                                <button key={bucket.key} type="button" class={bucket.legendClass} data-key={bucket.key} onclick={handleAgingBucketClick}>
                                     <span class="legend-dot" style={bucket.dotStyle}></span>
                                     <span class="legend-text">{bucket.label}</span>
                                     <span class="legend-amount">{bucket.formatted}</span>
@@ -79,7 +79,7 @@
                         <template if:true={hasPaymentPromises}>
                             <div class="payment-promises-bar" role="img" aria-label="Total requested amount by status">
                                 <template for:each={paymentPromisesBuckets} for:item="bucket">
-                                    <div key={bucket.key} class="payment-promises-segment" style={bucket.segmentStyle} title={bucket.tooltip} data-status={bucket.key} onclick={handlePaymentPromiseClick} role="button" tabindex="0"></div>
+                                    <div key={bucket.key} class="payment-promises-segment" style={bucket.segmentStyle} title={bucket.tooltip} aria-label={bucket.tooltip} data-status={bucket.key} onclick={handlePaymentPromiseClick} onkeydown={handlePaymentPromiseKeydown} role="button" tabindex="0"></div>
                                 </template>
                             </div>
                             <div class="payment-promises-legend">
@@ -156,7 +156,7 @@
                                                         <span>{row.invoiceNumber}</span>
                                                     </template>
                                                 </td>
-                                                <td class="num">{formatCurrency(row.balance)}</td>
+                                                <td class="num">{row.balanceFormatted}</td>
                                                 <td class="num"><template if:true={row.daysInvoiceOverdue}>{row.daysInvoiceOverdue}</template><template if:false={row.daysInvoiceOverdue}>—</template></td>
                                                 <td>
                                                     <template if:true={row.contactUrl}>
@@ -184,7 +184,7 @@
                                                     <span class="health-dot health-{row.healthScore}" title={row.healthScore}></span>
                                                     <a href={row.accountUrl} class="customer-name">{row.accountName}</a>
                                                 </td>
-                                                <td class="num">{formatCurrency(row.balance)}</td>
+                                                <td class="num">{row.balanceFormatted}</td>
                                                 <td class="num"><template if:true={row.daysOverdue}>{row.daysOverdue}</template><template if:false={row.daysOverdue}>—</template></td>
                                                 <td class="num">{row.ptpDateFormatted}</td>
                                                 <td class="dispute-cell" title={row.disputeReason}>{row.disputeReasonShort}</td>
@@ -206,14 +206,15 @@
                                                 </template>
                                                 <td class="actions-cell">
                                                     <template if:true={showActionButtons}>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleWriteOff}>Write Off</button>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleSendReminder}>Send Reminder</button>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleRaiseDispute}>Raise Dispute</button>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogTask}>Log a Task</button>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleCreateCollectionPlan}>Create Collection Plan</button>
                                                     </template>
                                                     <template if:false={showActionButtons}>
                                                         <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleSendReminder}>Send Reminder</button>
-                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogCall}>Log Call</button>
-                                                        <button type="button" class="btn-action" data-case-id={row.caseId} onclick={handleResolve}>Resolve</button>
+                                                        <button type="button" class="btn-action" data-case-id={row.caseId} onclick={handleResolve}>Resolve Dispute</button>
+                                                        <button type="button" class="btn-action" data-account-id={row.accountId} onclick={handleLogTask}>Log a Task</button>
                                                     </template>
                                                 </td>
                                             </template>

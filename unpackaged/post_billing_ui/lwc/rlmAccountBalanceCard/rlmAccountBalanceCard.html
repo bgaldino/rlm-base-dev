@@ -1,0 +1,70 @@
+<template>
+    <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+    </template>
+
+    <template if:true={error}>
+        <div class="slds-text-color_error slds-p-around_small">{error}</div>
+    </template>
+
+    <template if:true={hasData}>
+        <div class="abc-card">
+
+            <div class="abc-header">
+                <div class="abc-header-left">
+                    <span class="abc-title">Account Balance</span>
+                    <template if:true={statusInfo}>
+                        <span class={statusClass}
+                              onmouseenter={handleStatusEnter}
+                              onmouseleave={handleStatusLeave}>{statusLabel}</span>
+                    </template>
+                </div>
+                <div class="abc-header-right">
+                    <span class="abc-net-label">Net Outstanding Balance</span>
+                    <span class="abc-net-amount">{formattedNetBalance}</span>
+                </div>
+            </div>
+
+            <template if:true={hasSegments}>
+                <div class="abc-bar">
+                    <template for:each={segments} for:item="seg">
+                        <div key={seg.key} class="abc-seg" style={seg.style}>
+                            <span class="abc-seg-label">{seg.label}</span>
+                            <span class="abc-seg-amount">{seg.formattedAmount}</span>
+                            <span class="abc-seg-count">{seg.countLabel}</span>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <div class="abc-metrics">
+                <div class="abc-metric" data-type="receivables"
+                     onmouseenter={handleMetricEnter} onmouseleave={handleMetricLeave}>
+                    <span class="abc-metric-value">{formattedReceivables}</span>
+                    <span class="abc-metric-label">Total Receivables</span>
+                </div>
+                <span class="abc-metric-divider"></span>
+                <div class="abc-metric" data-type="payables"
+                     onmouseenter={handleMetricEnter} onmouseleave={handleMetricLeave}>
+                    <span class="abc-metric-value abc-metric-green">{formattedPayables}</span>
+                    <span class="abc-metric-label">Payments &amp; Credits Balance</span>
+                </div>
+                <span class="abc-spacer"></span>
+                <span class="abc-invoice-count">{totalInvoiceLabel}</span>
+            </div>
+
+        </div>
+
+        <template if:true={showMetricTooltip}>
+            <div class="abc-tooltip" style={metricTooltipStyle}>
+                <template for:each={metricTooltipLines} for:item="line">
+                    <span key={line.key} class="abc-tooltip-line">{line.text}</span>
+                </template>
+            </div>
+        </template>
+
+        <template if:true={showStatusTooltip}>
+            <div class="abc-tooltip abc-status-tooltip" style={statusTooltipStyle}>{statusDescription}</div>
+        </template>
+    </template>
+</template>

@@ -29,7 +29,7 @@ public with sharing class RLM_BillingScheduleGroupController {
                        BillingAccountId
                 FROM BillingScheduleGroup 
                 WHERE BillingAccountId = :accountId
-                ORDER BY StartDate DESC NULLS LAST
+                WITH USER_MODE ORDER BY StartDate DESC NULLS LAST
             ];
             
             if (bsgs.isEmpty()) {
@@ -51,7 +51,7 @@ public with sharing class RLM_BillingScheduleGroupController {
                        AssociatedBsgRole,
                        AssociatedBsgPricing
                 FROM BsgRelationship
-                WHERE MainBsgId IN :bsgIds
+                WHERE MainBsgId IN :bsgIds WITH USER_MODE
             ];
             
             // Create a map of BSG Id to its relationships where it is the main BSG

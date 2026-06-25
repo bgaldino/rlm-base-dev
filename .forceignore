@@ -59,8 +59,7 @@ unpackaged/post_docgen/omniDataTransforms/BillingDocumentGenerationGetInvoiceDet
 # EmailTemplatePage flexipages: PERMANENT platform restriction — cannot be deployed via Metadata API or Tooling API on any org. Do not remove these lines.
 unpackaged/post_approvals/flexipages/RLM_Quote_Discount_Approval_Template.flexipage-meta.xml
 unpackaged/post_approvals/flexipages/RLM_Quote_Payment_Terms_Approval_Template.flexipage-meta.xml
-
-# force-app UX metadata — moved to templates/; deployed by prepare_ux (step 29). Guards prevent accidental re-introduction into deploy_full.
+# force-app UX metadata — moved to templates/; deployed by prepare_ux (step 30). Guards prevent accidental re-introduction into deploy_full.
 force-app/main/default/flexipages
 force-app/main/default/layouts
 force-app/main/default/objects/Asset/compactLayouts

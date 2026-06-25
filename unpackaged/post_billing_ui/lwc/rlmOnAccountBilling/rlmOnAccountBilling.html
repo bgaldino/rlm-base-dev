@@ -1,0 +1,118 @@
+<template>
+    <lightning-card icon-name="standard:account">
+        <div slot="title" class="card-title-row">
+            <span>Account Balance</span>
+            <template if:true={rlmBillingStatus}>
+                <span class={statusClass}
+                      onmouseenter={handleStatusEnter}
+                      onmouseleave={handleStatusLeave}>{statusLabel}</span>
+            </template>
+        </div>
+        <div class="card-body">
+            <template if:true={isLoading}>
+                <div class="loading-container">
+                    <lightning-spinner size="small" alternative-text="Loading billing summary"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={isLoading}>
+                <template if:true={hasError}>
+                    <div class="error-container">
+                        <lightning-icon icon-name="utility:error" size="x-small" variant="error" class="slds-m-right_x-small"></lightning-icon>
+                        {errorMessage}
+                    </div>
+                </template>
+
+                <template if:true={hasData}>
+                    <div class="summary-strip">
+                        <!-- Invoice Balance -->
+                        <div class="summary-box">
+                            <div class="box-header">
+                                <span class="box-title">Invoice Balance</span>
+                            </div>
+                            <span class="box-subtitle">(Posted Invoices + Debit Memo Balance)</span>
+                            <div class="box-amount-row">
+                                <span class="box-amount">{formattedDueAmount}</span>
+                                <div class="info-trigger">
+                                    <lightning-icon icon-name="utility:info" size="xx-small" alternative-text="Details"></lightning-icon>
+                                    <div class="popover">
+                                        <div class="popover-header">
+                                            <span class="popover-title">Invoice Balance Details</span>
+                                        </div>
+                                        <div class="popover-body">
+                                            <div class="popover-row">
+                                                <span class="popover-label">Invoice Balance</span>
+                                                <span class="popover-value">{formattedInvoiceBalance}</span>
+                                            </div>
+                                            <div class="popover-row">
+                                                <span class="popover-label">Debit Memo Balance</span>
+                                                <span class="popover-value">{formattedDebitMemoBalance}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="strip-operator">-</div>
+
+                        <!-- Unapplied Payments -->
+                        <div class="summary-box">
+                            <div class="box-header">
+                                <span class="box-title">Payments Balance</span>
+                            </div>
+                            <span class="box-subtitle">(Payments + Credits - Refunds)</span>
+                            <div class="box-amount-row">
+                                <span class="box-amount adjusted">{formattedAdjustedAmount}</span>
+                                <div class="info-trigger">
+                                    <lightning-icon icon-name="utility:info" size="xx-small" alternative-text="Details"></lightning-icon>
+                                    <div class="popover">
+                                        <div class="popover-header">
+                                            <span class="popover-title">Payments Balance Details</span>
+                                        </div>
+                                        <div class="popover-body">
+                                            <div class="popover-row">
+                                                <span class="popover-label">Payment Balance</span>
+                                                <span class="popover-value">{formattedPaymentBalance}</span>
+                                            </div>
+                                            <div class="popover-row">
+                                                <span class="popover-label">Credit Memo</span>
+                                                <span class="popover-value">{formattedCreditMemoBalance}</span>
+                                            </div>
+                                            <div class="popover-row">
+                                                <span class="popover-label">Refund Balance</span>
+                                                <span class="popover-value">-{formattedRefundBalance}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="strip-operator">=</div>
+
+                        <!-- Net Outstanding Balance -->
+                        <div class="summary-box">
+                            <span class="box-title">Net Outstanding Balance</span>
+                            <span class="box-subtitle">&nbsp;</span>
+                            <div class="box-amount-row">
+                                <span class={netAmountClass}>{formattedNetBalance}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </template>
+
+                <template if:true={isEmpty}>
+                    <div class="empty-state">
+                        <lightning-icon icon-name="utility:info" size="small" class="empty-icon"></lightning-icon>
+                        <span>No billing data available for this account.</span>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+    <template if:true={showStatusTooltip}>
+        <div class="status-tooltip-fixed" style={statusTooltipStyle}>{statusDescription}</div>
+    </template>
+</template>
