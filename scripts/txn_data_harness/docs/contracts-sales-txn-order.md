@@ -185,6 +185,10 @@ The PATCH body, response (204 No Content), and fields are identical.
 - **PRECONDITIONS** (both REQUIRED, both verified live):
   1. `AppUsageAssignment` row exists for the Order id (see § 2a).
   2. Order shipping fields populated (see § 2b).
+  Shared quote-path re-probe on 2026-06-25 confirmed `Order.BillToContactId`
+  and `Order.Billing*` address fields are not activation / invoice-post
+  preconditions on this R262 org; the direct-order path therefore mirrors the
+  same shipping-only address write unless a future org/release proves otherwise.
 - **Effect:** identical to the quote-path activation — fires
   `AssetizationAsyncJob` (`AsyncOperationTracker.ReferenceEntityId =
   <orderId>` reaches `Status=Completed`), creates one `BillingSchedule`

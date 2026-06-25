@@ -514,6 +514,7 @@ def test_poll_assets_queries_through_asset_action_source(fake_client, no_sleep) 
     fake_client.query_responses.extend([
         [_aas_row("02iA1")],
         [_aas_row("02iA1")],
+        [_aas_row("02iA1")],
     ])
 
     result = poll_assets(fake_client, "801ORDER", timeout=10)
@@ -533,7 +534,7 @@ def test_poll_assets_returns_bundle_expanded_set(fake_client, no_sleep) -> None:
     assets that activation produced for the bundle.
     """
     bundle_rows = [_aas_row(f"02iASSET{i}") for i in range(5)]
-    fake_client.query_responses.extend([bundle_rows, bundle_rows])
+    fake_client.query_responses.extend([bundle_rows, bundle_rows, bundle_rows])
 
     result = poll_assets(fake_client, "801BUNDLE", timeout=10)
 
@@ -543,11 +544,12 @@ def test_poll_assets_returns_bundle_expanded_set(fake_client, no_sleep) -> None:
 
 def test_poll_assets_waits_for_count_to_stabilize(fake_client, no_sleep) -> None:
     """AssetActionSource writes can lag Asset by ~1s and bundle components can
-    land staggered. The poll must keep going until two consecutive ticks
-    report the same count before returning.
+    land staggered. The default poll must keep going until the same set has
+    survived two stable comparisons (three identical observations total).
     """
     fake_client.query_responses.extend([
         [_aas_row("02iA1")],
+        [_aas_row("02iA1"), _aas_row("02iA2"), _aas_row("02iA3")],
         [_aas_row("02iA1"), _aas_row("02iA2"), _aas_row("02iA3")],
         [_aas_row("02iA1"), _aas_row("02iA2"), _aas_row("02iA3")],
     ])
@@ -556,8 +558,8 @@ def test_poll_assets_waits_for_count_to_stabilize(fake_client, no_sleep) -> None
 
     assert result.asset_ids == ["02iA1", "02iA2", "02iA3"]
     assert result.status == "converged"
-    # Three polls: initial low read, growth tick, stable tick.
-    assert len(fake_client.queries) == 3
+    # Four polls: initial low read, growth tick, then two stable comparisons.
+    assert len(fake_client.queries) == 4
 
 
 def test_poll_assets_returns_empty_on_timeout_with_warning(
@@ -588,6 +590,11 @@ def test_poll_assets_handles_subquery_envelope(fake_client, no_sleep) -> None:
         [
             {"AssetAction": {"AssetId": "02iA1"}},
             {"AssetAction": None},  # ignore
+            {"AssetAction": {"AssetId": "02iA2"}},
+        ],
+        [
+            {"AssetAction": {"AssetId": "02iA1"}},
+            {"AssetAction": None},
             {"AssetAction": {"AssetId": "02iA2"}},
         ],
         [

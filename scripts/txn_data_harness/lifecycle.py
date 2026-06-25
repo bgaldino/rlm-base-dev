@@ -546,7 +546,7 @@ def poll_assets(
     order_id: str,
     timeout: int = 180,
     category_enum: str = "Initial Sale",
-    stable_ticks: int = 1,
+    stable_ticks: int = 2,
 ) -> AssetPollResult:
     """Wait for activation-generated Asset(s) attributable to ``order_id``.
 
@@ -582,7 +582,9 @@ def poll_assets(
     over-count for any future scenario with non-asset-producing component
     OrderItems. Instead, the poll converges when the AAS-returned sorted ID set
     is identical to the previous tick's set for ``stable_ticks`` consecutive
-    observations (default 1 = exit on first match, same as prior behavior).
+    observations (default 2 = three identical observations total). The extra
+    tick protects against a staggered wave that briefly appears stable before
+    the final AAS rows land.
     Live timing measured against rlm-base__jun17_1 (2026-06-23): Asset created
     01:28:44, AAS created 01:28:45 (1s lag, simple case); same-second for the
     bundle case -- both well within one tick.

@@ -16,7 +16,7 @@
 |--------|--------------|------------|---------------|-------|
 | **Invoice** | **false** (system-generated — confirms premise) | **`ReferenceEntityId`** | `CreditMemo, Opportunity, Order, OrderSummary, Quote` | Poll by `ReferenceEntityId = '<orderId>'`. ✓ |
 | **BillingSchedule** | **false** | **`ReferenceEntityId`** | `Order, OrderSummary, Quote` | Also `ReferenceEntityItemId` → `OrderItem` for line-level. |
-| **Asset** | true | **none** (no `ReferenceEntityId`) | — | Has `AccountId` + `Product2Id`. **Poll by account + product + created-date window** (finding confirmed). |
+| **Asset** | true | **none** (no `ReferenceEntityId`) | — | Has `AccountId` + `Product2Id`, but those are not unique enough for harness attribution. **Poll via `AssetActionSource → AssetAction.AssetId` by OrderItem**, filtered to `AssetAction.CategoryEnum = 'Initial Sale'`. |
 | **Order** | true | — | `QuoteId`, `AccountId`, `LegalEntityId`, `PaymentTermId` | Custom tag-field candidate present: **`RLM_Billing_Profile__c`** → `BillingAccount`. Standard `Description` field used for run_id tag. |
 
 ## Terminal-state detection (VERIFIED live — picklists + error log)
@@ -62,7 +62,11 @@ of these is a real ordering hazard observed on a live R262 scratch org:
    `createOrderFromQuote` does **not** copy the account's shipping address onto the
    Order, and activation hard-fails `FAILED_ACTIVATION` without it. Sequence is
    strictly: create order → **PATCH order shipping address** → PATCH `Status=Activated`.
-   Reversing the last two fails.
+   Reversing the last two fails. Live re-probe on 2026-06-25 (`rlm-base__jun17_1`,
+   order `00000246`) confirmed the current R262 org does **not** require
+   `Order.BillToContactId` or `Order.Billing*` address fields for activation,
+   BillingSchedule generation, invoice generation, or posting: those fields remained
+   null while the invoice reached `Posted`.
 
 3. **Activation is the billing trigger — don't poll for BillingSchedule before it.**
    BillingSchedule (and Asset) are generated *as a consequence of* activation. They

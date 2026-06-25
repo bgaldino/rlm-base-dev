@@ -411,12 +411,22 @@ tracked in [`followups.md`](followups.md) → *Billing & invoicing*.
   the source account had a populated ShippingAddress). **Fix:** before activating, `PATCH` the order
   with `ShippingStreet/ShippingCity/ShippingState/ShippingPostalCode/ShippingCountry`
   (copied from the account). After that, activation succeeds.
+- **NOT required on this R262 org:** `Order.BillToContactId` and
+  `Order.BillingStreet/City/State/PostalCode/Country`. Live re-probe on
+  `rlm-base__jun17_1` (2026-06-25, order `00000246`) reached Posted invoice
+  `INV-US-06-2026-000096` with all six fields still null. The only address fields
+  the harness must set before activation are the Order shipping fields above.
 - **`PATCH` returns 204 No Content (empty body) on success** — the client must treat
   an empty 2xx body as success, not try to JSON-parse it.
 - **RESOLVED — activation auto-generates BillingSchedule AND Asset** (no explicit
   step 5 needed for QB products):
-  - `BillingSchedule`: 1 row, `Status=ReadyForInvoicing`, `ReferenceEntityId=<orderId>`,
-    `BillingAccountId=<acct>`, `TotalAmount=450`. Poll by `ReferenceEntityId`.
+  - `BillingSchedule`: simple SKU baseline (`QB-API-FLEX`) produces 1 row,
+    `Status=ReadyForInvoicing` / later `CompletelyBilled`,
+    `ReferenceEntityId=<orderId>`, `BillingAccountId=<acct>`, `TotalAmount=450`.
+    Poll by `ReferenceEntityId` and treat the OrderItem count as a lower bound,
+    not an exact ceiling. Bundle re-probe on 2026-06-25 (`QB-COMPLETE`, order
+    `00000247`) produced 5 OrderItems and 7 ready BillingSchedules because one
+    component item produced multiple schedules.
   - `Asset`: no direct order FK, but a deterministic one-hop linkage via
     `AssetActionSource` (see §4d "Asset attribution" below). Poll
     `AssetActionSource.ReferenceEntityItemId IN (SELECT Id FROM OrderItem
@@ -571,9 +581,13 @@ WHERE  ReferenceEntityItemId IN (SELECT Id FROM OrderItem WHERE OrderId = '<orde
 components can land staggered, and `AssetActionSource` writes lag the Asset
 write by up to ~1s (live-measured: Asset created 01:28:44, AAS created
 01:28:45 on rlm-base scratch org 2026-06-23). The poll returns when the
-row count is stable across two consecutive ticks with count ≥ 1, then
-extracts ids from the nested subquery envelope
-(`row["AssetAction"]["AssetId"]`).
+AAS-derived Asset id set survives two stable comparisons — three identical
+observations total — with count ≥ 1, then extracts ids from the nested
+subquery envelope (`row["AssetAction"]["AssetId"]`). This intentionally costs
+one extra poll tick over the original two-observation loop to protect against a
+short staggered wave. Bundle re-probe on `rlm-base__jun17_1` (2026-06-25,
+order `00000247`) returned all 5 `QB-COMPLETE` component assets; all five AAS
+rows had the same `CreatedDate` second.
 
 **LMA invariant.** `AssetActionSource` is populated for assets with
 `HasLifecycleManagement = true` (Lifecycle-Managed Assets). Every asset
