@@ -18,7 +18,7 @@ data loading, metadata deployment, or local environment setup.
 
 ## Quick Diagnosis: Which Step Failed?
 
-The `prepare_rlm_org` flow runs 33 steps. Identify the failing step from
+The `prepare_rlm_org` flow runs 35 steps. Identify the failing step from
 CCI output, then jump to the relevant section below.
 
 | Step Range | Category | Section |

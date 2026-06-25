@@ -9,7 +9,7 @@
 
 ## What This Document Covers
 
-Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 28-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
+Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 35-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
 
 This guide walks through that build process from start to finish, explaining not just *what* happens at each stage, but *why* each step exists and how the pieces fit together. Whether you're onboarding to the team, preparing a demo environment, or troubleshooting a failed build, this document gives you the full picture.
 
@@ -57,7 +57,7 @@ The most commonly used flags and their defaults:
 
 ## The Build Process: Phase by Phase
 
-The 33 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
+The 35 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
 
 ---
 
@@ -83,7 +83,7 @@ The 33 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 **`prepare_decision_tables`** (Step 2) activates a specific set of decision tables — but only on scratch orgs. On sandboxes or persistent orgs, this step runs but skips activation, since those orgs are expected to already have their decision tables in place. Decision tables are the lookup structures that drive pricing calculations, rate resolution, and tax computation.
 
-**`prepare_expression_sets`** (Step 3) deactivates existing expression sets, validates that pricing schedule prerequisites are in place, and deploys expression sets in draft state across org types. Expression sets are the business logic rules that Revenue Cloud evaluates during transactions — they're deployed as drafts now and activated later (in Step 17) after all dependent data is in place.
+**`prepare_expression_sets`** (Step 3) deactivates existing expression sets, validates that pricing schedule prerequisites are in place, and deploys expression sets in draft state across org types. Expression sets are the business logic rules that Revenue Cloud evaluates during transactions — they're deployed as drafts now and activated later (in Step 18) after all dependent data is in place.
 
 ---
 
@@ -115,9 +115,9 @@ The 33 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 ---
 
-### Phase 4: Business Process Configuration (Steps 10–16)
+### Phase 4: Business Process Configuration (Steps 10–17)
 
-**What happens:** Each major Revenue Cloud capability gets its data loaded and activated — document generation, dynamic revenue orchestration, tax, billing, analytics, CLM, and usage rating.
+**What happens:** Each major Revenue Cloud capability gets its data loaded and activated — document generation, dynamic revenue orchestration, tax, billing, collections, analytics, CLM, and usage rating.
 
 **Why it matters:** This is where the org goes from having a product catalog to being able to actually *do things* with it — generate quotes with documents, calculate taxes, create billing schedules, rate usage, and orchestrate fulfillment.
 
@@ -129,77 +129,81 @@ The 33 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 **Billing** (Step 13, `billing` flag) — The most complex data load in the build. Billing data is loaded in three passes because of circular dependencies between billing objects — for example, billing treatments reference legal entities, but legal entity assignments reference billing treatments. After data loading, the build activates billing flows, sets the default payment term, activates billing records, and deploys billing-specific settings including ID resolution settings (which tell the billing engine how to resolve record references) and invoice template settings.
 
-**Analytics** (Step 14, `analytics` flag) — Enables full CRM Analytics via browser automation (Robot/Selenium). In Release 262 (Summer '26), the legacy `InsightsSetupSettings` VF iframe approach was removed; the build now clicks "Enable CRM Analytics" on the Analytics Getting Started page (`/lightning/setup/InsightsSetupGettingStarted/home`). This is required for the usage rating engine's data processing. The step is idempotent — if CRM Analytics is already enabled, the button is absent and the task skips the click.
+**Collections** (Step 14, `collections` flag) — Stands up the Collections & Recovery capability. The step disables any already-active case decision matrix (idempotency), deploys the `unpackaged/post_collections` bundle (the `RLM_Create_Case_for_Collection` / `RLM_Create_Promise_to_Pay` flows, collection-plan quick actions, list views, and supporting metadata), seeds and activates the `DetermineCaseReasonAndRelatedAttributes` decision matrix, then deploys the case-creation flow (which can only validate once the matrix version is active). The Collections flexipages and the `CollectionConsole` app variant are assembled later by the UX layer (Step 30), gated on the same flag; the native `CollectionsAndRecoveryPsl` is assigned earlier in `prepare_core`. Off by default — enable with `collections: true`.
 
-**CLM** (Step 15, `clm` + `clm_data` flags) — Loads Contract Lifecycle Management reference data including contract templates, clause libraries, and related configuration.
+**Analytics** (Step 15, `analytics` flag) — Enables full CRM Analytics via browser automation (Robot/Selenium). In Release 262 (Summer '26), the legacy `InsightsSetupSettings` VF iframe approach was removed; the build now clicks "Enable CRM Analytics" on the Analytics Getting Started page (`/lightning/setup/InsightsSetupGettingStarted/home`). This is required for the usage rating engine's data processing. The step is idempotent — if CRM Analytics is already enabled, the button is absent and the task skips the click.
 
-**Rating** (Step 16, `rating` and `rates` flags) — Loads usage rating design-time data when `rating` is enabled. Rate card loading and the final activation steps additionally require `rates` to be on. Rating data is loaded in two passes due to self-referential relationships between Product Usage Resources (PURs), Product Usage Resource Policies (PURPs, API name `ProductUsageResourcePolicy`), and Product Usage Groups (PUGs). Rate card data is loaded separately when `rates` is also enabled. Activation happens in two separate steps: a 7-step Apex script activates PURs, PURPs, and PUGs in the platform-required order (with step 2.5a clearing Draft children of duplicate PURs to ensure idempotency on repeated runs), then rate card entries are activated via the Salesforce REST Composite API — in Release 262, `RateCardEntry` DML via the SOAP/Apex Execute Anonymous path raises an `UNKNOWN_EXCEPTION` platform regression; the REST path works correctly.
+**CLM** (Step 16, `clm` + `clm_data` flags) — Loads Contract Lifecycle Management reference data including contract templates, clause libraries, and related configuration.
+
+**Rating** (Step 17, `rating` and `rates` flags) — Loads usage rating design-time data when `rating` is enabled. Rate card loading and the final activation steps additionally require `rates` to be on. Rating data is loaded in two passes due to self-referential relationships between Product Usage Resources (PURs), Product Usage Resource Policies (PURPs, API name `ProductUsageResourcePolicy`), and Product Usage Groups (PUGs). Rate card data is loaded separately when `rates` is also enabled. Activation happens in two separate steps: a 7-step Apex script activates PURs, PURPs, and PUGs in the platform-required order (with step 2.5a clearing Draft children of duplicate PURs to ensure idempotency on repeated runs), then rate card entries are activated via the Salesforce REST Composite API — in Release 262, `RateCardEntry` DML via the SOAP/Apex Execute Anonymous path raises an `UNKNOWN_EXCEPTION` platform regression; the REST path works correctly.
 
 ---
 
-### Phase 5: Expression Sets and Permissions (Steps 17–21)
+### Phase 5: Expression Sets and Permissions (Steps 18–22)
 
 **What happens:** Expression sets are re-deployed from draft to active state, TSO-specific permissions are applied, procedure plans are created, PRM community is published, and Agentforce agents are deployed.
 
 **Why it matters:** Expression sets are the business logic engine of Revenue Cloud — they evaluate pricing rules, validation rules, and product qualification rules at transaction time. They were deployed as drafts in Phase 1 because they reference data that didn't exist yet. Now that all data is loaded, they can be activated.
 
-**Expression set activation** (Step 17) — Re-deploys expression sets with active status using XPath transformation of the metadata XML. This is a deliberate two-pass approach: deploy as draft first to avoid validation errors against missing data, then activate once all data is in place.
+**Expression set activation** (Step 18) — Re-deploys expression sets with active status using XPath transformation of the metadata XML. This is a deliberate two-pass approach: deploy as draft first to avoid validation errors against missing data, then activate once all data is in place.
 
-**TSO preparation** (Step 18, `tso` flag) — Assigns additional permission set licenses, permission set groups, and metadata bundles specific to Trialforce Source Orgs. TSOs have a superset of permissions because they're used to generate trial orgs that need to work out of the box.
+**TSO preparation** (Step 19, `tso` flag) — Assigns additional permission set licenses, permission set groups, and metadata bundles specific to Trialforce Source Orgs. TSOs have a superset of permissions because they're used to generate trial orgs that need to work out of the box.
 
-**Procedure plans** (Step 19, `procedureplans` flag) — Creates Procedure Plan Definitions and their associated sections and options via the Connect REST API and SFDMU data loading. Procedure plans define the step-by-step flows for quote pricing and other revenue processes.
+**Procedure plans** (Step 20, `procedureplans` flag) — Creates Procedure Plan Definitions and their associated sections and options via the Connect REST API and SFDMU data loading. Procedure plans define the step-by-step flows for quote pricing and other revenue processes.
 
-**PRM** (Step 20, `prm` flag) — Creates the Partner Central community, publishes it, and extends the Sales Transaction Context with partner account attributes — all of which happen whenever `prm` is on. Loading the QuantumBit PRM product data additionally requires `qb`; if you're building a Q3-only org, the community is still created and published but that data load is skipped. Two sub-steps are Trialforce Source Org-specific and only run in TSO builds: deploying the full Experience Bundle and assigning the `RLM_PRM` permission set.
+**PRM** (Step 21, `prm` flag) — Creates the Partner Central community, publishes it, and extends the Sales Transaction Context with partner account attributes — all of which happen whenever `prm` is on. Loading the QuantumBit PRM product data additionally requires `qb`; if you're building a Q3-only org, the community is still created and published but that data load is skipped. Two sub-steps are Trialforce Source Org-specific and only run in TSO builds: deploying the full Experience Bundle and assigning the `RLM_PRM` permission set.
 
-**Agentforce agents** (Step 21, `agents` flag) — Deploys Agentforce AI agent configurations, settings, and assigns the quoting agent permission set.
+**Agentforce agents** (Step 22, `agents` flag) — Deploys Agentforce AI agent configurations, settings, and assigns the quoting agent permission set.
 
 ---
 
-### Phase 6: Constraints and Guided Selling (Steps 22–23)
+### Phase 6: Constraints and Guided Selling (Steps 23–24)
 
 **What happens:** The Constraint Model Library (CML) is imported, constraint settings are configured via Robot Framework, and guided selling data is loaded.
 
 **Why it matters:** Constraints define the product configuration rules — what products can be combined, what options are required, what configurations are invalid. These are critical for CPQ (Configure, Price, Quote) workflows where users build complex product bundles.
 
-**Constraints** (Step 22, `constraints` and `constraints_data` flags) — This is a multi-step process with two independent flags. The `constraints` flag gates: loading transaction processing types (also requires `qb`), deploying constraint metadata (classes, triggers, UI components), and applying the context constraint engine node status. The `constraints_data` flag independently gates: configuring constraint settings via Robot Framework (a UI-only toggle), validating the CML data structure, importing four constraint model datasets (QuantumBitComplete, Server2, QuantumBitPCM, and QuantumBitBundle, all also require `qb`) with polymorphic ID resolution, and activating the expression set versions (Server2 and QuantumBitBundle only — QuantumBitComplete and QuantumBitPCM are imported but left inactive, since only one QuantumBit constraint model can be active at a time and QuantumBitBundle is the combined model that grafts the QuantumBitComplete configurable bundle onto the QuantumBitPCM v67 virtual-quote rules; see `datasets/constraints/README.md`). The flow does not require `constraints` to be set before `constraints_data` steps run — they are independently gated — but in practice both are enabled together for a fully functional constraints setup. The CML import is particularly sophisticated — it resolves polymorphic IDs across Product2, ProductClassification, and ProductRelatedComponent records using Salesforce ID prefix detection.
+**Constraints** (Step 23, `constraints` and `constraints_data` flags) — This is a multi-step process with two independent flags. The `constraints` flag gates: loading transaction processing types (also requires `qb`), deploying constraint metadata (classes, triggers, UI components), and applying the context constraint engine node status. The `constraints_data` flag independently gates: configuring constraint settings via Robot Framework (a UI-only toggle), validating the CML data structure, importing four constraint model datasets (QuantumBitComplete, Server2, QuantumBitPCM, and QuantumBitBundle, all also require `qb`) with polymorphic ID resolution, and activating the expression set versions (Server2 and QuantumBitBundle only — QuantumBitComplete and QuantumBitPCM are imported but left inactive, since only one QuantumBit constraint model can be active at a time and QuantumBitBundle is the combined model that grafts the QuantumBitComplete configurable bundle onto the QuantumBitPCM v67 virtual-quote rules; see `datasets/constraints/README.md`). The flow does not require `constraints` to be set before `constraints_data` steps run — they are independently gated — but in practice both are enabled together for a fully functional constraints setup. The CML import is particularly sophisticated — it resolves polymorphic IDs across Product2, ProductClassification, and ProductRelatedComponent records using Salesforce ID prefix detection.
 
-**Guided Selling** (Step 23, `guidedselling` flag) — Assigns guided selling permission sets, deploys guided selling metadata, and loads Product2 guided-selling field values via the `qb-guidedselling-products` plan. Guided selling creates interactive discovery flows that recommend products based on customer responses.
+**Guided Selling** (Step 24, `guidedselling` flag) — Assigns guided selling permission sets, deploys guided selling metadata, and loads Product2 guided-selling field values via the `qb-guidedselling-products` plan. Guided selling creates interactive discovery flows that recommend products based on customer responses.
 
 ---
 
-### Phase 7: Final Configuration & Personalization (Steps 24–30)
+### Phase 7: Final Configuration & Personalization (Steps 25–32)
 
-**What happens:** Revenue settings are configured via Robot Framework, pricing discovery is reconfigured, the optional feature extensions (Ramp Schedule Builder, Large Sales Transaction, Personas) and the UX layer are deployed, and scratch org seed data is inserted.
+**What happens:** Revenue settings are configured via Robot Framework, pricing discovery is reconfigured, the optional feature extensions (Ramp Schedule Builder, Large Sales Transaction, Personas), the UX layer, and the In-App Learning framework are deployed, and scratch org seed data is inserted.
 
 **Why it matters:** This phase is the "polish and personalize" pass — it wires together the pieces assembled in previous phases, layers on optional feature extensions, and assembles the user-facing UX so the org is demo-ready.
 
-**Revenue settings configuration** (Step 24) — Uses Robot Framework to navigate the Revenue Cloud Setup UI and configure settings including the pricing procedure, usage rating toggle, instant pricing toggle, and create orders flow. These are among the last settings configured because they reference components deployed and activated in earlier phases.
+**Revenue settings configuration** (Step 25) — Uses Robot Framework to navigate the Revenue Cloud Setup UI and configure settings including the pricing procedure, usage rating toggle, instant pricing toggle, and create orders flow. These are among the last settings configured because they reference components deployed and activated in earlier phases.
 
-**Pricing discovery reconfiguration** (Step 25) — Reconfigures pricing discovery by updating expression-set driven pricing setup and (when `qb` is enabled) product discovery settings. This ensures pricing discovery stays aligned with the metadata and data loaded earlier in the build.
+**Pricing discovery reconfiguration** (Step 26) — Reconfigures pricing discovery by updating expression-set driven pricing setup and (when `qb` is enabled) product discovery settings. This ensures pricing discovery stays aligned with the metadata and data loaded earlier in the build.
 
-**Ramp Schedule Builder** (Step 26, `ramps` flag) — Deploys the Create Ramp Schedule (V4) metadata and assigns the `RLM_RampSchedule` permission set. Ramp schedules let reps model phased quantity/price changes over a contract term.
+**Ramp Schedule Builder** (Step 27, `ramps` flag) — Deploys the Create Ramp Schedule (V4) metadata and assigns the `RLM_RampSchedule` permission set. Ramp schedules let reps model phased quantity/price changes over a contract term.
 
-**Large Sales Transaction** (Step 27, `large_stx` flag) — Deploys the `unpackaged/post_large_stx` bundle (the large-deal reprice / preprocess / setup-quote Apex, LWC, and supporting metadata) and assigns the `RLM_LargeSalesTransaction` permission set to the running user. When `billing` is also on, it seeds large-deal billing treatment data. Off by default — enable for large-deal demo scenarios.
+**Large Sales Transaction** (Step 28, `large_stx` flag) — Deploys the `unpackaged/post_large_stx` bundle (the large-deal reprice / preprocess / setup-quote Apex, LWC, and supporting metadata) and assigns the `RLM_LargeSalesTransaction` permission set to the running user. When `billing` is also on, it seeds large-deal billing treatment data. Off by default — enable for large-deal demo scenarios.
 
-**Personas** (Step 28, `personas` flag) — Deploys persona profiles, permission set groups, and permission sets from `unpackaged/post_personas`, sets organization-wide defaults for the Sales Rep persona (Account/Asset/Contract/Order → internal Read/Write), creates the Sales Rep scratch user, and assigns that user the persona PSG and sales-rep permission set (plus `RLM_LargeSalesTransaction` when `large_stx` is also on). Runs before `prepare_ux` so persona profile templates are assembled in the same UX pass.
+**Personas** (Step 29, `personas` flag) — Deploys persona profiles, permission set groups, and permission sets from `unpackaged/post_personas`, sets organization-wide defaults for the Sales Rep persona (Account/Asset/Contract/Order → internal Read/Write), creates the Sales Rep scratch user, and assigns that user the persona PSG and sales-rep permission set (plus `RLM_LargeSalesTransaction` when `large_stx` is also on). Runs before `prepare_ux` so persona profile templates are assembled in the same UX pass.
 
-**UX assembly** (Step 29, `ux` flag) — Assembles and deploys the UX metadata (flexipages, layouts, applications, profiles, object bindings) via the UX assembler. Set `ux: false` to skip all UX assembly when testing feature deploys in isolation. See [Dynamic UX Assembly](../features/dynamic-ux-assembly.md).
+**UX assembly** (Step 30, `ux` flag) — Assembles and deploys the UX metadata (flexipages, layouts, applications, profiles, object bindings) via the UX assembler. Set `ux: false` to skip all UX assembly when testing feature deploys in isolation. See [Dynamic UX Assembly](../features/dynamic-ux-assembly.md).
 
-**Scratch org seed data** (Step 30, `prepare_scratch`, `sample_data` flag) — Inserts basic Account and Contact records that other data plans reference. In production-like orgs these records already exist; in fresh scratch orgs they need to be created. (This ran earlier in prior releases; it now runs near the end so seed data lands after all metadata and feature bundles are in place.)
+**In-App Learning** (Step 31, `inapp` flag) — Deploys the `unpackaged/post_inapp` In-App Learning framework, assigns its permission set, and loads the navigation/walkthrough content dataset. This surfaces guided in-app learning prompts in the org. Off by default — enable with `inapp: true`.
+
+**Scratch org seed data** (Step 32, `prepare_scratch`, `sample_data` flag) — Inserts basic Account and Contact records that other data plans reference. In production-like orgs these records already exist; in fresh scratch orgs they need to be created. (This ran earlier in prior releases; it now runs near the end so seed data lands after all metadata and feature bundles are in place.)
 
 ---
 
-### Phase 8: Finalization (Steps 31–33)
+### Phase 8: Finalization (Steps 33–35)
 
 **What happens:** All decision tables are refreshed, the Product Catalog search index is rebuilt, and the build's git provenance is stamped onto the org.
 
 **Why it matters:** Decision tables must be refreshed last so they materialize the final state of all reference data; the catalog search index must rebuild after the catalog data is in place so products are searchable; stamping the commit makes each org traceable back to the exact build that produced it.
 
-**Decision table refresh** (Step 31) — Syncs pricing data and refreshes decision table categories. Pricing discovery always refreshes; the asset, rating, and rating discovery categories only refresh when `rating` is on; the commerce category only refreshes when `commerce` is on. Decision tables are the lookup caches that the pricing and rating engines use at runtime — refreshing them ensures they reflect all the data loaded during the build. This must run after all data is in place because it materializes the current state of all reference data into the decision table engine.
+**Decision table refresh** (Step 33) — Syncs pricing data and refreshes decision table categories. Pricing discovery always refreshes; the asset, rating, and rating discovery categories only refresh when `rating` is on; the commerce category only refreshes when `commerce` is on. Decision tables are the lookup caches that the pricing and rating engines use at runtime — refreshing them ensures they reflect all the data loaded during the build. This must run after all data is in place because it materializes the current state of all reference data into the decision table engine.
 
-**Search index rebuild** (Step 32, `rebuild_search_index`) — Initiates a FULL, IMMEDIATE Product Catalog (PCM) search index build via the Connect API (`connect/pcm/index/deploy`), so the catalog loaded during the build is searchable for product browse and guided selling. This is the same operation the **Build Catalog Index** component performs from the UI. The build runs asynchronously on the platform (allow several minutes); the task initiates it and logs the snapshot id. A failed index call warns and continues by default (set `raise_on_failure` to make it fatal) — the index can always be rebuilt later via the component.
+**Search index rebuild** (Step 34, `rebuild_search_index`) — Initiates a FULL, IMMEDIATE Product Catalog (PCM) search index build via the Connect API (`connect/pcm/index/deploy`), so the catalog loaded during the build is searchable for product browse and guided selling. This is the same operation the **Build Catalog Index** component performs from the UI. The build runs asynchronously on the platform (allow several minutes); the task initiates it and logs the snapshot id. A failed index call warns and continues by default (set `raise_on_failure` to make it fatal) — the index can always be rebuilt later via the component.
 
-**Git commit stamp** (Step 33) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
+**Git commit stamp** (Step 35) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
 
 ---
 

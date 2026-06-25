@@ -22,7 +22,7 @@
                             <value>CreateCreditMemo</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Account.RLM_Generate_Account_Statement</value>
+                            <value>GenerateStatementOfAccount</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Account.RLM_Create_Billing_Schedule_Group</value>

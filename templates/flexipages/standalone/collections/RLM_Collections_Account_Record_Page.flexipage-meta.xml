@@ -63,12 +63,6 @@
                 <identifier>record_flexipage_dynamicHighlights</identifier>
             </componentInstance>
         </itemInstances>
-        <itemInstances>
-            <componentInstance>
-                <componentName>rlmAccountBalanceCard</componentName>
-                <identifier>c_rlmAccountBalanceCard</identifier>
-            </componentInstance>
-        </itemInstances>
         <name>header</name>
         <type>Region</type>
     </flexiPageRegions>
@@ -146,12 +140,6 @@
         <type>Facet</type>
     </flexiPageRegions>
     <flexiPageRegions>
-        <itemInstances>
-            <componentInstance>
-                <componentName>rlmInvoiceAgingChart</componentName>
-                <identifier>c_rlmInvoiceAgingChart</identifier>
-            </componentInstance>
-        </itemInstances>
         <itemInstances>
             <componentInstance>
                 <componentInstanceProperties>

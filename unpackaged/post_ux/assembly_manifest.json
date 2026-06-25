@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-06-25T01:50:17.087792Z",
+  "assembled_at": "2026-06-25T06:05:12.498262Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -35,6 +35,11 @@
           "feature": "utils",
           "patch_type": "insert_action",
           "description": "insert actions: Account.RLM_QuickQuote"
+        },
+        {
+          "feature": "billing",
+          "patch_type": "insert_action",
+          "description": "insert actions: GenerateStatementOfAccount"
         },
         {
           "feature": "prm_pricing",
@@ -89,6 +94,11 @@
       "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Account_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing_ui/RLM_Billing_Account_Record_Page.flexipage-meta.xml",
       "patches": [
+        {
+          "feature": "billing",
+          "patch_type": "insert_action",
+          "description": "insert actions: GenerateStatementOfAccount"
+        },
         {
           "feature": "billing_ui",
           "patch_type": "insert_action",
@@ -185,7 +195,18 @@
       "name": "RLM_Collections_Account_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Collections_Account_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/collections/RLM_Collections_Account_Record_Page.flexipage-meta.xml",
-      "patches": []
+      "patches": [
+        {
+          "feature": "billing_ui",
+          "patch_type": "add_component",
+          "description": "add component: rlmAccountBalanceCard"
+        },
+        {
+          "feature": "billing_ui",
+          "patch_type": "add_component",
+          "description": "add component: rlmInvoiceAgingChart"
+        }
+      ]
     },
     {
       "type": "flexipage",
