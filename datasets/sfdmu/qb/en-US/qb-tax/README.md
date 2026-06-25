@@ -45,7 +45,7 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 | 2 | TaxEngineProvider| Upsert    | `DeveloperName`                    | 1       |
 | 3 | TaxEngine        | Upsert    | `TaxEngineName`                    | 1       |
 | 4 | TaxTreatment     | Upsert    | `Name`                             | 2       |
-| 5 | TaxPolicy        | Upsert    | `Name`                             | 1       |
+| 5 | TaxPolicy        | Upsert    | `Name`                             | 2       |
 | 6 | Product2         | Update    | `StockKeepingUnit`                 | 315     |
 
 **Note:** TaxTreatment and TaxPolicy use `skipExistingRecords: true` to avoid updating records that already exist. Product2 is Update-only (sets `TaxPolicyId`). The `create_tax_engine` Apex script creates TaxEngineProvider and TaxEngine via REST API before this SFDMU pass runs, so the SFDMU upsert of those objects acts as a safety net.
@@ -57,10 +57,9 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 | # | Object       | Operation | External ID                        | Records |
 |---|--------------|-----------|------------------------------------|---------|
 | 1 | TaxTreatment | Update    | `Name`                             | 2       |
-| 2 | TaxPolicy    | Update    | `Name`                             | 1       |
+| 2 | TaxPolicy    | Update    | `Name`                             | 2       |
 
-Pass 2 activates TaxTreatment (sets `Status`) and sets `DefaultTaxTreatmentId` on TaxPolicy.
-The additional `Non Taxable Tax Treatment` row is currently seeded for downstream/manual scenarios and is not auto-routed by this plan (all Product2 assignments still target `Default Tax Policy`).
+Pass 2 activates TaxTreatment (sets `Status`) and sets `DefaultTaxTreatmentId` on each TaxPolicy. `Default Tax Policy` defaults to `Default Tax Policy` (taxable); `Non Taxable Tax Policy` defaults to `Non Taxable Tax Treatment` (non-taxable). All `Product2.TaxPolicyId` assignments in this plan still target `Default Tax Policy` — opting a product into non-taxable behavior requires updating `Product2.csv` (or post-load configuration) to point at `Non Taxable Tax Policy`.
 
 ## Apex Scripts
 
@@ -79,7 +78,6 @@ Activates tax records in dependency order:
 2. TaxPolicy: Sets all non-Active records to `Status = 'Active'`
 
 The script is idempotent — queries filter on `Status != 'Active'`.
-When multiple treatments share a policy, the script now uses a deterministic fallback order to pick the first treatment if `DefaultTaxTreatmentId` is missing.
 
 ## Configuration
 
@@ -129,7 +127,7 @@ qb-tax/
 ├── TaxEngineProvider.csv                # 1 record
 ├── TaxEngine.csv                        # 1 record
 ├── TaxTreatment.csv                     # 2 records
-├── TaxPolicy.csv                        # 1 record
+├── TaxPolicy.csv                        # 2 records
 ├── Product2.csv                         # 315 records (Update only)
 ├── NamedCredential.csv                  # 1 record (reference only)
 │
@@ -137,7 +135,7 @@ qb-tax/
 ├── objectset_source/
 │   └── object-set-2/
 │       ├── TaxTreatment.csv             # 2 records (Status -> Active)
-│       └── TaxPolicy.csv               # 1 record (DefaultTaxTreatment + Status)
+│       └── TaxPolicy.csv               # 2 records (DefaultTaxTreatment + Status)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
@@ -146,7 +144,7 @@ qb-tax/
 
 ## Idempotency
 
-Pass 1 uses `skipExistingRecords: true` on TaxTreatment and TaxPolicy, so re-runs will skip existing records. Product2 Update will re-apply the same `TaxPolicyId`. Pass 2 updates Status fields, which should be idempotent (setting Active on already-Active records). If a policy is missing `DefaultTaxTreatmentId`, the activation Apex fallback now selects a treatment deterministically.
+Pass 1 uses `skipExistingRecords: true` on TaxTreatment and TaxPolicy, so re-runs will skip existing records. Product2 Update will re-apply the same `TaxPolicyId`. Pass 2 updates Status fields, which should be idempotent (setting Active on already-Active records).
 
 **Not yet validated** — idempotency testing against a 260 org is pending.
 
