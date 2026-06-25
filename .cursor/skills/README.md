@@ -15,9 +15,11 @@ repo root.
 | Add new code, features, metadata | Repository Integration | `repo-integration/SKILL.md` |
 | Work with CCI tasks, flows, or CLI | CCI Orchestration | `cci-orchestration/SKILL.md` |
 | Wire pricing recipes, procedures, or lookup table mappings | Pricing Wiring | `pricing-wiring/SKILL.md` |
+| Author/CRUD Expression Sets (Connect/Metadata API) and build step overlays | Expression Sets | `expression-sets/SKILL.md` |
 | Run build harness profiles/resume/report | Build Harness | `build-harness/SKILL.md` |
 | Write a Python CCI task class | Custom Task Authoring | `cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | SFDMU Data Plans | `sfdmu-data-plans/SKILL.md` |
+| Maintain the In-App Learning framework (`inapp`) | In-App Framework | `inapp-framework/SKILL.md` |
 | Understand RLM objects/relationships | Revenue Cloud Data Model | `revenue-cloud-data-model/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | `schema-validation/SKILL.md` |
 | Cross-repo skill manifest (PMOS ↔ Foundations) | PMOS Integration | `pmos-integration/SKILL.md` |

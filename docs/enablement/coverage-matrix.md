@@ -13,7 +13,7 @@ Working document tracking what enablement artifacts exist across releases, what'
 | `256/` *(label only)* | 256 | Summer '25 | Exercises only (PDF) |
 | `258/` *(label only)* | 258 | Winter '26 | Exercise drafts (some incomplete, PDF) |
 | `260/` | 260 | Spring '26 | **Prior GA** — 10 per-release `.md` drafts complete |
-| `262/` | 262 | Summer '26 | **Current development cycle** — feature index + Help snapshot (838 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
+| `262/` | 262 | Summer '26 | **Current development cycle** — feature index + Help snapshot (932 articles) landed; QB demo script drafted; per-area Hands-On extracts pending master sign-off |
 
 > *Label only* = the **`248/`–`258/`** values appear in carry-forward citations across the catalog as non-clickable identifiers for external PDFs that live outside git (see `docs/enablement/README.md` § *Directory map*). They are **not** directories in this checkout. `260/` and `262/` exist as real per-release directories.
 

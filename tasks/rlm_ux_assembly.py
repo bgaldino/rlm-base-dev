@@ -451,11 +451,12 @@ def _patch_add_component(
     properties: Dict[str, str],
     identifier: str,
     after_identifier: Optional[str] = None,
+    before_identifier: Optional[str] = None,
 ) -> bool:
     """
     Add a componentInstance to a named flexiPageRegion's itemInstances list.
-    Inserts after `after_identifier` if given, else appends before the closing
-    <name> element of the region.
+    Inserts before `before_identifier` if given, else after `after_identifier`
+    if given, else appends before the closing <name> element of the region.
     """
     regions = _findall_elem(root, "flexiPageRegions")
     for region in regions:
@@ -474,6 +475,15 @@ def _patch_add_component(
 
         new_item = _make_elem("itemInstances")
         new_item.append(new_ci)
+
+        if before_identifier:
+            for item in items:
+                ci = _find_elem(item, "componentInstance")
+                if ci is not None:
+                    id_el = _find_elem(ci, "identifier")
+                    if id_el is not None and id_el.text == before_identifier:
+                        region.insert(list(region).index(item), new_item)
+                        return True
 
         if after_identifier:
             for i, item in enumerate(items):
@@ -620,10 +630,11 @@ def _apply_flexipage_patch(root: ET.Element, patch: Dict[str, Any], logger=None)
         properties = patch.get("properties", {})
         identifier = patch.get("identifier", component_name)
         after_id = patch.get("after_identifier")
+        before_id = patch.get("before_identifier")
         if not region_name or not component_name:
             log(f"add_component patch missing 'region' or 'component': {patch}")
             return
-        ok = _patch_add_component(root, region_name, component_name, properties, identifier, after_id)
+        ok = _patch_add_component(root, region_name, component_name, properties, identifier, after_id, before_id)
         if not ok and logger:
             logger.warning(f"add_component: region '{region_name}' not found")
 
@@ -1176,7 +1187,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 # TSO template already contains all overrides; patches only run for non-TSO builds.
                 patches_applied = []
                 if not features.get("tso"):
-                    patch_features = ["billing", "rates", "ramps", "prm_pricing"]
+                    patch_features = ["billing", "payments", "rates", "ramps", "prm_pricing"]
                     for pf in patch_features:
                         if not features.get(pf):
                             continue

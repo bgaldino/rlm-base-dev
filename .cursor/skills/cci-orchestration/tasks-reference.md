@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**240 tasks** across **10 groups**.
+**252 tasks** across **10 groups**.
 
 ---
 
@@ -503,7 +503,7 @@
 
 ## Documentation
 
-*14 task(s)*
+*15 task(s)*
 
 ### `snapshot_agents_help_262`
 
@@ -569,6 +569,23 @@
 - `area`: `billing`
 - `root_article_id`: `ind.billing.htm`
 - `article_id_prefix`: `ind.billing`
+- `mode`: `all`
+
+---
+
+### `snapshot_collections_help_262`
+
+**Description:** Snapshot the 262 (Summer '26) Collections and Recovery area of Salesforce Help. Covers Collection Plans, Collection Plan Reasons, treatment/dunning flows, Promise to Pay, write-offs, late fees, and the decision-matrix-driven Create Case automation. Root verified via the Collections area landing page.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `collections`
+- `root_article_id`: `ind.collections.htm`
+- `article_id_prefix`: `ind.collections`
 - `mode`: `all`
 
 ---
@@ -818,7 +835,7 @@
 
 ## Revenue Lifecycle Management
 
-*149 task(s)*
+*160 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1057,6 +1074,26 @@
 - `deactivate_before`: `False`
 - `activate`: `True`
 - `verify`: `True`
+
+---
+
+### `apply_expression_set_overlay`
+
+**Description:** Apply a declarative overlay (add/remove/update/reorder steps and variables) to an expression set via BRE Connect API with deactivate/modify/reactivate lifecycle.
+
+**Class:** `tasks.rlm_expression_set_connect.ApplyExpressionSetOverlay`
+
+**Options:**
+
+- `overlay_file`: `None`
+- `dry_run`: `False`
+- `verify`: `True`
+- `skip_validation`: `False`
+- `normalize_html_entities`: `True`
+- `activate_after_apply`: `True`
+- `cascade_deactivate_procedure_plan`: `True`
+- `max_wait_seconds`: `45`
+- `poll_interval_seconds`: `3`
 
 ---
 
@@ -1308,6 +1345,18 @@
 
 ---
 
+### `deactivate_collections_case_matrix`
+
+**Description:** Disable the DetermineCaseReasonAndRelatedAttributes decision-matrix version before (re)deploying the DecisionMatrixDefinition. A metadata deploy can't migrate a matrix version while an active (enabled) version with that name exists, so a second prepare_collections run fails without this. No-op on a first run (matrix not deployed yet). seed_collections_case_matrix re-enables it afterward. Run before deploy_post_collections. See scripts/apex/deactivateCollectionsCaseMatrix.apex.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/deactivateCollectionsCaseMatrix.apex`
+
+---
+
 ### `deactivate_decision_tables`
 
 **Description:** Deactivate Decision Tables (required before updating active decision tables)
@@ -1343,6 +1392,23 @@
 
 - `operation`: `deactivate_versions`
 - `metadata_path`: `unpackaged/post_prm_pricing/expressionSetDefinition`
+
+---
+
+### `delete_expression_set`
+
+**Description:** Delete an expression set via BRE Connect API, or just a single old version (version_api_name) via the sObject API. Destructive — requires confirm:true.
+
+**Class:** `tasks.rlm_expression_set_connect.DeleteExpressionSet`
+
+**Options:**
+
+- `expression_set_api_name`: `None`
+- `version_api_name`: `None`
+- `confirm`: `False`
+- `dry_run`: `False`
+- `max_wait_seconds`: `45`
+- `poll_interval_seconds`: `3`
 
 ---
 
@@ -1480,6 +1546,18 @@
 
 ---
 
+### `deploy_collections_case_flow`
+
+**Description:** Deploy the RLM_Create_Case_for_Collection flow from unpackaged/post_collections_case_flow. This flow invokes the DetermineCaseReasonAndRelatedAttributes decision matrix as an action, which only exists once the matrix has an active version. The matrix is activated by seed_collections_case_matrix (Apex-seeded rows, not metadata), so this flow must deploy AFTER that seed — otherwise the deploy fails with "We can't find the DetermineCaseReasonAndRelatedAttributes action." Kept separate from deploy_post_collections for exactly this ordering reason.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_collections_case_flow`
+
+---
+
 ### `deploy_context_definitions`
 
 **Description:** Deploy Context Definitions
@@ -1580,7 +1658,7 @@
 
 ### `deploy_post_collections`
 
-**Description:** Deploy Collections metadata from unpackaged/post_collections (flows, objects, omniUiCard, permissionsets, queues, quickActions, tabs, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore.
+**Description:** Deploy Collections metadata from unpackaged/post_collections (flows, objects, omniUiCard, permissionsets, queues, quickActions, tabs, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore. The RLM_Create_Case_for_Collection flow is NOT here — it lives in unpackaged/post_collections_case_flow and is deployed by deploy_collections_case_flow AFTER seed_collections_case_matrix activates the decision matrix it invokes.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1602,6 +1680,18 @@
 
 ---
 
+### `deploy_post_inapp`
+
+**Description:** Deploy the In-App Learning navigation framework (objects, LWC, Apex, flexipages, Learning Home app)
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_inapp`
+
+---
+
 ### `deploy_post_large_stx`
 
 **Description:** Deploy Large Sales Transaction metadata
@@ -1611,6 +1701,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_large_stx`
+
+---
+
+### `deploy_post_payments_ext`
+
+**Description:** Deploy Payments UI extensions from unpackaged/post_payments_ext: the RLM_RefundController Apex class (native ConnectApi.Payments.refund, no callout) and its test, the rlmRefundButton LWC (Issue Refund on Payment records), and the RLM_Payments permission set (Apex class access). Kept in a separate dir from unpackaged/post_payments so it can deploy without re-deploying the immutable Payments_Webhook CustomSite. The Payment record page that hosts the button deploys via assemble_and_deploy_ux (payments flag).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_payments_ext`
 
 ---
 
@@ -1769,6 +1871,19 @@
 **Description:** Export constraint model data (ESDV, ESC, reference objects, blob) from org to local directory
 
 **Class:** `tasks.rlm_cml.ExportCML`
+
+---
+
+### `export_expression_set`
+
+**Description:** Export expression set definition from org to JSON via BRE Connect API
+
+**Class:** `tasks.rlm_expression_set_connect.ExportExpressionSet`
+
+**Options:**
+
+- `expression_set_api_name`: `None`
+- `output_file`: `None`
 
 ---
 
@@ -2030,6 +2145,25 @@
 **Description:** Import constraint model metadata, ESC associations, and ConstraintModel blob into org
 
 **Class:** `tasks.rlm_cml.ImportCML`
+
+---
+
+### `import_expression_set`
+
+**Description:** Import (create or replace) expression set definition from JSON via BRE Connect API
+
+**Class:** `tasks.rlm_expression_set_connect.ImportExpressionSet`
+
+**Options:**
+
+- `input_file`: `None`
+- `dry_run`: `False`
+- `skip_validation`: `False`
+- `normalize_html_entities`: `True`
+- `activate_after_import`: `True`
+- `cascade_deactivate_procedure_plan`: `True`
+- `max_wait_seconds`: `45`
+- `poll_interval_seconds`: `3`
 
 ---
 
@@ -2360,6 +2494,18 @@
 
 ---
 
+### `load_inapp_dataset`
+
+**Description:** Load In-App Learning navigation content (Pages/Sections/Blocks/DynamicLinks) via SFDMU
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/inapp`
+
+---
+
 ### `load_sfdmu_data`
 
 **Description:** Load SFDMU Data
@@ -2661,6 +2807,18 @@
 
 ---
 
+### `seed_collections_case_matrix`
+
+**Description:** Seed and activate the Collections "Create Case for Collection" BRE setup: the five sample CollectionPlanReason records (CPR01-CPR05) and the DetermineCaseReasonAndRelatedAttributes decision matrix rows (Code -> Reason/Priority/Type), then activate the matrix version. Idempotent; includes a runtime self-check. Run after deploy_post_collections (which deploys the DecisionMatrixDefinition schema). See scripts/apex/seedCollectionsCaseMatrix.apex.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/seedCollectionsCaseMatrix.apex`
+
+---
+
 ### `seed_large_deal_billing_treatment`
 
 **Description:** Seed the large-deal Exclude-from-Billing policy + treatment (Default selection, no legal entity, no items). The large_stx Prepare-for-Activation flow stamps this treatment onto large-deal order items so billing-treatment resolution becomes a no-op and bypasses the non-bulk-safe legal-entity resolver. Idempotent.
@@ -2746,6 +2904,20 @@
 **Description:** Validate CML file structure, annotations, and ESC association coverage
 
 **Class:** `tasks.rlm_cml.ValidateCML`
+
+---
+
+### `validate_expression_set`
+
+**Description:** Validate an expression set definition or overlay JSON against the BRE schema (enums, required keys, duplicate params, sequence/placement). No org needed. Auto-detects overlay vs definition; pass kind to force.
+
+**Class:** `tasks.rlm_expression_set_connect.ValidateExpressionSet`
+
+**Options:**
+
+- `file`: `None`
+- `kind`: `None`
+- `strict`: `False`
 
 ---
 

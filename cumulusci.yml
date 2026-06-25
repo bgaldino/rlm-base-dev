@@ -97,6 +97,7 @@ project:
     approvals: true           # Approvals
     tax: true                 # Tax engine
     calmdelete: true          # CALM Delete
+    collections: true        # Collections tier (post_collections: flows, quick actions, timelines, omniUiCard, queue) + CollectionConsole UX. Opt-in; native CollectionsAndRecoveryPsl is always assigned.
     large_stx: false          # Large Sales Transaction
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────
@@ -138,6 +139,7 @@ project:
 
     # ── Deployment Options ─────────────────────────────────────────────────────
     personas: true            # Persona profiles and permission set groups (post_personas)
+    inapp: false              # In-App Learning navigation framework (post_inapp + datasets/sfdmu/inapp). Opt-in: overrides the org Home page.
     locale: en_US             # Default locale
 
 #------------------------------#
@@ -314,7 +316,6 @@ project:
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
-      #- RLM_Collection_Plan_Activity
 
     ps_guidedselling: &ps_guidedselling
       # Guided Selling runtime/configuration permission sets available before metadata deploy
@@ -352,6 +353,10 @@ project:
     ps_large_stx: &ps_large_stx
       # Large STX-specific permission sets
       - RLM_LargeSalesTransaction
+
+    ps_inapp: &ps_inapp
+      # In-App Learning framework permission set
+      - RLM_Learning
 
     ps_persona_sales_rep: &ps_persona_sales_rep
       # Persona sales rep-specific permission sets
@@ -554,6 +559,7 @@ project:
     quantumbit_guidedselling_products_dataset: &quantumbit_guidedselling_products_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling-products"   # QuantumBit guided selling Product2 field values
     quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
     quantumbit_prm_dataset: &quantumbit_prm_dataset "datasets/sfdmu/qb/en-US/qb-prm"                                 # QuantumBit PRM data
+    inapp_dataset: &inapp_dataset "datasets/sfdmu/inapp"                                                            # In-App Learning navigation content (Pages/Sections/Blocks/DynamicLinks)
     quantumbit_prm_pricing_dataset: &quantumbit_prm_pricing_dataset "datasets/sfdmu/qb/en-US/qb-prm-pricing"         # QuantumBit PRM pricing overlay data
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
 
@@ -1466,6 +1472,20 @@ tasks:
     options:
       path: unpackaged/post_guidedselling
 
+  deploy_post_inapp:
+    group: Revenue Lifecycle Management
+    description: Deploy the In-App Learning navigation framework (objects, LWC, Apex, flexipages, Learning Home app)
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_inapp
+
+  load_inapp_dataset:
+    group: Revenue Lifecycle Management
+    description: Load In-App Learning navigation content (Pages/Sections/Blocks/DynamicLinks) via SFDMU
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *inapp_dataset
+
   assemble_and_deploy_ux:
     group: UX Personalization
     description: >
@@ -1527,10 +1547,56 @@ tasks:
       omniUiCard, permissionsets, queues, quickActions, tabs,
       timelineObjectDefinitions). Flexipages and applications for collections are
       deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded
-      here via .forceignore.
+      here via .forceignore. The RLM_Create_Case_for_Collection flow is NOT here —
+      it lives in unpackaged/post_collections_case_flow and is deployed by
+      deploy_collections_case_flow AFTER seed_collections_case_matrix activates the
+      decision matrix it invokes.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_collections
+
+  deactivate_collections_case_matrix:
+    group: Revenue Lifecycle Management
+    description: >
+      Disable the DetermineCaseReasonAndRelatedAttributes decision-matrix version
+      before (re)deploying the DecisionMatrixDefinition. A metadata deploy can't
+      migrate a matrix version while an active (enabled) version with that name
+      exists, so a second prepare_collections run fails without this. No-op on a
+      first run (matrix not deployed yet). seed_collections_case_matrix re-enables
+      it afterward. Run before deploy_post_collections. See
+      scripts/apex/deactivateCollectionsCaseMatrix.apex.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deactivateCollectionsCaseMatrix.apex
+
+  seed_collections_case_matrix:
+    group: Revenue Lifecycle Management
+    description: >
+      Seed and activate the Collections "Create Case for Collection" BRE setup:
+      the five sample CollectionPlanReason records (CPR01-CPR05) and the
+      DetermineCaseReasonAndRelatedAttributes decision matrix rows
+      (Code -> Reason/Priority/Type), then activate the matrix version. Idempotent;
+      includes a runtime self-check. Run after deploy_post_collections (which
+      deploys the DecisionMatrixDefinition schema). See
+      scripts/apex/seedCollectionsCaseMatrix.apex.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/seedCollectionsCaseMatrix.apex
+
+  deploy_collections_case_flow:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy the RLM_Create_Case_for_Collection flow from
+      unpackaged/post_collections_case_flow. This flow invokes the
+      DetermineCaseReasonAndRelatedAttributes decision matrix as an action, which
+      only exists once the matrix has an active version. The matrix is activated by
+      seed_collections_case_matrix (Apex-seeded rows, not metadata), so this flow
+      must deploy AFTER that seed — otherwise the deploy fails with "We can't find
+      the DetermineCaseReasonAndRelatedAttributes action." Kept separate from
+      deploy_post_collections for exactly this ordering reason.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_collections_case_flow
 
   deploy_post_ramp_builder:
     group: Revenue Lifecycle Management
@@ -1593,6 +1659,20 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_payments_settings
+
+  deploy_post_payments_ext:
+    group: Revenue Lifecycle Management
+    description: >
+      Deploy Payments UI extensions from unpackaged/post_payments_ext: the
+      RLM_RefundController Apex class (native ConnectApi.Payments.refund, no
+      callout) and its test, the rlmRefundButton LWC (Issue Refund on Payment
+      records), and the RLM_Payments permission set (Apex class access). Kept in
+      a separate dir from unpackaged/post_payments so it can deploy without
+      re-deploying the immutable Payments_Webhook CustomSite. The Payment record
+      page that hosts the button deploys via assemble_and_deploy_ux (payments flag).
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_payments_ext
 
   ensure_pricing_schedules:
     description: Ensure pricing schedules exist before expression sets
@@ -2879,6 +2959,72 @@ tasks:
       verify: true
       activate_after_apply: true
 
+  # Expression Set structural management via BRE Connect API
+  export_expression_set:
+    group: Revenue Lifecycle Management
+    description: Export expression set definition from org to JSON via BRE Connect API
+    class_path: tasks.rlm_expression_set_connect.ExportExpressionSet
+    options:
+      expression_set_api_name: null
+      output_file: null
+
+  apply_expression_set_overlay:
+    group: Revenue Lifecycle Management
+    description: >
+      Apply a declarative overlay (add/remove/update/reorder steps and variables)
+      to an expression set via BRE Connect API with deactivate/modify/reactivate lifecycle.
+    class_path: tasks.rlm_expression_set_connect.ApplyExpressionSetOverlay
+    options:
+      overlay_file: null
+      dry_run: false
+      verify: true
+      skip_validation: false
+      normalize_html_entities: true
+      activate_after_apply: true
+      cascade_deactivate_procedure_plan: true
+      max_wait_seconds: 45
+      poll_interval_seconds: 3
+
+  import_expression_set:
+    group: Revenue Lifecycle Management
+    description: Import (create or replace) expression set definition from JSON via BRE Connect API
+    class_path: tasks.rlm_expression_set_connect.ImportExpressionSet
+    options:
+      input_file: null
+      dry_run: false
+      skip_validation: false
+      normalize_html_entities: true
+      activate_after_import: true
+      cascade_deactivate_procedure_plan: true
+      max_wait_seconds: 45
+      poll_interval_seconds: 3
+
+  delete_expression_set:
+    group: Revenue Lifecycle Management
+    description: >
+      Delete an expression set via BRE Connect API, or just a single old version
+      (version_api_name) via the sObject API. Destructive — requires confirm:true.
+    class_path: tasks.rlm_expression_set_connect.DeleteExpressionSet
+    options:
+      expression_set_api_name: null
+      version_api_name: null
+      confirm: false
+      dry_run: false
+      max_wait_seconds: 45
+      poll_interval_seconds: 3
+
+  validate_expression_set:
+    group: Revenue Lifecycle Management
+    description: >
+      Validate an expression set definition or overlay JSON against the BRE
+      schema (enums, required keys, duplicate params, sequence/placement). No org
+      needed. Auto-detects overlay vs definition; pass kind to force.
+    class_path: tasks.rlm_expression_set_connect.ValidateExpressionSet
+    options:
+      file: null
+      kind: null
+      strict: false
+
   activate_procedure_plan_version:
     group: Revenue Lifecycle Management
     description: Activate the ProcedurePlanDefinitionVersion after sections and options have been inserted
@@ -3036,9 +3182,11 @@ tasks:
   # =====================================================================
   # AREA SNAPSHOT VARIANTS — Salesforce Help portal, Summer '26 (262)
   # =====================================================================
-  # All 10 RC functional areas captured 2026-05-11 / 2026-05-12.
-  # 838 articles total, ~4.3 MB markdown. Roots verified via the
-  # Revenue Lifecycle Management parent sidebar walk.
+  # All 11 RC functional areas captured 2026-05-11 / 2026-05-12
+  # (collections added 2026-06-21). 932 articles captured / 935
+  # discovered — 3 collections articles errored at capture and are
+  # pending recapture (see docs/salesforce/262/help/index.md). Roots
+  # verified via the Revenue Lifecycle Management parent sidebar walk.
   #
   # Captured (article counts as of capture date):
   #   ✓ snapshot_pcm_help_262                — 107 articles
@@ -3055,6 +3203,10 @@ tasks:
   #                                              area's prefix — see the
   #                                              revenue-cloud-docs skill)
   #   ✓ snapshot_approvals_help_262          —  34 articles
+  #   ✓ snapshot_collections_help_262        —  94 articles (3 errored,
+  #                                              pending recapture — see
+  #                                              docs/salesforce/262/help/index.md
+  #                                              and the refresh command below)
   #
   # NOTE — the Help portal uses short-prefix conventions that differ from
   # data-model domain names. For example: Rate Management → `ind.rm_*`,
@@ -3242,6 +3394,31 @@ tasks:
       article_id_prefix: ind.rev_agent
       mode: all
 
+  # Collections and Recovery — the billing-adjacent area covering Collection
+  # Plans, Collection Plan Reasons, dunning/treatment flows, Promise to Pay,
+  # write-offs, late fees, and the Create-Case-for-Collection automation. The
+  # Create Case flow (unpackaged/post_collections) invokes a BRE Decision
+  # Matrix (DetermineCaseReasonAndRelatedAttributes) that is authored per the
+  # Help docs in this area. Root given by the area landing page
+  # (ind.collections.htm). Prefix verified via `mode: discover` — adjust if a
+  # Recovery sub-prefix is discovered separately.
+  snapshot_collections_help_262:
+    group: Documentation
+    description: >
+      Snapshot the 262 (Summer '26) Collections and Recovery area of
+      Salesforce Help. Covers Collection Plans, Collection Plan Reasons,
+      treatment/dunning flows, Promise to Pay, write-offs, late fees, and the
+      decision-matrix-driven Create Case automation. Root verified via the
+      Collections area landing page.
+    class_path: tasks.rlm_snapshot_help.SnapshotSalesforceHelp
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      area: collections
+      root_article_id: ind.collections.htm
+      article_id_prefix: ind.collections
+      mode: all
+
 #----------------#
 # MAIN CCI FLOWS #
 #----------------#
@@ -3281,47 +3458,53 @@ flows:
       13:
         flow: prepare_billing
       14:
-        flow: prepare_analytics
+        flow: prepare_collections
+        when: project_config.project__custom__collections
       15:
-        flow: prepare_clm
+        flow: prepare_analytics
       16:
-        flow: prepare_rating
+        flow: prepare_clm
       17:
-        task: activate_and_deploy_expression_sets
+        flow: prepare_rating
       18:
-        flow: prepare_tso
+        task: activate_and_deploy_expression_sets
       19:
-        flow: prepare_procedureplans
+        flow: prepare_tso
       20:
-        flow: prepare_prm
+        flow: prepare_procedureplans
       21:
-        flow: prepare_agents
+        flow: prepare_prm
       22:
-        flow: prepare_constraints
+        flow: prepare_agents
       23:
-        flow: prepare_guidedselling
+        flow: prepare_constraints
       24:
-        flow: prepare_revenue_settings
+        flow: prepare_guidedselling
       25:
-        flow: prepare_pricing_discovery
+        flow: prepare_revenue_settings
       26:
-        flow: prepare_ramp_builder
+        flow: prepare_pricing_discovery
       27:
+        flow: prepare_ramp_builder
+      28:
         flow: prepare_large_stx
         when: project_config.project__custom__large_stx
-      28:
+      29:
         flow: prepare_personas
         when: project_config.project__custom__personas
-      29:
+      30:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      30:
-        flow: prepare_scratch
       31:
-        flow: refresh_all_decision_tables
+        flow: prepare_inapp
+        when: project_config.project__custom__inapp
       32:
-        task: rebuild_search_index
+        flow: prepare_scratch
       33:
+        flow: refresh_all_decision_tables
+      34:
+        task: rebuild_search_index
+      35:
         flow: stamp_git_commit
 
   prepare_core:
@@ -3554,6 +3737,22 @@ flows:
         when: project_config.project__custom__tso
         options:
           api_names: *rlm_tso_ps_api_names
+
+  prepare_inapp:
+    group: Revenue Lifecycle Management
+    description: Deploy the In-App Learning framework, assign its permission set, and load the navigation content
+    steps:
+      1:
+        task: deploy_post_inapp
+        when: project_config.project__custom__inapp
+      2:
+        task: assign_permission_sets
+        when: project_config.project__custom__inapp
+        options:
+          api_names: *ps_inapp
+      3:
+        task: load_inapp_dataset
+        when: project_config.project__custom__inapp
 
   prepare_large_stx:
     group: Revenue Lifecycle Management
@@ -4081,6 +4280,42 @@ flows:
       6:
         task: deploy_post_payments_settings
         when: project_config.project__custom__payments
+      7:
+        task: deploy_post_payments_ext
+        when: project_config.project__custom__payments
+      8:
+        task: assign_permission_sets
+        when: project_config.project__custom__payments
+        options:
+          api_names:
+            - RLM_Payments
+
+  prepare_collections:
+    group: Revenue Lifecycle Management
+    steps:
+      1:
+        # Idempotency: disable any already-active matrix version so the
+        # DecisionMatrixDefinition redeploy in step 2 can migrate it. No-op on a
+        # first run (matrix not deployed yet).
+        task: deactivate_collections_case_matrix
+        when: project_config.project__custom__collections
+      2:
+        task: deploy_post_collections
+        when: project_config.project__custom__collections
+      3:
+        task: seed_collections_case_matrix
+        when: project_config.project__custom__collections
+      4:
+        # Must run after seed_collections_case_matrix: the flow invokes the
+        # DetermineCaseReasonAndRelatedAttributes matrix action, which only exists
+        # once the matrix version is activated by the seed step above.
+        task: deploy_collections_case_flow
+        when: project_config.project__custom__collections
+    # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
+    # RLM_Collections_Account_Record_Page) and the standard__CollectionConsole app variant
+    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 30), gated on
+    # the same collections flag. The native CollectionsAndRecoveryPsl is always assigned via
+    # rlm_psl_api_names in prepare_core.
 
   prepare_revenue_settings:
     group: Revenue Lifecycle Management
@@ -4133,8 +4368,8 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, profiles) from feature-conditional templates. Runs at step 29 of
-      prepare_rlm_org, after all feature provisioning (including personas at step 28)
+      applications, profiles) from feature-conditional templates. Runs at step 30 of
+      prepare_rlm_org, after all feature provisioning (including personas at step 29)
       is complete, ensuring all referenced objects, fields, and components exist before
       UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
     steps:
@@ -4183,9 +4418,9 @@ flows:
     description: >
       Deploy persona metadata (profiles, permission set groups, permission sets) from
       unpackaged/post_personas and create the Sales Rep persona user (scratch and
-      non-scratch orgs). Gated by the personas feature flag. Runs as step 28 of
+      non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of
       prepare_rlm_org, before prepare_ux
-      (step 29), so that persona profile templates are assembled and deployed by
+      (step 30), so that persona profile templates are assembled and deployed by
       the UX assembler in the same pass.
     steps:
       1:

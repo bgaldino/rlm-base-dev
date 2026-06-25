@@ -25,9 +25,6 @@
                             <value>BillNow</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Account.RLM_Generate_Account_Statement</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>SuspendBilling</value>
                         </valueListItems>
                         <valueListItems>

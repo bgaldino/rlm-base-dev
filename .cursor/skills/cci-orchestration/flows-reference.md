@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**44 flows** across **5 groups**.
+**46 flows** across **5 groups**.
 
 ---
 
@@ -218,6 +218,17 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 ---
 
+### `prepare_collections`
+
+**Steps:**
+
+1. **task** `deactivate_collections_case_matrix`  `when: project_config.project__custom__collections`
+2. **task** `deploy_post_collections`  `when: project_config.project__custom__collections`
+3. **task** `seed_collections_case_matrix`  `when: project_config.project__custom__collections`
+4. **task** `deploy_collections_case_flow`  `when: project_config.project__custom__collections`
+
+---
+
 ### `prepare_constraints`
 
 **Steps:**
@@ -345,6 +356,19 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 
 ---
 
+### `prepare_inapp`
+
+Deploy the In-App Learning framework, assign its permission set, and load the navigation content
+
+**Steps:**
+
+1. **task** `deploy_post_inapp`  `when: project_config.project__custom__inapp`
+2. **task** `assign_permission_sets`  `when: project_config.project__custom__inapp`
+   - `api_names`: `['RLM_Learning']`
+3. **task** `load_inapp_dataset`  `when: project_config.project__custom__inapp`
+
+---
+
 ### `prepare_large_stx`
 
 **Steps:**
@@ -367,12 +391,15 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 5. **task** `publish_community`  `when: project_config.project__custom__payments`
    - `name`: `Payments Webhook`
 6. **task** `deploy_post_payments_settings`  `when: project_config.project__custom__payments`
+7. **task** `deploy_post_payments_ext`  `when: project_config.project__custom__payments`
+8. **task** `assign_permission_sets`  `when: project_config.project__custom__payments`
+   - `api_names`: `['RLM_Payments']`
 
 ---
 
 ### `prepare_personas`
 
-Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep persona user (scratch and non-scratch orgs). Gated by the personas feature flag. Runs as step 28 of prepare_rlm_org, before prepare_ux (step 29), so that persona profile templates are assembled and deployed by the UX assembler in the same pass.
+Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep persona user (scratch and non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of prepare_rlm_org, before prepare_ux (step 30), so that persona profile templates are assembled and deployed by the UX assembler in the same pass.
 
 **Steps:**
 
@@ -551,26 +578,28 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 11. **flow** `prepare_dro`
 12. **flow** `prepare_tax`
 13. **flow** `prepare_billing`
-14. **flow** `prepare_analytics`
-15. **flow** `prepare_clm`
-16. **flow** `prepare_rating`
-17. **task** `activate_and_deploy_expression_sets`
-18. **flow** `prepare_tso`
-19. **flow** `prepare_procedureplans`
-20. **flow** `prepare_prm`
-21. **flow** `prepare_agents`
-22. **flow** `prepare_constraints`
-23. **flow** `prepare_guidedselling`
-24. **flow** `prepare_revenue_settings`
-25. **flow** `prepare_pricing_discovery`
-26. **flow** `prepare_ramp_builder`
-27. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
-28. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
-29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-30. **flow** `prepare_scratch`
-31. **flow** `refresh_all_decision_tables`
-32. **task** `rebuild_search_index`
-33. **flow** `stamp_git_commit`
+14. **flow** `prepare_collections`  `when: project_config.project__custom__collections`
+15. **flow** `prepare_analytics`
+16. **flow** `prepare_clm`
+17. **flow** `prepare_rating`
+18. **task** `activate_and_deploy_expression_sets`
+19. **flow** `prepare_tso`
+20. **flow** `prepare_procedureplans`
+21. **flow** `prepare_prm`
+22. **flow** `prepare_agents`
+23. **flow** `prepare_constraints`
+24. **flow** `prepare_guidedselling`
+25. **flow** `prepare_revenue_settings`
+26. **flow** `prepare_pricing_discovery`
+27. **flow** `prepare_ramp_builder`
+28. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
+29. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
+30. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
+31. **flow** `prepare_inapp`  `when: project_config.project__custom__inapp`
+32. **flow** `prepare_scratch`
+33. **flow** `refresh_all_decision_tables`
+34. **task** `rebuild_search_index`
+35. **flow** `stamp_git_commit`
 
 ---
 
@@ -661,7 +690,7 @@ Retrieves live flexipages from the target org into unpackaged/post_ux/, then dif
 
 ### `prepare_ux`
 
-Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 29 of prepare_rlm_org, after all feature provisioning (including personas at step 28) is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
+Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 30 of prepare_rlm_org, after all feature provisioning (including personas at step 29) is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
 
 **Steps:**
 

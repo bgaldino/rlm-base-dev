@@ -29,7 +29,7 @@ force-app/             # Core SFDX metadata (deployed at step 5)
 unpackaged/pre/        # Pre-deploy metadata (fields, settings, PSGs, DTs)
 unpackaged/post_*/     # Feature-specific metadata bundles
 unpackaged/post_ux/    # ⚠ AUTO-GENERATED — never edit directly
-templates/             # Source-of-truth for UX assembly (step 29)
+templates/             # Source-of-truth for UX assembly (step 30)
 datasets/sfdmu/        # SFDMU data plans (export.json + CSVs)
 datasets/context_plans/# Context definition plans
 datasets/constraints/  # Configurator constraint rule data
@@ -46,7 +46,7 @@ scripts/build_harness/ # Build harness runner and TUI
 tasks/                 # Custom Python CCI task classes
 tests/                 # Shell-based integration test scripts
 robot/rlm-base/        # Robot Framework tests (setup + E2E)
-orgs/                  # Scratch org definition JSON files
+orgs/                  # Scratch org definition JSON files (TFID template shapes: orgs/tfid/README.md)
 postman/               # Postman collections for RLM APIs
 docs/                  # Documentation (lower-kebab-case filenames)
 ```
@@ -273,9 +273,11 @@ that topic.
 | Add new features, code placement | `.cursor/skills/repo-integration/SKILL.md` |
 | Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |
 | Wire pricing recipes/procedures/plans | `.cursor/skills/pricing-wiring/SKILL.md` |
+| Author/CRUD Expression Sets (pricing procedures, etc.) via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
 | Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |
 | Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
+| Maintain the In-App Learning framework (`inapp` integration) | `.cursor/skills/inapp-framework/SKILL.md` |
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | `.cursor/skills/schema-validation/SKILL.md` |
 | Consume PMOS content from Foundations (or vice versa) via cross-repo skill manifest | `.cursor/skills/pmos-integration/SKILL.md` |
@@ -325,6 +327,7 @@ Read the sub-file only when you need that specific detail:
 | `release-enablement/resume-enablement-work.md` | Release Enablement | Cross-workstation handoff — read when picking up enablement work in a fresh conversation. 4-step re-orientation + tool grants + restart prompt template |
 | `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
 | `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
+| `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
 
 ### File-Specific Rules (Cursor Only)
 
@@ -393,7 +396,6 @@ Placement:
 | `docs/references/` | Reference material (CCI tasks, permissions, decision tables) |
 | `docs/analysis/` | Technical analysis documents |
 | `docs/features/` | Feature design docs (UX assembly, E2E framework, etc.) |
-| `docs/archive/` | Historical/superseded documents |
 | `docs/api/` | API documentation and interactive viewers |
 | `docs/enablement/` | Hands-on exercises: `master/` (living source), `{version}/` (release extracts), `_template/` |
 | `docs/erds/` | ERD diagrams (Mermaid source + HTML viewer) |

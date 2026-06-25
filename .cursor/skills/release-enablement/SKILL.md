@@ -226,7 +226,7 @@ This skill plus the contents of `docs/enablement/`, `docs/salesforce/`, and `dat
 2. Agent inspects current state: `docs/enablement/coverage-matrix.md` and the `status:` field in each area file's frontmatter.
 3. Agent picks up next pending area or continues whatever was in progress.
 
-The `262-upgrade-plan.md` document already establishes a two-workstation pattern (personal + Salesforce). This skill extends that pattern to enablement work.
+The project already establishes a two-workstation pattern (personal + Salesforce). This skill extends that pattern to enablement work.
 
 ## Sub-Files
 

@@ -7,16 +7,19 @@
     "test": "sfdx-lwc-jest",
     "test:watch": "sfdx-lwc-jest --watch",
     "test:coverage": "sfdx-lwc-jest --coverage",
-    "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
-    "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
-    "lint": "eslint force-app/**/lwc/**/*.js unpackaged/**/lwc/**/*.js",
-    "lint:fix": "eslint force-app/**/lwc/**/*.js unpackaged/**/lwc/**/*.js --fix"
+    "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,yaml,yml}\"",
+    "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,yaml,yml}\"",
+    "lint": "eslint \"force-app/**/lwc/**/*.js\" \"unpackaged/**/lwc/**/*.js\"",
+    "lint:fix": "eslint \"force-app/**/lwc/**/*.js\" \"unpackaged/**/lwc/**/*.js\" --fix"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "devDependencies": {
     "@salesforce/eslint-config-lwc": "^4.1.2",
     "@salesforce/sfdx-lwc-jest": "^7.1.2",
     "eslint": "^9.39.4",
-    "prettier": "^3.8.1",
-    "prettier-plugin-apex": "^2.2.6"
+    "prettier": "^3.8.4",
+    "prettier-plugin-apex": "^2.3.0"
   }
 }

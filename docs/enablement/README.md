@@ -13,10 +13,10 @@ Hands-on enablement exercises for Salesforce Revenue Cloud (Agentforce Revenue M
 - **2 master exercises drafted** (PCM, Pricing) · **10 per-release 260 drafts complete** · **262 QB demo script drafted** (`docs/enablement/262/qb-demo-script.md`) · **Master Configurator + Transaction Mgmt + 6 more areas pending** · **262 per-area extracts pending** (deferred until master coverage broadens)
 - Standing customer accounts (Infinitech, Global Media) come from `scratch_data`; channel partner (Robot Resellers) comes from `qb-prm`; everything else from the QB data plans
 - All content is **markdown source**; rendered PDFs/Word for distribution come later
-- **Salesforce Help grounding for 262** uses the per-article markdown snapshot at `docs/salesforce/262/help/` (838 articles) — replaces the old per-release master Help PDFs
+- **Salesforce Help grounding for 262** uses the per-article markdown snapshot at `docs/salesforce/262/help/` (932 articles) — replaces the old per-release master Help PDFs
 - **Where to start your review** depends on your role — see [Reading paths by reviewer role](#reading-paths-by-reviewer-role) below
 
-> **Branch context:** This catalog now lives on `main` (Release 262). 260 is the **prior GA reference** and 262 (Summer '26) is the **current release cycle**. The 262 feature index is populated at [`../salesforce/262/feature-index.md`](../salesforce/262/feature-index.md) and the Help-portal snapshot lives at [`../salesforce/262/help/`](../salesforce/262/help/) (838 articles, replaces the prior per-release master Help PDFs). The `docs/enablement/262/` directory now contains the **262 QB demo script** ([`262/qb-demo-script.md`](262/qb-demo-script.md), generated 2026-05-24 via the [`qb-demo-script` SKILL](../../.cursor/skills/qb-demo-script/SKILL.md)); 262 per-area Hands-On extracts are still pending and will be derived from master coverage as it broadens.
+> **Branch context:** This catalog now lives on `main` (Release 262). 260 is the **prior GA reference** and 262 (Summer '26) is the **current release cycle**. The 262 feature index is populated at [`../salesforce/262/feature-index.md`](../salesforce/262/feature-index.md) and the Help-portal snapshot lives at [`../salesforce/262/help/`](../salesforce/262/help/) (932 articles, replaces the prior per-release master Help PDFs). The `docs/enablement/262/` directory now contains the **262 QB demo script** ([`262/qb-demo-script.md`](262/qb-demo-script.md), generated 2026-05-24 via the [`qb-demo-script` SKILL](../../.cursor/skills/qb-demo-script/SKILL.md)); 262 per-area Hands-On extracts are still pending and will be derived from master coverage as it broadens.
 
 ---
 
@@ -358,7 +358,7 @@ Project conventions that affect this work:
 | 📋 [262 Feature Index](../salesforce/262/feature-index.md) | What's new in 262 (preview) |
 | 🗂️ [260 Per-Release Drafts](260/) | All 10 area drafts for 260 |
 | 🎬 [262 QB Demo Script](262/qb-demo-script.md) | Per-release SE/partner demo script for 262 (preview, draft) |
-| 📚 [262 Help Snapshot](../salesforce/262/help/) | Per-article markdown mirror of help.salesforce.com for 262 (838 articles) |
+| 📚 [262 Help Snapshot](../salesforce/262/help/) | Per-article markdown mirror of help.salesforce.com for 262 (932 articles) |
 
 ---
 
