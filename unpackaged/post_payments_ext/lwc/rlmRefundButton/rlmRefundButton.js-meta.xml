@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
-    <apiVersion>66.0</apiVersion>
+    <apiVersion>67.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Issue Refund</masterLabel>
     <description>Issues a referenced refund against a Payment's outstanding balance via the in-org Payments API.</description>

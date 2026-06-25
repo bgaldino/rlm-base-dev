@@ -25,9 +25,6 @@ export default class RlmInvoiceAgingChart extends LightningElement {
     bucket60to90 = 0;
     bucket90plus = 0;
 
-    // For chart scaling
-    maxBucketValue = 1;
-
     @wire(graphql, {
         query: '$queryInvoices',
         variables: '$invoiceVariables'
@@ -153,7 +150,6 @@ export default class RlmInvoiceAgingChart extends LightningElement {
         this.bucket30to60 = b30to60;
         this.bucket60to90 = b60to90;
         this.bucket90plus = b90plus;
-        this.maxBucketValue = Math.max(b0to30, b30to60, b60to90, b90plus, 1);
     }
 
     get bar0to30Style() {
