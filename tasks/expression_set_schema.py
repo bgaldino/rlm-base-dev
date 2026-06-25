@@ -462,6 +462,20 @@ def validate_definition(defn: dict) -> ValidationResult:
             f"{sorted(RESOURCE_INIT_TYPES)}.",
         )
 
+    # Output-only fields (emitted by the Connect GET) are tolerated by a PATCH
+    # full-graph replace but should not be hand-maintained on an input payload —
+    # warn so authors don't carry them by hand (mirrors the version-level 'id'
+    # warning below).
+    present_output_only = OUTPUT_ONLY_TOP_LEVEL & defn.keys()
+    if present_output_only:
+        result.warn(
+            "(root)",
+            f"output-only field(s) {sorted(present_output_only)} present — these are "
+            "emitted by the Connect GET output and don't need to be hand-maintained on "
+            "an input payload (tolerated by a PATCH full-graph replace; the import task "
+            "doesn't require them).",
+        )
+
     versions = defn.get("versions")
     if not isinstance(versions, list) or not versions:
         result.error("(root).versions", "must be a non-empty list.")

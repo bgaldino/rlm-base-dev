@@ -156,6 +156,20 @@ def test_bad_usage_type_warns():
     check("unknown usageType warns not errors", r.passed and r.warnings)
 
 
+def test_output_only_top_level_warns():
+    # Output-only fields (id/error) emitted by the Connect GET are tolerated on
+    # an input payload (PATCH full-graph replace) but warned so authors don't
+    # hand-maintain them.
+    d = json.loads(json.dumps(MINIMAL_PRICING_DEF))
+    d["id"] = "0QM000000000000AAA"
+    d["error"] = None
+    r = validate_definition(d)
+    check(
+        "top-level output-only fields warn not error",
+        r.passed and _has_warning_containing(r, "output-only field"),
+    )
+
+
 def test_bad_step_type_errors():
     d = json.loads(json.dumps(MINIMAL_PRICING_DEF))
     d["versions"][0]["steps"][1]["stepType"] = "Bogus"
