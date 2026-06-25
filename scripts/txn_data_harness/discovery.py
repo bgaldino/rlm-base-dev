@@ -206,6 +206,13 @@ class OrgContext:
     # Draft -> Posted resume path doesn't fall back to the org's default
     # taxable treatment.
     non_taxable_tax_treatment_id: Optional[str] = None
+    # Default taxable ``TaxTreatment`` id, or ``None``. Stamped on
+    # ``InvoiceLine`` graph records that carry ``taxable: true`` and an
+    # accompanying ``InvoiceLineTax`` record on Posted ingestion. A scenario
+    # may pin a specific taxable treatment via
+    # ``invoice.taxable_tax_treatment_name``; the handler resolves that
+    # override directly and does not rely on this default.
+    taxable_tax_treatment_id: Optional[str] = None
 
     def default_account(self) -> Account:
         if not self.billing_ready_accounts:
@@ -277,6 +284,18 @@ _MULTI_CURRENCY_BY_ORG: dict[str, bool] = {}
 # value records a probe that returned zero rows so the second call does not
 # re-query.
 _NON_TAXABLE_TAX_TREATMENT_BY_ORG: dict[str, Optional[str]] = {}
+
+# Same shape, taxable variant. Populated lazily by
+# :func:`resolve_taxable_tax_treatment`; Posted ingestion with any
+# ``taxable: true`` line stamps the treatment on those InvoiceLine rows so
+# the related ``InvoiceLineTax`` records are accepted (the action otherwise
+# rejects with ``INVALID_API_INPUT: You can't specify a tax treatment with
+# the isTaxable value as false when the invoice line has a related
+# InvoiceLineTax record``).
+_TAXABLE_TAX_TREATMENT_BY_ORG: dict[str, Optional[str]] = {}
+# Same cache shape, keyed by ``(cache_key, name)`` so a scenario can pin a
+# specific taxable TaxTreatment via ``invoice.taxable_tax_treatment_name``.
+_TAXABLE_TAX_TREATMENT_BY_NAME: dict[tuple[str, str], Optional[str]] = {}
 
 
 def _org_cache_key(client: SfRestClient) -> Optional[str]:
@@ -413,6 +432,50 @@ def _resolve_default_contact_id(
         # First row wins per account (most recent CreatedDate).
         by_account.setdefault(r["AccountId"], r["Id"])
     return by_account
+
+
+def resolve_taxable_tax_treatment(
+    client: SfRestClient, name: Optional[str] = None
+) -> Optional[str]:
+    """Return the id of an Active taxable ``TaxTreatment``, or ``None``.
+
+    Mirrors :func:`resolve_non_taxable_tax_treatment`. Posted ingestion with
+    any ``taxable: true`` line stamps the returned id on the affected
+    ``InvoiceLine`` graph records so the related ``InvoiceLineTax`` records
+    are accepted -- without a taxable treatment stamp the action falls back
+    to the org's default treatment and rejects the payload with
+    ``INVALID_API_INPUT`` when the default is non-taxable (verified live
+    2026-06-25 on ``rlm-base__jun17_1``).
+
+    ``name`` pins a specific TaxTreatment (e.g. for a regional VAT demo);
+    when ``None`` we return the most-recently-created Active row so the
+    org's "default" taxable treatment is picked deterministically. Cached
+    per-(org, name) so repeat scenarios don't re-query.
+    """
+    cache_key = _org_cache_key(client)
+    if name:
+        if cache_key is not None and (cache_key, name) in _TAXABLE_TAX_TREATMENT_BY_NAME:
+            return _TAXABLE_TAX_TREATMENT_BY_NAME[(cache_key, name)]
+        rows = client.query(
+            "SELECT Id FROM TaxTreatment "
+            f"WHERE IsTaxable = true AND Status = 'Active' "
+            f"AND Name = '{_sql_escape(name)}' LIMIT 1"
+        )
+        treatment_id = rows[0]["Id"] if rows else None
+        if cache_key is not None:
+            _TAXABLE_TAX_TREATMENT_BY_NAME[(cache_key, name)] = treatment_id
+        return treatment_id
+    if cache_key is not None and cache_key in _TAXABLE_TAX_TREATMENT_BY_ORG:
+        return _TAXABLE_TAX_TREATMENT_BY_ORG[cache_key]
+    rows = client.query(
+        "SELECT Id FROM TaxTreatment "
+        "WHERE IsTaxable = true AND Status = 'Active' "
+        "ORDER BY CreatedDate DESC LIMIT 1"
+    )
+    treatment_id = rows[0]["Id"] if rows else None
+    if cache_key is not None:
+        _TAXABLE_TAX_TREATMENT_BY_ORG[cache_key] = treatment_id
+    return treatment_id
 
 
 def resolve_non_taxable_tax_treatment(client: SfRestClient) -> Optional[str]:
@@ -788,5 +851,6 @@ def discover(
         billing_ready_accounts=discover_accounts(client, account_name),
         products=discover_products(client, sku),
         non_taxable_tax_treatment_id=resolve_non_taxable_tax_treatment(client),
+        taxable_tax_treatment_id=resolve_taxable_tax_treatment(client),
     )
     return ctx

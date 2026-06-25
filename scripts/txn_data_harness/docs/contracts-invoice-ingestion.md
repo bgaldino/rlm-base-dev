@@ -1,10 +1,10 @@
 # Invoice Ingestion — Contracts
 
-> ✅ VERIFIED LIVE Draft and Posted (2026-06-25, `rlm-base__jun17_1`).
-> Posted requires an active non-taxable `TaxTreatment` seeded in the org
-> (see *Posted Path Prerequisites* below). Tax-on Posted ingestion
-> (`taxable: true` lines) still requires `InvoiceLineTax` graph records
-> and is rejected at parse time — see `followups.md`.
+> ✅ VERIFIED LIVE Draft, non-taxable Posted, and tax-on Posted
+> (2026-06-25, `rlm-base__jun17_1`). Posted requires an active non-taxable
+> `TaxTreatment` (see *Posted Path Prerequisites* below); tax-on Posted
+> additionally requires an active taxable `TaxTreatment` (see *Tax-on
+> Posted Path* below).
 
 The ingestion path bypasses the PST spine entirely. One POST to
 `/services/data/v67.0/commerce/invoicing/invoices/collection/actions/ingest` produces
@@ -135,9 +135,9 @@ The harness handles this in three places:
    PATCH fixup is not available; the operator must delete the Draft
    manifest and re-ingest after seeding.
 
-Tax-on Posted ingestion (lines with `taxable: true`) still requires
-`InvoiceLineTax` graph records and is rejected at parse time -- see
-`followups.md`.
+Tax-on Posted ingestion (lines with `taxable: true`) requires an additional
+active **taxable** `TaxTreatment` seed and ships explicit `InvoiceLineTax`
+graph records -- see *Tax-on Posted Path* below.
 
 ## Verified Posted shapes (non-taxable)
 
@@ -161,6 +161,80 @@ oldest active non-taxable `TaxTreatment` (deterministic via
 `ORDER BY CreatedDate ASC LIMIT 1`), even on the org that had two
 qualifying rows -- confirms the discovery tiebreaker is stable across
 seeding operations.
+
+## Tax-on Posted Path
+
+Scenarios with `taxable: true` lines ship an `InvoiceLineTax` graph record
+per taxable line in the same composite-graph POST. Live-verified against
+`rlm-base__jun17_1` (2026-06-25, scenario
+`scenarios/invoice_ingestion/15-standalone-billing-taxable.yaml`).
+
+**Prereqs.** Both `TaxTreatment` rows must be Active in the org:
+
+| Treatment | Selected by | Stamped on |
+| --------- | ----------- | ---------- |
+| `IsTaxable=false`, `Status=Active` | `discovery.resolve_non_taxable_tax_treatment` (oldest `CreatedDate`) | Every non-taxable `InvoiceLine` (Draft + Posted) |
+| `IsTaxable=true`, `Status=Active` | `discovery.resolve_taxable_tax_treatment` (most-recent `CreatedDate`; override via `invoice.taxable_tax_treatment_name`) | Every `taxable: true` `InvoiceLine` -- which then carries a related `InvoiceLineTax` row |
+
+`InvoiceIngestionHandler.resolve()` raises `LifecycleError` with seed
+instructions when any line is `taxable: true` and no taxable `TaxTreatment`
+is discoverable; `lifecycle.ingest_invoice` re-checks for belt-and-braces.
+
+**Per-line tax record shape (verified payload).** One `InvoiceLineTax`
+graph record per `taxable: true` `InvoiceLine`; non-taxable lines must NOT
+carry one (dev guide invariant, enforced by the lifecycle). The dev guide's
+Table 3 field name (`invoiceLine`) is **not** the wire name -- the live
+ingest endpoint takes `invoiceLineId` (matching the FK convention for every
+other `*Id` field in the graph). The harness ships `invoiceLineId` and the
+field-name fix is verified live on 2026-06-25.
+
+```jsonc
+{
+  "referenceId": "refInvoiceLineTax1",
+  "record": {
+    "attributes": { "type": "InvoiceLineTax", "method": "POST" },
+    "invoiceLineId": "@{refInvoiceLine1.id}",   // FK to InvoiceLine -- dev guide Table 3 shows `invoiceLine`, but live API requires the `Id` suffix
+    "taxTransactionNumber": "<run_id>-tx<idx>", // Required; defaults run-id-scoped
+    "taxDocumentNumber":    "<run_id>-doc",     // Required; defaults run-id-scoped
+    "taxAmount": 20.0, "taxRate": 0.08,
+    "taxName": "Sales Tax", "taxCode": "TX-SALES",
+    "taxEffectiveDate": "2026-06-25",           // Required; defaults to invoice_date
+    "taxExemptAmount": 0.0                      // Optional
+    // taxCalculationStatus deliberately OMITTED -- dev guide forbids Pending
+    // on the tax record; the invoice header is already
+    // taxCalculationStatus=Posted, so no override is required.
+  }
+}
+```
+
+**Tax-field sourcing precedence (line wins).**
+
+1. Per-line `tax:` block on `invoice_lines`.
+2. Scenario-level `tax:` defaults.
+3. Built-in fallbacks: `taxAmount = chargeAmount * rate` when `amount`
+   is unpinned; `taxTransactionNumber = <run_id>-tx<idx>`,
+   `taxDocumentNumber = <run_id>-doc`,
+   `taxEffectiveDate = invoice.invoice_date or today`.
+
+If only `amount` is resolvable across the merge (i.e. **neither** the line
+nor the scenario sets `rate`), the harness back-derives `rate` from
+`amount / chargeAmount` so the wire-level `taxRate` is always set. When
+both `amount` and `rate` end up non-None after the per-field merge, both
+ship verbatim -- no back-derive. If neither `amount` nor `rate` is
+resolvable, the handler raises before ingest.
+
+**Verified Posted tax shapes** (run `DEMO-20260625T224050Z`,
+`rlm-base__jun17_1`):
+
+| Shape | Invoice | Round-trip evidence |
+| ----- | ------- | ------------------- |
+| **Uniform 8% across both lines** | `3ttWI000000861pYAA`, `3ttWI000000863RYAQ` | 2 `InvoiceLine` rows; 2 `InvoiceLineTax` rows; `TaxAmount=20/16` (`8% * 250` and `8% * 200`); `Invoice.TotalTaxAmount=36`. |
+| **Mixed taxable + exempt on one invoice** | `3ttWI0000008653YAA` | 2 `InvoiceLine` rows; exactly 1 `InvoiceLineTax` row (`TaxAmount=40` on the taxable line); `Invoice.TotalTaxAmount=40`. Per-line `TaxTreatmentId` stamping: taxable line carries the taxable treatment id (`Default Tax Policy`), exempt line carries the non-taxable id (`Harness Non-Taxable`). |
+| **Per-line overrides: flat amount + high-rate** | `3ttWI000000866fYAA` | 2 `InvoiceLineTax` rows. Row 1: per-line `tax.amount=75` ships verbatim; `taxRate=0.08` stays at the scenario default (the harness only back-derives `rate` from `amount/chargeAmount` when scenario `rate` is also unset -- per-field merge, not whole-block override). Row 2: per-line `tax.rate=0.15` overrides the scenario default; `taxAmount=75` is computed as `qty * unit_price * rate = 2 * 250 * 0.15`. `taxName='VAT'`, `taxCode='VAT-EU'` on both. `Invoice.TotalTaxAmount=150`. |
+
+All three invoices settled `Status='Posted'`, `CreationMode='External'`,
+`TotalTaxAmount` equal to the sum of related `InvoiceLineTax.TaxAmount`
+rows.
 
 ## Side-effects (verified absent)
 

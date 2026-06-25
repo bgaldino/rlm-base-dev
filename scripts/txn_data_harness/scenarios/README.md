@@ -51,8 +51,9 @@ Scenarios are grouped by [`kind`](#fields-by-kind) under one subfolder each:
 | File | Stage | Volume | What it's for |
 | ---- | ----- | ------ | -------------- |
 | `15-standalone-billing-draft.yaml` | `invoice_draft` (ingest) | 5 | **Standalone billing path** — `kind: invoice_ingestion`. Skips the PST chain entirely; each transaction is a single typed Composite-Graph `POST` to `/commerce/invoicing/.../actions/ingest` that creates a **Draft** invoice (`CreationMode = External`) directly. Targets a billing-ready account (Infinitech) and a pipeline-only account (Global Media) to exercise the no-BillingAccount path. Every line is non-taxable in the supported config. Live-verified on R262 — see [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). Draft ingested invoices are deletable. |
-| `15-standalone-billing.yaml` | `invoice_posted` (ingest) | 5 | Same ingest path as the Draft scenario above, but `target_stage: invoice_posted` — mints a Posted invoice directly. **Prereq:** the org must have an active non-taxable `TaxTreatment` (`IsTaxable=false`, `Status=Active`); the harness discovers it at bootstrap and stamps `taxTreatmentId` on every line. Without one, `ingest_invoice` raises `LifecycleError` with seed instructions (see the scenario YAML header). Tax-on Posted ingestion (`taxable: true` lines) still requires `InvoiceLineTax` graph records and is rejected at parse time — see [`../docs/followups.md`](../docs/followups.md). Live-verified on R262 — see [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). Posted ingested invoices are not deletable. |
+| `15-standalone-billing.yaml` | `invoice_posted` (ingest) | 5 | Same ingest path as the Draft scenario above, but `target_stage: invoice_posted` — mints a Posted invoice directly. **Prereq:** the org must have an active non-taxable `TaxTreatment` (`IsTaxable=false`, `Status=Active`); the harness discovers it at bootstrap and stamps `taxTreatmentId` on every line. Without one, `ingest_invoice` raises `LifecycleError` with seed instructions (see the scenario YAML header). Every line is non-taxable in this scenario; tax-on Posted lives in `15-standalone-billing-taxable.yaml`. Live-verified on R262 — see [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). Posted ingested invoices are not deletable. |
 | `15-standalone-billing-expanded.yaml` | `invoice_posted` (ingest) | 4 | Companion stress scenario for the non-taxable Posted path. Same prereq as `15-standalone-billing.yaml` (active non-taxable `TaxTreatment`). Exercises shapes the canonical smoke doesn't: multi-line invoices, the `charge_amount` override (line bills at the override, not `quantity × unit_price`), per-line `description` + `line_start_date`/`line_end_date`, invoice-level `currency` override on a multi-currency org (EUR on a USD account), and explicit `invoice_date`/`due_date`/`posted_date` (not derived from defaults). Live-verified on R262 — see the **Verified Posted shapes** section in [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). |
+| `15-standalone-billing-taxable.yaml` | `invoice_posted` (ingest) | 4 | **Tax-on Posted** — each `taxable: true` line ships its own `InvoiceLineTax` graph record in the same composite-graph POST. **Prereqs:** both an active non-taxable `TaxTreatment` (stamped on non-taxable lines) and an active taxable `TaxTreatment` (stamped on taxable lines, picked by `discovery.resolve_taxable_tax_treatment` with most-recent `CreatedDate`; override via `invoice.taxable_tax_treatment_name`). Covers uniform-rate, mixed taxable+exempt on one invoice, and per-line tax overrides (flat amount, different jurisdiction/rate). Live-verified on R262 — see the **Tax-on Posted Path** section in [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). |
 
 These are tuned for the **QuantumBit (QB)** demo org. The only values that are
 org-specific are the **account names** (`Infinitech`, `Global Media`) and the
@@ -189,14 +190,27 @@ Quote, no Order, no Asset, no BillingSchedule.
   `TaxTreatment` in the org (`IsTaxable=false`, `Status=Active`); the
   harness discovers it at bootstrap and stamps `InvoiceLine.taxTreatmentId`
   on every line. Without one, `ingest_invoice` raises `LifecycleError`
-  with seed instructions. Tax-on Posted ingestion (lines with
-  `taxable: true`) still requires `InvoiceLineTax` graph records and is
-  rejected at parse time — see [`../docs/followups.md`](../docs/followups.md).
-- **Line model:** the kind uses a **typed line shape** — `invoice_lines: [{name, sku?, quantity, unit_price, charge_amount?, line_start_date?, line_end_date?, taxable?, description?}, …]`.
-  At least one line is required.
-- **Invoice-level overrides:** `invoice: {invoice_date?, due_date?, posted_date?, currency?, description?, should_calculate_tax?, tax_calculation_status?}`.
-  Setting `should_calculate_tax: true` is rejected at parse time (same tax
-  invariant as Posted).
+  with seed instructions. Tax-on Posted ingestion (`taxable: true` lines)
+  additionally requires an active taxable `TaxTreatment` and ships
+  `InvoiceLineTax` graph records — see
+  [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md)
+  → *Tax-on Posted Path*.
+- **Line model:** the kind uses a **typed line shape** —
+  `invoice_lines: [{name, sku?, quantity, unit_price, charge_amount?, line_start_date?, line_end_date?, taxable?, description?, tax? }, …]`.
+  At least one line is required. The optional `tax:` block on a line is
+  `{amount?, rate?, name?, code?, effective_date?, transaction_number?, document_number?, exempt_amount?, description?}`
+  and overrides any scenario-level `tax:` defaults.
+- **Invoice-level overrides:** `invoice: {invoice_date?, due_date?, posted_date?, currency?, description?, should_calculate_tax?, tax_calculation_status?, taxable_tax_treatment_name?}`.
+  Setting `should_calculate_tax: true` is rejected at parse time (the
+  harness ships explicit `InvoiceLineTax` records instead of asking the
+  server to compute tax). `taxable_tax_treatment_name` pins which active
+  taxable `TaxTreatment` to stamp on `taxable: true` lines; absent, the
+  harness auto-discovers the most-recently-created one.
+- **Scenario-level `tax:` defaults:**
+  `tax: {amount?, rate?, name?, code?, effective_date?, transaction_number?, document_number?, exempt_amount?}`.
+  Inherited by every `taxable: true` line in the scenario; per-line `tax:`
+  blocks override individual fields. If neither `tax.amount` nor
+  `tax.rate` is resolvable on a taxable line, the handler raises.
 - **Forbidden fields** (rejected at parse time, with a hint pointing at
   `sales_txn_quote`): `with_opportunity`, `opportunity_stage`, `products`,
   `product`, `quantity`, `discount`, `start_date`, `term`, `end_date`,

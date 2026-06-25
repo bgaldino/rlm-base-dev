@@ -26,8 +26,15 @@ import logging
 import time
 from typing import Any, ClassVar, Optional
 
+from datetime import date
+
 from ..auth import SfRestClient
-from ..config import InvoiceIngestionScenarioSpec, InvoiceLineSpec
+from ..config import (
+    InvoiceIngestionScenarioSpec,
+    InvoiceLineSpec,
+    LineTaxSpec,
+    ScenarioTaxDefaults,
+)
 from ..discovery import (
     Account,
     DiscoveryError,
@@ -35,15 +42,18 @@ from ..discovery import (
     discover_any_accounts,
     resolve_account,
     resolve_invoice_line_product,
+    resolve_taxable_tax_treatment,
 )
 from ..manifests import write_manifest
 from ..models import (
     Manifest,
     ResolvedInvoiceIngestionSpec,
     ResolvedInvoiceLine,
+    ResolvedInvoiceLineTax,
     ResolvedInvoiceOverrides,
 )
 from ..failure import classify_exception
+from ..lifecycle import LifecycleError
 from ..runner import _retry_backoff, current_run_id
 from ..steps import StepContext, execute_step
 
@@ -72,17 +82,48 @@ _STAGE_INDEX = {
 
 
 def _resolve_invoice_line(
-    client: SfRestClient, spec: InvoiceLineSpec
+    client: SfRestClient,
+    spec: InvoiceLineSpec,
+    *,
+    line_index: int,
+    target_stage: str,
+    run_id: str,
+    tax_defaults: Optional[ScenarioTaxDefaults],
+    invoice_date: date,
 ) -> ResolvedInvoiceLine:
     """Resolve one config line into its post-resolve dataclass.
 
     ``sku`` is optional on the API; a SKU that doesn't match an active
     Product2 falls through to a description-only line (no ``product2Id``).
     The harness must never invent a product id, so this stays a soft-lookup.
+
+    For ``taxable: true`` lines on Posted target, builds a
+    :class:`ResolvedInvoiceLineTax` from the merged
+    (``scenario.tax`` defaults + ``line.tax`` overrides) block. Required
+    fields fall back to deterministic per-run defaults so a minimal
+    scenario (``taxable: true`` + a scenario-level ``rate``) generates a
+    valid payload without re-declaring every field.
     """
     product = (
         resolve_invoice_line_product(client, spec.sku) if spec.sku else None
     )
+    unit_price = float(spec.unit_price)
+    quantity = float(spec.quantity)
+    charge_amount = (
+        float(spec.charge_amount)
+        if spec.charge_amount is not None
+        else unit_price * quantity
+    )
+    tax_record: Optional[ResolvedInvoiceLineTax] = None
+    if spec.taxable and target_stage == "invoice_posted":
+        tax_record = _resolve_invoice_line_tax(
+            line=spec,
+            line_index=line_index,
+            run_id=run_id,
+            charge_amount=charge_amount,
+            tax_defaults=tax_defaults,
+            invoice_date=invoice_date,
+        )
     return ResolvedInvoiceLine(
         name=spec.name,
         quantity=spec.quantity,
@@ -94,6 +135,116 @@ def _resolve_invoice_line(
         line_end_date=spec.line_end_date,
         taxable=spec.taxable,
         description=spec.description,
+        tax=tax_record,
+    )
+
+
+def _merged_tax_value(
+    field: str,
+    line_tax: Optional[LineTaxSpec],
+    defaults: Optional[ScenarioTaxDefaults],
+) -> Any:
+    """Return the first non-None ``field`` across line-spec then scenario-default.
+
+    Per-line override wins over scenario default; either ``None`` means the
+    handler will reach for its built-in fallback (run-id-derived numbers,
+    invoice date, etc.).
+    """
+    if line_tax is not None:
+        v = getattr(line_tax, field, None)
+        if v is not None:
+            return v
+    if defaults is not None:
+        return getattr(defaults, field, None)
+    return None
+
+
+def _resolve_invoice_line_tax(
+    *,
+    line: InvoiceLineSpec,
+    line_index: int,
+    run_id: str,
+    charge_amount: float,
+    tax_defaults: Optional[ScenarioTaxDefaults],
+    invoice_date: date,
+) -> ResolvedInvoiceLineTax:
+    """Build a :class:`ResolvedInvoiceLineTax` from merged scenario + line tax.
+
+    ``taxAmount`` precedence: per-line ``amount`` > scenario ``amount`` >
+    ``chargeAmount * rate`` (per-line ``rate`` overrides scenario rate). At
+    least one of ``amount`` or ``rate`` must be present on the merged
+    config; otherwise we can't compute a tax record without inventing data.
+
+    ``taxRate`` is required by the dev guide. When only ``amount`` is
+    pinned we back-derive the rate from ``amount / chargeAmount`` (or 0
+    when chargeAmount is 0) so the record stays valid.
+    """
+    line_tax = line.tax
+
+    rate = _merged_tax_value("rate", line_tax, tax_defaults)
+    amount = _merged_tax_value("amount", line_tax, tax_defaults)
+    if amount is None and rate is None:
+        raise LifecycleError(
+            "ingest_invoice",
+            f"invoice_lines[{line_index}]: taxable line requires either a "
+            f"scenario-level 'tax.rate' / 'tax.amount' default or a per-line "
+            f"'tax:' block with at least one of them",
+        )
+    if amount is None:
+        amount = round(float(charge_amount) * float(rate), 4)
+    elif rate is None:
+        rate = (
+            round(float(amount) / float(charge_amount), 6)
+            if charge_amount > 0
+            else 0.0
+        )
+
+    name = _merged_tax_value("name", line_tax, tax_defaults)
+    if not name:
+        raise LifecycleError(
+            "ingest_invoice",
+            f"invoice_lines[{line_index}]: taxable line requires 'tax.name' "
+            f"(e.g. 'Sales Tax') on the line or as a scenario default",
+        )
+    code = _merged_tax_value("code", line_tax, tax_defaults)
+    if not code:
+        raise LifecycleError(
+            "ingest_invoice",
+            f"invoice_lines[{line_index}]: taxable line requires 'tax.code' "
+            f"(e.g. 'TX-SALES') on the line or as a scenario default",
+        )
+
+    effective_date = (
+        _merged_tax_value("effective_date", line_tax, tax_defaults)
+        or invoice_date
+    )
+
+    # Required ID fields: pin if the scenario set them; otherwise leave None
+    # and let ``lifecycle.ingest_invoice`` stamp ``{run_id}-tx{idx}`` /
+    # ``{run_id}-doc`` defaults where the real run id is in scope. (The
+    # handler's ``resolve()`` runs in the main thread before each worker
+    # sets its run-id ContextVar, so we'd see the "-" default here.)
+    transaction_number = (
+        line_tax.transaction_number if line_tax and line_tax.transaction_number
+        else None
+    )
+    document_number = _merged_tax_value("document_number", line_tax, tax_defaults)
+
+    exempt_amount = _merged_tax_value("exempt_amount", line_tax, tax_defaults)
+    description = (
+        line_tax.description if line_tax and line_tax.description else None
+    )
+
+    return ResolvedInvoiceLineTax(
+        amount=float(amount),
+        rate=float(rate),
+        name=str(name),
+        code=str(code),
+        effective_date=effective_date,
+        transaction_number=str(transaction_number) if transaction_number else None,
+        document_number=str(document_number) if document_number else None,
+        exempt_amount=float(exempt_amount) if exempt_amount is not None else 0.0,
+        description=description,
     )
 
 
@@ -236,21 +387,81 @@ class InvoiceIngestionHandler:
         :class:`ResolvedInvoiceLine` whose optional Product2 binding is
         looked up via :func:`resolve_invoice_line_product` (a SKU miss
         falls through to a description-only line).
+
+        When any line has ``taxable: true`` on Posted target, the handler
+        resolves a taxable ``TaxTreatment`` id (auto-discovered, or pinned
+        via ``invoice.taxable_tax_treatment_name``) and a fully-resolved
+        :class:`ResolvedInvoiceLineTax` per taxable line. Missing
+        prerequisites surface here with seed instructions rather than from
+        the lifecycle.
         """
         if spec.account:
             account = resolve_account(client, spec.account)
         else:
             account = _default_account(ctx, client)
+        run_id = current_run_id.get() or "DEMO"
+        # Deterministic per-scenario invoice date for tax effective-date
+        # defaults. The lifecycle re-derives the actual invoiceDate header the
+        # same way (``spec.invoice_date or date.today()``), so the fallback
+        # used in the tax record matches the invoice header when neither is
+        # pinned.
+        invoice_date = (
+            spec.invoice.invoice_date
+            if spec.invoice and spec.invoice.invoice_date
+            else date.today()
+        )
         resolved_lines = [
-            _resolve_invoice_line(client, ln) for ln in spec.invoice_lines
+            _resolve_invoice_line(
+                client,
+                ln,
+                line_index=i,
+                target_stage=spec.target_stage,
+                run_id=run_id,
+                tax_defaults=spec.tax,
+                invoice_date=invoice_date,
+            )
+            for i, ln in enumerate(spec.invoice_lines)
         ]
         overrides = _resolve_invoice_overrides(spec)
+
+        taxable_tt_id: Optional[str] = None
+        if any(ln.taxable for ln in resolved_lines):
+            pinned_name = (
+                spec.invoice.taxable_tax_treatment_name
+                if spec.invoice and spec.invoice.taxable_tax_treatment_name
+                else None
+            )
+            if pinned_name:
+                taxable_tt_id = resolve_taxable_tax_treatment(client, pinned_name)
+                if taxable_tt_id is None:
+                    raise LifecycleError(
+                        "ingest_invoice",
+                        f"no Active taxable TaxTreatment named "
+                        f"'{pinned_name}' (need Status=Active and IsTaxable=true). "
+                        f"Create one or pin a different invoice.taxable_tax_treatment_name.",
+                    )
+            else:
+                taxable_tt_id = ctx.taxable_tax_treatment_id or (
+                    resolve_taxable_tax_treatment(client)
+                )
+                if taxable_tt_id is None:
+                    raise LifecycleError(
+                        "ingest_invoice",
+                        "tax-on Posted ingestion requires an active taxable "
+                        "TaxTreatment in the org. Create one in Setup -> Tax "
+                        "Treatments with IsTaxable=true and Status=Active "
+                        "(or via 'sf data create record --sobject TaxTreatment "
+                        "--values \"Name=Default Tax Policy IsTaxable=true "
+                        "Status=Active TaxCode=TX-SALES\"'), then re-run.",
+                    )
+
         return ResolvedInvoiceIngestionSpec(
             spec=spec,
             account=account,
             invoice_lines=resolved_lines,
             invoice_overrides=overrides,
             effective_stage=self.effective_stage(spec.target_stage, account),
+            taxable_tax_treatment_id=taxable_tt_id,
         )
 
     def run(
@@ -292,6 +503,7 @@ class InvoiceIngestionHandler:
             target_stage=resolved.spec.target_stage,
             invoice_lines=resolved.invoice_lines,
             invoice_spec=resolved.invoice_overrides,
+            taxable_tax_treatment_id=resolved.taxable_tax_treatment_id,
         )
         attempt = 0
         while True:

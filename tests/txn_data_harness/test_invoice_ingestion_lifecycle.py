@@ -247,25 +247,30 @@ def test_ingest_invoice_tax_invariant_rejects_should_calculate_tax(
     fake_client, billable_account
 ) -> None:
     overrides = ResolvedInvoiceOverrides(should_calculate_tax=True)
-    with pytest.raises(LifecycleError, match="requires shouldCalculateTax=false"):
+    with pytest.raises(LifecycleError, match="shouldCalculateTax=true"):
         ingest_invoice(
             fake_client, billable_account, _basic_lines(), "DEMO",
             invoice_spec=overrides,
         )
 
 
-def test_ingest_invoice_phase1_tax_invariant_rejects_taxable_line_on_posted(
+def test_ingest_invoice_posted_taxable_requires_taxable_tax_treatment(
     fake_client, billable_account
 ) -> None:
+    """A taxable line on Posted without a taxable TaxTreatment id must fail
+    loudly with seed instructions (the handler is meant to catch this at
+    resolve-time, but the lifecycle keeps a belt-and-braces check)."""
     taxable_line = ResolvedInvoiceLine(
         name="Taxed", quantity=1, unit_price=10.0, taxable=True
     )
-    with pytest.raises(LifecycleError, match="taxable=true lines are not allowed"):
+    with pytest.raises(LifecycleError, match="taxable TaxTreatment"):
         ingest_invoice(
             fake_client, billable_account, [taxable_line], "DEMO",
             status="Posted",
             tax_treatment_id="1ttNONTAX",
+            taxable_tax_treatment_id=None,
         )
+    assert fake_client.posts == []
 
 
 def test_ingest_invoice_posted_without_tax_treatment_raises(
@@ -311,6 +316,161 @@ def test_ingest_invoice_draft_stamps_tax_treatment_when_provided(
     assert line_records
     for rec in line_records:
         assert rec["taxTreatmentId"] == "1ttNONTAX"
+
+
+def test_ingest_invoice_posted_emits_invoice_line_tax_per_taxable_line(
+    fake_client, billable_account
+) -> None:
+    """Posted ingestion of a mixed payload stamps the taxable treatment on
+    taxable lines, the non-taxable treatment on non-taxable lines, and emits
+    exactly one ``InvoiceLineTax`` graph record per taxable line."""
+    from scripts.txn_data_harness.models import ResolvedInvoiceLineTax
+
+    fake_client.post_responses.append({
+        "invoices": [{"invoiceId": "1nvMIX", "success": True, "statusURL": "/sURL"}]
+    })
+    fake_client.get_responses.append({"Status": "Completed"})
+    fake_client.query_responses.append([{"InvoiceNumber": "INV-MIX-1"}])
+    fake_client.query_responses.append([{"Id": "iln1"}, {"Id": "iln2"}])
+
+    taxable = ResolvedInvoiceLine(
+        name="Taxed",
+        quantity=2,
+        unit_price=50.0,
+        taxable=True,
+        tax=ResolvedInvoiceLineTax(
+            amount=8.0,
+            rate=0.08,
+            name="Sales Tax",
+            code="TX-SALES",
+            effective_date=date(2026, 6, 25),
+            transaction_number="DEMO-MIX-tx0",
+            document_number="DEMO-MIX-doc",
+        ),
+    )
+    exempt = ResolvedInvoiceLine(
+        name="Exempt",
+        quantity=1,
+        unit_price=100.0,
+        taxable=False,
+    )
+
+    ingest_invoice(
+        fake_client, billable_account, [taxable, exempt], "DEMO-MIX",
+        status="Posted",
+        tax_treatment_id="1ttNONTAX",
+        taxable_tax_treatment_id="1ttTAX",
+    )
+
+    records = fake_client.posts[0][1]["invoices"][0]["graph"]["records"]
+    line_records = [
+        r["record"] for r in records
+        if r["record"]["attributes"].get("type") == "InvoiceLine"
+    ]
+    tax_records = [
+        r["record"] for r in records
+        if r["record"]["attributes"].get("type") == "InvoiceLineTax"
+    ]
+    assert len(line_records) == 2
+    # Per-line stamping: taxable line gets the taxable treatment id; the
+    # exempt line gets the non-taxable one.
+    assert line_records[0]["taxTreatmentId"] == "1ttTAX"
+    assert line_records[1]["taxTreatmentId"] == "1ttNONTAX"
+    # Exactly one InvoiceLineTax record, referencing the taxable InvoiceLine
+    # by its referenceId.
+    assert len(tax_records) == 1
+    tax = tax_records[0]
+    assert tax["invoiceLineId"] == "@{refInvoiceLine1.id}"
+    assert tax["taxAmount"] == 8.0
+    assert tax["taxRate"] == 0.08
+    assert tax["taxName"] == "Sales Tax"
+    assert tax["taxCode"] == "TX-SALES"
+    assert tax["taxEffectiveDate"] == "2026-06-25"
+    assert tax["taxTransactionNumber"] == "DEMO-MIX-tx0"
+    assert tax["taxDocumentNumber"] == "DEMO-MIX-doc"
+    # Dev guide: InvoiceLineTax must NOT carry taxCalculationStatus=Pending.
+    # The harness omits the field entirely on the tax record.
+    assert "taxCalculationStatus" not in tax
+    # Top-level invoice envelope still says shouldCalculateTax=false (we ship
+    # explicit tax) and the Posted invariant taxCalculationStatus=Posted.
+    inv = fake_client.posts[0][1]["invoices"][0]
+    assert inv["shouldCalculateTax"] is False
+    assert inv["taxCalculationStatus"] == "Posted"
+
+
+def test_ingest_invoice_rejects_tax_record_on_non_taxable_line(
+    fake_client, billable_account
+) -> None:
+    """Dev guide forbids InvoiceLineTax on nontaxable lines -- belt-and-braces."""
+    from scripts.txn_data_harness.models import ResolvedInvoiceLineTax
+
+    bad = ResolvedInvoiceLine(
+        name="Exempt-with-tax",
+        quantity=1,
+        unit_price=100.0,
+        taxable=False,
+        tax=ResolvedInvoiceLineTax(
+            amount=8.0, rate=0.08, name="Sales Tax", code="TX-SALES",
+            effective_date=date(2026, 6, 25),
+            transaction_number="x", document_number="d",
+        ),
+    )
+    with pytest.raises(LifecycleError, match="non-taxable line"):
+        ingest_invoice(
+            fake_client, billable_account, [bad], "DEMO-BAD",
+            status="Posted",
+            tax_treatment_id="1ttNONTAX",
+            taxable_tax_treatment_id="1ttTAX",
+        )
+    assert fake_client.posts == []
+
+
+def test_ingest_invoice_stamps_run_id_defaults_on_unpinned_tax_ids(
+    fake_client, billable_account
+) -> None:
+    """``transaction_number``/``document_number`` default to ``{run_id}-tx{idx}``/
+    ``{run_id}-doc`` when the resolver leaves them None.
+
+    The handler's ``resolve()`` runs before each worker sets its run-id
+    ContextVar, so it deliberately punts these to lifecycle. Live-verified:
+    without the lifecycle-side default, the InvoiceLineTax rows came back
+    with ``TaxTransactionNumber='--tx0'``.
+    """
+    from scripts.txn_data_harness.models import ResolvedInvoiceLineTax
+
+    fake_client.post_responses.append({
+        "invoices": [{"invoiceId": "1nvRUN", "success": True, "statusURL": "/sURL"}]
+    })
+    fake_client.get_responses.append({"Status": "Completed"})
+    fake_client.query_responses.append([{"InvoiceNumber": "INV-RUN-1"}])
+    fake_client.query_responses.append([{"Id": "iln1"}])
+
+    taxable = ResolvedInvoiceLine(
+        name="Taxed",
+        quantity=1,
+        unit_price=100.0,
+        taxable=True,
+        tax=ResolvedInvoiceLineTax(
+            amount=8.0, rate=0.08, name="Sales Tax", code="TX-SALES",
+            effective_date=date(2026, 6, 25),
+            # transaction_number / document_number deliberately unset --
+            # lifecycle should fill them with run_id-derived defaults.
+        ),
+    )
+    ingest_invoice(
+        fake_client, billable_account, [taxable], "DEMO-RUN",
+        status="Posted",
+        tax_treatment_id="1ttNONTAX",
+        taxable_tax_treatment_id="1ttTAX",
+    )
+
+    records = fake_client.posts[0][1]["invoices"][0]["graph"]["records"]
+    tax = next(
+        r["record"] for r in records
+        if r["record"]["attributes"].get("type") == "InvoiceLineTax"
+    )
+    assert tax["taxTransactionNumber"] == "DEMO-RUN-tx1"
+    assert tax["taxDocumentNumber"] == "DEMO-RUN-doc"
 
 
 def test_ingest_invoice_action_failure_surfaces(fake_client, billable_account) -> None:
@@ -482,7 +642,7 @@ def test_run_ingest_invoice_writes_draft_manifest(
 ) -> None:
     captured = {}
 
-    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, timeout):
+    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, taxable_tax_treatment_id, timeout):
         captured["status"] = status
         return "1nvDRAFT", None, ["iln1"]
 
@@ -504,7 +664,7 @@ def test_run_ingest_invoice_writes_posted_manifest(
 ) -> None:
     captured = {}
 
-    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, timeout):
+    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, taxable_tax_treatment_id, timeout):
         captured["status"] = status
         captured["tax_treatment_id"] = tax_treatment_id
         return "1nvPOST", "INV-0042", ["iln1", "iln2"]

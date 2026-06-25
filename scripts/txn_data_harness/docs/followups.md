@@ -43,30 +43,9 @@ placeholders or explicitly labeled QB example data.
 
 ### Standalone-billing Posted ingestion
 
-Posted ingestion is live-verified end-to-end against a non-taxable
-`TaxTreatment` (2026-06-25, `rlm-base__jun17_1`). Tax-on Posted
-ingestion -- lines that should carry their own `InvoiceLineTax` --
-still needs the tax graph record implemented. Remaining gaps below.
-
-- `[probe]` **Tax-on Posted ingestion via `InvoiceLineTax` graph records.**
-  The dev guide
-  (`../../../docs/salesforce/262/dev-guide/articles/connect_requests_graph_record_input.htm.md`,
-  Table 3) defines a tax graph record with seven Required fields
-  (`taxTransactionNumber`, `taxAmount`, `taxRate`, `taxName`, `taxCode`,
-  `taxEffectiveDate`, `invoiceLine`, `taxDocumentNumber`). The current
-  harness rejects `taxable: true` lines at parse time on Posted target;
-  lifting that gate is the canonical follow-on. Open design questions:
-  - Where do `taxAmount` / `taxRate` come from in a generated-data context? Pinned
-    via a scenario override (`tax_rate: 0.08`) and the harness computes
-    `taxAmount`, or fully scripted (line-level `tax: {amount, rate, name, code}`)?
-  - Should the scenario stamp `InvoiceLine.taxTreatmentId` with a taxable
-    treatment (e.g. the default `Default Tax Policy`) instead of the
-    non-taxable one the standard path uses?
-  - Per the dev guide, the `invoiceLineTax` graph record **must not** include
-    `taxCalculationStatus = Pending` — confirm whether the harness needs to flip
-    the invoice's `taxCalculationStatus` to `Posted` automatically when any line
-    carries an InvoiceLineTax, or whether the scenario must do so.
-  - Ref: dev guide Table 3, *Tax Record*.
+Posted ingestion is live-verified end-to-end against both non-taxable
+and tax-on payloads (2026-06-25, `rlm-base__jun17_1`). Remaining gaps
+below.
 
 - `[probe]` **Composite Batch / multi-invoice per request.** The ingest action
   accepts an `invoices[]` array (`"invoices": [...]`); today the harness ships
@@ -325,6 +304,20 @@ design decision.
   helper accepts a `category_enum` argument for future amendment / renewal
   callers. Contract anchor:
   `contracts-sales-txn-quote.md` → *Asset attribution*.
+
+- **Tax-on Posted ingestion via `InvoiceLineTax` graph records.** Live-verified
+  on `rlm-base__jun17_1` (2026-06-25, run `DEMO-20260625T224050Z`): 4 Posted
+  invoices, 7 related `InvoiceLineTax` rows, taxable + exempt + mixed +
+  per-line override shapes. Three API-shape surprises uncovered and pinned:
+  (1) the dev-guide Table 3 field name `invoiceLine` is wrong on the wire --
+  the live ingest endpoint requires `invoiceLineId`; (2) `Invoice` has no
+  queryable `TaxCalculationStatus` column despite the field being writable on
+  ingest; (3) `taxTransactionNumber` / `taxDocumentNumber` default
+  to `{run_id}-tx{idx}` / `{run_id}-doc` and must be stamped in lifecycle
+  (not in the handler's `resolve()`, which runs before the per-scenario
+  run-id ContextVar is set). Contract anchor:
+  `contracts-invoice-ingestion.md` → *Tax-on Posted Path*. Reference scenario:
+  `scenarios/invoice_ingestion/15-standalone-billing-taxable.yaml`.
 
 ---
 

@@ -297,6 +297,36 @@ class ResolvedSpec:
 
 
 @dataclass
+class ResolvedInvoiceLineTax:
+    """Fully-resolved ``InvoiceLineTax`` record for one Posted-with-tax line.
+
+    Every field maps 1:1 to the dev-guide-Required ``InvoiceLineTax`` graph
+    record fields (R262/v67.0, Table 3). The handler resolves a
+    :class:`LineTaxSpec` (merged over the scenario's
+    :class:`ScenarioTaxDefaults`) into this concrete record before the
+    lifecycle ships the payload. Required fields are non-Optional here:
+    the resolver raises before we get to ingest_invoice if anything is
+    missing, so lifecycle.py can rely on the values.
+    """
+
+    amount: float
+    rate: float
+    name: str
+    code: str
+    effective_date: date
+    # ``transaction_number`` / ``document_number`` are Required by the dev guide
+    # but the harness deliberately leaves them None at resolve time when the
+    # scenario doesn't pin them: per-run defaults derived from ``run_id`` land
+    # later in ``lifecycle.ingest_invoice``, where the real run id is in scope
+    # (the handler's ``resolve()`` runs at batch-prep time before each worker
+    # thread sets its run-id ContextVar, so it can't see the per-scenario id).
+    transaction_number: Optional[str] = None
+    document_number: Optional[str] = None
+    exempt_amount: float = 0.0
+    description: Optional[str] = None
+
+
+@dataclass
 class ResolvedInvoiceLine:
     """One InvoiceLine on an ingested invoice, with optional Product2 binding.
 
@@ -306,8 +336,10 @@ class ResolvedInvoiceLine:
     ``product`` means the line is description-only -- the ingestion API
     accepts unproducted lines and the handler must not invent a fake id.
 
-    Current tax invariant: ``taxable`` is False; the runner refuses to flip it
-    until InvoiceLineTax support ships.
+    ``taxable`` flips the line on for Posted-with-tax ingestion. When True,
+    ``tax`` holds the fully-resolved ``InvoiceLineTax`` record the handler
+    will emit alongside this line, and the lifecycle stamps the org's
+    taxable ``TaxTreatment`` id on the InvoiceLine.
     """
 
     name: str
@@ -320,6 +352,7 @@ class ResolvedInvoiceLine:
     line_end_date: Optional[date] = None
     taxable: bool = False
     description: Optional[str] = None
+    tax: Optional[ResolvedInvoiceLineTax] = None
 
 
 @dataclass
@@ -330,8 +363,9 @@ class ResolvedInvoiceOverrides:
     date normalisation. The handler folds these into the composite-graph
     Invoice header; unset fields fall back to platform defaults.
 
-    Current tax invariant: ``should_calculate_tax`` is False; parsing refuses
-    True until InvoiceLineTax wiring lands.
+    ``should_calculate_tax`` stays False -- the harness ships explicit
+    ``InvoiceLineTax`` graph records on tax-on Posted ingestion rather
+    than asking the platform to estimate the tax.
     """
 
     invoice_date: Optional[date] = None
@@ -365,6 +399,12 @@ class ResolvedInvoiceIngestionSpec:
     invoice_lines: list[ResolvedInvoiceLine]
     invoice_overrides: Optional[ResolvedInvoiceOverrides]
     effective_stage: str
+    # Taxable ``TaxTreatment`` id stamped on every ``taxable: true`` line on
+    # the resolved spec. Auto-discovered via
+    # :func:`discovery.resolve_taxable_tax_treatment` (or pinned by
+    # ``invoice.taxable_tax_treatment_name``). ``None`` when no tax-on lines
+    # are present.
+    taxable_tax_treatment_id: Optional[str] = None
 
     @property
     def start_date_range(self):

@@ -19,9 +19,10 @@
 # ingested invoices are not deletable -- same constraint as the PST Posted
 # path.
 #
-# Tax-on Posted ingestion (lines with `taxable: true`) still requires
-# InvoiceLineTax graph records and is rejected at parse time -- see
-# docs/followups.md.
+# Tax-on Posted ingestion (lines with `taxable: true`) is live-verified in
+# a companion scenario (`15-standalone-billing-taxable.yaml`) and ships
+# `InvoiceLineTax` graph records. See `docs/contracts-invoice-ingestion.md`
+# -> *Tax-on Posted Path*.
 #
 # Account flavors verified against this scenario:
 #   - Infinitech    (billing-ready; has a BillingAccount row)

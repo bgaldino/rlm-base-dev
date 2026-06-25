@@ -215,6 +215,57 @@ class ScenarioSpec:
 
 
 @dataclass
+class LineTaxSpec:
+    """Per-line override block for tax-on Posted ingestion.
+
+    Carries the seven dev-guide-Required ``InvoiceLineTax`` fields plus the
+    optional ``description``. Every field is :class:`Optional` so the
+    handler can merge per-line overrides over scenario-level defaults
+    (:class:`ScenarioTaxDefaults`); the resolved tax record raises a clear
+    error if any Required field stays ``None`` after the merge.
+
+    ``rate`` is preferred over ``amount``: when ``rate`` is set the
+    handler computes ``amount = chargeAmount * rate``. A literal
+    ``amount`` always wins when both are present.
+
+    ``transaction_number`` / ``document_number`` default at resolve time
+    to ``run_id`` + per-line suffixes when omitted; that keeps the dev-guide
+    Required-field contract while staying idempotent across resume.
+    """
+
+    rate: Optional[float] = None
+    amount: Optional[float] = None
+    name: Optional[str] = None
+    code: Optional[str] = None
+    effective_date: Optional[date] = None
+    transaction_number: Optional[str] = None
+    document_number: Optional[str] = None
+    exempt_amount: Optional[float] = None
+    description: Optional[str] = None
+
+
+@dataclass
+class ScenarioTaxDefaults:
+    """Scenario-level tax defaults inherited by every ``taxable: true`` line.
+
+    The harness merges this block with a line's ``tax:`` override (line wins
+    per field). ``tax_treatment_name`` pins a specific taxable
+    ``TaxTreatment`` (resolved via
+    :func:`discovery.resolve_taxable_tax_treatment`); when omitted the
+    handler auto-discovers the default taxable treatment on the org.
+    """
+
+    rate: Optional[float] = None
+    amount: Optional[float] = None
+    name: Optional[str] = None
+    code: Optional[str] = None
+    effective_date: Optional[date] = None
+    document_number: Optional[str] = None
+    exempt_amount: Optional[float] = None
+    tax_treatment_name: Optional[str] = None
+
+
+@dataclass
 class InvoiceLineSpec:
     """One un-resolved line on an ingested invoice (``kind: invoice_ingestion``).
 
@@ -225,12 +276,11 @@ class InvoiceLineSpec:
     computed ``quantity * unit_price`` when set -- used to model a
     pre-discounted line or a flat-fee charge.
 
-    ``taxable`` defaults to ``False`` to honour the current tax invariant
-    (no ``InvoiceLineTax`` records, ``shouldCalculateTax=false`` globally).
-    The parser will reject ``taxable: true`` on any line when the resolved
-    ``target_stage == "invoice_posted"``; on Drafts the API permits it without
-    ``InvoiceLineTax`` so the default stays ``False`` but the parser does
-    not reject.
+    ``taxable`` flips the line on for Posted-with-tax ingestion. The handler
+    emits an ``InvoiceLineTax`` graph record per taxable line and stamps the
+    org's taxable ``TaxTreatment`` id on the InvoiceLine. ``tax`` carries
+    per-line overrides merged over the scenario's ``tax:`` defaults
+    (:class:`ScenarioTaxDefaults`).
     """
 
     name: str
@@ -242,6 +292,7 @@ class InvoiceLineSpec:
     line_end_date: Optional[date] = None
     taxable: bool = False
     description: Optional[str] = None
+    tax: Optional[LineTaxSpec] = None
 
 
 @dataclass
@@ -251,10 +302,16 @@ class InvoiceOverrides:
     Every field is optional. Unset fields fall through to the platform
     default (e.g. ``invoice_date`` -> today; ``due_date`` -> derived from
     the account's payment terms). ``should_calculate_tax`` defaults to
-    ``False`` to honour the current tax invariant; setting it to ``True``
-    is rejected at parse time until InvoiceLineTax support ships.
-    ``tax_calculation_status`` is informational for Draft ingestion ("Pending" is
-    the canonical value when shouldCalculateTax is False).
+    ``False`` and stays False: the harness ships explicit
+    ``InvoiceLineTax`` graph records on tax-on Posted ingestion, so the
+    "platform estimates the tax" path (``true``) is not used and is
+    rejected at parse time. ``tax_calculation_status`` is informational
+    for Draft ingestion ("Pending" is the canonical value); the harness
+    auto-sets it to ``Posted`` on Posted ingestion when omitted.
+
+    ``taxable_tax_treatment_name`` pins a specific Active taxable
+    ``TaxTreatment``; ``None`` means auto-discover the default one (most
+    recently created Active row).
     """
 
     invoice_date: Optional[date] = None
@@ -264,6 +321,7 @@ class InvoiceOverrides:
     description: Optional[str] = None
     should_calculate_tax: bool = False
     tax_calculation_status: Optional[str] = None
+    taxable_tax_treatment_name: Optional[str] = None
 
 
 @dataclass
@@ -286,6 +344,7 @@ class InvoiceIngestionScenarioSpec:
     target_stage: str
     count: int
     invoice: Optional[InvoiceOverrides] = None
+    tax: Optional[ScenarioTaxDefaults] = None
     kind: str = "invoice_ingestion"
     # PST-shape fields kept for protocol symmetry with :class:`ScenarioSpec`
     # so the handler dispatcher / batch driver can read them uniformly.
@@ -944,6 +1003,8 @@ def _coerce_invoice_line(raw: Any, where: str) -> InvoiceLineSpec:
 
     taxable = bool(raw.get("taxable", False))
 
+    tax = _coerce_line_tax(raw.get("tax"), where)
+
     return InvoiceLineSpec(
         name=name,
         sku=sku,
@@ -954,15 +1015,101 @@ def _coerce_invoice_line(raw: Any, where: str) -> InvoiceLineSpec:
         line_end_date=line_end,
         taxable=taxable,
         description=description,
+        tax=tax,
+    )
+
+
+def _coerce_tax_amount(raw: Any, where: str, field: str) -> Optional[float]:
+    """Coerce a non-negative tax amount/rate value."""
+    if raw is None:
+        return None
+    try:
+        v = float(raw)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(f"{where}: {field} must be a number") from exc
+    if v < 0:
+        raise ConfigError(f"{where}: {field} must be >= 0 (got {v})")
+    return v
+
+
+def _coerce_tax_string(raw: Any, where: str, field: str) -> Optional[str]:
+    """Coerce an optional string tax field, refusing empty/whitespace values."""
+    if raw is None:
+        return None
+    if not isinstance(raw, str) or not raw.strip():
+        raise ConfigError(f"{where}: {field} must be a non-empty string")
+    return raw
+
+
+def _coerce_line_tax(raw: Any, where: str) -> Optional[LineTaxSpec]:
+    """Parse a per-line ``tax:`` override block into a :class:`LineTaxSpec`."""
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}: 'tax' must be a mapping")
+    sub = f"{where}.tax"
+    effective_date = raw.get("effective_date")
+    if effective_date is not None:
+        effective_date = _parse_date_token(effective_date, sub)
+    return LineTaxSpec(
+        rate=_coerce_tax_amount(raw.get("rate"), sub, "rate"),
+        amount=_coerce_tax_amount(raw.get("amount"), sub, "amount"),
+        name=_coerce_tax_string(raw.get("name"), sub, "name"),
+        code=_coerce_tax_string(raw.get("code"), sub, "code"),
+        effective_date=effective_date,
+        transaction_number=_coerce_tax_string(
+            raw.get("transaction_number"), sub, "transaction_number"
+        ),
+        document_number=_coerce_tax_string(
+            raw.get("document_number"), sub, "document_number"
+        ),
+        exempt_amount=_coerce_tax_amount(
+            raw.get("exempt_amount"), sub, "exempt_amount"
+        ),
+        description=_coerce_tax_string(
+            raw.get("description"), sub, "description"
+        ),
+    )
+
+
+def _coerce_scenario_tax_defaults(
+    raw: Any, where: str
+) -> Optional[ScenarioTaxDefaults]:
+    """Parse a scenario-level ``tax:`` defaults block."""
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}: 'tax' defaults must be a mapping")
+    sub = f"{where}.tax"
+    effective_date = raw.get("effective_date")
+    if effective_date is not None:
+        effective_date = _parse_date_token(effective_date, sub)
+    return ScenarioTaxDefaults(
+        rate=_coerce_tax_amount(raw.get("rate"), sub, "rate"),
+        amount=_coerce_tax_amount(raw.get("amount"), sub, "amount"),
+        name=_coerce_tax_string(raw.get("name"), sub, "name"),
+        code=_coerce_tax_string(raw.get("code"), sub, "code"),
+        effective_date=effective_date,
+        document_number=_coerce_tax_string(
+            raw.get("document_number"), sub, "document_number"
+        ),
+        exempt_amount=_coerce_tax_amount(
+            raw.get("exempt_amount"), sub, "exempt_amount"
+        ),
+        tax_treatment_name=_coerce_tax_string(
+            raw.get("tax_treatment_name"), sub, "tax_treatment_name"
+        ),
     )
 
 
 def _coerce_invoice_overrides(raw: Any, where: str) -> Optional[InvoiceOverrides]:
     """Build :class:`InvoiceOverrides` from a scenario's ``invoice:`` block.
 
-    Current tax invariant enforced here: ``should_calculate_tax: true`` is
-    rejected loudly so the parse layer catches the misuse before any handler
-    or lifecycle code sees it.
+    Tax invariant enforced here: ``should_calculate_tax: true`` is rejected
+    loudly. Tax-on Posted ingestion ships explicit ``InvoiceLineTax`` graph
+    records (``taxable: true`` on the line + ``tax:`` overrides); the
+    "platform estimates the tax" path (``should_calculate_tax: true``) is
+    not supported.
     """
     if raw is None:
         return None
@@ -984,12 +1131,20 @@ def _coerce_invoice_overrides(raw: Any, where: str) -> Optional[InvoiceOverrides
         raise ConfigError(
             f"{where}: invoice.tax_calculation_status must be a string"
         )
+    taxable_tt_name = raw.get("taxable_tax_treatment_name")
+    if taxable_tt_name is not None and (
+        not isinstance(taxable_tt_name, str) or not taxable_tt_name.strip()
+    ):
+        raise ConfigError(
+            f"{where}: invoice.taxable_tax_treatment_name must be a non-empty string"
+        )
 
     should_calc = bool(raw.get("should_calculate_tax", False))
     if should_calc:
         raise ConfigError(
-            f"{where}: invoice.should_calculate_tax=true is not supported in "
-            f"the current ingestion path (InvoiceLineTax wiring not yet shipped)"
+            f"{where}: invoice.should_calculate_tax=true is not supported -- "
+            f"tax-on Posted ingestion ships explicit InvoiceLineTax graph "
+            f"records (set 'taxable: true' on the line + a 'tax:' block)"
         )
 
     return InvoiceOverrides(
@@ -1000,6 +1155,7 @@ def _coerce_invoice_overrides(raw: Any, where: str) -> Optional[InvoiceOverrides
         description=description,
         should_calculate_tax=False,
         tax_calculation_status=tax_status,
+        taxable_tax_treatment_name=taxable_tt_name,
     )
 
 
@@ -1057,20 +1213,48 @@ def _coerce_invoice_ingestion_spec(
     ]
 
     overrides = _coerce_invoice_overrides(merged.get("invoice"), where)
+    tax_defaults = _coerce_scenario_tax_defaults(merged.get("tax"), where)
 
-    # Current tax invariant -- defensive belt at parse time. Posted ingestion
-    # works against the non-taxable TaxTreatment discovered on the org, so
-    # ``taxable: true`` lines stay rejected until InvoiceLineTax graph records
-    # land (the canonical follow-on in docs/followups.md).
-    if stage == "invoice_posted":
+    # Tax-on ingestion is only meaningful on Posted invoices. The dev guide
+    # (Graph Record for Invoice Ingestion, R262/v67.0) is explicit:
+    #     * "An invoice with `Posted` status with an invoice line marked as
+    #       `taxable` must include an `invoiceLineTax` for that invoice line."
+    #     * "An invoice with `Posted` status with an invoice line marked as
+    #       `nontaxable` must not include an `invoiceLineTax`..."
+    # Drafts use ``taxCalculationStatus = Pending`` and never carry
+    # ``InvoiceLineTax`` records, so the harness refuses tax-on lines on Draft
+    # rather than silently dropping the user's intent.
+    if stage == "invoice_draft":
         for i, ln in enumerate(invoice_lines):
             if ln.taxable:
                 raise ConfigError(
                     f"{where}.invoice_lines[{i}]: 'taxable: true' is not "
-                    f"allowed when target_stage is 'invoice_posted' "
-                    f"(tax-on Posted ingestion requires InvoiceLineTax graph "
-                    f"records; see docs/followups.md)"
+                    f"allowed when target_stage is 'invoice_draft' "
+                    f"(tax-on ingestion only applies to Posted invoices; "
+                    f"set target_stage: invoice_posted)"
                 )
+            if ln.tax is not None:
+                raise ConfigError(
+                    f"{where}.invoice_lines[{i}]: 'tax:' is not allowed "
+                    f"when target_stage is 'invoice_draft' (set "
+                    f"target_stage: invoice_posted)"
+                )
+        if tax_defaults is not None:
+            raise ConfigError(
+                f"{where}: scenario-level 'tax:' defaults are not allowed when "
+                f"target_stage is 'invoice_draft' (set target_stage: invoice_posted)"
+            )
+
+    # A per-line ``tax:`` block on a non-taxable line is almost certainly a
+    # config typo (the harness will not ship a tax record without ``taxable:
+    # true`` to flip the line on). Surface it at parse rather than silently
+    # ignoring it.
+    for i, ln in enumerate(invoice_lines):
+        if ln.tax is not None and not ln.taxable:
+            raise ConfigError(
+                f"{where}.invoice_lines[{i}]: 'tax:' block requires "
+                f"'taxable: true' on the same line (or remove the tax block)"
+            )
 
     return InvoiceIngestionScenarioSpec(
         account=merged.get("account"),
@@ -1078,6 +1262,7 @@ def _coerce_invoice_ingestion_spec(
         target_stage=stage,
         count=count,
         invoice=overrides,
+        tax=tax_defaults,
         kind=kind,
     )
 

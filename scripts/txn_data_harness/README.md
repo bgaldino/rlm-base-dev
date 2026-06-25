@@ -35,10 +35,12 @@ ingestion requires an active non-taxable `TaxTreatment` in the org
 (`IsTaxable=false`, `Status=Active`); the harness discovers it at bootstrap
 and stamps `taxTreatmentId` on every line. Without one, `ingest_invoice`
 raises `LifecycleError` with seed instructions. Tax-on Posted ingestion
-(`taxable: true` lines) still requires `InvoiceLineTax` graph records and is
-rejected at parse time; see [`docs/followups.md`](docs/followups.md). Examples:
-[`scenarios/invoice_ingestion/15-standalone-billing-draft.yaml`](scenarios/invoice_ingestion/15-standalone-billing-draft.yaml)
-and [`scenarios/invoice_ingestion/15-standalone-billing.yaml`](scenarios/invoice_ingestion/15-standalone-billing.yaml);
+(`taxable: true` lines, with explicit `InvoiceLineTax` graph records) is
+also live-verified and additionally requires an active **taxable**
+`TaxTreatment` (`IsTaxable=true`, `Status=Active`). Examples:
+[`scenarios/invoice_ingestion/15-standalone-billing-draft.yaml`](scenarios/invoice_ingestion/15-standalone-billing-draft.yaml),
+[`scenarios/invoice_ingestion/15-standalone-billing.yaml`](scenarios/invoice_ingestion/15-standalone-billing.yaml) (non-taxable Posted),
+and [`scenarios/invoice_ingestion/15-standalone-billing-taxable.yaml`](scenarios/invoice_ingestion/15-standalone-billing-taxable.yaml) (tax-on Posted);
 contract in [`CONTRACTS.md`](CONTRACTS.md) → *Invoice Ingestion*.
 
 It is **standalone** — not part of `prepare_rlm_org`. Each run is **additive**

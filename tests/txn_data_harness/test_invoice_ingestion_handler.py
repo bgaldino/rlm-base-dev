@@ -34,6 +34,8 @@ from scripts.txn_data_harness.config import (
     InvoiceIngestionScenarioSpec,
     InvoiceLineSpec,
     InvoiceOverrides,
+    LineTaxSpec,
+    ScenarioTaxDefaults,
     _coerce_spec,
 )
 from scripts.txn_data_harness.discovery import (
@@ -72,8 +74,6 @@ def test_step_graph_shape() -> None:
     # Posted (the no-op short-circuit lives in run_promote_to_posted).
     assert STEP_GRAPH["invoice_draft"] == ["ingest_invoice"]
     assert STEP_GRAPH["invoice_posted"] == ["ingest_invoice", "promote_to_posted"]
-    # The invoice_posted edge remains internal Phase 2 scaffolding; supported config
-    # parsing is Draft-only until InvoiceLineTax prerequisites land.
     assert set(STEP_GRAPH) == {"invoice_draft", "invoice_posted"}
 
 
@@ -161,6 +161,7 @@ def _ingestion_spec(
     lines=None,
     invoice=None,
     count: int = 1,
+    tax: ScenarioTaxDefaults | None = None,
 ) -> InvoiceIngestionScenarioSpec:
     return InvoiceIngestionScenarioSpec(
         account=account,
@@ -175,6 +176,7 @@ def _ingestion_spec(
         target_stage=target,
         count=count,
         invoice=invoice,
+        tax=tax,
     )
 
 
@@ -309,6 +311,186 @@ def test_resolve_carries_invoice_overrides(fake_client) -> None:
 
 
 # ---------------------------------------------------------------------------
+# resolve -- tax-on Posted: line + scenario tax merge precedence
+# ---------------------------------------------------------------------------
+
+
+def _ctx_with_taxable_tt(tt_id: str = "1ttTAX") -> OrgContext:
+    """OrgContext pre-loaded with a taxable TaxTreatment id.
+
+    Handler ``resolve()`` reads ``ctx.taxable_tax_treatment_id`` to skip the
+    discovery SOQL when at least one taxable line is present and the spec
+    doesn't pin a treatment name.
+    """
+    return OrgContext(
+        pricebook_id="pb",
+        pricebook_name="Standard",
+        legal_entity_id=None,
+        legal_entity_name=None,
+        opportunity_stage=None,
+        billing_ready_accounts=[],
+        products=[],
+        taxable_tax_treatment_id=tt_id,
+    )
+
+
+def _account_with_address_and_sku_miss(fake_client) -> None:
+    """Stack the canonical ``resolve_account`` + SKU-miss query responses."""
+    fake_client.query_responses.append([{"Id": "001A", "Name": "Infinitech"}])
+    fake_client.query_responses.append([{"Id": "BA-1"}])
+    fake_client.query_responses.append([{"Id": "003C-1", "AccountId": "001A"}])
+    fake_client.query_responses.append([{"Id": "001A", "CurrencyIsoCode": "USD"}])
+    fake_client.query_responses.append(_address_row("001A"))
+    fake_client.query_responses.append([])  # SKU miss on the taxable line
+
+
+def test_resolve_taxable_line_inherits_scenario_tax_defaults(fake_client) -> None:
+    """Scenario ``tax:`` defaults flow through to the resolved tax record when
+    the line carries no per-line ``tax:`` override -- the common SaaS shape
+    (one uniform sales-tax rate across every taxable line).
+    """
+    _account_with_address_and_sku_miss(fake_client)
+    spec = _ingestion_spec(
+        target="invoice_posted",
+        lines=[InvoiceLineSpec(
+            name="API Flex", sku="QB-API-FLEX",
+            quantity=10, unit_price=25.0, taxable=True,
+        )],
+        tax=ScenarioTaxDefaults(rate=0.08, name="Sales Tax", code="TX-SALES"),
+    )
+    resolved = InvoiceIngestionHandler().resolve(
+        fake_client, _ctx_with_taxable_tt(), spec
+    )
+    line = resolved.invoice_lines[0]
+    assert line.taxable is True
+    assert line.tax is not None
+    # rate inherited; amount computed = qty * unit_price * rate = 250 * 0.08.
+    assert line.tax.rate == 0.08
+    assert line.tax.amount == 20.0
+    assert line.tax.name == "Sales Tax"
+    assert line.tax.code == "TX-SALES"
+    # Handler leaves run-id-scoped defaults to lifecycle so the per-scenario
+    # run id is in scope (it isn't yet at resolve() time).
+    assert line.tax.transaction_number is None
+    assert line.tax.document_number is None
+    # Cached taxable TaxTreatment surfaces on the resolved spec.
+    assert resolved.taxable_tax_treatment_id == "1ttTAX"
+
+
+def test_resolve_per_line_tax_overrides_scenario_defaults(fake_client) -> None:
+    """Per-line ``tax:`` block beats scenario-level defaults field by field.
+
+    Three shapes:
+    * Line 1 pins a flat ``amount`` -- scenario ``rate`` still wins (both
+      non-None after merge, so no back-derive). This matches the live shape
+      verified on `rlm-base__jun17_1` (run `DEMO-20260625T224050Z`, invoice
+      004 line 1: TaxAmount=75, TaxRate=0.08).
+    * Line 2 overrides only ``rate`` (different jurisdiction) and inherits
+      ``name`` from defaults (per-field merge, not whole-block override).
+    * Line 3 has no per-line tax and falls through to scenario defaults --
+      the common SaaS shape on a tax-on invoice.
+    """
+    # Stack queries for three lines: account + 3x SKU miss.
+    fake_client.query_responses.append([{"Id": "001A", "Name": "Infinitech"}])
+    fake_client.query_responses.append([{"Id": "BA-1"}])
+    fake_client.query_responses.append([{"Id": "003C-1", "AccountId": "001A"}])
+    fake_client.query_responses.append([{"Id": "001A", "CurrencyIsoCode": "USD"}])
+    fake_client.query_responses.append(_address_row("001A"))
+    fake_client.query_responses.append([])  # line 1 SKU miss
+    fake_client.query_responses.append([])  # line 2 SKU miss
+    fake_client.query_responses.append([])  # line 3 SKU miss
+
+    spec = _ingestion_spec(
+        target="invoice_posted",
+        lines=[
+            InvoiceLineSpec(
+                name="Flat-amount line", quantity=1, unit_price=1000.0,
+                taxable=True,
+                tax=LineTaxSpec(amount=75.0, name="VAT", code="VAT-EU"),
+            ),
+            InvoiceLineSpec(
+                name="High-rate line", quantity=2, unit_price=250.0,
+                taxable=True,
+                tax=LineTaxSpec(rate=0.15, code="VAT-EU"),
+            ),
+            InvoiceLineSpec(
+                name="Default line", quantity=4, unit_price=50.0,
+                taxable=True,
+            ),
+        ],
+        tax=ScenarioTaxDefaults(rate=0.08, name="Sales Tax", code="TX-SALES"),
+    )
+    resolved = InvoiceIngestionHandler().resolve(
+        fake_client, _ctx_with_taxable_tt(), spec
+    )
+
+    # Line 1: amount pinned per-line, rate pinned at scenario -- both stay
+    # verbatim (no back-derive when both are non-None).
+    tax_a = resolved.invoice_lines[0].tax
+    assert tax_a is not None
+    assert tax_a.amount == 75.0
+    assert tax_a.rate == 0.08
+    assert tax_a.name == "VAT"          # per-line override wins
+    assert tax_a.code == "VAT-EU"
+
+    # Line 2: rate overridden, amount computed; name falls through to scenario
+    # default (proves per-field merge -- not whole-block override).
+    tax_b = resolved.invoice_lines[1].tax
+    assert tax_b is not None
+    assert tax_b.rate == 0.15
+    assert tax_b.amount == 75.0          # 2 * 250 * 0.15
+    assert tax_b.name == "Sales Tax"     # inherited from defaults
+    assert tax_b.code == "VAT-EU"
+
+    # Line 3: no per-line block; everything inherited; amount computed.
+    tax_c = resolved.invoice_lines[2].tax
+    assert tax_c is not None
+    assert tax_c.rate == 0.08
+    assert tax_c.amount == 16.0          # 4 * 50 * 0.08
+    assert tax_c.name == "Sales Tax"
+    assert tax_c.code == "TX-SALES"
+
+
+def test_resolve_taxable_line_without_rate_or_amount_raises(fake_client) -> None:
+    """Neither line nor scenario gives us ``amount`` or ``rate`` -- can't
+    compute a valid InvoiceLineTax record. Handler raises before ingest."""
+    _account_with_address_and_sku_miss(fake_client)
+    spec = _ingestion_spec(
+        target="invoice_posted",
+        lines=[InvoiceLineSpec(
+            name="Taxable", quantity=1, unit_price=100.0, taxable=True,
+        )],
+        tax=ScenarioTaxDefaults(name="Sales Tax", code="TX-SALES"),  # no rate/amount
+    )
+    with pytest.raises(LifecycleError, match="tax.rate.*tax.amount"):
+        InvoiceIngestionHandler().resolve(
+            fake_client, _ctx_with_taxable_tt(), spec
+        )
+
+
+def test_resolve_taxable_lines_require_taxable_tax_treatment(fake_client) -> None:
+    """No taxable TaxTreatment cached and no name pin -> handler raises with
+    seed instructions before any ingest call. The lifecycle re-checks
+    belt-and-braces, but the handler is the loud-failure point."""
+    _account_with_address_and_sku_miss(fake_client)
+    # Discovery probe inside resolve() finds nothing.
+    fake_client.query_responses.append([])
+
+    spec = _ingestion_spec(
+        target="invoice_posted",
+        lines=[InvoiceLineSpec(
+            name="Taxable", quantity=1, unit_price=100.0, taxable=True,
+        )],
+        tax=ScenarioTaxDefaults(rate=0.08, name="Sales Tax", code="TX-SALES"),
+    )
+    with pytest.raises(LifecycleError, match="active taxable.*TaxTreatment"):
+        # Empty ctx -- no cached id -- forces a discovery probe.
+        InvoiceIngestionHandler().resolve(
+            fake_client, _empty_org_context(), spec
+        )
+
+
+# ---------------------------------------------------------------------------
 # run -- drive a scenario through the lifecycle
 # ---------------------------------------------------------------------------
 
@@ -334,7 +516,7 @@ def test_run_drafts_an_invoice(monkeypatch, fake_client, billable_account) -> No
     """A scenario targeting ``invoice_draft`` runs ingest_invoice once and stops."""
     called: list[str] = []
 
-    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, timeout):
+    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, taxable_tax_treatment_id, timeout):
         called.append(status)
         return "1nvDRAFT", None, ["iln1"]
 
@@ -369,7 +551,7 @@ def test_run_posts_an_invoice_with_short_circuit_promote(
     no-op fast-path (manifest already at reached_stage='invoice_posted')."""
     statuses: list[str] = []
 
-    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, timeout):
+    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, taxable_tax_treatment_id, timeout):
         statuses.append(status)
         return "1nvPOSTED", "INV-0001", ["iln1"]
 
@@ -424,7 +606,7 @@ def test_run_retries_transient_draft_ingest_without_observed_invoice(
     calls = {"n": 0}
     sleeps: list[float] = []
 
-    def flaky_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, timeout):
+    def flaky_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, taxable_tax_treatment_id, timeout):
         calls["n"] += 1
         if calls["n"] == 1:
             raise LifecycleError("ingest_invoice", "request timed out")
@@ -576,18 +758,55 @@ def test_coerce_spec_accepts_posted_ingestion_with_nontaxable_lines() -> None:
     assert spec.target_stage == "invoice_posted"
 
 
-def test_coerce_spec_rejects_taxable_line_on_posted_ingestion() -> None:
-    """``taxable: true`` lines still require ``InvoiceLineTax`` graph records
-    and are rejected at parse time on Posted target."""
+def test_coerce_spec_rejects_taxable_line_on_draft_ingestion() -> None:
+    """``taxable: true`` is only meaningful on Posted -- Draft rejects loudly."""
     merged = {
         "kind": "invoice_ingestion",
-        "target_stage": "invoice_posted",
+        "target_stage": "invoice_draft",
         "account": "Infinitech",
         "invoice_lines": [
             {"name": "API", "quantity": 1, "unit_price": 10, "taxable": True}
         ],
     }
-    with pytest.raises(ConfigError, match="InvoiceLineTax"):
+    with pytest.raises(ConfigError, match="invoice_draft"):
+        _coerce_spec(merged, "test")
+
+
+def test_coerce_spec_accepts_taxable_line_on_posted_ingestion() -> None:
+    """The parse-time gate on taxable Posted lines lifted with InvoiceLineTax
+    wiring -- ``taxable: true`` is now valid when paired with scenario or
+    per-line tax defaults on Posted."""
+    merged = {
+        "kind": "invoice_ingestion",
+        "target_stage": "invoice_posted",
+        "account": "Infinitech",
+        "tax": {"rate": 0.08, "name": "Sales Tax", "code": "TX-SALES"},
+        "invoice_lines": [
+            {"name": "API", "quantity": 1, "unit_price": 10, "taxable": True}
+        ],
+    }
+    spec = _coerce_spec(merged, "test")
+    assert isinstance(spec, InvoiceIngestionScenarioSpec)
+    assert spec.invoice_lines[0].taxable is True
+    assert spec.tax is not None and spec.tax.rate == 0.08
+
+
+def test_coerce_spec_rejects_tax_block_on_non_taxable_line() -> None:
+    """A ``tax:`` block without ``taxable: true`` is almost certainly a typo."""
+    merged = {
+        "kind": "invoice_ingestion",
+        "target_stage": "invoice_posted",
+        "account": "Infinitech",
+        "invoice_lines": [
+            {
+                "name": "API",
+                "quantity": 1,
+                "unit_price": 10,
+                "tax": {"rate": 0.08, "name": "Sales Tax", "code": "TX-SALES"},
+            }
+        ],
+    }
+    with pytest.raises(ConfigError, match="requires 'taxable: true'"):
         _coerce_spec(merged, "test")
 
 

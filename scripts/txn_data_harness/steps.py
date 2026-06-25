@@ -50,6 +50,11 @@ class StepContext:
     billing_success_statuses: Optional[set[str]] = None
     invoice_lines: list[ResolvedInvoiceLine] = field(default_factory=list)
     invoice_spec: Optional[ResolvedInvoiceOverrides] = None
+    # Resolved taxable ``TaxTreatment`` id for tax-on Posted ingestion. Set by
+    # :class:`InvoiceIngestionHandler` when any ``invoice_lines`` entry has
+    # ``taxable=True``; lifecycle stamps it on those InvoiceLine graph records
+    # so the related InvoiceLineTax records are accepted.
+    taxable_tax_treatment_id: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -252,6 +257,7 @@ def run_ingest_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
             status=status,
             invoice_spec=ctx.invoice_spec,
             tax_treatment_id=ctx.org_context.non_taxable_tax_treatment_id,
+            taxable_tax_treatment_id=ctx.taxable_tax_treatment_id,
             timeout=ctx.poll_timeout,
         )
     except LifecycleError as exc:
@@ -276,6 +282,16 @@ def run_ingest_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
             "charge_amount": ln.charge_amount,
             "product_id": ln.product.id if ln.product is not None else None,
             "taxable": ln.taxable,
+            "tax": (
+                {
+                    "amount": ln.tax.amount,
+                    "rate": ln.tax.rate,
+                    "name": ln.tax.name,
+                    "code": ln.tax.code,
+                }
+                if ln.tax is not None
+                else None
+            ),
         }
         for ln in ctx.invoice_lines
     ]
