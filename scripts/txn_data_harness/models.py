@@ -11,7 +11,12 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Optional
 
-from .config import InvoiceLineSpec, InvoiceOverrides, ScenarioSpec
+from .config import (
+    InvoiceIngestionScenarioSpec,
+    InvoiceLineSpec,
+    InvoiceOverrides,
+    ScenarioSpec,
+)
 from .discovery import Account, InvoiceLineProduct, Product
 from .term import EndDateOverride, Term
 
@@ -25,6 +30,7 @@ __all__ = [
     "EndDateOverride",
     "Manifest",
     "LineItem",
+    "ResolvedInvoiceIngestionSpec",
     "ResolvedInvoiceLine",
     "ResolvedInvoiceOverrides",
     "ResolvedOption",
@@ -295,3 +301,34 @@ class ResolvedInvoiceOverrides:
     description: Optional[str] = None
     should_calculate_tax: bool = False
     tax_calculation_status: Optional[str] = None
+
+
+@dataclass
+class ResolvedInvoiceIngestionSpec:
+    """An invoice-ingestion spec bound to a concrete Account + lines.
+
+    PST's :class:`ResolvedSpec` carries a product *pool* the runner draws a
+    random subset from per transaction; ingestion has no such pool -- every
+    line on the scenario ships on every invoice it generates. The handler
+    issues exactly ``spec.count`` ingest calls, each with the same resolved
+    line list.
+
+    ``effective_stage`` mirrors :class:`ResolvedSpec` for protocol parity:
+    the dispatcher reads it to decide Draft vs Posted. Ingestion has no
+    billing-readiness cap (the API accepts pipeline-only accounts), so the
+    handler's ``effective_stage`` always returns ``spec.target_stage``
+    unchanged.
+    """
+
+    spec: InvoiceIngestionScenarioSpec
+    account: Account
+    invoice_lines: list[ResolvedInvoiceLine]
+    invoice_overrides: Optional[ResolvedInvoiceOverrides]
+    effective_stage: str
+
+    @property
+    def start_date_range(self):
+        # Protocol parity with ResolvedSpec.start_date_range. Ingestion lines
+        # carry per-line start/end dates rather than a quote-level StartDate
+        # range, so the batch driver's draw_start_date branch is a no-op here.
+        return None

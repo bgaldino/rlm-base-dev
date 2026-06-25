@@ -193,37 +193,37 @@ def _cmd_step(args: argparse.Namespace) -> int:
         opportunity_stage=args.opportunity_stage,
     )
 
-    # Look up the handler by the manifest's persisted kind. Falls back to the
-    # PST handler so resumed runs on pre-kind manifests still work mid-rollout;
-    # ``load_manifest`` already rejects manifests with no ``kind`` at all.
-    handler = SCENARIO_HANDLERS.get(manifest.kind, SCENARIO_HANDLERS["sales_transaction"])
-
-    try:
-        specs = load_scenarios(args)
-        resolved = [handler.resolve(client, ctx, s) for s in specs]
-        default_lines = draw_lines(resolved[0].options) if resolved else []
-    except ConfigError:
-        default_lines = []
-    lines = _lines_from_manifest(client, manifest) or default_lines
-    if not lines and args.to_stage not in {"invoice", "post"}:
-        raise LifecycleError("step", "no manifest lines or config product lines to use")
+    # Look up the handler by the manifest's persisted kind. Reject an unknown
+    # kind loudly -- a manifest carrying a kind no registered handler knows
+    # about is almost certainly a config typo or a future-format manifest
+    # from a newer harness; quietly defaulting to PST would run the wrong
+    # lifecycle against the wrong stage graph.
+    if manifest.kind not in SCENARIO_HANDLERS:
+        raise LifecycleError(
+            "step",
+            f"manifest kind '{manifest.kind}' has no registered handler "
+            f"(known: {', '.join(sorted(SCENARIO_HANDLERS))})",
+        )
+    handler = SCENARIO_HANDLERS[manifest.kind]
 
     target = handler.effective_stage(args.to_stage, account)
-    steps = handler.remaining_steps(manifest.reached_stage, target, args.with_opportunity)
+    # Resume math is the handler's job -- it owns the kind's step graph.
+    # PST's :func:`runner.remaining_steps` rejects an out-of-domain
+    # ``reached_stage`` via ``STAGES.index`` (raises ValueError); the
+    # ingestion handler's :meth:`remaining_steps` raises ValueError on
+    # the same mismatch. Either way a cross-kind mistake fails loudly
+    # before we touch the org.
+    steps = handler.remaining_steps(
+        manifest.reached_stage, target, args.with_opportunity
+    )
     if not steps:
         print(json.dumps(summarize_manifest(manifest), indent=2))
         return 0
 
-    step_ctx = StepContext(
-        client=client,
-        org_context=ctx,
-        run_id=manifest.run_id,
-        account=account,
-        lines=lines,
-        with_opportunity=args.with_opportunity,
-        poll_timeout=args.poll_timeout,
-        checkpoint=write_manifest,
+    step_ctx = _build_step_context(
+        args, handler, client, ctx, account, manifest
     )
+
     try:
         for step in steps:
             manifest = execute_step(step, step_ctx, manifest)
@@ -234,6 +234,62 @@ def _cmd_step(args: argparse.Namespace) -> int:
         raise
     print(json.dumps(summarize_manifest(manifest), indent=2))
     return 0
+
+
+def _build_step_context(
+    args: argparse.Namespace,
+    handler,
+    client: SfRestClient,
+    ctx,
+    account,
+    manifest,
+) -> StepContext:
+    """Build the per-kind StepContext for a ``cli step`` invocation.
+
+    PST resumes need the LineItem set: either rebuilt from the manifest (if
+    a prior stage already serialized lines) or freshly drawn from a config
+    file passed via ``--config``. Ingestion resumes don't need lines from
+    config -- the InvoiceLine records persist on the Invoice itself, so
+    ``ingest_invoice`` is already done by the time we hit ``promote_to_posted``
+    and the remaining step (post the existing Draft) only needs the invoice id.
+    """
+    if handler.kind == "invoice_ingestion":
+        return StepContext(
+            client=client,
+            org_context=ctx,
+            run_id=manifest.run_id,
+            account=account,
+            lines=[],
+            with_opportunity=False,
+            poll_timeout=args.poll_timeout,
+            checkpoint=write_manifest,
+            target_stage=args.to_stage,
+            invoice_lines=[],
+            invoice_spec=None,
+        )
+
+    # PST path
+    try:
+        specs = load_scenarios(args)
+        resolved = [handler.resolve(client, ctx, s) for s in specs]
+        default_lines = draw_lines(resolved[0].options) if resolved else []
+    except ConfigError:
+        default_lines = []
+    lines = _lines_from_manifest(client, manifest) or default_lines
+    if not lines and args.to_stage not in {"invoice", "post"}:
+        raise LifecycleError(
+            "step", "no manifest lines or config product lines to use"
+        )
+    return StepContext(
+        client=client,
+        org_context=ctx,
+        run_id=manifest.run_id,
+        account=account,
+        lines=lines,
+        with_opportunity=args.with_opportunity,
+        poll_timeout=args.poll_timeout,
+        checkpoint=write_manifest,
+    )
 
 
 def _cmd_report(args: argparse.Namespace) -> int:

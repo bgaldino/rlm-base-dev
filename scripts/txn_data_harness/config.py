@@ -52,7 +52,16 @@ _DEFAULT_KIND = "sales_transaction"
 # Known scenario kinds. The handler registry is the source of truth; this
 # mirror exists so config validation can reject typos without importing the
 # handlers package (which transitively pulls auth/discovery).
-_VALID_KINDS = {"sales_transaction"}
+_VALID_KINDS = {"sales_transaction", "invoice_ingestion"}
+
+# Per-kind allowed target stages. Ingestion bypasses the PST chain, so only
+# the two terminal stages reachable via the ingestion API are valid here.
+_KIND_VALID_STAGES: dict[str, set[str]] = {
+    "sales_transaction": {
+        "opportunity", "quote", "order", "activate", "usage", "invoice", "post",
+    },
+    "invoice_ingestion": {"invoice", "post"},
+}
 
 # Built-in defaults (lowest precedence). target_stage caps/resolution happen in
 # generate.py against the resolved account -- this is just the requested stage.
@@ -240,6 +249,32 @@ class InvoiceOverrides:
     description: Optional[str] = None
     should_calculate_tax: bool = False
     tax_calculation_status: Optional[str] = None
+
+
+@dataclass
+class InvoiceIngestionScenarioSpec:
+    """One un-resolved invoice-ingestion shape, run ``count`` times.
+
+    Distinct config type from :class:`ScenarioSpec` (PST) so the parser can
+    refuse PST-only knobs at the type boundary instead of silently dropping
+    them. Every line on a scenario emits one InvoiceLine; the per-transaction
+    fan-out happens by repeating the scenario ``count`` times, not by drawing
+    subsets the way PST does (the API has no concept of "random non-empty
+    subset of a product pool" -- one ingest call ships one invoice).
+
+    ``target_stage`` is restricted to ``invoice`` (Draft) or ``post`` (Posted)
+    by parse-time validation against ``_KIND_VALID_STAGES``.
+    """
+
+    account: Optional[str]
+    invoice_lines: list[InvoiceLineSpec]
+    target_stage: str
+    count: int
+    invoice: Optional[InvoiceOverrides] = None
+    kind: str = "invoice_ingestion"
+    # PST-shape fields kept for protocol symmetry with :class:`ScenarioSpec`
+    # so the handler dispatcher / batch driver can read them uniformly.
+    with_opportunity: bool = False
 
 
 def _load_file(path: str) -> dict:
@@ -726,27 +761,41 @@ def _coerce_product_option(
     )
 
 
-def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
-    kind = merged.get("kind") or _DEFAULT_KIND
-    if kind not in _VALID_KINDS:
-        raise ConfigError(
-            f"{where}: invalid kind '{kind}' "
-            f"(valid: {', '.join(sorted(_VALID_KINDS))})"
-        )
-
-    stage = merged.get("target_stage") or "post"
-    if stage not in _VALID_STAGES:
-        raise ConfigError(
-            f"{where}: invalid target_stage '{stage}' "
-            f"(valid: {', '.join(sorted(_VALID_STAGES))})"
-        )
-
+def _coerce_count(merged: dict[str, Any], where: str) -> int:
+    """Common count parsing shared by every kind's coercer."""
     try:
         count = int(merged.get("count", 1))
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{where}: count must be an integer") from exc
     if count < 1:
         raise ConfigError(f"{where}: count must be >= 1 (got {count})")
+    return count
+
+
+def _coerce_target_stage(merged: dict[str, Any], kind: str, where: str) -> str:
+    """Validate ``target_stage`` against the kind-specific allowlist.
+
+    PST accepts every stage in :data:`_VALID_STAGES`; ingestion is restricted
+    to ``invoice`` (Draft) or ``post`` (Posted) because the API has no PST
+    chain to walk. Each kind defaults to its own most-distal stage so a
+    bare ``kind: invoice_ingestion`` lands a Posted invoice.
+    """
+    valid = _KIND_VALID_STAGES[kind]
+    default_stage = "post" if "post" in valid else next(iter(valid))
+    stage = merged.get("target_stage") or default_stage
+    if stage not in valid:
+        raise ConfigError(
+            f"{where}: target_stage '{stage}' is not valid for kind '{kind}' "
+            f"(valid: {', '.join(sorted(valid))})"
+        )
+    return stage
+
+
+def _coerce_sales_transaction_spec(
+    merged: dict[str, Any], kind: str, where: str
+) -> ScenarioSpec:
+    stage = _coerce_target_stage(merged, kind, where)
+    count = _coerce_count(merged, where)
 
     # Scenario-level quantity/discount are the fallback each product entry
     # inherits unless it sets its own; `product:` is shorthand for a one-entry
@@ -792,13 +841,226 @@ def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
     )
 
 
-def load_scenarios(args: Any) -> list[ScenarioSpec]:
+def _coerce_invoice_line(raw: Any, where: str) -> InvoiceLineSpec:
+    """Build one :class:`InvoiceLineSpec` from an ``invoice_lines[]`` entry."""
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}: each invoice_line entry must be a mapping")
+    name = raw.get("name")
+    if not isinstance(name, str) or not name.strip():
+        raise ConfigError(f"{where}: invoice line requires a non-empty 'name'")
+
+    quantity = raw.get("quantity", 1.0)
+    try:
+        quantity_f = float(quantity)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(f"{where}: quantity must be a number") from exc
+    if quantity_f <= 0:
+        raise ConfigError(f"{where}: quantity must be > 0 (got {quantity_f})")
+
+    unit_price = raw.get("unit_price", 0.0)
+    try:
+        unit_price_f = float(unit_price)
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(f"{where}: unit_price must be a number") from exc
+    if unit_price_f < 0:
+        raise ConfigError(f"{where}: unit_price must be >= 0 (got {unit_price_f})")
+
+    charge_amount = raw.get("charge_amount")
+    if charge_amount is not None:
+        try:
+            charge_amount = float(charge_amount)
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(f"{where}: charge_amount must be a number") from exc
+
+    sku = raw.get("sku")
+    if sku is not None and not isinstance(sku, str):
+        raise ConfigError(f"{where}: sku must be a string")
+
+    description = raw.get("description")
+    if description is not None and not isinstance(description, str):
+        raise ConfigError(f"{where}: description must be a string")
+
+    line_start = raw.get("line_start_date")
+    line_end = raw.get("line_end_date")
+    if line_start is not None:
+        line_start = _parse_date_token(line_start, where)
+    if line_end is not None:
+        line_end = _parse_date_token(line_end, where)
+    if line_start and line_end and line_start > line_end:
+        raise ConfigError(
+            f"{where}: line_start_date ({line_start}) is after "
+            f"line_end_date ({line_end})"
+        )
+
+    taxable = bool(raw.get("taxable", False))
+
+    return InvoiceLineSpec(
+        name=name,
+        sku=sku,
+        quantity=quantity_f,
+        unit_price=unit_price_f,
+        charge_amount=charge_amount,
+        line_start_date=line_start,
+        line_end_date=line_end,
+        taxable=taxable,
+        description=description,
+    )
+
+
+def _coerce_invoice_overrides(raw: Any, where: str) -> Optional[InvoiceOverrides]:
+    """Build :class:`InvoiceOverrides` from a scenario's ``invoice:`` block.
+
+    Phase 1 tax invariant enforced here: ``should_calculate_tax: true`` is
+    rejected loudly so the parse layer catches the misuse before any handler
+    or lifecycle code sees it.
+    """
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise ConfigError(f"{where}: 'invoice' overrides must be a mapping")
+
+    def date_or_none(key: str) -> Optional[date]:
+        v = raw.get(key)
+        return _parse_date_token(v, where) if v is not None else None
+
+    currency = raw.get("currency")
+    if currency is not None and not isinstance(currency, str):
+        raise ConfigError(f"{where}: invoice.currency must be a string ISO code")
+    description = raw.get("description")
+    if description is not None and not isinstance(description, str):
+        raise ConfigError(f"{where}: invoice.description must be a string")
+    tax_status = raw.get("tax_calculation_status")
+    if tax_status is not None and not isinstance(tax_status, str):
+        raise ConfigError(
+            f"{where}: invoice.tax_calculation_status must be a string"
+        )
+
+    should_calc = bool(raw.get("should_calculate_tax", False))
+    if should_calc:
+        raise ConfigError(
+            f"{where}: invoice.should_calculate_tax=true is not supported in "
+            f"Phase 1 (InvoiceLineTax wiring not yet shipped)"
+        )
+
+    return InvoiceOverrides(
+        invoice_date=date_or_none("invoice_date"),
+        due_date=date_or_none("due_date"),
+        posted_date=date_or_none("posted_date"),
+        currency=currency,
+        description=description,
+        should_calculate_tax=False,
+        tax_calculation_status=tax_status,
+    )
+
+
+def _coerce_invoice_ingestion_spec(
+    merged: dict[str, Any], kind: str, where: str
+) -> InvoiceIngestionScenarioSpec:
+    """Parse a ``kind: invoice_ingestion`` scenario.
+
+    The ingestion lifecycle bypasses the PST chain (Opportunity/Quote/Order/
+    Activate/Usage). PST-only knobs on a merged spec are rejected loudly so a
+    misplaced field doesn't silently disappear (a hard-to-debug failure mode
+    if a user pastes a PST scenario over the wrong ``kind``).
+    """
+    stage = _coerce_target_stage(merged, kind, where)
+    count = _coerce_count(merged, where)
+
+    # Reject PST-only fields on ingestion specs. Built-in defaults set
+    # ``with_opportunity: false`` etc., so check truthy-only -- a False
+    # default isn't an error.
+    pst_only = (
+        "products", "product", "quantity", "discount",
+        "opportunity_stage", "start_date", "term", "end_date",
+        "period_boundary", "billing_frequency",
+    )
+    for key in pst_only:
+        if merged.get(key):
+            raise ConfigError(
+                f"{where}: '{key}' is not valid for kind 'invoice_ingestion' "
+                f"(belongs to kind 'sales_transaction')"
+            )
+    if merged.get("with_opportunity"):
+        raise ConfigError(
+            f"{where}: 'with_opportunity' is not valid for kind 'invoice_ingestion' "
+            f"(ingestion path has no Opportunity step)"
+        )
+
+    lines_raw = merged.get("invoice_lines")
+    if not lines_raw:
+        raise ConfigError(
+            f"{where}: kind 'invoice_ingestion' requires at least one "
+            f"'invoice_lines' entry"
+        )
+    if not isinstance(lines_raw, list):
+        raise ConfigError(f"{where}: 'invoice_lines' must be a list")
+    invoice_lines = [
+        _coerce_invoice_line(ln, f"{where}.invoice_lines[{i}]")
+        for i, ln in enumerate(lines_raw)
+    ]
+
+    overrides = _coerce_invoice_overrides(merged.get("invoice"), where)
+
+    # Phase 1 tax invariant -- defensive belt at parse time: on Posted target
+    # the action enforces it too, but bouncing here avoids a confusing
+    # lifecycle error far from the source line.
+    if stage == "post":
+        for i, ln in enumerate(invoice_lines):
+            if ln.taxable:
+                raise ConfigError(
+                    f"{where}.invoice_lines[{i}]: 'taxable: true' is not "
+                    f"allowed when target_stage is 'post' (Phase 1 invariant)"
+                )
+
+    return InvoiceIngestionScenarioSpec(
+        account=merged.get("account"),
+        invoice_lines=invoice_lines,
+        target_stage=stage,
+        count=count,
+        invoice=overrides,
+        kind=kind,
+    )
+
+
+# Per-kind config coercers. Dispatch happens in :func:`_coerce_spec` after
+# the kind has been validated against :data:`_VALID_KINDS`. Adding a new
+# kind = adding a coercer + registering it here + handlers/__init__.py.
+_KIND_COERCERS: dict[str, Any] = {
+    "sales_transaction": _coerce_sales_transaction_spec,
+    "invoice_ingestion": _coerce_invoice_ingestion_spec,
+}
+
+
+def _coerce_spec(merged: dict[str, Any], where: str):
+    """Coerce a merged config dict into a kind-specific spec.
+
+    Returns a :class:`ScenarioSpec` for ``kind: sales_transaction`` and an
+    :class:`InvoiceIngestionScenarioSpec` for ``kind: invoice_ingestion``.
+    Each kind has its own dataclass so PST-only knobs vs ingestion-only
+    knobs can't accidentally mix in one type, and so a misplaced field on
+    the wrong kind fails at parse time, not at lifecycle time.
+    """
+    kind = merged.get("kind") or _DEFAULT_KIND
+    if kind not in _VALID_KINDS:
+        raise ConfigError(
+            f"{where}: invalid kind '{kind}' "
+            f"(valid: {', '.join(sorted(_VALID_KINDS))})"
+        )
+    return _KIND_COERCERS[kind](merged, kind, where)
+
+
+def load_scenarios(args: Any):
     """Resolve the run into a list of un-resolved scenario specs.
 
     No ``--config`` -> one spec from CLI flags + built-ins. With ``--config``,
     each entry under ``scenarios:`` becomes a spec (layered defaults < config
     ``defaults`` < CLI < per-scenario); a config with no ``scenarios:`` yields a
     single spec from the merged defaults, honoring ``volume.scenarios`` as count.
+
+    Return type is a list of kind-specific spec dataclasses
+    (:class:`ScenarioSpec` for PST, :class:`InvoiceIngestionScenarioSpec` for
+    invoice ingestion). The handler dispatcher reads ``spec.kind`` and routes
+    to ``SCENARIO_HANDLERS[kind]``.
     """
     cli = _cli_overrides(args)
     config_path = getattr(args, "config", None)
@@ -824,7 +1086,7 @@ def load_scenarios(args: Any) -> list[ScenarioSpec]:
 
     if not isinstance(scenarios, list) or not scenarios:
         raise ConfigError("config 'scenarios' must be a non-empty list")
-    specs: list[ScenarioSpec] = []
+    specs: list = []
     for i, raw in enumerate(scenarios):
         if not isinstance(raw, dict):
             raise ConfigError(f"scenarios[{i}] must be a mapping")

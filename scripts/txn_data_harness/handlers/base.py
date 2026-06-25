@@ -1,8 +1,8 @@
 """Scenario handler protocol.
 
 A handler owns the parse/discover/resolve/run pipeline for one ``kind`` of
-scenario (today: ``sales_transaction``; PR 2+ adds ``invoice_ingestion``).
-The dispatcher in ``generate.py`` / ``cli.py`` looks up
+scenario (today: ``sales_transaction`` and ``invoice_ingestion``). The
+dispatcher in ``generate.py`` / ``cli.py`` looks up
 ``SCENARIO_HANDLERS[merged["kind"]]`` after the defaults merge and delegates
 through this protocol so each lifecycle stays in its own module instead of
 spreading conditionals across the harness.
@@ -10,12 +10,11 @@ spreading conditionals across the harness.
 
 from __future__ import annotations
 
-from typing import ClassVar, Optional, Protocol, runtime_checkable
+from typing import Any, ClassVar, Optional, Protocol, runtime_checkable
 
 from ..auth import SfRestClient
-from ..config import ScenarioSpec
 from ..discovery import Account, OrgContext
-from ..models import Manifest, ResolvedSpec
+from ..models import Manifest
 
 
 @runtime_checkable
@@ -23,10 +22,14 @@ class ScenarioHandler(Protocol):
     """Per-``kind`` entry points the dispatcher calls into.
 
     Implementations are stateless singletons registered in
-    ``handlers/__init__.py`` as ``SCENARIO_HANDLERS[kind]``. The PST handler
-    in PR 1 delegates to the existing free functions in ``runner.py`` /
-    ``config.py`` -- no behavioral change. Future PRs replace the free
-    functions with handler-owned implementations.
+    ``handlers/__init__.py`` as ``SCENARIO_HANDLERS[kind]``. The ``spec``
+    and ``resolved`` types vary by kind (PST uses
+    :class:`scripts.txn_data_harness.config.ScenarioSpec` /
+    :class:`scripts.txn_data_harness.models.ResolvedSpec`; ingestion uses
+    :class:`scripts.txn_data_harness.config.InvoiceIngestionScenarioSpec` /
+    :class:`scripts.txn_data_harness.models.ResolvedInvoiceIngestionSpec`),
+    so the protocol leaves them as ``Any`` and each handler narrows the
+    types on its own ``resolve`` / ``run`` signatures.
     """
 
     kind: ClassVar[str]
@@ -35,7 +38,8 @@ class ScenarioHandler(Protocol):
         """Resolve the stage a scenario will actually reach.
 
         Implementations may cap the requested stage on this kind's rules
-        (e.g. PST caps at ``order`` for non-billing accounts).
+        (e.g. PST caps at ``order`` for non-billing accounts; ingestion
+        has no cap).
         """
         ...
 
@@ -49,10 +53,8 @@ class ScenarioHandler(Protocol):
         """Steps still needed to reach ``target_stage`` from a checkpointed run."""
         ...
 
-    def resolve(
-        self, client: SfRestClient, ctx: OrgContext, spec: ScenarioSpec
-    ) -> ResolvedSpec:
-        """Bind a parsed spec's account/products to concrete org records."""
+    def resolve(self, client: SfRestClient, ctx: OrgContext, spec: Any) -> Any:
+        """Bind a parsed spec's account/lines to concrete org records."""
         ...
 
     def run(
@@ -60,7 +62,7 @@ class ScenarioHandler(Protocol):
         client: SfRestClient,
         ctx: OrgContext,
         run_id: str,
-        resolved: ResolvedSpec,
+        resolved: Any,
         poll_timeout: int,
         max_retries: int,
     ) -> Manifest:
