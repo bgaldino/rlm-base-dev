@@ -98,7 +98,7 @@ Requires Playwright in the CCI venv (same inject as the help task); `markdownify
 
 RC builds on shared **Industries common platform services** that the RLM dev guide doesn't document — Business Rules Engine (expression sets, decision tables/matrices), Context Service, OmniStudio, Discovery Framework (guided selling), Data Processing Engine/Batch, Decision Explainer, Collections and Recovery, Action Launcher, and Timeline. These live in a **second atlas deliverable**, `industries_reference`, captured separately into `docs/salesforce/{release}/dev-guide-industries/` (same `articles/` + `manifest.json` + `index.md` layout) by the same task with a distinct `output_dir`.
 
-The full Industries Common Resources guide is ~1435 pages across 37 sections — most for *other* Industries clouds (Digital Lending, Document/Form Readers, Process Compliance, etc.). The snapshot is **scoped to the ~607 RC-relevant pages** via the task's `sections` list:
+The full Industries Common Resources guide is ~1435 pages across 37 sections — most for *other* Industries clouds (Digital Lending, Document/Form Readers, Process Compliance, etc.). The snapshot is **scoped to the ~571 RC-relevant pages** (the nine sections' TOC subtrees) via the task's `sections` list; `follow_links` stays off so an out-of-scope cross-reference can't drag in unrelated sections:
 
 ```bash
 cci task run snapshot_industries_dev_guide_262                # the 9 RC-relevant sections

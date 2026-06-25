@@ -94,6 +94,25 @@ def main():
     except TaskOptionsError:
         check("unknown section raises TaskOptionsError", True)
 
+    # _select_to_capture restricts the capture set to the requested sections
+    # (parallel multi-section path; filter given as page_id and as title).
+    t2 = _task()
+    t2.options = {"section_filters": ["business_rules_engine", "Context Service"]}
+    manifest = {"pages": [
+        {"page_id": "business_rules_engine.htm", "section": "Business Rules Engine", "status": "pending"},
+        {"page_id": "bre_child1.htm", "section": "Business Rules Engine", "status": "pending"},
+        {"page_id": "context_service_overview.htm", "section": "Context Service", "status": "captured"},
+        {"page_id": "ctx_child.htm", "section": "Context Service", "status": "pending"},
+        {"page_id": "noise.htm", "section": "Unrelated Cloud", "status": "pending"},
+    ]}
+    sel = {p["page_id"] for p in t2._select_to_capture(manifest, "all")}
+    check("_select_to_capture keeps only requested sections (pending)",
+          sel == {"business_rules_engine.htm", "bre_child1.htm", "ctx_child.htm"})
+    check("_select_to_capture excludes unrequested sections", "noise.htm" not in sel)
+    sel_refresh = {p["page_id"] for p in t2._select_to_capture(manifest, "refresh")}
+    check("_select_to_capture refresh re-includes captured requested-section pages",
+          "context_service_overview.htm" in sel_refresh and "noise.htm" not in sel_refresh)
+
     print(f"\n{_passed}/{_total} checks passed.")
     return 0 if _passed == _total else 1
 

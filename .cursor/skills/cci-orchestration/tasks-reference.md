@@ -641,7 +641,7 @@
 
 ### `snapshot_industries_dev_guide_262`
 
-**Description:** Snapshot the RC-relevant sections of the 262 (Summer '26) Industries Common Resources Developer Guide (atlas deliverable industries_reference). The full guide is ~1435 pages across 37 sections, most for other Industries clouds; this captures the ~607 pages RC builds on — Business Rules Engine, Context Service, OmniStudio, Discovery Framework, Data Processing Engine/Batch, Decision Explainer, Collections and Recovery, Action Launcher, and Timeline — into a separate corpus (dev-guide-industries) so it never clobbers the RLM dev-guide. follow_links pulls in-scope pages linked from a section but absent from its TOC subtree (e.g. extra Discovery Framework pages). Edit the `sections` list to widen/narrow coverage.
+**Description:** Snapshot the RC-relevant sections of the 262 (Summer '26) Industries Common Resources Developer Guide (atlas deliverable industries_reference). The full guide is ~1435 pages across 37 sections, most for other Industries clouds; this captures the ~571 pages RC builds on — Business Rules Engine, Context Service, OmniStudio, Discovery Framework, Data Processing Engine/Batch, Decision Explainer, Collections and Recovery, Action Launcher, and Timeline — into a separate corpus (dev-guide-industries) so it never clobbers the RLM dev-guide. Capture is scoped to those sections' TOC subtrees; follow_links stays off (its default when `sections` is set) so a link out of scope can't pull unrelated sections in. Edit the `sections` list to widen/narrow coverage.
 
 **Class:** `tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide`
 
@@ -652,7 +652,6 @@
 - `deliverable`: `industries_reference`
 - `output_dir`: `docs/salesforce/262/dev-guide-industries`
 - `sections`: `business_rules_engine, context_service_overview, omnistudio_overview, discovery_framework, batch, decision_explainer,...`
-- `follow_links`: `True`
 - `mode`: `all`
 
 ---
