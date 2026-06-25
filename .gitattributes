@@ -31,3 +31,6 @@ docs/salesforce/*/help/index.md linguist-generated=true
 docs/salesforce/*/dev-guide/articles/** linguist-generated=true
 docs/salesforce/*/dev-guide/manifest.json linguist-generated=true
 docs/salesforce/*/dev-guide/index.md linguist-generated=true
+docs/salesforce/*/dev-guide-industries/articles/** linguist-generated=true
+docs/salesforce/*/dev-guide-industries/manifest.json linguist-generated=true
+docs/salesforce/*/dev-guide-industries/index.md linguist-generated=true
