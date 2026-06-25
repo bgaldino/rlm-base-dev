@@ -222,7 +222,7 @@ foundations:
       path: docs/salesforce/262/help/articles/
       manifest: docs/salesforce/262/help/manifest.json
       index: docs/salesforce/262/help/index.md
-      article_count: 838
+      article_count: 932
       release: "262"
       season: "Summer '26"
       api_version: v67.0

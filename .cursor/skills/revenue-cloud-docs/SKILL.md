@@ -193,7 +193,7 @@ When a new release ships (e.g., Salesforce announces 264 GA):
    grep -l "^You are here:" docs/salesforce/264/help/articles/*.md | wc -l
    ```
 
-5. **Commit**. A single-area snapshot is typically 100–500 KB; the full multi-area snapshot for one release lands around 4–5 MB (the 262 snapshot is **~4.3 MB across 838 articles** — see the *Per-area snapshots* table below). Mark the directory as generated in `.gitattributes` (`docs/salesforce/*/help/** linguist-generated=true`) so GitHub auto-collapses the diff on refresh PRs.
+5. **Commit**. A single-area snapshot is typically 100–500 KB; the full multi-area snapshot for one release lands around 4–5 MB (the 262 snapshot is **~4.3 MB across 932 articles** — see the *Per-area snapshots* table below). Mark the directory as generated in `.gitattributes` (`docs/salesforce/*/help/** linguist-generated=true`) so GitHub auto-collapses the diff on refresh PRs.
 
 ## Per-area snapshots
 
@@ -214,8 +214,9 @@ Each functional area in Revenue Cloud has its own root Help article and ID prefi
 | Billing | Billing | `ind.billing.htm` | `ind.billing` | 171 ✓ |
 | **Cross-domain** | **Agentforce for Revenue Management** | `ind.rev_agent_overview.htm` | `ind.rev_agent` | 13 ✓ (topic-reference articles; functional-area how-to articles are captured under each area's prefix) |
 | Approvals | Advanced Approvals | `ind.approvals_advanced_approvals.htm` | `ind.approvals` | 34 ✓ |
+| Collections | Collections and Recovery | `ind.collections.htm` | `ind.collections` | 94 ✓ (3 errored — pending recapture) |
 
-**Total 262 snapshot: 838 articles, ~4.3 MB markdown.** Complete coverage of all 9 RC data-model domains plus the cross-domain Agentforce-for-RC agent suite. Captured 2026-05-11 / 2026-05-12.
+**Total 262 snapshot: 932 articles, ~4.3 MB markdown.** Complete coverage of all 9 RC data-model domains plus the cross-domain Agentforce-for-RC agent suite and the Collections & Recovery area (94 articles captured; 3 pending recapture — see `docs/salesforce/262/help/index.md`). Captured 2026-05-11 / 2026-05-12 (collections 2026-06-21).
 
 **Manifest structure (post-2026-05-12 polish).** The shared manifest at `docs/salesforce/{release}/help/manifest.json` carries a top-level `areas` array that accumulates per-area run metadata (root, prefix, snapshot dates, per-area stats). Each article entry in `manifest.articles` is tagged with its `area` for filtering. The `index.md` renders an overall stats table + a per-area coverage summary + per-area captured-articles sections when the manifest covers multiple areas, falling back to the original single-area layout when only one area is captured. Use `manifest.areas` (or `grep area:` on per-article frontmatter) to filter by functional area.
 

@@ -179,7 +179,7 @@ python datasets/sfdmu/inapp/convert_from_legacy.py [path/to/rlm.dataset.sql]
 
 ## 262 verification status (content was last authored for 258 / Winter '26)
 
-Verified against `docs/salesforce/262/` — the **838-article Help snapshot**, the
+Verified against `docs/salesforce/262/` — the **932-article Help snapshot**, the
 **1388-article Developer Guide (atlas) snapshot**, and `feature-index.md` — per the
 canonical `.cursor/skills/revenue-cloud-docs/SKILL.md` (the plugin-cached skill copy is
 stale and omits the dev-guide corpus). 262 = Summer '26; 258 = Winter '26.
