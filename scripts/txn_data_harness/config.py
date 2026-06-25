@@ -54,10 +54,12 @@ _DEFAULT_KIND = "sales_txn_quote"
 # handlers package (which transitively pulls auth/discovery).
 _VALID_KINDS = {"sales_txn_quote", "sales_txn_order", "invoice_ingestion"}
 
-# Per-kind allowed target stages. Ingestion bypasses the PST chain, so only
-# the live-verified Draft stage is valid in supported configs. The Posted code
-# path remains internal scaffolding until InvoiceLineTax prerequisites are
-# implemented and live-verified.
+# Per-kind allowed target stages. Ingestion bypasses the PST chain; both
+# Draft and Posted are live-verified provided the org has an active
+# non-taxable TaxTreatment (see :func:`discovery.resolve_non_taxable_tax_treatment`).
+# Tax-on Posted ingestion (lines with ``taxable: true``) still requires
+# InvoiceLineTax graph records and is rejected at parse time -- see
+# ``docs/followups.md``.
 #
 # ``sales_txn_order`` omits ``quote_placed`` (the order path skips the Quote
 # step entirely; see :data:`scripts.txn_data_harness.models.STAGES_ORDER`).
@@ -74,7 +76,7 @@ _KIND_VALID_STAGES: dict[str, set[str]] = {
         "order_draft", "order_activated", "usage_upload",
         "invoice_draft", "invoice_posted",
     },
-    "invoice_ingestion": {"invoice_draft"},
+    "invoice_ingestion": {"invoice_draft", "invoice_posted"},
 }
 
 # Built-in defaults (lowest precedence). target_stage caps/resolution happen in
@@ -788,16 +790,23 @@ def _coerce_count(merged: dict[str, Any], where: str) -> int:
 def _coerce_target_stage(merged: dict[str, Any], kind: str, where: str) -> str:
     """Validate ``target_stage`` against the kind-specific allowlist.
 
-    PST accepts every stage in :data:`_VALID_STAGES`; ingestion is restricted
-    to ``invoice`` (Draft) until Posted ingestion's InvoiceLineTax
-    prerequisite is implemented and live-verified.
+    Each kind defines its own valid stage set in :data:`_KIND_VALID_STAGES`.
+    ``invoice_ingestion`` defaults to ``invoice_draft`` when the user does not
+    pin a stage: Posted ingestion needs a non-taxable TaxTreatment seeded in
+    the org, so opting in deliberately is friendlier than silently inheriting
+    the global ``invoice_posted`` default.
     """
     valid = _KIND_VALID_STAGES[kind]
-    default_stage = "invoice_posted" if "invoice_posted" in valid else next(iter(valid))
-    stage = merged.get("target_stage") or default_stage
+    if kind == "invoice_ingestion":
+        default_stage = "invoice_draft"
+    elif "invoice_posted" in valid:
+        default_stage = "invoice_posted"
+    else:
+        default_stage = next(iter(valid))
     target_stage_explicit = merged.get(
         "_target_stage_explicit", "target_stage" in merged
     )
+    stage = merged.get("target_stage") or default_stage
     if (
         kind == "invoice_ingestion"
         and not target_stage_explicit
@@ -805,15 +814,9 @@ def _coerce_target_stage(merged: dict[str, Any], kind: str, where: str) -> str:
     ):
         stage = default_stage
     if stage not in valid:
-        hint = ""
-        if kind == "invoice_ingestion" and stage == "invoice_posted":
-            hint = (
-                "; Posted ingestion requires InvoiceLineTax "
-                "support before it can be run"
-            )
         raise ConfigError(
             f"{where}: target_stage '{stage}' is not valid for kind '{kind}' "
-            f"(valid: {', '.join(sorted(valid))}){hint}"
+            f"(valid: {', '.join(sorted(valid))})"
         )
     return stage
 
@@ -1055,16 +1058,18 @@ def _coerce_invoice_ingestion_spec(
 
     overrides = _coerce_invoice_overrides(merged.get("invoice"), where)
 
-    # Current tax invariant -- defensive belt at parse time: on Posted target
-    # the action enforces it too, but bouncing here avoids a confusing
-    # lifecycle error far from the source line.
+    # Current tax invariant -- defensive belt at parse time. Posted ingestion
+    # works against the non-taxable TaxTreatment discovered on the org, so
+    # ``taxable: true`` lines stay rejected until InvoiceLineTax graph records
+    # land (the canonical follow-on in docs/followups.md).
     if stage == "invoice_posted":
         for i, ln in enumerate(invoice_lines):
             if ln.taxable:
                 raise ConfigError(
                     f"{where}.invoice_lines[{i}]: 'taxable: true' is not "
                     f"allowed when target_stage is 'invoice_posted' "
-                    f"(InvoiceLineTax wiring not yet shipped)"
+                    f"(tax-on Posted ingestion requires InvoiceLineTax graph "
+                    f"records; see docs/followups.md)"
                 )
 
     return InvoiceIngestionScenarioSpec(

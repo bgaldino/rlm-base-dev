@@ -25,6 +25,7 @@ from scripts.txn_data_harness.discovery import (
     _account_currency_map,
     discover_any_accounts,
     resolve_invoice_line_product,
+    resolve_non_taxable_tax_treatment,
 )
 from scripts.txn_data_harness.models import (
     ResolvedInvoiceLine,
@@ -235,3 +236,45 @@ def test_resolved_invoice_overrides_defaults() -> None:
     assert ov.should_calculate_tax is False
     assert ov.invoice_date is None
     assert ov.tax_calculation_status is None
+
+
+def test_resolve_non_taxable_tax_treatment_found(fake_client) -> None:
+    fake_client.query_responses.append([{"Id": "1ttNONTAX"}])
+    assert resolve_non_taxable_tax_treatment(fake_client) == "1ttNONTAX"
+    soql = fake_client.queries[0]
+    assert "FROM TaxTreatment" in soql
+    assert "IsTaxable = false" in soql
+    assert "Status = 'Active'" in soql
+
+
+def test_resolve_non_taxable_tax_treatment_missing_returns_none(fake_client) -> None:
+    fake_client.query_responses.append([])
+    assert resolve_non_taxable_tax_treatment(fake_client) is None
+
+
+def test_resolve_non_taxable_tax_treatment_cache_scoped_by_org_identity() -> None:
+    class TaxClient:
+        api_version = "67.0"
+        alias = "shared-alias"
+
+        def __init__(self, instance_url: str, responses: list[object]):
+            self.instance_url = instance_url
+            self.responses = responses
+            self.queries: list[str] = []
+
+        def query(self, soql: str):
+            self.queries.append(soql)
+            return self.responses.pop(0)
+
+    org_a = TaxClient("https://orga.example", [[{"Id": "1ttA"}]])
+    org_b = TaxClient("https://orgb.example", [[]])
+
+    assert resolve_non_taxable_tax_treatment(org_a) == "1ttA"
+    assert resolve_non_taxable_tax_treatment(org_b) is None
+
+    # Repeat probes against each org reuse the cache; same alias does not
+    # collapse distinct instance URLs into one cache entry.
+    assert resolve_non_taxable_tax_treatment(org_a) == "1ttA"
+    assert resolve_non_taxable_tax_treatment(org_b) is None
+    assert len(org_a.queries) == 1
+    assert len(org_b.queries) == 1

@@ -42,11 +42,18 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
       `scripts/txn_data_harness/docs/contracts-sales-txn-order.md`. Reference
       config: `scenarios/sales_txn_order/16-direct-orders.yaml`.
     - `kind: invoice_ingestion` skips PST and `POST`s a typed Composite-Graph
-      payload to `/commerce/invoicing/.../actions/ingest`, minting a Draft
-      `Invoice` (`CreationMode = External`) directly. Use the ingestion path
-      only for **Draft** today; Posted ingestion is not operator-supported until
-      tax graph support is implemented and verified.
-      Reference config: `scenarios/invoice_ingestion/15-standalone-billing-draft.yaml`.
+      payload to `/commerce/invoicing/.../actions/ingest`, minting an
+      `Invoice` (`CreationMode = External`) directly. Both `invoice_draft`
+      (default for this kind) and `invoice_posted` are live-verified. Posted
+      ingestion requires an active non-taxable `TaxTreatment` in the org
+      (`IsTaxable=false`, `Status=Active`) — the harness discovers it at
+      bootstrap and stamps `taxTreatmentId` on every line; without one,
+      `ingest_invoice` raises `LifecycleError` with seed instructions.
+      **Tax-on** Posted ingestion (`taxable: true` lines, which need
+      `InvoiceLineTax` graph records) is still deferred — rejected at parse
+      time; see `scripts/txn_data_harness/docs/followups.md`. Reference configs:
+      `scenarios/invoice_ingestion/15-standalone-billing-draft.yaml` (Draft) and
+      `scenarios/invoice_ingestion/15-standalone-billing.yaml` (Posted).
     Legacy `sales_transaction` and `transaction` kind names are rejected at
     config-load time with a hint pointing at the new names.
 
@@ -73,7 +80,7 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 | User intent | Use this skill? | Notes |
 | ----------- | --------------- | ----- |
 | Generate Sales/Revenue Cloud demo transactions | Yes | Plan first, then run one smoke scenario. |
-| Mint standalone-billing Draft invoices (no PST chain) | Yes | Use `scenarios/invoice_ingestion/15-standalone-billing-draft.yaml` (`kind: invoice_ingestion`). Posted ingestion is not operator-supported today. |
+| Mint standalone-billing Draft or Posted invoices (no PST chain) | Yes | Use `scenarios/invoice_ingestion/15-standalone-billing-draft.yaml` (Draft) or `scenarios/invoice_ingestion/15-standalone-billing.yaml` (Posted; requires an active non-taxable `TaxTreatment` seeded in the org). Tax-on Posted ingestion is still deferred — see `docs/followups.md`. |
 | Inspect or continue a partial harness run | Yes | Use manifest-driven `inspect` / `step`. |
 | Verify orders/invoices created by the harness | Yes | Query by manifest ids. |
 | Clean up harness-created records | Yes | Explain non-deletable leftovers. |

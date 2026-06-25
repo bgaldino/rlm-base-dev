@@ -334,7 +334,7 @@ def test_run_drafts_an_invoice(monkeypatch, fake_client, billable_account) -> No
     """A scenario targeting ``invoice_draft`` runs ingest_invoice once and stops."""
     called: list[str] = []
 
-    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, timeout):
+    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, timeout):
         called.append(status)
         return "1nvDRAFT", None, ["iln1"]
 
@@ -369,7 +369,7 @@ def test_run_posts_an_invoice_with_short_circuit_promote(
     no-op fast-path (manifest already at reached_stage='invoice_posted')."""
     statuses: list[str] = []
 
-    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, timeout):
+    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, timeout):
         statuses.append(status)
         return "1nvPOSTED", "INV-0001", ["iln1"]
 
@@ -424,7 +424,7 @@ def test_run_retries_transient_draft_ingest_without_observed_invoice(
     calls = {"n": 0}
     sleeps: list[float] = []
 
-    def flaky_ingest(client, account, lines, run_id, *, status, invoice_spec, timeout):
+    def flaky_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, timeout):
         calls["n"] += 1
         if calls["n"] == 1:
             raise LifecycleError("ingest_invoice", "request timed out")
@@ -556,16 +556,38 @@ def test_coerce_spec_rejects_with_opportunity_on_ingestion() -> None:
         _coerce_spec(merged, "test")
 
 
-def test_coerce_spec_rejects_posted_ingestion_until_tax_support() -> None:
+def test_coerce_spec_accepts_posted_ingestion_with_nontaxable_lines() -> None:
+    """Posted ingestion is supported when every line is non-taxable.
+
+    The harness discovers a non-taxable ``TaxTreatment`` at bootstrap and
+    stamps it on each ``InvoiceLine``; parse-time only enforces the no
+    ``taxable: true`` invariant. Tax-on Posted is still deferred -- see
+    ``docs/followups.md``."""
     merged = {
         "kind": "invoice_ingestion",
         "target_stage": "invoice_posted",
         "account": "Infinitech",
         "invoice_lines": [
-            {"name": "API", "quantity": 1, "unit_price": 10}
+            {"name": "API", "quantity": 1, "unit_price": 10, "taxable": False}
         ],
     }
-    with pytest.raises(ConfigError, match="Posted ingestion requires InvoiceLineTax"):
+    spec = _coerce_spec(merged, "test")
+    assert isinstance(spec, InvoiceIngestionScenarioSpec)
+    assert spec.target_stage == "invoice_posted"
+
+
+def test_coerce_spec_rejects_taxable_line_on_posted_ingestion() -> None:
+    """``taxable: true`` lines still require ``InvoiceLineTax`` graph records
+    and are rejected at parse time on Posted target."""
+    merged = {
+        "kind": "invoice_ingestion",
+        "target_stage": "invoice_posted",
+        "account": "Infinitech",
+        "invoice_lines": [
+            {"name": "API", "quantity": 1, "unit_price": 10, "taxable": True}
+        ],
+    }
+    with pytest.raises(ConfigError, match="InvoiceLineTax"):
         _coerce_spec(merged, "test")
 
 

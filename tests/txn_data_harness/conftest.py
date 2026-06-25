@@ -38,6 +38,21 @@ def _reset_currency_probe_cache():
     _discovery._MULTI_CURRENCY_BY_ORG.clear()
 
 
+@pytest.fixture(autouse=True)
+def _reset_tax_treatment_probe_cache():
+    """Reset the non-taxable TaxTreatment cache between tests.
+
+    Same reasoning as ``_reset_currency_probe_cache``: the module-level
+    ``discovery._NON_TAXABLE_TAX_TREATMENT_BY_ORG`` is org-scoped but
+    process-wide; clear it so stubbed responses aren't masked by a prior
+    test's hit.
+    """
+    from scripts.txn_data_harness import discovery as _discovery
+    _discovery._NON_TAXABLE_TAX_TREATMENT_BY_ORG.clear()
+    yield
+    _discovery._NON_TAXABLE_TAX_TREATMENT_BY_ORG.clear()
+
+
 @pytest.fixture
 def billable_account() -> Account:
     return Account(

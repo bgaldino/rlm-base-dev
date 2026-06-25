@@ -198,6 +198,14 @@ class OrgContext:
     opportunity_stage: Optional[str]
     billing_ready_accounts: list[Account] = field(default_factory=list)
     products: list[Product] = field(default_factory=list)
+    # Non-taxable TaxTreatment id, or ``None`` if no such row exists. Posted
+    # ingestion (``actions/ingest`` with ``status: Posted``) requires every
+    # InvoiceLine to reference a non-taxable TaxTreatment when no
+    # InvoiceLineTax records are present (current tax invariant); see the
+    # invoice-ingestion contracts. Draft ingest stamps the same id so the
+    # Draft -> Posted resume path doesn't fall back to the org's default
+    # taxable treatment.
+    non_taxable_tax_treatment_id: Optional[str] = None
 
     def default_account(self) -> Account:
         if not self.billing_ready_accounts:
@@ -262,6 +270,13 @@ def discover_accounts(client: SfRestClient, account_name: Optional[str] = None) 
 # CurrencyIsoCode on Account (multi-currency enabled), False if SOQL returned
 # INVALID_FIELD. Missing key means not probed yet.
 _MULTI_CURRENCY_BY_ORG: dict[str, bool] = {}
+
+# Module-level cache keyed by stable org identity. Holds the resolved
+# non-taxable TaxTreatment id (or ``None`` if the org has no such row).
+# A missing key means the org has not been probed yet; an explicit ``None``
+# value records a probe that returned zero rows so the second call does not
+# re-query.
+_NON_TAXABLE_TAX_TREATMENT_BY_ORG: dict[str, Optional[str]] = {}
 
 
 def _org_cache_key(client: SfRestClient) -> Optional[str]:
@@ -398,6 +413,34 @@ def _resolve_default_contact_id(
         # First row wins per account (most recent CreatedDate).
         by_account.setdefault(r["AccountId"], r["Id"])
     return by_account
+
+
+def resolve_non_taxable_tax_treatment(client: SfRestClient) -> Optional[str]:
+    """Return the id of an Active non-taxable TaxTreatment, or ``None``.
+
+    Posted invoice ingestion requires every InvoiceLine to reference a
+    non-taxable TaxTreatment when no InvoiceLineTax records are present:
+    the action otherwise resolves the org's default taxable policy and
+    rejects with ``INVALID_API_INPUT: You can't specify a tax treatment with
+    the isTaxable value as true when the invoice line doesn't have a related
+    InvoiceLineTax record`` (live-verified 2026-06-25 on rlm-base__jun17_1).
+
+    ``TaxTreatment`` does not have an ``IsActive`` field; the active set is
+    ``Status = 'Active'`` (verified via describe). Cached per org identity so
+    repeat scenarios in the same run don't re-query.
+    """
+    cache_key = _org_cache_key(client)
+    if cache_key is not None and cache_key in _NON_TAXABLE_TAX_TREATMENT_BY_ORG:
+        return _NON_TAXABLE_TAX_TREATMENT_BY_ORG[cache_key]
+    rows = client.query(
+        "SELECT Id FROM TaxTreatment "
+        "WHERE IsTaxable = false AND Status = 'Active' "
+        "ORDER BY CreatedDate ASC LIMIT 1"
+    )
+    treatment_id = rows[0]["Id"] if rows else None
+    if cache_key is not None:
+        _NON_TAXABLE_TAX_TREATMENT_BY_ORG[cache_key] = treatment_id
+    return treatment_id
 
 
 def resolve_account(client: SfRestClient, name: str) -> Account:
@@ -744,5 +787,6 @@ def discover(
         opportunity_stage=stage,
         billing_ready_accounts=discover_accounts(client, account_name),
         products=discover_products(client, sku),
+        non_taxable_tax_treatment_id=resolve_non_taxable_tax_treatment(client),
     )
     return ctx

@@ -251,6 +251,7 @@ def run_ingest_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
             ctx.run_id,
             status=status,
             invoice_spec=ctx.invoice_spec,
+            tax_treatment_id=ctx.org_context.non_taxable_tax_treatment_id,
             timeout=ctx.poll_timeout,
         )
     except LifecycleError as exc:
@@ -286,10 +287,19 @@ def run_promote_to_posted(ctx: StepContext, manifest: Manifest) -> Manifest:
     """Promote a Draft ingested invoice to Posted, reusing its id.
 
     No-op fast path: if ``ingest_invoice`` already produced a Posted invoice
-    in the same run, ``reached_stage`` is already ``post`` and there's
-    nothing to do. Otherwise calls the existing :func:`lifecycle.post_invoice`
-    on the manifest's invoice id -- the same endpoint the PST flow uses, no
-    new lifecycle call needed.
+    in the same run, ``reached_stage`` is already ``invoice_posted`` and
+    there's nothing to do. Otherwise:
+
+    1. Read back every ``InvoiceLine.TaxTreatmentId`` on the Draft. If any
+       line has no treatment stamped, refuse to proceed -- the post action
+       would otherwise resolve the org's default taxable policy and silently
+       tax the line (verified live 2026-06-25 on rlm-base__jun17_1: an
+       unstamped $100 line posts as a $10 taxable invoice). ``InvoiceLine.
+       TaxTreatmentId`` is not updateable per describe, so a PATCH fixup
+       is not available; the operator must delete the Draft manifest and
+       re-ingest after seeding a non-taxable TaxTreatment.
+    2. Call :func:`lifecycle.post_invoice` on the manifest's invoice id --
+       the same endpoint the PST flow uses, no new lifecycle call needed.
     """
     if manifest.reached_stage == "invoice_posted":
         return manifest
@@ -297,6 +307,23 @@ def run_promote_to_posted(ctx: StepContext, manifest: Manifest) -> Manifest:
         raise LifecycleError(
             "promote_to_posted",
             "invoice_id is required before promote_to_posted",
+        )
+    line_rows = ctx.client.query(
+        "SELECT Id, TaxTreatmentId FROM InvoiceLine "
+        f"WHERE InvoiceId = '{manifest.invoice_id}'"
+    )
+    untagged = [r["Id"] for r in line_rows if not r.get("TaxTreatmentId")]
+    if untagged:
+        raise LifecycleError(
+            "promote_to_posted",
+            f"Draft invoice {manifest.invoice_id} has {len(untagged)} "
+            f"InvoiceLine row(s) with no TaxTreatmentId stamped. The post "
+            "action would silently apply the org's default taxable policy. "
+            "InvoiceLine.TaxTreatmentId is not updateable, so the Draft "
+            "cannot be retro-tagged: delete the Draft and re-ingest with "
+            "an active non-taxable TaxTreatment present in the org "
+            "(Setup -> Tax Treatments, IsTaxable=false, Status=Active).",
+            record_id=manifest.invoice_id,
         )
     manifest.invoice_number = lifecycle.post_invoice(
         ctx.client, manifest.invoice_id, ctx.run_id, timeout=ctx.poll_timeout

@@ -172,13 +172,13 @@ def test_ingest_invoice_posted_defaults_posted_date(fake_client, billable_accoun
     invoice_id, number, _ = ingest_invoice(
         fake_client, billable_account, _basic_lines(), "DEMO-POST",
         status="Posted",
+        tax_treatment_id="1ttNONTAX",
     )
     assert invoice_id == "1nvPOSTED"
     assert number == "INV-0001"
 
-    invoice_record = (
-        fake_client.posts[0][1]["invoices"][0]["graph"]["records"][0]["record"]
-    )
+    records = fake_client.posts[0][1]["invoices"][0]["graph"]["records"]
+    invoice_record = records[0]["record"]
     assert invoice_record["status"] == "Posted"
     # postedDate is defaulted to today for Posted invoices.
     assert invoice_record["postedDate"] == date.today().isoformat()
@@ -187,6 +187,15 @@ def test_ingest_invoice_posted_defaults_posted_date(fake_client, billable_accoun
     # Posted invoices default taxCalculationStatus to "Posted" (live API
     # rejects Pending/Estimated for Posted ingestion).
     assert fake_client.posts[0][1]["invoices"][0]["taxCalculationStatus"] == "Posted"
+    # Every InvoiceLine record carries the discovered non-taxable
+    # taxTreatmentId so the org doesn't reach for the default taxable policy.
+    line_records = [
+        r["record"] for r in records
+        if r["record"]["attributes"].get("type") == "InvoiceLine"
+    ]
+    assert line_records, "expected at least one InvoiceLine graph record"
+    for rec in line_records:
+        assert rec["taxTreatmentId"] == "1ttNONTAX"
 
 
 def test_ingest_invoice_respects_overrides(fake_client, billable_account) -> None:
@@ -209,6 +218,7 @@ def test_ingest_invoice_respects_overrides(fake_client, billable_account) -> Non
         fake_client, billable_account, _basic_lines(), "DEMO-OV",
         status="Posted",
         invoice_spec=overrides,
+        tax_treatment_id="1ttNONTAX",
     )
     inv = fake_client.posts[0][1]["invoices"][0]
     assert inv["taxCalculationStatus"] == "Estimated"
@@ -254,7 +264,53 @@ def test_ingest_invoice_phase1_tax_invariant_rejects_taxable_line_on_posted(
         ingest_invoice(
             fake_client, billable_account, [taxable_line], "DEMO",
             status="Posted",
+            tax_treatment_id="1ttNONTAX",
         )
+
+
+def test_ingest_invoice_posted_without_tax_treatment_raises(
+    fake_client, billable_account
+) -> None:
+    """Posted ingestion without a discovered non-taxable TaxTreatment must
+    fail loudly with seed instructions, not let the org reject the payload
+    or silently resolve the default taxable policy."""
+    with pytest.raises(LifecycleError, match="non-taxable TaxTreatment"):
+        ingest_invoice(
+            fake_client, billable_account, _basic_lines(), "DEMO",
+            status="Posted",
+            tax_treatment_id=None,
+        )
+    # Bail before the POST -- no API call should have been issued.
+    assert fake_client.posts == []
+
+
+def test_ingest_invoice_draft_stamps_tax_treatment_when_provided(
+    fake_client, billable_account
+) -> None:
+    """Stamping the treatment on Draft ingestion is what makes the
+    Draft->Posted resume path correct -- without it, ``actions/post``
+    silently resolves the org's default taxable policy. Verified live
+    2026-06-25: an unstamped $100 line posts as TaxAmount=10."""
+    fake_client.post_responses.append({
+        "invoices": [{"invoiceId": "1nvDRAFT", "success": True, "statusURL": "/sURL"}]
+    })
+    fake_client.get_responses.append({"Status": "Completed"})
+    fake_client.query_responses.append([{"InvoiceNumber": None}])
+    fake_client.query_responses.append([])
+
+    ingest_invoice(
+        fake_client, billable_account, _basic_lines(), "DEMO-DRAFT",
+        status="Draft",
+        tax_treatment_id="1ttNONTAX",
+    )
+    line_records = [
+        r["record"]
+        for r in fake_client.posts[0][1]["invoices"][0]["graph"]["records"]
+        if r["record"]["attributes"].get("type") == "InvoiceLine"
+    ]
+    assert line_records
+    for rec in line_records:
+        assert rec["taxTreatmentId"] == "1ttNONTAX"
 
 
 def test_ingest_invoice_action_failure_surfaces(fake_client, billable_account) -> None:
@@ -279,6 +335,7 @@ def test_ingest_invoice_tracker_failure_surfaces(
         ingest_invoice(
             fake_client, billable_account, _basic_lines(), "DEMO",
             status="Posted",
+            tax_treatment_id="1ttNONTAX",
         )
     assert exc_info.value.record_id == "1nvX"
 
@@ -392,7 +449,10 @@ def test_ingest_invoice_rejects_account_with_partial_billing_address(
 # ---------------------------------------------------------------------------
 
 
-def _ingest_ctx(fake_client, billable_account, target_stage, lines=None, spec=None):
+def _ingest_ctx(
+    fake_client, billable_account, target_stage, lines=None, spec=None,
+    tax_treatment_id=None,
+):
     from scripts.txn_data_harness.discovery import OrgContext
     return StepContext(
         client=fake_client,
@@ -404,6 +464,7 @@ def _ingest_ctx(fake_client, billable_account, target_stage, lines=None, spec=No
             opportunity_stage=None,
             billing_ready_accounts=[],
             products=[],
+            non_taxable_tax_treatment_id=tax_treatment_id,
         ),
         run_id="DEMO-STEP",
         account=billable_account,
@@ -421,7 +482,7 @@ def test_run_ingest_invoice_writes_draft_manifest(
 ) -> None:
     captured = {}
 
-    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, timeout):
+    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, timeout):
         captured["status"] = status
         return "1nvDRAFT", None, ["iln1"]
 
@@ -443,16 +504,24 @@ def test_run_ingest_invoice_writes_posted_manifest(
 ) -> None:
     captured = {}
 
-    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, timeout):
+    def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, timeout):
         captured["status"] = status
+        captured["tax_treatment_id"] = tax_treatment_id
         return "1nvPOST", "INV-0042", ["iln1", "iln2"]
 
     monkeypatch.setattr("scripts.txn_data_harness.steps.lifecycle.ingest_invoice", fake_ingest)
     manifest = run_ingest_invoice(
-        _ingest_ctx(fake_client, billable_account, target_stage="invoice_posted"),
+        _ingest_ctx(
+            fake_client, billable_account,
+            target_stage="invoice_posted",
+            tax_treatment_id="1ttNONTAX",
+        ),
         Manifest(run_id="DEMO-STEP", kind="invoice_ingestion"),
     )
     assert captured["status"] == "Posted"
+    # The org-discovered treatment is threaded from OrgContext into the
+    # lifecycle call -- this is what makes Posted ingest stamp each line.
+    assert captured["tax_treatment_id"] == "1ttNONTAX"
     assert manifest.invoice_id == "1nvPOST"
     assert manifest.invoice_number == "INV-0042"
     assert manifest.reached_stage == "invoice_posted"
@@ -511,6 +580,11 @@ def test_run_promote_to_posted_posts_existing_draft_id(
         return "INV-PROMOTED"
 
     monkeypatch.setattr("scripts.txn_data_harness.steps.lifecycle.post_invoice", fake_post)
+    # Preflight SOQL: every line already has TaxTreatmentId stamped -> no refusal.
+    fake_client.query_responses.append([
+        {"Id": "iln1", "TaxTreatmentId": "1ttNONTAX"},
+        {"Id": "iln2", "TaxTreatmentId": "1ttNONTAX"},
+    ])
     manifest = Manifest(
         run_id="DEMO", kind="invoice_ingestion",
         invoice_id="1nvDRAFT", reached_stage="invoice_draft",
@@ -524,6 +598,40 @@ def test_run_promote_to_posted_posts_existing_draft_id(
     assert result.invoice_id == "1nvDRAFT"
     assert result.invoice_number == "INV-PROMOTED"
     assert result.reached_stage == "invoice_posted"
+    # Preflight SOQL was issued against InvoiceLine for this invoice.
+    assert any(
+        "FROM InvoiceLine" in q and "1nvDRAFT" in q
+        for q in fake_client.queries
+    )
+
+
+def test_run_promote_to_posted_refuses_unstamped_draft(
+    monkeypatch, fake_client, billable_account
+) -> None:
+    """An unstamped Draft cannot be promoted: ``InvoiceLine.TaxTreatmentId``
+    is not updateable per describe, so there is no PATCH fixup. Posting
+    unstamped would let the org silently apply the default taxable policy
+    (verified live 2026-06-25: $100 line -> TaxAmount=10). Refuse loudly
+    with seed instructions instead.
+    """
+    def boom(*_a, **_kw):
+        raise AssertionError("post_invoice must not be called on an unstamped Draft")
+    monkeypatch.setattr("scripts.txn_data_harness.steps.lifecycle.post_invoice", boom)
+    fake_client.query_responses.append([
+        {"Id": "iln1", "TaxTreatmentId": "1ttNONTAX"},
+        {"Id": "iln2", "TaxTreatmentId": None},
+    ])
+    manifest = Manifest(
+        run_id="DEMO", kind="invoice_ingestion",
+        invoice_id="1nvDRAFT", reached_stage="invoice_draft",
+    )
+    with pytest.raises(LifecycleError, match="TaxTreatmentId") as exc_info:
+        run_promote_to_posted(
+            _ingest_ctx(fake_client, billable_account, target_stage="invoice_posted"),
+            manifest,
+        )
+    # The Draft id is surfaced for operator inspection.
+    assert exc_info.value.record_id == "1nvDRAFT"
 
 
 def test_run_promote_to_posted_requires_invoice_id(fake_client, billable_account) -> None:

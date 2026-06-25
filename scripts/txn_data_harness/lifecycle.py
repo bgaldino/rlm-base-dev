@@ -1044,6 +1044,7 @@ def ingest_invoice(
     *,
     status: str = "Draft",
     invoice_spec: Optional[ResolvedInvoiceOverrides] = None,
+    tax_treatment_id: Optional[str] = None,
     timeout: int = 180,
 ) -> tuple[str, Optional[str], list[str]]:
     """POST a Composite-Graph-shaped Invoice to the ingest endpoint.
@@ -1055,6 +1056,17 @@ def ingest_invoice(
     invoices at parse time so we never get here with one. The dev guide
     (R262/v67.0) caps the action body at one invoice per request; concurrency
     lives in the harness's thread pool.
+
+    ``tax_treatment_id`` is the org's non-taxable ``TaxTreatment`` (resolved
+    via :func:`discovery.resolve_non_taxable_tax_treatment`). When provided,
+    every InvoiceLine graph record stamps ``taxTreatmentId``. Posted ingest
+    requires it -- without a stamp the action resolves the org's default
+    taxable policy and rejects with INVALID_API_INPUT. Stamping on Draft
+    too means the Draft -> Posted resume path (``actions/post`` on the saved
+    Draft id) inherits the same id and the post succeeds; an unstamped Draft
+    that later gets posted would have the default taxable policy applied
+    silently by ``actions/post`` (verified live 2026-06-25 on
+    rlm-base__jun17_1).
 
     ``uniqueIdentifier`` is set to ``run_id`` so duplicate calls with the same
     run won't double-create. After the action returns ``statusURL``, polls the
@@ -1079,7 +1091,8 @@ def ingest_invoice(
 
     # Current tax invariant -- a defensive belt for the parse-time check on the
     # handler. If anything sneaks past parsing the harness must NOT silently
-    # ship a tax-on payload to the org.
+    # ship a tax-on payload to the org. Tax-on Posted ingestion lifts when
+    # InvoiceLineTax graph records ship (docs/followups.md).
     if spec.should_calculate_tax:
         raise LifecycleError(
             "ingest_invoice",
@@ -1091,6 +1104,15 @@ def ingest_invoice(
             "ingest_invoice",
             "taxable=true lines are not allowed on Posted invoices until "
             "InvoiceLineTax is implemented",
+        )
+    if status == "Posted" and not tax_treatment_id:
+        raise LifecycleError(
+            "ingest_invoice",
+            "Posted ingestion requires an active non-taxable TaxTreatment "
+            "in the org. Create one in Setup -> Tax Treatments with "
+            "IsTaxable=false and Status=Active (or via 'sf data create "
+            "record --sobject TaxTreatment --values \"Name=... IsTaxable=false "
+            "Status=Active TaxCode=NONE\"'), then re-run.",
         )
 
     # Invoice graph record. The ingest action expects the typed graph shape
@@ -1201,7 +1223,11 @@ def ingest_invoice(
         )
         # No `taxable` field: it does not exist on InvoiceLine. The current
         # tax invariant is expressed by *omitting* InvoiceLineTax records and
-        # leaving shouldCalculateTax false, not by stamping a column.
+        # leaving shouldCalculateTax false. ``taxTreatmentId`` is stamped from
+        # the discovered non-taxable TaxTreatment when one is available; the
+        # action otherwise reaches for the org's default taxable policy and
+        # rejects (Posted) or silently taxes the line at post time (Draft ->
+        # Posted resume).
         line_fields: dict[str, Any] = {
             "invoiceId": "@{refInvoice.id}",
             "name": line.name,
@@ -1211,6 +1237,8 @@ def ingest_invoice(
             "billingAddressId": "@{refBillingAddress.id}",
             "shippingAddressId": "@{refShippingAddress.id}",
         }
+        if tax_treatment_id is not None:
+            line_fields["taxTreatmentId"] = tax_treatment_id
         if line.product is not None:
             line_fields["product2Id"] = line.product.id
         line_start = line.line_start_date or invoice_date

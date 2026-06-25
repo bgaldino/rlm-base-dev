@@ -43,43 +43,25 @@ placeholders or explicitly labeled QB example data.
 
 ### Standalone-billing Posted ingestion
 
-The Draft path is live-verified and documented in
-`contracts-invoice-ingestion.md`. Posted ingestion still needs tax graph
-support plus bulk-ingest characterization.
+Posted ingestion is live-verified end-to-end against a non-taxable
+`TaxTreatment` (2026-06-25, `rlm-base__jun17_1`). Tax-on Posted
+ingestion -- lines that should carry their own `InvoiceLineTax` --
+still needs the tax graph record implemented. Remaining gaps below.
 
-- `[gap]` **Posted ingestion requires a non-taxable `TaxTreatment` OR an `InvoiceLineTax`
-  graph record.** Live-verified blocker on `rlm-base__jun17_1` (2026-06-25): the
-  default org seed has one Active `TaxTreatment` (`Default Tax Policy`,
-  `IsTaxable=true`), and the ingest API rejects Posted lines without a related
-  `InvoiceLineTax` record:
-  > `INVALID_API_INPUT: You can't specify a tax treatment with the isTaxable value as
-  > true when the invoice line doesn't have a related InvoiceLineTax record.`
-  Same precondition gates `commerce/invoicing/.../actions/post`, so Draft→Posted
-  resume hits the identical wall. The lifecycle already wires the Posted
-  payload shape (status, `taxCalculationStatus: Posted`, `invoiceNumber:
-  <run_id>`, `postedDate: today`) — only the tax dependency is missing.
-  - `[probe]` Discover an active `TaxTreatment WHERE IsTaxable = false`. If one
-    exists, stamp `InvoiceLine.taxTreatmentId` on every Posted line and re-run
-    `15-standalone-billing.yaml`. If none exists, decide whether the harness should
-    create one on first run (single setup write, like the PRM Network placeholder)
-    or surface a clear LifecycleError directing the user to seed one.
-  - `[probe]` Once Posted ingestion lands, re-run the Draft→Posted resume flow
-    (`cli step --to-stage invoice_posted`) end-to-end on an existing Draft ingestion
-    manifest; confirm the resume reuses the Draft invoice id rather than creating
-    a second Invoice row.
-  - Ref: `contracts-invoice-ingestion.md` → *Posted Path Dependency*.
-
-- `[probe]` **`InvoiceLineTax` graph record design.** The dev guide
+- `[probe]` **Tax-on Posted ingestion via `InvoiceLineTax` graph records.**
+  The dev guide
   (`../../../docs/salesforce/262/dev-guide/articles/connect_requests_graph_record_input.htm.md`,
   Table 3) defines a tax graph record with seven Required fields
   (`taxTransactionNumber`, `taxAmount`, `taxRate`, `taxName`, `taxCode`,
-  `taxEffectiveDate`, `invoiceLine`, `taxDocumentNumber`). Open design questions:
+  `taxEffectiveDate`, `invoiceLine`, `taxDocumentNumber`). The current
+  harness rejects `taxable: true` lines at parse time on Posted target;
+  lifting that gate is the canonical follow-on. Open design questions:
   - Where do `taxAmount` / `taxRate` come from in a generated-data context? Pinned
     via a scenario override (`tax_rate: 0.08`) and the harness computes
     `taxAmount`, or fully scripted (line-level `tax: {amount, rate, name, code}`)?
-  - Should the current `taxable: true` parse-time rejection lift naturally once
-    `InvoiceLineTax` exists, or remain explicit so tax-on scenarios must add the
-    new tax block?
+  - Should the scenario stamp `InvoiceLine.taxTreatmentId` with a taxable
+    treatment (e.g. the default `Default Tax Policy`) instead of the
+    non-taxable one the standard path uses?
   - Per the dev guide, the `invoiceLineTax` graph record **must not** include
     `taxCalculationStatus = Pending` — confirm whether the harness needs to flip
     the invoice's `taxCalculationStatus` to `Posted` automatically when any line

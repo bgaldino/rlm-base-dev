@@ -6,7 +6,7 @@ transaction lifecycle** against a target org. Three scenario kinds:
 ```text
 kind: sales_txn_quote (default) — (Opportunity) → Quote → Order (createOrderFromQuote) → Activate → Draft Invoice → Posted Invoice
 kind: sales_txn_order           — (Opportunity) → Order (PST direct-place) → Activate → Draft Invoice → Posted Invoice
-kind: invoice_ingestion         — POST /commerce/invoicing/.../actions/ingest → Draft Invoice (CreationMode=External)
+kind: invoice_ingestion         — POST /commerce/invoicing/.../actions/ingest → Draft (or Posted) Invoice (CreationMode=External)
 ```
 
 The two PST kinds share the same post-Order tail (Activate → Invoice → Post);
@@ -27,13 +27,19 @@ This tool does exactly that, scenario by scenario, and records every id it creat
 in a per-run manifest.
 
 The `invoice_ingestion` path is **standalone billing** — it skips PST/Order/
-Activate/BillingSchedule entirely and mints a Draft `Invoice` (with
+Activate/BillingSchedule entirely and mints an `Invoice` (with
 `CreationMode = External`) plus its `InvoiceLine`s in a single typed
-Composite-Graph call. Use it for demo orgs that need invoice volume without
-the PST chain; see [`scenarios/invoice_ingestion/15-standalone-billing-draft.yaml`](scenarios/invoice_ingestion/15-standalone-billing-draft.yaml)
-and [`CONTRACTS.md`](CONTRACTS.md) → *Invoice Ingestion*. Posted ingestion is
-not an operator-supported scenario today because taxable `TaxTreatment` rows
-require an `InvoiceLineTax` graph record; see [`docs/followups.md`](docs/followups.md).
+Composite-Graph call. Both Draft (`target_stage: invoice_draft`, default for
+this kind) and Posted (`target_stage: invoice_posted`) are live-verified. Posted
+ingestion requires an active non-taxable `TaxTreatment` in the org
+(`IsTaxable=false`, `Status=Active`); the harness discovers it at bootstrap
+and stamps `taxTreatmentId` on every line. Without one, `ingest_invoice`
+raises `LifecycleError` with seed instructions. Tax-on Posted ingestion
+(`taxable: true` lines) still requires `InvoiceLineTax` graph records and is
+rejected at parse time; see [`docs/followups.md`](docs/followups.md). Examples:
+[`scenarios/invoice_ingestion/15-standalone-billing-draft.yaml`](scenarios/invoice_ingestion/15-standalone-billing-draft.yaml)
+and [`scenarios/invoice_ingestion/15-standalone-billing.yaml`](scenarios/invoice_ingestion/15-standalone-billing.yaml);
+contract in [`CONTRACTS.md`](CONTRACTS.md) → *Invoice Ingestion*.
 
 It is **standalone** — not part of `prepare_rlm_org`. Each run is **additive**
 (new records every time, tagged with a run id). With no config it auto-discovers a
@@ -160,8 +166,9 @@ ingest graph.
 The PST chain (`kind: sales_txn_quote`, the default — `sales_txn_order` shares
 the same stage list minus `quote_placed`) progresses through these stages. The
 ingestion path (`kind: invoice_ingestion`) runs a single `ingest_invoice` step
-that creates a Draft `Invoice` directly and stops at `target_stage:
-invoice_draft`; it has no Quote/Order/Activate/BillingSchedule.
+that creates an `Invoice` directly — Draft or Posted, depending on
+`target_stage` — and an optional `promote_to_posted` step for the
+Draft→Posted resume case; it has no Quote/Order/Activate/BillingSchedule.
 
 `target_stage` is hierarchical — each stage runs everything before it.
 
