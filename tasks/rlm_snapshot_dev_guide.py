@@ -468,6 +468,10 @@ class SnapshotSalesforceDevGuide(BaseTask):
             "description": "Optional. Capture only the TOC subtree whose title or page_id matches (e.g. 'Constraint Modeling Language'). Default: whole guide.",
             "required": False,
         },
+        "sections": {
+            "description": "Optional. Comma-separated list of TOC sections (title or page_id) to capture in one run, e.g. 'business_rules_engine, context_service_overview'. Use page_ids when a section title contains commas. Supersedes 'section'.",
+            "required": False,
+        },
         "output_dir": {
             "description": "Output directory. Defaults to docs/salesforce/{release_version}/dev-guide.",
             "required": False,
@@ -527,12 +531,29 @@ class SnapshotSalesforceDevGuide(BaseTask):
         self.options["wait_ms"] = int(self.options.get("wait_ms", 3000))
         self.options["batch_delay_ms"] = int(self.options.get("batch_delay_ms", 400))
         self.options["section"] = self.options.get("section") or None
+        # `sections` (comma-separated) captures several named TOC sections in one
+        # run; `section` (singular) stays supported. A section identifier may be a
+        # TOC title OR a page_id — use page_ids when a title itself contains commas
+        # (e.g. the Data Processing Engine section).
+        raw_sections = self.options.get("sections")
+        if raw_sections:
+            if isinstance(raw_sections, (list, tuple)):
+                filters = [str(s).strip() for s in raw_sections if str(s).strip()]
+            else:
+                filters = [s.strip() for s in str(raw_sections).split(",") if s.strip()]
+        elif self.options["section"]:
+            filters = [self.options["section"]]
+        else:
+            filters = None
+        self.options["section_filters"] = filters
         self.options["doc_version"] = self.options.get("doc_version") or None
         self.options["max_pages"] = int(self.options.get("max_pages", 5000))
-        # Follow links by default for a whole-guide run; default off when a
-        # single section is requested (so a section capture stays scoped).
+        # Follow links by default for a whole-guide run; default off when specific
+        # sections are requested (so a section capture stays scoped). Override with
+        # follow_links: true to also pull in in-scope pages linked from a section
+        # but absent from its TOC subtree.
         if self.options.get("follow_links") is None:
-            self.options["follow_links"] = self.options["section"] is None
+            self.options["follow_links"] = self.options["section_filters"] is None
         else:
             self.options["follow_links"] = (
                 str(self.options.get("follow_links")).lower() == "true"
@@ -652,13 +673,14 @@ class SnapshotSalesforceDevGuide(BaseTask):
         return cls._safe_page_id(href)
 
     def _flatten_toc(
-        self, toc: List[Dict[str, Any]], section_filter: Optional[str]
+        self, toc: List[Dict[str, Any]], section_filters: Optional[List[str]]
     ) -> List[Dict[str, Any]]:
         """Return ordered, de-duped page records from the TOC tree.
 
         Each record: {page_id, title, section, parent_page}. ``section`` is the
-        top-level ancestor's title. When ``section_filter`` is set, only that
-        subtree (matched by title or page_id, case-insensitive) is returned.
+        top-level ancestor's title. When ``section_filters`` is a non-empty list,
+        only those subtrees (each matched by title or page_id, case-insensitive)
+        are returned; a page is attributed to the first matching section.
         """
         pages: List[Dict[str, Any]] = []
         seen = set()
@@ -680,15 +702,16 @@ class SnapshotSalesforceDevGuide(BaseTask):
                     })
                 walk(node.get("children"), this_section, pid or parent_pid)
 
-        if section_filter:
-            sub = self._find_section(toc, section_filter)
-            if sub is None:
-                raise TaskOptionsError(
-                    f"section {section_filter!r} not found in the guide TOC"
-                )
-            # The matched node's own title seeds the section label for its subtree.
-            seed_section = sub.get("text") or sub.get("title") or section_filter
-            walk([sub], seed_section, None)
+        if section_filters:
+            for needle in section_filters:
+                sub = self._find_section(toc, needle)
+                if sub is None:
+                    raise TaskOptionsError(
+                        f"section {needle!r} not found in the guide TOC"
+                    )
+                # The matched node's own title seeds the section label for its subtree.
+                seed_section = sub.get("text") or sub.get("title") or needle
+                walk([sub], seed_section, None)
         else:
             walk(toc, None, None)
         return pages
@@ -776,10 +799,11 @@ class SnapshotSalesforceDevGuide(BaseTask):
                     self.options["doc_version"] = version.get("doc_version")
                 manifest["doc_version"] = self.options.get("doc_version")
                 manifest["guide_title"] = meta.get("doc_title") or meta.get("title")
-                discovered = self._flatten_toc(meta.get("toc") or [], self.options["section"])
+                discovered = self._flatten_toc(meta.get("toc") or [], self.options["section_filters"])
                 self.logger.info(
                     f"TOC: {len(discovered)} page(s)"
-                    + (f" in section {self.options['section']!r}" if self.options["section"] else "")
+                    + (f" in section(s) {', '.join(self.options['section_filters'])}"
+                       if self.options["section_filters"] else "")
                     + f" (doc_version={self.options['doc_version']})"
                 )
                 manifest = self._merge_discovered(manifest, discovered)
@@ -834,20 +858,24 @@ class SnapshotSalesforceDevGuide(BaseTask):
         # a single-section run never captures unrelated guide pages. Pages are
         # tagged with their TOC section by _merge_discovered; match that, or the
         # requested value given as the section's own page id.
-        section = self.options.get("section")
-        if section:
-            want = section.strip().lower()
+        filters = self.options.get("section_filters")
+        if filters:
             # A section may be given as a TOC title OR a page id (matching
             # _find_section). Pages are tagged with their section *title*, so if a
             # page id was supplied, resolve it to that page's stored section title
             # and filter by that — otherwise only the root page would match and
             # the subtree's children would be missed.
             by_pid = {(p.get("page_id") or "").lower(): p for p in pages}
-            root = by_pid.get(want) or by_pid.get(want + ".htm")
-            want_title = (root.get("section") or want).strip().lower() if root else want
+            want_titles = set()
+            for f in filters:
+                want = f.strip().lower()
+                root = by_pid.get(want) or by_pid.get(want + ".htm")
+                want_titles.add(
+                    (root.get("section") or want).strip().lower() if root else want
+                )
             pages = [
                 p for p in pages
-                if (p.get("section") or "").strip().lower() == want_title
+                if (p.get("section") or "").strip().lower() in want_titles
             ]
         if mode == "refresh":
             return pages
