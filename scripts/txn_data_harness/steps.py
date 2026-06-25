@@ -7,7 +7,7 @@ ranges, and AI-facing commands all share the same sequencing rules.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from typing import Callable, Optional
 
@@ -15,12 +15,24 @@ from . import lifecycle
 from .auth import SfRestClient
 from .discovery import Account, OrgContext
 from .lifecycle import LifecycleError
-from .models import LineItem, Manifest
+from .models import (
+    LineItem,
+    Manifest,
+    ResolvedInvoiceLine,
+    ResolvedInvoiceOverrides,
+)
 
 
 @dataclass
 class StepContext:
-    """Resolved inputs a lifecycle step needs beyond the manifest."""
+    """Resolved inputs a lifecycle step needs beyond the manifest.
+
+    PST steps read ``lines`` (``LineItem``); the ingestion steps read
+    ``invoice_lines`` (``ResolvedInvoiceLine``) and ``invoice_spec``. The two
+    line types stay strictly separate per the handler-per-kind split
+    (plan §1c / §2). ``target_stage`` lets the ingestion steps tell Draft
+    from Posted runs without re-deriving from the manifest.
+    """
 
     client: SfRestClient
     org_context: OrgContext
@@ -31,6 +43,9 @@ class StepContext:
     poll_timeout: int
     start_date: Optional[date] = None
     checkpoint: Optional[Callable[[Manifest], None]] = None
+    target_stage: Optional[str] = None
+    invoice_lines: list[ResolvedInvoiceLine] = field(default_factory=list)
+    invoice_spec: Optional[ResolvedInvoiceOverrides] = None
 
 
 @dataclass(frozen=True)
@@ -188,6 +203,78 @@ def run_post(ctx: StepContext, manifest: Manifest) -> Manifest:
     return manifest
 
 
+def run_ingest_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
+    """Ingest one Invoice (Draft or Posted) via the ingest API.
+
+    Step for the ``invoice_ingestion`` handler. Status is derived from
+    ``ctx.target_stage`` (``post`` -> Posted, anything else -> Draft) so a
+    scenario targeting only ``invoice`` lands a Draft and a scenario targeting
+    ``post`` lands a Posted invoice in a single ingest call. The follow-on
+    ``promote_to_posted`` step is a no-op in that case (manifest already at
+    ``reached_stage=post``); it only does real work on a Draft-then-Posted
+    resume.
+    """
+    status = "Posted" if ctx.target_stage == "post" else "Draft"
+    invoice_id, invoice_number, line_ids = lifecycle.ingest_invoice(
+        ctx.client,
+        ctx.account,
+        ctx.invoice_lines,
+        ctx.run_id,
+        status=status,
+        invoice_spec=ctx.invoice_spec,
+        timeout=ctx.poll_timeout,
+    )
+    manifest.invoice_id = invoice_id
+    manifest.invoice_number = invoice_number
+    # Reuse the existing Manifest.lines slot for the resolved invoice line
+    # records -- PR 4's handler will write the ingestion-shaped manifest dicts
+    # here (the handler-dispatched manifest summarizer in PR 5 decodes them
+    # per-kind).
+    manifest.lines = [
+        {
+            "name": ln.name,
+            "sku": ln.sku,
+            "quantity": ln.quantity,
+            "unit_price": ln.unit_price,
+            "charge_amount": ln.charge_amount,
+            "product_id": ln.product.id if ln.product is not None else None,
+            "taxable": ln.taxable,
+        }
+        for ln in ctx.invoice_lines
+    ]
+    # Stamp the assigned InvoiceLine ids onto the manifest's usage slot for
+    # now; PR 4 introduces a dedicated `invoice_line_ids` field on the
+    # ingestion manifest subtype. Keeping it off the manifest in PR 3 means
+    # the dead-code step doesn't grow a temporary attribute we'd have to
+    # remove later.
+    del line_ids  # intentionally not persisted on the shared Manifest in PR 3
+    manifest.reached_stage = "post" if status == "Posted" else "invoice"
+    return manifest
+
+
+def run_promote_to_posted(ctx: StepContext, manifest: Manifest) -> Manifest:
+    """Promote a Draft ingested invoice to Posted, reusing its id.
+
+    No-op fast path: if ``ingest_invoice`` already produced a Posted invoice
+    in the same run, ``reached_stage`` is already ``post`` and there's
+    nothing to do. Otherwise calls the existing :func:`lifecycle.post_invoice`
+    on the manifest's invoice id -- the same endpoint the PST flow uses, no
+    new lifecycle call needed.
+    """
+    if manifest.reached_stage == "post":
+        return manifest
+    if not manifest.invoice_id:
+        raise LifecycleError(
+            "promote_to_posted",
+            "invoice_id is required before promote_to_posted",
+        )
+    manifest.invoice_number = lifecycle.post_invoice(
+        ctx.client, manifest.invoice_id, ctx.run_id, timeout=ctx.poll_timeout
+    )
+    manifest.reached_stage = "post"
+    return manifest
+
+
 STEP_REGISTRY: dict[str, StepSpec] = {
     "opportunity": StepSpec(
         name="opportunity",
@@ -230,6 +317,20 @@ STEP_REGISTRY: dict[str, StepSpec] = {
         requires=("invoice_id",),
         outputs=("invoice_number",),
         handler=run_post,
+    ),
+    # Invoice-ingestion steps. The ingestion handler's STEP_GRAPH wires them
+    # in -- the sales_transaction handler never references them.
+    "ingest_invoice": StepSpec(
+        name="ingest_invoice",
+        requires=("account", "invoice_lines"),
+        outputs=("invoice_id",),
+        handler=run_ingest_invoice,
+    ),
+    "promote_to_posted": StepSpec(
+        name="promote_to_posted",
+        requires=("invoice_id",),
+        outputs=("invoice_number",),
+        handler=run_promote_to_posted,
     ),
 }
 

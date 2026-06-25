@@ -27,7 +27,7 @@ from typing import Any, Optional
 
 from .auth import SfRestClient
 from .discovery import Account, Product
-from .models import LineItem
+from .models import LineItem, ResolvedInvoiceLine, ResolvedInvoiceOverrides
 from .term import Term
 
 log = logging.getLogger("txn_data_harness.lifecycle")
@@ -744,40 +744,263 @@ def post_invoice(
         errs = result.get("errors") if isinstance(result, dict) else result
         raise LifecycleError("post", f"post failed: {errs}", record_id=invoice_id)
 
-    def _invoice_number() -> Optional[str]:
-        rows = client.query(f"SELECT InvoiceNumber FROM Invoice WHERE Id = '{invoice_id}'")
-        return rows[0].get("InvoiceNumber") if rows else None
-
     status_url = result.get("statusURL") if isinstance(result, dict) else None
     deadline = time.monotonic() + timeout
     if status_url:
-        while time.monotonic() < deadline:
-            tracker = client.get(status_url)
-            tstatus = tracker.get("Status") if isinstance(tracker, dict) else None
-            if tstatus == "Completed":
-                number = _invoice_number()
-                log.info("invoice %s posted (tracker Completed, %s)", invoice_id, number)
-                return number
-            if tstatus in ("Failed", "Error"):
-                raise LifecycleError(
-                    "post", f"post tracker {tstatus}", record_id=invoice_id
-                )
-            time.sleep(_POLL_INTERVAL)
-    else:
-        # Fallback: poll the invoice status directly.
-        soql = f"SELECT Status, InvoiceNumber FROM Invoice WHERE Id = '{invoice_id}'"
-        while time.monotonic() < deadline:
-            rows = client.query(soql)
-            status = rows[0].get("Status") if rows else None
-            if status in _INVOICE_POSTED_OK:
-                number = rows[0].get("InvoiceNumber")
-                log.info("invoice %s posted (status=%s, %s)", invoice_id, status, number)
-                return number
-            if status in _INVOICE_FAIL:
-                raise LifecycleError(
-                    "post", f"invoice in {status} after post", record_id=invoice_id
-                )
-            time.sleep(_POLL_INTERVAL)
+        _await_async_tracker(
+            client, status_url, deadline, step="post", record_id=invoice_id
+        )
+        number = _query_invoice_number(client, invoice_id)
+        log.info("invoice %s posted (tracker Completed, %s)", invoice_id, number)
+        return number
+    # Fallback: poll the invoice status directly.
+    soql = f"SELECT Status, InvoiceNumber FROM Invoice WHERE Id = '{invoice_id}'"
+    while time.monotonic() < deadline:
+        rows = client.query(soql)
+        status = rows[0].get("Status") if rows else None
+        if status in _INVOICE_POSTED_OK:
+            number = rows[0].get("InvoiceNumber")
+            log.info("invoice %s posted (status=%s, %s)", invoice_id, status, number)
+            return number
+        if status in _INVOICE_FAIL:
+            raise LifecycleError(
+                "post", f"invoice in {status} after post", record_id=invoice_id
+            )
+        time.sleep(_POLL_INTERVAL)
     raise LifecycleError(
         "post", f"post did not complete within {timeout}s", record_id=invoice_id
     )
+
+
+def _query_invoice_number(client: SfRestClient, invoice_id: str) -> Optional[str]:
+    rows = client.query(f"SELECT InvoiceNumber FROM Invoice WHERE Id = '{invoice_id}'")
+    return rows[0].get("InvoiceNumber") if rows else None
+
+
+def _await_async_tracker(
+    client: SfRestClient,
+    status_url: str,
+    deadline: float,
+    *,
+    step: str,
+    record_id: Optional[str] = None,
+) -> None:
+    """Poll an ``AsyncOperationTracker`` URL to ``Completed``.
+
+    Shared by :func:`post_invoice` and :func:`ingest_invoice`; both endpoints
+    return a ``statusURL`` pointing at the same tracker shape per CONTRACTS.md.
+    Raises ``LifecycleError`` on a ``Failed``/``Error`` status or on timeout.
+    """
+    while time.monotonic() < deadline:
+        tracker = client.get(status_url)
+        tstatus = tracker.get("Status") if isinstance(tracker, dict) else None
+        if tstatus == "Completed":
+            return
+        if tstatus in ("Failed", "Error"):
+            raise LifecycleError(
+                step, f"{step} tracker {tstatus}", record_id=record_id
+            )
+        time.sleep(_POLL_INTERVAL)
+    raise LifecycleError(
+        step, f"{step} did not complete within tracker deadline", record_id=record_id
+    )
+
+
+# ---------------------------------------------------------------------------
+# Step 6c -- Ingest invoice via the Composite Graph ingest API.
+# Bypasses Order/Quote/BillingSchedule entirely; used by the
+# ``invoice_ingestion`` handler for standalone-billing demos. See plan
+# "Standalone-Billing Invoice Ingestion path", Phase 1.
+# ---------------------------------------------------------------------------
+def ingest_invoice(
+    client: SfRestClient,
+    account: Account,
+    lines: list[ResolvedInvoiceLine],
+    run_id: str,
+    *,
+    status: str = "Draft",
+    invoice_spec: Optional[ResolvedInvoiceOverrides] = None,
+    timeout: int = 180,
+) -> tuple[str, Optional[str], list[str]]:
+    """POST a Composite-Graph-shaped Invoice to the ingest endpoint.
+
+    Returns ``(invoice_id, invoice_number, invoice_line_ids)``. ``status`` is
+    ``"Draft"`` or ``"Posted"``. Phase 1 invariant: never emits
+    ``InvoiceLineTax`` records and always sets ``shouldCalculateTax: false`` --
+    callers (the ingestion handler) reject ``taxable: true`` lines on Posted
+    invoices at parse time so we never get here with one. The dev guide
+    (R262/v67.0) caps the action body at one invoice per request; concurrency
+    lives in the harness's thread pool.
+
+    ``uniqueIdentifier`` is set to ``run_id`` so duplicate calls with the same
+    run won't double-create. After the action returns ``statusURL``, polls the
+    AsyncOperationTracker via :func:`_await_async_tracker` and then reads the
+    persisted Invoice row back by ``UniqueIdentifier`` to recover the assigned
+    id, number, and line ids.
+
+    ``invoice_spec`` carries the scenario's ``invoice:`` overrides
+    (``invoice_date``, ``due_date``, ``posted_date``, ``currency``,
+    ``description``, ``tax_calculation_status``). ``None`` means all platform
+    defaults; ``posted_date`` is defaulted to today on Posted status when the
+    override is omitted.
+    """
+    if status not in ("Draft", "Posted"):
+        raise LifecycleError(
+            "ingest_invoice", f"invalid status '{status}' (must be Draft|Posted)"
+        )
+    if not lines:
+        raise LifecycleError("ingest_invoice", "no invoice lines to ingest")
+
+    spec = invoice_spec or ResolvedInvoiceOverrides()
+
+    # Phase 1 tax invariant -- a defensive belt for the parse-time check on the
+    # handler. If anything sneaks past parsing the harness must NOT silently
+    # ship a tax-on payload to the org.
+    if spec.should_calculate_tax:
+        raise LifecycleError(
+            "ingest_invoice",
+            "Phase 1 invariant: shouldCalculateTax must be false (InvoiceLineTax not implemented)",
+        )
+    if status == "Posted" and any(l.taxable for l in lines):
+        raise LifecycleError(
+            "ingest_invoice",
+            "Phase 1 invariant: taxable=true lines are not allowed on Posted invoices",
+        )
+
+    invoice_record: dict[str, Any] = {
+        "uniqueIdentifier": run_id,
+        "billingAccountId": account.id,
+        "status": status,
+        "invoiceDate": (spec.invoice_date or date.today()).isoformat(),
+    }
+    if spec.due_date is not None:
+        invoice_record["dueDate"] = spec.due_date.isoformat()
+    if status == "Posted":
+        invoice_record["postedDate"] = (spec.posted_date or date.today()).isoformat()
+    if spec.currency is not None:
+        invoice_record["currencyIsoCode"] = spec.currency
+    if spec.description is not None:
+        invoice_record["description"] = spec.description
+
+    line_records: list[dict[str, Any]] = []
+    for idx, line in enumerate(lines, start=1):
+        unit_price = float(line.unit_price)
+        quantity = float(line.quantity)
+        charge_amount = (
+            float(line.charge_amount)
+            if line.charge_amount is not None
+            else unit_price * quantity
+        )
+        rec: dict[str, Any] = {
+            "referenceId": f"line{idx}",
+            "invoiceId": "@{refInvoice.id}",
+            "name": line.name,
+            "quantity": quantity,
+            "unitPrice": unit_price,
+            "chargeAmount": charge_amount,
+            "taxable": False,  # Phase 1 invariant
+        }
+        if line.product is not None:
+            rec["product2Id"] = line.product.id
+        if line.line_start_date is not None:
+            rec["lineStartDate"] = line.line_start_date.isoformat()
+        if line.line_end_date is not None:
+            rec["lineEndDate"] = line.line_end_date.isoformat()
+        if line.description is not None:
+            rec["description"] = line.description
+        line_records.append(rec)
+
+    body = {
+        "invoices": [
+            {
+                "shouldCalculateTax": False,  # Phase 1 invariant
+                "taxCalculationStatus": spec.tax_calculation_status or "Pending",
+                "correlationId": run_id,
+                "graph": {
+                    "graphId": "invoiceGraph",
+                    "records": [
+                        {
+                            "referenceId": "refInvoice",
+                            "url": (
+                                f"/services/data/v{client.api_version}"
+                                "/sobjects/Invoice"
+                            ),
+                            "method": "POST",
+                            "body": invoice_record,
+                        },
+                        *(
+                            {
+                                "referenceId": rec["referenceId"],
+                                "url": (
+                                    f"/services/data/v{client.api_version}"
+                                    "/sobjects/InvoiceLine"
+                                ),
+                                "method": "POST",
+                                "body": {k: v for k, v in rec.items() if k != "referenceId"},
+                            }
+                            for rec in line_records
+                        ),
+                    ],
+                },
+            }
+        ],
+    }
+
+    result = client.post(
+        f"/services/data/v{client.api_version}/commerce/invoicing/invoices/collection/actions/ingest",
+        body,
+    )
+
+    # Response shape per dev guide: {"invoices":[{"invoiceId","requestIdentifier",
+    # "statusURL","success","errors":[...]}]}. Single-invoice contract means we
+    # read index 0.
+    invoices = (
+        result.get("invoices") if isinstance(result, dict) else None
+    ) or []
+    if not invoices:
+        raise LifecycleError("ingest_invoice", f"empty ingest response: {result}")
+    row = invoices[0]
+    if not row.get("success"):
+        errs = row.get("errors") or row
+        raise LifecycleError("ingest_invoice", f"ingest failed: {errs}")
+
+    status_url = row.get("statusURL")
+    deadline = time.monotonic() + timeout
+    if status_url:
+        _await_async_tracker(
+            client, status_url, deadline, step="ingest_invoice"
+        )
+
+    # Recover the persisted invoice + lines by uniqueIdentifier. The action
+    # response's invoiceId is the canonical id but reading back gives us
+    # InvoiceNumber + the assigned InvoiceLine ids without trusting the
+    # action's optional id field.
+    invoice_id = row.get("invoiceId")
+    if not invoice_id:
+        # Fallback: query by UniqueIdentifier (the run_id idempotency key).
+        rows = client.query(
+            "SELECT Id, InvoiceNumber FROM Invoice "
+            f"WHERE UniqueIdentifier = '{run_id}' LIMIT 1"
+        )
+        if not rows:
+            raise LifecycleError(
+                "ingest_invoice",
+                f"ingest returned no invoiceId and no Invoice with UniqueIdentifier={run_id}",
+            )
+        invoice_id = rows[0]["Id"]
+        invoice_number = rows[0].get("InvoiceNumber")
+    else:
+        invoice_number = _query_invoice_number(client, invoice_id)
+
+    line_rows = client.query(
+        f"SELECT Id FROM InvoiceLine WHERE InvoiceId = '{invoice_id}' ORDER BY Id"
+    )
+    invoice_line_ids = [r["Id"] for r in line_rows]
+    log.info(
+        "invoice %s ingested (status=%s, %d line(s), number=%s)",
+        invoice_id,
+        status,
+        len(invoice_line_ids),
+        invoice_number,
+    )
+    return invoice_id, invoice_number, invoice_line_ids
