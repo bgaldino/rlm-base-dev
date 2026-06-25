@@ -81,17 +81,71 @@ def test_order_step_requires_quote_id(fake_client, org_context, billable_account
         )
 
 
-def test_order_direct_step_is_phase3_stub(
-    fake_client, org_context, billable_account, term_product
+def test_order_direct_step_places_and_writes_app_usage_assignment(
+    monkeypatch, fake_client, org_context, billable_account, term_product
 ) -> None:
-    """``order_direct`` is registered for Phase 3 but raises NotImplementedError
-    until the live PST direct-Order probe ships."""
-    with pytest.raises(NotImplementedError, match="Phase 3"):
+    """The order_direct step MUST follow ``place_order_transaction`` with a
+    ``create_app_usage_assignment`` POST -- without that row, downstream
+    activation is a silent no-op (no BillingSchedule, no Asset). See
+    docs/contracts-sales-txn-order.md §2a.
+    """
+    called: list[str] = []
+
+    def fake_place(*_args, **_kwargs):
+        called.append("place")
+        return ("801ORDER", "00000999")
+
+    def fake_aua(_client, order_id):
+        called.append(f"aua:{order_id}")
+        return "0pVAUA"
+
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.place_order_transaction",
+        fake_place,
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.create_app_usage_assignment",
+        fake_aua,
+    )
+    manifest = execute_step(
+        "order_direct",
+        _ctx(fake_client, org_context, billable_account, term_product),
+        Manifest(run_id="DEMO-1"),
+    )
+    assert called == ["place", "aua:801ORDER"]
+    assert manifest.order_id == "801ORDER"
+    assert manifest.order_number == "00000999"
+    assert manifest.quote_id is None
+    assert manifest.reached_stage == "order_draft"
+
+
+def test_order_direct_step_checkpoints_partial_order_id_on_failure(
+    monkeypatch, fake_client, org_context, billable_account, term_product
+) -> None:
+    """PST commits the Order header even on pricing-engine failure, same
+    orphan rule as the quote path. The step must checkpoint that id before
+    re-raising so cleanup can find it."""
+    checkpoints: list[Manifest] = []
+
+    def fail_place(*_args, **_kwargs):
+        raise LifecycleError("order", "pricing failed", record_id="801PARTIAL")
+
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.place_order_transaction",
+        fail_place,
+    )
+    manifest = Manifest(run_id="DEMO-1")
+    with pytest.raises(LifecycleError):
         execute_step(
             "order_direct",
-            _ctx(fake_client, org_context, billable_account, term_product),
-            Manifest(run_id="DEMO-1"),
+            _ctx(
+                fake_client, org_context, billable_account, term_product,
+                checkpoint=checkpoints.append,
+            ),
+            manifest,
         )
+    assert manifest.order_id == "801PARTIAL"
+    assert checkpoints and checkpoints[0].order_id == "801PARTIAL"
 
 
 def test_activate_step_requires_order_id(fake_client, org_context, billable_account, term_product) -> None:

@@ -1,24 +1,19 @@
-"""Direct-order PST handler (kind: ``sales_txn_order``) -- Phase 3 placeholder.
+"""Direct-order PST handler (kind: ``sales_txn_order``).
 
-This handler drives the direct-Order PST chain: place an Order via the same
-PST ``actions/place`` endpoint with Order/OrderItem graph entities (no
-preceding Quote). Its lifecycle differs from :class:`SalesTxnQuoteHandler`
-only at the head -- the post-Order tail (``order_activated -> usage_upload ->
-invoice_draft -> invoice_posted``) is shared via
-:class:`SalesTransactionBaseHandler`.
+Drives the direct-Order PST chain: place an Order via the same PST
+``actions/place`` endpoint with Order/OrderAction/OrderItem graph entities
+(no preceding Quote), then create the
+``AppUsageType=RevenueLifecycleManagement`` ``AppUsageAssignment`` row that
+gates the Revenue Cloud assetization pipeline. Without that row, the order
+activates as a silent no-op (Status flips, but no BillingSchedule, no Asset,
+no AsyncOperationTracker fires) -- ``createOrderFromQuote`` writes it
+implicitly on the quote path, so the order path has to do it explicitly.
 
-**Not registered yet.** :mod:`scripts.txn_data_harness.handlers.__init__` does
-not include this handler in ``SCENARIO_HANDLERS`` and
-:data:`scripts.txn_data_harness.config._VALID_KINDS` does not include
-``sales_txn_order`` -- any YAML using ``kind: sales_txn_order`` fails at
-parse time with the standard unknown-kind error. Both happen in Phase 3 once
-the live PST direct-Order probe (Phase 0) characterizes the contract; see
-``docs/contracts-sales-txn-order.md``.
+The lifecycle differs from :class:`SalesTxnQuoteHandler` only at the head
+-- the post-Order tail (``order_activated -> usage_upload -> invoice_draft ->
+invoice_posted``) is shared via :class:`SalesTransactionBaseHandler`.
 
-The class exists now so Phase 2 can ship the handler-owned-execution refactor
-without leaving an unreachable branch in the code -- it is importable,
-type-checks, and trips ``order_direct``'s ``NotImplementedError`` if anyone
-manually constructs it and calls ``run``.
+Live-verified contract: ``docs/contracts-sales-txn-order.md`` (R262, API v67.0).
 """
 
 from __future__ import annotations
@@ -34,8 +29,8 @@ class SalesTxnOrderHandler(SalesTransactionBaseHandler):
 
     ``STAGES_ORDER`` omits ``quote_placed`` -- the order-path skips the Quote
     step entirely. ``STEP_GRAPH`` maps the public ``order_draft`` stage to
-    the ``order_direct`` step, which is a Phase 3 stub raising
-    ``NotImplementedError`` until the live probe ships.
+    the ``order_direct`` step, which places the Order + writes the
+    AppUsageAssignment row in one step.
     """
 
     kind: ClassVar[str] = "sales_txn_order"

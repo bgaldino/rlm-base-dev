@@ -52,15 +52,22 @@ _DEFAULT_KIND = "sales_txn_quote"
 # Known scenario kinds. The handler registry is the source of truth; this
 # mirror exists so config validation can reject typos without importing the
 # handlers package (which transitively pulls auth/discovery).
-_VALID_KINDS = {"sales_txn_quote", "invoice_ingestion"}
+_VALID_KINDS = {"sales_txn_quote", "sales_txn_order", "invoice_ingestion"}
 
 # Per-kind allowed target stages. Ingestion bypasses the PST chain, so only
 # the live-verified Draft stage is valid in supported configs. The Posted code
 # path remains internal Phase 2 scaffolding until InvoiceLineTax prerequisites
 # are implemented and live-verified.
+#
+# ``sales_txn_order`` omits ``quote_placed`` (the order path skips the Quote
+# step entirely; see :data:`scripts.txn_data_harness.models.STAGES_ORDER`).
 _KIND_VALID_STAGES: dict[str, set[str]] = {
     "sales_txn_quote": {
         "opportunity_created", "quote_placed", "order_draft",
+        "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
+    },
+    "sales_txn_order": {
+        "opportunity_created", "order_draft",
         "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
     },
     "invoice_ingestion": {"invoice_draft"},
@@ -1049,8 +1056,14 @@ def _coerce_invoice_ingestion_spec(
 # Per-kind config coercers. Dispatch happens in :func:`_coerce_spec` after
 # the kind has been validated against :data:`_VALID_KINDS`. Adding a new
 # kind = adding a coercer + registering it here + handlers/__init__.py.
+#
+# ``sales_txn_order`` shares the PST :class:`ScenarioSpec` dataclass with
+# ``sales_txn_quote`` -- account, product pool, term/discount/end_date
+# overrides are all identical. Only the stage allowlist differs (no
+# ``quote_placed``), enforced by :func:`_coerce_target_stage`.
 _KIND_COERCERS: dict[str, Any] = {
     "sales_txn_quote": _coerce_sales_transaction_spec,
+    "sales_txn_order": _coerce_sales_transaction_spec,
     "invoice_ingestion": _coerce_invoice_ingestion_spec,
 }
 

@@ -129,8 +129,12 @@ def test_mixed_kind_report_kind_histogram() -> None:
         _ok("R-5", "invoice_draft", kind="invoice_ingestion"),
     ]
     report = build_batch_report(manifests, base_run_id="MIXED")
+    # kind_histogram seeds a zero bucket for every registered kind so a clean
+    # report still announces empty kinds. ``sales_txn_order`` joined the
+    # registry in Phase 3 but isn't exercised by this batch.
     assert report["kind_histogram"] == {
         "sales_txn_quote": 2,
+        "sales_txn_order": 0,
         "invoice_ingestion": 3,
     }
 

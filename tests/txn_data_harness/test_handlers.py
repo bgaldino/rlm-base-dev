@@ -22,6 +22,7 @@ from scripts.txn_data_harness.config import ConfigError, _coerce_spec
 from scripts.txn_data_harness.handlers import (
     SCENARIO_HANDLERS,
     SalesTransactionHandler,
+    SalesTxnOrderHandler,
     SalesTxnQuoteHandler,
 )
 from scripts.txn_data_harness.handlers.sales_txn_quote import STEP_GRAPH
@@ -47,11 +48,17 @@ def test_sales_transaction_handler_is_alias_for_quote_handler() -> None:
     assert SalesTransactionHandler is SalesTxnQuoteHandler
 
 
-def test_sales_txn_order_kind_is_unregistered_until_phase3() -> None:
-    """``sales_txn_order`` is a valid kind name (so configs can opt into it
-    once Phase 3 lands) but has no registered handler. Look-up through
-    :data:`SCENARIO_HANDLERS` must surface the gap loudly."""
-    assert "sales_txn_order" not in SCENARIO_HANDLERS
+def test_sales_txn_order_handler_registered() -> None:
+    """``sales_txn_order`` was registered in Phase 3 after the direct-Order
+    PST contract was live-verified on R262 (see
+    docs/contracts-sales-txn-order.md)."""
+    handler = SCENARIO_HANDLERS["sales_txn_order"]
+    assert isinstance(handler, SalesTxnOrderHandler)
+    assert handler.kind == "sales_txn_order"
+    # The order-path skips the Quote step entirely.
+    assert "quote_placed" not in handler.STAGES
+    # The order-path's order_draft maps to the direct-PST step.
+    assert handler.STEP_GRAPH["order_draft"] == "order_direct"
 
 
 @pytest.mark.parametrize(

@@ -307,17 +307,35 @@ def run_promote_to_posted(ctx: StepContext, manifest: Manifest) -> Manifest:
 
 def run_order_direct(ctx: StepContext, manifest: Manifest) -> Manifest:
     """Direct-Order PST: place an Order via the same PST `place` endpoint with
-    Order/OrderItem graph entities (no Quote).
+    Order/OrderItem graph entities, then create the AppUsageAssignment row that
+    gates the Revenue Cloud assetization pipeline.
 
-    Phase 2 stub. The full implementation lands in Phase 3 once the
-    Phase 0 live probe characterizes the direct-order PST contract. Until then
-    the ``sales_txn_order`` kind is unregistered (handlers/__init__.py omits it,
-    config.py rejects it), so this step is unreachable via supported flows.
+    Without the AUA row, ``Order.Status = 'Activated'`` is a silent no-op (no
+    BillingSchedule, no Asset, no AsyncOperationTracker). ``createOrderFromQuote``
+    writes it implicitly on the quote path; PST place against the Order graph
+    does not -- so this step writes it before yielding to ``run_activate``.
+    See docs/contracts-sales-txn-order.md §2a.
     """
-    raise NotImplementedError(
-        "order_direct is Phase 3 -- requires the live PST direct-Order probe "
-        "(see docs/contracts-sales-txn-order.md) before implementation"
-    )
+    try:
+        manifest.order_id, manifest.order_number = lifecycle.place_order_transaction(
+            ctx.client,
+            ctx.account,
+            ctx.lines,
+            ctx.org_context.pricebook_id,
+            ctx.run_id,
+            opportunity_id=manifest.opportunity_id,
+            start_date=ctx.start_date,
+        )
+    except LifecycleError as exc:
+        if exc.record_id:
+            manifest.order_id = exc.record_id
+            _checkpoint(ctx, manifest)
+        raise
+    if any(line.resolved_end_date for line in ctx.lines):
+        manifest.lines = [line.to_manifest_record() for line in ctx.lines]
+    lifecycle.create_app_usage_assignment(ctx.client, manifest.order_id)
+    manifest.reached_stage = "order_draft"
+    return manifest
 
 
 STEP_REGISTRY: dict[str, StepSpec] = {

@@ -28,6 +28,10 @@ _STAGES_BY_KIND: dict[str, list[str]] = {
         "opportunity_created", "quote_placed", "order_draft",
         "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
     ],
+    "sales_txn_order": [
+        "opportunity_created", "order_draft",
+        "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
+    ],
     "invoice_ingestion": ["invoice_draft", "invoice_posted"],
 }
 
@@ -132,6 +136,7 @@ def build_batch_report(manifests: Iterable[Manifest], base_run_id: str = "") -> 
 
 _KIND_TITLES: dict[str, str] = {
     "sales_txn_quote": "Sales transaction (Quote)",
+    "sales_txn_order": "Sales transaction (Direct Order)",
     "invoice_ingestion": "Invoice ingestion",
 }
 

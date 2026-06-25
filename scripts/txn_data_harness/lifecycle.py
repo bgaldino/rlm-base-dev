@@ -240,6 +240,186 @@ def place_sales_transaction(
 
 
 # ---------------------------------------------------------------------------
+# Step 2 (direct-Order variant) -- Place Sales Transaction with Order graph.
+# Synchronous; mirrors place_sales_transaction shape with three swaps:
+#   1) graph root is Order (writable AccountId), not Quote (QuoteAccountId).
+#   2) graph includes one OrderAction(Type=Add) whose id is referenced from
+#      every OrderItem -- without it the assetization pipeline never engages.
+#   3) line objects are OrderItem: ServiceDate (not StartDate), and the
+#      selling-model unit is inherited from the PBE (no SubscriptionTermUnit).
+# See docs/contracts-sales-txn-order.md for the live-verified contract.
+# ---------------------------------------------------------------------------
+def place_order_transaction(
+    client: SfRestClient,
+    account: Account,
+    lines: list[LineItem],
+    pricebook_id: str,
+    run_id: str,
+    opportunity_id: Optional[str] = None,
+    start_date: Optional[date] = None,
+) -> tuple[str, Optional[str]]:
+    """Place an Order via PST with the Order/OrderAction/OrderItem graph.
+
+    Returns ``(order_id, order_number)``. The PST response carries only the
+    Order id (``salesTransactionId``); ``OrderNumber`` is read back from the
+    persisted Order row.
+
+    Gotchas locked in docs/contracts-sales-txn-order.md (live-verified on
+    rlm-base__jun17_1, R262):
+
+      * ``Order.AccountId`` is writable directly (unlike Quote, which uses
+        ``QuoteAccountId``).
+      * ``OrderItem.ServiceDate`` -- the field does not have ``StartDate``.
+      * ``OrderItem.SubscriptionTerm`` only -- ``SubscriptionTermUnit`` does
+        not exist; the unit is inherited from the PBE-bound
+        ``ProductSellingModel``. ``EndDate`` is auto-derived from
+        ``ServiceDate + SubscriptionTerm`` (inclusive start+term-1 day, same
+        as the quote-path's QuoteLineItem rule).
+      * ``OrderAction(Type=Add)`` MUST be included and referenced from every
+        OrderItem via ``OrderActionId``. Without it the assetization pipeline
+        cannot consume the Order (verified on PROBE-ACT).
+      * ``OrderItem.Discount`` (percent) round-trips on readback -- DIVERGES
+        from ``QuoteLineItem.Discount`` which reads back 0.
+      * PST commits the Order header even when ``isSuccess:false`` for
+        pricing-engine failures (same orphan rule as Quote); parse-time
+        failures (``INVALID_FIELD`` etc) return ``salesTransactionId=""``
+        and commit nothing.
+
+    The caller MUST follow this call with :func:`create_app_usage_assignment`
+    before :func:`activate_order`; without that row activation is a silent
+    no-op (no BillingSchedule, no Asset, no AsyncOperationTracker). See
+    :func:`create_app_usage_assignment` for the rationale.
+    """
+    if not lines:
+        raise LifecycleError("order", "no lines to place")
+    start_iso = (start_date or date.today()).isoformat()
+    order_record: dict[str, Any] = {
+        "attributes": {"method": "POST", "type": "Order"},
+        "Name": f"{run_id} Order",
+        "AccountId": account.id,
+        "Pricebook2Id": pricebook_id,
+        "EffectiveDate": start_iso,
+        "Status": "Draft",
+        "Description": run_id,
+    }
+    if opportunity_id:
+        order_record["OpportunityId"] = opportunity_id
+
+    order_action_record: dict[str, Any] = {
+        "attributes": {"method": "POST", "type": "OrderAction"},
+        "OrderId": "@{refOrder.id}",
+        "Type": "Add",
+    }
+
+    records: list[dict[str, Any]] = [
+        {"referenceId": "refOrder", "record": order_record},
+        {"referenceId": "refOrderAction", "record": order_action_record},
+    ]
+    for i, line in enumerate(lines):
+        line_record: dict[str, Any] = {
+            "attributes": {"method": "POST", "type": "OrderItem"},
+            "OrderId": "@{refOrder.id}",
+            "OrderActionId": "@{refOrderAction.id}",
+            "Product2Id": line.product.id,
+            "PricebookEntryId": line.product.pricebook_entry_id,
+            "Quantity": str(line.quantity),
+            "ServiceDate": start_iso,
+        }
+        if line.product.needs_end_date:
+            if line.term is None:
+                raise LifecycleError(
+                    "order",
+                    f"TermDefined product '{line.product.sku}' has no resolved "
+                    f"term; runner must populate LineItem.term",
+                )
+            line_record["SubscriptionTerm"] = line.term.count
+            # NOTE: OrderItem has no SubscriptionTermUnit. The unit is
+            # inherited from the PBE-bound ProductSellingModel; sending a
+            # unit field would fail INVALID_FIELD. EndDate override still
+            # works via the platform's inclusive start+term-1 day rule.
+            if line.end_date is not None:
+                if line.resolved_end_date:
+                    line_record["EndDate"] = line.resolved_end_date
+                else:
+                    line_start = start_date or date.today()
+                    iso = line.end_date.resolve(line_start).isoformat()
+                    line_record["EndDate"] = iso
+                    line.resolved_end_date = iso
+        if line.discount_percent is not None:
+            line_record["Discount"] = line.discount_percent
+        if line.period_boundary is not None:
+            line_record["PeriodBoundary"] = line.period_boundary
+        if line.billing_frequency is not None:
+            line_record["BillingFrequency"] = line.billing_frequency
+        records.append({"referenceId": f"refOrderLine{i}", "record": line_record})
+
+    body = {
+        "pricingPref": "System",
+        "taxPref": "Skip",
+        "graph": {"graphId": "createOrderDirect", "records": records},
+    }
+    result = client.post(
+        f"/services/data/v{client.api_version}/connect/rev/sales-transaction/actions/place",
+        body,
+    )
+    order_id = result.get("salesTransactionId") if isinstance(result, dict) else None
+    if not result or not result.get("isSuccess"):
+        errs = result.get("errorResponse") if isinstance(result, dict) else result
+        raise LifecycleError("order", f"PST place failed: {errs}", record_id=order_id)
+    rows = client.query(
+        f"SELECT OrderNumber FROM Order WHERE Id = '{order_id}'"
+    )
+    order_number = rows[0].get("OrderNumber") if rows else None
+    summary = ", ".join(
+        f"{l.product.sku} x{l.quantity}"
+        + (f" @{l.discount_percent}%off" if l.discount_percent is not None else "")
+        + (
+            f" term={l.term.count}{l.term.unit or ''}"
+            if l.term is not None
+            else ""
+        )
+        for l in lines
+    )
+    log.info(
+        "order %s (%s) placed direct (%d line(s): %s)",
+        order_id, order_number, len(lines), summary,
+    )
+    return order_id, order_number
+
+
+# ---------------------------------------------------------------------------
+# Step 2a (direct-Order only) -- create the AppUsageAssignment that gates the
+# Revenue Cloud assetization pipeline. ``createOrderFromQuote`` writes this row
+# implicitly; the PST direct-Order graph does not, so the harness must.
+# ---------------------------------------------------------------------------
+def create_app_usage_assignment(client: SfRestClient, order_id: str) -> str:
+    """Mark ``order_id`` as a Revenue Lifecycle Management order.
+
+    Without this row, ``Order.Status = 'Activated'`` is a silent no-op: no
+    BillingSchedule, no Asset, no AssetActionSource, no AsyncOperationTracker
+    -- the assetization pipeline never engages. With it, activation behaves
+    identically to the quote-path. See docs/contracts-sales-txn-order.md §2a.
+
+    Returns the created AppUsageAssignment id (cosmetic; the harness rarely
+    has to reference it again).
+    """
+    body = {
+        "AppUsageType": "RevenueLifecycleManagement",
+        "RecordId": order_id,
+    }
+    result = client.post(_sobject_path(client, "AppUsageAssignment"), body)
+    if not result or not result.get("success"):
+        raise LifecycleError(
+            "order",
+            f"AppUsageAssignment create failed: {result}",
+            record_id=order_id,
+        )
+    aua_id = result["id"]
+    log.info("order %s AppUsageAssignment %s created", order_id, aua_id)
+    return aua_id
+
+
+# ---------------------------------------------------------------------------
 # Step 3 -- Order via createOrderFromQuote standard action. Synchronous.
 # ---------------------------------------------------------------------------
 def create_order_from_quote(client: SfRestClient, quote_id: str) -> tuple[str, str]:

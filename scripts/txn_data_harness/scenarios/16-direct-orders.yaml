@@ -1,0 +1,27 @@
+# Direct-Order PST — place a Revenue Cloud Order without a Quote.
+#
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/16-direct-orders.yaml
+#
+# Drives each transaction through the direct-Order PST chain:
+# place Order graph → create AppUsageAssignment(RevenueLifecycleManagement) →
+# set shipping address → activate → BillingSchedule + Asset → generate invoice →
+# post invoice. Mirrors 05-posted-invoices-volume.yaml but uses the
+# sales_txn_order kind, so no Quote is created upstream.
+#
+# Why the AppUsageAssignment step exists only in this chain: createOrderFromQuote
+# writes that row implicitly on the quote path; PST place against the Order
+# graph does not, and without it Order activation is a silent no-op
+# (no BillingSchedule, no Asset, no AsyncOperationTracker). See
+# scripts/txn_data_harness/docs/contracts-sales-txn-order.md §2a for the
+# live-verified contract that drove this scenario.
+defaults:
+  kind: sales_txn_order        # PST chain (Order -> Activate -> Invoice -> Post)
+  target_stage: invoice_posted
+
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 5
