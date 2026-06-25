@@ -1,0 +1,819 @@
+/* ===================================================================
+   Collections Console — SLDS 2 Compliant Styles
+   All values use verified --slds-g-* styling hooks with fallbacks.
+   Data-visualization colors use c-* prefix (no SLDS hook equivalent).
+   =================================================================== */
+
+:host {
+    /* Data-visualization colors — no SLDS hook exists for chart colors.
+       These are intentional custom values for aging buckets and payment promise statuses.
+       Paired with high-contrast text to avoid color-only meaning. */
+    --c-color-current: var(--slds-g-color-accent-1, #066afe);
+    --c-color-30-days: #1b96ff;
+    --c-color-60-days: #ffc043;
+    --c-color-90-days: #fe5c4c;
+    --c-color-over-90: #ba0517;
+    --c-color-pp-failed: #fe5c4c;
+    --c-color-pp-ready: #ffc043;
+    --c-color-pp-draft: var(--slds-g-color-accent-1, #066afe);
+    --c-color-pp-processing: #730394;
+    /* Donut chart: Recovered = blue, Yet to Recover = purple per Figma design */
+    --c-color-recovered: #4992fe;
+    --c-color-yet-to-recover: #ba01ff;
+    /* Toggle active: Electric Blue 50 from SLDS palette — no direct --slds-g-* hook maps to this exact shade */
+    --c-color-electric-blue-50: #0176d3;
+    /* Card border radius: 20px per Figma, no SLDS hook for this exact value */
+    --c-card-radius: 1.25rem;
+    /* Fix #1: Prevent horizontal overflow at the host level */
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+.c-dashboard-container {
+    background-color: var(--slds-g-color-surface-2, #f3f3f3);
+    padding: var(--slds-g-spacing-4, 1rem) var(--slds-g-spacing-5, 1.5rem);
+    min-height: 100vh;
+    font-family: var(--slds-g-font-family, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+    /* Fix #1: Prevent horizontal overflow */
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+/* ====================== Header ====================== */
+/* Fix #2: Header sits on gray page background with NO white card per Figma */
+.c-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--slds-g-spacing-4, 1rem);
+    background: transparent;
+    border-radius: 0;
+    padding: var(--slds-g-spacing-4, 1rem) 0;
+    border: none;
+}
+
+.c-header-breadcrumb {
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    color: var(--slds-g-color-on-surface-1, #5c5c5c);
+    margin-bottom: var(--slds-g-spacing-1, 0.25rem);
+}
+
+/* Header left: breadcrumb stacked above icon+title row so "Dashboard" aligns over "Collections" */
+.c-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: var(--slds-g-spacing-1, 0.25rem);
+}
+
+/* Icon + title sit side-by-side below the breadcrumb */
+.c-header-icon-title {
+    display: flex;
+    align-items: center;
+    gap: var(--slds-g-spacing-2, 0.5rem);
+}
+
+.c-header-title {
+    font-size: var(--slds-g-font-scale-3, 1.25rem);
+    font-weight: var(--slds-g-font-weight-7, 700);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+    margin: 0;
+}
+
+.c-header-right {
+    display: flex;
+    align-items: center;
+}
+
+.c-filter-group {
+    display: flex;
+    gap: var(--slds-g-spacing-3, 0.75rem);
+}
+
+.c-filter-item {
+    display: flex;
+    flex-direction: column;
+    /* No SLDS hook for min-width; using closest sizing hook for filter alignment */
+    min-width: var(--slds-g-sizing-13, 10rem);
+}
+
+.c-filter-label {
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    font-weight: var(--slds-g-font-weight-6, 600);
+    color: var(--slds-g-color-on-surface-1, #5c5c5c);
+    margin-bottom: var(--slds-g-sizing-1, 0.125rem);
+}
+
+/* ====================== Main Content — Two Columns ====================== */
+.c-content-row {
+    display: flex;
+    gap: var(--slds-g-spacing-4, 1rem);
+    /* Fix #1: Prevent flex children from forcing overflow */
+    min-width: 0;
+}
+
+.c-left-column {
+    flex: 1 1 0%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--slds-g-spacing-4, 1rem);
+    /* Fix #1: Allow left column to shrink and prevent table overflow */
+    min-width: 0;
+}
+
+/* Right column ~30% — matches Figma two-column layout proportion */
+.c-right-column {
+    flex: 0 0 30%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--slds-g-spacing-4, 1rem);
+    min-width: 0;
+}
+
+/* ====================== Summary Section ====================== */
+.c-summary-section {
+    background: var(--slds-g-color-surface-1, #ffffff);
+    border-radius: var(--c-card-radius);
+    padding: var(--slds-g-spacing-4, 1rem) var(--slds-g-spacing-5, 1.5rem);
+    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+}
+
+/* Fix #3/#4: Section title = 20px (--slds-g-font-scale-3), weight 400 per Figma */
+.c-section-title {
+    font-size: var(--slds-g-font-scale-3, 1.25rem);
+    font-weight: var(--slds-g-font-weight-4, 400);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+    margin: 0 0 var(--slds-g-spacing-3, 0.75rem) 0;
+}
+
+.c-summary-cards {
+    display: flex;
+    gap: 0;
+}
+
+.c-summary-card {
+    flex: 1;
+    min-width: 0;
+    padding: var(--slds-g-spacing-2, 0.5rem) var(--slds-g-spacing-4, 1rem);
+    border-right: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+}
+
+.c-summary-card:last-child {
+    border-right: none;
+}
+
+/* Fix #3/#4: Summary card labels = 13px per Figma */
+.c-card-label {
+    font-size: var(--slds-g-font-size-base, 0.8125rem);
+    color: var(--slds-g-color-on-surface-1, #5c5c5c);
+    margin-bottom: var(--slds-g-spacing-1, 0.25rem);
+}
+
+/* Summary card values — sized to fit numbers like $9,99,999.00 without overflow.
+   Truncates with ellipsis if value exceeds card width. title attr provides full value on hover. */
+.c-card-value {
+    font-size: var(--slds-g-font-scale-3, 1.25rem);
+    font-weight: var(--slds-g-font-weight-6, 600);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Fix #4: Sub-links = 13px blue link text per Figma */
+.c-card-sub {
+    font-size: var(--slds-g-font-size-base, 0.8125rem);
+    color: var(--slds-g-color-accent-1, #066afe);
+    margin-top: var(--slds-g-sizing-1, 0.125rem);
+}
+
+/* ====================== Toggle Section ====================== */
+.c-toggle-section {
+    background: var(--slds-g-color-surface-1, #ffffff);
+    border-radius: var(--c-card-radius);
+    padding: var(--slds-g-spacing-4, 1rem) var(--slds-g-spacing-5, 1.5rem);
+    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+}
+
+/* Rounded pill button group — outer container has full pill border,
+   inner buttons share the radius so the active fill bleeds to the edge. */
+.c-toggle-buttons {
+    display: inline-flex;
+    gap: 0;
+    margin-bottom: var(--slds-g-spacing-4, 1rem);
+    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+    border-radius: var(--slds-g-radius-border-pill, 100vmax);
+    overflow: hidden;
+}
+
+.c-toggle-btn {
+    padding: var(--slds-g-spacing-2, 0.5rem) var(--slds-g-spacing-5, 1.5rem);
+    border: none;
+    background: var(--slds-g-color-surface-1, #ffffff);
+    color: var(--slds-g-color-accent-1, #066afe);
+    font-size: var(--slds-g-font-size-base, 0.8125rem);
+    font-weight: var(--slds-g-font-weight-6, 600);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+/* Active button: Electric Blue 50 fill with white text — pill ends stay rounded via container overflow */
+.c-toggle-btn.c-active {
+    background: var(--c-color-electric-blue-50);
+    color: var(--slds-g-color-on-accent-1, #ffffff);
+}
+
+.c-toggle-btn:focus-visible {
+    outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-1, #066afe);
+    outline-offset: calc(-1 * var(--slds-g-sizing-border-2, 2px));
+}
+
+/* ====================== Aging ====================== */
+.c-aging-details {
+    padding-top: var(--slds-g-spacing-1, 0.25rem);
+}
+
+.c-aging-items {
+    display: flex;
+    gap: var(--slds-g-spacing-5, 1.5rem);
+    margin-bottom: var(--slds-g-spacing-3, 0.75rem);
+}
+
+/* Reset native button styles — aging items are now <button> for a11y (WCAG 4.1.2) */
+.c-aging-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--slds-g-sizing-1, 0.125rem);
+    background: none;
+    border: none;
+    font: inherit;
+    text-align: start;
+}
+
+/* Dot + label inline on same row per Figma */
+.c-aging-label-row {
+    display: flex;
+    align-items: center;
+    gap: var(--slds-g-spacing-1, 0.25rem);
+}
+
+.c-aging-dot {
+    width: var(--slds-g-spacing-2, 0.5rem);
+    height: var(--slds-g-spacing-2, 0.5rem);
+    border-radius: var(--slds-g-radius-border-circle, 100%);
+    display: inline-block;
+}
+
+.c-aging-dot.c-current { background-color: var(--c-color-current); }
+.c-aging-dot.c-days-30 { background-color: var(--c-color-30-days); }
+.c-aging-dot.c-days-60 { background-color: var(--c-color-60-days); }
+.c-aging-dot.c-days-90 { background-color: var(--c-color-90-days); }
+.c-aging-dot.c-days-over-90 { background-color: var(--c-color-over-90); }
+
+.c-clickable {
+    cursor: pointer;
+}
+
+.c-aging-item.c-clickable:hover,
+.c-aging-item.c-clickable:focus-visible {
+    background-color: var(--slds-g-color-surface-3, #f3f3f3);
+    border-radius: var(--slds-g-radius-border-2, 0.5rem);
+}
+
+.c-aging-item.c-clickable {
+    padding: var(--slds-g-spacing-1, 0.25rem) var(--slds-g-spacing-2, 0.5rem);
+    margin: calc(-1 * var(--slds-g-spacing-1, 0.25rem)) calc(-1 * var(--slds-g-spacing-2, 0.5rem));
+    transition: background-color 0.15s;
+}
+
+.c-aging-item.c-clickable:focus-visible {
+    outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-1, #066afe);
+    outline-offset: var(--slds-g-sizing-border-2, 2px);
+}
+
+.c-aging-bar-segment.c-clickable:hover {
+    opacity: 0.8;
+    transform: scaleY(1.3);
+    transition: all 0.15s;
+}
+
+.c-aging-label {
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    color: var(--slds-g-color-on-surface-1, #5c5c5c);
+}
+
+.c-aging-value {
+    font-size: var(--slds-g-font-size-base, 0.8125rem);
+    font-weight: var(--slds-g-font-weight-6, 600);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+}
+
+.c-aging-bar {
+    display: flex;
+    height: var(--slds-g-spacing-2, 0.5rem);
+    border-radius: var(--slds-g-radius-border-1, 0.25rem);
+    overflow: hidden;
+    width: 100%;
+}
+
+.c-aging-bar-segment {
+    height: 100%;
+}
+
+.c-aging-bar-segment.c-current { background-color: var(--c-color-current); }
+.c-aging-bar-segment.c-days-30 { background-color: var(--c-color-30-days); }
+.c-aging-bar-segment.c-days-60 { background-color: var(--c-color-60-days); }
+.c-aging-bar-segment.c-days-90 { background-color: var(--c-color-90-days); }
+.c-aging-bar-segment.c-days-over-90 { background-color: var(--c-color-over-90); }
+
+/* ====================== Payment Promises ====================== */
+/* Payment promises reuses .c-aging-details layout to match the Aging legend style */
+
+.c-aging-dot.c-pp-failed { background-color: var(--c-color-pp-failed); }
+.c-aging-dot.c-pp-ready { background-color: var(--c-color-pp-ready); }
+.c-aging-dot.c-pp-draft { background-color: var(--c-color-pp-draft); }
+.c-aging-dot.c-pp-processing { background-color: var(--c-color-pp-processing); }
+
+.c-aging-bar-segment.c-pp-failed { background-color: var(--c-color-pp-failed); }
+.c-aging-bar-segment.c-pp-ready { background-color: var(--c-color-pp-ready); }
+.c-aging-bar-segment.c-pp-draft { background-color: var(--c-color-pp-draft); }
+.c-aging-bar-segment.c-pp-processing { background-color: var(--c-color-pp-processing); }
+
+.c-promises-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--slds-g-spacing-4, 1rem);
+}
+
+.c-promises-legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--slds-g-spacing-1, 0.25rem);
+}
+
+.c-promises-legend-label {
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    color: var(--slds-g-color-on-surface-1, #5c5c5c);
+}
+
+.c-promises-legend-value {
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    font-weight: var(--slds-g-font-weight-6, 600);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+}
+
+/* ====================== Data Tabs ====================== */
+/* White card wraps tabs + table content so they appear as one unified card */
+.c-data-tabs-section {
+    background: var(--slds-g-color-surface-1, #ffffff);
+    border-radius: var(--c-card-radius);
+    padding: var(--slds-g-spacing-4, 1rem) var(--slds-g-spacing-5, 1.5rem);
+    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+    overflow: hidden;
+}
+
+.c-data-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-border-1, #c9c9c9);
+    margin-bottom: var(--slds-g-spacing-4, 1rem);
+}
+
+/* Fix #3: Data tab buttons = 14px (--slds-g-font-scale-1) per Figma */
+.c-data-tab {
+    padding: var(--slds-g-spacing-2, 0.5rem) var(--slds-g-spacing-4, 1rem);
+    border: none;
+    background: none;
+    color: var(--slds-g-color-on-surface-1, #5c5c5c);
+    font-size: var(--slds-g-font-scale-1, 0.875rem);
+    font-weight: var(--slds-g-font-weight-6, 600);
+    cursor: pointer;
+    border-bottom: var(--slds-g-sizing-border-2, 2px) solid transparent;
+    /* Negative margin to overlap with parent border-bottom */
+    margin-bottom: calc(-1 * var(--slds-g-sizing-border-2, 2px));
+    transition: all 0.15s;
+}
+
+.c-data-tab.c-active {
+    color: var(--slds-g-color-accent-1, #066afe);
+    border-bottom-color: var(--slds-g-color-accent-1, #066afe);
+}
+
+.c-data-tab:hover:not(.c-active) {
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+}
+
+.c-data-tab:focus-visible {
+    outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-1, #066afe);
+    outline-offset: calc(-1 * var(--slds-g-sizing-border-2, 2px));
+}
+
+/* Tab content area — no extra card needed since .c-data-tabs-section is already the white card */
+.c-tab-content {
+    padding: 0;
+}
+
+.c-tab-content-header {
+    display: flex;
+    align-items: center;
+    gap: var(--slds-g-spacing-2, 0.5rem);
+    margin-bottom: var(--slds-g-spacing-3, 0.75rem);
+}
+
+/* Fix #3: Tab content header h3 = 20px per Figma */
+.c-tab-content-header h3 {
+    font-size: var(--slds-g-font-scale-3, 1.25rem);
+    font-weight: var(--slds-g-font-weight-7, 700);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+    margin: 0;
+}
+
+/* ====================== Data Tables ====================== */
+.c-data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    /* Fix #1: Tables should not push beyond container bounds */
+    table-layout: fixed;
+}
+
+.c-data-table thead th {
+    padding: var(--slds-g-spacing-2, 0.5rem);
+    text-align: left;
+    font-weight: var(--slds-g-font-weight-6, 600);
+    color: var(--slds-g-color-on-surface-1, #5c5c5c);
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    border-bottom: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+    white-space: nowrap;
+}
+
+.c-data-table tbody td {
+    padding: var(--slds-g-spacing-2, 0.5rem);
+    border-bottom: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-surface-2, #f3f3f3);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+}
+
+.c-data-table tbody tr:hover {
+    background-color: var(--slds-g-color-surface-3, #f3f3f3);
+}
+
+.c-link-text {
+    color: var(--slds-g-color-accent-1, #066afe);
+    cursor: pointer;
+}
+
+.c-link-text:hover {
+    text-decoration: underline;
+}
+
+.c-view-all-link {
+    text-align: center;
+    padding: var(--slds-g-spacing-2, 0.5rem) 0 var(--slds-g-spacing-1, 0.25rem);
+}
+
+.c-view-all-link a {
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    color: var(--slds-g-color-accent-1, #066afe);
+    text-decoration: none;
+    font-weight: var(--slds-g-font-weight-6, 600);
+}
+
+.c-view-all-link a:hover {
+    text-decoration: underline;
+}
+
+.c-view-all-link a:focus-visible {
+    outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-1, #066afe);
+    outline-offset: var(--slds-g-sizing-border-2, 2px);
+    border-radius: var(--slds-g-radius-border-1, 0.25rem);
+}
+
+/* ====================== Collection Plans ====================== */
+/* Fix #8: My Collection Plans is its own card with 20px radius per Figma */
+.c-collection-plans-section {
+    background: var(--slds-g-color-surface-1, #ffffff);
+    border-radius: var(--c-card-radius);
+    padding: var(--slds-g-spacing-4, 1rem) var(--slds-g-spacing-5, 1.5rem);
+    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+    overflow: hidden;
+}
+
+.c-section-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--slds-g-spacing-3, 0.75rem);
+}
+
+/* ====================== Right Column ====================== */
+.c-total-balance-section {
+    background: var(--slds-g-color-surface-1, #ffffff);
+    border-radius: var(--c-card-radius);
+    padding: var(--slds-g-spacing-4, 1rem) var(--slds-g-spacing-5, 1.5rem);
+    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+}
+
+.c-balance-label {
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    color: var(--slds-g-color-on-surface-1, #5c5c5c);
+    margin-top: var(--slds-g-spacing-1, 0.25rem);
+}
+
+.c-balance-value {
+    font-size: var(--slds-g-font-scale-5, 1.75rem);
+    font-weight: var(--slds-g-font-weight-7, 700);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+    display: flex;
+    align-items: center;
+    gap: var(--slds-g-spacing-1, 0.25rem);
+}
+
+/* ====================== Collection Progress ====================== */
+.c-collection-progress-section {
+    background: var(--slds-g-color-surface-1, #ffffff);
+    border-radius: var(--c-card-radius);
+    padding: var(--slds-g-spacing-4, 1rem) var(--slds-g-spacing-5, 1.5rem);
+    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+}
+
+.c-progress-stats {
+    display: flex;
+    gap: var(--slds-g-spacing-5, 1.5rem);
+    margin-bottom: var(--slds-g-spacing-3, 0.75rem);
+}
+
+.c-progress-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.c-stat-label {
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    color: var(--slds-g-color-on-surface-1, #5c5c5c);
+}
+
+.c-stat-value {
+    font-size: var(--slds-g-font-scale-3, 1.25rem);
+    font-weight: var(--slds-g-font-weight-7, 700);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+}
+
+.c-progress-legend {
+    display: flex;
+    gap: var(--slds-g-spacing-4, 1rem);
+    margin-bottom: var(--slds-g-spacing-4, 1rem);
+}
+
+.c-legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--slds-g-spacing-1, 0.25rem);
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    color: var(--slds-g-color-on-surface-1, #5c5c5c);
+}
+
+.c-legend-dot {
+    width: var(--slds-g-spacing-2, 0.5rem);
+    height: var(--slds-g-spacing-2, 0.5rem);
+    border-radius: var(--slds-g-radius-border-circle, 100%);
+    display: inline-block;
+}
+
+.c-legend-dot.c-recovered {
+    background-color: var(--c-color-recovered);
+}
+
+.c-legend-dot.c-yet-to-recover {
+    background-color: var(--c-color-yet-to-recover);
+}
+
+/* Container centres the donut chart and provides positioning context for the tooltip */
+.c-donut-chart-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: var(--slds-g-spacing-2, 0.5rem);
+}
+
+/* Large donut — sized to fill the card width per Figma */
+.c-donut-chart {
+    position: relative;
+    /* No SLDS hook for explicit chart dimensions; intentional fixed size matching Figma */
+    width: 14rem;
+    height: 14rem;
+    flex-shrink: 0;
+}
+
+.c-donut-chart svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Gap ring: white stroke behind both arcs to create visible spacing between segments */
+.c-donut-gap-ring {
+    fill: none;
+    stroke: var(--slds-g-color-surface-1, #ffffff);
+    stroke-width: 28;
+}
+
+/* SVG styling via CSS to avoid inline color attributes.
+   Figma uses blue (#4992FE) for Recovered and purple (#BA01FF) for Yet to Recover.
+   Flat (butt) linecaps — round caps distort small segments like the 2.4% Recovered arc. */
+.c-donut-track {
+    fill: none;
+    stroke: var(--c-color-yet-to-recover);
+    stroke-width: 24;
+}
+
+/* Recovered segment — blue arc overlaid on the purple track */
+.c-donut-value {
+    fill: none;
+    stroke: var(--c-color-recovered);
+    stroke-width: 24;
+    transition: stroke-width 0.2s, opacity 0.2s;
+}
+
+/* Interactive donut segments — highlight on hover/focus.
+   No blanket outline:none — preserves keyboard focus ring (WCAG 2.4.7). */
+.c-donut-interactive {
+    cursor: pointer;
+}
+
+.c-donut-interactive:hover {
+    stroke-width: 28;
+    filter: brightness(1.1);
+}
+
+/* Keyboard focus ring uses high-contrast outline for a11y (WCAG 2.4.7) */
+.c-donut-interactive:focus-visible {
+    stroke-width: 28;
+    filter: brightness(1.1);
+    outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-1, #066afe);
+    outline-offset: var(--slds-g-sizing-border-2, 2px);
+}
+
+/* ====================== Floating Donut Tooltip ====================== */
+/* Tooltip overlaps the donut near cursor — label left, bold value right, per Figma.
+   Uses SLDS hooks for dark theme support. */
+.c-donut-floating-tooltip {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--slds-g-spacing-5, 1.5rem);
+    background: var(--slds-g-color-surface-1, #ffffff);
+    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+    border-radius: var(--slds-g-radius-border-2, 0.5rem);
+    padding: var(--slds-g-spacing-3, 0.75rem) var(--slds-g-spacing-4, 1rem);
+    /* Drop shadow for elevation — no SLDS hook for box-shadow; intentional design token */
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 1;
+    /* Hidden by default — revealed via modifier class */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s, visibility 0.15s;
+}
+
+.c-donut-floating-tooltip-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.c-donut-floating-label {
+    font-size: var(--slds-g-font-scale-1, 0.875rem);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+}
+
+.c-donut-floating-value {
+    font-size: var(--slds-g-font-scale-1, 0.875rem);
+    font-weight: var(--slds-g-font-weight-7, 700);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+}
+
+.c-view-details-link {
+    text-align: center;
+    padding: var(--slds-g-spacing-2, 0.5rem) 0 0;
+}
+
+.c-view-details-link a {
+    font-size: var(--slds-g-font-scale-neg-1, 0.75rem);
+    color: var(--slds-g-color-accent-1, #066afe);
+    text-decoration: none;
+    font-weight: var(--slds-g-font-weight-6, 600);
+}
+
+.c-view-details-link a:hover {
+    text-decoration: underline;
+}
+
+.c-view-details-link a:focus-visible {
+    outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-1, #066afe);
+    outline-offset: var(--slds-g-sizing-border-2, 2px);
+    border-radius: var(--slds-g-radius-border-1, 0.25rem);
+}
+
+/* ====================== My Tasks ====================== */
+.c-my-tasks-section {
+    background: var(--slds-g-color-surface-1, #ffffff);
+    border-radius: var(--c-card-radius);
+    padding: 0;
+    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+    overflow: hidden;
+}
+
+/* My Tasks card header — matches Figma SLDS Card header pattern */
+.c-my-tasks-section .c-tab-content-header {
+    padding: var(--slds-g-spacing-3, 0.75rem) var(--slds-g-spacing-4, 1rem);
+    border-bottom: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+    margin-bottom: 0;
+}
+
+/* lightning-datatable inside My Tasks card — contained within card boundaries */
+.c-my-tasks-section lightning-datatable {
+    display: block;
+}
+
+.c-my-tasks-section .c-view-all-link {
+    padding: var(--slds-g-spacing-3, 0.75rem) 0;
+    border-top: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+}
+
+/* Overflow menu button in My Tasks card header per Figma */
+.c-overflow-menu-btn {
+    background: none;
+    border: var(--slds-g-sizing-border-1, 1px) solid var(--slds-g-color-border-1, #c9c9c9);
+    border-radius: var(--slds-g-radius-border-circle, 100%);
+    cursor: pointer;
+    padding: var(--slds-g-spacing-1, 0.25rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--slds-g-spacing-6, 1.5rem);
+    height: var(--slds-g-spacing-6, 1.5rem);
+}
+
+.c-overflow-menu-btn:hover {
+    background-color: var(--slds-g-color-surface-3, #f3f3f3);
+}
+
+.c-overflow-menu-btn:focus-visible {
+    outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-1, #066afe);
+    outline-offset: var(--slds-g-sizing-border-2, 2px);
+}
+
+/* Push overflow button to far right in My Tasks card header */
+.c-tasks-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--slds-g-spacing-2, 0.5rem);
+}
+
+.c-tasks-card-header h3 {
+    flex: 1;
+    font-size: var(--slds-g-font-scale-3, 1.25rem);
+    font-weight: var(--slds-g-font-weight-7, 700);
+    color: var(--slds-g-color-on-surface-2, #2e2e2e);
+    margin: 0;
+}
+
+/* Collection plans section also uses lightning-datatable — contain it properly */
+.c-collection-plans-section lightning-datatable {
+    display: block;
+}
+
+/* ====================== Screen Reader Only (Accessibility) ====================== */
+.c-assistive-text {
+    position: absolute;
+    width: var(--slds-g-sizing-border-1, 1px);
+    height: var(--slds-g-sizing-border-1, 1px);
+    padding: 0;
+    margin: calc(-1 * var(--slds-g-sizing-border-1, 1px));
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ====================== Action Menu Button ====================== */
+.c-action-menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--slds-g-spacing-1, 0.25rem);
+    border-radius: var(--slds-g-radius-border-1, 0.25rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.c-action-menu-btn:hover {
+    background-color: var(--slds-g-color-surface-3, #f3f3f3);
+}
+
+.c-action-menu-btn:focus-visible {
+    outline: var(--slds-g-sizing-border-2, 2px) solid var(--slds-g-color-accent-1, #066afe);
+    outline-offset: var(--slds-g-sizing-border-2, 2px);
+}

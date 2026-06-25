@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **85 configuration values**, **37 YAML anchors** under `project.custom`.
+**42 feature flags**, **85 configuration values**, **37 YAML anchors** under `project.custom`.
 
 ---
 
@@ -24,6 +24,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `calmdelete` | `True` | 1 flow step(s) |
 | `clm` | `True` | 4 flow step(s) |
 | `clm_data` | `False` | 1 flow step(s) |
+| `collections` | `True` | 5 flow step(s) |
 | `commerce` | `False` | 2 flow step(s) |
 | `constraints` | `True` | 12 flow step(s) |
 | `constraints_data` | `True` | 8 flow step(s) |
@@ -33,7 +34,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `guidedselling` | `True` | 4 flow step(s) |
 | `inapp` | `False` | 4 flow step(s) |
 | `large_stx` | `False` | 5 flow step(s) |
-| `payments` | `True` | 6 flow step(s) |
+| `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
 | `personas` | `True` | 10 flow step(s) |
 | `prm` | `True` | 23 flow step(s) |
@@ -138,6 +139,14 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 - `prepare_clm` step 1 → `insert_clm_data`
 
+### `collections` (default: `True`)
+
+- `prepare_rlm_org` step 14 → `prepare_collections`
+- `prepare_collections` step 1 → `deactivate_collections_case_matrix`
+- `prepare_collections` step 2 → `deploy_post_collections`
+- `prepare_collections` step 3 → `seed_collections_case_matrix`
+- `prepare_collections` step 4 → `deploy_collections_case_flow`
+
 ### `commerce` (default: `False`)
 
 - `extend_context_definitions` step 3 → `extend_context_cart`
@@ -207,14 +216,14 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `inapp` (default: `False`)
 
-- `prepare_rlm_org` step 30 → `prepare_inapp`
+- `prepare_rlm_org` step 31 → `prepare_inapp`
 - `prepare_inapp` step 1 → `deploy_post_inapp`
 - `prepare_inapp` step 2 → `assign_permission_sets`
 - `prepare_inapp` step 3 → `load_inapp_dataset`
 
 ### `large_stx` (default: `False`)
 
-- `prepare_rlm_org` step 27 → `prepare_large_stx`
+- `prepare_rlm_org` step 28 → `prepare_large_stx`
 - `prepare_large_stx` step 1 → `deploy_post_large_stx`
 - `prepare_large_stx` step 2 → `assign_permission_sets`
 - `prepare_large_stx` step 3 → `seed_large_deal_billing_treatment`
@@ -228,10 +237,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_payments` step 4 → `revert_payments_site_after_deploy`
 - `prepare_payments` step 5 → `publish_community`
 - `prepare_payments` step 6 → `deploy_post_payments_settings`
+- `prepare_payments` step 7 → `deploy_post_payments_ext`
+- `prepare_payments` step 8 → `assign_permission_sets`
 
 ### `personas` (default: `True`)
 
-- `prepare_rlm_org` step 28 → `prepare_personas`
+- `prepare_rlm_org` step 29 → `prepare_personas`
 - `prepare_personas` step 1 → `set_personas_org_wide_defaults`
 - `prepare_personas` step 2 → `deploy_post_personas`
 - `prepare_personas` step 3 → `recalculate_personas_sales_rep_psg`
@@ -428,7 +439,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 29 → `prepare_ux`
+- `prepare_rlm_org` step 30 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
 

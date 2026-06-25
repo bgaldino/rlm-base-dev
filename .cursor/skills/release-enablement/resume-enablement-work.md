@@ -110,7 +110,7 @@ The repo is the synchronization mechanism that's reliable today:
 
 - Any agent on any workstation that clones the repo gets the same starting context
 - Skills + scenario reference + drafts all travel together
-- Cross-workstation handoff matches the existing pattern in `docs/upgrades/262-upgrade-plan.md` (personal vs Salesforce workstation model)
+- Cross-workstation handoff matches the established personal vs Salesforce workstation model
 
 This file ensures that pattern stays explicit. If you find yourself re-explaining state in every new conversation, update this skill (or `docs/enablement/README.md`) — make the next handoff faster.
 

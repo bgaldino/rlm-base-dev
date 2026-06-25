@@ -1,23 +1,26 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import { gql, graphql } from 'lightning/graphql';
+import { NavigationMixin } from 'lightning/navigation';
 
 /**
- * Invoice Health – displays invoice age, status flags, and settlement progress.
+ * Invoice Health – displays invoice age, status flags, settlement progress, and disputes.
  */
-export default class RlmInvoiceHealth extends LightningElement {
+export default class RlmInvoiceHealth extends NavigationMixin(LightningElement) {
     @api recordId;
 
     @track isLoading = true;
     @track error;
     @track errorMessage = '';
 
-    // Invoice data
-    invoiceData = null;
+    @track activeTab = 'summary';
 
-    // Invoice lines data
+    invoiceData = null;
     invoiceLinesData = null;
+    disputesData = null;
+
     _invoiceDataLoaded = false;
     _linesDataLoaded = false;
+    _disputesLoaded = false;
 
     @wire(graphql, {
         query: '$queryInvoice',
@@ -54,7 +57,6 @@ export default class RlmInvoiceHealth extends LightningElement {
             return;
         }
         if (errors && errors.length) {
-            // Don't fail the whole component for lines error, just skip
             this.invoiceLinesData = null;
             this._linesDataLoaded = true;
             this.checkLoadingComplete();
@@ -67,8 +69,31 @@ export default class RlmInvoiceHealth extends LightningElement {
         }
     }
 
+    @wire(graphql, {
+        query: '$queryDisputes',
+        variables: '$invoiceVariables'
+    })
+    wiredDisputes({ data, errors }) {
+        if (!this.recordId) {
+            this._disputesLoaded = true;
+            this.checkLoadingComplete();
+            return;
+        }
+        if (errors && errors.length) {
+            this.disputesData = null;
+            this._disputesLoaded = true;
+            this.checkLoadingComplete();
+            return;
+        }
+        if (data) {
+            this.processDisputes(data);
+            this._disputesLoaded = true;
+            this.checkLoadingComplete();
+        }
+    }
+
     checkLoadingComplete() {
-        if (this._invoiceDataLoaded && this._linesDataLoaded) {
+        if (this._invoiceDataLoaded && this._linesDataLoaded && this._disputesLoaded) {
             this.isLoading = false;
         }
     }
@@ -115,6 +140,32 @@ export default class RlmInvoiceHealth extends LightningElement {
                             node {
                                 Id
                                 RLM_Charge_Type__c { value }
+                                LineAmount { value }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    `;
+
+    queryDisputes = gql`
+        query Disputes($invoiceId: ID!) {
+            uiapi {
+                query {
+                    Dispute(where: { InvoiceId: { eq: $invoiceId } }, first: 50) {
+                        edges {
+                            node {
+                                Id
+                                Name { value }
+                                DisputedAmount { value }
+                                ApprovedAmount { value }
+                                ReceivedDate { value }
+                                Case {
+                                    Id
+                                    Subject { value }
+                                    Status { value }
+                                }
                             }
                         }
                     }
@@ -135,15 +186,18 @@ export default class RlmInvoiceHealth extends LightningElement {
             return;
         }
 
-        // Count by charge type
-        const chargeTypeCounts = {};
+        const chargeTypeAgg = {};
         edges.forEach((edge) => {
             const chargeType = edge.node?.RLM_Charge_Type__c?.value || 'Other';
-            chargeTypeCounts[chargeType] = (chargeTypeCounts[chargeType] || 0) + 1;
+            const amount = Number(edge.node?.LineAmount?.value ?? 0);
+            if (!chargeTypeAgg[chargeType]) {
+                chargeTypeAgg[chargeType] = { count: 0, amount: 0 };
+            }
+            chargeTypeAgg[chargeType].count += 1;
+            chargeTypeAgg[chargeType].amount += amount;
         });
 
-        // Build structured charge type items
-        const chargeTypes = this.buildChargeTypeItems(chargeTypeCounts);
+        const chargeTypes = this.buildChargeTypeItems(chargeTypeAgg);
 
         this.invoiceLinesData = {
             totalLines,
@@ -172,17 +226,18 @@ export default class RlmInvoiceHealth extends LightningElement {
         return { icon: 'utility:question', label: type + ' Charges', colorClass: 'ct-other' };
     }
 
-    buildChargeTypeItems(chargeTypeCounts) {
-        return Object.entries(chargeTypeCounts)
-            .sort((a, b) => b[1] - a[1])
-            .map(([type, count]) => {
+    buildChargeTypeItems(chargeTypeAgg) {
+        return Object.entries(chargeTypeAgg)
+            .sort((a, b) => b[1].count - a[1].count)
+            .map(([type, agg]) => {
                 const config = this.getChargeTypeConfig(type);
                 return {
                     key: type,
                     icon: config.icon,
                     label: config.label,
-                    count,
-                    countLabel: `${count}`,
+                    count: agg.count,
+                    countLabel: `${agg.count}`,
+                    formattedAmount: this.formatCurrency(agg.amount),
                     colorClass: `ct-icon ${config.colorClass}`
                 };
             });
@@ -296,6 +351,102 @@ export default class RlmInvoiceHealth extends LightningElement {
         };
     }
 
+    processDisputes(data) {
+        const edges = data?.uiapi?.query?.Dispute?.edges || [];
+        if (edges.length === 0) {
+            this.disputesData = null;
+            return;
+        }
+
+        let totalDisputed = 0;
+        let totalApproved = 0;
+
+        const disputes = edges.map((edge) => {
+            const node = edge.node;
+            const disputedAmt = Number(node?.DisputedAmount?.value ?? 0);
+            const approvedAmt = Number(node?.ApprovedAmount?.value ?? 0);
+            const caseNode = node?.Case;
+            const caseStatus = caseNode?.Status?.value || 'Unknown';
+            const caseSubject = caseNode?.Subject?.value || '';
+            const caseId = caseNode?.Id || '';
+            const receivedDate = node?.ReceivedDate?.value;
+
+            totalDisputed += disputedAmt;
+            totalApproved += approvedAmt;
+
+            const disputeName = node?.Name?.value || '';
+            return {
+                id: node.Id,
+                name: disputeName,
+                navLabel: disputeName ? 'View dispute ' + disputeName : 'View dispute',
+                disputedAmount: disputedAmt,
+                approvedAmount: approvedAmt,
+                formattedDisputed: this.formatCurrency(disputedAmt),
+                formattedApproved: this.formatCurrency(approvedAmt),
+                caseStatus,
+                caseSubject,
+                caseId,
+                caseNavLabel: caseSubject ? 'View case ' + caseSubject : 'View case',
+                hasCaseLink: !!caseId,
+                statusClass: this.getDisputeStatusClass(caseStatus),
+                formattedDate: receivedDate
+                    ? new Date(receivedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                    : ''
+            };
+        });
+
+        this.disputesData = {
+            count: disputes.length,
+            disputes,
+            formattedTotalDisputed: this.formatCurrency(totalDisputed),
+            formattedTotalApproved: this.formatCurrency(totalApproved)
+        };
+    }
+
+    getDisputeStatusClass(status) {
+        const s = (status || '').toLowerCase();
+        if (s === 'closed') return 'dispute-status dispute-closed';
+        if (s === 'new' || s === 'open' || s === 'pending' || s === 'working') return 'dispute-status dispute-pending';
+        if (s.includes('error') || s.includes('escalat')) return 'dispute-status dispute-error';
+        return 'dispute-status dispute-pending';
+    }
+
+    handleTabClick(event) {
+        this.activeTab = event.currentTarget.dataset.tab;
+    }
+
+    get isSummaryTab() {
+        return this.activeTab === 'summary';
+    }
+
+    get isDisputesTab() {
+        return this.activeTab === 'disputes';
+    }
+
+    get summaryTabClass() {
+        return 'tab-btn' + (this.activeTab === 'summary' ? ' tab-active' : '');
+    }
+
+    get disputesTabClass() {
+        return 'tab-btn' + (this.activeTab === 'disputes' ? ' tab-active' : '');
+    }
+
+    handleNavigateToDispute(event) {
+        const disputeId = event.currentTarget.dataset.id;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: { recordId: disputeId, objectApiName: 'Dispute', actionName: 'view' }
+        });
+    }
+
+    handleNavigateToCase(event) {
+        const caseId = event.currentTarget.dataset.id;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: { recordId: caseId, objectApiName: 'Case', actionName: 'view' }
+        });
+    }
+
     formatCurrency(value) {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
     }
@@ -306,6 +457,10 @@ export default class RlmInvoiceHealth extends LightningElement {
 
     get hasLinesData() {
         return this.invoiceLinesData !== null;
+    }
+
+    get hasDisputes() {
+        return this.disputesData !== null && this.disputesData.count > 0;
     }
 
     get dueDateClass() {

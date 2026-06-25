@@ -21,7 +21,7 @@ public with sharing class RLM_InvoiceAgingController {
                      OR SettlementStatus = 'Partially Settled'
                      OR SettlementStatus = 'NotSettled'
                      OR SettlementStatus = 'Not Settled')
-                ORDER BY InvoiceDate DESC
+                WITH USER_MODE ORDER BY InvoiceDate DESC
             ];
             
             return processInvoiceData(invoices);

@@ -17,7 +17,10 @@ public with sharing class RLM_BSGTimelineController {
         @AuraEnabled public Date cancellationDate;
         @AuraEnabled public Date startDate;
         @AuraEnabled public Date endDate;
+        @AuraEnabled public Date suspensionDate;
+        @AuraEnabled public Date resumptionDate;
         @AuraEnabled public List<BillingScheduleData> billingSchedules;
+        @AuraEnabled public List<MilestoneChartItem> milestoneItems;
     }
     
     /**
@@ -59,6 +62,22 @@ public with sharing class RLM_BSGTimelineController {
     }
     
     /**
+     * Wrapper for milestone chart data
+     */
+    public class MilestoneChartItem {
+        @AuraEnabled public String id;
+        @AuraEnabled public String name;
+        @AuraEnabled public Decimal amount;
+        @AuraEnabled public Decimal percentage;
+        @AuraEnabled public String status;
+        @AuraEnabled public Date completionDate;
+        @AuraEnabled public Boolean isAccomplished;
+        @AuraEnabled public String milestoneType;
+        @AuraEnabled public Decimal referenceAmount;
+        @AuraEnabled public Decimal billedAmount;
+    }
+    
+    /**
      * Get Billing Schedule Group with related Billing Schedules
      */
     @AuraEnabled(cacheable=true)
@@ -71,6 +90,7 @@ public with sharing class RLM_BSGTimelineController {
                        BillDayOfMonth, CancellationDate, StartDate, EndDate
                 FROM BillingScheduleGroup
                 WHERE Id = :recordId
+                WITH USER_MODE
                 LIMIT 1
             ];
             
@@ -89,6 +109,7 @@ public with sharing class RLM_BSGTimelineController {
                        BillingTermUnit
                 FROM BillingSchedule
                 WHERE BillingScheduleGroupId = :recordId
+                WITH USER_MODE
                 ORDER BY BillingScheduleStartDate ASC, CreatedDate ASC
             ];
             
@@ -106,6 +127,26 @@ public with sharing class RLM_BSGTimelineController {
             data.cancellationDate = bsg.CancellationDate;
             data.startDate = bsg.StartDate;
             data.endDate = bsg.EndDate;
+
+            // Suspension fields may not be available in all API versions — use dynamic query
+            try {
+                List<SObject> suspList = Database.query(
+                    'SELECT BillingSuspensionDate, BillingResumptionDate FROM BillingScheduleGroup WHERE Id = :recordId LIMIT 1',
+                    AccessLevel.USER_MODE
+                );
+                if (!suspList.isEmpty()) {
+                    Object suspVal = suspList[0].get('BillingSuspensionDate');
+                    Object resVal  = suspList[0].get('BillingResumptionDate');
+                    if (suspVal != null) {
+                        data.suspensionDate = Date.valueOf(String.valueOf(suspVal));
+                    }
+                    if (resVal != null) {
+                        data.resumptionDate = Date.valueOf(String.valueOf(resVal));
+                    }
+                }
+            } catch (Exception ex) {
+                // Fields not available
+            }
             
             // Map billing schedules
             data.billingSchedules = new List<BillingScheduleData>();
@@ -131,12 +172,81 @@ public with sharing class RLM_BSGTimelineController {
                 
                 data.billingSchedules.add(bsData);
             }
+
+            // Inline milestone data if applicable. Billing milestone objects/fields are
+            // license-gated billing extensions that aren't visible to the Apex compiler for
+            // static references, so getMilestoneChartData() accesses them dynamically and
+            // returns an empty list when no plan (or the feature) is present.
+            List<MilestoneChartItem> milestones = getMilestoneChartData(recordId);
+            if (!milestones.isEmpty()) {
+                data.milestoneItems = milestones;
+            }
             
             return data;
             
         } catch (Exception e) {
             throw new AuraHandledException('Error retrieving Billing Schedule Group: ' + e.getMessage());
         }
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<MilestoneChartItem> getMilestoneChartData(String recordId) {
+        List<MilestoneChartItem> result = new List<MilestoneChartItem>();
+        try {
+            // BillingMilestonePlan(Item) and BillingSchedule.BillingMilestonePlanId are
+            // license-gated billing extensions: present at runtime but not visible to the
+            // Apex compiler for static SOQL/types. Access them dynamically (USER_MODE) so the
+            // class compiles in every org and gracefully no-ops where the feature is absent.
+            List<SObject> bsList = Database.query(
+                'SELECT BillingMilestonePlanId FROM BillingSchedule ' +
+                'WHERE BillingScheduleGroupId = :recordId AND BillingMilestonePlanId != null LIMIT 1',
+                AccessLevel.USER_MODE
+            );
+            if (bsList.isEmpty()) {
+                return result;
+            }
+
+            Id planId = (Id) bsList[0].get('BillingMilestonePlanId');
+
+            List<SObject> bmpList = Database.query(
+                'SELECT ReferenceItemAmount FROM BillingMilestonePlan WHERE Id = :planId LIMIT 1',
+                AccessLevel.USER_MODE
+            );
+            Decimal referenceAmount = bmpList.isEmpty()
+                ? null
+                : (Decimal) bmpList[0].get('ReferenceItemAmount');
+
+            List<BillingScheduleGroup> bsgList = [
+                SELECT TotalBilledAmount FROM BillingScheduleGroup WHERE Id = :recordId WITH USER_MODE LIMIT 1
+            ];
+            Decimal groupBilledAmount = bsgList.isEmpty() ? null : bsgList[0].TotalBilledAmount;
+
+            List<SObject> items = Database.query(
+                'SELECT Id, Name, MilestoneAmount, Percentage, Status, ' +
+                'MilestoneAccomplishmentDate, IsMilestoneAccomplished, MilestoneType ' +
+                'FROM BillingMilestonePlanItem WHERE BillingMilestonePlanId = :planId ' +
+                'ORDER BY IsMilestoneAccomplished DESC, MilestoneAccomplishmentDate ASC NULLS LAST, MilestoneAmount DESC',
+                AccessLevel.USER_MODE
+            );
+
+            for (SObject item : items) {
+                MilestoneChartItem mci = new MilestoneChartItem();
+                mci.id = String.valueOf(item.get('Id'));
+                mci.name = String.valueOf(item.get('Name'));
+                mci.amount = (Decimal) item.get('MilestoneAmount');
+                mci.percentage = (Decimal) item.get('Percentage');
+                mci.status = (String) item.get('Status');
+                mci.completionDate = (Date) item.get('MilestoneAccomplishmentDate');
+                mci.isAccomplished = (Boolean) item.get('IsMilestoneAccomplished');
+                mci.milestoneType = (String) item.get('MilestoneType');
+                mci.referenceAmount = referenceAmount;
+                mci.billedAmount = groupBilledAmount;
+                result.add(mci);
+            }
+        } catch (Exception e) {
+            // Billing milestone objects/fields not available in this org — return empty
+        }
+        return result;
     }
     
     /**

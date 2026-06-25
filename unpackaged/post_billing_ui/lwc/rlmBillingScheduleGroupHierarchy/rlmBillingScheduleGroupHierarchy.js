@@ -4,21 +4,30 @@ import getBillingScheduleGroups from '@salesforce/apex/RLM_BillingScheduleGroupC
 import { NavigationMixin } from 'lightning/navigation';
 
 export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(LightningElement) {
-    @api recordId; // Can be Account Id or Order Id
-    @api objectApiName; // Object type (Account or Order)
+    @api recordId;
+    @api objectApiName;
     @track billingGroups = [];
     @track error;
     @track isLoading = true;
+    @track showExpired = false;
+    @track activeChargeType = 'all';
+    @track activeStatusFilter = 'all';
+    @track sortField = 'startDate';
+    @track sortDirection = 'desc';
 
-    // Summary statistics
     @track totalBsgs = 0;
     @track activeBsgs = 0;
+    @track expiredBsgs = 0;
+    @track completelyBilledBsgs = 0;
     @track totalAmount = 0;
     @track pendingAmount = 0;
 
-    accountId; // The resolved account ID to query
+    @track chargeTypeCounts = { all: 0, recurring: 0, oneTime: 0, usage: 0, milestone: 0 };
+
+    accountId;
     currencyCode = 'USD';
     hasInitialized = false;
+    allBillingGroups = [];
 
     connectedCallback() {
         // For Account pages, recordId IS the accountId
@@ -49,6 +58,19 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
         }
     }
 
+    classifyChargeType(bsg) {
+        if (bsg.BillingTermUnit === 'BillingMilestonePlan') {
+            return 'milestone';
+        }
+        if (bsg.BillingTermUnit === 'OneTime' || bsg.BillingTermUnit === 'Onetime' || bsg.BillingTermUnit === 'One-Time') {
+            return 'oneTime';
+        }
+        if (bsg.BillingMethod === 'Usage') {
+            return 'usage';
+        }
+        return 'recurring';
+    }
+
     loadBillingGroups() {
         if (!this.accountId || this.hasInitialized) return;
         
@@ -57,8 +79,9 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
         getBillingScheduleGroups({ accountId: this.accountId })
             .then(data => {
                 try {
-                    this.billingGroups = this.buildHierarchy(data);
-                    this.calculateSummary(data);
+                    this.allBillingGroups = data;
+                    this.countChargeTypes(data);
+                    this.applyChargeTypeFilter();
                     this.error = undefined;
                 } catch (e) {
                     this.error = 'Error processing billing schedule groups: ' + e.message;
@@ -73,36 +96,70 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
             });
     }
 
+    countChargeTypes(data) {
+        const counts = { all: 0, recurring: 0, oneTime: 0, usage: 0, milestone: 0 };
+        data.forEach(item => {
+            if (item.bsg) {
+                counts.all++;
+                const ct = this.classifyChargeType(item.bsg);
+                counts[ct]++;
+            }
+        });
+        this.chargeTypeCounts = counts;
+    }
+
+    applyChargeTypeFilter() {
+        let filtered = this.allBillingGroups;
+        if (this.activeChargeType !== 'all') {
+            filtered = this.allBillingGroups.filter(item => 
+                item.bsg && this.classifyChargeType(item.bsg) === this.activeChargeType
+            );
+        }
+        this.billingGroups = this.buildHierarchy(filtered);
+        this.calculateSummary(filtered);
+    }
+
+    handleChargeTypeChange(event) {
+        this.activeChargeType = event.currentTarget.dataset.type;
+        this.applyChargeTypeFilter();
+    }
+
     calculateSummary(data) {
-        let total = 0;
+        let billed = 0;
         let pending = 0;
         let active = 0;
+        let expired = 0;
+        let completelyBilled = 0;
         
         data.forEach(item => {
             if (item.bsg) {
+                // Detect the org/data currency once (multi-currency support)
                 if (!this.currencyCode || this.currencyCode === 'USD') {
                     this.currencyCode = item.bsg.CurrencyIsoCode || 'USD';
                 }
-                total += item.bsg.TotalBilledAmount || 0;
-                pending += item.bsg.TotalPendingAmount || 0;
-                // Count active BSGs (started and not expired)
-                const today = new Date();
-                const startDate = item.bsg.StartDate ? new Date(item.bsg.StartDate) : null;
-                const endDate = item.bsg.EndDate ? new Date(item.bsg.EndDate) : null;
-                const isOneTimeOrEvergreen = item.bsg.BillingTermUnit === 'OneTime' || 
-                                            item.bsg.BillingTermUnit === 'Evergreen';
-                
-                if (isOneTimeOrEvergreen && startDate && startDate <= today) {
+                const billedAmt = item.bsg.TotalBilledAmount || 0;
+                const pendingAmt = item.bsg.TotalPendingAmount || 0;
+                billed += billedAmt;
+                pending += pendingAmt;
+
+                const status = this.getStatus(item.bsg);
+                if (status === 'Active') {
                     active++;
-                } else if (startDate && startDate <= today && (!endDate || endDate >= today)) {
-                    active++;
+                } else if (status === 'Expired') {
+                    expired++;
+                }
+
+                if (billedAmt > 0 && pendingAmt === 0 && this.classifyChargeType(item.bsg) !== 'usage') {
+                    completelyBilled++;
                 }
             }
         });
 
         this.totalBsgs = data.length;
         this.activeBsgs = active;
-        this.totalAmount = total;
+        this.expiredBsgs = expired;
+        this.completelyBilledBsgs = completelyBilled;
+        this.totalAmount = billed;
         this.pendingAmount = pending;
     }
 
@@ -122,27 +179,50 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
                     BillingTermUnit: item.bsg.BillingTermUnit
                 };
                 
+                const chargeType = this.classifyChargeType(item.bsg);
                 const bsg = {
                     id: item.bsg.Id,
-                    name: item.bsg.ProductName || item.bsg.ReferenceEntityId || 'Unnamed BSG',
-                    startDate: item.bsg.StartDate,
-                    endDate: item.bsg.EndDate,
-                    hasEndDate: !isOneTimeOrEvergreen && !!item.bsg.EndDate,
+                    name: item.bsg.ProductName || item.bsg.ReferenceEntityId || 'Unnamed Subscription',
+                    startDate: item.bsg.StartDate || '—',
+                    endDate: (chargeType === 'oneTime' && !item.bsg.EndDate)
+                        ? (item.bsg.StartDate || '—')
+                        : (item.bsg.EndDate || '—'),
+                    nextBillingDate: item.bsg.EffectiveNextBillingDate || null,
                     billingTermUnit: item.bsg.BillingTermUnit,
                     billingTermLabel: this.getBillingTermLabel(item.bsg.BillingTermUnit),
+                    chargeType: chargeType,
+                    chargeTypeLabel: this.getChargeTypeLabel(chargeType),
                     totalAmount: item.bsg.TotalBilledAmount || 0,
                     pendingAmount: item.bsg.TotalPendingAmount || 0,
                     status: this.getStatus(bsgWithTermUnit),
+                    isUsage: chargeType === 'usage',
                     billingPercentage: this.calculateBillingPercentage(
-                        item.bsg.TotalPendingAmount,
-                        item.bsg.TotalBilledAmount
+                        item.bsg.TotalBilledAmount,
+                        item.bsg.TotalPendingAmount
                     ),
+                    isCompletelyBilled: (item.bsg.TotalBilledAmount || 0) > 0 && 
+                                        (item.bsg.TotalPendingAmount || 0) === 0 && 
+                                        chargeType !== 'usage',
+                    rawStartDate: item.bsg.StartDate,
+                    rawEndDate: item.bsg.EndDate,
+                    rawNextBillingDate: item.bsg.EffectiveNextBillingDate,
                     children: [],
                     isExpanded: true,
                     hasChildren: false,
                     level: 0,
                     childCount: 0
                 };
+                const pct = bsg.billingPercentage;
+                let barColor = '#fe9339';
+                if (pct === 100) barColor = '#2e844a';
+                else if (pct >= 50) barColor = '#0176d3';
+                bsg.progressStyle = `width: ${pct}%; background: ${barColor}; height: 100%; border-radius: 4px;`;
+
+                bsg.nextBillingDateDisplay = bsg.nextBillingDate 
+                    ? bsg.nextBillingDate 
+                    : (bsg.isCompletelyBilled ? 'Completely Billed' : '—');
+                bsg.nextBillingIsComplete = !bsg.nextBillingDate && bsg.isCompletelyBilled;
+
                 bsgMap.set(item.bsg.Id, bsg);
             }
 
@@ -190,6 +270,31 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
         });
     }
 
+    getChargeTypeLabel(chargeType) {
+        const labels = {
+            recurring: 'Recurring',
+            oneTime: 'One-Time',
+            usage: 'Usage',
+            milestone: 'Milestone'
+        };
+        return labels[chargeType] || chargeType;
+    }
+
+    get chargeTypeTabs() {
+        const tabs = [
+            { type: 'all', label: 'All', count: this.chargeTypeCounts.all },
+            { type: 'recurring', label: 'Recurring', count: this.chargeTypeCounts.recurring },
+            { type: 'oneTime', label: 'One-Time', count: this.chargeTypeCounts.oneTime },
+            { type: 'usage', label: 'Usage', count: this.chargeTypeCounts.usage },
+            { type: 'milestone', label: 'Milestone', count: this.chargeTypeCounts.milestone }
+        ];
+        return tabs.map(t => ({
+            ...t,
+            isActive: t.type === this.activeChargeType,
+            cssClass: 'charge-type-tab' + (t.type === this.activeChargeType ? ' active' : '')
+        }));
+    }
+
     getBillingTermLabel(billingTermUnit) {
         const termMap = {
             'Month':        'Monthly',
@@ -205,38 +310,43 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
 
     getStatus(bsg) {
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const startDate = bsg.StartDate ? new Date(bsg.StartDate) : null;
         const endDate = bsg.EndDate ? new Date(bsg.EndDate) : null;
         
-        // Debug logging
-        console.log('BSG Status Check:', {
-            BillingTermUnit: bsg.BillingTermUnit,
-            StartDate: bsg.StartDate,
-            EndDate: bsg.EndDate,
-            ProductName: bsg.ProductName
-        });
-        
-        const isOneTimeOrEvergreen = bsg.BillingTermUnit === 'OneTime' || 
-                                     bsg.BillingTermUnit === 'Evergreen';
-        
-        console.log('Is One-Time or Evergreen:', isOneTimeOrEvergreen);
+        const isOneTime = bsg.BillingTermUnit === 'OneTime' || 
+                          bsg.BillingTermUnit === 'Onetime' || 
+                          bsg.BillingTermUnit === 'One-Time';
+        const isEvergreen = bsg.BillingTermUnit === 'Evergreen';
 
         if (startDate && startDate > today) {
             return 'Pending';
-        } else if (isOneTimeOrEvergreen && startDate && startDate <= today) {
+        }
+
+        if (isOneTime && startDate) {
+            const effectiveEnd = endDate || startDate;
+            return effectiveEnd < today ? 'Expired' : 'Active';
+        }
+
+        if (isEvergreen && startDate && startDate <= today) {
             return 'Active';
-        } else if (endDate && endDate < today) {
+        }
+
+        if (endDate && endDate < today) {
             return 'Expired';
-        } else if (startDate && startDate <= today && (!endDate || endDate >= today)) {
+        }
+        if (startDate && startDate <= today && (!endDate || endDate >= today)) {
             return 'Active';
         }
         return 'Unknown';
     }
 
-    calculateBillingPercentage(pendingAmount, billedAmount) {
-        const total = (billedAmount || 0) + (pendingAmount || 0);
-        if (!total || total === 0) return 0;
-        return Math.round(((billedAmount || 0) / total) * 100);
+    calculateBillingPercentage(billedAmount, pendingAmount) {
+        const billed = billedAmount || 0;
+        const pending = pendingAmount || 0;
+        const total = billed + pending;
+        if (total === 0) return 0;
+        return Math.round((billed / total) * 100);
     }
 
     handleToggle(event) {
@@ -273,12 +383,108 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
         });
     }
 
+    handleToggleExpired(event) {
+        this.showExpired = event.target.checked;
+    }
+
+    handleStatusFilterKeydown(event) {
+        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+            event.preventDefault();
+            this.handleStatusFilter(event);
+        }
+    }
+
+    handleStatusFilter(event) {
+        const filter = event.currentTarget.dataset.filter;
+        if (filter === 'all') {
+            this.activeStatusFilter = 'all';
+            this.showExpired = true;
+        } else {
+            this.activeStatusFilter = this.activeStatusFilter === filter ? 'all' : filter;
+            if (this.activeStatusFilter === 'expired') {
+                this.showExpired = true;
+            } else if (this.activeStatusFilter === 'all') {
+                this.showExpired = false;
+            }
+        }
+    }
+
+    handleSortChange(event) {
+        this.sortField = event.target.value;
+    }
+
+    get sortOptions() {
+        return [
+            { label: 'Start Date (Newest)', value: 'startDate' },
+            { label: 'End Date (Nearest)', value: 'endDate' },
+            { label: 'Next Billing Date', value: 'nextBillingDate' }
+        ];
+    }
+
+    get hasData() {
+        return this.allBillingGroups && this.allBillingGroups.length > 0;
+    }
+
     get hasGroups() {
         return this.billingGroups && this.billingGroups.length > 0;
     }
 
+    get filteredGroups() {
+        if (!this.billingGroups || this.billingGroups.length === 0) {
+            return [];
+        }
+
+        let result = this.applyStatusAndExpiredFilter(this.billingGroups);
+        result = this.sortBsgs(result);
+        return result;
+    }
+
+    applyStatusAndExpiredFilter(bsgs) {
+        return bsgs.reduce((filtered, bsg) => {
+            let include = true;
+
+            if (!this.showExpired && bsg.status === 'Expired') {
+                include = false;
+            }
+
+            if (this.activeStatusFilter === 'active' && bsg.status !== 'Active') {
+                include = false;
+            } else if (this.activeStatusFilter === 'expired' && bsg.status !== 'Expired') {
+                include = false;
+            } else if (this.activeStatusFilter === 'completelyBilled' && !bsg.isCompletelyBilled) {
+                include = false;
+            }
+
+            if (include) {
+                const filteredBsg = { ...bsg };
+                if (filteredBsg.children && filteredBsg.children.length > 0) {
+                    filteredBsg.children = this.applyStatusAndExpiredFilter(filteredBsg.children);
+                    filteredBsg.hasChildren = filteredBsg.children.length > 0;
+                    filteredBsg.childCount = filteredBsg.children.length;
+                }
+                filtered.push(filteredBsg);
+            }
+            return filtered;
+        }, []);
+    }
+
+    sortBsgs(bsgs) {
+        const field = this.sortField;
+        const rawField = field === 'startDate' ? 'rawStartDate' : 
+                         field === 'endDate' ? 'rawEndDate' : 'rawNextBillingDate';
+        
+        return [...bsgs].sort((a, b) => {
+            const aVal = a[rawField] || '';
+            const bVal = b[rawField] || '';
+            if (!aVal && !bVal) return 0;
+            if (!aVal) return 1;
+            if (!bVal) return -1;
+            return bVal.localeCompare(aVal);
+        });
+    }
+
     get flattenedGroups() {
-        return this.flattenHierarchy(this.billingGroups);
+        return this.flattenHierarchy(this.filteredGroups);
     }
 
     flattenHierarchy(bsgs) {
@@ -290,6 +496,28 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
             }
         });
         return result;
+    }
+
+    get totalCardSelected() {
+        return this.activeStatusFilter === 'all' && this.showExpired;
+    }
+    get activeCardSelected() {
+        return this.activeStatusFilter === 'active';
+    }
+    get expiredCardSelected() {
+        return this.activeStatusFilter === 'expired';
+    }
+    get totalCardClass() {
+        return 'summary-card clickable' + (this.totalCardSelected ? ' card-selected' : '');
+    }
+    get activeCardClass() {
+        return 'summary-card clickable' + (this.activeCardSelected ? ' card-selected' : '');
+    }
+    get expiredCardClass() {
+        return 'summary-card clickable' + (this.expiredCardSelected ? ' card-selected' : '');
+    }
+    get completelyBilledCardClass() {
+        return 'summary-card clickable' + (this.activeStatusFilter === 'completelyBilled' ? ' card-selected' : '');
     }
 
     get formattedTotalAmount() {
@@ -305,7 +533,7 @@ export default class RlmBillingScheduleGroupHierarchy extends NavigationMixin(Li
     }
 
     formatCurrency(value) {
-        if (value === null || value === undefined) return '--';
+        if (value === null || value === undefined) return '$0.00';
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: this.currencyCode || 'USD',

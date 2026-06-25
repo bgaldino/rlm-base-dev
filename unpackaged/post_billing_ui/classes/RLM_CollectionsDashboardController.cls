@@ -16,7 +16,7 @@ public with sharing class RLM_CollectionsDashboardController {
     public static List<Map<String, String>> getAccountOptions() {
         List<Map<String, String>> options = new List<Map<String, String>>();
         options.add(new Map<String, String>{ 'value' => '', 'label' => 'All Accounts' });
-        for (Account a : [SELECT Id, Name FROM Account ORDER BY Name LIMIT 500]) {
+        for (Account a : [SELECT Id, Name FROM Account WITH USER_MODE ORDER BY Name LIMIT 500]) {
             options.add(new Map<String, String>{ 'value' => a.Id, 'label' => a.Name });
         }
         return options;
@@ -37,7 +37,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (filterAccount) soql += ' AND PaymentAccountId = :accountId ';
             if (filterCurrency) soql += ' AND CurrencyIsoCode = :currencyCode ';
             soql += ' GROUP BY Status ';
-            List<AggregateResult> results = Database.query(soql);
+            List<AggregateResult> results = Database.query(soql, AccessLevel.USER_MODE);
             Map<String, Decimal> amountByStatus = new Map<String, Decimal>();
             Map<String, Integer> countByStatus = new Map<String, Integer>();
             for (AggregateResult ar : results) {
@@ -73,7 +73,7 @@ public with sharing class RLM_CollectionsDashboardController {
         List<Map<String, String>> options = new List<Map<String, String>>();
         options.add(new Map<String, String>{ 'value' => '', 'label' => 'All Currencies' });
         try {
-            for (CurrencyType ct : [SELECT IsoCode, IsCorporate FROM CurrencyType WHERE IsActive = true ORDER BY IsCorporate DESC, IsoCode ASC]) {
+            for (CurrencyType ct : [SELECT IsoCode, IsCorporate FROM CurrencyType WHERE IsActive = true WITH USER_MODE ORDER BY IsCorporate DESC, IsoCode ASC]) {
                 if (String.isNotBlank(ct.IsoCode)) {
                     options.add(new Map<String, String>{ 'value' => ct.IsoCode, 'label' => ct.IsoCode });
                 }
@@ -93,8 +93,8 @@ public with sharing class RLM_CollectionsDashboardController {
         Boolean filterCurrency = String.isNotBlank(currencyCode);
         String invAccountField = getInvoiceAccountFieldName();
 
-        // Base invoice filter: unpaid = Balance > 0
-        String invWhere = ' Balance > 0 ';
+        // Base invoice filter: unpaid posted invoices only
+        String invWhere = ' Balance > 0 AND Status = \'Posted\' ';
         if (filterAccount && invAccountField != null) {
             invWhere += ' AND ' + invAccountField + ' = :accountId ';
         }
@@ -104,7 +104,7 @@ public with sharing class RLM_CollectionsDashboardController {
 
         List<Invoice> unpaidInvoices = new List<Invoice>();
         try {
-            unpaidInvoices = Database.query('SELECT Id, Balance, TotalAmount, DueDate FROM Invoice WHERE ' + invWhere);
+            unpaidInvoices = Database.query('SELECT Id, Balance, TotalAmount, DueDate FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
         } catch (Exception e) {
             return data;
         }
@@ -166,13 +166,13 @@ public with sharing class RLM_CollectionsDashboardController {
         data.unappliedPaymentBalance = unappliedPaymentBalance;
         data.unappliedPaymentCount = unappliedPaymentCount;
 
-        data.totalBalance = sumUnpaidInvoiceBalance + unappliedCredits + debitMemoNotInvoiced - unappliedPaymentBalance;
+        data.totalBalance = sumUnpaidInvoiceBalance + debitMemoNotInvoiced - unappliedCredits - unappliedPaymentBalance;
         data.totalOutstanding = sumUnpaidInvoiceBalance - unappliedPaymentBalance;
 
         data.totalBalanceBreakdown = new List<Map<String, Object>>();
         data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unpaid Invoices', 'amount' => sumUnpaidInvoiceBalance, 'color' => 'blue' });
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Credits', 'amount' => unappliedCredits, 'color' => 'green' });
-        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Debit Memo (not invoiced)', 'amount' => debitMemoNotInvoiced, 'color' => 'orange' });
+        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Debit Memos', 'amount' => debitMemoNotInvoiced, 'color' => 'orange' });
+        data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Credits', 'amount' => -unappliedCredits, 'color' => 'green' });
         data.totalBalanceBreakdown.add(new Map<String, Object>{ 'label' => 'Unapplied Payments', 'amount' => -unappliedPaymentBalance, 'color' => 'red' });
 
         data.agingBuckets = new List<Map<String, Object>>();
@@ -214,7 +214,7 @@ public with sharing class RLM_CollectionsDashboardController {
     private static void addPlaceholderRowsIfEmpty(WorklistData wl) {
         List<Account> accts = new List<Account>();
         try {
-            accts = [SELECT Id, Name FROM Account ORDER BY Name LIMIT 1];
+            accts = [SELECT Id, Name FROM Account WITH USER_MODE ORDER BY Name LIMIT 1];
         } catch (Exception e) { return; }
         if (accts.isEmpty()) return;
         Id placeholderId = accts[0].Id;
@@ -237,11 +237,11 @@ public with sharing class RLM_CollectionsDashboardController {
                 cpWhere += ' AND AccountId = :accountId ';
             }
             List<Id> cpIds = new List<Id>();
-            for (SObject cp : Database.query('SELECT Id FROM CollectionPlan WHERE ' + cpWhere + ' LIMIT 2000')) {
+            for (SObject cp : Database.query('SELECT Id FROM CollectionPlan WHERE ' + cpWhere + ' LIMIT 2000', AccessLevel.USER_MODE)) {
                 cpIds.add((Id) cp.get('Id'));
             }
             if (cpIds.isEmpty()) return results;
-            for (Task t : [SELECT Id, Subject, Status, ActivityDate, WhatId FROM Task WHERE WhatId IN :cpIds ORDER BY ActivityDate DESC NULLS LAST, CreatedDate DESC LIMIT 200]) {
+            for (Task t : [SELECT Id, Subject, Status, ActivityDate, WhatId FROM Task WHERE WhatId IN :cpIds WITH USER_MODE ORDER BY ActivityDate DESC NULLS LAST, CreatedDate DESC LIMIT 200]) {
                 results.add(new CpTaskItem(t.Id, t.Subject, t.Status, t.ActivityDate, t.WhatId));
             }
         } catch (Exception e) { }
@@ -277,7 +277,7 @@ public with sharing class RLM_CollectionsDashboardController {
     private static void buildWorklistLastResort(WorklistData wl, String invAccountField, Date today, Date thirtyDaysAgo) {
         try {
             String soql = 'SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE Balance > 0 LIMIT 500';
-            List<SObject> rows = Database.query(soql);
+            List<SObject> rows = Database.query(soql, AccessLevel.USER_MODE);
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
             Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
             for (SObject inv : rows) {
@@ -315,7 +315,7 @@ public with sharing class RLM_CollectionsDashboardController {
             String invWhere = ' Balance > 0 ';
             if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
-            List<Invoice> invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere + ' LIMIT 1000');
+            List<Invoice> invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere + ' LIMIT 1000', AccessLevel.USER_MODE);
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
             Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
             for (Invoice inv : invs) {
@@ -345,7 +345,7 @@ public with sharing class RLM_CollectionsDashboardController {
         try {
             String caseWhere = ' IsClosed = false AND AccountId != null ';
             if (filterAccount) caseWhere += ' AND AccountId = :accountId ';
-            List<Case> openCases = Database.query('SELECT Id, AccountId, Subject, Description FROM Case WHERE ' + caseWhere + ' ORDER BY CreatedDate DESC LIMIT 200');
+            List<Case> openCases = Database.query('SELECT Id, AccountId, Subject, Description FROM Case WHERE ' + caseWhere + ' ORDER BY CreatedDate DESC LIMIT 200', AccessLevel.USER_MODE);
             Set<Id> disputedAccountIds = new Set<Id>();
             Map<Id, String> accountDisputeReason = new Map<Id, String>();
             for (Case c : openCases) {
@@ -389,11 +389,12 @@ public with sharing class RLM_CollectionsDashboardController {
             Boolean hasBillToContact = invoiceHasBillToContactId();
             Integer thirtyDays = 30;
 
+            Decimal criticalMinBalance = 2000;
             String invWhere;
             if (hasDaysField) {
-                invWhere = ' Balance > 0 AND (DaysInvoiceOverdue >= :thirtyDays OR (DaysInvoiceOverdue = null AND DueDate != null AND DueDate < :thirtyDaysAgo)) ';
+                invWhere = ' Balance >= :criticalMinBalance AND (DaysInvoiceOverdue >= :thirtyDays OR (DaysInvoiceOverdue = null AND DueDate != null AND DueDate < :thirtyDaysAgo)) ';
             } else {
-                invWhere = ' Balance > 0 AND DueDate < :thirtyDaysAgo ';
+                invWhere = ' Balance >= :criticalMinBalance AND DueDate < :thirtyDaysAgo ';
             }
             if (filterAccount && invAccountField != null) invWhere += ' AND ' + invAccountField + ' = :accountId ';
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
@@ -405,7 +406,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (hasBillToContact) invSelect += ', BillToContactId';
 
             String orderField = hasDaysField ? 'DaysInvoiceOverdue DESC NULLS LAST' : 'DueDate ASC';
-            List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY ' + orderField + ' LIMIT 200');
+            List<Invoice> invs = Database.query(invSelect + ' FROM Invoice WHERE ' + invWhere + ' ORDER BY ' + orderField + ' LIMIT 200', AccessLevel.USER_MODE);
 
             Set<Id> billingAccountIds = new Set<Id>();
             for (Invoice inv : invs) {
@@ -422,7 +423,7 @@ public with sharing class RLM_CollectionsDashboardController {
             Map<Id, Id> invoiceToCollectionPlan = new Map<Id, Id>();
             if (!invoiceIds.isEmpty() && Schema.getGlobalDescribe().containsKey('CollectionPlanItem')) {
                 try {
-                    for (CollectionPlanItem cpi : [SELECT InvoiceId, CollectionPlanId FROM CollectionPlanItem WHERE InvoiceId IN :invoiceIds AND CollectionPlanId != null]) {
+                    for (CollectionPlanItem cpi : [SELECT InvoiceId, CollectionPlanId FROM CollectionPlanItem WHERE InvoiceId IN :invoiceIds AND CollectionPlanId != null WITH USER_MODE]) {
                         if (!invoiceToCollectionPlan.containsKey(cpi.InvoiceId)) {
                             invoiceToCollectionPlan.put(cpi.InvoiceId, cpi.CollectionPlanId);
                         }
@@ -480,14 +481,14 @@ public with sharing class RLM_CollectionsDashboardController {
             if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
             List<Invoice> invs = new List<Invoice>();
             try {
-                invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere);
+                invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
             } catch (Exception ex) { invs = new List<Invoice>(); }
             if (invs.isEmpty()) {
                 invWhere = ' Balance > 0 ';
                 if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
                 if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
                 try {
-                    invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere);
+                    invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
                 } catch (Exception ex2) { return; }
             }
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
@@ -515,29 +516,21 @@ public with sharing class RLM_CollectionsDashboardController {
     private static Decimal getAccountUnpaidBalance(Id accId, String invAccountField, Boolean filterCurrency, String currencyCode) {
         String q = 'SELECT SUM(Balance) s FROM Invoice WHERE Balance > 0 AND ' + invAccountField + ' = :accId ';
         if (filterCurrency && invoiceHasCurrencyField()) q += ' AND CurrencyIsoCode = :currencyCode ';
-        List<AggregateResult> ar = Database.query(q);
+        List<AggregateResult> ar = Database.query(q, AccessLevel.USER_MODE);
         if (ar.isEmpty() || ar[0].get('s') == null) return 0;
         return (Decimal) ar[0].get('s');
     }
 
     private static void buildHighValueDelinquents(WorklistData wl, String invAccountField, Boolean filterAccount, Boolean filterCurrency, Id accountId, String currencyCode, Date thirtyDaysAgo) {
-        Decimal minBalanceThreshold = 1000;
-        String invWhereStrict = ' Balance > :minBalanceThreshold AND DueDate < :thirtyDaysAgo ';
-        if (filterAccount) invWhereStrict += ' AND ' + invAccountField + ' = :accountId ';
-        if (filterCurrency && invoiceHasCurrencyField()) invWhereStrict += ' AND CurrencyIsoCode = :currencyCode ';
-        invWhereStrict += getInvoiceNotFullySettledStatusFilter();
+        Decimal minBalanceThreshold = 2000;
+        String invWhere = ' Balance > 0 AND DueDate < :thirtyDaysAgo ';
+        if (filterAccount) invWhere += ' AND ' + invAccountField + ' = :accountId ';
+        if (filterCurrency && invoiceHasCurrencyField()) invWhere += ' AND CurrencyIsoCode = :currencyCode ';
+        invWhere += getInvoiceNotFullySettledStatusFilter();
         List<Invoice> invs = new List<Invoice>();
         try {
-            invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhereStrict);
-        } catch (Exception e) { invs = new List<Invoice>(); }
-        if (invs.isEmpty()) {
-            String invWhereFallback = ' Balance > 0 AND DueDate < :thirtyDaysAgo ';
-            if (filterAccount) invWhereFallback += ' AND ' + invAccountField + ' = :accountId ';
-            if (filterCurrency && invoiceHasCurrencyField()) invWhereFallback += ' AND CurrencyIsoCode = :currencyCode ';
-            try {
-                invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhereFallback);
-            } catch (Exception e2) { return; }
-        }
+            invs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
+        } catch (Exception e) { return; }
         Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
         Map<Id, Integer> accountMaxDays = new Map<Id, Integer>();
         for (Invoice inv : invs) {
@@ -549,26 +542,34 @@ public with sharing class RLM_CollectionsDashboardController {
             Integer existing = accountMaxDays.get(accId);
             if (existing == null || days > existing) accountMaxDays.put(accId, days);
         }
+        // Filter accounts below the $2000 threshold
+        Set<Id> qualifiedAccounts = new Set<Id>();
+        for (Id accId : accountBalance.keySet()) {
+            if (accountBalance.get(accId) >= minBalanceThreshold) {
+                qualifiedAccounts.add(accId);
+            }
+        }
+        if (qualifiedAccounts.isEmpty()) return;
         List<WorklistItem> highValue = new List<WorklistItem>();
-        Map<Id, String> accountNames = getAccountNames(accountBalance.keySet());
+        Map<Id, String> accountNames = getAccountNames(qualifiedAccounts);
         Map<Id, Id> accountToCollectionPlan = new Map<Id, Id>();
-        if (!accountBalance.keySet().isEmpty() && Schema.getGlobalDescribe().containsKey('CollectionPlan')) {
+        if (Schema.getGlobalDescribe().containsKey('CollectionPlan')) {
             try {
-                Set<Id> accIds = accountBalance.keySet();
-                for (CollectionPlan cp : [SELECT Id, AccountId FROM CollectionPlan WHERE AccountId IN :accIds AND AccountId != null]) {
+                Set<Id> accIds = qualifiedAccounts;
+                for (CollectionPlan cp : [SELECT Id, AccountId FROM CollectionPlan WHERE AccountId IN :accIds AND AccountId != null WITH USER_MODE]) {
                     if (!accountToCollectionPlan.containsKey(cp.AccountId)) {
                         accountToCollectionPlan.put(cp.AccountId, cp.Id);
                     }
                 }
             } catch (Exception ex) { }
         }
-        for (Id accId : accountBalance.keySet()) {
+        for (Id accId : qualifiedAccounts) {
             WorklistItem item = new WorklistItem(accId, accountNames.get(accId), accountBalance.get(accId), accountMaxDays.get(accId), 'highValue', 'red', null, null);
             item.collectionPlanId = accountToCollectionPlan.get(accId);
             highValue.add(item);
         }
         sortByBalance(highValue);
-        for (Integer i = 0; i < Math.min(5, highValue.size()); i++) wl.highValueDelinquents.add(highValue[i]);
+        for (Integer i = 0; i < Math.min(10, highValue.size()); i++) wl.highValueDelinquents.add(highValue[i]);
     }
 
     private static String getInvoiceNotFullySettledStatusFilter() {
@@ -593,7 +594,7 @@ public with sharing class RLM_CollectionsDashboardController {
             if (filterAccount) caseWhere += ' AND AccountId = :accountId ';
             String caseFields = 'Id, CaseNumber, AccountId, Subject, Description';
             if (Schema.SObjectType.Case.fields.getMap().containsKey('Reason')) caseFields += ', Reason';
-            List<Case> openCases = Database.query('SELECT ' + caseFields + ' FROM Case WHERE ' + caseWhere + ' ORDER BY CreatedDate DESC');
+            List<Case> openCases = Database.query('SELECT ' + caseFields + ' FROM Case WHERE ' + caseWhere + ' ORDER BY CreatedDate DESC', AccessLevel.USER_MODE);
             Map<Id, String> accountDisputeReason = new Map<Id, String>();
             Map<Id, Id> accountCaseId = new Map<Id, Id>();
             Map<Id, String> accountCaseNumber = new Map<Id, String>();
@@ -618,7 +619,7 @@ public with sharing class RLM_CollectionsDashboardController {
             Date today = Date.today();
 
             String invWhere = ' Balance > 0 AND ' + invAccountField + ' IN :disputedAccountIds ';
-            List<Invoice> disputedInvs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere);
+            List<Invoice> disputedInvs = Database.query('SELECT Id, Balance, DueDate, ' + invAccountField + ' FROM Invoice WHERE ' + invWhere, AccessLevel.USER_MODE);
             Map<Id, Decimal> accountBalance = new Map<Id, Decimal>();
             Map<Id, Integer> accountMaxDaysOverdue = new Map<Id, Integer>();
             Map<Id, Id> invoiceToAccountId = new Map<Id, Id>();
@@ -642,13 +643,13 @@ public with sharing class RLM_CollectionsDashboardController {
                 try {
                     List<Id> invIdList = new List<Id>(invoiceIds);
                     Map<Id, Id> scheduleToInvoiceId = new Map<Id, Id>();
-                    for (SObject ps : Database.query('SELECT Id, ReferenceEntityId FROM PaymentSchedule WHERE ReferenceEntityId IN :invIdList')) {
+                    for (SObject ps : Database.query('SELECT Id, ReferenceEntityId FROM PaymentSchedule WHERE ReferenceEntityId IN :invIdList', AccessLevel.USER_MODE)) {
                         Id refId = (Id) ps.get('ReferenceEntityId');
                         if (refId != null) scheduleToInvoiceId.put((Id) ps.get('Id'), refId);
                     }
                     if (!scheduleToInvoiceId.isEmpty()) {
                         Set<Id> scheduleIds = scheduleToInvoiceId.keySet();
-                        for (PaymentScheduleItem psi : Database.query('SELECT Id, PaymentScheduleId, TargetPaymentProcessingDate FROM PaymentScheduleItem WHERE PaymentScheduleId IN :scheduleIds AND TargetPaymentProcessingDate != null')) {
+                        for (PaymentScheduleItem psi : Database.query('SELECT Id, PaymentScheduleId, TargetPaymentProcessingDate FROM PaymentScheduleItem WHERE PaymentScheduleId IN :scheduleIds AND TargetPaymentProcessingDate != null', AccessLevel.USER_MODE)) {
                             Id invId = scheduleToInvoiceId.get(psi.PaymentScheduleId);
                             Id accId = invoiceToAccountId.get(invId);
                             if (accId == null) continue;
@@ -675,7 +676,7 @@ public with sharing class RLM_CollectionsDashboardController {
     private static Map<Id, String> getAccountNames(Set<Id> accountIds) {
         Map<Id, String> m = new Map<Id, String>();
         if (accountIds == null || accountIds.isEmpty()) return m;
-        for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds]) m.put(a.Id, a.Name);
+        for (Account a : [SELECT Id, Name FROM Account WHERE Id IN :accountIds WITH USER_MODE]) m.put(a.Id, a.Name);
         return m;
     }
 
@@ -780,7 +781,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 soql += ' AND ' + accFld + ' = :accountId ';
             }
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
-            List<AggregateResult> ar = Database.query(soql);
+            List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
         } catch (Exception e) { }
         return sum;
@@ -796,7 +797,7 @@ public with sharing class RLM_CollectionsDashboardController {
             String soql = 'SELECT SUM(Amount) sumAmt FROM DebitMemo WHERE Amount != null ';
             if (accountId != null && accFld != null) soql += ' AND ' + accFld + ' = :accountId ';
             if (String.isNotBlank(currencyCode) && flds.containsKey('CurrencyIsoCode')) soql += ' AND CurrencyIsoCode = :currencyCode ';
-            List<AggregateResult> ar = Database.query(soql);
+            List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumAmt') != null) sum = (Decimal) ar[0].get('sumAmt');
         } catch (Exception e) { }
         return sum;
@@ -814,7 +815,7 @@ public with sharing class RLM_CollectionsDashboardController {
                 soql += ' AND ' + accFld + ' = :accountId ';
             }
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
-            List<AggregateResult> ar = Database.query(soql);
+            List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('sumBal') != null) sum = (Decimal) ar[0].get('sumBal');
         } catch (Exception e) { }
         return sum;
@@ -830,7 +831,7 @@ public with sharing class RLM_CollectionsDashboardController {
             }
             if (accountId != null && accFld != null) soql += ' AND ' + accFld + ' = :accountId ';
             if (String.isNotBlank(currencyCode)) soql += ' AND CurrencyIsoCode = :currencyCode ';
-            List<AggregateResult> ar = Database.query(soql);
+            List<AggregateResult> ar = Database.query(soql, AccessLevel.USER_MODE);
             if (!ar.isEmpty() && ar[0].get('cnt') != null) cnt = (Integer) ar[0].get('cnt');
         } catch (Exception e) { }
         return cnt;
@@ -891,7 +892,7 @@ public with sharing class RLM_CollectionsDashboardController {
             }
             String selectFields = 'Id, Name, Duedate, TotalInvoiceBalance, ' + acctField + ', ' + acctNameExpr;
             String q = 'SELECT ' + selectFields + ' FROM CollectionPlan WHERE OwnerId = :currentUserId ORDER BY Duedate ASC NULLS LAST, Name ASC LIMIT 50';
-            List<SObject> plans = Database.query(q);
+            List<SObject> plans = Database.query(q, AccessLevel.USER_MODE);
             for (SObject cp : plans) {
                 Id cpId = (Id) cp.get('Id');
                 String cpName = (String) cp.get('Name');
@@ -917,6 +918,7 @@ public with sharing class RLM_CollectionsDashboardController {
             List<CollectionPlan> plans = [
                 SELECT Id, ClosedDate, CreatedDate, TotalInvoiceBalance, DaysPastDue, Duedate
                 FROM CollectionPlan
+                WITH USER_MODE
             ];
             if (plans.isEmpty()) return result;
             Integer totalCount = plans.size();
