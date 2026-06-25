@@ -7,6 +7,7 @@ from datetime import date
 import pytest
 
 from scripts.txn_data_harness.config import ConfigError, ProductOption, ScenarioSpec
+from scripts.txn_data_harness.handlers.sales_txn_quote import SalesTxnQuoteHandler
 from scripts.txn_data_harness.lifecycle import LifecycleError
 from scripts.txn_data_harness.models import (
     EndDateOverride,
@@ -24,7 +25,6 @@ from scripts.txn_data_harness.runner import (
     effective_stage,
     remaining_steps,
     run_batch,
-    run_scenario,
     stage_sequence,
 )
 
@@ -111,37 +111,101 @@ def test_remaining_steps_empty_when_already_at_target() -> None:
     assert remaining_steps("invoice_draft", "order_draft", with_opportunity=False) == []
 
 
-def _resolved_account_and_lines(billable_account, term_product):
-    line = draw_lines([ResolvedOption(product=term_product, quantity=(1, 1), discount=None)])
-    return billable_account, line
+# ---------------------------------------------------------------------------
+# Retry policy -- SalesTransactionBaseHandler.run
+# ---------------------------------------------------------------------------
+#
+# These exercise the retry/backoff/classify loop on the base handler (the one
+# every PST kind shares). They patch :func:`execute_step` so a fake can simulate
+# step-level failure + checkpoint behavior without touching the lifecycle layer.
+# The base handler translates public stages through STEP_GRAPH before calling
+# ``execute_step``, so the recorded step names are the *internal* names
+# (``order_from_quote`` for the public ``order_draft`` stage on the quote path).
+#
+# Phase 4 deleted ``runner.run_scenario`` -- the prior wrapper around this loop
+# -- so these are the load-bearing retry-policy tests for the PST spine.
+
+# Public stage -> internal step name on the quote path. Mirrors
+# :attr:`SalesTxnQuoteHandler.STEP_GRAPH`. Kept here (instead of imported) so
+# a future divergence is forced to surface in the test assertions, not as a
+# silent translation.
+_QUOTE_INTERNAL = {"order_draft": "order_from_quote"}
 
 
-def test_run_scenario_retries_transient_then_succeeds(
-    monkeypatch, org_context, billable_account, term_product
-) -> None:
-    account, lines = _resolved_account_and_lines(billable_account, term_product)
-    monkeypatch.setattr("scripts.txn_data_harness.runner.write_manifest", lambda m, *a, **k: None)
+def _step_after(public_stage: str) -> str:
+    """Internal step name produced by executing ``public_stage`` on the quote
+    path. The fake ``execute_step`` advances the manifest's ``reached_stage``
+    to the *public* name, which is what the resume math needs."""
+    return _QUOTE_INTERNAL.get(public_stage, public_stage)
 
-    calls = {"n": 0}
 
-    def flaky_run_steps(step_names, ctx, manifest):
-        calls["n"] += 1
-        if calls["n"] == 1:
-            manifest.reached_stage = "quote_placed"  # checkpoint partial progress
-            raise LifecycleError("order_activated", "request timed out")
-        manifest.reached_stage = "invoice_posted"
-        return manifest
-
-    monkeypatch.setattr("scripts.txn_data_harness.runner.run_steps", flaky_run_steps)
-    sleeps: list[float] = []
-
-    manifest = run_scenario(
-        client=object(), ctx=org_context, run_id="R-1", target_stage="invoice_posted",
-        account=account, lines=lines, with_opportunity=False, poll_timeout=1,
-        max_retries=2, sleep=sleeps.append,
+def _resolved_for(billable_account, term_product):
+    return ResolvedSpec(
+        spec=_spec(),
+        account=billable_account,
+        options=[ResolvedOption(product=term_product, quantity=(1, 1), discount=None)],
+        effective_stage="invoice_posted",
     )
 
-    assert calls["n"] == 2
+
+def _patch_base(monkeypatch, fake_execute_step):
+    """Wire ``fake_execute_step`` into the base handler and silence checkpoint
+    persistence so the retry-policy tests don't touch disk."""
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.handlers.sales_transaction_base.execute_step",
+        fake_execute_step,
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.handlers.sales_transaction_base.write_manifest",
+        lambda *_a, **_kw: None,
+    )
+
+
+def test_handler_run_retries_transient_then_succeeds(
+    monkeypatch, org_context, billable_account, term_product
+) -> None:
+    """A transient failure mid-chain retries from the last checkpointed stage
+    and the second attempt succeeds. Mirrors the legacy ``run_scenario``
+    transient-retry contract, now owned by the base handler."""
+    calls: list[str] = []
+    attempt = {"n": 0}
+
+    def flaky(step, ctx, manifest):
+        calls.append(step)
+        # Fail on the first attempt's order_activated step, AFTER advancing
+        # past quote_placed + order_draft so the manifest carries
+        # reached_stage="order_draft" into retry.
+        if step == "order_activated" and attempt["n"] == 0:
+            attempt["n"] = 1
+            manifest.reached_stage = "order_draft"
+            raise LifecycleError("order_activated", "request timed out")
+        manifest.reached_stage = {
+            "quote_placed": "quote_placed",
+            "order_from_quote": "order_draft",
+            "order_activated": "order_activated",
+            "usage_upload": "usage_upload",
+            "invoice_draft": "invoice_draft",
+            "invoice_posted": "invoice_posted",
+        }[step]
+        return manifest
+
+    _patch_base(monkeypatch, flaky)
+    sleeps: list[float] = []
+
+    manifest = SalesTxnQuoteHandler().run(
+        client=object(), ctx=org_context, run_id="R-1",
+        resolved=_resolved_for(billable_account, term_product),
+        poll_timeout=1, max_retries=2, sleep=sleeps.append,
+    )
+
+    # Attempt 1 ran through order_activated and failed; attempt 2 resumed
+    # from order_activated.
+    assert calls == [
+        # attempt 1
+        "quote_placed", "order_from_quote", "order_activated",
+        # attempt 2 (resumes after the order_draft checkpoint)
+        "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
+    ]
     assert manifest.attempts == 2
     assert manifest.error is None
     assert manifest.failure_class is None
@@ -149,121 +213,140 @@ def test_run_scenario_retries_transient_then_succeeds(
     assert len(sleeps) == 1  # one backoff between the two attempts
 
 
-def test_run_scenario_retries_activate_after_partial_activate_failure(
+def test_handler_run_retries_activate_after_partial_activate_failure(
     monkeypatch, org_context, billable_account, term_product
 ) -> None:
-    account, lines = _resolved_account_and_lines(billable_account, term_product)
-    monkeypatch.setattr("scripts.txn_data_harness.runner.write_manifest", lambda m, *a, **k: None)
+    """``run_activate`` leaves the durable barrier at ``order_draft`` when a
+    derived activation poll (BillingSchedule / asset) fails, so the retry
+    must rerun ``order_activated`` -- not skip ahead to usage. This pins
+    the resume-after-partial-activate behavior on the handler."""
+    calls: list[str] = []
+    attempt = {"n": 0}
 
-    calls: list[list[str]] = []
-
-    def flaky_run_steps(step_names, ctx, manifest):
-        calls.append(list(step_names))
-        if len(calls) == 1:
-            # Corrected run_activate leaves the durable barrier at order_draft when a
-            # derived activation poll fails, so retry must include order_activated.
+    def flaky(step, ctx, manifest):
+        calls.append(step)
+        if step == "order_activated" and attempt["n"] == 0:
+            attempt["n"] = 1
             manifest.reached_stage = "order_draft"
             raise LifecycleError("billing_schedule", "request timed out")
-        manifest.reached_stage = "invoice_posted"
+        manifest.reached_stage = {
+            "quote_placed": "quote_placed",
+            "order_from_quote": "order_draft",
+            "order_activated": "order_activated",
+            "usage_upload": "usage_upload",
+            "invoice_draft": "invoice_draft",
+            "invoice_posted": "invoice_posted",
+        }[step]
         return manifest
 
-    monkeypatch.setattr("scripts.txn_data_harness.runner.run_steps", flaky_run_steps)
+    _patch_base(monkeypatch, flaky)
     sleeps: list[float] = []
 
-    manifest = run_scenario(
-        client=object(), ctx=org_context, run_id="R-1", target_stage="invoice_posted",
-        account=account, lines=lines, with_opportunity=False, poll_timeout=1,
-        max_retries=2, sleep=sleeps.append,
+    manifest = SalesTxnQuoteHandler().run(
+        client=object(), ctx=org_context, run_id="R-1",
+        resolved=_resolved_for(billable_account, term_product),
+        poll_timeout=1, max_retries=2, sleep=sleeps.append,
     )
 
     assert calls == [
-        ["quote_placed", "order_draft", "order_activated", "usage_upload", "invoice_draft", "invoice_posted"],
-        ["order_activated", "usage_upload", "invoice_draft", "invoice_posted"],
+        "quote_placed", "order_from_quote", "order_activated",
+        "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
     ]
     assert manifest.error is None
     assert manifest.reached_stage == "invoice_posted"
 
 
-def test_run_scenario_retries_post_after_partial_post_failure(
+def test_handler_run_retries_post_after_partial_post_failure(
     monkeypatch, org_context, billable_account, term_product
 ) -> None:
-    account, lines = _resolved_account_and_lines(billable_account, term_product)
-    monkeypatch.setattr("scripts.txn_data_harness.runner.write_manifest", lambda m, *a, **k: None)
+    """``invoice_draft`` is complete (invoice id observed), but posting did
+    not reach its durable barrier; retry must rerun only ``invoice_posted``."""
+    calls: list[str] = []
+    attempt = {"n": 0}
 
-    calls: list[list[str]] = []
-
-    def flaky_run_steps(step_names, ctx, manifest):
-        calls.append(list(step_names))
-        if len(calls) == 1:
-            # The invoice_draft stage is complete, but posting did not reach its
-            # durable barrier; retry must rerun only invoice_posted.
+    def flaky(step, ctx, manifest):
+        calls.append(step)
+        if step == "invoice_posted" and attempt["n"] == 0:
+            attempt["n"] = 1
             manifest.reached_stage = "invoice_draft"
             manifest.invoice_id = "3ttINVOICE"
             raise LifecycleError("invoice_posted", "request timed out")
-        manifest.reached_stage = "invoice_posted"
+        manifest.reached_stage = {
+            "quote_placed": "quote_placed",
+            "order_from_quote": "order_draft",
+            "order_activated": "order_activated",
+            "usage_upload": "usage_upload",
+            "invoice_draft": "invoice_draft",
+            "invoice_posted": "invoice_posted",
+        }[step]
         return manifest
 
-    monkeypatch.setattr("scripts.txn_data_harness.runner.run_steps", flaky_run_steps)
+    _patch_base(monkeypatch, flaky)
     sleeps: list[float] = []
 
-    manifest = run_scenario(
-        client=object(), ctx=org_context, run_id="R-1", target_stage="invoice_posted",
-        account=account, lines=lines, with_opportunity=False, poll_timeout=1,
-        max_retries=2, sleep=sleeps.append,
+    manifest = SalesTxnQuoteHandler().run(
+        client=object(), ctx=org_context, run_id="R-1",
+        resolved=_resolved_for(billable_account, term_product),
+        poll_timeout=1, max_retries=2, sleep=sleeps.append,
     )
 
     assert calls == [
-        ["quote_placed", "order_draft", "order_activated", "usage_upload", "invoice_draft", "invoice_posted"],
-        ["invoice_posted"],
+        "quote_placed", "order_from_quote", "order_activated",
+        "usage_upload", "invoice_draft", "invoice_posted",
+        # retry: only invoice_posted
+        "invoice_posted",
     ]
     assert manifest.error is None
     assert manifest.reached_stage == "invoice_posted"
 
 
-def test_run_scenario_does_not_retry_deterministic(
+def test_handler_run_does_not_retry_deterministic(
     monkeypatch, org_context, billable_account, term_product
 ) -> None:
-    account, lines = _resolved_account_and_lines(billable_account, term_product)
-    monkeypatch.setattr("scripts.txn_data_harness.runner.write_manifest", lambda m, *a, **k: None)
+    """A deterministic precondition failure (e.g. missing required field)
+    fails fast and is never retried -- regardless of how many retries
+    are budgeted."""
+    calls: list[str] = []
 
-    calls = {"n": 0}
+    def failing(step, ctx, manifest):
+        calls.append(step)
+        raise LifecycleError(
+            "order_draft", "quote_id is required before order_draft"
+        )
 
-    def failing_run_steps(step_names, ctx, manifest):
-        calls["n"] += 1
-        raise LifecycleError("order_draft", "quote_id is required before order_draft")
-
-    monkeypatch.setattr("scripts.txn_data_harness.runner.run_steps", failing_run_steps)
+    _patch_base(monkeypatch, failing)
     sleeps: list[float] = []
 
-    manifest = run_scenario(
-        client=object(), ctx=org_context, run_id="R-1", target_stage="invoice_posted",
-        account=account, lines=lines, with_opportunity=False, poll_timeout=1,
-        max_retries=2, sleep=sleeps.append,
+    manifest = SalesTxnQuoteHandler().run(
+        client=object(), ctx=org_context, run_id="R-1",
+        resolved=_resolved_for(billable_account, term_product),
+        poll_timeout=1, max_retries=2, sleep=sleeps.append,
     )
 
-    assert calls["n"] == 1  # failed fast, no retry
+    assert len(calls) == 1  # failed fast on the very first step, no retry
     assert manifest.attempts == 1
     assert manifest.failure_class == "deterministic"
     assert "is required before" in manifest.error
     assert sleeps == []
 
 
-def test_run_scenario_exhausts_retry_budget(
+def test_handler_run_exhausts_retry_budget(
     monkeypatch, org_context, billable_account, term_product
 ) -> None:
-    account, lines = _resolved_account_and_lines(billable_account, term_product)
-    monkeypatch.setattr("scripts.txn_data_harness.runner.write_manifest", lambda m, *a, **k: None)
+    """When every attempt hits a transient failure, the handler stops after
+    1 + max_retries attempts and the manifest records the final transient
+    failure with its attempt count."""
 
-    def always_transient(step_names, ctx, manifest):
+    def always_transient(step, ctx, manifest):
         raise LifecycleError("order_activated", "request timed out")
 
-    monkeypatch.setattr("scripts.txn_data_harness.runner.run_steps", always_transient)
+    _patch_base(monkeypatch, always_transient)
     sleeps: list[float] = []
 
-    manifest = run_scenario(
-        client=object(), ctx=org_context, run_id="R-1", target_stage="invoice_posted",
-        account=account, lines=lines, with_opportunity=False, poll_timeout=1,
-        max_retries=2, sleep=sleeps.append,
+    manifest = SalesTxnQuoteHandler().run(
+        client=object(), ctx=org_context, run_id="R-1",
+        resolved=_resolved_for(billable_account, term_product),
+        poll_timeout=1, max_retries=2, sleep=sleeps.append,
     )
 
     # 1 initial + 2 retries = 3 attempts, 2 backoffs.
@@ -287,9 +370,9 @@ def test_run_batch_emits_start_and_completion_callbacks(
 
     def fake_handler_run(self, **kwargs):
         # ``run_batch`` dispatches through ``SCENARIO_HANDLERS[kind].run``;
-        # Phase 2 moved the retry/dispatch loop onto the base handler, so
-        # patch the handler method directly instead of the legacy
-        # ``runner.run_scenario`` (which the production path no longer calls).
+        # the retry/dispatch loop lives on the base handler. Patch the
+        # handler method directly to keep this test focused on batching
+        # callbacks rather than re-exercising the retry policy.
         return Manifest(run_id=kwargs["run_id"], reached_stage="invoice_posted")
 
     from scripts.txn_data_harness.handlers.sales_txn_quote import (

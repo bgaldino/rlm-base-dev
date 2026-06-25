@@ -16,7 +16,7 @@ from __future__ import annotations
 from .base import ScenarioHandler
 from .invoice_ingestion import InvoiceIngestionHandler
 from .sales_txn_order import SalesTxnOrderHandler
-from .sales_txn_quote import SalesTxnQuoteHandler, SalesTransactionHandler
+from .sales_txn_quote import SalesTxnQuoteHandler
 
 SCENARIO_HANDLERS: dict[str, ScenarioHandler] = {
     SalesTxnQuoteHandler.kind: SalesTxnQuoteHandler(),
@@ -30,6 +30,4 @@ __all__ = [
     "InvoiceIngestionHandler",
     "SalesTxnOrderHandler",
     "SalesTxnQuoteHandler",
-    # Pre-Phase-4 alias retained for back-compat with existing tests/imports.
-    "SalesTransactionHandler",
 ]

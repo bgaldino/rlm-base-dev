@@ -30,12 +30,24 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
    per-scenario > CLI > `defaults` > builtins, so passing `--count 1` against a
    config whose scenarios pin `count: 100` runs all 100. To smoke a multi-scenario
    config, edit the per-scenario `count:` (or comment scenarios out) instead.
-11. **Two scenario kinds:** `kind: sales_transaction` (default) drives the PST chain;
-    `kind: invoice_ingestion` skips PST and `POST`s a typed Composite-Graph
-    payload to `/commerce/invoicing/.../actions/ingest`, minting a Draft
-    `Invoice` (`CreationMode = External`) directly. Use the ingestion path only
-    for **Draft** today — Posted is Phase 2 (see `FOLLOWUPS.md`). The reference
-    config is `scenarios/15-standalone-billing-draft.yaml`.
+11. **Three scenario kinds:**
+    - `kind: sales_txn_quote` (default) — Opportunity → Quote → Order
+      (`createOrderFromQuote`) → Activate → Invoice → Post.
+    - `kind: sales_txn_order` — Opportunity (optional) → Order (PST direct-place)
+      → `AppUsageAssignment(RevenueLifecycleManagement)` → Activate → Invoice →
+      Post. Skips the Quote; the post-Order tail is identical to the quote
+      path. The AppUsageAssignment row is the assetization-pipeline gate —
+      without it, activation is a silent no-op (no BillingSchedule, no Asset,
+      no AsyncOperationTracker). Live-verified contract:
+      `scripts/txn_data_harness/docs/contracts-sales-txn-order.md`. Reference
+      config: `scenarios/16-direct-orders.yaml`.
+    - `kind: invoice_ingestion` skips PST and `POST`s a typed Composite-Graph
+      payload to `/commerce/invoicing/.../actions/ingest`, minting a Draft
+      `Invoice` (`CreationMode = External`) directly. Use the ingestion path
+      only for **Draft** today — Posted is Phase 2 (see `FOLLOWUPS.md`).
+      Reference config: `scenarios/15-standalone-billing-draft.yaml`.
+    Legacy `sales_transaction` and `transaction` kind names are rejected at
+    config-load time with a hint pointing at the new names.
 
 ## DO NOT
 

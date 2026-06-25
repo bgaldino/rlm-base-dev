@@ -3,7 +3,7 @@
 These tests pin the new dispatch surface to behavior that already exists in
 ``runner.py`` so the refactor is a *pure* refactor:
 
-* the ``SalesTransactionHandler.STEP_GRAPH`` agrees with ``stage_sequence`` for
+* the ``SalesTxnQuoteHandler.STEP_GRAPH`` agrees with ``stage_sequence`` for
   every target stage, with and without an Opportunity head;
 * ``ScenarioSpec`` and ``Manifest`` default ``kind`` to ``sales_txn_quote``
   and round-trip the discriminator;
@@ -21,7 +21,6 @@ import pytest
 from scripts.txn_data_harness.config import ConfigError, _coerce_spec
 from scripts.txn_data_harness.handlers import (
     SCENARIO_HANDLERS,
-    SalesTransactionHandler,
     SalesTxnOrderHandler,
     SalesTxnQuoteHandler,
 )
@@ -39,13 +38,6 @@ def test_sales_txn_quote_handler_registered() -> None:
     handler = SCENARIO_HANDLERS["sales_txn_quote"]
     assert isinstance(handler, SalesTxnQuoteHandler)
     assert handler.kind == "sales_txn_quote"
-
-
-def test_sales_transaction_handler_is_alias_for_quote_handler() -> None:
-    """``SalesTransactionHandler`` is a pre-Phase-4 back-compat alias for
-    :class:`SalesTxnQuoteHandler` so existing imports keep working until
-    the kind split lands. Phase 4 will drop the alias."""
-    assert SalesTransactionHandler is SalesTxnQuoteHandler
 
 
 def test_sales_txn_order_handler_registered() -> None:
@@ -72,7 +64,7 @@ def test_step_graph_matches_stage_sequence(
     """The handler's static STEP_GRAPH must agree with the runner's
     stage_sequence for every target stage (with and without an Opportunity head).
     If these drift the refactor would silently reorder steps."""
-    handler = SalesTransactionHandler()
+    handler = SalesTxnQuoteHandler()
     expected = stage_sequence(target_stage, with_opportunity=with_opportunity)
     # Static map skips the opportunity head (it's flag-driven), so prepend it
     # ourselves when with_opportunity is True or target is 'opportunity_created'.

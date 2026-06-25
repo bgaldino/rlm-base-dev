@@ -5,7 +5,6 @@ from __future__ import annotations
 import contextvars
 import logging
 import random
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
@@ -25,9 +24,7 @@ from .discovery import (
     resolve_product,
     resolve_uom_override,
 )
-from .failure import classify_exception
-from .lifecycle import LifecycleError
-from .manifests import manifest_path, write_manifest
+from .manifests import manifest_path
 from .models import (
     IMPLEMENTED_MAX_STAGE,
     STAGES,
@@ -38,7 +35,6 @@ from .models import (
     ResolvedUsageSpec,
     ResolvedUsageTarget,
 )
-from .steps import StepContext, execute_step
 from .term import EndDateOverride, Term
 
 log = logging.getLogger("txn_data_harness.runner")
@@ -323,9 +319,9 @@ def remaining_steps(reached_stage: Optional[str], target_stage: str,
 
     When ``reached_stage`` is set (a resumed or retried run), continue from the
     step *after* it. When it is None (a fresh run), fall back to the full
-    ``stage_sequence``. Shared by ``run_scenario``'s retry path and the CLI
-    ``step`` subcommand so both agree on the resume math. Returns ``[]`` when the
-    manifest has already reached or passed the target.
+    ``stage_sequence``. Shared by the CLI ``step`` subcommand and the resume
+    math on the base handler. Returns ``[]`` when the manifest has already
+    reached or passed the target.
     """
     if reached_stage is None:
         return stage_sequence(target_stage, with_opportunity)
@@ -334,121 +330,9 @@ def remaining_steps(reached_stage: Optional[str], target_stage: str,
     return STAGES[STAGES.index(reached_stage) + 1: STAGES.index(target_stage) + 1]
 
 
-# Public stage -> internal step name for the quote-path. The step registry now
-# uses internal names (``order_from_quote``); legacy callers of run_steps still
-# pass public stages (``order_draft``), so the runner translates inline.
-# Phase 4 will remove this once the legacy run_scenario goes away.
-_PUBLIC_TO_INTERNAL_QUOTE = {"order_draft": "order_from_quote"}
-
-
-def run_steps(step_names: list[str], ctx: StepContext, manifest: Manifest) -> Manifest:
-    """Execute a list of named lifecycle steps, checkpointing after each one.
-
-    Accepts public stage names (``order_draft``, ``invoice_posted``, ...) and
-    translates the one quote-path divergence (``order_draft`` ->
-    ``order_from_quote``) before dispatching through the step registry. New
-    code should go through :class:`SalesTransactionBaseHandler.run` instead --
-    this helper exists for the legacy ``run_scenario`` retry-policy tests.
-    """
-    for step in step_names:
-        internal = _PUBLIC_TO_INTERNAL_QUOTE.get(step, step)
-        manifest = execute_step(internal, ctx, manifest)
-        write_manifest(manifest)
-    return manifest
-
-
 def _retry_backoff(attempt: int) -> float:
     """Seconds to wait before retry ``attempt`` (1-based), capped."""
     return min(RETRY_BACKOFF_BASE * (2 ** (attempt - 1)), RETRY_BACKOFF_MAX)
-
-
-def run_scenario(
-    client: SfRestClient,
-    ctx: OrgContext,
-    run_id: str,
-    target_stage: str,
-    account: Account,
-    lines: list[LineItem],
-    with_opportunity: bool,
-    poll_timeout: int,
-    start_date: Optional[date] = None,
-    max_retries: int = DEFAULT_MAX_RETRIES,
-    sleep: Callable[[float], None] = time.sleep,
-    kind: str = "sales_txn_quote",
-) -> Manifest:
-    """Drive one transaction through the requested lifecycle stages.
-
-    Legacy entry point. Phase 2 moved the production retry+dispatch loop onto
-    :class:`scripts.txn_data_harness.handlers.sales_transaction_base.
-    SalesTransactionBaseHandler` so each kind owns its own STEP_GRAPH; the PST
-    handlers no longer call this function. The body remains here because the
-    retry-policy tests in ``tests/txn_data_harness/test_runner.py`` exercise
-    it directly and a removal would have outsized blast radius for Phase 2.
-
-    Transient failures (network blips, row locks, rate limits — see failure.py)
-    are retried up to ``max_retries`` times, resuming from the last checkpointed
-    stage rather than re-running completed steps. Deterministic/unknown failures
-    fail fast. ``sleep`` is injectable so tests don't wait on backoff.
-    """
-    current_run_id.set(run_id)
-    manifest = Manifest(
-        run_id=run_id,
-        kind=kind,
-        account_id=account.id,
-        account_name=account.name,
-        start_date=start_date.isoformat() if start_date is not None else None,
-        lines=[line.to_manifest_record() for line in lines],
-    )
-
-    step_ctx = StepContext(
-        client=client,
-        org_context=ctx,
-        run_id=run_id,
-        account=account,
-        lines=lines,
-        with_opportunity=with_opportunity,
-        poll_timeout=poll_timeout,
-        start_date=start_date,
-        checkpoint=write_manifest,
-    )
-
-    stage = effective_stage(target_stage, account)
-    attempt = 0
-    while True:
-        attempt += 1
-        manifest.attempts = attempt
-        # On the first attempt reached_stage is None -> full sequence. On a retry
-        # it resumes from the step after whatever the last attempt checkpointed.
-        steps = remaining_steps(manifest.reached_stage, stage, with_opportunity)
-        try:
-            run_steps(steps, step_ctx, manifest)
-            manifest.error = None
-            manifest.failure_class = None
-            break
-        except Exception as exc:  # noqa: BLE001 -- isolate one scenario's failure
-            manifest.error = (
-                str(exc) if isinstance(exc, LifecycleError)
-                else f"{type(exc).__name__}: {exc}"
-            )
-            manifest.failure_class = classify_exception(exc)
-            retryable = manifest.failure_class == "transient" and attempt <= max_retries
-            log.error(
-                "scenario failed (attempt %d, %s%s): %s",
-                attempt, manifest.failure_class,
-                "; will retry" if retryable else "",
-                manifest.error,
-                exc_info=log.isEnabledFor(logging.DEBUG),
-            )
-            if not retryable:
-                break
-            delay = _retry_backoff(attempt)
-            log.warning("retrying scenario in %.0fs (attempt %d/%d)",
-                        delay, attempt + 1, max_retries + 1)
-            write_manifest(manifest)
-            sleep(delay)
-
-    write_manifest(manifest)
-    return manifest
 
 
 def run_batch(
@@ -477,9 +361,10 @@ def run_batch(
 
     def one(run_id: str, r) -> Manifest:
         # Dispatch on the spec's kind so each handler owns its own runner
-        # entry-point. PST goes through run_scenario (draws random lines from
-        # the resolved option pool, threads start_date through); ingestion
-        # goes through InvoiceIngestionHandler.run (no pool, no start_date --
+        # entry-point. PST kinds go through SalesTransactionBaseHandler.run
+        # (draws random lines from the resolved option pool, threads
+        # start_date through); ingestion goes through
+        # InvoiceIngestionHandler.run (no pool, no start_date --
         # ResolvedInvoiceIngestionSpec doesn't carry .options).
         from .handlers import SCENARIO_HANDLERS
 

@@ -1,8 +1,9 @@
 """Invoice-ingestion scenario handler.
 
 Drives the standalone-billing invoice ingestion path (Composite Graph ingest
-action). Counterpart to :class:`SalesTransactionHandler`: same protocol, very
-different lifecycle. The PST chain walks Opportunity -> Quote -> Order ->
+action). Counterpart to :class:`SalesTxnQuoteHandler` /
+:class:`SalesTxnOrderHandler`: same protocol, very different lifecycle. The
+PST chain walks Opportunity -> Quote -> Order ->
 Activate -> Usage -> Invoice -> Post; supported ingestion configs ship one POST
 that creates a Draft invoice in a single composite-graph call. The Posted path
 remains internal Phase 2 scaffolding until InvoiceLineTax prerequisites are
@@ -165,7 +166,7 @@ class InvoiceIngestionHandler:
         """Return the ordered ingestion steps for ``target_stage``.
 
         ``with_opportunity`` is honored only for protocol parity with
-        :class:`SalesTransactionHandler` -- ingestion has no Opportunity
+        :class:`SalesTxnQuoteHandler` -- ingestion has no Opportunity
         step. A request to prepend one would be silently dropped here; the
         config parser refuses ``with_opportunity: true`` on ingestion specs
         so we never get a True flag in practice.

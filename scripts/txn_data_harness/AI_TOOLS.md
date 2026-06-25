@@ -123,6 +123,48 @@ Deletes manifest JSON in `out/` older than the retention window (`7d` / `24h` /
 `30m`). Defaults to a dry run; pass `--yes` to delete. Only the harness's own
 `out/` directory can be pruned.
 
+### Recipes — direct-Order PST (`kind: sales_txn_order`)
+
+When the demo needs an Order without a Quote upstream (channel-style flow,
+exported-order ingestion, "place the order directly"), use the
+`sales_txn_order` kind. The post-Order tail is identical to the quote path —
+Activate, BillingSchedule + Asset, Draft invoice, Posted invoice — so the only
+behavioral difference is the head:
+
+```yaml
+defaults:
+  kind: sales_txn_order
+  target_stage: invoice_posted
+
+scenarios:
+  - account: "<billing-ready-account-name>"
+    products:
+      - sku: "<term-defined-sku>"
+        quantity: 1
+    count: 5
+```
+
+Reference config: `scenarios/16-direct-orders.yaml`.
+
+Rules:
+
+- **The `AppUsageAssignment` row is mandatory.** `createOrderFromQuote` writes
+  it implicitly on the quote path; PST direct-place does not. The harness
+  POSTs `AppUsageAssignment(AppUsageType = RevenueLifecycleManagement,
+  RecordId = <orderId>)` between Order place and `Order.Status = Activated`.
+  Without that row, activation flips the status but emits **no**
+  BillingSchedule, **no** Asset, and **no** AsyncOperationTracker; the
+  manifest would still reach `order_activated` but the pipeline would be a
+  silent no-op. Trust the contract — do not skip the AUA step in any direct-
+  Order extension.
+- **`quote_placed` is not a valid `target_stage`** for this kind. The order
+  path skips the Quote entirely; pin `order_draft` (or further) instead.
+- **Field-level divergences from QuoteLineItem.** `OrderItem.ServiceDate`
+  (not `StartDate`), `SubscriptionTerm` only (no `SubscriptionTermUnit`),
+  and `Discount` round-trips on the OrderItem (unlike QuoteLineItem, where
+  the engine reads it back as 0). The live-verified field contract is in
+  `docs/contracts-sales-txn-order.md`.
+
 ### Recipes — subscription terms
 
 ```yaml

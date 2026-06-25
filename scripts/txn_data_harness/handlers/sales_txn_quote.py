@@ -46,8 +46,3 @@ STEP_GRAPH: dict[str, list[str]] = {
     stage: runner.stage_sequence(stage, with_opportunity=False)
     for stage in STAGES_QUOTE
 }
-
-
-# Pre-Phase-4 alias. Existing handlers/__init__.py and tests refer to the
-# class by its old name; drop the alias when Phase 4 sweeps docs + tests.
-SalesTransactionHandler = SalesTxnQuoteHandler

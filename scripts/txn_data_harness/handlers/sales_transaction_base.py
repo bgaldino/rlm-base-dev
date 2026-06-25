@@ -31,8 +31,10 @@ from ..steps import StepContext, execute_step
 
 log = logging.getLogger("txn_data_harness.handlers.sales_transaction_base")
 
-# Retry policy mirrors runner.run_scenario so handler-owned execution and
-# the legacy free function agree on how aggressively transient failures retry.
+# Retry policy: exponential backoff for transient failures only. Mirrors
+# ``runner.DEFAULT_MAX_RETRIES`` / ``runner._retry_backoff`` defaults; kept
+# local to the handler so a future tweak doesn't have to thread through the
+# runner module.
 _RETRY_BACKOFF_BASE = 30.0
 _RETRY_BACKOFF_MAX = 90.0
 

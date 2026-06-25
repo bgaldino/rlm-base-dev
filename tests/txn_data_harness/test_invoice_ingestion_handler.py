@@ -398,7 +398,7 @@ def test_run_records_lifecycle_error_without_raising(
     monkeypatch, fake_client, billable_account
 ) -> None:
     """A LifecycleError from a step lands on the manifest as failure_class
-    but doesn't propagate out of ``run`` (parity with PST run_scenario)."""
+    but doesn't propagate out of ``run`` (parity with the PST base handler)."""
     def boom(*a, **kw):
         raise LifecycleError("ingest_invoice", "kaboom")
 

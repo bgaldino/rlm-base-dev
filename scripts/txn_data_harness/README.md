@@ -1,12 +1,24 @@
 # Transaction Data Harness
 
 Generate realistic, high-volume Revenue Cloud demo data by driving the **real
-transaction lifecycle** against a target org. Two scenario kinds:
+transaction lifecycle** against a target org. Three scenario kinds:
 
 ```text
-kind: sales_transaction (default) — (Opportunity) → Quote → Order → Activate → Invoice (Draft) → Post
-kind: invoice_ingestion           — POST /commerce/invoicing/.../actions/ingest → Invoice (Draft, CreationMode=External)
+kind: sales_txn_quote (default) — (Opportunity) → Quote → Order (createOrderFromQuote) → Activate → Invoice (Draft) → Post
+kind: sales_txn_order           — (Opportunity) → Order (PST direct-place) → Activate → Invoice (Draft) → Post
+kind: invoice_ingestion         — POST /commerce/invoicing/.../actions/ingest → Invoice (Draft, CreationMode=External)
 ```
+
+The two PST kinds share the same post-Order tail (Activate → Invoice → Post);
+only the head differs. `sales_txn_order` places an Order via PST directly (no
+Quote), then writes the `AppUsageAssignment(AppUsageType =
+RevenueLifecycleManagement)` row that gates the Revenue Cloud assetization
+pipeline — without it, activation is a silent no-op (no BillingSchedule, no
+Asset, no AsyncOperationTracker). See
+[`docs/contracts-sales-txn-order.md`](docs/contracts-sales-txn-order.md) for
+the live-verified contract and
+[`scenarios/16-direct-orders.yaml`](scenarios/16-direct-orders.yaml) for a
+ready-to-run example.
 
 `Invoice`, `InvoiceLine`, and `BillingSchedule` are **system-generated** by the
 billing engine (`createable: false`) — they cannot be bulk-loaded via SFDMU. The
@@ -145,18 +157,19 @@ ingest graph.
 
 ## Lifecycle stages
 
-The PST chain (`kind: sales_transaction`, the default) progresses through these
-stages. The ingestion path (`kind: invoice_ingestion`) runs a single
-`ingest_invoice` step that creates a Draft `Invoice` directly and stops at
-`target_stage: invoice`; it has no Quote/Order/Activate/BillingSchedule.
+The PST chain (`kind: sales_txn_quote`, the default — `sales_txn_order` shares
+the same stage list minus `quote_placed`) progresses through these stages. The
+ingestion path (`kind: invoice_ingestion`) runs a single `ingest_invoice` step
+that creates a Draft `Invoice` directly and stops at `target_stage: invoice`;
+it has no Quote/Order/Activate/BillingSchedule.
 
 `target_stage` is hierarchical — each stage runs everything before it.
 
 | Stage | Produces | Needs a BillingAccount? |
 | ----- | -------- | ------------------------ |
 | `opportunity` | Opportunity (opt-in head) | no |
-| `quote` | Quote (+ line) via Place Sales Transaction | no |
-| `order` | Order via createOrderFromQuote | no |
+| `quote` | Quote (+ line) via Place Sales Transaction (`sales_txn_quote` only) | no |
+| `order` | Order — `sales_txn_quote` via `createOrderFromQuote`; `sales_txn_order` via PST direct-place + `AppUsageAssignment` | no |
 | `activate` | Activated Order → BillingSchedule(s) + Asset(s) | **yes** |
 | `usage` | TransactionJournal consumption rows for opted-in usage lines | **yes** |
 | `invoice` | Draft Invoice (+ lines), tagged | **yes** |
