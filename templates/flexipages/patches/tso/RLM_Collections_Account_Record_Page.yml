@@ -1,3 +1,5 @@
+feature: tso
+feature_flag: tso
 # tso patch — Collections Account record page (Disputes tab)
 #
 # Re-adds the two standard Billing Cases components into the "Disputes" tab facet

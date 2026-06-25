@@ -8,5 +8,5 @@
     <columns>Owner</columns>
     <columns>LastModifiedDate</columns>
     <filterScope>Everything</filterScope>
-    <label>My Collection Plans</label>
+    <label>All Collection Plans</label>
 </ListView>

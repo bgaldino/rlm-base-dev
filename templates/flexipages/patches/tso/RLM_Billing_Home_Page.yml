@@ -1,3 +1,5 @@
+feature: tso
+feature_flag: tso
 # tso patch — Billing app home page
 #
 # Adds the standard "Billing Cases" metrics card (runtimeRevBillCase:billingCasesMetrics)
