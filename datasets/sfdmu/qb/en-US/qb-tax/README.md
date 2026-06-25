@@ -44,7 +44,7 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 | 1 | LegalEntity      | Upsert    | `Name`                             | 4       |
 | 2 | TaxEngineProvider| Upsert    | `DeveloperName`                    | 1       |
 | 3 | TaxEngine        | Upsert    | `TaxEngineName`                    | 1       |
-| 4 | TaxTreatment     | Upsert    | `Name`                             | 1       |
+| 4 | TaxTreatment     | Upsert    | `Name`                             | 2       |
 | 5 | TaxPolicy        | Upsert    | `Name`                             | 1       |
 | 6 | Product2         | Update    | `StockKeepingUnit`                 | 315     |
 
@@ -56,7 +56,7 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 
 | # | Object       | Operation | External ID                        | Records |
 |---|--------------|-----------|------------------------------------|---------|
-| 1 | TaxTreatment | Update    | `Name`                             | 1       |
+| 1 | TaxTreatment | Update    | `Name`                             | 2       |
 | 2 | TaxPolicy    | Update    | `Name`                             | 1       |
 
 Pass 2 activates TaxTreatment (sets `Status`) and sets `DefaultTaxTreatmentId` on TaxPolicy.
@@ -126,7 +126,7 @@ qb-tax/
 ├── LegalEntity.csv                      # 4 records
 ├── TaxEngineProvider.csv                # 1 record
 ├── TaxEngine.csv                        # 1 record
-├── TaxTreatment.csv                     # 1 record
+├── TaxTreatment.csv                     # 2 records
 ├── TaxPolicy.csv                        # 1 record
 ├── Product2.csv                         # 315 records (Update only)
 ├── NamedCredential.csv                  # 1 record (reference only)
@@ -134,7 +134,7 @@ qb-tax/
 │  Source CSVs (Pass 2 - Activate)
 ├── objectset_source/
 │   └── object-set-2/
-│       ├── TaxTreatment.csv             # 1 record (Status -> Active)
+│       ├── TaxTreatment.csv             # 2 records (Status -> Active)
 │       └── TaxPolicy.csv               # 1 record (DefaultTaxTreatment + Status)
 │
 │  SFDMU Runtime (gitignored)
