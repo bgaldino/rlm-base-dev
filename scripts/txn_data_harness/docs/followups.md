@@ -1,6 +1,6 @@
 # Transaction Data Harness — Follow-ups & Open Questions
 
-Companion to `CONTRACTS.md`. **CONTRACTS.md is the source of
+Companion to `../CONTRACTS.md`. **The contract docs are the source of
 live-verified truth** — only behaviors that have been probed against
 a live org belong there. This file is the inverse: known gaps, things
 that *look* like they work but haven't been live-verified, anomalies
@@ -15,16 +15,16 @@ placeholders or explicitly labeled QB example data.
 
 - **Adding an item.** When you spot a gap or anomaly while working on
   the harness — anywhere — add an entry here rather than asserting
-  the answer in CONTRACTS.md. Include: what's open, why it matters,
-  what would prove it, and a back-link to whichever CONTRACTS.md /
-  README / scenarios section the question relates to.
+  the answer in the contract docs. Include: what's open, why it matters,
+  what would prove it, and a back-link to whichever contract / README /
+  scenarios section the question relates to.
 - **Resolving an item.** When a probe lands a definitive answer:
-  1. Write the finding into `CONTRACTS.md` (with the live-verify
+  1. Write the finding into the relevant contract doc (with the live-verify
      date + org alias).
   2. Move this entry to the [Resolved](#resolved) section below
-     with a one-line summary and the CONTRACTS.md anchor.
-  3. Update any user-facing doc (`scenarios/README.md`,
-     `AI_TOOLS.md`) that asserted "TBD" or "treat as a known gap".
+     with a one-line summary and the contract anchor.
+  3. Update any user-facing doc (`../scenarios/README.md`,
+     `../AI_TOOLS.md`) that pointed at the now-resolved gap.
 - **Status legend.** Use these prefixes so the open list scans
   quickly:
   - `[gap]` — behavior is unspecified / untested; the harness
@@ -33,7 +33,7 @@ placeholders or explicitly labeled QB example data.
     before generalizing.
   - `[probe]` — a specific experiment that would resolve a gap
     or anomaly. Usually one PST call + one SOQL.
-  - `[verify]` — something CONTRACTS.md *asserts* but that hasn't
+  - `[verify]` — something the contract docs *assert* but that hasn't
     been re-verified after a relevant change (release upgrade,
     schema change, etc).
 
@@ -41,10 +41,11 @@ placeholders or explicitly labeled QB example data.
 
 ## Open
 
-### Standalone-billing ingestion (Phase 2)
+### Standalone-billing Posted ingestion
 
-PR 6 landed the Phase 1 Draft path live-verified (see CONTRACTS.md §7). Phase 2
-extends ingestion to the Posted path, taxed lines, and bulk-ingest concurrency.
+The Draft path is live-verified and documented in
+`contracts-invoice-ingestion.md`. Posted ingestion still needs tax graph
+support plus bulk-ingest characterization.
 
 - `[gap]` **Posted ingestion requires a non-taxable `TaxTreatment` OR an `InvoiceLineTax`
   graph record.** Live-verified blocker on `rlm-base__jun17_1` (2026-06-25): the
@@ -54,8 +55,8 @@ extends ingestion to the Posted path, taxed lines, and bulk-ingest concurrency.
   > `INVALID_API_INPUT: You can't specify a tax treatment with the isTaxable value as
   > true when the invoice line doesn't have a related InvoiceLineTax record.`
   Same precondition gates `commerce/invoicing/.../actions/post`, so Draft→Posted
-  resume hits the identical wall. The Phase 1 lifecycle already wires the Posted
-  payload correctly (status, `taxCalculationStatus: Posted`, `invoiceNumber:
+  resume hits the identical wall. The lifecycle already wires the Posted
+  payload shape (status, `taxCalculationStatus: Posted`, `invoiceNumber:
   <run_id>`, `postedDate: today`) — only the tax dependency is missing.
   - `[probe]` Discover an active `TaxTreatment WHERE IsTaxable = false`. If one
     exists, stamp `InvoiceLine.taxTreatmentId` on every Posted line and re-run
@@ -63,20 +64,20 @@ extends ingestion to the Posted path, taxed lines, and bulk-ingest concurrency.
     create one on first run (single setup write, like the PRM Network placeholder)
     or surface a clear LifecycleError directing the user to seed one.
   - `[probe]` Once Posted ingestion lands, re-run the Draft→Posted resume flow
-    (`cli step --to-stage post`) end-to-end on an existing Draft ingestion
+    (`cli step --to-stage invoice_posted`) end-to-end on an existing Draft ingestion
     manifest; confirm the resume reuses the Draft invoice id rather than creating
     a second Invoice row.
-  - Ref: `CONTRACTS.md` → §7, *Posted path — Phase 2 dependency*.
+  - Ref: `contracts-invoice-ingestion.md` → *Posted Path Dependency*.
 
 - `[probe]` **`InvoiceLineTax` graph record design.** The dev guide
-  (`docs/salesforce/262/dev-guide/articles/connect_requests_graph_record_input.htm.md`,
+  (`../../../docs/salesforce/262/dev-guide/articles/connect_requests_graph_record_input.htm.md`,
   Table 3) defines a tax graph record with seven Required fields
   (`taxTransactionNumber`, `taxAmount`, `taxRate`, `taxName`, `taxCode`,
   `taxEffectiveDate`, `invoiceLine`, `taxDocumentNumber`). Open design questions:
   - Where do `taxAmount` / `taxRate` come from in a generated-data context? Pinned
     via a scenario override (`tax_rate: 0.08`) and the harness computes
     `taxAmount`, or fully scripted (line-level `tax: {amount, rate, name, code}`)?
-  - Should the Phase 1 `taxable: true` parse-time rejection lift naturally once
+  - Should the current `taxable: true` parse-time rejection lift naturally once
     `InvoiceLineTax` exists, or remain explicit so tax-on scenarios must add the
     new tax block?
   - Per the dev guide, the `invoiceLineTax` graph record **must not** include
@@ -130,8 +131,8 @@ extends ingestion to the Posted path, taxed lines, and bulk-ingest concurrency.
   - `[probe]` Place three Monthly-SOM lines: one at exactly 31 days
     (e.g. 2026-07-01 → 2026-07-31), one at 60 days, one at 365
     days; read back `TotalAmount` and back-solve the denominator.
-  - Ref: `CONTRACTS.md` → *BillingSchedule fan-out across `end_date`
-    scenarios*, observation 4.
+  - Ref: `contracts-sales-txn-quote.md` → *BillingSchedule fan-out across
+    `end_date` scenarios*, observation 4.
 
 - `[gap]` **Per-period BillingSchedule fan-out timing.** At
   activation, every scenario emits exactly **one** `BillingSchedule`
@@ -148,11 +149,12 @@ extends ingestion to the Posted path, taxed lines, and bulk-ingest concurrency.
   - `[probe]` Activate a 3-year Annual deal, post the first invoice,
     advance `NextBillingDate` (or wait/mock), and re-query
     `BillingSchedule` to see if a second row appeared.
-  - Ref: `CONTRACTS.md` → *BillingSchedule fan-out*, observation 1.
+  - Ref: `contracts-sales-txn-quote.md` → *BillingSchedule fan-out*,
+    observation 1.
 
 - `[gap]` **Quarterly / Semi-Annual activation-time fan-out.** All 9
   scenarios we verified were Annual or Monthly SOMs. We assert in
-  CONTRACTS.md that "one BillingSchedule per OrderItem at activation"
+  the contract docs that "one BillingSchedule per OrderItem at activation"
   generalizes, but Quarterly / Semi-Annual were not exercised.
   - `[probe]` Place a 4-Quarterly and a 2-Semi-Annual line, activate,
     confirm one schedule row each.
@@ -167,17 +169,17 @@ extends ingestion to the Posted path, taxed lines, and bulk-ingest concurrency.
   - `[probe]` Re-run scenario #9 with `count: 5` (or pin the pool
     to always emit both) and read back both `OrderItem.EndDate`
     rows on a single order.
-  - Ref: `CONTRACTS.md` → *BillingSchedule fan-out*, scenario #9
-    note.
+  - Ref: `contracts-sales-txn-quote.md` → *BillingSchedule fan-out*,
+    scenario #9 note.
 
 ### Subscription terms
 
 - `[gap]` **"EndDate wins" generalization beyond Annual.** Both
-  `EndDate`-disagreement probes (`CONTRACTS.md` → *Probed edge cases*,
-  table 2) used `QB-API-FLEX` (Term Annual SOM). We haven't
-  confirmed the same `(EndDate − StartDate) / 365` rule on Monthly,
-  Quarterly, or Semi-Annual SOMs — the denominator could shift on
-  non-Annual cadences.
+  `EndDate`-disagreement probes (`contracts-sales-txn-quote.md` →
+  *Probed edge cases*, table 2) used `QB-API-FLEX` (Term Annual SOM).
+  We haven't confirmed the same `(EndDate − StartDate) / 365` rule on
+  Monthly, Quarterly, or Semi-Annual SOMs — the denominator could shift
+  on non-Annual cadences.
   - `[probe]` Repeat the disagreement matrix on a Monthly SOM
     (e.g. `QB-API` with `selling_model: "Term Monthly"`) and a
     Quarterly SOM; check whether `PricingTermCount` is still
@@ -238,17 +240,16 @@ extends ingestion to the Posted path, taxed lines, and bulk-ingest concurrency.
     `Account.PersonContactId` or the primary contact from
     `AccountContactRelation` and write `Order.BillToContactId`),
     and wire both into `steps.py` between `create_order` and
-    `activate_order`. Capture in CONTRACTS.md → *Mandatory
-    pre-activation ordering* alongside the existing shipping
-    rule.
+    `activate_order`. Capture in the contracts → *Mandatory
+    pre-activation ordering* alongside the existing shipping rule.
   - Ref: Salesforce billing docs (cite user-provided wording);
     `lifecycle.py:256-277` (existing shipping helper);
-    `CONTRACTS.md:730-733` (current pre-activation ordering note).
+    `contracts-sales-txn-quote.md` (current pre-activation ordering note).
 
 ### Quote / order placement
 
 - `[verify]` **`QuoteLineItem.Discount` reads as `0` post-place.**
-  `CONTRACTS.md:112-131` records this on the original probe;
+  `contracts-sales-txn-quote.md` records this on the original probe;
   Workstream 2 of the polished-babbage plan flagged that the UI
   may persist the discount % via a different call. The harness
   exposes `discount:` and we've live-verified it flows through to
@@ -261,8 +262,8 @@ extends ingestion to the Posted path, taxed lines, and bulk-ingest concurrency.
     the W2 probe from the polished-babbage plan, which was not
     executed in the end-date workstream.)
 
-- `[gap]` **Bundles with mandatory user-input slots.** CONTRACTS.md
-  confirms `QB-COMPLETE` (default-configured bundle) places end to
+- `[gap]` **Bundles with mandatory user-input slots.** The contracts
+  confirm `QB-COMPLETE` (default-configured bundle) places end to
   end. We assume bundles with mandatory attributes or required
   slots without defaults fail to place but haven't enumerated the
   failure mode — error code, error message, partial state — so
@@ -274,7 +275,7 @@ extends ingestion to the Posted path, taxed lines, and bulk-ingest concurrency.
 ### Lifecycle async behavior
 
 - `[gap]` **`AsyncOperationTracker` failure-path coverage.**
-  CONTRACTS.md notes the tracker is real and surfaces failures;
+  The contracts note the tracker is real and surfaces failures;
   the harness retries on transient classifications. We have not
   systematically exercised:
   - Terminal `BillingSchedule.Status = Failed` and what
@@ -300,7 +301,7 @@ design decision.
   fires on the partial set and the poll returns an incomplete list.
   `run_usage` (`steps.py:147`) hard-fails with `"no asset found"`
   on the orphan SKUs; same-SKU bundles could pair the wrong asset
-  positionally. The CONTRACTS.md timing note ("Asset created
+  positionally. The contracts timing note ("Asset created
   01:28:44, AAS created 01:28:45") covers the well-behaved case
   only.
   - `[probe]` Activate a bundle that expands to >5 OrderItems and
@@ -311,7 +312,7 @@ design decision.
     last poll to match it, OR add a minimum-stability-duration tied
     to OrderItem count.
   - Ref: `lifecycle.py:340-431` (`poll_assets`); `steps.py:113-117`
-    (call site); CONTRACTS.md → *Asset attribution*.
+    (call site); contracts → *Asset attribution*.
 
 - `[gap]` **`EndDate` override anchors on `date.today()` when
   `start_date` is None.** `lifecycle.py:192-194` resolves
@@ -377,7 +378,7 @@ design decision.
   silently return `[]` or just the initial-sale rows. Pre-emptive
   altitude fix: thread a `category_enum` kwarg through now to
   avoid the inevitable `poll_assets_for_amendment` copy.
-  - Ref: `lifecycle.py:399`; CONTRACTS.md → *Asset attribution*.
+  - Ref: `lifecycle.py:399`; contracts → *Asset attribution*.
 
 - `[gap]` **`_BILLING_SCHEDULE_SUCCESS` enum set hardcoded.**
   `lifecycle.py:44` pins
@@ -406,20 +407,21 @@ design decision.
 
 ## Resolved
 
-> Move entries here when CONTRACTS.md gets the live-verified answer.
-> Keep the one-line summary + CONTRACTS.md anchor so future readers
+> Move entries here when the contract docs get the live-verified answer.
+> Keep the one-line summary + contract anchor so future readers
 > can trace the lineage.
 
-*(none yet — this file is new as of 2026-06-23.)*
+None yet — this file is new as of 2026-06-23.
 
 ---
 
 ## See also
 
-- `CONTRACTS.md` — the live-verified contract this file shadows.
-- `README.md` → *Known limitations* — productized gaps that are
+- `../CONTRACTS.md` — contract index.
+- `contracts-sales-txn-quote.md`, `contracts-sales-txn-order.md`, and
+  `contracts-invoice-ingestion.md` — live-verified lifecycle contracts.
+- `../README.md` → *Known limitations* — productized gaps that are
   scoped out rather than open questions (concurrency, JWT,
   composite batching, etc).
-- `scenarios/README.md` — user-facing rules; treat any anomaly
-  noted there with a "TBD" or "treat as a known gap" wording as a
-  pointer back to this file.
+- `../scenarios/README.md` — user-facing rules; any open anomaly mentioned there
+  should point back to this file.

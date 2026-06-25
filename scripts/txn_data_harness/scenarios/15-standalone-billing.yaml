@@ -1,7 +1,7 @@
-# Standalone billing — Posted invoices via the ingest API (Phase 2 reference).
+# Standalone billing — unsupported Posted-invoice ingest example.
 #
 # DO NOT RUN as an operator scenario today. The parser intentionally rejects
-# `target_stage: post` for `kind: invoice_ingestion` until the InvoiceLineTax
+# `target_stage: invoice_posted` for `kind: invoice_ingestion` until the InvoiceLineTax
 # graph payload lands and is live-verified. Use
 # 15-standalone-billing-draft.yaml for the supported Draft path.
 #
@@ -12,10 +12,10 @@
 # the contractual marker; PST-emitted invoices stay `Salesforce`.
 #
 # Posted ingested invoices are NOT deletable -- same constraint as the PST
-# Posted path. This file is retained as Phase 2 scaffolding/reference only.
+# Posted path. This file is retained as a non-operator reference only.
 #
-# Phase 2 dependency: taxable TaxTreatment rows require InvoiceLineTax records.
-# InvoiceLineTax payload design is a Phase 2 follow-up (see FOLLOWUPS.md).
+# Tax dependency: taxable TaxTreatment rows require InvoiceLineTax records.
+# InvoiceLineTax payload design is tracked in docs/followups.md.
 #
 # Account flavors verified against this scenario:
 #   - Infinitech    (billing-ready; has a BillingAccount row)

@@ -6,8 +6,8 @@ action). Counterpart to :class:`SalesTxnQuoteHandler` /
 PST chain walks Opportunity -> Quote -> Order ->
 Activate -> Usage -> Invoice -> Post; supported ingestion configs ship one POST
 that creates a Draft invoice in a single composite-graph call. The Posted path
-remains internal Phase 2 scaffolding until InvoiceLineTax prerequisites are
-implemented and live-verified.
+remains internal scaffolding until InvoiceLineTax prerequisites are implemented
+and live-verified.
 
 The handler owns its own step graph:
 
@@ -270,8 +270,8 @@ class InvoiceIngestionHandler:
         ``uniqueIdentifier=run_id``, but once the org returns an invoice id (or
         the tracker fails with one), the manifest keeps that id and the handler
         stops rather than replaying a partially materialized graph. Posted
-        ingestion remains Phase 2 operationally; this retry policy is for the
-        supported Draft path.
+        ingestion remains unsupported operationally; this retry policy is for
+        the supported Draft path.
         """
         current_run_id.set(run_id)
         manifest = Manifest(

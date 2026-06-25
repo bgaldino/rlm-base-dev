@@ -105,10 +105,10 @@ run as an admin; the minimal PSL/PS for a non-admin integration user is out of
 scope for this contract (likely the RLM/Billing permission sets the build
 assigns).
 
-## Phase 5 (Composite) — DECIDED: skipped
+## Composite Batching Decision
 
-The plan gated Composite on *"only if Phase 0 proved CRUD round-trips matter."*
-They do **not**, so Composite is **not implemented** and is intentionally dropped:
+Composite is intentionally skipped because CRUD round-trips are not the
+meaningful wall-clock cost:
 
 - The lifecycle spine is **async-poll-bound**, not request-bound. Wall-clock is
   dominated by the generate (~10–15s) and post (~12s) polling barriers, plus
@@ -119,9 +119,9 @@ They do **not**, so Composite is **not implemented** and is intentionally droppe
   invoice generate/post) **cannot** be Composite-merged anyway — Composite is for
   the sObject/connect-record REST API, and each action has a polling barrier before
   the next. The spine stays sequential regardless.
-- The real throughput win — **scenario-level concurrency** (Phase 4, thread pool,
-  session-per-worker) — overlaps those poll waits across independent scenarios and
-  is already shipped. That is where the parallelism budget belongs.
+- The real throughput win — **scenario-level concurrency** with a
+  session-per-worker thread pool — overlaps those poll waits across independent
+  scenarios. That is where the parallelism budget belongs.
 
 Revisit only if a future profiling run shows CRUD round-trips are a measurable
 fraction of wall-clock (they are not today). `SfRestClient` is the single place a

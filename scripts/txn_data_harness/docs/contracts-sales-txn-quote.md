@@ -373,10 +373,9 @@ Implications for the harness:
   1500` — i.e. the engine prorated *up* even though the span was
   ≤ one "period" by `BillingTermUnit`. The matching 1548.39 across
   30- and 28-day spans suggests a fixed internal day denominator
-  (~30.97) rather than calendar-month days. **Not yet
-  characterized**; treat Monthly proration math as TBD until
-  probed against a wider span set (e.g. true 31-day month, 60-day
-  span).
+  (~30.97) rather than calendar-month days. This is not yet characterized;
+  do not generalize Monthly proration math until it is probed against a wider
+  span set (e.g. true 31-day month, 60-day span).
 
 Per-line `end_date` override path (scenario #9) only emitted one
 `OrderItem` for the qty-2 line. The qty-1 line that pinned its own
@@ -387,7 +386,7 @@ quote, run scenario #9 with `count: 3+` until both SKUs land.
 
 Open questions raised by this run (Monthly proration denominator,
 Quarterly / Semi-Annual fan-out, per-line override coverage) are
-tracked in [`../FOLLOWUPS.md`](../FOLLOWUPS.md) → *Billing & invoicing*.
+tracked in [`followups.md`](followups.md) → *Billing & invoicing*.
 
 ### 3. Order — Create Order from Quote — ✅ VERIFIED LIVE
 - **Endpoint (PRIMARY, works):** `POST /services/data/v67.0/actions/standard/createOrderFromQuote`
@@ -663,11 +662,11 @@ live — all verified on a Revenue Cloud R262 scratch org:
    Verified: `PATCH /sobjects/Invoice/<id> {"ReferenceEntityId":"<orderId>"}` (Order
    is in its `referenceTo`) succeeds (204) on a **Posted** invoice, and **`Invoice
    WHERE ReferenceEntityId = '<orderId>'` then returns the row** — i.e. we can *make*
-   the plan's original poll-by-orderId work by writing the FK.
-   ⚠️ **CORRECTION (Phase 3, re-verified):** the same PATCH on a **Draft** invoice is
-   **rejected** — HTTP 400 `INVALID_FIELD_FOR_INSERT_UPDATE` *"Can't change this
-   field's value on Draft invoices."* Phase 0's success was on an already-Posted
-   invoice. So this link must be written **after** `invoice_posted`, not during draft
+   order-id lookup work by writing the FK.
+   The same PATCH on a **Draft** invoice is **rejected** — HTTP 400
+   `INVALID_FIELD_FOR_INSERT_UPDATE` *"Can't change this field's value on Draft
+   invoices."* The successful observed write was on an already-Posted invoice.
+   So this link must be written **after** `invoice_posted`, not during draft
    tagging.
    The tool splits this out: `tag_invoice` (Description, at draft time) vs.
    `link_invoice_to_order` (ReferenceEntityId, after post). It is purely cosmetic —

@@ -43,7 +43,7 @@ values are not broadly tested against API limits and async billing contention.
 `--count N` does NOT shrink a `--config` whose scenarios pin `count:` (per-scenario
 wins over CLI; see `scenarios/README.md` → Precedence). To smoke a multi-scenario
 config, edit the per-scenario `count:` to 1 (or copy the scenario you want into a
-temporary file) rather than relying on `--count`.
+small one-off config) rather than relying on `--count`.
 
 Transient failures (network blips, `UNABLE_TO_LOCK_ROW`, rate limits) are retried
 automatically, resuming from the last checkpointed stage. Tune with
@@ -94,7 +94,7 @@ rows appear).
 python -m scripts.txn_data_harness.cli step --org <sf-alias> \
   --manifest scripts/txn_data_harness/out/<run_id>.json \
   --account "<billing-ready-account-name>" \
-  --to-stage invoice
+  --to-stage invoice_draft
 ```
 
 The step command runs the remaining lifecycle steps from the manifest's
@@ -152,11 +152,10 @@ Rules:
   it implicitly on the quote path; PST direct-place does not. The harness
   POSTs `AppUsageAssignment(AppUsageType = RevenueLifecycleManagement,
   RecordId = <orderId>)` between Order place and `Order.Status = Activated`.
-  Without that row, activation flips the status but emits **no**
-  BillingSchedule, **no** Asset, and **no** AsyncOperationTracker; the
-  manifest would still reach `order_activated` but the pipeline would be a
-  silent no-op. Trust the contract — do not skip the AUA step in any direct-
-  Order extension.
+  Without that row, the platform can flip the status without emitting a
+  BillingSchedule, Asset, or AsyncOperationTracker. The supported direct-Order
+  path always writes the row before activation; do not skip it in any
+  extension.
 - **`quote_placed` is not a valid `target_stage`** for this kind. The order
   path skips the Quote entirely; pin `order_draft` (or further) instead.
 - **Field-level divergences from QuoteLineItem.** `OrderItem.ServiceDate`
@@ -272,10 +271,9 @@ Rules for `end_date:`:
   `TotalAmount` prorated against the actual `(EndDate − StartDate)`
   span (same 365-day math as `PricingTermCount`). Periodic
   invoicing advances `NextBillingDate` lazily as invoices post.
-  Monthly-SOM short spans (28- and 30-day) over-bill the period
-  amount — proration math TBD; treat as a known gap. See
-  `CONTRACTS.md` → *BillingSchedule fan-out across `end_date`
-  scenarios*.
+  Monthly-SOM short spans (28- and 30-day) have a known proration
+  anomaly. See `docs/followups.md` → *Monthly-Advance short-span proration
+  denominator* before generalizing that math.
 
 Full schema in `scenarios/README.md` → *Explicit `EndDate` overrides*.
 

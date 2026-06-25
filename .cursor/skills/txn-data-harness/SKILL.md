@@ -18,33 +18,34 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
    idempotency or dedup.
 6. **Verify in Salesforce before claiming success:** `--dry-run` and unit tests
    do not prove lifecycle behavior.
-7. **Usage is two-step:** `target_stage: usage` writes `TransactionJournal`
+7. **Usage is two-step:** `target_stage: usage_upload` writes `TransactionJournal`
    rows; `cli rate` starts the separate org-wide async rating flow once per
    batch.
 8. **Lifecycle/API changes require contracts:** read `CONTRACTS.md`, update
    tests, and live-verify the changed behavior before presenting it as verified.
 9. **Completed-stage checkpoints:** `reached_stage` records durable stage
-   completion, not "step started"; activation reaches `activate` only after
-   BillingSchedule and asset polling finish.
+   completion, not "step started"; activation reaches `order_activated` only
+   after BillingSchedule and asset polling finish.
 10. **`--count` does NOT override per-scenario `count:`** in a config. Precedence is
    per-scenario > CLI > `defaults` > builtins, so passing `--count 1` against a
    config whose scenarios pin `count: 100` runs all 100. To smoke a multi-scenario
    config, edit the per-scenario `count:` (or comment scenarios out) instead.
 11. **Three scenario kinds:**
     - `kind: sales_txn_quote` (default) — Opportunity → Quote → Order
-      (`createOrderFromQuote`) → Activate → Invoice → Post.
+      (`createOrderFromQuote`) → Activate → Draft Invoice → Posted Invoice.
     - `kind: sales_txn_order` — Opportunity (optional) → Order (PST direct-place)
-      → `AppUsageAssignment(RevenueLifecycleManagement)` → Activate → Invoice →
-      Post. Skips the Quote; the post-Order tail is identical to the quote
-      path. The AppUsageAssignment row is the assetization-pipeline gate —
-      without it, activation is a silent no-op (no BillingSchedule, no Asset,
-      no AsyncOperationTracker). Live-verified contract:
+      → `AppUsageAssignment(RevenueLifecycleManagement)` → Activate → Draft
+      Invoice → Posted Invoice. Skips the Quote; the post-Order tail is
+      identical to the quote path. The AppUsageAssignment row is the
+      assetization-pipeline gate — without it, activation can silently skip
+      downstream BillingSchedule/Asset work. Live-verified contract:
       `scripts/txn_data_harness/docs/contracts-sales-txn-order.md`. Reference
       config: `scenarios/16-direct-orders.yaml`.
     - `kind: invoice_ingestion` skips PST and `POST`s a typed Composite-Graph
       payload to `/commerce/invoicing/.../actions/ingest`, minting a Draft
       `Invoice` (`CreationMode = External`) directly. Use the ingestion path
-      only for **Draft** today — Posted is Phase 2 (see `FOLLOWUPS.md`).
+      only for **Draft** today; Posted ingestion is not operator-supported until
+      tax graph support is implemented and verified.
       Reference config: `scenarios/15-standalone-billing-draft.yaml`.
     Legacy `sales_transaction` and `transaction` kind names are rejected at
     config-load time with a hint pointing at the new names.
@@ -63,16 +64,16 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 - **DO NOT** edit lifecycle payloads from memory; check
   `scripts/txn_data_harness/CONTRACTS.md` and update it with any verified change.
 - **DO NOT** copy org aliases, run ids, invoice numbers, or order numbers from
-  `CONTRACTS.md` / `FOLLOWUPS.md` into operator docs. Those files are evidence
-  notebooks; reusable docs should use placeholders or explicitly labeled example
-  data.
+  `CONTRACTS.md` / `docs/followups.md` into operator docs. Those files are
+  evidence notebooks; reusable docs should use placeholders or explicitly
+  labeled example data.
 
 ## Entry Conditions
 
 | User intent | Use this skill? | Notes |
 | ----------- | --------------- | ----- |
 | Generate Sales/Revenue Cloud demo transactions | Yes | Plan first, then run one smoke scenario. |
-| Mint standalone-billing Draft invoices (no PST chain) | Yes | Use `scenarios/15-standalone-billing-draft.yaml` (`kind: invoice_ingestion`). Posted ingestion is Phase 2. |
+| Mint standalone-billing Draft invoices (no PST chain) | Yes | Use `scenarios/15-standalone-billing-draft.yaml` (`kind: invoice_ingestion`). Posted ingestion is not operator-supported today. |
 | Inspect or continue a partial harness run | Yes | Use manifest-driven `inspect` / `step`. |
 | Verify orders/invoices created by the harness | Yes | Query by manifest ids. |
 | Clean up harness-created records | Yes | Explain non-deletable leftovers. |
@@ -90,8 +91,8 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 | CLI/config reference | `scripts/txn_data_harness/README.md` | Explaining flags, stages, auth, manifests, limitations. |
 | Scenario schema and examples | `scripts/txn_data_harness/scenarios/README.md` | Editing YAML examples or config fields. |
 | Operational guide, verification, cleanup | `docs/guides/txn-data-harness.md` | Giving user-facing runbooks or cleanup steps. |
-| Live-verified API contracts | `scripts/txn_data_harness/CONTRACTS.md` | Changing lifecycle payloads, polling, or sequencing. |
-| Open probes and anomalies | `scripts/txn_data_harness/FOLLOWUPS.md` | Investigating behavior not yet safe to generalize. |
+| Live-verified API contracts | `scripts/txn_data_harness/docs/README.md` | Changing lifecycle payloads, polling, or sequencing. |
+| Open probes and anomalies | `scripts/txn_data_harness/docs/followups.md` | Investigating behavior not yet safe to generalize. |
 | Unit tests | `tests/txn_data_harness/` | Changing code, config parsing, manifests, steps, or docs examples. |
 
 ## Command Selection
@@ -105,7 +106,7 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 | Continue a partial manifest | `python -m scripts.txn_data_harness.cli step ...` |
 | Rebuild a batch summary | `python -m scripts.txn_data_harness.cli report ...` |
 | Prune old local manifests | `python -m scripts.txn_data_harness.cli prune ...` |
-| Start usage rating after `target_stage: usage` | `python -m scripts.txn_data_harness.cli rate ...` |
+| Start usage rating after `target_stage: usage_upload` | `python -m scripts.txn_data_harness.cli rate ...` |
 
 ## Standard Workflow
 
@@ -161,7 +162,7 @@ explicitly for older manifests or whenever ambiguity would be risky:
 python -m scripts.txn_data_harness.cli step --org <sf-alias> \
   --manifest scripts/txn_data_harness/out/<run_id>.json \
   --account "<billing-ready-account-name>" \
-  --to-stage invoice
+  --to-stage invoice_draft
 ```
 
 The command uses the shared step registry, so it preserves the same sequencing
@@ -188,7 +189,7 @@ For copy-paste cleanup recipes, use `docs/guides/txn-data-harness.md`.
 
 ### User asks: "Why did my run stop at order?"
 
-Inspect the manifest and plan output. Non-billing accounts cap at `order` because
+Inspect the manifest and plan output. Non-billing accounts cap at `order_draft` because
 activation creates BillingSchedules/Assets and needs billing setup. Recommend a
 billing-ready account for the target dataset.
 

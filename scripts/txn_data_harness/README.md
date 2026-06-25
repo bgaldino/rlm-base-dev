@@ -4,9 +4,9 @@ Generate realistic, high-volume Revenue Cloud demo data by driving the **real
 transaction lifecycle** against a target org. Three scenario kinds:
 
 ```text
-kind: sales_txn_quote (default) — (Opportunity) → Quote → Order (createOrderFromQuote) → Activate → Invoice (Draft) → Post
-kind: sales_txn_order           — (Opportunity) → Order (PST direct-place) → Activate → Invoice (Draft) → Post
-kind: invoice_ingestion         — POST /commerce/invoicing/.../actions/ingest → Invoice (Draft, CreationMode=External)
+kind: sales_txn_quote (default) — (Opportunity) → Quote → Order (createOrderFromQuote) → Activate → Draft Invoice → Posted Invoice
+kind: sales_txn_order           — (Opportunity) → Order (PST direct-place) → Activate → Draft Invoice → Posted Invoice
+kind: invoice_ingestion         — POST /commerce/invoicing/.../actions/ingest → Draft Invoice (CreationMode=External)
 ```
 
 The two PST kinds share the same post-Order tail (Activate → Invoice → Post);
@@ -32,8 +32,8 @@ Activate/BillingSchedule entirely and mints a Draft `Invoice` (with
 Composite-Graph call. Use it for demo orgs that need invoice volume without
 the PST chain; see [`scenarios/15-standalone-billing-draft.yaml`](scenarios/15-standalone-billing-draft.yaml)
 and [`CONTRACTS.md`](CONTRACTS.md) → *Invoice Ingestion*. Posted ingestion is
-deferred to Phase 2 (taxable `TaxTreatment` rows require an `InvoiceLineTax`
-graph record — see [`FOLLOWUPS.md`](FOLLOWUPS.md)).
+not an operator-supported scenario today because taxable `TaxTreatment` rows
+require an `InvoiceLineTax` graph record; see [`docs/followups.md`](docs/followups.md).
 
 It is **standalone** — not part of `prepare_rlm_org`. Each run is **additive**
 (new records every time, tagged with a run id). With no config it auto-discovers a
@@ -54,10 +54,10 @@ python -m scripts.txn_data_harness.generate --org <your-sf-alias> --dry-run
 python -m scripts.txn_data_harness.cli plan --org <your-sf-alias>
 
 # One full chain to a Posted invoice.
-python -m scripts.txn_data_harness.generate --org <your-sf-alias> --count 1 --target-stage post
+python -m scripts.txn_data_harness.generate --org <your-sf-alias> --count 1 --target-stage invoice_posted
 
 # Equivalent composable CLI form.
-python -m scripts.txn_data_harness.cli run --org <your-sf-alias> --count 1 --target-stage post
+python -m scripts.txn_data_harness.cli run --org <your-sf-alias> --count 1 --target-stage invoice_posted
 
 # 25 transactions, 4 in parallel.
 python -m scripts.txn_data_harness.generate --org <your-sf-alias> --count 25 --concurrency 4
@@ -66,15 +66,15 @@ python -m scripts.txn_data_harness.generate --org <your-sf-alias> --count 25 --c
 python -m scripts.txn_data_harness.generate --org <your-sf-alias> --config scripts/txn_data_harness/config.example.yaml
 ```
 
-The original `generate` module remains the compatibility entry point. The
-subcommand CLI in `cli.py` exposes the same run behavior plus `plan`, `inspect`,
-`step`, `report`, and `prune` commands for humans and AI agents that need smaller
-composable actions:
+The `generate` module is the single-command entry point. The subcommand CLI in
+`cli.py` exposes the same run behavior plus `plan`, `inspect`, `step`, `report`,
+and `prune` commands for humans and AI agents that need smaller composable
+actions:
 
 ```bash
 python -m scripts.txn_data_harness.cli inspect --latest
 python -m scripts.txn_data_harness.cli step --org <your-sf-alias> \
-  --manifest <run-id-or-path> --account "<account-name>" --to-stage invoice
+  --manifest <run-id-or-path> --account "<account-name>" --to-stage invoice_draft
 python -m scripts.txn_data_harness.cli report <base-run-id>           # batch summary from disk
 python -m scripts.txn_data_harness.cli prune --older-than 7d          # dry run; --yes to delete
 ```
@@ -97,7 +97,7 @@ python -m scripts.txn_data_harness.generate --org <cci-alias> ...      # fails i
 | `--org` | *(required)* | Target org: sf alias or username (NOT a CCI alias). |
 | `--config` | — | YAML/JSON config file (all fields optional). |
 | `--count` | 1 | Transactions to generate. Overrides `defaults.count` in a config, but **per-scenario `count:` wins** (precedence: builtins < config `defaults` < CLI < per-scenario). To shrink a multi-scenario config for a smoke run, edit the per-scenario `count:` rather than passing `--count`. |
-| `--target-stage` | `post` | How far to run: `opportunity`\|`quote`\|`order`\|`activate`\|`usage`\|`invoice`\|`post`. |
+| `--target-stage` | `invoice_posted` | How far to run: `opportunity_created`\|`quote_placed`\|`order_draft`\|`order_activated`\|`usage_upload`\|`invoice_draft`\|`invoice_posted`. |
 | `--account` | auto | Pin the account by **Name**. |
 | `--product` | auto (QB-preferred) | Pin the product by **SKU**. |
 | `--with-opportunity` | off | Prepend an Opportunity the quote links to. |
@@ -160,20 +160,20 @@ ingest graph.
 The PST chain (`kind: sales_txn_quote`, the default — `sales_txn_order` shares
 the same stage list minus `quote_placed`) progresses through these stages. The
 ingestion path (`kind: invoice_ingestion`) runs a single `ingest_invoice` step
-that creates a Draft `Invoice` directly and stops at `target_stage: invoice`;
-it has no Quote/Order/Activate/BillingSchedule.
+that creates a Draft `Invoice` directly and stops at `target_stage:
+invoice_draft`; it has no Quote/Order/Activate/BillingSchedule.
 
 `target_stage` is hierarchical — each stage runs everything before it.
 
 | Stage | Produces | Needs a BillingAccount? |
 | ----- | -------- | ------------------------ |
-| `opportunity` | Opportunity (opt-in head) | no |
-| `quote` | Quote (+ line) via Place Sales Transaction (`sales_txn_quote` only) | no |
-| `order` | Order — `sales_txn_quote` via `createOrderFromQuote`; `sales_txn_order` via PST direct-place + `AppUsageAssignment` | no |
-| `activate` | Activated Order → BillingSchedule(s) + Asset(s) | **yes** |
-| `usage` | TransactionJournal consumption rows for opted-in usage lines | **yes** |
-| `invoice` | Draft Invoice (+ lines), tagged | **yes** |
-| `post` | Posted Invoice (InvoiceNumber assigned) | **yes** |
+| `opportunity_created` | Opportunity (opt-in head) | no |
+| `quote_placed` | Quote (+ line) via Place Sales Transaction (`sales_txn_quote` only) | no |
+| `order_draft` | Order — `sales_txn_quote` via `createOrderFromQuote`; `sales_txn_order` via PST direct-place + `AppUsageAssignment` | no |
+| `order_activated` | Activated Order → BillingSchedule(s) + Asset(s) | **yes** |
+| `usage_upload` | TransactionJournal consumption rows for opted-in usage lines | **yes** |
+| `invoice_draft` | Draft Invoice (+ lines), tagged | **yes** |
+| `invoice_posted` | Posted Invoice (InvoiceNumber assigned) | **yes** |
 
 An account **without** a BillingAccount still goes `quote → order` (useful
 pipeline + order demo data), but **activation** generates BillingSchedules and
@@ -200,9 +200,9 @@ configs (smoke test, pipeline quotes, draft/posted invoices, mixed stages,
 multi-account, product/quantity spreads, randomized discounts, usage
 consumption, and term/end-date examples). Start there.
 
-[`config.example.yaml`](config.example.yaml) is the original single-file worked
-example. With no `scenarios:` block, a single spec runs and `volume.scenarios`
-sets its count.
+[`config.example.yaml`](config.example.yaml) is a single-file worked example.
+With no `scenarios:` block, a single spec runs and `volume.scenarios` sets its
+count.
 
 ### Targets, bundles, and usage (at a glance)
 
@@ -239,9 +239,9 @@ sets its count.
   require user input on mandatory slots will fail to place. See **Bundles caveat**
   below for the known invoice-poller workaround.
 - **Usage / consumption is opt-in** — add a per-product `usage:` block to write
-  `TransactionJournal` rows after activation. `target_stage: usage` stops after
-  journals so you can run `cli rate --org <sf-alias>` once for the batch; rating
-  is org-wide and asynchronous. See `scenarios/README.md` →
+  `TransactionJournal` rows after activation. `target_stage: usage_upload` stops
+  after journals so you can run `cli rate --org <sf-alias>` once for the batch;
+  rating is org-wide and asynchronous. See `scenarios/README.md` →
   *Usage-based products* and `scenarios/12-usage-consumption.yaml`.
 
 ## Auth & transport
@@ -256,8 +256,8 @@ sets its count.
   (thread-local); all workers share the read-only token + instance URL.
 - **`cli` fallback** (`--transport cli`) — shells out to `sf api request rest`, so
   our process never sees a token. Maximally stable if the CLI ever stops surfacing
-  tokens, at the cost of a process spawn per call. (JWT/connected-app is the
-  documented long-term escalation; not implemented.)
+  tokens, at the cost of a process spawn per call. JWT/connected-app auth is
+  outside the current command surface.
 
 ## Manifests & cleanup
 
@@ -295,7 +295,7 @@ Deletability to assume:
 - **Activated Orders** — must be reverted to `Status=Draft` first (`sf data update
   record --sobject Order --record-id <id> --values "Status=Draft"`), then deletable.
 - **Posted Invoices** — **not** deletable (only Draft/Canceled are; `Invoice.Status`
-  isn't directly writable to Canceled). A `--target-stage invoice` Draft invoice is.
+  isn't directly writable to Canceled). A `--target-stage invoice_draft` Draft invoice is.
 - **BillingSchedules** — **not** deletable (system-managed: "insufficient access
   rights on object id").
 
@@ -325,10 +325,10 @@ a fresh batch with a new run id (by design).
   org **admin** — that is the assumed invoker. The minimal PSL/PS for a
   non-admin/integration user is out of scope and intentionally not specified
   here.
-- **Composite batching intentionally skipped** (Phase 5). The lifecycle is
-  async-poll-bound, not request-bound, so Composite would save negligible
-  wall-clock; scenario-level concurrency is the real win. See `CONTRACTS.md`
-  → *Phase 5 (Composite) — DECIDED: skipped* for the rationale.
+- **Composite batching intentionally skipped.** The lifecycle is async-poll-bound,
+  not request-bound, so Composite would save negligible wall-clock;
+  scenario-level concurrency is the real win. See `CONTRACTS.md` for the
+  rationale.
 
 ## Layout
 
@@ -349,6 +349,6 @@ scripts/txn_data_harness/
   config.example.yaml  # worked example
   AI_TOOLS.md          # AI-safe command recipes and verification rules
   CONTRACTS.md         # live-verified endpoint/body/async contracts (read before editing lifecycle.py)
-  FOLLOWUPS.md         # open questions / anomalies / probes that would generalize a finding (companion to CONTRACTS.md)
+  docs/followups.md    # open questions / anomalies / probes that would generalize a finding
   out/                 # per-run manifests + batch reports (git-ignored)
 ```

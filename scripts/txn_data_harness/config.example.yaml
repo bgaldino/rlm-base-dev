@@ -14,13 +14,13 @@
 # The account names and SKUs below (`Infinitech`, `Global Media`,
 # `QB-API-FLEX`) are from the bundled QB demo dataset and are illustrative
 # only. Substitute any account on your org for `account:` (it just needs a
-# `BillingAccount` to reach `activate`/`invoice`/`post`; without one the
-# scenario auto-caps at `order`) and any SKU on the standard pricebook for
-# `sku:`.
+# `BillingAccount` to reach `order_activated`/`invoice_draft`/`invoice_posted`;
+# without one the scenario auto-caps at `order_draft`) and any SKU on the
+# standard pricebook for `sku:`.
 
 # Broad defaults applied to every scenario unless the scenario overrides them.
 defaults:
-  target_stage: post          # opportunity | quote | order | activate | invoice | post
+  target_stage: invoice_posted  # opportunity_created | quote_placed | order_draft | order_activated | usage_upload | invoice_draft | invoice_posted
   with_opportunity: false     # prepend an Opportunity the quote links to
   # opportunity_stage: Prospecting   # else first open stage is auto-discovered
 
@@ -34,7 +34,7 @@ volume:
 scenarios:
   # Billable account -> full chain to a Posted invoice.
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     with_opportunity: true
     products:
       - sku: "QB-API-FLEX"     # one-entry product pool; add more SKUs for multi-line quotes
@@ -42,10 +42,11 @@ scenarios:
     count: 10
 
   # Pipeline account (no BillingAccount): quote -> order works, but activation
-  # needs billing setup, so a higher target_stage auto-caps at 'order'. Set
-  # target_stage: order to leave behind Orders (not just Quotes) for this account.
+  # needs billing setup, so a higher target_stage auto-caps at `order_draft`.
+  # Set `target_stage: order_draft` to leave behind Orders (not just Quotes)
+  # for this account.
   - account: "Global Media"
-    target_stage: order
+    target_stage: order_draft
     count: 15
 
 # Spreading quotes over time — set `start_date` (scenario-level; one date is

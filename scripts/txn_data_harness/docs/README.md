@@ -9,7 +9,7 @@
 > **Scope guard.** Only behaviors that have been **probed live** belong in
 > these files. Open questions, anomalies awaiting characterization, and
 > probes that would generalize a finding live in
-> [`../FOLLOWUPS.md`](../FOLLOWUPS.md) — pair-edit the two when a probe lands a
+> [`followups.md`](followups.md) — pair-edit the two when a probe lands a
 > new answer (write the verified contract here, move the open entry there
 > into *Resolved*).
 >
@@ -21,8 +21,9 @@
 ## Document index
 
 | File | Covers |
-|------|--------|
-| [`contracts-shared.md`](contracts-shared.md) | Environment, object describes, terminal-state detection, timing/sequencing, permissions, Phase 5 decision |
+| ---- | ------ |
+| [`contracts-shared.md`](contracts-shared.md) | Environment, object describes, terminal-state detection, timing/sequencing, permissions, Composite batching decision |
 | [`contracts-sales-txn-quote.md`](contracts-sales-txn-quote.md) | Quote-path lifecycle steps (Opportunity → PST place → Order → Activate → Usage → Invoice → Post) |
-| [`contracts-sales-txn-order.md`](contracts-sales-txn-order.md) | Direct-order path (stub — populated after Phase 0 live probe) |
+| [`contracts-sales-txn-order.md`](contracts-sales-txn-order.md) | Direct-order path (PST Order graph, AppUsageAssignment gate, shared post-Order tail) |
 | [`contracts-invoice-ingestion.md`](contracts-invoice-ingestion.md) | Invoice ingestion path (standalone billing, bypasses PST spine) |
+| [`followups.md`](followups.md) | Open probes, anomalies, and behavior not yet safe to generalize |

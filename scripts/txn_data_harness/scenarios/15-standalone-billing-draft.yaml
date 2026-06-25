@@ -8,9 +8,8 @@
 # ingested invoices ARE deletable, so this is the right shape for invoice-
 # review demos or for any flow that needs to leave deletable invoices behind.
 #
-# Posted ingestion/promotion scaffolding exists in code for Phase 2, but it is
-# not a supported operator workflow until InvoiceLineTax prerequisites are
-# implemented and live-verified. Keep this scenario at Draft.
+# Posted ingestion is not a supported operator workflow until InvoiceLineTax
+# prerequisites are implemented and live-verified. Keep this scenario at Draft.
 defaults:
   kind: invoice_ingestion        # standalone-billing path
   target_stage: invoice_draft    # Draft, not Posted

@@ -2,7 +2,7 @@
 #
 #   python -m scripts.txn_data_harness.cli run --org <sf-alias> \
 #       --config scripts/txn_data_harness/scenarios/14-end-date-overrides.yaml \
-#       --target-stage quote --concurrency 1 -v
+#       --target-stage quote_placed --concurrency 1 -v
 #
 # Stresses the optional ``end_date`` override across a wide spread of
 # start dates, end anchors, and offset forms. The matrix below is

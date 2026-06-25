@@ -1,8 +1,8 @@
 """Shared base handler for PST-spine scenario kinds.
 
-Both ``sales_txn_quote`` and ``sales_txn_order`` (Phase 3) drive the same
-post-Quote/post-Order tail: ``order_activated -> usage_upload -> invoice_draft
--> invoice_posted``. Only the head differs -- quote-path goes through PST place
+Both ``sales_txn_quote`` and ``sales_txn_order`` drive the same post-Quote/
+post-Order tail: ``order_activated -> usage_upload -> invoice_draft ->
+invoice_posted``. Only the head differs -- quote-path goes through PST place
 + ``order_from_quote``; order-path goes through PST place-on-Order
 (``order_direct``). The split lives in each subclass's :attr:`STAGES` and
 :attr:`STEP_GRAPH`; the resolve/run/retry/summarize logic is shared here so a

@@ -17,23 +17,23 @@ Always `--dry-run` first — it resolves auth + discovery and prints the plan
 
 | File | Stage | Volume | What it's for |
 | ---- | ----- | ------ | -------------- |
-| `01-smoke-test.yaml` | `post` | 1 | Fastest end-to-end proof: one full chain to a Posted invoice. **Run this first** on a new org. |
-| `02-pipeline-quotes.yaml` | `quote` | 40 | Opportunities + quotes only (no billing). Cheap, fast pipeline data; works on any account. |
-| `03-activated-orders.yaml` | `activate` | 15 | Activated orders → Assets + BillingSchedules, but not invoiced. Installed-base / asset demos. |
-| `04-draft-invoices.yaml` | `invoice` | 10 | Draft (unposted) invoices — demo the review/approval step; Draft invoices are deletable. |
-| `05-posted-invoices-volume.yaml` | `post` | 50 | Bulk billed invoices. The heavy one — run with `--concurrency`. |
+| `01-smoke-test.yaml` | `invoice_posted` | 1 | Fastest end-to-end proof: one full chain to a Posted invoice. **Run this first** on a new org. |
+| `02-pipeline-quotes.yaml` | `quote_placed` | 40 | Opportunities + quotes only (no billing). Cheap, fast pipeline data; works on any account. |
+| `03-activated-orders.yaml` | `order_activated` | 15 | Activated orders → Assets + BillingSchedules, but not invoiced. Installed-base / asset demos. |
+| `04-draft-invoices.yaml` | `invoice_draft` | 10 | Draft invoices — demo the review/approval step; Draft invoices are deletable. |
+| `05-posted-invoices-volume.yaml` | `invoice_posted` | 50 | Bulk billed invoices. The heavy one — run with `--concurrency`. |
 | `06-mixed-stages.yaml` | mixed | 55 | A realistic spread: lots of pipeline, fewer activated, fewest billed. "Lived-in" org. |
-| `07-multi-account.yaml` | `post`/capped | 30 | Billable + pipeline-only accounts; shows the auto-cap to `order` for accounts without `BillingAccount`. |
-| `08-product-mix.yaml` | `post` | 30 | Posted invoices across several SKUs so invoices aren't all one line item. |
-| `09-quantity-spread.yaml` | `post` | 35 | Same product, varied quantities → a range of invoice amounts (small/medium/large deals). |
-| `10-randomized-discounts.yaml` | `post` | 35 | Per-line discounts drawn from a range → a spread of discounted invoice amounts. |
-| `11-randomized-product-mix.yaml` | `post` | 25 | A product **pool** placed as a random non-empty subset → varied multi-line invoices (1–N lines, mixed SKUs, per-line qty + discount ranges). |
-| `12-usage-consumption.yaml` | `usage` | 5 | Usage-based products (`QB-DB`, `QB-TOKENS-PACK`) with `TransactionJournal` consumption rows against each activated asset. Stops at `usage`; kick off org-wide rating separately. |
-| `13-multi-year-terms.yaml` | `post` | 5 | Multi-year and non-month subscription cadences: 1-Annual, 3-Annual, bare-int (count-only) form, PSM-default fallback, and mixed terms on one quote. Exercises the per-line `(count, unit)` term model. |
-| `14-end-date-overrides.yaml` | `post` | 5 | Explicit `EndDate` override examples for co-terming and off-cycle spans: absolute anchors, day/month/quarter/year offsets, per-line overrides, and mixed cadence quotes. |
-| `15-standalone-billing-draft.yaml` | `invoice` (ingest) | 5 | **Standalone billing path** — `kind: invoice_ingestion`. Skips the PST chain entirely; each transaction is a single typed Composite-Graph `POST` to `/commerce/invoicing/.../actions/ingest` that creates a **Draft** invoice (`CreationMode = External`) directly. Targets a billing-ready account (Infinitech) and a pipeline-only account (Global Media) to exercise the no-BillingAccount path. Phase 1 invariant: every line stays `taxable: false`. Live-verified on R262 — see [`../CONTRACTS.md`](../CONTRACTS.md) → *Invoice Ingestion*. Draft ingested invoices are deletable. |
-| `15-standalone-billing.yaml` | `post` (ingest) | 5 | **Phase 2 — deferred.** Same ingest path as the Draft scenario above, but `target_stage: post`. The Posted code paths are in place, but live verification is blocked: the ingest API rejects Posted invoices whose lines reference a taxable `TaxTreatment` unless an `InvoiceLineTax` graph record accompanies each line, and the QB org currently exposes only taxable treatments. Don't run this scenario until either a non-taxable `TaxTreatment` is seeded or the `InvoiceLineTax` graph payload lands. See [`../FOLLOWUPS.md`](../FOLLOWUPS.md) → *Standalone-billing ingestion (Phase 2)*. |
-| `16-direct-orders.yaml` | `post` | 5 | **Direct-Order PST** — `kind: sales_txn_order`. Places an Order via the same `actions/place` endpoint with the Order/OrderAction/OrderItem graph (no preceding Quote), then writes the `AppUsageAssignment(RevenueLifecycleManagement)` row that gates the assetization pipeline before activating. Mirrors `05-posted-invoices-volume.yaml` end-to-end (Activate → BillingSchedule + Asset → Draft invoice → Posted invoice) but exercises the order-path head. Live-verified on R262 — see [`../docs/contracts-sales-txn-order.md`](../docs/contracts-sales-txn-order.md). |
+| `07-multi-account.yaml` | `invoice_posted`/capped | 30 | Billable + pipeline-only accounts; shows the auto-cap to `order_draft` for accounts without `BillingAccount`. |
+| `08-product-mix.yaml` | `invoice_posted` | 30 | Posted invoices across several SKUs so invoices aren't all one line item. |
+| `09-quantity-spread.yaml` | `invoice_posted` | 35 | Same product, varied quantities → a range of invoice amounts (small/medium/large deals). |
+| `10-randomized-discounts.yaml` | `invoice_posted` | 35 | Per-line discounts drawn from a range → a spread of discounted invoice amounts. |
+| `11-randomized-product-mix.yaml` | `invoice_posted` | 25 | A product **pool** placed as a random non-empty subset → varied multi-line invoices (1–N lines, mixed SKUs, per-line qty + discount ranges). |
+| `12-usage-consumption.yaml` | `usage_upload` | 5 | Usage-based products (`QB-DB`, `QB-TOKENS-PACK`) with `TransactionJournal` consumption rows against each activated asset. Stops after journals; kick off org-wide rating separately. |
+| `13-multi-year-terms.yaml` | `invoice_posted` | 5 | Multi-year and non-month subscription cadences: 1-Annual, 3-Annual, bare-int (count-only) form, PSM-default fallback, and mixed terms on one quote. Exercises the per-line `(count, unit)` term model. |
+| `14-end-date-overrides.yaml` | `order_activated` | 5 | Explicit `EndDate` override examples for co-terming and off-cycle spans: absolute anchors, day/month/quarter/year offsets, per-line overrides, and mixed cadence orders. |
+| `15-standalone-billing-draft.yaml` | `invoice_draft` (ingest) | 5 | **Standalone billing path** — `kind: invoice_ingestion`. Skips the PST chain entirely; each transaction is a single typed Composite-Graph `POST` to `/commerce/invoicing/.../actions/ingest` that creates a **Draft** invoice (`CreationMode = External`) directly. Targets a billing-ready account (Infinitech) and a pipeline-only account (Global Media) to exercise the no-BillingAccount path. Every line is non-taxable in the supported config. Live-verified on R262 — see [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). Draft ingested invoices are deletable. |
+| `15-standalone-billing.yaml` | unsupported ingest example | 5 | Same ingest path as the Draft scenario above, but `target_stage: invoice_posted`. Supported config validation intentionally rejects Posted ingestion until the tax graph prerequisite is implemented and verified. Do not run this scenario as an operator workflow; use [`15-standalone-billing-draft.yaml`](15-standalone-billing-draft.yaml). |
+| `16-direct-orders.yaml` | `invoice_posted` | 5 | **Direct-Order PST** — `kind: sales_txn_order`. Places an Order via the same `actions/place` endpoint with the Order/OrderAction/OrderItem graph (no preceding Quote), then writes the `AppUsageAssignment(RevenueLifecycleManagement)` row that gates the assetization pipeline before activating. Mirrors `05-posted-invoices-volume.yaml` end-to-end (Activate → BillingSchedule + Asset → Draft invoice → Posted invoice) but exercises the order-path head. Live-verified on R262 — see [`../docs/contracts-sales-txn-order.md`](../docs/contracts-sales-txn-order.md). |
 
 These are tuned for the **QuantumBit (QB)** demo org. The only values that are
 org-specific are the **account names** (`Infinitech`, `Global Media`) and the
@@ -58,9 +58,9 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | Field | Type | Default | Meaning |
 | ----- | ---- | ------- | ------- |
 | `kind` | enum | `sales_txn_quote` | Scenario handler. `sales_txn_quote` (default) drives the Opportunity → Quote → Order (via `createOrderFromQuote`) → Activate → Invoice → Post chain. `sales_txn_order` skips the Quote — PST direct-places the Order, the harness writes the `AppUsageAssignment(RevenueLifecycleManagement)` row, and the post-Order tail is identical to the quote path. `invoice_ingestion` skips PST entirely and mints a Draft invoice through the Composite-Graph ingest API. Legacy aliases `sales_transaction` and `transaction` are **rejected** with a hint pointing at the new name. |
-| `account` | string | auto | Account **Name** (not id). Omit → first billing-ready account discovered. A pinned account need not be billing-ready (it caps at `order`). |
-| `target_stage` | enum | `post` | How far to run: `opportunity` \| `quote` \| `order` \| `activate` \| `usage` \| `invoice` \| `post`. Hierarchical — each stage runs all stages before it. `usage` writes TransactionJournals for any line that declares a `usage:` block (skipped silently otherwise); see [Usage-based products](#usage-based-products) below. |
-| `with_opportunity` | bool | `false` | Prepend an Opportunity the quote links to. (`target_stage: opportunity` implies one even if this is false.) |
+| `account` | string | auto | Account **Name** (not id). Omit → first billing-ready account discovered. A pinned account need not be billing-ready (it caps at `order_draft`). |
+| `target_stage` | enum | `invoice_posted` | How far to run: `opportunity_created` \| `quote_placed` \| `order_draft` \| `order_activated` \| `usage_upload` \| `invoice_draft` \| `invoice_posted`. Hierarchical — each stage runs all stages before it. `usage_upload` writes TransactionJournals for any line that declares a `usage:` block (skipped silently otherwise); see [Usage-based products](#usage-based-products) below. |
+| `with_opportunity` | bool | `false` | Prepend an Opportunity the quote links to. (`target_stage: opportunity_created` implies one even if this is false.) |
 | `opportunity_stage` | string | first open | Pin the Opportunity `StageName`. Must be a valid **open** stage in the org or the run errors with the valid list. |
 | `product` | string | auto (QB-preferred) | Product **SKU** for a single-product pool. Shorthand for a one-entry `products:` list. |
 | `products` | list | — | The line **pool**: a list of `{sku, quantity?, discount?}` entries. Each transaction places a **random non-empty subset** of the pool as **multiple** quote lines (a 3-entry pool yields 1–3 lines; if the dice exclude everything, one entry is forced so every quote has ≥1 line). Per-entry `quantity`/`discount` override the scenario-level values for that entry. |
@@ -85,8 +85,9 @@ block (where it applies to all scenarios unless the scenario overrides it).
 per-scenario field  >  CLI flag  >  config `defaults`  >  built-in default
 ```
 
-So `--target-stage quote` on the CLI overrides a `defaults.target_stage: post`,
-but a scenario that pins `target_stage: post` still wins over the CLI flag.
+So `--target-stage quote_placed` on the CLI overrides a
+`defaults.target_stage: invoice_posted`, but a scenario that pins
+`target_stage: invoice_posted` still wins over the CLI flag.
 (`--with-opportunity` is a store_true flag — it can only *enable*; pin
 `with_opportunity: false` on a scenario to opt it out.)
 

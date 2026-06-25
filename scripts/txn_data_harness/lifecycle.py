@@ -1022,8 +1022,7 @@ def _await_async_tracker(
 # ---------------------------------------------------------------------------
 # Step 6c -- Ingest invoice via the Composite Graph ingest API.
 # Bypasses Order/Quote/BillingSchedule entirely; used by the
-# ``invoice_ingestion`` handler for standalone-billing demos. See plan
-# "Standalone-Billing Invoice Ingestion path", Phase 1.
+# ``invoice_ingestion`` handler for standalone-billing demos.
 # ---------------------------------------------------------------------------
 def ingest_invoice(
     client: SfRestClient,
@@ -1038,7 +1037,7 @@ def ingest_invoice(
     """POST a Composite-Graph-shaped Invoice to the ingest endpoint.
 
     Returns ``(invoice_id, invoice_number, invoice_line_ids)``. ``status`` is
-    ``"Draft"`` or ``"Posted"``. Phase 1 invariant: never emits
+    ``"Draft"`` or ``"Posted"``. Current tax invariant: never emits
     ``InvoiceLineTax`` records and always sets ``shouldCalculateTax: false`` --
     callers (the ingestion handler) reject ``taxable: true`` lines on Posted
     invoices at parse time so we never get here with one. The dev guide
@@ -1066,18 +1065,20 @@ def ingest_invoice(
 
     spec = invoice_spec or ResolvedInvoiceOverrides()
 
-    # Phase 1 tax invariant -- a defensive belt for the parse-time check on the
+    # Current tax invariant -- a defensive belt for the parse-time check on the
     # handler. If anything sneaks past parsing the harness must NOT silently
     # ship a tax-on payload to the org.
     if spec.should_calculate_tax:
         raise LifecycleError(
             "ingest_invoice",
-            "Phase 1 invariant: shouldCalculateTax must be false (InvoiceLineTax not implemented)",
+            "Current ingestion path requires shouldCalculateTax=false "
+            "(InvoiceLineTax not implemented)",
         )
     if status == "Posted" and any(l.taxable for l in lines):
         raise LifecycleError(
             "ingest_invoice",
-            "Phase 1 invariant: taxable=true lines are not allowed on Posted invoices",
+            "taxable=true lines are not allowed on Posted invoices until "
+            "InvoiceLineTax is implemented",
         )
 
     # Invoice graph record. The ingest action expects the typed graph shape
@@ -1186,7 +1187,7 @@ def ingest_invoice(
             if line.charge_amount is not None
             else unit_price * quantity
         )
-        # No `taxable` field: it does not exist on InvoiceLine. The Phase 1
+        # No `taxable` field: it does not exist on InvoiceLine. The current
         # tax invariant is expressed by *omitting* InvoiceLineTax records and
         # leaving shouldCalculateTax false, not by stamping a column.
         line_fields: dict[str, Any] = {
@@ -1228,7 +1229,7 @@ def ingest_invoice(
     body = {
         "invoices": [
             {
-                "shouldCalculateTax": False,  # Phase 1 invariant
+                "shouldCalculateTax": False,  # Current tax invariant
                 "taxCalculationStatus": tax_calc_status,
                 "correlationId": run_id,
                 "graph": {

@@ -232,8 +232,7 @@ quote kind.
 
 ## Final implementation contract for `place_order_transaction()`
 
-The Phase 3 `lifecycle.place_order_transaction()` MUST do the following in
-order:
+`lifecycle.place_order_transaction()` MUST do the following in order:
 
 1. Build the PST graph with `Order` root + `OrderAction(Type=Add)` + N
    `OrderItem` children, each child's `OrderActionId` pointing at the

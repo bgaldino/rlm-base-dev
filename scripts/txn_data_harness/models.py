@@ -30,7 +30,8 @@ STAGES_ORDER = [
     "usage_upload", "invoice_draft", "invoice_posted",
 ]
 
-# Backward-compat alias used by runner/cli_args until Phase 2 handler ownership.
+# Backward-compatible alias for callers that still import the quote-path stage list
+# as STAGES.
 STAGES = STAGES_QUOTE
 
 # Re-export Term + EndDateOverride so external callers can import the value
@@ -305,8 +306,8 @@ class ResolvedInvoiceLine:
     ``product`` means the line is description-only -- the ingestion API
     accepts unproducted lines and the handler must not invent a fake id.
 
-    Phase 1 invariant: ``taxable`` is False; the runner refuses to flip it
-    until the InvoiceLineTax phase ships.
+    Current tax invariant: ``taxable`` is False; the runner refuses to flip it
+    until InvoiceLineTax support ships.
     """
 
     name: str
@@ -329,7 +330,7 @@ class ResolvedInvoiceOverrides:
     date normalisation. The handler folds these into the composite-graph
     Invoice header; unset fields fall back to platform defaults.
 
-    Phase 1 invariant: ``should_calculate_tax`` is False; parsing refuses
+    Current tax invariant: ``should_calculate_tax`` is False; parsing refuses
     True until InvoiceLineTax wiring lands.
     """
 

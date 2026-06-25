@@ -233,11 +233,11 @@ def test_ingest_invoice_rejects_empty_lines(fake_client, billable_account) -> No
         ingest_invoice(fake_client, billable_account, [], "DEMO")
 
 
-def test_ingest_invoice_phase1_tax_invariant_rejects_should_calculate_tax(
+def test_ingest_invoice_tax_invariant_rejects_should_calculate_tax(
     fake_client, billable_account
 ) -> None:
     overrides = ResolvedInvoiceOverrides(should_calculate_tax=True)
-    with pytest.raises(LifecycleError, match="shouldCalculateTax must be false"):
+    with pytest.raises(LifecycleError, match="requires shouldCalculateTax=false"):
         ingest_invoice(
             fake_client, billable_account, _basic_lines(), "DEMO",
             invoice_spec=overrides,

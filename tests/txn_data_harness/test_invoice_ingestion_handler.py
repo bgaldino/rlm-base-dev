@@ -556,7 +556,7 @@ def test_coerce_spec_rejects_with_opportunity_on_ingestion() -> None:
         _coerce_spec(merged, "test")
 
 
-def test_coerce_spec_rejects_posted_ingestion_until_phase_2() -> None:
+def test_coerce_spec_rejects_posted_ingestion_until_tax_support() -> None:
     merged = {
         "kind": "invoice_ingestion",
         "target_stage": "invoice_posted",
@@ -565,7 +565,7 @@ def test_coerce_spec_rejects_posted_ingestion_until_phase_2() -> None:
             {"name": "API", "quantity": 1, "unit_price": 10}
         ],
     }
-    with pytest.raises(ConfigError, match="Posted ingestion is Phase 2"):
+    with pytest.raises(ConfigError, match="Posted ingestion requires InvoiceLineTax"):
         _coerce_spec(merged, "test")
 
 

@@ -19,7 +19,7 @@ scenarios:
         quantity: 1
     count: 15
 
-  - account: "Global Media"      # no BillingAccount -> auto-capped to 'order'
+  - account: "Global Media"      # no BillingAccount -> auto-capped to `order_draft`
     target_stage: invoice_posted  # requested 'invoice_posted'; the tool caps + warns
     products:
       - sku: "QB-API-FLEX"

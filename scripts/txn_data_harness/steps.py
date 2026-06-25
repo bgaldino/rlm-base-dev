@@ -359,8 +359,7 @@ STEP_REGISTRY: dict[str, StepSpec] = {
         outputs=("order_id", "order_number"),
         handler=run_order,
     ),
-    # PST direct-order step (Phase 3). Registered here but unreachable until
-    # SalesTxnOrderHandler is registered in handlers/__init__.py.
+    # PST direct-order step used by SalesTxnOrderHandler.
     "order_direct": StepSpec(
         name="order_direct",
         requires=("account", "lines", "pricebook_id"),

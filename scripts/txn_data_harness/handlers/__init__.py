@@ -6,9 +6,8 @@ singleton. Dispatch happens AFTER the defaults merge in ``config.py`` /
 ``manifest.kind`` on a resume) and looks up the handler here.
 
 Only handlers for kinds in :data:`scripts.txn_data_harness.config._VALID_KINDS`
-are registered. ``SalesTxnOrderHandler`` registered in Phase 3 after the
-direct-Order PST contract was live-verified on R262 (see
-``docs/contracts-sales-txn-order.md``).
+are registered. The direct-Order PST contract is live-verified on R262; see
+``docs/contracts-sales-txn-order.md``.
 """
 
 from __future__ import annotations

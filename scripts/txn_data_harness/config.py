@@ -56,8 +56,8 @@ _VALID_KINDS = {"sales_txn_quote", "sales_txn_order", "invoice_ingestion"}
 
 # Per-kind allowed target stages. Ingestion bypasses the PST chain, so only
 # the live-verified Draft stage is valid in supported configs. The Posted code
-# path remains internal Phase 2 scaffolding until InvoiceLineTax prerequisites
-# are implemented and live-verified.
+# path remains internal scaffolding until InvoiceLineTax prerequisites are
+# implemented and live-verified.
 #
 # ``sales_txn_order`` omits ``quote_placed`` (the order path skips the Quote
 # step entirely; see :data:`scripts.txn_data_harness.models.STAGES_ORDER`).
@@ -204,9 +204,8 @@ class ScenarioSpec:
     end_date: Optional[EndDateOverride] = None
 
 
-# Invoice-ingestion config types. Carried in the package now so future
-# PRs that wire up parsing/handler dispatch have stable shapes to import,
-# but no PST-path code reads them yet (PR 2 lands them as "dead code").
+# Invoice-ingestion config types. They stay separate from PST specs because
+# ingestion resolves lines and invoice overrides through a different handler.
 
 
 @dataclass
@@ -220,10 +219,10 @@ class InvoiceLineSpec:
     computed ``quantity * unit_price`` when set -- used to model a
     pre-discounted line or a flat-fee charge.
 
-    ``taxable`` defaults to ``False`` to honour the Phase 1 tax invariant
+    ``taxable`` defaults to ``False`` to honour the current tax invariant
     (no ``InvoiceLineTax`` records, ``shouldCalculateTax=false`` globally).
     The parser will reject ``taxable: true`` on any line when the resolved
-    ``target_stage == "post"``; on Drafts the API permits it without
+    ``target_stage == "invoice_posted"``; on Drafts the API permits it without
     ``InvoiceLineTax`` so the default stays ``False`` but the parser does
     not reject.
     """
@@ -246,9 +245,9 @@ class InvoiceOverrides:
     Every field is optional. Unset fields fall through to the platform
     default (e.g. ``invoice_date`` -> today; ``due_date`` -> derived from
     the account's payment terms). ``should_calculate_tax`` defaults to
-    ``False`` to honour the Phase 1 tax invariant; setting it to ``True``
-    is rejected at parse time until Phase 2 ships InvoiceLineTax support.
-    ``tax_calculation_status`` is informational on Phase 1 ("Pending" is
+    ``False`` to honour the current tax invariant; setting it to ``True``
+    is rejected at parse time until InvoiceLineTax support ships.
+    ``tax_calculation_status`` is informational for Draft ingestion ("Pending" is
     the canonical value when shouldCalculateTax is False).
     """
 
@@ -272,8 +271,8 @@ class InvoiceIngestionScenarioSpec:
     subsets the way PST does (the API has no concept of "random non-empty
     subset of a product pool" -- one ingest call ships one invoice).
 
-    ``target_stage`` is restricted to ``invoice`` (Draft) by supported config
-    validation until Posted ingestion Phase 2 lands.
+    ``target_stage`` is restricted to ``invoice_draft`` by supported config
+    validation until Posted ingestion support lands.
     """
 
     account: Optional[str]
@@ -805,7 +804,7 @@ def _coerce_target_stage(merged: dict[str, Any], kind: str, where: str) -> str:
         hint = ""
         if kind == "invoice_ingestion" and stage == "invoice_posted":
             hint = (
-                "; Posted ingestion is Phase 2 and requires InvoiceLineTax "
+                "; Posted ingestion requires InvoiceLineTax "
                 "support before it can be run"
             )
         raise ConfigError(
@@ -934,7 +933,7 @@ def _coerce_invoice_line(raw: Any, where: str) -> InvoiceLineSpec:
 def _coerce_invoice_overrides(raw: Any, where: str) -> Optional[InvoiceOverrides]:
     """Build :class:`InvoiceOverrides` from a scenario's ``invoice:`` block.
 
-    Phase 1 tax invariant enforced here: ``should_calculate_tax: true`` is
+    Current tax invariant enforced here: ``should_calculate_tax: true`` is
     rejected loudly so the parse layer catches the misuse before any handler
     or lifecycle code sees it.
     """
@@ -963,7 +962,7 @@ def _coerce_invoice_overrides(raw: Any, where: str) -> Optional[InvoiceOverrides
     if should_calc:
         raise ConfigError(
             f"{where}: invoice.should_calculate_tax=true is not supported in "
-            f"Phase 1 (InvoiceLineTax wiring not yet shipped)"
+            f"the current ingestion path (InvoiceLineTax wiring not yet shipped)"
         )
 
     return InvoiceOverrides(
@@ -1032,7 +1031,7 @@ def _coerce_invoice_ingestion_spec(
 
     overrides = _coerce_invoice_overrides(merged.get("invoice"), where)
 
-    # Phase 1 tax invariant -- defensive belt at parse time: on Posted target
+    # Current tax invariant -- defensive belt at parse time: on Posted target
     # the action enforces it too, but bouncing here avoids a confusing
     # lifecycle error far from the source line.
     if stage == "invoice_posted":
@@ -1040,7 +1039,8 @@ def _coerce_invoice_ingestion_spec(
             if ln.taxable:
                 raise ConfigError(
                     f"{where}.invoice_lines[{i}]: 'taxable: true' is not "
-                    f"allowed when target_stage is 'invoice_posted' (Phase 1 invariant)"
+                    f"allowed when target_stage is 'invoice_posted' "
+                    f"(InvoiceLineTax wiring not yet shipped)"
                 )
 
     return InvoiceIngestionScenarioSpec(

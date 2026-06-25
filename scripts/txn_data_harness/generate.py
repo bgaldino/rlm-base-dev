@@ -79,8 +79,8 @@ def _print_pst_spec(r: "ResolvedSpec", index: int, total: int) -> int:
     """Render one PST resolved spec; return its transaction count.
 
     Reads the kind's stage list from its handler rather than hard-coding
-    ``STAGES_QUOTE`` so the same renderer works once :class:`SalesTxnOrderHandler`
-    is registered in Phase 3 (its STAGES omits ``quote_placed``).
+    ``STAGES_QUOTE`` so the same renderer works for the quote and direct-order
+    paths.
     """
     handler = SCENARIO_HANDLERS[r.spec.kind]
     stages = handler.STAGES

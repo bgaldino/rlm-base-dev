@@ -1,6 +1,6 @@
 # Invoice Ingestion — Contracts
 
-> ✅ VERIFIED LIVE Draft; ⚠ Posted deferred to Phase 2
+> ✅ VERIFIED LIVE Draft; ⚠ Posted ingestion is not operator-supported today
 
 The ingestion path bypasses the PST spine entirely. One POST to
 `/services/data/v67.0/commerce/invoicing/invoices/collection/actions/ingest` produces
@@ -16,7 +16,7 @@ NOT the generic Composite Graph subrequest shape (`{url, method, body}`).
 POST /services/data/v67.0/commerce/invoicing/invoices/collection/actions/ingest
 {
   "invoices": [{
-    "shouldCalculateTax": false,      // Phase 1 invariant: no InvoiceLineTax
+    "shouldCalculateTax": false,      // Current invariant: no InvoiceLineTax
     "taxCalculationStatus": "Pending", // Draft. Posted requires "Posted"; see below.
     "correlationId": "<run_id>",
     "graph": {
@@ -94,7 +94,7 @@ one case), but the live ingest endpoint enforces the full set:
 | `InvoiceAddressGroup.{street,city,state,postalCode,country}` | Dev guide Required | All five must be non-null; the harness raises `LifecycleError` on an Account with a partial address rather than letting the API reject. |
 | `Invoice.invoiceNumber` (Posted only) | **Dev guide says Optional, live API rejects without it** | Defaulted to `run_id` for Posted; surfaced as an under-documented contract violation in the dev guide. |
 
-## Posted path — Phase 2 dependency
+## Posted Path Dependency
 
 Posted ingestion is wired in the code (`status: "Posted"`, `taxCalculationStatus: "Posted"`,
 `invoiceNumber: <run_id>`, `postedDate: today`) but **not live-verified** because it
@@ -105,7 +105,7 @@ org. The default-seeded `Default Tax Policy` is `IsTaxable=true`, so the ingest 
 > when the invoice line doesn't have a related InvoiceLineTax record.`
 
 The same precondition gates the `actions/post` endpoint, so Draft→Posted resume hits the
-identical wall. See `FOLLOWUPS.md` for the Phase 2 design.
+identical wall. See `followups.md` for the tax graph design.
 
 ## Side-effects (verified absent)
 
@@ -130,8 +130,8 @@ Draft ingestion uses `Invoice.uniqueIdentifier = <run_id>` as the replay key, bu
 the harness retries narrowly: only transient failures before any `invoiceId` is
 observed are retried. If the action or tracker failure includes an `invoiceId`,
 the manifest records it and stops for operator inspection rather than replaying
-a partially materialized graph. Posted ingestion remains Phase 2 until the
-`InvoiceLineTax` prerequisite is implemented and live-verified.
+    a partially materialized graph. Posted ingestion remains unsupported until
+the `InvoiceLineTax` prerequisite is implemented and live-verified.
 
 ## Idempotency
 
