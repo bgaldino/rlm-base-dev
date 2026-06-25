@@ -94,6 +94,20 @@ cci task run snapshot_dev_guide_262 -o mode refresh                  # re-captur
 
 Requires Playwright in the CCI venv (same inject as the help task); `markdownify` is an optional inject for best table/list fidelity. See the task docstring for setup.
 
+### Industries Common Resources dev guide (`dev-guide-industries`)
+
+RC builds on shared **Industries common platform services** that the RLM dev guide doesn't document — Business Rules Engine (expression sets, decision tables/matrices), Context Service, OmniStudio, Discovery Framework (guided selling), Data Processing Engine/Batch, Decision Explainer, Collections and Recovery, Action Launcher, and Timeline. These live in a **second atlas deliverable**, `industries_reference`, captured separately into `docs/salesforce/{release}/dev-guide-industries/` (same `articles/` + `manifest.json` + `index.md` layout) by the same task with a distinct `output_dir`.
+
+The full Industries Common Resources guide is ~1435 pages across 37 sections — most for *other* Industries clouds (Digital Lending, Document/Form Readers, Process Compliance, etc.). The snapshot is **scoped to the ~607 RC-relevant pages** via the task's `sections` list:
+
+```bash
+cci task run snapshot_industries_dev_guide_262                # the 9 RC-relevant sections
+cci task run snapshot_industries_dev_guide_262 -o mode refresh
+# widen/narrow by editing `sections` (comma-separated TOC titles or page_ids) in cumulusci.yml
+```
+
+Ground OmniStudio / BRE / Context Service / Discovery Framework / Timeline claims here. (One page — `business_rules_engine_connect_apis.htm` — persistently errors on capture and is listed under the index's errored count; recapture if upstream fixes it.)
+
 **When to use which.** Ground **developer** claims (object/field API names, Business APIs, Apex, Metadata/Tooling types, invocable actions, **CML syntax and semantics**) against the dev-guide snapshot; ground **admin/seller** claims (feature setup, how-to, configuration) against the help snapshot. The CML section (`section: Constraint Modeling Language`, `cml_*.htm.md`) is the canonical reference for constraint-model authoring and the QuantumBit constraint-model work.
 
 ## Common grounding workflows

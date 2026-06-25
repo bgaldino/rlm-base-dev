@@ -3126,6 +3126,29 @@ tasks:
       deliverable: revenue_lifecycle_management_dev_guide
       mode: all
 
+  snapshot_industries_dev_guide_262:
+    group: Documentation
+    description: >
+      Snapshot the RC-relevant sections of the 262 (Summer '26) Industries
+      Common Resources Developer Guide (atlas deliverable industries_reference).
+      The full guide is ~1435 pages across 37 sections, most for other Industries
+      clouds; this captures the ~607 pages RC builds on — Business Rules Engine,
+      Context Service, OmniStudio, Discovery Framework, Data Processing
+      Engine/Batch, Decision Explainer, Collections and Recovery, Action Launcher,
+      and Timeline — into a separate corpus (dev-guide-industries) so it never
+      clobbers the RLM dev-guide. follow_links pulls in-scope pages linked from a
+      section but absent from its TOC subtree (e.g. extra Discovery Framework
+      pages). Edit the `sections` list to widen/narrow coverage.
+    class_path: tasks.rlm_snapshot_dev_guide.SnapshotSalesforceDevGuide
+    options:
+      release_version: "262"
+      release_name: "Summer '26"
+      deliverable: industries_reference
+      output_dir: docs/salesforce/262/dev-guide-industries
+      sections: "business_rules_engine, context_service_overview, omnistudio_overview, discovery_framework, batch, decision_explainer, collections_objects, action_launcher, timeline"
+      follow_links: true
+      mode: all
+
   snapshot_billing_help_262:
     group: Documentation
     description: >
