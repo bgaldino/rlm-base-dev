@@ -966,20 +966,27 @@ def _coerce_invoice_ingestion_spec(
     stage = _coerce_target_stage(merged, kind, where)
     count = _coerce_count(merged, where)
 
-    # Reject PST-only fields on ingestion specs. Built-in defaults set
-    # ``with_opportunity: false`` etc., so check truthy-only -- a False
-    # default isn't an error.
+    # Reject PST-only fields on ingestion specs. Compare against
+    # :data:`_BUILTIN_DEFAULTS` so values that match the no-op builtin (e.g.
+    # ``quantity: 1`` leaked through the merge) don't false-positive -- only
+    # an *intentional* PST knob differing from the default is an error.
     pst_only = (
         "products", "product", "quantity", "discount",
         "opportunity_stage", "start_date", "term", "end_date",
         "period_boundary", "billing_frequency",
     )
     for key in pst_only:
-        if merged.get(key):
-            raise ConfigError(
-                f"{where}: '{key}' is not valid for kind 'invoice_ingestion' "
-                f"(belongs to kind 'sales_transaction')"
-            )
+        if key not in merged:
+            continue
+        value = merged[key]
+        if value == _BUILTIN_DEFAULTS.get(key):
+            continue
+        if value in (None, [], {}, False):
+            continue
+        raise ConfigError(
+            f"{where}: '{key}' is not valid for kind 'invoice_ingestion' "
+            f"(belongs to kind 'sales_transaction')"
+        )
     if merged.get("with_opportunity"):
         raise ConfigError(
             f"{where}: 'with_opportunity' is not valid for kind 'invoice_ingestion' "

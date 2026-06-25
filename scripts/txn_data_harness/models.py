@@ -102,6 +102,16 @@ class Manifest:
     usage_journal_ids: list[str] = field(default_factory=list)
     invoice_id: Optional[str] = None
     invoice_number: Optional[str] = None
+    # InvoiceLine ids assigned by the ingest API. Populated only by
+    # ``run_ingest_invoice`` (``kind: invoice_ingestion``); empty on PST runs
+    # where InvoiceLines are produced by ``generate_invoice`` and never
+    # surfaced individually on the manifest.
+    invoice_line_ids: list[str] = field(default_factory=list)
+    # ``Invoice.CreationMode`` of the manifest's invoice. ``External`` marks
+    # an ingested invoice (kind: invoice_ingestion); the PST path produces
+    # invoices with ``Salesforce`` mode. Left ``None`` on manifests that
+    # haven't reached the invoice stage.
+    creation_mode: Optional[str] = None
     # The line StartDate placed on this quote (ISO; drawn from the scenario's
     # start_date range, or None when defaulted to today).
     start_date: Optional[str] = None

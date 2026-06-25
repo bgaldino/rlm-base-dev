@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from typing import ClassVar, Optional
 
+from typing import Any
+
 from .. import runner
 from ..auth import SfRestClient
 from ..config import ScenarioSpec
@@ -83,3 +85,40 @@ class SalesTransactionHandler:
             start_date=draw_start_date(resolved.start_date_range),
             max_retries=max_retries,
         )
+
+    def summarize(self, m: Manifest) -> dict[str, Any]:
+        """Return the PST-shaped inspect/report summary for ``m``.
+
+        Matches the pre-handler-dispatch shape of ``summarize_manifest`` for
+        backward compatibility: existing inspect/report consumers (the AI
+        tools described in ``AI_TOOLS.md``) read these keys and a regression
+        here would silently break them. The parity test in
+        ``test_sales_transaction_handler.py`` pins the dict shape.
+        """
+        from ..manifests import manifest_path
+
+        return {
+            "kind": m.kind,
+            "run_id": m.run_id,
+            "path": str(manifest_path(m.run_id)),
+            "account": m.account_name or m.account_id,
+            "reached_stage": m.reached_stage,
+            "attempts": m.attempts,
+            "failure_class": m.failure_class,
+            "error": m.error,
+            "start_date": m.start_date,
+            "line_count": len(m.lines),
+            "usage_journals": {
+                "count": len(m.usage_journal_ids),
+                "ids": m.usage_journal_ids[:5],
+            },
+            "ids": {
+                "opportunity": m.opportunity_id,
+                "quote": m.quote_id,
+                "order": m.order_id,
+                "billing_schedules": m.billing_schedule_ids,
+                "assets": m.asset_ids,
+                "invoice": m.invoice_id,
+            },
+            "invoice_number": m.invoice_number,
+        }

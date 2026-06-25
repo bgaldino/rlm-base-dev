@@ -31,6 +31,8 @@ Always `--dry-run` first — it resolves auth + discovery and prints the plan
 | `12-usage-consumption.yaml` | `usage` | 5 | Usage-based products (`QB-DB`, `QB-TOKENS-PACK`) with `TransactionJournal` consumption rows against each activated asset. Stops at `usage`; kick off org-wide rating separately. |
 | `13-multi-year-terms.yaml` | `post` | 5 | Multi-year and non-month subscription cadences: 1-Annual, 3-Annual, bare-int (count-only) form, PSM-default fallback, and mixed terms on one quote. Exercises the per-line `(count, unit)` term model. |
 | `14-end-date-overrides.yaml` | `post` | 5 | Explicit `EndDate` override examples for co-terming and off-cycle spans: absolute anchors, day/month/quarter/year offsets, per-line overrides, and mixed cadence quotes. |
+| `15-standalone-billing.yaml` | `post` (ingest) | 5 | **Standalone billing path** — `kind: invoice_ingestion`. Skips the PST chain entirely; each transaction is a single Composite-Graph `POST` to `/commerce/invoicing/.../actions/ingest` that creates a Posted invoice (`CreationMode = External`) directly. Targets a billing-ready account (Infinitech) and a pipeline-only account (Global Media) to exercise the no-BillingAccount path. Phase 1 invariant: every line stays `taxable: false`. |
+| `15-standalone-billing-draft.yaml` | `invoice` (ingest) | 5 | Sibling of the Posted scenario above, but stops at Draft (`target_stage: invoice`). Draft ingested invoices ARE deletable; promote one to Posted with `cli step --manifest <id> --to-stage post` (resume calls `promote_to_posted` only — no second Invoice row is created). |
 
 These are tuned for the **QuantumBit (QB)** demo org. The only values that are
 org-specific are the **account names** (`Infinitech`, `Global Media`) and the

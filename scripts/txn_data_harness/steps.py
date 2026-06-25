@@ -226,10 +226,12 @@ def run_ingest_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
     )
     manifest.invoice_id = invoice_id
     manifest.invoice_number = invoice_number
+    manifest.invoice_line_ids = list(line_ids)
+    manifest.creation_mode = "External"
     # Reuse the existing Manifest.lines slot for the resolved invoice line
-    # records -- PR 4's handler will write the ingestion-shaped manifest dicts
-    # here (the handler-dispatched manifest summarizer in PR 5 decodes them
-    # per-kind).
+    # records. ``summarize_manifest`` dispatches on ``manifest.kind`` so the
+    # ingestion summary surfaces these as ``invoice_lines`` while PST
+    # manifests keep using ``lines`` for placed QuoteLineItem rows.
     manifest.lines = [
         {
             "name": ln.name,
@@ -242,12 +244,6 @@ def run_ingest_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
         }
         for ln in ctx.invoice_lines
     ]
-    # Stamp the assigned InvoiceLine ids onto the manifest's usage slot for
-    # now; PR 4 introduces a dedicated `invoice_line_ids` field on the
-    # ingestion manifest subtype. Keeping it off the manifest in PR 3 means
-    # the dead-code step doesn't grow a temporary attribute we'd have to
-    # remove later.
-    del line_ids  # intentionally not persisted on the shared Manifest in PR 3
     manifest.reached_stage = "post" if status == "Posted" else "invoice"
     return manifest
 

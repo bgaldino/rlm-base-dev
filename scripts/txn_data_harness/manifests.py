@@ -101,35 +101,24 @@ def list_manifests(manifest_dir: Path = MANIFEST_DIR) -> list[Path]:
 def summarize_manifest(m: Manifest) -> dict[str, Any]:
     """Return a compact machine-friendly summary for inspect commands.
 
-    ``path`` (on-disk manifest path) is included so scripted workflows can read
-    it from ``cli inspect --json`` and pipe it into a follow-up resume command.
-    ``usage_journal_ids`` carries the TJ count + first few ids for quick review.
+    Dispatches to the handler registered for ``m.kind`` so each lifecycle
+    surfaces its own shape (PST keeps Opportunity/Quote/Order/usage ids;
+    ingestion drops them and adds ``creation_mode``). ``path`` (on-disk
+    manifest path) is on every shape so scripted workflows can pipe an
+    inspect line into a follow-up resume command.
     """
-    return {
-        "run_id": m.run_id,
-        "kind": m.kind,
-        "path": str(manifest_path(m.run_id)),
-        "account": m.account_name or m.account_id,
-        "reached_stage": m.reached_stage,
-        "attempts": m.attempts,
-        "failure_class": m.failure_class,
-        "error": m.error,
-        "start_date": m.start_date,
-        "line_count": len(m.lines),
-        "usage_journals": {
-            "count": len(m.usage_journal_ids),
-            "ids": m.usage_journal_ids[:5],
-        },
-        "ids": {
-            "opportunity": m.opportunity_id,
-            "quote": m.quote_id,
-            "order": m.order_id,
-            "billing_schedules": m.billing_schedule_ids,
-            "assets": m.asset_ids,
-            "invoice": m.invoice_id,
-        },
-        "invoice_number": m.invoice_number,
-    }
+    # Local import to break the circular handlers -> manifests dependency
+    # (handlers/__init__.py imports from this module transitively).
+    from .handlers import SCENARIO_HANDLERS
+
+    try:
+        handler = SCENARIO_HANDLERS[m.kind]
+    except KeyError as exc:
+        raise ValueError(
+            f"summarize_manifest: unknown kind {m.kind!r}; "
+            f"valid: {', '.join(sorted(SCENARIO_HANDLERS))}"
+        ) from exc
+    return handler.summarize(m)
 
 
 def _is_safe_manifest_dir(manifest_dir: Path, safe_root: Path = MANIFEST_DIR) -> bool:

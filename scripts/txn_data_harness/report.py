@@ -15,8 +15,20 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Iterable
 
+from .handlers import SCENARIO_HANDLERS
 from .manifests import MANIFEST_DIR, write_json
-from .models import STAGES, Manifest
+from .models import Manifest
+
+# Per-kind stage allowlist for the report's histogram. The handler's
+# ``STEP_GRAPH`` keys are the stages a manifest can reach for that kind, in
+# the order they're hit. ``(none)`` is appended so a manifest that never
+# checkpointed a stage still buckets cleanly.
+_STAGES_BY_KIND: dict[str, list[str]] = {
+    "sales_transaction": [
+        "opportunity", "quote", "order", "activate", "usage", "invoice", "post",
+    ],
+    "invoice_ingestion": ["invoice", "post"],
+}
 
 # Errors are keyed by class + a truncated message so distinct transient blips
 # don't fragment the rollup into dozens of singletons. The cap applies to the
@@ -32,18 +44,44 @@ def _signature(manifest: Manifest) -> str:
 
 
 def build_batch_report(manifests: Iterable[Manifest], base_run_id: str = "") -> dict[str, Any]:
-    """Summarize a batch of scenario manifests into a deterministic report dict."""
+    """Summarize a batch of scenario manifests into a deterministic report dict.
+
+    Mixed-kind batches (e.g. one config with both PST and ingestion scenarios)
+    produce a kind-aware report:
+
+    * ``kind_histogram`` -- per-kind totals at a glance.
+    * ``stage_histogram_by_kind`` -- nested ``kind -> {stage: count}`` so the
+      ``invoice`` bucket doesn't conflate "PST stopped at Draft generate_invoice"
+      with "ingestion landed a Draft via ingest_invoice".
+
+    Failure signatures stay one combined rollup -- failures cluster by error
+    class, not by kind.
+    """
     manifests = list(manifests)
     total = len(manifests)
     failed = [m for m in manifests if m.error]
     retried = [m for m in manifests if (m.attempts or 1) > 1]
 
-    # How far each scenario actually got. None (never started a stage) buckets
-    # under "(none)" so the histogram always sums to total.
-    stage_histogram: dict[str, int] = {stage: 0 for stage in STAGES}
-    stage_histogram["(none)"] = 0
+    # Per-kind totals. Defaults to zero for every known handler so the report
+    # shape is stable even when one kind is absent from this batch.
+    kind_histogram: dict[str, int] = {kind: 0 for kind in SCENARIO_HANDLERS}
     for m in manifests:
-        stage_histogram[m.reached_stage or "(none)"] += 1
+        kind_histogram[m.kind] = kind_histogram.get(m.kind, 0) + 1
+
+    # Per-kind stage histogram. Each kind only includes the stages it can
+    # reach (the handler's step-graph keys + "(none)" for not-yet-started).
+    stage_histogram_by_kind: dict[str, dict[str, int]] = {}
+    for kind, stages in _STAGES_BY_KIND.items():
+        if kind_histogram.get(kind):
+            stage_histogram_by_kind[kind] = {s: 0 for s in stages}
+            stage_histogram_by_kind[kind]["(none)"] = 0
+    for m in manifests:
+        per_kind = stage_histogram_by_kind.setdefault(
+            m.kind,
+            {s: 0 for s in _STAGES_BY_KIND.get(m.kind, [])} | {"(none)": 0},
+        )
+        reached = m.reached_stage or "(none)"
+        per_kind[reached] = per_kind.get(reached, 0) + 1
 
     # Failure-signature rollup: signature -> {count, run_ids}.
     signatures: dict[str, dict[str, Any]] = {}
@@ -59,15 +97,30 @@ def build_batch_report(manifests: Iterable[Manifest], base_run_id: str = "") -> 
         "succeeded": total - len(failed),
         "failed": len(failed),
         "retried": len(retried),
-        "stage_histogram": stage_histogram,
+        "kind_histogram": kind_histogram,
+        "stage_histogram_by_kind": stage_histogram_by_kind,
         "failure_signatures": sorted(
             signatures.values(), key=lambda r: (-r["count"], r["signature"])
         ),
     }
 
 
+_KIND_TITLES: dict[str, str] = {
+    "sales_transaction": "Sales transaction",
+    "invoice_ingestion": "Invoice ingestion",
+}
+
+
 def render_markdown(report: dict[str, Any]) -> str:
-    """Render a short human-readable markdown summary of a batch report."""
+    """Render a short human-readable markdown summary of a batch report.
+
+    Groups the stage histogram by kind so a mixed-kind batch surfaces each
+    lifecycle's reached-stage shape on its own. Kinds with zero manifests in
+    this batch are skipped entirely (no empty header).
+    """
+    kind_hist = report.get("kind_histogram", {})
+    stage_by_kind = report.get("stage_histogram_by_kind", {})
+
     lines = [
         f"# Batch report — {report.get('base_run_id') or '(unknown)'}",
         "",
@@ -75,15 +128,29 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- **Succeeded:** {report['succeeded']}",
         f"- **Failed:** {report['failed']}",
         f"- **Retried:** {report['retried']}",
-        "",
-        "## Stages reached",
-        "",
     ]
-    # Show stages in lifecycle order, then the catch-all, skipping empty buckets.
-    for stage in [*STAGES, "(none)"]:
-        count = report["stage_histogram"].get(stage, 0)
-        if count:
-            lines.append(f"- {stage}: {count}")
+    if kind_hist:
+        lines += ["", "## Kinds", ""]
+        for kind in sorted(kind_hist):
+            count = kind_hist[kind]
+            if count:
+                title = _KIND_TITLES.get(kind, kind)
+                lines.append(f"- {title}: {count}")
+
+    # Per-kind reached-stage sections; preserve lifecycle stage order from
+    # _STAGES_BY_KIND so e.g. PST stays opportunity -> quote -> ... -> post.
+    for kind in sorted(stage_by_kind):
+        per_kind = stage_by_kind[kind]
+        if not any(per_kind.values()):
+            continue
+        title = _KIND_TITLES.get(kind, kind)
+        ordered_stages = [*_STAGES_BY_KIND.get(kind, sorted(per_kind)), "(none)"]
+        lines += ["", f"## {title} — stages reached", ""]
+        for stage in ordered_stages:
+            count = per_kind.get(stage, 0)
+            if count:
+                lines.append(f"- {stage}: {count}")
+
     if report["failure_signatures"]:
         lines += ["", "## Failure signatures", ""]
         for row in report["failure_signatures"]:

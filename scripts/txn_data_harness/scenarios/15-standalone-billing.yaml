@@ -1,0 +1,47 @@
+# Standalone billing — Posted invoices via the ingest API.
+#
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/15-standalone-billing.yaml
+#
+# Bypasses the PST chain entirely: no Opportunity, no Quote, no Order, no
+# Activate, no BillingSchedule. Each transaction is a single POST to
+# /commerce/invoicing/.../actions/ingest that creates a Posted invoice plus
+# its lines in one composite-graph call. `Invoice.CreationMode = External` is
+# the contractual marker; PST-emitted invoices stay `Salesforce`.
+#
+# Posted ingested invoices are NOT deletable -- same constraint as the PST
+# Posted path. For deletable invoices use 15-standalone-billing-draft.yaml.
+#
+# Phase 1 tax invariant: every line stays `taxable: false` and the parser
+# rejects `taxable: true` on Posted scenarios. InvoiceLineTax payload design
+# is a Phase 2 follow-up (see FOLLOWUPS.md).
+#
+# Account flavors verified against this scenario:
+#   - Infinitech    (billing-ready; has a BillingAccount row)
+#   - Global Media  (pipeline-only; no BillingAccount -- ingestion uses
+#                    Account.Id directly so this works natively)
+defaults:
+  kind: invoice_ingestion        # standalone-billing path
+  target_stage: post
+  invoice:
+    should_calculate_tax: false
+    tax_calculation_status: Pending
+
+scenarios:
+  - account: "Infinitech"
+    count: 3
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 10
+        unit_price: 25
+        taxable: false
+
+  - account: "Global Media"
+    count: 2
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 5
+        unit_price: 100
+        taxable: false

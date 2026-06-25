@@ -22,7 +22,7 @@ no-op short-circuit lives in :func:`steps.run_promote_to_posted`).
 
 from __future__ import annotations
 
-from typing import ClassVar, Optional
+from typing import Any, ClassVar, Optional
 
 from ..auth import SfRestClient
 from ..config import InvoiceIngestionScenarioSpec, InvoiceLineSpec
@@ -308,5 +308,34 @@ class InvoiceIngestionHandler:
             manifest.failure_class = classify_exception(exc)
         write_manifest(manifest)
         return manifest
+
+    def summarize(self, m: Manifest) -> dict[str, Any]:
+        """Return the ingestion-shaped inspect/report summary for ``m``.
+
+        Surfaces only fields that make sense on a standalone-billing run:
+        no Opportunity/Quote/Order/BillingSchedule/Asset ids, no
+        ``start_date`` (the ingest API has no notion of a quote start). The
+        line slot is named ``invoice_lines`` so consumers can tell PST-shaped
+        line records apart from raw InvoiceLine records.
+        """
+        from ..manifests import manifest_path
+
+        return {
+            "kind": m.kind,
+            "run_id": m.run_id,
+            "path": str(manifest_path(m.run_id)),
+            "account": m.account_name or m.account_id,
+            "reached_stage": m.reached_stage,
+            "attempts": m.attempts,
+            "failure_class": m.failure_class,
+            "error": m.error,
+            "line_count": len(m.lines),
+            "ids": {
+                "invoice": m.invoice_id,
+                "invoice_lines": m.invoice_line_ids[:5],
+            },
+            "invoice_number": m.invoice_number,
+            "creation_mode": m.creation_mode,
+        }
 
 
