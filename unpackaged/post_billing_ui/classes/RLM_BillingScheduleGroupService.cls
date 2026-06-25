@@ -361,14 +361,17 @@ public with sharing class RLM_BillingScheduleGroupService {
             'BillingCity__std' => billingCity,
             'BillingTermUnit__std' => billingTermUnitPicklist,
             'BillingActionType__std' => 'Add',
-            'CurrencyIsoCode__std' => currencyIsoCode
+            'CurrencyIsoCode__std' => currencyIsoCode,
+            // TotalPrice__std is Required for OneTime, Evergreen, AND TermDefined
+            // new-sale transactions (Create Standalone Billing Schedules contract),
+            // so it must be sent for every selling model — not just Termed.
+            'TotalPrice__std' => totalPrice
         };
 
-        if (termSetting == 'Termed') {
-            transactionData.put('TotalPrice__std', totalPrice);
-            if (endDate != null) {
-                transactionData.put('EndDate__std', formatIsoDate(endDate));
-            }
+        // EndDate applies only to a fixed-term (TermDefined) schedule; OneTime and
+        // Evergreen have no end date.
+        if (termSetting == 'Termed' && endDate != null) {
+            transactionData.put('EndDate__std', formatIsoDate(endDate));
         }
 
         Map<String, Object> transactionWrapper = new Map<String, Object>{

@@ -114,15 +114,31 @@ private class RLM_BillingScheduleGroupServiceTest {
     }
 
     @isTest
-    static void buildTransactionDetailsJson_evergreenOmitsTotal() {
+    static void buildTransactionDetailsJson_evergreenIncludesTotalOmitsEnd() {
         String json = RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
             fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType),
             'Month', 1, fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType),
-            'USD', 10, 0, 'San Francisco', fakeId(Product2.SObjectType), 'Widget',
+            'USD', 10, 30, 'San Francisco', fakeId(Product2.SObjectType), 'Widget',
             Date.newInstance(2026, 3, 9), 9, 3, 'Evergreen', null
         );
-        System.assert(!json.contains('TotalPrice__std'), 'Evergreen omits total price');
+        // TotalPrice__std is Required for Evergreen new-sale transactions.
+        System.assert(json.contains('TotalPrice__std'), 'Evergreen includes total price');
+        // Evergreen has no end date.
         System.assert(!json.contains('EndDate__std'), 'Evergreen omits end date');
+    }
+
+    @isTest
+    static void buildTransactionDetailsJson_oneTimeIncludesTotalOmitsEnd() {
+        String json = RLM_BillingScheduleGroupService.buildTransactionDetailsJson(
+            fakeId(Account.SObjectType), fakeId(BillingAccount.SObjectType),
+            'OneTime', 5, fakeId(LegalEntity.SObjectType), fakeId(TaxTreatment.SObjectType),
+            'USD', 10, 50, 'San Francisco', fakeId(Product2.SObjectType), 'Widget',
+            Date.newInstance(2026, 2, 20), 20, 2, 'OneTime', null
+        );
+        // TotalPrice__std is Required for OneTime new-sale transactions.
+        System.assert(json.contains('TotalPrice__std'), 'OneTime includes total price');
+        // OneTime has no end date.
+        System.assert(!json.contains('EndDate__std'), 'OneTime omits end date');
     }
 
     @isTest
