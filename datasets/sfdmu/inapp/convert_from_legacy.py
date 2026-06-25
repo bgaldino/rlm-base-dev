@@ -61,7 +61,7 @@ STATIC_RESOURCE = "InAppLearningImages"            # self-hosted replacement for
 SR_DIR = OUT_DIR.parents[2] / "unpackaged" / "post_inapp" / "staticresources" / STATIC_RESOURCE
 
 # --- 258 -> 262 (Summer '26) content updates -----------------------------------
-# Verified against docs/salesforce/262/ Help snapshot (838 articles) + dev-guide
+# Verified against docs/salesforce/262/ Help snapshot (932 articles) + dev-guide
 # snapshot (1388). Every target below was confirmed to exist in the snapshot.
 VERSION_TEXT_REMAPS = {
     "Revenue Cloud Winter'26 Release": "Revenue Cloud Summer '26 Release",
