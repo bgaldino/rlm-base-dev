@@ -7,9 +7,9 @@
 # range of amounts (small / medium / large deals) rather than a single value —
 # better-looking revenue charts and aggregation demos.
 defaults:
-  kind: sales_transaction        # PST chain to Posted invoice
+  kind: sales_txn_quote        # PST chain to Posted invoice
   account: "Infinitech"
-  target_stage: post
+  target_stage: invoice_posted
 
 scenarios:
   - products:

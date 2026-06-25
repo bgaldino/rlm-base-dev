@@ -34,7 +34,7 @@ def test_usage_block_parses_minimum_fields(tmp_path) -> None:
         tmp_path,
         """
 scenarios:
-  - target_stage: usage
+  - target_stage: usage_upload
     products:
       - sku: QB-DB
         usage:
@@ -145,10 +145,10 @@ def test_usage_target_stage_recognised(tmp_path) -> None:
         tmp_path,
         """
 scenarios:
-  - target_stage: usage
+  - target_stage: usage_upload
     products:
       - sku: QB-DB
 """,
     )
     spec = load_scenarios(_args(config=config))[0]
-    assert spec.target_stage == "usage"
+    assert spec.target_stage == "usage_upload"

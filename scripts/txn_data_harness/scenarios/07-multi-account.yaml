@@ -9,18 +9,18 @@
 # quotes AND orders, just not activated/invoiced. One config, two account
 # profiles — the tool does the right thing for each.
 defaults:
-  kind: sales_transaction        # PST chain; auto-caps to 'order' on non-billing accounts
+  kind: sales_txn_quote        # PST chain; auto-caps to 'order' on non-billing accounts
 
 scenarios:
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"
         quantity: 1
     count: 15
 
   - account: "Global Media"      # no BillingAccount -> auto-capped to 'order'
-    target_stage: post           # requested 'post'; the tool caps + warns
+    target_stage: invoice_posted  # requested 'invoice_posted'; the tool caps + warns
     products:
       - sku: "QB-API-FLEX"
         quantity: 1

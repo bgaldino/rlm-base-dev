@@ -14,11 +14,11 @@
 # a spread of quantities and discounts. Use `08-product-mix.yaml` instead if you
 # want exactly one SKU per invoice (one spec per product).
 defaults:
-  kind: sales_transaction        # PST chain; multi-line quotes drawn from a pool
+  kind: sales_txn_quote        # PST chain; multi-line quotes drawn from a pool
 
 scenarios:
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"          # Additional API Flex (100M) — $450
         quantity: [1, 5]            # small-to-medium volume

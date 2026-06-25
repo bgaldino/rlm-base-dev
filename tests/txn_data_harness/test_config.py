@@ -139,13 +139,13 @@ scenarios:
             tmp_path,
             """
 defaults:
-  target_stage: quote
+  target_stage: quote_placed
 scenarios:
-  - target_stage: post
+  - target_stage: invoice_posted
 """,
         )
-        spec = load_scenarios(_args(config=config, target_stage="order"))[0]
-        assert spec.target_stage == "post"
+        spec = load_scenarios(_args(config=config, target_stage="order_draft"))[0]
+        assert spec.target_stage == "invoice_posted"
 
 
 class TestProrationFields:

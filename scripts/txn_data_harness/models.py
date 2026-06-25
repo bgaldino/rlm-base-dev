@@ -20,12 +20,25 @@ from .config import (
 from .discovery import Account, InvoiceLineProduct, Product
 from .term import EndDateOverride, Term
 
-STAGES = ["opportunity", "quote", "order", "activate", "usage", "invoice", "post"]
+STAGES_QUOTE = [
+    "opportunity_created", "quote_placed", "order_draft",
+    "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
+]
+
+STAGES_ORDER = [
+    "opportunity_created", "order_draft", "order_activated",
+    "usage_upload", "invoice_draft", "invoice_posted",
+]
+
+# Backward-compat alias used by runner/cli_args until Phase 2 handler ownership.
+STAGES = STAGES_QUOTE
 
 # Re-export Term + EndDateOverride so external callers can import the value
 # objects from ``models`` without needing to know about the neutral term module.
 __all__ = [
     "STAGES",
+    "STAGES_QUOTE",
+    "STAGES_ORDER",
     "IMPLEMENTED_MAX_STAGE",
     "EndDateOverride",
     "Manifest",
@@ -41,7 +54,7 @@ __all__ = [
 ]
 
 # Full lifecycle implemented by the harness.
-IMPLEMENTED_MAX_STAGE = "post"
+IMPLEMENTED_MAX_STAGE = "invoice_posted"
 
 
 @dataclass
@@ -88,7 +101,7 @@ class Manifest:
     """
 
     run_id: str
-    kind: str = "sales_transaction"
+    kind: str = "sales_txn_quote"
     account_id: Optional[str] = None
     account_name: Optional[str] = None
     opportunity_id: Optional[str] = None

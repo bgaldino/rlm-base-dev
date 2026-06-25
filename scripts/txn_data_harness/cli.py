@@ -27,7 +27,7 @@ from .manifests import (
     write_manifest,
 )
 from .handlers import SCENARIO_HANDLERS
-from .models import STAGES, LineItem
+from .models import STAGES_QUOTE, LineItem
 from .report import build_batch_report, render_markdown
 from .runner import draw_lines
 from .steps import StepContext, execute_step
@@ -272,7 +272,7 @@ def _build_step_context(
     except ConfigError:
         default_lines = []
     lines = _lines_from_manifest(client, manifest) or default_lines
-    if not lines and args.to_stage not in {"invoice", "post"}:
+    if not lines and args.to_stage not in {"invoice_draft", "invoice_posted"}:
         raise LifecycleError(
             "step", "no manifest lines or config product lines to use"
         )
@@ -365,7 +365,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     add_connection_args(step)
     add_resume_args(step)
     step.add_argument("--manifest", required=True, help="Run id or manifest path.")
-    step.add_argument("--to-stage", required=True, choices=STAGES,
+    step.add_argument("--to-stage", required=True, choices=STAGES_QUOTE,
                       help="Run remaining steps through this stage.")
     step.set_defaults(func=_cmd_step)
 

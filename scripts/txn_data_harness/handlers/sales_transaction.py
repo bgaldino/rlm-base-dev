@@ -1,15 +1,16 @@
-"""Sales-transaction (PST) scenario handler.
+"""Sales-transaction (PST via Quote) scenario handler.
 
 Wraps today's PST parse/resolve/run logic into a handler so the
-``invoice_ingestion`` handler (PR 2+) has a peer. No behavioral change: each
+``invoice_ingestion`` handler has a peer. No behavioral change: each
 method delegates to the existing free function in ``runner.py``.
 
-The step graph is the canonical PST lifecycle:
+The step graph is the canonical PST-via-Quote lifecycle:
 
-    opportunity -> quote -> order -> activate -> usage -> invoice -> post
+    opportunity_created -> quote_placed -> order_draft -> order_activated
+    -> usage_upload -> invoice_draft -> invoice_posted
 
-with ``opportunity`` prepended only when ``with_opportunity=True`` or the
-target stage is ``opportunity`` itself.
+with ``opportunity_created`` prepended only when ``with_opportunity=True``
+or the target stage is ``opportunity_created`` itself.
 """
 
 from __future__ import annotations
@@ -22,16 +23,16 @@ from .. import runner
 from ..auth import SfRestClient
 from ..config import ScenarioSpec
 from ..discovery import Account, OrgContext
-from ..models import STAGES, Manifest, ResolvedSpec
+from ..models import STAGES_QUOTE, Manifest, ResolvedSpec
 from ..runner import draw_lines, draw_start_date
 
 
 # Canonical PST step graph keyed by target stage. Generated from the same
 # sequencing helper used by the runner so stage ordering has one source of
-# truth (``models.STAGES`` + ``runner.stage_sequence``).
+# truth (``models.STAGES_QUOTE`` + ``runner.stage_sequence``).
 STEP_GRAPH: dict[str, list[str]] = {
     stage: runner.stage_sequence(stage, with_opportunity=False)
-    for stage in STAGES
+    for stage in STAGES_QUOTE
 }
 
 
@@ -40,7 +41,7 @@ class SalesTransactionHandler:
     -> Invoice -> Post. Implements the ``ScenarioHandler`` protocol.
     """
 
-    kind: ClassVar[str] = "sales_transaction"
+    kind: ClassVar[str] = "sales_txn_quote"
 
     def effective_stage(self, target_stage: str, account: Account) -> str:
         return runner.effective_stage(target_stage, account)

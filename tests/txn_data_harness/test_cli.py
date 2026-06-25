@@ -45,7 +45,7 @@ def test_run_delegates_to_generate_without_dry_run(monkeypatch) -> None:
 
 def test_inspect_manifest_path_prints_summary(tmp_path, capsys) -> None:
     path = write_manifest(
-        Manifest(run_id="DEMO-1", account_name="Infinitech", reached_stage="quote"),
+        Manifest(run_id="DEMO-1", account_name="Infinitech", reached_stage="quote_placed"),
         manifest_dir=tmp_path,
     )
 
@@ -55,7 +55,7 @@ def test_inspect_manifest_path_prints_summary(tmp_path, capsys) -> None:
     payload = json.loads(capsys.readouterr().out)
     assert payload["run_id"] == "DEMO-1"
     assert payload["account"] == "Infinitech"
-    assert payload["reached_stage"] == "quote"
+    assert payload["reached_stage"] == "quote_placed"
 
 
 def test_inspect_latest_uses_newest_manifest(tmp_path, monkeypatch, capsys) -> None:
@@ -71,7 +71,7 @@ def test_inspect_latest_uses_newest_manifest(tmp_path, monkeypatch, capsys) -> N
 
 def test_inspect_default_prints_human_summary(tmp_path, capsys) -> None:
     path = write_manifest(
-        Manifest(run_id="DEMO-1", account_name="Infinitech", reached_stage="quote"),
+        Manifest(run_id="DEMO-1", account_name="Infinitech", reached_stage="quote_placed"),
         manifest_dir=tmp_path,
     )
 
@@ -80,7 +80,7 @@ def test_inspect_default_prints_human_summary(tmp_path, capsys) -> None:
     assert exit_code == 0
     out = capsys.readouterr().out
     assert "Run: DEMO-1" in out
-    assert "Reached stage: quote" in out
+    assert "Reached stage: quote_placed" in out
 
 
 def test_inspect_default_surfaces_order_link_warning(tmp_path, capsys) -> None:
@@ -88,7 +88,7 @@ def test_inspect_default_surfaces_order_link_warning(tmp_path, capsys) -> None:
         Manifest(
             run_id="DEMO-1",
             account_name="Infinitech",
-            reached_stage="post",
+            reached_stage="invoice_posted",
             invoice_order_link_status="failed",
             invoice_order_link_error="[post] request timed out",
         ),
@@ -104,7 +104,7 @@ def test_inspect_default_surfaces_order_link_warning(tmp_path, capsys) -> None:
 
 
 def test_step_reports_missing_account_without_org_calls(tmp_path, monkeypatch, capsys) -> None:
-    path = write_manifest(Manifest(run_id="DEMO-1", reached_stage="quote"), manifest_dir=tmp_path)
+    path = write_manifest(Manifest(run_id="DEMO-1", reached_stage="quote_placed"), manifest_dir=tmp_path)
     monkeypatch.setattr(
         "scripts.txn_data_harness.cli.SfRestClient.from_alias",
         lambda *_args, **_kwargs: object(),
@@ -114,7 +114,7 @@ def test_step_reports_missing_account_without_org_calls(tmp_path, monkeypatch, c
         "step",
         "--org", "sf-alias",
         "--manifest", str(path),
-        "--to-stage", "order",
+        "--to-stage", "order_draft",
     ])
 
     assert exit_code == 1
@@ -127,7 +127,7 @@ def test_step_rejects_run_only_flags(flag) -> None:
         "step",
         "--org", "sf-alias",
         "--manifest", "DEMO-1",
-        "--to-stage", "post",
+        "--to-stage", "invoice_posted",
         flag, "1",
     ]
 

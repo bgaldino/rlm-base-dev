@@ -13,7 +13,7 @@
 # implemented and live-verified. Keep this scenario at Draft.
 defaults:
   kind: invoice_ingestion        # standalone-billing path
-  target_stage: invoice          # Draft, not Posted
+  target_stage: invoice_draft    # Draft, not Posted
   invoice:
     should_calculate_tax: false
     tax_calculation_status: Pending

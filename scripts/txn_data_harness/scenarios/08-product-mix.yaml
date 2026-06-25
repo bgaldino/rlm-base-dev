@@ -14,25 +14,25 @@
 # others below are plausible — if any fails to place at volume, drop it or pin
 # a known-good SKU (a failing spec is isolated; it won't abort the others).
 defaults:
-  kind: sales_transaction        # PST chain to Posted invoices, varied SKUs
+  kind: sales_txn_quote        # PST chain to Posted invoices, varied SKUs
 
 scenarios:
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"          # Additional API Flex (100M)
         quantity: 1
     count: 10
 
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API"               # Additional API
         quantity: 5
     count: 10
 
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-LIC-CLOUD"         # Cloud License (Monthly)
         quantity: 3

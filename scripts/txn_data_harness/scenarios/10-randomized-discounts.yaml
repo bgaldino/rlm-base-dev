@@ -17,12 +17,12 @@
 # `discount` may sit on the scenario or on a `products:` entry (the per-product
 # value wins). Percent is 0..100; the range is [min, max] inclusive.
 defaults:
-  kind: sales_transaction        # PST chain; discounts flow through Quote -> Invoice
+  kind: sales_txn_quote        # PST chain; discounts flow through Quote -> Invoice
 
 scenarios:
   # Modest, everyday discounting.
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"
         quantity: 1
@@ -31,7 +31,7 @@ scenarios:
 
   # Aggressive end-of-quarter discounting on larger deals.
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"
         quantity: 10
@@ -40,7 +40,7 @@ scenarios:
 
   # A fixed 10% scenario-level discount (scalar form).
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     discount: 10
     products:
       - sku: "QB-API-FLEX"

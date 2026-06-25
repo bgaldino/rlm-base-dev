@@ -23,7 +23,7 @@
 #                    Account.Id directly so this works natively)
 defaults:
   kind: invoice_ingestion        # standalone-billing path
-  target_stage: post
+  target_stage: invoice_posted
   invoice:
     should_calculate_tax: false
     # Posted invoices REJECT taxCalculationStatus = Pending / Estimated

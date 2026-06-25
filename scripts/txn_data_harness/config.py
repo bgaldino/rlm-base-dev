@@ -43,33 +43,34 @@ _TERM_UNIT_ALIASES = {"Years": "Annual"}
 # years; this catches typos like `term: 360` (months mistakenly multiplied).
 _MAX_TERM_COUNT = 120
 
-# Default scenario kind. Each lifecycle (sales_transaction, invoice_ingestion,
+# Default scenario kind. Each lifecycle (sales_txn_quote, invoice_ingestion,
 # ...) is dispatched through ``handlers/__init__.py:SCENARIO_HANDLERS[kind]``
 # AFTER defaults merge -- the canonical ingestion scenario puts ``kind:`` in
 # its ``defaults:`` block, so reading ``raw_row.get("kind")`` would misroute.
-_DEFAULT_KIND = "sales_transaction"
+_DEFAULT_KIND = "sales_txn_quote"
 
 # Known scenario kinds. The handler registry is the source of truth; this
 # mirror exists so config validation can reject typos without importing the
 # handlers package (which transitively pulls auth/discovery).
-_VALID_KINDS = {"sales_transaction", "invoice_ingestion"}
+_VALID_KINDS = {"sales_txn_quote", "invoice_ingestion"}
 
 # Per-kind allowed target stages. Ingestion bypasses the PST chain, so only
 # the live-verified Draft stage is valid in supported configs. The Posted code
 # path remains internal Phase 2 scaffolding until InvoiceLineTax prerequisites
 # are implemented and live-verified.
 _KIND_VALID_STAGES: dict[str, set[str]] = {
-    "sales_transaction": {
-        "opportunity", "quote", "order", "activate", "usage", "invoice", "post",
+    "sales_txn_quote": {
+        "opportunity_created", "quote_placed", "order_draft",
+        "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
     },
-    "invoice_ingestion": {"invoice"},
+    "invoice_ingestion": {"invoice_draft"},
 }
 
 # Built-in defaults (lowest precedence). target_stage caps/resolution happen in
 # generate.py against the resolved account -- this is just the requested stage.
 _BUILTIN_DEFAULTS: dict[str, Any] = {
     "kind": _DEFAULT_KIND,
-    "target_stage": "post",
+    "target_stage": "invoice_posted",
     "with_opportunity": False,
     "opportunity_stage": None,
     "account": None,
@@ -80,7 +81,8 @@ _BUILTIN_DEFAULTS: dict[str, Any] = {
 }
 
 _VALID_STAGES = {
-    "opportunity", "quote", "order", "activate", "usage", "invoice", "post",
+    "opportunity_created", "quote_placed", "order_draft",
+    "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
 }
 
 # QuoteLineItem picklists (verified live against a Revenue Cloud R262 scratch
@@ -168,10 +170,9 @@ class ScenarioSpec:
     ``products`` is the line **pool** (always >= 1 entry); each transaction
     places a random non-empty subset of it (see :class:`ProductOption`).
 
-    ``kind`` is the scenario-handler discriminator (today: only
-    ``"sales_transaction"``; PR 2+ adds ``"invoice_ingestion"``). Carried
-    here so downstream code (manifest, dispatch, reports) can branch on
-    lifecycle without re-parsing config.
+    ``kind`` is the scenario-handler discriminator (``"sales_txn_quote"`` or
+    ``"invoice_ingestion"``). Carried here so downstream code (manifest,
+    dispatch, reports) can branch on lifecycle without re-parsing config.
     """
 
     account: Optional[str]
@@ -180,7 +181,7 @@ class ScenarioSpec:
     with_opportunity: bool
     opportunity_stage: Optional[str]
     count: int
-    kind: str = "sales_transaction"
+    kind: str = "sales_txn_quote"
     # Inclusive ``(lo, hi)`` range the quote's line StartDate is drawn from, per
     # transaction -- the knob for spreading quotes over time. ``None`` => the
     # lifecycle defaults each line StartDate to today. A single date is drawn once
@@ -782,7 +783,7 @@ def _coerce_target_stage(merged: dict[str, Any], kind: str, where: str) -> str:
     prerequisite is implemented and live-verified.
     """
     valid = _KIND_VALID_STAGES[kind]
-    default_stage = "post" if "post" in valid else next(iter(valid))
+    default_stage = "invoice_posted" if "invoice_posted" in valid else next(iter(valid))
     stage = merged.get("target_stage") or default_stage
     target_stage_explicit = merged.get(
         "_target_stage_explicit", "target_stage" in merged
@@ -795,7 +796,7 @@ def _coerce_target_stage(merged: dict[str, Any], kind: str, where: str) -> str:
         stage = default_stage
     if stage not in valid:
         hint = ""
-        if kind == "invoice_ingestion" and stage == "post":
+        if kind == "invoice_ingestion" and stage == "invoice_posted":
             hint = (
                 "; Posted ingestion is Phase 2 and requires InvoiceLineTax "
                 "support before it can be run"
@@ -1001,7 +1002,7 @@ def _coerce_invoice_ingestion_spec(
             continue
         raise ConfigError(
             f"{where}: '{key}' is not valid for kind 'invoice_ingestion' "
-            f"(belongs to kind 'sales_transaction')"
+            f"(belongs to kind 'sales_txn_quote')"
         )
     if merged.get("with_opportunity"):
         raise ConfigError(
@@ -1027,12 +1028,12 @@ def _coerce_invoice_ingestion_spec(
     # Phase 1 tax invariant -- defensive belt at parse time: on Posted target
     # the action enforces it too, but bouncing here avoids a confusing
     # lifecycle error far from the source line.
-    if stage == "post":
+    if stage == "invoice_posted":
         for i, ln in enumerate(invoice_lines):
             if ln.taxable:
                 raise ConfigError(
                     f"{where}.invoice_lines[{i}]: 'taxable: true' is not "
-                    f"allowed when target_stage is 'post' (Phase 1 invariant)"
+                    f"allowed when target_stage is 'invoice_posted' (Phase 1 invariant)"
                 )
 
     return InvoiceIngestionScenarioSpec(
@@ -1049,7 +1050,7 @@ def _coerce_invoice_ingestion_spec(
 # the kind has been validated against :data:`_VALID_KINDS`. Adding a new
 # kind = adding a coercer + registering it here + handlers/__init__.py.
 _KIND_COERCERS: dict[str, Any] = {
-    "sales_transaction": _coerce_sales_transaction_spec,
+    "sales_txn_quote": _coerce_sales_transaction_spec,
     "invoice_ingestion": _coerce_invoice_ingestion_spec,
 }
 
@@ -1066,8 +1067,10 @@ def _coerce_spec(merged: dict[str, Any], where: str):
     kind = merged.get("kind") or _DEFAULT_KIND
     if kind not in _VALID_KINDS:
         hint = ""
-        if kind == "transaction":
-            hint = "; use 'sales_transaction' for the PST chain"
+        if kind == "sales_transaction":
+            hint = "; renamed to 'sales_txn_quote' — delete and re-generate"
+        elif kind == "transaction":
+            hint = "; use 'sales_txn_quote' for the PST chain"
         raise ConfigError(
             f"{where}: invalid kind '{kind}' "
             f"(valid: {', '.join(sorted(_VALID_KINDS))}){hint}"

@@ -70,7 +70,7 @@ def run_opportunity(ctx: StepContext, manifest: Manifest) -> Manifest:
         manifest.opportunity_id = lifecycle.create_opportunity(
             ctx.client, ctx.account, ctx.org_context.opportunity_stage, ctx.run_id
         )
-        manifest.reached_stage = "opportunity"
+        manifest.reached_stage = "opportunity_created"
     return manifest
 
 
@@ -95,7 +95,7 @@ def run_quote(ctx: StepContext, manifest: Manifest) -> Manifest:
     # Re-sync line records if lifecycle stamped resolved_end_date
     if any(line.resolved_end_date for line in ctx.lines):
         manifest.lines = [line.to_manifest_record() for line in ctx.lines]
-    manifest.reached_stage = "quote"
+    manifest.reached_stage = "quote_placed"
     return manifest
 
 
@@ -105,7 +105,7 @@ def run_order(ctx: StepContext, manifest: Manifest) -> Manifest:
     manifest.order_id, manifest.order_number = lifecycle.create_order_from_quote(
         ctx.client, manifest.quote_id
     )
-    manifest.reached_stage = "order"
+    manifest.reached_stage = "order_draft"
     return manifest
 
 
@@ -139,7 +139,7 @@ def run_activate(ctx: StepContext, manifest: Manifest) -> Manifest:
     )
     manifest.asset_ids = poll_result.asset_ids
     manifest.asset_poll_status = poll_result.status
-    manifest.reached_stage = "activate"
+    manifest.reached_stage = "order_activated"
     return manifest
 
 
@@ -153,7 +153,7 @@ def run_usage(ctx: StepContext, manifest: Manifest) -> Manifest:
     """
     usage_lines = [l for l in ctx.lines if l.usage is not None]
     if not usage_lines:
-        manifest.reached_stage = "usage"
+        manifest.reached_stage = "usage_upload"
         return manifest
     if not manifest.asset_ids:
         raise LifecycleError(
@@ -188,7 +188,7 @@ def run_usage(ctx: StepContext, manifest: Manifest) -> Manifest:
             )
         )
     manifest.usage_journal_ids = journal_ids
-    manifest.reached_stage = "usage"
+    manifest.reached_stage = "usage_upload"
     return manifest
 
 
@@ -197,7 +197,7 @@ def run_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
         ctx.client, manifest.billing_schedule_ids, ctx.run_id, timeout=ctx.poll_timeout
     )
     lifecycle.tag_invoice(ctx.client, manifest.invoice_id, ctx.run_id)
-    manifest.reached_stage = "invoice"
+    manifest.reached_stage = "invoice_draft"
     return manifest
 
 
@@ -227,7 +227,7 @@ def run_post(ctx: StepContext, manifest: Manifest) -> Manifest:
     else:
         manifest.invoice_order_link_status = "skipped"
         manifest.invoice_order_link_error = None
-    manifest.reached_stage = "post"
+    manifest.reached_stage = "invoice_posted"
     return manifest
 
 
@@ -242,7 +242,7 @@ def run_ingest_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
     ``reached_stage=post``); it only does real work on a Draft-then-Posted
     resume.
     """
-    status = "Posted" if ctx.target_stage == "post" else "Draft"
+    status = "Posted" if ctx.target_stage == "invoice_posted" else "Draft"
     try:
         invoice_id, invoice_number, line_ids = lifecycle.ingest_invoice(
             ctx.client,
@@ -278,7 +278,7 @@ def run_ingest_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
         }
         for ln in ctx.invoice_lines
     ]
-    manifest.reached_stage = "post" if status == "Posted" else "invoice"
+    manifest.reached_stage = "invoice_posted" if status == "Posted" else "invoice_draft"
     return manifest
 
 
@@ -291,7 +291,7 @@ def run_promote_to_posted(ctx: StepContext, manifest: Manifest) -> Manifest:
     on the manifest's invoice id -- the same endpoint the PST flow uses, no
     new lifecycle call needed.
     """
-    if manifest.reached_stage == "post":
+    if manifest.reached_stage == "invoice_posted":
         return manifest
     if not manifest.invoice_id:
         raise LifecycleError(
@@ -301,55 +301,55 @@ def run_promote_to_posted(ctx: StepContext, manifest: Manifest) -> Manifest:
     manifest.invoice_number = lifecycle.post_invoice(
         ctx.client, manifest.invoice_id, ctx.run_id, timeout=ctx.poll_timeout
     )
-    manifest.reached_stage = "post"
+    manifest.reached_stage = "invoice_posted"
     return manifest
 
 
 STEP_REGISTRY: dict[str, StepSpec] = {
-    "opportunity": StepSpec(
-        name="opportunity",
+    "opportunity_created": StepSpec(
+        name="opportunity_created",
         requires=("account", "opportunity_stage"),
         outputs=("opportunity_id",),
         handler=run_opportunity,
     ),
-    "quote": StepSpec(
-        name="quote",
+    "quote_placed": StepSpec(
+        name="quote_placed",
         requires=("account", "lines", "pricebook_id"),
         outputs=("quote_id",),
         handler=run_quote,
     ),
-    "order": StepSpec(
-        name="order",
+    "order_draft": StepSpec(
+        name="order_draft",
         requires=("quote_id",),
         outputs=("order_id", "order_number"),
         handler=run_order,
     ),
-    "activate": StepSpec(
-        name="activate",
+    "order_activated": StepSpec(
+        name="order_activated",
         requires=("billing_ready_account", "order_id"),
         outputs=("billing_schedule_ids", "asset_ids"),
         handler=run_activate,
     ),
-    "usage": StepSpec(
-        name="usage",
+    "usage_upload": StepSpec(
+        name="usage_upload",
         requires=("asset_ids",),
         outputs=("usage_journal_ids",),
         handler=run_usage,
     ),
-    "invoice": StepSpec(
-        name="invoice",
+    "invoice_draft": StepSpec(
+        name="invoice_draft",
         requires=("billing_schedule_ids",),
         outputs=("invoice_id",),
         handler=run_invoice,
     ),
-    "post": StepSpec(
-        name="post",
+    "invoice_posted": StepSpec(
+        name="invoice_posted",
         requires=("invoice_id",),
         outputs=("invoice_number",),
         handler=run_post,
     ),
     # Invoice-ingestion steps. The ingestion handler's STEP_GRAPH wires them
-    # in -- the sales_transaction handler never references them.
+    # in -- the sales_txn_quote handler never references them.
     "ingest_invoice": StepSpec(
         name="ingest_invoice",
         requires=("account", "invoice_lines"),

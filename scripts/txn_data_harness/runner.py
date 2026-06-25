@@ -72,8 +72,8 @@ def effective_stage(target_stage: str, account: Account) -> str:
         stage = IMPLEMENTED_MAX_STAGE
     # Non-billing accounts can still create quotes/orders. Activation generates
     # billing artifacts, so cap before activation when BillingAccount is absent.
-    if not account.is_billing_ready and STAGES.index(stage) > STAGES.index("order"):
-        stage = "order"
+    if not account.is_billing_ready and STAGES.index(stage) > STAGES.index("order_draft"):
+        stage = "order_draft"
     return stage
 
 
@@ -310,11 +310,11 @@ def stage_sequence(target_stage: str, with_opportunity: bool) -> list[str]:
     """Return the ordered steps needed to reach ``target_stage``."""
     stop_at = STAGES.index(target_stage)
     steps: list[str] = []
-    if with_opportunity or target_stage == "opportunity":
-        steps.append("opportunity")
-    if stop_at == STAGES.index("opportunity"):
+    if with_opportunity or target_stage == "opportunity_created":
+        steps.append("opportunity_created")
+    if stop_at == STAGES.index("opportunity_created"):
         return steps
-    return steps + STAGES[STAGES.index("quote"): stop_at + 1]
+    return steps + STAGES[STAGES.index("quote_placed"): stop_at + 1]
 
 
 def remaining_steps(reached_stage: Optional[str], target_stage: str,
@@ -359,7 +359,7 @@ def run_scenario(
     start_date: Optional[date] = None,
     max_retries: int = DEFAULT_MAX_RETRIES,
     sleep: Callable[[float], None] = time.sleep,
-    kind: str = "sales_transaction",
+    kind: str = "sales_txn_quote",
 ) -> Manifest:
     """Drive one transaction through the requested lifecycle stages.
 

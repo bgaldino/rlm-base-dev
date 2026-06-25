@@ -427,13 +427,13 @@ def test_run_ingest_invoice_writes_draft_manifest(
 
     monkeypatch.setattr("scripts.txn_data_harness.steps.lifecycle.ingest_invoice", fake_ingest)
     manifest = run_ingest_invoice(
-        _ingest_ctx(fake_client, billable_account, target_stage="invoice"),
+        _ingest_ctx(fake_client, billable_account, target_stage="invoice_draft"),
         Manifest(run_id="DEMO-STEP", kind="invoice_ingestion"),
     )
     assert captured["status"] == "Draft"
     assert manifest.invoice_id == "1nvDRAFT"
     assert manifest.invoice_number is None
-    assert manifest.reached_stage == "invoice"
+    assert manifest.reached_stage == "invoice_draft"
     # Resolved line records land on the shared lines slot for PR 3.
     assert manifest.lines and manifest.lines[0]["sku"] == "QB-API-FLEX"
 
@@ -449,13 +449,13 @@ def test_run_ingest_invoice_writes_posted_manifest(
 
     monkeypatch.setattr("scripts.txn_data_harness.steps.lifecycle.ingest_invoice", fake_ingest)
     manifest = run_ingest_invoice(
-        _ingest_ctx(fake_client, billable_account, target_stage="post"),
+        _ingest_ctx(fake_client, billable_account, target_stage="invoice_posted"),
         Manifest(run_id="DEMO-STEP", kind="invoice_ingestion"),
     )
     assert captured["status"] == "Posted"
     assert manifest.invoice_id == "1nvPOST"
     assert manifest.invoice_number == "INV-0042"
-    assert manifest.reached_stage == "post"
+    assert manifest.reached_stage == "invoice_posted"
 
 
 def test_run_ingest_invoice_checkpoints_partial_invoice_id_on_tracker_failure(
@@ -471,7 +471,7 @@ def test_run_ingest_invoice_checkpoints_partial_invoice_id_on_tracker_failure(
         )
 
     monkeypatch.setattr("scripts.txn_data_harness.steps.lifecycle.ingest_invoice", fail_ingest)
-    ctx = _ingest_ctx(fake_client, billable_account, target_stage="invoice")
+    ctx = _ingest_ctx(fake_client, billable_account, target_stage="invoice_draft")
     ctx.checkpoint = checkpoints.append
     manifest = Manifest(run_id="DEMO-STEP", kind="invoice_ingestion")
 
@@ -491,13 +491,13 @@ def test_run_promote_to_posted_is_noop_when_already_posted(
 
     manifest = Manifest(
         run_id="DEMO", kind="invoice_ingestion",
-        invoice_id="1nvDONE", reached_stage="post",
+        invoice_id="1nvDONE", reached_stage="invoice_posted",
     )
     result = run_promote_to_posted(
-        _ingest_ctx(fake_client, billable_account, target_stage="post"),
+        _ingest_ctx(fake_client, billable_account, target_stage="invoice_posted"),
         manifest,
     )
-    assert result.reached_stage == "post"
+    assert result.reached_stage == "invoice_posted"
     assert result.invoice_id == "1nvDONE"
 
 
@@ -513,23 +513,23 @@ def test_run_promote_to_posted_posts_existing_draft_id(
     monkeypatch.setattr("scripts.txn_data_harness.steps.lifecycle.post_invoice", fake_post)
     manifest = Manifest(
         run_id="DEMO", kind="invoice_ingestion",
-        invoice_id="1nvDRAFT", reached_stage="invoice",
+        invoice_id="1nvDRAFT", reached_stage="invoice_draft",
     )
     result = run_promote_to_posted(
-        _ingest_ctx(fake_client, billable_account, target_stage="post"),
+        _ingest_ctx(fake_client, billable_account, target_stage="invoice_posted"),
         manifest,
     )
     # The existing Draft id is reused -- no second Invoice row.
     assert captured["invoice_id"] == "1nvDRAFT"
     assert result.invoice_id == "1nvDRAFT"
     assert result.invoice_number == "INV-PROMOTED"
-    assert result.reached_stage == "post"
+    assert result.reached_stage == "invoice_posted"
 
 
 def test_run_promote_to_posted_requires_invoice_id(fake_client, billable_account) -> None:
-    manifest = Manifest(run_id="DEMO", kind="invoice_ingestion", reached_stage="invoice")
+    manifest = Manifest(run_id="DEMO", kind="invoice_ingestion", reached_stage="invoice_draft")
     with pytest.raises(LifecycleError, match="invoice_id is required"):
         run_promote_to_posted(
-            _ingest_ctx(fake_client, billable_account, target_stage="post"),
+            _ingest_ctx(fake_client, billable_account, target_stage="invoice_posted"),
             manifest,
         )

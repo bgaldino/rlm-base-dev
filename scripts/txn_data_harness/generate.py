@@ -23,7 +23,7 @@ from .cli_args import add_generate_args
 from .config import ConfigError, load_scenarios
 from .discovery import DiscoveryError, OrgContext, discover
 from .handlers import SCENARIO_HANDLERS
-from .models import IMPLEMENTED_MAX_STAGE, STAGES, Manifest, ResolvedSpec
+from .models import IMPLEMENTED_MAX_STAGE, STAGES, STAGES_QUOTE, Manifest, ResolvedSpec
 from .report import build_batch_report, write_batch_report
 from .runner import current_run_id, run_batch
 
@@ -77,13 +77,13 @@ def _fmt_discount(discount: Optional[tuple[float, float]]) -> str:
 
 def _print_pst_spec(r: "ResolvedSpec", index: int, total: int) -> int:
     """Render one PST resolved spec; return its transaction count."""
-    starts_with_opp = r.spec.with_opportunity or r.effective_stage == "opportunity"
-    head = "opportunity" if starts_with_opp else "quote"
-    if STAGES.index(head) > STAGES.index(r.effective_stage):
+    starts_with_opp = r.spec.with_opportunity or r.effective_stage == "opportunity_created"
+    head = "opportunity_created" if starts_with_opp else "quote_placed"
+    if STAGES_QUOTE.index(head) > STAGES_QUOTE.index(r.effective_stage):
         head = r.effective_stage
-    stages_run = STAGES[STAGES.index(head): STAGES.index(r.effective_stage) + 1]
+    stages_run = STAGES_QUOTE[STAGES_QUOTE.index(head): STAGES_QUOTE.index(r.effective_stage) + 1]
     print(f"\n--- Spec {index + 1}/{total}  (x{r.spec.count}) ---")
-    print(f"  Kind         : sales_transaction")
+    print(f"  Kind         : sales_txn_quote")
     print(f"  Account      : {r.account.name} ({r.account.id})  "
           f"billing_ready={r.account.is_billing_ready}")
     pool = len(r.options)
@@ -115,8 +115,8 @@ def _print_invoice_ingestion_spec(r, index: int, total: int) -> int:
     always ``target_stage`` for ingestion -- no billing-ready cap applies.
     """
     spec = r.spec
-    target = r.effective_stage  # "invoice" (Draft) or "post" (Posted)
-    status = "Posted" if target == "post" else "Draft"
+    target = r.effective_stage  # "invoice_draft" (Draft) or "invoice_posted" (Posted)
+    status = "Posted" if target == "invoice_posted" else "Draft"
     print(f"\n--- Spec {index + 1}/{total}  (x{spec.count}) ---")
     print(f"  Kind         : invoice_ingestion ({status})")
     print(f"  Account      : {r.account.name} ({r.account.id})  "
@@ -148,7 +148,7 @@ def _print_invoice_ingestion_spec(r, index: int, total: int) -> int:
             bits.append(f"tax_calc_status={ov.tax_calculation_status}")
         print(f"  Invoice ov   : {', '.join(bits)}")
     steps = ["ingest_invoice"]
-    if target == "post":
+    if target == "invoice_posted":
         steps.append("promote_to_posted")
     print(f"  Steps        : {' → '.join(steps)}")
     return spec.count

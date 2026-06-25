@@ -8,8 +8,8 @@
 # / installed-base demos and for billing-schedule-ready (but not yet billed) data.
 # Activation does NOT need a BillingAccount, so any account works.
 defaults:
-  kind: sales_transaction        # PST chain (Quote -> Order -> Activate)
-  target_stage: activate
+  kind: sales_txn_quote        # PST chain (Quote -> Order -> Activate)
+  target_stage: order_activated
 
 scenarios:
   - account: "Infinitech"

@@ -24,10 +24,11 @@ from .models import Manifest
 # the order they're hit. ``(none)`` is appended so a manifest that never
 # checkpointed a stage still buckets cleanly.
 _STAGES_BY_KIND: dict[str, list[str]] = {
-    "sales_transaction": [
-        "opportunity", "quote", "order", "activate", "usage", "invoice", "post",
+    "sales_txn_quote": [
+        "opportunity_created", "quote_placed", "order_draft",
+        "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
     ],
-    "invoice_ingestion": ["invoice", "post"],
+    "invoice_ingestion": ["invoice_draft", "invoice_posted"],
 }
 
 # Errors are keyed by class + a truncated message so distinct transient blips
@@ -130,7 +131,7 @@ def build_batch_report(manifests: Iterable[Manifest], base_run_id: str = "") -> 
 
 
 _KIND_TITLES: dict[str, str] = {
-    "sales_transaction": "Sales transaction",
+    "sales_txn_quote": "Sales transaction (Quote)",
     "invoice_ingestion": "Invoice ingestion",
 }
 

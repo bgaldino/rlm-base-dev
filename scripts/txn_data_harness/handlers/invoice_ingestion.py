@@ -54,8 +54,8 @@ log = logging.getLogger("txn_data_harness.handlers.invoice_ingestion")
 # graph (in :mod:`scripts.txn_data_harness.models`) has no notion of
 # ``ingest_invoice`` or ``promote_to_posted``.
 STEP_GRAPH: dict[str, list[str]] = {
-    "invoice": ["ingest_invoice"],
-    "post":    ["ingest_invoice", "promote_to_posted"],
+    "invoice_draft":  ["ingest_invoice"],
+    "invoice_posted": ["ingest_invoice", "promote_to_posted"],
 }
 
 
@@ -64,9 +64,9 @@ STEP_GRAPH: dict[str, list[str]] = {
 # state (``reached_stage is None``); mapping each into a position lets the
 # resume logic stay tabular instead of a tangle of conditionals.
 _STAGE_INDEX = {
-    None: 0,        # nothing checkpointed yet
-    "invoice": 1,   # Draft persisted
-    "post": 2,      # Posted persisted (terminal)
+    None: 0,              # nothing checkpointed yet
+    "invoice_draft": 1,   # Draft persisted
+    "invoice_posted": 2,  # Posted persisted (terminal)
 }
 
 
@@ -316,7 +316,7 @@ class InvoiceIngestionHandler:
                 )
                 manifest.failure_class = classify_exception(exc)
                 retryable = (
-                    resolved.spec.target_stage == "invoice"
+                    resolved.spec.target_stage == "invoice_draft"
                     and manifest.failure_class == "transient"
                     and not manifest.invoice_id
                     and attempt <= max_retries

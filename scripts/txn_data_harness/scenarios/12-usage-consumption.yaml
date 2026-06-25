@@ -14,11 +14,11 @@
 # usage SKUs (QB-DB, QB-TOKENS-PACK, ...) and their ProductUsageResource
 # bindings exist in the org.
 defaults:
-  kind: sales_transaction        # PST chain to 'usage' (TransactionJournals written)
+  kind: sales_txn_quote        # PST chain to 'usage' (TransactionJournals written)
 
 scenarios:
   - account: "Infinitech"
-    target_stage: usage
+    target_stage: usage_upload
     products:
       - sku: "QB-DB"                    # grants UR-DATASTORAGE + UR-CPUTIME
         quantity: 1

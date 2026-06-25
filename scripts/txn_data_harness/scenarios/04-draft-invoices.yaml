@@ -8,8 +8,8 @@
 # or to leave deletable invoices behind — a Draft invoice CAN be deleted, a
 # Posted one cannot. Requires a billing-ready account (Infinitech).
 defaults:
-  kind: sales_transaction        # PST chain (Quote -> Order -> Activate -> Invoice; Draft)
-  target_stage: invoice
+  kind: sales_txn_quote        # PST chain (Quote -> Order -> Activate -> Invoice; Draft)
+  target_stage: invoice_draft
 
 scenarios:
   - account: "Infinitech"

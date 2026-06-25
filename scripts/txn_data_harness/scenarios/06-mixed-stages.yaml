@@ -8,12 +8,12 @@
 # in a real book of business (lots of quotes, fewer posted invoices). Each spec
 # is an independent shape, so concurrency overlaps their waits.
 defaults:
-  kind: sales_transaction        # PST chain (each spec picks its own target_stage)
+  kind: sales_txn_quote        # PST chain (each spec picks its own target_stage)
 
 scenarios:
   # Open pipeline (no billing) — the bulk.
   - account: "Infinitech"
-    target_stage: quote
+    target_stage: quote_placed
     with_opportunity: true
     products:
       - sku: "QB-API-FLEX"
@@ -22,7 +22,7 @@ scenarios:
 
   # Won deals, activated, not yet billed.
   - account: "Infinitech"
-    target_stage: activate
+    target_stage: order_activated
     products:
       - sku: "QB-API-FLEX"
         quantity: 1
@@ -30,7 +30,7 @@ scenarios:
 
   # Fully billed — posted invoices.
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"
         quantity: 1

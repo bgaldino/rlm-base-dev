@@ -35,7 +35,7 @@ def test_run_quote_updates_manifest(monkeypatch, fake_client, org_context, billa
     )
     manifest = run_quote(_ctx(fake_client, org_context, billable_account, term_product), Manifest(run_id="DEMO-1"))
     assert manifest.quote_id == "0Q0QUOTE"
-    assert manifest.reached_stage == "quote"
+    assert manifest.reached_stage == "quote_placed"
 
 
 def test_run_quote_checkpoints_partial_quote_id_on_failure(
@@ -44,7 +44,7 @@ def test_run_quote_checkpoints_partial_quote_id_on_failure(
     checkpoints = []
 
     def fail_place(*_args, **_kwargs):
-        raise LifecycleError("quote", "PST failed", record_id="0Q0PARTIAL")
+        raise LifecycleError("quote_placed", "PST failed", record_id="0Q0PARTIAL")
 
     monkeypatch.setattr(
         "scripts.txn_data_harness.steps.lifecycle.place_sales_transaction",
@@ -72,7 +72,7 @@ def test_execute_step_rejects_unknown_step(fake_client, org_context, billable_ac
 def test_order_step_requires_quote_id(fake_client, org_context, billable_account, term_product) -> None:
     with pytest.raises(LifecycleError, match="quote_id is required"):
         execute_step(
-            "order",
+            "order_draft",
             _ctx(fake_client, org_context, billable_account, term_product),
             Manifest(run_id="DEMO-1"),
         )
@@ -81,7 +81,7 @@ def test_order_step_requires_quote_id(fake_client, org_context, billable_account
 def test_activate_step_requires_order_id(fake_client, org_context, billable_account, term_product) -> None:
     with pytest.raises(LifecycleError, match="order_id is required"):
         execute_step(
-            "activate",
+            "order_activated",
             _ctx(fake_client, org_context, billable_account, term_product),
             Manifest(run_id="DEMO-1"),
         )
@@ -140,7 +140,7 @@ def test_run_activate_uses_order_item_count_for_bs_and_order_id_for_assets(
     assert captured == {"bs_expected": 7, "assets_order_id": "801ORDER"}
     assert len(manifest.billing_schedule_ids) == 7
     assert len(manifest.asset_ids) == 5
-    assert manifest.reached_stage == "activate"
+    assert manifest.reached_stage == "order_activated"
 
 
 def test_run_activate_does_not_mark_stage_when_billing_poll_fails(
@@ -167,14 +167,14 @@ def test_run_activate_does_not_mark_stage_when_billing_poll_fails(
         fail_billing_poll,
     )
 
-    manifest = Manifest(run_id="DEMO-1", reached_stage="order", order_id="801ORDER")
+    manifest = Manifest(run_id="DEMO-1", reached_stage="order_draft", order_id="801ORDER")
     with pytest.raises(LifecycleError, match="request timed out"):
         run_activate(
             _ctx(fake_client, org_context, billable_account, term_product),
             manifest,
         )
 
-    assert manifest.reached_stage == "order"
+    assert manifest.reached_stage == "order_draft"
     assert manifest.billing_schedule_ids == []
 
 
@@ -206,14 +206,14 @@ def test_run_activate_does_not_mark_stage_when_asset_poll_hard_fails(
         fail_asset_poll,
     )
 
-    manifest = Manifest(run_id="DEMO-1", reached_stage="order", order_id="801ORDER")
+    manifest = Manifest(run_id="DEMO-1", reached_stage="order_draft", order_id="801ORDER")
     with pytest.raises(LifecycleError, match="request timed out"):
         run_activate(
             _ctx(fake_client, org_context, billable_account, term_product),
             manifest,
         )
 
-    assert manifest.reached_stage == "order"
+    assert manifest.reached_stage == "order_draft"
     assert manifest.billing_schedule_ids == ["BS-1"]
     assert manifest.asset_ids == []
 
@@ -221,7 +221,7 @@ def test_run_activate_does_not_mark_stage_when_asset_poll_hard_fails(
 def test_post_step_requires_invoice_id(fake_client, org_context, billable_account, term_product) -> None:
     with pytest.raises(LifecycleError, match="invoice_id is required"):
         execute_step(
-            "post",
+            "invoice_posted",
             _ctx(fake_client, org_context, billable_account, term_product),
             Manifest(run_id="DEMO-1"),
         )
@@ -246,7 +246,7 @@ def test_run_post_records_optional_order_link_failure(
     manifest = Manifest(run_id="DEMO-1", invoice_id="INV-ID", order_id="801ORDER")
     run_post(_ctx(fake_client, org_context, billable_account, term_product), manifest)
 
-    assert manifest.reached_stage == "post"
+    assert manifest.reached_stage == "invoice_posted"
     assert manifest.invoice_number == "INV-1"
     assert manifest.invoice_order_link_status == "failed"
     assert "request timed out" in (manifest.invoice_order_link_error or "")

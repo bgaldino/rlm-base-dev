@@ -101,6 +101,10 @@ def load_manifest(run_id_or_path: str, manifest_dir: Path = MANIFEST_DIR) -> Man
             f"manifest {path} is missing required 'kind' discriminator; "
             f"regenerate it with the current harness"
         )
+    if data["kind"] == "sales_transaction":
+        raise ValueError(
+            "Manifest uses legacy kind 'sales_transaction'. Delete and re-generate."
+        )
     return Manifest.from_dict(data)
 
 

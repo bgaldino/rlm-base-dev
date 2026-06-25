@@ -45,7 +45,7 @@ def test_write_and_load_manifest_by_run_id(tmp_path) -> None:
     original = Manifest(
         run_id="DEMO-1",
         account_name="Infinitech",
-        reached_stage="quote",
+        reached_stage="quote_placed",
         quote_id="0Q0QUOTE",
     )
     path = write_manifest(original, manifest_dir=tmp_path)
@@ -81,7 +81,7 @@ def test_summarize_manifest_returns_compact_machine_shape() -> None:
     manifest = Manifest(
         run_id="DEMO-1",
         account_name="Infinitech",
-        reached_stage="post",
+        reached_stage="invoice_posted",
         order_id="801ORDER",
         invoice_id="INV-ID",
         invoice_number="INV-0001",

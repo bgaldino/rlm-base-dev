@@ -9,8 +9,8 @@
 # (~12s) async barriers, so run it with `--concurrency` to overlap those waits.
 # Start at 3 and raise gradually (higher is untested against API limits).
 defaults:
-  kind: sales_transaction        # PST chain (Opp -> Quote -> Order -> Activate -> Invoice -> Post)
-  target_stage: post
+  kind: sales_txn_quote        # PST chain (Opp -> Quote -> Order -> Activate -> Invoice -> Post)
+  target_stage: invoice_posted
   with_opportunity: true         # realistic: opp -> quote -> order -> invoice -> post
 
 scenarios:

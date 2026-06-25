@@ -56,7 +56,7 @@ def test_run_usage_skips_when_no_lines_opt_in(
     )
     manifest = Manifest(run_id="DEMO-1", asset_ids=["02iAAA"])
     out = run_usage(ctx, manifest)
-    assert out.reached_stage == "usage"
+    assert out.reached_stage == "usage_upload"
     assert out.usage_journal_ids == []
     assert fake_client.posts == []
     assert fake_client.queries == []
@@ -118,7 +118,7 @@ def test_run_usage_pairs_duplicate_skus_one_to_one(
     assert sorted(out.usage_journal_ids) == ["TJ-02iAAA", "TJ-02iBBB"]
     paired_assets = sorted(asset_id for asset_id, _ in calls)
     assert paired_assets == ["02iAAA", "02iBBB"]
-    assert out.reached_stage == "usage"
+    assert out.reached_stage == "usage_upload"
 
 
 def test_run_usage_populates_journal_ids_and_reached_stage(
@@ -139,4 +139,4 @@ def test_run_usage_populates_journal_ids_and_reached_stage(
     manifest = Manifest(run_id="DEMO-1", asset_ids=["02iAAA"])
     out = run_usage(ctx, manifest)
     assert out.usage_journal_ids == ["TJ-1", "TJ-2"]
-    assert out.reached_stage == "usage"
+    assert out.reached_stage == "usage_upload"

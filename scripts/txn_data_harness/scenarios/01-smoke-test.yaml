@@ -7,11 +7,11 @@
 # a single transaction driven all the way to a Posted invoice. Run this first
 # against a new org before any volume run. Expect ~30-45s (billing async waits).
 defaults:
-  kind: sales_transaction        # drives Quote -> Order -> Activate -> Invoice -> Post
+  kind: sales_txn_quote        # drives Quote -> Order -> Activate -> Invoice -> Post
 
 scenarios:
   - account: "Infinitech"        # the only QB account pre-wired with a BillingAccount
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"       # known-good, places cleanly (simple term product)
         quantity: 1

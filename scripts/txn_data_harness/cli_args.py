@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 
 from .auth import DEFAULT_API_VERSION
-from .models import STAGES
+from .models import STAGES_QUOTE
 from .runner import DEFAULT_MAX_RETRIES
 
 
@@ -41,7 +41,7 @@ def add_scenario_args(p: argparse.ArgumentParser, *, include_target_stage: bool 
     if include_target_stage:
         p.add_argument(
             "--target-stage",
-            choices=STAGES,
+            choices=STAGES_QUOTE,
             help="How far through the lifecycle to run.",
         )
     p.add_argument("--account", help="Pin the account by Name.")

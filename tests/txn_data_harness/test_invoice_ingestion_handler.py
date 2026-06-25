@@ -68,13 +68,13 @@ def test_invoice_ingestion_handler_registered() -> None:
 
 def test_step_graph_shape() -> None:
     # Draft ends after one step; Posted always runs both so the manifest
-    # transitions invoice -> post even when ingest_invoice already landed
+    # transitions invoice_draft -> invoice_posted even when ingest_invoice already landed
     # Posted (the no-op short-circuit lives in run_promote_to_posted).
-    assert STEP_GRAPH["invoice"] == ["ingest_invoice"]
-    assert STEP_GRAPH["post"] == ["ingest_invoice", "promote_to_posted"]
-    # The post edge remains internal Phase 2 scaffolding; supported config
+    assert STEP_GRAPH["invoice_draft"] == ["ingest_invoice"]
+    assert STEP_GRAPH["invoice_posted"] == ["ingest_invoice", "promote_to_posted"]
+    # The invoice_posted edge remains internal Phase 2 scaffolding; supported config
     # parsing is Draft-only until InvoiceLineTax prerequisites land.
-    assert set(STEP_GRAPH) == {"invoice", "post"}
+    assert set(STEP_GRAPH) == {"invoice_draft", "invoice_posted"}
 
 
 # ---------------------------------------------------------------------------
@@ -85,20 +85,20 @@ def test_step_graph_shape() -> None:
 @pytest.mark.parametrize(
     ("reached", "target", "expected"),
     [
-        # None -> invoice: fresh Draft run
-        (None, "invoice", ["ingest_invoice"]),
-        # None -> post: fresh Posted run lands both steps; the second is a
+        # None -> invoice_draft: fresh Draft run
+        (None, "invoice_draft", ["ingest_invoice"]),
+        # None -> invoice_posted: fresh Posted run lands both steps; the second is a
         # no-op fast path at runtime but appears in the plan so the
         # manifest stage transitions are uniform with the Draft+resume flow.
-        (None, "post", ["ingest_invoice", "promote_to_posted"]),
-        # invoice -> post: Draft already persisted; only post the existing id
-        ("invoice", "post", ["promote_to_posted"]),
-        # post -> post: terminal; nothing to do
-        ("post", "post", []),
-        # invoice -> invoice: already at target
-        ("invoice", "invoice", []),
-        # post -> invoice: stepping "back" is a no-op (never undo)
-        ("post", "invoice", []),
+        (None, "invoice_posted", ["ingest_invoice", "promote_to_posted"]),
+        # invoice_draft -> invoice_posted: Draft already persisted; only post the existing id
+        ("invoice_draft", "invoice_posted", ["promote_to_posted"]),
+        # invoice_posted -> invoice_posted: terminal; nothing to do
+        ("invoice_posted", "invoice_posted", []),
+        # invoice_draft -> invoice_draft: already at target
+        ("invoice_draft", "invoice_draft", []),
+        # invoice_posted -> invoice_draft: stepping "back" is a no-op (never undo)
+        ("invoice_posted", "invoice_draft", []),
     ],
 )
 def test_remaining_steps_resume_math(
@@ -113,7 +113,7 @@ def test_remaining_steps_ignores_with_opportunity_flag() -> None:
     protocol parity with the PST handler. A True value must NOT smuggle an
     opportunity step into the plan."""
     handler = InvoiceIngestionHandler()
-    assert handler.remaining_steps(None, "post", with_opportunity=True) == [
+    assert handler.remaining_steps(None, "invoice_posted", with_opportunity=True) == [
         "ingest_invoice",
         "promote_to_posted",
     ]
@@ -125,15 +125,15 @@ def test_remaining_steps_rejects_pst_target_stage() -> None:
     org write."""
     handler = InvoiceIngestionHandler()
     with pytest.raises(ValueError, match="not in STEP_GRAPH"):
-        handler.remaining_steps(None, "activate", with_opportunity=False)
+        handler.remaining_steps(None, "order_activated", with_opportunity=False)
 
 
 def test_remaining_steps_rejects_pst_reached_stage() -> None:
-    """Mirror: a PST-shaped ``reached_stage`` (e.g. 'order') on an ingestion
+    """Mirror: a PST-shaped ``reached_stage`` (e.g. 'order_draft') on an ingestion
     handler is a cross-kind manifest mismatch -- reject."""
     handler = InvoiceIngestionHandler()
     with pytest.raises(ValueError, match="not a valid ingestion stage"):
-        handler.remaining_steps("order", "post", with_opportunity=False)
+        handler.remaining_steps("order_draft", "invoice_posted", with_opportunity=False)
 
 
 # ---------------------------------------------------------------------------
@@ -142,12 +142,12 @@ def test_remaining_steps_rejects_pst_reached_stage() -> None:
 
 
 def test_effective_stage_does_not_cap_pipeline_account() -> None:
-    """PST caps non-billing accounts at ``order``; ingestion accepts them.
+    """PST caps non-billing accounts at ``order_draft``; ingestion accepts them.
     This is the whole reason the ingestion path exists."""
     handler = InvoiceIngestionHandler()
     pipeline = Account(id="001PIPE", name="Global Media", billing_account_id=None)
-    assert handler.effective_stage("post", pipeline) == "post"
-    assert handler.effective_stage("invoice", pipeline) == "invoice"
+    assert handler.effective_stage("invoice_posted", pipeline) == "invoice_posted"
+    assert handler.effective_stage("invoice_draft", pipeline) == "invoice_draft"
 
 
 # ---------------------------------------------------------------------------
@@ -157,7 +157,7 @@ def test_effective_stage_does_not_cap_pipeline_account() -> None:
 
 def _ingestion_spec(
     account: str = "Infinitech",
-    target: str = "invoice",
+    target: str = "invoice_draft",
     lines=None,
     invoice=None,
     count: int = 1,
@@ -221,7 +221,7 @@ def test_resolve_binds_account_and_lines(fake_client) -> None:
     assert isinstance(resolved, ResolvedInvoiceIngestionSpec)
     assert resolved.account.id == "001A"
     assert resolved.account.name == "Infinitech"
-    assert resolved.effective_stage == "invoice"
+    assert resolved.effective_stage == "invoice_draft"
     assert len(resolved.invoice_lines) == 1
     line = resolved.invoice_lines[0]
     assert isinstance(line.product, InvoiceLineProduct)
@@ -240,7 +240,7 @@ def test_resolve_falls_through_on_sku_miss(fake_client) -> None:
     fake_client.query_responses.append(_address_row("001A"))
     fake_client.query_responses.append([])  # SKU miss
     spec = _ingestion_spec(
-        target="invoice",
+        target="invoice_draft",
         lines=[InvoiceLineSpec(name="Custom Service", sku="MISSING-SKU",
                                quantity=1, unit_price=100.0)],
     )
@@ -313,7 +313,7 @@ def test_resolve_carries_invoice_overrides(fake_client) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _build_resolved(account: Account, target: str = "post") -> ResolvedInvoiceIngestionSpec:
+def _build_resolved(account: Account, target: str = "invoice_posted") -> ResolvedInvoiceIngestionSpec:
     return ResolvedInvoiceIngestionSpec(
         spec=InvoiceIngestionScenarioSpec(
             account=account.name,
@@ -331,7 +331,7 @@ def _build_resolved(account: Account, target: str = "post") -> ResolvedInvoiceIn
 
 
 def test_run_drafts_an_invoice(monkeypatch, fake_client, billable_account) -> None:
-    """A scenario targeting ``invoice`` runs ingest_invoice once and stops."""
+    """A scenario targeting ``invoice_draft`` runs ingest_invoice once and stops."""
     called: list[str] = []
 
     def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, timeout):
@@ -344,19 +344,19 @@ def test_run_drafts_an_invoice(monkeypatch, fake_client, billable_account) -> No
     # promote_to_posted shouldn't be called on a Draft target -- guard it.
     monkeypatch.setattr(
         "scripts.txn_data_harness.steps.lifecycle.post_invoice",
-        lambda *a, **kw: pytest.fail("post_invoice must not run for target=invoice"),
+        lambda *a, **kw: pytest.fail("post_invoice must not run for target=invoice_draft"),
     )
     manifest = InvoiceIngestionHandler().run(
         client=fake_client,
         ctx=_empty_org_context(),
         run_id="DEMO-DRAFT",
-        resolved=_build_resolved(billable_account, target="invoice"),
+        resolved=_build_resolved(billable_account, target="invoice_draft"),
         poll_timeout=1,
         max_retries=0,
     )
     assert called == ["Draft"]
     assert manifest.kind == "invoice_ingestion"
-    assert manifest.reached_stage == "invoice"
+    assert manifest.reached_stage == "invoice_draft"
     assert manifest.invoice_id == "1nvDRAFT"
     assert manifest.account_id == billable_account.id
     assert manifest.error is None
@@ -365,8 +365,8 @@ def test_run_drafts_an_invoice(monkeypatch, fake_client, billable_account) -> No
 def test_run_posts_an_invoice_with_short_circuit_promote(
     monkeypatch, fake_client, billable_account
 ) -> None:
-    """target=post: ingest_invoice lands Posted, promote_to_posted is a
-    no-op fast-path (manifest already at reached_stage='post')."""
+    """target=invoice_posted: ingest_invoice lands Posted, promote_to_posted is a
+    no-op fast-path (manifest already at reached_stage='invoice_posted')."""
     statuses: list[str] = []
 
     def fake_ingest(client, account, lines, run_id, *, status, invoice_spec, timeout):
@@ -384,12 +384,12 @@ def test_run_posts_an_invoice_with_short_circuit_promote(
         client=fake_client,
         ctx=_empty_org_context(),
         run_id="DEMO-POST",
-        resolved=_build_resolved(billable_account, target="post"),
+        resolved=_build_resolved(billable_account, target="invoice_posted"),
         poll_timeout=1,
         max_retries=0,
     )
     assert statuses == ["Posted"]
-    assert manifest.reached_stage == "post"
+    assert manifest.reached_stage == "invoice_posted"
     assert manifest.invoice_id == "1nvPOSTED"
     assert manifest.invoice_number == "INV-0001"
 
@@ -409,7 +409,7 @@ def test_run_records_lifecycle_error_without_raising(
         client=fake_client,
         ctx=_empty_org_context(),
         run_id="DEMO-FAIL",
-        resolved=_build_resolved(billable_account, target="invoice"),
+        resolved=_build_resolved(billable_account, target="invoice_draft"),
         poll_timeout=1,
         max_retries=0,
     )
@@ -443,7 +443,7 @@ def test_run_retries_transient_draft_ingest_without_observed_invoice(
         client=fake_client,
         ctx=_empty_org_context(),
         run_id="DEMO-DRAFT-RETRY",
-        resolved=_build_resolved(billable_account, target="invoice"),
+        resolved=_build_resolved(billable_account, target="invoice_draft"),
         poll_timeout=1,
         max_retries=1,
     )
@@ -452,7 +452,7 @@ def test_run_retries_transient_draft_ingest_without_observed_invoice(
     assert len(sleeps) == 1
     assert manifest.attempts == 2
     assert manifest.error is None
-    assert manifest.reached_stage == "invoice"
+    assert manifest.reached_stage == "invoice_draft"
     assert manifest.invoice_id == "1nvDRAFT"
 
 
@@ -481,7 +481,7 @@ def test_run_does_not_retry_ingest_after_invoice_id_is_observed(
         client=fake_client,
         ctx=_empty_org_context(),
         run_id="DEMO-DRAFT-PARTIAL",
-        resolved=_build_resolved(billable_account, target="invoice"),
+        resolved=_build_resolved(billable_account, target="invoice_draft"),
         poll_timeout=1,
         max_retries=2,
     )
@@ -515,7 +515,7 @@ def test_run_does_not_retry_transient_ingest_after_invoice_id_is_observed(
         client=fake_client,
         ctx=_empty_org_context(),
         run_id="DEMO-DRAFT-PARTIAL-TRANSIENT",
-        resolved=_build_resolved(billable_account, target="invoice"),
+        resolved=_build_resolved(billable_account, target="invoice_draft"),
         poll_timeout=1,
         max_retries=2,
     )
@@ -534,7 +534,7 @@ def test_run_does_not_retry_transient_ingest_after_invoice_id_is_observed(
 def test_coerce_spec_rejects_pst_only_field_on_ingestion() -> None:
     merged = {
         "kind": "invoice_ingestion",
-        "target_stage": "invoice",
+        "target_stage": "invoice_draft",
         "account": "Infinitech",
         "invoice_lines": [{"name": "API", "quantity": 1, "unit_price": 10}],
         # PST-only field
@@ -547,7 +547,7 @@ def test_coerce_spec_rejects_pst_only_field_on_ingestion() -> None:
 def test_coerce_spec_rejects_with_opportunity_on_ingestion() -> None:
     merged = {
         "kind": "invoice_ingestion",
-        "target_stage": "invoice",
+        "target_stage": "invoice_draft",
         "account": "Infinitech",
         "invoice_lines": [{"name": "API", "quantity": 1, "unit_price": 10}],
         "with_opportunity": True,
@@ -559,7 +559,7 @@ def test_coerce_spec_rejects_with_opportunity_on_ingestion() -> None:
 def test_coerce_spec_rejects_posted_ingestion_until_phase_2() -> None:
     merged = {
         "kind": "invoice_ingestion",
-        "target_stage": "post",
+        "target_stage": "invoice_posted",
         "account": "Infinitech",
         "invoice_lines": [
             {"name": "API", "quantity": 1, "unit_price": 10}
@@ -570,11 +570,11 @@ def test_coerce_spec_rejects_posted_ingestion_until_phase_2() -> None:
 
 
 def test_coerce_spec_rejects_ingestion_target_outside_kind_stages() -> None:
-    """``activate`` is PST-only; the kind-specific stage allowlist must
+    """``order_activated`` is PST-only; the kind-specific stage allowlist must
     catch it before construction."""
     merged = {
         "kind": "invoice_ingestion",
-        "target_stage": "activate",
+        "target_stage": "order_activated",
         "account": "Infinitech",
         "invoice_lines": [{"name": "API", "quantity": 1, "unit_price": 10}],
     }
@@ -585,7 +585,7 @@ def test_coerce_spec_rejects_ingestion_target_outside_kind_stages() -> None:
 def test_coerce_spec_returns_ingestion_dataclass() -> None:
     merged = {
         "kind": "invoice_ingestion",
-        "target_stage": "invoice",
+        "target_stage": "invoice_draft",
         "account": "Infinitech",
         "invoice_lines": [
             {"name": "API", "quantity": 1.0, "unit_price": 10.0},
@@ -593,11 +593,11 @@ def test_coerce_spec_returns_ingestion_dataclass() -> None:
     }
     spec = _coerce_spec(merged, "test")
     assert isinstance(spec, InvoiceIngestionScenarioSpec)
-    assert spec.target_stage == "invoice"
+    assert spec.target_stage == "invoice_draft"
     assert len(spec.invoice_lines) == 1
 
 
-def test_coerce_spec_ingestion_default_target_stage_is_invoice() -> None:
+def test_coerce_spec_ingestion_default_target_stage_is_invoice_draft() -> None:
     """A bare ``kind: invoice_ingestion`` defaults to Draft, the supported path."""
     merged = {
         "kind": "invoice_ingestion",
@@ -605,7 +605,7 @@ def test_coerce_spec_ingestion_default_target_stage_is_invoice() -> None:
         "invoice_lines": [{"name": "API", "quantity": 1, "unit_price": 10}],
     }
     spec = _coerce_spec(merged, "test")
-    assert spec.target_stage == "invoice"
+    assert spec.target_stage == "invoice_draft"
 
 
 # ---------------------------------------------------------------------------
@@ -633,7 +633,7 @@ class _FakeClientFactory:
 def test_cli_step_resumes_draft_to_posted(
     monkeypatch, tmp_path, fake_client, billable_account
 ) -> None:
-    """``cli step --to-stage post`` on a Draft ingestion manifest runs
+    """``cli step --to-stage invoice_posted`` on a Draft ingestion manifest runs
     only ``promote_to_posted`` (the resume math the test in
     ``remaining_steps`` pins is the same logic the CLI relies on)."""
     from scripts.txn_data_harness import manifests as manifests_mod
@@ -647,7 +647,7 @@ def test_cli_step_resumes_draft_to_posted(
         account_id=billable_account.id,
         account_name=billable_account.name,
         invoice_id="1nvDRAFT",
-        reached_stage="invoice",
+        reached_stage="invoice_draft",
     )
     manifests_mod.write_manifest(draft, manifest_dir=tmp_path)
 
@@ -694,7 +694,7 @@ def test_cli_step_resumes_draft_to_posted(
         product=None,
         opportunity_stage=None,
         with_opportunity=False,
-        to_stage="post",
+        to_stage="invoice_posted",
         poll_timeout=1,
         config=None,
         count=None,
@@ -722,10 +722,10 @@ def test_cli_step_resumes_draft_to_posted(
     assert rc == 0
     assert posted == {"invoice_id": "1nvDRAFT", "run_id": "DEMO-RESUME"}
 
-    # The final manifest write lands at reached_stage='post' with the assigned
+    # The final manifest write lands at reached_stage='invoice_posted' with the assigned
     # invoice number; the Draft id is reused, not regenerated.
     final = captured[-1]
-    assert final.reached_stage == "post"
+    assert final.reached_stage == "invoice_posted"
     assert final.invoice_number == "INV-PROMOTED"
     assert final.invoice_id == "1nvDRAFT"
 
@@ -733,7 +733,7 @@ def test_cli_step_resumes_draft_to_posted(
 def test_cli_step_rejects_pst_stage_against_ingestion_manifest(
     monkeypatch, tmp_path, fake_client, billable_account
 ) -> None:
-    """A user accidentally passing ``--to-stage activate`` against an
+    """A user accidentally passing ``--to-stage order_activated`` against an
     ingestion manifest must fail loudly (cross-kind step rejection)."""
     from scripts.txn_data_harness import manifests as manifests_mod
 
@@ -744,7 +744,7 @@ def test_cli_step_rejects_pst_stage_against_ingestion_manifest(
         account_id=billable_account.id,
         account_name=billable_account.name,
         invoice_id="1nvX",
-        reached_stage="invoice",
+        reached_stage="invoice_draft",
     )
     manifests_mod.write_manifest(draft, manifest_dir=tmp_path)
     monkeypatch.setattr(
@@ -766,7 +766,7 @@ def test_cli_step_rejects_pst_stage_against_ingestion_manifest(
         product=None,
         opportunity_stage=None,
         with_opportunity=False,
-        to_stage="activate",  # PST-only stage
+        to_stage="order_activated",  # PST-only stage
         poll_timeout=1,
         config=None,
         count=None,
@@ -816,7 +816,7 @@ def test_cli_step_unknown_manifest_kind_rejects(
         product=None,
         opportunity_stage=None,
         with_opportunity=False,
-        to_stage="post",
+        to_stage="invoice_posted",
         poll_timeout=1,
         config=None,
         count=None,

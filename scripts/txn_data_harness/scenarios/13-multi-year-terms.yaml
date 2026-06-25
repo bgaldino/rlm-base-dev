@@ -20,13 +20,13 @@
 # Prereqs: QB pricing dataset loaded so QB-API-FLEX (and any multi-PBE
 # SKUs you swap in) exist in the org.
 defaults:
-  kind: sales_transaction        # PST chain; per-line term exercises
+  kind: sales_txn_quote        # PST chain; per-line term exercises
 
 scenarios:
 
   # 1-year Annual deal -- a typical renewal-driver subscription.
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"
         quantity: 1
@@ -35,7 +35,7 @@ scenarios:
 
   # 3-year Annual deal -- exercises multi-year EndDate calculation.
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"
         quantity: 1
@@ -46,7 +46,7 @@ scenarios:
   # Useful when you want a friendly "give me 24 of whatever this product
   # is measured in" without re-declaring the unit.
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"
         quantity: 1
@@ -57,7 +57,7 @@ scenarios:
   # declared ``PricingTerm`` / ``PricingTermUnit`` from discovery. Catches
   # regressions where we'd accidentally start writing a hardcoded default.
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"
         quantity: 1
@@ -66,7 +66,7 @@ scenarios:
   # Mixed terms on one quote: a 12-month line and a 3-year Annual line
   # on the same order. Confirms term writes are per-line, not per-quote.
   - account: "Infinitech"
-    target_stage: post
+    target_stage: invoice_posted
     products:
       - sku: "QB-API-FLEX"
         quantity: 1
