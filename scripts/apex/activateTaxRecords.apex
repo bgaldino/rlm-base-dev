@@ -7,9 +7,17 @@ if (!taxTreatments.isEmpty()) {
 }
 
 Map<Id, Id> treatmentByPolicyId = new Map<Id, Id>();
-for (TaxTreatment tt : [SELECT Id, TaxPolicyId FROM TaxTreatment]) {
+for (TaxTreatment tt : [
+    SELECT Id, IsTaxable, TaxPolicyId
+    FROM TaxTreatment
+    WHERE TaxPolicyId != null
+    ORDER BY IsTaxable DESC, CreatedDate ASC, Id ASC
+]) {
     if (tt.TaxPolicyId != null) {
-        treatmentByPolicyId.put(tt.TaxPolicyId, tt.Id);
+        // Keep the first row per policy from the deterministic order above.
+        if (!treatmentByPolicyId.containsKey(tt.TaxPolicyId)) {
+            treatmentByPolicyId.put(tt.TaxPolicyId, tt.Id);
+        }
     }
 }
 

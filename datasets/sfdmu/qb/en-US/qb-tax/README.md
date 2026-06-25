@@ -60,6 +60,7 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 | 2 | TaxPolicy    | Update    | `Name`                             | 1       |
 
 Pass 2 activates TaxTreatment (sets `Status`) and sets `DefaultTaxTreatmentId` on TaxPolicy.
+The additional `Non Taxable Tax Treatment` row is currently seeded for downstream/manual scenarios and is not auto-routed by this plan (all Product2 assignments still target `Default Tax Policy`).
 
 ## Apex Scripts
 
@@ -78,6 +79,7 @@ Activates tax records in dependency order:
 2. TaxPolicy: Sets all non-Active records to `Status = 'Active'`
 
 The script is idempotent — queries filter on `Status != 'Active'`.
+When multiple treatments share a policy, the script now uses a deterministic fallback order to pick the first treatment if `DefaultTaxTreatmentId` is missing.
 
 ## Configuration
 
@@ -144,7 +146,7 @@ qb-tax/
 
 ## Idempotency
 
-Pass 1 uses `skipExistingRecords: true` on TaxTreatment and TaxPolicy, so re-runs will skip existing records. Product2 Update will re-apply the same `TaxPolicyId`. Pass 2 updates Status fields, which should be idempotent (setting Active on already-Active records).
+Pass 1 uses `skipExistingRecords: true` on TaxTreatment and TaxPolicy, so re-runs will skip existing records. Product2 Update will re-apply the same `TaxPolicyId`. Pass 2 updates Status fields, which should be idempotent (setting Active on already-Active records). If a policy is missing `DefaultTaxTreatmentId`, the activation Apex fallback now selects a treatment deterministically.
 
 **Not yet validated** — idempotency testing against a 260 org is pending.
 
