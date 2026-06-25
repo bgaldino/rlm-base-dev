@@ -39,7 +39,7 @@
       }
     },
     {
-      "name": "FacilitiesandnotAmed",
+      "name": "FacilitiesandnotAmend",
       "description": "",
       "stepType": "AdvancedListFilter",
       "resultIncluded": false,
