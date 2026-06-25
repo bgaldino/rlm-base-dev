@@ -7,8 +7,8 @@
     "test": "sfdx-lwc-jest",
     "test:watch": "sfdx-lwc-jest --watch",
     "test:coverage": "sfdx-lwc-jest --coverage",
-    "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
-    "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
+    "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,yaml,yml}\"",
+    "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,yaml,yml}\"",
     "lint": "eslint \"force-app/**/lwc/**/*.js\" \"unpackaged/**/lwc/**/*.js\"",
     "lint:fix": "eslint \"force-app/**/lwc/**/*.js\" \"unpackaged/**/lwc/**/*.js\" --fix"
   },
