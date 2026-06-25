@@ -14,7 +14,7 @@ from datetime import date
 
 import pytest
 
-from scripts.txn_data_harness.discovery import Account, InvoiceLineProduct
+from scripts.txn_data_harness.discovery import Account, InvoiceLineProduct, PostalAddress
 from scripts.txn_data_harness.lifecycle import (
     LifecycleError,
     ingest_invoice,
@@ -97,39 +97,67 @@ def test_ingest_invoice_draft_body_shape(fake_client, billable_account) -> None:
     assert inv["taxCalculationStatus"] == "Pending"
     assert inv["correlationId"] == "DEMO-INGEST"
 
-    # Composite graph node 0 is the Invoice POST.
+    # Typed graph: node 0 is the Invoice. Per the dev guide
+    # (docs/salesforce/262/dev-guide/articles/connect_requests_invoice_ingestion_input.htm.md),
+    # each record carries `record: {attributes: {type, method, ...}, ...fields}`,
+    # NOT the generic Composite Graph subrequest shape (`{url, method, body}`).
     records = inv["graph"]["records"]
     assert records[0]["referenceId"] == "refInvoice"
-    assert records[0]["method"] == "POST"
-    assert records[0]["url"].endswith("/sobjects/Invoice")
-    invoice_body = records[0]["body"]
+    assert records[0]["record"]["attributes"] == {"type": "Invoice", "method": "POST"}
+    invoice_record = records[0]["record"]
     # Account.Id is the FK target -- NOT BillingAccount.Id.
-    assert invoice_body["billingAccountId"] == "001BILLABLE"
-    assert invoice_body["uniqueIdentifier"] == "DEMO-INGEST"
-    assert invoice_body["status"] == "Draft"
+    assert invoice_record["billingAccountId"] == "001BILLABLE"
+    # BillToContactId is Required by the ingest API; live verified.
+    assert invoice_record["billToContactId"] == "003CONTACT"
+    assert invoice_record["uniqueIdentifier"] == "DEMO-INGEST"
+    assert invoice_record["status"] == "Draft"
     # Drafts do NOT carry a postedDate.
-    assert "postedDate" not in invoice_body
+    assert "postedDate" not in invoice_record
+
+    # InvoiceAddressGroup records (slots 1+2). billingAddressId /
+    # shippingAddressId are both Required on each InvoiceLine; the harness
+    # materialises one of each from the account's billing/shipping address
+    # and the line references them via @{ref...}.id.
+    billing_addr = records[1]
+    shipping_addr = records[2]
+    assert billing_addr["referenceId"] == "refBillingAddress"
+    assert billing_addr["record"]["attributes"] == {
+        "type": "InvoiceAddressGroup", "method": "POST",
+    }
+    assert billing_addr["record"]["invoiceId"] == "@{refInvoice.id}"
+    assert billing_addr["record"]["street"] == "1 Market St"
+    assert shipping_addr["referenceId"] == "refShippingAddress"
+    assert shipping_addr["record"]["attributes"]["type"] == "InvoiceAddressGroup"
 
     # Lines: cross-ref invoiceId via @{refInvoice.id}; chargeAmount derives
     # from qty * unitPrice when not explicitly supplied; product2Id is
     # attached only when product is bound.
-    line_rec1 = records[1]["body"]
+    line_rec1 = records[3]["record"]
+    assert line_rec1["attributes"] == {"type": "InvoiceLine", "method": "POST"}
     assert line_rec1["invoiceId"] == "@{refInvoice.id}"
     assert line_rec1["product2Id"] == "01tFLEX"
     assert line_rec1["quantity"] == 10
     assert line_rec1["unitPrice"] == 25.0
     assert line_rec1["chargeAmount"] == 250.0
-    assert line_rec1["taxable"] is False  # Phase 1 invariant
+    # billingAddressId / shippingAddressId point at the address graph records.
+    assert line_rec1["billingAddressId"] == "@{refBillingAddress.id}"
+    assert line_rec1["shippingAddressId"] == "@{refShippingAddress.id}"
+    # Phase 1 invariant is expressed by NOT emitting InvoiceLineTax records.
+    # `taxable` is not a real column on InvoiceLine -- live calls reject it
+    # with INVALID_FIELD, so the payload omits it entirely.
+    assert "taxable" not in line_rec1
 
-    line_rec2 = records[2]["body"]
+    line_rec2 = records[4]["record"]
     assert "product2Id" not in line_rec2  # no product binding
     assert line_rec2["description"] == "Onboarding fee"
-    assert line_rec2["lineStartDate"] == "2026-01-01"
-    assert line_rec2["lineEndDate"] == "2026-12-31"
+    # The ingest API uses invoiceLineStartDate/invoiceLineEndDate, NOT
+    # lineStartDate/lineEndDate -- pinned against the dev guide example.
+    assert line_rec2["invoiceLineStartDate"] == "2026-01-01"
+    assert line_rec2["invoiceLineEndDate"] == "2026-12-31"
 
     # No InvoiceLineTax records ever in Phase 1.
     assert not any(
-        r.get("url", "").endswith("/sobjects/InvoiceLineTax") for r in records
+        r["record"]["attributes"].get("type") == "InvoiceLineTax" for r in records
     )
 
 
@@ -148,10 +176,17 @@ def test_ingest_invoice_posted_defaults_posted_date(fake_client, billable_accoun
     assert invoice_id == "1nvPOSTED"
     assert number == "INV-0001"
 
-    invoice_body = fake_client.posts[0][1]["invoices"][0]["graph"]["records"][0]["body"]
-    assert invoice_body["status"] == "Posted"
+    invoice_record = (
+        fake_client.posts[0][1]["invoices"][0]["graph"]["records"][0]["record"]
+    )
+    assert invoice_record["status"] == "Posted"
     # postedDate is defaulted to today for Posted invoices.
-    assert invoice_body["postedDate"] == date.today().isoformat()
+    assert invoice_record["postedDate"] == date.today().isoformat()
+    # invoiceNumber is Required on Posted (verified live); defaults to run_id.
+    assert invoice_record["invoiceNumber"] == "DEMO-POST"
+    # Posted invoices default taxCalculationStatus to "Posted" (live API
+    # rejects Pending/Estimated for Posted ingestion).
+    assert fake_client.posts[0][1]["invoices"][0]["taxCalculationStatus"] == "Posted"
 
 
 def test_ingest_invoice_respects_overrides(fake_client, billable_account) -> None:
@@ -177,12 +212,12 @@ def test_ingest_invoice_respects_overrides(fake_client, billable_account) -> Non
     )
     inv = fake_client.posts[0][1]["invoices"][0]
     assert inv["taxCalculationStatus"] == "Estimated"
-    invoice_body = inv["graph"]["records"][0]["body"]
-    assert invoice_body["invoiceDate"] == "2026-03-01"
-    assert invoice_body["dueDate"] == "2026-03-31"
-    assert invoice_body["postedDate"] == "2026-03-05"
-    assert invoice_body["currencyIsoCode"] == "USD"
-    assert invoice_body["description"] == "Q1 ingest test"
+    invoice_record = inv["graph"]["records"][0]["record"]
+    assert invoice_record["invoiceDate"] == "2026-03-01"
+    assert invoice_record["dueDate"] == "2026-03-31"
+    assert invoice_record["postedDate"] == "2026-03-05"
+    assert invoice_record["currencyIsoCode"] == "USD"
+    assert invoice_record["description"] == "Q1 ingest test"
 
 
 def test_ingest_invoice_rejects_invalid_status(fake_client, billable_account) -> None:
@@ -275,7 +310,18 @@ def test_ingest_invoice_works_for_non_billing_ready_account(fake_client) -> None
     """The signature win of the ingestion path: Global Media etc. ingest fine
     even without a BillingAccount row. Verify ``billingAccountId`` resolves
     to ``Account.id``, not the (None) ``billing_account_id``."""
-    pipeline_account = Account(id="001PIPE", name="Global Media", billing_account_id=None)
+    addr = PostalAddress(
+        street="100 Pipe Way", city="SF", state="CA",
+        postal_code="94104", country="US",
+    )
+    pipeline_account = Account(
+        id="001PIPE",
+        name="Global Media",
+        billing_account_id=None,
+        bill_to_contact_id="003PIPECON",
+        billing_address=addr,
+        shipping_address=addr,
+    )
     fake_client.post_responses.append({
         "invoices": [{"invoiceId": "1nvPIPE", "success": True, "statusURL": "/sURL"}]
     })
@@ -284,10 +330,60 @@ def test_ingest_invoice_works_for_non_billing_ready_account(fake_client) -> None
     fake_client.query_responses.append([])
 
     ingest_invoice(fake_client, pipeline_account, _basic_lines(), "DEMO-PIPE")
-    invoice_body = (
-        fake_client.posts[0][1]["invoices"][0]["graph"]["records"][0]["body"]
+    invoice_record = (
+        fake_client.posts[0][1]["invoices"][0]["graph"]["records"][0]["record"]
     )
-    assert invoice_body["billingAccountId"] == "001PIPE"
+    assert invoice_record["billingAccountId"] == "001PIPE"
+
+
+def test_ingest_invoice_rejects_account_without_contact(fake_client) -> None:
+    """The ingest API marks ``BillToContactId`` Required and rejects payloads
+    that omit it (INVALID_API_INPUT, live verified 2026-06-25). Surface the
+    missing-Contact case as a clear local error rather than letting the API
+    return its generic rejection on every transaction in the batch."""
+    addr = PostalAddress(
+        street="1", city="SF", state="CA", postal_code="94104", country="US",
+    )
+    no_contact = Account(
+        id="001NOCON",
+        name="No Contact Co",
+        billing_account_id=None,
+        bill_to_contact_id=None,
+        billing_address=addr,
+        shipping_address=addr,
+    )
+    with pytest.raises(LifecycleError, match="BillToContactId"):
+        ingest_invoice(fake_client, no_contact, _basic_lines(), "DEMO-NOCON")
+    # Bail before the POST -- no API call should have been issued.
+    assert fake_client.posts == []
+
+
+def test_ingest_invoice_rejects_account_with_partial_billing_address(
+    fake_client, billable_account
+) -> None:
+    """``InvoiceLine.billingAddressId`` / ``shippingAddressId`` are Required
+    by the ingest API (verified live 2026-06-25). An Account with a partial
+    billing address (no postal code, no state, etc.) cannot satisfy the
+    InvoiceAddressGroup graph record's Required fields. Surface that as a
+    clear local error rather than letting the org reject the payload."""
+    partial = PostalAddress(
+        street="1 Market St", city="SF", state="CA",
+        postal_code=None, country="US",
+    )
+    full = PostalAddress(
+        street="1 Market St", city="SF", state="CA",
+        postal_code="94104", country="US",
+    )
+    account = Account(
+        id="001PART",
+        name="Partial Addr Co",
+        bill_to_contact_id="003C",
+        billing_address=partial,
+        shipping_address=full,
+    )
+    with pytest.raises(LifecycleError, match="BillingAddress"):
+        ingest_invoice(fake_client, account, _basic_lines(), "DEMO-PART")
+    assert fake_client.posts == []
 
 
 # ---------------------------------------------------------------------------

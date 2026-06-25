@@ -69,31 +69,69 @@ def test_discover_any_accounts_stitches_billing_account_id(fake_client) -> None:
     # 2nd query: BillingAccount rows keyed by AccountId. 001A has one, 001B
     # does not (mirrors the pipeline-only Account case).
     fake_client.query_responses.append([{"Id": "BA-1", "AccountId": "001A"}])
+    # 3rd query: default Contact lookup (required for the ingestion path's
+    # ``BillToContactId``). 001A has a Contact, 001B does not.
+    fake_client.query_responses.append([{"Id": "003C-1", "AccountId": "001A"}])
+    # 4th query: CurrencyIsoCode probe (multi-currency orgs need
+    # ``Invoice.currencyIsoCode``). 001A has USD; 001B has none in the row.
+    fake_client.query_responses.append([{"Id": "001A", "CurrencyIsoCode": "USD"}])
+    # 5th query: address lookup (Billing + Shipping for both accounts). 001A
+    # has a complete address; 001B has none -- discovery still emits the
+    # account, the ingest path raises later when it sees the missing fields.
+    fake_client.query_responses.append([
+        {
+            "Id": "001A",
+            "BillingStreet": "1 Market", "BillingCity": "SF", "BillingState": "CA",
+            "BillingPostalCode": "94104", "BillingCountry": "US",
+            "ShippingStreet": "1 Market", "ShippingCity": "SF", "ShippingState": "CA",
+            "ShippingPostalCode": "94104", "ShippingCountry": "US",
+        },
+    ])
 
     accounts = discover_any_accounts(fake_client, limit=25)
 
     assert [a.id for a in accounts] == ["001A", "001B"]
     assert accounts[0].name == "Infinitech"
     assert accounts[0].billing_account_id == "BA-1"
+    assert accounts[0].bill_to_contact_id == "003C-1"
+    assert accounts[0].currency_iso_code == "USD"
+    assert accounts[0].billing_address is not None
+    assert accounts[0].billing_address.is_complete
+    assert accounts[0].shipping_address is not None
     # No BillingAccount row -> billing_account_id stays None; the ingestion
     # path uses Account.Id for Invoice.BillingAccountId anyway.
     assert accounts[1].billing_account_id is None
+    # No Contact -> bill_to_contact_id stays None; ingestion will surface a
+    # clear LifecycleError at the ingest step rather than silently fail.
+    assert accounts[1].bill_to_contact_id is None
+    assert accounts[1].currency_iso_code is None
+    # No address row for 001B in the stubbed response -> stays None; ingest
+    # raises a clear error rather than letting the org reject the payload.
+    assert accounts[1].billing_address is None
+    assert accounts[1].shipping_address is None
 
-    # Two SOQL hits: FROM Account, then FROM BillingAccount WHERE AccountId IN (...).
-    assert len(fake_client.queries) == 2
+    # Five SOQL hits: FROM Account, FROM BillingAccount, FROM Contact,
+    # CurrencyIsoCode probe, and the address lookup.
+    assert len(fake_client.queries) == 5
     assert " FROM Account " in fake_client.queries[0]
     assert "FROM BillingAccount" in fake_client.queries[1]
     assert "AccountId IN" in fake_client.queries[1]
     assert "'001A'" in fake_client.queries[1]
     assert "'001B'" in fake_client.queries[1]
+    assert "FROM Contact" in fake_client.queries[2]
+    assert "AccountId IN" in fake_client.queries[2]
+    assert "CurrencyIsoCode" in fake_client.queries[3]
+    assert "BillingStreet" in fake_client.queries[4]
+    assert "ShippingStreet" in fake_client.queries[4]
 
 
 def test_discover_any_accounts_empty_skips_second_query(fake_client) -> None:
     fake_client.query_responses.append([])
     accounts = discover_any_accounts(fake_client, limit=5)
     assert accounts == []
-    # Empty Account result means no AccountIds to filter on -- skip the second
-    # query so we don't ship an empty IN-clause to SOQL.
+    # Empty Account result means no AccountIds to filter on -- skip the
+    # BillingAccount + Contact lookups so we don't ship empty IN-clauses to
+    # SOQL.
     assert len(fake_client.queries) == 1
 
 

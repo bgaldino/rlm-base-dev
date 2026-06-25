@@ -25,7 +25,13 @@ defaults:
   target_stage: post
   invoice:
     should_calculate_tax: false
-    tax_calculation_status: Pending
+    # Posted invoices REJECT taxCalculationStatus = Pending / Estimated
+    # (verified live 2026-06-25 on rlm-base__jun17_1: the ingest API returns
+    # "You can't specify a posted invoice with the taxCalculationStatus as
+    # estimated. Specify posted as the taxCalculationStatus."). The harness
+    # defaults Posted scenarios to "Posted" automatically; we set it
+    # explicitly here so the YAML is self-documenting.
+    tax_calculation_status: Posted
 
 scenarios:
   - account: "Infinitech"

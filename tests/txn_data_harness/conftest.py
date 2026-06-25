@@ -7,21 +7,61 @@ from pathlib import Path
 
 import pytest
 
-from scripts.txn_data_harness.discovery import Account, OrgContext, Product
+from scripts.txn_data_harness.discovery import Account, OrgContext, PostalAddress, Product
+
+
+_DEMO_ADDRESS = PostalAddress(
+    street="1 Market St",
+    city="San Francisco",
+    state="CA",
+    postal_code="94104",
+    country="US",
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 
+@pytest.fixture(autouse=True)
+def _reset_currency_probe_cache():
+    """Reset the module-level multi-currency cache between tests.
+
+    ``discovery._MULTI_CURRENCY`` is a process-wide one-shot: True if the org
+    exposes ``Account.CurrencyIsoCode``, False if SOQL returns INVALID_FIELD,
+    None until probed. Tests run against a FakeClient with hand-stubbed
+    responses, so the cache state from one test would otherwise leak into
+    the next and either swallow a stubbed response (cache=True) or skip a
+    query a test expected (cache=False).
+    """
+    from scripts.txn_data_harness import discovery as _discovery
+    _discovery._MULTI_CURRENCY = None
+    yield
+    _discovery._MULTI_CURRENCY = None
+
+
 @pytest.fixture
 def billable_account() -> Account:
-    return Account(id="001BILLABLE", name="Infinitech", billing_account_id="BA-1")
+    return Account(
+        id="001BILLABLE",
+        name="Infinitech",
+        billing_account_id="BA-1",
+        bill_to_contact_id="003CONTACT",
+        billing_address=_DEMO_ADDRESS,
+        shipping_address=_DEMO_ADDRESS,
+    )
 
 
 @pytest.fixture
 def pipeline_account() -> Account:
-    return Account(id="001PIPE", name="Global Media", billing_account_id=None)
+    return Account(
+        id="001PIPE",
+        name="Global Media",
+        billing_account_id=None,
+        bill_to_contact_id="003PIPECON",
+        billing_address=_DEMO_ADDRESS,
+        shipping_address=_DEMO_ADDRESS,
+    )
 
 
 @pytest.fixture

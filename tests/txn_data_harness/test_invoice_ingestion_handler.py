@@ -178,6 +178,16 @@ def _ingestion_spec(
     )
 
 
+def _address_row(account_id: str) -> list[dict]:
+    return [{
+        "Id": account_id,
+        "BillingStreet": "1 Market St", "BillingCity": "SF", "BillingState": "CA",
+        "BillingPostalCode": "94104", "BillingCountry": "US",
+        "ShippingStreet": "1 Market St", "ShippingCity": "SF", "ShippingState": "CA",
+        "ShippingPostalCode": "94104", "ShippingCountry": "US",
+    }]
+
+
 def _empty_org_context() -> OrgContext:
     return OrgContext(
         pricebook_id="pb",
@@ -191,9 +201,15 @@ def _empty_org_context() -> OrgContext:
 
 
 def test_resolve_binds_account_and_lines(fake_client) -> None:
-    # resolve_account: account row + BillingAccount lookup
+    # resolve_account: account row + BillingAccount + Contact + Currency probe.
+    # The currency probe runs once per process (cached on first hit). The
+    # autouse ``_reset_currency_probe_cache`` fixture clears that cache between
+    # tests so each resolve_account test must queue its own currency row.
     fake_client.query_responses.append([{"Id": "001A", "Name": "Infinitech"}])
     fake_client.query_responses.append([{"Id": "BA-1"}])
+    fake_client.query_responses.append([{"Id": "003C-1", "AccountId": "001A"}])
+    fake_client.query_responses.append([{"Id": "001A", "CurrencyIsoCode": "USD"}])
+    fake_client.query_responses.append(_address_row("001A"))
     # resolve_invoice_line_product: SKU hit -> product binding
     fake_client.query_responses.append(
         [{"Id": "01tCLOUD", "Name": "Cloud License", "StockKeepingUnit": "QB-LIC-CLOUD"}]
@@ -219,6 +235,9 @@ def test_resolve_falls_through_on_sku_miss(fake_client) -> None:
     line (the ingestion API accepts unproducted lines)."""
     fake_client.query_responses.append([{"Id": "001A", "Name": "Infinitech"}])
     fake_client.query_responses.append([])  # no BillingAccount
+    fake_client.query_responses.append([{"Id": "003C-1", "AccountId": "001A"}])
+    fake_client.query_responses.append([])  # currency probe: single-currency org
+    fake_client.query_responses.append(_address_row("001A"))
     fake_client.query_responses.append([])  # SKU miss
     spec = _ingestion_spec(
         target="invoice",
@@ -238,9 +257,15 @@ def test_resolve_falls_through_on_sku_miss(fake_client) -> None:
 def test_resolve_uses_default_account_when_unpinned(fake_client) -> None:
     """No account in spec + no billing-ready accounts in ctx ->
     discover_any_accounts picks the first Account in the org."""
-    # discover_any_accounts: list Accounts, then BillingAccount stitch
+    # discover_any_accounts: list Accounts, then BillingAccount stitch, then
+    # Contact stitch.
     fake_client.query_responses.append([{"Id": "001X", "Name": "Acme"}])
     fake_client.query_responses.append([])  # no BillingAccount
+    fake_client.query_responses.append([{"Id": "003C-X", "AccountId": "001X"}])
+    fake_client.query_responses.append(
+        [{"Id": "001X", "CurrencyIsoCode": "USD"}]
+    )  # currency probe
+    fake_client.query_responses.append(_address_row("001X"))
     # SKU lookup for the spec's line
     fake_client.query_responses.append([])  # SKU miss
 
@@ -256,6 +281,11 @@ def test_resolve_carries_invoice_overrides(fake_client) -> None:
     from datetime import date
     fake_client.query_responses.append([{"Id": "001A", "Name": "Infinitech"}])
     fake_client.query_responses.append([{"Id": "BA-1"}])
+    fake_client.query_responses.append([{"Id": "003C-1", "AccountId": "001A"}])
+    fake_client.query_responses.append(
+        [{"Id": "001A", "CurrencyIsoCode": "USD"}]
+    )  # currency probe
+    fake_client.query_responses.append(_address_row("001A"))
     fake_client.query_responses.append([])  # SKU miss on the line
 
     overrides = InvoiceOverrides(

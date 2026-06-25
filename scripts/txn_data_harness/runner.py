@@ -453,19 +453,22 @@ def run_batch(
     if on_start is not None:
         on_start(base_run_id, total, worker_count)
 
-    def one(run_id: str, r: ResolvedSpec) -> Manifest:
-        return run_scenario(
-            client,
-            ctx,
-            run_id,
-            r.spec.target_stage,
-            r.account,
-            draw_lines(r.options),
-            with_opportunity=r.spec.with_opportunity,
+    def one(run_id: str, r) -> Manifest:
+        # Dispatch on the spec's kind so each handler owns its own runner
+        # entry-point. PST goes through run_scenario (draws random lines from
+        # the resolved option pool, threads start_date through); ingestion
+        # goes through InvoiceIngestionHandler.run (no pool, no start_date --
+        # ResolvedInvoiceIngestionSpec doesn't carry .options).
+        from .handlers import SCENARIO_HANDLERS
+
+        handler = SCENARIO_HANDLERS[r.spec.kind]
+        return handler.run(
+            client=client,
+            ctx=ctx,
+            run_id=run_id,
+            resolved=r,
             poll_timeout=poll_timeout,
-            start_date=draw_start_date(r.start_date_range),
             max_retries=max_retries,
-            kind=r.spec.kind,
         )
 
     failures = 0

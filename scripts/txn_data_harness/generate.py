@@ -108,8 +108,87 @@ def _fmt_discount(discount: Optional[tuple[float, float]]) -> str:
     return f"@ {lo:g}% off" if lo == hi else f"@ {lo:g}–{hi:g}% off (random)"
 
 
+def _print_pst_spec(r: "ResolvedSpec", index: int, total: int) -> int:
+    """Render one PST resolved spec; return its transaction count."""
+    starts_with_opp = r.spec.with_opportunity or r.effective_stage == "opportunity"
+    head = "opportunity" if starts_with_opp else "quote"
+    if STAGES.index(head) > STAGES.index(r.effective_stage):
+        head = r.effective_stage
+    stages_run = STAGES[STAGES.index(head): STAGES.index(r.effective_stage) + 1]
+    print(f"\n--- Spec {index + 1}/{total}  (x{r.spec.count}) ---")
+    print(f"  Kind         : sales_transaction")
+    print(f"  Account      : {r.account.name} ({r.account.id})  "
+          f"billing_ready={r.account.is_billing_ready}")
+    pool = len(r.options)
+    if pool > 1:
+        print(f"  Product pool : {pool} products — a random non-empty subset "
+              f"is placed per transaction (multi-line)")
+    for opt in r.options:
+        print(f"    • {opt.product.sku} — {opt.product.name}  "
+              f"${opt.product.unit_price} {_fmt_qty(opt.quantity)}  "
+              f"{_fmt_discount(opt.discount)}".rstrip()
+              + f"  (PBE {opt.product.pricebook_entry_id})")
+    rng = r.start_date_range
+    if rng is not None:
+        lo, hi = rng
+        print(f"  Start date   : {lo.isoformat()}"
+              + (f" → {hi.isoformat()} (drawn per quote)" if hi != lo else ""))
+    if r.effective_stage != r.spec.target_stage:
+        print(f"  ⚠  target_stage '{r.spec.target_stage}' capped to "
+              f"'{r.effective_stage}' (billing_ready={r.account.is_billing_ready}).")
+    print(f"  Stages       : {' → '.join(stages_run)}")
+    return r.spec.count
+
+
+def _print_invoice_ingestion_spec(r, index: int, total: int) -> int:
+    """Render one invoice-ingestion resolved spec; return its transaction count.
+
+    Ingestion specs ship the same line list on every invoice (no per-tx random
+    draw), so the listing is flat rather than a pool. ``effective_stage`` is
+    always ``target_stage`` for ingestion -- no billing-ready cap applies.
+    """
+    spec = r.spec
+    target = r.effective_stage  # "invoice" (Draft) or "post" (Posted)
+    status = "Posted" if target == "post" else "Draft"
+    print(f"\n--- Spec {index + 1}/{total}  (x{spec.count}) ---")
+    print(f"  Kind         : invoice_ingestion ({status})")
+    print(f"  Account      : {r.account.name} ({r.account.id})  "
+          f"billing_ready={r.account.is_billing_ready}")
+    if not r.invoice_lines:
+        print("  Invoice lines: (none)")
+    for line in r.invoice_lines:
+        sku_part = f"{line.sku} — " if line.sku else ""
+        bound = (
+            f"product2={line.product.id}" if line.product
+            else "no Product2 binding (description-only)"
+        )
+        print(f"    • {sku_part}{line.name}  "
+              f"${line.unit_price} x{line.quantity}  "
+              f"taxable={line.taxable}  ({bound})")
+    if r.invoice_overrides is not None:
+        ov = r.invoice_overrides
+        bits = []
+        if ov.invoice_date:
+            bits.append(f"invoice_date={ov.invoice_date.isoformat()}")
+        if ov.due_date:
+            bits.append(f"due_date={ov.due_date.isoformat()}")
+        if ov.posted_date:
+            bits.append(f"posted_date={ov.posted_date.isoformat()}")
+        if ov.currency:
+            bits.append(f"currency={ov.currency}")
+        bits.append(f"should_calculate_tax={ov.should_calculate_tax}")
+        if ov.tax_calculation_status:
+            bits.append(f"tax_calc_status={ov.tax_calculation_status}")
+        print(f"  Invoice ov   : {', '.join(bits)}")
+    steps = ["ingest_invoice"]
+    if target == "post":
+        steps.append("promote_to_posted")
+    print(f"  Steps        : {' → '.join(steps)}")
+    return spec.count
+
+
 def _print_plan(
-    args: argparse.Namespace, ctx: OrgContext, resolved: list["ResolvedSpec"]
+    args: argparse.Namespace, ctx: OrgContext, resolved: list
 ) -> None:
     """Human-readable dry-run summary of what a run would do (no writes)."""
     print("\n=== Transaction Data Harness — DRY RUN (no writes) ===")
@@ -121,36 +200,10 @@ def _print_plan(
 
     total = 0
     for i, r in enumerate(resolved):
-        # The chain starts at 'opportunity' when one is prepended OR the target
-        # stage is 'opportunity' itself; otherwise the minimum is 'quote'. Clamp
-        # to effective_stage so a quote-only run never shows an empty range.
-        starts_with_opp = r.spec.with_opportunity or r.effective_stage == "opportunity"
-        head = "opportunity" if starts_with_opp else "quote"
-        if STAGES.index(head) > STAGES.index(r.effective_stage):
-            head = r.effective_stage
-        stages_run = STAGES[STAGES.index(head): STAGES.index(r.effective_stage) + 1]
-        total += r.spec.count
-        print(f"\n--- Spec {i + 1}/{len(resolved)}  (x{r.spec.count}) ---")
-        print(f"  Account      : {r.account.name} ({r.account.id})  "
-              f"billing_ready={r.account.is_billing_ready}")
-        pool = len(r.options)
-        if pool > 1:
-            print(f"  Product pool : {pool} products — a random non-empty subset "
-                  f"is placed per transaction (multi-line)")
-        for opt in r.options:
-            print(f"    • {opt.product.sku} — {opt.product.name}  "
-                  f"${opt.product.unit_price} {_fmt_qty(opt.quantity)}  "
-                  f"{_fmt_discount(opt.discount)}".rstrip()
-                  + f"  (PBE {opt.product.pricebook_entry_id})")
-        rng = r.start_date_range
-        if rng is not None:
-            lo, hi = rng
-            print(f"  Start date   : {lo.isoformat()}"
-                  + (f" → {hi.isoformat()} (drawn per quote)" if hi != lo else ""))
-        if r.effective_stage != r.spec.target_stage:
-            print(f"  ⚠  target_stage '{r.spec.target_stage}' capped to "
-                  f"'{r.effective_stage}' (billing_ready={r.account.is_billing_ready}).")
-        print(f"  Stages       : {' → '.join(stages_run)}")
+        if r.spec.kind == "invoice_ingestion":
+            total += _print_invoice_ingestion_spec(r, i, len(resolved))
+        else:
+            total += _print_pst_spec(r, i, len(resolved))
 
     print(f"\nWould generate   : {total} transaction(s) total")
     print(f"Billing-ready accounts available: "

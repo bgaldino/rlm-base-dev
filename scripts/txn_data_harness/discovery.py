@@ -47,10 +47,59 @@ class DiscoveryError(RuntimeError):
 
 
 @dataclass
+class PostalAddress:
+    """One billing- or shipping-address tuple lifted off an Account.
+
+    Carries the five fields the InvoiceAddressGroup graph record marks as
+    Required (street/city/state/postalCode/country). The ingest API rejects
+    addresses with any of those five null, so a partial address on the
+    Account propagates a clear ``LifecycleError`` rather than a 400 from
+    the org -- see the call site in :func:`lifecycle.ingest_invoice`.
+    """
+
+    street: Optional[str]
+    city: Optional[str]
+    state: Optional[str]
+    postal_code: Optional[str]
+    country: Optional[str]
+
+    @property
+    def is_complete(self) -> bool:
+        return all(
+            v is not None and str(v).strip()
+            for v in (
+                self.street, self.city, self.state, self.postal_code, self.country,
+            )
+        )
+
+
+@dataclass
 class Account:
     id: str
     name: str
     billing_account_id: Optional[str] = None  # None => cannot reach invoice/post
+    # First Contact discovered on the account, used as the default
+    # ``Invoice.BillToContactId`` on the ingestion path. The dev guide marks
+    # this field Required on the Invoice graph record and the live ingest API
+    # rejects payloads that omit it (INVALID_API_INPUT). None when the account
+    # has no Contacts -- ingestion will surface a clear error rather than
+    # silently produce a partial invoice.
+    bill_to_contact_id: Optional[str] = None
+    # Account-level ``CurrencyIsoCode`` on multi-currency orgs (the field
+    # only exists when multi-currency is enabled). The ingest API rejects
+    # the payload with INVALID_API_INPUT on multi-currency orgs when
+    # ``currencyIsoCode`` is absent, so the handler stamps this on the
+    # Invoice header by default. ``None`` on single-currency orgs (the
+    # discovery SOQL returns INVALID_FIELD and the resolver falls through).
+    currency_iso_code: Optional[str] = None
+    # Billing + shipping address tuples discovered off the Account. The
+    # ingestion path materialises both as ``InvoiceAddressGroup`` graph
+    # records, then references their ids from each InvoiceLine's
+    # ``billingAddressId`` / ``shippingAddressId`` (both fields marked
+    # Required in the dev guide). ``None`` when discovery hasn't populated
+    # the field; ``ingest_invoice`` raises a clear error in that case.
+    billing_address: Optional[PostalAddress] = None
+    shipping_address: Optional[PostalAddress] = None
 
     @property
     def is_billing_ready(self) -> bool:
@@ -176,6 +225,126 @@ def discover_accounts(client: SfRestClient, account_name: Optional[str] = None) 
     return accounts
 
 
+# Module-level cache: True if the org has CurrencyIsoCode on Account (multi-
+# currency enabled), False if SOQL returned INVALID_FIELD. None until probed.
+_MULTI_CURRENCY: Optional[bool] = None
+
+
+def _account_currency_map(
+    client: SfRestClient, account_ids: list[str]
+) -> dict[str, str]:
+    """Map Account.Id -> CurrencyIsoCode on multi-currency orgs.
+
+    On single-currency orgs ``Account.CurrencyIsoCode`` does not exist and the
+    SOQL fails with INVALID_FIELD; we cache that response so the second call
+    on the same run doesn't re-probe. Multi-currency orgs require
+    ``Invoice.currencyIsoCode`` on every ingest payload (verified live
+    2026-06-25 on rlm-base__jun17_1: missing field returns INVALID_API_INPUT
+    "The currencyIsoCode is required in multi-currency organizations").
+    """
+    global _MULTI_CURRENCY
+    if not account_ids or _MULTI_CURRENCY is False:
+        return {}
+    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
+    try:
+        rows = client.query(
+            f"SELECT Id, CurrencyIsoCode FROM Account WHERE Id IN ({quoted})"
+        )
+    except Exception as exc:  # noqa: BLE001
+        if "INVALID_FIELD" in str(exc):
+            _MULTI_CURRENCY = False
+            return {}
+        raise
+    _MULTI_CURRENCY = True
+    return {r["Id"]: r.get("CurrencyIsoCode") for r in rows if r.get("CurrencyIsoCode")}
+
+
+_ADDRESS_FIELDS = (
+    "BillingStreet",
+    "BillingCity",
+    "BillingState",
+    "BillingPostalCode",
+    "BillingCountry",
+    "ShippingStreet",
+    "ShippingCity",
+    "ShippingState",
+    "ShippingPostalCode",
+    "ShippingCountry",
+)
+
+
+def _resolve_account_addresses(
+    client: SfRestClient, account_ids: list[str]
+) -> dict[str, tuple[Optional["PostalAddress"], Optional["PostalAddress"]]]:
+    """Map Account.Id -> (billing_address, shipping_address) tuples.
+
+    Used by the ingestion path: ``InvoiceLine.billingAddressId`` and
+    ``InvoiceLine.shippingAddressId`` are both Required by the ingest API
+    (verified live 2026-06-25 on rlm-base__jun17_1: missing fields return
+    INVALID_API_INPUT). The handler materialises both as
+    ``InvoiceAddressGroup`` graph records and the line points at each by
+    ``referenceId``. An Account with a partial address (e.g. no
+    ``BillingState``) lands as ``PostalAddress(... state=None ...)`` whose
+    ``is_complete`` is False; ingest_invoice surfaces a clear error in
+    that case rather than letting the org reject the payload.
+    """
+    if not account_ids:
+        return {}
+    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
+    rows = client.query(
+        f"SELECT Id, {', '.join(_ADDRESS_FIELDS)} FROM Account WHERE Id IN ({quoted})"
+    )
+    out: dict[str, tuple[Optional[PostalAddress], Optional[PostalAddress]]] = {}
+    for r in rows:
+        billing = PostalAddress(
+            street=r.get("BillingStreet"),
+            city=r.get("BillingCity"),
+            state=r.get("BillingState"),
+            postal_code=r.get("BillingPostalCode"),
+            country=r.get("BillingCountry"),
+        )
+        shipping = PostalAddress(
+            street=r.get("ShippingStreet"),
+            city=r.get("ShippingCity"),
+            state=r.get("ShippingState"),
+            postal_code=r.get("ShippingPostalCode"),
+            country=r.get("ShippingCountry"),
+        )
+        out[r["Id"]] = (
+            billing if any(vars(billing).values()) else None,
+            shipping if any(vars(shipping).values()) else None,
+        )
+    return out
+
+
+def _resolve_default_contact_id(
+    client: SfRestClient, account_ids: list[str]
+) -> dict[str, str]:
+    """Map Account.Id -> first Contact.Id for the given accounts.
+
+    Used to populate ``Account.bill_to_contact_id``. The ingest API requires
+    ``Invoice.BillToContactId`` (verified live 2026-06-25 on rlm-base__jun17_1:
+    a payload without the field is rejected with ``INVALID_API_INPUT: The
+    BillToContactId field of the Invoice record is required``), and the dev
+    guide marks it Required in the Invoice graph record table. We pick the
+    most-recently-created Contact on the account; deterministic enough for
+    demo data, and any specific Contact override remains a future scenario
+    knob.
+    """
+    if not account_ids:
+        return {}
+    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
+    rows = client.query(
+        f"SELECT Id, AccountId FROM Contact WHERE AccountId IN ({quoted}) "
+        f"ORDER BY CreatedDate DESC"
+    )
+    by_account: dict[str, str] = {}
+    for r in rows:
+        # First row wins per account (most recent CreatedDate).
+        by_account.setdefault(r["AccountId"], r["Id"])
+    return by_account
+
+
 def resolve_account(client: SfRestClient, name: str) -> Account:
     """Resolve any account by Name, billing-ready or not.
 
@@ -184,7 +353,8 @@ def resolve_account(client: SfRestClient, name: str) -> Account:
     when it has no BillingAccount -- a quote-only "pipeline" account (example:
     ``Global Media`` in the bundled QB demo dataset). We look up the Account,
     then check for a BillingAccount so the returned ``Account.is_billing_ready``
-    correctly caps the stage downstream.
+    correctly caps the stage downstream. The default ``bill_to_contact_id`` is
+    populated for downstream ingestion calls.
     """
     rows = client.query(
         f"SELECT Id, Name FROM Account WHERE Name = '{_sql_escape(name)}' LIMIT 1"
@@ -195,10 +365,18 @@ def resolve_account(client: SfRestClient, name: str) -> Account:
     ba = client.query(
         f"SELECT Id FROM BillingAccount WHERE AccountId = '{acct_id}' LIMIT 1"
     )
+    contact_map = _resolve_default_contact_id(client, [acct_id])
+    currency_map = _account_currency_map(client, [acct_id])
+    address_map = _resolve_account_addresses(client, [acct_id])
+    billing_addr, shipping_addr = address_map.get(acct_id, (None, None))
     return Account(
         id=acct_id,
         name=rows[0].get("Name", name),
         billing_account_id=ba[0]["Id"] if ba else None,
+        bill_to_contact_id=contact_map.get(acct_id),
+        currency_iso_code=currency_map.get(acct_id),
+        billing_address=billing_addr,
+        shipping_address=shipping_addr,
     )
 
 
@@ -332,16 +510,24 @@ def discover_any_accounts(
     )
     if not rows:
         return []
-    quoted = ",".join(f"'{_sql_escape(r['Id'])}'" for r in rows)
+    account_ids = [r["Id"] for r in rows]
+    quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
     ba_rows = client.query(
         f"SELECT Id, AccountId FROM BillingAccount WHERE AccountId IN ({quoted})"
     )
     ba_by_account: dict[str, str] = {r["AccountId"]: r["Id"] for r in ba_rows}
+    contact_by_account = _resolve_default_contact_id(client, account_ids)
+    currency_by_account = _account_currency_map(client, account_ids)
+    addresses_by_account = _resolve_account_addresses(client, account_ids)
     accounts = [
         Account(
             id=r["Id"],
             name=r.get("Name", r["Id"]),
             billing_account_id=ba_by_account.get(r["Id"]),
+            bill_to_contact_id=contact_by_account.get(r["Id"]),
+            currency_iso_code=currency_by_account.get(r["Id"]),
+            billing_address=addresses_by_account.get(r["Id"], (None, None))[0],
+            shipping_address=addresses_by_account.get(r["Id"], (None, None))[1],
         )
         for r in rows
     ]

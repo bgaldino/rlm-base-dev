@@ -1,10 +1,11 @@
 # Transaction Data Harness
 
 Generate realistic, high-volume Revenue Cloud demo data by driving the **real
-transaction lifecycle** against a target org:
+transaction lifecycle** against a target org. Two scenario kinds:
 
 ```text
-(Opportunity) → Quote → Order → Activate → Invoice (Draft) → Post
+kind: transaction       (default) — (Opportunity) → Quote → Order → Activate → Invoice (Draft) → Post
+kind: invoice_ingestion           — POST /commerce/invoicing/.../actions/ingest → Invoice (Draft, CreationMode=External)
 ```
 
 `Invoice`, `InvoiceLine`, and `BillingSchedule` are **system-generated** by the
@@ -12,6 +13,15 @@ billing engine (`createable: false`) — they cannot be bulk-loaded via SFDMU. T
 only way to mint them is to call the same Connect/Business APIs the product uses.
 This tool does exactly that, scenario by scenario, and records every id it creates
 in a per-run manifest.
+
+The `invoice_ingestion` path is **standalone billing** — it skips PST/Order/
+Activate/BillingSchedule entirely and mints a Draft `Invoice` (with
+`CreationMode = External`) plus its `InvoiceLine`s in a single typed
+Composite-Graph call. Use it for demo orgs that need invoice volume without
+the PST chain; see [`scenarios/15-standalone-billing-draft.yaml`](scenarios/15-standalone-billing-draft.yaml)
+and [`CONTRACTS.md`](CONTRACTS.md) → *Invoice Ingestion*. Posted ingestion is
+deferred to Phase 2 (taxable `TaxTreatment` rows require an `InvoiceLineTax`
+graph record — see [`FOLLOWUPS.md`](FOLLOWUPS.md)).
 
 It is **standalone** — not part of `prepare_rlm_org`. Each run is **additive**
 (new records every time, tagged with a run id). With no config it auto-discovers a
@@ -128,6 +138,11 @@ required before order") fail fast and are never retried. The manifest records th
 `attempts` count and the final `failure_class`.
 
 ## Lifecycle stages
+
+The PST chain (`kind: transaction`, the default) progresses through these
+stages. The ingestion path (`kind: invoice_ingestion`) runs a single
+`ingest_invoice` step that creates a Draft `Invoice` directly and stops at
+`target_stage: invoice`; it has no Quote/Order/Activate/BillingSchedule.
 
 `target_stage` is hierarchical — each stage runs everything before it.
 

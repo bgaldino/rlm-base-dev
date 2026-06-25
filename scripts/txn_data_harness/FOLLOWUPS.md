@@ -41,6 +41,76 @@ placeholders or explicitly labeled QB example data.
 
 ## Open
 
+### Standalone-billing ingestion (Phase 2)
+
+PR 6 landed the Phase 1 Draft path live-verified (see CONTRACTS.md §7). Phase 2
+extends ingestion to the Posted path, taxed lines, and bulk-ingest concurrency.
+
+- `[gap]` **Posted ingestion requires a non-taxable `TaxTreatment` OR an `InvoiceLineTax`
+  graph record.** Live-verified blocker on `rlm-base__jun17_1` (2026-06-25): the
+  default org seed has one Active `TaxTreatment` (`Default Tax Policy`,
+  `IsTaxable=true`), and the ingest API rejects Posted lines without a related
+  `InvoiceLineTax` record:
+  > `INVALID_API_INPUT: You can't specify a tax treatment with the isTaxable value as
+  > true when the invoice line doesn't have a related InvoiceLineTax record.`
+  Same precondition gates `commerce/invoicing/.../actions/post`, so Draft→Posted
+  resume hits the identical wall. The Phase 1 lifecycle already wires the Posted
+  payload correctly (status, `taxCalculationStatus: Posted`, `invoiceNumber:
+  <run_id>`, `postedDate: today`) — only the tax dependency is missing.
+  - `[probe]` Discover an active `TaxTreatment WHERE IsTaxable = false`. If one
+    exists, stamp `InvoiceLine.taxTreatmentId` on every Posted line and re-run
+    `15-standalone-billing.yaml`. If none exists, decide whether the harness should
+    create one on first run (single setup write, like the PRM Network placeholder)
+    or surface a clear LifecycleError directing the user to seed one.
+  - `[probe]` Once Posted ingestion lands, re-run the Draft→Posted resume flow
+    (`cli step --to-stage post`) end-to-end on an existing Draft ingestion
+    manifest; confirm the resume reuses the Draft invoice id rather than creating
+    a second Invoice row.
+  - Ref: `CONTRACTS.md` → §7, *Posted path — Phase 2 dependency*.
+
+- `[probe]` **`InvoiceLineTax` graph record design.** The dev guide
+  (`docs/salesforce/262/dev-guide/articles/connect_requests_graph_record_input.htm.md`,
+  Table 3) defines a tax graph record with seven Required fields
+  (`taxTransactionNumber`, `taxAmount`, `taxRate`, `taxName`, `taxCode`,
+  `taxEffectiveDate`, `invoiceLine`, `taxDocumentNumber`). Open design questions:
+  - Where do `taxAmount` / `taxRate` come from in a generated-data context? Pinned
+    via a scenario override (`tax_rate: 0.08`) and the harness computes
+    `taxAmount`, or fully scripted (line-level `tax: {amount, rate, name, code}`)?
+  - Should the Phase 1 `taxable: true` parse-time rejection lift naturally once
+    `InvoiceLineTax` exists, or remain explicit so tax-on scenarios must add the
+    new tax block?
+  - Per the dev guide, the `invoiceLineTax` graph record **must not** include
+    `taxCalculationStatus = Pending` — confirm whether the harness needs to flip
+    the invoice's `taxCalculationStatus` to `Posted` automatically when any line
+    carries an InvoiceLineTax, or whether the scenario must do so.
+  - Ref: dev guide Table 3, *Tax Record*.
+
+- `[probe]` **Composite Batch / multi-invoice per request.** The ingest action
+  accepts an `invoices[]` array (`"invoices": [...]`); today the harness ships
+  one invoice per POST and parallelises scenarios in the thread pool. Open:
+  - What's the per-request invoice cap (the dev guide notes a Graph record count
+    of 500 across the whole `invoices[]` payload — so the cap is per-graph, not
+    per-invoice)?
+  - Are Composite Graph errors per-invoice (one bad payload doesn't abort the
+    batch) or whole-batch (one bad payload rejects all)? Live verify with a 2-
+    invoice payload where one references a bogus account.
+  - If per-invoice rollback is real, batching N small invoices into one POST is
+    the throughput win for high-volume demos (cuts N-1 round-trips and N-1
+    AsyncOperationTracker polls).
+  - Ref: dev guide → "Invoice ingestion supports a Graph record count of 500."
+
+- `[probe]` **Account.bill_to_contact_id pinning.** The current `_resolve_default_contact_id`
+  picks the most-recently-created Contact per account. A scenario may want to
+  pin a specific Contact (e.g. the "AP" contact for finance demos). Design knob
+  on `InvoiceIngestionScenarioSpec.invoice.bill_to_contact_name` (resolved at
+  the same discovery phase as the account).
+
+- `[probe]` **InvoiceAddressGroup address overrides.** Both addresses derive from
+  the Account's Billing/Shipping fields today. Open: should the scenario allow
+  per-invoice address overrides (different ship-to per line for the same
+  invoice)? The dev guide allows distinct `InvoiceAddressGroup` records per
+  line, so the API supports it.
+
 ### Billing & invoicing
 
 - `[anomaly]` **Monthly-Advance short-span proration denominator.**

@@ -27,6 +27,12 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
    per-scenario > CLI > `defaults` > builtins, so passing `--count 1` against a
    config whose scenarios pin `count: 100` runs all 100. To smoke a multi-scenario
    config, edit the per-scenario `count:` (or comment scenarios out) instead.
+10. **Two scenario kinds:** `kind: transaction` (default) drives the PST chain;
+    `kind: invoice_ingestion` skips PST and `POST`s a typed Composite-Graph
+    payload to `/commerce/invoicing/.../actions/ingest`, minting a Draft
+    `Invoice` (`CreationMode = External`) directly. Use the ingestion path only
+    for **Draft** today — Posted is Phase 2 (see `FOLLOWUPS.md`). The reference
+    config is `scenarios/15-standalone-billing-draft.yaml`.
 
 ## DO NOT
 
@@ -51,6 +57,7 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 | User intent | Use this skill? | Notes |
 | ----------- | --------------- | ----- |
 | Generate Sales/Revenue Cloud demo transactions | Yes | Plan first, then run one smoke scenario. |
+| Mint standalone-billing Draft invoices (no PST chain) | Yes | Use `scenarios/15-standalone-billing-draft.yaml` (`kind: invoice_ingestion`). Posted ingestion is Phase 2. |
 | Inspect or continue a partial harness run | Yes | Use manifest-driven `inspect` / `step`. |
 | Verify orders/invoices created by the harness | Yes | Query by manifest ids. |
 | Clean up harness-created records | Yes | Explain non-deletable leftovers. |

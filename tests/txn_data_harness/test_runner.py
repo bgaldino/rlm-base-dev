@@ -214,8 +214,12 @@ def test_run_batch_emits_start_and_completion_callbacks(
     started = []
     completed = []
 
-    def fake_run_scenario(_client, _ctx, run_id, *_args, **_kwargs):
-        return Manifest(run_id=run_id, reached_stage="post")
+    def fake_run_scenario(*_args, **kwargs):
+        # ``run_batch`` now dispatches through ``SCENARIO_HANDLERS[kind].run``,
+        # and ``SalesTransactionHandler.run`` calls ``runner.run_scenario`` with
+        # all-keyword args. Accept any positional/keyword shape so the fake stays
+        # robust to harmless call-site changes.
+        return Manifest(run_id=kwargs.get("run_id") or _args[2], reached_stage="post")
 
     monkeypatch.setattr("scripts.txn_data_harness.runner.run_scenario", fake_run_scenario)
 

@@ -26,7 +26,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any, Optional
 
 from .auth import SfRestClient
-from .discovery import Account, Product
+from .discovery import Account, PostalAddress, Product
 from .models import LineItem, ResolvedInvoiceLine, ResolvedInvoiceOverrides
 from .term import Term
 
@@ -867,22 +867,104 @@ def ingest_invoice(
             "Phase 1 invariant: taxable=true lines are not allowed on Posted invoices",
         )
 
-    invoice_record: dict[str, Any] = {
+    # Invoice graph record. The ingest action expects the typed graph shape
+    # (record: {attributes: {type, method, ...}, ...fields}), NOT the generic
+    # Composite Graph subrequest shape ({url, method, body}). Per the dev guide
+    # at docs/salesforce/262/dev-guide/articles/connect_requests_invoice_ingestion_input.htm.md
+    # ``BillToContactId`` is Required by the ingest API. The dev guide marks
+    # it Required in the Invoice graph record table and a live POST without it
+    # returns INVALID_API_INPUT (verified 2026-06-25, rlm-base__jun17_1).
+    if not account.bill_to_contact_id:
+        raise LifecycleError(
+            "ingest_invoice",
+            f"account '{account.name}' ({account.id}) has no Contact -- "
+            "ingestion requires BillToContactId; create a Contact on the "
+            "account or pin a different one in the scenario",
+        )
+    invoice_fields: dict[str, Any] = {
         "uniqueIdentifier": run_id,
         "billingAccountId": account.id,
+        "billToContactId": account.bill_to_contact_id,
         "status": status,
         "invoiceDate": (spec.invoice_date or date.today()).isoformat(),
     }
     if spec.due_date is not None:
-        invoice_record["dueDate"] = spec.due_date.isoformat()
+        invoice_fields["dueDate"] = spec.due_date.isoformat()
     if status == "Posted":
-        invoice_record["postedDate"] = (spec.posted_date or date.today()).isoformat()
-    if spec.currency is not None:
-        invoice_record["currencyIsoCode"] = spec.currency
+        invoice_fields["postedDate"] = (spec.posted_date or date.today()).isoformat()
+        # The dev guide marks ``invoiceNumber`` Optional, but the live ingest
+        # API rejects Posted payloads that omit it (verified 2026-06-25 on
+        # rlm-base__jun17_1: INVALID_API_INPUT "You must specify an invoice
+        # number for all posted invoices."). Default to the ``run_id`` so the
+        # number is deterministic and idempotency-safe; a scenario can
+        # override later via ``invoice.number`` once that knob lands.
+        invoice_fields["invoiceNumber"] = run_id
+    # Multi-currency orgs require ``currencyIsoCode`` on every ingest call.
+    # Prefer the scenario override; fall back to the account's discovered
+    # ``CurrencyIsoCode``; emit nothing on single-currency orgs (the field is
+    # rejected with INVALID_FIELD if sent).
+    currency = spec.currency or account.currency_iso_code
+    if currency is not None:
+        invoice_fields["currencyIsoCode"] = currency
     if spec.description is not None:
-        invoice_record["description"] = spec.description
+        invoice_fields["description"] = spec.description
 
-    line_records: list[dict[str, Any]] = []
+    invoice_record = {
+        "referenceId": "refInvoice",
+        "record": {
+            "attributes": {"type": "Invoice", "method": "POST"},
+            **invoice_fields,
+        },
+    }
+
+    # InvoiceLine.billingAddressId / shippingAddressId are both Required by the
+    # ingest API (verified live 2026-06-25 on rlm-base__jun17_1: a payload
+    # without them returns INVALID_API_INPUT "The BillingAddressId field of
+    # the InvoiceLine record is required"). We materialise the account's
+    # billing + shipping addresses as ``InvoiceAddressGroup`` graph records
+    # and reference them via ``@{ref...}.id``. The dev guide marks
+    # street/city/state/postalCode/country as Required on the address
+    # record; a partial Account address surfaces here rather than at the org.
+    if account.billing_address is None or not account.billing_address.is_complete:
+        raise LifecycleError(
+            "ingest_invoice",
+            f"account '{account.name}' ({account.id}) has no complete "
+            "BillingAddress (street/city/state/postalCode/country); "
+            "InvoiceLine.billingAddressId is required by the ingest API",
+        )
+    if account.shipping_address is None or not account.shipping_address.is_complete:
+        raise LifecycleError(
+            "ingest_invoice",
+            f"account '{account.name}' ({account.id}) has no complete "
+            "ShippingAddress (street/city/state/postalCode/country); "
+            "InvoiceLine.shippingAddressId is required by the ingest API",
+        )
+
+    def _address_record(ref: str, addr: PostalAddress) -> dict[str, Any]:
+        return {
+            "referenceId": ref,
+            "record": {
+                "attributes": {"type": "InvoiceAddressGroup", "method": "POST"},
+                "invoiceId": "@{refInvoice.id}",
+                "street": addr.street,
+                "city": addr.city,
+                "state": addr.state,
+                "postalCode": addr.postal_code,
+                "country": addr.country,
+            },
+        }
+
+    billing_address_record = _address_record("refBillingAddress", account.billing_address)
+    shipping_address_record = _address_record("refShippingAddress", account.shipping_address)
+
+    # ``invoiceLineStartDate`` / ``invoiceLineEndDate`` are both Required by
+    # the ingest API (dev guide R262/v67.0; live verified). Scenarios that
+    # don't pin per-line dates inherit the invoice's invoiceDate for both
+    # bounds -- a zero-duration "today" line carries clean defaults and the
+    # caller can still override per line.
+    invoice_date = spec.invoice_date or date.today()
+
+    line_graph_records: list[dict[str, Any]] = []
     for idx, line in enumerate(lines, start=1):
         unit_price = float(line.unit_price)
         quantity = float(line.quantity)
@@ -891,55 +973,58 @@ def ingest_invoice(
             if line.charge_amount is not None
             else unit_price * quantity
         )
-        rec: dict[str, Any] = {
-            "referenceId": f"line{idx}",
+        # No `taxable` field: it does not exist on InvoiceLine. The Phase 1
+        # tax invariant is expressed by *omitting* InvoiceLineTax records and
+        # leaving shouldCalculateTax false, not by stamping a column.
+        line_fields: dict[str, Any] = {
             "invoiceId": "@{refInvoice.id}",
             "name": line.name,
             "quantity": quantity,
             "unitPrice": unit_price,
             "chargeAmount": charge_amount,
-            "taxable": False,  # Phase 1 invariant
+            "billingAddressId": "@{refBillingAddress.id}",
+            "shippingAddressId": "@{refShippingAddress.id}",
         }
         if line.product is not None:
-            rec["product2Id"] = line.product.id
-        if line.line_start_date is not None:
-            rec["lineStartDate"] = line.line_start_date.isoformat()
-        if line.line_end_date is not None:
-            rec["lineEndDate"] = line.line_end_date.isoformat()
+            line_fields["product2Id"] = line.product.id
+        line_start = line.line_start_date or invoice_date
+        line_end = line.line_end_date or line_start
+        line_fields["invoiceLineStartDate"] = line_start.isoformat()
+        line_fields["invoiceLineEndDate"] = line_end.isoformat()
         if line.description is not None:
-            rec["description"] = line.description
-        line_records.append(rec)
+            line_fields["description"] = line.description
+        line_graph_records.append({
+            "referenceId": f"refInvoiceLine{idx}",
+            "record": {
+                "attributes": {"type": "InvoiceLine", "method": "POST"},
+                **line_fields,
+            },
+        })
+
+    # ``taxCalculationStatus`` rules verified live (rlm-base__jun17_1):
+    #   * Draft invoices accept ``Pending`` (the harness default).
+    #   * Posted invoices REJECT ``Pending`` / ``Estimated`` with
+    #     INVALID_API_INPUT "You can't specify a posted invoice with the
+    #     taxCalculationStatus as estimated. Specify posted as the
+    #     taxCalculationStatus." -- default to ``Posted`` for that path,
+    #     keep the scenario override as an escape hatch.
+    tax_calc_status = spec.tax_calculation_status or (
+        "Posted" if status == "Posted" else "Pending"
+    )
 
     body = {
         "invoices": [
             {
                 "shouldCalculateTax": False,  # Phase 1 invariant
-                "taxCalculationStatus": spec.tax_calculation_status or "Pending",
+                "taxCalculationStatus": tax_calc_status,
                 "correlationId": run_id,
                 "graph": {
                     "graphId": "invoiceGraph",
                     "records": [
-                        {
-                            "referenceId": "refInvoice",
-                            "url": (
-                                f"/services/data/v{client.api_version}"
-                                "/sobjects/Invoice"
-                            ),
-                            "method": "POST",
-                            "body": invoice_record,
-                        },
-                        *(
-                            {
-                                "referenceId": rec["referenceId"],
-                                "url": (
-                                    f"/services/data/v{client.api_version}"
-                                    "/sobjects/InvoiceLine"
-                                ),
-                                "method": "POST",
-                                "body": {k: v for k, v in rec.items() if k != "referenceId"},
-                            }
-                            for rec in line_records
-                        ),
+                        invoice_record,
+                        billing_address_record,
+                        shipping_address_record,
+                        *line_graph_records,
                     ],
                 },
             }
