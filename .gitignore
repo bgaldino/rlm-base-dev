@@ -51,8 +51,6 @@ $RECYCLE.BIN/
 
 .vscode
 .husky
-.prettierrc
-.prettierignore
 .eslintignore
 
 jest.config.js

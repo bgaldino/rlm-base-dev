@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Auto-generated UX assembly output — edit templates/ instead (see AGENTS.md)
+unpackaged/post_ux/
+
+# Nested private artifacts repo — managed separately, never reformat from here
+.agents/artifacts/
+
+# Build harness runtime artifacts
+.harness/
+
+# Minified / generated assets
+**/*.min.js
+**/*.min.css
+
+# SFDMU / data CSVs are data, not source
+datasets/**/*.csv
+
+# Lock files
+package-lock.json
