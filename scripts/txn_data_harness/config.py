@@ -185,6 +185,63 @@ class ScenarioSpec:
     end_date: Optional[EndDateOverride] = None
 
 
+# Invoice-ingestion config types. Carried in the package now so future
+# PRs that wire up parsing/handler dispatch have stable shapes to import,
+# but no PST-path code reads them yet (PR 2 lands them as "dead code").
+
+
+@dataclass
+class InvoiceLineSpec:
+    """One un-resolved line on an ingested invoice (``kind: invoice_ingestion``).
+
+    The ingestion API treats ``productId`` as optional, so ``sku`` is optional:
+    a miss at resolve time falls through to a line with the literal ``name``
+    and no product reference. ``quantity`` and ``unit_price`` populate the
+    request body directly (no PBE lookup). ``charge_amount`` overrides the
+    computed ``quantity * unit_price`` when set -- used to model a
+    pre-discounted line or a flat-fee charge.
+
+    ``taxable`` defaults to ``False`` to honour the Phase 1 tax invariant
+    (no ``InvoiceLineTax`` records, ``shouldCalculateTax=false`` globally).
+    The parser will reject ``taxable: true`` on any line when the resolved
+    ``target_stage == "post"``; on Drafts the API permits it without
+    ``InvoiceLineTax`` so the default stays ``False`` but the parser does
+    not reject.
+    """
+
+    name: str
+    sku: Optional[str] = None
+    quantity: float = 1.0
+    unit_price: float = 0.0
+    charge_amount: Optional[float] = None
+    line_start_date: Optional[date] = None
+    line_end_date: Optional[date] = None
+    taxable: bool = False
+    description: Optional[str] = None
+
+
+@dataclass
+class InvoiceOverrides:
+    """Optional invoice-level overrides for the ingestion path.
+
+    Every field is optional. Unset fields fall through to the platform
+    default (e.g. ``invoice_date`` -> today; ``due_date`` -> derived from
+    the account's payment terms). ``should_calculate_tax`` defaults to
+    ``False`` to honour the Phase 1 tax invariant; setting it to ``True``
+    is rejected at parse time until Phase 2 ships InvoiceLineTax support.
+    ``tax_calculation_status`` is informational on Phase 1 ("Pending" is
+    the canonical value when shouldCalculateTax is False).
+    """
+
+    invoice_date: Optional[date] = None
+    due_date: Optional[date] = None
+    posted_date: Optional[date] = None
+    currency: Optional[str] = None
+    description: Optional[str] = None
+    should_calculate_tax: bool = False
+    tax_calculation_status: Optional[str] = None
+
+
 def _load_file(path: str) -> dict:
     if not os.path.exists(path):
         raise ConfigError(f"config file not found: {path}")

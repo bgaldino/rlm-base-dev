@@ -11,8 +11,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Optional
 
-from .config import ScenarioSpec
-from .discovery import Account, Product
+from .config import InvoiceLineSpec, InvoiceOverrides, ScenarioSpec
+from .discovery import Account, InvoiceLineProduct, Product
 from .term import EndDateOverride, Term
 
 STAGES = ["opportunity", "quote", "order", "activate", "usage", "invoice", "post"]
@@ -25,6 +25,8 @@ __all__ = [
     "EndDateOverride",
     "Manifest",
     "LineItem",
+    "ResolvedInvoiceLine",
+    "ResolvedInvoiceOverrides",
     "ResolvedOption",
     "ResolvedSpec",
     "ResolvedUsageSpec",
@@ -246,3 +248,50 @@ class ResolvedSpec:
     @property
     def start_date_range(self) -> Optional[tuple[date, date]]:
         return self.spec.start_date
+
+
+@dataclass
+class ResolvedInvoiceLine:
+    """One InvoiceLine on an ingested invoice, with optional Product2 binding.
+
+    Mirrors :class:`scripts.txn_data_harness.config.InvoiceLineSpec` but with
+    the SKU resolved (or not) to a concrete ``InvoiceLineProduct`` so the
+    handler can attach ``product2Id`` on the composite-graph payload. A None
+    ``product`` means the line is description-only -- the ingestion API
+    accepts unproducted lines and the handler must not invent a fake id.
+
+    Phase 1 invariant: ``taxable`` is False; the runner refuses to flip it
+    until the InvoiceLineTax phase ships.
+    """
+
+    name: str
+    quantity: float
+    unit_price: float
+    product: Optional[InvoiceLineProduct] = None
+    sku: Optional[str] = None
+    charge_amount: Optional[float] = None
+    line_start_date: Optional[date] = None
+    line_end_date: Optional[date] = None
+    taxable: bool = False
+    description: Optional[str] = None
+
+
+@dataclass
+class ResolvedInvoiceOverrides:
+    """Invoice-header overrides resolved against the run's clock + currency.
+
+    Mirrors :class:`scripts.txn_data_harness.config.InvoiceOverrides` after
+    date normalisation. The handler folds these into the composite-graph
+    Invoice header; unset fields fall back to platform defaults.
+
+    Phase 1 invariant: ``should_calculate_tax`` is False; parsing refuses
+    True until InvoiceLineTax wiring lands.
+    """
+
+    invoice_date: Optional[date] = None
+    due_date: Optional[date] = None
+    posted_date: Optional[date] = None
+    currency: Optional[str] = None
+    description: Optional[str] = None
+    should_calculate_tax: bool = False
+    tax_calculation_status: Optional[str] = None

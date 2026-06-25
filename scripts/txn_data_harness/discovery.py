@@ -289,6 +289,91 @@ def resolve_product(
     return candidates[0]
 
 
+@dataclass
+class InvoiceLineProduct:
+    """Slim Product reference for the Invoice Ingestion path.
+
+    Used by ``kind: invoice_ingestion`` scenarios to optionally attach a
+    ``product2Id`` to an ingested InvoiceLine. The ingestion API treats
+    ``productId`` as optional; SKUs that do not match an active product
+    simply create the line with the literal ``name`` from config and no
+    product reference.
+
+    Deliberately narrow: PBE/PSM/term/usage shape is irrelevant for an
+    ingested invoice (``chargeAmount`` / ``unitPrice`` come from the
+    request body, not a PricebookEntry). Discovered via
+    :func:`resolve_invoice_line_product`, not via :func:`resolve_product`
+    -- the PST resolver requires an active standard PBE that a
+    billing-only org may not have.
+    """
+
+    id: str
+    name: str
+    sku: Optional[str]
+
+
+def discover_any_accounts(
+    client: SfRestClient, limit: int = 25
+) -> list[Account]:
+    """Return any accounts in the org (billing-ready or not).
+
+    Counterpart to :func:`discover_accounts` for the Invoice Ingestion path,
+    which has no BillingAccount prerequisite -- ``Invoice.BillingAccountId``
+    on the Composite Graph is the FK to ``Account`` (the ``001...`` key
+    prefix), not the ``BillingAccount`` sObject. ``discover_accounts``
+    queries ``FROM BillingAccount`` and therefore returns zero rows in
+    orgs without billing setup, which is precisely the case ingestion is
+    designed to handle. Each row's ``billing_account_id`` is populated
+    when an ``Account`` happens to have one (so callers can still inspect
+    it), via a second query keyed on the discovered Account ids.
+    """
+    rows = client.query(
+        f"SELECT Id, Name FROM Account ORDER BY Name LIMIT {int(limit)}"
+    )
+    if not rows:
+        return []
+    quoted = ",".join(f"'{_sql_escape(r['Id'])}'" for r in rows)
+    ba_rows = client.query(
+        f"SELECT Id, AccountId FROM BillingAccount WHERE AccountId IN ({quoted})"
+    )
+    ba_by_account: dict[str, str] = {r["AccountId"]: r["Id"] for r in ba_rows}
+    accounts = [
+        Account(
+            id=r["Id"],
+            name=r.get("Name", r["Id"]),
+            billing_account_id=ba_by_account.get(r["Id"]),
+        )
+        for r in rows
+    ]
+    log.info("discovered %d account(s) (any billing state)", len(accounts))
+    return accounts
+
+
+def resolve_invoice_line_product(
+    client: SfRestClient, sku: str
+) -> Optional[InvoiceLineProduct]:
+    """Resolve a product SKU for the Invoice Ingestion path.
+
+    Returns ``None`` (not raises) when the SKU does not match an active
+    ``Product2`` -- ingestion treats ``productId`` as optional, so a miss
+    means "ingest the line with the literal name and no product ref".
+    Unlike :func:`resolve_product`, this does NOT require an active PBE
+    on the standard pricebook, so it works in billing-only orgs that have
+    no pricebook wired up.
+    """
+    rows = client.query(
+        "SELECT Id, Name, StockKeepingUnit FROM Product2 "
+        f"WHERE StockKeepingUnit = '{_sql_escape(sku)}' AND IsActive = true LIMIT 1"
+    )
+    if not rows:
+        return None
+    return InvoiceLineProduct(
+        id=rows[0]["Id"],
+        name=rows[0].get("Name", rows[0]["Id"]),
+        sku=rows[0].get("StockKeepingUnit"),
+    )
+
+
 def discover_usage_bindings(
     client: SfRestClient, product_ids: list[str]
 ) -> dict[str, list[UsageResourceBinding]]:
