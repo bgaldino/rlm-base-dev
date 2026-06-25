@@ -43,9 +43,21 @@ _TERM_UNIT_ALIASES = {"Years": "Annual"}
 # years; this catches typos like `term: 360` (months mistakenly multiplied).
 _MAX_TERM_COUNT = 120
 
+# Default scenario kind. Each lifecycle (sales_transaction, invoice_ingestion,
+# ...) is dispatched through ``handlers/__init__.py:SCENARIO_HANDLERS[kind]``
+# AFTER defaults merge -- the canonical ingestion scenario puts ``kind:`` in
+# its ``defaults:`` block, so reading ``raw_row.get("kind")`` would misroute.
+_DEFAULT_KIND = "sales_transaction"
+
+# Known scenario kinds. The handler registry is the source of truth; this
+# mirror exists so config validation can reject typos without importing the
+# handlers package (which transitively pulls auth/discovery).
+_VALID_KINDS = {"sales_transaction"}
+
 # Built-in defaults (lowest precedence). target_stage caps/resolution happen in
 # generate.py against the resolved account -- this is just the requested stage.
 _BUILTIN_DEFAULTS: dict[str, Any] = {
+    "kind": _DEFAULT_KIND,
     "target_stage": "post",
     "with_opportunity": False,
     "opportunity_stage": None,
@@ -144,6 +156,11 @@ class ScenarioSpec:
     ``account`` ``None`` => auto-discover the default billing-ready account.
     ``products`` is the line **pool** (always >= 1 entry); each transaction
     places a random non-empty subset of it (see :class:`ProductOption`).
+
+    ``kind`` is the scenario-handler discriminator (today: only
+    ``"sales_transaction"``; PR 2+ adds ``"invoice_ingestion"``). Carried
+    here so downstream code (manifest, dispatch, reports) can branch on
+    lifecycle without re-parsing config.
     """
 
     account: Optional[str]
@@ -152,6 +169,7 @@ class ScenarioSpec:
     with_opportunity: bool
     opportunity_stage: Optional[str]
     count: int
+    kind: str = "sales_transaction"
     # Inclusive ``(lo, hi)`` range the quote's line StartDate is drawn from, per
     # transaction -- the knob for spreading quotes over time. ``None`` => the
     # lifecycle defaults each line StartDate to today. A single date is drawn once
@@ -652,6 +670,13 @@ def _coerce_product_option(
 
 
 def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
+    kind = merged.get("kind") or _DEFAULT_KIND
+    if kind not in _VALID_KINDS:
+        raise ConfigError(
+            f"{where}: invalid kind '{kind}' "
+            f"(valid: {', '.join(sorted(_VALID_KINDS))})"
+        )
+
     stage = merged.get("target_stage") or "post"
     if stage not in _VALID_STAGES:
         raise ConfigError(
@@ -703,6 +728,7 @@ def _coerce_spec(merged: dict[str, Any], where: str) -> ScenarioSpec:
         with_opportunity=bool(merged.get("with_opportunity", False)),
         opportunity_stage=merged.get("opportunity_stage"),
         count=count,
+        kind=kind,
         start_date=_coerce_start_date(merged.get("start_date"), where),
         term=_coerce_term(merged.get("term"), where),
         end_date=_coerce_end_date(merged.get("end_date"), where),

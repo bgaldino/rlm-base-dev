@@ -25,15 +25,10 @@ from .manifests import (
     summarize_manifest,
     write_manifest,
 )
+from .handlers import SCENARIO_HANDLERS
 from .models import STAGES, LineItem
 from .report import build_batch_report, render_markdown
-from .runner import (
-    DEFAULT_MAX_RETRIES,
-    draw_lines,
-    effective_stage,
-    remaining_steps,
-    resolve_spec,
-)
+from .runner import DEFAULT_MAX_RETRIES, draw_lines
 from .steps import StepContext, execute_step
 
 
@@ -198,9 +193,14 @@ def _cmd_step(args: argparse.Namespace) -> int:
         opportunity_stage=args.opportunity_stage,
     )
 
+    # Look up the handler by the manifest's persisted kind. Falls back to the
+    # PST handler so resumed runs on pre-kind manifests still work mid-rollout;
+    # ``load_manifest`` already rejects manifests with no ``kind`` at all.
+    handler = SCENARIO_HANDLERS.get(manifest.kind, SCENARIO_HANDLERS["sales_transaction"])
+
     try:
         specs = load_scenarios(args)
-        resolved = [resolve_spec(client, ctx, s) for s in specs]
+        resolved = [handler.resolve(client, ctx, s) for s in specs]
         default_lines = draw_lines(resolved[0].options) if resolved else []
     except ConfigError:
         default_lines = []
@@ -208,8 +208,8 @@ def _cmd_step(args: argparse.Namespace) -> int:
     if not lines and args.to_stage not in {"invoice", "post"}:
         raise LifecycleError("step", "no manifest lines or config product lines to use")
 
-    target = effective_stage(args.to_stage, account)
-    steps = remaining_steps(manifest.reached_stage, target, args.with_opportunity)
+    target = handler.effective_stage(args.to_stage, account)
+    steps = handler.remaining_steps(manifest.reached_stage, target, args.with_opportunity)
     if not steps:
         print(json.dumps(summarize_manifest(manifest), indent=2))
         return 0

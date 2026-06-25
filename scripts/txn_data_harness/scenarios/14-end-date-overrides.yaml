@@ -20,6 +20,9 @@
 # The platform honors the explicit date and prorates ``PricingTermCount``
 # against the actual span. Stops at ``quote`` because the override's
 # observable surface is on QuoteLineItem.
+defaults:
+  kind: sales_transaction        # PST chain; end_date override matrix
+
 scenarios:
 
   # 1. Long span: Q2 start, multi-year absolute anchor.

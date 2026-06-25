@@ -7,6 +7,7 @@
 # an Opportunity head and a Quote, and stops there. No order, no billing — so it
 # runs fast and needs no BillingAccount. Good for populating pipeline dashboards.
 defaults:
+  kind: sales_transaction        # PST chain (Opportunity -> Quote)
   target_stage: quote
   with_opportunity: true         # prepend an Opportunity the quote links to
 

@@ -359,6 +359,7 @@ def run_scenario(
     start_date: Optional[date] = None,
     max_retries: int = DEFAULT_MAX_RETRIES,
     sleep: Callable[[float], None] = time.sleep,
+    kind: str = "sales_transaction",
 ) -> Manifest:
     """Drive one transaction through the requested lifecycle stages.
 
@@ -370,6 +371,7 @@ def run_scenario(
     current_run_id.set(run_id)
     manifest = Manifest(
         run_id=run_id,
+        kind=kind,
         account_id=account.id,
         account_name=account.name,
         start_date=start_date.isoformat() if start_date is not None else None,
@@ -463,6 +465,7 @@ def run_batch(
             poll_timeout=poll_timeout,
             start_date=draw_start_date(r.start_date_range),
             max_retries=max_retries,
+            kind=r.spec.kind,
         )
 
     failures = 0

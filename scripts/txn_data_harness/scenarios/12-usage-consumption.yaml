@@ -13,6 +13,9 @@
 # Prereq: the QB rating dataset must be loaded (insert_qb_rating_data) so the
 # usage SKUs (QB-DB, QB-TOKENS-PACK, ...) and their ProductUsageResource
 # bindings exist in the org.
+defaults:
+  kind: sales_transaction        # PST chain to 'usage' (TransactionJournals written)
+
 scenarios:
   - account: "Infinitech"
     target_stage: usage

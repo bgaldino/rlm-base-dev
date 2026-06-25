@@ -13,6 +13,9 @@
 # This is the realistic "lived-in billing" shape: varied multi-line invoices with
 # a spread of quantities and discounts. Use `08-product-mix.yaml` instead if you
 # want exactly one SKU per invoice (one spec per product).
+defaults:
+  kind: sales_transaction        # PST chain; multi-line quotes drawn from a pool
+
 scenarios:
   - account: "Infinitech"
     target_stage: post

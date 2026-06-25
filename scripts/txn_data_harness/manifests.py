@@ -62,10 +62,24 @@ def resolve_manifest_path(run_id_or_path: str, manifest_dir: Path = MANIFEST_DIR
 
 
 def load_manifest(run_id_or_path: str, manifest_dir: Path = MANIFEST_DIR) -> Manifest:
-    """Load a manifest by run id or path."""
+    """Load a manifest by run id or path.
+
+    A manifest missing the ``kind`` discriminator is rejected with a loud
+    error -- ``cli step`` / inspect / report tooling switches on ``kind`` to
+    pick the right scenario handler, and a defaulted value would silently
+    misroute (e.g. ingest a manifest produced by the ingestion path as a PST
+    run). This work has not shipped, so there are no on-disk manifests
+    without ``kind``.
+    """
     path = resolve_manifest_path(run_id_or_path, manifest_dir)
     with open(path) as f:
-        return Manifest.from_dict(json.load(f))
+        data = json.load(f)
+    if "kind" not in data:
+        raise ValueError(
+            f"manifest {path} is missing required 'kind' discriminator; "
+            f"regenerate it with the current harness"
+        )
+    return Manifest.from_dict(data)
 
 
 def list_manifests(manifest_dir: Path = MANIFEST_DIR) -> list[Path]:
@@ -93,6 +107,7 @@ def summarize_manifest(m: Manifest) -> dict[str, Any]:
     """
     return {
         "run_id": m.run_id,
+        "kind": m.kind,
         "path": str(manifest_path(m.run_id)),
         "account": m.account_name or m.account_id,
         "reached_stage": m.reached_stage,

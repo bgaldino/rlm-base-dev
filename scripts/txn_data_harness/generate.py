@@ -22,9 +22,10 @@ from typing import Optional
 from .auth import DEFAULT_API_VERSION, SfApiError, SfCliError, SfRestClient
 from .config import ConfigError, load_scenarios
 from .discovery import DiscoveryError, OrgContext, discover
+from .handlers import SCENARIO_HANDLERS
 from .models import IMPLEMENTED_MAX_STAGE, STAGES, Manifest, ResolvedSpec
 from .report import build_batch_report, write_batch_report
-from .runner import DEFAULT_MAX_RETRIES, current_run_id, resolve_spec, run_batch
+from .runner import DEFAULT_MAX_RETRIES, current_run_id, run_batch
 
 log = logging.getLogger("txn_data_harness")
 
@@ -193,7 +194,10 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"ERROR: bad config:\n  {exc}", file=sys.stderr)
         return 4
     try:
-        resolved = [resolve_spec(client, ctx, s) for s in specs]
+        resolved = [SCENARIO_HANDLERS[s.kind].resolve(client, ctx, s) for s in specs]
+    except KeyError as exc:
+        print(f"ERROR: unknown scenario kind: {exc}", file=sys.stderr)
+        return 4
     except DiscoveryError as exc:
         print(f"ERROR: could not resolve a scenario's account/product:\n  {exc}",
               file=sys.stderr)

@@ -16,6 +16,9 @@
 #
 # `discount` may sit on the scenario or on a `products:` entry (the per-product
 # value wins). Percent is 0..100; the range is [min, max] inclusive.
+defaults:
+  kind: sales_transaction        # PST chain; discounts flow through Quote -> Invoice
+
 scenarios:
   # Modest, everyday discounting.
   - account: "Infinitech"

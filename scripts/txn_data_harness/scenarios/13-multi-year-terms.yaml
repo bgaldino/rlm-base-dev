@@ -19,6 +19,9 @@
 #
 # Prereqs: QB pricing dataset loaded so QB-API-FLEX (and any multi-PBE
 # SKUs you swap in) exist in the org.
+defaults:
+  kind: sales_transaction        # PST chain; per-line term exercises
+
 scenarios:
 
   # 1-year Annual deal -- a typical renewal-driver subscription.

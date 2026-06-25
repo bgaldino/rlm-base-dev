@@ -72,9 +72,15 @@ class Manifest:
 
     Written even on partial failure so cleanup can find orphans. ``run_id`` is
     the durable tag stamped on records and passed as invoice correlationId.
+
+    ``kind`` is the scenario-handler discriminator that survived the resolve
+    step; ``cli step`` / inspect / report tooling switches on it. Required on
+    every manifest -- :func:`scripts.txn_data_harness.manifests.load_manifest`
+    rejects a JSON payload that doesn't carry one.
     """
 
     run_id: str
+    kind: str = "sales_transaction"
     account_id: Optional[str] = None
     account_name: Optional[str] = None
     opportunity_id: Optional[str] = None

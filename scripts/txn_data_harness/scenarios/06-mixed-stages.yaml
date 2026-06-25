@@ -7,6 +7,9 @@
 # activated orders, and some fully billed invoices — the proportions you'd expect
 # in a real book of business (lots of quotes, fewer posted invoices). Each spec
 # is an independent shape, so concurrency overlaps their waits.
+defaults:
+  kind: sales_transaction        # PST chain (each spec picks its own target_stage)
+
 scenarios:
   # Open pipeline (no billing) — the bulk.
   - account: "Infinitech"

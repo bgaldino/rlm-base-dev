@@ -8,6 +8,9 @@
 # at `order` with a warning instead of failing the run — it still leaves behind
 # quotes AND orders, just not activated/invoiced. One config, two account
 # profiles — the tool does the right thing for each.
+defaults:
+  kind: sales_transaction        # PST chain; auto-caps to 'order' on non-billing accounts
+
 scenarios:
   - account: "Infinitech"
     target_stage: post
