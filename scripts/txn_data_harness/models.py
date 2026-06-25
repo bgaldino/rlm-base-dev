@@ -107,6 +107,12 @@ class Manifest:
     # where InvoiceLines are produced by ``generate_invoice`` and never
     # surfaced individually on the manifest.
     invoice_line_ids: list[str] = field(default_factory=list)
+    # PST-only optional convenience link from Posted Invoice back to Order.
+    # "linked" means ReferenceEntityId was patched; "failed" means the invoice
+    # posted but the non-blocking patch did not complete; "skipped" means no
+    # order id was available.
+    invoice_order_link_status: Optional[str] = None
+    invoice_order_link_error: Optional[str] = None
     # ``Invoice.CreationMode`` of the manifest's invoice. ``External`` marks
     # an ingested invoice (kind: invoice_ingestion); the PST path produces
     # invoices with ``Salesforce`` mode. Left ``None`` on manifests that
@@ -118,6 +124,9 @@ class Manifest:
     # The lines actually placed on the quote (sku/quantity/discount per line).
     lines: list[dict] = field(default_factory=list)
     reached_stage: Optional[str] = None
+    # Convergence status from poll_assets: "converged", "timeout_empty", or
+    # "timeout_partial". None when the scenario hasn't reached activate.
+    asset_poll_status: Optional[str] = None
     error: Optional[str] = None
     # Number of attempts spent on this scenario (1 = succeeded or failed on the
     # first try; >1 means transient failures were retried). See runner.py.
@@ -157,6 +166,10 @@ class LineItem:
     # SubscriptionTerm fields (default Branch A path). Only valid on
     # TermDefined lines; the runner enforces this at resolve time.
     end_date: Optional[EndDateOverride] = None
+    # The resolved EndDate ISO string, stamped by lifecycle.place_sales_transaction
+    # once the override is computed. Persisted on the manifest so retries across
+    # a date boundary never re-resolve against a shifted date.today().
+    resolved_end_date: Optional[str] = None
 
     def to_manifest_record(self) -> dict:
         rec: dict = {
@@ -172,6 +185,8 @@ class LineItem:
             rec["term"] = {"count": self.term.count, "unit": self.term.unit}
         if self.end_date is not None:
             rec["end_date"] = self.end_date.to_dict()
+        if self.resolved_end_date is not None:
+            rec["resolved_end_date"] = self.resolved_end_date
         if self.usage is not None:
             rec["usage"] = {
                 "quantity": list(self.usage.quantity),
@@ -229,6 +244,7 @@ class LineItem:
             usage=usage,
             term=term,
             end_date=end_date,
+            resolved_end_date=record.get("resolved_end_date"),
         )
 
 

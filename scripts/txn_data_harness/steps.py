@@ -7,6 +7,7 @@ ranges, and AI-facing commands all share the same sequencing rules.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from typing import Callable, Optional
@@ -21,6 +22,8 @@ from .models import (
     ResolvedInvoiceLine,
     ResolvedInvoiceOverrides,
 )
+
+log = logging.getLogger("txn_data_harness.steps")
 
 
 @dataclass
@@ -44,6 +47,7 @@ class StepContext:
     start_date: Optional[date] = None
     checkpoint: Optional[Callable[[Manifest], None]] = None
     target_stage: Optional[str] = None
+    billing_success_statuses: Optional[set[str]] = None
     invoice_lines: list[ResolvedInvoiceLine] = field(default_factory=list)
     invoice_spec: Optional[ResolvedInvoiceOverrides] = None
 
@@ -88,6 +92,9 @@ def run_quote(ctx: StepContext, manifest: Manifest) -> Manifest:
             manifest.quote_id = exc.record_id
             _checkpoint(ctx, manifest)
         raise
+    # Re-sync line records if lifecycle stamped resolved_end_date
+    if any(line.resolved_end_date for line in ctx.lines):
+        manifest.lines = [line.to_manifest_record() for line in ctx.lines]
     manifest.reached_stage = "quote"
     return manifest
 
@@ -115,21 +122,24 @@ def run_activate(ctx: StepContext, manifest: Manifest) -> Manifest:
     # bundles. See CONTRACTS.md "Bundles -- PST auto-expands ...".
     expected_count = lifecycle.count_order_items(ctx.client, manifest.order_id)
     lifecycle.activate_order(ctx.client, manifest.order_id)
-    manifest.reached_stage = "activate"
     manifest.billing_schedule_ids = lifecycle.poll_billing_schedules(
         ctx.client,
         manifest.order_id,
         expected_count=expected_count,
         timeout=ctx.poll_timeout,
+        success_statuses=ctx.billing_success_statuses,
     )
     # Asset poll is deterministic via AssetActionSource -- no expected_count
-    # needed; it converges on a stable per-order count (handles bundle
+    # needed; it converges on a stable per-order set (handles bundle
     # expansion + AAS write lag in one). See CONTRACTS.md "Asset attribution".
-    manifest.asset_ids = lifecycle.poll_assets(
+    poll_result = lifecycle.poll_assets(
         ctx.client,
         manifest.order_id,
         timeout=ctx.poll_timeout,
     )
+    manifest.asset_ids = poll_result.asset_ids
+    manifest.asset_poll_status = poll_result.status
+    manifest.reached_stage = "activate"
     return manifest
 
 
@@ -197,9 +207,27 @@ def run_post(ctx: StepContext, manifest: Manifest) -> Manifest:
     manifest.invoice_number = lifecycle.post_invoice(
         ctx.client, manifest.invoice_id, ctx.run_id, timeout=ctx.poll_timeout
     )
-    manifest.reached_stage = "post"
+    # Posting is the durable stage barrier. The order back-link is useful for
+    # queries, but the lifecycle contract treats it as an optional convenience:
+    # surface failures in the manifest/report instead of letting retry math
+    # hide or re-post an already Posted invoice.
     if manifest.order_id:
-        lifecycle.link_invoice_to_order(ctx.client, manifest.invoice_id, manifest.order_id)
+        try:
+            lifecycle.link_invoice_to_order(ctx.client, manifest.invoice_id, manifest.order_id)
+            manifest.invoice_order_link_status = "linked"
+            manifest.invoice_order_link_error = None
+        except Exception as exc:  # noqa: BLE001 -- optional post-link warning
+            manifest.invoice_order_link_status = "failed"
+            manifest.invoice_order_link_error = str(exc)
+            log.warning(
+                "invoice %s posted but order link failed: %s",
+                manifest.invoice_id,
+                exc,
+            )
+    else:
+        manifest.invoice_order_link_status = "skipped"
+        manifest.invoice_order_link_error = None
+    manifest.reached_stage = "post"
     return manifest
 
 

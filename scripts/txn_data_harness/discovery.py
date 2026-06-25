@@ -63,6 +63,15 @@ class PostalAddress:
     postal_code: Optional[str]
     country: Optional[str]
 
+    # Mapping from dataclass attr -> Salesforce field suffix (PascalCase).
+    _SF_FIELD_MAP = {
+        "street": "Street",
+        "city": "City",
+        "state": "State",
+        "postal_code": "PostalCode",
+        "country": "Country",
+    }
+
     @property
     def is_complete(self) -> bool:
         return all(
@@ -71,6 +80,18 @@ class PostalAddress:
                 self.street, self.city, self.state, self.postal_code, self.country,
             )
         )
+
+    def to_sf_fields(self, prefix: str) -> dict[str, str]:
+        """Build a ``{PrefixField: value}`` dict for non-null fields.
+
+        Example: ``addr.to_sf_fields("Shipping")`` →
+        ``{"ShippingStreet": "...", "ShippingCity": "...", ...}``.
+        """
+        return {
+            f"{prefix}{suffix}": getattr(self, attr)
+            for attr, suffix in self._SF_FIELD_MAP.items()
+            if getattr(self, attr)
+        }
 
 
 @dataclass
@@ -213,13 +234,25 @@ def discover_accounts(client: SfRestClient, account_name: Optional[str] = None) 
     soql = "SELECT Id, Name, AccountId, Account.Name FROM BillingAccount"
     if account_name:
         soql += f" WHERE Account.Name = '{_sql_escape(account_name)}'"
+    rows = client.query(soql)
+    if not rows:
+        log.info("discovered 0 billing-ready account(s)")
+        return []
+    account_ids = [r["AccountId"] for r in rows]
+    addresses = _resolve_account_addresses(client, account_ids)
+    contact_by_account = _resolve_default_contact_id(client, account_ids)
     accounts: list[Account] = []
-    for r in client.query(soql):
+    for r in rows:
         acct = r.get("Account") or {}
+        acct_id = r["AccountId"]
+        billing_addr, shipping_addr = addresses.get(acct_id, (None, None))
         accounts.append(Account(
-            id=r["AccountId"],
-            name=acct.get("Name", r["AccountId"]),
+            id=acct_id,
+            name=acct.get("Name", acct_id),
             billing_account_id=r["Id"],
+            bill_to_contact_id=contact_by_account.get(acct_id),
+            billing_address=billing_addr,
+            shipping_address=shipping_addr,
         ))
     log.info("discovered %d billing-ready account(s)", len(accounts))
     return accounts

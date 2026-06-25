@@ -91,6 +91,28 @@ def build_batch_report(manifests: Iterable[Manifest], base_run_id: str = "") -> 
         row["count"] += 1
         row["run_ids"].append(m.run_id)
 
+    # Poll warnings: scenarios where asset poll did not converge cleanly.
+    poll_warnings = sorted(
+        (
+            {"run_id": m.run_id, "status": m.asset_poll_status}
+            for m in manifests
+            if m.asset_poll_status and m.asset_poll_status != "converged"
+        ),
+        key=lambda r: r["run_id"],
+    )
+    link_warnings = sorted(
+        (
+            {
+                "run_id": m.run_id,
+                "status": m.invoice_order_link_status,
+                "error": m.invoice_order_link_error,
+            }
+            for m in manifests
+            if m.invoice_order_link_status == "failed"
+        ),
+        key=lambda r: r["run_id"],
+    )
+
     return {
         "base_run_id": base_run_id,
         "total": total,
@@ -102,6 +124,8 @@ def build_batch_report(manifests: Iterable[Manifest], base_run_id: str = "") -> 
         "failure_signatures": sorted(
             signatures.values(), key=lambda r: (-r["count"], r["signature"])
         ),
+        "poll_warnings": poll_warnings,
+        "link_warnings": link_warnings,
     }
 
 
@@ -150,6 +174,23 @@ def render_markdown(report: dict[str, Any]) -> str:
             count = per_kind.get(stage, 0)
             if count:
                 lines.append(f"- {stage}: {count}")
+        unknown_stages = [
+            stage for stage in sorted(per_kind)
+            if stage not in ordered_stages and per_kind.get(stage, 0)
+        ]
+        for stage in unknown_stages:
+            lines.append(f"- {stage}: {per_kind[stage]} (unknown)")
+
+    if report.get("poll_warnings"):
+        lines += ["", "## Poll warnings", ""]
+        for row in report["poll_warnings"]:
+            lines.append(f"- {row['run_id']}: {row['status']}")
+
+    if report.get("link_warnings"):
+        lines += ["", "## Link warnings", ""]
+        for row in report["link_warnings"]:
+            suffix = f" — {row['error']}" if row.get("error") else ""
+            lines.append(f"- {row['run_id']}: {row['status']}{suffix}")
 
     if report["failure_signatures"]:
         lines += ["", "## Failure signatures", ""]

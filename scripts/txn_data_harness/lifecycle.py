@@ -23,7 +23,7 @@ import logging
 import random
 import time
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import Any, NamedTuple, Optional
 
 from .auth import SfRestClient
 from .discovery import Account, PostalAddress, Product
@@ -32,16 +32,21 @@ from .term import Term
 
 log = logging.getLogger("txn_data_harness.lifecycle")
 
-# Account shipping fields copied onto the order before activation.
-_SHIPPING_FIELDS = [
-    "ShippingStreet", "ShippingCity", "ShippingState",
-    "ShippingPostalCode", "ShippingCountry",
-]
-
 # Poll cadence for async/derived records (asset, billing schedule).
 _POLL_INTERVAL = 5  # seconds between poll ticks
 
 _BILLING_SCHEDULE_SUCCESS = {"ReadyForInvoicing", "CompletelyBilled"}
+
+_VALID_CATEGORY_ENUMS = frozenset({
+    "Initial Sale", "Amendment", "Renewal", "Cancellation",
+})
+
+
+class AssetPollResult(NamedTuple):
+    """Return type for :func:`poll_assets` — carries both IDs and convergence status."""
+
+    asset_ids: list[str]
+    status: str  # "converged" | "timeout_empty" | "timeout_partial"
 
 
 class LifecycleError(RuntimeError):
@@ -190,8 +195,13 @@ def place_sales_transaction(
             # next year input). Without an override the platform derives
             # EndDate from StartDate + SubscriptionTerm (Branch A).
             if line.end_date is not None:
-                line_start = start_date or date.today()
-                line_record["EndDate"] = line.end_date.resolve(line_start).isoformat()
+                if line.resolved_end_date:
+                    line_record["EndDate"] = line.resolved_end_date
+                else:
+                    line_start = start_date or date.today()
+                    iso = line.end_date.resolve(line_start).isoformat()
+                    line_record["EndDate"] = iso
+                    line.resolved_end_date = iso
         if line.discount_percent is not None:
             line_record["Discount"] = line.discount_percent
         # Products with a proration policy require these at place time; not
@@ -259,22 +269,23 @@ def set_shipping_address(client: SfRestClient, order_id: str, account: Account) 
     """Copy the account's shipping address onto the order.
 
     createOrderFromQuote leaves the order's shipping address null, and
-    activation hard-fails FAILED_ACTIVATION without it. We read the address off
-    the account at call time (the discovery Account does not carry it).
+    activation hard-fails FAILED_ACTIVATION without it. The address is
+    fetched at discovery time and cached on ``account.shipping_address``.
     """
-    recs = client.query(
-        f"SELECT {', '.join(_SHIPPING_FIELDS)} FROM Account WHERE Id = '{account.id}'"
-    )
-    if not recs:
-        raise LifecycleError("activate", f"account {account.id} not found for shipping")
-    shipping = {f: recs[0].get(f) for f in _SHIPPING_FIELDS if recs[0].get(f)}
-    if not shipping:
+    addr = account.shipping_address
+    if addr is None:
         raise LifecycleError(
             "activate",
             f"account {account.name} has no shipping address to copy onto the order",
         )
-    client.patch(_sobject_path(client, "Order", order_id), shipping)
-    log.info("order %s shipping address set (%s)", order_id, shipping.get("ShippingCity"))
+    payload = addr.to_sf_fields("Shipping")
+    if not payload:
+        raise LifecycleError(
+            "activate",
+            f"account {account.name} has no shipping address to copy onto the order",
+        )
+    client.patch(_sobject_path(client, "Order", order_id), payload)
+    log.info("order %s shipping address set (%s)", order_id, payload.get("ShippingCity"))
 
 
 # ---------------------------------------------------------------------------
@@ -294,6 +305,7 @@ def poll_billing_schedules(
     order_id: str,
     expected_count: int = 1,
     timeout: int = 180,
+    success_statuses: Optional[set[str]] = None,
 ) -> list[str]:
     """Wait for activation to auto-generate BillingSchedule(s) for the order.
 
@@ -302,6 +314,8 @@ def poll_billing_schedules(
     invoice step. Multi-line orders can produce several schedules, so wait for
     the expected count instead of returning on the first row.
     """
+    statuses = success_statuses if success_statuses is not None else _BILLING_SCHEDULE_SUCCESS
+    log.debug("poll_billing_schedules watching statuses: %s", sorted(statuses))
     deadline = time.monotonic() + timeout
     soql = (
         "SELECT Id, Status FROM BillingSchedule "
@@ -320,7 +334,7 @@ def poll_billing_schedules(
                 )
             ready = [
                 r["Id"] for r in rows
-                if r.get("Status") in _BILLING_SCHEDULE_SUCCESS
+                if r.get("Status") in statuses
             ]
             if len(ready) >= expected_count:
                 log.info(
@@ -332,7 +346,7 @@ def poll_billing_schedules(
     raise LifecycleError(
         "billing_schedule",
         f"fewer than {expected_count} ready BillingSchedule(s) for order "
-        f"{order_id} within {timeout}s",
+        f"{order_id} within {timeout}s (watching statuses: {sorted(statuses)})",
         record_id=order_id,
     )
 
@@ -341,7 +355,9 @@ def poll_assets(
     client: SfRestClient,
     order_id: str,
     timeout: int = 180,
-) -> list[str]:
+    category_enum: str = "Initial Sale",
+    stable_ticks: int = 1,
+) -> AssetPollResult:
     """Wait for activation-generated Asset(s) attributable to ``order_id``.
 
     Asset has no direct order FK, but the data model exposes a deterministic
@@ -353,9 +369,9 @@ def poll_assets(
               -> Asset
 
     We query AssetActionSource rows whose ``ReferenceEntityItemId`` points at
-    one of this order's OrderItems, filtered to ``CategoryEnum = 'Initial Sale'``
-    so amendments/renewals/cancellations on the same OrderItem (under different
-    CategoryEnum values) never bleed into an activation poll.
+    one of this order's OrderItems, filtered to ``category_enum`` (default
+    ``'Initial Sale'``) so amendments/renewals/cancellations on the same
+    OrderItem never bleed into an activation poll.
 
     Why this beats the prior account+product+created-date heuristic:
 
@@ -374,8 +390,9 @@ def poll_assets(
     Exit condition: ``expected_count`` is not derivable at call time -- bundles
     decouple OrderItem count from asset count, and ``count_order_items`` would
     over-count for any future scenario with non-asset-producing component
-    OrderItems. Instead, the poll converges when the AAS-returned count is
-    stable across two consecutive ``_POLL_INTERVAL`` ticks with count >= 1.
+    OrderItems. Instead, the poll converges when the AAS-returned sorted ID set
+    is identical to the previous tick's set for ``stable_ticks`` consecutive
+    observations (default 1 = exit on first match, same as prior behavior).
     Live timing measured against rlm-base__jun17_1 (2026-06-23): Asset created
     01:28:44, AAS created 01:28:45 (1s lag, simple case); same-second for the
     bundle case -- both well within one tick.
@@ -392,28 +409,44 @@ def poll_assets(
     ``run_usage`` raises hard downstream if it can't pair a usage line,
     which is the right place for an empty-pool error to surface.
     """
+    if stable_ticks < 1:
+        raise LifecycleError(
+            "activate",
+            f"stable_ticks must be >= 1, got {stable_ticks}",
+        )
+    if category_enum not in _VALID_CATEGORY_ENUMS:
+        raise LifecycleError(
+            "activate",
+            f"invalid category_enum: {category_enum!r}; "
+            f"must be one of {sorted(_VALID_CATEGORY_ENUMS)}",
+        )
     soql = (
         "SELECT AssetAction.AssetId FROM AssetActionSource "
         f"WHERE ReferenceEntityItemId IN ("
         f"SELECT Id FROM OrderItem WHERE OrderId = '{order_id}'"
-        f") AND AssetAction.CategoryEnum = 'Initial Sale'"
+        f") AND AssetAction.CategoryEnum = '{category_enum}'"
     )
     deadline = time.monotonic() + timeout
     prev_ids: list[str] = []
     last_ids: list[str] = []
+    stable_count = 0
     while time.monotonic() < deadline:
         rows = client.query(soql)
-        last_ids = [
+        last_ids = sorted(
             r["AssetAction"]["AssetId"]
             for r in rows
             if r.get("AssetAction") and r["AssetAction"].get("AssetId")
-        ]
-        if last_ids and len(last_ids) == len(prev_ids):
-            log.info(
-                "order %s assets: %d asset(s) attributed via AssetActionSource",
-                order_id, len(last_ids),
-            )
-            return last_ids
+        )
+        if last_ids and last_ids == prev_ids:
+            stable_count += 1
+            if stable_count >= stable_ticks:
+                log.info(
+                    "order %s assets: %d asset(s) attributed via AssetActionSource",
+                    order_id, len(last_ids),
+                )
+                return AssetPollResult(last_ids, "converged")
+        else:
+            stable_count = 0
         prev_ids = last_ids
         time.sleep(_POLL_INTERVAL)
     if not last_ids:
@@ -422,13 +455,13 @@ def poll_assets(
             "may be delayed, or activation produced no assets (continuing)",
             order_id, timeout,
         )
-    else:
-        log.warning(
-            "order %s asset count never stabilized within %ds; returning %d "
-            "asset(s) from last poll (may be incomplete)",
-            order_id, timeout, len(last_ids),
-        )
-    return last_ids
+        return AssetPollResult([], "timeout_empty")
+    log.warning(
+        "order %s asset count never stabilized within %ds; returning %d "
+        "asset(s) from last poll (may be incomplete)",
+        order_id, timeout, len(last_ids),
+    )
+    return AssetPollResult(last_ids, "timeout_partial")
 
 
 # ---------------------------------------------------------------------------
