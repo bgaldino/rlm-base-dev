@@ -4,9 +4,15 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.txn_data_harness.lifecycle import LifecycleError
+from scripts.txn_data_harness.lifecycle import AssetPollResult, LifecycleError
 from scripts.txn_data_harness.models import LineItem, Manifest
-from scripts.txn_data_harness.steps import StepContext, execute_step, run_activate, run_quote
+from scripts.txn_data_harness.steps import (
+    StepContext,
+    execute_step,
+    run_activate,
+    run_post,
+    run_quote,
+)
 
 
 def _ctx(fake_client, org_context, billable_account, term_product, checkpoint=None) -> StepContext:
@@ -105,13 +111,13 @@ def test_run_activate_uses_order_item_count_for_bs_and_order_id_for_assets(
         assert order_id == "801ORDER"
         return 7  # bundle expanded to seven OrderItems
 
-    def fake_bs(_client, _order_id, expected_count, timeout):
+    def fake_bs(_client, _order_id, expected_count, timeout, **_kwargs):
         captured["bs_expected"] = expected_count
         return [f"BS-{i}" for i in range(expected_count)]
 
     def fake_assets(_client, order_id, timeout):
         captured["assets_order_id"] = order_id
-        return [f"A-{i}" for i in range(5)]
+        return AssetPollResult([f"A-{i}" for i in range(5)], "converged")
 
     monkeypatch.setattr(
         "scripts.txn_data_harness.steps.lifecycle.count_order_items", fake_count
@@ -137,6 +143,81 @@ def test_run_activate_uses_order_item_count_for_bs_and_order_id_for_assets(
     assert manifest.reached_stage == "activate"
 
 
+def test_run_activate_does_not_mark_stage_when_billing_poll_fails(
+    monkeypatch, fake_client, org_context, billable_account, term_product
+) -> None:
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.set_shipping_address",
+        lambda *_a, **_kw: None,
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.count_order_items",
+        lambda *_a, **_kw: 1,
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.activate_order",
+        lambda *_a, **_kw: None,
+    )
+
+    def fail_billing_poll(*_a, **_kw):
+        raise LifecycleError("billing_schedule", "request timed out")
+
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.poll_billing_schedules",
+        fail_billing_poll,
+    )
+
+    manifest = Manifest(run_id="DEMO-1", reached_stage="order", order_id="801ORDER")
+    with pytest.raises(LifecycleError, match="request timed out"):
+        run_activate(
+            _ctx(fake_client, org_context, billable_account, term_product),
+            manifest,
+        )
+
+    assert manifest.reached_stage == "order"
+    assert manifest.billing_schedule_ids == []
+
+
+def test_run_activate_does_not_mark_stage_when_asset_poll_hard_fails(
+    monkeypatch, fake_client, org_context, billable_account, term_product
+) -> None:
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.set_shipping_address",
+        lambda *_a, **_kw: None,
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.count_order_items",
+        lambda *_a, **_kw: 1,
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.activate_order",
+        lambda *_a, **_kw: None,
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.poll_billing_schedules",
+        lambda *_a, **_kw: ["BS-1"],
+    )
+
+    def fail_asset_poll(*_a, **_kw):
+        raise LifecycleError("activate", "request timed out")
+
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.poll_assets",
+        fail_asset_poll,
+    )
+
+    manifest = Manifest(run_id="DEMO-1", reached_stage="order", order_id="801ORDER")
+    with pytest.raises(LifecycleError, match="request timed out"):
+        run_activate(
+            _ctx(fake_client, org_context, billable_account, term_product),
+            manifest,
+        )
+
+    assert manifest.reached_stage == "order"
+    assert manifest.billing_schedule_ids == ["BS-1"]
+    assert manifest.asset_ids == []
+
+
 def test_post_step_requires_invoice_id(fake_client, org_context, billable_account, term_product) -> None:
     with pytest.raises(LifecycleError, match="invoice_id is required"):
         execute_step(
@@ -144,3 +225,28 @@ def test_post_step_requires_invoice_id(fake_client, org_context, billable_accoun
             _ctx(fake_client, org_context, billable_account, term_product),
             Manifest(run_id="DEMO-1"),
         )
+
+
+def test_run_post_records_optional_order_link_failure(
+    monkeypatch, fake_client, org_context, billable_account, term_product
+) -> None:
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.post_invoice",
+        lambda *_a, **_kw: "INV-1",
+    )
+
+    def fail_link(*_a, **_kw):
+        raise LifecycleError("post", "request timed out")
+
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.link_invoice_to_order",
+        fail_link,
+    )
+
+    manifest = Manifest(run_id="DEMO-1", invoice_id="INV-ID", order_id="801ORDER")
+    run_post(_ctx(fake_client, org_context, billable_account, term_product), manifest)
+
+    assert manifest.reached_stage == "post"
+    assert manifest.invoice_number == "INV-1"
+    assert manifest.invoice_order_link_status == "failed"
+    assert "request timed out" in (manifest.invoice_order_link_error or "")

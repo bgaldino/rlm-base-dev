@@ -20,6 +20,7 @@ from scripts.txn_data_harness.models import Manifest
     ("24h", dt.timedelta(hours=24)),
     ("7d", dt.timedelta(days=7)),
     ("2w", dt.timedelta(weeks=2)),
+    ("7D", dt.timedelta(days=7)),
     (" 45s ", dt.timedelta(seconds=45)),
 ])
 def test_parse_retention_valid(text: str, expected: dt.timedelta) -> None:

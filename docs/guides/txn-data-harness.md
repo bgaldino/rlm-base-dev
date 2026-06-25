@@ -183,10 +183,12 @@ For AI agents and manual recovery work, use the subcommand entry point:
 ```bash
 python -m scripts.txn_data_harness.cli inspect --latest
 python -m scripts.txn_data_harness.cli inspect --manifest scripts/txn_data_harness/out/<run_id>.json
+python -m scripts.txn_data_harness.cli inspect --latest --json
 ```
 
-`inspect` prints a compact JSON summary of the manifest: reached stage, error,
-record ids, line count, start date, and invoice number.
+`inspect` prints a compact human-readable summary by default. Pass `--json` for
+scripts; the JSON summary includes reached stage, error, record ids, warning
+fields, line count, start date, and invoice number.
 
 To continue a partial run, pass the manifest plus enough target context to rebuild
 the step state. New manifests record `account_name` and line details, but pass
@@ -208,8 +210,9 @@ link `Invoice.ReferenceEntityId` only after posting.
 
 Every run writes a batch report alongside the manifests
 (`out/<base_run_id>-report.json` + `.md`): success/failure counts, a histogram of
-how far scenarios got, and a failure-signature rollup. Rebuild it from disk later
-with `report`, and clean up accumulated manifests by age with `prune`:
+how far scenarios got, poll/link warnings, and a failure-signature rollup.
+Rebuild it from disk later with `report`, and clean up accumulated manifests by
+age with `prune`:
 
 ```bash
 python -m scripts.txn_data_harness.cli report <base_run_id>            # JSON
@@ -227,6 +230,12 @@ Both `generate`/`cli run` retry **transient** scenario failures (network timeout
 times (default 2), resuming from the last checkpointed stage. **Deterministic**
 failures (missing field, unmet precondition) fail fast. The manifest records the
 final `attempts` and `failure_class`.
+
+Checkpointing uses completed stage barriers. For example, `activate` is not
+recorded as reached until BillingSchedule polling and asset polling finish. Draft
+invoice ingestion retries only if a transient failure happens before any invoice
+id is observed; once the org returns an invoice id, the manifest keeps that id and
+the run stops rather than replaying the ingest graph.
 
 ## Verifying in the org
 

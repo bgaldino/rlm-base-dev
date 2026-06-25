@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from scripts.txn_data_harness import cli
 from scripts.txn_data_harness.manifests import write_manifest
 from scripts.txn_data_harness.models import Manifest
@@ -47,7 +49,7 @@ def test_inspect_manifest_path_prints_summary(tmp_path, capsys) -> None:
         manifest_dir=tmp_path,
     )
 
-    exit_code = cli.main(["inspect", "--manifest", str(path)])
+    exit_code = cli.main(["inspect", "--manifest", str(path), "--json"])
 
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
@@ -61,10 +63,44 @@ def test_inspect_latest_uses_newest_manifest(tmp_path, monkeypatch, capsys) -> N
     new = write_manifest(Manifest(run_id="DEMO-NEW"), manifest_dir=tmp_path)
     monkeypatch.setattr("scripts.txn_data_harness.cli.list_manifests", lambda: [new, old])
 
-    exit_code = cli.main(["inspect", "--latest"])
+    exit_code = cli.main(["inspect", "--latest", "--json"])
 
     assert exit_code == 0
     assert json.loads(capsys.readouterr().out)["run_id"] == "DEMO-NEW"
+
+
+def test_inspect_default_prints_human_summary(tmp_path, capsys) -> None:
+    path = write_manifest(
+        Manifest(run_id="DEMO-1", account_name="Infinitech", reached_stage="quote"),
+        manifest_dir=tmp_path,
+    )
+
+    exit_code = cli.main(["inspect", "--manifest", str(path)])
+
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    assert "Run: DEMO-1" in out
+    assert "Reached stage: quote" in out
+
+
+def test_inspect_default_surfaces_order_link_warning(tmp_path, capsys) -> None:
+    path = write_manifest(
+        Manifest(
+            run_id="DEMO-1",
+            account_name="Infinitech",
+            reached_stage="post",
+            invoice_order_link_status="failed",
+            invoice_order_link_error="[post] request timed out",
+        ),
+        manifest_dir=tmp_path,
+    )
+
+    exit_code = cli.main(["inspect", "--manifest", str(path)])
+
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    assert "Invoice order link: failed" in out
+    assert "request timed out" in out
 
 
 def test_step_reports_missing_account_without_org_calls(tmp_path, monkeypatch, capsys) -> None:
@@ -83,3 +119,19 @@ def test_step_reports_missing_account_without_org_calls(tmp_path, monkeypatch, c
 
     assert exit_code == 1
     assert "requires --account" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("flag", ["--count", "--concurrency", "--max-retries", "--target-stage"])
+def test_step_rejects_run_only_flags(flag) -> None:
+    argv = [
+        "step",
+        "--org", "sf-alias",
+        "--manifest", "DEMO-1",
+        "--to-stage", "post",
+        flag, "1",
+    ]
+
+    with pytest.raises(SystemExit) as exc:
+        cli.parse_args(argv)
+
+    assert exc.value.code == 2

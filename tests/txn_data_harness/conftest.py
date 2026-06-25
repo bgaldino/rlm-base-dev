@@ -27,17 +27,15 @@ if str(REPO_ROOT) not in sys.path:
 def _reset_currency_probe_cache():
     """Reset the module-level multi-currency cache between tests.
 
-    ``discovery._MULTI_CURRENCY`` is a process-wide one-shot: True if the org
-    exposes ``Account.CurrencyIsoCode``, False if SOQL returns INVALID_FIELD,
-    None until probed. Tests run against a FakeClient with hand-stubbed
-    responses, so the cache state from one test would otherwise leak into
-    the next and either swallow a stubbed response (cache=True) or skip a
-    query a test expected (cache=False).
+    ``discovery._MULTI_CURRENCY_BY_ORG`` is scoped by org identity but still
+    process-wide. Tests run against FakeClient instances with hand-stubbed
+    responses, so cache state from one test would otherwise leak into the next
+    and either swallow a stubbed response or skip a query a test expected.
     """
     from scripts.txn_data_harness import discovery as _discovery
-    _discovery._MULTI_CURRENCY = None
+    _discovery._MULTI_CURRENCY_BY_ORG.clear()
     yield
-    _discovery._MULTI_CURRENCY = None
+    _discovery._MULTI_CURRENCY_BY_ORG.clear()
 
 
 @pytest.fixture
@@ -145,6 +143,8 @@ class FakeClient:
     api_version = "67.0"
 
     def __init__(self):
+        self.alias = "fake"
+        self.instance_url = "https://fake.example"
         self.posts: list[tuple[str, object]] = []
         self.patches: list[tuple[str, object]] = []
         self.gets: list[str] = []

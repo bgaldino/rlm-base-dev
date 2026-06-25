@@ -23,11 +23,14 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
    batch.
 8. **Lifecycle/API changes require contracts:** read `CONTRACTS.md`, update
    tests, and live-verify the changed behavior before presenting it as verified.
-9. **`--count` does NOT override per-scenario `count:`** in a config. Precedence is
+9. **Completed-stage checkpoints:** `reached_stage` records durable stage
+   completion, not "step started"; activation reaches `activate` only after
+   BillingSchedule and asset polling finish.
+10. **`--count` does NOT override per-scenario `count:`** in a config. Precedence is
    per-scenario > CLI > `defaults` > builtins, so passing `--count 1` against a
    config whose scenarios pin `count: 100` runs all 100. To smoke a multi-scenario
    config, edit the per-scenario `count:` (or comment scenarios out) instead.
-10. **Two scenario kinds:** `kind: transaction` (default) drives the PST chain;
+11. **Two scenario kinds:** `kind: sales_transaction` (default) drives the PST chain;
     `kind: invoice_ingestion` skips PST and `POST`s a typed Composite-Graph
     payload to `/commerce/invoicing/.../actions/ingest`, minting a Draft
     `Invoice` (`CreationMode = External`) directly. Use the ingestion path only
@@ -100,16 +103,16 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
    sf org display --target-org <sf-alias> --json
    ```
 
-2. Plan with no writes:
+1. Plan with no writes:
 
    ```bash
    python -m scripts.txn_data_harness.cli plan --org <sf-alias> \
      --config scripts/txn_data_harness/scenarios/01-smoke-test.yaml
    ```
 
-3. Run one smoke scenario. Pick a config whose scenarios already have a small
+1. Run one smoke scenario. Pick a config whose scenarios already have a small
    `count:` (e.g. `01-smoke-test.yaml`); `--count` will NOT shrink a config that
-   pins `count:` per scenario (see Quick Rule 9). For a high-volume config,
+   pins `count:` per scenario (see Quick Rule 10). For a high-volume config,
    edit the per-scenario `count:` to 1 (or copy the scenario out) before
    smoking.
 
@@ -119,13 +122,13 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
      --concurrency 1 -v
    ```
 
-4. Inspect the manifest:
+1. Inspect the manifest:
 
    ```bash
-   python -m scripts.txn_data_harness.cli inspect --latest
+   python -m scripts.txn_data_harness.cli inspect --latest --json
    ```
 
-5. Verify by manifest ids with SOQL before reporting success. For a posted
+1. Verify by manifest ids with SOQL before reporting success. For a posted
    invoice:
 
    ```bash
@@ -134,7 +137,7 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
      FROM Invoice WHERE Id = '<invoiceId>'"
    ```
 
-6. Scale only after the smoke run verifies cleanly. Increase `--concurrency`
+1. Scale only after the smoke run verifies cleanly. Increase `--concurrency`
    gradually.
 
 ## Continuing Partial Runs

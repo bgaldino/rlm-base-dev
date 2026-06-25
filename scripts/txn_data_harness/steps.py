@@ -243,15 +243,21 @@ def run_ingest_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
     resume.
     """
     status = "Posted" if ctx.target_stage == "post" else "Draft"
-    invoice_id, invoice_number, line_ids = lifecycle.ingest_invoice(
-        ctx.client,
-        ctx.account,
-        ctx.invoice_lines,
-        ctx.run_id,
-        status=status,
-        invoice_spec=ctx.invoice_spec,
-        timeout=ctx.poll_timeout,
-    )
+    try:
+        invoice_id, invoice_number, line_ids = lifecycle.ingest_invoice(
+            ctx.client,
+            ctx.account,
+            ctx.invoice_lines,
+            ctx.run_id,
+            status=status,
+            invoice_spec=ctx.invoice_spec,
+            timeout=ctx.poll_timeout,
+        )
+    except LifecycleError as exc:
+        if exc.record_id:
+            manifest.invoice_id = exc.record_id
+            _checkpoint(ctx, manifest)
+        raise
     manifest.invoice_id = invoice_id
     manifest.invoice_number = invoice_number
     manifest.invoice_line_ids = list(line_ids)

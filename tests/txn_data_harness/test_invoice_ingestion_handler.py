@@ -72,8 +72,8 @@ def test_step_graph_shape() -> None:
     # Posted (the no-op short-circuit lives in run_promote_to_posted).
     assert STEP_GRAPH["invoice"] == ["ingest_invoice"]
     assert STEP_GRAPH["post"] == ["ingest_invoice", "promote_to_posted"]
-    # Ingestion has no other valid target stages -- the kind's valid_stages
-    # set in config.py mirrors this graph.
+    # The post edge remains internal Phase 2 scaffolding; supported config
+    # parsing is Draft-only until InvoiceLineTax prerequisites land.
     assert set(STEP_GRAPH) == {"invoice", "post"}
 
 
@@ -157,7 +157,7 @@ def test_effective_stage_does_not_cap_pipeline_account() -> None:
 
 def _ingestion_spec(
     account: str = "Infinitech",
-    target: str = "post",
+    target: str = "invoice",
     lines=None,
     invoice=None,
     count: int = 1,
@@ -221,7 +221,7 @@ def test_resolve_binds_account_and_lines(fake_client) -> None:
     assert isinstance(resolved, ResolvedInvoiceIngestionSpec)
     assert resolved.account.id == "001A"
     assert resolved.account.name == "Infinitech"
-    assert resolved.effective_stage == "post"
+    assert resolved.effective_stage == "invoice"
     assert len(resolved.invoice_lines) == 1
     line = resolved.invoice_lines[0]
     assert isinstance(line.product, InvoiceLineProduct)
@@ -418,6 +418,114 @@ def test_run_records_lifecycle_error_without_raising(
     assert manifest.reached_stage is None
 
 
+def test_run_retries_transient_draft_ingest_without_observed_invoice(
+    monkeypatch, fake_client, billable_account
+) -> None:
+    calls = {"n": 0}
+    sleeps: list[float] = []
+
+    def flaky_ingest(client, account, lines, run_id, *, status, invoice_spec, timeout):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise LifecycleError("ingest_invoice", "request timed out")
+        return "1nvDRAFT", None, ["iln1"]
+
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.ingest_invoice",
+        flaky_ingest,
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.handlers.invoice_ingestion.time.sleep",
+        sleeps.append,
+    )
+
+    manifest = InvoiceIngestionHandler().run(
+        client=fake_client,
+        ctx=_empty_org_context(),
+        run_id="DEMO-DRAFT-RETRY",
+        resolved=_build_resolved(billable_account, target="invoice"),
+        poll_timeout=1,
+        max_retries=1,
+    )
+
+    assert calls["n"] == 2
+    assert len(sleeps) == 1
+    assert manifest.attempts == 2
+    assert manifest.error is None
+    assert manifest.reached_stage == "invoice"
+    assert manifest.invoice_id == "1nvDRAFT"
+
+
+def test_run_does_not_retry_ingest_after_invoice_id_is_observed(
+    monkeypatch, fake_client, billable_account
+) -> None:
+    writes: list[Manifest] = []
+
+    def partial_ingest(*_a, **_kw):
+        raise LifecycleError(
+            "ingest_invoice",
+            "ingest_invoice tracker Error",
+            record_id="1nvPARTIAL",
+        )
+
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.ingest_invoice",
+        partial_ingest,
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.handlers.invoice_ingestion.write_manifest",
+        lambda m: writes.append(m),
+    )
+
+    manifest = InvoiceIngestionHandler().run(
+        client=fake_client,
+        ctx=_empty_org_context(),
+        run_id="DEMO-DRAFT-PARTIAL",
+        resolved=_build_resolved(billable_account, target="invoice"),
+        poll_timeout=1,
+        max_retries=2,
+    )
+
+    assert manifest.attempts == 1
+    assert manifest.invoice_id == "1nvPARTIAL"
+    assert manifest.failure_class == "unknown"
+    assert "tracker Error" in (manifest.error or "")
+    assert writes
+
+
+def test_run_does_not_retry_transient_ingest_after_invoice_id_is_observed(
+    monkeypatch, fake_client, billable_account
+) -> None:
+    calls = {"n": 0}
+
+    def partial_transient_ingest(*_a, **_kw):
+        calls["n"] += 1
+        raise LifecycleError(
+            "ingest_invoice",
+            "request timed out",
+            record_id="1nvPARTIAL",
+        )
+
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.ingest_invoice",
+        partial_transient_ingest,
+    )
+
+    manifest = InvoiceIngestionHandler().run(
+        client=fake_client,
+        ctx=_empty_org_context(),
+        run_id="DEMO-DRAFT-PARTIAL-TRANSIENT",
+        resolved=_build_resolved(billable_account, target="invoice"),
+        poll_timeout=1,
+        max_retries=2,
+    )
+
+    assert calls["n"] == 1
+    assert manifest.attempts == 1
+    assert manifest.invoice_id == "1nvPARTIAL"
+    assert manifest.failure_class == "transient"
+
+
 # ---------------------------------------------------------------------------
 # Config parser: cross-kind PST-only knob rejection
 # ---------------------------------------------------------------------------
@@ -426,7 +534,7 @@ def test_run_records_lifecycle_error_without_raising(
 def test_coerce_spec_rejects_pst_only_field_on_ingestion() -> None:
     merged = {
         "kind": "invoice_ingestion",
-        "target_stage": "post",
+        "target_stage": "invoice",
         "account": "Infinitech",
         "invoice_lines": [{"name": "API", "quantity": 1, "unit_price": 10}],
         # PST-only field
@@ -439,7 +547,7 @@ def test_coerce_spec_rejects_pst_only_field_on_ingestion() -> None:
 def test_coerce_spec_rejects_with_opportunity_on_ingestion() -> None:
     merged = {
         "kind": "invoice_ingestion",
-        "target_stage": "post",
+        "target_stage": "invoice",
         "account": "Infinitech",
         "invoice_lines": [{"name": "API", "quantity": 1, "unit_price": 10}],
         "with_opportunity": True,
@@ -448,16 +556,16 @@ def test_coerce_spec_rejects_with_opportunity_on_ingestion() -> None:
         _coerce_spec(merged, "test")
 
 
-def test_coerce_spec_rejects_taxable_line_on_posted() -> None:
+def test_coerce_spec_rejects_posted_ingestion_until_phase_2() -> None:
     merged = {
         "kind": "invoice_ingestion",
         "target_stage": "post",
         "account": "Infinitech",
         "invoice_lines": [
-            {"name": "API", "quantity": 1, "unit_price": 10, "taxable": True}
+            {"name": "API", "quantity": 1, "unit_price": 10}
         ],
     }
-    with pytest.raises(ConfigError, match="taxable: true"):
+    with pytest.raises(ConfigError, match="Posted ingestion is Phase 2"):
         _coerce_spec(merged, "test")
 
 
@@ -477,7 +585,7 @@ def test_coerce_spec_rejects_ingestion_target_outside_kind_stages() -> None:
 def test_coerce_spec_returns_ingestion_dataclass() -> None:
     merged = {
         "kind": "invoice_ingestion",
-        "target_stage": "post",
+        "target_stage": "invoice",
         "account": "Infinitech",
         "invoice_lines": [
             {"name": "API", "quantity": 1.0, "unit_price": 10.0},
@@ -485,20 +593,19 @@ def test_coerce_spec_returns_ingestion_dataclass() -> None:
     }
     spec = _coerce_spec(merged, "test")
     assert isinstance(spec, InvoiceIngestionScenarioSpec)
-    assert spec.target_stage == "post"
+    assert spec.target_stage == "invoice"
     assert len(spec.invoice_lines) == 1
 
 
-def test_coerce_spec_ingestion_default_target_stage_is_post() -> None:
-    """A bare ``kind: invoice_ingestion`` without an explicit target_stage
-    defaults to Posted (parity with PST defaulting to ``post``)."""
+def test_coerce_spec_ingestion_default_target_stage_is_invoice() -> None:
+    """A bare ``kind: invoice_ingestion`` defaults to Draft, the supported path."""
     merged = {
         "kind": "invoice_ingestion",
         "account": "Infinitech",
         "invoice_lines": [{"name": "API", "quantity": 1, "unit_price": 10}],
     }
     spec = _coerce_spec(merged, "test")
-    assert spec.target_stage == "post"
+    assert spec.target_stage == "invoice"
 
 
 # ---------------------------------------------------------------------------

@@ -12,7 +12,8 @@ from pathlib import Path
 from typing import Optional
 
 from . import generate
-from .auth import DEFAULT_API_VERSION, SfRestClient
+from .auth import SfRestClient
+from .cli_args import add_connection_args, add_generate_args, add_resume_args
 from .config import ConfigError, load_scenarios
 from .discovery import DiscoveryError, discover, resolve_account, resolve_product
 from .lifecycle import LifecycleError
@@ -28,39 +29,8 @@ from .manifests import (
 from .handlers import SCENARIO_HANDLERS
 from .models import STAGES, LineItem
 from .report import build_batch_report, render_markdown
-from .runner import DEFAULT_MAX_RETRIES, draw_lines
+from .runner import draw_lines
 from .steps import StepContext, execute_step
-
-
-def _add_run_args(p: argparse.ArgumentParser) -> None:
-    p.add_argument("--org", required=True,
-                   help="Target org: sf CLI alias or username (NOT a CCI alias).")
-    p.add_argument("--config", help="YAML/JSON config file (all fields optional).")
-    p.add_argument("--count", type=int, help="Number of transactions to generate.")
-    p.add_argument("--target-stage", choices=STAGES,
-                   help="How far through the lifecycle to run.")
-    p.add_argument("--account", help="Pin the account by Name.")
-    p.add_argument("--product", help="Pin the product by SKU.")
-    p.add_argument("--with-opportunity", action="store_true",
-                   help="Prepend an Opportunity the quote links to.")
-    p.add_argument("--opportunity-stage", help="Pin the Opportunity StageName.")
-    p.add_argument("--concurrency", type=int, default=4,
-                   help="Parallel scenario workers (default: 4).")
-    p.add_argument("--poll-timeout", type=int, default=180,
-                   help="Async poll timeout in seconds (default: 180).")
-    p.add_argument("--max-retries", type=int, default=DEFAULT_MAX_RETRIES,
-                   help=f"Retries for transient scenario failures "
-                        f"(default: {DEFAULT_MAX_RETRIES}; 0 disables).")
-    p.add_argument("--api-version", default=DEFAULT_API_VERSION,
-                   help=f"API version (default: {DEFAULT_API_VERSION}; 'latest' to query).")
-    p.add_argument("--transport", choices=["requests", "cli"], default="requests",
-                   help="REST transport (default: requests; cli = sf api proxy).")
-    p.add_argument("--no-probe", action="store_true",
-                   help="Reserved for future PST probes; currently no-op.")
-    p.add_argument("--keep-probes", action="store_true",
-                   help="Reserved for future PST probes; currently no-op.")
-    p.add_argument("-v", "--verbose", action="count", default=0,
-                   help="-v for INFO, -vv for DEBUG.")
 
 
 def _generate_argv(args: argparse.Namespace, *, dry_run: bool = False) -> list[str]:
@@ -105,11 +75,37 @@ def _cmd_inspect(args: argparse.Namespace) -> int:
         manifest = load_manifest(str(manifests[0]))
     else:
         manifest = load_manifest(args.manifest)
-    # --json is the explicit machine-readable flag, but since summarize_manifest
-    # already returns a plain dict the default print is already JSON. Keep the
-    # flag for forward compatibility (a future human-readable default).
-    print(json.dumps(summarize_manifest(manifest), indent=2))
+    summary = summarize_manifest(manifest)
+    if args.json:
+        print(json.dumps(summary, indent=2))
+    else:
+        print(_format_inspect_text(summary))
     return 0
+
+
+def _format_inspect_text(summary: dict) -> str:
+    """Render a compact human-readable manifest summary."""
+    ids = summary.get("ids") or {}
+    lines = [
+        f"Run: {summary.get('run_id')}",
+        f"Kind: {summary.get('kind')}",
+        f"Account: {summary.get('account')}",
+        f"Reached stage: {summary.get('reached_stage') or '(none)'}",
+        f"Attempts: {summary.get('attempts')}",
+    ]
+    if summary.get("error"):
+        lines.append(f"Error: {summary.get('error')}")
+    if summary.get("invoice_number"):
+        lines.append(f"Invoice number: {summary.get('invoice_number')}")
+    link = summary.get("invoice_order_link") or {}
+    if link.get("status") == "failed":
+        detail = f": {link.get('error')}" if link.get("error") else ""
+        lines.append(f"Invoice order link: failed{detail}")
+    for label, value in ids.items():
+        if value:
+            lines.append(f"{label}: {value}")
+    lines.append(f"Manifest: {summary.get('path')}")
+    return "\n".join(lines)
 
 
 def _lines_from_manifest(client: SfRestClient, manifest) -> list[LineItem]:
@@ -341,19 +337,18 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     sub = parser.add_subparsers(dest="command", required=True)
 
     plan = sub.add_parser("plan", help="Resolve config/discovery and print the plan.")
-    _add_run_args(plan)
+    add_generate_args(plan)
     plan.set_defaults(func=_cmd_plan)
 
     run = sub.add_parser("run", help="Run the existing end-to-end generator.")
-    _add_run_args(run)
+    add_generate_args(run)
     run.set_defaults(func=_cmd_run)
 
     inspect = sub.add_parser("inspect", help="Inspect a manifest by id/path.")
     group = inspect.add_mutually_exclusive_group(required=True)
     group.add_argument("--manifest", help="Run id or manifest path.")
     group.add_argument("--latest", action="store_true", help="Inspect the newest manifest.")
-    inspect.add_argument("--json", action="store_true",
-                         help="Print JSON (current default; reserved for forward use).")
+    inspect.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     inspect.set_defaults(func=_cmd_inspect)
 
     rate = sub.add_parser(
@@ -367,7 +362,8 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     rate.set_defaults(func=_cmd_rate)
 
     step = sub.add_parser("step", help="Run steps from a manifest to a target stage.")
-    _add_run_args(step)
+    add_connection_args(step)
+    add_resume_args(step)
     step.add_argument("--manifest", required=True, help="Run id or manifest path.")
     step.add_argument("--to-stage", required=True, choices=STAGES,
                       help="Run remaining steps through this stage.")

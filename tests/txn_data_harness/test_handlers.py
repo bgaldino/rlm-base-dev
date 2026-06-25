@@ -80,6 +80,11 @@ def test_scenario_spec_rejects_unknown_kind() -> None:
         _coerce_spec({"account": "Infinitech", "kind": "bogus"}, "test")
 
 
+def test_transaction_kind_error_suggests_sales_transaction() -> None:
+    with pytest.raises(ConfigError, match="use 'sales_transaction'"):
+        _coerce_spec({"account": "Infinitech", "kind": "transaction"}, "test")
+
+
 def test_manifest_defaults_kind_to_sales_transaction() -> None:
     assert Manifest(run_id="DEMO-K").kind == "sales_transaction"
 

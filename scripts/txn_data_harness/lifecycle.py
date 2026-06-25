@@ -1086,7 +1086,7 @@ def ingest_invoice(
     deadline = time.monotonic() + timeout
     if status_url:
         _await_async_tracker(
-            client, status_url, deadline, step="ingest_invoice"
+            client, status_url, deadline, step="ingest_invoice", record_id=row.get("invoiceId")
         )
 
     # Recover the persisted invoice + lines by uniqueIdentifier. The action

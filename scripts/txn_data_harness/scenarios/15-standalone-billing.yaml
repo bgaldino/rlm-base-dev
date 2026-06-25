@@ -1,7 +1,9 @@
-# Standalone billing — Posted invoices via the ingest API.
+# Standalone billing — Posted invoices via the ingest API (Phase 2 reference).
 #
-#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/15-standalone-billing.yaml
+# DO NOT RUN as an operator scenario today. The parser intentionally rejects
+# `target_stage: post` for `kind: invoice_ingestion` until the InvoiceLineTax
+# graph payload lands and is live-verified. Use
+# 15-standalone-billing-draft.yaml for the supported Draft path.
 #
 # Bypasses the PST chain entirely: no Opportunity, no Quote, no Order, no
 # Activate, no BillingSchedule. Each transaction is a single POST to
@@ -10,11 +12,10 @@
 # the contractual marker; PST-emitted invoices stay `Salesforce`.
 #
 # Posted ingested invoices are NOT deletable -- same constraint as the PST
-# Posted path. For deletable invoices use 15-standalone-billing-draft.yaml.
+# Posted path. This file is retained as Phase 2 scaffolding/reference only.
 #
-# Phase 1 tax invariant: every line stays `taxable: false` and the parser
-# rejects `taxable: true` on Posted scenarios. InvoiceLineTax payload design
-# is a Phase 2 follow-up (see FOLLOWUPS.md).
+# Phase 2 dependency: taxable TaxTreatment rows require InvoiceLineTax records.
+# InvoiceLineTax payload design is a Phase 2 follow-up (see FOLLOWUPS.md).
 #
 # Account flavors verified against this scenario:
 #   - Infinitech    (billing-ready; has a BillingAccount row)

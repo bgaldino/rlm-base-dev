@@ -53,6 +53,12 @@ and are never retried. After a batch, a report is written to
 `out/<base_run_id>-report.json` (and `.md`) with success/failure counts, a
 stage-reached histogram, and a failure-signature rollup.
 
+Activation only checkpoints `reached_stage: "activate"` after BillingSchedule
+polling and asset polling complete. Draft invoice ingestion retries only when a
+transient failure happens before any invoice id is observed; once an invoice id
+is known, the manifest records it and stops rather than replaying the ingest
+graph.
+
 ### Inspect
 
 ```bash
@@ -61,10 +67,10 @@ python -m scripts.txn_data_harness.cli inspect --manifest scripts/txn_data_harne
 python -m scripts.txn_data_harness.cli inspect --latest --json    # machine-readable
 ```
 
-Use inspect after every run. It returns JSON with `run_id`, account, reached
-stage, error, line count, created ids, invoice number, and `usage_journal_ids`.
-Pass `--json` for scripted workflows (the `path` field can be piped into
-`cli step --manifest`).
+Use inspect after every run. The default output is human-readable. Pass `--json`
+for scripted workflows; JSON includes `run_id`, account, reached stage, error,
+line count, created ids, invoice number, warning fields, and a `path` field that
+can be piped into `cli step --manifest`.
 
 ### Rate (usage orchestration — one-shot, ~15 min, org-wide)
 

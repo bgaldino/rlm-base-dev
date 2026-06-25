@@ -5,10 +5,9 @@ from __future__ import annotations
 import datetime as dt
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
-
-from scripts.build_harness.harness.io import parse_retention
 
 from .models import Manifest
 
@@ -26,6 +25,29 @@ __all__ = [
 ]
 
 MANIFEST_DIR = Path(__file__).resolve().parent / "out"
+_RETENTION_RE = re.compile(r"^\s*(\d+)\s*([smhdw])\s*$", re.IGNORECASE)
+
+
+def parse_retention(text: str) -> dt.timedelta:
+    """Parse a retention window like ``30m``, ``24h``, ``7d``, or ``2w``."""
+    match = _RETENTION_RE.match(text or "")
+    if not match:
+        raise ValueError(f"Invalid retention window: {text!r}")
+    value = int(match.group(1))
+    if value <= 0:
+        raise ValueError("Retention must be greater than zero.")
+    unit = match.group(2).lower()
+    if unit == "s":
+        return dt.timedelta(seconds=value)
+    if unit == "m":
+        return dt.timedelta(minutes=value)
+    if unit == "h":
+        return dt.timedelta(hours=value)
+    if unit == "d":
+        return dt.timedelta(days=value)
+    if unit == "w":
+        return dt.timedelta(weeks=value)
+    raise ValueError(f"Invalid retention unit: {unit!r}")
 
 
 def write_json(path: Path, payload: Any) -> Path:

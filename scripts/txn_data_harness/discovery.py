@@ -258,9 +258,27 @@ def discover_accounts(client: SfRestClient, account_name: Optional[str] = None) 
     return accounts
 
 
-# Module-level cache: True if the org has CurrencyIsoCode on Account (multi-
-# currency enabled), False if SOQL returned INVALID_FIELD. None until probed.
-_MULTI_CURRENCY: Optional[bool] = None
+# Module-level cache keyed by stable org identity. True if that org has
+# CurrencyIsoCode on Account (multi-currency enabled), False if SOQL returned
+# INVALID_FIELD. Missing key means not probed yet.
+_MULTI_CURRENCY_BY_ORG: dict[str, bool] = {}
+
+
+def _org_cache_key(client: SfRestClient) -> Optional[str]:
+    """Return a stable-enough cache key for org-scoped discovery probes.
+
+    Prefer instance URL because it is resolved by ``sf org display`` and does
+    not depend on which local alias the operator used. Test fakes may not carry
+    it, so fall back to an explicit alias. If neither is present, return None
+    so callers probe without caching instead of relying on recyclable object ids.
+    """
+    instance_url = getattr(client, "instance_url", None)
+    if instance_url:
+        return f"instance:{str(instance_url).rstrip('/')}"
+    alias = getattr(client, "alias", None)
+    if alias:
+        return f"alias:{alias}"
+    return None
 
 
 def _account_currency_map(
@@ -275,8 +293,10 @@ def _account_currency_map(
     2026-06-25 on rlm-base__jun17_1: missing field returns INVALID_API_INPUT
     "The currencyIsoCode is required in multi-currency organizations").
     """
-    global _MULTI_CURRENCY
-    if not account_ids or _MULTI_CURRENCY is False:
+    if not account_ids:
+        return {}
+    cache_key = _org_cache_key(client)
+    if cache_key is not None and _MULTI_CURRENCY_BY_ORG.get(cache_key) is False:
         return {}
     quoted = ",".join(f"'{_sql_escape(a)}'" for a in account_ids)
     try:
@@ -285,10 +305,12 @@ def _account_currency_map(
         )
     except Exception as exc:  # noqa: BLE001
         if "INVALID_FIELD" in str(exc):
-            _MULTI_CURRENCY = False
+            if cache_key is not None:
+                _MULTI_CURRENCY_BY_ORG[cache_key] = False
             return {}
         raise
-    _MULTI_CURRENCY = True
+    if cache_key is not None:
+        _MULTI_CURRENCY_BY_ORG[cache_key] = True
     return {r["Id"]: r.get("CurrencyIsoCode") for r in rows if r.get("CurrencyIsoCode")}
 
 

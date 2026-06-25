@@ -22,6 +22,7 @@ from datetime import date
 from scripts.txn_data_harness.config import InvoiceLineSpec, InvoiceOverrides
 from scripts.txn_data_harness.discovery import (
     InvoiceLineProduct,
+    _account_currency_map,
     discover_any_accounts,
     resolve_invoice_line_product,
 )
@@ -133,6 +134,61 @@ def test_discover_any_accounts_empty_skips_second_query(fake_client) -> None:
     # BillingAccount + Contact lookups so we don't ship empty IN-clauses to
     # SOQL.
     assert len(fake_client.queries) == 1
+
+
+def test_account_currency_probe_cache_is_scoped_by_org_identity() -> None:
+    class CurrencyClient:
+        api_version = "67.0"
+        alias = "same-local-alias"
+
+        def __init__(self, instance_url: str, responses: list[object]):
+            self.instance_url = instance_url
+            self.responses = responses
+            self.queries: list[str] = []
+
+        def query(self, soql: str):
+            self.queries.append(soql)
+            response = self.responses.pop(0)
+            if isinstance(response, Exception):
+                raise response
+            return response
+
+    single_currency = CurrencyClient(
+        "https://single.example",
+        [Exception("INVALID_FIELD: No such column 'CurrencyIsoCode' on Account")],
+    )
+    multi_currency = CurrencyClient(
+        "https://multi.example",
+        [[{"Id": "001B", "CurrencyIsoCode": "USD"}]],
+    )
+
+    assert _account_currency_map(single_currency, ["001A"]) == {}
+    assert _account_currency_map(multi_currency, ["001B"]) == {"001B": "USD"}
+
+    # The single-currency result is cached only for its own org key. A second
+    # probe against that same org skips SOQL, but it did not suppress the
+    # multi-currency org above even though both clients shared the same alias.
+    assert _account_currency_map(single_currency, ["001A"]) == {}
+    assert len(single_currency.queries) == 1
+    assert len(multi_currency.queries) == 1
+
+
+def test_account_currency_probe_does_not_cache_without_stable_org_identity() -> None:
+    class AnonymousClient:
+        api_version = "67.0"
+
+        def __init__(self):
+            self.queries: list[str] = []
+
+        def query(self, soql: str):
+            self.queries.append(soql)
+            return [{"Id": "001A", "CurrencyIsoCode": "USD"}]
+
+    client = AnonymousClient()
+
+    assert _account_currency_map(client, ["001A"]) == {"001A": "USD"}
+    assert _account_currency_map(client, ["001A"]) == {"001A": "USD"}
+    assert len(client.queries) == 2
 
 
 def test_invoice_line_spec_defaults_honour_tax_invariant() -> None:

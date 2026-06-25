@@ -3,11 +3,10 @@
 Drives the standalone-billing invoice ingestion path (Composite Graph ingest
 action). Counterpart to :class:`SalesTransactionHandler`: same protocol, very
 different lifecycle. The PST chain walks Opportunity -> Quote -> Order ->
-Activate -> Usage -> Invoice -> Post; ingestion ships one POST that creates a
-Draft or Posted invoice in a single composite-graph call. A scenario targeting
-``post`` lands Posted in one step (``ingest_invoice``); a scenario targeting
-``invoice`` lands Draft and stops; a Draft can be resumed to Posted with
-``cli step --to-stage post``, which runs the ``promote_to_posted`` step.
+Activate -> Usage -> Invoice -> Post; supported ingestion configs ship one POST
+that creates a Draft invoice in a single composite-graph call. The Posted path
+remains internal Phase 2 scaffolding until InvoiceLineTax prerequisites are
+implemented and live-verified.
 
 The handler owns its own step graph:
 
@@ -22,6 +21,8 @@ no-op short-circuit lives in :func:`steps.run_promote_to_posted`).
 
 from __future__ import annotations
 
+import logging
+import time
 from typing import Any, ClassVar, Optional
 
 from ..auth import SfRestClient
@@ -41,8 +42,11 @@ from ..models import (
     ResolvedInvoiceLine,
     ResolvedInvoiceOverrides,
 )
-from ..runner import current_run_id
+from ..failure import classify_exception
+from ..runner import _retry_backoff, current_run_id
 from ..steps import StepContext, execute_step
+
+log = logging.getLogger("txn_data_harness.handlers.invoice_ingestion")
 
 
 # Canonical ingestion step graph keyed by target stage. The handler owns this
@@ -260,14 +264,14 @@ class InvoiceIngestionHandler:
         """Drive one ingestion scenario through ``ingest_invoice`` (+ optional
         ``promote_to_posted``).
 
-        ``max_retries`` is accepted for protocol parity with the PST handler
-        but ignored: a failed ingest call leaves a partial invoice the runner
-        cannot safely re-run idempotently without a separate dedupe pass
-        (uniqueIdentifier covers the action level, but a retry on a partial
-        failure can still tickle composite-graph race conditions). The
-        scenario-level retry policy will be revisited when Phase 2 lands.
+        Draft ingestion retries are intentionally narrow: retry only transient
+        failures when no invoice id has been observed. The ingest action uses
+        ``uniqueIdentifier=run_id``, but once the org returns an invoice id (or
+        the tracker fails with one), the manifest keeps that id and the handler
+        stops rather than replaying a partially materialized graph. Posted
+        ingestion remains Phase 2 operationally; this retry policy is for the
+        supported Draft path.
         """
-        del max_retries  # see docstring
         current_run_id.set(run_id)
         manifest = Manifest(
             run_id=run_id,
@@ -288,24 +292,49 @@ class InvoiceIngestionHandler:
             invoice_lines=resolved.invoice_lines,
             invoice_spec=resolved.invoice_overrides,
         )
-        steps = self.stage_sequence(
-            resolved.spec.target_stage, with_opportunity=False
-        )
-        try:
-            for step in steps:
-                manifest = execute_step(step, step_ctx, manifest)
-                write_manifest(manifest)
-            manifest.error = None
-            manifest.failure_class = None
-        except Exception as exc:  # noqa: BLE001 -- isolate one scenario's failure
-            from ..failure import classify_exception
-            from ..lifecycle import LifecycleError
+        attempt = 0
+        while True:
+            attempt += 1
+            manifest.attempts = attempt
+            try:
+                for step in self.remaining_steps(
+                    manifest.reached_stage,
+                    resolved.spec.target_stage,
+                    with_opportunity=False,
+                ):
+                    manifest = execute_step(step, step_ctx, manifest)
+                    write_manifest(manifest)
+                manifest.error = None
+                manifest.failure_class = None
+                break
+            except Exception as exc:  # noqa: BLE001 -- isolate one scenario's failure
+                from ..lifecycle import LifecycleError
 
-            manifest.error = (
-                str(exc) if isinstance(exc, LifecycleError)
-                else f"{type(exc).__name__}: {exc}"
-            )
-            manifest.failure_class = classify_exception(exc)
+                manifest.error = (
+                    str(exc) if isinstance(exc, LifecycleError)
+                    else f"{type(exc).__name__}: {exc}"
+                )
+                manifest.failure_class = classify_exception(exc)
+                retryable = (
+                    resolved.spec.target_stage == "invoice"
+                    and manifest.failure_class == "transient"
+                    and not manifest.invoice_id
+                    and attempt <= max_retries
+                )
+                if not retryable:
+                    break
+                write_manifest(manifest)
+                delay = _retry_backoff(attempt)
+                log.warning(
+                    "%s transient Draft ingest failure (%s); retrying in %.1fs "
+                    "(attempt %d/%d)",
+                    run_id,
+                    manifest.error,
+                    delay,
+                    attempt + 1,
+                    max_retries + 1,
+                )
+                time.sleep(delay)
         write_manifest(manifest)
         return manifest
 

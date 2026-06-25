@@ -275,11 +275,12 @@ def test_ingest_invoice_tracker_failure_surfaces(
         "invoices": [{"invoiceId": "1nvX", "success": True, "statusURL": "/sURL"}]
     })
     fake_client.get_responses.append({"Status": "Failed"})
-    with pytest.raises(LifecycleError, match="ingest_invoice tracker Failed"):
+    with pytest.raises(LifecycleError, match="ingest_invoice tracker Failed") as exc_info:
         ingest_invoice(
             fake_client, billable_account, _basic_lines(), "DEMO",
             status="Posted",
         )
+    assert exc_info.value.record_id == "1nvX"
 
 
 def test_ingest_invoice_falls_back_to_unique_identifier_lookup(
@@ -455,6 +456,30 @@ def test_run_ingest_invoice_writes_posted_manifest(
     assert manifest.invoice_id == "1nvPOST"
     assert manifest.invoice_number == "INV-0042"
     assert manifest.reached_stage == "post"
+
+
+def test_run_ingest_invoice_checkpoints_partial_invoice_id_on_tracker_failure(
+    monkeypatch, fake_client, billable_account
+) -> None:
+    checkpoints: list[Manifest] = []
+
+    def fail_ingest(*_a, **_kw):
+        raise LifecycleError(
+            "ingest_invoice",
+            "ingest_invoice tracker Failed",
+            record_id="1nvPARTIAL",
+        )
+
+    monkeypatch.setattr("scripts.txn_data_harness.steps.lifecycle.ingest_invoice", fail_ingest)
+    ctx = _ingest_ctx(fake_client, billable_account, target_stage="invoice")
+    ctx.checkpoint = checkpoints.append
+    manifest = Manifest(run_id="DEMO-STEP", kind="invoice_ingestion")
+
+    with pytest.raises(LifecycleError, match="tracker Failed"):
+        run_ingest_invoice(ctx, manifest)
+
+    assert manifest.invoice_id == "1nvPARTIAL"
+    assert checkpoints and checkpoints[0].invoice_id == "1nvPARTIAL"
 
 
 def test_run_promote_to_posted_is_noop_when_already_posted(

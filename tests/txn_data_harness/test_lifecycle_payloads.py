@@ -7,10 +7,12 @@ from datetime import date
 import pytest
 
 from scripts.txn_data_harness.lifecycle import (
+    LifecycleError,
     count_order_items,
     generate_invoice,
     place_sales_transaction,
     poll_assets,
+    poll_billing_schedules,
     post_invoice,
 )
 from scripts.txn_data_harness.models import EndDateOverride, LineItem, Term
@@ -86,6 +88,45 @@ def test_place_sales_transaction_builds_quote_graph_payload(
     assert "EndDate" not in evergreen_line
     assert "SubscriptionTerm" not in evergreen_line
     assert "SubscriptionTermUnit" not in evergreen_line
+
+
+def test_poll_billing_schedules_returns_ready_rows(fake_client, no_sleep) -> None:
+    fake_client.query_responses.append([
+        {"Id": "BS-1", "Status": "ReadyForInvoicing"},
+        {"Id": "BS-2", "Status": "CompletelyBilled"},
+    ])
+
+    assert poll_billing_schedules(
+        fake_client,
+        "801ORDER",
+        expected_count=2,
+        timeout=1,
+    ) == ["BS-1", "BS-2"]
+
+
+def test_poll_billing_schedules_raises_on_error_status(fake_client, no_sleep) -> None:
+    fake_client.query_responses.append([{"Id": "BS-ERR", "Status": "Error"}])
+
+    with pytest.raises(LifecycleError, match="BillingSchedule in Error") as exc_info:
+        poll_billing_schedules(fake_client, "801ORDER", timeout=1)
+
+    assert exc_info.value.record_id == "BS-ERR"
+
+
+def test_poll_billing_schedules_timeout_mentions_expected_statuses(
+    monkeypatch, fake_client, no_sleep
+) -> None:
+    times = iter([0.0, 0.0, 2.0])
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.lifecycle.time.monotonic",
+        lambda: next(times),
+    )
+    fake_client.query_responses.append([{"Id": "BS-1", "Status": "Processing"}])
+
+    with pytest.raises(LifecycleError, match="watching statuses") as exc_info:
+        poll_billing_schedules(fake_client, "801ORDER", timeout=1)
+
+    assert exc_info.value.record_id == "801ORDER"
 
 
 def test_place_sales_transaction_writes_quarterly_term(
@@ -436,9 +477,10 @@ def test_poll_assets_queries_through_asset_action_source(fake_client, no_sleep) 
         [_aas_row("02iA1")],
     ])
 
-    ids = poll_assets(fake_client, "801ORDER", timeout=10)
+    result = poll_assets(fake_client, "801ORDER", timeout=10)
 
-    assert ids == ["02iA1"]
+    assert result.asset_ids == ["02iA1"]
+    assert result.status == "converged"
     soql = fake_client.queries[0]
     assert "FROM AssetActionSource" in soql
     assert "AssetAction.AssetId" in soql
@@ -454,9 +496,10 @@ def test_poll_assets_returns_bundle_expanded_set(fake_client, no_sleep) -> None:
     bundle_rows = [_aas_row(f"02iASSET{i}") for i in range(5)]
     fake_client.query_responses.extend([bundle_rows, bundle_rows])
 
-    ids = poll_assets(fake_client, "801BUNDLE", timeout=10)
+    result = poll_assets(fake_client, "801BUNDLE", timeout=10)
 
-    assert ids == [f"02iASSET{i}" for i in range(5)]
+    assert result.asset_ids == [f"02iASSET{i}" for i in range(5)]
+    assert result.status == "converged"
 
 
 def test_poll_assets_waits_for_count_to_stabilize(fake_client, no_sleep) -> None:
@@ -470,9 +513,10 @@ def test_poll_assets_waits_for_count_to_stabilize(fake_client, no_sleep) -> None
         [_aas_row("02iA1"), _aas_row("02iA2"), _aas_row("02iA3")],
     ])
 
-    ids = poll_assets(fake_client, "801ORDER", timeout=10)
+    result = poll_assets(fake_client, "801ORDER", timeout=10)
 
-    assert ids == ["02iA1", "02iA2", "02iA3"]
+    assert result.asset_ids == ["02iA1", "02iA2", "02iA3"]
+    assert result.status == "converged"
     # Three polls: initial low read, growth tick, stable tick.
     assert len(fake_client.queries) == 3
 
@@ -486,9 +530,10 @@ def test_poll_assets_returns_empty_on_timeout_with_warning(
     """
     fake_client.query_responses.append([])
 
-    ids = poll_assets(fake_client, "801ORDER", timeout=0)
+    result = poll_assets(fake_client, "801ORDER", timeout=0)
 
-    assert ids == []
+    assert result.asset_ids == []
+    assert result.status == "timeout_empty"
     # Timeout==0 means we don't even get one full tick of stability, but we
     # also shouldn't crash. The warning is emitted only when the loop drains.
     # (Skip caplog assertion -- loop may exit before the first sleep yields
@@ -513,9 +558,10 @@ def test_poll_assets_handles_subquery_envelope(fake_client, no_sleep) -> None:
         ],
     ])
 
-    ids = poll_assets(fake_client, "801ORDER", timeout=10)
+    result = poll_assets(fake_client, "801ORDER", timeout=10)
 
-    assert ids == ["02iA1", "02iA2"]
+    assert result.asset_ids == ["02iA1", "02iA2"]
+    assert result.status == "converged"
 
 
 def test_post_invoice_uses_status_url_and_reads_invoice_number(fake_client) -> None:

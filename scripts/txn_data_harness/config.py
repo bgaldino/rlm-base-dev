@@ -55,12 +55,14 @@ _DEFAULT_KIND = "sales_transaction"
 _VALID_KINDS = {"sales_transaction", "invoice_ingestion"}
 
 # Per-kind allowed target stages. Ingestion bypasses the PST chain, so only
-# the two terminal stages reachable via the ingestion API are valid here.
+# the live-verified Draft stage is valid in supported configs. The Posted code
+# path remains internal Phase 2 scaffolding until InvoiceLineTax prerequisites
+# are implemented and live-verified.
 _KIND_VALID_STAGES: dict[str, set[str]] = {
     "sales_transaction": {
         "opportunity", "quote", "order", "activate", "usage", "invoice", "post",
     },
-    "invoice_ingestion": {"invoice", "post"},
+    "invoice_ingestion": {"invoice"},
 }
 
 # Built-in defaults (lowest precedence). target_stage caps/resolution happen in
@@ -262,8 +264,8 @@ class InvoiceIngestionScenarioSpec:
     subsets the way PST does (the API has no concept of "random non-empty
     subset of a product pool" -- one ingest call ships one invoice).
 
-    ``target_stage`` is restricted to ``invoice`` (Draft) or ``post`` (Posted)
-    by parse-time validation against ``_KIND_VALID_STAGES``.
+    ``target_stage`` is restricted to ``invoice`` (Draft) by supported config
+    validation until Posted ingestion Phase 2 lands.
     """
 
     account: Optional[str]
@@ -776,17 +778,31 @@ def _coerce_target_stage(merged: dict[str, Any], kind: str, where: str) -> str:
     """Validate ``target_stage`` against the kind-specific allowlist.
 
     PST accepts every stage in :data:`_VALID_STAGES`; ingestion is restricted
-    to ``invoice`` (Draft) or ``post`` (Posted) because the API has no PST
-    chain to walk. Each kind defaults to its own most-distal stage so a
-    bare ``kind: invoice_ingestion`` lands a Posted invoice.
+    to ``invoice`` (Draft) until Posted ingestion's InvoiceLineTax
+    prerequisite is implemented and live-verified.
     """
     valid = _KIND_VALID_STAGES[kind]
     default_stage = "post" if "post" in valid else next(iter(valid))
     stage = merged.get("target_stage") or default_stage
+    target_stage_explicit = merged.get(
+        "_target_stage_explicit", "target_stage" in merged
+    )
+    if (
+        kind == "invoice_ingestion"
+        and not target_stage_explicit
+        and stage == _BUILTIN_DEFAULTS["target_stage"]
+    ):
+        stage = default_stage
     if stage not in valid:
+        hint = ""
+        if kind == "invoice_ingestion" and stage == "post":
+            hint = (
+                "; Posted ingestion is Phase 2 and requires InvoiceLineTax "
+                "support before it can be run"
+            )
         raise ConfigError(
             f"{where}: target_stage '{stage}' is not valid for kind '{kind}' "
-            f"(valid: {', '.join(sorted(valid))})"
+            f"(valid: {', '.join(sorted(valid))}){hint}"
         )
     return stage
 
@@ -1049,9 +1065,12 @@ def _coerce_spec(merged: dict[str, Any], where: str):
     """
     kind = merged.get("kind") or _DEFAULT_KIND
     if kind not in _VALID_KINDS:
+        hint = ""
+        if kind == "transaction":
+            hint = "; use 'sales_transaction' for the PST chain"
         raise ConfigError(
             f"{where}: invalid kind '{kind}' "
-            f"(valid: {', '.join(sorted(_VALID_KINDS))})"
+            f"(valid: {', '.join(sorted(_VALID_KINDS))}){hint}"
         )
     return _KIND_COERCERS[kind](merged, kind, where)
 
@@ -1074,6 +1093,7 @@ def load_scenarios(args: Any):
 
     if not config_path:
         merged = {**_BUILTIN_DEFAULTS, **cli}
+        merged["_target_stage_explicit"] = "target_stage" in cli
         return [_coerce_spec(merged, "cli")]
 
     data = _load_file(config_path)
@@ -1089,6 +1109,9 @@ def load_scenarios(args: Any):
         volume = data.get("volume") or {}
         if "count" not in cli and isinstance(volume, dict) and volume.get("scenarios"):
             base = {**base, "count": volume["scenarios"]}
+        base["_target_stage_explicit"] = (
+            "target_stage" in cli or "target_stage" in config_defaults
+        )
         return [_coerce_spec(base, "defaults")]
 
     if not isinstance(scenarios, list) or not scenarios:
@@ -1101,5 +1124,10 @@ def load_scenarios(args: Any):
         # a CLI override should not silently rewrite across a multi-account
         # config; only let CLI override those when the scenario didn't pin them.
         merged = {**base, **raw}
+        merged["_target_stage_explicit"] = (
+            "target_stage" in raw
+            or "target_stage" in cli
+            or "target_stage" in config_defaults
+        )
         specs.append(_coerce_spec(merged, f"scenarios[{i}]"))
     return specs

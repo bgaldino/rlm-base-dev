@@ -77,6 +77,43 @@ def test_render_markdown_includes_signatures() -> None:
     assert "R-1" in md
 
 
+def test_report_surfaces_poll_and_link_warnings() -> None:
+    manifest = Manifest(
+        run_id="R-1",
+        kind="sales_transaction",
+        reached_stage="post",
+        asset_poll_status="timeout_partial",
+        invoice_order_link_status="failed",
+        invoice_order_link_error="[post] request timed out",
+    )
+    report = build_batch_report([manifest])
+
+    assert report["poll_warnings"] == [
+        {"run_id": "R-1", "status": "timeout_partial"}
+    ]
+    assert report["link_warnings"] == [
+        {
+            "run_id": "R-1",
+            "status": "failed",
+            "error": "[post] request timed out",
+        }
+    ]
+
+    md = render_markdown(report)
+    assert "Poll warnings" in md
+    assert "Link warnings" in md
+    assert "request timed out" in md
+
+
+def test_render_markdown_includes_unknown_stage_buckets() -> None:
+    report = build_batch_report([
+        Manifest(run_id="R-1", kind="sales_transaction", reached_stage="mystery")
+    ])
+
+    md = render_markdown(report)
+    assert "- mystery: 1 (unknown)" in md
+
+
 # ---------------------------------------------------------------------------
 # Mixed-kind report shape (PR 5)
 # ---------------------------------------------------------------------------

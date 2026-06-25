@@ -56,6 +56,7 @@ block (where it applies to all scenarios unless the scenario overrides it).
 
 | Field | Type | Default | Meaning |
 | ----- | ---- | ------- | ------- |
+| `kind` | enum | `sales_transaction` | Scenario handler. Use `sales_transaction` for the PST lifecycle, or `invoice_ingestion` for standalone-billing Draft invoice ingestion. `transaction` is not an alias. |
 | `account` | string | auto | Account **Name** (not id). Omit → first billing-ready account discovered. A pinned account need not be billing-ready (it caps at `order`). |
 | `target_stage` | enum | `post` | How far to run: `opportunity` \| `quote` \| `order` \| `activate` \| `usage` \| `invoice` \| `post`. Hierarchical — each stage runs all stages before it. `usage` writes TransactionJournals for any line that declares a `usage:` block (skipped silently otherwise); see [Usage-based products](#usage-based-products) below. |
 | `with_opportunity` | bool | `false` | Prepend an Opportunity the quote links to. (`target_stage: opportunity` implies one even if this is false.) |

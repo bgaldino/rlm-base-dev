@@ -483,6 +483,11 @@ tracked in [`FOLLOWUPS.md`](FOLLOWUPS.md) → *Billing & invoicing*.
     component OrderItem); the AssetActionSource query returns all 5 in one
     pass. Every Revenue Cloud activation produces LMA assets, so the AAS
     path is the complete attribution picture — no non-LMA escape hatch.
+- **Harness checkpoint rule:** `reached_stage = "activate"` means the activation
+  PATCH succeeded and the derived BillingSchedule + Asset barriers have completed
+  (or asset polling returned its explicit warning status). If either poll raises,
+  the manifest remains at the prior public stage so retry/resume re-enters
+  activation instead of skipping the derived-record gates.
 
 ### 4b. Usage consumption — TransactionJournal create (sObject Collections) — ⚠ DOCUMENTED, NEEDS LIVE VERIFICATION
 
@@ -753,6 +758,9 @@ Dead ends (do not rely on):
   `null` while Draft**, so read it back after post completes (the manifest's
   human-readable invoice number comes from here, not from generate). Then PATCH
   `ReferenceEntityId = <orderId>` for natural org linkage (Posted-only; cosmetic).
+  Because this final PATCH is not required for invoice correctness, the harness
+  records `invoice_order_link_status = "failed"` on patch failure instead of
+  replaying a completed post.
 - **assets** → deterministic via `AssetActionSource` (see §4d). The
   `AsyncOperationTracker` row with `JobType='AssetizationAsyncJob'` and
   `ReferenceEntityId = <orderId>` is a redundant completion signal; the AAS
@@ -850,7 +858,7 @@ one case), but the live ingest endpoint enforces the full set:
 | Field | Marker source | Notes |
 |---|---|---|
 | `Invoice.billToContactId` | Dev guide Required | Resolved via `_resolve_default_contact_id` (most-recent `Contact` per `Account`). |
-| `Invoice.currencyIsoCode` | Multi-currency only | Org probed once via `Account.CurrencyIsoCode`; absent on single-currency orgs (SOQL returns `INVALID_FIELD`, cached). |
+| `Invoice.currencyIsoCode` | Multi-currency only | Org probed via `Account.CurrencyIsoCode`; absent on single-currency orgs (SOQL returns `INVALID_FIELD`, cached by stable org identity, not raw alias). |
 | `InvoiceLine.billingAddressId` | Dev guide Required | One `InvoiceAddressGroup` graph record per invoice; line references via `@{refBillingAddress.id}`. |
 | `InvoiceLine.shippingAddressId` | Dev guide Required | Separate `InvoiceAddressGroup` record even when the addresses are identical. |
 | `InvoiceLine.invoiceLineStartDate` / `invoiceLineEndDate` | Dev guide Required | Defaulted to the invoice's `invoiceDate` when the scenario omits per-line dates. |
@@ -886,6 +894,15 @@ Global Media):
 The Global Media account has no `BillingAccount` row and the ingestion path succeeds
 natively against it — verified live: 2 invoices on `001WI00001GPloTYAT` with
 `BillingAccountId = 001WI00001GPloTYAT`.
+
+#### Harness retry rule (Draft only)
+
+Draft ingestion uses `Invoice.uniqueIdentifier = <run_id>` as the replay key, but
+the harness retries narrowly: only transient failures before any `invoiceId` is
+observed are retried. If the action or tracker failure includes an `invoiceId`,
+the manifest records it and stops for operator inspection rather than replaying
+a partially materialized graph. Posted ingestion remains Phase 2 until the
+`InvoiceLineTax` prerequisite is implemented and live-verified.
 
 #### Idempotency
 

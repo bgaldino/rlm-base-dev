@@ -22,22 +22,16 @@ from .. import runner
 from ..auth import SfRestClient
 from ..config import ScenarioSpec
 from ..discovery import Account, OrgContext
-from ..models import Manifest, ResolvedSpec
+from ..models import STAGES, Manifest, ResolvedSpec
 from ..runner import draw_lines, draw_start_date
 
 
-# Canonical PST step graph keyed by target stage. Kept in sync with
-# ``models.STAGES`` -- the parity test in tests/txn_data_harness/test_handlers.py
-# asserts that ``stage_sequence(target, with_opportunity=False)`` agrees with
-# slicing ``STAGES`` up to the target index.
+# Canonical PST step graph keyed by target stage. Generated from the same
+# sequencing helper used by the runner so stage ordering has one source of
+# truth (``models.STAGES`` + ``runner.stage_sequence``).
 STEP_GRAPH: dict[str, list[str]] = {
-    "opportunity": ["opportunity"],
-    "quote":       ["quote"],
-    "order":       ["quote", "order"],
-    "activate":    ["quote", "order", "activate"],
-    "usage":       ["quote", "order", "activate", "usage"],
-    "invoice":     ["quote", "order", "activate", "usage", "invoice"],
-    "post":        ["quote", "order", "activate", "usage", "invoice", "post"],
+    stage: runner.stage_sequence(stage, with_opportunity=False)
+    for stage in STAGES
 }
 
 
@@ -119,6 +113,10 @@ class SalesTransactionHandler:
                 "billing_schedules": m.billing_schedule_ids,
                 "assets": m.asset_ids,
                 "invoice": m.invoice_id,
+            },
+            "invoice_order_link": {
+                "status": m.invoice_order_link_status,
+                "error": m.invoice_order_link_error,
             },
             "invoice_number": m.invoice_number,
         }

@@ -4,7 +4,7 @@ Generate realistic, high-volume Revenue Cloud demo data by driving the **real
 transaction lifecycle** against a target org. Two scenario kinds:
 
 ```text
-kind: transaction       (default) — (Opportunity) → Quote → Order → Activate → Invoice (Draft) → Post
+kind: sales_transaction (default) — (Opportunity) → Quote → Order → Activate → Invoice (Draft) → Post
 kind: invoice_ingestion           — POST /commerce/invoicing/.../actions/ingest → Invoice (Draft, CreationMode=External)
 ```
 
@@ -123,7 +123,7 @@ regardless of `-v`.
 
 After the batch, a report is written to `out/<base_run_id>-report.json` (and a
 `.md` companion) with success/failure counts, a histogram of how far each scenario
-got, and a failure-signature rollup. Regenerate it later with
+got, poll/link warnings, and a failure-signature rollup. Regenerate it later with
 `cli report <base_run_id>`.
 
 ### Transient-failure retries
@@ -137,9 +137,15 @@ retried up to `--max-retries` times (default 2) with exponential backoff,
 required before order") fail fast and are never retried. The manifest records the
 `attempts` count and the final `failure_class`.
 
+Activation is checkpointed only after both derived-record barriers complete:
+BillingSchedule polling and asset polling. Draft invoice ingestion retries only
+when a transient failure occurs before any invoice id is observed; once an invoice
+id is known, the manifest records it and the run stops instead of replaying the
+ingest graph.
+
 ## Lifecycle stages
 
-The PST chain (`kind: transaction`, the default) progresses through these
+The PST chain (`kind: sales_transaction`, the default) progresses through these
 stages. The ingestion path (`kind: invoice_ingestion`) runs a single
 `ingest_invoice` step that creates a Draft `Invoice` directly and stops at
 `target_stage: invoice`; it has no Quote/Order/Activate/BillingSchedule.
@@ -247,8 +253,9 @@ created (quote, order, billing schedules, assets, invoice). This directory is
 **git-ignored** — it's runtime output, not source. The manifest is the source of
 truth for verification and cleanup.
 
-The manifest is **checkpointed after every lifecycle stage** (write-then-rename, so
-the file on disk is always valid JSON), not just on completion. If the process is
+The manifest is **checkpointed after every completed lifecycle stage**
+(write-then-rename, so the file on disk is always valid JSON), not just on
+completion. If the process is
 killed or crashes mid-run, every scenario that had started still leaves a manifest
 recording the ids created so far — so the partial org records can be found and
 cleaned up. Within a run, a **transient** failure is retried from that last

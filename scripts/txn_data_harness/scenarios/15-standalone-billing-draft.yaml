@@ -8,14 +8,9 @@
 # ingested invoices ARE deletable, so this is the right shape for invoice-
 # review demos or for any flow that needs to leave deletable invoices behind.
 #
-# Promote a Draft to Posted later without re-ingesting:
-#
-#   python -m scripts.txn_data_harness.cli step --org <sf-alias> \
-#       --manifest <draft-run-id> --to-stage post
-#
-# This invokes `InvoiceIngestionHandler.promote_to_posted` which calls the
-# existing `lifecycle.post_invoice` on the same Invoice.Id -- no second
-# Invoice row is created (re-verified live as part of PR 6).
+# Posted ingestion/promotion scaffolding exists in code for Phase 2, but it is
+# not a supported operator workflow until InvoiceLineTax prerequisites are
+# implemented and live-verified. Keep this scenario at Draft.
 defaults:
   kind: invoice_ingestion        # standalone-billing path
   target_stage: invoice          # Draft, not Posted

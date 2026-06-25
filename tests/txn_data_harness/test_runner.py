@@ -149,6 +149,77 @@ def test_run_scenario_retries_transient_then_succeeds(
     assert len(sleeps) == 1  # one backoff between the two attempts
 
 
+def test_run_scenario_retries_activate_after_partial_activate_failure(
+    monkeypatch, org_context, billable_account, term_product
+) -> None:
+    account, lines = _resolved_account_and_lines(billable_account, term_product)
+    monkeypatch.setattr("scripts.txn_data_harness.runner.write_manifest", lambda m, *a, **k: None)
+
+    calls: list[list[str]] = []
+
+    def flaky_run_steps(step_names, ctx, manifest):
+        calls.append(list(step_names))
+        if len(calls) == 1:
+            # Corrected run_activate leaves the durable barrier at order when a
+            # derived activation poll fails, so retry must include activate.
+            manifest.reached_stage = "order"
+            raise LifecycleError("billing_schedule", "request timed out")
+        manifest.reached_stage = "post"
+        return manifest
+
+    monkeypatch.setattr("scripts.txn_data_harness.runner.run_steps", flaky_run_steps)
+    sleeps: list[float] = []
+
+    manifest = run_scenario(
+        client=object(), ctx=org_context, run_id="R-1", target_stage="post",
+        account=account, lines=lines, with_opportunity=False, poll_timeout=1,
+        max_retries=2, sleep=sleeps.append,
+    )
+
+    assert calls == [
+        ["quote", "order", "activate", "usage", "invoice", "post"],
+        ["activate", "usage", "invoice", "post"],
+    ]
+    assert manifest.error is None
+    assert manifest.reached_stage == "post"
+
+
+def test_run_scenario_retries_post_after_partial_post_failure(
+    monkeypatch, org_context, billable_account, term_product
+) -> None:
+    account, lines = _resolved_account_and_lines(billable_account, term_product)
+    monkeypatch.setattr("scripts.txn_data_harness.runner.write_manifest", lambda m, *a, **k: None)
+
+    calls: list[list[str]] = []
+
+    def flaky_run_steps(step_names, ctx, manifest):
+        calls.append(list(step_names))
+        if len(calls) == 1:
+            # The invoice stage is complete, but posting did not reach its
+            # durable barrier; retry must rerun only post.
+            manifest.reached_stage = "invoice"
+            manifest.invoice_id = "3ttINVOICE"
+            raise LifecycleError("post", "request timed out")
+        manifest.reached_stage = "post"
+        return manifest
+
+    monkeypatch.setattr("scripts.txn_data_harness.runner.run_steps", flaky_run_steps)
+    sleeps: list[float] = []
+
+    manifest = run_scenario(
+        client=object(), ctx=org_context, run_id="R-1", target_stage="post",
+        account=account, lines=lines, with_opportunity=False, poll_timeout=1,
+        max_retries=2, sleep=sleeps.append,
+    )
+
+    assert calls == [
+        ["quote", "order", "activate", "usage", "invoice", "post"],
+        ["post"],
+    ]
+    assert manifest.error is None
+    assert manifest.reached_stage == "post"
+
+
 def test_run_scenario_does_not_retry_deterministic(
     monkeypatch, org_context, billable_account, term_product
 ) -> None:
