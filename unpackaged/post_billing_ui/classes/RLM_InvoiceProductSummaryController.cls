@@ -115,7 +115,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
             for (BillingScheduleGroup bsg : [
                 SELECT Id, ReferenceEntityId
                 FROM BillingScheduleGroup
-                WHERE Id IN :bsgIds AND ReferenceEntityId != null
+                WHERE Id IN :bsgIds AND ReferenceEntityId != null WITH USER_MODE
             ]) {
                 if (String.valueOf(bsg.ReferenceEntityId).startsWith('02i')) {
                     result.put(bsg.Id, bsg.ReferenceEntityId);
@@ -135,7 +135,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
             for (AssetStatePeriod asp : [
                 SELECT Id, AssetId FROM AssetStatePeriod
                 WHERE AssetId IN :assetIds
-                ORDER BY AssetId, StartDate DESC NULLS LAST
+                WITH USER_MODE ORDER BY AssetId, StartDate DESC NULLS LAST
             ]) {
                 if (!assetToStatePeriod.containsKey(asp.AssetId)) {
                     assetToStatePeriod.put(asp.AssetId, asp.Id);
@@ -153,7 +153,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
                 SELECT AssetStatePeriodId, AttributeName, AttributeValue
                 FROM AssetStatePeriodAttribute
                 WHERE AssetStatePeriodId IN :statePeriodIds
-                ORDER BY AttributeName ASC NULLS LAST
+                WITH USER_MODE ORDER BY AttributeName ASC NULLS LAST
             ]) {
                 Id assetId = statePeriodToAsset.get(attr.AssetStatePeriodId);
                 if (assetId == null) continue;
@@ -175,7 +175,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
         Map<Id, String> names = new Map<Id, String>();
         if (assetIds == null || assetIds.isEmpty()) return names;
         try {
-            for (Asset a : [SELECT Id, Name FROM Asset WHERE Id IN :assetIds]) {
+            for (Asset a : [SELECT Id, Name FROM Asset WHERE Id IN :assetIds WITH USER_MODE]) {
                 names.put(a.Id, a.Name);
             }
         } catch (Exception e) { System.debug('Asset name query failed: ' + e.getMessage()); }
@@ -267,7 +267,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
                 SELECT Id, BillingScheduleGroupId, RLM_Attributes__c
                 FROM InvoiceLine
                 WHERE InvoiceId = :invoiceId
-                AND   BillingScheduleGroupId != null
+                AND   BillingScheduleGroupId != null WITH USER_MODE
             ];
 
             List<InvoiceLine> blankLines = new List<InvoiceLine>();
@@ -294,7 +294,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
                 upd.RLM_Attributes__c = richText;
                 toUpdate.add(upd);
             }
-            if (!toUpdate.isEmpty()) update toUpdate;
+            if (!toUpdate.isEmpty()) update as user toUpdate;
 
         } catch (Exception e) {
             System.debug('saveLineAttributes failed: ' + e.getMessage());
@@ -309,7 +309,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
         try {
 
             Invoice inv = [
-                SELECT Id, CurrencyIsoCode FROM Invoice WHERE Id = :invoiceId LIMIT 1
+                SELECT Id, CurrencyIsoCode FROM Invoice WHERE Id = :invoiceId WITH USER_MODE LIMIT 1
             ];
 
             List<InvoiceLine> lines = [
@@ -320,7 +320,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
                        Type, UsageOverageQuantity, UnitOfMeasureId
                 FROM InvoiceLine
                 WHERE InvoiceId = :invoiceId
-                ORDER BY Product2.Name ASC NULLS LAST,
+                WITH USER_MODE ORDER BY Product2.Name ASC NULLS LAST,
                          InvoiceLineStartDate ASC NULLS LAST
             ];
 
@@ -346,7 +346,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
                 for (BillingPeriodItem bpi : [
                     SELECT InvoiceLineId, BillingPeriodStartDate, BillingPeriodEndDate
                     FROM BillingPeriodItem WHERE InvoiceLineId IN :lineIds
-                    ORDER BY BillingPeriodStartDate ASC NULLS LAST
+                    WITH USER_MODE ORDER BY BillingPeriodStartDate ASC NULLS LAST
                 ]) {
                     Id lid = bpi.InvoiceLineId;
                     if (!linePeriodStart.containsKey(lid) ||
@@ -364,7 +364,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
             Map<Id, String> uomNames = new Map<Id, String>();
             if (!uomIds.isEmpty()) {
                 try {
-                    for (UnitOfMeasure uom : [SELECT Id, Name FROM UnitOfMeasure WHERE Id IN :uomIds])
+                    for (UnitOfMeasure uom : [SELECT Id, Name FROM UnitOfMeasure WHERE Id IN :uomIds WITH USER_MODE])
                         uomNames.put(uom.Id, uom.Name);
                 } catch (Exception e) { System.debug('UoM query failed: ' + e.getMessage()); }
             }
@@ -386,7 +386,7 @@ public with sharing class RLM_InvoiceProductSummaryController {
                     SELECT MainInvoiceLineId, AssociatedInvoiceLineId
                     FROM InvoiceLineRelationship
                     WHERE MainInvoiceLineId IN :lineIds
-                       OR AssociatedInvoiceLineId IN :lineIds
+                       OR AssociatedInvoiceLineId IN :lineIds WITH USER_MODE
                 ]) {
                     if (ilr.MainInvoiceLineId == null || ilr.AssociatedInvoiceLineId == null) continue;
                     componentToParent.put(ilr.AssociatedInvoiceLineId, ilr.MainInvoiceLineId);

@@ -199,6 +199,13 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         'Draft':                 '00BWt00000A2mnaMAB'
     };
 
+    handlePaymentPromiseKeydown(event) {
+        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+            event.preventDefault();
+            this.handlePaymentPromiseClick(event);
+        }
+    }
+
     handlePaymentPromiseClick(event) {
         const status = event.currentTarget.dataset.status;
         const listViewId = this.psiListViewMap[status];
@@ -213,6 +220,13 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                     filterName: listViewId
                 }
             });
+        }
+    }
+
+    handleAgingBucketKeydown(event) {
+        if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+            event.preventDefault();
+            this.handleAgingBucketClick(event);
         }
     }
 
@@ -240,9 +254,20 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         console.log('Send Reminder', accountId);
     }
 
-    handleLogCall(event) {
+    handleRaiseDispute(event) {
         const accountId = event.currentTarget.dataset.accountId;
-        console.log('Log Call', accountId);
+        if (accountId) {
+            this[NavigationMixin.Navigate]({
+                type: 'standard__objectPage',
+                attributes: {
+                    objectApiName: 'Case',
+                    actionName: 'new'
+                },
+                state: {
+                    defaultFieldValues: `AccountId=${accountId}`
+                }
+            });
+        }
     }
 
     handleResolve(event) {
@@ -404,6 +429,28 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
         return this.dashboardData?.totalOutstanding != null ? this.dashboardData.totalOutstanding : 0;
     }
 
+    // Pre-formatted KPI values: LWC templates can't call methods in bindings (LWC1060),
+    // so currency formatting is done here and bound as plain properties.
+    get receivablesOutstandingFormatted() {
+        return this.formatCurrency(this.receivablesOutstandingValue);
+    }
+
+    get currentDueFormatted() {
+        return this.formatCurrency(this.currentDueValue);
+    }
+
+    get overdueFormatted() {
+        return this.formatCurrency(this.overdueValue);
+    }
+
+    get unappliedPaymentBalanceFormatted() {
+        return this.formatCurrency(this.unappliedPaymentBalanceValue);
+    }
+
+    get totalBalanceFormatted() {
+        return this.formatCurrency(this.totalBalanceValue);
+    }
+
     get agingBuckets() {
         if (!this.dashboardData?.agingBuckets) return [];
         const total = this.dashboardData.agingBuckets.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
@@ -413,6 +460,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             const pct = total > 0 ? (amt / total) * 100 : 0;
             const width = Math.max(pct, 0.5);
             const bg = colors[b.key] || '#64748b';
+            const isSelected = this.selectedAgingKey === b.key;
             return {
                 ...b,
                 amount: amt,
@@ -420,7 +468,9 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
                 widthPercent: width,
                 segmentStyle: `width: ${width}%; background-color: ${bg}; min-width: 2px;`,
                 dotStyle: `background-color: ${bg};`,
-                isSelected: this.selectedAgingKey === b.key
+                isSelected,
+                segmentClass: isSelected ? 'aging-segment aging-segment-selected' : 'aging-segment',
+                legendClass: isSelected ? 'legend-item legend-item-selected' : 'legend-item'
             };
         });
     }
@@ -490,6 +540,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             return list.map((item, idx) => ({
                 ...item,
                 uniqueKey: `critical-inv-${item.invoiceId || idx}`,
+                balanceFormatted: this.formatCurrency(item.balance),
                 invoiceUrl: item.invoiceId ? `/lightning/r/Invoice/${item.invoiceId}/view` : '#',
                 accountUrl: item.billingAccountId ? `/lightning/r/Account/${item.billingAccountId}/view` : null,
                 contactUrl: item.billToContactId ? `/lightning/r/Contact/${item.billToContactId}/view` : null,
@@ -503,6 +554,7 @@ export default class RlmCollectionsDashboard extends NavigationMixin(LightningEl
             return {
                 ...item,
                 uniqueKey: `${item.accountId || 'row'}-${idx}`,
+                balanceFormatted: this.formatCurrency(item.balance),
                 accountUrl: `/lightning/r/Account/${item.accountId}/view`,
                 invoiceNumber: null,
                 invoiceUrl: null,

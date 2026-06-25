@@ -1,0 +1,13 @@
+feature: billing
+feature_flag: billing
+# Adds the standard "Generate Statement of Account" action (GenerateStatementOfAccount)
+# to the Account highlights panel, after the Create Credit Memo action. Gated on
+# billing=true: the standard action only resolves when the Billing platform feature is
+# provisioned. The custom Account.RLM_Generate_Account_Statement quick action still ships
+# in the post_billing_ui tier but is no longer referenced on any flexipage — only the
+# standard action is surfaced, and only when billing=true.
+patches:
+  - type: insert_action
+    after: "CreateCreditMemo"
+    actions:
+      - "GenerateStatementOfAccount"

@@ -171,5 +171,4 @@ Outcome: 498 PDF artifacts removed, 38 orphans remain (all explicitly-documented
 
 - `revenue-cloud-data-model` skill — the data model itself
 - `sfdmu-data-plans` skill — uses ERD to validate plan CSVs against schema
-- `docs/upgrades/262-upgrade-plan.md` — release certification log
 - `scripts/erd/schema_diff/` — schema diff tooling

@@ -28,7 +28,7 @@
             </template>
 
             <!-- No Data Message -->
-            <template if:false={hasGroups}>
+            <template if:false={hasData}>
                 <template if:false={isLoading}>
                     <template if:false={error}>
                         <div class="slds-align_absolute-center slds-m-around_large">
@@ -38,16 +38,51 @@
                 </template>
             </template>
 
+            <!-- Charge Type Tabs -->
+            <template if:true={hasData}>
+                <div class="charge-type-tabs">
+                    <div class="tabs-left">
+                        <template for:each={chargeTypeTabs} for:item="tab">
+                            <button key={tab.type}
+                                    class={tab.cssClass}
+                                    data-type={tab.type}
+                                    onclick={handleChargeTypeChange}>
+                                {tab.label}
+                                <span class="tab-count">{tab.count}</span>
+                            </button>
+                        </template>
+                    </div>
+                    <lightning-combobox
+                        label="Sort by"
+                        value={sortField}
+                        options={sortOptions}
+                        onchange={handleSortChange}
+                        variant="label-hidden"
+                        class="sort-combobox">
+                    </lightning-combobox>
+                </div>
+            </template>
+
             <!-- Summary Statistics Cards -->
-            <template if:true={hasGroups}>
+            <template if:true={hasData}>
                 <div class="summary-grid">
-                    <div class="summary-card">
-                        <div class="summary-label">TOTAL BSGS</div>
+                    <div class={totalCardClass} data-filter="all" role="button" tabindex="0"
+                         aria-pressed={totalCardSelected} aria-label="Filter: all billing schedule groups"
+                         onclick={handleStatusFilter} onkeydown={handleStatusFilterKeydown}>
+                        <div class="summary-label">TOTAL</div>
                         <div class="summary-value">{totalBsgs}</div>
                     </div>
-                    <div class="summary-card">
+                    <div class={activeCardClass} data-filter="active" role="button" tabindex="0"
+                         aria-pressed={activeCardSelected} aria-label="Filter: active billing schedule groups"
+                         onclick={handleStatusFilter} onkeydown={handleStatusFilterKeydown}>
                         <div class="summary-label">ACTIVE</div>
                         <div class="summary-value summary-value-success">{activeBsgs}</div>
+                    </div>
+                    <div class={expiredCardClass} data-filter="expired" role="button" tabindex="0"
+                         aria-pressed={expiredCardSelected} aria-label="Filter: expired billing schedule groups"
+                         onclick={handleStatusFilter} onkeydown={handleStatusFilterKeydown}>
+                        <div class="summary-label">EXPIRED</div>
+                        <div class="summary-value summary-value-expired">{expiredBsgs}</div>
                     </div>
                     <div class="summary-card">
                         <div class="summary-label">BILLED AMOUNT</div>
@@ -59,7 +94,14 @@
                     </div>
                 </div>
 
-                <!-- Billing Schedule Groups List -->
+                <!-- Empty Filtered State -->
+                <template if:false={hasGroups}>
+                    <div class="slds-align_absolute-center slds-m-around_large">
+                        <p class="slds-text-color_weak">No Billing Schedule Groups match the current filter.</p>
+                    </div>
+                </template>
+
+                <!-- Subscriptions List -->
                 <div class="bsg-list">
                     <template for:each={flattenedGroups} for:item="bsg">
                         <div key={bsg.id} class={bsg.indentClass}>
@@ -92,12 +134,12 @@
                                         </template>
                                     </template>
                                     
-                                    <lightning-icon icon-name="standard:document" size="x-small" class="bsg-icon"></lightning-icon>
-                                    
                                     <a href="#" onclick={handleNavigate} data-id={bsg.id} class="bsg-name">
                                         {bsg.name}
                                     </a>
                                     
+                                    <span class="charge-type-badge" data-charge-type={bsg.chargeType}>{bsg.chargeTypeLabel}</span>
+
                                     <template if:true={bsg.hasChildren}>
                                         <span class="child-count">{bsg.childCount} items</span>
                                     </template>
@@ -109,13 +151,18 @@
                                         <span class="status-badge" data-status={bsg.status}>{bsg.status}</span>
                                     </template>
                                     
-                                    <div class="progress-container">
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" data-percentage={bsg.billingPercentage}></div>
+                                    <div class="billing-progress-slot">
+                                        <div class="progress-container">
+                                            <div class="progress-bar">
+                                                <template if:false={bsg.isUsage}>
+                                                    <div style={bsg.progressStyle}></div>
+                                                </template>
+                                            </div>
                                         </div>
+                                        <template if:false={bsg.isUsage}>
+                                            <span class="percentage-badge">{bsg.billingPercentage}%</span>
+                                        </template>
                                     </div>
-                                    
-                                    <span class="percentage-badge">{bsg.billingPercentage}%</span>
                                     
                                     <lightning-button-icon
                                         icon-name="utility:overflow"
@@ -127,18 +174,25 @@
                                 </div>
                             </div>
 
-                            <!-- Details Row (Always Visible for Parent, Hidden for Children by Default) -->
+                            <!-- Details Row -->
                             <div class="bsg-details">
                                 <div class="detail-item">
                                     <span class="detail-label">START DATE</span>
                                     <span class="detail-value">{bsg.startDate}</span>
                                 </div>
-                                <template if:true={bsg.hasEndDate}>
-                                    <div class="detail-item">
-                                        <span class="detail-label">END DATE</span>
-                                        <span class="detail-value">{bsg.endDate}</span>
-                                    </div>
-                                </template>
+                                <div class="detail-item">
+                                    <span class="detail-label">END DATE</span>
+                                    <span class="detail-value">{bsg.endDate}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">NEXT BILLING DATE</span>
+                                    <template if:true={bsg.nextBillingIsComplete}>
+                                        <span class="detail-value detail-value-complete">{bsg.nextBillingDateDisplay}</span>
+                                    </template>
+                                    <template if:false={bsg.nextBillingIsComplete}>
+                                        <span class="detail-value">{bsg.nextBillingDateDisplay}</span>
+                                    </template>
+                                </div>
                                 <div class="detail-item">
                                     <span class="detail-label">BILLING TERM</span>
                                     <span class="detail-value">{bsg.billingTermLabel}</span>
