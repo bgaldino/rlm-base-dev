@@ -1,7 +1,7 @@
 # Multi-account — billable + pipeline-only accounts in one run.
 #
 #   python -m scripts.txn_data_harness.generate --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/07-multi-account.yaml --concurrency 3
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/07-multi-account.yaml --concurrency 3
 #
 # Demonstrates the auto-cap: Infinitech (has a BillingAccount) runs the full
 # chain to `post`, while Global Media (no BillingAccount) is automatically capped

@@ -78,18 +78,30 @@ def test_stage_sequence_without_opportunity_starts_at_order_draft() -> None:
     ]
 
 
-def test_stage_sequence_with_opportunity_prepends_head() -> None:
+def test_stages_omit_opportunity_created() -> None:
+    """The R262 Order sobject has no OpportunityId field (live-verified via
+    describe on 2026-06-25 against rlm-base__jun17_1). The direct-Order PST
+    graph cannot link an Order to an Opportunity, so the kind's STAGES omit
+    ``opportunity_created`` entirely -- a config that requests it is
+    rejected at parse time by :data:`_KIND_VALID_STAGES`."""
     handler = SalesTxnOrderHandler()
-    assert handler.stage_sequence("order_activated", with_opportunity=True) == [
-        "opportunity_created", "order_draft", "order_activated",
-    ]
+    assert "opportunity_created" not in handler.STAGES
 
 
-def test_stage_sequence_opportunity_only_returns_head_only() -> None:
+def test_stage_sequence_ignores_with_opportunity_flag() -> None:
+    """``with_opportunity`` is meaningless on the order kind: the Order
+    sobject has no OpportunityId field. The flag's only effect on the
+    quote path is to prepend the head stage; here the head is suppressed
+    regardless. Config rejects ``with_opportunity: true`` upstream, so the
+    runtime path is only reachable with False."""
     handler = SalesTxnOrderHandler()
-    assert handler.stage_sequence("opportunity_created", with_opportunity=False) == [
-        "opportunity_created",
+    expected = [
+        "order_draft", "order_activated", "usage_upload",
+        "invoice_draft", "invoice_posted",
     ]
+    assert handler.stage_sequence("invoice_posted", with_opportunity=False) == expected
+    # Even if the flag did leak through, the head is structurally absent.
+    assert handler.stage_sequence("invoice_posted", with_opportunity=True) == expected
 
 
 def test_effective_stage_caps_non_billing_account_at_order_draft(pipeline_account) -> None:

@@ -104,6 +104,50 @@ def test_legacy_sales_transaction_kind_error() -> None:
         _coerce_spec({"account": "Infinitech", "kind": "sales_transaction"}, "test")
 
 
+def test_sales_txn_order_rejects_with_opportunity() -> None:
+    """R262 ``Order`` has no ``OpportunityId`` field (live-verified via
+    describe on 2026-06-25 against rlm-base__jun17_1). The direct-Order PST
+    graph cannot link an Order to an Opportunity, so ``with_opportunity: true``
+    is rejected at config-parse time -- surfacing the platform constraint
+    immediately rather than waiting for a deterministic PST INVALID_FIELD
+    failure 5 stages into the run."""
+    with pytest.raises(ConfigError, match="'with_opportunity' is not valid for kind 'sales_txn_order'"):
+        _coerce_spec(
+            {"account": "Infinitech", "kind": "sales_txn_order", "with_opportunity": True},
+            "test",
+        )
+
+
+def test_sales_txn_order_rejects_opportunity_stage() -> None:
+    """Same rationale as ``with_opportunity`` -- pinning an Opportunity
+    ``StageName`` only makes sense if the kind creates an Opportunity, and
+    the direct-Order kind does not."""
+    with pytest.raises(ConfigError, match="'opportunity_stage' is not valid for kind 'sales_txn_order'"):
+        _coerce_spec(
+            {
+                "account": "Infinitech",
+                "kind": "sales_txn_order",
+                "opportunity_stage": "Prospecting",
+            },
+            "test",
+        )
+
+
+def test_sales_txn_order_rejects_target_stage_opportunity_created() -> None:
+    """``target_stage: opportunity_created`` is not in the kind's allowed
+    stages (the kind has no Opportunity step), so the generic stage
+    allowlist in :data:`_KIND_VALID_STAGES` rejects it."""
+    with pytest.raises(ConfigError, match="target_stage 'opportunity_created' is not valid for kind 'sales_txn_order'"):
+        _coerce_spec(
+            {
+                "account": "Infinitech",
+                "kind": "sales_txn_order",
+                "target_stage": "opportunity_created",
+            },
+            "test",
+        )
+
+
 def test_manifest_defaults_kind_to_sales_txn_quote() -> None:
     assert Manifest(run_id="DEMO-K").kind == "sales_txn_quote"
 

@@ -115,7 +115,7 @@ support plus bulk-ingest characterization.
 ### Billing & invoicing
 
 - `[anomaly]` **Monthly-Advance short-span proration denominator.**
-  Two `BillingSchedule` rows from `scenarios/14-end-date-overrides.yaml`
+  Two `BillingSchedule` rows from `scenarios/sales_txn_quote/14-end-date-overrides.yaml`
   scenarios #3 (Aug 31 → Sep 30, 30 days) and #4 (Jan 31 → Feb 28,
   28 days) both produced `TotalAmount = 1548.39` against
   `BillingPeriodAmount = 1500` — the engine prorated **up** on both,

@@ -1,7 +1,7 @@
 # Usage-based products with TransactionJournal consumption.
 #
 #   python -m scripts.txn_data_harness.generate --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/12-usage-consumption.yaml
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/12-usage-consumption.yaml
 #
 # Stops at the new `usage` stage after writing TransactionJournals against each
 # activated asset. The rating engine that turns those rows into UsageSummary /

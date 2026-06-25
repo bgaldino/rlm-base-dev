@@ -40,13 +40,13 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
       assetization-pipeline gate — without it, activation can silently skip
       downstream BillingSchedule/Asset work. Live-verified contract:
       `scripts/txn_data_harness/docs/contracts-sales-txn-order.md`. Reference
-      config: `scenarios/16-direct-orders.yaml`.
+      config: `scenarios/sales_txn_order/16-direct-orders.yaml`.
     - `kind: invoice_ingestion` skips PST and `POST`s a typed Composite-Graph
       payload to `/commerce/invoicing/.../actions/ingest`, minting a Draft
       `Invoice` (`CreationMode = External`) directly. Use the ingestion path
       only for **Draft** today; Posted ingestion is not operator-supported until
       tax graph support is implemented and verified.
-      Reference config: `scenarios/15-standalone-billing-draft.yaml`.
+      Reference config: `scenarios/invoice_ingestion/15-standalone-billing-draft.yaml`.
     Legacy `sales_transaction` and `transaction` kind names are rejected at
     config-load time with a hint pointing at the new names.
 
@@ -73,7 +73,7 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 | User intent | Use this skill? | Notes |
 | ----------- | --------------- | ----- |
 | Generate Sales/Revenue Cloud demo transactions | Yes | Plan first, then run one smoke scenario. |
-| Mint standalone-billing Draft invoices (no PST chain) | Yes | Use `scenarios/15-standalone-billing-draft.yaml` (`kind: invoice_ingestion`). Posted ingestion is not operator-supported today. |
+| Mint standalone-billing Draft invoices (no PST chain) | Yes | Use `scenarios/invoice_ingestion/15-standalone-billing-draft.yaml` (`kind: invoice_ingestion`). Posted ingestion is not operator-supported today. |
 | Inspect or continue a partial harness run | Yes | Use manifest-driven `inspect` / `step`. |
 | Verify orders/invoices created by the harness | Yes | Query by manifest ids. |
 | Clean up harness-created records | Yes | Explain non-deletable leftovers. |
@@ -120,7 +120,7 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 
    ```bash
    python -m scripts.txn_data_harness.cli plan --org <sf-alias> \
-     --config scripts/txn_data_harness/scenarios/01-smoke-test.yaml
+     --config scripts/txn_data_harness/scenarios/sales_txn_quote/01-smoke-test.yaml
    ```
 
 1. Run one smoke scenario. Pick a config whose scenarios already have a small
@@ -131,7 +131,7 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 
    ```bash
    python -m scripts.txn_data_harness.cli run --org <sf-alias> \
-     --config scripts/txn_data_harness/scenarios/01-smoke-test.yaml \
+     --config scripts/txn_data_harness/scenarios/sales_txn_quote/01-smoke-test.yaml \
      --concurrency 1 -v
    ```
 

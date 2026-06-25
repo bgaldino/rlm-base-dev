@@ -1,7 +1,7 @@
 # Randomized product mix — multi-line quotes from a product pool.
 #
 #   python -m scripts.txn_data_harness.generate --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/11-randomized-product-mix.yaml \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/11-randomized-product-mix.yaml \
 #       --concurrency 3
 #
 # Each transaction places a RANDOM NON-EMPTY SUBSET of the `products:` pool as

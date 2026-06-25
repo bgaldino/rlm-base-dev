@@ -83,13 +83,21 @@ class SalesTransactionBaseHandler:
     ) -> list[str]:
         """Return the ordered public stages needed to reach ``target_stage``.
 
+        For subclasses whose STAGES include ``opportunity_created``,
         ``opportunity_created`` is prepended only when ``with_opportunity`` is
         true or the target stage is ``opportunity_created`` itself; otherwise
         the sequence starts at the stage immediately after it (``quote_placed``
-        for quote-path, ``order_draft`` for order-path).
+        for quote-path).
+
+        For subclasses whose STAGES do NOT include ``opportunity_created``
+        (e.g. ``sales_txn_order`` -- R262 Order has no OpportunityId field),
+        the sequence is simply the prefix of STAGES up to and including
+        ``target_stage``.
         """
         stages = self.STAGES
         stop_at = stages.index(target_stage)
+        if "opportunity_created" not in stages:
+            return list(stages[: stop_at + 1])
         seq: list[str] = []
         if with_opportunity or target_stage == "opportunity_created":
             seq.append("opportunity_created")

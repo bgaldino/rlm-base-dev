@@ -23,7 +23,7 @@ unless you are changing the harness itself.
 
 ```bash
 python -m scripts.txn_data_harness.cli plan --org <sf-alias> \
-  --config scripts/txn_data_harness/scenarios/01-smoke-test.yaml
+  --config scripts/txn_data_harness/scenarios/sales_txn_quote/01-smoke-test.yaml
 ```
 
 Use this before every write. It resolves auth, org discovery, account/product
@@ -33,7 +33,7 @@ targets, start-date ranges, stage caps, and concurrency without creating records
 
 ```bash
 python -m scripts.txn_data_harness.cli run --org <sf-alias> \
-  --config scripts/txn_data_harness/scenarios/01-smoke-test.yaml \
+  --config scripts/txn_data_harness/scenarios/sales_txn_quote/01-smoke-test.yaml \
   --concurrency 1 -v
 ```
 
@@ -144,7 +144,7 @@ scenarios:
     count: 5
 ```
 
-Reference config: `scenarios/16-direct-orders.yaml`.
+Reference config: `scenarios/sales_txn_order/16-direct-orders.yaml`.
 
 Rules:
 

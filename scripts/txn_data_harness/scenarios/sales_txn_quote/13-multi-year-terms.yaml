@@ -1,7 +1,7 @@
 # Multi-year and non-monthly subscription terms.
 #
 #   python -m scripts.txn_data_harness.cli run --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/13-multi-year-terms.yaml
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/13-multi-year-terms.yaml
 #
 # Exercises the per-line ``(count, unit)`` term model added in W1. Each
 # scenario in this file stresses a different cadence:

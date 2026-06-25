@@ -323,7 +323,6 @@ def run_order_direct(ctx: StepContext, manifest: Manifest) -> Manifest:
             ctx.lines,
             ctx.org_context.pricebook_id,
             ctx.run_id,
-            opportunity_id=manifest.opportunity_id,
             start_date=ctx.start_date,
         )
     except LifecycleError as exc:

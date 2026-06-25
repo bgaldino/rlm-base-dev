@@ -154,7 +154,7 @@ sf data query --target-org <sf-alias> -q "
   WHERE UniqueIdentifier LIKE 'txn-harness-%' GROUP BY Status"
 ```
 
-The example scenario is at `scripts/txn_data_harness/scenarios/12-usage-consumption.yaml`.
+The example scenario is at `scripts/txn_data_harness/scenarios/sales_txn_quote/12-usage-consumption.yaml`.
 
 ### Spreading quotes over time (`start_date`)
 

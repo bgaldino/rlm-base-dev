@@ -1,7 +1,7 @@
 # Activated orders — stop at activate (Assets + BillingSchedules, no invoice).
 #
 #   python -m scripts.txn_data_harness.generate --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/03-activated-orders.yaml
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/03-activated-orders.yaml
 #
 # Drives each transaction through order activation, which auto-generates
 # BillingSchedule(s) and Asset(s) — but stops before invoicing. Useful for asset

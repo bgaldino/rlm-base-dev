@@ -1,7 +1,7 @@
 # Direct-Order PST — place a Revenue Cloud Order without a Quote.
 #
 #   python -m scripts.txn_data_harness.generate --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/16-direct-orders.yaml
+#       --config scripts/txn_data_harness/scenarios/sales_txn_order/16-direct-orders.yaml
 #
 # Drives each transaction through the direct-Order PST chain:
 # place Order graph → create AppUsageAssignment(RevenueLifecycleManagement) →

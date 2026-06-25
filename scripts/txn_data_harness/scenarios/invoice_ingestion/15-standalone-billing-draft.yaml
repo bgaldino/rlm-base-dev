@@ -1,7 +1,7 @@
 # Standalone billing — Draft invoices via the ingest API.
 #
 #   python -m scripts.txn_data_harness.generate --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/15-standalone-billing-draft.yaml
+#       --config scripts/txn_data_harness/scenarios/invoice_ingestion/15-standalone-billing-draft.yaml
 #
 # Sibling of 15-standalone-billing.yaml that stops at Draft. Same ingest API,
 # same composite-graph payload -- only `defaults.target_stage` differs. Draft

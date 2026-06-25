@@ -26,7 +26,7 @@ STAGES_QUOTE = [
 ]
 
 STAGES_ORDER = [
-    "opportunity_created", "order_draft", "order_activated",
+    "order_draft", "order_activated",
     "usage_upload", "invoice_draft", "invoice_posted",
 ]
 

@@ -1,7 +1,7 @@
 # Posted invoices at volume — the full chain, many times.
 #
 #   python -m scripts.txn_data_harness.generate --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/05-posted-invoices-volume.yaml \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/05-posted-invoices-volume.yaml \
 #       --concurrency 3
 #
 # Bulk billing data: 50 transactions each driven all the way to a Posted invoice.

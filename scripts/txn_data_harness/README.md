@@ -17,7 +17,7 @@ pipeline — without it, activation is a silent no-op (no BillingSchedule, no
 Asset, no AsyncOperationTracker). See
 [`docs/contracts-sales-txn-order.md`](docs/contracts-sales-txn-order.md) for
 the live-verified contract and
-[`scenarios/16-direct-orders.yaml`](scenarios/16-direct-orders.yaml) for a
+[`scenarios/sales_txn_order/16-direct-orders.yaml`](scenarios/sales_txn_order/16-direct-orders.yaml) for a
 ready-to-run example.
 
 `Invoice`, `InvoiceLine`, and `BillingSchedule` are **system-generated** by the
@@ -30,7 +30,7 @@ The `invoice_ingestion` path is **standalone billing** — it skips PST/Order/
 Activate/BillingSchedule entirely and mints a Draft `Invoice` (with
 `CreationMode = External`) plus its `InvoiceLine`s in a single typed
 Composite-Graph call. Use it for demo orgs that need invoice volume without
-the PST chain; see [`scenarios/15-standalone-billing-draft.yaml`](scenarios/15-standalone-billing-draft.yaml)
+the PST chain; see [`scenarios/invoice_ingestion/15-standalone-billing-draft.yaml`](scenarios/invoice_ingestion/15-standalone-billing-draft.yaml)
 and [`CONTRACTS.md`](CONTRACTS.md) → *Invoice Ingestion*. Posted ingestion is
 not an operator-supported scenario today because taxable `TaxTreatment` rows
 require an `InvoiceLineTax` graph record; see [`docs/followups.md`](docs/followups.md).
@@ -219,7 +219,7 @@ count.
   `PricingTerm`/`PricingTermUnit`; falls back to `(12, Months)`. Multi-PBE SKUs
   need an explicit `selling_model:`. Evergreen / OneTime lines reject `term`.
   See `scenarios/README.md` → *Subscription terms* for the rules and
-  `scenarios/13-multi-year-terms.yaml` for worked examples.
+  `scenarios/sales_txn_quote/13-multi-year-terms.yaml` for worked examples.
 - **Explicit `end_date` override** (optional) — when set, the harness
   writes a calendar `EndDate` on the line and the platform prorates
   `PricingTermCount` against the actual span. Forms: absolute ISO date
@@ -242,7 +242,7 @@ count.
   `TransactionJournal` rows after activation. `target_stage: usage_upload` stops
   after journals so you can run `cli rate --org <sf-alias>` once for the batch;
   rating is org-wide and asynchronous. See `scenarios/README.md` →
-  *Usage-based products* and `scenarios/12-usage-consumption.yaml`.
+  *Usage-based products* and `scenarios/sales_txn_quote/12-usage-consumption.yaml`.
 
 ## Auth & transport
 

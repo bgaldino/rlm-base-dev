@@ -5,7 +5,7 @@ commented YAML you can run as-is or copy and tweak.
 
 ```bash
 python -m scripts.txn_data_harness.generate --org <sf-alias> \
-    --config scripts/txn_data_harness/scenarios/01-smoke-test.yaml [--dry-run]
+    --config scripts/txn_data_harness/scenarios/sales_txn_quote/01-smoke-test.yaml [--dry-run]
 ```
 
 Always `--dry-run` first — it resolves auth + discovery and prints the plan
@@ -14,6 +14,14 @@ Always `--dry-run` first — it resolves auth + discovery and prints the plan
 > `<sf-alias>` is an **sf** CLI alias or username, not a CCI alias.
 
 ## The examples
+
+Scenarios are grouped by [`kind`](#fields-by-kind) under one subfolder each:
+
+- [`sales_txn_quote/`](sales_txn_quote/) — Opportunity → Quote → Order → Activate → Invoice → Post (the default chain).
+- [`sales_txn_order/`](sales_txn_order/) — direct-Order PST, no Quote.
+- [`invoice_ingestion/`](invoice_ingestion/) — Composite-Graph ingest, no PST chain.
+
+### `sales_txn_quote/`
 
 | File | Stage | Volume | What it's for |
 | ---- | ----- | ------ | -------------- |
@@ -31,9 +39,19 @@ Always `--dry-run` first — it resolves auth + discovery and prints the plan
 | `12-usage-consumption.yaml` | `usage_upload` | 5 | Usage-based products (`QB-DB`, `QB-TOKENS-PACK`) with `TransactionJournal` consumption rows against each activated asset. Stops after journals; kick off org-wide rating separately. |
 | `13-multi-year-terms.yaml` | `invoice_posted` | 5 | Multi-year and non-month subscription cadences: 1-Annual, 3-Annual, bare-int (count-only) form, PSM-default fallback, and mixed terms on one quote. Exercises the per-line `(count, unit)` term model. |
 | `14-end-date-overrides.yaml` | `order_activated` | 5 | Explicit `EndDate` override examples for co-terming and off-cycle spans: absolute anchors, day/month/quarter/year offsets, per-line overrides, and mixed cadence orders. |
+
+### `sales_txn_order/`
+
+| File | Stage | Volume | What it's for |
+| ---- | ----- | ------ | -------------- |
+| `16-direct-orders.yaml` | `invoice_posted` | 5 | **Direct-Order PST** — `kind: sales_txn_order`. Places an Order via the same `actions/place` endpoint with the Order/OrderAction/OrderItem graph (no preceding Quote), then writes the `AppUsageAssignment(RevenueLifecycleManagement)` row that gates the assetization pipeline before activating. Mirrors `sales_txn_quote/05-posted-invoices-volume.yaml` end-to-end (Activate → BillingSchedule + Asset → Draft invoice → Posted invoice) but exercises the order-path head. Live-verified on R262 — see [`../docs/contracts-sales-txn-order.md`](../docs/contracts-sales-txn-order.md). |
+
+### `invoice_ingestion/`
+
+| File | Stage | Volume | What it's for |
+| ---- | ----- | ------ | -------------- |
 | `15-standalone-billing-draft.yaml` | `invoice_draft` (ingest) | 5 | **Standalone billing path** — `kind: invoice_ingestion`. Skips the PST chain entirely; each transaction is a single typed Composite-Graph `POST` to `/commerce/invoicing/.../actions/ingest` that creates a **Draft** invoice (`CreationMode = External`) directly. Targets a billing-ready account (Infinitech) and a pipeline-only account (Global Media) to exercise the no-BillingAccount path. Every line is non-taxable in the supported config. Live-verified on R262 — see [`../docs/contracts-invoice-ingestion.md`](../docs/contracts-invoice-ingestion.md). Draft ingested invoices are deletable. |
-| `15-standalone-billing.yaml` | unsupported ingest example | 5 | Same ingest path as the Draft scenario above, but `target_stage: invoice_posted`. Supported config validation intentionally rejects Posted ingestion until the tax graph prerequisite is implemented and verified. Do not run this scenario as an operator workflow; use [`15-standalone-billing-draft.yaml`](15-standalone-billing-draft.yaml). |
-| `16-direct-orders.yaml` | `invoice_posted` | 5 | **Direct-Order PST** — `kind: sales_txn_order`. Places an Order via the same `actions/place` endpoint with the Order/OrderAction/OrderItem graph (no preceding Quote), then writes the `AppUsageAssignment(RevenueLifecycleManagement)` row that gates the assetization pipeline before activating. Mirrors `05-posted-invoices-volume.yaml` end-to-end (Activate → BillingSchedule + Asset → Draft invoice → Posted invoice) but exercises the order-path head. Live-verified on R262 — see [`../docs/contracts-sales-txn-order.md`](../docs/contracts-sales-txn-order.md). |
+| `15-standalone-billing.yaml` | unsupported ingest example | 5 | Same ingest path as the Draft scenario above, but `target_stage: invoice_posted`. Supported config validation intentionally rejects Posted ingestion until the tax graph prerequisite is implemented and verified. Do not run this scenario as an operator workflow; use [`15-standalone-billing-draft.yaml`](invoice_ingestion/15-standalone-billing-draft.yaml). |
 
 These are tuned for the **QuantumBit (QB)** demo org. The only values that are
 org-specific are the **account names** (`Infinitech`, `Global Media`) and the
@@ -59,9 +77,9 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | ----- | ---- | ------- | ------- |
 | `kind` | enum | `sales_txn_quote` | Scenario handler. `sales_txn_quote` (default) drives the Opportunity → Quote → Order (via `createOrderFromQuote`) → Activate → Invoice → Post chain. `sales_txn_order` skips the Quote — PST direct-places the Order, the harness writes the `AppUsageAssignment(RevenueLifecycleManagement)` row, and the post-Order tail is identical to the quote path. `invoice_ingestion` skips PST entirely and mints a Draft invoice through the Composite-Graph ingest API. Legacy aliases `sales_transaction` and `transaction` are **rejected** with a hint pointing at the new name. |
 | `account` | string | auto | Account **Name** (not id). Omit → first billing-ready account discovered. A pinned account need not be billing-ready (it caps at `order_draft`). |
-| `target_stage` | enum | `invoice_posted` | How far to run: `opportunity_created` \| `quote_placed` \| `order_draft` \| `order_activated` \| `usage_upload` \| `invoice_draft` \| `invoice_posted`. Hierarchical — each stage runs all stages before it. `usage_upload` writes TransactionJournals for any line that declares a `usage:` block (skipped silently otherwise); see [Usage-based products](#usage-based-products) below. |
-| `with_opportunity` | bool | `false` | Prepend an Opportunity the quote links to. (`target_stage: opportunity_created` implies one even if this is false.) |
-| `opportunity_stage` | string | first open | Pin the Opportunity `StageName`. Must be a valid **open** stage in the org or the run errors with the valid list. |
+| `target_stage` | enum | `invoice_posted` | How far to run. Valid set depends on `kind`: <br/>• `sales_txn_quote`: `opportunity_created` \| `quote_placed` \| `order_draft` \| `order_activated` \| `usage_upload` \| `invoice_draft` \| `invoice_posted` <br/>• `sales_txn_order`: `order_draft` \| `order_activated` \| `usage_upload` \| `invoice_draft` \| `invoice_posted` (no Opportunity, no Quote — R262 `Order` has no `OpportunityId` field) <br/>• `invoice_ingestion`: `invoice_draft` only <br/>Hierarchical — each stage runs all stages before it. `usage_upload` writes TransactionJournals for any line that declares a `usage:` block (skipped silently otherwise); see [Usage-based products](#usage-based-products) below. |
+| `with_opportunity` | bool | `false` | **`sales_txn_quote` only.** Prepend an Opportunity the quote links to. (`target_stage: opportunity_created` implies one even if this is false.) Rejected at parse time for `sales_txn_order` (R262 `Order` has no `OpportunityId` field) and `invoice_ingestion` (no Opportunity step). |
+| `opportunity_stage` | string | first open | **`sales_txn_quote` only.** Pin the Opportunity `StageName`. Must be a valid **open** stage in the org or the run errors with the valid list. Rejected at parse time for `sales_txn_order` and `invoice_ingestion`. |
 | `product` | string | auto (QB-preferred) | Product **SKU** for a single-product pool. Shorthand for a one-entry `products:` list. |
 | `products` | list | — | The line **pool**: a list of `{sku, quantity?, discount?}` entries. Each transaction places a **random non-empty subset** of the pool as **multiple** quote lines (a 3-entry pool yields 1–3 lines; if the dice exclude everything, one entry is forced so every quote has ≥1 line). Per-entry `quantity`/`discount` override the scenario-level values for that entry. |
 | `quantity` | int ≥ 1, or `[min, max]` | `1` | Line quantity. A scalar fixes it; a `[min, max]` range draws an integer **per line** (so a pool/`count > 1` yields a spread). A `products[].quantity` overrides this for that entry. |
@@ -71,6 +89,129 @@ block (where it applies to all scenarios unless the scenario overrides it).
 | `term` | int, or `{count, unit}` | PSM default → `{12, Months}` | Subscription cadence for **TermDefined** lines only. Drives `QuoteLineItem.SubscriptionTerm` / `SubscriptionTermUnit`; the platform derives `EndDate` from those + `StartDate`. A bare int (`term: 36`) overrides count only — unit follows the resolved PSM. A map (`{count: 3, unit: Annual}`) sets both; `unit` must match the resolved PSM's `PricingTermUnit`. Picklist: `Months`, `Quarterly`, `Semi-Annual`, `Annual`. Alias: `Years -> Annual`. Range 1–120. Rejected on `Evergreen` / `OneTime` products. Falls back through line → scenario → `ProductSellingModel.PricingTerm` → `(12, Months)`. May sit on the scenario (default for all lines) or on a `products[]` entry (per-line wins). |
 | `end_date` | ISO date, int (days), or `"<n><unit>"` | unset (platform derives) | **Optional** explicit `EndDate` override for **TermDefined** lines only. Requires an accompanying `term:` — a cadence is still needed for `SubscriptionTerm` / billing-schedule derivation. Forms: absolute (`"2027-01-14"` or a YAML date), bare int = days (`364`), suffixed offset (`"364d"`, `"12mo"`, `"3q"`, `"1y"`). Supported units: `d` (days), `mo` (calendar months, day-clamped), `q` (3 months), `y` (12 months). Bare `"m"` is **rejected** as ambiguous. Forward-only (zero/negative reject). Range 1d–20y. The override is resolved against the line's drawn `StartDate` at place time, so a scenario-level `end_date:` co-terms every line on the quote to the same calendar anchor. The platform honors the explicit date and prorates `PricingTermCount` against the actual span (~0.27% drift vs the derived 365/366-day default). |
 | `selling_model` | string | auto | Pin the `ProductSellingModel.Name` for SKUs that have **multiple** active PBEs (e.g. one Annual + one Quarterly). Required only when a SKU is ambiguous; the resolver errors with the candidate list otherwise. Omit when the SKU has a single active PBE on the standard pricebook (the common case). |
+
+The table above lists every field the parser understands. Which fields are
+*valid* on a given scenario depends on its [`kind`](#fields-by-kind), spelled
+out below.
+
+### Fields by kind
+
+The parser dispatches on `kind` and runs a kind-specific coercer
+(`_coerce_sales_transaction_spec` for the two PST kinds,
+`_coerce_invoice_ingestion_spec` for ingestion). Each coercer enforces its
+own field allowlist — passing a field that doesn't apply is a **config-parse
+error**, not a silent ignore. This section is the authoritative per-kind
+schema; the parser logic lives in [`config.py`](../config.py).
+
+#### `kind: sales_txn_quote` (default)
+
+Drives the **Opportunity → Quote → Order (via `createOrderFromQuote`) →
+Activate → Invoice → Post** chain. Every field in the table above is valid
+on this kind.
+
+- **Valid `target_stage` values:** `opportunity_created`, `quote_placed`,
+  `order_draft`, `order_activated`, `usage_upload`, `invoice_draft`,
+  `invoice_posted`.
+- **Opportunity head:** `with_opportunity: true` prepends an Opportunity the
+  Quote links to (`Quote.OpportunityId` is writable on R262).
+  `opportunity_stage:` pins the StageName (must be a valid **open** stage in
+  the org).
+- **Line model:** `product` (single SKU) **or** `products: [{sku, quantity, discount}, …]`
+  (a pool — each transaction places a random non-empty subset as multiple
+  Quote lines). `term`, `end_date`, `start_date`, `selling_model` all apply.
+- **Forbidden fields:** `invoice_lines`, `invoice` (those are
+  ingestion-only).
+
+Minimal scenario:
+
+```yaml
+defaults:
+  kind: sales_txn_quote          # optional — this is the default
+  target_stage: invoice_posted
+
+scenarios:
+  - account: "Infinitech"
+    product: "QB-API-FLEX"
+    count: 1
+```
+
+#### `kind: sales_txn_order`
+
+Direct-Order PST: places an `Order` via the same `actions/place` endpoint
+with the Order/OrderAction/OrderItem graph, then writes the
+`AppUsageAssignment(RevenueLifecycleManagement)` row that gates assetization.
+The post-Order tail (Activate → BillingSchedule + Asset → Invoice → Post) is
+shared with the quote path.
+
+- **Valid `target_stage` values:** `order_draft`, `order_activated`,
+  `usage_upload`, `invoice_draft`, `invoice_posted`.
+- **No Opportunity:** the R262 `Order` sobject has **no** `OpportunityId`
+  field (live-verified via describe on `2026-06-25` against
+  `rlm-base__jun17_1`). The direct-Order PST graph cannot link to an
+  Opportunity. The parser rejects all three Opportunity knobs:
+  - `with_opportunity: true` → `ConfigError`
+  - `opportunity_stage: <...>` → `ConfigError`
+  - `target_stage: opportunity_created` → `ConfigError`
+  - `target_stage: quote_placed` → `ConfigError` (no Quote step)
+
+  To link a transaction to an Opportunity, use `kind: sales_txn_quote`. See
+  [`../docs/contracts-sales-txn-order.md` § 1](../docs/contracts-sales-txn-order.md).
+- **Line model:** identical to `sales_txn_quote` — `product` / `products`,
+  `term`, `end_date`, `start_date`, `selling_model` all apply. Note
+  `OrderItem.Discount` (percent) round-trips on readback — DIVERGES from the
+  quote path where `QuoteLineItem.Discount` reads back 0.
+- **Forbidden fields:** `with_opportunity`, `opportunity_stage`,
+  `invoice_lines`, `invoice`.
+
+Minimal scenario:
+
+```yaml
+defaults:
+  kind: sales_txn_order
+  target_stage: invoice_posted
+
+scenarios:
+  - account: "Infinitech"
+    product: "QB-API-FLEX"
+    count: 1
+```
+
+#### `kind: invoice_ingestion`
+
+Standalone billing: a single typed Composite-Graph `POST` to
+`/commerce/invoicing/.../actions/ingest` mints a **Draft** invoice
+(`CreationMode = External`) without going through PST. No Opportunity, no
+Quote, no Order, no Asset, no BillingSchedule.
+
+- **Valid `target_stage` values:** `invoice_draft` (only). Posted ingestion
+  is rejected at parse time until the `InvoiceLineTax` prerequisite is
+  implemented and live-verified.
+- **Line model:** the kind uses a **typed line shape** — `invoice_lines: [{name, sku?, quantity, unit_price, charge_amount?, line_start_date?, line_end_date?, taxable?, description?}, …]`.
+  At least one line is required.
+- **Invoice-level overrides:** `invoice: {invoice_date?, due_date?, posted_date?, currency?, description?, should_calculate_tax?, tax_calculation_status?}`.
+  Setting `should_calculate_tax: true` is rejected at parse time (same tax
+  invariant as Posted).
+- **Forbidden fields** (rejected at parse time, with a hint pointing at
+  `sales_txn_quote`): `with_opportunity`, `opportunity_stage`, `products`,
+  `product`, `quantity`, `discount`, `start_date`, `term`, `end_date`,
+  `period_boundary`, `billing_frequency`.
+
+Minimal scenario:
+
+```yaml
+defaults:
+  kind: invoice_ingestion
+  target_stage: invoice_draft
+
+scenarios:
+  - account: "Infinitech"
+    invoice_lines:
+      - name: "Consulting hours"
+        quantity: 10
+        unit_price: 250.0
+        taxable: false
+    count: 1
+```
 
 ### `defaults` vs `volume` vs `scenarios`
 
@@ -340,7 +481,7 @@ python -m scripts.txn_data_harness.cli rate --org <sf-alias>
 ```
 
 Run rating once after the batch of `usage`-stage scenarios completes; the
-example config above is at `scenarios/12-usage-consumption.yaml`.
+example config above is at `scenarios/sales_txn_quote/12-usage-consumption.yaml`.
 
 ### Not handled yet — verifying rated output
 

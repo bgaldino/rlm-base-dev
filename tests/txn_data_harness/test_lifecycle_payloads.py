@@ -10,6 +10,7 @@ from scripts.txn_data_harness.lifecycle import (
     LifecycleError,
     count_order_items,
     generate_invoice,
+    place_order_transaction,
     place_sales_transaction,
     poll_assets,
     poll_billing_schedules,
@@ -88,6 +89,44 @@ def test_place_sales_transaction_builds_quote_graph_payload(
     assert "EndDate" not in evergreen_line
     assert "SubscriptionTerm" not in evergreen_line
     assert "SubscriptionTermUnit" not in evergreen_line
+
+
+def test_place_order_transaction_never_writes_opportunity_id(
+    fake_client, billable_account, term_product
+) -> None:
+    """The R262 Order sobject has no ``OpportunityId`` field -- live-verified
+    via describe on 2026-06-25 against rlm-base__jun17_1; PST returns
+    ``INVALID_FIELD`` ("No such column 'OpportunityId' on sobject of type
+    Order") if the graph carries it. This test pins the platform constraint
+    at the payload layer: the direct-Order PST graph must NEVER emit
+    ``OpportunityId``. DIVERGES from the quote path
+    (:func:`place_sales_transaction`), which DOES write
+    ``Quote.OpportunityId`` when caller provides one."""
+    fake_client.post_responses.append({
+        "isSuccess": True,
+        "salesTransactionId": "801ORDER",
+        "errorResponse": [],
+    })
+    fake_client.query_responses.append([{"OrderNumber": "O-0001"}])
+    lines = [LineItem(product=term_product, quantity=1, term=Term(12, "Months"))]
+
+    order_id, order_number = place_order_transaction(
+        fake_client,
+        billable_account,
+        lines,
+        pricebook_id="01sSTANDARD",
+        run_id="DEMO-ORD",
+        start_date=date(2026, 1, 15),
+    )
+
+    assert order_id == "801ORDER"
+    assert order_number == "O-0001"
+    path, body = fake_client.posts[0]
+    assert path.endswith("/connect/rev/sales-transaction/actions/place")
+    order = body["graph"]["records"][0]["record"]
+    assert order["attributes"]["type"] == "Order"
+    assert order["AccountId"] == "001BILLABLE"
+    assert "OpportunityId" not in order
 
 
 def test_poll_billing_schedules_returns_ready_rows(fake_client, no_sleep) -> None:

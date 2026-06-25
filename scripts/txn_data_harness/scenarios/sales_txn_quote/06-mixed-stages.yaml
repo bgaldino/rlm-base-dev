@@ -1,7 +1,7 @@
 # Mixed stages — a realistic spread across the lifecycle in one run.
 #
 #   python -m scripts.txn_data_harness.generate --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/06-mixed-stages.yaml --concurrency 3
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/06-mixed-stages.yaml --concurrency 3
 #
 # A single run that leaves the org looking "lived-in": some open pipeline, some
 # activated orders, and some fully billed invoices — the proportions you'd expect

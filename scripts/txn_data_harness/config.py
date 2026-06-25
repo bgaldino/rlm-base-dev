@@ -61,14 +61,18 @@ _VALID_KINDS = {"sales_txn_quote", "sales_txn_order", "invoice_ingestion"}
 #
 # ``sales_txn_order`` omits ``quote_placed`` (the order path skips the Quote
 # step entirely; see :data:`scripts.txn_data_harness.models.STAGES_ORDER`).
+# ``sales_txn_order`` also omits ``opportunity_created`` because the R262 Order
+# sobject has no ``OpportunityId`` field -- the direct-Order PST graph cannot
+# link an Order to an Opportunity. Live-verified via describe on 2026-06-25
+# against rlm-base__jun17_1. See docs/contracts-sales-txn-order.md § 2.
 _KIND_VALID_STAGES: dict[str, set[str]] = {
     "sales_txn_quote": {
         "opportunity_created", "quote_placed", "order_draft",
         "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
     },
     "sales_txn_order": {
-        "opportunity_created", "order_draft",
-        "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
+        "order_draft", "order_activated", "usage_upload",
+        "invoice_draft", "invoice_posted",
     },
     "invoice_ingestion": {"invoice_draft"},
 }
@@ -819,6 +823,26 @@ def _coerce_sales_transaction_spec(
 ) -> ScenarioSpec:
     stage = _coerce_target_stage(merged, kind, where)
     count = _coerce_count(merged, where)
+
+    # Reject Opportunity-linked knobs on the direct-Order kind. The R262
+    # Order sobject has no ``OpportunityId`` field (live-verified via describe
+    # on 2026-06-25 against rlm-base__jun17_1); placing the field on the PST
+    # graph returns ``INVALID_FIELD``. Surfacing this at config-parse time
+    # avoids a deterministic PST failure 5 stages later. See
+    # docs/contracts-sales-txn-order.md § 2.
+    if kind == "sales_txn_order":
+        if merged.get("with_opportunity"):
+            raise ConfigError(
+                f"{where}: 'with_opportunity' is not valid for kind "
+                f"'sales_txn_order' (R262 Order has no OpportunityId field; "
+                f"use kind 'sales_txn_quote' to link a Quote to an Opportunity)"
+            )
+        if merged.get("opportunity_stage") is not None:
+            raise ConfigError(
+                f"{where}: 'opportunity_stage' is not valid for kind "
+                f"'sales_txn_order' (R262 Order has no OpportunityId field; "
+                f"the direct-Order PST chain does not create an Opportunity)"
+            )
 
     # Scenario-level quantity/discount are the fallback each product entry
     # inherits unless it sets its own; `product:` is shorthand for a one-entry

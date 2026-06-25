@@ -21,10 +21,25 @@
 
 ## Lifecycle steps — endpoints, bodies, responses
 
-### 1. Opportunity (optional head)
+### 1. Opportunity (NOT SUPPORTED on this kind)
 
-Identical to the quote-path step 1. See
-[`contracts-sales-txn-quote.md` § 1](contracts-sales-txn-quote.md#1-opportunity-optional-head).
+The direct-Order PST chain has no Opportunity step. **The R262 `Order` sobject
+has no `OpportunityId` field** — verified via describe on `2026-06-25` against
+`rlm-base__jun17_1`:
+
+```
+$ sf sobject describe --sobject Order --target-org rlm-base__jun17_1 \
+    | jq '[.fields[] | select(.name | test("[Oo]pportunity"))]'
+[]
+```
+
+Sending `OpportunityId` on the PST Order graph returns
+`INVALID_FIELD` ("No such column 'OpportunityId' on sobject of type Order")
+and rejects the entire place call. The harness pins this at the config layer:
+`with_opportunity: true`, `opportunity_stage: <…>`, and
+`target_stage: opportunity_created` are all rejected at parse time when
+`kind: sales_txn_order`. To link a transaction to an Opportunity, use
+`kind: sales_txn_quote` instead — `Quote.OpportunityId` IS writable on R262.
 
 ### 2. Order — Place Sales Transaction (PST) — ✅ VERIFIED LIVE
 

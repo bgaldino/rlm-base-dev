@@ -1,7 +1,7 @@
 # Product mix — posted invoices across several QB SKUs.
 #
 #   python -m scripts.txn_data_harness.generate --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/08-product-mix.yaml --concurrency 3
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/08-product-mix.yaml --concurrency 3
 #
 # Spreads billed invoices across different products so invoice/revenue demos
 # aren't all the same line item. This file keeps exactly one SKU per invoice by

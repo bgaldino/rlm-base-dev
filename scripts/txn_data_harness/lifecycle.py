@@ -255,7 +255,6 @@ def place_order_transaction(
     lines: list[LineItem],
     pricebook_id: str,
     run_id: str,
-    opportunity_id: Optional[str] = None,
     start_date: Optional[date] = None,
 ) -> tuple[str, Optional[str]]:
     """Place an Order via PST with the Order/OrderAction/OrderItem graph.
@@ -269,6 +268,13 @@ def place_order_transaction(
 
       * ``Order.AccountId`` is writable directly (unlike Quote, which uses
         ``QuoteAccountId``).
+      * ``Order.OpportunityId`` does NOT exist on the Revenue Cloud
+        Order sobject in R262 -- describe carries no Opportunity field at
+        all. The direct-Order PST graph CANNOT link an Order to an
+        Opportunity at place time; passing the field returns
+        ``INVALID_FIELD`` ("No such column 'OpportunityId' on sobject of
+        type Order"). DIVERGES from the quote path, where
+        ``Quote.OpportunityId`` is writable. (Live-verified 2026-06-25.)
       * ``OrderItem.ServiceDate`` -- the field does not have ``StartDate``.
       * ``OrderItem.SubscriptionTerm`` only -- ``SubscriptionTermUnit`` does
         not exist; the unit is inherited from the PBE-bound
@@ -302,8 +308,12 @@ def place_order_transaction(
         "Status": "Draft",
         "Description": run_id,
     }
-    if opportunity_id:
-        order_record["OpportunityId"] = opportunity_id
+    # NOTE: Order has no OpportunityId field on R262 (verified via describe
+    # against rlm-base__jun17_1 on 2026-06-25). The quote path links via
+    # Quote.OpportunityId; the direct-Order path cannot. A scenario can still
+    # run with with_opportunity: true on sales_txn_order -- the Opportunity is
+    # created and tracked on the manifest -- but the Order is not linked to
+    # it. The handler logs a warning when this combination is requested.
 
     order_action_record: dict[str, Any] = {
         "attributes": {"method": "POST", "type": "OrderAction"},

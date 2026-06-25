@@ -324,7 +324,7 @@ before generalizing the "EndDate wins" wording beyond Annual.
 
 #### BillingSchedule fan-out across `end_date` scenarios (✅ VERIFIED LIVE, `rlm-base__jun17_1`, 2026-06-23)
 
-Activated all 9 scenarios from `scenarios/14-end-date-overrides.yaml`
+Activated all 9 scenarios from `scenarios/sales_txn_quote/14-end-date-overrides.yaml`
 (run `DEMO-20260623T142853Z`, orders 00000156–00000164) and read back
 the resulting `BillingSchedule` rows. Key findings:
 
@@ -490,7 +490,7 @@ canonical in-org TJ writer) and the v262 `TransactionJournal` /
   manifest records zero new ids for that chunk so the retry can reuse the
   same `UniqueIdentifier`s.
 - **TODO live-verify on a scratch org:** end-to-end run of
-  `scenarios/12-usage-consumption.yaml`, then `SELECT COUNT(Id), Status FROM
+  `scenarios/sales_txn_quote/12-usage-consumption.yaml`, then `SELECT COUNT(Id), Status FROM
   TransactionJournal WHERE UniqueIdentifier LIKE 'txn-harness-%' GROUP BY
   Status` showing the expected `Pending` count before rating and `Processed`
   count after `cli rate`.

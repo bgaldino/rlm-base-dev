@@ -1,7 +1,7 @@
 # Sales pipeline — opportunities + quotes only (no billing).
 #
 #   python -m scripts.txn_data_harness.generate --org <sf-alias> \
-#       --config scripts/txn_data_harness/scenarios/02-pipeline-quotes.yaml
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/02-pipeline-quotes.yaml
 #
 # High-volume, cheap demo data for the *pipeline* stages: each transaction gets
 # an Opportunity head and a Quote, and stops there. No order, no billing — so it
