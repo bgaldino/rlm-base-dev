@@ -69,10 +69,16 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Set up Node.js 24
+      - name: Set up Node.js 24.16.0
         uses: actions/setup-node@v5
         with:
-          node-version: "24"
+          # Pinned to an exact 24.x minor. node-version "24" floats to "latest 24.x",
+          # which moved 24.16.0 → 24.17.0; on 24.17.0 the npm-installed sf CLI exits 13
+          # on `sf org login` ("Detected unsettled top-level await" in the CLI entrypoint).
+          # 24.16.0 is the last-known-good — Prepare RLM Org succeeded on it 2026-06-11
+          # (run 27314890121). Re-float to "24" once a newer 24.x or sf CLI release restores
+          # compatibility (tracked alongside check-cci-token-fix.yml).
+          node-version: "24.16.0"
 
       - name: Cache npm download cache
         uses: actions/cache@v5
