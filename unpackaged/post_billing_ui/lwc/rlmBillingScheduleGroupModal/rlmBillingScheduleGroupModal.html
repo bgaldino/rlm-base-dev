@@ -1,0 +1,315 @@
+<template>
+    <lightning-quick-action-panel header="Create Billing Schedule Group & Schedule">
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <lightning-spinner
+                    alternative-text="Loading..."
+                    size="small"
+                    variant="brand"
+                ></lightning-spinner>
+            </template>
+
+            <template if:false={isLoading}>
+                <!-- Display Account and Billing Account Info -->
+                <template if:true={accountName}>
+                    <div class="slds-m-bottom_medium">
+                        <div class="slds-text-heading_small slds-m-bottom_x-small">Account Information</div>
+                        <div class="slds-form-element slds-m-bottom_x-small">
+                            <div class="slds-form-element__control">
+                                <div class="slds-form-element__static">
+                                    <strong>Account:</strong> {accountName}
+                                </div>
+                            </div>
+                        </div>
+                        <template if:true={billingAccountId}>
+                            <div class="slds-form-element">
+                                <div class="slds-form-element__control">
+                                    <div class="slds-form-element__static slds-text-color_success">
+                                        <lightning-icon icon-name="utility:success" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        <strong>Billing Account:</strong> {billingAccountName}
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <template if:false={billingAccountId}>
+                            <div class="slds-form-element">
+                                <div class="slds-form-element__control">
+                                    <div class="slds-form-element__static slds-text-color_error">
+                                        <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                                        No Billing Account associated with this Account
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="slds-border_bottom slds-m-vertical_medium"></div>
+                </template>
+            </template>
+
+            <template if:false={isLoading}>
+                <lightning-layout multiple-rows>
+                    <lightning-layout-item size="12" class="slds-p-bottom_small">
+                    <lightning-radio-group
+                        name="chargeType"
+                        label="Charge Type"
+                        options={chargeTypeOptions}
+                        value={chargeType}
+                        onchange={handleChargeTypeChange}
+                        required
+                    >
+                    </lightning-radio-group>
+                </lightning-layout-item>
+
+                <template if:true={isRecurring}>
+                    <lightning-layout-item size="6" class="slds-p-bottom_small slds-p-right_x-small">
+                        <lightning-combobox
+                            name="billingFrequency"
+                            label="Billing Frequency"
+                            value={billingTermUnitPicklist}
+                            options={billingFrequencyOptions}
+                            onchange={handleBillingFrequencyChange}
+                            required
+                            message-when-value-missing={billingFrequencyErrorMessage}
+                        >
+                        </lightning-combobox>
+                        <template if:false={isValidBillingFrequency}>
+                            <div class="slds-text-color_error slds-m-top_xx-small">
+                                {billingFrequencyErrorMessage}
+                            </div>
+                        </template>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="3" class="slds-p-bottom_small slds-p-horizontal_x-small">
+                        <lightning-radio-group
+                            name="billingTiming"
+                            label="Billing Timing"
+                            options={billingTimingOptions}
+                            value={billingTypePicklistTiming}
+                            onchange={handleBillingTimingChange}
+                            required
+                        >
+                        </lightning-radio-group>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="3" class="slds-p-bottom_small slds-p-left_x-small">
+                        <lightning-radio-group
+                            name="termSetting"
+                            label="Term Setting"
+                            options={termSettingOptions}
+                            value={termSetting}
+                            onchange={handleTermSettingChange}
+                            required
+                        >
+                        </lightning-radio-group>
+                    </lightning-layout-item>
+                </template>
+
+                <lightning-layout-item size="3" class="slds-p-bottom_small slds-p-right_x-small">
+                    <lightning-input
+                        name="quantity"
+                        label="Quantity"
+                        type="number"
+                        value={quantity}
+                        onchange={handleQuantityChange}
+                        required
+                        min="0"
+                        step="1"
+                    >
+                    </lightning-input>
+                </lightning-layout-item>
+
+                <lightning-layout-item size="9" class="slds-p-bottom_small slds-p-left_x-small">
+                    <lightning-combobox
+                        name="product"
+                        label="Product"
+                        value={productId}
+                        options={productOptions}
+                        onchange={handleProductChange}
+                        required
+                        placeholder="Select product"
+                    >
+                    </lightning-combobox>
+                </lightning-layout-item>
+
+                <template if:false={isTermed}>
+                    <lightning-layout-item size="6" class="slds-p-bottom_small slds-p-right_x-small">
+                        <lightning-combobox
+                            name="currency"
+                            label="Currency"
+                            value={currencyIsoCode}
+                            options={currencyOptions}
+                            onchange={handleCurrencyChange}
+                            required
+                            placeholder="Select currency"
+                        >
+                        </lightning-combobox>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="6" class="slds-p-bottom_small slds-p-left_x-small">
+                        <lightning-input
+                            name="unitPrice"
+                            label={unitPriceLabel}
+                            type="number"
+                            value={formattedUnitPrice}
+                            onchange={handleUnitPriceChange}
+                            required
+                            min="0"
+                            step={currencyStep}
+                        >
+                        </lightning-input>
+                    </lightning-layout-item>
+                </template>
+
+                <template if:true={isTermed}>
+                    <lightning-layout-item size="4" class="slds-p-bottom_small slds-p-right_x-small">
+                        <lightning-combobox
+                            name="currency"
+                            label="Currency"
+                            value={currencyIsoCode}
+                            options={currencyOptions}
+                            onchange={handleCurrencyChange}
+                            required
+                            placeholder="Select currency"
+                        >
+                        </lightning-combobox>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="4" class="slds-p-bottom_small slds-p-horizontal_x-small">
+                        <lightning-input
+                            name="unitPrice"
+                            label={unitPriceLabel}
+                            type="number"
+                            value={formattedUnitPrice}
+                            onchange={handleUnitPriceChange}
+                            required
+                            min="0"
+                            step={currencyStep}
+                        >
+                        </lightning-input>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="4" class="slds-p-bottom_small slds-p-left_x-small">
+                        <lightning-input
+                            name="totalPrice"
+                            label={totalPriceLabel}
+                            type="number"
+                            value={formattedTotalPrice}
+                            onchange={handleTotalPriceChange}
+                            required
+                            min="0"
+                            step={currencyStep}
+                        >
+                        </lightning-input>
+                    </lightning-layout-item>
+                </template>
+
+                <template if:false={isTermed}>
+                    <lightning-layout-item size="12" class="slds-p-bottom_small">
+                        <lightning-input
+                            name="startDate"
+                            label="Start Date"
+                            type="date"
+                            value={startDate}
+                            onchange={handleStartDateChange}
+                            required
+                        >
+                        </lightning-input>
+                    </lightning-layout-item>
+                </template>
+
+                <template if:true={isTermed}>
+                    <lightning-layout-item size="4" class="slds-p-bottom_small slds-p-right_x-small">
+                        <lightning-input
+                            name="startDate"
+                            label="Start Date"
+                            type="date"
+                            value={startDate}
+                            onchange={handleStartDateChange}
+                            required
+                        >
+                        </lightning-input>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="2" class="slds-p-bottom_small slds-p-horizontal_x-small">
+                        <lightning-input
+                            name="termDuration"
+                            label="Term Duration"
+                            type="number"
+                            value={termDuration}
+                            onchange={handleTermDurationChange}
+                            required
+                            min="1"
+                            step="1"
+                        >
+                        </lightning-input>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="2" class="slds-p-bottom_small slds-p-horizontal_x-small">
+                        <lightning-combobox
+                            name="termDurationUnit"
+                            label="Period"
+                            value={termDurationUnit}
+                            options={termDurationUnitOptions}
+                            onchange={handleTermDurationUnitChange}
+                            required
+                            placeholder="Select"
+                        >
+                        </lightning-combobox>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="4" class="slds-p-bottom_small slds-p-left_x-small">
+                        <lightning-input
+                            name="endDate"
+                            label="End Date"
+                            type="date"
+                            value={endDate}
+                            readonly
+                        >
+                        </lightning-input>
+                    </lightning-layout-item>
+                </template>
+
+                <lightning-layout-item size="6" class="slds-p-bottom_small slds-p-right_x-small">
+                    <lightning-combobox
+                        name="taxTreatment"
+                        label="Tax Treatment"
+                        value={taxTreatmentId}
+                        options={taxTreatmentOptions}
+                        onchange={handleTaxTreatmentChange}
+                        required
+                    >
+                    </lightning-combobox>
+                </lightning-layout-item>
+
+                <lightning-layout-item size="6" class="slds-p-left_x-small">
+                    <lightning-combobox
+                        name="legalEntity"
+                        label="Legal Entity"
+                        value={legalEntityId}
+                        options={legalEntityOptions}
+                        onchange={handleLegalEntityChange}
+                        required
+                    >
+                    </lightning-combobox>
+                </lightning-layout-item>
+                </lightning-layout>
+            </template>
+        </div>
+
+        <div slot="footer">
+            <lightning-button
+                variant="neutral"
+                label="Cancel"
+                onclick={handleCancel}
+                disabled={isLoading}
+            ></lightning-button>
+            <lightning-button
+                variant="brand"
+                class="slds-m-left_x-small"
+                label="Create Billing Schedule Group & Schedule"
+                onclick={handleCreate}
+                disabled={isCreateDisabled}
+            ></lightning-button>
+        </div>
+    </lightning-quick-action-panel>
+</template>

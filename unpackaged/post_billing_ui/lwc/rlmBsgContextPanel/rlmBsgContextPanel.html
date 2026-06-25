@@ -1,0 +1,169 @@
+<template>
+    <lightning-card title={cardTitle} icon-name={cardIcon}>
+
+        <template if:true={isLoading}>
+            <div class="slds-p-around_medium">
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </div>
+        </template>
+
+        <template if:true={error}>
+            <div class="slds-p-around_medium slds-text-color_error">{error}</div>
+        </template>
+
+        <template if:true={hasData}>
+            <div class="ctx-panel">
+
+                <!-- Human-language summary -->
+                <div class="billing-summary-text">{billingSummaryText}</div>
+
+                <template if:true={hasArrangement}>
+                    <div class="arrangement-info-card">
+                        <lightning-icon icon-name="utility:info" size="xx-small" class="arr-info-icon"></lightning-icon>
+                        <span class="arr-info-text">
+                            <b>Billing Arrangement:</b>
+                            <template for:each={arrangementParts} for:item="part">
+                                <span key={part.key}>
+                                    <b>{part.pct}</b> would be billed to <b>{part.account}</b>{part.separator}
+                                </span>
+                            </template>
+                        </span>
+                    </div>
+                </template>
+
+                <!-- ═══════ MILESTONE VIEW ═══════ -->
+                <template if:true={isMilestoneView}>
+                    <!-- Plan header -->
+                    <div class="plan-header">
+                        <div class="plan-header-left">
+                            <span class="usage-label">Milestone Plan</span>
+                            <div class="plan-name-row">
+                                <button type="button" class="plan-link link-button" aria-label="Open milestone plan" onclick={navigateToMilestonePlan}>{milestonePlan.planName}</button>
+                                <span class={planStatusClass}>{milestonePlan.planStatus}</span>
+                            </div>
+                        </div>
+                        <div class="plan-header-right">
+                            <span class="usage-label">Billed</span>
+                            <span class="plan-ref-amount">{milestoneBilledPct}%</span>
+                            <span class="plan-ref-sub">{formattedBilledAmount} of {formattedRefAmount}</span>
+                        </div>
+                    </div>
+
+                    <!-- Progress bar -->
+                    <div class="milestone-progress-container">
+                        <div class="milestone-progress-bar" style={milestoneProgressStyle}></div>
+                    </div>
+
+                    <!-- Milestone items table -->
+                    <div class="ms-table">
+                        <div class="ms-table-header">
+                            <span class="ms-th ms-td-icon"></span>
+                            <span class="ms-th ms-th-name">Milestone</span>
+                            <span class="ms-th ms-th-pct">Billing %</span>
+                            <span class="ms-th ms-th-amount">Milestone Amount</span>
+                            <span class="ms-th ms-th-status">Status</span>
+                            <span class="ms-th ms-th-date">Completion Date</span>
+                        </div>
+                        <template for:each={milestoneItems} for:item="item">
+                            <div key={item.id} class="ms-table-row">
+                                <span class="ms-td ms-td-icon">
+                                    <lightning-icon icon-name={item.statusIcon} size="x-small" class={item.iconClass}></lightning-icon>
+                                </span>
+                                <span class="ms-td ms-th-name">
+                                    <span class="ms-name">{item.name}</span>
+                                    <span class="ms-type-pill">{item.milestoneType}</span>
+                                </span>
+                                <span class="ms-td ms-th-pct">{item.pctLabel}</span>
+                                <span class="ms-td ms-th-amount">{item.formattedAmount}</span>
+                                <span class="ms-td ms-th-status">
+                                    <span class={item.statusClass}>{item.displayStatus}</span>
+                                </span>
+                                <span class="ms-td ms-th-date">{item.formattedDate}</span>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- ═══════ BUNDLE VIEW ═══════ -->
+                <template if:true={isBundleView}>
+                    <div class="bundle-tree">
+                        <div class="tree-parent">
+                            <lightning-icon icon-name="utility:package" size="xx-small" class="tree-icon-parent"></lightning-icon>
+                            <button type="button" class="plan-link link-button" data-id={bundleData.mainBsgId} aria-label="Open billing schedule group" onclick={navigateToBsg}>
+                                {bundleData.mainBsgProduct}
+                            </button>
+                            <span class="tree-charge-type">{bundleData.mainChargeType}</span>
+                            <span class="tree-freq">{bundleData.mainBillingFrequency}</span>
+                        </div>
+                        <template for:each={bundleComponents} for:item="comp">
+                            <div key={comp.bsgId} class={comp.rowClass} style={comp.indentStyle}>
+                                <lightning-icon icon-name="utility:chevronright" size="xx-small" class="tree-icon-child"></lightning-icon>
+                                <button type="button" class="plan-link link-button" data-id={comp.bsgId} aria-label="Open billing schedule group" onclick={navigateToBsg}>
+                                    {comp.productName}
+                                </button>
+                                <span class={comp.chargeTypeClass}>{comp.chargeType}</span>
+                                <span class="tree-freq">{comp.billingFrequency}</span>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- ═══════ USAGE VIEW ═══════ -->
+                <template if:true={isUsageView}>
+                    <div class="usage-header">
+                        <div class="usage-anchor-section">
+                            <span class="usage-label">Usage Resource</span>
+                            <span class="usage-resource-name">{usageData.currentResourceName}</span>
+                        </div>
+                        <div class="usage-anchor-section">
+                            <span class="usage-label">Anchor Product</span>
+                            <button type="button" class="plan-link link-button" data-id={usageData.anchorBsgId} aria-label="Open anchor billing schedule group" onclick={navigateToBsg}>
+                                {usageData.anchorProductName}
+                            </button>
+                            <span class="bt-bsg-num">{usageData.anchorBsgNumber}</span>
+                        </div>
+                    </div>
+
+                    <template if:true={hasSiblings}>
+                        <div class="usage-section-label">Included Usage Resources</div>
+                        <div class="usage-table">
+                            <div class="bt-header">
+                                <span class="bt-col bt-col-resource">Resource</span>
+                                <span class="bt-col bt-col-overage">Billed Overage Amount</span>
+                            </div>
+                            <template for:each={usageSiblings} for:item="sib">
+                                <div key={sib.bsgId} class={sib.rowClass}>
+                                    <span class="bt-col bt-col-resource">
+                                        <button type="button" class="plan-link link-button" data-id={sib.bsgId} aria-label="Open billing schedule group" onclick={navigateToBsg}>{sib.resourceName}</button>
+                                        <span class="bt-bsg-num">{sib.bsgNumber}</span>
+                                    </span>
+                                    <span class="bt-col bt-col-overage">{sib.formattedBilledAmount}</span>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+
+                <!-- ═══════ STANDARD VIEW ═══════ -->
+                <template if:true={isStandardView}>
+                    <div class="standard-info">
+                        <div class="std-row">
+                            <span class="std-label">Product</span>
+                            <span class="std-value">{context.productName}</span>
+                        </div>
+                        <div class="std-row">
+                            <span class="std-label">Billing Type</span>
+                            <span class="std-value">{context.billingType}</span>
+                        </div>
+                        <div class="std-row">
+                            <span class="std-label">Billing Frequency</span>
+                            <span class="std-value">{context.billingTerm} {context.billingTermUnit}</span>
+                        </div>
+                    </div>
+                </template>
+
+
+            </div>
+        </template>
+    </lightning-card>
+</template>

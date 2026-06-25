@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**247 tasks** across **10 groups**.
+**252 tasks** across **10 groups**.
 
 ---
 
@@ -503,7 +503,7 @@
 
 ## Documentation
 
-*14 task(s)*
+*15 task(s)*
 
 ### `snapshot_agents_help_262`
 
@@ -569,6 +569,23 @@
 - `area`: `billing`
 - `root_article_id`: `ind.billing.htm`
 - `article_id_prefix`: `ind.billing`
+- `mode`: `all`
+
+---
+
+### `snapshot_collections_help_262`
+
+**Description:** Snapshot the 262 (Summer '26) Collections and Recovery area of Salesforce Help. Covers Collection Plans, Collection Plan Reasons, treatment/dunning flows, Promise to Pay, write-offs, late fees, and the decision-matrix-driven Create Case automation. Root verified via the Collections area landing page.
+
+**Class:** `tasks.rlm_snapshot_help.SnapshotSalesforceHelp`
+
+**Options:**
+
+- `release_version`: `262`
+- `release_name`: `Summer '26`
+- `area`: `collections`
+- `root_article_id`: `ind.collections.htm`
+- `article_id_prefix`: `ind.collections`
 - `mode`: `all`
 
 ---
@@ -818,7 +835,7 @@
 
 ## Revenue Lifecycle Management
 
-*156 task(s)*
+*160 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1328,6 +1345,18 @@
 
 ---
 
+### `deactivate_collections_case_matrix`
+
+**Description:** Disable the DetermineCaseReasonAndRelatedAttributes decision-matrix version before (re)deploying the DecisionMatrixDefinition. A metadata deploy can't migrate a matrix version while an active (enabled) version with that name exists, so a second prepare_collections run fails without this. No-op on a first run (matrix not deployed yet). seed_collections_case_matrix re-enables it afterward. Run before deploy_post_collections. See scripts/apex/deactivateCollectionsCaseMatrix.apex.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/deactivateCollectionsCaseMatrix.apex`
+
+---
+
 ### `deactivate_decision_tables`
 
 **Description:** Deactivate Decision Tables (required before updating active decision tables)
@@ -1517,6 +1546,18 @@
 
 ---
 
+### `deploy_collections_case_flow`
+
+**Description:** Deploy the RLM_Create_Case_for_Collection flow from unpackaged/post_collections_case_flow. This flow invokes the DetermineCaseReasonAndRelatedAttributes decision matrix as an action, which only exists once the matrix has an active version. The matrix is activated by seed_collections_case_matrix (Apex-seeded rows, not metadata), so this flow must deploy AFTER that seed — otherwise the deploy fails with "We can't find the DetermineCaseReasonAndRelatedAttributes action." Kept separate from deploy_post_collections for exactly this ordering reason.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_collections_case_flow`
+
+---
+
 ### `deploy_context_definitions`
 
 **Description:** Deploy Context Definitions
@@ -1617,7 +1658,7 @@
 
 ### `deploy_post_collections`
 
-**Description:** Deploy Collections metadata from unpackaged/post_collections (flows, objects, omniUiCard, permissionsets, queues, quickActions, tabs, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore.
+**Description:** Deploy Collections metadata from unpackaged/post_collections (flows, objects, omniUiCard, permissionsets, queues, quickActions, tabs, timelineObjectDefinitions). Flexipages and applications for collections are deployed via assemble_and_deploy_ux (prepare_ux flow) — they are excluded here via .forceignore. The RLM_Create_Case_for_Collection flow is NOT here — it lives in unpackaged/post_collections_case_flow and is deployed by deploy_collections_case_flow AFTER seed_collections_case_matrix activates the decision matrix it invokes.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1660,6 +1701,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_large_stx`
+
+---
+
+### `deploy_post_payments_ext`
+
+**Description:** Deploy Payments UI extensions from unpackaged/post_payments_ext: the RLM_RefundController Apex class (native ConnectApi.Payments.refund, no callout) and its test, the rlmRefundButton LWC (Issue Refund on Payment records), and the RLM_Payments permission set (Apex class access). Kept in a separate dir from unpackaged/post_payments so it can deploy without re-deploying the immutable Payments_Webhook CustomSite. The Payment record page that hosts the button deploys via assemble_and_deploy_ux (payments flag).
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_payments_ext`
 
 ---
 
@@ -2751,6 +2804,18 @@
 **Description:** Restore the placeholder siteAdmin and siteGuestRecordDefaultOwner in Payments_Webhook.site-meta.xml after deploy_post_payments_site so the repo never stores the target org's real username. Run AFTER deploy_post_payments_site.
 
 **Class:** `tasks.rlm_community.RevertPaymentsSiteAfterDeploy`
+
+---
+
+### `seed_collections_case_matrix`
+
+**Description:** Seed and activate the Collections "Create Case for Collection" BRE setup: the five sample CollectionPlanReason records (CPR01-CPR05) and the DetermineCaseReasonAndRelatedAttributes decision matrix rows (Code -> Reason/Priority/Type), then activate the matrix version. Idempotent; includes a runtime self-check. Run after deploy_post_collections (which deploys the DecisionMatrixDefinition schema). See scripts/apex/seedCollectionsCaseMatrix.apex.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/seedCollectionsCaseMatrix.apex`
 
 ---
 

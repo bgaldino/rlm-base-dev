@@ -1,0 +1,908 @@
+/* ── Summary Cards ─────────────────────────────────────────────────── */
+.summary-card {
+    background: white;
+    border: 1px solid #dddbda;
+    border-radius: 4px;
+    padding: 1rem;
+    display: flex;
+    gap: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.summary-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #0176d3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.summary-icon.warning { background: #fe9339; }
+.summary-icon.info    { background: #0176d3; }
+.summary-icon.success { background: #2e844a; }
+
+.summary-content { flex: 1; }
+
+.summary-label {
+    font-size: 0.75rem;
+    color: #706e6b;
+    margin-bottom: 0.25rem;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #080707;
+    line-height: 1.2;
+}
+
+.summary-sublabel {
+    font-size: 0.75rem;
+    color: #706e6b;
+    margin-top: 0.25rem;
+}
+
+/* ── Fix #3: Billing Completion bar (renamed from realization) ────── */
+.completion-percent {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2e844a;
+    margin-left: 0.5rem;
+}
+
+.completion-bar-container {
+    width: 100%;
+    height: 32px;
+    background-color: #f3f2f2;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.completion-bar-billed {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #2e844a 0%, #4bca81 100%);
+    transition: width 0.5s ease;
+}
+
+.completion-bar-pending {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: linear-gradient(90deg, #fe9339 0%, #ffb75d 100%);
+    transition: width 0.5s ease, left 0.5s ease;
+}
+
+/* ── Legend ─────────────────────────────────────────────────────────── */
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+.legend-dot.billed  { background-color: #2e844a; }
+.legend-dot.pending { background-color: #5eb3f6; }
+
+/* Chart legend swatches */
+.chart-legend { align-items: center; }
+
+.legend-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+.billed-swatch  { background-color: #2e844a; }
+.pending-swatch { background-color: #5eb3f6; }
+.zero-swatch    { background-color: #dddbda; border: 1px solid #aeacab; }
+
+/* ── Fix #2 & #4 & #6: Chart ──────────────────────────────────────── */
+.chart-container {
+    display: flex;
+    gap: 1rem;
+    min-height: 300px;
+    border: 1px solid #dddbda;
+    border-radius: 4px;
+    padding: 1rem 1rem 0 1rem;
+    background: white;
+}
+
+.chart-y-axis {
+    width: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-right: 0.5rem;
+    border-right: 2px solid #c9c7c5;
+    height: 200px;   /* match CHART_HEIGHT_PX — keeps y-labels aligned with bar tops */
+    padding-bottom: 0;
+    flex-shrink: 0;
+}
+
+.y-axis-label {
+    font-size: 0.7rem;
+    color: #706e6b;
+    text-align: right;
+}
+
+.chart-plot-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-width: 0;
+}
+
+.chart-scroll {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+.chart-inner {
+    position: relative;
+    min-width: 100%;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.chart-bars-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-evenly;
+    padding-bottom: 4px;
+    border-bottom: 2px solid #c9c7c5;
+    height: 200px;
+    overflow: visible;
+}
+
+/* Crowded layout: many bars — fixed bar width + gap, horizontal scroll */
+.chart-plot-area.crowded .chart-bars-row,
+.chart-plot-area.crowded .chart-x-axis {
+    justify-content: flex-start;
+    gap: 16px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+/* bar-group: width set inline, flexbox spacing handles gaps */
+.chart-bar-group {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+}
+
+/* Both bar types: pixel height set inline, flex column so segments stack */
+.chart-bar {
+    border-radius: 4px 4px 0 0;
+    display: flex;
+    flex-direction: column;  /* pending on top, billed on bottom */
+    position: relative;
+    transition: opacity 0.2s;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.chart-bar:hover { opacity: 0.85; }
+
+.billing-bar {
+    /* height/width set inline via billingBarStyle */
+}
+
+/* Fix #4: inner segments — pending on top, billed on bottom */
+.bar-segment {
+    width: 100%;
+    transition: height 0.3s ease;
+}
+.pending-seg { /* blue, top half  */ }
+.billed-seg  { /* green, bottom half */ }
+
+/* Fix #6: credit bar — same scale as billing bar, red */
+.zero-marker {
+    /* thin grey marker for $0-net periods — styled fully inline */
+    flex-shrink: 0;
+}
+
+.bar-label {
+    position: absolute;
+    bottom: 4px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+/* X-axis: mirrors bars-row spacing exactly so labels align under bars */
+.chart-x-axis {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-evenly;  /* must match bars-row */
+    height: 32px;
+    padding-top: 6px;
+}
+
+.x-axis-label {
+    /* width set inline via xAxisLabelStyle to match bar width */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    color: #706e6b;
+    font-weight: 600;
+    white-space: normal;
+    text-align: center;
+    word-break: break-word;
+    overflow: hidden;
+    flex-shrink: 0;
+    text-align: center;
+}
+
+/* ── Table ─────────────────────────────────────────────────────────── */
+.slds-table th,
+.slds-table td { padding: 0.75rem; }
+
+.numeric-cell {
+    text-align: right;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+.numeric-header {
+    text-align: right;
+}
+
+.credit-amount { color: #c23934; }
+
+.period-dates {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.date-arrow { color: #706e6b; font-weight: bold; }
+
+.schedule-badges { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+
+.schedule-badge-link {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    color: #0176d3;
+}
+
+.status-active {
+    --sds-c-badge-color-background: #e0f3ff;
+    --sds-c-badge-text-color: #014486;
+}
+.status-billed {
+    --sds-c-badge-color-background: #d0f0d9;
+    --sds-c-badge-text-color: #194e31;
+}
+.status-cancelled {
+    --sds-c-badge-color-background: #feded8;
+    --sds-c-badge-text-color: #8a1501;
+}
+
+.cancelled-row { background-color: #fef5f3; opacity: 0.7; }
+.cancelled-row td { text-decoration: line-through; }
+
+/* ── Gantt Timeline ───────────────────────────────────────────────── */
+.timeline-container {
+    overflow-x: auto;
+    min-width: 100%;
+}
+
+.timeline-header {
+    display: flex;
+    border-bottom: 2px solid #dddbda;
+    margin-bottom: 0.5rem;
+}
+
+.name-column-header {
+    width: 200px;
+    min-width: 200px;
+    font-weight: bold;
+    padding: 0.5rem;
+    border-right: 1px solid #dddbda;
+}
+
+.timeline-months {
+    flex: 1;
+    display: flex;
+    position: relative;
+    min-height: 40px;
+}
+
+.month-label {
+    position: absolute;
+    top: 0;
+    padding: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-left: 1px solid #c9c7c5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.timeline-rows {
+    display: flex;
+    flex-direction: column;
+}
+
+.schedule-row {
+    display: flex;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.schedule-row:hover {
+    background-color: #f3f2f2;
+}
+
+.name-column {
+    width: 200px;
+    min-width: 200px;
+    padding: 0.5rem;
+    border-right: 1px solid #dddbda;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.schedule-name {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.schedule-link {
+    color: #0176d3;
+    text-decoration: none;
+    padding: 0;
+    text-align: left;
+}
+
+.schedule-category {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.quantity-label {
+    font-size: 0.75rem;
+    color: #706e6b;
+}
+
+.timeline-bar-container {
+    flex: 1;
+    position: relative;
+    min-height: 50px;
+    padding: 0.5rem 0;
+}
+
+.timeline-bar {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 36px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-bar.active {
+    background-color: #5eb3f6;
+}
+
+.timeline-bar.billed {
+    background-color: #4bca81;
+}
+
+.timeline-bar.planned {
+    background-color: #ffb75d;
+}
+
+.timeline-bar.cancelled {
+    background-color: #ea001e;
+    text-decoration: line-through;
+}
+
+.bar-amount {
+    white-space: nowrap;
+    padding: 0 0.5rem;
+}
+
+.legend-color {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+}
+
+.active-color {
+    background-color: #5eb3f6;
+}
+
+.billed-color {
+    background-color: #4bca81;
+}
+
+.planned-color {
+    background-color: #ffb75d;
+}
+
+.cancelled-color {
+    background-color: #ea001e;
+}
+
+.category-original {
+    --sds-c-badge-color-background: #e0f3ff;
+    --sds-c-badge-text-color: #014486;
+}
+
+.category-amendment {
+    --sds-c-badge-color-background: #fff0d6;
+    --sds-c-badge-text-color: #7a5d00;
+}
+
+.category-cancellation {
+    --sds-c-badge-color-background: #feded8;
+    --sds-c-badge-text-color: #8a1501;
+}
+
+.detail-label {
+    font-size: 0.75rem;
+    color: #706e6b;
+    margin-bottom: 0.25rem;
+}
+
+.detail-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #080707;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 24px;
+    background-color: #e5e5e5;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ── Bar Hover Popover ─────────────────────────────────────────── */
+.chart-bar-wrapper {
+    position: relative;
+}
+
+.bar-popover {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1b2431;
+    color: #f0f0f0;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    min-width: 180px;
+    max-width: 260px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    margin-bottom: 6px;
+    white-space: nowrap;
+    font-size: 0.75rem;
+}
+
+.bar-popover::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #1b2431;
+}
+
+.chart-bar-wrapper:hover .bar-popover {
+    display: block;
+}
+
+.popover-title {
+    font-weight: 700;
+    font-size: 0.8rem;
+    margin-bottom: 0.15rem;
+}
+
+.popover-total {
+    color: #a3b8d0;
+    margin-bottom: 0.25rem;
+}
+
+.popover-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0.35rem 0;
+}
+
+.popover-bs-row {
+    margin-bottom: 0.25rem;
+}
+
+.popover-bs-name {
+    font-weight: 600;
+    color: #5eb3f6;
+}
+
+.popover-bs-detail {
+    color: #c8d6e5;
+    font-size: 0.7rem;
+}
+
+/* ── Suspension ────────────────────────────────────────────────── */
+.suspended-swatch {
+    background: repeating-linear-gradient(45deg, #fe9339, #fe9339 3px, #ffb75d 3px, #ffb75d 6px);
+}
+
+.suspended-color {
+    background-color: #fe9339;
+}
+
+.suspended-bar {
+    border-radius: 4px 4px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.suspended-label {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: white;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+}
+
+.timeline-rows-wrapper {
+    position: relative;
+}
+
+.suspension-overlay {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(45deg, rgba(254, 147, 57, 0.15), rgba(254, 147, 57, 0.15) 4px, rgba(255, 183, 93, 0.1) 4px, rgba(255, 183, 93, 0.1) 8px);
+    border-left: 2px solid #fe9339;
+    border-right: 2px solid #fe9339;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 0.5rem;
+    pointer-events: none;
+}
+
+.suspension-overlay .suspension-label,
+.chart-suspension-overlay .suspension-label {
+    background: #fe9339;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    writing-mode: horizontal-tb;
+    white-space: nowrap;
+}
+
+.progress-bar-filled {
+    height: 100%;
+    background-color: #2e844a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: width 0.3s ease;
+}
+
+/* Chart Legend */
+.chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0;
+}
+
+/* Billing Segments Table */
+.segments-table {
+    font-size: 0.8125rem;
+}
+
+.segments-table th {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #514f4d;
+}
+
+.schedule-table-link {
+    color: #0176d3;
+    text-decoration: none;
+    margin-right: 0.5rem;
+}
+
+.schedule-table-link:hover {
+    text-decoration: underline;
+}
+
+.cancelled-row {
+    opacity: 0.6;
+}
+
+.status-active {
+    --sds-c-badge-color-background: #e8f5e9;
+    --sds-c-badge-text-color: #2e7d32;
+}
+
+.status-billed {
+    --sds-c-badge-color-background: #e3f2fd;
+    --sds-c-badge-text-color: #1565c0;
+}
+
+.status-cancelled {
+    --sds-c-badge-color-background: #fce4ec;
+    --sds-c-badge-text-color: #c62828;
+}
+
+.status-pending {
+    --sds-c-badge-color-background: #e3f2fd;
+    --sds-c-badge-text-color: #1565c0;
+}
+
+.status-partial {
+    --sds-c-badge-color-background: #fff3e0;
+    --sds-c-badge-text-color: #e65100;
+}
+
+.status-suspended {
+    --sds-c-badge-color-background: #fff3e0;
+    --sds-c-badge-text-color: #e65100;
+}
+
+.suspended-table-row {
+    opacity: 0.65;
+}
+
+/* Table status pills */
+.status-active,
+.status-billed,
+.status-cancelled,
+.status-pending,
+.status-partial,
+.status-suspended,
+.status-prorated {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.status-active {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.status-billed {
+    background: #e0f2f1;
+    color: #00695c;
+}
+
+.status-pending {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+.status-partial {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.status-suspended {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.status-cancelled {
+    background: #f3f2f2;
+    color: #706e6b;
+}
+
+.status-prorated {
+    background: #fce4ec;
+    color: #ba0517;
+}
+
+.past-end-row {
+    opacity: 0.5;
+    font-style: italic;
+}
+
+/* BS Detail Panel */
+.bs-detail-panel {
+    border: 1px solid #dddbda;
+    border-radius: 0.25rem;
+    background: #fafaf9;
+}
+
+.bs-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #dddbda;
+    background: white;
+    border-radius: 0.25rem 0.25rem 0 0;
+}
+
+.bs-detail-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.bs-detail-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #032d60;
+}
+
+.bs-detail-body {
+    padding: 1rem;
+}
+
+.bs-section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #706e6b;
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Badge pill base */
+.badge-category,
+.badge-info,
+.badge-active,
+.badge-billed,
+.badge-cancelled,
+.badge-planned,
+.badge-default {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.badge-category {
+    background: #eef4ff;
+    color: #0176d3;
+}
+
+.badge-info {
+    background: #e1f5fe;
+    color: #0277bd;
+}
+
+.badge-active {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge-billed {
+    background: #e0f2f1;
+    color: #00695c;
+}
+
+.badge-cancelled {
+    background: #fce4ec;
+    color: #c62828;
+}
+
+.badge-planned {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.badge-default {
+    background: #f3f2f2;
+    color: #514f4d;
+}
+
+/* Chart Suspension Overlay */
+.chart-suspension-overlay {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(254, 147, 57, 0.12),
+        rgba(254, 147, 57, 0.12) 4px,
+        rgba(255, 183, 93, 0.06) 4px,
+        rgba(255, 183, 93, 0.06) 8px
+    );
+    border-left: 2px solid #fe9339;
+    border-right: 2px solid #fe9339;
+    z-index: 1;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* BSG End Date Marker */
+.bsg-end-marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 2px dashed #ba0517;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.bsg-end-label {
+    position: absolute;
+    top: -2px;
+    left: 4px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: #ba0517;
+    white-space: nowrap;
+    background: rgba(255,255,255,0.85);
+    padding: 1px 4px;
+    border-radius: 2px;
+}
+
+.bsg-end-marker-gantt {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 2px dashed #ba0517;
+    z-index: 2;
+    pointer-events: none;
+}

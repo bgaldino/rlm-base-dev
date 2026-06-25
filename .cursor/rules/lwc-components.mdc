@@ -12,7 +12,7 @@ alwaysApply: false
 
 ## DO NOT
 
-- Use `class:foo={bar}` attribute directives in templates — not valid in LWC, causes compile failure
+- Use `class:foo={bar}` attribute directives in templates — not valid LWC (it's Svelte syntax). Verified on API v67: it **deploys clean** but is a **silent runtime no-op** (the conditional class never applies), which is more dangerous than a hard error. Use a computed class string instead.
 - Put `role="tablist"` on a list whose items have no `role="tab"`, `aria-selected`, or keyboard handling
 - Render a custom modal without `role="dialog"`, `aria-modal="true"`, and `aria-labelledby`
 - Make rename/edit interactions discoverable only via `ondblclick` — always provide a keyboard-accessible trigger
@@ -27,7 +27,7 @@ alwaysApply: false
 <!-- GOOD -->
 <div class={row.rowClass}></div>   <!-- rowClass computed in JS getter -->
 
-<!-- BAD — compile error -->
+<!-- BAD — invalid LWC; deploys clean on v67 but silently ignored at runtime -->
 <div class:selected={row.isSelected}></div>
 ```
 

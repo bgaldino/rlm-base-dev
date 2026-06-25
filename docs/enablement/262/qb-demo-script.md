@@ -8,7 +8,7 @@
 > - `docs/enablement/master/qb-scenario-reference.md` (canonical demo data — Infinitech / Global Media accounts, QB-COMPLETE / QB-QRack-750 SKUs, QB Q-Rack 750 / QB Complete Solution / QB Services Project bundles)
 > - `.agents/artifacts/qb-canvas-260-source.md` (prior-release Slack canvas — source of the 6 persona names + bios; personas are stable release-to-release and **not yet** in `qb-scenario-reference.md` — migration tracked separately so future regenerations don't depend on the local-only canvas source)
 > - `docs/salesforce/262/feature-index.md` (262 feature inventory)
-> - `docs/salesforce/262/help/articles/` (838-article Help portal mirror)
+> - `docs/salesforce/262/help/articles/` (932-article Help portal mirror)
 > - `cumulusci.yml` `project.custom` (39 active feature flags)
 
 ### How do I get my own copy of QuantumBit?

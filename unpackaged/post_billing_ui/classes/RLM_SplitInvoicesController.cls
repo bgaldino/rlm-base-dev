@@ -27,7 +27,7 @@ public with sharing class RLM_SplitInvoicesController {
         };
         for (Integer i = 0; i < queries.size(); i++) {
             try {
-                List<SObject> listInv = Database.query(queries[i]);
+                List<SObject> listInv = Database.query(queries[i], AccessLevel.USER_MODE);
                 if (listInv.isEmpty()) continue;
                 SObject inv = listInv[0];
                 try { SObject arr = inv.getSObject('BillingArrangement'); if (arr != null) info.billingArrangementName = (String) arr.get('Name'); } catch (Exception e2) { }
@@ -59,7 +59,7 @@ public with sharing class RLM_SplitInvoicesController {
             + 'WHERE ' + CORRELATION_FIELD + ' = :correlationId '
             + 'ORDER BY DocumentNumber ASC LIMIT 500';
         try {
-            List<SObject> invoices = Database.query(soql);
+            List<SObject> invoices = Database.query(soql, AccessLevel.USER_MODE);
             for (SObject inv : invoices) {
                 rows.add(new InvoiceRow(inv));
             }
@@ -101,7 +101,7 @@ public with sharing class RLM_SplitInvoicesController {
             Schema.SObjectType token = ids[0].getSObjectType();
             String objName = token.getDescribe().getName();
             String soql = 'SELECT Id, Name FROM ' + objName + ' WHERE Id IN :ids';
-            for (SObject row : Database.query(soql)) {
+            for (SObject row : Database.query(soql, AccessLevel.USER_MODE)) {
                 idToName.put(String.valueOf(row.get('Id')), (String) row.get('Name'));
             }
         } catch (Exception e) {

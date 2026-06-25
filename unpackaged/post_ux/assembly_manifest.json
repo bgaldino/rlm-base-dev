@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-06-11T02:54:06.761778Z",
+  "assembled_at": "2026-06-25T06:05:12.498262Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -20,7 +20,7 @@
     "analytics": true,
     "procedureplans": true,
     "large_stx": false,
-    "collections": false,
+    "collections": true,
     "personas": true,
     "prm_pricing": true
   },
@@ -35,6 +35,11 @@
           "feature": "utils",
           "patch_type": "insert_action",
           "description": "insert actions: Account.RLM_QuickQuote"
+        },
+        {
+          "feature": "billing",
+          "patch_type": "insert_action",
+          "description": "insert actions: GenerateStatementOfAccount"
         },
         {
           "feature": "prm_pricing",
@@ -88,6 +93,24 @@
       "name": "RLM_Billing_Account_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Account_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing_ui/RLM_Billing_Account_Record_Page.flexipage-meta.xml",
+      "patches": [
+        {
+          "feature": "billing",
+          "patch_type": "insert_action",
+          "description": "insert actions: GenerateStatementOfAccount"
+        },
+        {
+          "feature": "billing_ui",
+          "patch_type": "insert_action",
+          "description": "insert actions: Account.RLM_Create_Billing_Schedule_Group"
+        }
+      ]
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Billing_Home_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Billing_Home_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing_ui/RLM_Billing_Home_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -155,6 +178,13 @@
     },
     {
       "type": "flexipage",
+      "name": "RLM_Collection_Plan_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Collection_Plan_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/collections/RLM_Collection_Plan_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
       "name": "RLM_Collection_Rule_Builder.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Collection_Rule_Builder.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing_ui/RLM_Collection_Rule_Builder.flexipage-meta.xml",
@@ -162,9 +192,34 @@
     },
     {
       "type": "flexipage",
+      "name": "RLM_Collections_Account_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Collections_Account_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/collections/RLM_Collections_Account_Record_Page.flexipage-meta.xml",
+      "patches": [
+        {
+          "feature": "billing_ui",
+          "patch_type": "add_component",
+          "description": "add component: rlmAccountBalanceCard"
+        },
+        {
+          "feature": "billing_ui",
+          "patch_type": "add_component",
+          "description": "add component: rlmInvoiceAgingChart"
+        }
+      ]
+    },
+    {
+      "type": "flexipage",
       "name": "RLM_Collections_Dashboard.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Collections_Dashboard.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing_ui/RLM_Collections_Dashboard.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Collections_Home_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Collections_Home_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/collections/RLM_Collections_Home_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -235,6 +290,13 @@
       "name": "RLM_Index_Rate_Record_Page.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Index_Rate_Record_Page.flexipage-meta.xml",
       "source": "templates/flexipages/base/RLM_Index_Rate_Record_Page.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Invoice_Batch_Run_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Invoice_Batch_Run_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/billing_ui/RLM_Invoice_Batch_Run_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -310,6 +372,13 @@
       "name": "RLM_Payment_Plans.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Payment_Plans.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/billing_ui/RLM_Payment_Plans.flexipage-meta.xml",
+      "patches": []
+    },
+    {
+      "type": "flexipage",
+      "name": "RLM_Payment_Record_Page.flexipage-meta.xml",
+      "dest": "unpackaged/post_ux/flexipages/RLM_Payment_Record_Page.flexipage-meta.xml",
+      "source": "templates/flexipages/standalone/payments/RLM_Payment_Record_Page.flexipage-meta.xml",
       "patches": []
     },
     {
@@ -710,6 +779,18 @@
       "source_tier": "conditional/billing_ui"
     },
     {
+      "type": "application",
+      "name": "standard__CollectionConsole.app-meta.xml",
+      "dest": "unpackaged/post_ux/applications/standard__CollectionConsole.app-meta.xml",
+      "source_tier": "conditional/collections"
+    },
+    {
+      "type": "application",
+      "name": "RLM_Receivables_Management.app-meta.xml",
+      "dest": "unpackaged/post_ux/applications/RLM_Receivables_Management.app-meta.xml",
+      "source_tier": "conditional/collections"
+    },
+    {
       "type": "profile",
       "name": "Admin.profile-meta.xml",
       "dest": "unpackaged/post_ux/profiles/Admin.profile-meta.xml",
@@ -929,6 +1010,12 @@
       "name": "RLM_Failed_Invoices.listView-meta.xml",
       "dest": "unpackaged/post_ux/objects/Invoice/listViews/RLM_Failed_Invoices.listView-meta.xml",
       "source": "objects/billing"
+    },
+    {
+      "type": "listView",
+      "name": "RLM_All_Collection_Plans.listView-meta.xml",
+      "dest": "unpackaged/post_ux/objects/CollectionPlan/listViews/RLM_All_Collection_Plans.listView-meta.xml",
+      "source": "objects/collections"
     }
   ],
   "skipped": []

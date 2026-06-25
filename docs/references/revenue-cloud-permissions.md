@@ -321,7 +321,6 @@ These permission sets are stored as metadata in this repository but are not assi
 |---|---|---|
 | `RLM_QB_Admin_Class_Access` | `unpackaged/post_quantumbit/` | Apex class access for QB admin |
 | `RLM_UsageDatatables` | `unpackaged/post_utils/` | Read access to usage objects + `RLM_UsageDataController` Apex class for Usage Datatable LWC |
-| `RLM_Collection_Plan_Activity` | `unpackaged/post_collections/` | CRUD on `Collection_Plan_Activity__c` custom object (present in repo; not deployed by any standard flow — deploy manually if needed) |
 | `RLM_Partner_Community_User_Perm_Set` | `unpackaged/post_prm/` | Partner community user FLS |
 | `RLM_BillingEmployeeAgent` | `unpackaged/post_agents/` | Agentforce billing employee agent access |
 | `RLM_BillingServiceAgent` | `unpackaged/post_agents/` | Agentforce billing service agent access |
@@ -433,4 +432,4 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 
 5. **Persona PSGs target end users** -- Deployed by `prepare_personas` (step 28 of `prepare_rlm_org` when the `personas` flag is on; also runnable standalone via `cci flow run prepare_personas`). Designed for end-user role assignment rather than admin provisioning.
 
-6. **Deploy-only permission sets** -- Several permission sets (e.g., `RLM_UsageDatatables`, `RLM_Collection_Plan_Activity`, agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.
+6. **Deploy-only permission sets** -- Several permission sets (e.g., `RLM_UsageDatatables`, agent permission sets) are deployed as metadata but not auto-assigned to the running user. They are available for manual assignment to specific users or inclusion in persona PSGs.

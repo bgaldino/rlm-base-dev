@@ -5,13 +5,93 @@
     padding: 1rem 0;
 }
 
+/* Tab Bar */
+.tab-bar {
+    display: flex;
+    border-bottom: 2px solid #e5e5e5;
+    margin-bottom: 0.25rem;
+    gap: 0;
+}
+
+.tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--lwc-colorTextWeak, #706e6b);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+.tab-btn:hover {
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.tab-active {
+    color: #0176d3;
+    border-bottom-color: #0176d3;
+}
+
+.tab-active:hover {
+    color: #0176d3;
+}
+
+.tab-icon {
+    --slds-c-icon-color-foreground-default: currentColor;
+}
+
+.tab-badge {
+    font-size: 0.625rem;
+    font-weight: 700;
+    background: #e2e8f0;
+    color: #475569;
+    padding: 0.1rem 0.4rem;
+    border-radius: 9999px;
+    line-height: 1;
+}
+
+.tab-badge-warn {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* Tab Content */
+.tab-content {
+    padding-top: 0.625rem;
+}
+
+.tab-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.empty-icon-ok {
+    --slds-c-icon-color-foreground-default: #10b981;
+}
+
+.empty-text {
+    font-size: 0.875rem;
+}
+
 /* Sections */
 .health-section {
     padding: 0.875rem 0;
     border-bottom: 1px solid var(--lwc-colorBorder, #e5e5e5);
 }
 
-.health-section:last-child {
+.health-section:last-child,
+.health-section-last {
     border-bottom: none;
 }
 
@@ -435,17 +515,193 @@
     --slds-c-icon-color-foreground-default: #64748b;
 }
 
+.ct-detail {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    gap: 0.1rem;
+}
+
 .ct-label {
     font-size: 0.8125rem;
     font-weight: 500;
     color: var(--lwc-colorTextDefault, #181818);
-    flex: 1;
-    min-width: 0;
+}
+
+.ct-amount {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #014a7f;
 }
 
 .ct-count {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.8125rem;
+    font-weight: 700;
     color: var(--lwc-colorTextWeak, #706e6b);
     white-space: nowrap;
+}
+
+/* ====== Disputes Section ====== */
+.dispute-icon {
+    --slds-c-icon-color-foreground-default: #b45309;
+}
+
+.dispute-summary-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.625rem;
+    margin-bottom: 0.75rem;
+}
+
+.dispute-summary-card {
+    text-align: center;
+    padding: 0.625rem 0.5rem;
+    border-radius: 6px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.dispute-summary-highlight {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.dispute-summary-value {
+    display: block;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--lwc-colorTextDefault, #181818);
+}
+
+.dispute-summary-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--lwc-colorTextWeak, #706e6b);
+    margin-top: 0.125rem;
+}
+
+.dispute-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dispute-card {
+    padding: 0.625rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+}
+
+.dispute-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+
+/* Reset native <button> used as an inline text link so it reads/looks like a link
+   while keeping native keyboard accessibility (Enter/Space, focus ring). */
+.link-button {
+    appearance: none;
+    background: none;
+    border: none;
+    margin: 0;
+    padding: 0;
+    font: inherit;
+    text-align: left;
+}
+
+.dispute-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #0176d3;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.dispute-name:hover {
+    text-decoration: underline;
+}
+
+.dispute-status {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.dispute-closed {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.dispute-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.dispute-error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.dispute-case-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+}
+
+.case-icon {
+    flex-shrink: 0;
+}
+
+.case-link {
+    font-size: 0.8125rem;
+    color: #0176d3;
+    cursor: pointer;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.case-link:hover {
+    text-decoration: underline;
+}
+
+.dispute-card-meta {
+    margin-bottom: 0.35rem;
+}
+
+.dispute-date {
+    font-size: 0.75rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.dispute-card-amounts {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.dispute-amount-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.3rem;
+}
+
+.dispute-amount-label {
+    font-size: 0.75rem;
+    color: var(--lwc-colorTextWeak, #706e6b);
+}
+
+.dispute-amount-value {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--lwc-colorTextDefault, #181818);
 }

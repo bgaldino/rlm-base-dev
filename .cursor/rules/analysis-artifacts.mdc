@@ -1,0 +1,42 @@
+---
+description: Where AI-generated analysis/investigation artifacts must be stored (never the public repo)
+alwaysApply: true
+---
+
+# Generated Analysis Artifacts → `.agents/artifacts/` (never the public repo)
+
+Any **AI-generated** analysis, investigation, audit, feature-gap, research,
+resume/handoff, or scratch working document **must** be written to
+`.agents/artifacts/` — a **private, nested git repository** that is gitignored
+by the main repo (`.gitignore` → `.agents/artifacts/`). These artifacts must
+**never** be committed to the public `rlm-base-dev` repository.
+
+## Rule
+
+- ✅ Write generated analysis docs to `.agents/artifacts/<name>.md`.
+- ❌ Do **not** create them under `docs/analysis/`, `docs/`, repo root, or any
+  other path tracked by the main repo.
+- If you find a generated artifact tracked in the public repo, move it:
+  `cp docs/analysis/<f>.md .agents/artifacts/<f>.md && git rm -f docs/analysis/<f>.md`,
+  and update any references to point at the `.agents/artifacts/` path.
+
+## Distinction
+
+- `docs/analysis/` is reserved for **curated, intentional, human-authored**
+  technical analysis that is part of the product documentation. Do not add new
+  agent-generated working docs there. When unsure whether a doc is "curated" vs
+  "generated working artifact," treat it as a generated artifact and put it in
+  `.agents/artifacts/`.
+- `.agents/artifacts/` is for **agent working output**: investigations, audit
+  findings, cross-validation reports, feature-gap notes, resume/handoff notes,
+  experiment reports, etc.
+
+## Example
+
+```
+# ❌ BAD — public, tracked by main repo
+docs/analysis/collections-ux-baseline-feature-gaps.md
+
+# ✅ GOOD — private nested repo, gitignored by main
+.agents/artifacts/collections-ux-baseline-feature-gaps.md
+```
