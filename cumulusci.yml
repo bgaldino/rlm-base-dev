@@ -2959,6 +2959,72 @@ tasks:
       verify: true
       activate_after_apply: true
 
+  # Expression Set structural management via BRE Connect API
+  export_expression_set:
+    group: Revenue Lifecycle Management
+    description: Export expression set definition from org to JSON via BRE Connect API
+    class_path: tasks.rlm_expression_set_connect.ExportExpressionSet
+    options:
+      expression_set_api_name: null
+      output_file: null
+
+  apply_expression_set_overlay:
+    group: Revenue Lifecycle Management
+    description: >
+      Apply a declarative overlay (add/remove/update/reorder steps and variables)
+      to an expression set via BRE Connect API with deactivate/modify/reactivate lifecycle.
+    class_path: tasks.rlm_expression_set_connect.ApplyExpressionSetOverlay
+    options:
+      overlay_file: null
+      dry_run: false
+      verify: true
+      skip_validation: false
+      normalize_html_entities: true
+      activate_after_apply: true
+      cascade_deactivate_procedure_plan: true
+      max_wait_seconds: 45
+      poll_interval_seconds: 3
+
+  import_expression_set:
+    group: Revenue Lifecycle Management
+    description: Import (create or replace) expression set definition from JSON via BRE Connect API
+    class_path: tasks.rlm_expression_set_connect.ImportExpressionSet
+    options:
+      input_file: null
+      dry_run: false
+      skip_validation: false
+      normalize_html_entities: true
+      activate_after_import: true
+      cascade_deactivate_procedure_plan: true
+      max_wait_seconds: 45
+      poll_interval_seconds: 3
+
+  delete_expression_set:
+    group: Revenue Lifecycle Management
+    description: >
+      Delete an expression set via BRE Connect API, or just a single old version
+      (version_api_name) via the sObject API. Destructive — requires confirm:true.
+    class_path: tasks.rlm_expression_set_connect.DeleteExpressionSet
+    options:
+      expression_set_api_name: null
+      version_api_name: null
+      confirm: false
+      dry_run: false
+      max_wait_seconds: 45
+      poll_interval_seconds: 3
+
+  validate_expression_set:
+    group: Revenue Lifecycle Management
+    description: >
+      Validate an expression set definition or overlay JSON against the BRE
+      schema (enums, required keys, duplicate params, sequence/placement). No org
+      needed. Auto-detects overlay vs definition; pass kind to force.
+    class_path: tasks.rlm_expression_set_connect.ValidateExpressionSet
+    options:
+      file: null
+      kind: null
+      strict: false
+
   activate_procedure_plan_version:
     group: Revenue Lifecycle Management
     description: Activate the ProcedurePlanDefinitionVersion after sections and options have been inserted

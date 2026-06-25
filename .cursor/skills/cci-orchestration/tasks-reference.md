@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**247 tasks** across **10 groups**.
+**252 tasks** across **10 groups**.
 
 ---
 
@@ -835,7 +835,7 @@
 
 ## Revenue Lifecycle Management
 
-*155 task(s)*
+*160 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1074,6 +1074,26 @@
 - `deactivate_before`: `False`
 - `activate`: `True`
 - `verify`: `True`
+
+---
+
+### `apply_expression_set_overlay`
+
+**Description:** Apply a declarative overlay (add/remove/update/reorder steps and variables) to an expression set via BRE Connect API with deactivate/modify/reactivate lifecycle.
+
+**Class:** `tasks.rlm_expression_set_connect.ApplyExpressionSetOverlay`
+
+**Options:**
+
+- `overlay_file`: `None`
+- `dry_run`: `False`
+- `verify`: `True`
+- `skip_validation`: `False`
+- `normalize_html_entities`: `True`
+- `activate_after_apply`: `True`
+- `cascade_deactivate_procedure_plan`: `True`
+- `max_wait_seconds`: `45`
+- `poll_interval_seconds`: `3`
 
 ---
 
@@ -1372,6 +1392,23 @@
 
 - `operation`: `deactivate_versions`
 - `metadata_path`: `unpackaged/post_prm_pricing/expressionSetDefinition`
+
+---
+
+### `delete_expression_set`
+
+**Description:** Delete an expression set via BRE Connect API, or just a single old version (version_api_name) via the sObject API. Destructive — requires confirm:true.
+
+**Class:** `tasks.rlm_expression_set_connect.DeleteExpressionSet`
+
+**Options:**
+
+- `expression_set_api_name`: `None`
+- `version_api_name`: `None`
+- `confirm`: `False`
+- `dry_run`: `False`
+- `max_wait_seconds`: `45`
+- `poll_interval_seconds`: `3`
 
 ---
 
@@ -1837,6 +1874,19 @@
 
 ---
 
+### `export_expression_set`
+
+**Description:** Export expression set definition from org to JSON via BRE Connect API
+
+**Class:** `tasks.rlm_expression_set_connect.ExportExpressionSet`
+
+**Options:**
+
+- `expression_set_api_name`: `None`
+- `output_file`: `None`
+
+---
+
 ### `extend_context_asset`
 
 **Description:** Extend Standard Asset Context
@@ -2095,6 +2145,25 @@
 **Description:** Import constraint model metadata, ESC associations, and ConstraintModel blob into org
 
 **Class:** `tasks.rlm_cml.ImportCML`
+
+---
+
+### `import_expression_set`
+
+**Description:** Import (create or replace) expression set definition from JSON via BRE Connect API
+
+**Class:** `tasks.rlm_expression_set_connect.ImportExpressionSet`
+
+**Options:**
+
+- `input_file`: `None`
+- `dry_run`: `False`
+- `skip_validation`: `False`
+- `normalize_html_entities`: `True`
+- `activate_after_import`: `True`
+- `cascade_deactivate_procedure_plan`: `True`
+- `max_wait_seconds`: `45`
+- `poll_interval_seconds`: `3`
 
 ---
 
@@ -2835,6 +2904,20 @@
 **Description:** Validate CML file structure, annotations, and ESC association coverage
 
 **Class:** `tasks.rlm_cml.ValidateCML`
+
+---
+
+### `validate_expression_set`
+
+**Description:** Validate an expression set definition or overlay JSON against the BRE schema (enums, required keys, duplicate params, sequence/placement). No org needed. Auto-detects overlay vs definition; pass kind to force.
+
+**Class:** `tasks.rlm_expression_set_connect.ValidateExpressionSet`
+
+**Options:**
+
+- `file`: `None`
+- `kind`: `None`
+- `strict`: `False`
 
 ---
 

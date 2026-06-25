@@ -273,6 +273,7 @@ that topic.
 | Add new features, code placement | `.cursor/skills/repo-integration/SKILL.md` |
 | Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |
 | Wire pricing recipes/procedures/plans | `.cursor/skills/pricing-wiring/SKILL.md` |
+| Author/CRUD Expression Sets (pricing procedures, etc.) via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
 | Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |
 | Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
@@ -326,6 +327,7 @@ Read the sub-file only when you need that specific detail:
 | `release-enablement/resume-enablement-work.md` | Release Enablement | Cross-workstation handoff — read when picking up enablement work in a fresh conversation. 4-step re-orientation + tool grants + restart prompt template |
 | `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
 | `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
+| `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
 
 ### File-Specific Rules (Cursor Only)
 

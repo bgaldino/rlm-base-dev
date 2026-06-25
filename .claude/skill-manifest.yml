@@ -109,6 +109,16 @@ foundations:
         - .cursor/skills/cci-orchestration/flows-reference.md
         - .cursor/skills/cci-orchestration/feature-flags.md
 
+    - id: expression-sets
+      path: .cursor/skills/expression-sets/SKILL.md
+      purpose: "Expression Set (pricing procedure, etc.) programmatic CRUD + overlay authoring via Connect/Metadata API; dependency capture; activation lifecycle"
+      consumed_by_pmos: [spec, technical-review]
+      provenance: hand-authored + disposable-clone validation + OAS-grounded schema
+      sub_skills:
+        - docs/references/expression-set-connect-api-reference.md
+      caveats:
+        - "Pinned to Release 262 / API v67.0 — re-verify enums and behavior on the target release"
+
     - id: sfdmu-data-plans
       path: .cursor/skills/sfdmu-data-plans/SKILL.md
       purpose: "SFDMU v5 plan authoring + composite-key patterns"

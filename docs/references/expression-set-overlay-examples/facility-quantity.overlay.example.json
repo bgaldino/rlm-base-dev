@@ -1,0 +1,336 @@
+{
+  "expressionSetApiName": "RLM_DefaultPricingProcedure",
+  "versionApiName": "RLM_DefaultPricingProcedure_V1",
+  "description": "Add facility-quantity handling: SetinitialQuantityonFacilities (sets line quantity from SalesTransaction_Hospitals__c for RLM-FAC lines that are not Amend) and FacilityQtyonAmend (on Amend, sets quantity = Hospitals - ItemStartQuantity and applies HospitalPrice). Ships the HospitalPrice version constant in addVariables. EXTERNAL DEPENDENCY (overlay cannot create it): the custom field SalesTransaction_Hospitals__c must exist on the source object AND be mapped into the bound ContextDefinition (RLM_SalesTransactionContext) — see externalDependencies. ItemProductCode/ItemStartQuantity and other unsuffixed/__std refs are standard context fields supplied by the standard context definition.",
+  "externalDependencies": {
+    "customFields": [
+      "SalesTransaction_Hospitals__c (mapped into RLM_SalesTransactionContext)"
+    ],
+    "note": "SalesTransaction_Hospitals__c is a CUSTOM field used only by these steps; it is not a version variable and cannot be shipped in addVariables. It must exist on the source object and be mapped into RLM_SalesTransactionContext before this overlay applies."
+  },
+  "addVariables": [
+    {
+      "collection": false,
+      "dataType": "Currency",
+      "decimalPlaces": 2,
+      "description": "HospitalPrice",
+      "input": false,
+      "name": "HospitalPrice",
+      "output": false,
+      "type": "Constant",
+      "value": "4000"
+    }
+  ],
+  "addSteps": [
+    {
+      "name": "SetinitialQuantityonFacilities",
+      "description": "",
+      "stepType": "ListGroup",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "placement": {
+        "afterStep": "LookupTierPricing"
+      }
+    },
+    {
+      "name": "FacilitiesandnotAmend",
+      "description": "",
+      "stepType": "AdvancedListFilter",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "parentStep": "SetinitialQuantityonFacilities",
+      "sequenceNumber": 1,
+      "advancedCondition": {
+        "conditionLogic": "1 AND 2 AND 3",
+        "criteria": [
+          {
+            "operator": "Equals",
+            "sequenceNumber": 1,
+            "sourceFieldName": "ItemProductCode",
+            "value": "'RLM-FAC'",
+            "valueType": "Literal"
+          },
+          {
+            "operator": "IsNotNull",
+            "sequenceNumber": 2,
+            "sourceFieldName": "SalesTransaction_Hospitals__c"
+          },
+          {
+            "operator": "NotEquals",
+            "sequenceNumber": 3,
+            "sourceFieldName": "SalesTransactionActionType",
+            "value": "'Amend'",
+            "valueType": "Literal"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetHospQuantity",
+      "description": "Assignment",
+      "stepType": "BusinessKnowledgeModel",
+      "actionType": "AssignmentElement",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "parentStep": "SetinitialQuantityonFacilities",
+      "sequenceNumber": 2,
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "section-0-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "SalesTransaction_Hospitals__c"
+          },
+          {
+            "input": true,
+            "name": "sectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "1"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString1",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString2",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Numeric\",\"name\":\"section-0-input1\",\"value\":\"SalesTransaction_Hospitals__c\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Numeric\",\"name\":\"section-0-output\",\"value\":\"LineItemQuantity\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": false,
+            "name": "section-0-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "LineItemQuantity"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FacilityQtyonAmend",
+      "description": "Facility Quantity",
+      "stepType": "ListGroup",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "placement": {
+        "afterStep": "SetinitialQuantityonFacilities"
+      }
+    },
+    {
+      "name": "AmendhandleFacilityqty",
+      "description": "",
+      "stepType": "AdvancedListFilter",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "parentStep": "FacilityQtyonAmend",
+      "sequenceNumber": 1,
+      "advancedCondition": {
+        "conditionLogic": "1 AND 2 AND 3",
+        "criteria": [
+          {
+            "operator": "Equals",
+            "sequenceNumber": 1,
+            "sourceFieldName": "ItemProductCode",
+            "value": "'RLM-FAC'",
+            "valueType": "Literal"
+          },
+          {
+            "operator": "Equals",
+            "sequenceNumber": 2,
+            "sourceFieldName": "SalesTransactionActionType",
+            "value": "'Amend'",
+            "valueType": "Literal"
+          },
+          {
+            "operator": "IsNotNull",
+            "sequenceNumber": 3,
+            "sourceFieldName": "SalesTransaction_Hospitals__c"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetLineItemQuantityonAmend",
+      "description": "Formula Based Pricing",
+      "stepType": "BusinessKnowledgeModel",
+      "actionType": "FormulaBasedPricing",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "parentStep": "FacilityQtyonAmend",
+      "sequenceNumber": 2,
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "formula-section-0-input",
+            "output": false,
+            "type": "Formula",
+            "value": "SalesTransaction_Hospitals__c - ItemStartQuantity"
+          },
+          {
+            "input": true,
+            "name": "formulaSectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "1"
+          },
+          {
+            "input": true,
+            "name": "HideWaterfall",
+            "output": false,
+            "type": "Literal",
+            "value": "false"
+          },
+          {
+            "input": true,
+            "name": "sectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "0"
+          },
+          {
+            "input": true,
+            "name": "selectedFunction",
+            "output": false,
+            "type": "Literal",
+            "value": "Get"
+          },
+          {
+            "input": true,
+            "name": "IsRealTime",
+            "output": false,
+            "type": "Literal",
+            "value": "false"
+          },
+          {
+            "input": false,
+            "name": "formula-section-0-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "LineItemQuantity"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetFacilityPrice",
+      "description": "Assignment",
+      "stepType": "BusinessKnowledgeModel",
+      "actionType": "AssignmentElement",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "parentStep": "FacilityQtyonAmend",
+      "sequenceNumber": 3,
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "section-0-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "HospitalPrice"
+          },
+          {
+            "input": true,
+            "name": "section-1-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "HospitalPrice"
+          },
+          {
+            "input": true,
+            "name": "sectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "2"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString1",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString2",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Currency\",\"name\":\"section-0-input1\",\"value\":\"HospitalPrice\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Currency\",\"name\":\"section-0-output\",\"value\":\"InputUnitPrice\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString3",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Currency\",\"name\":\"section-1-input1\",\"value\":\"HospitalPrice\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Currency\",\"name\":\"section-1-output\",\"value\":\"NetUnitPrice\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": false,
+            "name": "section-0-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "InputUnitPrice"
+          },
+          {
+            "input": false,
+            "name": "section-1-output",
+            "output": true,
+            "type": "Parameter",
+            "value": "NetUnitPrice"
+          }
+        ]
+      }
+    }
+  ]
+}

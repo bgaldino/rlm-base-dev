@@ -652,7 +652,12 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 |-----------|--------|-------------|---------------|
 | `manage_decision_tables` | `rlm_manage_decision_tables.py` | Decision Table management: list, query, refresh, activate, deactivate, validate_lists | [Decision Table Examples](docs/references/decision-table-examples.md) |
 | `manage_flows` | `rlm_manage_flows.py` | Flow management (list, query, activate, deactivate) | [Task Examples](docs/references/task-examples.md) |
-| `manage_expression_sets` | `rlm_manage_expression_sets.py` | Expression Set management: list, query, activate/deactivate versions | [Task Examples](docs/references/task-examples.md) |
+| `manage_expression_sets` | `rlm_manage_expression_sets.py` | Expression Set **version lifecycle**: list, query, activate/deactivate versions (does not read or edit step graphs — for that, see the Connect CRUD tasks below) | [Task Examples](docs/references/task-examples.md) |
+| `export_expression_set` | `rlm_expression_set_connect.py` | Export an Expression Set definition (full step graph) to JSON via the BRE Connect API (GET) | [Expression Sets](.cursor/skills/expression-sets/SKILL.md) |
+| `import_expression_set` | `rlm_expression_set_connect.py` | Create or replace an Expression Set definition from JSON via the Connect API (POST create / PATCH replace); handles nested graphs + the activation lifecycle | [Expression Sets](.cursor/skills/expression-sets/SKILL.md) |
+| `apply_expression_set_overlay` | `rlm_expression_set_connect.py` | Declaratively add/remove/update/reorder steps & variables on an existing definition (PATCH) without rewriting the whole graph | [Expression Sets](.cursor/skills/expression-sets/SKILL.md) |
+| `delete_expression_set` | `rlm_expression_set_connect.py` | Delete a whole Expression Set or a single version via the Connect API (destructive — requires `confirm: true`) | [Expression Sets](.cursor/skills/expression-sets/SKILL.md) |
+| `validate_expression_set` | `rlm_expression_set_connect.py` | Pre-flight a definition/overlay JSON against the schema offline (no org required) | [Expression Sets](.cursor/skills/expression-sets/SKILL.md) |
 | `manage_transaction_processing_types` | `rlm_manage_transaction_processing_types.py` | Manage TransactionProcessingType records (list, upsert, delete) | [Constraints Setup](docs/guides/constraints-setup.md) |
 | `manage_context_definition` | `rlm_context_service.py` | Modify context definitions via Context Service API | [Context Service Utility](docs/references/context-service-utility.md) |
 | `extend_standard_context` | `rlm_extend_stdctx.py` | Extend standard context definitions with custom attributes | [Context Service Utility](docs/references/context-service-utility.md) |
