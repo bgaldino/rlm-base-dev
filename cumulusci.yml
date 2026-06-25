@@ -97,7 +97,7 @@ project:
     approvals: true           # Approvals
     tax: true                 # Tax engine
     calmdelete: true          # CALM Delete
-    collections: false        # Collections tier (post_collections: flows, quick actions, timelines, omniUiCard, queue) + CollectionConsole UX. Opt-in; native CollectionsAndRecoveryPsl is always assigned.
+    collections: true        # Collections tier (post_collections: flows, quick actions, timelines, omniUiCard, queue) + CollectionConsole UX. Opt-in; native CollectionsAndRecoveryPsl is always assigned.
     large_stx: false          # Large Sales Transaction
 
     # ── Revenue Orchestration ──────────────────────────────────────────────────

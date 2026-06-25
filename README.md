@@ -5,7 +5,7 @@
 
 This repository automates the creation and configuration of Salesforce environments that require Revenue Cloud (formerly Revenue Lifecycle Management) functionality.
 
-The `main` branch targets Salesforce Release 262 (Summer '26), promoted from the `262` upgrade branch. Release 260 (Spring '26) is the prior GA reference, preserved on the `release/260` branch. See `docs/upgrades/262-upgrade-plan.md` for the upgrade workstream history.
+The `main` branch targets Salesforce Release 262 (Summer '26), promoted from the `262` upgrade branch. Release 260 (Spring '26) is the prior GA reference, preserved on the `release/260` branch.
 
 ## Table of Contents
 
@@ -1102,8 +1102,6 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | Document | Description |
 |----------|-------------|
 | [Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md) | SFDMU v5 migration, composite key analysis, idempotency verification |
-| [Tooling Opportunities](docs/archive/tooling-opportunities.md) | *(archived)* Analysis of Spring '26 features; superseded by actual implementations |
-| [RCA/RCB Unique ID Fields](docs/archive/rca-rcb-unique-id-fields.md) | *(archived)* Unique ID field analysis for Revenue Cloud objects |
 
 ### SFDMU Data Plan READMEs
 
@@ -1261,15 +1259,13 @@ rlm-base-dev/
 │   │   ├── decision-table-examples.md
 │   │   ├── sfdmu-composite-key-optimizations.md
 │   │   └── task-examples.md
-│   ├── analysis/               # Architecture analysis and work plans
-│   │   ├── multi-shape-rating-architecture.md
-│   │   └── rlm-prefix-standardization-audit.md
+│   ├── analysis/               # Curated technical analysis (agent-generated artifacts live in .agents/artifacts/)
+│   │   └── tooling-optimization-report.md
 │   ├── integration/            # Cross-tool integration plans
 │   ├── features/               # Feature-specific design docs
 │   │   ├── dynamic-ux-assembly.md  # Dynamic UX assembly architecture, template layout, patch format, test plan
 │   │   └── headless-configurator-context-plan.md
-│   ├── salesforce/             # Vendor documentation (PDFs)
-│   └── archive/                # Superseded / historical docs
+│   └── salesforce/             # Vendor documentation (PDFs)
 ├── orgs/                       # Scratch org definitions
 ├── cumulusci.yml               # CumulusCI configuration
 ├── sfdx-project.json           # Salesforce DX configuration
@@ -1523,7 +1519,7 @@ When contributing to this project:
 - [Revenue Cloud Developer Guide (Release 260)](https://developer.salesforce.com/docs/atlas.en-us.260.0.revenue_lifecycle_management_dev_guide.meta/revenue_lifecycle_management_dev_guide/rlm_get_started.htm) (prior GA reference)
 - [Revenue Cloud Help Documentation](https://help.salesforce.com/s/articleView?id=ind.revenue_lifecycle_management_get_started.htm&type=5)
 
-**Note:** This project works with the Revenue Cloud capabilities documented for Release 262 (Summer '26). Release 260 (Spring '26) is the prior GA reference; pre-release-freeze 262 schema/behavior changes are tracked in `docs/upgrades/262-upgrade-plan.md`.
+**Note:** This project works with the Revenue Cloud capabilities documented for Release 262 (Summer '26). Release 260 (Spring '26) is the prior GA reference.
 
 ## License
 

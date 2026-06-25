@@ -46,7 +46,7 @@ scripts/build_harness/ # Build harness runner and TUI
 tasks/                 # Custom Python CCI task classes
 tests/                 # Shell-based integration test scripts
 robot/rlm-base/        # Robot Framework tests (setup + E2E)
-orgs/                  # Scratch org definition JSON files
+orgs/                  # Scratch org definition JSON files (TFID template shapes: orgs/tfid/README.md)
 postman/               # Postman collections for RLM APIs
 docs/                  # Documentation (lower-kebab-case filenames)
 ```
@@ -394,7 +394,6 @@ Placement:
 | `docs/references/` | Reference material (CCI tasks, permissions, decision tables) |
 | `docs/analysis/` | Technical analysis documents |
 | `docs/features/` | Feature design docs (UX assembly, E2E framework, etc.) |
-| `docs/archive/` | Historical/superseded documents |
 | `docs/api/` | API documentation and interactive viewers |
 | `docs/enablement/` | Hands-on exercises: `master/` (living source), `{version}/` (release extracts), `_template/` |
 | `docs/erds/` | ERD diagrams (Mermaid source + HTML viewer) |
