@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**250 tasks** across **10 groups**.
+**252 tasks** across **10 groups**.
 
 ---
 
@@ -852,7 +852,7 @@
 
 ## Revenue Lifecycle Management
 
-*157 task(s)*
+*159 task(s)*
 
 ### `activate_agents`
 
@@ -1449,6 +1449,18 @@
 
 ---
 
+### `deploy_agent_classes`
+
+**Description:** Deploy Apex invocable services from unpackaged/post_agents/classes used by Product Configuration agent flows.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_agents/classes`
+
+---
+
 ### `deploy_agents`
 
 **Description:** Deploy Agentforce Agent authoring bundles from unpackaged/post_agents/aiAuthoringBundles. Permission sets deploy separately (deploy_agent_permission_sets) after publish, because their agentAccesses reference a Bot that does not exist until publish_agents compiles the bundle.
@@ -1557,6 +1569,18 @@
 
 - `path`: `force-app/main/default/expressionSetDefinition`
 - `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//ExpressionSetDefinition/versions/variables/value...`
+
+---
+
+### `deploy_agent_flows`
+
+**Description:** Deploy custom flows from unpackaged/post_agents/flows that back agent subagent topics. Must run before deploy_agents so the flows exist when authoring bundles are published.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_agents/flows`
 
 ---
 

@@ -946,6 +946,20 @@ tasks:
     options:
       path: unpackaged/post_agents/settings
 
+  deploy_agent_classes:
+    description: Deploy Apex invocable services from unpackaged/post_agents/classes used by Product Configuration agent flows.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/classes
+
+  deploy_agent_flows:
+    description: Deploy custom flows from unpackaged/post_agents/flows that back agent subagent topics. Must run before deploy_agents so the flows exist when authoring bundles are published.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/flows
+
   deploy_agents:
     description: Deploy Agentforce Agent authoring bundles from unpackaged/post_agents/aiAuthoringBundles. Permission sets deploy separately (deploy_agent_permission_sets) after publish, because their agentAccesses reference a Bot that does not exist until publish_agents compiles the bundle.
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -4073,18 +4087,24 @@ flows:
         task: deploy_agents_settings
         when: project_config.project__custom__agents
       3:
-        task: deploy_agents
+        task: deploy_agent_classes
         when: project_config.project__custom__agents
       4:
-        task: publish_agents
+        task: deploy_agent_flows
         when: project_config.project__custom__agents
       5:
-        task: activate_agents
+        task: deploy_agents
         when: project_config.project__custom__agents
       6:
-        task: deploy_agent_permission_sets
+        task: publish_agents
         when: project_config.project__custom__agents
       7:
+        task: activate_agents
+        when: project_config.project__custom__agents
+      8:
+        task: deploy_agent_permission_sets
+        when: project_config.project__custom__agents
+      9:
         task: assign_permission_sets
         when: project_config.project__custom__agents
         options:
