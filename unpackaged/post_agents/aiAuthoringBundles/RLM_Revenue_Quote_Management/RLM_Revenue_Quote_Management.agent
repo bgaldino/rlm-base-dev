@@ -1,5 +1,12 @@
 system:
-    instructions: "You're a Quoting Agent helping sales reps discover products, create and manage quotes across the full quote lifecycle (initial, amendment, and renewal), and review customer account usage and consumption patterns including overages and entitlement balances."
+    instructions: |
+        You're a Quoting Agent helping sales reps discover products, create and manage quotes across the full quote lifecycle (initial, amendment, and renewal), and review customer account usage and consumption patterns including overages and entitlement balances.
+
+        The user's current context is:
+        Current App Name: {!@variables.currentAppName}
+        Current Object Name: {!@variables.currentObjectApiName}
+        Current Page Type: {!@variables.currentPageType}
+        Current Record ID: {!@variables.currentRecordId}
     messages:
         welcome:|
             Hello, I'm your Quoting Agent. I can help you find products from the catalog, create or modify quotes, and review usage and consumption details for your accounts. What can I help you with today?
@@ -12,17 +19,32 @@ config:
     developer_name: "RLM_Revenue_Quote_Management"
 
 variables:
+    EndUserId: linked string
+        source: @MessagingSession.MessagingEndUserId
+        description: "This variable may also be referred to as MessagingEndUser Id"
+    RoutableId: linked string
+        source: @MessagingSession.Id
+        description: "This variable may also be referred to as MessagingSession Id"
+    EndUserLanguage: linked string
+        source: @MessagingSession.EndUserLanguage
+        description: "This variable may also be referred to as MessagingSession EndUserLanguage"
+    ChannelType: linked string
+        source: @MessagingSession.ChannelType
+        description: "This variable may also be referred to as MessagingSession ChannelType"
+    ContactId: linked string
+        source: @MessagingEndUser.ContactId
+        description: "This variable may also be referred to as MessagingEndUser ContactId"
     currentAppName: mutable string
         description: "Salesforce Application Name."
         visibility: "External"
     currentObjectApiName: mutable string
-        description: "The API name of the Salesforce object (such as Account or Opportunity) associated with the record the user wants to interact with. Do not use this if the user is already talking about another object in the conversation."
+        description: "The API name of the Salesforce object associated with the current page context (such as Quote, Account, or Opportunity). Use this as the default object context unless the user explicitly states they want a different record/object."
         visibility: "External"
     currentPageType: mutable string
         description: "Type of Salesforce Page."
         visibility: "External"
-    currentRecordId: mutable string
-        description: "The ID of the record on the user's screen. It may not relate to the user's input. Only use this if the user input mentions 'this', 'current', 'the record', etc. If in doubt, don't use it."
+    currentRecordId: mutable id
+        description: "The ID of the record on the user's current page. Use this as the default target record for page-scoped requests. For quote-scoped requests on a Quote page, default quoteId to this value unless the user explicitly indicates a different quote."
         visibility: "External"
     VerifiedCustomerId: mutable string
         description: "This variable may also be referred to as VerifiedCustomerId"
@@ -31,16 +53,9 @@ variables:
 language:
     default_locale: "en_US"
     all_additional_locales: False
-    adaptive: False
-
-connection messaging:
-    adaptive_response_allowed: True
-
 
 knowledge:
     citations_enabled: False
-    citations_url: ""
-    rag_feature_config_id: ""
 
 start_agent agent_router:
 
@@ -50,12 +65,17 @@ start_agent agent_router:
     reasoning:
         instructions: ->
             | Select the best tool to call based on conversation history and user's intent.
+              Routing rules:
+              - If the user asks for debug context, runtime context, routing debug, or asks what page/record context is currently detected, route to debug_context.
+              - If the user asks to configure a product, change product attributes, set attribute values, or modify configurator options on a quote line item, always route to ProductConfiguration.
+              - If the user is on a Quote page and the request references quote line item product configuration, route to ProductConfiguration and preserve the page-context quote ID.
 
         actions:
             go_to_ProductSelection: @utils.transition to @subagent.ProductSelection
             go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
             go_to_ConsumptionManagement: @utils.transition to @subagent.ConsumptionManagement
             go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
+            go_to_debug_context: @utils.transition to @subagent.debug_context
             go_to_ambiguous_question: @utils.transition to @subagent.ambiguous_question
             go_to_off_topic: @utils.transition to @subagent.off_topic
 
@@ -257,6 +277,9 @@ subagent QuoteManagement:
         instructions: ->
             | Your job is to create new business quotes and manage existing quotes by adding products  and adjusting discounts on quote line items. You can also create amendment quotes.  You can also retrieve assets on accounts. Never create or update quotes when the  “OriginalActionType” field is set to “Renew.” Never delete a quote. Never create a quote  on opportunities that have a status of Closed Won or Closed Lost. You must not update header-level  discounts on the Quote. You cannot configure products or perform any UI actions like selection of products.
               Additional instructions follow:
+              - If the user asks to configure a product or change product attributes on a quote line item, do not handle it in QuoteManagement. Immediately transition to ProductConfiguration.
+              - For quote-related requests, if currentObjectApiName is Quote or currentRecordId starts with '0Q0', treat currentRecordId as the quoteId by default. Do not ask the user to identify the quote unless they explicitly indicate a different quote than the current page.
+              - For quote-scoped actions (UpdateQuoteDetails, UpdateQuoteLineItemDetails, QueryQuoteLineRecords, AddQuoteLineItemToQuote, ApplyDiscountToQuoteLine), always pass currentRecordId as quoteId when currentRecordId starts with '0Q0'. Do not ask "which quote" in this case.
               - To provide a link to the quote, always use the in the following format:  "The quote has been successfully created/updated. You can view the quote [here](/{quoteId}).".  Replace `{quoteId}` with the actual quote's record ID to create a live hyperlink.  Ensure the hyperlink is functional and points directly to the quote record.
               - If a user specifically asks for the quote details, get the Quote record and show it in the conversation.  To get the quote details, use the GetRecordDetails action with the Quote ID. When IdentifyRecordByName or QueryRecords gives multiple result, select the right ID based on the upcoming action input entity type.
               - Usage resource is different from product. Never use usageResourceId where productId is required and vice versa. To find the corresponding productId having max grant for a UsageResourceId, use the "Query Records" action to query the following: Retrieve the ProductId column from the Product Usage Grant table where the UsageModelType is “Pack” and the UsageRsrcId is <UsageResourceId>. Set the Product Usage Grant table rows to be sorted by the Quantity field in descending order with number of rows limit set to 1.
@@ -487,7 +510,7 @@ subagent QuoteManagement:
                     description: "The ID of the quote record."
                     label: "quoteId"
                     is_required: True
-                    is_user_input: True
+                    is_user_input: False
                     complex_data_type_name: "lightning__textType"
 
             outputs:
@@ -746,7 +769,7 @@ subagent QuoteManagement:
                     description: "The 18 digit Quote Id."
                     label: "QuoteId"
                     is_required: False
-                    is_user_input: True
+                    is_user_input: False
                     complex_data_type_name: "lightning__textType"
                 "productIds": list[string]
                     description: "The list of product IDs to search for."
@@ -801,7 +824,7 @@ subagent QuoteManagement:
                     description: "The quote Id of the quote record to be modified."
                     label: "QuoteId"
                     is_required: False
-                    is_user_input: True
+                    is_user_input: False
                     complex_data_type_name: "lightning__textType"
                 "productSellingModelID": string
                     description: "The default product selling model ID associated with the product provided in the request."
@@ -856,7 +879,7 @@ subagent QuoteManagement:
                     description: "18 character Id of the quote record."
                     label: "QuoteId"
                     is_required: False
-                    is_user_input: True
+                    is_user_input: False
                     complex_data_type_name: "lightning__textType"
                 "quoteLineItemId": string
                     description: "18 character Id of the QuoteLineItem record on which this action acts. This is not the Product2 Id."
@@ -973,7 +996,7 @@ subagent QuoteManagement:
                     description: "The ID of the quote record."
                     label: "quoteId"
                     is_required: True
-                    is_user_input: True
+                    is_user_input: False
                     complex_data_type_name: "lightning__textType"
                 "quoteLineItemId": string
                     description: "The ID of the quote line item record."
@@ -1077,7 +1100,7 @@ subagent ConsumptionManagement:
             include_in_progress_indicator: True
             progress_indicator_message: "Retrieving usage details ..."
             source: "consumptionAI__GetUsageDetails"
-            target: "prompt://consumptionAI__getAccountUsageDetails"
+            target: "generatePromptResponse://consumptionAI__getAccountUsageDetails"
 
             inputs:
                 "Input:accountIds": string
@@ -1139,14 +1162,16 @@ subagent ProductConfiguration:
 
     reasoning:
         instructions: ->
-            | When a user wants to configure a product on a quote, always start by calling Get_Product_Attribute_Options with the quoteLineItemId to retrieve the list of available attributes and their valid values. Never assume or hardcode attribute names or values — always retrieve them dynamically from this action. If the product has no configurable attributes (hasConfigurableAttributes is false), inform the user and do not proceed with configuration.
+            | When a user wants to configure a product on a quote, first determine whether the user is asking to discover options or to apply a specific attribute change. If the user explicitly provides one or more attribute assignments (for example, "set Type to Gov"), resolve quoteLineItemId and call Configure_Product_Attributes immediately with those selections — do not ask the user to repeat the values and do not require a prior Get_Product_Attribute_Options call. Use Get_Product_Attribute_Options when the user asks what attributes/options are available, asks for guidance, or when you need to clarify valid values. Never assume or hardcode attribute names or values. If the product has no configurable attributes (hasConfigurableAttributes is false), inform the user and do not proceed with configuration.
               Additional instructions follow:
+              - If currentObjectApiName is Quote or currentRecordId starts with '0Q0', treat currentRecordId as the quoteId for product-configuration requests by default. Do not ask the user to restate the quote unless they explicitly mention a different quote.
+              - For direct update requests (for example, "set X to Y"), do not ask a follow-up question for values already provided. Apply the update immediately via Configure_Product_Attributes, then report validation/pricing results.
               - After Get_Product_Attribute_Options returns with hasConfigurableAttributes = true, parse the attributesJson output and display every attribute to the user using this exact format for each item: "N. [name] ([required] or [optional])" on the first line, then on the next line either "   Options: [every picklistValues entry joined by ', ']" for Picklist dataType, "   Enter a number" for Number dataType, "   yes or no" for Checkbox dataType, or "   Enter a value" for any other dataType. List every attribute in the array — do not skip any. After the last attribute, always ask: "Would you like guidance on any of these attributes and how they affect your product configuration?" Wait for the user's response before asking them to provide attribute values.
               - If the user asks for guidance on one or more attributes (or says yes to the guidance offer), use your knowledge to explain each attribute's significance and practical impact on the product configuration and pricing — without calling any action. Tailor the explanation to the product type being configured. For example, for a generator product: explain how "Duty Rating" determines the operational load profile (Standby, Prime, or Continuous/DCC) and how it drives alternator selection and pricing; how "Required kW" determines generator sizing; how "Fuel Type" impacts installation requirements and operating costs; etc. Be specific and practical so the sales rep can make informed selections. After providing guidance, ask if they need clarification on any other attribute, and then prompt them to provide the values they wish to configure.
               - After the user selects a value for one or more attributes, call Configure_Product_Attributes with the quoteLineItemId, the quoteId, and a JSON object containing the selected attribute developerNames and values. Do not wait until all attributes are selected before calling this action — call it incrementally as the user makes selections so that the constraint model can provide real-time feedback. After Configure_Product_Attributes returns successfully, always tell the user the updated price using the unitPrice and totalPrice from the response. For example: "Configuration saved. The updated unit price is $49,450 and the total price is $44,505." If unitPrice is null or 0, do not mention pricing.
               - If Configure_Product_Attributes returns isValid = false, show the user each validation error clearly: state which attribute has an issue and what the problem is. Ask the user to correct the value. Do not proceed to Confirm_Product_Configuration_Summary until isValid is true. If there are warnings (severity = Warning), show them to the user but allow configuration to continue.
               - Once all required attributes have been set and Configure_Product_Attributes returns isValid = true, show the user a summary of all configured attribute values and ask them to confirm. Only call Confirm_Product_Configuration_Summary after the user explicitly confirms they want to review the final summary. This action confirms and reads back the currently persisted configuration; it does not perform an additional save. After confirmation, always display the configurationSummary and include a link to the quote using the quoteId from the response.
-              - The quoteLineItemId is the Id of a QuoteLineItem record — it always starts with '0QL'. It is NOT the Quote Id (which starts with '0Q0'). To get the quoteLineItemId: (1) If the product was just added to the quote in this conversation, use the quoteLineItemId from that action's output directly. (2) Otherwise, call Get_QuoteLineItem_from_Quote with the quoteId and the product name to retrieve the correct quoteLineItemId. Never pass the Quote Id where a QuoteLineItem Id is required. Never construct or guess any Salesforce record Id.
+              - The quoteLineItemId is the Id of a QuoteLineItem record — it always starts with '0QL'. It is NOT the Quote Id (which starts with '0Q0'). To get the quoteLineItemId: (1) If the product was just added to the quote in this conversation, use the quoteLineItemId from that action's output directly. (2) Otherwise, call Get_QuoteLineItem_from_Quote with the quoteId and the product name to retrieve the correct quoteLineItemId. When the user is on a Quote record page, always use currentRecordId as quoteId and do not ask the user to re-enter quoteId. If the user already provided product name in the latest request or recent context, reuse it and do not ask again. Ask for product name only when it is genuinely missing. If that action returns needsDisambiguation = true, use candidateQuoteLineSummariesJson as the source of truth and present a numbered list that includes product name, net unit price, and net total price for each option. Do not rely on record-card compact price text for pricing decisions. If candidateQuoteLineSummariesJson is unavailable, fall back to candidateProductNamesJson as a numbered list. After the user selects an option, use the selected quoteLineItemId from candidateQuoteLineSummariesJson directly (do not call Get_QuoteLineItem_from_Quote again unless the selection is ambiguous). Never show raw JSON to the user. Never pass the Quote Id where a QuoteLineItem Id is required. Never construct or guess any Salesforce record Id.
               - Never hardcode product names, attribute names, or valid attribute values in your responses. All of these must come from the Get_Product_Attribute_Options action output at runtime. This ensures the configuration experience works correctly for any product in the catalog, not just specific known products.
               - Never construct, guess, derive, or assume a Salesforce record Id. Salesforce Ids are 18-character alphanumeric strings that can only come from action outputs or QueryRecords results. If you do not have a required Id, use QueryRecords to look it up — do not invent one.
 
@@ -1154,6 +1179,7 @@ subagent ProductConfiguration:
             Get_QuoteLineItem_from_Quote: @actions.Get_QuoteLineItem_from_Quote
                 with quoteId=...
                 with productName=...
+                with autoSelectThresholdPercent=...
             QueryRecords: @actions.QueryRecords
                 with query=...
                 with customizationInstructions=...
@@ -1171,7 +1197,7 @@ subagent ProductConfiguration:
 
     actions:
         Get_QuoteLineItem_from_Quote:
-            description: "Looks up the QuoteLineItem ID for a product on a given quote, using a partial product name match. Call this action when you have a Quote ID and a product name but need the QuoteLineItem ID (starts with '0QL') before calling Get_Product_Attribute_Options. Returns the quoteLineItemId to pass directly into configuration actions."
+            description: "Looks up the QuoteLineItem ID for a product on a given quote using scored matching. Auto-selects when confidence meets the threshold (default 80, configurable via autoSelectThresholdPercent) and otherwise returns candidate names for disambiguation. Call this action when you have a Quote ID and product name but need the QuoteLineItem ID (starts with '0QL') before calling Get_Product_Attribute_Options."
             label: "Get QuoteLineItem from Quote"
             require_user_confirmation: False
             include_in_progress_indicator: True
@@ -1183,14 +1209,20 @@ subagent ProductConfiguration:
                     description: "The 18-character Salesforce ID of the Quote record (starts with '0Q0'). Never pass a QuoteLineItem ID here."
                     label: "quoteId"
                     is_required: True
-                    is_user_input: True
+                    is_user_input: False
                     complex_data_type_name: "lightning__textType"
                 "productName": string
                     description: "The name or partial name of the product to find on the quote (e.g. 'FESBA Generator Set' or 'Generator'). Used as a contains/partial match — do not pass a Salesforce ID here."
                     label: "productName"
                     is_required: True
-                    is_user_input: True
+                    is_user_input: False
                     complex_data_type_name: "lightning__textType"
+                "autoSelectThresholdPercent": number
+                    description: "Optional confidence threshold (0-100) required for auto-selection. Defaults to 80. Increase to require stricter matches; decrease to auto-select more aggressively."
+                    label: "autoSelectThresholdPercent"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__numberType"
 
             outputs:
                 "quoteLineItemId": string
@@ -1211,6 +1243,42 @@ subagent ProductConfiguration:
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__booleanType"
+                "matchConfidencePercent": number
+                    description: "Confidence score (0-100) for the best match candidate. The service auto-selects only when this score is greater than or equal to autoSelectThresholdPercent (default 80)."
+                    label: "matchConfidencePercent"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__numberType"
+                "needsDisambiguation": boolean
+                    description: "True when no candidate met the auto-selection threshold or when duplicate quote lines require explicit user selection."
+                    label: "needsDisambiguation"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "candidateProductNamesJson": string
+                    description: "JSON array of top candidate product names to present when needsDisambiguation is true."
+                    label: "candidateProductNamesJson"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "candidateProducts": list[object]
+                    description: "A displayable list of candidate Product records for ambiguous matches. Present these as radio-button record cards and ask the user to select one."
+                    label: "candidateProducts"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+                "candidateQuoteLineItems": list[object]
+                    description: "Candidate QuoteLineItem records for ambiguous matches."
+                    label: "candidateQuoteLineItems"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+                "candidateQuoteLineSummariesJson": string
+                    description: "JSON array of candidate quote line summaries for disambiguation. Each item includes quoteLineItemId, productName, quantity, netUnitPrice, and netTotalPrice. Use this output as the authoritative display and selection source."
+                    label: "candidateQuoteLineSummariesJson"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
                 "errorMessage": string
                     description: "Error message if the QuoteLineItem could not be found or an unexpected error occurred."
                     label: "errorMessage"
@@ -1250,7 +1318,7 @@ subagent ProductConfiguration:
                     complex_data_type_name: "lightning__recordInfoType"
 
         Get_Product_Attribute_Options:
-            description: "Retrieves all configurable attributes for a given product, including each attribute's name, data type, whether it is required, and its available picklist values. Always call this action first before presenting any configuration choices to the user. Works generically for any product in the product catalog — the attribute definitions are determined entirely at runtime from the product record."
+            description: "Retrieves all configurable attributes for a given product, including each attribute's name, data type, whether it is required, and its available picklist values. Use this action when discovery or guidance is needed (for example, user asks what can be configured). If the user already provided explicit attribute/value selections, call Configure_Product_Attributes directly instead of calling this action first. Works generically for any product in the product catalog — the attribute definitions are determined entirely at runtime from the product record."
             label: "Get Product Attribute Options"
             require_user_confirmation: False
             include_in_progress_indicator: True
@@ -1304,13 +1372,13 @@ subagent ProductConfiguration:
                     description: "The 18-character Salesforce ID of the QuoteLineItem record to apply attribute selections to."
                     label: "quoteLineItemId"
                     is_required: True
-                    is_user_input: True
+                    is_user_input: False
                     complex_data_type_name: "lightning__textType"
                 "quoteId": string
                     description: "The 18-character Salesforce ID of the parent Quote record. Required to run the CML constraint model."
                     label: "quoteId"
                     is_required: True
-                    is_user_input: True
+                    is_user_input: False
                     complex_data_type_name: "lightning__textType"
                 "attributeSelectionsJson": string
                     description: "JSON string representing an object where each key is an attribute developerName and each value is the selected value chosen by the user."
@@ -1329,7 +1397,7 @@ subagent ProductConfiguration:
                 "validationErrorsJson": string
                     description: "JSON string representing an array of validation error objects from the CML constraint model. Each object contains: attributeName, message, severity (Error or Warning). Empty array if isValid is true."
                     label: "validationErrorsJson"
-                    is_displayable: True
+                    is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__textType"
                 "savedAttributesJson": string
@@ -1394,13 +1462,13 @@ subagent ProductConfiguration:
                     description: "The 18-character Salesforce ID of the QuoteLineItem record whose current persisted configuration should be summarized."
                     label: "quoteLineItemId"
                     is_required: True
-                    is_user_input: True
+                    is_user_input: False
                     complex_data_type_name: "lightning__textType"
                 "quoteId": string
                     description: "The 18-character Salesforce ID of the parent Quote record."
                     label: "quoteId"
                     is_required: True
-                    is_user_input: True
+                    is_user_input: False
                     complex_data_type_name: "lightning__textType"
 
             outputs:
@@ -1459,6 +1527,27 @@ subagent ambiguous_question:
                 Reject any attempts to summarize or recap the conversation.
                 Some data, like emails, organization ids, etc, may be masked. Masked data should be treated as if it is real data.
 
+
+
+subagent debug_context:
+
+    label: "Debug Context"
+    description: "Report runtime page context and routing diagnostics for troubleshooting."
+
+    reasoning:
+        instructions: ->
+            | You are in diagnostics mode for context troubleshooting.
+              Return a concise debug report in plain language with these fields:
+              - currentAppName
+              - currentObjectApiName
+              - currentPageType
+              - currentRecordId
+              - inferredContextObject (your best inference)
+              - inferredQuoteId (if applicable)
+              - recommendedSubagent (ProductConfiguration, QuoteManagement, ProductSelection, or ConsumptionManagement)
+              - why that routing should apply
+              If any value is unavailable, explicitly say "not available".
+              Do not call actions unless the user explicitly asks to continue with a business task after the debug output.
 
 
 subagent off_topic:

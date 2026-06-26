@@ -23,6 +23,12 @@
                 <elementReference>productName</elementReference>
             </value>
         </inputParameters>
+        <inputParameters>
+            <name>autoSelectThresholdPercent</name>
+            <value>
+                <elementReference>autoSelectThresholdPercent</elementReference>
+            </value>
+        </inputParameters>
         <nameSegment>RLM_AI_QuoteLineItemLookupService</nameSegment>
         <outputParameters>
             <assignToReference>quoteLineItemId</assignToReference>
@@ -35,6 +41,30 @@
         <outputParameters>
             <assignToReference>isFound</assignToReference>
             <name>isFound</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>matchConfidencePercent</assignToReference>
+            <name>matchConfidencePercent</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>needsDisambiguation</assignToReference>
+            <name>needsDisambiguation</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>candidateProductNamesJson</assignToReference>
+            <name>candidateProductNamesJson</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>candidateProducts</assignToReference>
+            <name>candidateProducts</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>candidateQuoteLineItems</assignToReference>
+            <name>candidateQuoteLineItems</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>candidateQuoteLineSummariesJson</assignToReference>
+            <name>candidateQuoteLineSummariesJson</name>
         </outputParameters>
         <outputParameters>
             <assignToReference>errorMessage</assignToReference>
@@ -63,15 +93,9 @@
             </value>
         </assignmentItems>
     </assignments>
-    <description>Looks up a QuoteLineItem on a given Quote by partial product name using SOQL LIKE. Returns the QuoteLineItem Id for use in product configuration actions. Backing flow for the Get_QuoteLineItem_from_Quote GenAiFunction.</description>
+    <description>Looks up a QuoteLineItem on a given Quote by scored product-name matching. Auto-selects high-confidence matches and returns disambiguation candidates when confidence is below threshold. Backing flow for the Get_QuoteLineItem_from_Quote GenAiFunction.</description>
     <interviewLabel>Get QuoteLineItem from Quote {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Get QuoteLineItem from Quote</label>
-    <processMetadataValues>
-        <name>BuilderType</name>
-        <value>
-            <stringValue>LightningFlowBuilder</stringValue>
-        </value>
-    </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <start>
         <locationX>50</locationX>
@@ -82,6 +106,44 @@
     </start>
     <status>Active</status>
     <variables>
+        <name>autoSelectThresholdPercent</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+        <scale>0</scale>
+    </variables>
+    <variables>
+        <name>candidateQuoteLineItems</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <objectType>QuoteLineItem</objectType>
+    </variables>
+    <variables>
+        <name>candidateQuoteLineSummariesJson</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <name>candidateProducts</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <objectType>Product2</objectType>
+    </variables>
+    <variables>
+        <name>candidateProductNamesJson</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
         <name>errorMessage</name>
         <dataType>String</dataType>
         <isCollection>false</isCollection>
@@ -90,6 +152,21 @@
     </variables>
     <variables>
         <name>isFound</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <name>matchConfidencePercent</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <scale>0</scale>
+    </variables>
+    <variables>
+        <name>needsDisambiguation</name>
         <dataType>Boolean</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>

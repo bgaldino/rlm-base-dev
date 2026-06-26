@@ -66,6 +66,8 @@ Use this sequence whenever `.agent` source changes and you want the UI to reflec
    cci task run publish_agents --org <alias>
    ```
 
+   > Do **not** run `sf agent publish authoring-bundle --api-name <Name>` directly from repo root in this project. The direct CLI publish path can resolve against the default `force-app` package directory and fail to find bundles stored under `unpackaged/post_agents/aiAuthoringBundles`.
+
 3. Activate latest versions:
 
    ```bash
@@ -96,7 +98,41 @@ Use this sequence whenever `.agent` source changes and you want the UI to reflec
 ### `Cannot find an authoring bundle in force-app`
 
 - `sf agent publish authoring-bundle` scans the default package directory only.
-- In this repo, use `cci task run publish_agents --org <alias>` (it stages bundles correctly).
+- In this repo, authoring bundles live under `unpackaged/post_agents/aiAuthoringBundles`, not `force-app`.
+- In this repo, use `cci task run publish_agents --org <alias>` (it stages bundles correctly and publishes from the right path).
+- Symptom you will see when using the direct CLI call from repo root:
+  - `Error (CannotFindBundle): Cannot find an authoring bundle in .../force-app that matches <AgentName>`
+
+### Agent not visible in end-user panel after delete/recreate (but appears Active in Builder)
+
+Symptoms:
+
+- Agent is present and active in Agentforce Builder.
+- User has the expected permission set assignment (for example `RLM_QuotingAgent`).
+- End-user panel still shows only other agents.
+
+Root cause:
+
+- The agent was deleted/recreated, which changed `BotDefinition.Id`.
+- The permission set's `<agentAccesses>` binding was stale/missing in `SetupEntityAccess` for the new bot definition.
+- Result: user assignment exists, but effective access to the current bot definition does not.
+
+Fix:
+
+1. Republish + activate agents.
+2. Redeploy agent permission sets **after** publish:
+
+   ```bash
+   cci task run deploy_agent_permission_sets --org <alias>
+   ```
+
+3. Reassign permission sets (if needed):
+
+   ```bash
+   cci task run assign_permission_sets --org <alias> -o api_names "RLM_QuotingAgent,RLM_BillingEmployeeAgent"
+   ```
+
+4. Verify `SetupEntityAccess` rows exist for both permission sets and current `BotDefinition` records, then hard-refresh UI.
 
 ### Publish fails with restricted picklist error on `Generative AI Function Definition ID`
 

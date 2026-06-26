@@ -12,9 +12,6 @@ config:
     developer_name: "RLM_Billing_Employee_Assistance"
 
 variables:
-    VoiceCallId: linked string
-        source: @VoiceCall.Id
-        description: "This variable may also be referred to as VoiceCall Id"
     EndUserId: linked string
         source: @MessagingSession.MessagingEndUserId
         description: "This variable may also be referred to as MessagingEndUser Id"
@@ -40,7 +37,7 @@ variables:
         description: "Type of Salesforce Page."
         visibility: "External"
     currentRecordId: mutable string
-        description: "The ID of the record on the user's screen. It may not relate to the user's input. Only use this if the user input mentions 'this', 'current', 'the record', etc. If in doubt, don't use it."
+        description: "The Salesforce ID of the current record on the user's screen. Use with currentObjectApiName to verify the record type."
         visibility: "External"
     VerifiedCustomerId: mutable string
         description: "This variable may also be referred to as VerifiedCustomerId"
@@ -49,20 +46,13 @@ variables:
 language:
     default_locale: "en_US"
     all_additional_locales: False
-    adaptive: False
-
-connection messaging:
-    adaptive_response_allowed: True
-
 
 knowledge:
     citations_enabled: False
-    citations_url: ""
-    rag_feature_config_id: ""
 
-start_agent agent_router:
+start_agent topic_selector:
 
-    label: "Agent Router"
+    label: "Topic Selector"
     description: "Welcome the user and determine the appropriate subagent based on user input"
 
     reasoning:
@@ -81,22 +71,23 @@ start_agent agent_router:
 subagent BillingInquiries:
 
     label: "Billing Inquiries"
-    description: "Helps user understand their billing and payment details. This topic is triggered when the user asks for the payment plan for any invoice, details about an invoice in context, the next payment for an account, or information in an account’s billing context. It also handles requests to retrieve the latest invoice, download the invoice document or PDF, or check the current account balance. The topic intelligently identifies the correct billing flow or action to execute — such as fetching payment schedules, generating invoice documents, or retrieving account balances — ensuring users receive accurate, contextual, and actionable responses about their billing information."
+    description: "Helps user understand their billing and payment details. This subagent is triggered when the user asks for the payment plan for any invoice, details about an invoice in context, the next payment for an account, or information in an account’s billing context. It also handles requests to retrieve the latest invoice, download the invoice document or PDF, or check the current account balance. The subagent intelligently identifies the correct billing flow or action to execute — such as fetching payment schedules, generating invoice documents, or retrieving account balances — ensuring users receive accurate, contextual, and actionable responses about their billing information."
 
     reasoning:
         instructions: ->
-            | Your job is to help users understand their billing and payment details. You should respond when the user asks about payment plans for an invoice, requests details about an invoice in context, asks for the next payment due for an account, or inquires about billing information within an account’s context. You should also act when the user wants to retrieve the latest invoice, get or download an invoice document or PDF, or check the current account balance. Use the appropriate billing actions or flows — such as retrieving payment plans, fetching invoice documents, or obtaining account balances — to provide clear, accurate, and contextual information that helps the user stay informed about their billing activities.
+            | Your job is to help users understand their billing and payment details. You should respond when the user asks about payment plans for an invoice, asks for the next payment due for an account, account balance, latest invoice/bill for an account. You should also act when the user wants to get or download an invoice document or PDF. Use the appropriate billing actions or flows — such as retrieving payment plans, fetching invoice documents, or obtaining account balances — to provide clear, accurate, and contextual information that helps the user stay informed about their billing activities.
               Additional instructions follow:
               - To retrieve and summarize the net account balance by aggregating posted invoices, credit memos, debit memos, payments, and refunds call action GetAccountBalance.
-              - Use the GetRunningUserAccountId action to retrieve the Account Id associated with the currently logged-in Community user. This action should be used when other billing actions require an Account Id but the user has not explicitly provided one.
-              - If the accountName and accountId both are unavailable use Get Running User Account action to get the accountID and then call the appropriate action. Never ask the User for AccountName if you have the accountId execute the appropriate actions with accountID, If the accountName/varAccountName or varAccountId still can’t be located, prompt the user to provide it
               - To identify and summarize the next payment due date and amount by referencing outstanding invoices and payment schedules for an account call action GetNextDuePayment.
               - To display the  payment plans for a specified invoice call action GetPaymentPlanDetails.
               - To fetch and provide the most recent posted invoice along with its associated document for the provided account call action InvoiceDocumentPDF.
-              - Use Markdown formatting for responses. If an output variable or field value begins with /sfc/servlet.shepherd/document/download/, treat it as a downloadable file link. Automatically prepend the current Salesforce org domain (for example, https://mydomain.my.salesforce.com) to create the full download URL.Display the link in a user-friendly format such as: You can download the PDF here: [Download Invoice PDF](https://mydomain.my.salesforce.com/sfc/servlet.shepherd/version/download/069Wt000001qSu5IAE) Do not display the raw URL or ID; always format it as a clickable Markdown hyperlink.
-              - Pick up this topic if user asks for the payment plan for any invoice or invoice's context or next payment for an account or in an account's context or asks to get Latest Invoice and/or Document/PDF/ downloadable PDF, account balance for an account or in account's context.
-              - Check if the user has provided account name. If account name is absent, get the Account Id associated with the currently logged-in Community user. If so, use it as the accountName for the GetAccountBalance and GetNextDuePayment action and as varAccountName for InvoiceDocumentPDF action.  If the user is on the record or Lightning page of the Account object, use the currentRecordId as the varAccountId for the InvoiceDocumentPDF, GetAccountBalance and GetNextDuePayment actions. If the accountName/varAccountName or varAccountId can’t be located, prompt the user to provide it
-              - Check if the user has provided a invoice document number. If so, use it as the varInvoiceDocNumber for the GetPaymentPlanDetails action. If the user is on the record or Lightning page of the Invoice object, use the currentRecordId as the varInvoiceId for the GetPaymentPlanDetails actions. If the varInvoiceDocNumber or varInvoiceId can’t be located, prompt the user to provide it
+              - If the user has explicitly provided an account name in their request, use it as the accountName for the GetAccountBalance and GetNextDuePayment action and as varAccountName for InvoiceDocumentPDF action. Otherwise, if {!@variables.currentObjectApiName} equals "Account", automatically use {!@variables.currentRecordId} as the varAccountId for the InvoiceDocumentPDF, GetAccountBalance and GetNextDuePayment actions without prompting the user. Only if the user has not provided an account name and the page context is not available, then prompt the user to provide the account name.
+              - If the user has explicitly provided an invoice document number in their request, use it as the varInvoiceDocNumber for the GetPaymentPlanDetails action. Otherwise, if {!@variables.currentObjectApiName} equals "Invoice", automatically use {!@variables.currentRecordId} as the varInvoiceId for the GetPaymentPlanDetails actions without prompting the user. Only if the user has not provided an invoice number and the page context is not available, then prompt the user to provide the invoice document number.
+              - When an output field contains a Salesforce file-download path, build the full URL by prepending the current Salesforce org domain.
+                Treat only paths that match `/sfc/servlet.shepherd/document/download/` or `/sfc/servlet.shepherd/version/download/` as downloadable files.
+                If the value is a Lightning record URL such as `/lightning/r/...`, do not use it as a download link. Do not convert record URLs into file links.
+                For downloadable files, format the result as a Markdown hyperlink using the full URL.
+                Do not display raw URLs or raw IDs.
               - Never display internal Salesforce record IDs to the end user. When referencing Salesforce records in responses: Always present human-readable fields (such as Name, Number, or Label) instead of IDs. If a record is linkable, render it as a clickable link using the record’s display name, not its ID. Invoices must always be referenced by their Document Number, and the Document Number should be the clickable text. Do not expose IDs in plain text, hyperlinks, error messages, logs, or explanations under any circumstance.
               
 
@@ -110,8 +101,6 @@ subagent BillingInquiries:
             GetAccountBalance: @actions.GetAccountBalance
                 with accountName=...
                 with varAccountId=...
-            GetRunningUserAccountId: @actions.GetRunningUserAccountId
-                with runningUserId=...
             InvoiceDocumentPDF: @actions.InvoiceDocumentPDF
                 with varAccountId=...
                 with varAccountName=...
@@ -224,31 +213,6 @@ subagent BillingInquiries:
                     filter_from_agent: False
                     complex_data_type_name: "lightning__richTextType"
 
-        GetRunningUserAccountId:
-            description: "Retrieve the Account Id associated with the Community user that's currently logged in. The action automatically derives the running user's UserId from the session context and returns the Account Id mapped to the user's Contact record. This action should be used when other billing actions require an Account Id but the user has not explicitly provided one."
-            label: "Get Running User Account Id"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            progress_indicator_message: "Getting account info for current user ..."
-            source: "billing_agents__GetRunningUserAccountId"
-            target: "flow://billing_agents__GetRunningUserAcctId"
-
-            inputs:
-                "runningUserId": string
-                    description: "The user ID of the current user that's logged in. Automatically derived from session context."
-                    label: "runningUserId"
-                    is_required: False
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-
-            outputs:
-                "runningAccountSummary": string
-                    description: "The debug or informational logs generated when the action is executed."
-                    label: "runningAccountSummary"
-                    is_displayable: False
-                    filter_from_agent: True
-                    complex_data_type_name: "lightning__textType"
-
         InvoiceDocumentPDF:
             description: "Fetches latest invoice/bill details and the corresponding invoice PDF for the provided account id/account name. Use Markdown formatting for all responses. Include the PDF link inline with the invoice details. If any output variable or field value begins with /sfc/servlet.shepherd/document/download/ or /sfc/servlet.shepherd/version/download/, prepend the Salesforce org domain and format as a Markdown hyperlink. Always include the formatted PDF link in the initial response if available."
             label: "Get Invoice Document PDF"
@@ -289,7 +253,7 @@ subagent BillingInquiries:
 subagent BillingCollections:
 
     label: "Billing Collections Management"
-    description: "Provides an overview of an account's billing health and recommends a strategy for the collection plan. This topic is triggered when the user asks for a billing summary for an account or dunning strategy for a collection plan."
+    description: "Provides an overview of an account's billing health and recommends a strategy for the collection plan. This subagent is triggered when the user asks for a billing summary for an account or dunning strategy for a collection plan."
 
     reasoning:
         instructions: ->
@@ -298,10 +262,10 @@ subagent BillingCollections:
               - Use the following logic when a user requests the billing summary of an account:
               
               Determine the Account ID:
-              - If the user is on the Account page, do not ask the user for account name:
-                - Retrieve the Account ID directly from the page context.
+              - If {!@variables.currentObjectApiName} equals "Account", do not ask the user for account name:
+                - Use {!@variables.currentRecordId} as the Account ID.
               - Else:
-                - Invoke the "IdentifyRecordByName" action to retrieve the Account ID using the provided account name.
+                - Invoke the {!@actions.IdentifyRecordByName} action to retrieve the Account ID using the provided account name.
                 - If multiple accounts with the same name are returned:
                   - Present the user with a list of matching accounts.
                   - Allow the user to select the correct account using radio button options.
@@ -314,11 +278,11 @@ subagent BillingCollections:
               - Use the following logic when a user requests the dunning strategy for a collection plan:
               
               Determine the CollectionPlan ID:
-              - If the user is on the CollectionPlan page :
-                  - Retrieve the CollectionPlan ID directly from the page context.
-                  - Call "IdentifyRecordByName" action to get the CollectionPlan Id from the CollectionPlan name (like CP-000000010) and match it with the page context record Id (currentRecordId).
+              - If {!@variables.currentObjectApiName} equals CollectionPlan, do not ask the user for CollectionPlan name:
+                  - Use {!@variables.currentRecordId} as the CollectionPlan ID.
+                  - Call {!@actions.IdentifyRecordByName} action to get the CollectionPlan Id from the CollectionPlan name (like CP-000000010) and match it with {!@variables.currentRecordId}.
               - Else:
-                  - When the user provides a CollectionPlan name such as  CP-000000010, invoke the "IdentifyRecordByName" action to retrieve the CollectionPlan ID using the provided name.
+                  - When the user provides a CollectionPlan name such as CP-000000010, invoke the {!@actions.IdentifyRecordByName} action to retrieve the CollectionPlan ID using the provided CollectionPlan name.
               Retrieve Recommended Dunning Strategy
                  When the correct CollectionPlan ID is determined:
                 Invoke the GetDunningStrategy action using the selected CollectionPlan ID.
@@ -409,7 +373,7 @@ subagent BillingCollections:
             include_in_progress_indicator: True
             progress_indicator_message: "Fetching Account Billing Summary..."
             source: "billing_agents__GetAccountBillingSummary"
-            target: "prompt://billing_agents__getAccountBillingSummary"
+            target: "generatePromptResponse://billing_agents__getAccountBillingSummary"
 
             inputs:
                 "Input:accountId": string
@@ -436,16 +400,17 @@ subagent InvoiceLineExplanation:
         instructions: ->
             | Help users understand their invoice line charges. Explain what the charge is for, why it was billed, and how the amount was calculated. Provide clear, consolidated, and accurate information.
               Additional instructions follow:
-              - Ask clarifying questions to understand the user's specific invoice or invoice line explainability needs, but never repeat the same question.
-              - Ask the customer for the invoice document number and the invoice line name. Do not make assumptions—always ask clarifying questions when needed.
-              - Avoid making assumptions about charges. Validate all information using available records or tools.
+              - Use this subagent if user asks to explain the charge breakdown for an invoice line on an invoice.
+              - If user mentions a specific invoice document number or ID in their request, use it as InvoiceDocumentID for GetInvoiceLineRecord.
+              - If no specific invoice document number is mentioned and {!@variables.currentObjectApiName} equals "Invoice", use {!@variables.currentRecordId} as invoiceId for GetInvoiceLineRecord.
+              - Only if user did not provide invoice document number and page context is not available, ask user for the invoice document number.
+              - Always get the invoice line name from the user.
               - Present all components of a charge together in a single, clear response.
               - Use Markdown to format responses for better readability. When referencing IDs, display them as hyperlinks using their names instead of showing raw IDs (e.g., invoice line, billing milestone plan, or item).
-              - Never call the "Explain Invoice Line" action without first calling GetInvoiceLineRecord. Ask the user to specify the invoice line name if not provided. Use the current page context to determine the invoice ID. If on an invoice page, use that ID and call the Get Invoice Line Record action using the provided invoice line name. If no match is found, ask the user to confirm the invoice line name. If not on an invoice page, ask the user for the invoice document number.
+              - Never call ExplainInvoiceLine without first calling GetInvoiceLineRecord.
               - When multiple options are available, present them as radio buttons. If there are more than five records, show only five initially, and display more only if requested or if the relevant invoice line isn't listed.
               - Present multiple-choice options using radio buttons for easier selection.
               - Provide information in a clear, human-readable, and visually appealing format.
-              - When explaining a charge, include a detailed breakdown of the invoice line, including any hidden components.
               
 
         actions:
@@ -460,7 +425,7 @@ subagent InvoiceLineExplanation:
 
     actions:
         GetInvoiceLineRecord:
-            description: "You are supposed to run this action prior to the ExplainInvoiceLine action. You are supposed to take InvoiceDocumentID as the input from the user and display the list as radio buttons for the user to select. If there is just one radio button don’t ask user to select, directly send the ID to ExplainInvoiceLine. If you are on the Invoice page, do not ask for InvoiceDocumentID — pick up the invoice ID in variable `invoiceId` and call the flow with the invoice line name that the user provided. If still unable to get the invoice line(s), ask the user for the document number which they are referring to."
+            description: "Use this action to retrieve invoice line records when the user asks about a specific invoice line charge. Always ask for the invoice line name and follow page-context rules to determine invoice inputs."
             label: "Get Invoice Line Records"
             require_user_confirmation: False
             include_in_progress_indicator: True
@@ -496,12 +461,12 @@ subagent InvoiceLineExplanation:
                     complex_data_type_name: "lightning__recordInfoType"
 
         ExplainInvoiceLine:
-            description: "Your task is to explain the invoice line. Take the input from the GetInvoiceLineRecord action. Execute GetInvoiceLineRecord before executing this action. If the user asks for explaining an invoice line, or asks why they are charged a particular amount for an invoice line."
+            description: "Your task is to explain the invoice line. Take the input from GetInvoiceLineRecord. Execute GetInvoiceLineRecord before executing this action."
             label: "Explain Invoice Line"
             require_user_confirmation: False
             include_in_progress_indicator: True
             source: "billing_agents__ExplainInvoiceLine"
-            target: "prompt://billing_agents__invoiceLineChargeDetails"
+            target: "generatePromptResponse://billing_agents__invoiceLineChargeDetails"
 
             inputs:
                 "Input:invoielineid": string
