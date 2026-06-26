@@ -16,8 +16,8 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
             description='18-character Salesforce Id of the Quote (starts with 0Q0).')
         public String quoteId;
 
-        @InvocableVariable(required=true label='Product Name'
-            description='Partial or full product name to search for (LIKE match).')
+        @InvocableVariable(label='Product Name'
+            description='Partial or full product name to search for (LIKE match). Leave blank to return every quote line on the quote as disambiguation candidates (used to let the user pick lines to discount, including "all").')
         public String productName;
 
         @InvocableVariable(label='Auto Select Threshold Percent'
@@ -110,10 +110,6 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
                 out.errorMessage = 'Quote Id is required.';
                 return out;
             }
-            if (String.isBlank(input.productName)) {
-                out.errorMessage = 'Product name is required.';
-                return out;
-            }
 
             Id quoteId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteId);
             if (quoteId == null) {
@@ -121,24 +117,34 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
                 return out;
             }
 
-            String queryText = input.productName.trim();
+            // A blank product name means "list every line on the quote" so the
+            // agent can present them for selection (e.g. discount one, several,
+            // or all). A populated product name runs scored LIKE matching.
+            Boolean listAllMode = String.isBlank(input.productName);
+
+            String queryText = listAllMode ? '' : input.productName.trim();
             String normalizedQuery = normalizeText(queryText);
-            String likePattern = '%' + RLM_AI_ConfigServiceUtils.escapeLikeTerm(queryText) + '%';
-            List<QuoteLineItem> qlis = [
-                SELECT Id, Product2Id, Product2.Name, Quantity, UnitPrice, NetUnitPrice, TotalPrice, NetTotalPrice
-                FROM QuoteLineItem
-                WHERE QuoteId = :quoteId
-                  AND Product2.Name LIKE :likePattern
-                ORDER BY Product2.Name ASC
-                LIMIT :MAX_CANDIDATES
-            ];
+            List<QuoteLineItem> qlis = listAllMode
+                ? queryAllQuoteLines(quoteId)
+                : queryMatchingQuoteLines(quoteId, queryText);
             // The lookup ran correctly past validation — match, disambiguation,
-            // and no-match are all successful outcomes (isSuccess = true).
+            // list-all, and no-match are all successful outcomes (isSuccess = true).
             // Only input/system errors leave isSuccess = false.
             out.isSuccess = true;
             if (!qlis.isEmpty()) {
-                Integer thresholdPercent = resolveThresholdPercent(input.autoSelectThresholdPercent);
                 List<MatchCandidate> rankedCandidates = rankCandidates(qlis, normalizedQuery);
+
+                if (listAllMode) {
+                    // Return all lines as candidates; the agent always asks the
+                    // user which line(s) to act on. No auto-selection.
+                    populateDisambiguationOutputs(out, rankedCandidates, rankedCandidates.size());
+                    out.errorMessage =
+                        'Listing all ' + rankedCandidates.size()
+                        + ' quote line(s) for selection. Present candidateQuoteLineSummariesJson as a numbered list and ask the user which line(s) to act on (they may choose all, several, or one).';
+                    return out;
+                }
+
+                Integer thresholdPercent = resolveThresholdPercent(input.autoSelectThresholdPercent);
                 MatchCandidate bestMatch = rankedCandidates[0];
                 out.matchConfidencePercent = bestMatch.confidence;
 
@@ -160,12 +166,36 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
                         + '%. Ask the user to choose from candidateProductNamesJson and retry with a more specific product name.';
                 }
             } else {
-                out.errorMessage = 'No QuoteLineItem found on this quote matching product name "' + input.productName + '". Verify the quote ID and product name and try again.';
+                out.errorMessage = listAllMode
+                    ? 'No quote lines were found on this quote. Verify the quote ID and that it has line items.'
+                    : 'No QuoteLineItem found on this quote matching product name "' + input.productName + '". Verify the quote ID and product name and try again.';
             }
         } catch (Exception e) {
             out.errorMessage = e.getMessage();
         }
         return out;
+    }
+
+    private static List<QuoteLineItem> queryMatchingQuoteLines(Id quoteId, String queryText) {
+        String likePattern = '%' + RLM_AI_ConfigServiceUtils.escapeLikeTerm(queryText) + '%';
+        return [
+            SELECT Id, Product2Id, Product2.Name, Quantity, UnitPrice, NetUnitPrice, TotalPrice, NetTotalPrice
+            FROM QuoteLineItem
+            WHERE QuoteId = :quoteId
+              AND Product2.Name LIKE :likePattern
+            ORDER BY Product2.Name ASC
+            LIMIT :MAX_CANDIDATES
+        ];
+    }
+
+    private static List<QuoteLineItem> queryAllQuoteLines(Id quoteId) {
+        return [
+            SELECT Id, Product2Id, Product2.Name, Quantity, UnitPrice, NetUnitPrice, TotalPrice, NetTotalPrice
+            FROM QuoteLineItem
+            WHERE QuoteId = :quoteId
+            ORDER BY LineNumber ASC, Product2.Name ASC
+            LIMIT :MAX_CANDIDATES
+        ];
     }
 
     private static List<MatchCandidate> rankCandidates(List<QuoteLineItem> qlis, String normalizedQuery) {
@@ -176,7 +206,11 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
             Integer confidence = computeConfidencePercent(normalizedQuery, candidateName);
             candidates.add(new MatchCandidate(qli, score, confidence));
         }
-        candidates.sort(new MatchCandidateComparator());
+        // With no query (list-all mode), there is nothing to rank — keep the
+        // SOQL LineNumber order so the numbered list matches the quote.
+        if (String.isNotBlank(normalizedQuery)) {
+            candidates.sort(new MatchCandidateComparator());
+        }
         return candidates;
     }
 
@@ -271,9 +305,8 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         return confidence;
     }
 
-    private static String buildCandidateNamesJson(List<MatchCandidate> rankedCandidates) {
+    private static String buildCandidateNamesJson(List<MatchCandidate> rankedCandidates, Integer maxToReturn) {
         List<String> candidateNames = new List<String>();
-        Integer maxToReturn = Math.max(MIN_CANDIDATES_TO_RETURN, 1);
         for (MatchCandidate candidate : rankedCandidates) {
             if (candidateNames.size() >= maxToReturn) {
                 break;
@@ -286,10 +319,9 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         return JSON.serialize(candidateNames);
     }
 
-    private static List<Product2> buildCandidateProducts(List<MatchCandidate> rankedCandidates) {
+    private static List<Product2> buildCandidateProducts(List<MatchCandidate> rankedCandidates, Integer maxToReturn) {
         List<Product2> products = new List<Product2>();
         Set<Id> seenProductIds = new Set<Id>();
-        Integer maxToReturn = Math.max(MIN_CANDIDATES_TO_RETURN, 1);
         for (MatchCandidate candidate : rankedCandidates) {
             if (products.size() >= maxToReturn) {
                 break;
@@ -304,10 +336,9 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         return products;
     }
 
-    private static List<QuoteLineItem> buildCandidateQuoteLineItems(List<MatchCandidate> rankedCandidates) {
+    private static List<QuoteLineItem> buildCandidateQuoteLineItems(List<MatchCandidate> rankedCandidates, Integer maxToReturn) {
         List<QuoteLineItem> quoteLines = new List<QuoteLineItem>();
         Set<Id> seenQuoteLineIds = new Set<Id>();
-        Integer maxToReturn = Math.max(MIN_CANDIDATES_TO_RETURN, 1);
         for (MatchCandidate candidate : rankedCandidates) {
             if (quoteLines.size() >= maxToReturn) {
                 break;
@@ -347,11 +378,20 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         LookupOutput out,
         List<MatchCandidate> rankedCandidates
     ) {
+        populateDisambiguationOutputs(out, rankedCandidates, MIN_CANDIDATES_TO_RETURN);
+    }
+
+    private static void populateDisambiguationOutputs(
+        LookupOutput out,
+        List<MatchCandidate> rankedCandidates,
+        Integer maxToReturn
+    ) {
+        Integer cap = Math.max(maxToReturn, 1);
         out.needsDisambiguation = true;
-        out.candidateProductNamesJson = buildCandidateNamesJson(rankedCandidates);
-        out.candidateProducts = buildCandidateProducts(rankedCandidates);
-        out.candidateQuoteLineItems = buildCandidateQuoteLineItems(rankedCandidates);
-        out.candidateQuoteLineSummariesJson = buildCandidateQuoteLineSummariesJson(rankedCandidates);
+        out.candidateProductNamesJson = buildCandidateNamesJson(rankedCandidates, cap);
+        out.candidateProducts = buildCandidateProducts(rankedCandidates, cap);
+        out.candidateQuoteLineItems = buildCandidateQuoteLineItems(rankedCandidates, cap);
+        out.candidateQuoteLineSummariesJson = buildCandidateQuoteLineSummariesJson(rankedCandidates, cap);
     }
 
     private static Boolean hasDuplicateTopProductLines(List<MatchCandidate> rankedCandidates) {
@@ -376,10 +416,9 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         return false;
     }
 
-    private static String buildCandidateQuoteLineSummariesJson(List<MatchCandidate> rankedCandidates) {
+    private static String buildCandidateQuoteLineSummariesJson(List<MatchCandidate> rankedCandidates, Integer maxToReturn) {
         List<Object> summaries = new List<Object>();
         Set<Id> seenQuoteLineIds = new Set<Id>();
-        Integer maxToReturn = Math.max(MIN_CANDIDATES_TO_RETURN, 1);
         for (MatchCandidate candidate : rankedCandidates) {
             if (summaries.size() >= maxToReturn) {
                 break;

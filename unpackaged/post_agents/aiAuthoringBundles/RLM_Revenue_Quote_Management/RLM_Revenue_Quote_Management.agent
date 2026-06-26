@@ -300,7 +300,12 @@ subagent QuoteManagement:
               - Initial quote: identify the opportunity first, create the quote, and optionally add requested products.
               - Add quote line: ensure quoteId, productId, quantity, and default product selling model are resolved; if no default selling model exists, explain and stop.
               - Quote line dates: for Evergreen, use start date (default current date if missing). For Term-Defined, set both start and end dates (default start date to current date if missing).
-              - Discounts: apply only to explicitly selected quote lines. If discount scope is ambiguous, ask the user to select quote lines/products first.
+              - Discounts (apply only to explicitly selected quote lines; never header-level):
+                - When the user asks to discount but the target line(s) are not yet identified, call Get_QuoteLineItem_from_Quote to resolve them. Pass a productName when the user named a product; leave productName blank to list every line on the quote for selection.
+                - If a single line is returned with isFound=true, that is the target. If needsDisambiguation=true, use candidateQuoteLineSummariesJson as the source of truth: present a numbered list (product name, quantity, net unit price, net total price) and ask which line(s) to discount. Accept "all", several numbers/names, or one.
+                - Apply the discount by calling ApplyDiscountToQuoteLine once per selected quoteLineItemId, reusing the same discountPercentage. For "all", loop over every line in candidateQuoteLineSummariesJson.
+                - Before applying, summarize the exact discount and the specific line(s) it will affect, and ask the user to confirm. Only proceed after explicit confirmation.
+                - After applying, report per-line and overall results using product names, not raw IDs.
               - Amendment quote: collect asset IDs and quantity deltas; support multiple assets in one amendment quote.
               - Renewal quote: use renewable/active assets and create one renewal quote for all selected assets.
               - Asset retrieval: use GetAccountAssets with assetType Active or Renewable as requested.
@@ -339,6 +344,10 @@ subagent QuoteManagement:
             QueryQuoteLineRecords: @actions.QueryQuoteLineRecords
                 with quoteId=...
                 with productIds=...
+            Get_QuoteLineItem_from_Quote: @actions.Get_QuoteLineItem_from_Quote
+                with quoteId=...
+                with productName=...
+                with autoSelectThresholdPercent=...
             AddQuoteLineItemToQuote: @actions.AddQuoteLineItemToQuote
                 with productId=...
                 with quantity=...
@@ -786,8 +795,86 @@ subagent QuoteManagement:
                     filter_from_agent: False
                     complex_data_type_name: "lightning__booleanType"
 
+        Get_QuoteLineItem_from_Quote:
+            description: "Resolves quote line item(s) on a Quote by product name using scored matching. Pass a productName to find a specific line (auto-selects when confidence meets the threshold, otherwise returns disambiguation candidates). Leave productName blank to return every line on the quote as candidates — use this to let the user choose which line(s) to discount, including 'all'. Returns candidateQuoteLineSummariesJson (productName, quantity, netUnitPrice, netTotalPrice) for presenting a numbered selection list."
+            label: "Get QuoteLineItem from Quote"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking up quote line items ..."
+            target: "flow://RLM_AI_Get_QuoteLineItem_from_Quote"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote record (starts with '0Q0'). Never pass a QuoteLineItem ID here."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "productName": string
+                    description: "The name or partial name of the product to find on the quote (contains/partial match). Leave blank to return every line on the quote for selection. Do not pass a Salesforce ID here."
+                    label: "productName"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "autoSelectThresholdPercent": number
+                    description: "Optional confidence threshold (0-100) required for auto-selection. Defaults to 80. Ignored when productName is blank (list-all mode never auto-selects)."
+                    label: "autoSelectThresholdPercent"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__numberType"
+
+            outputs:
+                "quoteLineItemId": string
+                    description: "The 18-character Salesforce ID of the single matched QuoteLineItem record (starts with '0QL'). Populated only when one high-confidence match is found."
+                    label: "quoteLineItemId"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "productNameFound": string
+                    description: "The full name of the matched QuoteLineItem record as it appears on the quote."
+                    label: "productNameFound"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isFound": boolean
+                    description: "True if exactly one matching QuoteLineItem was auto-selected. False for no-match, list-all, or disambiguation outcomes."
+                    label: "isFound"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "matchConfidencePercent": number
+                    description: "Confidence score (0-100) for the best match candidate."
+                    label: "matchConfidencePercent"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__numberType"
+                "needsDisambiguation": boolean
+                    description: "True when the user must choose from multiple candidates — either ambiguous matches or list-all mode."
+                    label: "needsDisambiguation"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "candidateProductNamesJson": string
+                    description: "JSON array of candidate product names to present when needsDisambiguation is true."
+                    label: "candidateProductNamesJson"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "candidateQuoteLineSummariesJson": string
+                    description: "JSON array of candidate quote line summaries. Each item includes quoteLineItemId, productName, quantity, netUnitPrice, and netTotalPrice. Use this as the authoritative display and selection source for discounting one, several, or all lines."
+                    label: "candidateQuoteLineSummariesJson"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "errorMessage": string
+                    description: "Error message if the lookup could not run, plus guidance on how to present results."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
         ApplyDiscountToQuoteLine:
-            description: "Apply a discount, expressed as a percentage, to a quote line item on a Revenue Cloud quote. Apply the discount only to the quote line item that the user has specified."
+            description: "Apply a discount, expressed as a percentage, to a single quote line item on a Revenue Cloud quote. Apply the discount only to the quote line item that the user has specified. To discount multiple lines (or all lines), call this action once per quoteLineItemId."
             label: "Apply Discount To Quote Line Item"
             require_user_confirmation: False
             include_in_progress_indicator: True

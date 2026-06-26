@@ -110,9 +110,11 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
     }
 
     @isTest
-    static void lookupReturnsErrorWhenProductNameIsBlank() {
+    static void lookupListsAllLinesWhenProductNameIsBlank() {
         RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
             RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('FESBA Generator Set');
+        addQuoteLineItem(fixture.quoteId, 'Support Plan');
+        addQuoteLineItem(fixture.quoteId, 'Extended Warranty');
 
         RLM_AI_QuoteLineItemLookupService.LookupInput input =
             new RLM_AI_QuoteLineItemLookupService.LookupInput();
@@ -124,9 +126,63 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
                 new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
             );
 
-        System.assertEquals(false, results[0].isSuccess, 'A blank product name is an input error.');
+        // Blank product name = list-all mode: every line is returned as a
+        // candidate, never auto-selected, so the agent can offer all/multiple.
+        System.assertEquals(true, results[0].isSuccess, 'List-all ran correctly.');
+        System.assertEquals(false, results[0].isFound, 'List-all never auto-selects a single line.');
+        System.assertEquals(true, results[0].needsDisambiguation);
+        System.assertEquals(null, results[0].quoteLineItemId);
+
+        List<Object> summaries = (List<Object>) JSON.deserializeUntyped(results[0].candidateQuoteLineSummariesJson);
+        System.assertEquals(3, summaries.size(), 'All three quote lines should be returned (not capped at 3-candidate disambiguation limit).');
+        Set<String> summaryNames = new Set<String>();
+        for (Object summaryObj : summaries) {
+            Map<String, Object> summary = (Map<String, Object>) summaryObj;
+            summaryNames.add(String.valueOf(summary.get('productName')));
+            System.assertNotEquals(null, summary.get('quoteLineItemId'));
+            System.assertNotEquals(null, summary.get('netUnitPrice'));
+            System.assertNotEquals(null, summary.get('netTotalPrice'));
+        }
+        System.assert(summaryNames.contains('FESBA Generator Set'));
+        System.assert(summaryNames.contains('Support Plan'));
+        System.assert(summaryNames.contains('Extended Warranty'));
+    }
+
+    @isTest
+    static void lookupListAllReturnsNoLinesWhenQuoteHasNone() {
+        // Quote with no line items: createQuoteFixture always adds one, so
+        // build a bare quote to exercise the empty branch.
+        Account acct = new Account(Name = 'Empty Quote Account');
+        insert acct;
+        Opportunity opp = new Opportunity(
+            Name = 'Empty Quote Opportunity',
+            AccountId = acct.Id,
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(30)
+        );
+        insert opp;
+        Quote q = new Quote(
+            Name = 'Empty Quote',
+            Pricebook2Id = Test.getStandardPricebookId(),
+            OpportunityId = opp.Id,
+            Status = 'Draft'
+        );
+        insert q;
+
+        RLM_AI_QuoteLineItemLookupService.LookupInput input =
+            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        input.quoteId = String.valueOf(q.Id);
+        input.productName = null;
+
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
+            RLM_AI_QuoteLineItemLookupService.lookup(
+                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+            );
+
+        System.assertEquals(true, results[0].isSuccess, 'Empty list-all still ran correctly.');
         System.assertEquals(false, results[0].isFound);
-        System.assertEquals('Product name is required.', results[0].errorMessage);
+        System.assertEquals(false, results[0].needsDisambiguation);
+        System.assert(results[0].errorMessage.contains('No quote lines were found'));
     }
 
     @isTest
