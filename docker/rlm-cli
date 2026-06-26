@@ -416,6 +416,8 @@ cmd_build() {
     shift
   done
   case "$shape" in ent|dev) ;; *) err "--shape must be 'ent' or 'dev'"; return 2;; esac
+  case "$days" in ''|*[!0-9]*) err "--days must be a positive integer"; return 2;; esac
+  [ "$days" -gt 0 ] || { err "--days must be at least 1"; return 2; }
   [ -n "$alias" ] || alias="rlm-$shape-$(rand4)"
 
   # Preflight: a Dev Hub is required to create scratch orgs.
@@ -433,6 +435,7 @@ cmd_build() {
   printf '  %-14s %s\n' "Scope"       "$([ "$lite" = 1 ] && echo 'lite (skips UX/docgen/PRM/analytics)' || echo 'full (all 35 steps)')"
   printf '  %-14s %s\n' "Dev Hub"     "$devhub"
   echo
+  [ "$yes" = "1" ] && ASSUME_YES=1   # honor -y/--yes (confirm reads ASSUME_YES)
   confirm "Create the org and start the build?" || { say "Cancelled."; return 0; }
 
   # Persist the generated scenario in the state volume (not a temp file): `rlm

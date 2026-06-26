@@ -1,10 +1,11 @@
 # Build and publish the rlm-base build-environment image to GitHub Container
 # Registry (GHCR), so users can download it instead of building locally.
 #
-# Opt-in only — this never runs on ordinary pushes/PRs:
+# Triggers (never on ordinary pushes/PRs):
 #   • Manually:  Actions → "Publish build-environment image" → Run workflow
 #   • On tag:    push a tag matching `image-v*` (e.g. `image-v262.0`)
-#   • Weekly:    the schedule below (every run also refreshes the `:latest` tag)
+#   • Weekly:    scheduled rebuild (cron below) — runs automatically and also
+#                refreshes the `:latest` tag
 #
 # After a run, the image is at:
 #   ghcr.io/<owner>/rlm-base:<tag>     e.g. ghcr.io/bgaldino/rlm-base:latest
