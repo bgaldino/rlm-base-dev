@@ -1,0 +1,645 @@
+#!/usr/bin/env bash
+#
+# rlm — friendly front door to Revenue Cloud Base Foundations builds.
+#
+# Wraps Salesforce CLI (sf), CumulusCI (cci), the build harness, and a bundled
+# Claude Code agent so someone who doesn't know any of those tools can:
+#   - connect a Salesforce org (or Dev Hub)        →  rlm login
+#   - build a fully configured RLM org             →  rlm build
+#   - apply the build to an org they already have  →  rlm deploy
+#   - customize / extend an org with AI help        →  rlm ask "..."
+#
+# Installed in the image at /usr/local/bin/rlm. Operates on $RLM_REPO (the baked
+# snapshot, or a /work mount), set by rlm-entrypoint.
+
+set -uo pipefail
+
+# --------------------------------------------------------------------------- #
+# Presentation helpers
+# --------------------------------------------------------------------------- #
+if [ -t 1 ]; then
+  B=$'\033[1m'; DIM=$'\033[2m'; R=$'\033[0m'
+  CY=$'\033[36m'; GR=$'\033[32m'; YL=$'\033[33m'; RD=$'\033[31m'; MG=$'\033[35m'
+else
+  B=""; DIM=""; R=""; CY=""; GR=""; YL=""; RD=""; MG=""
+fi
+
+say()  { printf '%s\n' "$*"; }
+info() { printf '%s➜%s %s\n'  "$CY" "$R" "$*"; }
+ok()   { printf '%s✔%s %s\n'  "$GR" "$R" "$*"; }
+warn() { printf '%s⚠%s %s\n'  "$YL" "$R" "$*" >&2; }
+err()  { printf '%s✘%s %s\n'  "$RD" "$R" "$*" >&2; }
+hd()   { printf '\n%s%s%s\n'  "$B"  "$*" "$R"; }
+
+STATE_DIR="${RLM_STATE_DIR:-$HOME/.rlm-state}"
+
+# Be self-sufficient when invoked via `docker exec` (which inherits image ENV
+# but not the entrypoint's runtime exports): recover RLM_REPO and the per-volume
+# CumulusCI key so cci/sf behave identically to an interactive shell.
+if [ -z "${RLM_REPO:-}" ]; then
+  if [ -f /work/cumulusci.yml ]; then RLM_REPO=/work; else RLM_REPO="${RLM_BAKED_REPO:-/opt/rlm-base-dev}"; fi
+  export RLM_REPO
+fi
+if [ -z "${CUMULUSCI_KEY:-}" ] && [ -s "$STATE_DIR/cumulusci/.rlm_cci_key" ]; then
+  CUMULUSCI_KEY="$(cat "$STATE_DIR/cumulusci/.rlm_cci_key")"; export CUMULUSCI_KEY
+fi
+
+REPO="$RLM_REPO"
+cd "$REPO" 2>/dev/null || { err "Repo not found at $REPO"; exit 1; }
+
+# --------------------------------------------------------------------------- #
+# Small utilities
+# --------------------------------------------------------------------------- #
+
+# Read .result[0].value from `sf config get target-dev-hub --json`.
+current_devhub() {
+  sf config get target-dev-hub --json 2>/dev/null \
+    | jq -r '.result[0].value // empty' 2>/dev/null
+}
+
+# Username for an sf alias (empty if unknown / not authed).
+org_username() {
+  sf org display --target-org "$1" --json 2>/dev/null \
+    | jq -r '.result.username // empty' 2>/dev/null
+}
+
+confirm() {
+  # confirm "Question" — returns 0 on yes. Auto-yes when not a TTY or $ASSUME_YES.
+  local prompt="$1" ans
+  if [ "${ASSUME_YES:-0}" = "1" ] || [ ! -t 0 ]; then return 0; fi
+  read -r -p "$prompt [Y/n] " ans
+  case "${ans:-Y}" in y|Y|yes|YES|"") return 0;; *) return 1;; esac
+}
+
+rand4() { head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n' | head -c 4; }
+
+require_ai() {
+  if ! command -v claude >/dev/null 2>&1; then
+    err "Claude Code is not installed in this image."; return 1
+  fi
+  if [ -z "${ANTHROPIC_API_KEY:-}" ] && [ ! -f "$HOME/.claude/.credentials.json" ] \
+     && [ ! -f "$HOME/.claude.json" ]; then
+    warn "The AI assistant isn't signed in yet."
+    say  "  Easiest:   restart with  -e ANTHROPIC_API_KEY=sk-ant-...   (Console API key)"
+    say  "  Or log in: ${B}rlm auth-ai${R}  (uses your Claude subscription)"
+    return 1
+  fi
+}
+
+# --------------------------------------------------------------------------- #
+# help / banner
+# --------------------------------------------------------------------------- #
+cmd_help() {
+  cat <<EOF
+${B}${MG}Revenue Cloud Base Foundations${R} ${DIM}— build environment${R}
+
+${B}New here? Pick your path${R} — or run ${CY}rlm start${R} for guided setup:
+
+${B}①  Build a brand-new org${R}  (you create your own scratch orgs)
+  ${CY}rlm login --devhub${R}     Connect a Salesforce ${B}Dev Hub${R}
+  ${CY}rlm build${R}              Create + fully configure a fresh org
+  ${CY}rlm open${R}               Open it in your browser
+
+${B}②  Customize an org you already have${R}  (sandbox / dev / existing scratch)
+  ${CY}rlm login${R}              Connect that org   ${DIM}(add --sandbox for a sandbox)${R}
+  ${CY}rlm deploy${R}             Apply the full RLM build to it
+  ${CY}rlm customize${R}          Run individual build steps
+  ${CY}rlm ask "..."${R}          Ask the AI assistant to change it
+
+${B}All commands${R}:
+  ${B}rlm start${R}              Guided setup — choose build-new vs. customize-existing.
+  ${B}rlm login${R} [--devhub] [--sandbox] [--alias NAME]
+                          Browser sign-in (best-effort in containers).
+  ${B}rlm login --auth-url${R} [--devhub] [--alias NAME]
+                          ${B}Reliable${R} import of an existing login from stdin, e.g.:
+                          ${DIM}sf org auth show-sfdx-auth-url -o <user> --json | \\${R}
+                          ${DIM}  ./docker/rlm login --auth-url --devhub${R}
+  ${B}rlm connect${R}            Alias for 'rlm login' (an existing target org).
+  ${B}rlm orgs${R}               List the orgs you're signed in to.
+  ${B}rlm build${R} [--lite] [--shape ent|dev] [--days N] [--alias NAME] [-y]
+                          Build a new scratch org (full 35-step flow; --lite skips
+                          the heavy UI steps). Resumable if it fails.
+  ${B}rlm resume${R}             Resume the last build from where it failed.
+  ${B}rlm deploy${R} [--org ALIAS]
+                          Run the full build flow against a connected org.
+  ${B}rlm open${R} [ALIAS]       Print a browser login URL for an org.
+  ${B}rlm customize${R}          Interactive menu of individual build steps.
+  ${B}rlm ask${R} "PROMPT"       One-shot AI request (uses CLAUDE.md + .cursor/skills).
+  ${B}rlm assist${R} [PROMPT]    Interactive AI session.
+  ${B}rlm auth-ai${R}            Sign the AI assistant in to your Claude account.
+  ${B}rlm tui${R}                Launch the interactive Build Manager (advanced).
+  ${B}rlm doctor${R}             Verify the toolchain (cci task run validate_setup).
+  ${B}rlm version${R}            Show tool + repo versions.
+  ${B}rlm shell${R}              Drop into a bash shell.
+  ${B}rlm cci${R} ... | ${B}rlm sf${R} ... Pass commands straight to cci / sf (advanced).
+
+${DIM}Repo in use: $REPO${R}
+EOF
+}
+
+# --------------------------------------------------------------------------- #
+# doctor / version
+# --------------------------------------------------------------------------- #
+cmd_doctor() {
+  hd "Verifying the build toolchain"
+  cci task run validate_setup
+}
+
+cmd_version() {
+  hd "Versions"
+  printf '  %-12s %s\n' "node"   "$(node --version 2>/dev/null)"
+  printf '  %-12s %s\n' "sf"     "$(sf --version 2>/dev/null)"
+  printf '  %-12s %s\n' "sfdmu"  "$(sf plugins 2>/dev/null | grep -i sfdmu | tr -d ' ')"
+  printf '  %-12s %s\n' "python" "$(python3 --version 2>/dev/null)"
+  printf '  %-12s %s\n' "cci"    "$(cci version 2>/dev/null | head -1)"
+  printf '  %-12s %s\n' "claude" "$(claude --version 2>/dev/null || echo 'not signed in')"
+  printf '  %-12s %s\n' "repo"   "$REPO"
+  if [ -f "$REPO/cumulusci.yml" ]; then
+    printf '  %-12s %s\n' "project" \
+      "$(grep -m1 '^  name:' "$REPO/cumulusci.yml" | awk '{print $2}')"
+  fi
+}
+
+# --------------------------------------------------------------------------- #
+# login / connect / orgs
+# --------------------------------------------------------------------------- #
+# Salesforce CLI has no headless/device login: `org login web` is the only
+# interactive flow, and it (a) refuses to print the URL, opening a browser
+# instead, and (b) binds its OAuth callback server to loopback inside the
+# container. We work around both:
+#   - a stay-alive fake "firefox" on PATH records the URL (sf passes it as the
+#     first arg and discards stdout) without erroring out;
+#   - NODE_OPTIONS=ipv4first forces sf to bind 127.0.0.1:1717 (not [::1]);
+#   - a socat relay on 0.0.0.0:$RLM_OAUTH_RELAY_PORT forwards to 127.0.0.1:1717
+#     so the published host port can reach it (the ./docker/rlm launcher maps
+#     host 1717 -> this relay port for login/connect).
+cmd_login() {
+  local devhub=0 sandbox=0 alias="" url="" authurl=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --devhub)   devhub=1;;
+      --sandbox)  sandbox=1;;
+      --alias)    alias="$2"; shift;;
+      --instance-url) url="$2"; shift;;
+      --auth-url|--from-stdin) authurl=1;;
+      -h|--help)  say "Usage: rlm login [--devhub] [--sandbox] [--alias NAME]"; \
+                  say "       rlm login --auth-url [--devhub] [--alias NAME]   (import an sfdx auth URL from stdin)"; return 0;;
+      *) err "Unknown option: $1"; return 2;;
+    esac
+    shift
+  done
+  [ -n "$url" ] || { [ "$sandbox" = "1" ] && url="https://test.salesforce.com" || url="https://login.salesforce.com"; }
+  if [ -z "$alias" ]; then
+    [ "$devhub" = "1" ] && alias="devhub" || alias="myorg"
+  fi
+
+  # Reliable, callback-free import: read an SFDX auth URL (force://...) from
+  # stdin and hand it straight to sf. The browser-based web flow is unreliable
+  # headless (its localhost callback server doesn't complete inside a container),
+  # so this is the recommended path when you can get an auth URL.
+  if [ "$authurl" = "1" ]; then
+    hd "Importing a Salesforce auth URL"
+    if [ -t 0 ]; then
+      err "No piped input. Provide an sfdx auth URL on stdin, e.g.:"
+      say "  sf org auth show-sfdx-auth-url -o <username> --json | jq -r '.result.authUrl' \\"
+      say "    | ./docker/rlm login --auth-url ${devhub:+--devhub }--alias $alias"
+      return 2
+    fi
+    # Read the piped auth URL (raw force://… or `show-sfdx-auth-url --json`
+    # output) into a temp file inside the container, then hand it to sf and
+    # shred it. The secret never touches the host disk or this CLI's args.
+    local tmpf; tmpf="$(mktemp)"
+    cat > "$tmpf"
+    # Accept either a raw force://… URL or the `show-sfdx-auth-url --json` object.
+    if [ "$(head -c1 "$tmpf" 2>/dev/null)" = "{" ]; then
+      local extracted; extracted="$(jq -r '.result.sfdxAuthUrl // .result.authUrl // empty' "$tmpf" 2>/dev/null)"
+      [ -n "$extracted" ] && printf '%s\n' "$extracted" > "$tmpf"
+    fi
+    local sf_args=(org login sfdx-url --sfdx-url-file "$tmpf" --alias "$alias")
+    [ "$devhub" = "1" ] && sf_args+=(--set-default-dev-hub)
+    local rc=0
+    sf "${sf_args[@]}" || rc=$?
+    shred -u "$tmpf" 2>/dev/null || rm -f "$tmpf"
+    if [ "$rc" -ne 0 ]; then
+      err "Import failed. Make sure you piped a valid 'force://...' auth URL (or its --json)."
+      return 1
+    fi
+    if [ "$devhub" = "1" ]; then
+      sf config set "target-dev-hub=$alias" --global >/dev/null 2>&1 || true
+      ok "Dev Hub '${B}$alias${R}' imported. You can now run: ${B}rlm build${R}"
+    else
+      local user; user="$(org_username "$alias")"
+      [ -n "$user" ] && { cci org import "$user" "$alias" >/dev/null 2>&1 || true; cci org default "$alias" >/dev/null 2>&1 || true; }
+      ok "Org '${B}$alias${R}' imported and set as default. Customize it: ${B}rlm customize${R}"
+    fi
+    return 0
+  fi
+
+  local relay_port="${RLM_OAUTH_RELAY_PORT:-1718}"
+
+  hd "Sign in to Salesforce"
+
+  # Temp fake browser: records the OAuth URL and stays alive so sf keeps its
+  # callback server up (sf aborts if the "browser" exits immediately).
+  local tmpd; tmpd="$(mktemp -d)"
+  local urlfile="$tmpd/url"
+  {
+    printf '#!/bin/sh\n'
+    printf 'printf "%%s\\n" "$1" > %q\n' "$urlfile"
+    printf 'sleep 300\n'
+  } > "$tmpd/firefox"
+  chmod +x "$tmpd/firefox"
+
+  # Launch the web login in the background; capture its output for diagnostics.
+  local sf_args=(org login web --browser firefox --instance-url "$url" --alias "$alias")
+  [ "$devhub" = "1" ] && sf_args+=(--set-default-dev-hub)
+  ( PATH="$tmpd:$PATH" NODE_OPTIONS="--dns-result-order=ipv4first" \
+      sf "${sf_args[@]}" >"$tmpd/sf.out" 2>&1 ) &
+  local sfpid=$!
+
+  # The URL file is written right after sf binds its server, so once it exists
+  # the relay target is live.
+  local i
+  for i in $(seq 1 90); do
+    [ -s "$urlfile" ] && break
+    kill -0 "$sfpid" 2>/dev/null || break
+    sleep 0.5
+  done
+  if [ ! -s "$urlfile" ]; then
+    err "Couldn't start the sign-in flow. Details:"
+    sed -n '1,15p' "$tmpd/sf.out" >&2
+    kill "$sfpid" 2>/dev/null; rm -rf "$tmpd"; return 1
+  fi
+
+  # Expose sf's loopback callback server on a published-reachable port.
+  socat "TCP-LISTEN:${relay_port},fork,reuseaddr,bind=0.0.0.0" TCP:127.0.0.1:1717 \
+      >/dev/null 2>&1 &
+  local relaypid=$!
+
+  say ""
+  say "${B}${GR}Open this link in your web browser to sign in:${R}"
+  say ""
+  say "    $(cat "$urlfile")"
+  say ""
+  say "${DIM}After you log in and approve, this finishes automatically.${R}"
+  say "${DIM}(Start the container with ./docker/rlm so the login port is published.)${R}"
+  info "Waiting for sign-in to complete…"
+
+  wait "$sfpid"; local rc=$?
+  kill "$relaypid" 2>/dev/null
+  pkill -f "$tmpd/firefox" 2>/dev/null
+  rm -rf "$tmpd"
+
+  if [ "$rc" -ne 0 ]; then
+    err "Sign-in didn't complete. Run 'rlm login' again to retry."
+    return 1
+  fi
+
+  if [ "$devhub" = "1" ]; then
+    sf config set "target-dev-hub=$alias" --global >/dev/null 2>&1 || true
+    ok "Dev Hub '${B}$alias${R}' connected. You can now run: ${B}rlm build${R}"
+  else
+    # Bring the org into CumulusCI's keychain so flows/tasks can target it.
+    local user; user="$(org_username "$alias")"
+    if [ -n "$user" ]; then
+      cci org import "$user" "$alias" >/dev/null 2>&1 || true
+      cci org default "$alias"        >/dev/null 2>&1 || true
+    fi
+    ok "Org '${B}$alias${R}' connected and set as the default."
+    say "Apply the full RLM build to it with: ${B}rlm deploy${R}"
+  fi
+}
+
+cmd_orgs() {
+  hd "Salesforce orgs you're signed in to"
+  sf org list 2>/dev/null || warn "No orgs yet — run 'rlm start' or 'rlm login'."
+  hd "CumulusCI-registered orgs"
+  cci org list 2>/dev/null || true
+}
+
+# Guided entry point: helps a newcomer choose between the two ways to work —
+# connect a Dev Hub to BUILD new orgs, or connect an existing org to CUSTOMIZE it.
+cmd_start() {
+  hd "Welcome to Revenue Cloud Base Foundations"
+
+  # Reflect current connection state so returning users see where they stand.
+  local dh targets
+  dh="$(current_devhub)"
+  targets="$(sf org list --json 2>/dev/null \
+    | jq -r '[.result.nonScratchOrgs[]? | select(.isDevHub | not) | .alias // .username] | join(", ")' 2>/dev/null)"
+  [ -n "$dh" ]      && ok "Dev Hub connected: ${B}$dh${R}  →  you can ${B}rlm build${R}"
+  [ -n "$targets" ] && ok "Org(s) connected: ${B}$targets${R}  →  you can ${B}rlm deploy${R} / ${B}rlm customize${R}"
+  [ -z "$dh" ] && [ -z "$targets" ] && info "You're not connected to any Salesforce org yet."
+
+  echo
+  say "There are two ways to work — connect whichever you need:"
+  echo
+  say "  ${B}①  Build a brand-new org${R}"
+  say "     You create your own scratch orgs. Needs a ${B}Dev Hub${R}."
+  say "     ${DIM}rlm login --devhub  →  rlm build  →  rlm open${R}"
+  echo
+  say "  ${B}②  Customize an org you already have${R}"
+  say "     Connect a sandbox / dev / existing scratch org and change it."
+  say "     ${DIM}rlm login  →  rlm deploy / rlm customize / rlm ask \"...\"${R}"
+  echo
+  say "${DIM}Tip: if the browser sign-in hangs (common in containers), import an${R}"
+  say "${DIM}existing login instead: sf org auth show-sfdx-auth-url -o <user> --json${R}"
+  say "${DIM}  | ./docker/rlm login --auth-url --devhub${R}"
+  echo
+
+  if [ ! -t 0 ]; then
+    say "Run ${B}rlm start${R} from an interactive shell for a guided menu."
+    return 0
+  fi
+
+  local choice
+  PS3=$'\n'"What would you like to do? (number): "
+  select choice in \
+    "Build new orgs — connect a Dev Hub" \
+    "Customize an org I already have — connect it (production / dev)" \
+    "Customize a Sandbox — connect it" \
+    "Show what I'm connected to" \
+    "Nothing right now"
+  do
+    case "$REPLY" in
+      1) cmd_login --devhub; break;;
+      2) cmd_login; break;;
+      3) cmd_login --sandbox; break;;
+      4) cmd_orgs; break;;
+      5|"") say "No problem — run ${B}rlm start${R} whenever you're ready."; break;;
+      *) warn "Pick a number from the list.";;
+    esac
+  done
+}
+
+# --------------------------------------------------------------------------- #
+# build (+ resume) — routed through the maintained build harness
+# --------------------------------------------------------------------------- #
+write_scenario_file() {
+  # write_scenario_file <id> <shape> <alias> <days> <lite0|1> <outfile>
+  local id="$1" shape="$2" alias="$3" days="$4" lite="$5" out="$6"
+  local overrides='{}'
+  [ "$lite" = "1" ] && overrides='{"ux": false, "docgen": false, "prm": false, "analytics": false}'
+  cat > "$out" <<JSON
+{
+  "version": 1,
+  "matrix_name": "rlm-cli",
+  "description": "Generated by 'rlm build'.",
+  "scenarios": [
+    {
+      "scenario_id": "$id",
+      "org_shape": "$shape",
+      "org_alias_prefix": "$alias",
+      "days": $days,
+      "flag_overrides": $overrides,
+      "notes": "rlm build ($([ "$lite" = "1" ] && echo lite || echo full))"
+    }
+  ]
+}
+JSON
+}
+
+cmd_build() {
+  local lite=0 shape="ent" days="30" alias="" yes=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --lite)         lite=1;;
+      --full)         lite=0;;
+      --shape)        shape="$2"; shift;;
+      --days)         days="$2"; shift;;
+      --alias)        alias="$2"; shift;;
+      -y|--yes)       yes=1;;
+      -h|--help)      say "Usage: rlm build [--lite] [--shape ent|dev] [--days N] [--alias NAME] [-y]"; return 0;;
+      *) err "Unknown option: $1"; return 2;;
+    esac
+    shift
+  done
+  case "$shape" in ent|dev) ;; *) err "--shape must be 'ent' or 'dev'"; return 2;; esac
+  [ -n "$alias" ] || alias="rlm-$shape-$(rand4)"
+
+  # Preflight: a Dev Hub is required to create scratch orgs.
+  local devhub; devhub="$(current_devhub)"
+  if [ -z "$devhub" ]; then
+    err "No Dev Hub connected yet."
+    say "Connect one first:  ${B}rlm login --devhub${R}"
+    return 1
+  fi
+
+  hd "Build plan"
+  printf '  %-14s %s\n' "Org shape"   "$shape"
+  printf '  %-14s %s\n' "Lifetime"    "$days days"
+  printf '  %-14s %s\n' "Alias"       "$alias"
+  printf '  %-14s %s\n' "Scope"       "$([ "$lite" = 1 ] && echo 'lite (skips UX/docgen/PRM/analytics)' || echo 'full (all 35 steps)')"
+  printf '  %-14s %s\n' "Dev Hub"     "$devhub"
+  echo
+  confirm "Create the org and start the build?" || { say "Cancelled."; return 0; }
+
+  local sfile; sfile="$(mktemp /tmp/rlm-scenario.XXXXXX.json)"
+  write_scenario_file "$alias" "$shape" "$alias" "$days" "$lite" "$sfile"
+
+  hd "Building — this can take a while (the full flow has 35 steps)"
+  info "Harness scenario: $alias   (artifacts under .harness/runs/<run_id>/)"
+  python3 scripts/build_harness/harness.py run \
+      --scenario "$alias" --scenarios-file "$sfile" --keep-orgs
+  local rc=$?
+  rm -f "$sfile"
+
+  # Record the latest run so 'rlm resume' can find it.
+  local run_dir; run_dir="$(ls -td .harness/runs/*/ 2>/dev/null | head -1)"
+  if [ -n "$run_dir" ]; then
+    local run_id; run_id="$(basename "$run_dir")"
+    printf '{"run_id":"%s","scenario":"%s"}\n' "$run_id" "$alias" \
+      > "$STATE_DIR/last_build.json" 2>/dev/null || true
+  fi
+
+  if [ "$rc" -eq 0 ]; then
+    ok "Build complete."
+    local real_alias; real_alias="$(_resolved_org_alias "$run_dir" "$alias")"
+    say "Open the org in your browser:  ${B}rlm open ${real_alias}${R}"
+    say "List your orgs:                ${B}rlm orgs${R}"
+  else
+    err "The build stopped before finishing (exit $rc)."
+    say "Most failures are transient — resume from where it stopped with:"
+    say "  ${B}rlm resume${R}"
+    say "Or inspect the report:  ${DIM}$run_dir""report.md${R}"
+  fi
+  return "$rc"
+}
+
+_resolved_org_alias() {
+  # Best-effort: read the org alias the harness actually created.
+  local run_dir="$1" fallback="$2" a=""
+  if [ -n "$run_dir" ] && [ -f "${run_dir}run_summary.json" ]; then
+    a="$(jq -r '.. | .org_alias? // empty' "${run_dir}run_summary.json" 2>/dev/null | head -1)"
+  fi
+  printf '%s' "${a:-$fallback}"
+}
+
+cmd_resume() {
+  local last="$STATE_DIR/last_build.json"
+  if [ ! -f "$last" ]; then
+    err "No previous build to resume. Start one with: rlm build"; return 1
+  fi
+  local run_id scenario
+  run_id="$(jq -r '.run_id // empty' "$last" 2>/dev/null)"
+  scenario="$(jq -r '.scenario // empty' "$last" 2>/dev/null)"
+  if [ -z "$run_id" ] || [ -z "$scenario" ]; then
+    err "Couldn't read the last build's id. Re-run: rlm build"; return 1
+  fi
+  hd "Resuming build $run_id (scenario $scenario)"
+  python3 scripts/build_harness/harness.py resume \
+      --run-id "$run_id" --scenario "$scenario" --keep-orgs
+}
+
+# --------------------------------------------------------------------------- #
+# deploy — full flow against an already-connected org
+# --------------------------------------------------------------------------- #
+cmd_deploy() {
+  local alias=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --org) alias="$2"; shift;;
+      -h|--help) say "Usage: rlm deploy [--org ALIAS]"; return 0;;
+      *) err "Unknown option: $1"; return 2;;
+    esac
+    shift
+  done
+  local label="$alias"
+  if [ -z "$alias" ]; then
+    # Fall back to CumulusCI's configured default org.
+    label="$(sf config get target-org --json 2>/dev/null | jq -r '.result[0].value // empty')"
+    [ -n "$label" ] || label="the default org"
+  fi
+  hd "Deploy the full RLM build to: $label"
+  warn "This deploys metadata AND data into that org. Make sure it's a dev/test org."
+  confirm "Proceed with prepare_rlm_org on '$label'?" || { say "Cancelled."; return 0; }
+  if [ -n "$alias" ]; then
+    cci flow run prepare_rlm_org --org "$alias"
+  else
+    cci flow run prepare_rlm_org
+  fi
+}
+
+# --------------------------------------------------------------------------- #
+# open
+# --------------------------------------------------------------------------- #
+cmd_open() {
+  local alias="${1:-}"
+  if [ -z "$alias" ]; then
+    alias="$(sf config get target-org --json 2>/dev/null | jq -r '.result[0].value // empty')"
+  fi
+  if [ -z "$alias" ]; then
+    err "Which org? Usage: rlm open ALIAS   (see 'rlm orgs')"; return 1
+  fi
+  hd "Login URL for $alias"
+  say "${DIM}Open this URL in your browser to enter the org (do not share it):${R}"
+  if ! sf org open --target-org "$alias" --url-only 2>/dev/null; then
+    err "Couldn't get a URL for '$alias'. Is it connected? (rlm orgs)"
+    return 1
+  fi
+}
+
+# --------------------------------------------------------------------------- #
+# customize — menu of individual steps, or hand to the AI
+# --------------------------------------------------------------------------- #
+cmd_customize() {
+  # Customizing means changing a connected org — make sure one is connected.
+  local def
+  def="$(sf config get target-org --json 2>/dev/null | jq -r '.result[0].value // empty')"
+  if [ -z "$def" ]; then
+    err "No org connected yet to customize."
+    say "Connect the org you want to change:  ${B}rlm login${R}   ${DIM}(add --sandbox for a sandbox)${R}"
+    say "Or run guided setup:                 ${B}rlm start${R}"
+    return 1
+  fi
+  hd "Customize org: ${B}$def${R}"
+  PS3=$'\n'"Choose an action (number), or Ctrl-C to cancel: "
+  local choice
+  select choice in \
+    "Ask the AI assistant to do it" \
+    "Run a specific build flow (cci flow)" \
+    "Run a specific task (cci task)" \
+    "List available flows" \
+    "List available tasks" \
+    "Cancel"
+  do
+    case "$REPLY" in
+      1) read -r -p "What should the assistant do? " p; cmd_ask "$p"; break;;
+      2) cci flow list; read -r -p "Flow name: " f; read -r -p "Org alias (blank=default): " o
+         if [ -n "$o" ]; then cci flow run "$f" --org "$o"; else cci flow run "$f"; fi; break;;
+      3) cci task list; read -r -p "Task name: " t; read -r -p "Org alias (blank=default): " o
+         if [ -n "$o" ]; then cci task run "$t" --org "$o"; else cci task run "$t"; fi; break;;
+      4) cci flow list; break;;
+      5) cci task list; break;;
+      6|"") say "Cancelled."; break;;
+      *) warn "Pick a number from the list.";;
+    esac
+  done
+}
+
+# --------------------------------------------------------------------------- #
+# AI assistant
+# --------------------------------------------------------------------------- #
+cmd_ask() {
+  require_ai || return 1
+  if [ "$#" -eq 0 ]; then err "Usage: rlm ask \"what you want\""; return 2; fi
+  cd "$REPO"
+  # Print mode: grounded in CLAUDE.md/AGENTS.md + .cursor/skills from $REPO.
+  claude -p "$*"
+}
+
+cmd_assist() {
+  require_ai || return 1
+  cd "$REPO"
+  if [ "$#" -gt 0 ]; then exec claude "$*"; else exec claude; fi
+}
+
+cmd_auth_ai() {
+  if ! command -v claude >/dev/null 2>&1; then err "Claude Code not installed."; return 1; fi
+  hd "Sign in the AI assistant"
+  say "A browser URL will appear — open it on your computer and approve."
+  claude /login 2>/dev/null || claude
+}
+
+# --------------------------------------------------------------------------- #
+# advanced passthroughs
+# --------------------------------------------------------------------------- #
+cmd_tui()   { exec ./tui-cci "$@"; }
+cmd_cci()   { exec cci "$@"; }
+cmd_sf()    { exec sf "$@"; }
+cmd_flow()  { exec cci flow "$@"; }
+cmd_task()  { exec cci task "$@"; }
+cmd_shell() { exec bash -l; }
+
+# --------------------------------------------------------------------------- #
+# dispatch
+# --------------------------------------------------------------------------- #
+main() {
+  local cmd="${1:-help}"; shift || true
+  case "$cmd" in
+    help|-h|--help)       cmd_help "$@";;
+    start|welcome|begin)  cmd_start "$@";;
+    doctor|validate)      cmd_doctor "$@";;
+    version|--version)    cmd_version "$@";;
+    login)                cmd_login "$@";;
+    connect)              cmd_login "$@";;
+    orgs|status|list)     cmd_orgs "$@";;
+    build)                cmd_build "$@";;
+    resume)               cmd_resume "$@";;
+    deploy)               cmd_deploy "$@";;
+    open)                 cmd_open "$@";;
+    customize)            cmd_customize "$@";;
+    ask)                  cmd_ask "$@";;
+    assist|chat)          cmd_assist "$@";;
+    auth-ai|login-ai)     cmd_auth_ai "$@";;
+    tui)                  cmd_tui "$@";;
+    cci)                  cmd_cci "$@";;
+    sf)                   cmd_sf "$@";;
+    flow)                 cmd_flow "$@";;
+    task)                 cmd_task "$@";;
+    shell|bash)           cmd_shell "$@";;
+    *) err "Unknown command: $cmd"; echo; cmd_help; return 2;;
+  esac
+}
+
+main "$@"

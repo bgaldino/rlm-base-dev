@@ -1,0 +1,44 @@
+# Docker Compose convenience for the RLM build container.
+#
+# Build:   docker compose -f docker/compose.yaml build
+# Use:     docker compose -f docker/compose.yaml run --rm rlm login --devhub
+#          docker compose -f docker/compose.yaml run --rm rlm build
+#          docker compose -f docker/compose.yaml run --rm rlm            # shell
+#
+# `docker/rlm` (the host launcher) is the simpler entry point for most users;
+# this file is here for those who prefer Compose or want to tweak mounts.
+
+services:
+  rlm:
+    image: ${RLM_IMAGE:-rlm-base:latest}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    stdin_open: true   # -i
+    tty: true          # -t
+    ports:
+      # OAuth sign-in callback: the browser's localhost:1717 redirect reaches
+      # sf's loopback server inside the container via the relay on 1718.
+      # Published on BOTH loopback families because `localhost` resolves to IPv6
+      # ::1 first on many machines (macOS especially).
+      - target: 1718
+        published: 1717
+        host_ip: 127.0.0.1
+        protocol: tcp
+      - target: 1718
+        published: 1717
+        host_ip: "::1"
+        protocol: tcp
+    environment:
+      # Forwarded only if set in your shell; powers `rlm ask` / `rlm assist`.
+      - ANTHROPIC_API_KEY
+      - RLM_OAUTH_RELAY_PORT=1718
+    volumes:
+      # One named volume keeps Salesforce + CumulusCI logins between runs.
+      - rlm-state:/home/rlm/.rlm-state
+      # Develop against your working copy instead of the baked snapshot:
+      # uncomment to override the in-image repo with this checkout.
+      # - ../:/work
+
+volumes:
+  rlm-state:

@@ -1,0 +1,89 @@
+# Build and publish the rlm-base build-environment image to GitHub Container
+# Registry (GHCR), so users can download it instead of building locally.
+#
+# Opt-in only — this never runs on ordinary pushes/PRs:
+#   • Manually:  Actions → "Publish build-environment image" → Run workflow
+#   • On tag:    push a tag like `image-v262.0` (or `image-latest`)
+#
+# After a run, the image is at:
+#   ghcr.io/<owner>/rlm-base:<tag>     e.g. ghcr.io/bgaldino/rlm-base:latest
+# Make the package public (Packages → rlm-base → Settings) for unauthenticated
+# `docker pull`, or have users `docker login ghcr.io` first.
+name: Publish build-environment image
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to publish (e.g. latest, 262)"
+        required: true
+        default: "latest"
+      platforms:
+        description: "Target platforms"
+        required: true
+        default: "linux/amd64,linux/arm64"
+  push:
+    tags:
+      - "image-v*"
+
+concurrency:
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image coordinates
+        id: meta
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"   # lowercase for GHCR
+          echo "image=ghcr.io/${owner}/rlm-base" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "platforms=${{ github.event.inputs.platforms }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME#image-v}" >> "$GITHUB_OUTPUT"
+            echo "platforms=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up QEMU (multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: ${{ steps.meta.outputs.platforms }}
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          echo "### Published \`${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pull with:" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "RLM_IMAGE=${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }} ./docker/rlm pull" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
