@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**242 tasks** across **10 groups**.
+**243 tasks** across **10 groups**.
 
 ---
 
@@ -818,7 +818,7 @@
 
 ## Revenue Lifecycle Management
 
-*151 task(s)*
+*152 task(s)*
 
 ### `activate_and_deploy_expression_sets`
 
@@ -2249,6 +2249,18 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling-products`
+
+---
+
+### `insert_qb_partner_discount_data`
+
+**Description:** Insert QuantumBit Partner Discount tier data (Basic / Elite / Premier) into RLM_Partner_Discount__c.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-partner-discount`
 
 ---
 

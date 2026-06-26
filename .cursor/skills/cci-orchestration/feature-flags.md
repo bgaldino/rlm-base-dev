@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **85 configuration values**, **37 YAML anchors** under `project.custom`.
+**41 feature flags**, **86 configuration values**, **37 YAML anchors** under `project.custom`.
 
 ---
 
@@ -511,6 +511,7 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
 | `quantumbit_guidedselling_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling` |
 | `quantumbit_guidedselling_products_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling-products` |
+| `quantumbit_partner_discount_dataset` | `datasets/sfdmu/qb/en-US/qb-partner-discount` |
 | `quantumbit_pcm_constraints_data_dir` | `datasets/constraints/qb/QuantumBitPCM` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |
 | `quantumbit_prm_dataset` | `datasets/sfdmu/qb/en-US/qb-prm` |

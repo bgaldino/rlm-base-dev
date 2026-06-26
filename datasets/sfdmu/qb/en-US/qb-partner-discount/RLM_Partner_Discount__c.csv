@@ -1,0 +1,4 @@
+Name,RLM_Partner_Tier__c,RLM_Adjustment_Type__c,RLM_Adjustment__c
+Partner Price Basic - 5% Discount,Basic,Percentage,5
+Partner Price Elite - 15% Discount,Elite,Percentage,15
+Partner Price Premier - 25% Discount,Premier,Percentage,25

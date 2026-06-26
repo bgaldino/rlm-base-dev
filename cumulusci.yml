@@ -562,6 +562,7 @@ project:
     inapp_dataset: &inapp_dataset "datasets/sfdmu/inapp"                                                            # In-App Learning navigation content (Pages/Sections/Blocks/DynamicLinks)
     quantumbit_prm_pricing_dataset: &quantumbit_prm_pricing_dataset "datasets/sfdmu/qb/en-US/qb-prm-pricing"         # QuantumBit PRM pricing overlay data
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
+    quantumbit_partner_discount_dataset: &quantumbit_partner_discount_dataset "datasets/sfdmu/qb/en-US/qb-partner-discount" # QuantumBit Partner Discount tier data (RLM_Partner_Discount__c)
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
     prm_pricing_procedure_plan_overlay: &prm_pricing_procedure_plan_overlay "datasets/procedure_plan_overlays/prm_pricing.json" # PRM pricing Procedure Plan overlay
@@ -1856,6 +1857,13 @@ tasks:
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
       pathtoexportjson: *quantumbit_prm_pricing_dataset
+
+  insert_qb_partner_discount_data:
+    group: Revenue Lifecycle Management
+    description: Insert QuantumBit Partner Discount tier data (Basic / Elite / Premier) into RLM_Partner_Discount__c.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *quantumbit_partner_discount_dataset
 
   insert_clm_data:
     group: Revenue Lifecycle Management

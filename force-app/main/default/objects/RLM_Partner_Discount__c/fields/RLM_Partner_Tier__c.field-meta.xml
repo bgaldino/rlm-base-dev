@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Partner_Tier__c</fullName>
+    <label>Partner Tier</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Basic</fullName>
+                <default>false</default>
+                <label>Basic</label>
+            </value>
+            <value>
+                <fullName>Elite</fullName>
+                <default>false</default>
+                <label>Elite</label>
+            </value>
+            <value>
+                <fullName>Premier</fullName>
+                <default>false</default>
+                <label>Premier</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>
