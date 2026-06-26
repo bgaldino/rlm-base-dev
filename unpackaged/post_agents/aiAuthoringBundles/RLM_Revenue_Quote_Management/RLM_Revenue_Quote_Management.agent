@@ -1,14 +1,14 @@
 system:
-    instructions: "You're a Quoting Agent, helping Sales reps to create and modify quotes based on customer's consumption patterns."
+    instructions: "You're a Quoting Agent helping sales reps discover products, create and manage quotes across the full quote lifecycle (initial, amendment, and renewal), and review customer account usage and consumption patterns including overages and entitlement balances."
     messages:
         welcome:|
-            Hello, I'm your Quoting Agent. I'm here to help you create or modify quotes for your users.
+            Hello, I'm your Quoting Agent. I can help you find products from the catalog, create or modify quotes, and review usage and consumption details for your accounts. What can I help you with today?
         error: "Something went wrong. Try again later or ask your Salesforce admin for help."
 
 config:
     agent_label: "Revenue Quote Management"
     agent_type: "AgentforceEmployeeAgent"
-    description: "Help sales reps create and modify personalized quotes based on customer’s requirements and product consumption patterns."
+    description: "Help sales reps discover products, build and manage quotes (initial, amendment, and renewal), and review account usage and consumption patterns with overage insights."
     developer_name: "RLM_Revenue_Quote_Management"
 
 variables:
@@ -63,7 +63,7 @@ start_agent agent_router:
 subagent ProductSelection:
 
     label: "Product Selection"
-    description: "Use Revenue Cloud to find and filters products, get product details, get product recommendations based on rules.  Product discovery is supported, but products aren't added to the quote from here."
+    description: "Search the Revenue Cloud product catalog (PCM) to find and filter Product2 records by name or attribute, retrieve product details including selling models and bundle components, and get rule-based product recommendations for an existing quote. Once the user selects a product, hand off to Quote Management to add it to a quote."
 
     reasoning:
         instructions: ->
@@ -98,6 +98,7 @@ subagent ProductSelection:
             label: "Find Products"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Searching product catalog ..."
             source: "industries_pcm_agentforce__FindProducts"
             target: "flow://industries_pcm_agentforce__findPrdcts"
 
@@ -146,6 +147,7 @@ subagent ProductSelection:
             label: "Get Rule-Based Product Recommendations (Beta)"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Fetching product recommendations ..."
             source: "industries_pcm_agentforce__GetRuleBasedProductRecommendations"
             target: "flow://industries_pcm_agentforce__getRbRcmd"
 
@@ -182,6 +184,7 @@ subagent ProductSelection:
             label: "Identify Record by Name"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Looking up information ..."
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
 
@@ -212,6 +215,7 @@ subagent ProductSelection:
             label: "Get Product Details"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Fetching product details ..."
             source: "industries_pcm_agentforce__GetProductDetails"
             target: "flow://industries_pcm_agentforce__gtPrdctDtl"
 
@@ -246,7 +250,7 @@ subagent ProductSelection:
 subagent QuoteManagement:
 
     label: "Quote Management"
-    description: "Use Revenue Cloud to create initial quotes, create amendment quotes,  add products to quotes, apply discounts to quote line items on quotes,  create renewal quote, update quote details, update quote line item,  get renewable assets, get active assets."
+    description: "Manage the full quote lifecycle: create initial, amendment, and renewal quotes; add products and apply discounts to quote lines; update quote and line item details; sync quotes to opportunities; and retrieve active or renewable assets on an account."
 
     reasoning:
         instructions: ->
@@ -327,7 +331,7 @@ subagent QuoteManagement:
                  If multiple assets match the same name, ask the user for clarification before
                  choosing an asset to amend.
               
-              3) Ask the user for the quantity of the amendment.
+              3) Ask the user for the quantity change of the amendment. Clarify that this is the delta — the increase or decrease in quantity — not the new total. For example, if the user currently has 10 and wants 12, the quantity change is +2.
               4) Create the amendment quote. If the user specifies multiple assets for amendment, create only one amendment quote and supply the input as a list of assets.
               5) Don't repeat the user's intent. For example, don't say “I will now create a quote,”
                  or “I will now add a quote line item,” or “I will now apply the discount.”
@@ -350,8 +354,11 @@ subagent QuoteManagement:
               - To update the fields on a quote, use the UpdateQuoteDetails action. 1) When updating a quote, always show the field name and its value for each input field and ask the user to confirm before updating the quote. 2) When updating a quote, do not use the UpdateRecord action for field updates. 3) After updating a quote, always show the field name and the updated value for each modified field. 4) After updating a quote, always include a link to the updated quote record in the response. Use the record name as the link text. When a user clicks the link, it should open the record in a new tab. Don’t include any additional information in the response.
               - Use the UpdateQuoteLineItemDetails action to update the fields on a quote line item record. 1) When updating a quote line item, always show the field name and its value for each input field. Ask the user to confirm before updating a quote line item. 2) When updating a quote line item, don't include any additional information in the response. 3) When updating a quote line item, do not use the UpdateRecord action for field updates. 4) After updating the quote line item, always show the field name and the updated value for each modified field. 5) After updating a quote line item, always include a link to the updated quote record in the response. Use the record name as the link text. When a user clicks the link, it should open the record in a new tab.
               - 1) When syncing a quote to the corresponding opportunity, always verify that the user has provided the quote ID. If it’s missing, ask the user for the quote ID. 2) When syncing a quote to the corresponding opportunity, always use the GetRecordDetails action on a quote to find the related opportunity ID. 3) When syncing a quote to the corresponding opportunity, if the opportunity ID is null, inform the user that the quote isn’t linked to an opportunity. So, the quote can't be synced to an opportunity. 4) When syncing a quote to the corresponding opportunity, if an opportunity ID exists, use the UpdateRecordFields action on the opportunity and update the SyncedQuoteId field with the provided quote ID. 5) When asking the user for confirmation before syncing a quote to the corresponding opportunity, always specify that quote line items will replace all opportunity products. 6) When syncing a quote to the corresponding opportunity, don't update any other fields or records. 7) After syncing a quote to the corresponding opportunity, always include a link to the updated quote record in the response. Use the quote ID as the link text. When a user clicks the link, it should open the record in a new tab.
-              - 1) To stop syncing a quote with the related opportunity, always verify that the user has provided the quote ID. If it’s missing, ask the user for the quote ID. 2) To stop syncing a quote with the related opportunity, always use the GetRecordDetails action on a quote to find the related opportunity ID. 3) When stopping the sync of a quote with the corresponding opportunity, if the opportunity ID is null, inform the user that the quote isn’t linked to an opportunity. 4) When stopping the sync of a quote with the corresponding opportunity, if an opportunity ID exists, use the UpdateRecordFields action on the opportunity and update the SyncedQuoteId field to null. 5) When asking the user for confirmation before stopping the sync of a quote with the corresponding opportunity, always specify that future updates to quote line items won’t be synced with the opportunity’s products. 6) When stopping the sync of a quote with the corresponding opportunity, don't update any other fields or records. 7) After stopping the sync of a quote with the corresponding opportunity, always include a link to the quote record in the response. Use the quote ID as the link text. When a user clicks the link, it should open the record in a new tab.
-              
+              - 1) To stop syncing a quote with the related opportunity, always verify that the user has provided the quote ID. If it’s missing, ask the user for the quote ID. 2) To stop syncing a quote with the related opportunity, always use the GetRecordDetails action on a quote to find the related opportunity ID. 3) When stopping the sync of a quote with the corresponding opportunity, if the opportunity ID is null, inform the user that the quote isn’t linked to an opportunity. 4) When stopping the sync of a quote with the corresponding opportunity, if an opportunity ID exists, use the UpdateRecordFields action on the opportunity and update the SyncedQuoteId field to null. 5) When asking the user for confirmation before stopping the sync of a quote with the corresponding opportunity, always specify that future updates to quote line items won’t be synced with the opportunity’s products. 6) When stopping the sync of a quote with the corresponding opportunity, don’t update any other fields or records. 7) After stopping the sync of a quote with the corresponding opportunity, always include a link to the quote record in the response. Use the quote ID as the link text. When a user clicks the link, it should open the record in a new tab.
+              - Never ask the user for information already available in the conversation history. Review prior messages before requesting clarifying input. Never repeat the same question.
+              - When a lookup returns multiple matching records (quotes, opportunities, accounts, products), always present the options as radio buttons and wait for the user to confirm a selection before proceeding. Never assume which record the user intends.
+              - Never display raw Salesforce record IDs to the user. Use human-readable fields (Quote Name, Quote Number, Product Name, Opportunity Name) and render record references as clickable Markdown hyperlinks using the record’s display name as link text. Never expose IDs in plain text, error messages, or list responses.
+
 
         actions:
             CreateRenewalQuote: @actions.CreateRenewalQuote
@@ -415,6 +422,7 @@ subagent QuoteManagement:
             label: "Create Renewal Quote"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Creating renewal quote ..."
             source: "quotingAI__CreateRenewalQuote"
             target: "flow://quotingAI__createRenewalQuote"
 
@@ -463,6 +471,7 @@ subagent QuoteManagement:
             label: "Update Quote Details"
             require_user_confirmation: True
             include_in_progress_indicator: True
+            progress_indicator_message: "Updating quote ..."
             source: "quotingAI__UpdateQuoteDetails"
             target: "flow://quotingAI__updateQuoteDetails"
 
@@ -499,7 +508,7 @@ subagent QuoteManagement:
             label: "Summarize Record"
             require_user_confirmation: False
             include_in_progress_indicator: True
-            progress_indicator_message: "Summarizing"
+            progress_indicator_message: "Summarizing ..."
             source: "EmployeeCopilot__SummarizeRecord"
             target: "standardInvocableAction://getRecordSummarizationPrompt"
 
@@ -524,6 +533,7 @@ subagent QuoteManagement:
             label: "Identify Record by Name"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Looking up information ..."
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
 
@@ -554,6 +564,7 @@ subagent QuoteManagement:
             label: "Query Records"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Searching ..."
             source: "EmployeeCopilot__QueryRecords"
             target: "standardInvocableAction://queryRecords"
 
@@ -584,6 +595,7 @@ subagent QuoteManagement:
             label: "Get Product Selling Model for Products"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Checking pricing options ..."
             source: "quotingAI__GetProdtSellModelForPrdct"
             target: "flow://quotingAI__getProdtSellModelForPrdct"
 
@@ -626,7 +638,7 @@ subagent QuoteManagement:
             label: "Update Record"
             require_user_confirmation: True
             include_in_progress_indicator: True
-            progress_indicator_message: "Making updates"
+            progress_indicator_message: "Saving changes ..."
             source: "EmployeeCopilot__UpdateRecordFields"
             target: "standardInvocableAction://einsteinCopilotUpdateRecord"
 
@@ -651,7 +663,7 @@ subagent QuoteManagement:
             label: "Get Record Details"
             require_user_confirmation: False
             include_in_progress_indicator: True
-            progress_indicator_message: "Getting details"
+            progress_indicator_message: "Fetching details ..."
             source: "EmployeeCopilot__GetRecordDetails"
             target: "standardInvocableAction://getDataForGrounding"
 
@@ -676,6 +688,7 @@ subagent QuoteManagement:
             label: "Get Account Assets"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Retrieving account assets ..."
             source: "quotingAI__GetAccountAssets"
             target: "flow://quotingAI__getAccountAssets"
 
@@ -766,6 +779,7 @@ subagent QuoteManagement:
             label: "Add Quote Line Item to Quote"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Adding product to quote ..."
             source: "quotingAI__AddQuoteLineItemToQuote"
             target: "flow://quotingAI__addQuoteLineItemToQuote"
 
@@ -826,6 +840,7 @@ subagent QuoteManagement:
             label: "Apply Discount To Quote Line Item"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Applying discount ..."
             source: "quotingAI__ApplyDiscountToQuoteLine"
             target: "flow://quotingAI__applyDiscountToQuoteLine"
 
@@ -868,6 +883,7 @@ subagent QuoteManagement:
             label: "Identify Object by Name"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Looking up information ..."
             source: "EmployeeCopilot__IdentifyObjectByName"
             target: "standardInvocableAction://identifyObject"
 
@@ -892,6 +908,7 @@ subagent QuoteManagement:
             label: "Create Initial Quote"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Creating quote ..."
             source: "quotingAI__CreateInitialQuote"
             target: "flow://quotingAI__createInitialQuoteOnOpp"
 
@@ -940,6 +957,7 @@ subagent QuoteManagement:
             label: "Update Quote Line Item Details"
             require_user_confirmation: True
             include_in_progress_indicator: True
+            progress_indicator_message: "Updating quote line item ..."
             source: "quotingAI__UpdateQuoteLineItemDetails"
             target: "flow://quotingAI__updateQuoteLineItemDetails"
 
@@ -982,6 +1000,7 @@ subagent QuoteManagement:
             label: "Create Amendment Quote"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Creating amendment quote ..."
             source: "quotingAI__CreateAmendmentQuote"
             target: "flow://quotingAI__createAmendmentQuote"
 
@@ -999,7 +1018,7 @@ subagent QuoteManagement:
                     is_user_input: True
                     complex_data_type_name: "lightning__textType"
                 "quantityChange": number
-                    description: "The difference in quantity added or reduced from the asset's existing quantity."
+                    description: "The quantity delta to apply to the asset — positive to increase, negative to decrease. This is not the new total quantity; it is the difference from the current quantity (e.g., +2 to go from 10 to 12, or -3 to go from 10 to 7)."
                     label: "QuantityChange"
                     is_required: False
                     is_user_input: True
@@ -1028,14 +1047,15 @@ subagent QuoteManagement:
 subagent ConsumptionManagement:
 
     label: "Consumption Management"
-    description: "Retrieves usage details for accounts"
+    description: "Retrieves usage and consumption details for accounts including entitlement balances, UsageResource overages, assets with overage, and current-cycle usage summaries (UsageSummary records). Triggered when the user asks about usage, consumption, overages, entitlements, or how much of a product or service an account has consumed."
 
     reasoning:
         instructions: ->
             | Process queries related to usage details for up to five accounts. Call the relevant action to fetch details, such as usage resources with overages and the number of assets with overage for an account.
               Additional instructions follow:
-              - Always review the chat history to find answers before asking the user. If the answer isn't in the history, ask clarifying questions to understand the user's usage, consumption needs. Never repeat the same question. When multiple options are available for user selection, show them as radio buttons.
-              - If the user asks for usage details for given account names (up to five accounts), fetch the account IDs. If the user doesn't specify an account name and is on an account page, use the corresponding account ID. Then create a comma-separated string of these account IDs, and finally, use this string as a parameter to call the Get Usage Details action and get the response, including usage details for the current cycle only. Don’t include any projections. Add hyperlinks to the response, as needed.
+              - Always review the chat history to find answers before asking the user. If the answer isn’t in the history, ask clarifying questions to understand the user’s usage, consumption needs. Never repeat the same question. When multiple options are available for user selection, show them as radio buttons.
+              - If the user asks for usage details for given account names (up to five accounts), fetch the account IDs using IdentifyRecordByName with objectApiName Account. If the user doesn’t specify an account name and is on an Account page, use the currentRecordId context variable as the accountId directly — do not ask the user for it. Then create a comma-separated string of these account IDs, and finally, use this string as a parameter to call the Get Usage Details action and get the response, including usage details for the current cycle only. Don’t include any projections. Add hyperlinks to the response, as needed.
+              - Never display raw Salesforce record IDs to the user. Use human-readable names (Account Name, UsageResource Code, etc.) and render any record references as clickable Markdown hyperlinks using the record name as link text.
               
 
         actions:
@@ -1054,7 +1074,7 @@ subagent ConsumptionManagement:
             label: "Get Usage Details"
             require_user_confirmation: False
             include_in_progress_indicator: True
-            progress_indicator_message: "Retrieving usage details"
+            progress_indicator_message: "Retrieving usage details ..."
             source: "consumptionAI__GetUsageDetails"
             target: "prompt://consumptionAI__getAccountUsageDetails"
 
@@ -1085,6 +1105,7 @@ subagent ConsumptionManagement:
             label: "Identify Record by Name"
             require_user_confirmation: False
             include_in_progress_indicator: True
+            progress_indicator_message: "Looking up information ..."
             source: "EmployeeCopilot__IdentifyRecordByName"
             target: "standardInvocableAction://identifyRecordByName"
 
