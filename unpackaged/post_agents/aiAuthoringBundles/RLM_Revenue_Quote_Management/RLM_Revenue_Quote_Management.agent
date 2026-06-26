@@ -72,12 +72,16 @@ start_agent agent_router:
         instructions: ->
             | Select the best tool to call based on conversation history and user's intent.
               Routing rules:
+              - If the user asks about active assets, renewable assets, amendment quotes, renewal quotes, cancellations, terminations, or asset-backed quote lifecycle work, route to QuoteLifecycleManagement.
+              - If the user asks to create an initial quote, add products, update quote or quote line fields, apply line discounts, sync a quote, or unsync a quote, route to QuoteManagement.
+              - If the user asks about usage, consumption, overages, entitlement balances, or current-cycle usage summaries, route to ConsumptionManagement.
               - If the user asks to configure a product, change product attributes, set attribute values, or modify configurator options on a quote line item, always route to ProductConfiguration.
               - If the user is on a Quote page and the request references quote line item product configuration, route to ProductConfiguration and preserve the page-context quote ID.
 
         actions:
             go_to_ProductSelection: @utils.transition to @subagent.ProductSelection
             go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
+            go_to_QuoteLifecycleManagement: @utils.transition to @subagent.QuoteLifecycleManagement
             go_to_ConsumptionManagement: @utils.transition to @subagent.ConsumptionManagement
             go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
             go_to_ambiguous_question: @utils.transition to @subagent.ambiguous_question
@@ -277,14 +281,16 @@ subagent ProductSelection:
 subagent QuoteManagement:
 
     label: "Quote Management"
-    description: "Manage the full quote lifecycle: create initial, amendment, and renewal quotes; add products and apply discounts to quote lines; update quote and line item details; sync quotes to opportunities; and retrieve active or renewable assets on an account."
+    description: "Manage quote operations for new business and in-flight quotes: create initial quotes, add products, apply quote-line discounts, update quote and quote line item details, and sync or unsync quotes to opportunities. Does not handle asset-backed amendment, renewal, cancellation, or consumption requests."
 
     reasoning:
         instructions: ->
-            | Manage quote lifecycle tasks: create initial/amendment/renewal quotes, add quote lines, apply line discounts, update quote/line fields, sync or unsync quote to opportunity, and retrieve account assets.
+            | Manage quote operations for new business and in-flight quotes: create initial quotes, add quote lines, apply line discounts, update quote/line fields, and sync or unsync quotes to opportunities.
               Hard constraints:
               - Before calling any action that updates a record (UpdateQuoteDetails, UpdateQuoteLineItemDetails, UpdateRecordFields), summarize the exact change you are about to make and ask the user to confirm. Only proceed after the user explicitly confirms.
               - Do not handle product attribute configuration here; transition to ProductConfiguration for configurator requests.
+              - Do not handle amendment, renewal, cancellation, termination, active asset, or renewable asset requests here; transition to QuoteLifecycleManagement for asset-backed quote lifecycle work.
+              - Do not handle usage, consumption, overage, or entitlement-balance questions here; transition to ConsumptionManagement for consumption insight requests.
               - Never delete quotes.
               - Never create or update quotes when OriginalActionType is Renew.
               - Never create a quote on Closed Won or Closed Lost opportunities.
@@ -306,9 +312,6 @@ subagent QuoteManagement:
                 - Apply the discount by calling ApplyDiscountToQuoteLine once per selected quoteLineItemId, reusing the same discountPercentage. For "all", loop over every line in candidateQuoteLineSummariesJson.
                 - Before applying, summarize the exact discount and the specific line(s) it will affect, and ask the user to confirm. Only proceed after explicit confirmation.
                 - After applying, report per-line and overall results using product names, not raw IDs.
-              - Amendment quote: collect asset IDs and quantity deltas; support multiple assets in one amendment quote.
-              - Renewal quote: use renewable/active assets and create one renewal quote for all selected assets.
-              - Asset retrieval: use GetAccountAssets with assetType Active or Renewable as requested.
               - Quote sync/unsync: use GetRecordDetails to resolve related opportunity, then update only SyncedQuoteId through UpdateRecordFields.
               Response guidance:
               - Use concise confirmations with links like [Quote](/{quoteId}) after create/update/sync operations.
@@ -317,10 +320,6 @@ subagent QuoteManagement:
 
 
         actions:
-            CreateRenewalQuote: @actions.CreateRenewalQuote
-                with assetIds=...
-                with renewalEndDate=...
-                with renewalStartDate=...
             UpdateQuoteDetails: @actions.UpdateQuoteDetails
                 with inputFieldValues=...
                 with quoteId=...
@@ -338,9 +337,6 @@ subagent QuoteManagement:
                 with recordDetailInput=...
             GetRecordDetails: @actions.GetRecordDetails
                 with recordId=...
-            GetAccountAssets: @actions.GetAccountAssets
-                with accountId=...
-                with assetType=...
             QueryQuoteLineRecords: @actions.QueryQuoteLineRecords
                 with quoteId=...
                 with productIds=...
@@ -369,63 +365,13 @@ subagent QuoteManagement:
                 with inputFieldValues=...
                 with quoteId=...
                 with quoteLineItemId=...
-            CreateAmendmentQuote: @actions.CreateAmendmentQuote
-                with amendmentDate=...
-                with assetIds=...
-                with quantityChange=...
+            go_to_QuoteLifecycleManagement: @utils.transition to @subagent.QuoteLifecycleManagement
+            go_to_ConsumptionManagement: @utils.transition to @subagent.ConsumptionManagement
+            go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
 
 
 
     actions:
-        CreateRenewalQuote:
-            description: "Creates a renewal quote for eligible and renewable assets. The action takes asset IDs as input and provides a quote ID."
-            label: "Create Renewal Quote"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            progress_indicator_message: "Creating renewal quote ..."
-            source: "quotingAI__CreateRenewalQuote"
-            target: "flow://quotingAI__createRenewalQuote"
-
-            inputs:
-                "assetIds": list[string]
-                    description: "The list of asset IDs to include in a renewal quote."
-                    label: "assetIds"
-                    is_required: True
-                    is_user_input: True
-                    complex_data_type_name: "lightning__textType"
-                "renewalEndDate": object
-                    description: "The end date for the renewal quote."
-                    label: "renewalEndDate"
-                    is_required: False
-                    is_user_input: False
-                    complex_data_type_name: "lightning__dateTimeStringType"
-                "renewalStartDate": object
-                    description: "The start date for the renewal quote."
-                    label: "renewalStartDate"
-                    is_required: False
-                    is_user_input: False
-                    complex_data_type_name: "lightning__dateTimeStringType"
-
-            outputs:
-                "errorMessage": string
-                    description: "Provides an error message if applicable."
-                    label: "errorMessage"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "isSuccess": boolean
-                    description: "Indicates success or failure."
-                    label: "isSuccess"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__booleanType"
-                "renewalQuoteId": string
-                    description: "The ID of the renewal quote record."
-                    label: "renewalQuoteId"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-
         UpdateQuoteDetails:
             description: "Updates the fields in a quote."
             label: "Update Quote Details"
@@ -642,55 +588,6 @@ subagent QuoteManagement:
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__textType"
-
-        GetAccountAssets:
-            description: "Retrieves a list of active and term-defined renewable assets linked to an account."
-            label: "Get Account Assets"
-            require_user_confirmation: False
-            include_in_progress_indicator: True
-            progress_indicator_message: "Retrieving account assets ..."
-            source: "quotingAI__GetAccountAssets"
-            target: "flow://quotingAI__getAccountAssets"
-
-            inputs:
-                "accountId": string
-                    description: "The ID of the account record."
-                    label: "accountId"
-                    is_required: True
-                    is_user_input: True
-                    complex_data_type_name: "lightning__textType"
-                "assetType": string
-                    description: "The asset record's type, which can be Active or Renewable."
-                    label: "assetType"
-                    is_required: True
-                    is_user_input: False
-                    complex_data_type_name: "lightning__textType"
-
-            outputs:
-                "accountAssets": list[object]
-                    description: "A list of asset records from an account, retrieved by asset type."
-                    label: "accountAssets"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__recordInfoType"
-                "errorMessage": string
-                    description: "Error messages for retrieve account assets requests."
-                    label: "errorMessage"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__textType"
-                "isSuccessful": boolean
-                    description: "Indicates whether the request to get account assets was successful (true) or failed (false)."
-                    label: "isSuccessful"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__booleanType"
-                "totalAssetCount": number
-                    description: "The number of asset IDs retrieved for the account in the request."
-                    label: "totalAssetCount"
-                    is_displayable: False
-                    filter_from_agent: False
-                    complex_data_type_name: "lightning__numberType"
 
         QueryQuoteLineRecords:
             description: "Query a list of QuoteLineItem Id when given a list of Product2Id."
@@ -1033,6 +930,185 @@ subagent QuoteManagement:
                     filter_from_agent: False
                     complex_data_type_name: "lightning__booleanType"
 
+subagent QuoteLifecycleManagement:
+
+    label: "Quote Lifecycle Management"
+    description: "Manage asset-backed quote lifecycle work: retrieve active or renewable assets on an account, create amendment quotes from active assets, create renewal quotes from renewable or active assets, and explain that cancellation or termination requests require a supported cancellation action before the agent can perform them."
+
+    reasoning:
+        instructions: ->
+            | Manage asset-backed quote lifecycle tasks for amendments, renewals, active asset lookup, renewable asset lookup, and future cancellation or termination flows.
+              Hard constraints:
+              - Do not create initial quotes, add products, apply discounts, update quote or quote line fields, sync quotes, or handle product configuration here; route those requests to the appropriate quote operations or product configuration subagent.
+              - Do not handle usage, consumption, overage, or entitlement-balance questions here; transition to ConsumptionManagement for consumption insight requests.
+              - Never delete quotes or assets.
+              - Do not perform cancellation or termination actions unless a supported cancellation action is available in this subagent. If the user asks to cancel or terminate and no supported action is available, explain that this agent cannot perform cancellation yet and offer to help with amendment or renewal workflows instead.
+              Context and identification:
+              - Reuse information already provided in chat history. Ask follow-up questions only for missing required inputs.
+              - Resolve account IDs with IdentifyRecordByName when the user provides an account name.
+              - If currentObjectApiName is Account or currentRecordId starts with 001, treat currentRecordId as accountId by default unless the user explicitly indicates a different account.
+              - If multiple records or assets match, present options and wait for user selection before proceeding.
+              Workflow guidance:
+              - Asset retrieval: use GetAccountAssets with assetType Active for amendment requests and assetType Renewable for renewal requests unless the user explicitly asks for another eligible asset type.
+              - Amendment quote: collect asset IDs, amendment date if provided, and quantity deltas; support multiple assets in one amendment quote.
+              - Renewal quote: use renewable or active assets as eligible, collect renewal start and end dates if provided, and create one renewal quote for all selected assets.
+              - For cancellation or termination requests, do not improvise by deleting or negatively amending assets. Explain the current limitation clearly.
+              Response guidance:
+              - Use concise confirmations with links like [Quote](/{quoteId}) after create operations.
+              - Use human-readable names as link text whenever available.
+              - Do not expose raw Salesforce IDs in user-facing text.
+
+        actions:
+            CreateRenewalQuote: @actions.CreateRenewalQuote
+                with assetIds=...
+                with renewalEndDate=...
+                with renewalStartDate=...
+            IdentifyRecordByName: @actions.IdentifyRecordByName
+                with recordName=...
+                with objectApiName=...
+            GetAccountAssets: @actions.GetAccountAssets
+                with accountId=...
+                with assetType=...
+            CreateAmendmentQuote: @actions.CreateAmendmentQuote
+                with amendmentDate=...
+                with assetIds=...
+                with quantityChange=...
+            go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
+            go_to_ConsumptionManagement: @utils.transition to @subagent.ConsumptionManagement
+            go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
+
+
+
+    actions:
+        CreateRenewalQuote:
+            description: "Creates a renewal quote for eligible and renewable assets. The action takes asset IDs as input and provides a quote ID."
+            label: "Create Renewal Quote"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Creating renewal quote ..."
+            source: "quotingAI__CreateRenewalQuote"
+            target: "flow://quotingAI__createRenewalQuote"
+
+            inputs:
+                "assetIds": list[string]
+                    description: "The list of asset IDs to include in a renewal quote."
+                    label: "assetIds"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "renewalEndDate": object
+                    description: "The end date for the renewal quote."
+                    label: "renewalEndDate"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__dateTimeStringType"
+                "renewalStartDate": object
+                    description: "The start date for the renewal quote."
+                    label: "renewalStartDate"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__dateTimeStringType"
+
+            outputs:
+                "errorMessage": string
+                    description: "Provides an error message if applicable."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isSuccess": boolean
+                    description: "Indicates success or failure."
+                    label: "isSuccess"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "renewalQuoteId": string
+                    description: "The ID of the renewal quote record."
+                    label: "renewalQuoteId"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        IdentifyRecordByName:
+            description: "Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs."
+            label: "Identify Record by Name"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking up information ..."
+            source: "EmployeeCopilot__IdentifyRecordByName"
+            target: "standardInvocableAction://identifyRecordByName"
+
+            inputs:
+                "recordName": string
+                    description: "The name or title of the Salesforce record extracted from user input. The name can be used to find a Salesforce CRM record."
+                    label: "recordName"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "objectApiName": string
+                    description: "The API name of the Salesforce object (such as Account or Opportunity) associated with the record the user wants to find. The name can be obtained from the context and does not always require the identifyObjectByName action. (eg. IdentifyRecordByName(recordName=\"Paul\", objectApiName=\"user\")). Leave empty to check with all possible objectApiNames. Only use objectApiName field if a particular objectApiName type has been identified for this record in earlier step, otherwise leave empty to increase recall and query all objectApiNames by default (eg. IdentifyRecordByName(recordName=\"Paul\"))."
+                    label: "objectApiName"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "searchResults": list[object]
+                    description: "A list of the matching Salesforce record ids in descending order of relevance."
+                    label: "searchResults"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+
+        GetAccountAssets:
+            description: "Retrieves a list of active and term-defined renewable assets linked to an account."
+            label: "Get Account Assets"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Retrieving account assets ..."
+            source: "quotingAI__GetAccountAssets"
+            target: "flow://quotingAI__getAccountAssets"
+
+            inputs:
+                "accountId": string
+                    description: "The ID of the account record."
+                    label: "accountId"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "assetType": string
+                    description: "The asset record's type, which can be Active or Renewable."
+                    label: "assetType"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "accountAssets": list[object]
+                    description: "A list of asset records from an account, retrieved by asset type."
+                    label: "accountAssets"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+                "errorMessage": string
+                    description: "Error messages for retrieve account assets requests."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isSuccessful": boolean
+                    description: "Indicates whether the request to get account assets was successful (true) or failed (false)."
+                    label: "isSuccessful"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "totalAssetCount": number
+                    description: "The number of asset IDs retrieved for the account in the request."
+                    label: "totalAssetCount"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__numberType"
+
         CreateAmendmentQuote:
             description: "Create an amendment quote, also known as an add-on or change quote on an account with active assets."
             label: "Create Amendment Quote"
@@ -1056,7 +1132,7 @@ subagent QuoteManagement:
                     is_user_input: True
                     complex_data_type_name: "lightning__textType"
                 "quantityChange": number
-                    description: "The quantity delta to apply to the asset — positive to increase, negative to decrease. This is not the new total quantity; it is the difference from the current quantity (e.g., +2 to go from 10 to 12, or -3 to go from 10 to 7)."
+                    description: "The quantity delta to apply to the asset - positive to increase, negative to decrease. This is not the new total quantity; it is the difference from the current quantity (e.g., +2 to go from 10 to 12, or -3 to go from 10 to 7)."
                     label: "QuantityChange"
                     is_required: False
                     is_user_input: True
@@ -1085,16 +1161,18 @@ subagent QuoteManagement:
 subagent ConsumptionManagement:
 
     label: "Consumption Management"
-    description: "Retrieves usage and consumption details for accounts including entitlement balances, UsageResource overages, assets with overage, and current-cycle usage summaries (UsageSummary records). Triggered when the user asks about usage, consumption, overages, entitlements, or how much of a product or service an account has consumed."
+    description: "Retrieves read-only usage and consumption details for accounts including entitlement balances, UsageResource overages, assets with overage, and current-cycle usage summaries (UsageSummary records). Triggered when the user asks about usage, consumption, overages, entitlements, or how much of a product or service an account has consumed. Does not change quotes or assets; hand off to Quote Management or Quote Lifecycle Management when the user asks to act on the insight."
 
     reasoning:
         instructions: ->
-            | Handle usage and consumption questions for up to five accounts.
+            | Handle read-only usage and consumption questions for up to five accounts.
               Behavior guidelines:
               - Reuse account context from chat history when available.
               - If account names are provided, resolve account IDs with IdentifyRecordByName (objectApiName Account).
               - If account name is not provided and the user is on an Account page, use currentRecordId as accountId without re-asking.
               - Build a comma-delimited accountId list and call GetUsageDetails for current-cycle usage/overage summaries.
+              - If the user asks to create or update quote lines based on usage insight, transition to QuoteManagement.
+              - If the user asks for amendment, renewal, cancellation, termination, active asset, or renewable asset work based on usage insight, transition to QuoteLifecycleManagement.
               - Ask clarifying questions only when required inputs are missing.
               Response guidelines:
               - Do not show raw Salesforce IDs.
@@ -1108,6 +1186,8 @@ subagent ConsumptionManagement:
             IdentifyRecordByName: @actions.IdentifyRecordByName
                 with recordName=...
                 with objectApiName=...
+            go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
+            go_to_QuoteLifecycleManagement: @utils.transition to @subagent.QuoteLifecycleManagement
 
 
 
