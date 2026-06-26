@@ -1,2 +1,3 @@
 DefaultTaxTreatment.$$Name$LegalEntity.Name$TaxPolicy.Name,Description,Name,Status,TreatmentSelection
 Default Tax Policy;Default Legal Entity - US;Default Tax Policy,,Default Tax Policy,Active,Default
+Non Taxable Tax Treatment;Default Legal Entity - US;Non Taxable Tax Policy,Non-taxable policy for non-taxable products,Non Taxable Tax Policy,Active,Default

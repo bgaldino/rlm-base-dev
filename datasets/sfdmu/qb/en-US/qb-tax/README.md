@@ -44,8 +44,8 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 | 1 | LegalEntity      | Upsert    | `Name`                             | 4       |
 | 2 | TaxEngineProvider| Upsert    | `DeveloperName`                    | 1       |
 | 3 | TaxEngine        | Upsert    | `TaxEngineName`                    | 1       |
-| 4 | TaxTreatment     | Upsert    | `Name`                             | 1       |
-| 5 | TaxPolicy        | Upsert    | `Name`                             | 1       |
+| 4 | TaxTreatment     | Upsert    | `Name`                             | 2       |
+| 5 | TaxPolicy        | Upsert    | `Name`                             | 2       |
 | 6 | Product2         | Update    | `StockKeepingUnit`                 | 315     |
 
 **Note:** TaxTreatment and TaxPolicy use `skipExistingRecords: true` to avoid updating records that already exist. Product2 is Update-only (sets `TaxPolicyId`). The `create_tax_engine` Apex script creates TaxEngineProvider and TaxEngine via REST API before this SFDMU pass runs, so the SFDMU upsert of those objects acts as a safety net.
@@ -56,10 +56,10 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 
 | # | Object       | Operation | External ID                        | Records |
 |---|--------------|-----------|------------------------------------|---------|
-| 1 | TaxTreatment | Update    | `Name`                             | 1       |
-| 2 | TaxPolicy    | Update    | `Name`                             | 1       |
+| 1 | TaxTreatment | Update    | `Name`                             | 2       |
+| 2 | TaxPolicy    | Update    | `Name`                             | 2       |
 
-Pass 2 activates TaxTreatment (sets `Status`) and sets `DefaultTaxTreatmentId` on TaxPolicy.
+Pass 2 activates TaxTreatment (sets `Status`) and sets `DefaultTaxTreatmentId` on each TaxPolicy. `Default Tax Policy` defaults to `Default Tax Policy` (taxable); `Non Taxable Tax Policy` defaults to `Non Taxable Tax Treatment` (non-taxable). All `Product2.TaxPolicyId` assignments in this plan still target `Default Tax Policy` — opting a product into non-taxable behavior requires updating `Product2.csv` (or post-load configuration) to point at `Non Taxable Tax Policy`.
 
 ## Apex Scripts
 
@@ -126,16 +126,16 @@ qb-tax/
 ├── LegalEntity.csv                      # 4 records
 ├── TaxEngineProvider.csv                # 1 record
 ├── TaxEngine.csv                        # 1 record
-├── TaxTreatment.csv                     # 1 record
-├── TaxPolicy.csv                        # 1 record
+├── TaxTreatment.csv                     # 2 records
+├── TaxPolicy.csv                        # 2 records
 ├── Product2.csv                         # 315 records (Update only)
 ├── NamedCredential.csv                  # 1 record (reference only)
 │
 │  Source CSVs (Pass 2 - Activate)
 ├── objectset_source/
 │   └── object-set-2/
-│       ├── TaxTreatment.csv             # 1 record (Status -> Active)
-│       └── TaxPolicy.csv               # 1 record (DefaultTaxTreatment + Status)
+│       ├── TaxTreatment.csv             # 2 records (Status -> Active)
+│       └── TaxPolicy.csv               # 2 records (DefaultTaxTreatment + Status)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
