@@ -13,7 +13,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 | Flag | Default | Used in `when:` clauses |
 |------|---------|------------------------|
-| `agents` | `False` | 4 flow step(s) |
+| `agents` | `False` | 5 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 4 flow step(s) |
 | `billing` | `True` | 20 flow step(s) |
@@ -65,7 +65,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_agents` step 1 → `assign_permission_set_groups`
 - `prepare_agents` step 2 → `deploy_agents_settings`
 - `prepare_agents` step 3 → `deploy_agents`
-- `prepare_agents` step 4 → `assign_permission_sets`
+- `prepare_agents` step 4 → `activate_agents`
+- `prepare_agents` step 5 → `assign_permission_sets`
 
 ### `analytics` (default: `True`)
 

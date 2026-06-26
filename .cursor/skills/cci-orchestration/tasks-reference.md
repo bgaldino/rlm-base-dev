@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**253 tasks** across **10 groups**.
+**248 tasks** across **10 groups**.
 
 ---
 
@@ -852,7 +852,19 @@
 
 ## Revenue Lifecycle Management
 
-*160 task(s)*
+*155 task(s)*
+
+### `activate_agents`
+
+**Description:** Activate the latest BotVersion for each RLM agent. BotVersion.Status is not DML-writable and not part of source metadata, so fresh deploys land Inactive. This script calls the Connect REST activation endpoint for each agent listed in scripts/apex/activateAgents.apex.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/activateAgents.apex`
+
+---
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1431,7 +1443,7 @@
 
 ### `deploy_agents`
 
-**Description:** Deploy Agentforce Agent Configurations
+**Description:** Deploy Agentforce Agent Configurations (bots, planner bundles, permission sets) from unpackaged/post_agents.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1441,81 +1453,9 @@
 
 ---
 
-### `deploy_agents_bots`
-
-**Description:** Deploy Agentforce Agent Bots
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/bots`
-
----
-
-### `deploy_agents_flows`
-
-**Description:** Deploy Agentforce Agent Flows
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/flows`
-
----
-
-### `deploy_agents_genAiFunctions`
-
-**Description:** Deploy Agentforce Agent Functions
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/genAiFunctions`
-
----
-
-### `deploy_agents_genAiPlanners`
-
-**Description:** Deploy Agentforce Agent Planner Bundles
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/genAiPlannerBundles`
-
----
-
-### `deploy_agents_genAiPlugins`
-
-**Description:** Deploy Agentforce Agent Plugins
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/genAiPlugins`
-
----
-
-### `deploy_agents_permissionsets`
-
-**Description:** Deploy Agentforce Agent Permissionsets
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/permissionsets`
-
----
-
 ### `deploy_agents_settings`
 
-**Description:** Deploy Agentforce Agent Settings
+**Description:** Deploy Agentforce Agent Settings (EinsteinCopilot, EinsteinGpt, AgentPlatform). Required before deploying agent bots/planners.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 

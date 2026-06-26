@@ -939,61 +939,26 @@ tasks:
     options:
       path: force-app/main/default/decisionTables
 
-  deploy_agents_bots:
-    description: Deploy Agentforce Agent Bots
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_agents/bots
-
-  deploy_agents_genAiPlanners:
-    description: Deploy Agentforce Agent Planner Bundles
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_agents/genAiPlannerBundles
-
-  deploy_agents_genAiFunctions:
-    description: Deploy Agentforce Agent Functions
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_agents/genAiFunctions
-
-  deploy_agents_genAiPlugins:
-    description: Deploy Agentforce Agent Plugins
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_agents/genAiPlugins
-
-  deploy_agents_flows:
-    description: Deploy Agentforce Agent Flows
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_agents/flows
-
   deploy_agents_settings:
-    description: Deploy Agentforce Agent Settings
+    description: Deploy Agentforce Agent Settings (EinsteinCopilot, EinsteinGpt, AgentPlatform). Required before deploying agent bots/planners.
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/post_agents/settings
 
-  deploy_agents_permissionsets:
-    description: Deploy Agentforce Agent Permissionsets
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_agents/permissionsets
-  
   deploy_agents:
-    description: Deploy Agentforce Agent Configurations
+    description: Deploy Agentforce Agent Configurations (bots, planner bundles, permission sets) from unpackaged/post_agents.
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/post_agents
+
+  activate_agents:
+    group: Revenue Lifecycle Management
+    description: Activate the latest BotVersion for each RLM agent. BotVersion.Status is not DML-writable and not part of source metadata, so fresh deploys land Inactive. This script calls the Connect REST activation endpoint for each agent listed in scripts/apex/activateAgents.apex.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/activateAgents.apex
 
   deploy_quantumbit:
     description: Deploy QuantumBit Metadata
@@ -4101,6 +4066,9 @@ flows:
         task: deploy_agents
         when: project_config.project__custom__agents
       4:
+        task: activate_agents
+        when: project_config.project__custom__agents
+      5:
         task: assign_permission_sets
         when: project_config.project__custom__agents
         options:
