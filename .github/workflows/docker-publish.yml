@@ -25,6 +25,13 @@ on:
   push:
     tags:
       - "image-v*"
+  schedule:
+    # Weekly rebuild — Mondays 07:00 UTC — so the published image keeps current
+    # with base-image security patches, the latest sf CLI / SFDMU, and main's
+    # repo snapshot. Scheduled runs always build from the default branch (main).
+    # Adjust the cron (UTC, 5-field) to change cadence. Note: GitHub disables
+    # scheduled workflows after 60 days of repo inactivity.
+    - cron: "0 7 * * 1"
 
 concurrency:
   group: docker-publish-${{ github.ref }}
@@ -45,13 +52,20 @@ jobs:
         run: |
           owner="${GITHUB_REPOSITORY_OWNER,,}"   # lowercase for GHCR
           echo "image=ghcr.io/${owner}/rlm-base" >> "$GITHUB_OUTPUT"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
-            echo "platforms=${{ github.event.inputs.platforms }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF_NAME#image-v}" >> "$GITHUB_OUTPUT"
-            echo "platforms=linux/amd64,linux/arm64" >> "$GITHUB_OUTPUT"
-          fi
+          case "${{ github.event_name }}" in
+            workflow_dispatch)
+              tag="${{ github.event.inputs.tag }}"
+              platforms="${{ github.event.inputs.platforms }}" ;;
+            schedule)
+              # Weekly run: date-stamped tag for history, plus :latest (added below).
+              tag="$(date -u +%Y%m%d)"
+              platforms="linux/amd64,linux/arm64" ;;
+            *)  # tag push (image-v*)
+              tag="${GITHUB_REF_NAME#image-v}"
+              platforms="linux/amd64,linux/arm64" ;;
+          esac
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "platforms=${platforms}" >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU (multi-arch)
         uses: docker/setup-qemu-action@v3
