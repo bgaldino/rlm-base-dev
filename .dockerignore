@@ -22,6 +22,12 @@ node_modules
 .ruff_cache
 .mypy_cache
 
+# Local environment / secret files (mirror .gitignore — NEVER bake into layers)
+.env
+.env.*
+*.key
+*.pem
+
 # Salesforce / CumulusCI local auth + keychain + caches (NEVER bake secrets)
 .sf
 .sfdx

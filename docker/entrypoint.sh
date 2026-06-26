@@ -19,7 +19,7 @@ STATE_DIR="${RLM_STATE_DIR:-$HOME/.rlm-state}"
 # We relink the fixed home dotdirs (~/.sfdx, ~/.sf, ~/.cumulusci) into the
 # volume. The SFDMU plugin lives under ~/.local/share/sf (NOT relinked), so it
 # stays available from the baked image even with an empty state volume.
-mkdir -p "$STATE_DIR/sfdx" "$STATE_DIR/sf" "$STATE_DIR/cumulusci"
+mkdir -p "$STATE_DIR/sfdx" "$STATE_DIR/sf" "$STATE_DIR/cumulusci" "$STATE_DIR/claude"
 
 link_state() {
   local name="$1"
@@ -39,6 +39,17 @@ link_state() {
 link_state sfdx
 link_state sf
 link_state cumulusci
+# Claude Code stores its subscription login under ~/.claude/ (.credentials.json)
+# and ~/.claude.json; relink both into the volume so `rlm auth-ai` persists
+# across the throwaway containers that `rlm ask`/`assist` spin up.
+link_state claude
+if [ ! -L "$HOME/.claude.json" ]; then
+  if [ -e "$HOME/.claude.json" ]; then
+    cp -a "$HOME/.claude.json" "$STATE_DIR/claude.json" 2>/dev/null || true
+    rm -f "$HOME/.claude.json"
+  fi
+  ln -s "$STATE_DIR/claude.json" "$HOME/.claude.json"
+fi
 
 # --- 2) Stable CumulusCI key (16 chars), generated into the volume ----------
 KEYFILE="$STATE_DIR/cumulusci/.rlm_cci_key"

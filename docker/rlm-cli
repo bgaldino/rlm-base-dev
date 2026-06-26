@@ -201,8 +201,9 @@ cmd_login() {
     hd "Importing a Salesforce auth URL"
     if [ -t 0 ]; then
       err "No piped input. Provide an sfdx auth URL on stdin, e.g.:"
+      local dh_hint=""; [ "$devhub" = "1" ] && dh_hint="--devhub "
       say "  sf org auth show-sfdx-auth-url -o <username> --json | jq -r '.result.authUrl' \\"
-      say "    | ./docker/rlm login --auth-url ${devhub:+--devhub }--alias $alias"
+      say "    | ./docker/rlm login --auth-url ${dh_hint}--alias $alias"
       return 2
     fi
     # Read the piped auth URL (raw force://… or `show-sfdx-auth-url --json`
@@ -216,7 +217,7 @@ cmd_login() {
       [ -n "$extracted" ] && printf '%s\n' "$extracted" > "$tmpf"
     fi
     local sf_args=(org login sfdx-url --sfdx-url-file "$tmpf" --alias "$alias")
-    [ "$devhub" = "1" ] && sf_args+=(--set-default-dev-hub)
+    if [ "$devhub" = "1" ]; then sf_args+=(--set-default-dev-hub); else sf_args+=(--set-default); fi
     local rc=0
     sf "${sf_args[@]}" || rc=$?
     shred -u "$tmpf" 2>/dev/null || rm -f "$tmpf"
@@ -252,7 +253,7 @@ cmd_login() {
 
   # Launch the web login in the background; capture its output for diagnostics.
   local sf_args=(org login web --browser firefox --instance-url "$url" --alias "$alias")
-  [ "$devhub" = "1" ] && sf_args+=(--set-default-dev-hub)
+  if [ "$devhub" = "1" ]; then sf_args+=(--set-default-dev-hub); else sf_args+=(--set-default); fi
   ( PATH="$tmpd:$PATH" NODE_OPTIONS="--dns-result-order=ipv4first" \
       sf "${sf_args[@]}" >"$tmpd/sf.out" 2>&1 ) &
   local sfpid=$!
@@ -434,7 +435,11 @@ cmd_build() {
   echo
   confirm "Create the org and start the build?" || { say "Cancelled."; return 0; }
 
-  local sfile; sfile="$(mktemp /tmp/rlm-scenario.XXXXXX.json)"
+  # Persist the generated scenario in the state volume (not a temp file): `rlm
+  # resume` runs in a later container and must re-read this definition, since
+  # the dynamic alias-based scenario_id exists only here, not in the default
+  # scenarios.json.
+  local sfile="$STATE_DIR/last_scenario.json"
   write_scenario_file "$alias" "$shape" "$alias" "$days" "$lite" "$sfile"
 
   hd "Building — this can take a while (the full flow has 35 steps)"
@@ -442,13 +447,12 @@ cmd_build() {
   python3 scripts/build_harness/harness.py run \
       --scenario "$alias" --scenarios-file "$sfile" --keep-orgs
   local rc=$?
-  rm -f "$sfile"
 
-  # Record the latest run so 'rlm resume' can find it.
+  # Record the latest run so 'rlm resume' can find it (incl. the scenario file).
   local run_dir; run_dir="$(ls -td .harness/runs/*/ 2>/dev/null | head -1)"
   if [ -n "$run_dir" ]; then
     local run_id; run_id="$(basename "$run_dir")"
-    printf '{"run_id":"%s","scenario":"%s"}\n' "$run_id" "$alias" \
+    printf '{"run_id":"%s","scenario":"%s","scenarios_file":"%s"}\n' "$run_id" "$alias" "$sfile" \
       > "$STATE_DIR/last_build.json" 2>/dev/null || true
   fi
 
@@ -480,15 +484,19 @@ cmd_resume() {
   if [ ! -f "$last" ]; then
     err "No previous build to resume. Start one with: rlm build"; return 1
   fi
-  local run_id scenario
+  local run_id scenario sfile
   run_id="$(jq -r '.run_id // empty' "$last" 2>/dev/null)"
   scenario="$(jq -r '.scenario // empty' "$last" 2>/dev/null)"
+  sfile="$(jq -r '.scenarios_file // empty' "$last" 2>/dev/null)"
   if [ -z "$run_id" ] || [ -z "$scenario" ]; then
     err "Couldn't read the last build's id. Re-run: rlm build"; return 1
   fi
   hd "Resuming build $run_id (scenario $scenario)"
+  # Pass the persisted scenario file so the harness can resolve the dynamic id.
+  local extra=()
+  [ -n "$sfile" ] && [ -f "$sfile" ] && extra=(--scenarios-file "$sfile")
   python3 scripts/build_harness/harness.py resume \
-      --run-id "$run_id" --scenario "$scenario" --keep-orgs
+      --run-id "$run_id" --scenario "$scenario" "${extra[@]}" --keep-orgs
 }
 
 # --------------------------------------------------------------------------- #
