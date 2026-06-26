@@ -47,6 +47,10 @@ fi
 REPO="$RLM_REPO"
 cd "$REPO" 2>/dev/null || { err "Repo not found at $REPO"; exit 1; }
 
+# How the user invokes us, for accurate next-step hints. The host launcher sets
+# RLM_INVOKE=./docker/rlm; inside an attached shell it's just `rlm`.
+INVOKE="${RLM_INVOKE:-rlm}"
+
 # --------------------------------------------------------------------------- #
 # Small utilities
 # --------------------------------------------------------------------------- #
@@ -61,6 +65,17 @@ current_devhub() {
 org_username() {
   sf org display --target-org "$1" --json 2>/dev/null \
     | jq -r '.result.username // empty' 2>/dev/null
+}
+
+# Resolve an org's sf username from a bare CCI name, an sf alias, or a username.
+# CumulusCI registers scratch orgs in sf as "<project>__<name>", so the bare
+# name `rlm build` reports won't match a direct alias lookup.
+resolve_username() {
+  sf org list --json 2>/dev/null | jq -r --arg a "$1" '
+    ([.result.scratchOrgs[]?] + [.result.nonScratchOrgs[]?])
+    | map(select(.alias == $a or .username == $a
+                 or (.alias != null and (.alias | endswith("__" + $a)))))
+    | .[0].username // empty' 2>/dev/null
 }
 
 confirm() {
@@ -462,12 +477,12 @@ cmd_build() {
   if [ "$rc" -eq 0 ]; then
     ok "Build complete."
     local real_alias; real_alias="$(_resolved_org_alias "$run_dir" "$alias")"
-    say "Open the org in your browser:  ${B}rlm open ${real_alias}${R}"
-    say "List your orgs:                ${B}rlm orgs${R}"
+    say "Open the org in your browser:  ${B}${INVOKE} open ${real_alias}${R}"
+    say "List your orgs:                ${B}${INVOKE} orgs${R}"
   else
     err "The build stopped before finishing (exit $rc)."
     say "Most failures are transient — resume from where it stopped with:"
-    say "  ${B}rlm resume${R}"
+    say "  ${B}${INVOKE} resume${R}"
     say "Or inspect the report:  ${DIM}$run_dir""report.md${R}"
   fi
   return "$rc"
@@ -540,12 +555,15 @@ cmd_open() {
     alias="$(sf config get target-org --json 2>/dev/null | jq -r '.result[0].value // empty')"
   fi
   if [ -z "$alias" ]; then
-    err "Which org? Usage: rlm open ALIAS   (see 'rlm orgs')"; return 1
+    err "Which org? Usage: ${INVOKE} open ALIAS   (see '${INVOKE} orgs')"; return 1
   fi
+  # Open by username so the CumulusCI "<project>__<name>" alias prefix doesn't
+  # matter; fall back to the given name if it's a direct sf alias.
+  local user; user="$(resolve_username "$alias")"
   hd "Login URL for $alias"
   say "${DIM}Open this URL in your browser to enter the org (do not share it):${R}"
-  if ! sf org open --target-org "$alias" --url-only 2>/dev/null; then
-    err "Couldn't get a URL for '$alias'. Is it connected? (rlm orgs)"
+  if ! sf org open --target-org "${user:-$alias}" --url-only 2>/dev/null; then
+    err "Couldn't get a URL for '$alias'. Is it connected? (${INVOKE} orgs)"
     return 1
   fi
 }

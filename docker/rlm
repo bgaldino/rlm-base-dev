@@ -69,6 +69,9 @@ RUN_FLAGS=()
 common_flags() {
   RUN_FLAGS=(--rm -v "${VOLUME}:/home/rlm/.rlm-state")
   if [ -t 0 ]; then RUN_FLAGS+=(-it); else RUN_FLAGS+=(-i); fi
+  # Tell the in-container CLI how it was invoked, so its next-step hints show
+  # `./docker/rlm …` (not bare `rlm`, which isn't on the host PATH).
+  RUN_FLAGS+=(-e "RLM_INVOKE=${RLM_INVOKE:-./docker/rlm}")
   [ -n "${ANTHROPIC_API_KEY:-}" ] && RUN_FLAGS+=(-e "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}")
   if [ -n "${RLM_MOUNT_REPO:-}" ]; then
     [ -f "${RLM_MOUNT_REPO}/cumulusci.yml" ] || die "RLM_MOUNT_REPO=${RLM_MOUNT_REPO} is not an rlm-base checkout."
