@@ -58,9 +58,11 @@ hd "2. State wiring (fresh volume)"
 n=$(dvol "$FRESH" sh -c 'ls -ld ~/.sfdx ~/.sf ~/.cumulusci ~/.claude ~/.claude.json 2>&1 | grep -c -- "-> /home/rlm/.rlm-state"')
 [ "$(printf '%s' "$n"|tail -1)" = "5" ] && g "entrypoint: 5 auth dirs symlinked to volume" || b "entrypoint symlinks" "$n"
 has "$(dvol "$FRESH" sh -c 'test -s ~/.rlm-state/cumulusci/.rlm_cci_key && echo ok')" ok && g "entrypoint: stable CUMULUSCI_KEY generated" || b "key missing"
-# devcontainer path: ENTRYPOINT bypassed → postStartCommand wires state
-o=$(braw "$FRESH" '/usr/local/bin/rlm-setup-state >/dev/null 2>&1; ls -ld ~/.sfdx 2>&1 | grep -c -- "->"; grep -c CUMULUSCI_KEY ~/.rlm-env')
-has "$o" "1" && g "devcontainer postStartCommand wires state + ~/.rlm-env" || b "postStartCommand wiring" "$o"
+# devcontainer path: ENTRYPOINT bypassed → postStartCommand wires state.
+# Label each half so BOTH must pass — a bare grep for "1" over the combined
+# output would green on "0\n1" (symlink missing) or "1\n0" (env-key missing).
+o=$(braw "$FRESH" '/usr/local/bin/rlm-setup-state >/dev/null 2>&1; printf "SL=%s\n" "$(ls -ld ~/.sfdx 2>&1 | grep -c -- "->")"; printf "KE=%s\n" "$(grep -c CUMULUSCI_KEY ~/.rlm-env 2>/dev/null)"')
+{ has "$o" "SL=1" && has "$o" "KE=1"; } && g "devcontainer postStartCommand wires state + ~/.rlm-env" || b "postStartCommand wiring" "$o"
 # BASH_ENV recovery: a NEW bash after setup-state picks up the env file
 o=$(braw "$FRESH" '/usr/local/bin/rlm-setup-state >/dev/null 2>&1; bash -c "echo R=\$RLM_REPO K=\${CUMULUSCI_KEY:+set}"')
 has "$o" "R=/opt/rlm-base-dev K=set" && g "BASH_ENV recovers RLM_REPO + CUMULUSCI_KEY" || b "BASH_ENV" "$o"
@@ -96,7 +98,11 @@ hd "6. Persistent lifecycle (isolated container)"
 RLM_CONTAINER="$TC" RLM_STATE_VOLUME="$FRESH" ./docker/rlm up >/dev/null 2>&1
 has "$(docker exec "$TC" rlm version 2>&1)" "repo *  */work" && g "up + exec: repo resolves to /work mount" || b "up/exec repo"
 has "$(docker exec "$TC" bash -c 'echo R=$RLM_REPO K=${CUMULUSCI_KEY:+set}' 2>&1)" "R=/work K=set" && g "exec bash -c: env via BASH_ENV (real path)" || b "exec BASH_ENV"
-RLM_CONTAINER="$TC" ./docker/rlm down >/dev/null 2>&1 && g "down: container removed" || b "down"
+# Assert the container is actually gone, not just that `down` exited 0 — `down`
+# exits 0 whether it removed $TC or found nothing (so a regression that ignored
+# RLM_CONTAINER would be masked by the EXIT trap's later cleanup).
+RLM_CONTAINER="$TC" ./docker/rlm down >/dev/null 2>&1
+docker inspect "$TC" >/dev/null 2>&1 && b "down: container still present after down" || g "down: container removed"
 
 printf '\n\033[1m════════════════════════════════════════\033[0m\n'
 printf '  RESULT: \033[32m%d passed\033[0m, \033[31m%d failed\033[0m, \033[33m%d skipped\033[0m\n' "$PASS" "$FAIL" "$SKIP"
