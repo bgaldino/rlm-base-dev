@@ -39,10 +39,19 @@ live_has_orgs(){ docker volume inspect "$LIVE" >/dev/null 2>&1; }
 docker image inspect "$IMG" >/dev/null 2>&1 || { echo "Image '$IMG' not found — run ./docker/rlm setup"; exit 2; }
 
 hd "1. Toolchain / image"
-o=$(dvol "$FRESH" version)
-for t in node sf sfdmu cci claude python; do has "$o" "^  $t " && g "version: $t present" || b "version: $t missing"; done
+# Assert the actual binaries exist via command -v. `rlm version` prints the
+# labels even when a tool is missing (and validate_setup doesn't check claude),
+# so a label-only check could pass on an image that dropped a tool.
+o=$(dvol "$FRESH" sh -c 'for x in node sf cci python3 claude; do command -v "$x" >/dev/null 2>&1 || echo "MISSING:$x"; done; sf plugins 2>/dev/null | grep -qi sfdmu || echo "MISSING:sfdmu"; echo __ok__')
+if has "$o" "__ok__" && ! has "$o" "MISSING:"; then g "toolchain binaries present (node/sf/sfdmu/cci/python/claude)"; else b "toolchain binaries" "$(printf '%s' "$o"|grep MISSING)"; fi
 docker volume rm "$FRESH" >/dev/null 2>&1 || true
-o=$(dvol "$FRESH" doctor); has "$o" "All required checks passed|Passed *: *12" && g "doctor: validate_setup all pass" || b "doctor failed" "$(printf '%s' "$o"|tail -2)"
+has "$(dvol "$FRESH" version)" "project *  *rlm-base" && g "rlm version runs (project rlm-base)" || b "rlm version"
+docker volume rm "$FRESH" >/dev/null 2>&1 || true
+# Validate the image with auto-fix DISABLED, so a missing/outdated dep fails the
+# check here instead of being silently installed in this throwaway container
+# (which would leave the image broken for the next run while the suite passes).
+o=$(dvol "$FRESH" cci task run validate_setup -o auto_fix false -o auto_fix_robot false)
+has "$o" "All required checks passed|Passed *: *12" && g "validate_setup (auto-fix off): all pass" || b "validate_setup failed" "$(printf '%s' "$o"|grep -iE 'fail|error'|tail -2)"
 docker volume rm "$FRESH" >/dev/null 2>&1 || true
 
 hd "2. State wiring (fresh volume)"
@@ -79,7 +88,9 @@ for f in docker/rlm docker/rlm-cli docker/entrypoint.sh docker/setup-state.sh do
   /bin/bash -n "$f" 2>/dev/null && g "syntax: $f" || b "syntax: $f"; done
 cp docker/rlm "/tmp/rlm-smk-$$"
 has "$( cd /tmp && "/tmp/rlm-smk-$$" setup 2>&1 | head -1 )" "Can't find the rlm-base checkout" && g "REPO_ROOT: build-needing cmd errors clearly off-checkout" || b "REPO_ROOT guard"
-has "$( cd /tmp && "/tmp/rlm-smk-$$" version 2>&1 )" "CumulusCI version" && g "REPO_ROOT: org commands work off-checkout" || b "version off-checkout"
+# Point at a throwaway volume so a clean machine/CI doesn't get the real
+# rlm-state volume created as a side effect (cleaned up by the EXIT trap).
+has "$( cd /tmp && RLM_STATE_VOLUME="$FRESH" "/tmp/rlm-smk-$$" version 2>&1 )" "CumulusCI version" && g "REPO_ROOT: org commands work off-checkout" || b "version off-checkout"
 
 hd "6. Persistent lifecycle (isolated container)"
 RLM_CONTAINER="$TC" RLM_STATE_VOLUME="$FRESH" ./docker/rlm up >/dev/null 2>&1
