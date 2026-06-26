@@ -32,6 +32,10 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         @InvocableVariable(label='Product Name Found')
         public String productNameFound;
 
+        @InvocableVariable(label='Is Success'
+            description='True if the lookup ran correctly (including no-match and disambiguation outcomes). False only when a system or input error prevented it from running. Distinct from isFound, which reports whether a single high-confidence match was selected.')
+        public Boolean isSuccess;
+
         @InvocableVariable(label='Is Found')
         public Boolean isFound;
 
@@ -57,6 +61,7 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         public String errorMessage;
 
         public LookupOutput() {
+            this.isSuccess = false;
             this.isFound = false;
             this.needsDisambiguation = false;
             this.matchConfidencePercent = 0;
@@ -110,17 +115,15 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
                 return out;
             }
 
-            Id quoteId;
-            try {
-                quoteId = Id.valueOf(input.quoteId.trim());
-            } catch (Exception invalidId) {
+            Id quoteId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteId);
+            if (quoteId == null) {
                 out.errorMessage = 'Invalid quote Id: ' + input.quoteId;
                 return out;
             }
 
             String queryText = input.productName.trim();
             String normalizedQuery = normalizeText(queryText);
-            String likePattern = '%' + escapeLikeTerm(queryText) + '%';
+            String likePattern = '%' + RLM_AI_ConfigServiceUtils.escapeLikeTerm(queryText) + '%';
             List<QuoteLineItem> qlis = [
                 SELECT Id, Product2Id, Product2.Name, Quantity, UnitPrice, NetUnitPrice, TotalPrice, NetTotalPrice
                 FROM QuoteLineItem
@@ -129,6 +132,10 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
                 ORDER BY Product2.Name ASC
                 LIMIT :MAX_CANDIDATES
             ];
+            // The lookup ran correctly past validation — match, disambiguation,
+            // and no-match are all successful outcomes (isSuccess = true).
+            // Only input/system errors leave isSuccess = false.
+            out.isSuccess = true;
             if (!qlis.isEmpty()) {
                 Integer thresholdPercent = resolveThresholdPercent(input.autoSelectThresholdPercent);
                 List<MatchCandidate> rankedCandidates = rankCandidates(qlis, normalizedQuery);
@@ -426,12 +433,5 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
             }
         }
         return tokens;
-    }
-
-    private static String escapeLikeTerm(String rawValue) {
-        return rawValue
-            .replace('\\', '\\\\')
-            .replace('%', '\\%')
-            .replace('_', '\\_');
     }
 }

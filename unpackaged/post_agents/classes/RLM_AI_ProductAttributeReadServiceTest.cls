@@ -20,6 +20,7 @@ private class RLM_AI_ProductAttributeReadServiceTest {
         System.assertEquals('{}', results[0].savedAttributesJson);
         System.assertEquals('', results[0].configurationSummary);
         System.assertEquals(null, results[0].errorMessage);
+        System.assertEquals(true, results[0].isSuccess);
     }
 
     @isTest

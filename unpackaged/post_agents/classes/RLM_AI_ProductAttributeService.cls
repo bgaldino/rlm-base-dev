@@ -30,6 +30,10 @@ public with sharing class RLM_AI_ProductAttributeService {
         @InvocableVariable(label='Has Configurable Attributes')
         public Boolean hasConfigurableAttributes;
 
+        @InvocableVariable(label='Is Success'
+            description='True if the action ran without a system-level error. False if an exception prevented it from completing. Distinct from hasConfigurableAttributes, which is a domain result.')
+        public Boolean isSuccess;
+
         @InvocableVariable(label='Error Message')
         public String errorMessage;
     }
@@ -51,6 +55,7 @@ public with sharing class RLM_AI_ProductAttributeService {
 
     private static GetAttributeOptionsOutput fetchAttributeOptions(String qliId) {
         GetAttributeOptionsOutput out = new GetAttributeOptionsOutput();
+        out.isSuccess = true;
         try {
             // Step 1: Resolve Product2Id and ProductClassificationId (BasedOnId)
             List<QuoteLineItem> qlis = [
@@ -154,13 +159,14 @@ public with sharing class RLM_AI_ProductAttributeService {
                 attrList.add(entry);
             }
 
-            out.attributesJson = JSON.serialize(attrList);
+            out.attributesJson = RLM_AI_ConfigServiceUtils.safeSerialize(attrList);
             out.hasConfigurableAttributes = !attrList.isEmpty();
             out.attributeSummary = buildSummary(out.productName, attrList);
 
         } catch (Exception e) {
             out.errorMessage = e.getMessage();
             out.hasConfigurableAttributes = false;
+            out.isSuccess = false;
         }
         return out;
     }

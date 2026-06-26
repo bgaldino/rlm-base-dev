@@ -18,6 +18,7 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
         Test.stopTest();
 
         System.assertEquals(1, results.size(), 'One result should be returned.');
+        System.assertEquals(true, results[0].isSuccess, 'Lookup ran correctly.');
         System.assertEquals(true, results[0].isFound, 'Expected product match.');
         System.assertEquals(String.valueOf(fixture.quoteLineItemId), results[0].quoteLineItemId);
         System.assertEquals('FESBA Generator Set', results[0].productNameFound);
@@ -40,6 +41,7 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
                 new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
             );
 
+        System.assertEquals(true, results[0].isSuccess, 'A no-match outcome still ran correctly.');
         System.assertEquals(false, results[0].isFound);
         System.assertNotEquals(null, results[0].errorMessage);
         System.assert(results[0].errorMessage.contains('No QuoteLineItem found'));
@@ -57,6 +59,7 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
                 new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
             );
 
+        System.assertEquals(false, results[0].isSuccess, 'An invalid quote Id is a system/input error.');
         System.assertEquals(false, results[0].isFound);
         System.assertNotEquals(null, results[0].errorMessage);
         System.assert(results[0].errorMessage.contains('Invalid quote Id'));
@@ -121,6 +124,7 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
                 new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
             );
 
+        System.assertEquals(false, results[0].isSuccess, 'A blank product name is an input error.');
         System.assertEquals(false, results[0].isFound);
         System.assertEquals('Product name is required.', results[0].errorMessage);
     }
@@ -143,6 +147,7 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
                 new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
             );
 
+        System.assertEquals(true, results[0].isSuccess, 'A disambiguation outcome still ran correctly.');
         System.assertEquals(false, results[0].isFound);
         System.assertEquals(true, results[0].needsDisambiguation);
         System.assert(results[0].matchConfidencePercent < 80);

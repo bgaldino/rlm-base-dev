@@ -20,6 +20,7 @@ private class RLM_AI_ProductAttributeServiceTest {
         System.assertEquals('RLM No Classification Product', results[0].productName);
         System.assertEquals(false, results[0].hasConfigurableAttributes);
         System.assertEquals('[]', results[0].attributesJson);
+        System.assertEquals(true, results[0].isSuccess, 'Lookup ran correctly even with no configurable attributes.');
     }
 
     @isTest
@@ -34,6 +35,10 @@ private class RLM_AI_ProductAttributeServiceTest {
             );
 
         System.assertEquals(false, results[0].hasConfigurableAttributes);
+        // A non-resolvable QuoteLineItem is a domain not-found (carried by
+        // hasConfigurableAttributes + errorMessage), not a system error — the
+        // lookup still ran correctly, so isSuccess stays true.
+        System.assertEquals(true, results[0].isSuccess);
         System.assertNotEquals(null, results[0].errorMessage);
     }
 }

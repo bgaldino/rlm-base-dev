@@ -80,7 +80,7 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
         SaveOutput out = new SaveOutput();
         try {
             Map<String, Object> selections =
-                (Map<String, Object>) JSON.deserializeUntyped(input.attributeSelectionsJson);
+                RLM_AI_ConfigServiceUtils.safeDeserializeMap(input.attributeSelectionsJson);
 
             // ── Step 1: Load existing attributes with definition type + picklist ──
             Map<String, QuoteLineItemAttribute> existingByDevName =

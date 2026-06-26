@@ -17,6 +17,10 @@ public with sharing class RLM_AI_ProductAttributeReadService {
         @InvocableVariable(label='Saved Attributes JSON')
         public String savedAttributesJson;
 
+        @InvocableVariable(label='Is Success'
+            description='True if the read ran without a system-level error. False if an exception prevented it from completing.')
+        public Boolean isSuccess;
+
         @InvocableVariable(label='Error Message')
         public String errorMessage;
     }
@@ -36,6 +40,7 @@ public with sharing class RLM_AI_ProductAttributeReadService {
 
     private static ReadOutput read(String qliId) {
         ReadOutput out = new ReadOutput();
+        out.isSuccess = true;
         try {
             List<QuoteLineItemAttribute> attrs = [
                 SELECT AttributeName, AttributeValue
@@ -56,6 +61,7 @@ public with sharing class RLM_AI_ProductAttributeReadService {
 
         } catch (Exception e) {
             out.errorMessage = e.getMessage();
+            out.isSuccess = false;
         }
         return out;
     }

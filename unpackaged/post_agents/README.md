@@ -7,9 +7,9 @@ This bundle deploys two Agentforce **Employee Agents** plus their settings and p
 | Asset | Path | Notes |
 | --- | --- | --- |
 | Settings | `settings/` | `AgentPlatform`, `EinsteinCopilot`, `EinsteinGpt`. Deployed first by `deploy_agents_settings`. |
-| Product Configuration services | `classes/` | Apex invocable services used by Product Configuration flows: `RLM_AI_QuoteLineItemLookupService`, `RLM_AI_ProductAttributeService`, `RLM_AI_ProductAttributeSaveService`, `RLM_AI_ProductAttributeReadService`. |
-| Revenue Quote Management agent | `aiAuthoringBundles/RLM_Revenue_Quote_Management/` | Builder Script `.agent` authoring bundle (developer name `RLM_Revenue_Quote_Management`; label "Revenue Quote Management"). The org compiles this into `Bot` + `BotVersion` + `GenAiPlannerBundle` at publish time. |
-| Billing Employee Assistance agent | `aiAuthoringBundles/RLM_Billing_Employee_Assistance/` | Builder Script `.agent` authoring bundle (developer name `RLM_Billing_Employee_Assistance`; label "Billing Employee Assistance"). |
+| Product Configuration services | `classes/` | Apex invocable services used by Product Configuration flows: `RLM_AI_QuoteLineItemLookupService`, `RLM_AI_ProductAttributeService`, `RLM_AI_ProductAttributeSaveService`, `RLM_AI_ProductAttributeReadService`, plus the shared `inherited sharing` helper `RLM_AI_ConfigServiceUtils` (Id/prefix validation, null-safe JSON, SOQL LIKE escaping). |
+| Revenue Quote Management agent | `aiAuthoringBundles/RLM_Revenue_Quote_Management/` | Builder Script `.agent` authoring bundle (developer name `RLM_Revenue_Quote_Management`; label "Quote Management"). The org compiles this into `Bot` + `BotVersion` + `GenAiPlannerBundle` at publish time. |
+| Billing Employee Assistance agent | `aiAuthoringBundles/RLM_Billing_Employee_Assistance/` | Builder Script `.agent` authoring bundle (developer name `RLM_Billing_Employee_Assistance`; label "Billing Assistant"). |
 | Permission sets | `permissionsets/RLM_QuotingAgent.permissionset-meta.xml`, `permissionsets/RLM_BillingEmployeeAgent.permissionset-meta.xml` | Each contains `<agentAccesses>` so Lightning users can see the agent. |
 
 `AiAuthoringBundle` requires **API version 65.0 or higher**.
@@ -21,6 +21,10 @@ Both bots reference platform-provided templates via `agent_type: "AgentforceEmpl
 The `quotingAI__` and `billing_agents__` prefixes look like managed-package namespaces but they are **platform-provided OOTB templates** — available without installing a package.
 
 Planner-bundle action IDs are not committed for either agent — the platform mints them fresh from the `.agent` source on each `sf agent publish`.
+
+### Bundle versioning is intentionally unpinned
+
+Each `*.bundle-meta.xml` contains only `<bundleType>AGENT</bundleType>` — **no `<target>AgentName.vNN</target>` element**. This is deliberate and "timeless": every `sf agent publish authoring-bundle` (driven by `publish_agents`) auto-mints the next `BotVersion`, and `activate_agents` activates that latest version. Pinning `<target>` to a specific `.vNN` would force a version bump in source on every behavioral change (churn) and only matches the org it was last retrieved from — it does **not** help fresh deploys. **Do not re-add a `<target>` version element.** If you ever retrieve a bundle from an org and the CLI writes a `<target>…vNN</target>` back in, strip it before committing.
 
 ## Deploy / activate / assign
 
