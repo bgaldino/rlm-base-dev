@@ -323,7 +323,6 @@ These permission sets are stored as metadata in this repository but are not assi
 | `RLM_UsageDatatables` | `unpackaged/post_utils/` | Read access to usage objects + `RLM_UsageDataController` Apex class for Usage Datatable LWC |
 | `RLM_Partner_Community_User_Perm_Set` | `unpackaged/post_prm/` | Partner community user FLS |
 | `RLM_BillingEmployeeAgent` | `unpackaged/post_agents/` | Agentforce billing employee agent access |
-| `RLM_BillingServiceAgent` | `unpackaged/post_agents/` | Agentforce billing service agent access |
 | `DRO_Integrations` | `unpackaged/post_tso/` | DRO integration permissions (TSO only) |
 | `TwinField_Permissions` | `unpackaged/post_context/` | Twin field FLS for context definitions (present in repo; not deployed by any standard task/flow — deploy manually if needed) |
 
