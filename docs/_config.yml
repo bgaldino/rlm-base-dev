@@ -1,0 +1,17 @@
+# GitHub Pages (Jekyll) configuration for the /docs site.
+#
+# Exclude the captured Salesforce Help / dev-guide snapshots under docs/salesforce/.
+# Those are copies of Salesforce's own documentation kept in-repo for AI-agent
+# grounding (see docs/salesforce/{version}/), NOT part of the published Pages site
+# — and republishing vendor docs publicly isn't desirable anyway.
+#
+# They also contain original templating placeholders like `{{contextNodeMappingId}}`,
+# which Jekyll's Liquid parser tries to evaluate and fails on — breaking the Pages
+# build (Liquid syntax error in
+# salesforce/262/dev-guide-industries/articles/connect_resources_context_attribute_mapping_id.htm.md,
+# introduced in #260). Excluding them fixes the build and immunizes it against
+# future captures.
+#
+# Paths are relative to the Pages source dir (/docs).
+exclude:
+  - salesforce/
