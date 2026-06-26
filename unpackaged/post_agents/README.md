@@ -27,10 +27,11 @@ Driven by the `prepare_agents` flow (`cumulusci.yml`):
 
 1. `assign_permission_set_groups` → `CopilotSalesforceUserPSG`, `CopilotSalesforceAdminPSG`
 2. `deploy_agents_settings` → `unpackaged/post_agents/settings`
-3. `deploy_agents` → the whole `unpackaged/post_agents` tree
+3. `deploy_agents` → the authoring bundles under `unpackaged/post_agents/aiAuthoringBundles`
 4. `publish_agents` → runs `sf agent publish authoring-bundle` for each `aiAuthoringBundles/<Name>/` so the platform compiles the bundle into a runnable `BotVersion`
 5. `activate_agents` → runs `sf agent activate` for each agent discovered under `aiAuthoringBundles/`
-6. `assign_permission_sets` → `RLM_QuotingAgent`, `RLM_BillingEmployeeAgent` (the `ps_aea` anchor)
+6. `deploy_agent_permission_sets` → `unpackaged/post_agents/permissionsets` (must run **after** publish: each PS's `<agentAccesses>` compiles to a `botDefinition` reference, and the Bot only exists once the bundle is published)
+7. `assign_permission_sets` → `RLM_QuotingAgent`, `RLM_BillingEmployeeAgent` (the `ps_aea` anchor)
 
 Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`, default `true` in `cumulusci.yml`). Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
 

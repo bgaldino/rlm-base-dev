@@ -947,11 +947,18 @@ tasks:
       path: unpackaged/post_agents/settings
 
   deploy_agents:
-    description: Deploy Agentforce Agent Configurations (authoring bundles and permission sets) from unpackaged/post_agents.
+    description: Deploy Agentforce Agent authoring bundles from unpackaged/post_agents/aiAuthoringBundles. Permission sets deploy separately (deploy_agent_permission_sets) after publish, because their agentAccesses reference a Bot that does not exist until publish_agents compiles the bundle.
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
-      path: unpackaged/post_agents
+      path: unpackaged/post_agents/aiAuthoringBundles
+
+  deploy_agent_permission_sets:
+    description: Deploy the Agentforce agent permission sets from unpackaged/post_agents/permissionsets. Must run after publish_agents — each permission set's agentAccesses compiles to a botDefinition reference, and the Bot only exists once the authoring bundle is published.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/permissionsets
 
   publish_agents:
     group: Revenue Lifecycle Management
@@ -4075,6 +4082,9 @@ flows:
         task: activate_agents
         when: project_config.project__custom__agents
       6:
+        task: deploy_agent_permission_sets
+        when: project_config.project__custom__agents
+      7:
         task: assign_permission_sets
         when: project_config.project__custom__agents
         options:

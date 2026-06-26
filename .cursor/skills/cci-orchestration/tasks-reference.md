@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**249 tasks** across **10 groups**.
+**250 tasks** across **10 groups**.
 
 ---
 
@@ -852,7 +852,7 @@
 
 ## Revenue Lifecycle Management
 
-*156 task(s)*
+*157 task(s)*
 
 ### `activate_agents`
 
@@ -1437,15 +1437,27 @@
 
 ---
 
-### `deploy_agents`
+### `deploy_agent_permission_sets`
 
-**Description:** Deploy Agentforce Agent Configurations (authoring bundles and permission sets) from unpackaged/post_agents.
+**Description:** Deploy the Agentforce agent permission sets from unpackaged/post_agents/permissionsets. Must run after publish_agents — each permission set's agentAccesses compiles to a botDefinition reference, and the Bot only exists once the authoring bundle is published.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
 **Options:**
 
-- `path`: `unpackaged/post_agents`
+- `path`: `unpackaged/post_agents/permissionsets`
+
+---
+
+### `deploy_agents`
+
+**Description:** Deploy Agentforce Agent authoring bundles from unpackaged/post_agents/aiAuthoringBundles. Permission sets deploy separately (deploy_agent_permission_sets) after publish, because their agentAccesses reference a Bot that does not exist until publish_agents compiles the bundle.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_agents/aiAuthoringBundles`
 
 ---
 
