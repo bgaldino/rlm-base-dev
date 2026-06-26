@@ -100,10 +100,11 @@ RUN set -eux; \
 # Baked repo snapshot + wrapper CLI, entrypoint, and interactive banner.
 # ---------------------------------------------------------------------------
 COPY --chown=rlm:rlm . /opt/rlm-base-dev
-COPY docker/rlm-cli       /usr/local/bin/rlm
-COPY docker/entrypoint.sh /usr/local/bin/rlm-entrypoint
-COPY docker/motd.sh       /etc/profile.d/zz-rlm-motd.sh
-RUN chmod +x /usr/local/bin/rlm /usr/local/bin/rlm-entrypoint; \
+COPY docker/rlm-cli        /usr/local/bin/rlm
+COPY docker/entrypoint.sh  /usr/local/bin/rlm-entrypoint
+COPY docker/setup-state.sh /usr/local/bin/rlm-setup-state
+COPY docker/motd.sh        /etc/profile.d/zz-rlm-motd.sh
+RUN chmod +x /usr/local/bin/rlm /usr/local/bin/rlm-entrypoint /usr/local/bin/rlm-setup-state; \
     # Pre-create the state dir owned by rlm so a fresh *named* volume mounted
     # here inherits rlm ownership (Docker seeds an empty volume from the image
     # dir's perms). Without this, uid-1000 can't write to the root-owned volume.

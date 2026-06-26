@@ -34,8 +34,10 @@ just works. (Publishing the image is a one-time maintainer step — see
 [Publishing the image](#publishing-the-image-maintainers).)
 
 > Tip: copy `docker/rlm` anywhere on your `PATH` (e.g. `~/bin/rlm`) and you can
-> just type `rlm …` from anywhere. The first real command auto-builds the image
-> if you skip `setup`.
+> just type `rlm …` from anywhere. Org commands (`login`, `build`, `open`, …)
+> work from any directory. The few commands that need the source — `setup` and
+> `up` (which build the image / mount the checkout) — should be run from your
+> rlm-base checkout, or set `RLM_REPO_ROOT=/path/to/rlm-base-dev`.
 
 ## 3. Pick your path
 

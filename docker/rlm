@@ -33,7 +33,21 @@ VOLUME="${RLM_STATE_VOLUME:-rlm-state}"
 CONTAINER="${RLM_CONTAINER:-rlm-base}"
 RELAY_PORT="${RLM_OAUTH_RELAY_PORT:-1718}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Resolve the rlm-base checkout. Normally it's the parent of this script, but if
+# the launcher was copied onto PATH (e.g. ~/bin/rlm), that parent isn't the repo
+# — fall back to $RLM_REPO_ROOT or the current directory. Commands that need the
+# checkout (setup/up/build) validate it below.
+REPO_ROOT=""
+for _cand in "$(cd "$SCRIPT_DIR/.." 2>/dev/null && pwd)" "${RLM_REPO_ROOT:-}" "$PWD"; do
+  if [ -n "$_cand" ] && [ -f "$_cand/docker/Dockerfile" ]; then REPO_ROOT="$_cand"; break; fi
+done
+[ -n "$REPO_ROOT" ] || REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"   # best effort
+
+need_checkout() {  # die with guidance if $REPO_ROOT isn't an rlm-base checkout
+  [ -f "$REPO_ROOT/docker/Dockerfile" ] && return 0
+  die "Can't find the rlm-base checkout. Run this from the repo, or set RLM_REPO_ROOT=/path/to/rlm-base-dev (needed for: $1)."
+}
 
 c_info() { printf '\033[36m➜\033[0m %s\n' "$*"; }
 c_ok()   { printf '\033[32m✔\033[0m %s\n' "$*"; }
@@ -52,6 +66,7 @@ image_exists()     { docker image inspect "$IMAGE" >/dev/null 2>&1; }
 container_running(){ [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null)" = "true" ]; }
 
 build_image() {
+  need_checkout "building the image"
   c_info "Building $IMAGE (this takes a few minutes the first time)…"
   docker build -f "$REPO_ROOT/docker/Dockerfile" -t "$IMAGE" "$REPO_ROOT"
   c_ok "Image $IMAGE is ready."
@@ -90,6 +105,8 @@ case "${1:-}" in
     [ "$ref" != "rlm-base:latest" ] && docker tag "$ref" rlm-base:latest && c_ok "Tagged as rlm-base:latest"
     exit 0;;
   up)
+    # `up` mounts the checkout at /work (unless RLM_MOUNT_REPO overrides it).
+    [ -n "${RLM_MOUNT_REPO:-}" ] || need_checkout "rlm up"
     ensure_image
     if container_running; then c_ok "Container '$CONTAINER' is already running."; exit 0; fi
     docker rm -f "$CONTAINER" >/dev/null 2>&1 || true

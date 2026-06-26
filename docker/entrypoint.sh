@@ -2,90 +2,18 @@
 #
 # rlm-entrypoint — runs once per `docker run`, before any user command.
 #
-# Responsibilities:
-#   1. Wire all Salesforce/CumulusCI auth + keychain state to ONE mounted
-#      volume, so a single `-v` makes logins and connected orgs survive
-#      container restarts.
-#   2. Provide a stable CumulusCI encryption key (stored in the volume, never
-#      baked into the image).
-#   3. Pick the repo to operate on: a host-mounted working copy at /work wins;
-#      otherwise the baked snapshot at /opt/rlm-base-dev.
-#   4. Hand off to the `rlm` wrapper or an interactive shell.
+# It wires up persistent state (via rlm-setup-state) and then hands off to the
+# `rlm` wrapper or an interactive shell. NOTE: VS Code "Reopen in Container"
+# bypasses this ENTRYPOINT (overrideCommand), so the same wiring also runs from
+# the devcontainer postStartCommand — see docker/setup-state.sh.
 set -euo pipefail
 
-STATE_DIR="${RLM_STATE_DIR:-$HOME/.rlm-state}"
+# Symlink auth dirs to the volume, stable CUMULUSCI_KEY, choose repo, write
+# ~/.rlm-env. Sourced so RLM_REPO + CUMULUSCI_KEY propagate to the exec'd command.
+. /usr/local/bin/rlm-setup-state
 
-# --- 1) Persist auth/keychain on one volume via symlinks --------------------
-# We relink the fixed home dotdirs (~/.sfdx, ~/.sf, ~/.cumulusci) into the
-# volume. The SFDMU plugin lives under ~/.local/share/sf (NOT relinked), so it
-# stays available from the baked image even with an empty state volume.
-mkdir -p "$STATE_DIR/sfdx" "$STATE_DIR/sf" "$STATE_DIR/cumulusci" "$STATE_DIR/claude"
-
-link_state() {
-  local name="$1"
-  local home_path="$HOME/.$name"
-  local vol_path="$STATE_DIR/$name"
-  # Already linked? nothing to do.
-  if [ -L "$home_path" ]; then
-    return 0
-  fi
-  # A real dir from a previous (unmounted) run — migrate its contents once.
-  if [ -e "$home_path" ]; then
-    cp -a "$home_path/." "$vol_path/" 2>/dev/null || true
-    rm -rf "$home_path"
-  fi
-  ln -s "$vol_path" "$home_path"
-}
-link_state sfdx
-link_state sf
-link_state cumulusci
-# Claude Code stores its subscription login under ~/.claude/ (.credentials.json)
-# and ~/.claude.json; relink both into the volume so `rlm auth-ai` persists
-# across the throwaway containers that `rlm ask`/`assist` spin up.
-link_state claude
-if [ ! -L "$HOME/.claude.json" ]; then
-  if [ -e "$HOME/.claude.json" ]; then
-    cp -a "$HOME/.claude.json" "$STATE_DIR/claude.json" 2>/dev/null || true
-    rm -f "$HOME/.claude.json"
-  fi
-  ln -s "$STATE_DIR/claude.json" "$HOME/.claude.json"
-fi
-
-# --- 2) Stable CumulusCI key (16 chars), generated into the volume ----------
-KEYFILE="$STATE_DIR/cumulusci/.rlm_cci_key"
-if [ ! -s "$KEYFILE" ]; then
-  ( umask 077; head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 16 > "$KEYFILE" )
-fi
-CUMULUSCI_KEY="$(cat "$KEYFILE")"
-export CUMULUSCI_KEY
-
-# --- 3) Choose repo: mounted /work overrides the baked snapshot -------------
-if [ -f /work/cumulusci.yml ]; then
-  RLM_REPO=/work
-else
-  RLM_REPO="${RLM_BAKED_REPO:-/opt/rlm-base-dev}"
-fi
-export RLM_REPO
-# CumulusCI shells out to git; a mounted /work repo may be owned by a different
-# uid than the container user, which git rejects as "dubious ownership".
-git config --global --add safe.directory '*' 2>/dev/null || true
 cd "$RLM_REPO"
 
-# Make RLM_REPO + CUMULUSCI_KEY available to later shells. This file is the
-# image's BASH_ENV, so every non-interactive `bash -c` inside the container
-# (e.g. `docker exec ... bash -c 'cci ...'`) picks it up. Keep it side-effect
-# free — no `cd` here, since BASH_ENV runs for every bash invocation.
-{
-  echo "export RLM_REPO=$RLM_REPO"
-  echo "export CUMULUSCI_KEY=$CUMULUSCI_KEY"
-} > "$HOME/.rlm-env"
-# Interactive shells (attach / IDE terminal): also start in the repo. Appended
-# after the distro .bashrc non-interactive guard, so it only runs interactively.
-grep -q 'rlm-env' "$HOME/.bashrc" 2>/dev/null || \
-  printf '%s\n' '[ -f "$HOME/.rlm-env" ] && . "$HOME/.rlm-env"; cd "${RLM_REPO:-$HOME}" 2>/dev/null || true' \
-    >> "$HOME/.bashrc"
-
-# --- 4) Dispatch ------------------------------------------------------------
 case "${1:-}" in
   ""|shell)
     exec bash -l

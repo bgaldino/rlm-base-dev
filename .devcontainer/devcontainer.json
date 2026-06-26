@@ -36,9 +36,11 @@
     "1717": { "label": "Salesforce OAuth callback", "onAutoForward": "silent" }
   },
 
-  // Keep the image's ENTRYPOINT (state wiring) but let the IDE keep the
-  // container alive itself.
+  // overrideCommand:true lets VS Code keep the container alive with its own
+  // command — which means the image ENTRYPOINT (rlm-entrypoint) does NOT run.
+  // So the auth/keychain wiring runs here, on every start, via postStartCommand.
   "overrideCommand": true,
+  "postStartCommand": "/usr/local/bin/rlm-setup-state",
 
   "remoteEnv": {
     "RLM_OAUTH_RELAY_PORT": "1718",
