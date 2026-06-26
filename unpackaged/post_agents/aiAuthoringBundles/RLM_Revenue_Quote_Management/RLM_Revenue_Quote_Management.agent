@@ -55,6 +55,7 @@ start_agent agent_router:
             go_to_ProductSelection: @utils.transition to @subagent.ProductSelection
             go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
             go_to_ConsumptionManagement: @utils.transition to @subagent.ConsumptionManagement
+            go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
             go_to_ambiguous_question: @utils.transition to @subagent.ambiguous_question
             go_to_off_topic: @utils.transition to @subagent.off_topic
 
@@ -1130,6 +1131,309 @@ subagent ConsumptionManagement:
                     is_displayable: True
                     filter_from_agent: False
                     complex_data_type_name: "lightning__recordInfoType"
+
+subagent ProductConfiguration:
+
+    label: "Product Configuration"
+    description: "Guides a sales rep through the step-by-step configuration of any configurable product on a quote. Retrieves available attribute options dynamically from the product catalog, presents them to the rep, validates each selection against the product constraint model (CML), and loops until all required attributes are valid. Works for any product that has attributes and a configuration rule defined in the org. Does not create quotes, add products to quotes, or apply pricing — those are handled by the Quote Management topic."
+
+    reasoning:
+        instructions: ->
+            | When a user wants to configure a product on a quote, always start by calling Get_Product_Attribute_Options with the quoteLineItemId to retrieve the list of available attributes and their valid values. Never assume or hardcode attribute names or values — always retrieve them dynamically from this action. If the product has no configurable attributes (hasConfigurableAttributes is false), inform the user and do not proceed with configuration.
+              Additional instructions follow:
+              - After Get_Product_Attribute_Options returns with hasConfigurableAttributes = true, parse the attributesJson output and display every attribute to the user using this exact format for each item: "N. [name] ([required] or [optional])" on the first line, then on the next line either "   Options: [every picklistValues entry joined by ', ']" for Picklist dataType, "   Enter a number" for Number dataType, "   yes or no" for Checkbox dataType, or "   Enter a value" for any other dataType. List every attribute in the array — do not skip any. After the last attribute, always ask: "Would you like guidance on any of these attributes and how they affect your product configuration?" Wait for the user's response before asking them to provide attribute values.
+              - If the user asks for guidance on one or more attributes (or says yes to the guidance offer), use your knowledge to explain each attribute's significance and practical impact on the product configuration and pricing — without calling any action. Tailor the explanation to the product type being configured. For example, for a generator product: explain how "Duty Rating" determines the operational load profile (Standby, Prime, or Continuous/DCC) and how it drives alternator selection and pricing; how "Required kW" determines generator sizing; how "Fuel Type" impacts installation requirements and operating costs; etc. Be specific and practical so the sales rep can make informed selections. After providing guidance, ask if they need clarification on any other attribute, and then prompt them to provide the values they wish to configure.
+              - After the user selects a value for one or more attributes, call Configure_Product_Attributes with the quoteLineItemId, the quoteId, and a JSON object containing the selected attribute developerNames and values. Do not wait until all attributes are selected before calling this action — call it incrementally as the user makes selections so that the constraint model can provide real-time feedback. After Configure_Product_Attributes returns successfully, always tell the user the updated price using the unitPrice and totalPrice from the response. For example: "Configuration saved. The updated unit price is $49,450 and the total price is $44,505." If unitPrice is null or 0, do not mention pricing.
+              - If Configure_Product_Attributes returns isValid = false, show the user each validation error clearly: state which attribute has an issue and what the problem is. Ask the user to correct the value. Do not proceed to Confirm_Product_Configuration_Summary until isValid is true. If there are warnings (severity = Warning), show them to the user but allow configuration to continue.
+              - Once all required attributes have been set and Configure_Product_Attributes returns isValid = true, show the user a summary of all configured attribute values and ask them to confirm. Only call Confirm_Product_Configuration_Summary after the user explicitly confirms they want to review the final summary. This action confirms and reads back the currently persisted configuration; it does not perform an additional save. After confirmation, always display the configurationSummary and include a link to the quote using the quoteId from the response.
+              - The quoteLineItemId is the Id of a QuoteLineItem record — it always starts with '0QL'. It is NOT the Quote Id (which starts with '0Q0'). To get the quoteLineItemId: (1) If the product was just added to the quote in this conversation, use the quoteLineItemId from that action's output directly. (2) Otherwise, call Get_QuoteLineItem_from_Quote with the quoteId and the product name to retrieve the correct quoteLineItemId. Never pass the Quote Id where a QuoteLineItem Id is required. Never construct or guess any Salesforce record Id.
+              - Never hardcode product names, attribute names, or valid attribute values in your responses. All of these must come from the Get_Product_Attribute_Options action output at runtime. This ensures the configuration experience works correctly for any product in the catalog, not just specific known products.
+              - Never construct, guess, derive, or assume a Salesforce record Id. Salesforce Ids are 18-character alphanumeric strings that can only come from action outputs or QueryRecords results. If you do not have a required Id, use QueryRecords to look it up — do not invent one.
+
+        actions:
+            Get_QuoteLineItem_from_Quote: @actions.Get_QuoteLineItem_from_Quote
+                with quoteId=...
+                with productName=...
+            QueryRecords: @actions.QueryRecords
+                with query=...
+                with customizationInstructions=...
+            Get_Product_Attribute_Options: @actions.Get_Product_Attribute_Options
+                with quoteLineItemId=...
+            Configure_Product_Attributes: @actions.Configure_Product_Attributes
+                with quoteLineItemId=...
+                with quoteId=...
+                with attributeSelectionsJson=...
+            Confirm_Product_Configuration_Summary: @actions.Confirm_Product_Configuration_Summary
+                with quoteLineItemId=...
+                with quoteId=...
+
+
+
+    actions:
+        Get_QuoteLineItem_from_Quote:
+            description: "Looks up the QuoteLineItem ID for a product on a given quote, using a partial product name match. Call this action when you have a Quote ID and a product name but need the QuoteLineItem ID (starts with '0QL') before calling Get_Product_Attribute_Options. Returns the quoteLineItemId to pass directly into configuration actions."
+            label: "Get QuoteLineItem from Quote"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking up quote line item ..."
+            target: "flow://RLM_AI_Get_QuoteLineItem_from_Quote"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote record (starts with '0Q0'). Never pass a QuoteLineItem ID here."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "productName": string
+                    description: "The name or partial name of the product to find on the quote (e.g. 'FESBA Generator Set' or 'Generator'). Used as a contains/partial match — do not pass a Salesforce ID here."
+                    label: "productName"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "quoteLineItemId": string
+                    description: "The 18-character Salesforce ID of the QuoteLineItem record (starts with '0QL'). Pass this value directly to Get_Product_Attribute_Options and Configure_Product_Attributes."
+                    label: "quoteLineItemId"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "productNameFound": string
+                    description: "The full name of the QuoteLineItem record as it appears on the quote."
+                    label: "productNameFound"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isFound": boolean
+                    description: "True if a matching QuoteLineItem was found on the quote. False if no match was found or an error occurred."
+                    label: "isFound"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "errorMessage": string
+                    description: "Error message if the QuoteLineItem could not be found or an unexpected error occurred."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        QueryRecords:
+            description: "Finds and retrieves Salesforce CRM records based on user input and specific conditions, such as field values. This action automatically identifies the correct records and object type. e.g. 'Find all open opportunities created in the last 5 days sorted by created date.'"
+            label: "Query Records"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Searching ..."
+            source: "EmployeeCopilot__QueryRecords"
+            target: "standardInvocableAction://queryRecords"
+
+            inputs:
+                "query": string
+                    description: "The question or request from the user's input. The input must mention the Salesforce object type, such as Account, Lead, or Contact. Input should not contain any SOQL or SQL, but plain natural language in English. Do not generate SQL or SOQL."
+                    label: "query"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "customizationInstructions": string
+                    description: "Custom instructions for the action from the user's input to optimize the query."
+                    label: "customizationInstructions"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "result": list[object]
+                    description: "A list of matching Salesforce CRM records with details about each record."
+                    label: "result"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+
+        Get_Product_Attribute_Options:
+            description: "Retrieves all configurable attributes for a given product, including each attribute's name, data type, whether it is required, and its available picklist values. Always call this action first before presenting any configuration choices to the user. Works generically for any product in the product catalog — the attribute definitions are determined entirely at runtime from the product record."
+            label: "Get Product Attribute Options"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Retrieving product configuration options ..."
+            target: "flow://RLM_AI_Get_Product_Attribute_Options"
+
+            inputs:
+                "quoteLineItemId": string
+                    description: "The 18-character Salesforce ID of the QuoteLineItem record (starts with '0QL'). This is NOT the Quote ID (which starts with '0Q0'). If you only have the Quote ID, you must first call Get_QuoteLineItem_from_Quote to obtain the QuoteLineItem Id."
+                    label: "quoteLineItemId"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "productName": string
+                    description: "The display name of the product."
+                    label: "productName"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "attributesJson": string
+                    description: "JSON string representing an array of attribute objects for this product. Each object contains: name (display label), developerName (key for Configure_Product_Attributes), dataType (Picklist/Number/Text/Checkbox), isRequired (boolean), picklistValues (array of strings, present when dataType is Picklist). Use developerName values when building attributeSelectionsJson for Configure_Product_Attributes."
+                    label: "attributesJson"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "hasConfigurableAttributes": boolean
+                    description: "True if the product has at least one configurable attribute. False if the product has no configurable attributes."
+                    label: "hasConfigurableAttributes"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "errorMessage": string
+                    description: "Error message if the product could not be found or attributes could not be retrieved."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        Configure_Product_Attributes:
+            description: "Saves the user's selected attribute values to a quote line item and executes the product's configuration rules via the Run Config Rules action. Returns whether the configuration is valid, any validation errors or warnings, and the current saved attribute values. Use this action each time the user selects or changes an attribute value on any configurable product. Works generically for any product that has a CML constraint model configured in the org."
+            label: "Configure Product Attributes"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Validating configuration ..."
+            target: "flow://RLM_AI_Configure_Product_Attributes"
+
+            inputs:
+                "quoteLineItemId": string
+                    description: "The 18-character Salesforce ID of the QuoteLineItem record to apply attribute selections to."
+                    label: "quoteLineItemId"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the parent Quote record. Required to run the CML constraint model."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "attributeSelectionsJson": string
+                    description: "JSON string representing an object where each key is an attribute developerName and each value is the selected value chosen by the user."
+                    label: "attributeSelectionsJson"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "isValid": boolean
+                    description: "True if the current attribute selections pass all configuration rules. False if there are validation errors that must be resolved."
+                    label: "isValid"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "validationErrorsJson": string
+                    description: "JSON string representing an array of validation error objects from the CML constraint model. Each object contains: attributeName, message, severity (Error or Warning). Empty array if isValid is true."
+                    label: "validationErrorsJson"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "savedAttributesJson": string
+                    description: "JSON string representing the attribute values that were saved. Keys are attribute developerNames, values are the saved values."
+                    label: "savedAttributesJson"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "errorMessage": string
+                    description: "System-level error message if the action itself failed. Distinct from validationErrorsJson which represents business rule violations."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "unitPrice": number
+                    description: "The updated unit price of the product after configuration rules and pricing procedures ran. Use this to tell the customer the new price."
+                    label: "unitPrice"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__currencyType"
+                "totalPrice": number
+                    description: "The updated total price (unit price x quantity, after discounts) after configuration rules and pricing procedures ran."
+                    label: "totalPrice"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__currencyType"
+                "listPrice": number
+                    description: "The catalog list price of the product before any discounts."
+                    label: "listPrice"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__currencyType"
+                "grandTotal": number
+                    description: "The Grand Total of the entire Quote including all BOM-expanded line items, discounts, and taxes. This is the full price the customer will pay and is the most important pricing figure to show in the confirmation email."
+                    label: "grandTotal"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__currencyType"
+                "quoteSubtotal": number
+                    description: "The subtotal of the Quote before discounts and taxes, representing the sum of all BOM line items at list price."
+                    label: "quoteSubtotal"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__currencyType"
+                "lineItemCount": number
+                    description: "Total number of line items on the Quote after BOM expansion."
+                    label: "lineItemCount"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__numberType"
+
+        Confirm_Product_Configuration_Summary:
+            description: "Confirms and reads back the currently persisted product configuration after all required attributes have been set and validated successfully. Returns a human-readable summary of configured attribute values and a link to the quote line item. This action does not perform an additional persistence step; persistence occurs during Configure_Product_Attributes. Only call this action after Configure_Product_Attributes has returned isValid = true and the user has confirmed they are done selecting attributes. Works for any configurable product."
+            label: "Confirm Product Configuration Summary"
+            require_user_confirmation: True
+            include_in_progress_indicator: True
+            progress_indicator_message: "Confirming configuration summary ..."
+            target: "flow://RLM_AI_Confirm_Product_Configuration_Summary"
+
+            inputs:
+                "quoteLineItemId": string
+                    description: "The 18-character Salesforce ID of the QuoteLineItem record whose current persisted configuration should be summarized."
+                    label: "quoteLineItemId"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the parent Quote record."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "isSuccess": boolean
+                    description: "True if the configuration summary was retrieved successfully."
+                    label: "isSuccess"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "configurationSummary": string
+                    description: "Human-readable summary of the final configured attribute values as a list of attribute name and value pairs."
+                    label: "configurationSummary"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "quoteLineItemIdOut": string
+                    description: "The ID of the configured QuoteLineItem record."
+                    label: "quoteLineItemIdOut"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "quoteIdOut": string
+                    description: "The ID of the parent Quote record."
+                    label: "quoteIdOut"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "errorMessage": string
+                    description: "Error message if retrieving the configuration summary failed."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
 
 subagent ambiguous_question:
 
