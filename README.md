@@ -9,6 +9,7 @@ The `main` branch targets Salesforce Release 262 (Summer '26), promoted from the
 
 ## Table of Contents
 
+- [Docker build environment (no local toolchain)](#docker-build-environment-no-local-toolchain)
 - [macOS Environment Setup (Homebrew + pyenv + nvm)](#macos-environment-setup-homebrew--pyenv--nvm)
   - [Using Claude Code with this project](#using-claude-code-with-this-project)
 - [Prerequisites](#prerequisites)
@@ -27,6 +28,25 @@ The `main` branch targets Salesforce Release 262 (Summer '26), promoted from the
 - [Contributing](#contributing)
 - [Branch Information](#branch-information)
 - [Additional Resources](#additional-resources)
+
+## Docker build environment (no local toolchain)
+
+Don't want to install Python, Node, CumulusCI, the Salesforce CLI, and SFDMU
+locally? A self-contained Docker image bundles the **entire toolchain**, a
+snapshot of this repo, and a bundled Claude Code agent behind one friendly `rlm`
+command — so someone who doesn't know GitHub, CumulusCI, or `sf` can connect
+orgs, build them, and customize them:
+
+```bash
+./docker/rlm setup           # build the image once (or `pull` a published one)
+./docker/rlm login --devhub  # sign in via your browser
+./docker/rlm build           # create + fully configure a scratch org
+./docker/rlm up              # persistent workspace to attach Cursor / VS Code / Claude Code
+```
+
+It also ships a `.devcontainer/` so you can open the repo **inside** the image
+from Cursor or VS Code. Full guide: [`docker/README.md`](docker/README.md). The
+rest of this section covers the traditional local (pyenv/nvm) setup.
 
 ## macOS Environment Setup (Homebrew + pyenv + nvm)
 
