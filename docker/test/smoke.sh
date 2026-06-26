@@ -76,15 +76,26 @@ if live_has_orgs; then
   # The org commands below (sf/cci) write cache/config and may refresh tokens,
   # which would mutate the user's real credential volume. Mount the live volume
   # READ-ONLY just long enough to copy it into a throwaway, then run every check
-  # against the copy so the original is never touched. The copy includes
-  # cumulusci/.rlm_cci_key, so CCI can still decrypt the org configs.
-  docker run --rm -v "$LIVE:/src:ro" -v "$COPY:/dst" --entrypoint bash "$IMG" \
-    -c 'cp -a /src/. /dst/ 2>/dev/null; exit 0' >/dev/null 2>&1
-  o=$(dvol "$COPY" orgs); has "$o" "devhub|@" && g "orgs lists connected org(s)" || s "orgs: no orgs in volume"
-  sc=$(dvol "$COPY" sf org list --json | jq -r '.result.scratchOrgs[]? | .alias // empty' | sed 's/^[^_]*__//' | head -1)
-  if [ -n "$sc" ]; then
-    has "$(dvol "$COPY" open "$sc")" "frontdoor.jsp" && g "open '$sc' → login URL (CCI alias resolved)" || b "open failed"
-  else s "open: no scratch org in volume"; fi
+  # against the copy so the original is never touched. The copy MUST run as root
+  # (--user 0:0): a fresh named volume's root is root-owned, so the non-root rlm
+  # user can't write to /dst — copy, then chown to uid 1000 so the later rlm-user
+  # containers can read the creds and wire state. The copy carries
+  # cumulusci/.rlm_cci_key so CCI/sf can decrypt the saved orgs.
+  docker run --rm -v "$LIVE:/src:ro" -v "$COPY:/dst" --user 0:0 --entrypoint bash "$IMG" \
+    -c 'cp -a /src/. /dst/ 2>/dev/null; chown -R 1000:1000 /dst' >/dev/null 2>&1
+  # Guard: prove the copy actually carried the creds. Bypass the entrypoint so a
+  # freshly *generated* key can't mask an empty copy as success.
+  if has "$(braw "$COPY" 'test -s ~/.rlm-state/cumulusci/.rlm_cci_key && echo OK')" "OK"; then
+    # Count REAL authenticated orgs (a username / "@"), NOT the static legend
+    # line ("Default DevHub") or the predefined cci scratch CONFIGS
+    # (beta/dev/ent…), which `rlm orgs` prints even with zero saved auth.
+    usern=$(dvol "$COPY" sf org list --json | jq -r '(.result.nonScratchOrgs[]?,.result.scratchOrgs[]?)|.username//empty' | grep -c '@')
+    [ "${usern:-0}" -ge 1 ] && g "orgs: $usern authenticated org(s) carried in copy" || s "orgs: no authenticated orgs in volume"
+    sc=$(dvol "$COPY" sf org list --json | jq -r '.result.scratchOrgs[]? | .alias // empty' | sed 's/^[^_]*__//' | head -1)
+    if [ -n "$sc" ]; then
+      has "$(dvol "$COPY" open "$sc")" "frontdoor.jsp" && g "open '$sc' → login URL (CCI alias resolved)" || b "open failed"
+    else s "open: no scratch org in volume"; fi
+  else b "live-volume copy failed — org checks not run (copy carried no .rlm_cci_key)"; fi
   docker volume rm "$COPY" >/dev/null 2>&1 || true
 else s "live volume '$LIVE' not present — skipping org-aware checks"; fi
 
