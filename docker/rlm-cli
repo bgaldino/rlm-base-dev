@@ -475,10 +475,11 @@ cmd_build() {
   fi
 
   if [ "$rc" -eq 0 ]; then
-    ok "Build complete."
+    ok "Build complete — your org and logins are saved (this build container now exits)."
     local real_alias; real_alias="$(_resolved_org_alias "$run_dir" "$alias")"
     say "Open the org in your browser:  ${B}${INVOKE} open ${real_alias}${R}"
     say "List your orgs:                ${B}${INVOKE} orgs${R}"
+    say "Keep working in a live session: ${B}${INVOKE} up${R}  then  ${B}${INVOKE} attach${R}"
   else
     err "The build stopped before finishing (exit $rc)."
     say "Most failures are transient — resume from where it stopped with:"
