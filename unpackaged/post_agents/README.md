@@ -165,6 +165,38 @@ Repo convention:
 - Common source-tracking noise for bundle metadata.
 - If deploy/publish status is `Succeeded`, treat as non-blocking.
 
+### Temporary context-debug subagent (reference)
+
+If page-context behavior regresses, you can temporarily add a debug subagent to an
+agent script, publish/activate, test, then remove it again before merge.
+
+1. Add a router transition only for explicit debug requests.
+2. Add this subagent block near the end of the `.agent` file:
+
+   ```text
+   subagent debug_context:
+
+       label: "Debug Context"
+       description: "Report runtime page context and routing diagnostics."
+
+       reasoning:
+           instructions: ->
+               | Return a concise debug report with:
+                 - currentAppName
+                 - currentObjectApiName
+                 - currentPageType
+                 - currentRecordId
+                 - inferredContextObject
+                 - inferredQuoteId (if applicable)
+                 - recommendedSubagent
+                 - why that routing should apply
+                 If any value is unavailable, say "not available".
+                 Do not call business actions in this mode.
+   ```
+
+3. Publish + activate to test.
+4. Remove the debug transition and `debug_context` block after troubleshooting.
+
 ## Adding a new agent
 
 1. Author the `.agent` source, or retrieve it from an existing org:
