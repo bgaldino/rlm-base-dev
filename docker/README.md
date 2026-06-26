@@ -252,11 +252,13 @@ Compose, uncomment the `../:/work` line in [`compose.yaml`](compose.yaml).
 | File | Role |
 |---|---|
 | [`Dockerfile`](Dockerfile) | Builds the image: Python 3.13 + CumulusCI (pipx), Node LTS + `sf` CLI + SFDMU, Robot deps + Chromium, Claude Code, a non-root `rlm` user, and a baked repo at `/opt/rlm-base-dev`. |
-| [`entrypoint.sh`](entrypoint.sh) | Per-run setup: symlinks `~/.sfdx`, `~/.sf`, `~/.cumulusci` into the single state volume; generates a stable `CUMULUSCI_KEY`; selects the baked repo or a `/work` mount; dispatches. |
+| [`entrypoint.sh`](entrypoint.sh) | Per-run setup: sources `setup-state.sh`, then dispatches to `rlm` or a shell. |
+| [`setup-state.sh`](setup-state.sh) | The state wiring (auth symlinks, `CUMULUSCI_KEY`, repo selection, `~/.rlm-env`). Sourced by the entrypoint AND run as the devcontainer `postStartCommand` (which bypasses the ENTRYPOINT). |
 | [`rlm-cli`](rlm-cli) | The in-container `rlm` command (installed to `/usr/local/bin/rlm`). |
 | [`rlm`](rlm) | The **host** launcher that wraps `docker run`. |
 | [`motd.sh`](motd.sh) | Interactive welcome banner. |
 | [`compose.yaml`](compose.yaml) | Compose alternative to the host launcher. |
+| [`test/smoke.sh`](test/smoke.sh) | Non-destructive regression suite (28 checks): toolchain, state wiring (both paths), org-aware read-only checks, safe-error guards, launcher, and the `up`/`exec`/`down` lifecycle. Run `docker/test/smoke.sh` after changes. |
 | [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) | Cursor / VS Code Dev Container definition (image, `/work` mount, extensions). |
 | [`.github/workflows/docker-publish.yml`](../.github/workflows/docker-publish.yml) | Opt-in CI to build + push the image to GHCR. |
 | `.dockerignore` (repo root) | Keeps secrets, caches, and large runtime outputs out of the baked snapshot. |
