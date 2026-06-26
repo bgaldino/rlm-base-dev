@@ -202,7 +202,7 @@ cmd_login() {
     if [ -t 0 ]; then
       err "No piped input. Provide an sfdx auth URL on stdin, e.g.:"
       local dh_hint=""; [ "$devhub" = "1" ] && dh_hint="--devhub "
-      say "  sf org auth show-sfdx-auth-url -o <username> --json | jq -r '.result.authUrl' \\"
+      say "  sf org auth show-sfdx-auth-url -o <username> --json \\"
       say "    | ./docker/rlm login --auth-url ${dh_hint}--alias $alias"
       return 2
     fi
