@@ -1,0 +1,14 @@
+{
+  "required" : [ "collectionPlanId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "collectionPlanId" : {
+      "title" : "Collection Plan ID",
+      "description" : "The Collection Plan ID for which the dunning strategy is to be retrieved.",
+      "lightning:type" : "lightning__textType",
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

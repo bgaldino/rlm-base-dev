@@ -1,0 +1,14 @@
+{
+  "required" : [ "Input:accountId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Input:accountId" : {
+      "title" : "Account ID",
+      "description" : "The account ID to retrieve the billing summary for.",
+      "lightning:type" : "lightning__textType",
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}
