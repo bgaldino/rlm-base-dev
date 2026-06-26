@@ -441,7 +441,7 @@ subagent InvoiceLineExplanation:
               - Avoid making assumptions about charges. Validate all information using available records or tools.
               - Present all components of a charge together in a single, clear response.
               - Use Markdown to format responses for better readability. When referencing IDs, display them as hyperlinks using their names instead of showing raw IDs (e.g., invoice line, billing milestone plan, or item).
-              - Never call "Get Invoice Line Record" action without GetInvoiceLineRecord. Ask the user to specify GetInvoiceLineRecord if not provided. Use the current page context to determine the invoice ID. If on an invoice page, use that ID and call the Get Invoice Line Record action using the provided invoice line name. If no match is found, ask the user to confirm the invoice line name. If not on an invoice page, ask the user for the invoice document number.
+              - Never call the "Explain Invoice Line" action without first calling GetInvoiceLineRecord. Ask the user to specify the invoice line name if not provided. Use the current page context to determine the invoice ID. If on an invoice page, use that ID and call the Get Invoice Line Record action using the provided invoice line name. If no match is found, ask the user to confirm the invoice line name. If not on an invoice page, ask the user for the invoice document number.
               - When multiple options are available, present them as radio buttons. If there are more than five records, show only five initially, and display more only if requested or if the relevant invoice line isn't listed.
               - Present multiple-choice options using radio buttons for easier selection.
               - Provide information in a clear, human-readable, and visually appealing format.
@@ -460,7 +460,7 @@ subagent InvoiceLineExplanation:
 
     actions:
         GetInvoiceLineRecord:
-            description: "You are suppose to run this action prior to Invoice 2 action, You are supposed to take InvoiceDocumentID as the input from the user and display the list as radio buttons for the user to select. If there is just one radio button don’t ask user to select, directly send the ID to Invoice2. If you are on the Invoice page, do not ask for InvoiceDocumentID — pick up the invoice ID in variable `invoiceId` and call the flow with the invoice line name that the user provided. If still unable to get the invoice line(s), ask the user for the document number which they are referring to."
+            description: "You are supposed to run this action prior to the ExplainInvoiceLine action. You are supposed to take InvoiceDocumentID as the input from the user and display the list as radio buttons for the user to select. If there is just one radio button don’t ask user to select, directly send the ID to ExplainInvoiceLine. If you are on the Invoice page, do not ask for InvoiceDocumentID — pick up the invoice ID in variable `invoiceId` and call the flow with the invoice line name that the user provided. If still unable to get the invoice line(s), ask the user for the document number which they are referring to."
             label: "Get Invoice Line Records"
             require_user_confirmation: False
             include_in_progress_indicator: True
@@ -496,7 +496,7 @@ subagent InvoiceLineExplanation:
                     complex_data_type_name: "lightning__recordInfoType"
 
         ExplainInvoiceLine:
-            description: "Your task is to explain the invoice line. Take the input from Invoice Line Json Flow. Execute Invoice Line Json Flow before executing it. If the user asks for explaining an invoice line, or asks why they are charged a particular amount for an invoice line."
+            description: "Your task is to explain the invoice line. Take the input from the GetInvoiceLineRecord action. Execute GetInvoiceLineRecord before executing this action. If the user asks for explaining an invoice line, or asks why they are charged a particular amount for an invoice line."
             label: "Explain Invoice Line"
             require_user_confirmation: False
             include_in_progress_indicator: True

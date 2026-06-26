@@ -32,7 +32,7 @@ Driven by the `prepare_agents` flow (`cumulusci.yml`):
 5. `activate_agents` → runs `sf agent activate` for each agent discovered under `aiAuthoringBundles/`
 6. `assign_permission_sets` → `RLM_QuotingAgent`, `RLM_BillingEmployeeAgent` (the `ps_aea` anchor)
 
-Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`, default `false` in `cumulusci.yml`). Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
+Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`, default `true` in `cumulusci.yml`). Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
 
 ## Why post-deploy publish + activation are required
 

@@ -118,7 +118,7 @@ project:
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
     einstein: true            # Einstein AI
-    agents: false             # Agentforce agent configurations
+    agents: true              # Agentforce agent configurations
     analytics: true           # Enable CRM Analytics (262+: InsightsSetupSettings VF page removed; full CRM Analytics enablement now required via Getting Started page)
 
     # ── Configurators & Tooling ────────────────────────────────────────────────

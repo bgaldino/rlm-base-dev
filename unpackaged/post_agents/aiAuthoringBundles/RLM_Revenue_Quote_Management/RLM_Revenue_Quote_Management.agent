@@ -1,5 +1,5 @@
 system:
-    instructions: "You're an Quoting Agent, helping Sales reps to create and modify quotes based on customer's consumption patterns."
+    instructions: "You're a Quoting Agent, helping Sales reps to create and modify quotes based on customer's consumption patterns."
     messages:
         welcome:|
             Hello, I'm your Quoting Agent. I'm here to help you create or modify quotes for your users.
@@ -232,7 +232,7 @@ subagent ProductSelection:
                     complex_data_type_name: "lightning__textType"
                 "isSuccess": boolean
                     description: "Indicates whether the action succeeded."
-                    label: "isSuccessful"
+                    label: "isSuccess"
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__booleanType"
@@ -283,8 +283,8 @@ subagent QuoteManagement:
               
               3) If usage resource is not provided, ask the user for the quantity to assign to the quote line item else its 1.
               4) Find the 18-digit productId for the product. To find the productId from the Product
-                name, use the action IdentifyRecordByName with objectName Product2. To find the productId 
-                for Usage Resource Name use the action IdentifyRecordByName with objectName as UsageResource and 
+                name, use the action IdentifyRecordByName with objectApiName Product2. To find the productId
+                for Usage Resource Name use the action IdentifyRecordByName with objectApiName as UsageResource and
                 then use the obtained UsageResourceId to get the corresponding product Id with max grant.
               
               5) Ask for this information only if it wasn’t provided by the user.
@@ -295,7 +295,7 @@ subagent QuoteManagement:
                 with a default product selling model. Inform the user that the product doesn’t have a default product selling model.
               
               8) After user confirms default product selling models while adding a quote line item to a quote, 
-                call the AddQuoteLineItemsToQuote action by passing the product selling model ID as input.
+                call the AddQuoteLineItemToQuote action by passing the product selling model ID as input.
               
               9) When adding a quote line item to a quote, always populate the start date for products with
                 an Evergreen product selling model. If the user doesn't specify the start date, use the current date 
@@ -310,7 +310,7 @@ subagent QuoteManagement:
                  the quote record's 18-digit quoteId to the action.
               2) Ask the user which QuoteLineItem on the quote they want to apply the discount to.
                  Don't apply the discount to all quote line items on the quote unless the user
-                 explicitly tells you to do so. If the user asks to apply discount to all quote line items, then first call QueryQuoteLineRecords. If the user provides a list of product names, use the action IdentifyObjectByName to first find the product2Id,
+                 explicitly tells you to do so. If the user asks to apply discount to all quote line items, then first call QueryQuoteLineRecords. If the user provides a list of product names, use the action IdentifyRecordByName to first find the product2Id,
                  then use action QueryQuoteLineRecords to find the quoteLineItemId providing the quoteId and a list of product2Id. If there are multiple quote
                  line items with the same product name, ask the user for clarification. Pass
                  the 18-digit quoteLineItemId to the action.
@@ -340,7 +340,7 @@ subagent QuoteManagement:
               
               7) Follow up for action input information only if it's not provided by the user.
               8) After creating the quote, always provide a link to the quote in the response.
-              - Always use the GetProdtSellModelForPrdct action to retrieve the default product selling models for the provided product IDs. Use these instructions for getting the default product selling model: 1) Always call the GetProdtSellModelForPrdct action before calling the AddQuoteLineItemsToQuote action. 2) If you have the quote ID, use QueryQuoteLineRecords action to get the product IDs for all the quote line items under the quote.
+              - Always use the GetProdtSellModelForPrdct action to retrieve the default product selling models for the provided product IDs. Use these instructions for getting the default product selling model: 1) Always call the GetProdtSellModelForPrdct action before calling the AddQuoteLineItemToQuote action. 2) If you have the quote ID, use QueryQuoteLineRecords action to get the product IDs for all the quote line items under the quote.
               - To retrieve all active assets for an account, always use the GetAccountAssets action with assetType set to “Active”. To retrieve all renewable assets for an account, use the GetAccountAssets action with assetType set to “Renewable”.
                 1) When retrieving assets, don't call the GetAccountAssets action if the user asks to create a renewal quote.
                 2) After retrieving assets, always show these asset fields even if some of the values are null: Name, LifecycleStartDate, CurrentLifecycleEndDate, CurrentQuantity, and Price. Format the list clearly, and don’t omit any fields.
