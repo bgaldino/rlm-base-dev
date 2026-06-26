@@ -172,6 +172,11 @@ case "${1:-}" in
     for _a in "$@"; do case "$_a" in --auth-url|--from-stdin) _authurl=1;; esac; done
     [ "$_authurl" = "0" ] && RUN_FLAGS+=("${OAUTH_PUBLISH[@]}" -e "RLM_OAUTH_RELAY_PORT=${RELAY_PORT}")
     ;;
+  start|welcome|begin)
+    # The guided menu can launch a browser sign-in (cmd_login), which needs the
+    # OAuth callback port published just like `login`.
+    RUN_FLAGS+=("${OAUTH_PUBLISH[@]}" -e "RLM_OAUTH_RELAY_PORT=${RELAY_PORT}")
+    ;;
 esac
 
 exec docker run "${RUN_FLAGS[@]}" "$IMAGE" "$@"
