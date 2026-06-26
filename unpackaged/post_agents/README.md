@@ -1,21 +1,23 @@
 # Agentforce Agents
 
-This bundle deploys two Agentforce **Employee Agents** plus their settings and permission sets. Both agents are **out-of-the-box (OOTB) agent templates** that ship with Salesforce Release 262 and are now authored as Builder Script (`.agent`) bundles. No managed package is required.
+This bundle deploys two Agentforce **Employee Agents** plus their settings and permission sets. Both agents are **out-of-the-box (OOTB) agent templates** authored as Builder Script (`.agent`) bundles. No managed package is required.
 
 ## What's in the bundle
 
 | Asset | Path | Notes |
 |---|---|---|
 | Settings | `settings/` | `AgentPlatform`, `EinsteinCopilot`, `EinsteinGpt`. Deployed first by `deploy_agents_settings`. |
-| Revenue Quote Management agent | `aiAuthoringBundles/Revenue_Quote_Management/` | Builder Script `.agent` authoring bundle. The org compiles this into `Bot` + `BotVersion` + `GenAiPlannerBundle` at publish time. |
-| Billing Employee Assistance agent | `aiAuthoringBundles/Billing_Employee_Assistance/` | Builder Script `.agent` authoring bundle (upgraded from the legacy decomposed format). |
+| Revenue Quote Management agent | `aiAuthoringBundles/RLM_Revenue_Quote_Management/` | Builder Script `.agent` authoring bundle (developer name `RLM_Revenue_Quote_Management`; label "Revenue Quote Management"). The org compiles this into `Bot` + `BotVersion` + `GenAiPlannerBundle` at publish time. |
+| Billing Employee Assistance agent | `aiAuthoringBundles/RLM_Billing_Employee_Assistance/` | Builder Script `.agent` authoring bundle (developer name `RLM_Billing_Employee_Assistance`; label "Billing Employee Assistance"). |
 | Permission sets | `permissionsets/RLM_QuotingAgent.permissionset-meta.xml`, `permissionsets/RLM_BillingEmployeeAgent.permissionset-meta.xml` | Each contains `<agentAccesses>` so Lightning users can see the agent. |
+
+`AiAuthoringBundle` requires **API version 65.0 or higher**.
 
 ## OOTB agent templates (no managed package)
 
 Both bots reference platform-provided templates via `agent_type: "AgentforceEmployeeAgent"` in the `.agent` config block (template lineages `quotingAI__QuotingEmployeeAgent` for Quote and `billing_agents__BillingEmployeeAgent` for Billing).
 
-The `quotingAI__` and `billing_agents__` prefixes look like managed-package namespaces but they're **platform-provided OOTB templates** introduced in Release 262 — they're available in scratch orgs without installing a package. Verified against `jun25_1` (scratch on Release 262): no `quotingAI`/`billing_agents` entries in `PackageLicense` or `ApexClass.NamespacePrefix`, yet the deploy succeeds and the agents run.
+The `quotingAI__` and `billing_agents__` prefixes look like managed-package namespaces but they are **platform-provided OOTB templates** — available without installing a package.
 
 Planner-bundle action IDs are not committed for either agent — the platform mints them fresh from the `.agent` source on each `sf agent publish`.
 
@@ -43,22 +45,12 @@ Both tasks discover agents from disk, so adding a new agent's directory under `a
 
 ## Adding a new agent
 
-1. Author or retrieve the `.agent` source — for a retrieve from an existing org:
+1. Author the `.agent` source, or retrieve it from an existing org:
    ```
    sf project retrieve start \
      --metadata "AiAuthoringBundle:<Name>" \
-     --target-org <alias> \
-     --api-version 67.0
+     --target-org <alias>
    ```
-   `AiAuthoringBundle` requires **API v67.0+**.
-2. Validate locally before committing:
-   ```
-   sf agent validate authoring-bundle --api-name <Name> -o <alias> --json
-   ```
-   Common gotchas (see `sf-ai-agentscript` skill):
-   - Every `linked` variable needs a `source:` line — if you don't have one, the variable belongs as `mutable` instead, or should be removed.
-   - For `AgentforceEmployeeAgent` agents, `@MessagingSession.*` / `@MessagingEndUser.*` / `@VoiceCall.*` sources are Service-Agent-only contexts; they pass validation but are never populated at runtime, so they should be removed unless the agent will be reused on a messaging channel.
-   - `complex_data_type_name` warnings on primitive types (`string`, `boolean`, `list[string]`) are informational and do not block publish.
-3. Drop the bundle into `unpackaged/post_agents/aiAuthoringBundles/<Name>/`.
-4. Add a permission set with `<agentAccesses>` and wire it into the `ps_aea` anchor in `cumulusci.yml`.
-5. `publish_agents` and `activate_agents` auto-discover from disk; no code changes needed.
+2. Place the `.agent` source under `unpackaged/post_agents/aiAuthoringBundles/<Name>/`.
+3. Add a permission set with `<agentAccesses>` and wire it into the `ps_aea` anchor in `cumulusci.yml`.
+4. `publish_agents` and `activate_agents` auto-discover from disk; no code changes needed.

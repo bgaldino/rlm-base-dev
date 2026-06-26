@@ -9,7 +9,7 @@ config:
     agent_label: "Revenue Quote Management"
     agent_type: "AgentforceEmployeeAgent"
     description: "Help sales reps create and modify personalized quotes based on customer’s requirements and product consumption patterns."
-    developer_name: "Revenue_Quote_Management"
+    developer_name: "RLM_Revenue_Quote_Management"
 
 variables:
     currentAppName: mutable string

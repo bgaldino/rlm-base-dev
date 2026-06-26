@@ -9,7 +9,7 @@ config:
     agent_label: "Billing Employee Assistance"
     agent_type: "AgentforceEmployeeAgent"
     description: "Deliver accurate and timely billing support with an autonomous AI agent. The Billing Employee Assistance Agent addresses invoice inquiries, clarifies invoice charges, and provides payment plans, recent bill details, account summaries, balances, and upcoming payment information."
-    developer_name: "Billing_Employee_Assistance"
+    developer_name: "RLM_Billing_Employee_Assistance"
 
 variables:
     VoiceCallId: linked string

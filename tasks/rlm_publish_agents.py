@@ -8,25 +8,27 @@ This task wraps that CLI call so it can run as part of ``prepare_agents``.
 The CLI scans only the default package directory of the active SFDX project,
 which here is ``force-app``. Our bundles live under
 ``unpackaged/post_agents/aiAuthoringBundles``, so we stage a temporary SFDX
-project that places the bundle inside its default package directory and run
-the publish from there. Stage dir is removed after each agent.
+project once, place each bundle inside its default package directory in turn,
+and run the publish from there.
 
 Idempotent: re-publishing a bundle that hasn't changed produces a no-op on
 the platform side. Activation is a separate step (`activate_agents`).
 """
 import json
 import shutil
-import subprocess
 import tempfile
 from pathlib import Path
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
-    from cumulusci.core.exceptions import TaskOptionsError, CommandException
 except ImportError:
     BaseSalesforceTask = object
-    TaskOptionsError = Exception
-    CommandException = Exception
+
+from tasks.rlm_agents_common import discover_agent_bundles, run_sf_json
+
+DEFAULT_BUNDLES_PATH = "unpackaged/post_agents/aiAuthoringBundles"
+# Fallback only used when project config can't be read (e.g. unit import).
+FALLBACK_API_VERSION = "67.0"
 
 
 class PublishAgents(BaseSalesforceTask):
@@ -47,18 +49,9 @@ class PublishAgents(BaseSalesforceTask):
     }
 
     def _run_task(self):
-        bundles_root = Path(
-            self.options.get("bundles_path")
-            or "unpackaged/post_agents/aiAuthoringBundles"
-        )
+        bundles_root = Path(self.options.get("bundles_path") or DEFAULT_BUNDLES_PATH)
 
-        if not bundles_root.is_dir():
-            self.logger.info(
-                f"No authoring bundles directory at {bundles_root}; nothing to publish."
-            )
-            return
-
-        bundles = sorted(p.name for p in bundles_root.iterdir() if p.is_dir())
+        bundles = discover_agent_bundles(bundles_root)
         if not bundles:
             self.logger.info(
                 f"No authoring bundles found under {bundles_root}; nothing to publish."
@@ -71,76 +64,58 @@ class PublishAgents(BaseSalesforceTask):
             + ", ".join(bundles)
         )
 
-        for api_name in bundles:
-            self._publish_bundle(api_name, bundles_root / api_name, target)
-
-    def _publish_bundle(self, api_name, source_dir, target):
-        self.logger.info(f"  → sf agent publish authoring-bundle --api-name {api_name}")
-
+        # The staging SFDX project is invariant across bundles, so build it
+        # once and swap each bundle into its package directory in turn.
         with tempfile.TemporaryDirectory(prefix="rlm-publish-") as stage:
             stage_path = Path(stage)
             self._write_sfdx_project(stage_path)
-            dest = stage_path / "force-app" / "main" / "default" / "aiAuthoringBundles" / api_name
-            dest.mkdir(parents=True, exist_ok=True)
-            for f in source_dir.iterdir():
-                if f.is_file():
-                    shutil.copy2(f, dest / f.name)
-
-            cmd = [
-                "sf", "agent", "publish", "authoring-bundle",
-                "--api-name", api_name,
-                "--target-org", target,
-                "--json",
-            ]
-
-            try:
-                result = subprocess.run(
-                    cmd,
-                    cwd=stage,
-                    capture_output=True,
-                    text=True,
-                    timeout=self.CLI_TIMEOUT_SECONDS,
-                )
-            except subprocess.TimeoutExpired as exc:
-                raise CommandException(
-                    f"sf agent publish authoring-bundle ({api_name}) "
-                    f"timed out after {self.CLI_TIMEOUT_SECONDS}s."
-                ) from exc
-            except FileNotFoundError as exc:
-                raise CommandException(
-                    "sf agent publish authoring-bundle failed: the Salesforce "
-                    "CLI ('sf') was not found on PATH."
-                ) from exc
-
-            payload = {}
-            if result.stdout:
-                try:
-                    payload = json.loads(result.stdout)
-                except json.JSONDecodeError:
-                    payload = {}
-
-            if result.returncode != 0 or not payload.get("result", {}).get("success", False):
-                message = (
-                    payload.get("message")
-                    or result.stderr.strip()
-                    or result.stdout.strip()
-                    or f"exit {result.returncode}"
-                )
-                raise TaskOptionsError(
-                    f"sf agent publish authoring-bundle failed for {api_name}: {message}"
+            package_dir = stage_path / "force-app" / "main" / "default" / "aiAuthoringBundles"
+            for api_name in bundles:
+                self._publish_bundle(
+                    api_name, bundles_root / api_name, target, stage, package_dir
                 )
 
-            summary = payload.get("result", {}).get("summary", {})
-            self.logger.info(
-                f"    published {api_name} "
-                f"(retrieved={summary.get('retrieved')}, deployed={summary.get('deployed')})"
-            )
+    def _publish_bundle(self, api_name, source_dir, target, stage, package_dir):
+        self.logger.info(f"  → sf agent publish authoring-bundle --api-name {api_name}")
 
-    @staticmethod
-    def _write_sfdx_project(stage_path):
+        dest = package_dir / api_name
+        dest.mkdir(parents=True, exist_ok=True)
+        for f in source_dir.iterdir():
+            if f.is_file():
+                shutil.copy2(f, dest / f.name)
+
+        cmd = [
+            "sf", "agent", "publish", "authoring-bundle",
+            "--api-name", api_name,
+            "--target-org", target,
+            "--json",
+        ]
+        payload = run_sf_json(
+            cmd,
+            timeout=self.CLI_TIMEOUT_SECONDS,
+            label=f"sf agent publish authoring-bundle ({api_name})",
+            cwd=stage,
+        )
+
+        # Clean up so a later bundle's directory listing isn't polluted.
+        shutil.rmtree(dest, ignore_errors=True)
+
+        summary = payload.get("result", {}).get("summary", {})
+        self.logger.info(
+            f"    published {api_name} "
+            f"(retrieved={summary.get('retrieved')}, deployed={summary.get('deployed')})"
+        )
+
+    def _api_version(self):
+        return (
+            getattr(self.project_config, "project__package__api_version", None)
+            or FALLBACK_API_VERSION
+        )
+
+    def _write_sfdx_project(self, stage_path):
         (stage_path / "sfdx-project.json").write_text(json.dumps({
             "packageDirectories": [{"path": "force-app", "default": True}],
             "name": "rlm-base-publish-stage",
             "namespace": "",
-            "sourceApiVersion": "67.0",
+            "sourceApiVersion": self._api_version(),
         }))
