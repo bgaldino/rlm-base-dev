@@ -6,8 +6,10 @@
 # anytime:
 #   • a FRESH throwaway volume is used for every guard check, so deploy/build
 #     can never auto-confirm against a real org;
-#   • the live state volume (default: rlm-state) is used ONLY for read-only
-#     checks, and those are skipped if it isn't present.
+#   • the live state volume (default: rlm-state) is mounted READ-ONLY, and only
+#     to make a throwaway copy — every org-aware command runs against the copy,
+#     so the suite can never mutate the user's real credentials. Skipped if the
+#     live volume isn't present.
 #
 # Usage:   docker/test/smoke.sh            (image must exist — `./docker/rlm setup`)
 # Env:     RLM_IMAGE (default rlm-base:latest), RLM_STATE_VOLUME (default rlm-state)
@@ -21,6 +23,7 @@ cd "$REPO_ROOT"
 IMG="${RLM_IMAGE:-rlm-base:latest}"
 LIVE="${RLM_STATE_VOLUME:-rlm-state}"
 FRESH="rlm-smoke-$$"
+COPY="rlm-smoke-live-$$"
 TC="rlm-smoke-c-$$"
 PASS=0; FAIL=0; SKIP=0
 
@@ -29,7 +32,7 @@ b(){ printf '  \033[31mFAIL\033[0m %s\n' "$1"; [ -n "${2:-}" ] && printf '      
 s(){ printf '  \033[33mSKIP\033[0m %s\n' "$1"; SKIP=$((SKIP+1)); }
 has(){ printf '%s' "$1" | grep -qiE "$2"; }
 hd(){ printf '\n\033[1m%s\033[0m\n' "$1"; }
-cleanup(){ docker rm -f "$TC" >/dev/null 2>&1 || true; docker volume rm "$FRESH" >/dev/null 2>&1 || true; rm -f "/tmp/rlm-smk-$$" 2>/dev/null || true; }
+cleanup(){ docker rm -f "$TC" >/dev/null 2>&1 || true; docker volume rm "$FRESH" "$COPY" >/dev/null 2>&1 || true; rm -f "/tmp/rlm-smk-$$" 2>/dev/null || true; }
 trap cleanup EXIT
 
 dvol(){ docker run --rm -v "$1:/home/rlm/.rlm-state" "$IMG" "${@:2}" 2>&1; }            # via entrypoint
@@ -68,13 +71,21 @@ o=$(braw "$FRESH" '/usr/local/bin/rlm-setup-state >/dev/null 2>&1; bash -c "echo
 has "$o" "R=/opt/rlm-base-dev K=set" && g "BASH_ENV recovers RLM_REPO + CUMULUSCI_KEY" || b "BASH_ENV" "$o"
 docker volume rm "$FRESH" >/dev/null 2>&1 || true
 
-hd "3. Org-aware (live volume '$LIVE', read-only)"
+hd "3. Org-aware (throwaway COPY of live volume '$LIVE' — original never written)"
 if live_has_orgs; then
-  o=$(dvol "$LIVE" orgs); has "$o" "devhub|@" && g "orgs lists connected org(s)" || s "orgs: no orgs in volume"
-  sc=$(dvol "$LIVE" sf org list --json | jq -r '.result.scratchOrgs[]? | .alias // empty' | sed 's/^[^_]*__//' | head -1)
+  # The org commands below (sf/cci) write cache/config and may refresh tokens,
+  # which would mutate the user's real credential volume. Mount the live volume
+  # READ-ONLY just long enough to copy it into a throwaway, then run every check
+  # against the copy so the original is never touched. The copy includes
+  # cumulusci/.rlm_cci_key, so CCI can still decrypt the org configs.
+  docker run --rm -v "$LIVE:/src:ro" -v "$COPY:/dst" --entrypoint bash "$IMG" \
+    -c 'cp -a /src/. /dst/ 2>/dev/null; exit 0' >/dev/null 2>&1
+  o=$(dvol "$COPY" orgs); has "$o" "devhub|@" && g "orgs lists connected org(s)" || s "orgs: no orgs in volume"
+  sc=$(dvol "$COPY" sf org list --json | jq -r '.result.scratchOrgs[]? | .alias // empty' | sed 's/^[^_]*__//' | head -1)
   if [ -n "$sc" ]; then
-    has "$(dvol "$LIVE" open "$sc")" "frontdoor.jsp" && g "open '$sc' → login URL (CCI alias resolved)" || b "open failed"
+    has "$(dvol "$COPY" open "$sc")" "frontdoor.jsp" && g "open '$sc' → login URL (CCI alias resolved)" || b "open failed"
   else s "open: no scratch org in volume"; fi
+  docker volume rm "$COPY" >/dev/null 2>&1 || true
 else s "live volume '$LIVE' not present — skipping org-aware checks"; fi
 
 hd "4. Safe-error guards (fresh volume — no real org touched)"
