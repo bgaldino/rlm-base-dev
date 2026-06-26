@@ -25,6 +25,9 @@
 #   RLM_CONTAINER     persistent container name    (default: rlm-base)
 #   RLM_MOUNT_REPO    host path to mount at /work  (default: none for one-offs;
 #                                                   the repo root for `up`)
+#   RLM_OAUTH_HOST_PORT host port for the login callback (default: 1717; must be
+#                       1717 to log in — override only for non-login uses, e.g. a
+#                       second workspace or tests; 0 = random free port)
 #   ANTHROPIC_API_KEY forwarded to the AI assistant if set
 set -euo pipefail
 
@@ -60,7 +63,12 @@ docker info >/dev/null 2>&1 || die "Docker is installed but not running. Start D
 # resolves to IPv6 ::1 first on many machines (notably macOS), so we publish the
 # port on BOTH loopback families to whichever the browser picks. Both forward to
 # the in-container relay on RELAY_PORT.
-OAUTH_PUBLISH=(-p "127.0.0.1:1717:${RELAY_PORT}" -p "[::1]:1717:${RELAY_PORT}")
+# The HOST port must be 1717 for login — the Salesforce connected-app callback URL
+# is fixed at localhost:1717. Override RLM_OAUTH_HOST_PORT only for uses that do
+# NOT log in (a second workspace alongside one already holding 1717, or the smoke
+# suite); set it to 0 to let Docker pick a free ephemeral host port (no collision).
+HOST_OAUTH_PORT="${RLM_OAUTH_HOST_PORT:-1717}"
+OAUTH_PUBLISH=(-p "127.0.0.1:${HOST_OAUTH_PORT}:${RELAY_PORT}" -p "[::1]:${HOST_OAUTH_PORT}:${RELAY_PORT}")
 
 image_exists()     { docker image inspect "$IMAGE" >/dev/null 2>&1; }
 container_running(){ [ "$(docker inspect -f '{{.State.Running}}' "$CONTAINER" 2>/dev/null)" = "true" ]; }

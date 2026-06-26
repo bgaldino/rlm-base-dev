@@ -89,9 +89,12 @@ if live_has_orgs; then
     # Count REAL authenticated orgs (a username / "@"), NOT the static legend
     # line ("Default DevHub") or the predefined cci scratch CONFIGS
     # (beta/dev/ent…), which `rlm orgs` prints even with zero saved auth.
-    usern=$(dvol "$COPY" sf org list --json | jq -r '(.result.nonScratchOrgs[]?,.result.scratchOrgs[]?)|.username//empty' | grep -c '@')
+    # Parse JSON INSIDE the container — jq is guaranteed by the image, not by the
+    # user's host (the only host prereq is Docker). On a host without jq, a host
+    # pipeline would silently report 0 orgs and skip the checks below.
+    usern=$(dvol "$COPY" sh -c 'sf org list --json 2>/dev/null | jq -r "(.result.nonScratchOrgs[]?,.result.scratchOrgs[]?)|.username//empty" | grep -c "@"')
     [ "${usern:-0}" -ge 1 ] && g "orgs: $usern authenticated org(s) carried in copy" || s "orgs: no authenticated orgs in volume"
-    sc=$(dvol "$COPY" sf org list --json | jq -r '.result.scratchOrgs[]? | .alias // empty' | sed 's/^[^_]*__//' | head -1)
+    sc=$(dvol "$COPY" sh -c 'sf org list --json 2>/dev/null | jq -r ".result.scratchOrgs[]? | .alias // empty" | sed "s/^[^_]*__//" | head -1')
     if [ -n "$sc" ]; then
       has "$(dvol "$COPY" open "$sc")" "frontdoor.jsp" && g "open '$sc' → login URL (CCI alias resolved)" || b "open failed"
     else s "open: no scratch org in volume"; fi
@@ -117,7 +120,10 @@ has "$( cd /tmp && "/tmp/rlm-smk-$$" setup 2>&1 | head -1 )" "Can't find the rlm
 has "$( cd /tmp && RLM_STATE_VOLUME="$FRESH" "/tmp/rlm-smk-$$" version 2>&1 )" "CumulusCI version" && g "REPO_ROOT: org commands work off-checkout" || b "version off-checkout"
 
 hd "6. Persistent lifecycle (isolated container)"
-RLM_CONTAINER="$TC" RLM_STATE_VOLUME="$FRESH" ./docker/rlm up >/dev/null 2>&1
+# RLM_OAUTH_HOST_PORT=0 → Docker picks a free ephemeral host port, so this never
+# collides with a real workspace already publishing host :1717 (lifecycle checks
+# below don't log in, so the port value is irrelevant — only the bind matters).
+RLM_CONTAINER="$TC" RLM_STATE_VOLUME="$FRESH" RLM_OAUTH_HOST_PORT=0 ./docker/rlm up >/dev/null 2>&1
 has "$(docker exec "$TC" rlm version 2>&1)" "repo *  */work" && g "up + exec: repo resolves to /work mount" || b "up/exec repo"
 has "$(docker exec "$TC" bash -c 'echo R=$RLM_REPO K=${CUMULUSCI_KEY:+set}' 2>&1)" "R=/work K=set" && g "exec bash -c: env via BASH_ENV (real path)" || b "exec BASH_ENV"
 # Assert the container is actually gone, not just that `down` exited 0 — `down`
