@@ -1,17 +1,26 @@
 # GitHub Pages (Jekyll) configuration for the /docs site.
 #
-# Exclude the captured Salesforce Help / dev-guide snapshots under docs/salesforce/.
-# Those are copies of Salesforce's own documentation kept in-repo for AI-agent
-# grounding (see docs/salesforce/{version}/), NOT part of the published Pages site
-# — and republishing vendor docs publicly isn't desirable anyway.
+# This site publishes ONLY the generated artifacts — the ERD viewer (`erds/`)
+# and the API docs (`api/`). Everything else under docs/ is repo-internal and is
+# NOT meant for the public Pages site:
+#   - guides / references / analysis / features / integration — how-to + reference docs
+#   - enablement — release hands-on exercises
+#   - salesforce — captured Salesforce Help / dev-guide snapshots (vendor-doc
+#     copies kept for AI-agent grounding)
 #
-# They also contain original templating placeholders like `{{contextNodeMappingId}}`,
-# which Jekyll's Liquid parser tries to evaluate and fails on — breaking the Pages
-# build (Liquid syntax error in
-# salesforce/262/dev-guide-industries/articles/connect_resources_context_attribute_mapping_id.htm.md,
-# introduced in #260). Excluding them fixes the build and immunizes it against
-# future captures.
+# Excluding them also fixes the Pages build: the salesforce/ snapshots contain
+# original `{{ }}` placeholders (e.g. {{contextNodeMappingId}}) that Jekyll's
+# Liquid parser fails on (Liquid syntax error, introduced in #260). Excluding the
+# non-published trees also avoids orphaned links — none of the excluded docs are
+# emitted, and erds/ + api/ don't link into them.
 #
-# Paths are relative to the Pages source dir (/docs).
+# Paths are relative to the Pages source dir (/docs). Add any new repo-internal
+# doc directory here so it stays out of the published site.
 exclude:
+  - analysis/
+  - enablement/
+  - features/
+  - guides/
+  - integration/
+  - references/
   - salesforce/
