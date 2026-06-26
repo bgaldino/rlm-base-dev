@@ -55,6 +55,10 @@ variables:
     currentRecordId: mutable id
         description: "The ID of the record on the user's current page. Use this as the default target record for page-scoped requests. For quote-scoped requests on a Quote page, default quoteId to this value unless the user explicitly indicates a different quote."
         visibility: "External"
+    lastCreatedQuoteId: mutable string = ""
+        description: "Internal quote ID captured from the most recent successful quote creation action so the agent can deterministically render a native Quote record card."
+    pendingQuoteRecordLookup: mutable boolean = False
+        description: "Internal flag set after a quote creation action succeeds. When true, the subagent must run Get_Quote_Record_Card before responding."
 
 language:
     default_locale: "en_US"
@@ -285,6 +289,12 @@ subagent QuoteManagement:
 
     reasoning:
         instructions: ->
+            if @variables.pendingQuoteRecordLookup == True:
+                run @actions.Get_Quote_Record_Card
+                    with quoteId = @variables.lastCreatedQuoteId
+                set @variables.pendingQuoteRecordLookup = False
+                set @variables.lastCreatedQuoteId = ""
+
             | Manage quote operations for new business and in-flight quotes: create initial quotes, add quote lines, apply line discounts, update quote/line fields, and sync or unsync quotes to opportunities.
               Hard constraints:
               - Before calling any action that updates a record (UpdateQuoteDetails, UpdateQuoteLineItemDetails, UpdateRecordFields), summarize the exact change you are about to make and ask the user to confirm. Only proceed after the user explicitly confirms.
@@ -314,7 +324,7 @@ subagent QuoteManagement:
                 - After applying, report per-line and overall results using product names, not raw IDs.
               - Quote sync/unsync: use GetRecordDetails to resolve related opportunity, then update only SyncedQuoteId through UpdateRecordFields.
               Response guidance:
-              - Use concise confirmations with links like [Quote](/{quoteId}) after create/update/sync operations.
+              - For quote creation, rely on the displayable Quote record card returned by Get_Quote_Record_Card for the clickable record summary. For update/sync operations, use concise confirmations with links like [Quote](/{quoteId}).
               - Use human-readable names as link text whenever available.
               - Do not ask the same clarifying question repeatedly.
 
@@ -361,6 +371,8 @@ subagent QuoteManagement:
                 with opportunityID=...
                 with priceBookName=...
                 with quoteName=...
+                set @variables.lastCreatedQuoteId = @outputs.quoteId
+                set @variables.pendingQuoteRecordLookup = @outputs.isSuccess
             UpdateQuoteLineItemDetails: @actions.UpdateQuoteLineItemDetails
                 with inputFieldValues=...
                 with quoteId=...
@@ -408,6 +420,29 @@ subagent QuoteManagement:
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__booleanType"
+
+        Get_Quote_Record_Card:
+            description: "Looks up a Quote record by ID and returns it as a native Agentforce record card. Use only after a quote creation action returns a quote ID."
+            label: "Get Quote Record Card"
+            require_user_confirmation: False
+            include_in_progress_indicator: False
+            target: "flow://RLM_AI_Get_Quote_Record_Card"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote record to render."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "quoteRecord": object
+                    description: "The Quote record, rendered as a native Agentforce record card."
+                    label: "Quote"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
 
         SummarizeRecord:
             description: "Summarizes a single Salesforce CRM record. You must call summarizeRecord only if the user explicitly asks for a summary (e.g: 'Summary', 'Recap', 'Highlights'). This action should be called only when there isn't a more specific summarization action."
@@ -937,6 +972,12 @@ subagent QuoteLifecycleManagement:
 
     reasoning:
         instructions: ->
+            if @variables.pendingQuoteRecordLookup == True:
+                run @actions.Get_Quote_Record_Card
+                    with quoteId = @variables.lastCreatedQuoteId
+                set @variables.pendingQuoteRecordLookup = False
+                set @variables.lastCreatedQuoteId = ""
+
             | Manage asset-backed quote lifecycle tasks for amendments, renewals, active asset lookup, renewable asset lookup, and future cancellation or termination flows.
               Hard constraints:
               - Do not create initial quotes, add products, apply discounts, update quote or quote line fields, sync quotes, or handle product configuration here; route those requests to the appropriate quote operations or product configuration subagent.
@@ -954,7 +995,7 @@ subagent QuoteLifecycleManagement:
               - Renewal quote: use renewable or active assets as eligible, collect renewal start and end dates if provided, and create one renewal quote for all selected assets.
               - For cancellation or termination requests, do not improvise by deleting or negatively amending assets. Explain the current limitation clearly.
               Response guidance:
-              - Use concise confirmations with links like [Quote](/{quoteId}) after create operations.
+              - For quote creation, rely on the displayable Quote record card returned by Get_Quote_Record_Card for the clickable record summary.
               - Use human-readable names as link text whenever available.
               - Do not expose raw Salesforce IDs in user-facing text.
 
@@ -963,6 +1004,8 @@ subagent QuoteLifecycleManagement:
                 with assetIds=...
                 with renewalEndDate=...
                 with renewalStartDate=...
+                set @variables.lastCreatedQuoteId = @outputs.renewalQuoteId
+                set @variables.pendingQuoteRecordLookup = @outputs.isSuccess
             IdentifyRecordByName: @actions.IdentifyRecordByName
                 with recordName=...
                 with objectApiName=...
@@ -973,6 +1016,8 @@ subagent QuoteLifecycleManagement:
                 with amendmentDate=...
                 with assetIds=...
                 with quantityChange=...
+                set @variables.lastCreatedQuoteId = @outputs.amendmentQuoteId
+                set @variables.pendingQuoteRecordLookup = @outputs.isSuccess
             go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
             go_to_ConsumptionManagement: @utils.transition to @subagent.ConsumptionManagement
             go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
@@ -1108,6 +1153,29 @@ subagent QuoteLifecycleManagement:
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__numberType"
+
+        Get_Quote_Record_Card:
+            description: "Looks up a Quote record by ID and returns it as a native Agentforce record card. Use only after an amendment or renewal quote creation action returns a quote ID."
+            label: "Get Quote Record Card"
+            require_user_confirmation: False
+            include_in_progress_indicator: False
+            target: "flow://RLM_AI_Get_Quote_Record_Card"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote record to render."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "quoteRecord": object
+                    description: "The Quote record, rendered as a native Agentforce record card."
+                    label: "Quote"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
 
         CreateAmendmentQuote:
             description: "Create an amendment quote, also known as an add-on or change quote on an account with active assets."
