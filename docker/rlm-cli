@@ -67,6 +67,14 @@ org_username() {
     | jq -r '.result.username // empty' 2>/dev/null
 }
 
+# CumulusCI's default org (its OWN registry, separate from sf's target-org).
+# Used by cci-based commands (deploy/customize) so the prompt matches what the
+# flow actually targets.
+cci_default_org() {
+  cci org list --json 2>/dev/null \
+    | jq -r 'to_entries[] | select(.value.is_default == true) | .key' 2>/dev/null | head -1
+}
+
 # Resolve an org's sf username from a bare CCI name, an sf alias, or a username.
 # CumulusCI registers scratch orgs in sf as "<project>__<name>", so the bare
 # name `rlm build` reports won't match a direct alias lookup.
@@ -531,20 +539,22 @@ cmd_deploy() {
     esac
     shift
   done
-  local label="$alias"
   if [ -z "$alias" ]; then
-    # Fall back to CumulusCI's configured default org.
-    label="$(sf config get target-org --json 2>/dev/null | jq -r '.result[0].value // empty')"
-    [ -n "$label" ] || label="the default org"
+    # No --org: resolve CumulusCI's OWN default (NOT sf's target-org — they're
+    # separate registries) so the prompt matches what the flow actually targets,
+    # and pass it explicitly.
+    alias="$(cci_default_org)"
+    if [ -z "$alias" ]; then
+      err "No org chosen and no CumulusCI default org is set."
+      say "Connect one:  ${B}${INVOKE} login${R}   or set it:  ${B}${INVOKE} cci org default <name>${R}"
+      say "Or pass it:   ${B}${INVOKE} deploy --org <name>${R}"
+      return 1
+    fi
   fi
-  hd "Deploy the full RLM build to: $label"
+  hd "Deploy the full RLM build to: ${B}$alias${R}"
   warn "This deploys metadata AND data into that org. Make sure it's a dev/test org."
-  confirm "Proceed with prepare_rlm_org on '$label'?" || { say "Cancelled."; return 0; }
-  if [ -n "$alias" ]; then
-    cci flow run prepare_rlm_org --org "$alias"
-  else
-    cci flow run prepare_rlm_org
-  fi
+  confirm "Proceed with prepare_rlm_org on '$alias'?" || { say "Cancelled."; return 0; }
+  cci flow run prepare_rlm_org --org "$alias"
 }
 
 # --------------------------------------------------------------------------- #
@@ -573,13 +583,15 @@ cmd_open() {
 # customize — menu of individual steps, or hand to the AI
 # --------------------------------------------------------------------------- #
 cmd_customize() {
-  # Customizing means changing a connected org — make sure one is connected.
+  # The menu runs cci flows/tasks (default org = CumulusCI's, not sf's), so read
+  # the CCI default for the label/check — otherwise the header could name one org
+  # while a blank-org choice applies changes to another.
   local def
-  def="$(sf config get target-org --json 2>/dev/null | jq -r '.result[0].value // empty')"
+  def="$(cci_default_org)"
   if [ -z "$def" ]; then
-    err "No org connected yet to customize."
-    say "Connect the org you want to change:  ${B}rlm login${R}   ${DIM}(add --sandbox for a sandbox)${R}"
-    say "Or run guided setup:                 ${B}rlm start${R}"
+    err "No CumulusCI default org set to customize."
+    say "Connect one:  ${B}${INVOKE} login${R}   ${DIM}(add --sandbox for a sandbox)${R}"
+    say "Set it:       ${B}${INVOKE} cci org default <name>${R}   or run  ${B}${INVOKE} start${R}"
     return 1
   fi
   hd "Customize org: ${B}$def${R}"
