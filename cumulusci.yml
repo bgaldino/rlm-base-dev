@@ -333,6 +333,7 @@ project:
     ps_aea: &ps_aea
       # Agent-specific permission sets
       - RLM_QuotingAgent
+      - RLM_BillingEmployeeAgent
 
     ps_constraints: &ps_constraints
       # Constraints-specific permission sets
