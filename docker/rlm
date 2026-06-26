@@ -140,10 +140,23 @@ esac
 # report afterward. When run from a checkout, mount it at /work by default so
 # .harness checkpoints/logs land on the host (and survive the throwaway container).
 case "${1:-}" in
-  build|resume|deploy)
+  build|resume)
+    # The build harness writes .harness/runs/<id> under the repo, and `resume`
+    # needs that checkpoint later — so it must persist OUTSIDE the throwaway
+    # container. Require a checkout to mount at /work (a no-checkout build would
+    # leave the run dir in the --rm container, breaking resume). Org commands
+    # still work from anywhere.
+    if [ -z "${RLM_MOUNT_REPO:-}" ]; then
+      need_checkout "rlm $1 (needs a place to save .harness for resume)"
+      RLM_MOUNT_REPO="$REPO_ROOT"
+    fi
+    printf '\033[2m(build artifacts saved in %s/.harness — resumable)\033[0m\n' "$RLM_MOUNT_REPO"
+    ;;
+  deploy)
+    # deploy uses cci directly (no .harness), so a checkout is optional — mount
+    # it if present, else fall back to the baked repo.
     if [ -z "${RLM_MOUNT_REPO:-}" ] && [ -f "$REPO_ROOT/cumulusci.yml" ]; then
       RLM_MOUNT_REPO="$REPO_ROOT"
-      printf '\033[2m(build artifacts will be saved in %s/.harness)\033[0m\n' "$REPO_ROOT"
     fi
     ;;
 esac

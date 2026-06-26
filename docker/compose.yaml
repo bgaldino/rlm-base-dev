@@ -1,9 +1,14 @@
 # Docker Compose convenience for the RLM build container.
 #
 # Build:   docker compose -f docker/compose.yaml build
-# Use:     docker compose -f docker/compose.yaml run --rm rlm login --devhub
+# Use:     docker compose -f docker/compose.yaml run --service-ports --rm rlm login --devhub
 #          docker compose -f docker/compose.yaml run --rm rlm build
 #          docker compose -f docker/compose.yaml run --rm rlm            # shell
+#
+# NOTE: `docker compose run` does NOT publish the service `ports:` by default —
+# `login` needs the OAuth callback port, so pass --service-ports for it (build
+# and shell don't need ports). `docker compose up` would publish them, but `run`
+# is what you want for one-off commands.
 #
 # `docker/rlm` (the host launcher) is the simpler entry point for most users;
 # this file is here for those who prefer Compose or want to tweak mounts.
