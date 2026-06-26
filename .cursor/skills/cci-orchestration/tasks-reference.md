@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**248 tasks** across **10 groups**.
+**249 tasks** across **10 groups**.
 
 ---
 
@@ -852,17 +852,13 @@
 
 ## Revenue Lifecycle Management
 
-*155 task(s)*
+*156 task(s)*
 
 ### `activate_agents`
 
-**Description:** Activate the latest BotVersion for each RLM agent. BotVersion.Status is not DML-writable and not part of source metadata, so fresh deploys land Inactive. This script calls the Connect REST activation endpoint for each agent listed in scripts/apex/activateAgents.apex.
+**Description:** Activate the latest BotVersion for each RLM agent by running `sf agent activate` for every agent discovered under unpackaged/post_agents/aiAuthoringBundles. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
 
-**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
-
-**Options:**
-
-- `path`: `scripts/apex/activateAgents.apex`
+**Class:** `tasks.rlm_activate_agents.ActivateAgents`
 
 ---
 
@@ -1443,7 +1439,7 @@
 
 ### `deploy_agents`
 
-**Description:** Deploy Agentforce Agent Configurations (bots, planner bundles, permission sets) from unpackaged/post_agents.
+**Description:** Deploy Agentforce Agent Configurations (authoring bundles and permission sets) from unpackaged/post_agents.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -2589,6 +2585,14 @@
 **Options:**
 
 - `command`: `python3 scripts/post_process_extraction.py {extraction_dir} {plan_dir}`
+
+---
+
+### `publish_agents`
+
+**Description:** Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
+
+**Class:** `tasks.rlm_publish_agents.PublishAgents`
 
 ---
 

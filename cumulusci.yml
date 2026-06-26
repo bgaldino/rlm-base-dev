@@ -947,18 +947,21 @@ tasks:
       path: unpackaged/post_agents/settings
 
   deploy_agents:
-    description: Deploy Agentforce Agent Configurations (bots, planner bundles, permission sets) from unpackaged/post_agents.
+    description: Deploy Agentforce Agent Configurations (authoring bundles and permission sets) from unpackaged/post_agents.
     class_path: cumulusci.tasks.salesforce.Deploy
     group: Revenue Lifecycle Management
     options:
       path: unpackaged/post_agents
 
+  publish_agents:
+    group: Revenue Lifecycle Management
+    description: Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
+    class_path: tasks.rlm_publish_agents.PublishAgents
+
   activate_agents:
     group: Revenue Lifecycle Management
-    description: Activate the latest BotVersion for each RLM agent. BotVersion.Status is not DML-writable and not part of source metadata, so fresh deploys land Inactive. This script calls the Connect REST activation endpoint for each agent listed in scripts/apex/activateAgents.apex.
-    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
-    options:
-      path: scripts/apex/activateAgents.apex
+    description: Activate the latest BotVersion for each RLM agent by running `sf agent activate` for every agent discovered under unpackaged/post_agents/aiAuthoringBundles. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
+    class_path: tasks.rlm_activate_agents.ActivateAgents
 
   deploy_quantumbit:
     description: Deploy QuantumBit Metadata
@@ -4066,9 +4069,12 @@ flows:
         task: deploy_agents
         when: project_config.project__custom__agents
       4:
-        task: activate_agents
+        task: publish_agents
         when: project_config.project__custom__agents
       5:
+        task: activate_agents
+        when: project_config.project__custom__agents
+      6:
         task: assign_permission_sets
         when: project_config.project__custom__agents
         options:

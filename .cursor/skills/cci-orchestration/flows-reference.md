@@ -150,8 +150,9 @@ Extract rating and rates data from an org into CSV files
    - `api_names`: `['CopilotSalesforceUserPSG', 'CopilotSalesforceAdminPSG']`
 2. **task** `deploy_agents_settings`  `when: project_config.project__custom__agents`
 3. **task** `deploy_agents`  `when: project_config.project__custom__agents`
-4. **task** `activate_agents`  `when: project_config.project__custom__agents`
-5. **task** `assign_permission_sets`  `when: project_config.project__custom__agents`
+4. **task** `publish_agents`  `when: project_config.project__custom__agents`
+5. **task** `activate_agents`  `when: project_config.project__custom__agents`
+6. **task** `assign_permission_sets`  `when: project_config.project__custom__agents`
    - `api_names`: `['RLM_QuotingAgent', 'RLM_BillingEmployeeAgent']`
 
 ---
