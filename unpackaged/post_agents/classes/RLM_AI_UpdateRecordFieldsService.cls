@@ -175,13 +175,26 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                 return out;
             }
 
-            // 5. Apply fields and DML
+            // 5. Apply fields and DML.
+            // The resolved `targets` rows were queried with read-only / calculated
+            // fields (NetUnitPrice, ListPrice, UnitPrice, …) populated for display.
+            // Updating those loaded rows in USER_MODE fails with "fields being
+            // inaccessible" because USER_MODE validates FLS on EVERY populated
+            // field, including the non-updateable ones. So DML a fresh BARE record
+            // carrying only the Id + the fields being changed, and keep the loaded
+            // row only for labels / change summaries.
+            List<SObject> dmlRecords = new List<SObject>();
             for (SObject rec : targets) {
+                // Mutate the loaded row too, so recordLabel/summarizeChanges read
+                // the new values; it is never sent to the database.
                 applyFields(rec, coercedFields);
+                SObject bare = rec.getSObjectType().newSObject(rec.Id);
+                applyFields(bare, coercedFields);
+                dmlRecords.add(bare);
             }
 
             AccessLevel accessLevel = testBypassUserMode ? AccessLevel.SYSTEM_MODE : AccessLevel.USER_MODE;
-            Database.SaveResult[] saveResults = Database.update(targets, accessLevel);
+            Database.SaveResult[] saveResults = Database.update(dmlRecords, accessLevel);
             List<String> successLines = new List<String>();
             List<String> failedLines = new List<String>();
             Integer successCount = 0;

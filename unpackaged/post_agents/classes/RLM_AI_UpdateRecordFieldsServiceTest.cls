@@ -92,6 +92,36 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         System.assertEquals(Date.newInstance(2029, 6, 25), updated.EndDate);
     }
 
+    // ---- Regression: USER_MODE update via productName (price fields loaded) ----
+    // The resolver loads read-only/calculated fields (NetUnitPrice, ListPrice,
+    // UnitPrice) for display. Updating that loaded row directly in USER_MODE
+    // fails with "fields being inaccessible" because USER_MODE validates FLS on
+    // every populated field. This test runs WITHOUT the SYSTEM_MODE bypass so it
+    // exercises the real USER_MODE path and guards the bare-record DML fix.
+    @isTest
+    static void updatesViaProductNameUnderUserMode() {
+        // Note: NO testBypassUserMode — runs in real USER_MODE on purpose.
+        Fixture f = buildFixture(new List<String>{ 'Quinn UserMode' });
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'QuoteLineItem';
+        input.productName = 'Quinn UserMode';
+        input.fieldUpdatesJson = '[{"fieldApiName":"EndDate","value":"2029-06-25"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assertEquals(true, out.isSuccess, 'error: ' + out.errorMessage);
+        System.assertEquals(1, out.updatedCount, 'should update the single matched line');
+
+        QuoteLineItem updated = [SELECT EndDate FROM QuoteLineItem WHERE Id = :f.lineIds[0]];
+        System.assertEquals(Date.newInstance(2029, 6, 25), updated.EndDate);
+    }
+
     // ---- Apply to all ----
     @isTest
     static void applyToAllUpdatesEveryLine() {
