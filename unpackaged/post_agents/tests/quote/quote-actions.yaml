@@ -14,7 +14,7 @@
 # Confirmation-gated actions (require_user_confirmation: True) — UpdateQuoteDetails,
 # UpdateQuoteLineItemDetails — are modeled with the agent's confirmation prompt as
 # the final history turn and an explicit "yes" utterance so the action fires.
-name: "RLM Quote — Actions"
+name: "Revenue Quote Management — Actions"
 subjectType: AGENT
 subjectName: RLM_Revenue_Quote_Management
 

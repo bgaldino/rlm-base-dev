@@ -19,8 +19,10 @@ Notes:
   * ``--target-org`` is passed explicitly on every CLI call (from
     ``org_config.username``) so the task never silently hits the user's default
     SF CLI org.
-  * api-names are derived deterministically from each spec's filename and
-    sanitized to the ``AiEvaluationDefinition`` naming rules.
+  * The task can target one named agent suite (``quote``, ``billing``,
+    ``quinn``), all suites in one invocation, or a comma-separated subset of
+    YAML spec files. api-names are derived deterministically from each spec's
+    filename and sanitized to the ``AiEvaluationDefinition`` naming rules.
   * ``sf agent test run --wait`` exits non-zero when test cases fail, so the run
     step does NOT use ``run_sf_json`` (which raises on non-zero) — it parses the
     JSON payload regardless of exit code and decides pass/fail from assertions.
@@ -40,8 +42,24 @@ except ImportError:  # pragma: no cover - allows bare import in unit context
 
 from tasks.rlm_agents_common import run_sf_json
 
-DEFAULT_TESTS_PATH = "unpackaged/post_agents/tests/quote"
-DEFAULT_API_NAME_PREFIX = "RLM_Quote"
+DEFAULT_AGENT = "quote"
+AGENT_TEST_SUITES = {
+    "quote": {
+        "label": "RLM_Revenue_Quote_Management",
+        "tests_path": "unpackaged/post_agents/tests/quote",
+        "api_name_prefix": "RLM_Quote",
+    },
+    "billing": {
+        "label": "RLM_Billing_Employee_Assistance",
+        "tests_path": "unpackaged/post_agents/tests/billing",
+        "api_name_prefix": "RLM_Billing",
+    },
+    "quinn": {
+        "label": "RLM_Quoting_Assistant",
+        "tests_path": "unpackaged/post_agents/tests/quinn",
+        "api_name_prefix": "RLM_Quinn",
+    },
+}
 # Substring that marks the harmless "no expectedOutcome" output_validation skip.
 HARMLESS_OUTPUT_SKIP = "missing expected input"
 # AiEvaluationDefinition DeveloperName max length.
@@ -49,56 +67,85 @@ MAX_API_NAME_LEN = 40
 
 
 class TestAgents(BaseSalesforceTask):
-    """Deploy and run every ``*.yaml`` agent test spec under ``tests_path``."""
+    """Deploy and run Agentforce test specs for one named suite or all suites."""
 
     CLI_CREATE_TIMEOUT_SECONDS = 300
     CLI_RUN_TIMEOUT_SECONDS = 1200
     RUN_WAIT_MINUTES = 15
 
     task_options = {
+        "agent": {
+            "description": (
+                "Agent test suite to run: quote, billing, quinn, or all. "
+                f"Default: {DEFAULT_AGENT}. Ignored when tests_path is provided."
+            ),
+            "required": False,
+        },
         "tests_path": {
             "description": (
-                "Path (relative to repo root) containing agent test spec YAML "
-                f"files. Default: {DEFAULT_TESTS_PATH}"
+                "Optional path (relative to repo root) containing agent test spec "
+                "YAML files. Use for ad hoc/local suites; otherwise prefer agent."
+            ),
+            "required": False,
+        },
+        "test_files": {
+            "description": (
+                "Optional comma-separated subset of YAML specs to run. Accepts "
+                "filenames, stems, paths relative to the selected suite, or paths "
+                "relative to the repo root."
             ),
             "required": False,
         },
         "api_name_prefix": {
             "description": (
-                "Prefix for generated test api-names. Default: "
-                f"{DEFAULT_API_NAME_PREFIX}"
+                "Optional prefix for generated test api-names. Defaults to the "
+                "selected agent suite prefix."
             ),
             "required": False,
         },
     }
 
     def _run_task(self):
-        tests_root = Path(self.options.get("tests_path") or DEFAULT_TESTS_PATH)
-        prefix = self.options.get("api_name_prefix") or DEFAULT_API_NAME_PREFIX
-
-        if not tests_root.is_dir():
-            self.logger.info(f"No test directory at {tests_root}; nothing to run.")
-            return
-
-        specs = sorted(tests_root.glob("*.yaml"))
-        if not specs:
-            self.logger.info(f"No *.yaml specs found under {tests_root}; nothing to run.")
-            return
-
         target = self.org_config.username
-        api_names = self._build_api_names(specs, prefix)
+        suites = self._resolve_suites()
+        requested_specs = self._parse_requested_specs(self.options.get("test_files"))
+        matched_requests = set()
 
         self.logger.info(
-            f"Running {len(specs)} agent test spec(s) on {target}: "
-            + ", ".join(p.name for p in specs)
+            f"Running Agentforce test suite(s) on {target}: "
+            + ", ".join(suite["name"] for suite in suites)
         )
 
         failures = []
-        for spec in specs:
-            api_name = api_names[spec]
-            self._create(spec, api_name, target)
-            spec_failures = self._run_and_evaluate(spec, api_name, target)
-            failures.extend(spec_failures)
+        ran_specs = 0
+        for suite in suites:
+            specs = self._collect_specs(suite, requested_specs, matched_requests)
+            if not specs:
+                continue
+
+            ran_specs += len(specs)
+            api_names = self._build_api_names(specs, suite["api_name_prefix"])
+            self.logger.info(
+                f"Running {len(specs)} spec(s) for {suite['label']}: "
+                + ", ".join(p.name for p in specs)
+            )
+
+            for spec in specs:
+                api_name = api_names[spec]
+                self._create(spec, api_name, target)
+                spec_failures = self._run_and_evaluate(spec, api_name, target)
+                failures.extend(spec_failures)
+
+        unmatched = set(requested_specs) - matched_requests
+        if unmatched:
+            raise TaskOptionsError(
+                "Requested agent test file(s) not found in selected suite(s): "
+                f"{', '.join(sorted(unmatched))}."
+            )
+
+        if ran_specs == 0:
+            self.logger.info("No agent test specs found; nothing to run.")
+            return
 
         if failures:
             detail = "\n".join(f"  - {f}" for f in failures)
@@ -107,6 +154,120 @@ class TestAgents(BaseSalesforceTask):
             )
 
         self.logger.info("All agent test assertions passed.")
+
+    # -- suite selection -----------------------------------------------------
+
+    def _resolve_suites(self):
+        custom_path = self.options.get("tests_path")
+        custom_prefix = self.options.get("api_name_prefix")
+        if custom_path:
+            return [{
+                "name": "custom",
+                "label": f"custom tests at {custom_path}",
+                "tests_path": Path(custom_path),
+                "api_name_prefix": custom_prefix or "RLM_Agent",
+            }]
+
+        agent = (self.options.get("agent") or DEFAULT_AGENT).strip().lower()
+        if agent == "all":
+            if custom_prefix:
+                raise TaskOptionsError(
+                    "api_name_prefix cannot be used with agent=all because each "
+                    "suite needs its own stable prefix."
+                )
+            return [self._suite_config(name) for name in AGENT_TEST_SUITES]
+
+        if agent not in AGENT_TEST_SUITES:
+            allowed = ", ".join(sorted([*AGENT_TEST_SUITES.keys(), "all"]))
+            raise TaskOptionsError(
+                f"Unknown agent test suite '{agent}'. Use one of: {allowed}."
+            )
+
+        suite = self._suite_config(agent)
+        if custom_prefix:
+            suite["api_name_prefix"] = custom_prefix
+        return [suite]
+
+    @staticmethod
+    def _suite_config(name):
+        config = dict(AGENT_TEST_SUITES[name])
+        config["name"] = name
+        config["tests_path"] = Path(config["tests_path"])
+        return config
+
+    def _collect_specs(self, suite, requested_specs=None, matched_requests=None):
+        tests_root = suite["tests_path"]
+        if not tests_root.is_dir():
+            self.logger.info(
+                f"No test directory at {tests_root}; nothing to run for {suite['name']}."
+            )
+            return []
+
+        specs = sorted(tests_root.glob("*.yaml"))
+        if not specs:
+            self.logger.info(
+                f"No *.yaml specs found under {tests_root}; "
+                f"nothing to run for {suite['name']}."
+            )
+            return specs
+
+        if requested_specs:
+            specs = self._filter_specs(
+                specs,
+                tests_root,
+                requested_specs,
+                matched_requests if matched_requests is not None else set(),
+            )
+        return specs
+
+    def _filter_specs(self, specs, tests_root, requested, matched_requests):
+        matched = []
+        for spec in specs:
+            keys = self._spec_match_keys(spec, tests_root)
+            for item in requested:
+                normalized = item.replace("\\", "/")
+                candidates = {normalized}
+                if not normalized.endswith((".yaml", ".yml")):
+                    candidates.add(f"{normalized}.yaml")
+                if keys.intersection(candidates):
+                    matched.append(spec)
+                    matched_requests.add(item)
+                    break
+
+        return matched
+
+    @staticmethod
+    def _parse_requested_specs(requested_specs):
+        if not requested_specs:
+            return []
+        return [
+            item.strip()
+            for item in str(requested_specs).split(",")
+            if item.strip()
+        ]
+
+    @staticmethod
+    def _spec_match_keys(spec, tests_root):
+        keys = {
+            spec.name,
+            spec.stem,
+            spec.as_posix(),
+        }
+
+        try:
+            keys.add(spec.relative_to(tests_root).as_posix())
+        except ValueError:
+            pass
+
+        try:
+            keys.add(spec.relative_to(Path.cwd()).as_posix())
+        except ValueError:
+            pass
+
+        parent_name = tests_root.name
+        keys.add(f"{parent_name}/{spec.name}")
+        keys.add(f"{parent_name}/{spec.stem}")
+        return keys
 
     # -- api-name derivation -------------------------------------------------
 

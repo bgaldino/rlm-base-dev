@@ -17,7 +17,7 @@
 # Discounts are confirmation-gated by the subagent's hard constraint
 # ("summarize ... and ask the user to confirm"), so apply-cases pre-position the
 # confirmation prompt in history and use an explicit "yes" utterance.
-name: "RLM Quote — Discount Regression"
+name: "Revenue Quote Management — Discount Regression"
 subjectType: AGENT
 subjectName: RLM_Revenue_Quote_Management
 

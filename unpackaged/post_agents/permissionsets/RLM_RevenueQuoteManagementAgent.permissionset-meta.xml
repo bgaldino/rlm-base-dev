@@ -5,5 +5,5 @@
         <enabled>true</enabled>
     </agentAccesses>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>RLM Quoting Agent</label>
+    <label>RLM Revenue Quote Management Agent</label>
 </PermissionSet>

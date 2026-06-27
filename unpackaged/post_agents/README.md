@@ -1,22 +1,24 @@
 # Agentforce Agents
 
-This bundle deploys two Agentforce **Employee Agents** plus their settings and permission sets. Both agents are **out-of-the-box (OOTB) agent templates** authored as Builder Script (`.agent`) bundles. No managed package is required.
+This bundle deploys three Agentforce **Employee Agents** plus their settings and permission sets. All three are authored as Builder Script (`.agent`) bundles. No managed package is required. (Quinn, the quoting assistant, is a ground-up custom agent rather than an OOTB template lineage; see its row below.)
 
 ## What's in the bundle
 
 | Asset | Path | Notes |
 | --- | --- | --- |
 | Settings | `settings/` | `AgentPlatform`, `EinsteinCopilot`, `EinsteinGpt`. Deployed first by `deploy_agents_settings`. |
-| Product Configuration & quote-line services | `classes/` | Apex invocable services behind the agent flows: `RLM_AI_QuoteLineItemLookupService` (scored product-name matching; blank product name lists every line for selection — used by both Product Configuration and Quote Management's discount flow), `RLM_AI_ProductAttributeService`, `RLM_AI_ProductAttributeSaveService`, `RLM_AI_ProductAttributeReadService`, plus the shared `inherited sharing` helper `RLM_AI_ConfigServiceUtils` (Id/prefix validation, null-safe JSON, SOQL LIKE escaping). |
-| Revenue Quote Management agent | `aiAuthoringBundles/RLM_Revenue_Quote_Management/` | Builder Script `.agent` authoring bundle (developer name `RLM_Revenue_Quote_Management`; label "Quote Management"). The org compiles this into `Bot` + `BotVersion` + `GenAiPlannerBundle` at publish time. |
+| Product Configuration & quote-line services | `classes/` | Apex invocable services behind the agent flows: `RLM_AI_QuoteLineItemLookupService` (scored product-name matching; blank product name lists every line for selection — used by both Product Configuration and Revenue Quote Management's discount flow), `RLM_AI_ProductAttributeService`, `RLM_AI_ProductAttributeSaveService`, `RLM_AI_ProductAttributeReadService`, plus the shared `inherited sharing` helper `RLM_AI_ConfigServiceUtils` (Id/prefix validation, null-safe JSON, SOQL LIKE escaping). |
+| Revenue Quote Management agent | `aiAuthoringBundles/RLM_Revenue_Quote_Management/` | Builder Script `.agent` authoring bundle (developer name `RLM_Revenue_Quote_Management`; label "Revenue Quote Management"). This is the default Revenue Cloud quoting agent, distinct from the custom Quinn assistant below. The org compiles it into `Bot` + `BotVersion` + `GenAiPlannerBundle` at publish time. |
+| Quoting Assistant agent ("Quinn") | `aiAuthoringBundles/RLM_Quoting_Assistant/` | Builder Script `.agent` authoring bundle (developer name `RLM_Quoting_Assistant`; label "Quinn"). A ground-up, scoped demo quoting agent — tight arc (find products → create/identify quote → add line → discount → configure → totals), unified no-redundant-confirmation policy (`require_user_confirmation: False` everywhere), and a names-not-IDs presentation contract (native record cards; Id outputs flagged `is_used_by_planner: false`). Backed by the three `RLM_AI_*` helper services/flows below. Intentionally excludes asset lifecycle and usage/consumption. |
 | Billing Employee Assistance agent | `aiAuthoringBundles/RLM_Billing_Employee_Assistance/` | Builder Script `.agent` authoring bundle (developer name `RLM_Billing_Employee_Assistance`; label "Billing Assistant"). |
-| Permission sets | `permissionsets/RLM_QuotingAgent.permissionset-meta.xml`, `permissionsets/RLM_BillingEmployeeAgent.permissionset-meta.xml` | Each contains `<agentAccesses>` so Lightning users can see the agent. |
+| Quinn helper services | `classes/RLM_AI_AddProductToQuoteService`, `RLM_AI_ApplyQuoteLineDiscountsService`, `RLM_AI_QuoteDemoSummaryService` (+ tests) | Apex invocable services behind Quinn's three new helper flows (`flows/RLM_AI_Add_Product_To_Quote`, `RLM_AI_Apply_Quote_Line_Discounts`, `RLM_AI_Get_Quote_Demo_Summary`): one-call add-product (resolves product + default selling model, then the managed add-line), one-call bulk line discount (high-level targeting: applyToAll / productName / display-ordinals; percent, target-price, percent-of-list modes), and a read-only names-only quote recap. Each isolates the managed `quotingAI__*` invocation behind a `@TestVisible` invoker seam. |
+| Permission sets | `permissionsets/RLM_RevenueQuoteManagementAgent.permissionset-meta.xml`, `permissionsets/RLM_QuotingAssistant.permissionset-meta.xml`, `permissionsets/RLM_BillingEmployeeAgent.permissionset-meta.xml` | Each contains `<agentAccesses>` so Lightning users can see the agent. |
 
 `AiAuthoringBundle` requires **API version 65.0 or higher**.
 
 ## OOTB agent templates (no managed package)
 
-Both bots reference platform-provided templates via `agent_type: "AgentforceEmployeeAgent"` in the `.agent` config block (template lineages `quotingAI__QuotingEmployeeAgent` for Quote and `billing_agents__BillingEmployeeAgent` for Billing).
+The Revenue Quote Management and Billing agents reference platform-provided templates via `agent_type: "AgentforceEmployeeAgent"` in the `.agent` config block (template lineages `quotingAI__QuotingEmployeeAgent` for Quote and `billing_agents__BillingEmployeeAgent` for Billing). Quinn is a custom Agent Script bundle.
 
 The `quotingAI__` and `billing_agents__` prefixes look like managed-package namespaces but they are **platform-provided OOTB templates** — available without installing a package.
 
@@ -38,7 +40,7 @@ Driven by the `prepare_agents` flow (`cumulusci.yml`):
 6. `publish_agents` → runs `sf agent publish authoring-bundle` for each `aiAuthoringBundles/<Name>/` so the platform compiles the bundle into a runnable `BotVersion`
 7. `activate_agents` → runs `sf agent activate` for each agent discovered under `aiAuthoringBundles/`
 8. `deploy_agent_permission_sets` → `unpackaged/post_agents/permissionsets` (must run **after** publish: each PS's `<agentAccesses>` compiles to a `botDefinition` reference, and the Bot only exists once the bundle is published)
-9. `assign_permission_sets` → `RLM_QuotingAgent`, `RLM_BillingEmployeeAgent` (the `ps_aea` anchor)
+9. `assign_permission_sets` → `RLM_RevenueQuoteManagementAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` (the `ps_aea` anchor)
 
 Every step is gated on the `agents` feature flag (`project_config.project__custom__agents`, default `true` in `cumulusci.yml`). Standalone task invocation (e.g. `cci task run deploy_agents --org <alias>`) bypasses the gate.
 
@@ -112,7 +114,7 @@ Use this sequence whenever `.agent` source changes and you want the UI to reflec
 Symptoms:
 
 - Agent is present and active in Agentforce Builder.
-- User has the expected permission set assignment (for example `RLM_QuotingAgent`).
+- User has the expected permission set assignment (for example `RLM_RevenueQuoteManagementAgent`).
 - End-user panel still shows only other agents.
 
 Root cause:
@@ -133,7 +135,7 @@ Fix:
 3. Reassign permission sets (if needed):
 
    ```bash
-   cci task run assign_permission_sets --org <alias> -o api_names "RLM_QuotingAgent,RLM_BillingEmployeeAgent"
+   cci task run assign_permission_sets --org <alias> -o api_names "RLM_RevenueQuoteManagementAgent,RLM_BillingEmployeeAgent"
    ```
 
 4. Verify `SetupEntityAccess` rows exist for both permission sets and current `BotDefinition` records, then hard-refresh UI.
@@ -210,7 +212,7 @@ ships CLI Testing Center specs and a CCI task to run them.
 
 ### Layout
 
-```
+```text
 tests/
   quote/                     # RLM_Revenue_Quote_Management specs
     quote-routing.yaml       # router → each subagent (transition actions)
@@ -221,6 +223,11 @@ tests/
     billing-routing.yaml     # router → billing subagents
     billing-actions.yaml     # business actions via conversationHistory pre-positioning
     billing-guardrail.yaml   # off-topic, ambiguous, prompt-injection, exfiltration
+  quinn/                     # RLM_Quoting_Assistant ("Quinn") specs
+    quinn-routing.yaml       # router → ProductSelection / QuoteManagement / ProductConfiguration
+    quinn-actions.yaml       # one-turn add (Helper A), one-call discount (Helper B), precedence, general-tool reachability
+    quinn-regression.yaml    # discount precedence + names-not-IDs guards
+    quinn-guardrail.yaml     # off-topic, out-of-scope (assets/usage), ambiguous (demo posture: no adversarial assertions)
 ```
 
 Each `*.yaml` is an Agentforce test spec (`name`, `subjectType: AGENT`,
@@ -230,30 +237,65 @@ Each `*.yaml` is an Agentforce test spec (`name`, `subjectType: AGENT`,
 ### Running
 
 ```bash
-# All quote specs (deploy + run + assert), against your CCI org:
+# Default: quote-management specs only.
 cci task run test_agents --org <alias>
 
-# Point at a different spec directory (e.g. the billing agent):
+# Run one specific agent suite.
+cci task run test_agents --org <alias> -o agent quote
+cci task run test_agents --org <alias> -o agent billing
+cci task run test_agents --org <alias> -o agent quinn
+
+# Run one spec or a comma-separated subset within an agent suite.
+cci task run test_agents --org <alias> -o agent quote -o test_files quote-routing.yaml
+cci task run test_agents --org <alias> -o agent quinn -o test_files quinn-routing,quinn-actions
+
+# Explicit full regression across every checked-in agent suite.
+cci task run test_agents --org <alias> -o agent all
+
+# Run named files across selected suites; useful with agent all for cross-agent smoke tests.
+cci task run test_agents --org <alias> -o agent all -o test_files quote-routing.yaml,billing-routing.yaml,quinn-routing.yaml
+
+# Ad hoc/local suite path, for experiments or a temporarily isolated subset.
 cci task run test_agents --org <alias> -o tests_path unpackaged/post_agents/tests/billing
 ```
 
 > **These tests are slow — run them intentionally.** Each case is a live LLM
-> evaluation against a published agent, so a full quote run is several minutes
-> (roughly 1–3 min per spec; ~8 min for all four). They are **not** part of org
-> bring-up (`prepare_agents`) and should not be run on every edit. Run them when
-> you make a **substantive agent change** — routing, action wiring, guardrails,
-> confirmation gates, or the test specs themselves — and before merging such a
-> change. Skip them for unrelated work. To run a single affected spec instead of
-> the whole suite, point `tests_path` at one file's directory (or temporarily
-> isolate the spec) rather than re-running all four.
+> evaluation against a published agent. They are **not** part of org bring-up
+> (`prepare_agents`) and are never invoked automatically by the deployment flows.
+> Run them only when you make a **substantive agent change** — routing, action
+> wiring, guardrails, confirmation gates, or the test specs themselves — and
+> before merging such a change. Use a specific `agent` value for focused
+> validation, add `test_files` when only a few specs are relevant, and use
+> `agent all` only when you intentionally want the full cross-agent regression.
 
-`test_agents` (`tasks/rlm_test_agents.py`) derives a deterministic api-name per
-spec file, runs `sf agent test create --force-overwrite` then
-`sf agent test run --wait`, and **fails** the task if any `topic_assertion` or
-`actions_assertion` is non-PASS, or if `output_validation` is non-PASS on a case
-that set an `expectedOutcome` (the harmless "missing expected input" skip on
-cases without one is ignored). It passes `--target-org` from the org config on
-every call, so it never hits your default SF CLI org by accident.
+`test_agents` (`tasks/rlm_test_agents.py`) maps the `agent` option to the
+checked-in suite directories:
+
+| `agent` value | Agent developer name | Specs |
+| --- | --- | --- |
+| `quote` | `RLM_Revenue_Quote_Management` | `unpackaged/post_agents/tests/quote` |
+| `billing` | `RLM_Billing_Employee_Assistance` | `unpackaged/post_agents/tests/billing` |
+| `quinn` | `RLM_Quoting_Assistant` | `unpackaged/post_agents/tests/quinn` |
+| `all` | all of the above | every checked-in suite, run sequentially |
+
+Use `test_files` to narrow the selected suite(s). Values are comma-separated
+and can be a file name (`quote-routing.yaml`), a stem (`quote-routing`), a path
+relative to the suite (`quote-routing.yaml`), or a repo-relative path
+(`unpackaged/post_agents/tests/quote/quote-routing.yaml`). When `agent all` is
+selected, the task matches those names across all checked-in suite directories
+and runs only the files that match.
+
+For each selected `*.yaml`, the task derives a deterministic api-name, runs
+`sf agent test create --force-overwrite` then `sf agent test run --wait`, and
+**fails** if any `topic_assertion` or `actions_assertion` is non-PASS, or if
+`output_validation` is non-PASS on a case that set an `expectedOutcome` (the
+harmless "missing expected input" skip on cases without one is ignored). It
+passes `--target-org` from the CCI org config on every call, so it never hits
+your default SF CLI org by accident.
+
+`test_quinn` still exists as a compatibility alias for
+`cci task run test_agents --org <alias> -o agent quinn`, but new automation and
+docs should use the single `test_agents` entry point.
 
 The agent must already be published + activated (run `prepare_agents`, or the
 publish/activate runbook above) before testing.

@@ -332,7 +332,8 @@ project:
 
     ps_aea: &ps_aea
       # Agent-specific permission sets
-      - RLM_QuotingAgent
+      - RLM_RevenueQuoteManagementAgent
+      - RLM_QuotingAssistant
       - RLM_BillingEmployeeAgent
 
     ps_constraints: &ps_constraints
@@ -986,10 +987,17 @@ tasks:
 
   test_agents:
     group: Revenue Lifecycle Management
-    description: Run Agentforce CLI Testing Center specs against published+activated agents. Deploys each YAML spec under tests_path as an AiEvaluationDefinition (`sf agent test create`) and runs it (`sf agent test run`), failing if any topic/action assertion — or any output validation on a case that set an expectedOutcome — does not pass. Requires the target agent to be published and activated first (see prepare_agents). Not part of prepare_agents; run on demand or in CI after activation. Defaults to the quote agent specs; point tests_path at unpackaged/post_agents/tests/billing for the billing agent.
+    description: Run Agentforce CLI Testing Center specs against published+activated agents. Use the agent option to run one suite (quote, billing, or quinn) or all suites in one explicit invocation; use test_files to run a comma-separated subset of YAML specs. Deploys each selected spec as an AiEvaluationDefinition (`sf agent test create`) and runs it (`sf agent test run`), failing if any topic/action assertion — or any output validation on a case that set an expectedOutcome — does not pass. Requires the target agent to be published and activated first (see prepare_agents). Not part of prepare_agents; run only on demand or in CI after activation.
     class_path: tasks.rlm_test_agents.TestAgents
     options:
-      tests_path: unpackaged/post_agents/tests/quote
+      agent: quote
+
+  test_quinn:
+    group: Revenue Lifecycle Management
+    description: Compatibility alias for `test_agents -o agent quinn`. Runs the Quinn quoting assistant (RLM_Quoting_Assistant) Agentforce CLI Testing Center specs on demand against a published and activated agent.
+    class_path: tasks.rlm_test_agents.TestAgents
+    options:
+      agent: quinn
 
   deploy_quantumbit:
     description: Deploy QuantumBit Metadata

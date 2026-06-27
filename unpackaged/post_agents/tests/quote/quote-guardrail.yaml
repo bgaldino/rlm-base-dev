@@ -9,7 +9,7 @@
 # and behavior is asserted via `expectedOutcome` (LLM-as-judge on the response
 # text). Every case here SETS expectedOutcome, so the test_agents task treats a
 # non-PASS output_validation as a real failure.
-name: "RLM Quote — Guardrails"
+name: "Revenue Quote Management — Guardrails"
 subjectType: AGENT
 subjectName: RLM_Revenue_Quote_Management
 

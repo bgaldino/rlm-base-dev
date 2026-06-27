@@ -1,0 +1,187 @@
+# Description: Business-action invocation coverage for RLM_Quoting_Assistant ("Quinn").
+# Each case uses `conversationHistory` to pre-position the agent inside the target
+# subagent (Agent Script consumes the first reasoning cycle on the router
+# transition), so the test `utterance` triggers the actual Level 1 action.
+# `expectedActions` uses the Level 1 DEFINITION name as it appears in results.
+#
+# These cases assert the REDESIGN goals (plan §4):
+#   - One-turn add product via the Helper A action (Add_Product_To_Quote) — one
+#     call, no identify→selling-model→add chain.
+#   - One-call bulk discount via Helper B (Apply_Discount_To_Quote_Lines).
+#   - Specific action wins over generic update (precedence): "discount" →
+#     Apply_Discount_To_Quote_Lines, NOT UpdateQuoteLineItemDetails.
+#   - General tools remain available: a non-discount line edit → UpdateQuoteLineItemDetails;
+#     a rename/status change → UpdateQuoteDetails.
+#   - Page-context quote is used without a lookup (single-turn-provable via contextVariables).
+#   - Quinn applies additive/reversible mutations WITHOUT a redundant confirmation
+#     gate (require_user_confirmation: False on every action) — so add/discount cases
+#     fire the action directly from a plain request, with NO pre-positioned "yes".
+#
+# Fixture assumptions (org rlm-base__jun25_agents — preflight deferred, per plan §4/§F):
+#   Account  Infinitech                        001Ru00001eYzXtIAK
+#   Opp      New Opportunity for Infinitech    006Ru00000TbvxtIAB (Proposal/Quote)
+#   Quote    New Quote For Infinitech          0Q0Ru000003nedhKAA (Draft, 3 lines)
+#   Products: "Additional API", "32GB RDIMM", etc. (313 active products)
+#   "Additional API" appears on two lines → genuine disambiguation.
+#   Requires Product OWD + Pricing Run Time / Product Catalog Management Cache PSLs.
+#
+# SHARED-FIXTURE CONTENTION (live-observed): these mutating cases all target the
+# SAME quote, and each write kicks off an async pricing recalc that briefly LOCKS
+# the quote. Run back-to-back, a later case can hit "could not obtain exclusive
+# access" while the prior case's recalc is still in flight. That graceful lock
+# report (names-only, no IDs/JSON) is CORRECT Quinn behavior, so write-case
+# outcomes accept EITHER the applied result OR a clean transient-lock message —
+# the topic/action assertion still proves the right action fired. (Demo-data
+# preflight/reset is deferred per plan §4/§F; the data itself is present.)
+#
+# Single-turn completions report topic=agent_router (control returns to the
+# router), per the repo's documented pattern — so completion cases assert the
+# ACTION, not the subagent topic.
+name: "Quinn — Actions"
+subjectType: AGENT
+subjectName: RLM_Quoting_Assistant
+
+testCases:
+  # --- ProductSelection → FindProducts ---
+  - utterance: "Find products that match 32GB RDIMM"
+    expectedTopic: ProductSelection
+    expectedActions:
+      - FindProducts
+    expectedOutcome: "Agent searches the catalog and presents matching products by name, with no bare record IDs in the prose"
+    conversationHistory:
+      - role: user
+        message: "I want to look for products in the catalog"
+      - role: agent
+        topic: ProductSelection
+        message: "What product are you looking for?"
+
+  # --- QuoteManagement → CreateInitialQuote (needs an opportunity) ---
+  # Completes the create flow in one turn → runtime reports topic=agent_router;
+  # assert the action, not the subagent topic.
+  - utterance: "Create an initial quote on the New Opportunity for Infinitech"
+    expectedActions:
+      - CreateInitialQuote
+    expectedOutcome: "Agent attempts to create the quote — on success it returns the quote by name / native record card (not a raw ID); if the opportunity is momentarily locked by an in-flight pricing recalc it reports that cleanly in plain language and offers to retry. Either way it does not dump a raw ID or JSON."
+    conversationHistory:
+      - role: user
+        message: "I'd like to create a new quote"
+      - role: agent
+        topic: QuoteManagement
+        message: "Which opportunity should the quote be created on?"
+
+  # --- QuoteManagement → Add_Product_To_Quote (Helper A, ONE call, no confirm) ---
+  # The page-context quote is supplied via contextVariables, so Quinn should NOT
+  # re-look-up the quote; with a named product + quantity it adds the line in one
+  # call. Helper A resolves the product and default selling model server-side, so
+  # a one-turn add is realistic here (unlike the old multi-action chain).
+  - utterance: "Add 2 units of 32GB RDIMM to this quote"
+    expectedActions:
+      - Add_Product_To_Quote
+    expectedOutcome: "Agent adds 32GB RDIMM to the page-context quote in one action and confirms by product name and quantity, without asking the user to confirm first and without printing a bare ID — or, if the quote is momentarily locked by an in-flight pricing recalc, reports that cleanly in plain language and offers to retry. It does not ask for a separate confirmation."
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+    conversationHistory:
+      - role: user
+        message: "I'm working on my Infinitech quote and want to add a product"
+      - role: agent
+        topic: QuoteManagement
+        message: "Which product and quantity?"
+
+  # --- QuoteManagement → Apply_Discount_To_Quote_Lines (Helper B, ONE call) ---
+  # PRECEDENCE assertion: "discount everything 10%" must fire the dedicated bulk
+  # discount action with applyToAll, NOT UpdateQuoteLineItemDetails. No confirm gate.
+  - utterance: "Give every line on this quote a 10% discount"
+    expectedActions:
+      - Apply_Discount_To_Quote_Lines
+    expectedOutcome: "Agent applies a 10% discount across all lines in one action and confirms the result by name (per line or as an all-lines summary) — it does NOT use a generic quote-line update, does NOT ask for confirmation first, and does not print a bare ID or JSON"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+    conversationHistory:
+      - role: user
+        message: "I want to discount this quote"
+      - role: agent
+        topic: QuoteManagement
+        message: "How much of a discount, and on which lines?"
+
+  # --- QuoteManagement → Get_Quote_Demo_Summary (read-only recap) ---
+  - utterance: "Show me the totals on this quote"
+    expectedActions:
+      - Get_Quote_Demo_Summary
+    expectedOutcome: "Agent presents a names-only recap of the quote (account, opportunity, lines, totals) without exposing raw IDs or JSON"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+    conversationHistory:
+      - role: user
+        message: "I'm reviewing my Infinitech quote"
+      - role: agent
+        topic: QuoteManagement
+        message: "What would you like to see?"
+
+  # --- QuoteManagement → UpdateQuoteDetails (general tool preserved) ---
+  # A rename is NOT a discount and has no dedicated action → the generic header
+  # update must still be reachable. Quinn does not gate it behind a confirm, so a
+  # plain rename request fires the action directly.
+  - utterance: "Rename this quote to 'Infinitech Q3 Refresh'"
+    expectedActions:
+      - UpdateQuoteDetails
+    expectedOutcome: "Agent updates the quote name and confirms (or reports a clean transient lock and offers to retry) — proving the general quote-header update is still reachable alongside the specialized actions"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+    conversationHistory:
+      - role: user
+        message: "I need to change something on this quote"
+      - role: agent
+        topic: QuoteManagement
+        message: "What should I change?"
+
+  # --- QuoteManagement → UpdateQuoteLineItemDetails (general line edit preserved) ---
+  # A non-discount, non-attribute line field edit (a description) must route to the
+  # general line update, NOT to the discount helper or the configure action.
+  - utterance: "Set the description on the Additional API Prod line to 'Annual commit'"
+    expectedActions:
+      - UpdateQuoteLineItemDetails
+    expectedOutcome: "Agent routes this to the general line update (NOT a discount or product configuration) and either updates the description or, if the line is momentarily locked by an in-flight pricing recalc, reports that cleanly and offers to retry"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+    conversationHistory:
+      - role: user
+        message: "I want to edit a field on one of my quote lines"
+      - role: agent
+        topic: QuoteManagement
+        message: "Which line and which field?"
+
+  # --- ProductConfiguration → Get_QuoteLineItem_from_Quote (resolve line, then options) ---
+  # "Additional API" is the only product on this quote with a real configurable
+  # attribute. Two lines share that name, so Quinn resolves them first via
+  # Get_QuoteLineItem_from_Quote and presents matching line(s) / attribute options.
+  - utterance: "What attributes can I configure on the Additional API line?"
+    expectedTopic: ProductConfiguration
+    expectedActions:
+      - Get_QuoteLineItem_from_Quote
+    expectedOutcome: "Agent resolves the Additional API quote line(s) and either presents configurable attribute options or asks which matching line to configure — it does not claim there are no attributes"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+    conversationHistory:
+      - role: user
+        message: "I want to configure a product on my Infinitech quote"
+      - role: agent
+        topic: ProductConfiguration
+        message: "Which product line would you like to configure?"

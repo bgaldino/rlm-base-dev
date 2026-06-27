@@ -653,9 +653,10 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `ps_aea`
 
-*2 items:*
+*3 items:*
 
-- `RLM_QuotingAgent`
+- `RLM_RevenueQuoteManagementAgent`
+- `RLM_QuotingAssistant`
 - `RLM_BillingEmployeeAgent`
 
 ### `ps_approvals`

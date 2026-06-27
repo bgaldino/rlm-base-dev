@@ -24,7 +24,7 @@ system:
         error: "Something went wrong. Try again later or ask your Salesforce admin for help."
 
 config:
-    agent_label: "Quote Management"
+    agent_label: "Revenue Quote Management"
     agent_type: "AgentforceEmployeeAgent"
     description: "Help sales reps discover products, build and manage quotes (initial, amendment, and renewal), and review account usage and consumption patterns with overage insights."
     developer_name: "RLM_Revenue_Quote_Management"

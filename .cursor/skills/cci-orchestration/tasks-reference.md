@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**253 tasks** across **10 groups**.
+**254 tasks** across **10 groups**.
 
 ---
 
@@ -852,7 +852,7 @@
 
 ## Revenue Lifecycle Management
 
-*160 task(s)*
+*161 task(s)*
 
 ### `activate_agents`
 
@@ -2874,13 +2874,25 @@
 
 ### `test_agents`
 
-**Description:** Run Agentforce CLI Testing Center specs against published+activated agents. Deploys each YAML spec under tests_path as an AiEvaluationDefinition (`sf agent test create`) and runs it (`sf agent test run`), failing if any topic/action assertion — or any output validation on a case that set an expectedOutcome — does not pass. Requires the target agent to be published and activated first (see prepare_agents). Not part of prepare_agents; run on demand or in CI after activation. Defaults to the quote agent specs; point tests_path at unpackaged/post_agents/tests/billing for the billing agent.
+**Description:** Run Agentforce CLI Testing Center specs against published+activated agents. Use the agent option to run one suite (quote, billing, or quinn) or all suites in one explicit invocation; use test_files to run a comma-separated subset of YAML specs. Deploys each selected spec as an AiEvaluationDefinition (`sf agent test create`) and runs it (`sf agent test run`), failing if any topic/action assertion — or any output validation on a case that set an expectedOutcome — does not pass. Requires the target agent to be published and activated first (see prepare_agents). Not part of prepare_agents; run only on demand or in CI after activation.
 
 **Class:** `tasks.rlm_test_agents.TestAgents`
 
 **Options:**
 
-- `tests_path`: `unpackaged/post_agents/tests/quote`
+- `agent`: `quote`
+
+---
+
+### `test_quinn`
+
+**Description:** Compatibility alias for `test_agents -o agent quinn`. Runs the Quinn quoting assistant (RLM_Quoting_Assistant) Agentforce CLI Testing Center specs on demand against a published and activated agent.
+
+**Class:** `tasks.rlm_test_agents.TestAgents`
+
+**Options:**
+
+- `agent`: `quinn`
 
 ---
 

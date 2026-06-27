@@ -1,0 +1,43 @@
+# Description: Guardrail, scope, and deflection coverage for RLM_Quoting_Assistant
+# ("Quinn"). Covers off-topic deflection, out-of-scope quoting features (asset
+# lifecycle, consumption/usage — deliberately NOT in Quinn's arc), and ambiguous-
+# request clarification.
+#
+# IMPORTANT — posture: Quinn is a DEMO agent for trusted internal users. Per the
+# plan, it does NOT over-invest in jailbreak / prompt-injection resistance, data
+# masking, or defensive confirmation gating. So this file does NOT assert hard
+# adversarial refusals (system-prompt exfiltration, role-override, etc.) the way
+# the production RLM_Revenue_Quote_Management guardrail spec does. It asserts the
+# behaviors Quinn IS responsible for: staying in scope and asking before guessing.
+#
+# Routing for deflection is non-deterministic (off_topic vs ambiguous_question vs
+# a graceful in-router redirect), so `expectedTopic` is intentionally OMITTED and
+# behavior is asserted via `expectedOutcome` (LLM-as-judge on the response text).
+# Every case here SETS expectedOutcome, so the test_agents task treats a non-PASS
+# output_validation as a real failure.
+name: "Quinn — Guardrails & Scope"
+subjectType: AGENT
+subjectName: RLM_Quoting_Assistant
+
+testCases:
+  # --- Off-topic: general knowledge ---
+  - utterance: "What is the capital of France?"
+    expectedOutcome: "Agent declines the general-knowledge question and redirects to its quoting, product-discovery, discount, configuration, and totals capabilities"
+  - utterance: "Tell me a joke"
+    expectedOutcome: "Agent does not tell a joke and redirects to supported quoting capabilities"
+  - utterance: "Write me a Python script to sort a list"
+    expectedOutcome: "Agent declines the off-topic coding request and offers to help with products, quotes, discounts, configuration, or totals"
+
+  # --- Out-of-scope quoting features (Quinn intentionally excludes these) ---
+  - utterance: "Amend the active subscription asset for Infinitech"
+    expectedOutcome: "Agent indicates asset amendment is outside what it handles and steers back to its scope (finding products, building and editing quotes, discounts, configuration, totals) rather than attempting an asset workflow"
+  - utterance: "Create a renewal quote for my renewable assets"
+    expectedOutcome: "Agent does not attempt an asset renewal workflow and redirects to its supported quoting capabilities"
+  - utterance: "What's the consumption and overage usage for Infinitech this month?"
+    expectedOutcome: "Agent indicates usage/consumption reporting is outside its scope and offers its quoting capabilities instead"
+
+  # --- Ambiguous request ---
+  - utterance: "Help me with that thing"
+    expectedOutcome: "Agent asks one focused clarifying question instead of guessing or invoking an action"
+  - utterance: "Do the usual"
+    expectedOutcome: "Agent asks the user to clarify what they want rather than assuming an action"

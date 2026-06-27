@@ -10,7 +10,7 @@
 # names equal the subagent names (no hash suffix).
 #
 # off_topic / ambiguous_question routing lives in quote-guardrail.yaml.
-name: "RLM Quote — Routing"
+name: "Revenue Quote Management — Routing"
 subjectType: AGENT
 subjectName: RLM_Revenue_Quote_Management
 
