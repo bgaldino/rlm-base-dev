@@ -3,13 +3,11 @@
  * Cloud quote for the Quinn quoting assistant (Get_Quote_Demo_Summary action).
  *
  * Read-only. Complements the native Quote record card (Get_Quote_Record_Card):
- * the card is the clickable, navigable artifact; this service returns a rich-text
- * recap (quote name, account/opportunity names, line count, subtotal / discount /
- * grand total, and a names-only per-line list) for a "show me the quote" moment.
- *
- * Totals are BEST-EFFORT, never a gate: a missing or inaccessible total/discount
- * field must not fail the action. The recap degrades to line count + per-line
- * names / quantities / prices so it always returns something useful.
+ * the card is the clickable, navigable artifact that owns the quote HEADER and
+ * money fields (name, status, Subtotal, Discount, Grand Total) and is shown
+ * FIRST; this service returns ONLY the names-only per-LINE list, so the same
+ * information is never duplicated in both the card and the text. "Show me the
+ * quote" = card (header/totals) + this recap (the lines).
  *
  * `with sharing` entry point; null-safe Id handling via RLM_AI_ConfigServiceUtils.
  */
@@ -27,7 +25,7 @@ public with sharing class RLM_AI_QuoteDemoSummaryService {
         public Boolean isSuccess;
 
         @InvocableVariable(label='Summary Display'
-            description='Rich-text, names-only quote recap for user-facing display.')
+            description='Rich-text, names-only per-line list for user-facing display (no header/totals — those are on the record card).')
         public String summaryDisplay;
 
         @InvocableVariable(label='Error Message')
@@ -41,7 +39,7 @@ public with sharing class RLM_AI_QuoteDemoSummaryService {
 
     @InvocableMethod(
         label='Get Quote Demo Summary'
-        description='Builds a names-only rich-text recap of a quote (header, totals when available, and per-line product list). Read-only.'
+        description='Builds a names-only rich-text list of a quote\'s line items (product, quantity, unit and total price). Read-only. The quote header and totals are shown on the native Quote record card, not here, so nothing is duplicated.'
     )
     public static List<SummaryOutput> getSummary(List<SummaryInput> inputs) {
         List<SummaryOutput> results = new List<SummaryOutput>();
@@ -95,10 +93,13 @@ public with sharing class RLM_AI_QuoteDemoSummaryService {
         return out;
     }
 
+    // Header and money fields (name, status, Subtotal, Discount, Grand Total)
+    // are presented on the native Quote record card, not here, so the recap does
+    // not query them. We still confirm the quote exists / is readable so the
+    // no-lines case can return a clean message rather than a hard error.
     private static Quote queryQuote(Id quoteId) {
         return [
-            SELECT Id, Name, Subtotal, GrandTotal, AppliedDiscountAmount,
-                   Account.Name, Opportunity.Name
+            SELECT Id, Name
             FROM Quote
             WHERE Id = :quoteId
             WITH USER_MODE
@@ -118,64 +119,41 @@ public with sharing class RLM_AI_QuoteDemoSummaryService {
         ];
     }
 
+    /**
+     * Renders the per-LINE list only. The quote header and money fields (name,
+     * status, Subtotal, Discount, Grand Total) live on the native Quote record
+     * card (Get_Quote_Record_Card), which is shown FIRST — so this recap must NOT
+     * repeat them. "Display the information once, consistent across actions": the
+     * card owns the header/totals, this owns the lines. The `quote` parameter is
+     * retained for the no-lines fallback message only.
+     */
     private static String renderDisplay(Quote quote, List<QuoteLineItem> lines) {
         List<String> parts = new List<String>();
 
-        String quoteName = quote != null && String.isNotBlank(quote.Name)
-            ? quote.Name
-            : 'Quote';
-        parts.add('**' + quoteName + '**');
+        parts.add('**Line items: ' + String.valueOf(lines.size()) + '**');
 
-        if (quote != null) {
-            String accountName = quote.Account != null ? quote.Account.Name : null;
-            String oppName = quote.Opportunity != null ? quote.Opportunity.Name : null;
-            if (String.isNotBlank(accountName)) {
-                parts.add('Account: ' + accountName);
-            }
-            if (String.isNotBlank(oppName)) {
-                parts.add('Opportunity: ' + oppName);
-            }
+        if (lines.isEmpty()) {
+            parts.add('This quote has no line items yet.');
+            return String.join(parts, '\n');
         }
 
-        parts.add('Line items: ' + String.valueOf(lines.size()));
-
-        // Totals are best-effort. Show each only when populated.
-        if (quote != null) {
-            List<String> totalsBits = new List<String>();
-            if (quote.Subtotal != null) {
-                totalsBits.add('Subtotal ' + formatCurrency(quote.Subtotal));
+        Integer ordinal = 1;
+        for (QuoteLineItem qli : lines) {
+            String productName = qli.Product2 != null && String.isNotBlank(qli.Product2.Name)
+                ? qli.Product2.Name
+                : 'Unnamed Product';
+            Decimal unitPrice = qli.NetUnitPrice != null ? qli.NetUnitPrice : qli.UnitPrice;
+            Decimal totalPrice = qli.NetTotalPrice != null ? qli.NetTotalPrice : qli.TotalPrice;
+            String line = ordinal + '. **' + productName + '**'
+                + ' — Qty ' + formatQuantity(qli.Quantity);
+            if (unitPrice != null) {
+                line += ', Unit ' + formatCurrency(unitPrice);
             }
-            if (quote.AppliedDiscountAmount != null && quote.AppliedDiscountAmount != 0) {
-                totalsBits.add('Discount ' + formatCurrency(quote.AppliedDiscountAmount));
+            if (totalPrice != null) {
+                line += ', Total ' + formatCurrency(totalPrice);
             }
-            if (quote.GrandTotal != null) {
-                totalsBits.add('Grand Total ' + formatCurrency(quote.GrandTotal));
-            }
-            if (!totalsBits.isEmpty()) {
-                parts.add(String.join(totalsBits, ' | '));
-            }
-        }
-
-        if (!lines.isEmpty()) {
-            parts.add('');
-            Integer ordinal = 1;
-            for (QuoteLineItem qli : lines) {
-                String productName = qli.Product2 != null && String.isNotBlank(qli.Product2.Name)
-                    ? qli.Product2.Name
-                    : 'Unnamed Product';
-                Decimal unitPrice = qli.NetUnitPrice != null ? qli.NetUnitPrice : qli.UnitPrice;
-                Decimal totalPrice = qli.NetTotalPrice != null ? qli.NetTotalPrice : qli.TotalPrice;
-                String line = ordinal + '. **' + productName + '**'
-                    + ' — Qty ' + formatQuantity(qli.Quantity);
-                if (unitPrice != null) {
-                    line += ', Unit ' + formatCurrency(unitPrice);
-                }
-                if (totalPrice != null) {
-                    line += ', Total ' + formatCurrency(totalPrice);
-                }
-                parts.add(line);
-                ordinal++;
-            }
+            parts.add(line);
+            ordinal++;
         }
 
         return String.join(parts, '\n');

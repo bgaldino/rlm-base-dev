@@ -28,8 +28,12 @@ private class RLM_AI_QuoteDemoSummaryServiceTest {
             'All lines should appear by name.');
         System.assert(out.summaryDisplay.contains('Line items: 2'),
             'Line count should be reported.');
-        System.assert(out.summaryDisplay.contains('RLM AI Test Quote'),
-            'Quote name should appear in the header.');
+        // The quote header/totals live on the native record card, NOT in this
+        // per-line recap — they must not be duplicated here.
+        System.assert(!out.summaryDisplay.contains('RLM AI Test Quote'),
+            'Quote name belongs on the record card, not the per-line recap.');
+        System.assert(!out.summaryDisplay.contains('Grand Total'),
+            'Totals belong on the record card, not the per-line recap.');
         // Names-only: no raw QuoteLineItem Ids in the recap.
         System.assert(!out.summaryDisplay.contains(String.valueOf(fixture.quoteLineItemId)),
             'Recap must not leak raw QuoteLineItem Ids.');
@@ -66,7 +70,10 @@ private class RLM_AI_QuoteDemoSummaryServiceTest {
         System.assertEquals(true, results[0].isSuccess,
             'A quote with no lines still produces a recap.');
         System.assert(results[0].summaryDisplay.contains('Line items: 0'));
-        System.assert(results[0].summaryDisplay.contains('Empty Recap Quote'));
+        System.assert(results[0].summaryDisplay.contains('no line items'),
+            'No-lines case should say so explicitly.');
+        System.assert(!results[0].summaryDisplay.contains('Empty Recap Quote'),
+            'Quote name belongs on the record card, not the per-line recap.');
     }
 
     @isTest

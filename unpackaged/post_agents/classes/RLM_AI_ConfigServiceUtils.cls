@@ -157,9 +157,14 @@ public inherited sharing class RLM_AI_ConfigServiceUtils {
      *         (partial overlap), scaled so more overlap ranks higher
      *  -   0  no token overlap
      * Order-independent, case-insensitive.
+     *
+     * Public so every name resolver — the direct product search
+     * (matchProductsByName), the discount/field-update line resolution
+     * (matchLinesByProductName), and the QuoteLineItem lookup behind
+     * Get_QuoteLineItem_from_Quote (RLM_AI_QuoteLineItemLookupService) — scores
+     * names through the SAME primitive and therefore behaves identically.
      */
-    @TestVisible
-    private static Integer productNameScore(String candidateName, String searchTerm) {
+    public static Integer productNameScore(String candidateName, String searchTerm) {
         if (String.isBlank(candidateName) || String.isBlank(searchTerm)) {
             return 0;
         }

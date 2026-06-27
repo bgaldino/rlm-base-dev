@@ -2,9 +2,23 @@
  * Invocable service for looking up a QuoteLineItem on a Quote by partial
  * product name.
  *
- * Matching strategy uses a scored SOQL candidate query so the service can
- * prefer exact and higher-confidence partial matches while preserving the
- * current flow/agent output contract.
+ * Matching is delegated to the SHARED fuzzy engine in RLM_AI_ConfigServiceUtils
+ * (productNameScore + MIN_CONFIDENT_SCORE + classifyScores) — the SAME engine
+ * used by the direct product search (matchProductsByName) and the
+ * discount/field-update line resolution (matchLinesByProductName), so all three
+ * name resolvers score and decide identically.
+ *
+ * Why this matters: the old per-class scorer gave a "startsWith" bonus and ran a
+ * brittle contiguous SOQL LIKE pre-filter. For "change the additional API type
+ * to Prod" that picked "API Access Requests (AEH)" over "Additional API" (the
+ * shorter name started with the noise token "API") and even auto-selected it.
+ * The shared engine instead fetches EVERY line on the quote, scores each line's
+ * product name token-wise (noise words like the attribute name no longer break
+ * the match), drops anything below MIN_CONFIDENT_SCORE, and lets classifyScores
+ * decide single-vs-ambiguous. autoSelectThresholdPercent remains as a SECONDARY
+ * tightening gate: it can demote an otherwise-clear winner below the threshold to
+ * disambiguation, but it can never force-pick one of several equally-scoring
+ * lines (a genuine tie always disambiguates).
  */
 public with sharing class RLM_AI_QuoteLineItemLookupService {
     // Heap/SOQL safety bound on candidate lines fetched from a quote. Set to 200
@@ -19,11 +33,11 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         public String quoteId;
 
         @InvocableVariable(label='Product Name'
-            description='Partial or full product name to search for (LIKE match). Leave blank to return every quote line on the quote as disambiguation candidates (used to let the user pick lines to discount, including "all").')
+            description='Partial or full product name to search for. Leave blank to return every quote line on the quote as disambiguation candidates (used to let the user pick lines to discount, including "all").')
         public String productName;
 
         @InvocableVariable(label='Auto Select Threshold Percent'
-            description='Optional confidence threshold (0-100) required to auto-select a match. Defaults to 80.')
+            description='Optional confidence threshold (0-100) required to auto-select a match. Defaults to 80. Raising it forces a confirmation step; it never forces a pick between equally-scoring lines.')
         public Integer autoSelectThresholdPercent;
     }
 
@@ -93,7 +107,7 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
 
     @InvocableMethod(
         label='Get QuoteLineItem from Quote'
-        description='Looks up a QuoteLineItem on a Quote using a partial product name LIKE match. Returns the QuoteLineItem Id for use in product configuration actions.'
+        description='Looks up a QuoteLineItem on a Quote by scored product-name matching (shared fuzzy engine). Returns the QuoteLineItem Id for use in product configuration actions, or disambiguation candidates when the name is ambiguous.'
     )
     public static List<LookupOutput> lookup(List<LookupInput> inputs) {
         List<LookupOutput> results = new List<LookupOutput>();
@@ -126,73 +140,98 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
 
             // A blank product name means "list every line on the quote" so the
             // agent can present them for selection (e.g. discount one, several,
-            // or all). A populated product name runs scored LIKE matching.
+            // or all). A populated product name runs scored matching over all
+            // lines via the shared fuzzy engine (no brittle contiguous LIKE).
             Boolean listAllMode = String.isBlank(input.productName);
-
             String queryText = listAllMode ? '' : input.productName.trim();
-            String normalizedQuery = normalizeText(queryText);
-            List<QuoteLineItem> qlis = listAllMode
-                ? queryAllQuoteLines(quoteId)
-                : queryMatchingQuoteLines(quoteId, queryText);
+
+            // Fetch every line on the quote in either mode. In list-all mode we
+            // keep all of them; in search mode we score them and keep only the
+            // confident matches. Scoring in memory (not via SOQL LIKE) is what
+            // lets a noise word the user adds — e.g. the attribute name in
+            // "change the additional API type to Prod" — stop breaking the match.
+            List<QuoteLineItem> qlis = queryAllQuoteLines(quoteId);
+
             // The lookup ran correctly past validation — match, disambiguation,
             // list-all, and no-match are all successful outcomes (isSuccess = true).
             // Only input/system errors leave isSuccess = false.
             out.isSuccess = true;
-            if (!qlis.isEmpty()) {
-                List<MatchCandidate> rankedCandidates = rankCandidates(qlis, normalizedQuery);
 
-                if (listAllMode) {
-                    // Return all lines as candidates; the agent always asks the
-                    // user which line(s) to act on. No auto-selection.
-                    populateDisambiguationOutputs(out, rankedCandidates, rankedCandidates.size());
-                    out.errorMessage =
-                        'Listing all ' + rankedCandidates.size()
-                        + ' quote line(s) for selection. Present candidateQuoteLineSummariesJson as a numbered list and ask the user which line(s) to act on (they may choose all, several, or one).';
-                    return out;
-                }
-
-                Integer thresholdPercent = resolveThresholdPercent(input.autoSelectThresholdPercent);
-                MatchCandidate bestMatch = rankedCandidates[0];
-                out.matchConfidencePercent = bestMatch.confidence;
-
-                if (hasDuplicateTopProductLines(rankedCandidates)) {
-                    populateDisambiguationOutputs(out, rankedCandidates);
-                    out.errorMessage =
-                        'Multiple quote lines were found for product "'
-                        + bestMatch.qli.Product2.Name
-                        + '". Ask the user to choose from candidateQuoteLineItems and proceed with the selected line.';
-                } else if (bestMatch.confidence >= thresholdPercent) {
-                    out.quoteLineItemId = bestMatch.qli.Id;
-                    out.productNameFound = bestMatch.qli.Product2.Name;
-                    out.isFound = true;
-                } else {
-                    populateDisambiguationOutputs(out, rankedCandidates);
-                    out.errorMessage =
-                        'Multiple partial matches were found and no result met the auto-selection confidence threshold of '
-                        + thresholdPercent
-                        + '%. Ask the user to choose from candidateProductNamesJson and retry with a more specific product name.';
-                }
-            } else {
+            if (qlis.isEmpty()) {
                 out.errorMessage = listAllMode
                     ? 'No quote lines were found on this quote. Verify the quote ID and that it has line items.'
-                    : 'No QuoteLineItem found on this quote matching product name "' + input.productName + '". Verify the quote ID and product name and try again.';
+                    : 'No quote lines were found on this quote. Verify the quote ID and that it has line items.';
+                return out;
+            }
+
+            if (listAllMode) {
+                // Return all lines as candidates in their natural quote order; the
+                // agent always asks the user which line(s) to act on. No scoring,
+                // no auto-selection.
+                List<MatchCandidate> allCandidates = new List<MatchCandidate>();
+                for (QuoteLineItem qli : qlis) {
+                    allCandidates.add(new MatchCandidate(qli, 0, 0));
+                }
+                populateDisambiguationOutputs(out, allCandidates, allCandidates.size());
+                out.errorMessage =
+                    'Listing all ' + allCandidates.size()
+                    + ' quote line(s) for selection. Present candidateQuoteLineSummariesJson as a numbered list and ask the user which line(s) to act on (they may choose all, several, or one).';
+                return out;
+            }
+
+            // Search mode: score every line through the SHARED engine and keep
+            // only confident matches (>= MIN_CONFIDENT_SCORE), highest first.
+            List<MatchCandidate> rankedCandidates = rankConfidentCandidates(qlis, queryText);
+
+            if (rankedCandidates.isEmpty()) {
+                out.errorMessage =
+                    'No QuoteLineItem found on this quote matching product name "'
+                    + input.productName
+                    + '". Verify the quote ID and product name and try again.';
+                return out;
+            }
+
+            Integer thresholdPercent = resolveThresholdPercent(input.autoSelectThresholdPercent);
+            MatchCandidate bestMatch = rankedCandidates[0];
+            out.matchConfidencePercent = bestMatch.confidence;
+
+            // Two or more lines carry the SAME product name (e.g. the product was
+            // added twice). The user must pick which line, regardless of score.
+            if (hasDuplicateTopProductLines(rankedCandidates)) {
+                populateDisambiguationOutputs(out, rankedCandidates);
+                out.errorMessage =
+                    'Multiple quote lines were found for product "'
+                    + bestMatch.qli.Product2.Name
+                    + '". Ask the user to choose from candidateQuoteLineItems and proceed with the selected line.';
+                return out;
+            }
+
+            // Single-vs-ambiguous is the shared decision; the threshold is a
+            // secondary floor that can only demote a clear winner, never promote
+            // a tie.
+            List<Integer> scores = new List<Integer>();
+            for (MatchCandidate c : rankedCandidates) {
+                scores.add(c.confidence);
+            }
+            RLM_AI_ConfigServiceUtils.MatchResolution resolution =
+                RLM_AI_ConfigServiceUtils.classifyScores(scores);
+
+            if (resolution == RLM_AI_ConfigServiceUtils.MatchResolution.SINGLE
+                && bestMatch.confidence >= thresholdPercent) {
+                out.quoteLineItemId = bestMatch.qli.Id;
+                out.productNameFound = bestMatch.qli.Product2.Name;
+                out.isFound = true;
+            } else {
+                populateDisambiguationOutputs(out, rankedCandidates);
+                out.errorMessage =
+                    'No single quote line clearly matched "' + input.productName
+                    + '" at the ' + thresholdPercent
+                    + '% confidence threshold (the top matches scored too closely, or the best match fell below the threshold). Ask the user to choose from candidateQuoteLineItems and proceed with the selected line.';
             }
         } catch (Exception e) {
             out.errorMessage = e.getMessage();
         }
         return out;
-    }
-
-    private static List<QuoteLineItem> queryMatchingQuoteLines(Id quoteId, String queryText) {
-        String likePattern = '%' + RLM_AI_ConfigServiceUtils.escapeLikeTerm(queryText) + '%';
-        return [
-            SELECT Id, Product2Id, Product2.Name, Quantity, UnitPrice, NetUnitPrice, TotalPrice, NetTotalPrice
-            FROM QuoteLineItem
-            WHERE QuoteId = :quoteId
-              AND Product2.Name LIKE :likePattern
-            ORDER BY Product2.Name ASC
-            LIMIT :MAX_CANDIDATES
-        ];
     }
 
     private static List<QuoteLineItem> queryAllQuoteLines(Id quoteId) {
@@ -205,19 +244,25 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         ];
     }
 
-    private static List<MatchCandidate> rankCandidates(List<QuoteLineItem> qlis, String normalizedQuery) {
+    /**
+     * Scores each line's product name against the search term via the SHARED
+     * productNameScore engine, keeps only confident matches
+     * (>= RLM_AI_ConfigServiceUtils.MIN_CONFIDENT_SCORE), and returns them ranked
+     * best-first. score and confidence are the same 0-100 value so the rest of
+     * the contract (matchConfidencePercent, comparator) is unchanged.
+     */
+    private static List<MatchCandidate> rankConfidentCandidates(
+        List<QuoteLineItem> qlis, String searchTerm
+    ) {
         List<MatchCandidate> candidates = new List<MatchCandidate>();
         for (QuoteLineItem qli : qlis) {
             String candidateName = qli?.Product2?.Name;
-            Integer score = computeMatchScore(normalizedQuery, candidateName);
-            Integer confidence = computeConfidencePercent(normalizedQuery, candidateName);
-            candidates.add(new MatchCandidate(qli, score, confidence));
+            Integer score = RLM_AI_ConfigServiceUtils.productNameScore(candidateName, searchTerm);
+            if (score >= RLM_AI_ConfigServiceUtils.MIN_CONFIDENT_SCORE) {
+                candidates.add(new MatchCandidate(qli, score, score));
+            }
         }
-        // With no query (list-all mode), there is nothing to rank — keep the
-        // SOQL LineNumber order so the numbered list matches the quote.
-        if (String.isNotBlank(normalizedQuery)) {
-            candidates.sort(new MatchCandidateComparator());
-        }
+        candidates.sort(new MatchCandidateComparator());
         return candidates;
     }
 
@@ -236,80 +281,6 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
             }
             return nameA < nameB ? -1 : 1;
         }
-    }
-
-    private static Integer computeMatchScore(String normalizedQuery, String candidateName) {
-        String normalizedCandidate = normalizeText(candidateName);
-        Integer score = 0;
-
-        if (normalizedCandidate == normalizedQuery) {
-            score += 1000;
-        } else if (normalizedCandidate.startsWith(normalizedQuery)) {
-            score += 700;
-        } else if (normalizedCandidate.contains(normalizedQuery)) {
-            score += 500;
-        }
-
-        Set<String> queryTokens = toTokenSet(normalizedQuery);
-        if (!queryTokens.isEmpty()) {
-            Set<String> candidateTokens = toTokenSet(normalizedCandidate);
-            Integer matchedTokens = 0;
-            for (String token : queryTokens) {
-                if (candidateTokens.contains(token)) {
-                    matchedTokens++;
-                }
-            }
-            score += matchedTokens * 80;
-        }
-
-        Integer lengthDelta = Math.abs(normalizedCandidate.length() - normalizedQuery.length());
-        score -= Math.min(lengthDelta, 50);
-        return score;
-    }
-
-    private static Integer computeConfidencePercent(String normalizedQuery, String candidateName) {
-        String normalizedCandidate = normalizeText(candidateName);
-        if (String.isBlank(normalizedQuery) || String.isBlank(normalizedCandidate)) {
-            return 0;
-        }
-
-        if (normalizedCandidate == normalizedQuery) {
-            return 100;
-        }
-
-        Set<String> queryTokens = toTokenSet(normalizedQuery);
-        Set<String> candidateTokens = toTokenSet(normalizedCandidate);
-        Integer matchedTokens = 0;
-        for (String token : queryTokens) {
-            if (candidateTokens.contains(token)) {
-                matchedTokens++;
-            }
-        }
-        Decimal tokenCoverage = queryTokens.isEmpty()
-            ? 0
-            : (Decimal.valueOf(matchedTokens) / Decimal.valueOf(queryTokens.size()));
-
-        Integer confidence;
-        if (normalizedCandidate.startsWith(normalizedQuery)) {
-            confidence = 78 + Integer.valueOf((tokenCoverage * 20).setScale(0, RoundingMode.HALF_UP));
-        } else if (normalizedCandidate.contains(normalizedQuery)) {
-            confidence = 72 + Integer.valueOf((tokenCoverage * 20).setScale(0, RoundingMode.HALF_UP));
-        } else if (tokenCoverage > 0) {
-            confidence = 40 + Integer.valueOf((tokenCoverage * 30).setScale(0, RoundingMode.HALF_UP));
-        } else {
-            confidence = 0;
-        }
-
-        Integer lengthDelta = Math.abs(normalizedCandidate.length() - normalizedQuery.length());
-        Integer lengthPenalty = Math.min(15, lengthDelta);
-        confidence = confidence - lengthPenalty;
-
-        if (confidence < 0) {
-            confidence = 0;
-        } else if (confidence > 100) {
-            confidence = 100;
-        }
-        return confidence;
     }
 
     private static String buildCandidateNamesJson(List<MatchCandidate> rankedCandidates, Integer maxToReturn) {
@@ -508,18 +479,5 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
             .replaceAll('[^a-z0-9]+', ' ')
             .replaceAll('\\s+', ' ')
             .trim();
-    }
-
-    private static Set<String> toTokenSet(String value) {
-        Set<String> tokens = new Set<String>();
-        if (String.isBlank(value)) {
-            return tokens;
-        }
-        for (String token : value.split('\\s+')) {
-            if (String.isNotBlank(token)) {
-                tokens.add(token);
-            }
-        }
-        return tokens;
     }
 }

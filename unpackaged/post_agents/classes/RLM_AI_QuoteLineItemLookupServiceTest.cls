@@ -89,11 +89,14 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
     }
 
     @isTest
-    static void lookupEscapesLikeWildcardsInSearchText() {
+    static void lookupHandlesSpecialCharactersInSearchText() {
+        // The shared engine scores in memory (no SOQL LIKE), so punctuation in
+        // the search term is tokenized away rather than interpreted as a wildcard.
+        // A single, clearly-best line still resolves.
         RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
             RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('100% Pure Generator');
 
-        addQuoteLineItem(fixture.quoteId, '100X Pure Generator');
+        addQuoteLineItem(fixture.quoteId, 'Support Plan');
 
         RLM_AI_QuoteLineItemLookupService.LookupInput input =
             new RLM_AI_QuoteLineItemLookupService.LookupInput();
@@ -206,10 +209,14 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
                 new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
             );
 
+        // "Gen" is a substring of "Generator" in all three lines, so the shared
+        // engine scores them all equally (contains-all). Equal top scores =>
+        // AMBIGUOUS => disambiguation, regardless of the confidence VALUE. The
+        // old per-class scorer reported <80 here; the unified engine reports a
+        // high-but-tied score and disambiguates because no single line dominates.
         System.assertEquals(true, results[0].isSuccess, 'A disambiguation outcome still ran correctly.');
         System.assertEquals(false, results[0].isFound);
         System.assertEquals(true, results[0].needsDisambiguation);
-        System.assert(results[0].matchConfidencePercent < 80);
         System.assertEquals(null, results[0].quoteLineItemId);
         System.assertNotEquals(null, results[0].candidateProductNamesJson);
         System.assert(results[0].candidateProductNamesJson.contains('FESBA Generator Set'));
@@ -241,15 +248,20 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
 
     @isTest
     static void lookupRespectsCustomThresholdAndAutoSelectsWhenLowered() {
+        // A SINGLE dominant partial match scoring 60 (3 of 4 search tokens found):
+        // the default 80 threshold would demote it to disambiguation, but lowering
+        // the threshold below its confidence auto-selects it. (The unified engine
+        // never force-picks between equally-scoring lines — the threshold only
+        // moves the bar for a clear, single winner.)
         RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
-            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('FESBA Generator Set');
-        addQuoteLineItem(fixture.quoteId, 'FESBA Generator Pro');
+            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('Cloud Storage Premium Enterprise');
+        addQuoteLineItem(fixture.quoteId, 'Support Plan');
 
         RLM_AI_QuoteLineItemLookupService.LookupInput input =
             new RLM_AI_QuoteLineItemLookupService.LookupInput();
         input.quoteId = String.valueOf(fixture.quoteId);
-        input.productName = 'Generator';
-        input.autoSelectThresholdPercent = 70;
+        input.productName = 'Cloud Storage Premium Edition';
+        input.autoSelectThresholdPercent = 55;
 
         List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
             RLM_AI_QuoteLineItemLookupService.lookup(
@@ -258,14 +270,19 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
 
         System.assertEquals(true, results[0].isFound);
         System.assertEquals(false, results[0].needsDisambiguation);
-        System.assert(results[0].matchConfidencePercent >= 70);
+        System.assertEquals('Cloud Storage Premium Enterprise', results[0].productNameFound);
+        System.assert(results[0].matchConfidencePercent >= 55);
+        System.assert(results[0].matchConfidencePercent < 80,
+            'The match is a partial below the default threshold; only the lowered threshold selects it.');
     }
 
     @isTest
     static void lookupRespectsCustomThresholdAndDisambiguatesWhenRaised() {
+        // A SINGLE clear winner scoring 85 (contains-all): raising the threshold
+        // above its confidence demotes it to a confirmation/disambiguation step.
         RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
             RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('Generator Plus');
-        addQuoteLineItem(fixture.quoteId, 'Generator Pro');
+        addQuoteLineItem(fixture.quoteId, 'Support Plan');
 
         RLM_AI_QuoteLineItemLookupService.LookupInput input =
             new RLM_AI_QuoteLineItemLookupService.LookupInput();
@@ -284,6 +301,37 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
         System.assert(results[0].candidateProducts.size() > 0);
         System.assert(results[0].candidateQuoteLineItems.size() > 0);
         System.assert(results[0].errorMessage.contains('95%'));
+    }
+
+    @isTest
+    static void lookupResolvesAdditionalApiOverApiAccessRequests() {
+        // Regression for the reported bug: "change the additional API type to Prod"
+        // mis-resolved to "API Access Requests (AEH)" because the old per-class
+        // scorer gave the shorter name a startsWith bonus on the token "API" and
+        // auto-selected it. The shared engine scores "Additional API" far higher
+        // (every name token present in the search) and drops the weak single-token
+        // overlap on "API Access Requests (AEH)" below the confidence floor.
+        RLM_AI_ProductConfigTestDataFactory.QuoteFixture fixture =
+            RLM_AI_ProductConfigTestDataFactory.createQuoteFixture('Additional API');
+        addQuoteLineItem(fixture.quoteId, 'API Access Requests (AEH)');
+
+        RLM_AI_QuoteLineItemLookupService.LookupInput input =
+            new RLM_AI_QuoteLineItemLookupService.LookupInput();
+        input.quoteId = String.valueOf(fixture.quoteId);
+        // Includes the trailing attribute noise word the LLM may pass through.
+        input.productName = 'Additional API type';
+
+        List<RLM_AI_QuoteLineItemLookupService.LookupOutput> results =
+            RLM_AI_QuoteLineItemLookupService.lookup(
+                new List<RLM_AI_QuoteLineItemLookupService.LookupInput>{ input }
+            );
+
+        System.assertEquals(true, results[0].isSuccess);
+        System.assertEquals(true, results[0].isFound,
+            'A single dominant line must auto-resolve, not disambiguate.');
+        System.assertEquals('Additional API', results[0].productNameFound,
+            'Must resolve to "Additional API", never "API Access Requests (AEH)".');
+        System.assertEquals(false, results[0].needsDisambiguation);
     }
 
     @isTest
