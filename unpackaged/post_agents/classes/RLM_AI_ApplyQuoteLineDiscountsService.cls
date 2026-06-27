@@ -326,16 +326,7 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
 
         // (d) By product name.
         if (String.isNotBlank(input.productName)) {
-            String likePattern = '%' + RLM_AI_ConfigServiceUtils.escapeLikeTerm(input.productName.trim()) + '%';
-            List<QuoteLineItem> matches = [
-                SELECT Id, Product2.Name, Quantity, UnitPrice, NetUnitPrice, ListPrice, LineNumber
-                FROM QuoteLineItem
-                WHERE QuoteId = :quoteId AND Product2.Name LIKE :likePattern
-                WITH USER_MODE
-                ORDER BY LineNumber ASC
-                LIMIT 200
-            ];
-            return matches;
+            return RLM_AI_ConfigServiceUtils.matchLinesByProductName(quoteId, input.productName);
         }
 
         // No targeting at all — present the lines so the user can pick.

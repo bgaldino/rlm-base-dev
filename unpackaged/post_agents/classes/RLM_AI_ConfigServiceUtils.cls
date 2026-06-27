@@ -95,4 +95,100 @@ public inherited sharing class RLM_AI_ConfigServiceUtils {
             .replace('%', '\\%')
             .replace('_', '\\_');
     }
+
+    /**
+     * Matches a product name against a search term using tokenized fuzzy matching.
+     * Returns true if all tokens in searchTerm appear as substrings in productName
+     * (case-insensitive, order-independent).
+     *
+     * This is the pure in-memory matcher used for scoring and filtering lines
+     * after SOQL retrieval. Testable without DML.
+     */
+    @TestVisible
+    private static Boolean productNameMatchesTokens(String productName, String searchTerm) {
+        if (String.isBlank(productName) || String.isBlank(searchTerm)) {
+            return false;
+        }
+        String normalizedProduct = productName.toLowerCase().trim();
+        String normalizedSearch = searchTerm.toLowerCase().trim();
+
+        // Exact match scores highest but still returns true
+        if (normalizedProduct == normalizedSearch) {
+            return true;
+        }
+
+        // Tokenize search term (split on whitespace and punctuation)
+        List<String> searchTokens = extractTokens(normalizedSearch);
+        if (searchTokens.isEmpty()) {
+            return false;
+        }
+
+        // All search tokens must appear as substrings in the product name
+        for (String token : searchTokens) {
+            if (!normalizedProduct.contains(token)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Extracts tokens from a string by splitting on whitespace and common
+     * punctuation, filtering out empty strings.
+     */
+    @TestVisible
+    private static List<String> extractTokens(String text) {
+        List<String> tokens = new List<String>();
+        if (String.isBlank(text)) {
+            return tokens;
+        }
+        // Split on whitespace and common punctuation
+        String normalized = text.replaceAll('[\\s\\-_,;:.!?()\\[\\]{}]+', ' ').trim();
+        for (String token : normalized.split(' ')) {
+            if (String.isNotBlank(token)) {
+                tokens.add(token.toLowerCase());
+            }
+        }
+        return tokens;
+    }
+
+    /**
+     * Resolves QuoteLineItems by productName using tokenized fuzzy matching.
+     * Returns all lines whose Product2.Name matches the search term (all tokens
+     * present, case-insensitive, order-independent). Sorted by LineNumber asc.
+     *
+     * This is the public entry point that both discount and field-update services
+     * use. It fetches all lines on the quote and filters in-memory for maximum
+     * match flexibility (no brittle contiguous LIKE).
+     */
+    public static List<QuoteLineItem> matchLinesByProductName(
+        Id quoteId, String searchTerm
+    ) {
+        if (String.isBlank(searchTerm)) {
+            return new List<QuoteLineItem>();
+        }
+
+        // Fetch all lines on the quote (bounded by quote size; typical quotes
+        // have <200 lines). This avoids brittle SOQL LIKE that fails on
+        // non-contiguous matches.
+        List<QuoteLineItem> allLines = [
+            SELECT Id, Product2.Name, Quantity, UnitPrice, NetUnitPrice, ListPrice, LineNumber
+            FROM QuoteLineItem
+            WHERE QuoteId = :quoteId
+            WITH USER_MODE
+            ORDER BY LineNumber ASC
+            LIMIT 200
+        ];
+
+        List<QuoteLineItem> matches = new List<QuoteLineItem>();
+        for (QuoteLineItem qli : allLines) {
+            String productName = (qli.Product2 != null && String.isNotBlank(qli.Product2.Name))
+                ? qli.Product2.Name
+                : '';
+            if (productNameMatchesTokens(productName, searchTerm)) {
+                matches.add(qli);
+            }
+        }
+        return matches;
+    }
 }

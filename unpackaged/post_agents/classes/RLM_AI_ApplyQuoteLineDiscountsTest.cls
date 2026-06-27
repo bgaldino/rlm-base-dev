@@ -331,6 +331,98 @@ private class RLM_AI_ApplyQuoteLineDiscountsTest {
         System.assertEquals(0, results.size());
     }
 
+    // ---- Tokenized product-name matching tests ----
+
+    @isTest
+    static void tokenMatcherExactMatch() {
+        System.assertEquals(true,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens('QB API Management', 'QB API Management'),
+            'Exact match should succeed');
+    }
+
+    @isTest
+    static void tokenMatcherCaseInsensitive() {
+        System.assertEquals(true,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens('QB API Management', 'qb api management'),
+            'Case-insensitive match should succeed');
+    }
+
+    @isTest
+    static void tokenMatcherMissingTrailingWord() {
+        System.assertEquals(true,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens(
+                'QB API Management Solution', 'QB API Management'
+            ),
+            'All search tokens present should match');
+    }
+
+    @isTest
+    static void tokenMatcherReorderedTokens() {
+        System.assertEquals(true,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens(
+                'API Management QB Solution', 'QB Management API'
+            ),
+            'Reordered tokens should match');
+    }
+
+    @isTest
+    static void tokenMatcherPartialTokenMatch() {
+        System.assertEquals(true,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens(
+                'Additional API Product', 'API'
+            ),
+            'Single token should match multiple products');
+    }
+
+    @isTest
+    static void tokenMatcherMissingTokenFails() {
+        System.assertEquals(false,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens(
+                'QB Management Solution', 'QB API Management'
+            ),
+            'Missing token API should fail');
+    }
+
+    @isTest
+    static void tokenMatcherBlankSearchFails() {
+        System.assertEquals(false,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens('Product Name', ''),
+            'Blank search should fail');
+    }
+
+    @isTest
+    static void tokenMatcherBlankProductFails() {
+        System.assertEquals(false,
+            RLM_AI_ConfigServiceUtils.productNameMatchesTokens('', 'search term'),
+            'Blank product should fail');
+    }
+
+    @isTest
+    static void productNameTokenizedMatchByPartName() {
+        Fixture f = buildFixture(new List<String>{
+            'QB API Management Solution',
+            'QB Server Standard',
+            'Quinn Cable'
+        });
+        FakeInvoker fake = new FakeInvoker();
+        RLM_AI_ApplyQuoteLineDiscountsService.invoker = fake;
+
+        RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput input = baseInput(f.quoteId);
+        input.productName = 'QB API Management';
+        input.discountMode = 'percent';
+        input.discountPercentage = 5;
+
+        List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput> results =
+            RLM_AI_ApplyQuoteLineDiscountsService.applyDiscounts(
+                new List<RLM_AI_ApplyQuoteLineDiscountsService.DiscountInput>{ input });
+
+        RLM_AI_ApplyQuoteLineDiscountsService.DiscountOutput out = results[0];
+        System.assertEquals(true, out.isSuccess, 'error: ' + out.errorMessage);
+        System.assertEquals(1, out.appliedCount,
+            'Only QB API Management Solution should match');
+        System.assertEquals(1, fake.callCount);
+    }
+
     // ---- Fixture helpers ----
 
     private class Fixture {
