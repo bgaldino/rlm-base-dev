@@ -132,6 +132,9 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
         System.assertEquals(false, results[0].isFound, 'List-all never auto-selects a single line.');
         System.assertEquals(true, results[0].needsDisambiguation);
         System.assertEquals(null, results[0].quoteLineItemId);
+        System.assertNotEquals('', results[0].candidateQuoteLineSummariesDisplay);
+        System.assert(results[0].candidateQuoteLineSummariesDisplay.contains('Select the quote line(s) to update:'));
+        System.assert(results[0].candidateQuoteLineSummariesDisplay.contains('FESBA Generator Set'));
 
         List<Object> summaries = (List<Object>) JSON.deserializeUntyped(results[0].candidateQuoteLineSummariesJson);
         System.assertEquals(3, summaries.size(), 'All three quote lines should be returned (not capped at 3-candidate disambiguation limit).');
@@ -221,6 +224,9 @@ private class RLM_AI_QuoteLineItemLookupServiceTest {
             'Candidate quote lines should display NetUnitPrice when available and otherwise UnitPrice.'
         );
         System.assertNotEquals('[]', results[0].candidateQuoteLineSummariesJson);
+        System.assertNotEquals('', results[0].candidateQuoteLineSummariesDisplay);
+        System.assert(results[0].candidateQuoteLineSummariesDisplay.contains('Net Unit Price'));
+        System.assert(results[0].candidateQuoteLineSummariesDisplay.contains('FESBA Generator Set'));
         List<Object> summaries = (List<Object>) JSON.deserializeUntyped(results[0].candidateQuoteLineSummariesJson);
         System.assert(summaries.size() > 0);
         Set<String> summaryNames = new Set<String>();

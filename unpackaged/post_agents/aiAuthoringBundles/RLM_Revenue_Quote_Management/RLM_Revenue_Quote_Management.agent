@@ -322,7 +322,7 @@ subagent QuoteManagement:
               - Quote line dates: for Evergreen, use start date (default current date if missing). For Term-Defined, set both start and end dates (default start date to current date if missing).
               - Discounts (apply only to explicitly selected quote lines; never header-level):
                 - When the user asks to discount but the target line(s) are not yet identified, call Get_QuoteLineItem_from_Quote to resolve them. Pass a productName when the user named a product; leave productName blank to list every line on the quote for selection.
-                - If a single line is returned with isFound=true, that is the target. If needsDisambiguation=true, use candidateQuoteLineSummariesJson as the source of truth: present a numbered list (product name, quantity, net unit price, net total price) and ask which line(s) to discount. Accept "all", several numbers/names, or one.
+                - If a single line is returned with isFound=true, that is the target. If needsDisambiguation=true, show candidateQuoteLineItems and candidateQuoteLineSummariesDisplay to the user, and use candidateQuoteLineSummariesJson as the authoritative source of quoteLineItemId values when applying discounts. Accept "all", several numbers/names, or one.
                 - Apply the discount by calling ApplyDiscountToQuoteLine once per selected quoteLineItemId, reusing the same discountPercentage. For "all", loop over every line in candidateQuoteLineSummariesJson.
                 - Before applying, summarize the exact discount and the specific line(s) it will affect, and ask the user to confirm. Once the user confirms (e.g. "yes", "apply it", "discount all of them"), immediately call ApplyDiscountToQuoteLine for each target line — for "all", loop over every line in candidateQuoteLineSummariesJson without re-listing or asking again. Do not re-resolve lines or re-prompt after a clear confirmation.
                 - After applying, report per-line and overall results using product names, not raw IDs.
@@ -796,8 +796,20 @@ subagent QuoteManagement:
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__textType"
+                "candidateQuoteLineItems": list[object]
+                    description: "Displayable candidate QuoteLineItem records for disambiguation."
+                    label: "candidateQuoteLineItems"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+                "candidateQuoteLineSummariesDisplay": string
+                    description: "Formatted numbered summary of candidate quote lines (product, quantity, net unit price, net total price) for user-facing selection."
+                    label: "candidateQuoteLineSummariesDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
                 "candidateQuoteLineSummariesJson": string
-                    description: "JSON array of candidate quote line summaries. Each item includes quoteLineItemId, productName, quantity, netUnitPrice, and netTotalPrice. Use this as the authoritative display and selection source for discounting one, several, or all lines."
+                    description: "JSON array of candidate quote line summaries. Each item includes quoteLineItemId, productName, quantity, netUnitPrice, and netTotalPrice. Use this as the authoritative source for selected quoteLineItemId values."
                     label: "candidateQuoteLineSummariesJson"
                     is_displayable: False
                     filter_from_agent: False
@@ -1344,7 +1356,7 @@ subagent ProductConfiguration:
               - Never pass Quote Id where QuoteLineItem Id is required.
               - Resolve quoteLineItemId by reusing recent action output when available; otherwise call Get_QuoteLineItem_from_Quote with quoteId and productName.
               - Reuse product name from recent user context when present; ask only if missing.
-              - If Get_QuoteLineItem_from_Quote returns needsDisambiguation=true, use candidateQuoteLineSummariesJson as source of truth, present a numbered list (product name, net unit price, net total price), and use the selected quoteLineItemId directly.
+              - If Get_QuoteLineItem_from_Quote returns needsDisambiguation=true, show candidateQuoteLineItems and candidateQuoteLineSummariesDisplay to help selection, and use candidateQuoteLineSummariesJson as the source of truth for the selected quoteLineItemId.
               - Never show raw JSON to the user.
               Error recovery guidance:
               - If a product configuration action returns isSuccess=false or an errorMessage, do not expose raw IDs, JSON, stack traces, or internal platform wording. Turn the message into a short corrective prompt, such as asking the user to select the quote line from the current quote or provide the product name again.
@@ -1454,11 +1466,17 @@ subagent ProductConfiguration:
                 "candidateQuoteLineItems": list[object]
                     description: "Candidate QuoteLineItem records for ambiguous matches."
                     label: "candidateQuoteLineItems"
-                    is_displayable: False
+                    is_displayable: True
                     filter_from_agent: False
                     complex_data_type_name: "lightning__recordInfoType"
+                "candidateQuoteLineSummariesDisplay": string
+                    description: "Formatted numbered summary of candidate quote lines (product, quantity, net unit price, net total price) for user-facing selection."
+                    label: "candidateQuoteLineSummariesDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
                 "candidateQuoteLineSummariesJson": string
-                    description: "JSON array of candidate quote line summaries for disambiguation. Each item includes quoteLineItemId, productName, quantity, netUnitPrice, and netTotalPrice. Use this output as the authoritative display and selection source."
+                    description: "JSON array of candidate quote line summaries for disambiguation. Each item includes quoteLineItemId, productName, quantity, netUnitPrice, and netTotalPrice. Use this output as the authoritative source for selected quoteLineItemId values."
                     label: "candidateQuoteLineSummariesJson"
                     is_displayable: False
                     filter_from_agent: False

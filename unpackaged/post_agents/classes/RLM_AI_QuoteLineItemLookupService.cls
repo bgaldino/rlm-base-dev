@@ -57,6 +57,10 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         @InvocableVariable(label='Candidate Quote Line Summaries JSON')
         public String candidateQuoteLineSummariesJson;
 
+        @InvocableVariable(label='Candidate Quote Line Summaries Display'
+            description='Formatted numbered summary of quote line candidates for user-facing disambiguation.')
+        public String candidateQuoteLineSummariesDisplay;
+
         @InvocableVariable(label='Error Message')
         public String errorMessage;
 
@@ -69,6 +73,7 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
             this.candidateProducts = new List<Product2>();
             this.candidateQuoteLineItems = new List<QuoteLineItem>();
             this.candidateQuoteLineSummariesJson = '[]';
+            this.candidateQuoteLineSummariesDisplay = '';
         }
     }
 
@@ -392,6 +397,7 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         out.candidateProducts = buildCandidateProducts(rankedCandidates, cap);
         out.candidateQuoteLineItems = buildCandidateQuoteLineItems(rankedCandidates, cap);
         out.candidateQuoteLineSummariesJson = buildCandidateQuoteLineSummariesJson(rankedCandidates, cap);
+        out.candidateQuoteLineSummariesDisplay = buildCandidateQuoteLineSummariesDisplay(rankedCandidates, cap);
     }
 
     private static Boolean hasDuplicateTopProductLines(List<MatchCandidate> rankedCandidates) {
@@ -441,6 +447,44 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
             seenQuoteLineIds.add(qli.Id);
         }
         return JSON.serialize(summaries);
+    }
+
+    private static String buildCandidateQuoteLineSummariesDisplay(List<MatchCandidate> rankedCandidates, Integer maxToReturn) {
+        List<String> lines = new List<String>();
+        lines.add('Select the quote line(s) to update:');
+        Set<Id> seenQuoteLineIds = new Set<Id>();
+        Integer lineNumber = 1;
+        for (MatchCandidate candidate : rankedCandidates) {
+            if (lineNumber > maxToReturn) {
+                break;
+            }
+            QuoteLineItem qli = candidate?.qli;
+            if (qli == null || qli.Id == null || seenQuoteLineIds.contains(qli.Id)) {
+                continue;
+            }
+
+            String productName = String.isNotBlank(qli?.Product2?.Name)
+                ? qli.Product2.Name
+                : 'Unnamed Product';
+            Decimal netUnitPrice = resolveDisplayUnitPrice(qli);
+            Decimal netTotalPrice = qli.NetTotalPrice != null ? qli.NetTotalPrice : qli.TotalPrice;
+            lines.add(
+                lineNumber + '. **' + productName
+                + '** - Quantity: ' + String.valueOf(qli.Quantity)
+                + ', Net Unit Price: ' + formatCurrency(netUnitPrice)
+                + ', Net Total Price: ' + formatCurrency(netTotalPrice)
+            );
+            seenQuoteLineIds.add(qli.Id);
+            lineNumber++;
+        }
+        return String.join(lines, '\n');
+    }
+
+    private static String formatCurrency(Decimal value) {
+        if (value == null) {
+            return 'N/A';
+        }
+        return '$' + String.valueOf(value.setScale(2));
     }
 
     private static Integer resolveThresholdPercent(Integer requestedThresholdPercent) {
