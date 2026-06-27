@@ -237,6 +237,16 @@ cci task run test_agents --org <alias>
 cci task run test_agents --org <alias> -o tests_path unpackaged/post_agents/tests/billing
 ```
 
+> **These tests are slow — run them intentionally.** Each case is a live LLM
+> evaluation against a published agent, so a full quote run is several minutes
+> (roughly 1–3 min per spec; ~8 min for all four). They are **not** part of org
+> bring-up (`prepare_agents`) and should not be run on every edit. Run them when
+> you make a **substantive agent change** — routing, action wiring, guardrails,
+> confirmation gates, or the test specs themselves — and before merging such a
+> change. Skip them for unrelated work. To run a single affected spec instead of
+> the whole suite, point `tests_path` at one file's directory (or temporarily
+> isolate the spec) rather than re-running all four.
+
 `test_agents` (`tasks/rlm_test_agents.py`) derives a deterministic api-name per
 spec file, runs `sf agent test create --force-overwrite` then
 `sf agent test run --wait`, and **fails** the task if any `topic_assertion` or
