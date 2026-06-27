@@ -7,9 +7,11 @@
  * current flow/agent output contract.
  */
 public with sharing class RLM_AI_QuoteLineItemLookupService {
-    private static final Integer MAX_CANDIDATES = 20;
+    // Heap/SOQL safety bound on candidate lines fetched from a quote. Set to 200
+    // (a full quote) so "show all lines" / "discount all lines" never silently
+    // truncate — NOT a UX cap.
+    private static final Integer MAX_CANDIDATES = 200;
     private static final Integer AUTO_SELECT_CONFIDENCE_THRESHOLD = 80;
-    private static final Integer MIN_CANDIDATES_TO_RETURN = 3;
 
     public class LookupInput {
         @InvocableVariable(required=true label='Quote Id'
@@ -383,7 +385,10 @@ public with sharing class RLM_AI_QuoteLineItemLookupService {
         LookupOutput out,
         List<MatchCandidate> rankedCandidates
     ) {
-        populateDisambiguationOutputs(out, rankedCandidates, MIN_CANDIDATES_TO_RETURN);
+        // Show EVERY ranked candidate — never hide valid choices behind a cap.
+        // The user must be able to pick any matching line, not just the top few.
+        Integer all = (rankedCandidates == null) ? 0 : rankedCandidates.size();
+        populateDisambiguationOutputs(out, rankedCandidates, all);
     }
 
     private static void populateDisambiguationOutputs(

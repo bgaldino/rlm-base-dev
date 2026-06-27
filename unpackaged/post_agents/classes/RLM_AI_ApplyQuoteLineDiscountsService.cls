@@ -28,8 +28,6 @@
  */
 public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
 
-    private static final Integer MAX_LINES_PER_REQUEST = 10;
-
     public class DiscountInput {
         @InvocableVariable(required=true label='Quote Id'
             description='18-character Salesforce Id of the Quote (starts with 0Q0).')
@@ -153,12 +151,9 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
                 out.errorMessage = 'No matching quote lines were found to discount.';
                 return out;
             }
-            if (targets.size() > MAX_LINES_PER_REQUEST) {
-                out.errorMessage = 'This request targets ' + targets.size()
-                    + ' lines, but at most ' + MAX_LINES_PER_REQUEST
-                    + ' can be discounted per request. Narrow the selection and try again.';
-                return out;
-            }
+            // No per-request line cap: this is a demo assistant and bulk discounts
+            // across an entire quote (applyToAll) are a first-class path. The
+            // resolver query already bounds the set at LIMIT 200 (a full quote).
 
             // 3. Loop the managed discount action per resolved line.
             List<String> resultLines = new List<String>();

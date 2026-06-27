@@ -36,6 +36,12 @@
             </value>
         </inputParameters>
         <inputParameters>
+            <name>sellingModelName</name>
+            <value>
+                <elementReference>requestedSellingModelName</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
             <name>startDate</name>
             <value>
                 <elementReference>startDate</elementReference>
@@ -211,6 +217,13 @@
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <name>requestedSellingModelName</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
     </variables>
     <variables>
         <name>sellingModelName</name>

@@ -616,12 +616,14 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         System.assert(out.errorMessage.contains('Invalid'), 'error: ' + out.errorMessage);
     }
 
-    // ---- Too many lines rejected ----
+    // ---- Bulk applyToAll across many lines (no per-request cap) ----
+    // This is a demo assistant: bulk edits across an entire quote are a
+    // first-class path, not a guarded one. 25 lines update in one bulk DML.
     @isTest
-    static void tooManyLinesRejected() {
-        // Create 11 lines (MAX is 10)
+    static void bulkApplyToAllUpdatesAllLines() {
+        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         List<String> products = new List<String>();
-        for (Integer i = 1; i <= 11; i++) {
+        for (Integer i = 1; i <= 25; i++) {
             products.add('Product ' + i);
         }
         Fixture f = buildFixture(products);
@@ -638,8 +640,11 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         Test.stopTest();
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
-        System.assertEquals(false, out.isSuccess, 'should fail');
-        System.assert(out.errorMessage.contains('at most'), 'error: ' + out.errorMessage);
+        System.assertEquals(true, out.isSuccess, 'bulk edit should succeed: ' + out.errorMessage);
+        System.assertEquals(25, out.updatedCount, 'all 25 lines updated in one bulk DML');
+
+        Integer bulkCount = [SELECT COUNT() FROM QuoteLineItem WHERE QuoteId = :f.quoteId AND Description = 'Bulk'];
+        System.assertEquals(25, bulkCount, 'every line carries the bulk description');
     }
 
     // ---- Ordinals without pending selection fallback ----
@@ -694,6 +699,130 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         QuoteLineItem updated = [SELECT Description FROM QuoteLineItem WHERE Id = :f.lineIds[0]];
         System.assertEquals('Tokenized match', updated.Description,
             'Non-contiguous tokens should match');
+    }
+
+    // ---- Selling-model gate: dates skipped on one-time lines ----
+
+    @isTest
+    static void isOneTimeLineTrueForOneTimeModel() {
+        // Build a QLI with ProductSellingModel.SellingModelType=OneTime via the
+        // JSON-deserialize trick (the relationship field is read-only on insert).
+        QuoteLineItem qli = (QuoteLineItem) JSON.deserialize(
+            '{"attributes":{"type":"QuoteLineItem"},' +
+            '"ProductSellingModel":{"attributes":{"type":"ProductSellingModel"},"SellingModelType":"OneTime"}}',
+            QuoteLineItem.class
+        );
+        System.assertEquals(true,
+            RLM_AI_UpdateRecordFieldsService.isOneTimeLine(qli),
+            'OneTime selling model should be detected');
+    }
+
+    @isTest
+    static void isOneTimeLineFalseForTermedModel() {
+        QuoteLineItem termed = (QuoteLineItem) JSON.deserialize(
+            '{"attributes":{"type":"QuoteLineItem"},' +
+            '"ProductSellingModel":{"attributes":{"type":"ProductSellingModel"},"SellingModelType":"TermDefined"}}',
+            QuoteLineItem.class
+        );
+        System.assertEquals(false,
+            RLM_AI_UpdateRecordFieldsService.isOneTimeLine(termed),
+            'TermDefined line is not one-time');
+    }
+
+    @isTest
+    static void isOneTimeLineFalseWhenModelMissing() {
+        // No selling model populated → treated as not one-time (date edits proceed).
+        QuoteLineItem bare = new QuoteLineItem();
+        System.assertEquals(false,
+            RLM_AI_UpdateRecordFieldsService.isOneTimeLine(bare),
+            'Null selling model should not be treated as one-time');
+    }
+
+    @isTest
+    static void endDateSkipsOneTimeLineInMixedBatch() {
+        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
+        Fixture f = buildFixture(new List<String>{ 'Quinn Termed', 'Quinn OneTime' });
+        // Force the second line to be treated as a one-time selling model.
+        RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds =
+            new Set<Id>{ f.lineIds[1] };
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'QuoteLineItem';
+        input.applyToAll = true;
+        input.fieldUpdatesJson = '[{"fieldApiName":"EndDate","value":"2029-06-25"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assertEquals(true, out.isSuccess, 'error: ' + out.errorMessage);
+        System.assertEquals(1, out.updatedCount, 'only the termed line gets the date');
+        System.assert(out.resultsDisplay.toLowerCase().contains('skipped'),
+            'display should note the skipped one-time line: ' + out.resultsDisplay);
+
+        QuoteLineItem termed = [SELECT EndDate FROM QuoteLineItem WHERE Id = :f.lineIds[0]];
+        QuoteLineItem oneTime = [SELECT EndDate FROM QuoteLineItem WHERE Id = :f.lineIds[1]];
+        System.assertEquals(Date.newInstance(2029, 6, 25), termed.EndDate,
+            'termed line gets the new end date');
+        System.assertEquals(null, oneTime.EndDate,
+            'one-time line is skipped, end date untouched');
+    }
+
+    @isTest
+    static void endDateOnlyOneTimeLineSkippedNotError() {
+        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
+        Fixture f = buildFixture(new List<String>{ 'Quinn OneTime' });
+        RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds =
+            new Set<Id>{ f.lineIds[0] };
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'QuoteLineItem';
+        input.quoteLineItemIds = new List<String>{ String.valueOf(f.lineIds[0]) };
+        input.fieldUpdatesJson = '[{"fieldApiName":"EndDate","value":"2029-06-25"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        // Entirely-skipped is an expected, non-error outcome.
+        System.assertEquals(true, out.isSuccess, 'all-skipped should not be an error: ' + out.errorMessage);
+        System.assertEquals(0, out.updatedCount);
+        System.assertEquals(null, out.errorMessage, 'no error for a legitimate skip');
+        System.assert(out.resultsDisplay.toLowerCase().contains('skipped'),
+            'display should note the skip: ' + out.resultsDisplay);
+    }
+
+    @isTest
+    static void nonDateFieldStillAppliesToOneTimeLine() {
+        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
+        Fixture f = buildFixture(new List<String>{ 'Quinn OneTime' });
+        RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds =
+            new Set<Id>{ f.lineIds[0] };
+
+        // A non-date edit (Description) must still apply to a one-time line.
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'QuoteLineItem';
+        input.quoteLineItemIds = new List<String>{ String.valueOf(f.lineIds[0]) };
+        input.fieldUpdatesJson = '[{"fieldApiName":"Description","value":"One-time desc"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assertEquals(true, out.isSuccess, 'error: ' + out.errorMessage);
+        System.assertEquals(1, out.updatedCount, 'non-date field applies to one-time line');
+
+        QuoteLineItem updated = [SELECT Description FROM QuoteLineItem WHERE Id = :f.lineIds[0]];
+        System.assertEquals('One-time desc', updated.Description);
     }
 
     @isTest

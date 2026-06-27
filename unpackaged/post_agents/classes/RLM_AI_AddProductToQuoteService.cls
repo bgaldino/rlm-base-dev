@@ -25,9 +25,11 @@
  */
 public with sharing class RLM_AI_AddProductToQuoteService {
 
-    private static final Integer MAX_PRODUCT_CANDIDATES = 10;
-    // Managed add-line caps at 10 line items per agent request; quantity is
-    // per line and unbounded here. Single-currency by default (demo scope).
+    // Upper bound on product-name search matches returned for disambiguation.
+    // Set high (200) so a broad search term never silently hides valid products;
+    // it is a heap/SOQL safety bound, not a UX cap. Quantity is per line and
+    // unbounded. Single-currency by default (demo scope).
+    private static final Integer MAX_PRODUCT_CANDIDATES = 200;
 
     public class AddInput {
         @InvocableVariable(required=true label='Quote Id'
@@ -45,6 +47,10 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         @InvocableVariable(label='Quantity'
             description='Number of units to add. Defaults to 1.')
         public Decimal quantity;
+
+        @InvocableVariable(label='Selling Model Name'
+            description='Optional. Only set this when the USER explicitly names a selling model (e.g. "add it as Term Monthly"). Matched case-insensitively against the selling-model option names of the product. When blank, the DEFAULT selling model of the product is used automatically — do NOT ask the user to choose.')
+        public String sellingModelName;
 
         @InvocableVariable(label='Start Date'
             description='Optional start date for the line.')
@@ -134,8 +140,9 @@ public with sharing class RLM_AI_AddProductToQuoteService {
                 return out;
             }
 
-            // 2. Resolve the default selling model (hard prerequisite for add-line).
-            SellingModelResolution psm = resolveSellingModel(product.Id);
+            // 2. Resolve the selling model (hard prerequisite for add-line):
+            // the user-named one when supplied, otherwise the product default.
+            SellingModelResolution psm = resolveSellingModel(product.Id, input.sellingModelName);
             if (psm.errorMessage != null) {
                 out.errorMessage = psm.errorMessage;
                 return out;
@@ -193,41 +200,61 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         }
 
         String term = input.productName.trim();
-        String likePattern = '%' + RLM_AI_ConfigServiceUtils.escapeLikeTerm(term) + '%';
-        List<Product2> matches = [
-            SELECT Id, Name, ProductCode
-            FROM Product2
-            WHERE Name LIKE :likePattern AND IsActive = true
-            WITH USER_MODE
-            ORDER BY Name ASC
-            LIMIT :MAX_PRODUCT_CANDIDATES
-        ];
 
-        if (matches.isEmpty()) {
+        // Tokenized, scored matching (tolerant of noise words like a trailing
+        // "bundle" the user adds that is not in the catalog name). Replaces the
+        // brittle single contiguous LIKE that failed when the typed phrase was
+        // not a substring of the product name.
+        List<RLM_AI_ConfigServiceUtils.ScoredProduct> scored =
+            RLM_AI_ConfigServiceUtils.matchProductsByName(term, MAX_PRODUCT_CANDIDATES);
+
+        // Confidence floor + single-vs-ambiguous decision come from the SHARED
+        // engine (RLM_AI_ConfigServiceUtils) so this direct product search and the
+        // indirect quote-line resolution behave identically. Drop weak partial
+        // matches that share only a generic token (e.g. a stray
+        // "Product"/"Solution") — without the floor, a single accidental hit would
+        // auto-resolve and add the wrong product. The noise-word case
+        // ("quantumbit complete solution bundle" -> 90) and exact/contains-all
+        // matches (100/85) stay well above the floor.
+        List<RLM_AI_ConfigServiceUtils.ScoredProduct> confident =
+            new List<RLM_AI_ConfigServiceUtils.ScoredProduct>();
+        List<Integer> confidentScores = new List<Integer>();
+        for (RLM_AI_ConfigServiceUtils.ScoredProduct sp : scored) {
+            if (sp.score >= RLM_AI_ConfigServiceUtils.MIN_CONFIDENT_SCORE) {
+                confident.add(sp);
+                confidentScores.add(sp.score);
+            }
+        }
+
+        if (confident.isEmpty()) {
             out.errorMessage = 'No active product found matching "' + term
                 + '". Check the product name and try again.';
             return null;
         }
-        if (matches.size() == 1) {
-            return matches[0];
+
+        // A single clear winner (exact match, or a dominant top score) resolves
+        // without a prompt — keeps "add the complete solution" fluid even when
+        // other products share a token.
+        RLM_AI_ConfigServiceUtils.MatchResolution res =
+            RLM_AI_ConfigServiceUtils.classifyScores(confidentScores);
+        if (res == RLM_AI_ConfigServiceUtils.MatchResolution.SINGLE) {
+            return confident[0].product;
         }
 
-        // Prefer a single exact (normalized) match before asking.
-        String normTerm = normalizeText(term);
-        List<Product2> exact = new List<Product2>();
-        for (Product2 p : matches) {
-            if (normalizeText(p.Name) == normTerm) {
-                exact.add(p);
+        // Genuinely ambiguous — surface candidates (highest score first), do not
+        // guess. Only the meaningfully-relevant ones (drop low partial-overlap
+        // noise: keep within 25 points of the top match, never below the floor).
+        Integer best = confident[0].score;
+        List<Product2> candidateList = new List<Product2>();
+        Integer floor = Math.max(best - 25, RLM_AI_ConfigServiceUtils.MIN_CONFIDENT_SCORE);
+        for (RLM_AI_ConfigServiceUtils.ScoredProduct sp : confident) {
+            if (sp.score >= floor) {
+                candidateList.add(sp.product);
             }
         }
-        if (exact.size() == 1) {
-            return exact[0];
-        }
-
-        // Genuinely ambiguous — surface candidates, do not guess.
         out.needsDisambiguation = true;
-        out.candidateProducts = matches;
-        out.candidateSummariesDisplay = buildProductCandidateDisplay(matches);
+        out.candidateProducts = candidateList;
+        out.candidateSummariesDisplay = buildProductCandidateDisplay(candidateList);
         out.errorMessage = 'Multiple products match "' + term
             + '". Ask the user which one to add.';
         return null;
@@ -245,7 +272,7 @@ public with sharing class RLM_AI_AddProductToQuoteService {
      * it. Prefers IsDefault; falls back to the sole option when only one exists;
      * returns a clean name-based message (no dead end) when ambiguous or missing.
      */
-    private static SellingModelResolution resolveSellingModel(Id productId) {
+    private static SellingModelResolution resolveSellingModel(Id productId, String requestedName) {
         SellingModelResolution res = new SellingModelResolution();
         List<ProductSellingModelOption> options = [
             SELECT Id, ProductSellingModelId, ProductSellingModel.Name, IsDefault
@@ -258,6 +285,27 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         if (options.isEmpty()) {
             res.errorMessage = 'This product has no selling model configured, '
                 + 'so it cannot be added to a quote yet. Configure a selling model for it first.';
+            return res;
+        }
+
+        // User explicitly named a selling model — honor it (case-insensitive).
+        if (String.isNotBlank(requestedName)) {
+            String wanted = requestedName.trim().toLowerCase();
+            List<String> available = new List<String>();
+            for (ProductSellingModelOption o : options) {
+                String n = o.ProductSellingModel != null ? o.ProductSellingModel.Name : null;
+                if (String.isNotBlank(n)) {
+                    available.add(n);
+                    if (n.trim().toLowerCase() == wanted) {
+                        res.sellingModelId = o.ProductSellingModelId;
+                        res.sellingModelName = n;
+                        return res;
+                    }
+                }
+            }
+            res.errorMessage = 'This product has no "' + requestedName
+                + '" selling model. Available: ' + String.join(available, ', ')
+                + '. Ask the user which one to use.';
             return res;
         }
 

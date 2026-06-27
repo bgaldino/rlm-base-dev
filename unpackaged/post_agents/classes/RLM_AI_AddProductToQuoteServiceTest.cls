@@ -233,6 +233,72 @@ private class RLM_AI_AddProductToQuoteServiceTest {
     }
 
     @isTest
+    static void honorsUserRequestedSellingModel() {
+        // Product with two selling models: a default and a second the user names.
+        Fixture f = buildFixture('Quinn Termed Product', true, true);
+        ProductSellingModel termed = new ProductSellingModel(
+            Name = 'Term Monthly',
+            SellingModelType = 'TermDefined',
+            PricingTermUnit = 'Months',
+            PricingTerm = 1,
+            Status = 'Active'
+        );
+        insert termed;
+        insert new ProductSellingModelOption(
+            Product2Id = f.productId,
+            ProductSellingModelId = termed.Id,
+            IsDefault = false
+        );
+
+        FakeInvoker fake = new FakeInvoker(true, null);
+        RLM_AI_AddProductToQuoteService.invoker = fake;
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn Termed Product';
+        input.sellingModelName = 'term monthly';   // case-insensitive
+
+        Test.startTest();
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_AddProductToQuoteService.AddOutput out = results[0];
+        System.assertEquals(true, out.isSuccess, 'error: ' + out.errorMessage);
+        System.assertEquals('Term Monthly', out.sellingModelName,
+            'The user-named selling model should be used, not the default.');
+        System.assertEquals(termed.Id, fake.lastSellingModelId,
+            'The requested model Id should be passed to the managed action.');
+    }
+
+    @isTest
+    static void rejectsUnknownRequestedSellingModel() {
+        Fixture f = buildFixture('Quinn One Model Product', true, true);
+        FakeInvoker fake = new FakeInvoker(true, null);
+        RLM_AI_AddProductToQuoteService.invoker = fake;
+
+        RLM_AI_AddProductToQuoteService.AddInput input =
+            new RLM_AI_AddProductToQuoteService.AddInput();
+        input.quoteId = String.valueOf(f.quoteId);
+        input.productName = 'Quinn One Model Product';
+        input.sellingModelName = 'Nonexistent Model';
+
+        List<RLM_AI_AddProductToQuoteService.AddOutput> results =
+            RLM_AI_AddProductToQuoteService.addProduct(
+                new List<RLM_AI_AddProductToQuoteService.AddInput>{ input });
+
+        RLM_AI_AddProductToQuoteService.AddOutput out = results[0];
+        System.assertEquals(false, out.isSuccess);
+        System.assert(out.errorMessage.contains('Nonexistent Model'),
+            'Error should name the requested model: ' + out.errorMessage);
+        System.assert(out.errorMessage.contains('Available'),
+            'Error should list available models: ' + out.errorMessage);
+        System.assertEquals(0, fake.callCount, 'No mutation when the named model is invalid.');
+    }
+
+    @isTest
     static void emptyInputListReturnsEmpty() {
         List<RLM_AI_AddProductToQuoteService.AddOutput> results =
             RLM_AI_AddProductToQuoteService.addProduct(null);

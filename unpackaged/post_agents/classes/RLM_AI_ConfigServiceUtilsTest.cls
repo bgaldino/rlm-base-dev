@@ -249,4 +249,247 @@ private class RLM_AI_ConfigServiceUtilsTest {
             RLM_AI_ConfigServiceUtils.matchLinesByProductName(q.Id, 'NoMatch').size(),
             'No match should return empty');
     }
+
+    // ---- productNameScore ----
+
+    @isTest
+    static void productNameScoreExactIs100() {
+        System.assertEquals(100,
+            RLM_AI_ConfigServiceUtils.productNameScore('QuantumBit Complete Solution',
+                'quantumbit complete solution'),
+            'Exact normalized match scores 100');
+    }
+
+    @isTest
+    static void productNameScoreNoiseWordIs90() {
+        // The live failure: user typed a trailing "bundle" not in the catalog name.
+        // Every NAME token is in the search term, so search is a superset -> 90.
+        System.assertEquals(90,
+            RLM_AI_ConfigServiceUtils.productNameScore('QuantumBit Complete Solution',
+                'quantumbit complete solution bundle'),
+            'Search superset of name (noise word) scores 90');
+    }
+
+    @isTest
+    static void productNameScoreContainsAllIs85() {
+        // Every SEARCH token is in the name, but the name has an EXTRA token
+        // (Premium) not in the search, so it is not a name-subset-of-search
+        // (90) case -> classic contains-all = 85.
+        System.assertEquals(85,
+            RLM_AI_ConfigServiceUtils.productNameScore('QuantumBit Complete Solution Premium',
+                'complete solution quantumbit'),
+            'All search tokens present in a larger name scores 85');
+    }
+
+    @isTest
+    static void productNameScorePartialIsBetween1And80() {
+        Integer score = RLM_AI_ConfigServiceUtils.productNameScore(
+            'QuantumBit Complete Solution', 'quantumbit widget gadget');
+        System.assert(score > 0 && score < 85,
+            'Partial overlap (1 of 3 search tokens) scores in the partial band, was ' + score);
+    }
+
+    @isTest
+    static void productNameScoreNoOverlapIsZero() {
+        System.assertEquals(0,
+            RLM_AI_ConfigServiceUtils.productNameScore('QuantumBit Complete Solution',
+                'totally unrelated widget'),
+            'No token overlap scores 0');
+        System.assertEquals(0,
+            RLM_AI_ConfigServiceUtils.productNameScore('', 'anything'));
+        System.assertEquals(0,
+            RLM_AI_ConfigServiceUtils.productNameScore('Product', ''));
+    }
+
+    // ---- matchProductsByName ----
+
+    @isTest
+    static void matchProductsByNameRanksNoiseWordSearch() {
+        Product2 p1 = new Product2(Name = 'QuantumBit Complete Solution', ProductCode = 'QB-CS', IsActive = true);
+        Product2 p2 = new Product2(Name = 'QuantumBit Server Standard', ProductCode = 'QB-SS', IsActive = true);
+        Product2 p3 = new Product2(Name = 'Unrelated Widget', ProductCode = 'UW', IsActive = true);
+        Product2 inactive = new Product2(Name = 'QuantumBit Complete Solution Legacy', IsActive = false);
+        insert new List<Product2>{ p1, p2, p3, inactive };
+
+        Test.startTest();
+        List<RLM_AI_ConfigServiceUtils.ScoredProduct> ranked =
+            RLM_AI_ConfigServiceUtils.matchProductsByName('quantumbit complete solution bundle', 200);
+        Test.stopTest();
+
+        System.assert(!ranked.isEmpty(), 'Should match on shared tokens');
+        System.assertEquals(p1.Id, ranked[0].product.Id,
+            'Complete Solution should rank first for a noise-word superset search');
+        System.assert(ranked[0].score >= 85,
+            'Top match should be high-confidence, was ' + ranked[0].score);
+        // Inactive product must never appear.
+        for (RLM_AI_ConfigServiceUtils.ScoredProduct sp : ranked) {
+            System.assertNotEquals(inactive.Id, sp.product.Id,
+                'Inactive products must be excluded');
+        }
+    }
+
+    @isTest
+    static void matchProductsByNameBlankAndNoMatch() {
+        Product2 p = new Product2(Name = 'QuantumBit Complete Solution', IsActive = true);
+        insert p;
+        System.assertEquals(0,
+            RLM_AI_ConfigServiceUtils.matchProductsByName('', 200).size(),
+            'Blank search returns empty');
+        System.assertEquals(0,
+            RLM_AI_ConfigServiceUtils.matchProductsByName('zzqqx nonexistent token', 200).size(),
+            'No-overlap search returns empty');
+    }
+
+    @isTest
+    static void matchProductsByNameRespectsLimit() {
+        List<Product2> prods = new List<Product2>();
+        for (Integer i = 0; i < 5; i++) {
+            prods.add(new Product2(Name = 'Shared Token Product ' + i, IsActive = true));
+        }
+        insert prods;
+
+        Test.startTest();
+        List<RLM_AI_ConfigServiceUtils.ScoredProduct> ranked =
+            RLM_AI_ConfigServiceUtils.matchProductsByName('shared token product', 2);
+        Test.stopTest();
+
+        System.assertEquals(2, ranked.size(), 'Result count is capped at limitCount');
+    }
+
+    // ---- classifyScores (shared single-vs-ambiguous decision) ----
+
+    @isTest
+    static void classifyScoresCoversEachOutcome() {
+        System.assertEquals(RLM_AI_ConfigServiceUtils.MatchResolution.NONE,
+            RLM_AI_ConfigServiceUtils.classifyScores(new List<Integer>()),
+            'Empty -> NONE');
+        System.assertEquals(RLM_AI_ConfigServiceUtils.MatchResolution.NONE,
+            RLM_AI_ConfigServiceUtils.classifyScores(null),
+            'Null -> NONE');
+        System.assertEquals(RLM_AI_ConfigServiceUtils.MatchResolution.SINGLE,
+            RLM_AI_ConfigServiceUtils.classifyScores(new List<Integer>{ 90 }),
+            'One candidate -> SINGLE');
+        System.assertEquals(RLM_AI_ConfigServiceUtils.MatchResolution.SINGLE,
+            RLM_AI_ConfigServiceUtils.classifyScores(new List<Integer>{ 100, 85 }),
+            'Unique exact -> SINGLE');
+        System.assertEquals(RLM_AI_ConfigServiceUtils.MatchResolution.SINGLE,
+            RLM_AI_ConfigServiceUtils.classifyScores(new List<Integer>{ 90, 60 }),
+            'Dominant top (>=85, lead >=10) -> SINGLE');
+        System.assertEquals(RLM_AI_ConfigServiceUtils.MatchResolution.AMBIGUOUS,
+            RLM_AI_ConfigServiceUtils.classifyScores(new List<Integer>{ 90, 85 }),
+            'Two close high matches -> AMBIGUOUS');
+        System.assertEquals(RLM_AI_ConfigServiceUtils.MatchResolution.AMBIGUOUS,
+            RLM_AI_ConfigServiceUtils.classifyScores(new List<Integer>{ 100, 100 }),
+            'Two exact matches -> AMBIGUOUS');
+    }
+
+    // ---- matchLinesByProductName: now uses the SAME scored engine as products ----
+
+    @isTest
+    static void matchLinesByProductNameToleratesNoiseWord() {
+        // The consistency fix: a trailing noise word ("bundle") that is not in
+        // the catalog name must still resolve the line, just like product search.
+        QuoteFixture qf = buildQuoteWithLines(new List<String>{
+            'QuantumBit Complete Solution', 'QuantumBit Server Standard'
+        });
+
+        Test.startTest();
+        List<QuoteLineItem> matches = RLM_AI_ConfigServiceUtils.matchLinesByProductName(
+            qf.quoteId, 'quantumbit complete solution bundle'
+        );
+        Test.stopTest();
+
+        System.assertEquals(1, matches.size(),
+            'Noise-word search should resolve to the single Complete Solution line');
+        System.assertEquals(qf.productIds[0], matches[0].Product2Id);
+    }
+
+    @isTest
+    static void matchLinesByProductNameDisambiguatesCloseMatches() {
+        // Two lines whose names both fully contain the search term, neither exact
+        // -> AMBIGUOUS -> both returned so the caller can disambiguate.
+        QuoteFixture qf = buildQuoteWithLines(new List<String>{
+            'QuantumBit Server Standard', 'QuantumBit Server Premium'
+        });
+
+        Test.startTest();
+        List<QuoteLineItem> matches = RLM_AI_ConfigServiceUtils.matchLinesByProductName(
+            qf.quoteId, 'quantumbit server'
+        );
+        Test.stopTest();
+
+        System.assertEquals(2, matches.size(),
+            'Two equally-good server lines should both surface for disambiguation');
+    }
+
+    @isTest
+    static void matchLinesByProductNameDropsWeakOverlap() {
+        // A line sharing only a generic token must NOT match (below the floor).
+        QuoteFixture qf = buildQuoteWithLines(new List<String>{
+            'QuantumBit Complete Solution'
+        });
+
+        Test.startTest();
+        List<QuoteLineItem> matches = RLM_AI_ConfigServiceUtils.matchLinesByProductName(
+            qf.quoteId, 'totally different solution'
+        );
+        Test.stopTest();
+
+        System.assertEquals(0, matches.size(),
+            'Sharing only the generic token "solution" is below the confidence floor');
+    }
+
+    // ---- shared quote/line fixture ----
+
+    private class QuoteFixture {
+        Id quoteId;
+        List<Id> productIds = new List<Id>();
+    }
+
+    private static QuoteFixture buildQuoteWithLines(List<String> productNames) {
+        Account acct = new Account(Name = 'RLM Line Match Account');
+        insert acct;
+        Opportunity opp = new Opportunity(
+            Name = 'RLM Line Match Opportunity',
+            AccountId = acct.Id,
+            StageName = 'Prospecting',
+            CloseDate = Date.today().addDays(30)
+        );
+        insert opp;
+        Id standardPbId = Test.getStandardPricebookId();
+        Quote q = new Quote(
+            Name = 'RLM Line Match Quote',
+            OpportunityId = opp.Id,
+            Pricebook2Id = standardPbId,
+            Status = 'Draft'
+        );
+        insert q;
+
+        QuoteFixture qf = new QuoteFixture();
+        List<Product2> prods = new List<Product2>();
+        for (String n : productNames) {
+            prods.add(new Product2(Name = n, IsActive = true));
+        }
+        insert prods;
+
+        List<PricebookEntry> pbes = new List<PricebookEntry>();
+        for (Product2 p : prods) {
+            pbes.add(new PricebookEntry(
+                Pricebook2Id = standardPbId, Product2Id = p.Id, UnitPrice = 100, IsActive = true
+            ));
+            qf.productIds.add(p.Id);
+        }
+        insert pbes;
+
+        List<QuoteLineItem> qlis = new List<QuoteLineItem>();
+        for (PricebookEntry pbe : pbes) {
+            qlis.add(new QuoteLineItem(
+                QuoteId = q.Id, PricebookEntryId = pbe.Id, Quantity = 1, UnitPrice = 100
+            ));
+        }
+        insert qlis;
+
+        qf.quoteId = q.Id;
+        return qf;
+    }
 }

@@ -22,12 +22,18 @@
  */
 public with sharing class RLM_AI_UpdateRecordFieldsService {
 
-    private static final Integer MAX_LINES_PER_REQUEST = 10;
-
     // Test-only flag: when true, uses System.AccessLevel.SYSTEM_MODE for DML
     // to bypass FLS checks in test context (test users don't have field grants).
     @TestVisible
     private static Boolean testBypassUserMode = false;
+
+    // Test-only seam: QuoteLineItem Ids to treat as one-time selling model.
+    // QuoteLineItem.SellingModelType/ProductSellingModelId are not createable
+    // (the model flows from the product/pricebook), so a one-time line cannot be
+    // built in an Apex test. This lets a test exercise the selling-model skip
+    // path. Null/empty in production.
+    @TestVisible
+    private static Set<Id> testForceOneTimeLineIds;
 
     public class UpdateFieldsInput {
         @InvocableVariable(required=true label='Quote Id'
@@ -168,12 +174,6 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                 out.errorMessage = 'No matching records were found to update.';
                 return out;
             }
-            if (targets.size() > MAX_LINES_PER_REQUEST) {
-                out.errorMessage = 'This request targets ' + targets.size()
-                    + ' records, but at most ' + MAX_LINES_PER_REQUEST
-                    + ' can be updated per request. Narrow the selection and try again.';
-                return out;
-            }
 
             // 5. Apply fields and DML.
             // The resolved `targets` rows were queried with read-only / calculated
@@ -183,39 +183,71 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             // field, including the non-updateable ones. So DML a fresh BARE record
             // carrying only the Id + the fields being changed, and keep the loaded
             // row only for labels / change summaries.
+            //
+            // SELLING-MODEL GATE: the platform rejects date fields (EndDate, etc.)
+            // on one-time order lines ("You can't specify EndDate for one-time
+            // order products"). A batch that mixes one-time and termed/evergreen
+            // lines (e.g. an EndDate edit with applyToAll) would otherwise fail on
+            // every one-time line. So per record, drop date fields for OneTime
+            // lines; if that leaves nothing to update, skip the line with a note
+            // rather than failing the batch. This runs BEFORE the per-request cap
+            // so an "apply to all" date edit is capped on the lines it will
+            // actually touch (the termed/evergreen ones), not the raw target count
+            // that includes lines it will skip anyway.
             List<SObject> dmlRecords = new List<SObject>();
+            List<SObject> dmlTargets = new List<SObject>();
+            List<String> skippedLines = new List<String>();
             for (SObject rec : targets) {
+                Map<String, CoercedField> applicable = fieldsForRecord(typeName, rec, coercedFields);
+                if (applicable.isEmpty()) {
+                    // Every requested field was term-gated out for this one-time line.
+                    skippedLines.add(recordLabel(typeName, rec)
+                        + ' — skipped (one-time product; dates do not apply)');
+                    continue;
+                }
                 // Mutate the loaded row too, so recordLabel/summarizeChanges read
                 // the new values; it is never sent to the database.
-                applyFields(rec, coercedFields);
+                applyFields(rec, applicable);
                 SObject bare = rec.getSObjectType().newSObject(rec.Id);
-                applyFields(bare, coercedFields);
+                applyFields(bare, applicable);
                 dmlRecords.add(bare);
+                dmlTargets.add(rec);
             }
+            // No per-request line cap: this is a demo assistant and bulk edits
+            // (applyToAll dates/fields across an entire quote) are a first-class
+            // path. Apex bulk DML handles the whole set in one call; the resolver
+            // queries already bound the set at LIMIT 200 (a full quote).
 
-            AccessLevel accessLevel = testBypassUserMode ? AccessLevel.SYSTEM_MODE : AccessLevel.USER_MODE;
-            Database.SaveResult[] saveResults = Database.update(dmlRecords, accessLevel);
             List<String> successLines = new List<String>();
             List<String> failedLines = new List<String>();
             Integer successCount = 0;
 
-            for (Integer i = 0; i < saveResults.size(); i++) {
-                Database.SaveResult sr = saveResults[i];
-                SObject rec = targets[i];
-                String recLabel = recordLabel(typeName, rec);
-                if (sr.isSuccess()) {
-                    successCount++;
-                    successLines.add(recLabel + ' — ' + summarizeChanges(rec, coercedFields));
-                } else {
-                    String err = summarizeErrors(sr.getErrors());
-                    failedLines.add(recLabel + ' — ' + err);
+            if (!dmlRecords.isEmpty()) {
+                AccessLevel accessLevel = testBypassUserMode ? AccessLevel.SYSTEM_MODE : AccessLevel.USER_MODE;
+                Database.SaveResult[] saveResults = Database.update(dmlRecords, accessLevel);
+
+                for (Integer i = 0; i < saveResults.size(); i++) {
+                    Database.SaveResult sr = saveResults[i];
+                    SObject rec = dmlTargets[i];
+                    String recLabel = recordLabel(typeName, rec);
+                    if (sr.isSuccess()) {
+                        successCount++;
+                        Map<String, CoercedField> applied = fieldsForRecord(typeName, rec, coercedFields);
+                        successLines.add(recLabel + ' — ' + summarizeChanges(rec, applied));
+                    } else {
+                        String err = summarizeErrors(sr.getErrors());
+                        failedLines.add(recLabel + ' — ' + err);
+                    }
                 }
             }
 
             out.updatedCount = successCount;
-            out.isSuccess = successCount > 0 && failedLines.isEmpty();
-            out.resultsDisplay = buildResultsDisplay(successLines, failedLines);
-            if (successCount == 0) {
+            // Skipped one-time lines are an expected, non-error outcome: a success
+            // as long as nothing actually failed and at least one line updated
+            // (or every targeted line was legitimately skipped).
+            out.isSuccess = failedLines.isEmpty() && (successCount > 0 || !skippedLines.isEmpty());
+            out.resultsDisplay = buildResultsDisplay(successLines, failedLines, skippedLines);
+            if (successCount == 0 && skippedLines.isEmpty()) {
                 out.errorMessage = 'No records were updated.';
             } else if (!failedLines.isEmpty()) {
                 out.errorMessage = 'Some records could not be updated.';
@@ -239,6 +271,10 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     private class CoercedField {
         Schema.SObjectField field;
         Object value;
+        // True when this is a Date/DateTime field. Date fields are rejected by
+        // the platform on one-time order lines ("You can't specify EndDate for
+        // one-time order products"), so we skip them for OneTime selling models.
+        Boolean isDateType = false;
     }
 
     @TestVisible
@@ -295,6 +331,8 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
 
             CoercedField cf = new CoercedField();
             cf.field = field;
+            Schema.DisplayType cfType = dfr.getType();
+            cf.isDateType = (cfType == Schema.DisplayType.DATE || cfType == Schema.DisplayType.DATETIME);
 
             // Handle clear semantics: omitted key=preserve, explicit null/""=clear
             if (!fu.isPresent) {
@@ -408,6 +446,43 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         }
     }
 
+    /**
+     * Returns the subset of coercedFields that may be applied to this specific
+     * record. The only gate today: date fields (EndDate, etc.) are dropped for
+     * one-time selling-model quote lines, which the platform forbids. Non-date
+     * fields and non-OneTime lines pass through unchanged.
+     */
+    private static Map<String, CoercedField> fieldsForRecord(
+        String typeName, SObject rec, Map<String, CoercedField> coercedFields
+    ) {
+        if (typeName != 'QuoteLineItem' || !isOneTimeLine(rec)) {
+            return coercedFields;
+        }
+        Map<String, CoercedField> applicable = new Map<String, CoercedField>();
+        for (String fieldName : coercedFields.keySet()) {
+            CoercedField cf = coercedFields.get(fieldName);
+            if (cf.isDateType) {
+                continue; // dates do not apply to one-time order products
+            }
+            applicable.put(fieldName, cf);
+        }
+        return applicable;
+    }
+
+    /** True when the line's product selling model is OneTime. */
+    @TestVisible
+    private static Boolean isOneTimeLine(SObject rec) {
+        QuoteLineItem qli = (QuoteLineItem) rec;
+        if (testForceOneTimeLineIds != null && qli.Id != null
+                && testForceOneTimeLineIds.contains(qli.Id)) {
+            return true;
+        }
+        if (qli.ProductSellingModel == null) {
+            return false;
+        }
+        return qli.ProductSellingModel.SellingModelType == 'OneTime';
+    }
+
     // ---- Target resolution ----
 
     private static List<SObject> resolveTargets(
@@ -507,7 +582,8 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             return null;
         }
         List<QuoteLineItem> lines = [
-            SELECT Id, Product2.Name, Quantity, UnitPrice, LineNumber
+            SELECT Id, Product2.Name, Quantity, UnitPrice, LineNumber,
+                   ProductSellingModel.SellingModelType
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId AND Id IN :requested
             WITH USER_MODE
@@ -559,7 +635,8 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
 
     private static List<QuoteLineItem> queryAllLines(Id quoteId) {
         return [
-            SELECT Id, Product2.Name, Quantity, UnitPrice, LineNumber
+            SELECT Id, Product2.Name, Quantity, UnitPrice, LineNumber,
+                   ProductSellingModel.SellingModelType
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId
             WITH USER_MODE
@@ -651,7 +728,9 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         return String.join(parts, ', ');
     }
 
-    private static String buildResultsDisplay(List<String> success, List<String> failed) {
+    private static String buildResultsDisplay(
+        List<String> success, List<String> failed, List<String> skipped
+    ) {
         List<String> parts = new List<String>();
         if (!success.isEmpty()) {
             parts.add('Updated:');
@@ -659,6 +738,15 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             for (String line : success) {
                 parts.add(ordinal + '. ' + line);
                 ordinal++;
+            }
+        }
+        if (skipped != null && !skipped.isEmpty()) {
+            if (!parts.isEmpty()) {
+                parts.add('');
+            }
+            parts.add('Skipped (dates do not apply to one-time products):');
+            for (String line : skipped) {
+                parts.add('- ' + line);
             }
         }
         if (!failed.isEmpty()) {
