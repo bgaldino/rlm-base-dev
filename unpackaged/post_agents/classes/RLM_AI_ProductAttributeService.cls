@@ -47,16 +47,27 @@ public with sharing class RLM_AI_ProductAttributeService {
         List<GetAttributeOptionsInput> inputs
     ) {
         List<GetAttributeOptionsOutput> results = new List<GetAttributeOptionsOutput>();
+        if (inputs == null || inputs.isEmpty()) {
+            return results;
+        }
         for (GetAttributeOptionsInput input : inputs) {
-            results.add(fetchAttributeOptions(input.quoteLineItemId));
+            results.add(fetchAttributeOptions(input));
         }
         return results;
     }
 
-    private static GetAttributeOptionsOutput fetchAttributeOptions(String qliId) {
+    private static GetAttributeOptionsOutput fetchAttributeOptions(GetAttributeOptionsInput input) {
         GetAttributeOptionsOutput out = new GetAttributeOptionsOutput();
         out.isSuccess = true;
         try {
+            if (input == null) {
+                return fail(out, 'Select a quote line item before looking up configurable attributes.');
+            }
+            Id qliId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteLineItemId);
+            if (qliId == null || !String.valueOf(qliId).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_LINE_ITEM_PREFIX)) {
+                return fail(out, 'Select a valid quote line item before looking up configurable attributes.');
+            }
+
             // Step 1: Resolve Product2Id and ProductClassificationId (BasedOnId)
             List<QuoteLineItem> qlis = [
                 SELECT Product2Id, Product2.Name, Product2.BasedOnId
@@ -168,6 +179,14 @@ public with sharing class RLM_AI_ProductAttributeService {
             out.hasConfigurableAttributes = false;
             out.isSuccess = false;
         }
+        return out;
+    }
+
+    private static GetAttributeOptionsOutput fail(GetAttributeOptionsOutput out, String message) {
+        out.errorMessage = message;
+        out.hasConfigurableAttributes = false;
+        out.attributesJson = '[]';
+        out.isSuccess = false;
         return out;
     }
 

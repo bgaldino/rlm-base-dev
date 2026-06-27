@@ -1,0 +1,29 @@
+# Description: Routing coverage for RLM_Billing_Employee_Assistance. Verifies
+# the start_agent `topic_selector` sends supported billing requests to the
+# expected billing subagent. Business-action coverage lives in billing-actions.yaml.
+name: "RLM Billing — Routing"
+subjectType: AGENT
+subjectName: RLM_Billing_Employee_Assistance
+
+testCases:
+  # --- BillingInquiries (single-record lookups / invoice PDF) ---
+  - utterance: "What is the current balance for the Infinitech account?"
+    expectedTopic: BillingInquiries
+  - utterance: "Show me the payment plan for invoice INV-000001"
+    expectedTopic: BillingInquiries
+  - utterance: "Download the latest invoice PDF for this account"
+    expectedTopic: BillingInquiries
+
+  # --- BillingCollections (billing health / dunning) ---
+  - utterance: "Give me a billing health summary for Infinitech"
+    expectedTopic: BillingCollections
+  - utterance: "Which invoices are high risk for this account?"
+    expectedTopic: BillingCollections
+  - utterance: "Recommend a dunning strategy for collection plan CP-000000010"
+    expectedTopic: BillingCollections
+
+  # --- InvoiceLineExplanation (line charge breakdown) ---
+  - utterance: "Explain the charge breakdown for invoice line Installation Fee"
+    expectedTopic: InvoiceLineExplanation
+  - utterance: "Why was this invoice line billed?"
+    expectedTopic: InvoiceLineExplanation

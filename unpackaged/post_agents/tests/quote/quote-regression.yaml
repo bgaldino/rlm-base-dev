@@ -1,0 +1,107 @@
+# Description: Regression coverage for the recently-changed quote-line discount
+# selection and quote-line matching behavior (commits 05d8eb68, 692809fc).
+# Exercises: single-line discount, multiple-line / "all lines" discount, and
+# the disambiguation path. Uses Get_QuoteLineItem_from_Quote to resolve target
+# line(s) — for "all lines" the flow returns every line as candidates
+# (needsDisambiguation=true, list-all mode); the agent then calls
+# ApplyDiscountToQuoteLine once per selected line.
+#
+# Real org data (org rlm-base__jun25_agents) — Infinitech quote 0Q0Ru000003nedhKAA
+# has 3 lines:
+#   "Additional API"       0QLRu000002xXWfOAM
+#   "Additional API"       0QLRu000002xXYHOA2   ← duplicate name → disambiguation
+#   "Additional API Prod"  0QLRu000002xZ5UOAU
+# The duplicate "Additional API" name makes "discount Additional API" a genuine
+# disambiguation case (needsDisambiguation=true).
+#
+# Discounts are confirmation-gated by the subagent's hard constraint
+# ("summarize ... and ask the user to confirm"), so apply-cases pre-position the
+# confirmation prompt in history and use an explicit "yes" utterance.
+name: "RLM Quote — Discount Regression"
+subjectType: AGENT
+subjectName: RLM_Revenue_Quote_Management
+
+testCases:
+  # --- Resolve a single unambiguous line by name ---
+  - utterance: "Discount the Additional API Prod line by 10%"
+    expectedTopic: QuoteManagement
+    expectedActions:
+      - Get_QuoteLineItem_from_Quote
+    expectedOutcome: "Agent resolves the 'Additional API Prod' line and asks the user to confirm the 10% discount before applying"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+
+  # --- Ambiguous product name (two "Additional API" lines) → disambiguation ---
+  - utterance: "Apply a 15% discount to the Additional API line"
+    expectedTopic: QuoteManagement
+    expectedActions:
+      - Get_QuoteLineItem_from_Quote
+    expectedOutcome: "Agent detects multiple matching lines and presents a numbered list asking which line(s) to discount, rather than guessing"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+
+  # --- "All lines" → list-all mode, then apply per line ---
+  - utterance: "Give every line on this quote a 5% discount"
+    expectedTopic: QuoteManagement
+    expectedActions:
+      - Get_QuoteLineItem_from_Quote
+    expectedOutcome: "Agent lists all quote lines and asks the user to confirm applying 5% to every line before making changes"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+
+  # --- Blank-product / list-all selection path (no product named) ---
+  - utterance: "I want to discount some lines on this quote"
+    expectedTopic: QuoteManagement
+    expectedActions:
+      - Get_QuoteLineItem_from_Quote
+    expectedOutcome: "Agent lists the quote's lines and asks which one(s) to discount"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+
+  # --- Apply after confirmation: single line ---
+  - utterance: "Yes, apply it"
+    expectedTopic: QuoteManagement
+    expectedActions:
+      - ApplyDiscountToQuoteLine
+    expectedOutcome: "Agent applies the 10% discount to the single resolved line and reports the result by product name"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+    conversationHistory:
+      - role: user
+        message: "Discount the Additional API Prod line by 10%"
+      - role: agent
+        topic: QuoteManagement
+        message: "I'll apply a 10% discount to the 'Additional API Prod' line (qty 1, $3,240). Shall I proceed?"
+
+  # --- Apply after confirmation: all lines (loop once per line) ---
+  - utterance: "Yes, discount all of them"
+    expectedTopic: QuoteManagement
+    expectedActions:
+      - ApplyDiscountToQuoteLine
+    expectedOutcome: "Agent applies the 5% discount to each line on the quote and reports per-line results"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+    conversationHistory:
+      - role: user
+        message: "Give every line on this quote a 5% discount"
+      - role: agent
+        topic: QuoteManagement
+        message: "This quote has 3 lines: Additional API, Additional API, and Additional API Prod. I'll apply 5% to all three. Shall I proceed?"

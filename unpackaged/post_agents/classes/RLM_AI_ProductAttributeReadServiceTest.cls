@@ -37,6 +37,7 @@ private class RLM_AI_ProductAttributeReadServiceTest {
         System.assertEquals(1, results.size());
         System.assertEquals('{}', results[0].savedAttributesJson);
         System.assertEquals('', results[0].configurationSummary);
-        System.assertEquals(null, results[0].errorMessage);
+        System.assertEquals(false, results[0].isSuccess);
+        System.assertEquals('Select a valid quote line item before reading saved attribute values.', results[0].errorMessage);
     }
 }

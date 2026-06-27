@@ -1,0 +1,68 @@
+# Description: Routing coverage for RLM_Revenue_Quote_Management. Verifies the
+# start_agent `agent_router` sends each functional request to the correct
+# subagent.
+#
+# NOTE (verified live on org rlm-base__jun25_agents): this agent does NOT surface
+# the router's `go_to_<Subagent>` transition action in `actionsSequence` — that
+# field carries the *business* actions the subagent then runs (or is empty).
+# Routing is therefore asserted via `expectedTopic` only; business-action
+# coverage lives in quote-actions.yaml / quote-regression.yaml. Runtime topic
+# names equal the subagent names (no hash suffix).
+#
+# off_topic / ambiguous_question routing lives in quote-guardrail.yaml.
+name: "RLM Quote — Routing"
+subjectType: AGENT
+subjectName: RLM_Revenue_Quote_Management
+
+testCases:
+  # --- ProductSelection (catalog search) ---
+  - utterance: "Find me products for 32GB RAM"
+    expectedTopic: ProductSelection
+  - utterance: "Search the catalog for storage drives"
+    expectedTopic: ProductSelection
+  - utterance: "What products do you sell for networking switches?"
+    expectedTopic: ProductSelection
+
+  # --- QuoteManagement (create / discount / update / sync) ---
+  # NOTE: "Create a quote …" completes the whole create flow in a single turn
+  # (IdentifyRecordByName → CreateInitialQuote → Get_Quote_Record_Card), so the
+  # runtime reports topic=agent_router (the flow finished, control returned to
+  # the router) rather than QuoteManagement. Cases that *stop* inside the
+  # subagent awaiting input (discount, sync) report QuoteManagement. So assert
+  # the business action here, and the subagent topic for the others.
+  - utterance: "Create a quote for the Infinitech opportunity"
+    expectedActions: ["CreateInitialQuote"]
+  - utterance: "Apply a 10% discount to a quote line"
+    expectedTopic: QuoteManagement
+  - utterance: "Sync this quote to its opportunity"
+    expectedTopic: QuoteManagement
+
+  # --- Add-a-product: intended end-state is QuoteManagement, but ProductSelection
+  #     is a legitimate first hop when no product is named yet. Assert behavior,
+  #     not a single topic, to avoid a fragile expectation.
+  - utterance: "Add a product to my quote"
+    expectedOutcome: "Agent helps the user add a product to the quote — either by helping find/select the product or by adding it as a quote line"
+
+  # --- QuoteLifecycleManagement (assets / amendment / renewal / cancellation) ---
+  - utterance: "Show me the active assets for Infinitech"
+    expectedTopic: QuoteLifecycleManagement
+  - utterance: "Create a renewal quote for my renewable assets"
+    expectedTopic: QuoteLifecycleManagement
+  - utterance: "I need to amend an existing subscription asset"
+    expectedTopic: QuoteLifecycleManagement
+
+  # --- ConsumptionManagement (usage / consumption / overage / entitlement) ---
+  - utterance: "What's the usage for Infinitech?"
+    expectedTopic: ConsumptionManagement
+  - utterance: "Show me overage details for this account"
+    expectedTopic: ConsumptionManagement
+  - utterance: "How much of their entitlement balance has Global Media consumed?"
+    expectedTopic: ConsumptionManagement
+
+  # --- ProductConfiguration (configure attributes / set attribute values) ---
+  - utterance: "Configure the product attributes on my quote line"
+    expectedTopic: ProductConfiguration
+  - utterance: "Set the attribute values for this configurable product"
+    expectedTopic: ProductConfiguration
+  - utterance: "What can I configure on this quote line item?"
+    expectedTopic: ProductConfiguration

@@ -984,6 +984,13 @@ tasks:
     description: Activate the latest BotVersion for each RLM agent by running `sf agent activate` for every agent discovered under unpackaged/post_agents/aiAuthoringBundles. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
     class_path: tasks.rlm_activate_agents.ActivateAgents
 
+  test_agents:
+    group: Revenue Lifecycle Management
+    description: Run Agentforce CLI Testing Center specs against published+activated agents. Deploys each YAML spec under tests_path as an AiEvaluationDefinition (`sf agent test create`) and runs it (`sf agent test run`), failing if any topic/action assertion — or any output validation on a case that set an expectedOutcome — does not pass. Requires the target agent to be published and activated first (see prepare_agents). Not part of prepare_agents; run on demand or in CI after activation. Defaults to the quote agent specs; point tests_path at unpackaged/post_agents/tests/billing for the billing agent.
+    class_path: tasks.rlm_test_agents.TestAgents
+    options:
+      tests_path: unpackaged/post_agents/tests/quote
+
   deploy_quantumbit:
     description: Deploy QuantumBit Metadata
     class_path: cumulusci.tasks.salesforce.Deploy

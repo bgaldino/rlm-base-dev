@@ -32,16 +32,29 @@ public with sharing class RLM_AI_ProductAttributeReadService {
     )
     public static List<ReadOutput> getSavedAttributeValues(List<ReadInput> inputs) {
         List<ReadOutput> results = new List<ReadOutput>();
+        if (inputs == null || inputs.isEmpty()) {
+            return results;
+        }
         for (ReadInput input : inputs) {
-            results.add(read(input.quoteLineItemId));
+            results.add(read(input));
         }
         return results;
     }
 
-    private static ReadOutput read(String qliId) {
+    private static ReadOutput read(ReadInput input) {
         ReadOutput out = new ReadOutput();
         out.isSuccess = true;
+        out.savedAttributesJson = '{}';
+        out.configurationSummary = '';
         try {
+            if (input == null) {
+                return fail(out, 'Select a quote line item before reading saved attribute values.');
+            }
+            Id qliId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteLineItemId);
+            if (qliId == null || !String.valueOf(qliId).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_LINE_ITEM_PREFIX)) {
+                return fail(out, 'Select a valid quote line item before reading saved attribute values.');
+            }
+
             List<QuoteLineItemAttribute> attrs = [
                 SELECT AttributeName, AttributeValue
                 FROM QuoteLineItemAttribute
@@ -63,6 +76,12 @@ public with sharing class RLM_AI_ProductAttributeReadService {
             out.errorMessage = e.getMessage();
             out.isSuccess = false;
         }
+        return out;
+    }
+
+    private static ReadOutput fail(ReadOutput out, String message) {
+        out.errorMessage = message;
+        out.isSuccess = false;
         return out;
     }
 }

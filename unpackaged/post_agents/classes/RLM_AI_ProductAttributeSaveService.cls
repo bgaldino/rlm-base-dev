@@ -68,6 +68,9 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
     )
     public static List<SaveOutput> saveAttributeSelections(List<SaveInput> inputs) {
         List<SaveOutput> results = new List<SaveOutput>();
+        if (inputs == null || inputs.isEmpty()) {
+            return results;
+        }
         for (SaveInput input : inputs) {
             results.add(doSave(input));
         }
@@ -79,8 +82,23 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
     private static SaveOutput doSave(SaveInput input) {
         SaveOutput out = new SaveOutput();
         try {
+            if (input == null) {
+                return fail(out, 'Select a quote and quote line item before saving product configuration.');
+            }
             Map<String, Object> selections =
                 RLM_AI_ConfigServiceUtils.safeDeserializeMap(input.attributeSelectionsJson);
+
+            Id quoteId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteId);
+            if (quoteId == null || !String.valueOf(quoteId).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_PREFIX)) {
+                return fail(out, 'Select a valid quote before saving product configuration.');
+            }
+            Id quoteLineItemId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteLineItemId);
+            if (quoteLineItemId == null || !String.valueOf(quoteLineItemId).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_LINE_ITEM_PREFIX)) {
+                return fail(out, 'Select a valid quote line item before saving product configuration.');
+            }
+            if (!quoteLineItemBelongsToQuote(quoteLineItemId, quoteId)) {
+                return fail(out, 'Select a quote line item that belongs to the current quote before saving product configuration.');
+            }
 
             // ── Step 1: Load existing attributes with definition type + picklist ──
             Map<String, QuoteLineItemAttribute> existingByDevName =
@@ -93,7 +111,7 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
                        AttributeDefinition.DataType,
                        AttributeDefinition.PicklistId
                 FROM   QuoteLineItemAttribute
-                WHERE  QuoteLineItemId = :input.quoteLineItemId
+                WHERE  QuoteLineItemId = :quoteLineItemId
             ]) {
                 String devName = qlia.AttributeDefinition?.DeveloperName;
                 if (devName == null) continue;
@@ -144,7 +162,7 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             // ── Step 4: PST call 1 — Number attributes ───────────────────────────
             if (!numberSelections.isEmpty()) {
                 SaveOutput numResult = executePst(
-                    input.quoteId, input.quoteLineItemId,
+                    String.valueOf(quoteId), String.valueOf(quoteLineItemId),
                     numberSelections, existingByDevName, pvByPicklist);
                 if (!numResult.isSuccess) return numResult;
             }
@@ -152,7 +170,7 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             // ── Step 5: PST call 2 — Picklist attributes ─────────────────────────
             if (!picklistSelections.isEmpty()) {
                 SaveOutput plResult = executePst(
-                    input.quoteId, input.quoteLineItemId,
+                    String.valueOf(quoteId), String.valueOf(quoteLineItemId),
                     picklistSelections, existingByDevName, pvByPicklist);
                 if (!plResult.isSuccess) return plResult;
             }
@@ -177,7 +195,7 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             for (QuoteLineItemAttribute qlia : [
                 SELECT AttributeDefinition.DeveloperName, AttributeValue
                 FROM   QuoteLineItemAttribute
-                WHERE  QuoteLineItemId = :input.quoteLineItemId
+                WHERE  QuoteLineItemId = :quoteLineItemId
                 AND    AttributeDefinition.DeveloperName IN :submittedDevNames
             ]) {
                 actualValues.put(qlia.AttributeDefinition.DeveloperName, qlia.AttributeValue);
@@ -194,6 +212,23 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             out.errorMessage = e.getMessage();
         }
         return out;
+    }
+
+    private static SaveOutput fail(SaveOutput out, String message) {
+        out.isSuccess = false;
+        out.isValid = false;
+        out.validationErrorsJson = '[]';
+        out.errorMessage = message;
+        return out;
+    }
+
+    private static Boolean quoteLineItemBelongsToQuote(Id quoteLineItemId, Id quoteId) {
+        return [
+            SELECT COUNT()
+            FROM QuoteLineItem
+            WHERE Id = :quoteLineItemId
+              AND QuoteId = :quoteId
+        ] == 1;
     }
 
     // ── Helper: execute a single PST graph for the given attribute subset ───

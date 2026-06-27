@@ -201,6 +201,110 @@ agent script, publish/activate, test, then remove it again before merge.
 3. Publish + activate to test.
 4. Remove the debug transition and `debug_context` block after troubleshooting.
 
+## Testing the agents (`sf agent test` / `test_agents`)
+
+Agent behavior — routing to the right subagent, invoking the right action,
+honoring guardrails — is **not** verifiable by metadata deploy or `--dryrun`.
+It must run against a **published + activated** agent in a live org. The repo
+ships CLI Testing Center specs and a CCI task to run them.
+
+### Layout
+
+```
+tests/
+  quote/                     # RLM_Revenue_Quote_Management specs
+    quote-routing.yaml       # router → each subagent (transition actions)
+    quote-actions.yaml       # business actions via conversationHistory pre-positioning
+    quote-regression.yaml    # discount single/multiple/all lines + line matching
+    quote-guardrail.yaml     # off-topic, ambiguous, prompt-injection, exfiltration
+  billing/                   # RLM_Billing_Employee_Assistance specs
+    billing-routing.yaml     # router → billing subagents
+    billing-actions.yaml     # business actions via conversationHistory pre-positioning
+    billing-guardrail.yaml   # off-topic, ambiguous, prompt-injection, exfiltration
+```
+
+Each `*.yaml` is an Agentforce test spec (`name`, `subjectType: AGENT`,
+`subjectName: <agent developer_name>`, `testCases`). It deploys to the org as an
+`AiEvaluationDefinition` via `sf agent test create`.
+
+### Running
+
+```bash
+# All quote specs (deploy + run + assert), against your CCI org:
+cci task run test_agents --org <alias>
+
+# Point at a different spec directory (e.g. the billing agent):
+cci task run test_agents --org <alias> -o tests_path unpackaged/post_agents/tests/billing
+```
+
+`test_agents` (`tasks/rlm_test_agents.py`) derives a deterministic api-name per
+spec file, runs `sf agent test create --force-overwrite` then
+`sf agent test run --wait`, and **fails** the task if any `topic_assertion` or
+`actions_assertion` is non-PASS, or if `output_validation` is non-PASS on a case
+that set an `expectedOutcome` (the harmless "missing expected input" skip on
+cases without one is ignored). It passes `--target-org` from the org config on
+every call, so it never hits your default SF CLI org by accident.
+
+The agent must already be published + activated (run `prepare_agents`, or the
+publish/activate runbook above) before testing.
+
+### Agent Script testing notes
+
+These are multi-subagent **Agent Script** agents, which affects how specs read:
+
+- This agent does **not** surface the router's `go_to_<Subagent>` transition in
+  `actionsSequence`; the runtime `topic` equals the destination subagent name
+  (no hash). Routing specs therefore assert `expectedTopic`, and action specs
+  use `conversationHistory` to pre-position the agent inside the target subagent
+  before the business action fires.
+- **Single-turn flow completion reports `topic: agent_router`.** When one
+  utterance drives a delegated flow to completion in a single turn (e.g.
+  "Create a quote …" runs IdentifyRecordByName → CreateInitialQuote →
+  Get_Quote_Record_Card and returns control to the router), the result's `topic`
+  is `agent_router`, not the subagent. Requests that *stop* inside a subagent
+  awaiting input (discount, sync) report the subagent. So assert the business
+  action (`expectedActions`) for complete-in-one-turn cases and the subagent
+  topic for the rest.
+- **Omitting `expectedTopic` / `expectedActions` still emits an empty
+  expectation.** `sf agent test create` always writes a `topic_sequence_match` /
+  `action_sequence_match` block; when the spec leaves it unset the block has a
+  blank `expectedValue` and the runtime reports it as a non-PASS that can never
+  pass. The `test_agents` evaluator treats a topic/action assertion with no
+  expected value as "nothing asserted" and ignores it (a real "expect no
+  actions" case carries `[]`, which is preserved).
+- `expectedActions` uses the **Level 1 definition name** (e.g.
+  `ApplyDiscountToQuoteLine`), as it appears in results.
+- **Confirmation-gated actions** (`require_user_confirmation: True` —
+  `UpdateQuoteDetails`, `UpdateQuoteLineItemDetails`, `UpdateRecordFields`,
+  `Confirm_Product_Configuration_Summary`, and the discount apply guarded by the
+  subagent's "ask the user to confirm" constraint) only fire after an explicit
+  "yes". Those specs put the confirmation prompt as the final history turn and
+  use a confirming utterance.
+- Guardrail/deflection routing is non-deterministic, so those cases omit
+  `expectedTopic` and assert on `expectedOutcome` instead.
+
+### Topic / action name discovery
+
+Runtime topic names can differ from the `.agent` subagent names. After a first
+run, extract the actual names and update the specs:
+
+```bash
+sf agent test run --api-name RLM_Quote_Routing --wait 15 \
+  --result-format json --json --target-org <sf-alias> \
+  | jq '.result.testCases[].generatedData | {topic, actionsSequence}'
+```
+
+`--use-most-recent` is broken on `sf agent test results` — use `--job-id`, or
+`sf agent test resume --use-most-recent`.
+
+### Test data dependency
+
+The quote action/regression specs reference real org records (the Infinitech
+account, its opportunity, and its 3-line draft quote). If you run against a
+freshly built org, confirm equivalent data exists (or seed it) and update the
+IDs/names in the specs — the `FindProducts` utterances also assume a populated
+product catalog.
+
 ## Adding a new agent
 
 1. Author the `.agent` source, or retrieve it from an existing org:

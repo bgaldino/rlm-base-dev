@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**252 tasks** across **10 groups**.
+**253 tasks** across **10 groups**.
 
 ---
 
@@ -852,7 +852,7 @@
 
 ## Revenue Lifecycle Management
 
-*159 task(s)*
+*160 task(s)*
 
 ### `activate_agents`
 
@@ -1437,18 +1437,6 @@
 
 ---
 
-### `deploy_agent_permission_sets`
-
-**Description:** Deploy the Agentforce agent permission sets from unpackaged/post_agents/permissionsets. Must run after publish_agents — each permission set's agentAccesses compiles to a botDefinition reference, and the Bot only exists once the authoring bundle is published.
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/permissionsets`
-
----
-
 ### `deploy_agent_classes`
 
 **Description:** Deploy Apex invocable services from unpackaged/post_agents/classes used by Product Configuration agent flows.
@@ -1458,6 +1446,30 @@
 **Options:**
 
 - `path`: `unpackaged/post_agents/classes`
+
+---
+
+### `deploy_agent_flows`
+
+**Description:** Deploy custom flows from unpackaged/post_agents/flows that back agent subagent topics. Must run before deploy_agents so the flows exist when authoring bundles are published.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_agents/flows`
+
+---
+
+### `deploy_agent_permission_sets`
+
+**Description:** Deploy the Agentforce agent permission sets from unpackaged/post_agents/permissionsets. Must run after publish_agents — each permission set's agentAccesses compiles to a botDefinition reference, and the Bot only exists once the authoring bundle is published.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_agents/permissionsets`
 
 ---
 
@@ -1569,18 +1581,6 @@
 
 - `path`: `force-app/main/default/expressionSetDefinition`
 - `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//ExpressionSetDefinition/versions/variables/value...`
-
----
-
-### `deploy_agent_flows`
-
-**Description:** Deploy custom flows from unpackaged/post_agents/flows that back agent subagent topics. Must run before deploy_agents so the flows exist when authoring bundles are published.
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/flows`
 
 ---
 
@@ -2869,6 +2869,18 @@
 **Description:** Sync Pricing Data
 
 **Class:** `tasks.rlm_sync_pricing_data.SyncPricingData`
+
+---
+
+### `test_agents`
+
+**Description:** Run Agentforce CLI Testing Center specs against published+activated agents. Deploys each YAML spec under tests_path as an AiEvaluationDefinition (`sf agent test create`) and runs it (`sf agent test run`), failing if any topic/action assertion — or any output validation on a case that set an expectedOutcome — does not pass. Requires the target agent to be published and activated first (see prepare_agents). Not part of prepare_agents; run on demand or in CI after activation. Defaults to the quote agent specs; point tests_path at unpackaged/post_agents/tests/billing for the billing agent.
+
+**Class:** `tasks.rlm_test_agents.TestAgents`
+
+**Options:**
+
+- `tests_path`: `unpackaged/post_agents/tests/quote`
 
 ---
 

@@ -1,0 +1,131 @@
+# Description: Business-action invocation coverage for RLM_Revenue_Quote_Management.
+# Each case uses `conversationHistory` to pre-position the agent inside the target
+# subagent (Agent Script consumes the first reasoning cycle on the router
+# transition), so the test `utterance` triggers the actual Level 1 action.
+# `expectedActions` uses the Level 1 DEFINITION name as it appears in results.
+#
+# Real org data (org rlm-base__jun25_agents):
+#   Account  Infinitech        001Ru00001eYzXtIAK
+#   Opp      New Opportunity for Infinitech  006Ru00000TbvxtIAB (Proposal/Quote)
+#   Quote    New Quote For Infinitech        0Q0Ru000003nedhKAA (Draft, 3 lines)
+#   Products: "Additional API", "32GB RDIMM", etc.  (313 active products)
+#   Assets: 0  → GetAccountAssets must be asserted on the call, not on results.
+#
+# Confirmation-gated actions (require_user_confirmation: True) — UpdateQuoteDetails,
+# UpdateQuoteLineItemDetails — are modeled with the agent's confirmation prompt as
+# the final history turn and an explicit "yes" utterance so the action fires.
+name: "RLM Quote — Actions"
+subjectType: AGENT
+subjectName: RLM_Revenue_Quote_Management
+
+testCases:
+  # --- ProductSelection → FindProducts ---
+  - utterance: "Find products that match 32GB RDIMM"
+    expectedTopic: ProductSelection
+    expectedActions:
+      - FindProducts
+    expectedOutcome: "Agent searches the catalog and presents matching products"
+    conversationHistory:
+      - role: user
+        message: "I want to look for products in the catalog"
+      - role: agent
+        topic: ProductSelection
+        message: "Sure — what product are you looking for?"
+
+  # --- QuoteManagement → CreateInitialQuote (needs an opportunity) ---
+  - utterance: "Create an initial quote on the New Opportunity for Infinitech"
+    expectedTopic: QuoteManagement
+    expectedActions:
+      - CreateInitialQuote
+    expectedOutcome: "Agent creates the quote and returns a quote record/summary"
+    conversationHistory:
+      - role: user
+        message: "I'd like to create a new quote"
+      - role: agent
+        topic: QuoteManagement
+        message: "Happy to help. Which opportunity should the quote be created on?"
+
+  # --- QuoteManagement → AddQuoteLineItemToQuote ---
+  - utterance: "Add 2 units of 32GB RDIMM to that quote"
+    expectedTopic: QuoteManagement
+    expectedActions:
+      - AddQuoteLineItemToQuote
+    expectedOutcome: "Agent adds the product as a quote line and confirms the addition"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+    conversationHistory:
+      - role: user
+        message: "I'm working on my Infinitech quote and want to add a product"
+      - role: agent
+        topic: QuoteManagement
+        message: "Got it — which product and quantity would you like to add?"
+
+  # --- QuoteManagement → UpdateQuoteDetails (confirmation-gated) ---
+  - utterance: "Yes, go ahead and update it"
+    expectedTopic: QuoteManagement
+    expectedActions:
+      - UpdateQuoteDetails
+    expectedOutcome: "Agent applies the quote field update and confirms success"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+    conversationHistory:
+      - role: user
+        message: "Rename this quote to 'Infinitech Q3 Refresh'"
+      - role: agent
+        topic: QuoteManagement
+        message: "I'll update the quote name to 'Infinitech Q3 Refresh'. Shall I proceed?"
+
+  # --- QuoteLifecycleManagement → GetAccountAssets (org has 0 assets) ---
+  - utterance: "Show me the active assets for Infinitech"
+    expectedTopic: QuoteLifecycleManagement
+    expectedActions:
+      - GetAccountAssets
+    expectedOutcome: "Agent looks up the account's assets and reports that there are none to act on"
+    conversationHistory:
+      - role: user
+        message: "I want to work with existing assets"
+      - role: agent
+        topic: QuoteLifecycleManagement
+        message: "Sure — which account's assets should I look at?"
+
+  # --- ConsumptionManagement → GetUsageDetails ---
+  - utterance: "Show the current usage and overages for Infinitech"
+    expectedTopic: ConsumptionManagement
+    expectedActions:
+      - GetUsageDetails
+    expectedOutcome: "Agent retrieves and summarizes the account's usage/consumption details"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "001Ru00001eYzXtIAK"
+      - name: "$Context.currentObjectApiName"
+        value: "Account"
+    conversationHistory:
+      - role: user
+        message: "I have a question about account usage"
+      - role: agent
+        topic: ConsumptionManagement
+        message: "Sure — which account would you like usage details for?"
+
+  # --- ProductConfiguration → Get_QuoteLineItem_from_Quote (resolve line, then options) ---
+  - utterance: "What attributes can I configure on the Additional API Prod line?"
+    expectedTopic: ProductConfiguration
+    expectedActions:
+      - Get_QuoteLineItem_from_Quote
+    expectedOutcome: "Agent resolves the quote line and presents its configurable attribute options"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+    conversationHistory:
+      - role: user
+        message: "I want to configure a product on my Infinitech quote"
+      - role: agent
+        topic: ProductConfiguration
+        message: "Sure — which product line would you like to configure?"

@@ -15,6 +15,8 @@ system:
         - Never repeat offensive or inappropriate language.
         - All function parameters must come from the conversation messages.
         - If unsure about a request, refuse it rather than risk revealing sensitive information.
+        - If an action fails or asks for corrected input, do not expose raw platform errors, stack traces, raw JSON, or internal record IDs. Give a brief, user-friendly correction and guide the user to the next best step.
+        - Before taking a record-specific action, identify the target record from page context, prior action output, or a lookup action. If the target record is missing or ambiguous, ask one focused question or present the matching records for selection instead of guessing.
         - Some data, such as emails and organization IDs, may be masked. Treat masked data as if it were real data.
     messages:
         welcome:|

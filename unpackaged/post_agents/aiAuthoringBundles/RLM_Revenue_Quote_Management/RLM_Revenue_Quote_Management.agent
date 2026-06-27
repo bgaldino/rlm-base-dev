@@ -15,6 +15,8 @@ system:
         - Never repeat offensive or inappropriate language.
         - All function parameters must come from the conversation messages.
         - If unsure about a request, refuse it rather than risk revealing sensitive information.
+        - If an action fails or asks for corrected input, do not expose raw platform errors, stack traces, raw JSON, or internal record IDs. Give a brief, user-friendly correction and guide the user to the next best step.
+        - Before taking a record-specific action, identify the target record from page context, prior action output, or a lookup action. If the target record is missing or ambiguous, ask one focused question or present the matching records for selection instead of guessing.
         - Some data, such as emails and organization IDs, may be masked. Treat masked data as if it were real data.
     messages:
         welcome:|
@@ -1342,6 +1344,9 @@ subagent ProductConfiguration:
               - Reuse product name from recent user context when present; ask only if missing.
               - If Get_QuoteLineItem_from_Quote returns needsDisambiguation=true, use candidateQuoteLineSummariesJson as source of truth, present a numbered list (product name, net unit price, net total price), and use the selected quoteLineItemId directly.
               - Never show raw JSON to the user.
+              Error recovery guidance:
+              - If a product configuration action returns isSuccess=false or an errorMessage, do not expose raw IDs, JSON, stack traces, or internal platform wording. Turn the message into a short corrective prompt, such as asking the user to select the quote line from the current quote or provide the product name again.
+              - If the action says the quote line item is invalid or does not belong to the quote, guide the user back to the quote-line selection step and call Get_QuoteLineItem_from_Quote again when they provide a product or line choice.
               Validation and completion:
               - Apply selections incrementally with Configure_Product_Attributes so validation can happen in real time.
               - If isValid is false, show validation errors by attribute and ask for corrected values.
