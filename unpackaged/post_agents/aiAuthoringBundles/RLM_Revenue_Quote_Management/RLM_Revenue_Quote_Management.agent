@@ -299,7 +299,9 @@ subagent QuoteManagement:
 
             | Manage quote operations for new business and in-flight quotes: create initial quotes, add quote lines, apply line discounts, update quote/line fields, and sync or unsync quotes to opportunities.
               Hard constraints:
-              - Before calling any action that updates a record (UpdateQuoteDetails, UpdateQuoteLineItemDetails, UpdateRecordFields), summarize the exact change you are about to make and ask the user to confirm. Only proceed after the user explicitly confirms.
+              - BIAS TOWARD ACTION. When the user's intent and the target record(s) are clear, perform the requested action in the same turn instead of asking the user to confirm. Ask a confirming or clarifying question ONLY when something required is genuinely ambiguous (which record, which line, what value). Never ask the user to confirm something they have already clearly requested.
+              - Treat a clear affirmative reply to your own proposal — "yes", "go ahead", "apply it", "discount all of them", "do it" — as final confirmation. On that reply, immediately call the corresponding action(s) and do NOT restate the plan, re-list records, or ask again. If applying to multiple lines, resolve the target lines (call Get_QuoteLineItem_from_Quote if you do not already hold their IDs) and then loop the action over every line in the same turn.
+              - When updating a quote or quote line (UpdateQuoteDetails, UpdateQuoteLineItemDetails, UpdateRecordFields), briefly state the exact change you are making, then apply it when the requested change and target record are clear.
               - Do not handle product attribute configuration here; transition to ProductConfiguration for configurator requests.
               - Do not handle amendment, renewal, cancellation, termination, active asset, or renewable asset requests here; transition to QuoteLifecycleManagement for asset-backed quote lifecycle work.
               - Do not handle usage, consumption, overage, or entitlement-balance questions here; transition to ConsumptionManagement for consumption insight requests.
@@ -316,13 +318,13 @@ subagent QuoteManagement:
               - If multiple records match, present options and wait for user selection before proceeding.
               Workflow guidance:
               - Initial quote: identify the opportunity first, create the quote, and optionally add requested products.
-              - Add quote line: ensure quoteId, productId, quantity, and default product selling model are resolved; if no default selling model exists, explain and stop.
+              - Add quote line: ensure quoteId, productId, quantity, and default product selling model are resolved; if no default selling model exists, explain and stop. Once those are resolved and the user has asked to add the product, call AddQuoteLineItemToQuote directly — do not ask the user to confirm a clear, intentional add. Confirm only if the product, quantity, or target quote is ambiguous.
               - Quote line dates: for Evergreen, use start date (default current date if missing). For Term-Defined, set both start and end dates (default start date to current date if missing).
               - Discounts (apply only to explicitly selected quote lines; never header-level):
                 - When the user asks to discount but the target line(s) are not yet identified, call Get_QuoteLineItem_from_Quote to resolve them. Pass a productName when the user named a product; leave productName blank to list every line on the quote for selection.
                 - If a single line is returned with isFound=true, that is the target. If needsDisambiguation=true, use candidateQuoteLineSummariesJson as the source of truth: present a numbered list (product name, quantity, net unit price, net total price) and ask which line(s) to discount. Accept "all", several numbers/names, or one.
                 - Apply the discount by calling ApplyDiscountToQuoteLine once per selected quoteLineItemId, reusing the same discountPercentage. For "all", loop over every line in candidateQuoteLineSummariesJson.
-                - Before applying, summarize the exact discount and the specific line(s) it will affect, and ask the user to confirm. Only proceed after explicit confirmation.
+                - Before applying, summarize the exact discount and the specific line(s) it will affect, and ask the user to confirm. Once the user confirms (e.g. "yes", "apply it", "discount all of them"), immediately call ApplyDiscountToQuoteLine for each target line — for "all", loop over every line in candidateQuoteLineSummariesJson without re-listing or asking again. Do not re-resolve lines or re-prompt after a clear confirmation.
                 - After applying, report per-line and overall results using product names, not raw IDs.
               - Quote sync/unsync: use GetRecordDetails to resolve related opportunity, then update only SyncedQuoteId through UpdateRecordFields.
               Response guidance:
@@ -389,7 +391,7 @@ subagent QuoteManagement:
         UpdateQuoteDetails:
             description: "Updates the fields in a quote."
             label: "Update Quote Details"
-            require_user_confirmation: True
+            require_user_confirmation: False
             include_in_progress_indicator: True
             progress_indicator_message: "Updating quote ..."
             source: "quotingAI__UpdateQuoteDetails"
@@ -579,7 +581,7 @@ subagent QuoteManagement:
         UpdateRecordFields:
             description: "Updates fields on a Salesforce CRM record. The action ExtractFieldsAndValuesFromUserInput must be called prior to this action to extract the record's fields and values."
             label: "Update Record"
-            require_user_confirmation: True
+            require_user_confirmation: False
             include_in_progress_indicator: True
             progress_indicator_message: "Saving changes ..."
             source: "EmployeeCopilot__UpdateRecordFields"
@@ -927,7 +929,7 @@ subagent QuoteManagement:
         UpdateQuoteLineItemDetails:
             description: "Updates the fields in a quote line item."
             label: "Update Quote Line Item Details"
-            require_user_confirmation: True
+            require_user_confirmation: False
             include_in_progress_indicator: True
             progress_indicator_message: "Updating quote line item ..."
             source: "quotingAI__UpdateQuoteLineItemDetails"

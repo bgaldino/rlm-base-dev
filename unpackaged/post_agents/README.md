@@ -303,7 +303,37 @@ The quote action/regression specs reference real org records (the Infinitech
 account, its opportunity, and its 3-line draft quote). If you run against a
 freshly built org, confirm equivalent data exists (or seed it) and update the
 IDs/names in the specs — the `FindProducts` utterances also assume a populated
-product catalog.
+product catalog. Note one data subtlety the config specs depend on: on the
+Infinitech quote, the **"Additional API"** lines have a configurable attribute
+(via their ProductClassification) while **"Additional API Prod"** has none
+(`BasedOnId` is null) — so attribute-configuration cases must target
+"Additional API".
+
+### CLI single-turn limitation (what these specs do NOT cover)
+
+CLI Testing Center sends one utterance per case; `conversationHistory` only
+*simulates* prior turns — it does **not** execute earlier actions, so the agent
+enters each case holding **no IDs resolved by a previous action**. This bounds
+what single-utterance specs can assert for **stateful, multi-record write
+chains**:
+
+- **Find-then-add** ("Add 2 units of 32GB RDIMM"): the product isn't yet a
+  resolved catalog record, so the agent calls `FindProducts` first and offers to
+  add — it does not fire `AddQuoteLineItemToQuote` in the same turn. The spec
+  asserts the agent works toward the add, not the one-turn call.
+- **Confirm-then-apply-to-all** ("Yes, discount all of them"): the confirmation
+  lives only in simulated history, so the agent holds no resolved line IDs and
+  asks one final go-ahead before mutating all lines. A fully-resolved **single**
+  line *does* apply on "yes" (see the single-line apply case). The spec asserts
+  the all-lines intent/readiness, not the loop of `ApplyDiscountToQuoteLine`.
+
+These reflect deliberately demo-friendly agent behavior (the agent **biases
+toward action** on clear, unambiguous, single-record requests, and asks once on
+ambiguous or multi-record writes — record-resolution guardrails in the agent's
+`system.instructions` and QuoteManagement hard constraints). True end-to-end
+`create → add → discount-all` chains where action state persists across turns
+belong to the **multi-turn Agent Runtime API** track (see
+`~/.claude/skills/sf-ai-agentforce-testing`), a documented follow-up.
 
 ## Adding a new agent
 
