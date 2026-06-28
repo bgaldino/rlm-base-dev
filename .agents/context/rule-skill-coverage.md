@@ -5,8 +5,8 @@
 
 ## Summary
 
-- Cursor rule files found: **10**
-- Rules not listed in `.cursor/skills/README.md`: **2**
+- Cursor rule files found: **11**
+- Rules not listed in `.cursor/skills/README.md`: **3**
 - Recommended skill rules still missing: **6**
 - High-risk AGENTS.md paths lacking both a rule and analyzer check: **4**
 
@@ -14,6 +14,7 @@
 
 | Rule file path | Glob pattern | Equivalent skill path | Has DO NOT section | Appears in AGENTS.md | Listed in skill README | Recommended owner/domain |
 |---|---|---|---|---|---|---|
+| `.cursor/rules/analysis-artifacts.mdc` | — | — | No | No | No | Repository Integration |
 | `.cursor/rules/apex-classes.mdc` | `unpackaged/**/*.cls`<br>`force-app/**/*.cls` | (stand-alone) | Yes | Yes | No | Apex |
 | `.cursor/rules/apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` | Yes | Yes | Yes | Apex |
 | `.cursor/rules/cci-python-tasks.mdc` | `tasks/**/*.py` | `cci-orchestration/custom-task-authoring.md` | Yes | Yes | Yes | CCI Orchestration |
@@ -29,6 +30,7 @@
 
 ### 1. Rules not listed in the skill README
 
+- `.cursor/rules/analysis-artifacts.mdc` — owner/domain: **Repository Integration**; add it to `.cursor/skills/README.md` or document why it is intentionally omitted.
 - `.cursor/rules/apex-classes.mdc` — owner/domain: **Apex**; add it to `.cursor/skills/README.md` or document why it is intentionally omitted.
 - `.cursor/rules/lwc-components.mdc` — owner/domain: **Lightning Web Components**; add it to `.cursor/skills/README.md` or document why it is intentionally omitted.
 
