@@ -68,7 +68,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Single line by Id ----
     @isTest
     static void updatesEndDateOnSingleLineById() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn Alpha' });
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
@@ -92,20 +91,18 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         System.assertEquals(Date.newInstance(2029, 6, 25), updated.EndDate);
     }
 
-    // ---- Regression: USER_MODE update via productName (price fields loaded) ----
+    // ---- Regression: update via productName (read-only price fields loaded) ----
     // The resolver loads read-only/calculated fields (NetUnitPrice, ListPrice,
-    // UnitPrice) for display. Updating that loaded row directly in USER_MODE
-    // fails with "fields being inaccessible" because USER_MODE validates FLS on
-    // every populated field. This test runs WITHOUT the SYSTEM_MODE bypass so it
-    // exercises the real USER_MODE path and guards the bare-record DML fix.
+    // UnitPrice) for display. The service DMLs a fresh BARE record carrying only
+    // the Id + the changed fields, never the loaded row, so a calculated field
+    // can never reach the update. This test guards that bare-record DML path.
     @isTest
-    static void updatesViaProductNameUnderUserMode() {
-        // Note: NO testBypassUserMode — runs in real USER_MODE on purpose.
-        Fixture f = buildFixture(new List<String>{ 'Quinn UserMode' });
+    static void updatesViaProductNameWithLoadedPriceFields() {
+        Fixture f = buildFixture(new List<String>{ 'Quinn BareRecord' });
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
         input.sObjectType = 'QuoteLineItem';
-        input.productName = 'Quinn UserMode';
+        input.productName = 'Quinn BareRecord';
         input.fieldUpdatesJson = '[{"fieldApiName":"EndDate","value":"2029-06-25"}]';
 
         Test.startTest();
@@ -125,7 +122,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Apply to all ----
     @isTest
     static void applyToAllUpdatesEveryLine() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn Alpha', 'Quinn Beta' });
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
@@ -154,7 +150,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Quote header fields ----
     @isTest
     static void updatesQuoteHeaderFields() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn Alpha' });
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
@@ -182,7 +177,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Quote Status by label or API value ----
     @isTest
     static void updatesQuoteStatusByLabelOrApiValue() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn Alpha' });
 
         // First test: API value
@@ -210,7 +204,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Coerce quantity number ----
     @isTest
     static void coercesQuantityNumber() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn Alpha' });
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
@@ -234,7 +227,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Product name single match ----
     @isTest
     static void productNameSingleMatchUpdates() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn Alpha' });
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
@@ -259,7 +251,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Product name multi-match disambiguation ----
     @isTest
     static void productNameMultiMatchDisambiguates() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn Duplicate', 'Quinn Duplicate' });
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
@@ -309,7 +300,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Omitted field preserved ----
     @isTest
     static void omittedFieldIsPreserved() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn Alpha' });
 
         // Set initial dates
@@ -342,7 +332,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Explicit null clears nillable field ----
     @isTest
     static void explicitNullClearsNillableField() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn Alpha' });
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
@@ -553,6 +542,34 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         System.assert(out.errorMessage.contains('Quote Id is required'), 'error: ' + out.errorMessage);
     }
 
+    // ---- Blank quote Id derives the parent quote from the line ----
+    // On a QuoteLineItem record page the line Id is page context but the Quote Id
+    // is not; a blank quoteId with explicit line Ids must derive the parent quote
+    // and apply the edit rather than failing "Quote Id is required".
+    @isTest
+    static void blankQuoteIdDerivedFromLine() {
+        Fixture f = buildFixture(new List<String>{ 'Quinn Derive' });
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input =
+            new RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput();
+        input.quoteId = ''; // not known — only the line is
+        input.sObjectType = 'QuoteLineItem';
+        input.quoteLineItemIds = new List<String>{ String.valueOf(f.lineIds[0]) };
+        input.fieldUpdatesJson = '[{"fieldApiName":"Quantity","value":"4"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assertEquals(true, out.isSuccess, 'error: ' + out.errorMessage);
+        System.assertEquals(1, out.updatedCount);
+        QuoteLineItem updated = [SELECT Quantity FROM QuoteLineItem WHERE Id = :f.lineIds[0]];
+        System.assertEquals(4, updated.Quantity, 'quantity should be updated via derived quote');
+    }
+
     // ---- Invalid quote Id rejected ----
     @isTest
     static void invalidQuoteIdRejected() {
@@ -621,7 +638,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // first-class path, not a guarded one. 25 lines update in one bulk DML.
     @isTest
     static void bulkApplyToAllUpdatesAllLines() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         List<String> products = new List<String>();
         for (Integer i = 1; i <= 25; i++) {
             products.add('Product ' + i);
@@ -650,7 +666,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     // ---- Ordinals without pending selection fallback ----
     @isTest
     static void ordinalsWithoutPendingSelectionUseFreshList() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn Alpha', 'Quinn Beta' });
 
         // Select ordinal 2 without pending selection JSON (fallback path)
@@ -678,7 +693,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
 
     @isTest
     static void productNameTokenizedMatch() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'QB API Management Solution' });
 
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
@@ -740,7 +754,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
 
     @isTest
     static void endDateSkipsOneTimeLineInMixedBatch() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn Termed', 'Quinn OneTime' });
         // Force the second line to be treated as a one-time selling model.
         RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds =
@@ -773,7 +786,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
 
     @isTest
     static void endDateOnlyOneTimeLineSkippedNotError() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn OneTime' });
         RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds =
             new Set<Id>{ f.lineIds[0] };
@@ -800,7 +812,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
 
     @isTest
     static void nonDateFieldStillAppliesToOneTimeLine() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{ 'Quinn OneTime' });
         RLM_AI_UpdateRecordFieldsService.testForceOneTimeLineIds =
             new Set<Id>{ f.lineIds[0] };
@@ -827,7 +838,6 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
 
     @isTest
     static void productNameTokenizedDisambiguates() {
-        RLM_AI_UpdateRecordFieldsService.testBypassUserMode = true;
         Fixture f = buildFixture(new List<String>{
             'Additional API Product Alpha',
             'Additional API Product Beta'

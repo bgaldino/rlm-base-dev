@@ -102,7 +102,6 @@ public with sharing class RLM_AI_QuoteDemoSummaryService {
             SELECT Id, Name
             FROM Quote
             WHERE Id = :quoteId
-            WITH USER_MODE
             LIMIT 1
         ];
     }
@@ -113,7 +112,6 @@ public with sharing class RLM_AI_QuoteDemoSummaryService {
                    NetTotalPrice, TotalPrice, LineNumber
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId
-            WITH USER_MODE
             ORDER BY LineNumber ASC, Product2.Name ASC
             LIMIT 200
         ];

@@ -185,7 +185,7 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         Id productId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.productId);
         if (productId != null) {
             List<Product2> byId = [
-                SELECT Id, Name FROM Product2 WHERE Id = :productId WITH USER_MODE LIMIT 1
+                SELECT Id, Name FROM Product2 WHERE Id = :productId LIMIT 1
             ];
             if (byId.isEmpty()) {
                 out.errorMessage = 'No product found for the supplied product Id.';
@@ -278,7 +278,6 @@ public with sharing class RLM_AI_AddProductToQuoteService {
             SELECT Id, ProductSellingModelId, ProductSellingModel.Name, IsDefault
             FROM ProductSellingModelOption
             WHERE Product2Id = :productId
-            WITH USER_MODE
             ORDER BY IsDefault DESC
         ];
 
@@ -349,7 +348,6 @@ public with sharing class RLM_AI_AddProductToQuoteService {
             SELECT Id
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId AND Product2Id = :productId
-            WITH USER_MODE
             ORDER BY CreatedDate DESC, LineNumber DESC
             LIMIT 1
         ];

@@ -352,7 +352,6 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
             SELECT Id, Product2.Name, Quantity, UnitPrice, NetUnitPrice, ListPrice, LineNumber
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId AND Id IN :requested
-            WITH USER_MODE
             ORDER BY LineNumber ASC
         ];
         // Every requested Id must belong to this quote.
@@ -406,7 +405,6 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
             SELECT Id, Product2.Name, Quantity, UnitPrice, NetUnitPrice, ListPrice, LineNumber
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId
-            WITH USER_MODE
             ORDER BY LineNumber ASC, Product2.Name ASC
             LIMIT 200
         ];

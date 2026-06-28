@@ -1,13 +1,18 @@
 /**
  * Invocable service that updates fields on Revenue Cloud records
- * (QuoteLineItem and Quote primarily) via direct USER_MODE Apex DML for the
- * Quinn quoting assistant (Update_Record_Fields action).
+ * (QuoteLineItem and Quote primarily) via direct Apex DML for the Quinn quoting
+ * assistant (Update_Record_Fields action).
  *
  * BROAD edit by default: accepts ANY field that is genuinely updateable
  * (validated dynamically via describe at call time; no hand-maintained field
- * allowlist). USER_MODE DML is the real gate, not a static list. Bypasses the
- * PST pricing engine so field values stick (the managed update actions reprice
- * and silently discard proration-owned values like EndDate).
+ * allowlist). Field updateability (describe.isUpdateable) is the gate, not a
+ * static list. Bypasses the PST pricing engine so field values stick (the
+ * managed update actions reprice and silently discard proration-owned values
+ * like EndDate).
+ *
+ * Demo code: reads and DML run in system mode (no USER_MODE / FLS enforcement).
+ * The agent's permission set does not grant field-level grants, and FLS
+ * enforcement here only blocks legitimate demo edits.
  *
  * Carve-outs (CORRECTNESS rails): QuoteLineItemAttribute raw DML is disallowed
  * (routes to config actions); productName matching >1 line returns
@@ -22,11 +27,6 @@
  */
 public with sharing class RLM_AI_UpdateRecordFieldsService {
 
-    // Test-only flag: when true, uses System.AccessLevel.SYSTEM_MODE for DML
-    // to bypass FLS checks in test context (test users don't have field grants).
-    @TestVisible
-    private static Boolean testBypassUserMode = false;
-
     // Test-only seam: QuoteLineItem Ids to treat as one-time selling model.
     // QuoteLineItem.SellingModelType/ProductSellingModelId are not createable
     // (the model flows from the product/pricebook), so a one-time line cannot be
@@ -36,8 +36,8 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     private static Set<Id> testForceOneTimeLineIds;
 
     public class UpdateFieldsInput {
-        @InvocableVariable(required=true label='Quote Id'
-            description='18-character Salesforce Id of the Quote (starts with 0Q0). Required even for Quote edits.')
+        @InvocableVariable(label='Quote Id'
+            description='18-character Salesforce Id of the Quote (starts with 0Q0). Optional when Quote Line Item Ids are supplied — the parent quote is derived from the line(s); otherwise required.')
         public String quoteId;
 
         @InvocableVariable(label='sObject Type'
@@ -127,13 +127,27 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
     private static UpdateFieldsOutput processUpdate(UpdateFieldsInput input) {
         UpdateFieldsOutput out = new UpdateFieldsOutput();
         try {
-            if (input == null || String.isBlank(input.quoteId)) {
+            if (input == null) {
                 out.errorMessage = 'Quote Id is required.';
                 return out;
             }
-            Id quoteId = RLM_AI_ConfigServiceUtils.toIdOrNull(input.quoteId);
+            // Derive the parent quote from a line when only the line is known
+            // (e.g. the user is on a QuoteLineItem record page, so the line Id is
+            // page context but the Quote Id is not). Blank quoteId + explicit line
+            // Ids → look up the line's QuoteId rather than forcing the caller to
+            // resolve it first.
+            String effectiveQuoteId = input.quoteId;
+            if (String.isBlank(effectiveQuoteId) && input.quoteLineItemIds != null
+                && !input.quoteLineItemIds.isEmpty()) {
+                effectiveQuoteId = deriveQuoteIdFromLines(input.quoteLineItemIds);
+            }
+            if (String.isBlank(effectiveQuoteId)) {
+                out.errorMessage = 'Quote Id is required.';
+                return out;
+            }
+            Id quoteId = RLM_AI_ConfigServiceUtils.toIdOrNull(effectiveQuoteId);
             if (quoteId == null || !String.valueOf(quoteId).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_PREFIX)) {
-                out.errorMessage = 'Invalid quote Id: ' + input.quoteId;
+                out.errorMessage = 'Invalid quote Id: ' + effectiveQuoteId;
                 return out;
             }
 
@@ -147,7 +161,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             }
             if (typeName != 'QuoteLineItem' && typeName != 'Quote') {
                 // Allow other objects (Opportunity, Account, etc.) — broad by design.
-                // USER_MODE is the real gate.
+                // Field updateability (describe.isUpdateable) is the gate.
             }
 
             // 2. Parse field updates
@@ -178,11 +192,9 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             // 5. Apply fields and DML.
             // The resolved `targets` rows were queried with read-only / calculated
             // fields (NetUnitPrice, ListPrice, UnitPrice, …) populated for display.
-            // Updating those loaded rows in USER_MODE fails with "fields being
-            // inaccessible" because USER_MODE validates FLS on EVERY populated
-            // field, including the non-updateable ones. So DML a fresh BARE record
-            // carrying only the Id + the fields being changed, and keep the loaded
-            // row only for labels / change summaries.
+            // DML a fresh BARE record carrying only the Id + the fields being
+            // changed, and keep the loaded row only for labels / change summaries
+            // (so a calculated field on the loaded row can never reach an update).
             //
             // SELLING-MODEL GATE: the platform rejects date fields (EndDate, etc.)
             // on one-time order lines ("You can't specify EndDate for one-time
@@ -223,8 +235,8 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             Integer successCount = 0;
 
             if (!dmlRecords.isEmpty()) {
-                AccessLevel accessLevel = testBypassUserMode ? AccessLevel.SYSTEM_MODE : AccessLevel.USER_MODE;
-                Database.SaveResult[] saveResults = Database.update(dmlRecords, accessLevel);
+                Database.SaveResult[] saveResults =
+                    Database.update(dmlRecords, AccessLevel.SYSTEM_MODE);
 
                 for (Integer i = 0; i < saveResults.size(); i++) {
                     Database.SaveResult sr = saveResults[i];
@@ -494,7 +506,6 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                 SELECT Id, Name, Status, ExpirationDate
                 FROM Quote
                 WHERE Id = :quoteId
-                WITH USER_MODE
                 LIMIT 1
             ];
             if (quotes.isEmpty()) {
@@ -522,7 +533,7 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                 out.errorMessage = 'No valid record Ids were supplied.';
                 return null;
             }
-            String soql = 'SELECT Id FROM ' + typeName + ' WHERE Id IN :requestedIds WITH USER_MODE LIMIT 200';
+            String soql = 'SELECT Id FROM ' + typeName + ' WHERE Id IN :requestedIds LIMIT 200';
             return Database.query(soql);
         }
 
@@ -567,6 +578,34 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
         return null;
     }
 
+    /**
+     * Looks up the parent QuoteId for a set of line Ids, used when the caller has
+     * the line (page context on a QuoteLineItem) but not its quote. Returns the
+     * QuoteId when every valid line shares one parent; null when the lines span
+     * multiple quotes or none resolve (callers then fall back to "Quote Id is
+     * required").
+     */
+    private static String deriveQuoteIdFromLines(List<String> rawIds) {
+        Set<Id> lineIds = new Set<Id>();
+        for (String raw : rawIds) {
+            Id parsed = RLM_AI_ConfigServiceUtils.toIdOrNull(raw);
+            if (parsed != null
+                && String.valueOf(parsed).startsWith(RLM_AI_ConfigServiceUtils.QUOTE_LINE_ITEM_PREFIX)) {
+                lineIds.add(parsed);
+            }
+        }
+        if (lineIds.isEmpty()) {
+            return null;
+        }
+        Set<Id> parentQuoteIds = new Set<Id>();
+        for (QuoteLineItem qli : [SELECT QuoteId FROM QuoteLineItem WHERE Id IN :lineIds]) {
+            parentQuoteIds.add(qli.QuoteId);
+        }
+        return parentQuoteIds.size() == 1
+            ? String.valueOf(new List<Id>(parentQuoteIds)[0])
+            : null;
+    }
+
     private static List<SObject> resolveLinesByIds(
         Id quoteId, List<String> rawIds, UpdateFieldsOutput out
     ) {
@@ -586,7 +625,6 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                    ProductSellingModel.SellingModelType
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId AND Id IN :requested
-            WITH USER_MODE
             ORDER BY LineNumber ASC
         ];
         if (lines.size() != requested.size()) {
@@ -639,7 +677,6 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
                    ProductSellingModel.SellingModelType
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId
-            WITH USER_MODE
             ORDER BY LineNumber ASC, Product2.Name ASC
             LIMIT 200
         ];

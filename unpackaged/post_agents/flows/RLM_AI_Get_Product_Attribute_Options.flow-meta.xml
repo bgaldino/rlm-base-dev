@@ -35,6 +35,10 @@
             <name>attributeSummary</name>
         </outputParameters>
         <outputParameters>
+            <assignToReference>isSuccess</assignToReference>
+            <name>isSuccess</name>
+        </outputParameters>
+        <outputParameters>
             <assignToReference>errorMessage</assignToReference>
             <name>errorMessage</name>
         </outputParameters>
@@ -55,6 +59,13 @@
         </assignmentItems>
         <assignmentItems>
             <assignToReference>hasConfigurableAttributes</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>isSuccess</assignToReference>
             <operator>Assign</operator>
             <value>
                 <booleanValue>false</booleanValue>
@@ -102,6 +113,13 @@
     </variables>
     <variables>
         <name>hasConfigurableAttributes</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <name>isSuccess</name>
         <dataType>Boolean</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>

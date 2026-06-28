@@ -45,7 +45,7 @@ testCases:
 
   # --- Discount a single named line → one call, productName targeting ---
   - utterance: "Discount the Additional API Prod line by 10%"
-    expectedTopic: QuoteManagement
+    expectedTopic: LineManagement
     expectedActions:
       - Apply_Discount_To_Quote_Lines
     expectedOutcome: "Agent targets the Additional API Prod line in one discount action and confirms by product name — or, if the line is momentarily locked by an in-flight pricing recalc, reports that cleanly and offers to retry. No bare ID in the prose."
@@ -57,7 +57,7 @@ testCases:
 
   # --- Target-price intent still routes to the bulk discount helper ---
   - utterance: "Sell the Additional API Prod line at $900"
-    expectedTopic: QuoteManagement
+    expectedTopic: LineManagement
     expectedActions:
       - Apply_Discount_To_Quote_Lines
     expectedOutcome: "Agent treats the target-price request as a line discount (computed to a percentage by the helper) on the named line — NOT a generic update — and either applies it or, if the line is momentarily locked by an in-flight pricing recalc, reports that cleanly and offers to retry"
@@ -70,8 +70,10 @@ testCases:
   # --- Ambiguous product name (two "Additional API" lines) → helper disambiguates ---
   # Output wording is UI/LLM-phrasing sensitive; assert the action invocation and
   # avoid brittle narrative grading. The helper returns candidates by name+number.
+  # A discount that resolves and completes in one turn returns control to the
+  # router (topic=agent_router), per the documented single-turn pattern — so
+  # assert the ACTION, not the subagent topic.
   - utterance: "Apply a 15% discount to the Additional API line"
-    expectedTopic: QuoteManagement
     expectedActions:
       - Apply_Discount_To_Quote_Lines
     contextVariables:

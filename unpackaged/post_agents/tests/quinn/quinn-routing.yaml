@@ -1,8 +1,9 @@
 # Description: Routing coverage for RLM_Quoting_Assistant ("Quinn"). Verifies the
 # start_agent `agent_router` sends each functional request to the correct
-# subagent across Quinn's tight 3-topic arc: ProductSelection, QuoteManagement,
+# subagent across Quinn's arc: ProductSelection, QuoteManagement, LineManagement,
 # ProductConfiguration (+ off_topic / ambiguous_question, covered in
-# quinn-guardrail.yaml).
+# quinn-guardrail.yaml). QuoteManagement owns quote create / header / card;
+# LineManagement owns add-product, discounts, and line-field edits.
 #
 # Quinn is a deliberately SCOPED demo agent — it intentionally has NO
 # QuoteLifecycleManagement (asset amend/renew) or ConsumptionManagement (usage)
@@ -34,16 +35,21 @@ testCases:
   - utterance: "What products do you sell for networking switches?"
     expectedTopic: ProductSelection
 
-  # --- QuoteManagement (create / add / discount / summary / update) ---
+  # --- QuoteManagement (create / summary / header update) ---
   # "Create a quote …" completes the create flow in a single turn, so the runtime
-  # reports topic=agent_router; assert the business action. Discount stops inside
-  # the subagent awaiting a target/percent → assert the subagent topic.
+  # reports topic=agent_router; assert the business action.
+  # Named (not ID'd) opportunity → Quinn resolves it first (IdentifyRecordByName)
+  # then creates; a single CLI turn may surface only the resolution. Assert the
+  # create behavior rather than a brittle single-action match.
   - utterance: "Create a quote for the New Opportunity for Infinitech"
-    expectedActions: ["CreateInitialQuote"]
-  - utterance: "Apply a 10% discount to the quote lines"
-    expectedTopic: QuoteManagement
+    expectedOutcome: "Agent moves to create a quote on the New Opportunity for Infinitech (resolving the opportunity and/or creating the quote) rather than deflecting — it does not dump a raw ID or JSON."
   - utterance: "Show me the quote totals"
     expectedTopic: QuoteManagement
+
+  # --- LineManagement (add product / discount / line-field edits) ---
+  # Discount stops inside the subagent awaiting a target/percent → assert the topic.
+  - utterance: "Apply a 10% discount to the quote lines"
+    expectedTopic: LineManagement
 
   # --- Add-a-product: end-state is QuoteManagement, but ProductSelection is a
   #     legitimate first hop when no product is named yet. Assert behavior, not a

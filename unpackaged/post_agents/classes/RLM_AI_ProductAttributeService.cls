@@ -1,10 +1,17 @@
 /**
- * Invocable service for retrieving product attribute definitions via SOQL.
- * Uses ProductClassificationAttr → ProductClassification (Product2.BasedOnId)
- * to resolve attributes without a PCM REST API callout, which avoids the
- * UserInfo.getSessionId() null-session issue in Agentforce execution contexts.
+ * Invocable service backing the Get_Product_Attribute_Options action: returns
+ * the configurable attributes for the product on a quote line.
  *
- * Product-agnostic: all attribute structure is resolved dynamically at runtime.
+ * Resolution is delegated ENTIRELY to RLM_AI_AttributeResolver, the single
+ * shared path that merges the definable set (ProductClassificationAttr) with
+ * the line's materialized values (QuoteLineItemAttribute). This service is now
+ * just the invocable shell + presentation: it no longer carries its own SOQL,
+ * so it can never diverge from Get_Quote_Line_Attributes (which reads through
+ * the same resolver). hasConfigurableAttributes is true whenever the line has
+ * ANY known attribute — definable or already set — which is what fixes the
+ * "no configurable attributes" false negative for lines that already carry a
+ * persisted attribute.
+ *
  * Each method is in its own class due to the one-@InvocableMethod-per-class rule.
  */
 public with sharing class RLM_AI_ProductAttributeService {
@@ -68,111 +75,19 @@ public with sharing class RLM_AI_ProductAttributeService {
                 return fail(out, 'Select a valid quote line item before looking up configurable attributes.');
             }
 
-            // Step 1: Resolve Product2Id and ProductClassificationId (BasedOnId)
-            List<QuoteLineItem> qlis = [
-                SELECT Product2Id, Product2.Name, Product2.BasedOnId
-                FROM QuoteLineItem
-                WHERE Id = :qliId
-                LIMIT 1
-            ];
-            if (qlis.isEmpty()) {
+            // Single shared resolution: merged definable + materialized set.
+            RLM_AI_AttributeResolver.Resolution res = RLM_AI_AttributeResolver.resolve(qliId);
+            if (!res.lineFound) {
                 out.errorMessage = 'QuoteLineItem not found: ' + qliId;
                 out.hasConfigurableAttributes = false;
-                return out;
-            }
-
-            out.productName = qlis[0].Product2.Name;
-            Id classificationId = qlis[0].Product2.BasedOnId;
-
-            if (classificationId == null) {
-                out.hasConfigurableAttributes = false;
                 out.attributesJson = '[]';
                 return out;
             }
 
-            // Step 2: Get attribute associations from ProductClassificationAttr
-            List<ProductClassificationAttr> pcAttrs = [
-                SELECT AttributeDefinitionId, IsRequired, IsPriceImpacting
-                FROM ProductClassificationAttr
-                WHERE ProductClassificationId = :classificationId
-                  AND Status = 'Active'
-                  AND IsReadOnly = false
-                  AND IsHidden = false
-            ];
-
-            if (pcAttrs.isEmpty()) {
-                out.hasConfigurableAttributes = false;
-                out.attributesJson = '[]';
-                return out;
-            }
-
-            // Step 3: Fetch AttributeDefinition records
-            Set<Id> attrDefIds = new Set<Id>();
-            Map<Id, ProductClassificationAttr> pcaByAttrDefId = new Map<Id, ProductClassificationAttr>();
-            for (ProductClassificationAttr pca : pcAttrs) {
-                attrDefIds.add(pca.AttributeDefinitionId);
-                pcaByAttrDefId.put(pca.AttributeDefinitionId, pca);
-            }
-
-            Map<Id, AttributeDefinition> attrDefs = new Map<Id, AttributeDefinition>([
-                SELECT Id, Name, DeveloperName, DataType, PicklistId
-                FROM AttributeDefinition
-                WHERE Id IN :attrDefIds
-            ]);
-
-            // Step 4: Fetch picklist values for all Picklist-type attributes
-            Set<Id> picklistIds = new Set<Id>();
-            for (AttributeDefinition ad : attrDefs.values()) {
-                if (ad.DataType == 'Picklist' && ad.PicklistId != null) {
-                    picklistIds.add(ad.PicklistId);
-                }
-            }
-
-            Map<Id, List<String>> picklistValuesMap = new Map<Id, List<String>>();
-            if (!picklistIds.isEmpty()) {
-                for (AttributePicklistValue pv : [
-                    SELECT Id, Name, Code, PicklistId
-                    FROM AttributePicklistValue
-                    WHERE PicklistId IN :picklistIds
-                    ORDER BY Name ASC
-                ]) {
-                    if (!picklistValuesMap.containsKey(pv.PicklistId)) {
-                        picklistValuesMap.put(pv.PicklistId, new List<String>());
-                    }
-                    picklistValuesMap.get(pv.PicklistId).add(
-                        String.isNotBlank(pv.Name) ? pv.Name : pv.Code
-                    );
-                }
-            }
-
-            // Step 5: Build attribute list JSON
-            List<Map<String, Object>> attrList = new List<Map<String, Object>>();
-            for (Id attrDefId : attrDefIds) {
-                AttributeDefinition ad = attrDefs.get(attrDefId);
-                if (ad == null) continue;
-
-                ProductClassificationAttr pca = pcaByAttrDefId.get(attrDefId);
-
-                Map<String, Object> entry = new Map<String, Object>{
-                    'name'             => ad.Name,
-                    'developerName'    => ad.DeveloperName,
-                    'dataType'         => ad.DataType,
-                    'isRequired'       => pca.IsRequired,
-                    'isPriceImpacting' => pca.IsPriceImpacting,
-                    'attributeId'      => ad.Id
-                };
-
-                if (ad.DataType == 'Picklist' && ad.PicklistId != null) {
-                    List<String> vals = picklistValuesMap.get(ad.PicklistId);
-                    entry.put('picklistValues', vals != null ? vals : new List<String>());
-                }
-
-                attrList.add(entry);
-            }
-
-            out.attributesJson = RLM_AI_ConfigServiceUtils.safeSerialize(attrList);
-            out.hasConfigurableAttributes = !attrList.isEmpty();
-            out.attributeSummary = buildSummary(out.productName, attrList);
+            out.productName = res.productName;
+            out.attributesJson = RLM_AI_AttributeResolver.toJson(res.attributes);
+            out.hasConfigurableAttributes = res.hasAttributes();
+            out.attributeSummary = buildSummary(out.productName, res.attributes);
 
         } catch (Exception e) {
             out.errorMessage = e.getMessage();
@@ -190,29 +105,36 @@ public with sharing class RLM_AI_ProductAttributeService {
         return out;
     }
 
-    private static String buildSummary(String productName, List<Map<String, Object>> attrList) {
-        if (attrList.isEmpty()) return productName + ' has no configurable attributes.';
+    private static String buildSummary(
+        String productName, List<RLM_AI_AttributeResolver.ResolvedAttribute> attrList
+    ) {
+        String header = String.isNotBlank(productName) ? productName : 'This line';
+        if (attrList == null || attrList.isEmpty()) {
+            return header + ' has no configurable attributes.';
+        }
         List<String> lines = new List<String>();
-        lines.add('Here are the configurable attributes for ' + productName + ':');
+        lines.add('Here are the configurable attributes for ' + header + ':');
         lines.add('');
         Integer i = 1;
-        for (Map<String, Object> attr : attrList) {
-            String label = (String) attr.get('name');
-            String dataType = (String) attr.get('dataType');
-            Boolean required = attr.get('isRequired') == true;
-            String req = required ? ' (required)' : '';
-            if (dataType == 'Picklist') {
-                List<Object> vals = (List<Object>) attr.get('picklistValues');
-                List<String> valStrs = new List<String>();
-                if (vals != null) { for (Object v : vals) valStrs.add((String) v); }
-                lines.add(i + '. ' + label + req);
+        for (RLM_AI_AttributeResolver.ResolvedAttribute attr : attrList) {
+            String label = attr.name;
+            String req = attr.isRequired == true ? ' (required)' : '';
+            // Show the current value when one is set, so discovery and the
+            // current-state read present the same fact.
+            String cur = String.isNotBlank(attr.currentValue)
+                ? ' — currently **' + attr.currentValue + '**'
+                : '';
+            if (attr.dataType == 'Picklist') {
+                List<String> valStrs = attr.picklistValues != null
+                    ? attr.picklistValues : new List<String>();
+                lines.add(i + '. ' + label + req + cur);
                 lines.add('   Options: ' + String.join(valStrs, ', '));
-            } else if (dataType == 'Number') {
-                lines.add(i + '. ' + label + req + ' — enter a number');
-            } else if (dataType == 'Checkbox') {
-                lines.add(i + '. ' + label + req + ' — yes or no');
+            } else if (attr.dataType == 'Number') {
+                lines.add(i + '. ' + label + req + cur + ' — enter a number');
+            } else if (attr.dataType == 'Checkbox') {
+                lines.add(i + '. ' + label + req + cur + ' — yes or no');
             } else {
-                lines.add(i + '. ' + label + req + ' — enter a value');
+                lines.add(i + '. ' + label + req + cur + ' — enter a value');
             }
             i++;
         }

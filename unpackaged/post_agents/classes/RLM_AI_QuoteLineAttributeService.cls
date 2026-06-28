@@ -1,18 +1,19 @@
 /**
- * Invocable service that reads the attributes ALREADY materialized on a quote
- * line (QuoteLineItemAttribute), for the Quinn quoting assistant's
- * Get_Quote_Line_Attributes action.
+ * Invocable service backing Get_Quote_Line_Attributes: reports the attributes
+ * on a quote line with each one's CURRENT value (and, for picklists, the valid
+ * options), so the agent can ground "Type is currently Flex; valid values are
+ * Flex/Gov/Pre-Prod/Prod" before changing it.
  *
- * This is the ground-truth source for ALTERING an existing attribute on a line:
- * it returns each QuoteLineItemAttribute's current value plus, for picklist
- * attributes, the valid values from the AttributeDefinition's picklist — so the
- * agent can ground "Type is currently Prod; valid values are Flex/Gov/Pre-Prod/
- * Prod" instead of re-deriving configurability from the product classification.
+ * Resolution is delegated to RLM_AI_AttributeResolver — the SAME single path
+ * that backs Get_Product_Attribute_Options — so the two actions can never
+ * disagree about which attributes a line has. The only difference is framing:
+ * this action's hasAttributes reports whether any attribute value is actually
+ * SET on the line (current state), while Get_Product_Attribute_Options reports
+ * whether any attribute is configurable (definable OR set). Both read the merged
+ * resolver, so neither can return an attribute the other has never heard of.
  *
- * Complements RLM_AI_ProductAttributeService (which lists what COULD be
- * configured from ProductClassificationAttr); this lists what IS set on the line.
- *
- * Read-only. `with sharing`; null-safe Id handling via RLM_AI_ConfigServiceUtils.
+ * Read-only. Demo code: system mode (no WITH USER_MODE) — see
+ * RLM_AI_AttributeResolver for why.
  */
 public with sharing class RLM_AI_QuoteLineAttributeService {
 
@@ -27,15 +28,15 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
         public String productName;
 
         @InvocableVariable(label='Attributes JSON'
-            description='JSON array of the attributes set on the line. Each has: name, developerName, dataType, currentValue, isPriceImpacting, picklistValues (array, Picklist only). Used internally by the planner.')
+            description='JSON array of the attributes on the line. Each has: name, developerName, dataType, currentValue, isPriceImpacting, picklistValues (array, Picklist only). Used internally by the planner.')
         public String attributesJson;
 
         @InvocableVariable(label='Attribute Summary'
-            description='Pre-formatted human-readable summary of the attributes set on the line, each with its current value and (for picklists) the valid options. Display this directly to the user.')
+            description='Pre-formatted human-readable summary of the attributes on the line, each with its current value and (for picklists) the valid options. Display this directly to the user.')
         public String attributeSummary;
 
         @InvocableVariable(label='Has Attributes'
-            description='True when the line has at least one materialized QuoteLineItemAttribute.')
+            description='True when the line has at least one attribute with a value set.')
         public Boolean hasAttributes;
 
         @InvocableVariable(label='Is Success'
@@ -48,7 +49,7 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
 
     @InvocableMethod(
         label='Get Quote Line Attributes'
-        description='Reads the attributes already set on a quote line (QuoteLineItemAttribute), with each current value and valid picklist options. Use before changing an existing attribute. Read-only.'
+        description='Reads the attributes on a quote line with each current value and valid picklist options. Use before changing an existing attribute. Read-only.'
         category='Product Configuration'
     )
     public static List<GetLineAttributesOutput> getQuoteLineAttributes(
@@ -77,35 +78,15 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
                 return fail(out, 'Select a valid quote line item before reading its attributes.');
             }
 
-            // Resolve the product name for a friendly summary (best-effort).
-            List<QuoteLineItem> qlis = [
-                SELECT Product2.Name
-                FROM QuoteLineItem
-                WHERE Id = :qliId
-                WITH USER_MODE
-                LIMIT 1
-            ];
-            if (qlis.isEmpty()) {
+            RLM_AI_AttributeResolver.Resolution res = RLM_AI_AttributeResolver.resolve(qliId);
+            if (!res.lineFound) {
                 out.errorMessage = 'QuoteLineItem not found: ' + qliId;
                 out.hasAttributes = false;
                 out.attributesJson = '[]';
                 return out;
             }
-            out.productName = qlis[0].Product2 != null ? qlis[0].Product2.Name : null;
-
-            // Read the attributes materialized on this line.
-            List<QuoteLineItemAttribute> lineAttrs = [
-                SELECT AttributeName, AttributeValue, IsPriceImpacting,
-                       AttributeDefinitionId,
-                       AttributeDefinition.Name, AttributeDefinition.DeveloperName,
-                       AttributeDefinition.DataType, AttributeDefinition.PicklistId
-                FROM QuoteLineItemAttribute
-                WHERE QuoteLineItemId = :qliId
-                WITH USER_MODE
-                ORDER BY AttributeName ASC
-            ];
-
-            summarizeAttributes(out, lineAttrs);
+            out.productName = res.productName;
+            summarize(out, res.attributes);
 
         } catch (Exception e) {
             out.errorMessage = e.getMessage();
@@ -116,81 +97,33 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
     }
 
     /**
-     * Transforms the raw QuoteLineItemAttribute rows into the output's
-     * hasAttributes / attributesJson / attributeSummary fields, enriching
-     * picklist-typed attributes with their valid values.
+     * Builds the output from resolved attributes. hasAttributes is true when at
+     * least one attribute carries a value set on the line (current state); the
+     * summary lists every known attribute with its current value so the agent
+     * can validate a requested change against the valid options.
      *
-     * Split out from the query so it can be unit-tested with in-memory rows:
-     * QuoteLineItemAttribute is an async-creatable entity that cannot be
-     * created (insertImmediate) and queried back within the same test
-     * transaction, so the "found" branch is otherwise uncoverable.
+     * @TestVisible so the populated branch can be unit-tested with in-memory
+     * resolved rows — QuoteLineItemAttribute is async-creatable and cannot be
+     * inserted-and-queried-back in one test transaction.
      */
     @TestVisible
-    private static void summarizeAttributes(
+    private static void summarize(
         GetLineAttributesOutput out,
-        List<QuoteLineItemAttribute> lineAttrs
+        List<RLM_AI_AttributeResolver.ResolvedAttribute> attrs
     ) {
-        if (lineAttrs == null || lineAttrs.isEmpty()) {
-            out.hasAttributes = false;
-            out.attributesJson = '[]';
-            out.attributeSummary = (out.productName != null ? out.productName : 'This line')
-                + ' has no attributes set.';
-            return;
-        }
+        out.attributesJson = RLM_AI_AttributeResolver.toJson(attrs);
 
-        // Gather picklist values for any picklist-typed attributes.
-        Set<Id> picklistIds = new Set<Id>();
-        for (QuoteLineItemAttribute a : lineAttrs) {
-            AttributeDefinition ad = a.AttributeDefinition;
-            if (ad != null && ad.DataType == 'Picklist' && ad.PicklistId != null) {
-                picklistIds.add(ad.PicklistId);
-            }
-        }
-        Map<Id, List<String>> picklistValuesMap = new Map<Id, List<String>>();
-        if (!picklistIds.isEmpty()) {
-            for (AttributePicklistValue pv : [
-                SELECT Name, Code, PicklistId
-                FROM AttributePicklistValue
-                WHERE PicklistId IN :picklistIds
-                WITH USER_MODE
-                ORDER BY Name ASC
-            ]) {
-                if (!picklistValuesMap.containsKey(pv.PicklistId)) {
-                    picklistValuesMap.put(pv.PicklistId, new List<String>());
+        Boolean anyValueSet = false;
+        if (attrs != null) {
+            for (RLM_AI_AttributeResolver.ResolvedAttribute a : attrs) {
+                if (String.isNotBlank(a.currentValue)) {
+                    anyValueSet = true;
+                    break;
                 }
-                picklistValuesMap.get(pv.PicklistId).add(
-                    String.isNotBlank(pv.Name) ? pv.Name : pv.Code
-                );
             }
         }
-
-        // Build the attribute list.
-        List<Map<String, Object>> attrList = new List<Map<String, Object>>();
-        for (QuoteLineItemAttribute a : lineAttrs) {
-            AttributeDefinition ad = a.AttributeDefinition;
-            String dataType = ad != null ? ad.DataType : null;
-            String name = ad != null && String.isNotBlank(ad.Name)
-                ? ad.Name
-                : a.AttributeName;
-
-            Map<String, Object> entry = new Map<String, Object>{
-                'name'             => name,
-                'developerName'    => ad != null ? ad.DeveloperName : null,
-                'dataType'         => dataType,
-                'currentValue'     => a.AttributeValue,
-                'isPriceImpacting' => a.IsPriceImpacting,
-                'attributeId'      => a.AttributeDefinitionId
-            };
-            if (dataType == 'Picklist' && ad != null && ad.PicklistId != null) {
-                List<String> vals = picklistValuesMap.get(ad.PicklistId);
-                entry.put('picklistValues', vals != null ? vals : new List<String>());
-            }
-            attrList.add(entry);
-        }
-
-        out.attributesJson = RLM_AI_ConfigServiceUtils.safeSerialize(attrList);
-        out.hasAttributes = !attrList.isEmpty();
-        out.attributeSummary = buildSummary(out.productName, attrList);
+        out.hasAttributes = anyValueSet;
+        out.attributeSummary = buildSummary(out.productName, attrs, anyValueSet);
     }
 
     private static GetLineAttributesOutput fail(GetLineAttributesOutput out, String message) {
@@ -201,26 +134,36 @@ public with sharing class RLM_AI_QuoteLineAttributeService {
         return out;
     }
 
-    private static String buildSummary(String productName, List<Map<String, Object>> attrList) {
-        String header = (String.isNotBlank(productName) ? productName : 'This line');
-        if (attrList.isEmpty()) {
+    private static String buildSummary(
+        String productName,
+        List<RLM_AI_AttributeResolver.ResolvedAttribute> attrs,
+        Boolean anyValueSet
+    ) {
+        String header = String.isNotBlank(productName) ? productName : 'This line';
+        if (attrs == null || attrs.isEmpty()) {
             return header + ' has no attributes set.';
         }
+        if (!anyValueSet) {
+            // Attributes are configurable but none are set yet — say so plainly
+            // instead of the misleading "no attributes".
+            List<String> names = new List<String>();
+            for (RLM_AI_AttributeResolver.ResolvedAttribute a : attrs) {
+                names.add(a.name);
+            }
+            return header + ' has no attribute values set yet. Configurable attributes: '
+                + String.join(names, ', ') + '.';
+        }
         List<String> lines = new List<String>();
-        lines.add('Attributes currently set on ' + header + ':');
+        lines.add('Attributes on ' + header + ':');
         lines.add('');
         Integer i = 1;
-        for (Map<String, Object> attr : attrList) {
-            String label = (String) attr.get('name');
-            String dataType = (String) attr.get('dataType');
-            Object curObj = attr.get('currentValue');
-            String current = curObj == null ? '(not set)' : String.valueOf(curObj);
+        for (RLM_AI_AttributeResolver.ResolvedAttribute a : attrs) {
+            String current = String.isNotBlank(a.currentValue) ? a.currentValue : '(not set)';
             // Bold the currently-selected value so it stands out from the options.
-            String row = i + '. ' + label + ' — currently **' + current + '**';
-            if (dataType == 'Picklist') {
-                List<Object> vals = (List<Object>) attr.get('picklistValues');
-                List<String> valStrs = new List<String>();
-                if (vals != null) { for (Object v : vals) valStrs.add((String) v); }
+            String row = i + '. ' + a.name + ' — currently **' + current + '**';
+            if (a.dataType == 'Picklist') {
+                List<String> valStrs = a.picklistValues != null
+                    ? a.picklistValues : new List<String>();
                 if (!valStrs.isEmpty()) {
                     row += ' (options: ' + String.join(valStrs, ', ') + ')';
                 }

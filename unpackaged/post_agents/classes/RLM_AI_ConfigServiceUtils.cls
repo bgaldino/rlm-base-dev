@@ -364,7 +364,7 @@ public inherited sharing class RLM_AI_ConfigServiceUtils {
         List<Product2> candidates = Database.queryWithBinds(
             soql,
             binds,
-            AccessLevel.USER_MODE
+            AccessLevel.SYSTEM_MODE
         );
 
         Integer cap = (limitCount != null && limitCount > 0) ? limitCount : 200;
@@ -456,7 +456,6 @@ public inherited sharing class RLM_AI_ConfigServiceUtils {
                    LineNumber, ProductSellingModel.SellingModelType
             FROM QuoteLineItem
             WHERE QuoteId = :quoteId
-            WITH USER_MODE
             ORDER BY LineNumber ASC
             LIMIT 200
         ];

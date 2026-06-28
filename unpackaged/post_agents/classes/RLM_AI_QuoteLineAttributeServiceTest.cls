@@ -32,52 +32,23 @@ private class RLM_AI_QuoteLineAttributeServiceTest {
     // Main path: a line with a materialized picklist attribute returns the
     // current value AND the valid picklist options, both in JSON and summary.
     //
-    // QuoteLineItemAttribute is an async-creatable entity: Database.insertImmediate()
-    // commits it in a SEPARATE transaction, so a record created in a test cannot be
-    // queried back within the same test transaction (a direct SOQL returns 0). The
-    // "found" branch is therefore exercised through the @TestVisible summarizeAttributes
-    // seam with in-memory rows — the picklist enrichment SOQL still runs against real,
-    // queryable AttributePicklistValue records.
+    // The "found" branch is exercised through the @TestVisible summarize seam
+    // with in-memory ResolvedAttribute rows (the merged shape the resolver
+    // returns), so the test does not depend on inserting-and-querying the
+    // async-creatable QuoteLineItemAttribute within one transaction.
     @isTest
     static void returnsExistingAttributeWithValueAndOptions() {
-        // A picklist attribute definition with a few valid values. The platform
-        // requires the whole chain to be ACTIVE: the picklist (Status=Active), its
-        // values (Status=Active, one IsDefault), and the definition (IsActive=true
-        // with a unique Name/Code). Codes are globally unique, so salt them per run.
-        String sfx = String.valueOf(System.now().getTime());
-        AttributePicklist pl = new AttributePicklist(
-            Name = 'RLM Test Type Picklist ' + sfx,
-            Status = 'Active'
-        );
-        insert pl;
-        AttributePicklistValue pvFlex = new AttributePicklistValue(
-            Name = 'Flex', Code = 'Flex' + sfx, Value = 'Flex',
-            PicklistId = pl.Id, Status = 'Active', IsDefault = true
-        );
-        AttributePicklistValue pvProd = new AttributePicklistValue(
-            Name = 'Prod', Code = 'Prod' + sfx, Value = 'Prod',
-            PicklistId = pl.Id, Status = 'Active'
-        );
-        insert new List<AttributePicklistValue>{ pvFlex, pvProd };
-        AttributeDefinition ad = new AttributeDefinition(
-            Name = 'RLM Test Type ' + sfx,
-            Label = 'RLM Test Type',
-            DeveloperName = 'RLM_Test_Type_' + sfx,
-            Code = 'RLM_Test_Type_Code_' + sfx,
-            DataType = 'Picklist',
-            PicklistId = pl.Id,
-            IsActive = true
-        );
-        insert ad;
-
-        // The attribute as materialized on the line, currently set to "Prod".
-        // Built in memory (not inserted) with its parent AttributeDefinition
-        // populated so summarizeAttributes can read DataType/PicklistId.
-        QuoteLineItemAttribute lineAttr = new QuoteLineItemAttribute(
-            AttributeDefinitionId = ad.Id,
-            AttributeValue = 'Prod'
-        );
-        lineAttr = (QuoteLineItemAttribute) attachParent(lineAttr, ad);
+        RLM_AI_AttributeResolver.ResolvedAttribute ra =
+            new RLM_AI_AttributeResolver.ResolvedAttribute();
+        ra.name = 'Type';
+        ra.developerName = 'Type';
+        ra.dataType = 'Picklist';
+        ra.isRequired = false;
+        ra.isPriceImpacting = true;
+        ra.currentValue = 'Prod';
+        ra.picklistValues = new List<String>{ 'Flex', 'Gov', 'Pre-Prod', 'Prod' };
+        ra.isOnClassification = true;
+        ra.isOnLine = true;
 
         RLM_AI_QuoteLineAttributeService.GetLineAttributesOutput out =
             new RLM_AI_QuoteLineAttributeService.GetLineAttributesOutput();
@@ -85,13 +56,13 @@ private class RLM_AI_QuoteLineAttributeServiceTest {
         out.productName = 'RLM Attr Value Product';
 
         Test.startTest();
-        RLM_AI_QuoteLineAttributeService.summarizeAttributes(
+        RLM_AI_QuoteLineAttributeService.summarize(
             out,
-            new List<QuoteLineItemAttribute>{ lineAttr }
+            new List<RLM_AI_AttributeResolver.ResolvedAttribute>{ ra }
         );
         Test.stopTest();
 
-        System.assertEquals(true, out.hasAttributes, 'Line has one materialized attribute.');
+        System.assertEquals(true, out.hasAttributes, 'Line has a value set on one attribute.');
         // Current value present.
         System.assert(out.attributeSummary.contains('Prod'),
             'Summary should show the current value. Got: ' + out.attributeSummary);
@@ -104,25 +75,39 @@ private class RLM_AI_QuoteLineAttributeServiceTest {
             'JSON should carry the valid picklist values.');
     }
 
-    // Populates the read-only AttributeDefinition relationship on an in-memory
-    // QuoteLineItemAttribute by round-tripping through JSON — the only way to set
-    // a parent-relationship field that isn't writeable via the constructor.
-    private static SObject attachParent(QuoteLineItemAttribute qlia, AttributeDefinition ad) {
-        Map<String, Object> qliaMap =
-            (Map<String, Object>) JSON.deserializeUntyped(JSON.serialize(qlia));
-        // AttributeName / IsPriceImpacting are read-only via the constructor, so
-        // inject them through the JSON layer alongside the parent relationship.
-        qliaMap.put('AttributeName', 'RLM Test Type');
-        qliaMap.put('IsPriceImpacting', true);
-        qliaMap.put('AttributeDefinition', new Map<String, Object>{
-            'Name'          => ad.Name,
-            'DeveloperName' => ad.DeveloperName,
-            'DataType'      => ad.DataType,
-            'PicklistId'    => ad.PicklistId
-        });
-        return (SObject) JSON.deserialize(
-            JSON.serialize(qliaMap), QuoteLineItemAttribute.class
+    // A configurable attribute that is NOT yet set on the line: hasAttributes is
+    // false (no value set), but the summary names it as configurable rather than
+    // claiming the line has no attributes — the framing that prevents the
+    // "no configurable attributes" false negative.
+    @isTest
+    static void configurableButUnsetAttributeIsNotReportedAsAbsent() {
+        RLM_AI_AttributeResolver.ResolvedAttribute ra =
+            new RLM_AI_AttributeResolver.ResolvedAttribute();
+        ra.name = 'Type';
+        ra.developerName = 'Type';
+        ra.dataType = 'Picklist';
+        ra.isRequired = false;
+        ra.isPriceImpacting = true;
+        ra.currentValue = null; // configurable but unset
+        ra.picklistValues = new List<String>{ 'Flex', 'Prod' };
+        ra.isOnClassification = true;
+        ra.isOnLine = false;
+
+        RLM_AI_QuoteLineAttributeService.GetLineAttributesOutput out =
+            new RLM_AI_QuoteLineAttributeService.GetLineAttributesOutput();
+        out.isSuccess = true;
+        out.productName = 'RLM Unset Attr Product';
+
+        RLM_AI_QuoteLineAttributeService.summarize(
+            out,
+            new List<RLM_AI_AttributeResolver.ResolvedAttribute>{ ra }
         );
+
+        System.assertEquals(false, out.hasAttributes, 'No value is set yet.');
+        System.assert(out.attributeSummary.contains('Type'),
+            'Summary should still name the configurable attribute. Got: ' + out.attributeSummary);
+        System.assert(!out.attributeSummary.contains('no attributes'),
+            'Must not claim the line has no attributes. Got: ' + out.attributeSummary);
     }
 
     @isTest
