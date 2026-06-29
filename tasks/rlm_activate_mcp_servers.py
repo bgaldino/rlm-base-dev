@@ -135,7 +135,7 @@ class ActivateMcpServers(BaseTask):
     task_options = {
         "manifest_dir": {
             "description": (
-                "Folder of *.json McpServerAccess payload arrays declaring which "
+                "Folder of `*.json` McpServerAccess payload arrays declaring which "
                 "servers to activate. Default: 'datasets/tooling/McpServerAccess'. "
                 "See that folder's README for the JSON contract."
             ),
