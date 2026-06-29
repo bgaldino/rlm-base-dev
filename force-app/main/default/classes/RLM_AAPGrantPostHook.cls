@@ -23,6 +23,11 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
     public virtual class BaseException extends Exception {}
     public class HookException extends BaseException {}
 
+    // All context tag / attribute names are kept as constants because queryTags
+    // returns nested String-keyed Maps; a typo here silently yields null instead
+    // of a compile error. The trailing `__std` suffix on context-tag names is
+    // the RLM context-definition naming convention (NOT a Salesforce custom
+    // field suffix — the backing SObjects are standard, e.g. UsageResource).
     private static final String AAP_PRODUCT_FAMILY = 'AAP';
     private static final String ITEM_FAMILY_ATTR = 'ItemProductFamily__c';
     private static final String GRANT_QUANTITY_ATTR = 'GrantQuantity__std';
@@ -43,9 +48,19 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         'IncludedMillionHitsGBText' => 'AAP Requests'
     };
 
+    // Recursion guard. updateContextAttributes() can re-trigger a pricing pass,
+    // which would re-fire this posthook -> infinite loop (and CPU governor
+    // exhaustion). Pattern lifted from the External Pricing posthook sample in
+    // ind.product_catalog_sample_apex_class_for_product_discovery_external_pricing.htm.
+    // @TestVisible so the test class can prove the short-circuit branch.
     @TestVisible
     private static Boolean isRunning = false;
 
+    // Indirection through the ContextClient interface (see bottom of file) is
+    // the only way to test this hook without a live pricing context:
+    // Context.IndustriesContext is not stubbable directly. The pricing engine
+    // always invokes the no-arg constructor; the @TestVisible constructor is
+    // used by RLM_AAPGrantPostHookTest to inject a MockContextClient.
     @TestVisible
     private ContextClient industriesContext;
 
@@ -67,6 +82,10 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             return response;
         }
 
+        // Returning SUCCESS on blank ctxId is intentional: the pricing engine
+        // wraps every transaction in this posthook, and a FAILED response would
+        // mark the transaction as errored. A missing context id means "nothing
+        // priced here", not "pricing should fail".
         String contextId = request != null ? request.ctxInstanceId : null;
         if (String.isBlank(contextId)) {
             response.status = RevSignaling.TransactionStatus.SUCCESS;
@@ -77,6 +96,11 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         try {
             isRunning = true;
 
+            // Same SUCCESS-on-empty rationale for the three early-out branches
+            // below: a Sales Transaction with zero AAP-family lines (or AAP
+            // lines without the three included-* attributes) is a normal,
+            // non-error case. We only want to fail the procedure plan if an
+            // unexpected exception escapes.
             Set<String> aapItemCtxIds = queryAapItemCtxIds(contextId);
             if (aapItemCtxIds.isEmpty()) {
                 response.status = RevSignaling.TransactionStatus.SUCCESS;
@@ -97,6 +121,9 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             List<Object> nodeUpdates =
                 buildGrantUpdates(contextId, aapItemCtxIds, qtyByItemByResource, resourceNameById);
 
+            // Batched in a single updateContextAttributes call so the engine
+            // sees ONE atomic update event per posthook run, not N events
+            // (which would trip the recursion guard once and stop the rest).
             if (!nodeUpdates.isEmpty()) {
                 Map<String, Object> updateInput = new Map<String, Object>{
                     'contextId' => contextId,
@@ -115,10 +142,24 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             response.message = 'RLM_AAPGrantPostHook error: ' + e.getMessage();
             return response;
         } finally {
+            // MUST reset in finally, not at the bottom of try: an uncaught
+            // exception (or a return-from-try above) would otherwise leave the
+            // guard latched true for the rest of the request, silently
+            // disabling the posthook for every subsequent transaction in the
+            // same execution context.
             isRunning = false;
         }
     }
 
+    /**
+     * The returned ids are CONTEXT ids (the runtime identifiers the engine
+     * assigns to each node), NOT Salesforce record ids. They are the cross-
+     * node join key used by both `SalesTransactionItemAttribute.SalesTransactionItemAttrParent`
+     * and `SalesTrxnItemUseRsrcGrant__std.SalesTransactionItem__std` to point
+     * back at their owning item -- so this set is what later queries match
+     * against. equalsIgnoreCase is defensive: the picklist persists 'AAP' but
+     * we don't want a casing drift to silently disable the hook.
+     */
     private Set<String> queryAapItemCtxIds(String contextId) {
         Map<String, Object> input = new Map<String, Object>{
             'contextId' => contextId,
@@ -136,6 +177,9 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             }
             String family = readTagString(tagMap, ITEM_FAMILY_ATTR);
             if (AAP_PRODUCT_FAMILY.equalsIgnoreCase(family)) {
+                // The item's own ctx id is always the leaf of its dataPath;
+                // the engine guarantees the path is rooted at the context id
+                // and ends at the node being described.
                 String itemCtxId = lastDataPathSegment(node);
                 if (String.isNotBlank(itemCtxId)) {
                     ctxIds.add(itemCtxId);
@@ -145,6 +189,13 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         return ctxIds;
     }
 
+    /**
+     * Returns: itemCtxId -> ( UsageResource.Name -> requested integer quantity ).
+     * We can't filter the queryTags call by parent, so we get all attributes
+     * across the transaction and filter in-memory. The parent-set check is
+     * therefore essential: a stray IncludedTrafficText attribute on a non-AAP
+     * line must NOT be allowed to overwrite any grant.
+     */
     private Map<String, Map<String, Integer>> queryQuantitiesByItem(
         String contextId,
         Set<String> aapItemCtxIds
@@ -176,6 +227,9 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             if (String.isBlank(rawValue)) {
                 continue;
             }
+            // Per-row try/catch (rather than failing the whole posthook) so
+            // one malformed attribute on one line doesn't take down pricing
+            // for every other line in the transaction.
             Integer qty;
             try {
                 qty = Integer.valueOf(rawValue.trim());
@@ -195,6 +249,15 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         return byItem;
     }
 
+    /**
+     * Round-trip through the SObject because the SalesTransaction context
+     * exposes `UsageResource__std` ONLY as an id reference on each grant --
+     * there is no sibling UsageResource node with a queryable Name attribute.
+     * Scoped to just our three resource names so this is one indexed query
+     * (Name is idLookup) regardless of how many UsageResource records exist
+     * in the org. WITH USER_MODE per the apex-security-hardening skill; the
+     * matching `allowRead=true` on UsageResource lives in RLM_QuantumBit.permissionset.
+     */
     private Map<Id, String> loadResourceNameById() {
         Map<Id, String> nameById = new Map<Id, String>();
         Set<String> wantedNames = new Set<String>(ATTR_NAME_TO_RESOURCE_NAME.values());
@@ -209,6 +272,18 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         return nameById;
     }
 
+    /**
+     * Return type is List<Object> (not List<Map<String, Object>>) because
+     * Apex's generics are invariant: putting the result into the
+     * `nodePathAndAttributes` slot of a Map<String, Object> and reading it
+     * back as List<Object> elsewhere (notably the mock in the test class)
+     * would throw "Illegal assignment" otherwise. The elements are still
+     * Map<String, Object> at runtime; the engine reads them positionally.
+     *
+     * Grants are matched to their parent line via the SalesTransactionItem__std
+     * tag rather than by parsing dataPath positions -- the tag is the contract
+     * the engine guarantees; dataPath depth/layout is not.
+     */
     private List<Object> buildGrantUpdates(
         String contextId,
         Set<String> aapItemCtxIds,
@@ -242,6 +317,9 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             if (String.isBlank(resourceIdString)) {
                 continue;
             }
+            // Id.valueOf inside try/catch per the apex-classes rule: untrusted
+            // string -> Id conversion must never throw out of the loop and
+            // abort processing of the remaining grants.
             Id resourceId;
             try {
                 resourceId = Id.valueOf(resourceIdString);
@@ -250,6 +328,9 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
                     + resourceIdString + '"; skipping (' + idEx.getMessage() + ')');
                 continue;
             }
+            // resourceName == null means the grant's resource isn't one of
+            // the three AAP resources (or wasn't returned by the SOQL because
+            // it doesn't exist in the org). Either way: leave the grant alone.
             String resourceName = resourceNameById.get(resourceId);
             if (resourceName == null) {
                 continue;
@@ -264,6 +345,10 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
                 continue;
             }
 
+            // Payload shape lifted from the prehook/posthook samples in
+            // ind.pricing_customize_pricing_procedures_with_apex_hooks.htm.
+            // Keys are case-sensitive and required by the engine; do not
+            // rename without changing the engine contract.
             updates.add(new Map<String, Object>{
                 'nodePath' => new Map<String, Object>{ 'dataPath' => grantPath },
                 'attributes' => new List<Object>{
@@ -277,6 +362,11 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         return updates;
     }
 
+    // queryTags response shape: { "queryResult": { "<TagName>": [ <nodes...> ] } }.
+    // All three layers are null-checked because in the mock/test path one of
+    // them may legitimately be absent, and in the production path a context
+    // with no matching nodes returns an empty queryResult rather than the tag
+    // key.
     private static List<Object> readNodes(Map<String, Object> queryOutput, String tag) {
         if (queryOutput == null) {
             return new List<Object>();
@@ -289,6 +379,13 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         return nodes != null ? nodes : new List<Object>();
     }
 
+    /**
+     * Each context attribute is wrapped as { "tagValue": <actualValue> } in
+     * the queryTags response (matching the sample shape in
+     * ind.pricing_customize_pricing_procedures_with_apex_hooks.htm). The
+     * instanceof check accepts a bare primitive too so this helper degrades
+     * gracefully if the engine ever changes to inlining scalar values.
+     */
     private static String readTagString(Map<String, Object> tagMap, String key) {
         Object wrapper = tagMap.get(key);
         if (wrapper == null) {
@@ -310,6 +407,13 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         return last == null ? null : String.valueOf(last);
     }
 
+    /**
+     * updateContextAttributes wants dataPath RELATIVE to the context root,
+     * but queryTags returns the FULL path with the contextId as the first
+     * element. Mirror the `dataPath.remove(0); // Remove contextId` step
+     * shown in every Apex-hook sample in the Help docs. We copy first so we
+     * don't mutate the engine's response map (it may be reused).
+     */
     private static List<Object> cloneDataPathWithoutContextId(Map<String, Object> node) {
         List<Object> dataPath = (List<Object>) node.get('dataPath');
         if (dataPath == null || dataPath.isEmpty()) {
@@ -320,6 +424,12 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         return copy;
     }
 
+    /**
+     * Narrow wrapper over the two Context.IndustriesContext methods we use.
+     * Exists solely so tests can substitute a MockContextClient. Keep the
+     * surface minimal: every method added here must also be added to every
+     * test mock.
+     */
     public interface ContextClient {
         Map<String, Object> queryTags(Map<String, Object> input);
         Map<String, Object> updateContextAttributes(Map<String, Object> input);
