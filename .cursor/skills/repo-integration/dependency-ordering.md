@@ -122,7 +122,7 @@ Reverse dependency order (children before parents):
 | 19 | prepare_tso | TSO-specific PSLs, PSGs, deploy |
 | 20 | prepare_procedureplans | Procedure plan definitions |
 | 21 | prepare_prm | PRM community + data |
-| 22 | prepare_agents | Agent classes + deploy |
+| 22 | prepare_ai | AI enablement wrapper → prepare_agents (Agent classes + deploy) then prepare_mcp (Hosted MCP servers), each behind its own flag |
 | 23 | prepare_constraints | Constraints + CML |
 | 24 | prepare_guidedselling | Guided selling PSets + metadata + Product2 field values (qb-guidedselling-products) |
 | 25 | prepare_revenue_settings | Revenue Settings (Robot) |
