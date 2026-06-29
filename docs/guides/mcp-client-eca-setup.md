@@ -176,7 +176,8 @@ Everything except the Consumer Key and the endpoint URL is identical across orgs
 
 ## Notes & provenance
 
-- Live-validated 2026-06-29: the four committed components deploy org-agnostically,
+- Live-validated against an org on Salesforce v67.0 (Release 262): the four
+  committed components deploy org-agnostically,
   the Consumer Key is retrieved post-deploy, `OauthScopesMCP_API` /
   `OauthScopesREFRESH_TOKEN` confirm `true`, the endpoint returns the expected 401,
   and a real multi-callback deploy persisted all four client callback URLs. The

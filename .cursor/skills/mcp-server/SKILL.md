@@ -241,7 +241,7 @@ client. What does exist:
 - **`invalid code verifier` on the FIRST `/mcp` auth call, then success on retry.**
   A PKCE verifier/challenge transient seen against a freshly-deployed ECA. It is
   **expected, not a misconfiguration** — just run `/mcp` and authenticate again;
-  the second attempt succeeds. (Confirmed live, 2026-06-29.)
+  the second attempt succeeds. (Confirmed live.)
 - **Brand-new ECA reports an invalid `client_id`/app on first use.** ECAs can take
   a few minutes to propagate. Wait ~5 min and retry before suspecting the config.
 - **`ERR_TLS_CERT_ALTNAME_INVALID` during the token fetch.** The auth server the
