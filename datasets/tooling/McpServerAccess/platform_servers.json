@@ -8,8 +8,15 @@
   },
   {
     "kind": "platform",
-    "DeveloperName": "platform_sobject_deletes",
-    "MasterLabel": "sobject-deletes",
+    "DeveloperName": "platform_metadata_experts",
+    "MasterLabel": "metadata-experts",
+    "Language": "en_US",
+    "Active": true
+  },
+  {
+    "kind": "platform",
+    "DeveloperName": "platform_salesforce_api_context",
+    "MasterLabel": "salesforce-api-context",
     "Language": "en_US",
     "Active": true
   }

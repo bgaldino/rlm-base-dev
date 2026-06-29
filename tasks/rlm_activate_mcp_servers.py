@@ -32,7 +32,10 @@ in the manifest. There is **no auto-discovery**: deploying an
 the enabled set an explicit, reviewable, source-controlled decision. The RLM
 build's default manifest activates:
 
-  * ``platform_sobject_all`` / ``platform_sobject_deletes`` (platform servers)
+  * ``platform_sobject_all`` (the platform SObject server — its tools already
+    include the delete tools, so the narrower ``platform_sobject_deletes`` is not
+    separately activated), ``platform_metadata_experts``, and
+    ``platform_salesforce_api_context``
   * ``RLMQuotingMCP`` (the custom RLM server)
 
 Options (see ``task_options``) — the activated set is tunable per-org / per-flow

@@ -1946,7 +1946,7 @@
 
 ### `deploy_post_mcp`
 
-**Description:** Deploy custom Hosted MCP metadata (RLMQuotingMCP definition + backing flow) from unpackaged/post_mcp. Definition deploys inactive; activate_mcp_servers enables it.
+**Description:** Deploy custom Hosted MCP metadata (RLMQuotingMCP definition + backing flow + the RLMQuotingMcpClient ECA for client OAuth/PKCE) from unpackaged/post_mcp. Definition deploys inactive; activate_mcp_servers enables it.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 

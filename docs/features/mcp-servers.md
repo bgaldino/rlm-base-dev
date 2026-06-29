@@ -3,7 +3,8 @@
 > **Target release:** API v67.0 (Summer '26 / Release 262)
 > **Deployment path:** `unpackaged/post_mcp`
 > **Feature flag:** `mcp` (default `false` — opt-in)
-> **Skill:** `.cursor/skills/mcp-server/SKILL.md`
+> **Admin/build reference:** `docs/references/mcp-server-admin.md`
+> **Client/consumption skill:** `.cursor/skills/mcp-server/SKILL.md`
 
 ---
 
@@ -16,8 +17,9 @@ feature wires two things into the RLM build:
 1. A **custom MCP server**, `RLMQuotingMCP`, that surfaces the Revenue Cloud quoting
    actions (create/amend/renew quotes, manage quote lines, apply discounts) plus an
    opportunity-creation flow as MCP tools.
-2. **Activation** of that custom server plus the two platform SObject MCP servers
-   (`platform_sobject_all`, `platform_sobject_deletes`).
+2. **Activation** of that custom server plus three platform MCP servers:
+   `platform_sobject_all` (full SObject tools), `platform_metadata_experts`, and
+   `platform_salesforce_api_context`.
 
 It is gated by the opt-in `mcp` feature flag and runs as the `prepare_mcp` flow,
 which `prepare_rlm_org` reaches via the shared `prepare_ai` flow at step 22
@@ -47,20 +49,35 @@ Metadata API — it must be created/updated through the Tooling API, which is wh
 
 `unpackaged/post_mcp` is a **source-format** bundle, like every other
 `deploy_post_<x>` folder — no `package.xml`. `McpServerDefinition` is in the SF
-CLI source-tracking registry (as of CLI 2.140.6:
-`directoryName: mcpServerDefinitions`, `suffix: mcpServerDefinition`), so CCI's
-`Deploy` task detects the source format, runs `sf project convert source` (which
-preserves both files and synthesizes the manifest), and deploys via the Metadata
-API. The files must keep the source-format `-meta.xml` suffix for conversion to
-pick them up.
+CLI source-tracking registry (`directoryName: mcpServerDefinitions`,
+`suffix: mcpServerDefinition`), so CCI's `Deploy` task detects the source format,
+runs `sf project convert source` (which preserves both files and synthesizes the
+manifest), and deploys via the Metadata API. The files must keep the
+source-format `-meta.xml` suffix for conversion to pick them up.
 
 ```
 unpackaged/post_mcp/
 ├── mcpServerDefinitions/
 │   └── RLMQuotingMCP.mcpServerDefinition-meta.xml          # the custom server (9 tools)
-└── flows/
-    └── RLM_Create_Opportunity_Agentforce.flow-meta.xml    # backing flow for 1 tool
+├── flows/
+│   └── RLM_Create_Opportunity_Agentforce.flow-meta.xml    # backing flow for 1 tool
+├── externalClientApps/
+│   └── RLMQuotingMcpClient.eca-meta.xml                    # client ECA (OAuth + PKCE)
+├── extlClntAppOauthSettings/
+│   └── RLMQuotingMcpClient.ecaOauth-meta.xml               #   scopes: mcp_api + refresh_token
+├── extlClntAppGlobalOauthSets/
+│   └── RLMQuotingMcpClient.ecaGlblOauth-meta.xml           #   PKCE, multi-client callback URLs
+└── extlClntAppOauthPolicies/
+    └── RLMQuotingMcpClient.ecaOauthPlcy-meta.xml           #   refresh-token TTL, permitted users
 ```
+
+The four `extlClntApp*` / `externalClientApps` files are the **client ECA** — a
+fully org-agnostic External Client App (no Org ID, consumer key, or `oauthLink`;
+the org supplies those on deploy) that lets an MCP client authenticate via OAuth
+Auth-Code + PKCE. It deploys with the server, so `prepare_mcp` provisions both the
+server **and** the client app. Connecting a client afterward (read back the minted
+consumer key, configure the client, browser-auth) is documented in the
+**End-to-End Setup Runbook** in `docs/references/mcp-server-admin.md`.
 
 > **Naming constraint:** an MCP server name must start with a letter, be alphanumeric
 > only, and be 2–40 characters. Underscores are rejected — hence `RLMQuotingMCP`, not
@@ -98,8 +115,11 @@ Activation is **manifest-driven**: it activates **only** the servers declared in
 the source-controlled manifest at **`datasets/tooling/McpServerAccess/`** (JSON
 arrays of `McpServerAccess` payloads). By default that manifest declares:
 
-- `platform_sobject_all` (platform, `McpServerId = null`)
-- `platform_sobject_deletes` (platform, `McpServerId = null`)
+- `platform_sobject_all` (platform, `McpServerId = null`) — the full SObject tool
+  set (read + create/update + delete). The built-in `platform_sobject_deletes`
+  server is a strict subset of this one, so it is **not** separately activated.
+- `platform_metadata_experts` (platform, `McpServerId = null`)
+- `platform_salesforce_api_context` (platform, `McpServerId = null`)
 - `RLMQuotingMCP` (custom — its `McpServerId` resolved at runtime from the
   deployed definition)
 

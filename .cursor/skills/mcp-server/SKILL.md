@@ -1,369 +1,323 @@
 ---
 name: mcp-server
 description: >-
-  Salesforce MCP Server metadata and Tooling API reference for v67.0.
-  Use when creating, deploying, activating, or managing MCP Servers and their
-  tools/prompts in Salesforce orgs. Covers the McpServerDefinition metadata
-  type, McpServerAccess activation via Tooling API, and the full CRUD lifecycle.
+  Connect an MCP client to a Salesforce Hosted MCP server and use its tools
+  (Salesforce v67.0). Use when wiring Claude Code/Desktop, Cursor, ChatGPT, or
+  Postman to an org's activated MCP servers — endpoint URLs, External Client App
+  + OAuth (PKCE) auth, the run-as-user permission model, and discovery. For the
+  admin/build side (authoring/deploying McpServerDefinition, activating
+  McpServerAccess), see docs/references/mcp-server-admin.md.
 ---
 
-# MCP Server Management (Salesforce v67.0)
+# Connecting to Salesforce Hosted MCP Servers (v67.0)
 
-MCP Servers in Salesforce allow exposing org capabilities (Flows, Apex, etc.)
-as tools that AI agents can invoke via the Model Context Protocol.
+Salesforce Hosted MCP servers expose org capabilities (SObjects, Flows, metadata)
+as tools an external MCP client invokes over the Model Context Protocol. This
+skill is the **consumption** side: how a client authenticates to and uses a
+server that's already **activated** in the org.
 
-## RLM build integration
-
-This repo ships a custom MCP server and wires deploy + activation into the build:
-
-- **Bundle:** `unpackaged/post_mcp/` (source-format, no `package.xml` — like every
-  other `deploy_post_*`; `McpServerDefinition` is in the SF CLI source-tracking
-  registry as of CLI 2.140.6, so CCI converts + deploys it normally). Contains
-  `mcpServerDefinitions/RLMQuotingMCP.mcpServerDefinition-meta.xml` (9
-  quoting/opportunity tools) and
-  `flows/RLM_Create_Opportunity_Agentforce.flow-meta.xml`.
-- **Feature flag:** `mcp` (default `false`, opt-in).
-- **Deploy task:** `deploy_post_mcp` (`cumulusci.tasks.salesforce.Deploy`).
-- **Activation task:** `activate_mcp_servers`
-  (`tasks/rlm_activate_mcp_servers.py` → `ActivateMcpServers`) — Tooling-API upsert of
-  `McpServerAccess` for `RLMQuotingMCP`, `platform_sobject_all`, `platform_sobject_deletes`.
-- **Flow:** `prepare_mcp`, run as a conditional sub-flow of the general `prepare_ai`
-  block (step 22 of `prepare_rlm_org`: `prepare_agents` then `prepare_mcp`, each
-  behind its own feature flag).
-- **Naming constraint (learned live):** MCP server names must be alphanumeric, start
-  with a letter, 2–40 chars — **no underscores** (hence `RLMQuotingMCP`). The
-  `<masterLabel>` may contain spaces.
-- See `docs/features/mcp-servers.md` for the full feature writeup.
+> **Admin / build side** — authoring + deploying an `McpServerDefinition`,
+> activating it via the `McpServerAccess` Tooling-API object, the metadata format
+> and CRUD lifecycle — lives in **`docs/references/mcp-server-admin.md`**. The RLM
+> build wiring (`mcp` flag, `deploy_post_mcp`, `activate_mcp_servers`) is in
+> **`docs/features/mcp-servers.md`**.
 
 ## Quick Rules
 
-1. **McpServerDefinition** is the only deployable metadata type — use it for
-   the server definition and its tools/prompts.
-2. **McpServerAccess** controls activation — it is **NOT** deployable via
-   Metadata API. Use the Tooling API to create/update it post-deploy.
-3. Tool backing: tools reference Flow Actions via API Catalog
-   (`fa:flow-<FlowApiName>`). The Flow must exist and be active in the org.
-4. Activation = creating/updating a `McpServerAccess` record with
-   `Active = true` pointing to the server's `McpServerDefinition` Id.
-5. Deactivation flips `Active` to `false` on the same record (does not delete it).
+1. **Endpoint host is `api.salesforce.com`, NOT your My Domain.** The MCP gateway
+   is a dedicated host; `https://<mydomain>.my.salesforce.com/...` returns "Page
+   doesn't exist."
+2. **Auth is an External Client App (ECA) with OAuth Auth-Code + PKCE.**
+   Classic **Connected Apps are not supported**. The client holds only the ECA
+   **Consumer Key** (`client_id`) — no client secret (PKCE replaces it).
+3. **Required scopes:** `mcp_api` (Access Salesforce hosted MCP servers) **+**
+   `refresh_token` (offline access). `mcp_api` grants MCP only — not the REST APIs.
+4. **Transport is streamable HTTP** (not SSE). Claude Code uses `--transport http`.
+5. **Every tool call runs as the authenticated user.** The user's CRUD/FLS/sharing
+   apply on top of the server's tool set — a server can't exceed what the user can
+   already do.
+6. **The client auto-discovers auth from the endpoint URL alone.** A
+   spec-compliant MCP client walks the standard OAuth `.well-known` metadata
+   (RFC 9728 → RFC 8414) to find the auth server and scopes. You supply only the
+   **endpoint URL + Consumer Key** — there is no org *registry* that lists which
+   servers exist, but you do not hand-configure auth-server URLs or scopes.
 
 ## DO NOT
 
-- Do NOT assume `McpServerAccess` can be deployed via `sf project deploy` —
-  it will fail. Always use Tooling API for activation state.
-- Do NOT use SOQL (standard or Tooling) to query `McpServer` — use
-  `McpServerDefinition` on the Tooling API instead.
-- Do NOT hardcode McpServerDefinition IDs across orgs — query by
-  `DeveloperName` to find the correct record after deploy.
+- Do NOT point a client at the My Domain host (`*.my.salesforce.com`) — use
+  `api.salesforce.com`.
+- Do NOT create a classic **Connected App** for MCP auth — use an **External
+  Client App**; Connected Apps aren't supported.
+- Do NOT expect a client secret — these flows use **PKCE**; configure the client
+  with the Consumer Key only.
+- Do NOT assume the server's tools bypass the running user's permissions — they
+  don't.
 
 ---
 
-## Architecture Overview
+## 1. Endpoint URL
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│              McpServerDefinition (Metadata API)          │
-│  - DeveloperName, MasterLabel, Description              │
-│  - <tools> (embedded McpServerToolApiDefinition)        │
-│  - <prompts> (embedded McpServerPromptDefinition)       │
-└──────────────────────────┬──────────────────────────────┘
-                           │ McpServerId (FK)
-┌──────────────────────────▼──────────────────────────────┐
-│              McpServerAccess (Tooling API only)          │
-│  - DeveloperName, MasterLabel                           │
-│  - Active (boolean) ← controls Inactive/Active status   │
-│  - McpServerId (reference to McpServerDefinition)       │
-└─────────────────────────────────────────────────────────┘
+https://api.salesforce.com/platform/mcp/v1/<apiDomain>/<server>
 ```
 
-### Tooling API Entity Summary
+| Environment | URL format |
+|-------------|------------|
+| Production | `https://api.salesforce.com/platform/mcp/v1/<apiDomain>/<server>` |
+| Sandbox / scratch | `https://api.salesforce.com/platform/mcp/v1/sandbox/<apiDomain>/<server>` |
 
-| Object | Purpose | Queryable | Deployable (Metadata API) |
-|--------|---------|-----------|---------------------------|
-| `McpServerDefinition` | Server + tools + prompts | Yes (Tooling API) | Yes |
-| `McpServerAccess` | Activation toggle | Yes (Tooling API) | **No** |
-| `McpServerToolApiDefinition` | Tool→API binding details | Yes (Tooling API) | Embedded in McpServerDefinition XML |
-| `McpServerPromptDefinition` | Prompt definitions | Yes (Tooling API) | Embedded in McpServerDefinition XML |
+- `<apiDomain>/<server>` is the two-segment server path. Platform servers live
+  under `platform/` (a couple under `data/`); a custom server is addressed under
+  its own apiDomain/name once activated.
+- The `<server>` segment is the **MasterLabel** form (hyphens), not the
+  `DeveloperName`: e.g. `platform_sobject_all` (DeveloperName) → path
+  `platform/sobject-all`.
 
-### Key Prefix Reference
+### Standard platform server paths
 
-| Object | Prefix | Example |
-|--------|--------|---------|
-| McpServerDefinition | `1g1` | `1g1g7000000037ZAAQ` |
-| McpServerAccess | `1fz` | `1fzg7000001z4cPAAQ` |
-| McpServerToolApiDefinition | `1g3` | `1g3g700000003h3AAA` |
-| McpServerTool (parent of ApiDef) | `1g2` | `1g2g700000001c1AAA` |
+| Server (path) | Tools |
+|---------------|-------|
+| `platform/sobject-reads` | SObject read only |
+| `platform/sobject-mutations` | create / update |
+| `platform/sobject-deletes` | read + delete (no writes) |
+| `platform/sobject-all` | read + create/update + delete (superset of the above) |
+| `platform/salesforce-api-context` | org/API context helpers |
+| `platform/metadata-experts` | metadata guidance |
+| `data/data-cloud-queries` | Data Cloud queries |
 
----
-
-## McpServerDefinition — Metadata Format
-
-File location: `mcpServerDefinitions/<DeveloperName>.mcpServerDefinition-meta.xml`
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<McpServerDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
-    <description>Human-readable description</description>
-    <masterLabel>Display Label</masterLabel>
-    <tools>
-        <apiDefinition>
-            <apiIdentifier>fa:flow-MyNamespace__MyFlowApiName</apiIdentifier>
-            <apiSource>API_CATALOG</apiSource>
-            <operation>MyNamespace__MyFlowApiName</operation>
-        </apiDefinition>
-        <descriptionOverride>What the tool does (shown to AI agent)</descriptionOverride>
-        <toolName>auto_generated_truncated_name</toolName>
-        <toolTitle>MyNamespace__MyFlowApiName</toolTitle>
-    </tools>
-    <!-- Additional <tools> blocks for more tools -->
-    <!-- <prompts> blocks for prompt definitions -->
-</McpServerDefinition>
-```
-
-### Tool Element Reference
-
-| Element | Required | Description |
-|---------|----------|-------------|
-| `apiDefinition/apiIdentifier` | Yes | API Catalog identifier. Format: `fa:flow-<FlowApiName>` for Flows |
-| `apiDefinition/apiSource` | Yes | Always `API_CATALOG` for Flow-backed tools |
-| `apiDefinition/operation` | Yes | The specific operation (usually the Flow API name) |
-| `descriptionOverride` | No | Custom description shown to AI (overrides auto-generated) |
-| `toolName` | Yes | System-generated truncated identifier (max ~64 chars) |
-| `toolTitle` | Yes | Display name (usually matches the Flow API name) |
-
-### Supported apiSource Values
-
-| Value | Backing | apiIdentifier Format |
-|-------|---------|---------------------|
-| `API_CATALOG` | Flow Action | `fa:flow-<FlowApiName>` |
+The RLM build activates `platform/sobject-all`, `platform/metadata-experts`,
+`platform/salesforce-api-context`, plus the custom `RLMQuotingMCP`.
 
 ---
 
-## McpServerAccess — Tooling API Schema
+## 2. Authentication — External Client App + OAuth (PKCE)
 
-### Fields
+A client authenticates through an **External Client App (ECA)** configured on the
+org. (Admins set this up once; create it in a Dev Hub and package/install it —
+ECAs can't be created directly in a scratch org's Setup UI, and propagation can
+take ~30 min.) At runtime the client discovers the auth server and scopes
+automatically from the endpoint's OAuth `.well-known` metadata (see §4) and runs
+Auth-Code + PKCE — you provide only the endpoint URL and the ECA Consumer Key.
 
-| Field | Type | Createable | Updateable | Description |
-|-------|------|-----------|-----------|-------------|
-| `Id` | id | — | — | Record ID (prefix `1fz`) |
-| `DeveloperName` | string | Yes | Yes | Unique name (match the server's DeveloperName) |
-| `MasterLabel` | string | Yes | Yes | Display label |
-| `Language` | picklist | Yes | Yes | Language code (default `en_US`) |
-| `Active` | boolean | Yes | Yes | `true` = server is active, `false` = inactive |
-| `McpServerId` | reference | Yes | Yes | FK to McpServerDefinition ID. `null` = platform-wide |
+**ECA OAuth settings the admin must set:**
 
-### Platform-Provided Record
+- **Scopes:** `Access Salesforce hosted MCP servers (mcp_api)` **+**
+  `Perform requests at any time (refresh_token, offline_access)`.
+- **Issue JSON Web Token (JWT)-based access tokens for named users** = on.
+- **Require Proof Key for Code Exchange (PKCE)** = on.
+- Deselect Client Credentials, JWT Bearer, Device, Token Exchange, and both
+  "Require Secret" options (PKCE replaces the secret).
+- **Callback URL** must match the client (see table below).
+- Optionally restrict authentication to a **Permission Set** + IP allowlist via
+  the ECA's OAuth Policies.
 
-Every org with MCP enabled has a built-in record:
-- `DeveloperName`: `platform_sobject_all`
-- `MasterLabel`: `sobject-all`
-- `Active`: `true`
-- `McpServerId`: `null` (applies org-wide, not to a specific custom server)
+**OAuth endpoints:** prod `https://login.salesforce.com/services/oauth2/{authorize,token}`;
+sandbox `https://test.salesforce.com/services/oauth2/{authorize,token}`.
 
-This controls the platform SObject MCP server — do not modify or delete it.
+The client is configured with the ECA **Consumer Key** as its OAuth client id and
+**no secret**.
+
+### Per-client callback URLs
+
+| Client | Callback URL |
+|--------|--------------|
+| Claude Desktop / web | `https://claude.ai/api/mcp/auth_callback` |
+| Claude Code (CLI) | `http://localhost:<port>/callback` (port must match `--callback-port`) |
+| Cursor | `cursor://anysphere.cursor-mcp/oauth/callback` |
+| Postman (desktop) | `https://oauth.pstmn.io/v1/callback` (web: `/v1/browser-callback`) |
+| ChatGPT | copied from its Advanced settings |
 
 ---
 
-## CRUD Operations
+## 3. Client connection examples
 
-### Deploy a new MCP Server (Metadata API)
+### Claude Code (CLI)
+
+One entry **per server** (and per org), all reusing the **same** Consumer Key —
+the ECA is server-agnostic (see §4b). Name entries by org so multiple orgs coexist.
+Platform servers use the org-qualified path; the custom server uses `custom/<ApiName>`:
 
 ```bash
-sf project deploy start \
-  --source-dir path/to/mcpServerDefinitions/ \
-  --target-org <username>
+# Platform servers — org-qualified path (PREFIX = the org's My Domain prefix)
+claude mcp add --transport http --scope user --client-id "$CONSUMER_KEY" --callback-port 8675 \
+  rlm-sobject-all      https://api.salesforce.com/platform/mcp/v1/d/$PREFIX/platform/sobject-all
+claude mcp add --transport http --scope user --client-id "$CONSUMER_KEY" --callback-port 8675 \
+  rlm-metadata-experts https://api.salesforce.com/platform/mcp/v1/d/$PREFIX/platform/metadata-experts
+claude mcp add --transport http --scope user --client-id "$CONSUMER_KEY" --callback-port 8675 \
+  rlm-api-context      https://api.salesforce.com/platform/mcp/v1/d/$PREFIX/platform/salesforce-api-context
+
+# Custom server — simple custom/<ApiName> path (copy verbatim from Setup → API Catalog → MCP Servers)
+claude mcp add --transport http --scope user --client-id "$CONSUMER_KEY" --callback-port 8675 \
+  rlm-quoting          https://api.salesforce.com/platform/mcp/v1/custom/RLMQuotingMCP
 ```
 
-The server deploys as **Inactive**. Activation is a separate step.
+- `--client-id` = the ECA **Consumer Key** (same for every entry); no
+  `--client-secret` (PKCE).
+- `--callback-port` must match the ECA's `http://localhost:<port>/callback`.
+- Authenticate with `/mcp` in the session; verify with `claude mcp list`
+  (expect `✓ Connected`). After the first server authenticates, additional
+  same-key entries usually go `✓ Connected` automatically (shared token).
 
-### Retrieve an MCP Server
+### Claude Desktop
 
-```bash
-sf project retrieve start \
-  --metadata "McpServerDefinition:<DeveloperName>" \
-  --target-org <username> \
-  --output-dir <dir>
-```
+Customize → Connectors → **+** → Add custom connector → **Server URL** (the
+`api.salesforce.com/...` endpoint) → **Advanced settings** → paste the Consumer
+Key into **OAuth Client ID** → Connect.
 
-### Activate (Tooling API)
+### Cursor
 
-**First activation** (no McpServerAccess record exists yet):
+Add an entry to `mcp.json` with the server `url` set to the endpoint and the
+Consumer Key as the client id (Cursor uses its native `cursor://` OAuth callback).
 
-```
-POST /services/data/v66.0/tooling/sobjects/McpServerAccess/
-Content-Type: application/json
-Authorization: Bearer <access_token>
+### ChatGPT
 
-{
-  "DeveloperName": "<ServerDeveloperName>",
-  "MasterLabel": "<ServerLabel>",
-  "Language": "en_US",
-  "Active": true,
-  "McpServerId": "<McpServerDefinition_Id>"
-}
-```
+Settings → Apps → Create App → **Server URL** → Registration Method "User-defined
+OAuth client" → paste the Consumer Key.
 
-**Re-activation** (record exists with `Active = false`):
+### Postman (best for first-time testing)
 
-```
-PATCH /services/data/v66.0/tooling/sobjects/McpServerAccess/<McpServerAccess_Id>
-Content-Type: application/json
-Authorization: Bearer <access_token>
-
-{
-  "Active": true
-}
-```
-
-### Deactivate (Tooling API)
-
-```
-PATCH /services/data/v66.0/tooling/sobjects/McpServerAccess/<McpServerAccess_Id>
-Content-Type: application/json
-Authorization: Bearer <access_token>
-
-{
-  "Active": false
-}
-```
-
-### Delete (Tooling API)
-
-```
-DELETE /services/data/v66.0/tooling/sobjects/McpServerAccess/<McpServerAccess_Id>
-Authorization: Bearer <access_token>
-```
-
-### Query (Tooling API)
-
-```
-GET /services/data/v66.0/tooling/query/?q=SELECT+Id,DeveloperName,Active,McpServerId+FROM+McpServerAccess+WHERE+DeveloperName='<ServerDeveloperName>'
-```
+Transport **HTTP**; Auth = OAuth 2.0 "**Authorization Code (With PKCE)**"; scope
+value `mcp_api refresh_token`; challenge method SHA-256; "Send client credentials
+in body."
 
 ---
 
-## Activation Lifecycle
+## 4. Discovery
 
-```
-Deploy McpServerDefinition ──► Server exists (Inactive)
-                                      │
-                            POST McpServerAccess
-                            (Active=true, McpServerId=<Id>)
-                                      │
-                                      ▼
-                              Server is Active
-                                      │
-                          PATCH Active=false
-                                      │
-                                      ▼
-                              Server is Inactive
-                              (record persists)
-                                      │
-                          PATCH Active=true
-                                      │
-                                      ▼
-                              Server is Active again
-```
+Two distinct questions: *how does the client discover **auth**?* (automatic, from
+the endpoint URL) and *how do you discover which **servers/endpoints** exist?*
+(out-of-band — there's no client-facing registry).
 
----
+### Auth discovery — automatic (OAuth `.well-known`)
 
-## Automation Pattern (Apex / CCI Task)
+A spec-compliant MCP client (Claude Code does this) needs **only the endpoint
+URL**; it discovers the rest by the standard OAuth metadata chain:
 
-To activate an MCP Server programmatically after deploy:
+1. **Unauthenticated request → 401.** Hitting the endpoint with no token returns
+   `HTTP 401 {"errors":[{"message":"JWT Token is required"}]}` — the gateway is a
+   JWT-bearer resource server.
+2. **Protected-resource metadata (RFC 9728)** — the **path-suffixed**, per-server
+   document declares the scopes:
+   `GET https://api.salesforce.com/.well-known/oauth-protected-resource/platform/mcp/v1/platform/sobject-all`
+   →
+   ```json
+   { "resource": ".../platform/mcp/v1/platform/sobject-all",
+     "authorization_servers": [".../platform/mcp/v1/platform/sobject-all"],
+     "scopes_supported": ["mcp_api", "refresh_token"] }
+   ```
+   (The **host-root** `.well-known/oauth-protected-resource` is generic and lists
+   `api, sfap_api, ...` — *not* `mcp_api`. Use the per-server, path-suffixed one.)
+3. **Authorization-server metadata (RFC 8414)** resolves to:
+   issuer `https://login.salesforce.com`, authorize
+   `…/services/oauth2/authorize`, token `…/services/oauth2/token`,
+   `code_challenge_methods_supported: ["S256"]` (PKCE), grants
+   `authorization_code` + `refresh_token`.
 
-```apex
-// Example: activate an MCP Server named "My_Server" after deploy.
-// Replace the DeveloperName with your actual server name.
+So the client runs Auth-Code + PKCE against `login.salesforce.com`
+(`test.salesforce.com` for sandboxes) and attaches the resulting bearer JWT to
+every MCP call. The OAuth metadata is served by the **gateway host**
+(`api.salesforce.com`), **not** the org My Domain (the My Domain returns "URL No
+Longer Exists" for these paths).
 
-String serverDevName = 'My_Server';
+### Server discovery — out-of-band
 
-// 1. Find the McpServerDefinition by DeveloperName
-HttpRequest req = new HttpRequest();
-req.setEndpoint(Url.getOrgDomainUrl().toExternalForm()
-    + '/services/data/v66.0/tooling/query/?q='
-    + EncodingUtil.urlEncode(
-        'SELECT Id FROM McpServerDefinition WHERE DeveloperName = \'' + serverDevName + '\'',
-        'UTF-8'));
-req.setMethod('GET');
-req.setHeader('Authorization', 'Bearer ' + UserInfo.getSessionId());
-Http http = new Http();
-HttpResponse res = http.send(req);
-// Parse the Id from response...
-String mcpServerId = '<parsed_id>';
+There is **no client-facing registry** that lists an org's MCP endpoints; you
+learn the endpoint URL out-of-band and enter it (plus the Consumer Key) in the
+client. What does exist:
 
-// 2. Check if McpServerAccess already exists
-req = new HttpRequest();
-req.setEndpoint(Url.getOrgDomainUrl().toExternalForm()
-    + '/services/data/v66.0/tooling/query/?q='
-    + EncodingUtil.urlEncode(
-        'SELECT Id, Active FROM McpServerAccess WHERE McpServerId = \'' + mcpServerId + '\'',
-        'UTF-8'));
-req.setMethod('GET');
-req.setHeader('Authorization', 'Bearer ' + UserInfo.getSessionId());
-res = http.send(req);
-// Parse response...
-
-// 3a. If no record exists → POST to create
-req = new HttpRequest();
-req.setEndpoint(Url.getOrgDomainUrl().toExternalForm()
-    + '/services/data/v66.0/tooling/sobjects/McpServerAccess/');
-req.setMethod('POST');
-req.setHeader('Authorization', 'Bearer ' + UserInfo.getSessionId());
-req.setHeader('Content-Type', 'application/json');
-req.setBody(JSON.serialize(new Map<String, Object>{
-    'DeveloperName' => serverDevName,
-    'MasterLabel' => serverDevName,
-    'Language' => 'en_US',
-    'Active' => true,
-    'McpServerId' => mcpServerId
-}));
-res = http.send(req);
-
-// 3b. If record exists but Active=false → PATCH to activate
-req = new HttpRequest();
-req.setEndpoint(Url.getOrgDomainUrl().toExternalForm()
-    + '/services/data/v66.0/tooling/sobjects/McpServerAccess/<existing_record_id>');
-req.setMethod('PATCH');
-req.setHeader('Authorization', 'Bearer ' + UserInfo.getSessionId());
-req.setHeader('Content-Type', 'application/json');
-req.setBody('{"Active": true}');
-res = http.send(req);
-```
+- **Within a session:** once connected, the standard MCP `tools/list` call returns
+  the server's tools (e.g. `getUserInfo`, `soqlQuery`, `getObjectSchema`, `find`).
+- **Admin / Setup:** Setup → **API Catalog → MCP Servers** lists the org's servers
+  (Salesforce Servers + External Servers tabs); this is where servers are enabled.
+- **Programmatic (what's activated):** query the Tooling API —
+  `SELECT DeveloperName, MasterLabel, Active, McpServerId FROM McpServerAccess`
+  (platform servers have `McpServerId = null`). There is no API that enumerates
+  available-but-inactive platform servers.
 
 ---
 
-## Querying Related Data
+## 4b. Troubleshooting auth
 
-### List all tools for a server (Tooling API)
+- **`invalid code verifier` on the FIRST `/mcp` auth call, then success on retry.**
+  A PKCE verifier/challenge transient seen against a freshly-deployed ECA. It is
+  **expected, not a misconfiguration** — just run `/mcp` and authenticate again;
+  the second attempt succeeds. (Confirmed live, 2026-06-29.)
+- **Brand-new ECA reports an invalid `client_id`/app on first use.** ECAs can take
+  a few minutes to propagate. Wait ~5 min and retry before suspecting the config.
+- **`ERR_TLS_CERT_ALTNAME_INVALID` during the token fetch.** The auth server the
+  client was sent to (the RFC 8414 `issuer` — see §4) serves a TLS cert that
+  doesn't cover its own hostname. This shows up on some non-standard scratch fleets
+  whose My Domain host presents a wildcard cert with SANs for *other* subdomain
+  patterns but **none** matching the scratch host itself, so the token POST fails
+  cert validation. It is injected by OAuth discovery (the org's self-reported
+  `issuer`), **not** by the URL you typed — so re-adding the MCP server, rewriting
+  the browser authorize URL, or an `/etc/hosts` remap all fail to fix it (the client
+  still POSTs to the bad-cert `token_endpoint`).
+  **Fix:** use an org whose My Domain has a valid cert (production or sandbox
+  `*.my.salesforce.com`, or a standard scratch org). Diagnose a host with
+  `echo | openssl s_client -connect <host>:443 -servername <host> 2>/dev/null | openssl x509 -noout -text | grep -A1 "Alternative Name"` and
+  `curl -s -o /dev/null -w "ssl_verify=%{ssl_verify_result}\n" -X POST https://<host>/services/oauth2/token -d "grant_type=authorization_code&code=x"`
+  (`ssl_verify=0` = cert OK).
 
-```
-SELECT Id, ApiSource, ApiIdentifier, Operation, ToolId
-FROM McpServerToolApiDefinition
-```
+### Choosing the endpoint path (org-qualified vs simple)
 
-### Describe available fields on any entity
+The gateway returns `401 JWT-required` for **any** path shape, so a 401 does *not*
+confirm the path is correct. Confirm a path with the per-server protected-resource
+doc instead (`200` + JSON = valid):
+`GET https://api.salesforce.com/.well-known/oauth-protected-resource/<path>`.
 
-```
-GET /services/data/v66.0/tooling/sobjects/McpServerAccess/describe/
-GET /services/data/v66.0/tooling/sobjects/McpServerDefinition/describe/
-GET /services/data/v66.0/tooling/sobjects/McpServerToolApiDefinition/describe/
-GET /services/data/v66.0/tooling/sobjects/McpServerPromptDefinition/describe/
-```
+| Path form | RFC 8414 `issuer` | Notes |
+|-----------|-------------------|-------|
+| `…/v1/platform/sobject-all` (simple) | `login.salesforce.com` | generic valid cert, but org-ambiguous |
+| `…/v1/d/<myDomainPrefix>/platform/sobject-all` (org-qualified) | the org's own `*.my.salesforce.com` | **prefer this** — pins the org; valid cert on a normal org |
+
+Prefer the **org-qualified** path for **platform** servers: it deterministically
+targets one org. Its `issuer` is that org's My Domain, so it only works when that
+domain has a valid cert (the TLS-SAN gap above is exactly when it doesn't).
+
+**Custom servers use a different path shape:** `…/v1/custom/<ApiName>` (e.g.
+`https://api.salesforce.com/platform/mcp/v1/custom/RLMQuotingMCP`) — **no
+`d/<prefix>` segment**; the custom name scopes it to the org. Do **not** guess a
+custom server's path: the gateway 401s every path pre-auth and the well-known doc
+echoes any path back, so neither confirms it. Read the exact URL from **Setup →
+API Catalog → MCP Servers → <server> → Server URL** and use it verbatim.
+
+### One ECA covers every server — no reauth when adding servers
+
+The ECA governs only OAuth (`client_id` + scopes); it does **not** reference any
+server. So a single ECA / Consumer Key authenticates **every** MCP server in the
+org. Adding another server is just another `claude mcp add` entry reusing the same
+`--client-id` — and a newly-added entry typically shows `✔ Connected`
+**automatically** off the already-issued token (no per-server `/mcp` reauth).
+Activating more servers on the org needs no ECA change either. For **multiple
+orgs**, create one entry per (org × server), name it with the org, and use the
+org-qualified path so each entry stays pinned; tokens are stored per entry, so
+orgs don't collide and reauth is per-entry.
+
+## 5. Permissions & limits
+
+Three layers gate whether a user can invoke a server's tools:
+
+1. **Server enablement** — the server must be activated
+   (`McpServerAccess.Active = true`; Setup → API Catalog → MCP Servers).
+2. **ECA OAuth policies** — can restrict authentication to a permission set, an IP
+   allowlist, and refresh-token TTL/rotation.
+3. **The running user's own CRUD / FLS / sharing** — every tool call executes as
+   the authenticated user. The server's tool set bounds *which* operations exist
+   (e.g. `sobject-reads` is read-only; `sobject-all` adds write + delete), but the
+   user's permissions still apply on top.
+
+**Known limitation:** Hosted MCP Servers are **incompatible with API Access
+Control (External Client App)**. With API Access Control enabled, the server
+authenticates but query tool calls are **blocked**. Workaround: disable API
+Access Control, or grant "Use any API Client" (not recommended in production).
 
 ---
 
-## Limitations & Notes
+## Related references
 
-- `McpServerDefinition` **is** in the SF CLI source-tracking registry as of CLI
-  2.140.6 (`directoryName: mcpServerDefinitions`, `suffix: mcpServerDefinition`),
-  so it deploys/retrieves as normal source format. On older CLIs (≤ v2.138) it was
-  absent from the registry — there a source-format deploy would silently drop the
-  type, and an mdapi-format bundle (with `package.xml`) was required instead.
-- `McpServerAccess` is entirely Tooling API — no metadata deploy/retrieve support.
-- The `McpServer` sObject name (without suffix) is **not** queryable via standard
-  SOQL or the Tooling API — always use `McpServerDefinition`.
-- Tool backing is currently limited to Flow Actions via API Catalog. The
-  `apiSource` field is a picklist suggesting future sources may be added.
-- The `toolName` field appears to be auto-generated (truncated concatenation of
-  tool title and API identifier) — setting it manually during deploy has not been
-  tested for conflicts.
+- `docs/references/mcp-server-admin.md` — author/deploy/activate servers
+  (McpServerDefinition metadata + McpServerAccess Tooling API + CRUD lifecycle).
+- `docs/features/mcp-servers.md` — RLM build feature (`mcp` flag, `deploy_post_mcp`,
+  `activate_mcp_servers`, the manifest at `datasets/tooling/McpServerAccess/`).
+- `unpackaged/post_mcp/README.md` — the shipped custom-server bundle.

@@ -13,16 +13,28 @@ They are the source-controlled, explicit manifest of the Tooling-API
 Metadata API — which is why activation lives here as data rather than in
 `unpackaged/post_mcp` (that bundle deploys the `McpServerDefinition` itself; see
 `unpackaged/post_mcp/README.md`). The two-part lifecycle is documented in
-`docs/features/mcp-servers.md` and `.cursor/skills/mcp-server/SKILL.md`.
+`docs/features/mcp-servers.md` and `docs/references/mcp-server-admin.md`.
 
 ## Files
 
 - `platform_servers.json`
-  - Platform SObject MCP servers (`platform_sobject_all`,
-    `platform_sobject_deletes`). These are built into the org and have **no**
-    `McpServerDefinition`, so they cannot be discovered — they must be declared
-    here. Each row has `"kind": "platform"` and **no** `McpServerId`
-    (resolved/stored as `null`).
+  - The built-in platform MCP servers we activate: `platform_sobject_all`,
+    `platform_metadata_experts`, and `platform_salesforce_api_context`. These are
+    built into the org and have **no** `McpServerDefinition`, so they cannot be
+    discovered — they must be declared here. Each row has `"kind": "platform"` and
+    **no** `McpServerId` (resolved/stored as `null`).
+  - For the SObject servers we activate **only** `sobject-all` (6 read +
+    create/update + 2 delete tools). The other built-in SObject server,
+    `platform_sobject_deletes`, is a strict **subset** (the 6 read tools + the 2
+    delete tools, **without** create/update) — its tools are all already in
+    `sobject-all`, so activating it too would be redundant. It exists for admins
+    who want read+delete while withholding writes; add a row for it only if you
+    specifically need that narrower posture as a separate endpoint.
+  - **Platform `DeveloperName`s are not guessable or queryable until active** —
+    there is no API that enumerates available-but-inactive platform servers. To
+    add another: activate it once in Setup, read its `DeveloperName`/`MasterLabel`
+    via `SELECT DeveloperName, MasterLabel, Language FROM McpServerAccess WHERE
+    McpServerId = null`, then copy those values into a new row here.
 - `custom_servers.json`
   - Custom servers shipped by this repo and deployed via `deploy_post_mcp`
     (e.g. `RLMQuotingMCP`). Each row has `"kind": "custom"`; the task resolves

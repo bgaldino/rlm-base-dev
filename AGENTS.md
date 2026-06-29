@@ -285,7 +285,9 @@ that topic.
 | Consume PMOS content from Foundations (or vice versa) via cross-repo skill manifest | `.cursor/skills/pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
 | Generate, inspect, continue, or verify transaction demo data | `.cursor/skills/txn-data-harness/SKILL.md` |
-| Create/deploy/activate Salesforce Hosted MCP servers (`mcp` feature, `post_mcp`, McpServerDefinition + McpServerAccess) | `.cursor/skills/mcp-server/SKILL.md` |
+| Connect an MCP client (Claude Code/Desktop, Cursor, ChatGPT, Postman) to a Salesforce Hosted MCP server and use its tools (endpoints, External Client App + OAuth/PKCE, run-as-user perms, discovery) | `.cursor/skills/mcp-server/SKILL.md` |
+| Author/deploy/activate Salesforce Hosted MCP servers (`mcp` feature, `post_mcp`, McpServerDefinition + McpServerAccess CRUD lifecycle) | `docs/references/mcp-server-admin.md` |
+| Connect a client to an org's MCP servers — pick the right endpoint URL per instance type, read back the org-minted Consumer Key, register + authenticate each client (the ECA itself auto-deploys via `post_mcp`) | `docs/guides/mcp-client-eca-setup.md` |
 | Write Robot Framework tests | `.cursor/skills/robot-testing/SKILL.md` |
 | Capture/apply UX drift from org | `.cursor/skills/repo-integration/ux-assembly-retrieve.md` |
 | Review docs before merge | `.cursor/skills/doc-consistency/SKILL.md` |

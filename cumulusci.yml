@@ -120,7 +120,7 @@ project:
     commerce: false           # Commerce
 
     # ── AI & Analytics ─────────────────────────────────────────────────────────
-    einstein: true            # Einstein AI
+    einstein: true            # Einstein AI permission assignments (PSLs/PSs); does not gate agents/mcp metadata flows
     agents: true              # Agentforce agent configurations
     mcp: false                # Hosted MCP servers (custom + platform SObject), opt-in.
     analytics: true           # Enable CRM Analytics (262+: InsightsSetupSettings VF page removed; full CRM Analytics enablement now required via Getting Started page)
@@ -1497,7 +1497,7 @@ tasks:
 
   deploy_post_mcp:
     group: Revenue Lifecycle Management
-    description: Deploy custom Hosted MCP metadata (RLMQuotingMCP definition + backing flow) from unpackaged/post_mcp. Definition deploys inactive; activate_mcp_servers enables it.
+    description: Deploy custom Hosted MCP metadata (RLMQuotingMCP definition + backing flow + the RLMQuotingMcpClient ECA for client OAuth/PKCE) from unpackaged/post_mcp. Definition deploys inactive; activate_mcp_servers enables it.
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_mcp
