@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**42 feature flags**, **86 configuration values**, **37 YAML anchors** under `project.custom`.
+**43 feature flags**, **86 configuration values**, **37 YAML anchors** under `project.custom`.
 
 ---
 
@@ -13,7 +13,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 | Flag | Default | Used in `when:` clauses |
 |------|---------|------------------------|
-| `agents` | `True` | 11 flow step(s) |
+| `agents` | `True` | 12 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
 | `billing` | `True` | 22 flow step(s) |
@@ -34,6 +34,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `guidedselling` | `True` | 4 flow step(s) |
 | `inapp` | `False` | 4 flow step(s) |
 | `large_stx` | `False` | 5 flow step(s) |
+| `mcp` | `False` | 3 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
 | `personas` | `True` | 10 flow step(s) |
@@ -73,6 +74,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_agents` step 9 → `activate_agents`
 - `prepare_agents` step 10 → `deploy_agent_permission_sets`
 - `prepare_agents` step 11 → `assign_permission_sets`
+- `prepare_ai` step 1 → `prepare_agents`
 
 ### `analytics` (default: `True`)
 
@@ -238,6 +240,12 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_large_stx` step 2 → `assign_permission_sets`
 - `prepare_large_stx` step 3 → `seed_large_deal_billing_treatment`
 - `prepare_personas` step 7 → `assign_permission_sets`
+
+### `mcp` (default: `False`)
+
+- `prepare_mcp` step 1 → `deploy_post_mcp`
+- `prepare_mcp` step 2 → `activate_mcp_servers`
+- `prepare_ai` step 2 → `prepare_mcp`
 
 ### `payments` (default: `True`)
 

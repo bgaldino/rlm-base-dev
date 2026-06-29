@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**47 flows** across **5 groups**.
+**49 flows** across **5 groups**.
 
 ---
 
@@ -179,6 +179,17 @@ Extract rating and rates data from an org into CSV files
 10. **task** `deploy_agent_permission_sets`  `when: project_config.project__custom__agents`
 11. **task** `assign_permission_sets`  `when: project_config.project__custom__agents`
    - `api_names`: `['RLM_QuotingAgent', 'RLM_QuotingAssistant', 'RLM_BillingEmployeeAgent']`
+
+---
+
+### `prepare_ai`
+
+Shared AI enablement block for feature-gated sub-flows (currently agents and mcp) so prepare_rlm_org has a single AI integration point.
+
+**Steps:**
+
+1. **flow** `prepare_agents`  `when: project_config.project__custom__agents`
+2. **flow** `prepare_mcp`  `when: project_config.project__custom__mcp`
 
 ---
 
@@ -407,6 +418,17 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
 
 ---
 
+### `prepare_mcp`
+
+Deploy and activate Hosted MCP servers (RLMQuotingMCP + platform SObject MCP servers). Gated by the mcp feature flag.
+
+**Steps:**
+
+1. **task** `deploy_post_mcp`  `when: project_config.project__custom__mcp`
+2. **task** `activate_mcp_servers`  `when: project_config.project__custom__mcp`
+
+---
+
 ### `prepare_payments`
 
 **Steps:**
@@ -617,7 +639,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 19. **flow** `prepare_tso`
 20. **flow** `prepare_procedureplans`
 21. **flow** `prepare_prm`
-22. **flow** `prepare_agents`
+22. **flow** `prepare_ai`
 23. **flow** `prepare_constraints`
 24. **flow** `prepare_guidedselling`
 25. **flow** `prepare_revenue_settings`

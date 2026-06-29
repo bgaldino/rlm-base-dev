@@ -1,0 +1,16 @@
+[
+  {
+    "kind": "platform",
+    "DeveloperName": "platform_sobject_all",
+    "MasterLabel": "sobject-all",
+    "Language": "en_US",
+    "Active": true
+  },
+  {
+    "kind": "platform",
+    "DeveloperName": "platform_sobject_deletes",
+    "MasterLabel": "sobject-deletes",
+    "Language": "en_US",
+    "Active": true
+  }
+]

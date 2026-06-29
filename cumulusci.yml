@@ -122,6 +122,7 @@ project:
     # ── AI & Analytics ─────────────────────────────────────────────────────────
     einstein: true            # Einstein AI
     agents: true              # Agentforce agent configurations
+    mcp: false                # Hosted MCP servers (custom + platform SObject), opt-in.
     analytics: true           # Enable CRM Analytics (262+: InsightsSetupSettings VF page removed; full CRM Analytics enablement now required via Getting Started page)
 
     # ── Configurators & Tooling ────────────────────────────────────────────────
@@ -1493,6 +1494,18 @@ tasks:
     class_path: cumulusci.tasks.salesforce.Deploy
     options:
       path: unpackaged/post_guidedselling
+
+  deploy_post_mcp:
+    group: Revenue Lifecycle Management
+    description: Deploy custom Hosted MCP metadata (RLMQuotingMCP definition + backing flow) from unpackaged/post_mcp. Definition deploys inactive; activate_mcp_servers enables it.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    options:
+      path: unpackaged/post_mcp
+
+  activate_mcp_servers:
+    group: Revenue Lifecycle Management
+    description: Activate Hosted MCP servers declared in datasets/tooling/McpServerAccess/ via Tooling API (McpServerAccess). Manifest-driven and idempotent; custom definitions must already be deployed.
+    class_path: tasks.rlm_activate_mcp_servers.ActivateMcpServers
 
   deploy_post_inapp:
     group: Revenue Lifecycle Management
@@ -3664,7 +3677,7 @@ flows:
       21:
         flow: prepare_prm
       22:
-        flow: prepare_agents
+        flow: prepare_ai
       23:
         flow: prepare_constraints
       24:
@@ -4303,7 +4316,31 @@ flows:
         when: project_config.project__custom__agents
         options:
           api_names: *ps_aea
-  
+
+  prepare_mcp:
+    group: Revenue Lifecycle Management
+    description: Deploy and activate Hosted MCP servers (RLMQuotingMCP + platform SObject MCP servers). Gated by the mcp feature flag.
+    steps:
+      1:
+        task: deploy_post_mcp
+        when: project_config.project__custom__mcp
+      2:
+        task: activate_mcp_servers
+        when: project_config.project__custom__mcp
+
+  prepare_ai:
+    group: Revenue Lifecycle Management
+    description: >
+      Shared AI enablement block for feature-gated sub-flows (currently agents
+      and mcp) so prepare_rlm_org has a single AI integration point.
+    steps:
+      1:
+        flow: prepare_agents
+        when: project_config.project__custom__agents
+      2:
+        flow: prepare_mcp
+        when: project_config.project__custom__mcp
+
   refresh_all_decision_tables:
     group: Revenue Lifecycle Management
     steps:

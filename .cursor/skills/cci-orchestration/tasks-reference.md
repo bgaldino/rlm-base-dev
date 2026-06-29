@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**275 tasks** across **10 groups**.
+**277 tasks** across **10 groups**.
 
 ---
 
@@ -1075,7 +1075,7 @@
 
 ## Revenue Lifecycle Management
 
-*164 task(s)*
+*166 task(s)*
 
 ### `activate_agents`
 
@@ -1157,6 +1157,14 @@
 
 - `operation`: `activate_versions`
 - `metadata_path`: `force-app/main/default/expressionSetDefinition`
+
+---
+
+### `activate_mcp_servers`
+
+**Description:** Activate Hosted MCP servers declared in datasets/tooling/McpServerAccess/ via Tooling API (McpServerAccess). Manifest-driven and idempotent; custom definitions must already be deployed.
+
+**Class:** `tasks.rlm_activate_mcp_servers.ActivateMcpServers`
 
 ---
 
@@ -1933,6 +1941,18 @@
 **Options:**
 
 - `path`: `unpackaged/post_large_stx`
+
+---
+
+### `deploy_post_mcp`
+
+**Description:** Deploy custom Hosted MCP metadata (RLMQuotingMCP definition + backing flow) from unpackaged/post_mcp. Definition deploys inactive; activate_mcp_servers enables it.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_mcp`
 
 ---
 
