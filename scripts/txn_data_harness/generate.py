@@ -85,10 +85,16 @@ def _print_pst_spec(r: "ResolvedSpec", index: int, total: int) -> int:
     handler = SCENARIO_HANDLERS[r.spec.kind]
     stages = handler.STAGES
     starts_with_opp = r.spec.with_opportunity or r.effective_stage == "opportunity_created"
-    # Quote-path head is ``quote_placed``; order-path head is ``order_draft``.
-    # Take the second stage in the handler's list -- the first is always
-    # ``opportunity_created``.
-    head = "opportunity_created" if starts_with_opp else stages[1]
+    # Quote-path head is ``quote_placed`` (skip the leading ``opportunity_created``
+    # unless the scenario opts into it); direct-order ``STAGES_ORDER`` has no
+    # ``opportunity_created`` head, so its first stage (``order_draft``) is the
+    # head and must not be skipped -- else the plan output omits the placement
+    # step. Drop the leading opp stage only when the list actually has one.
+    has_opp_head = stages and stages[0] == "opportunity_created"
+    if starts_with_opp and has_opp_head:
+        head = "opportunity_created"
+    else:
+        head = stages[1] if has_opp_head else stages[0]
     if stages.index(head) > stages.index(r.effective_stage):
         head = r.effective_stage
     stages_run = stages[stages.index(head): stages.index(r.effective_stage) + 1]

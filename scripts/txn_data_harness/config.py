@@ -57,9 +57,10 @@ _VALID_KINDS = {"sales_txn_quote", "sales_txn_order", "invoice_ingestion"}
 # Per-kind allowed target stages. Ingestion bypasses the PST chain; both
 # Draft and Posted are live-verified provided the org has an active
 # non-taxable TaxTreatment (see :func:`discovery.resolve_non_taxable_tax_treatment`).
-# Tax-on Posted ingestion (lines with ``taxable: true``) still requires
-# InvoiceLineTax graph records and is rejected at parse time -- see
-# ``docs/followups.md``.
+# Tax-on Posted ingestion (lines with ``taxable: true`` + a ``tax:`` block) is
+# supported and ships explicit InvoiceLineTax graph records; only
+# ``should_calculate_tax=true`` and malformed tax shapes are rejected at parse
+# time (see ``_coerce_invoice_overrides``/``_coerce_invoice_line``).
 #
 # ``sales_txn_order`` omits ``quote_placed`` (the order path skips the Quote
 # step entirely; see :data:`scripts.txn_data_harness.models.STAGES_ORDER`).
@@ -1172,17 +1173,21 @@ def _coerce_invoice_ingestion_spec(
     stage = _coerce_target_stage(merged, kind, where)
     count = _coerce_count(merged, where)
 
-    # Reject PST-only fields on ingestion specs. Compare against
-    # :data:`_BUILTIN_DEFAULTS` so values that match the no-op builtin (e.g.
-    # ``quantity: 1`` leaked through the merge) don't false-positive -- only
-    # an *intentional* PST knob differing from the default is an error.
+    # Reject PST-only fields on ingestion specs. Only flag fields the user set
+    # *explicitly* on this scenario (or via CLI) -- ``_explicit_keys`` excludes
+    # values inherited from the config-level ``defaults`` block, so a mixed
+    # config can share PST defaults (e.g. ``defaults: {term: 12}``) with a
+    # ``sales_txn_quote`` scenario without breaking an ``invoice_ingestion``
+    # one. Also compare against :data:`_BUILTIN_DEFAULTS` so values matching the
+    # no-op builtin (e.g. ``quantity: 1``) don't false-positive.
+    explicit_keys = merged.get("_explicit_keys", set(merged))
     pst_only = (
         "products", "product", "quantity", "discount",
         "opportunity_stage", "start_date", "term", "end_date",
         "period_boundary", "billing_frequency",
     )
     for key in pst_only:
-        if key not in merged:
+        if key not in explicit_keys:
             continue
         value = merged[key]
         if value == _BUILTIN_DEFAULTS.get(key):
@@ -1193,7 +1198,7 @@ def _coerce_invoice_ingestion_spec(
             f"{where}: '{key}' is not valid for kind 'invoice_ingestion' "
             f"(belongs to kind 'sales_txn_quote')"
         )
-    if merged.get("with_opportunity"):
+    if "with_opportunity" in explicit_keys and merged.get("with_opportunity"):
         raise ConfigError(
             f"{where}: 'with_opportunity' is not valid for kind 'invoice_ingestion' "
             f"(ingestion path has no Opportunity step)"
@@ -1324,6 +1329,9 @@ def load_scenarios(args: Any):
     if not config_path:
         merged = {**_BUILTIN_DEFAULTS, **cli}
         merged["_target_stage_explicit"] = "target_stage" in cli
+        # No config file: every non-builtin value came from a CLI flag, so the
+        # CLI keys are the explicitly-set set (see ``_coerce_invoice_ingestion_spec``).
+        merged["_explicit_keys"] = set(cli)
         return [_coerce_spec(merged, "cli")]
 
     data = _load_file(config_path)
@@ -1342,6 +1350,8 @@ def load_scenarios(args: Any):
         base["_target_stage_explicit"] = (
             "target_stage" in cli or "target_stage" in config_defaults
         )
+        # No per-scenario block: the explicitly-set set is config defaults + CLI.
+        base["_explicit_keys"] = set(config_defaults) | set(cli)
         return [_coerce_spec(base, "defaults")]
 
     if not isinstance(scenarios, list) or not scenarios:
@@ -1359,5 +1369,11 @@ def load_scenarios(args: Any):
             or "target_stage" in cli
             or "target_stage" in config_defaults
         )
+        # Fields set *on this scenario* or via CLI -- NOT inherited from the
+        # config-level ``defaults`` block. ``_coerce_invoice_ingestion_spec``
+        # only rejects a PST-only field when it was set here, so shared PST
+        # defaults (e.g. ``defaults: {term: 12}``) don't break a mixed config
+        # that also contains an ``invoice_ingestion`` scenario.
+        merged["_explicit_keys"] = set(raw) | set(cli)
         specs.append(_coerce_spec(merged, f"scenarios[{i}]"))
     return specs

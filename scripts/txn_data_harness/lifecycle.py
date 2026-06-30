@@ -870,34 +870,34 @@ def generate_invoice(
     """
     if not billing_schedule_ids:
         raise LifecycleError("invoice", "no billing schedule ids to invoice")
-    body = {
-        "billingScheduleIds": billing_schedule_ids,
-        "action": "Draft",
-        "invoiceDate": _iso_today(),
-        "targetDate": _iso_today(),
-        "correlationId": run_id,
-    }
-    result = client.post(
-        f"/services/data/v{client.api_version}/commerce/invoicing/invoices/collection/actions/generate",
-        body,
-    )
-    if not result or not result.get("success"):
-        errs = result.get("errors") if isinstance(result, dict) else result
-        raise LifecycleError("invoice", f"generate failed: {errs}")
+
+    # Retry-safe: ``generate`` carries no idempotency key (only ``correlationId``,
+    # which is not persisted), so a POST that commits before a transient poll
+    # failure would otherwise be re-POSTed on the next stage retry and produce a
+    # SECOND Draft for the same schedules. Pre-query the schedule back-link; if an
+    # invoice already exists, skip the POST and poll the existing one to Draft-OK.
+    if _query_invoice_for_schedules(client, billing_schedule_ids) is None:
+        body = {
+            "billingScheduleIds": billing_schedule_ids,
+            "action": "Draft",
+            "invoiceDate": _iso_today(),
+            "targetDate": _iso_today(),
+            "correlationId": run_id,
+        }
+        result = client.post(
+            f"/services/data/v{client.api_version}/commerce/invoicing/invoices/collection/actions/generate",
+            body,
+        )
+        if not result or not result.get("success"):
+            errs = result.get("errors") if isinstance(result, dict) else result
+            raise LifecycleError("invoice", f"generate failed: {errs}")
 
     # Poll for the generated invoice via the billing schedule back-link across
     # all submitted schedules -- the first one to surface an InvoiceLine wins.
-    in_list = ", ".join(f"'{i}'" for i in billing_schedule_ids)
-    soql = (
-        "SELECT InvoiceId, Invoice.Status, Invoice.InvoiceNumber "
-        f"FROM InvoiceLine WHERE BillingScheduleId IN ({in_list})"
-    )
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        rows = client.query(soql)
-        rows = [r for r in rows if r.get("InvoiceId")]
-        if rows:
-            inv = rows[0]
+        inv = _query_invoice_for_schedules(client, billing_schedule_ids)
+        if inv is not None:
             invoice_id = inv["InvoiceId"]
             status = (inv.get("Invoice") or {}).get("Status")
             number = (inv.get("Invoice") or {}).get("InvoiceNumber")
@@ -914,6 +914,23 @@ def generate_invoice(
         f"no invoice for {len(billing_schedule_ids)} billing schedule(s) within {timeout}s",
         record_id=billing_schedule_ids[0],
     )
+
+
+def _query_invoice_for_schedules(
+    client: SfRestClient, billing_schedule_ids: list[str]
+) -> Optional[dict]:
+    """Return the first ``InvoiceLine`` row carrying an ``InvoiceId`` for these
+    schedules (with ``Invoice.Status``/``InvoiceNumber``), or ``None`` if none
+    exists yet. Shared by :func:`generate_invoice`'s pre-POST idempotency check
+    and its post-POST poll so both read the same back-link.
+    """
+    in_list = ", ".join(f"'{i}'" for i in billing_schedule_ids)
+    soql = (
+        "SELECT InvoiceId, Invoice.Status, Invoice.InvoiceNumber "
+        f"FROM InvoiceLine WHERE BillingScheduleId IN ({in_list})"
+    )
+    rows = [r for r in client.query(soql) if r.get("InvoiceId")]
+    return rows[0] if rows else None
 
 
 def tag_invoice(client: SfRestClient, invoice_id: str, run_id: str) -> None:

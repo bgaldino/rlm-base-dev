@@ -17,8 +17,9 @@
 # Discovery picks the oldest active non-taxable TaxTreatment deterministically
 # (ORDER BY CreatedDate ASC LIMIT 1) and stamps it on every InvoiceLine.
 #
-# Tax-on Posted ingestion (lines with `taxable: true`) still requires
-# InvoiceLineTax graph records and is rejected at parse time.
+# Tax-on Posted ingestion (lines with `taxable: true` + a `tax:` block) is
+# supported and ships explicit InvoiceLineTax graph records; see the
+# `taxable: true` scenarios in this directory for that shape.
 defaults:
   kind: invoice_ingestion
   target_stage: invoice_posted

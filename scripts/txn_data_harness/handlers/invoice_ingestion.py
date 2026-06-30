@@ -476,13 +476,15 @@ class InvoiceIngestionHandler:
         """Drive one ingestion scenario through ``ingest_invoice`` (+ optional
         ``promote_to_posted``).
 
-        Draft ingestion retries are intentionally narrow: retry only transient
+        Ingestion retries are intentionally narrow: retry only transient
         failures when no invoice id has been observed. The ingest action uses
-        ``uniqueIdentifier=run_id``, but once the org returns an invoice id (or
-        the tracker fails with one), the manifest keeps that id and the handler
-        stops rather than replaying a partially materialized graph. Posted
-        ingestion remains unsupported operationally; this retry policy is for
-        the supported Draft path.
+        ``uniqueIdentifier=run_id``, so a retry before the org returns an invoice
+        id re-submits the same key idempotently; this holds for both Draft and
+        Posted targets (a transient blip before ``ingest_invoice`` persists is as
+        safe to retry on the Posted path as on Draft). Once the org returns an
+        invoice id (or the tracker fails with one), the manifest keeps that id
+        and the handler stops rather than replaying a partially materialized
+        graph.
         """
         current_run_id.set(run_id)
         manifest = Manifest(
@@ -529,7 +531,7 @@ class InvoiceIngestionHandler:
                 )
                 manifest.failure_class = classify_exception(exc)
                 retryable = (
-                    resolved.spec.target_stage == "invoice_draft"
+                    resolved.spec.target_stage in ("invoice_draft", "invoice_posted")
                     and manifest.failure_class == "transient"
                     and not manifest.invoice_id
                     and attempt <= max_retries
@@ -539,7 +541,7 @@ class InvoiceIngestionHandler:
                 write_manifest(manifest)
                 delay = _retry_backoff(attempt)
                 log.warning(
-                    "%s transient Draft ingest failure (%s); retrying in %.1fs "
+                    "%s transient ingest failure (%s); retrying in %.1fs "
                     "(attempt %d/%d)",
                     run_id,
                     manifest.error,

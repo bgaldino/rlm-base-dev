@@ -562,3 +562,54 @@ scenarios:
         spec = load_scenarios(_args(config=config))[0]
         assert spec.end_date is not None
         assert spec.end_date.absolute == date(2027, 1, 14)
+
+
+class TestMixedKindSharedDefaults:
+    """Config-level ``defaults`` shared across kinds must not leak PST-only
+    fields into an ``invoice_ingestion`` scenario's parse-time validation.
+    """
+
+    def test_shared_pst_default_does_not_break_ingestion_scenario(self, tmp_path) -> None:
+        # ``term: 12`` is a PST-only default shared by every scenario via the
+        # merge; the ingestion scenario never set it itself, so it must parse.
+        config = _write_yaml(
+            tmp_path,
+            """
+defaults:
+  term: 12
+scenarios:
+  - kind: sales_txn_quote
+    products:
+      - sku: QB-LIC-CLOUD
+  - kind: invoice_ingestion
+    target_stage: invoice_draft
+    account: Infinitech
+    invoice_lines:
+      - name: API
+        quantity: 1
+        unit_price: 10
+""",
+        )
+        specs = load_scenarios(_args(config=config))
+        assert specs[0].kind == "sales_txn_quote"
+        assert specs[1].kind == "invoice_ingestion"
+
+    def test_pst_field_set_on_ingestion_scenario_still_rejected(self, tmp_path) -> None:
+        # A PST-only field set *on the ingestion scenario itself* is still an
+        # error -- the fix only exempts fields inherited from global defaults.
+        config = _write_yaml(
+            tmp_path,
+            """
+scenarios:
+  - kind: invoice_ingestion
+    target_stage: invoice_draft
+    account: Infinitech
+    term: 12
+    invoice_lines:
+      - name: API
+        quantity: 1
+        unit_price: 10
+""",
+        )
+        with pytest.raises(ConfigError, match="'term' is not valid for kind 'invoice_ingestion'"):
+            load_scenarios(_args(config=config))

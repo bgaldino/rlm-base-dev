@@ -638,6 +638,50 @@ def test_run_retries_transient_draft_ingest_without_observed_invoice(
     assert manifest.invoice_id == "1nvDRAFT"
 
 
+def test_run_retries_transient_posted_ingest_without_observed_invoice(
+    monkeypatch, fake_client, billable_account
+) -> None:
+    """Posted ingestion is a supported retry path: a transient blip before
+    ``ingest_invoice`` persists (no invoice id observed) retries idempotently
+    via ``uniqueIdentifier=run_id``, exactly like the Draft path."""
+    calls = {"ingest": 0}
+    sleeps: list[float] = []
+
+    def flaky_ingest(client, account, lines, run_id, *, status, invoice_spec, tax_treatment_id, taxable_tax_treatment_id, timeout):
+        calls["ingest"] += 1
+        if calls["ingest"] == 1:
+            raise LifecycleError("ingest_invoice", "request timed out")
+        return "1nvDRAFT", None, ["iln1"]
+
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.ingest_invoice", flaky_ingest
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.steps.lifecycle.post_invoice",
+        lambda *a, **kw: "INV-0042",
+    )
+    monkeypatch.setattr(
+        "scripts.txn_data_harness.handlers.invoice_ingestion.time.sleep",
+        sleeps.append,
+    )
+
+    manifest = InvoiceIngestionHandler().run(
+        client=fake_client,
+        ctx=_empty_org_context(),
+        run_id="DEMO-POSTED-RETRY",
+        resolved=_build_resolved(billable_account, target="invoice_posted"),
+        poll_timeout=1,
+        max_retries=1,
+    )
+
+    assert calls["ingest"] == 2
+    assert len(sleeps) == 1
+    assert manifest.attempts == 2
+    assert manifest.error is None
+    assert manifest.reached_stage == "invoice_posted"
+    assert manifest.invoice_id == "1nvDRAFT"
+
+
 def test_run_does_not_retry_ingest_after_invoice_id_is_observed(
     monkeypatch, fake_client, billable_account
 ) -> None:
@@ -742,9 +786,9 @@ def test_coerce_spec_accepts_posted_ingestion_with_nontaxable_lines() -> None:
     """Posted ingestion is supported when every line is non-taxable.
 
     The harness discovers a non-taxable ``TaxTreatment`` at bootstrap and
-    stamps it on each ``InvoiceLine``; parse-time only enforces the no
-    ``taxable: true`` invariant. Tax-on Posted is still deferred -- see
-    ``docs/followups.md``."""
+    stamps it on each ``InvoiceLine``. Tax-on Posted (``taxable: true`` + a
+    ``tax:`` block) is also supported via explicit InvoiceLineTax graph
+    records -- see ``test_coerce_spec_accepts_taxable_line_on_posted_ingestion``."""
     merged = {
         "kind": "invoice_ingestion",
         "target_stage": "invoice_posted",

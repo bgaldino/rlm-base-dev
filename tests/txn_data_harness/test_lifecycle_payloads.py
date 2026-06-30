@@ -404,6 +404,9 @@ def test_place_sales_transaction_raises_when_term_product_missing_term(
 
 
 def test_generate_invoice_posts_draft_request_and_polls_by_billing_schedule(fake_client) -> None:
+    # Pre-POST idempotency probe returns no existing invoice -> POST proceeds;
+    # the second query is the poll that surfaces the freshly generated invoice.
+    fake_client.query_responses.append([])
     fake_client.post_responses.append({"success": True, "requestIdentifier": "REQ-1"})
     fake_client.query_responses.append([
         {
@@ -426,11 +429,39 @@ def test_generate_invoice_posts_draft_request_and_polls_by_billing_schedule(fake
     assert "InvoiceLine WHERE BillingScheduleId IN ('BS-1', 'BS-2')" in fake_client.queries[0]
 
 
+def test_generate_invoice_skips_post_when_invoice_already_exists(fake_client) -> None:
+    """Retry-safe: if a prior POST committed (a transient blip hit the follow-up
+    poll), the pre-POST probe finds the invoice and the function must NOT re-POST
+    -- otherwise a stage retry would create a second Draft for the same schedules.
+    """
+    existing = [
+        {
+            "InvoiceId": "INV-EXISTING",
+            "Invoice": {"Status": "Draft", "InvoiceNumber": "INV-0007"},
+        }
+    ]
+    # Returned for both the pre-POST probe (which skips the POST) and the
+    # follow-up poll (which confirms Draft-OK status).
+    fake_client.query_responses.append(existing)
+    fake_client.query_responses.append(existing)
+
+    invoice_id, number = generate_invoice(
+        fake_client, ["BS-1", "BS-2"], "DEMO-RETRY", timeout=1
+    )
+
+    assert invoice_id == "INV-EXISTING"
+    assert number == "INV-0007"
+    assert fake_client.posts == []  # no generate POST issued
+    assert "BillingScheduleId IN ('BS-1', 'BS-2')" in fake_client.queries[0]
+
+
 def test_generate_invoice_finds_invoice_when_first_schedule_has_no_invoice_line(fake_client) -> None:
     """Bundles activate into one BS per component; the first BS may be $0 with
     no InvoiceLine. The poller must query across all schedules and pick up the
     invoice via whichever one has a line.
     """
+    # Pre-POST probe: no invoice yet.
+    fake_client.query_responses.append([])
     fake_client.post_responses.append({"success": True, "requestIdentifier": "REQ-1"})
     # SOQL `IN (BS-0, BS-1, BS-2)` returns rows for BS-1 and BS-2 only -- BS-0
     # is the zero-amount slot and has no InvoiceLine. Our fake_client doesn't
@@ -460,6 +491,8 @@ def test_generate_invoice_single_schedule_still_polls_with_in_clause(fake_client
     """Regression guard for the simple-product case: a single BS id polls with
     ``IN ('BS-1')`` (not the prior ``= 'BS-1'``), and behavior is unchanged.
     """
+    # Pre-POST probe: no invoice yet.
+    fake_client.query_responses.append([])
     fake_client.post_responses.append({"success": True, "requestIdentifier": "REQ-1"})
     fake_client.query_responses.append([
         {
