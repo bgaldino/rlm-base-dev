@@ -1,24 +1,19 @@
 {
   "apiVersion": "67.0",
   "excludeIdsFromCSVFiles": "false",
+  "useSeparatedCSVFiles": true,
   "objectSets": [
     {
       "name": "First Pass - Insert/Upsert with Draft Status",
       "objects": [
         {
-          "query": "SELECT ConversionFactor, CurrencyIsoCode, Description, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId FROM UnitOfMeasure ORDER BY UnitCode ASC",
+          "query": "SELECT ConversionFactor, CurrencyIsoCode, Description, Name, RoundingMethod, Scale, Sequence, Status, Type, UnitCode, UnitOfMeasureClassId, UnitOfMeasureClass.Code FROM UnitOfMeasure ORDER BY UnitCode ASC",
           "operation": "Upsert",
           "externalId": "UnitCode",
           "excluded": false
         },
         {
-          "query": "SELECT Code, BaseUnitOfMeasureId, DefaultUnitOfMeasureId, Description, Name, Status FROM UnitOfMeasureClass ORDER BY Code ASC",
-          "operation": "Upsert",
-          "externalId": "Code",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Category, Code, Description, Name, UsageDefinitionProductId, Status, UnitOfMeasureClassId, DefaultUnitOfMeasureId, UsageResourceBillingPolicyId FROM UsageResource ORDER BY Code ASC",
+          "query": "SELECT Code, BaseUnitOfMeasureId, BaseUnitOfMeasure.UnitCode, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode, Description, Name, Status, Type FROM UnitOfMeasureClass ORDER BY Code ASC",
           "operation": "Upsert",
           "externalId": "Code",
           "excluded": false
@@ -30,10 +25,9 @@
           "excluded": false
         },
         {
-          "query": "SELECT DrawdownOrder, EffectiveEndDate, EffectiveStartDate, Label, OverageChargeable, ProductOfferId, UsageDefinitionProductId, Quantity, Status, UnitOfMeasureClassId, UnitOfMeasureId, RenewalPolicyId, RolloverPolicyId, UsageResourceId, ValidityPeriodTerm, ValidityPeriodUnit, ProductOffer.StockKeepingUnit, UsageDefinitionProduct.StockKeepingUnit, UnitOfMeasureClass.Code, UnitOfMeasure.UnitCode, UsageResource.Code FROM ProductUsageGrant WHERE ProductOffer.StockKeepingUnit IN ('ATTMB001', 'ATTSMS07', 'CLOUD001', 'CLOUD002', 'CLOUD003', 'CLOUD004') ORDER BY ProductOffer.StockKeepingUnit ASC, UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC, UsageResource.Code ASC",
-          "operation": "Insert",
-          "deleteOldData": true,
-          "externalId": "ProductOffer.StockKeepingUnit;UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode;UsageResource.Code",
+          "query": "SELECT Category, Code, Description, Name, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, Status, TokenResourceId, TokenResource.Code, UnitOfMeasureClassId, UnitOfMeasureClass.Code, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.UnitCode, UsageResourceBillingPolicyId, UsageResourceBillingPolicy.Code FROM UsageResource ORDER BY Code ASC",
+          "operation": "Upsert",
+          "externalId": "Code",
           "excluded": false
         },
         {
@@ -55,9 +49,34 @@
           "excluded": false
         },
         {
-          "query": "SELECT GrantBindingTargetType, GrantBindingType, Product2Id, Name, Product2.StockKeepingUnit FROM UsagePrdGrantBindingPolicy ORDER BY Product2.StockKeepingUnit ASC, Name ASC",
+          "query": "SELECT GrantBindingTargetType, GrantBindingType, Product2Id, Product2.StockKeepingUnit, Name FROM UsagePrdGrantBindingPolicy ORDER BY Product2.StockKeepingUnit ASC, Name ASC",
           "operation": "Upsert",
           "externalId": "Name;Product2.StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "$comment": "Status is required for PUG insert (Salesforce INVALID_INPUT if omitted). CSV always inserts as Draft; activation is re-applied by activateRatingRecords.apex. deleteOldData (no WHERE) removes Active PUGs then re-inserts as Draft — fully portable for drift extraction. Insert+deleteOldData avoids SFDMU v5 Upsert TARGET-SELECT SOQL injection: 2-hop externalId components (ProductUsageResource.Product.StockKeepingUnit) get prefix-stripped to 'Product.StockKeepingUnit' in the TARGET SELECT, which is invalid on PUG. Insert has no TARGET SELECT phase. CSV has two separate traversal columns for PUR FK resolution; no $$ composite columns. externalId uniqueness: the triplet (UsageDefinitionProduct.StockKeepingUnit; UnitOfMeasureClass.Code; UnitOfMeasure.UnitCode) is intentionally not unique across parent PURs — 16 of 17 rows share 3 triplets distinguished only by their parent PUR FK. This is harmless for Insert+deleteOldData: Insert does not use externalId to deduplicate incoming rows (all 17 are inserted unconditionally, confirmed by consistent PUG=17 test results), and PUG is a leaf node so no downstream object resolves FKs to PUG by externalId. If this ever moves to Upsert, the externalId must include a PUR component; ProductUsageResourceId (a direct FK field) would be the correct addition, following PURP's pattern, as adding traversal components would trigger SFDMU v5 Bug 1 (all-multi-hop externalId validation error).",
+          "query": "SELECT DrawdownOrder, EffectiveStartDate, EffectiveEndDate, Label, OverageChargeable, ProductUsageResourceId, ProductUsageResource.Product.StockKeepingUnit, ProductUsageResource.UsageResource.Code, Quantity, RenewalPolicyId, RenewalPolicy.Code, RolloverPolicyId, RolloverPolicy.Code, Status, Type, UnitOfMeasureClassId, UnitOfMeasureClass.Code, UnitOfMeasureId, UnitOfMeasure.UnitCode, UsageDefinitionProductId, UsageDefinitionProduct.StockKeepingUnit, ValidityPeriodTerm, ValidityPeriodUnit FROM ProductUsageGrant ORDER BY UsageDefinitionProduct.StockKeepingUnit ASC, UnitOfMeasureClass.Code ASC, UnitOfMeasure.UnitCode ASC",
+          "operation": "Insert",
+          "externalId": "UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode",
+          "deleteOldData": true,
+          "excluded": false
+        }
+      ]
+    },
+    {
+      "name": "Second Pass - Activate UnitOfMeasureClass and UsageResource",
+      "objects": [
+        {
+          "query": "SELECT Code, Status FROM UnitOfMeasureClass ORDER BY Code ASC",
+          "operation": "Update",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Code, Status FROM UsageResource ORDER BY Code ASC",
+          "operation": "Update",
+          "externalId": "Code",
           "excluded": false
         }
       ]
