@@ -79,7 +79,7 @@ restore() {
   #    git checkout restores tracked modifications/deletions, git clean removes
   #    files the build newly created.
   if [[ "$CLEAN_BUILD_ARTIFACTS" == "true" && "$ARTIFACTS_PRECHECKED" == "true" ]]; then
-    if [[ -n "$(git status --porcelain -- "${ARTIFACT_PATHS[@]}")" ]]; then
+    if [[ -n "$(git status --porcelain --untracked-files=all -- "${ARTIFACT_PATHS[@]}")" ]]; then
       git checkout -- "${ARTIFACT_PATHS[@]}" 2>/dev/null || true
       git clean -fdq -- "${ARTIFACT_PATHS[@]}" 2>/dev/null || true
       log "Reverted build-generated churn under ${ARTIFACT_PATHS[*]}."
@@ -97,8 +97,11 @@ fi
 # files here and we revert them afterward; if the caller had local edits there,
 # proceeding would clobber them and the post-build revert could not distinguish
 # their content from build output. Fail fast instead of corrupting their work.
+# --untracked-files=all is mandatory: a worktree with status.showUntrackedFiles=no
+# would otherwise hide pre-existing UNTRACKED files here, and the EXIT trap's
+# `git clean` would then delete them.
 if [[ "$CLEAN_BUILD_ARTIFACTS" == "true" ]]; then
-  if [[ -n "$(git status --porcelain -- "${ARTIFACT_PATHS[@]}")" ]]; then
+  if [[ -n "$(git status --porcelain --untracked-files=all -- "${ARTIFACT_PATHS[@]}")" ]]; then
     echo "[build-pde] ERROR: uncommitted changes under ${ARTIFACT_PATHS[*]}." >&2
     echo "[build-pde] The build regenerates and then reverts these paths, which would" >&2
     echo "[build-pde] discard your local edits. Commit or stash them first, or re-run" >&2
@@ -146,8 +149,18 @@ grep -E '^    (pde|billing_ui):' "$CCI_YML" | sed 's/^/         /'
 # build must provision a new org, so refuse to reuse an alias that already
 # exists (stale/partial state, or a colliding pinned/timestamp alias). The
 # actual org is created lazily by CCI when the flow first runs against it.
-if cci org info "$ORG" >/dev/null 2>&1; then
-  echo "[build-pde] ERROR: scratch-org alias '${ORG}' already exists." >&2
+#
+# Detect an existing alias WITHOUT materializing it: `cci org info <alias>` forces
+# scratch-org materialization (the build harness uses it for exactly that), so a
+# pinned, registered-but-not-yet-created alias would be created here only to then
+# be rejected — burning an org against limits. Instead probe CumulusCI's keychain,
+# which writes <cci-home>/<project>/<alias>.org at registration time (before
+# materialization). Fall through to registration if the keychain isn't file-based
+# (e.g. an env keychain in CI) or the project name can't be resolved.
+CCI_HOME="${CUMULUSCI_HOME:-$HOME/.cumulusci}"
+CCI_PROJECT_NAME="$(cci project info 2>/dev/null | awk -F': ' '/^name:/{print $2; exit}')"
+if [[ -n "$CCI_PROJECT_NAME" && -f "${CCI_HOME}/${CCI_PROJECT_NAME}/${ORG}.org" ]]; then
+  echo "[build-pde] ERROR: scratch-org alias '${ORG}' is already registered." >&2
   echo "[build-pde] Each PDE build must provision a FRESH org. Choose a different ORG," >&2
   echo "[build-pde] or delete the existing one: cci org scratch_delete ${ORG}" >&2
   exit 1
