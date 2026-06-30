@@ -975,12 +975,6 @@ tasks:
     options:
       path: unpackaged/post_agents/legacy
 
-  set_default_agent:
-    description: Set the default Agentforce copilot agent (Revenue_Quote_Management) via EinsteinCopilotSettings. Must run after activate_agents so the Bot exists and is active.
-    class_path: cumulusci.tasks.salesforce.Deploy
-    group: Revenue Lifecycle Management
-    options:
-      path: unpackaged/post_agents/default_agent_settings
 
   deploy_agent_permission_sets:
     description: Deploy the Agentforce agent permission sets from unpackaged/post_agents/permissionsets. Must run after publish_agents — each permission set's agentAccesses compiles to a botDefinition reference, and the Bot only exists once the authoring bundle is published.
@@ -993,6 +987,11 @@ tasks:
     group: Revenue Lifecycle Management
     description: Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
     class_path: tasks.rlm_publish_agents.PublishAgents
+
+  deactivate_agents:
+    group: Revenue Lifecycle Management
+    description: Deactivate the active BotVersion for each legacy agent (bots/) via `sf agent deactivate`. Required before redeploying legacy Bot+BotVersion metadata on idempotent re-runs — the platform rejects updates to active bots. Already-inactive agents are tolerated (no-op). Does not affect Agent Script (aiAuthoringBundles) agents.
+    class_path: tasks.rlm_deactivate_agents.DeactivateAgents
 
   activate_agents:
     group: Revenue Lifecycle Management
@@ -4122,19 +4121,19 @@ flows:
         task: deploy_agent_flows
         when: project_config.project__custom__agents
       5:
-        task: deploy_legacy_agents
+        task: deactivate_agents
         when: project_config.project__custom__agents
       6:
-        task: deploy_agents
+        task: deploy_legacy_agents
         when: project_config.project__custom__agents
       7:
-        task: publish_agents
+        task: deploy_agents
         when: project_config.project__custom__agents
       8:
-        task: activate_agents
+        task: publish_agents
         when: project_config.project__custom__agents
       9:
-        task: set_default_agent
+        task: activate_agents
         when: project_config.project__custom__agents
       10:
         task: deploy_agent_permission_sets
