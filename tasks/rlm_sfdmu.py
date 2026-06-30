@@ -1157,13 +1157,29 @@ class ExtractSFDMUData(SFDXBaseTask):
         self.logger.info(f"Collected {csv_count} CSV files to {output_dir}")
         return output_dir
 
+    def _cli_org(self) -> Optional[str]:
+        """CLI-safe org identifier for `sf` commands (alias or username).
+
+        The SFDMU extract may use the access_token (SFDMU keeps it in the orgs block),
+        so ``self.sourceusername`` can be an access_token for a non-scratch org with no
+        explicit sourceusername. ``sf data query --target-org`` requires a locally
+        authorized alias/username and rejects a bearer token (failing CLI auth and
+        leaking the secret), so resolve a real alias/username here: the explicit
+        sourceusername option, else org_config.username. Never the access_token.
+        """
+        return self.options.get("sourceusername") or getattr(self.org_config, "username", None)
+
     def _sf_query_records(self, soql: str) -> List[dict]:
         """Run a read-only SOQL query against the source org and return records.
 
         Returns [] on any error (the backfill is best-effort: a failed map query
         simply leaves the affected code components blank, the prior behaviour).
         """
-        cmd = ["sf", "data", "query", "--target-org", self.sourceusername, "-q", soql, "--json"]
+        org = self._cli_org()
+        if not org:
+            self.logger.warning("No CLI-safe org alias/username for code-map query; skipping backfill")
+            return []
+        cmd = ["sf", "data", "query", "--target-org", org, "-q", soql, "--json"]
         try:
             res = subprocess.run(cmd, capture_output=True, text=True)
         except Exception as e:  # pragma: no cover - subprocess failure
