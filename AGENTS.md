@@ -458,8 +458,23 @@ VM — these are the verifiable targets here):
 
 **What REQUIRES a live org / Dev Hub** (blocked until an org is authorized): the
 `prepare_rlm_org` flow and all `deploy_*`, `insert_*`/`delete_*`/`extract_*` SFDMU,
-context-definition, Apex, and `robot_*` browser tasks. To authorize an org in this
-headless VM, prefer an SFDX auth URL (`sf org login sfdx-url`) and export
-`SF_USE_GENERIC_UNIX_KEYCHAIN=true` + `SF_TEMP_SHOW_SECRETS=true` (see `docker/README.md`).
+context-definition, Apex, and `robot_*` browser tasks.
+
+**Authorizing a Dev Hub in this headless VM.** A `SFDX_AUTH_URL` secret (Dev Hub
+SFDX auth URL) may be configured. Cloud Agent secrets are injected as env vars only
+into **new** VMs at session start — they are *not* available in a session that was
+already running when the secret was added, so check `printenv SFDX_AUTH_URL` first.
+When present:
+
+```bash
+export SF_USE_GENERIC_UNIX_KEYCHAIN=true SF_TEMP_SHOW_SECRETS=true
+printf '%s' "$SFDX_AUTH_URL" | sf org login sfdx-url --sfdx-url-stdin --set-default-dev-hub --alias devhub
+# Then connect it to CumulusCI and create a scratch org:
+cci org connect devhub   # or use cci's default dev/scratch org config
+cci flow run prepare_rlm_org --org dev   # the full 35-step build
+```
+
 CCI logs `Unable to store an encryption key ...` on every run — expected in this
-keychain-less environment; orgs/services are just written unencrypted.
+keychain-less environment; orgs/services are just written unencrypted (that is why
+`SF_USE_GENERIC_UNIX_KEYCHAIN`/`SF_TEMP_SHOW_SECRETS` are set). See `docker/README.md`
+for more auth detail.
