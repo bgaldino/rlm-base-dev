@@ -867,11 +867,10 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     @isTest
     static void coercesBooleanYesNoValues() {
         Fixture f = buildFixture(new List<String>{ 'BoolTest Product' });
+        Id productId = [SELECT Product2Id FROM QuoteLineItem WHERE Id = :f.lineIds[0]].Product2Id;
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
         input.sObjectType = 'Product2';
-        input.recordId = String.valueOf(
-            [SELECT Product2Id FROM QuoteLineItem WHERE Id = :f.lineIds[0]].Product2Id
-        );
+        input.quoteLineItemIds = new List<String>{ String.valueOf(productId) };
         input.fieldUpdatesJson = '[{"fieldApiName":"IsActive","value":"yes"}]';
 
         Test.startTest();
@@ -888,11 +887,10 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
     @isTest
     static void rejectsInvalidBooleanValue() {
         Fixture f = buildFixture(new List<String>{ 'BoolReject Product' });
+        Id productId = [SELECT Product2Id FROM QuoteLineItem WHERE Id = :f.lineIds[0]].Product2Id;
         RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
         input.sObjectType = 'Product2';
-        input.recordId = String.valueOf(
-            [SELECT Product2Id FROM QuoteLineItem WHERE Id = :f.lineIds[0]].Product2Id
-        );
+        input.quoteLineItemIds = new List<String>{ String.valueOf(productId) };
         input.fieldUpdatesJson = '[{"fieldApiName":"IsActive","value":"maybe"}]';
 
         Test.startTest();
