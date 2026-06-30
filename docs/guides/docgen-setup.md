@@ -111,7 +111,7 @@ For internal (non-portal) users, `Owner.AccountId` is null. The Account-based fo
 
 The priority is: **Partner Account** → **`$Organization`** (Account fields) / **`Owner:User.Email`** (email, always populated).
 
-> **Scratch org note:** Fresh scratch orgs have a blank `Organization` record (Name = org alias, all address/phone/fax fields null), so the `$Organization` fallback produces blank seller tokens on new scratch builds. A `set_org_company_info` task is planned (see `scripts/apex/setOrgCompanyInfo.apex` TODO and the `# TODO` comment before `insert_scratch_data` in `cumulusci.yml`) to populate these fields as step 2 of `prepare_scratch`.
+> **Scratch org note:** Fresh scratch orgs have a blank `Organization` record (Name = org alias, all address/phone/fax fields null), so the `$Organization` fallback produces blank seller tokens on new scratch builds. If you need non-blank seller fields when generating documents as an internal (non-portal) user, populate the org's Company Information first — via **Setup → Company Information**, or anonymous Apex that updates the `Organization` record's Name/Phone/Fax/Street/City/State/PostalCode/Country.
 
 ### Logo
 
