@@ -6,8 +6,8 @@ action). Counterpart to :class:`SalesTxnQuoteHandler` /
 PST chain walks Opportunity -> Quote -> Order ->
 Activate -> Usage -> Invoice -> Post; supported ingestion configs ship one POST
 that creates a Draft invoice in a single composite-graph call. The Posted path
-remains internal scaffolding until InvoiceLineTax prerequisites are implemented
-and live-verified.
+creates a Draft then promotes via ``promote_to_posted``, stamping a non-taxable
+TaxTreatment and building the InvoiceLineTax graph when required.
 
 The handler owns its own step graph:
 
@@ -579,5 +579,3 @@ class InvoiceIngestionHandler:
             "invoice_number": m.invoice_number,
             "creation_mode": m.creation_mode,
         }
-
-
