@@ -696,9 +696,17 @@ def sync_to_plan(plan_dir: str, extraction_dir: str, output_dir: str,
     objectset_source/ (Pass 2+) is copied from the processed output when present.
     Non-destructive: plan CSVs outside the target set are left in place and reported.
     """
-    target = data_csvs(reference_plan_dir) if reference_plan_dir else (
-        data_csvs(plan_dir) | data_csvs(output_dir)
-    )
+    # Prefer the plan's OWN existing CSV set so copy_to_plan respects a variant plan's
+    # intentional object set: q3 mirrors only the qb objects it shares ("shared objects
+    # only — don't add qb-only objects"), so it must not gain CSVs for qb-only objects.
+    # Fall back to the reference set only for a brand-new plan with no CSVs yet (seeded by
+    # copying the qb export.json, so it fully mirrors qb and wants qb's full file set).
+    if data_csvs(plan_dir):
+        target = data_csvs(plan_dir) | data_csvs(output_dir)
+    elif reference_plan_dir:
+        target = data_csvs(reference_plan_dir)
+    else:
+        target = data_csvs(output_dir)
     from_proc, from_raw, placeholder, missing = [], [], [], []
     for name in sorted(target):
         dst = os.path.join(plan_dir, name)
