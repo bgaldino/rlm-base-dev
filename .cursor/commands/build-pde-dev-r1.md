@@ -6,7 +6,7 @@ description: Build a Partner Development Environment (PDE) org from the tfid-pde
 
 Build a **Partner Development Environment** using the `tfid-pde` scratch
 **shape**, provisioned into a **fresh, uniquely-aliased** scratch org
-(`pde<datetimestamp>`, e.g. `pde20260630181725`), with two **runtime-only**
+(`pde<datetimestamp><pid>`, e.g. `pde2026063018172578357`), with two **runtime-only**
 CumulusCI feature-flag overrides:
 
 | Flag         | On `main` | This build | Effect |
@@ -20,8 +20,11 @@ build and restored on exit (success, failure, or interrupt), so **nothing is
 ever staged or committed** as a result of this build.
 
 The build always targets a **new** scratch org alias so scheduled runs never
-collide or reuse a prior org. The alias is derived as `pde$(date +%Y%m%d%H%M%S)`
-and registered from the `tfid-pde` shape via `cci org scratch tfid-pde <alias>`.
+collide or reuse a prior org. The alias is derived as `pde$(date +%Y%m%d%H%M%S)$$`
+(timestamp + PID, so two builds in the same second still differ) and registered
+from the `tfid-pde` shape via `cci org scratch tfid-pde <alias>`. If the resolved
+alias already exists (e.g. a pinned `ORG=`), the script **fails fast** rather than
+reusing a stale or partially-built org.
 
 ## How to run it
 
@@ -39,25 +42,31 @@ ORG=pde-demo scripts/build_pde_dev_r1.sh
 
 The script:
 
-1. Backs up `cumulusci.yml`, then sets `pde: true` and `billing_ui: false`
+1. Requires `unpackaged/post_ux/` and `datasets/sfdmu/` to be **clean** before
+   starting (the build regenerates and then reverts them, so a pre-existing
+   local edit there would be clobbered) — aborts with guidance if they're dirty.
+   Skip this with `CLEAN_BUILD_ARTIFACTS=false`.
+2. Backs up `cumulusci.yml`, then sets `pde: true` and `billing_ui: false`
    (aborting if either flag isn't matched exactly once).
-2. Generates a unique alias `pde<datetime>` (override with `ORG=`) and registers
-   it from the `tfid-pde` shape: `cci org scratch tfid-pde <alias>`.
-3. Runs `cci flow run prepare_rlm_org --org <alias>` (CCI creates the actual
+3. Generates a unique alias `pde<datetime><pid>` (override with `ORG=`) and
+   registers it from the `tfid-pde` shape: `cci org scratch tfid-pde <alias>`.
+   **Fails fast** if that alias already exists (no silent reuse).
+4. Runs `cci flow run prepare_rlm_org --org <alias>` (CCI creates the actual
    scratch org on first use).
-4. Restores the original `cumulusci.yml` **and** reverts any tracked churn the
-   build regenerated under `unpackaged/post_ux/` and `datasets/sfdmu/` (UX
-   assembly output, SFDMU `export.json` writeback) via an `EXIT` trap in all
-   cases — leaving the working tree clean.
+5. Restores the original `cumulusci.yml` **and** reverts all churn the build
+   regenerated under `unpackaged/post_ux/` and `datasets/sfdmu/` (UX assembly
+   output, SFDMU `export.json` writeback — tracked edits via `git checkout`,
+   build-created files via `git clean`) via an `EXIT` trap in all cases —
+   leaving the working tree clean.
 
 Overridable environment variables:
 
 | Var    | Default                     | Purpose |
 |--------|-----------------------------|---------|
-| `ORG`  | `pde$(date +%Y%m%d%H%M%S)`  | Scratch-org alias to create/build |
+| `ORG`  | `pde$(date +%Y%m%d%H%M%S)$$` | Scratch-org alias to create/build (must be unused — fails fast if it exists) |
 | `SHAPE`| `tfid-pde`                  | Scratch shape (config under `orgs.scratch`) to base the alias on |
 | `FLOW` | `prepare_rlm_org`           | CCI flow to run |
-| `CLEAN_BUILD_ARTIFACTS` | `true`         | Revert tracked churn the build regenerates under `unpackaged/post_ux/` and `datasets/sfdmu/` (only files this build dirtied) so the branch stays clean |
+| `CLEAN_BUILD_ARTIFACTS` | `true`         | Require `unpackaged/post_ux/` and `datasets/sfdmu/` to be clean before the build, then revert all churn there afterward so the branch stays clean. Set `false` to skip both the pre-check and the cleanup and manage those paths yourself |
 
 ## Agent responsibilities
 

@@ -14,9 +14,10 @@ skill is the *when/why* and routes to them. It is consumable by any agent
 ## Quick Rules
 
 1. Build a PDE org with `scripts/build_pde_dev_r1.sh`. It provisions a fresh
-   `pde<datetimestamp>` scratch org from the `tfid-pde` shape, applies
-   runtime-only flags `pde=true` + `billing_ui=false`, runs `prepare_rlm_org`,
-   then reverts every file it touched on exit.
+   `pde<datetimestamp><pid>` scratch org from the `tfid-pde` shape (failing fast
+   if that alias already exists), applies runtime-only flags `pde=true` +
+   `billing_ui=false`, runs `prepare_rlm_org`, then reverts every file it
+   touched on exit.
 2. Feature-flag overrides are **runtime only** — they exist in `cumulusci.yml`
    for the duration of the build and are restored on exit (success, failure, or
    interrupt). Never commit `pde`/`billing_ui` flips to `main`.
@@ -27,9 +28,11 @@ skill is the *when/why* and routes to them. It is consumable by any agent
    **exit code** (`0` = success), **not** the visible log tail — the captured
    terminal log caps around ~1 MB and appears to freeze mid-build while the
    build keeps running. The authoritative signal is the exit code / footer.
-5. The build regenerates tracked files under `unpackaged/post_ux/` (UX assembly)
-   and `datasets/sfdmu/` (`export.json` writeback); the script auto-reverts that
-   churn so the branch stays clean. Verify with `git status` afterward.
+5. The build regenerates files under `unpackaged/post_ux/` (UX assembly) and
+   `datasets/sfdmu/` (`export.json` writeback). The script **requires those paths
+   to be clean before it runs** (so it never clobbers a pre-existing local edit)
+   and reverts all churn there — tracked and build-created — on exit. Verify with
+   `git status` afterward. Use `CLEAN_BUILD_ARTIFACTS=false` to skip both.
 6. The target scratch shape must be registered in `cumulusci.yml` under
    `orgs.scratch` **and committed on the branch** — otherwise a fresh/cloud
    checkout's `cci org scratch <shape> <alias>` will fail.
@@ -62,14 +65,18 @@ skill is the *when/why* and routes to them. It is consumable by any agent
 
 The script (see source for exact logic):
 
-1. Backs up `cumulusci.yml`, then sets `pde: true` and `billing_ui: false`
+1. Requires `unpackaged/post_ux/` and `datasets/sfdmu/` to be clean before
+   starting (aborts otherwise; skip with `CLEAN_BUILD_ARTIFACTS=false`).
+2. Backs up `cumulusci.yml`, then sets `pde: true` and `billing_ui: false`
    (aborting unless each flag matches exactly once at the `project.custom` level).
-2. Registers a fresh, uniquely-aliased scratch org from the configured shape:
-   `cci org scratch <SHAPE> pde<datetime>`.
-3. Runs `cci flow run prepare_rlm_org --org pde<datetime>`.
-4. On exit, an EXIT trap restores `cumulusci.yml` **and** reverts build-generated
-   churn under `unpackaged/post_ux/` and `datasets/sfdmu/` (only files this build
-   dirtied — pre-existing local edits are preserved).
+3. Registers a fresh, uniquely-aliased scratch org from the configured shape:
+   `cci org scratch <SHAPE> pde<datetime><pid>` — **failing fast** if that alias
+   already exists rather than reusing a stale org.
+4. Runs `cci flow run prepare_rlm_org --org pde<datetime><pid>`.
+5. On exit, an EXIT trap restores `cumulusci.yml` **and** reverts all build
+   churn under `unpackaged/post_ux/` and `datasets/sfdmu/` (tracked edits via
+   `git checkout`, build-created files via `git clean`) — safe because those
+   paths were verified clean at the start.
 
 ### Shape choice: `tfid-pde` vs `dev-r1`
 
@@ -84,10 +91,10 @@ PDE has two baseline paths (see `orgs/tfid/README.md`):
 ## Examples
 
 ```bash
-# Default PDE build (tfid-pde shape, auto pde<datetime> alias)
+# Default PDE build (tfid-pde shape, auto pde<datetime><pid> alias)
 scripts/build_pde_dev_r1.sh
 
-# Pin a specific alias
+# Pin a specific alias (must not already exist — the script fails fast if it does)
 ORG=pde-demo scripts/build_pde_dev_r1.sh
 
 # Build from the standard DE scratch shape instead of the TFID snapshot
