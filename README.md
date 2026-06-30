@@ -922,7 +922,7 @@ Use these flows to run all QB extract tasks or all QB idempotency tests by group
 | Flow | Description |
 |------|-------------|
 | `run_qb_extracts` | Runs all 10 Data Management - Extract tasks (extract_qb_pcm_data, extract_qb_pricing_data, extract_qb_product_images_data, extract_qb_dro_data, extract_qb_clm_data, extract_qb_rating_data, extract_qb_rates_data, extract_qb_transactionprocessingtypes_data, extract_qb_guidedselling_data, extract_qb_guidedselling_products_data). Requires `--org`. Output in `datasets/sfdmu/extractions/<plan>/<timestamp>/`. |
-| `run_qb_idempotency_tests` | Runs all 9 Data Management - Idempotency tasks, including `test_qb_guidedselling_products_idempotency`. Loads each plan twice and fails if any object's record count increases. qb-pcm uses extraction roundtrip by default. Requires `--org`. |
+| `run_qb_idempotency_tests` | Runs the Data Management - Idempotency tasks: the 9 core tasks (incl. `test_qb_guidedselling_products_idempotency`) plus feature-gated tasks for approvals, PRM, PRM pricing, billing, and tax (steps 10–14, each guarded by its module's feature flag, so on a base org without those modules they're skipped). Loads each plan twice and fails if any object's record count increases. qb-pcm uses extraction roundtrip by default. Requires `--org`. |
 
 See [Data Management Tasks](#data-management-tasks) for per-task details and group listing.
 
