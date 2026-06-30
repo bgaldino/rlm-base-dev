@@ -3815,7 +3815,7 @@ flows:
         when: project_config.project__custom__qb
       2:
         task: insert_q3_pcm_data
-        when: project_config.project__custom__q3
+        when: project_config.project__custom__q3 and not project_config.project__custom__qb
       3:
         task: insert_quantumbit_product_image_data
         when: project_config.project__custom__qb
@@ -3831,7 +3831,7 @@ flows:
         when: project_config.project__custom__qb
       3:
         task: insert_q3_pricing_data
-        when: project_config.project__custom__q3
+        when: project_config.project__custom__q3 and not project_config.project__custom__qb
 
   prepare_scratch:
     group: Revenue Lifecycle Management
@@ -3937,10 +3937,10 @@ flows:
         when: project_config.project__custom__dro and project_config.project__custom__qb
       3:
         task: insert_q3_dro_data_scratch
-        when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
+        when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3 and not project_config.project__custom__qb
       4:
         task: insert_q3_dro_data_prod
-        when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
+        when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3 and not project_config.project__custom__qb
       5:
         task: update_product_fulfillment_decomp_rules
         when: project_config.project__custom__dro
@@ -3999,7 +3999,7 @@ flows:
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
       3:
         task: insert_q3_billing_data
-        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3
+        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
       4:
         task: create_sequence_policies
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
@@ -4164,7 +4164,7 @@ flows:
         when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb
       3:
         task: insert_q3_tax_data
-        when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3
+        when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
       4:
         task: activate_tax_records
         when: project_config.project__custom__tax
@@ -4183,13 +4183,13 @@ flows:
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
       4:
         task: insert_q3_rating_data
-        when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3
+        when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
       5:
         task: insert_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
       6:
         task: insert_q3_rates_data
-        when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
+        when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
       7:
         task: activate_rating_records
         when: project_config.project__custom__rating and project_config.project__custom__rates

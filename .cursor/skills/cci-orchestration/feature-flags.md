@@ -43,7 +43,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 6 flow step(s) |
 | `q3` | `False` | 10 flow step(s) |
-| `qb` | `True` | 29 flow step(s) |
+| `qb` | `True` | 37 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
 | `ramps` | `True` | 4 flow step(s) |
@@ -335,19 +335,27 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `qb` (default: `True`)
 
 - `prepare_product_data` step 1 → `insert_quantumbit_pcm_data`
+- `prepare_product_data` step 2 → `insert_q3_pcm_data`
 - `prepare_product_data` step 3 → `insert_quantumbit_product_image_data`
 - `prepare_pricing_data` step 1 → `delete_quantumbit_pricing_data`
 - `prepare_pricing_data` step 2 → `insert_quantumbit_pricing_data`
+- `prepare_pricing_data` step 3 → `insert_q3_pricing_data`
 - `prepare_dro` step 2 → `insert_qb_dro_data`
+- `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
+- `prepare_dro` step 4 → `insert_q3_dro_data_prod`
 - `prepare_billing` step 2 → `insert_billing_data`
+- `prepare_billing` step 3 → `insert_q3_billing_data`
 - `prepare_billing` step 4 → `create_sequence_policies`
 - `prepare_prm` step 8 → `insert_quantumbit_prm_data`
 - `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
 - `prepare_tax` step 2 → `insert_tax_data`
+- `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_rating` step 1 → `delete_qb_rates_data`
 - `prepare_rating` step 2 → `delete_qb_rating_data`
 - `prepare_rating` step 3 → `insert_qb_rating_data`
+- `prepare_rating` step 4 → `insert_q3_rating_data`
 - `prepare_rating` step 5 → `insert_qb_rates_data`
+- `prepare_rating` step 6 → `insert_q3_rates_data`
 - `prepare_constraints` step 6 → `validate_cml`
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
