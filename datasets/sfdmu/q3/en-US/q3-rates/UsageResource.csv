@@ -1,8 +1,8 @@
 Name
 Usage for SMS
 Usage for Case
-Usage for Data
 Usage for Calls
+Usage for Data
 Storage Data
 Backup Data
 File Transfers
@@ -13,3 +13,5 @@ Data Transfers
 User Sessions
 Error Logs
 Rate Limits
+Basic: Data Storage
+Basic: Data Storage Units

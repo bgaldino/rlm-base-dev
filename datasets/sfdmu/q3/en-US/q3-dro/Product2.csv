@@ -1,0 +1,79 @@
+CustomDecompositionScope,DecompositionScope,FulfillmentQtyCalcMethod,Name,StockKeepingUnit
+,OrderLineItem,,Admin Certification,ACERT001
+,,,Anchor Product with Token,ANC01
+,,,Anchor C,ANC01-2
+,,,Anchor C - Billing,ANCHOR-C-BILLING
+,,,Anchor Product with token - Billing,ANCHOR-PRODUCT-WITH-TOKEN-BILLING
+,OrderLineItem,,AI Specialist Training,APTRG001
+,OrderLineItem,,AI Specialist Certification,ASTCERT001
+,OrderLineItem,,Advanced Training,ATRG001
+,,,AT&T Mobile Bundle,ATTM001
+,,,AT&T Mobile Plan,ATTMB001
+,,,AT&T Add On for SMS,ATTSMS07
+,OrderLineItem,,Antivirus,AV001
+,OrderLineItem,,Specialized Certifications,CERT007
+,,,Cloud Storage Pro,CLOUD001
+,,,API Access Premium,CLOUD001-2
+,,,Data Access Basic,CLOUD002
+,,,Commitment - A,COMMITMENT-A
+,,,Commitment - B,COMMITMENT-B
+,OrderLineItem,,Cloud Storage,CS001
+,OrderLineItem,,Developer Certification,DCERT001
+,,,API Access Premium Definition Product,DEF001
+,OrderLineItem,,Desktop,DS001
+,,,Elastic Analytics Suite (EAS) Bundle,EAS098781A
+,,,Elastic Analytics Suite (EAS),EAS1001
+,,,External Hard Drive,EHD009
+,,,Figma Subscription,FIG001
+,,,GPT for workspace,GPTW001
+,,,Google Workspace,GW001
+,OrderLineItem,,Headset,HDS001
+,,,Internet Service,INTERNET-SERVICE
+,,,Internet Service-Billing Product,INTERNET-SERVICE-BILLING-PRODUCT
+,,,Internet Service - Pack,IS001
+,OrderLineItem,,Keyboard,KB001
+,,,Kyocera Thermal Compound,KTC677R
+,OrderLineItem,,Laptop Accessories,LA001
+,OrderLineItem,,Laptop Basic Bundle,LB001
+,OrderLineItem,,Laptop Bag,LBG001
+,,,Lucidchart,LCD001
+,OrderLineItem,,Laptop Care Package,LCP001
+,OrderLineItem,,LLM Certification,LLMCERT001
+,OrderLineItem,,Machine Learning Model Training,LLMTRG001
+,OrderLineItem,,Laptop,LP001
+,OrderLineItem,,Laptop Pro Bundle,LPB001
+,,,Laptop Productivity Bundle,LPB001-2
+,,,Laptop Stand,LPST001
+,,,Hardware Maintenance,MAIN0098
+,OrderLineItem,,Monitor,MO001
+,OrderLineItem,,Mouse,MOU001
+,,,Noise-Canceling Headphones,NCH025
+,,,Office 365,OF001
+,OrderLineItem,,Printer Bundle,PB001
+,OrderLineItem,,Professional Certifications,PCERT001
+,,,Printer Maintenance,PM002
+,OrderLineItem,,Printer Paper,PP001
+,OrderLineItem,,Printer,PRN001
+,,,Podcast Subscription,PS001
+,,,Purified Aluminium Powder,PUP001A45
+,,,Pro Visualization Suite,PVS9876
+,,,Quickbooks Online,QBO0021
+,,,Quip,QP001
+,,,Storage Boost Pack,SBP10907
+,OrderLineItem,,Skill Development Package,SDP001
+,,,Slack Support,SLKDPP007
+,,,Slack Training,SLKDPP008
+,,,Slack Sandbox,SLKDPP009
+,,,Slack,SLKSRC001
+,OrderLineItem,,Support,SP001
+,,,Security Systems Surveillance,SSS001
+,,,Fluid Film Corrosion Inhibitor,TIM12367
+,,,Propylene Glycol,TIM235A7
+,,,EasyDye,TIM67542E
+,,,Data Center Bundle,TIMB893AB45
+,OrderLineItem,,Training Platform Package,TPP01
+,OrderLineItem,,Basic Training,TRG001
+,OrderLineItem,,Udemy Access,UA001
+,OrderLineItem,,USB C multiport adapter hub with 4K HDMI,USB01
+,,,Vaseline Gel,VIL8899089
+,OrderLineItem,,Warranty,W001

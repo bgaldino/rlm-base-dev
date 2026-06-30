@@ -1,7 +1,12 @@
 Name
+SMS
 Case
 Call Units
-SMS
 Data
-Currency
 Count
+Currency
+Litre
+Grams
+Basic: Data Storage Class
+Basic: Data Storage Token Units
+Unit

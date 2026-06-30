@@ -1,3 +1,4 @@
 Code,Name,Status,UsageAccumulationMethod,UsageAccumulationPeriod
+DefaultUsageResourceBillingPolicy,Default Usage Resource Billing Policy,Active,Event,
 MOBPOL01,Mobile Plan Billing Policy,Active,Sum,Monthly
-DefaultUsageResourceBillingPolicy,Default Usage Resource Billing Policy,Active,Sum,Monthly
+ST01,Basic: Storage Agr Policy - Monthly,Active,Sum,Monthly
