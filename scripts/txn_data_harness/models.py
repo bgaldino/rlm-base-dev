@@ -125,6 +125,11 @@ class Manifest:
     # "linked" means ReferenceEntityId was patched; "failed" means the invoice
     # posted but the non-blocking patch did not complete; "skipped" means no
     # order id was available.
+    # Set to True once the generate POST has been submitted; on retry the
+    # lifecycle polls for the invoice rather than re-POSTing (the async endpoint
+    # has no idempotency key, so a re-POST during the visibility window would
+    # produce a duplicate Draft).
+    invoice_generate_submitted: bool = False
     invoice_order_link_status: Optional[str] = None
     invoice_order_link_error: Optional[str] = None
     # ``Invoice.CreationMode`` of the manifest's invoice. ``External`` marks

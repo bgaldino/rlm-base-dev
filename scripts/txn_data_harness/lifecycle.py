@@ -852,6 +852,8 @@ def generate_invoice(
     billing_schedule_ids: list[str],
     run_id: str,
     timeout: int = 180,
+    *,
+    already_submitted: bool = False,
 ) -> tuple[str, str]:
     """Generate a Draft invoice from billing schedule(s); return (id, number).
 
@@ -874,9 +876,12 @@ def generate_invoice(
     # Retry-safe: ``generate`` carries no idempotency key (only ``correlationId``,
     # which is not persisted), so a POST that commits before a transient poll
     # failure would otherwise be re-POSTed on the next stage retry and produce a
-    # SECOND Draft for the same schedules. Pre-query the schedule back-link; if an
-    # invoice already exists, skip the POST and poll the existing one to Draft-OK.
-    if _query_invoice_for_schedules(client, billing_schedule_ids) is None:
+    # SECOND Draft for the same schedules. Two guards:
+    #   1. ``already_submitted`` -- manifest records that the POST fired; on retry
+    #      skip straight to polling even if InvoiceLines haven't appeared yet.
+    #   2. Pre-query the schedule back-link as a fallback for legacy manifests
+    #      that don't carry the flag.
+    if not already_submitted and _query_invoice_for_schedules(client, billing_schedule_ids) is None:
         body = {
             "billingScheduleIds": billing_schedule_ids,
             "action": "Draft",
