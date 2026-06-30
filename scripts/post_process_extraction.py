@@ -640,6 +640,107 @@ def get_key_columns(plan_headers: list, external_id: str) -> list:
     return key_cols if key_cols else (list(plan_headers) if plan_headers else [])
 
 
+# CSVs that SFDMU/the run emits but are not part of a plan's tracked data set.
+SKIP_PLAN_CSVS = {"MissingParentRecordsReport.csv", "CSVIssuesReport.csv"}
+
+
+def data_csvs(directory: str) -> set:
+    """CSV files in a plan/extraction dir that represent plan data (excludes run reports)."""
+    if not directory or not os.path.isdir(directory):
+        return set()
+    return {
+        f for f in os.listdir(directory)
+        if f.endswith(".csv") and f not in SKIP_PLAN_CSVS and not f.startswith("_")
+    }
+
+
+def clean_incidental_copy(src: str, dst: str) -> None:
+    """Copy a raw incidental CSV into the plan with header normalization and #N/A -> empty.
+
+    Incidental CSVs (FK-reference objects SFDMU pulls but that aren't plan objects, e.g.
+    UnitOfMeasure on the rates plan) don't go through align_columns, so normalize them
+    directly to the clean, import-ready format used by the committed plan CSVs.
+    """
+    with open(src, "r", newline="", encoding="utf-8-sig") as f:
+        rows = list(csv.reader(f))
+    if not rows:
+        open(dst, "w").close()
+        return
+    header = [normalize_header(h) for h in rows[0]]
+    body = [["" if v == "#N/A" else v for v in r] for r in rows[1:]]
+    write_csv(dst, header, body)
+
+
+def header_only_copy(ref_csv: str, dst: str) -> None:
+    """Write a header-only placeholder from the reference CSV (no data rows).
+
+    Used for objects with 0 records in the source org: keeps the plan's file set
+    uniform with the reference schema without copying the reference's data.
+    """
+    with open(ref_csv, "r", newline="", encoding="utf-8-sig") as f:
+        first = f.readline()
+    with open(dst, "w", newline="", encoding="utf-8") as f:
+        if first.strip():
+            f.write(first.rstrip("\r\n") + "\n")
+
+
+def sync_to_plan(plan_dir: str, extraction_dir: str, output_dir: str,
+                 reference_plan_dir: str = None, verbose: bool = False) -> None:
+    """Place a freshly-processed extraction into the plan dir as its tracked CSV set.
+
+    The target file set is the reference plan's data CSVs when a reference is given
+    (so the variant plan stays uniform with qb), else the plan's own data CSVs plus
+    whatever plan objects were processed.  For each target CSV: a processed plan-object
+    CSV is copied; otherwise a raw incidental CSV is cleaned and copied; otherwise a
+    header-only placeholder is written from the reference (0-record object).
+    objectset_source/ (Pass 2+) is copied from the processed output when present.
+    Non-destructive: plan CSVs outside the target set are left in place and reported.
+    """
+    target = data_csvs(reference_plan_dir) if reference_plan_dir else (
+        data_csvs(plan_dir) | data_csvs(output_dir)
+    )
+    from_proc, from_raw, placeholder, missing = [], [], [], []
+    for name in sorted(target):
+        dst = os.path.join(plan_dir, name)
+        processed = os.path.join(output_dir, name)
+        raw = os.path.join(extraction_dir, name)
+        ref = os.path.join(reference_plan_dir, name) if reference_plan_dir else None
+        if os.path.isfile(processed):
+            shutil.copy2(processed, dst)
+            from_proc.append(name)
+        elif os.path.isfile(raw):
+            clean_incidental_copy(raw, dst)
+            from_raw.append(name)
+        elif ref and os.path.isfile(ref):
+            header_only_copy(ref, dst)
+            placeholder.append(name)
+        else:
+            missing.append(name)
+
+    src_os = os.path.join(output_dir, "objectset_source")
+    if os.path.isdir(src_os):
+        for root, _, files in os.walk(src_os):
+            rel = os.path.relpath(root, src_os)
+            ddir = os.path.join(plan_dir, "objectset_source") if rel == "." else \
+                os.path.join(plan_dir, "objectset_source", rel)
+            os.makedirs(ddir, exist_ok=True)
+            for fn in files:
+                if fn.endswith(".csv"):
+                    shutil.copy2(os.path.join(root, fn), os.path.join(ddir, fn))
+
+    print(f"  Synced to plan {plan_dir}: {len(from_proc)} processed, "
+          f"{len(from_raw)} incidental, {len(placeholder)} placeholder")
+    if verbose and (from_raw or placeholder):
+        print(f"    incidental (cleaned): {from_raw}")
+        print(f"    header-only placeholders (0-record objects): {placeholder}")
+    if missing:
+        print(f"    NOT produced by extraction (left as-is): {missing}")
+    # Heads-up on plan CSVs outside the target set (possible stale object-set drift).
+    extras = sorted(data_csvs(plan_dir) - target)
+    if extras:
+        print(f"    note: plan has CSVs not in the reference set (not refreshed): {extras}")
+
+
 def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
                         diff_only: bool, copy_to_plan: bool, verbose: bool,
                         reference_plan_dir: str = None, code_map_file: str = None) -> None:
@@ -750,16 +851,14 @@ def process_extraction(extraction_dir: str, plan_dir: str, output_dir: str,
             out_path = os.path.join(output_dir, f"{obj_name}.csv")
             write_csv(out_path, proc_headers, proc_rows)
 
-            if copy_to_plan:
-                plan_path = os.path.join(plan_dir, f"{obj_name}.csv")
-                shutil.copy2(out_path, plan_path)
-                if verbose:
-                    print(f"    Copied to plan: {plan_path}")
-
     # Handle objectset_source for multi-pass plans
     if not diff_only:
         generate_objectset_source(extraction_dir, plan_dir, output_dir, all_passes,
                                   verbose, reference_plan_dir)
+        # Place the processed extraction into the plan dir as its tracked CSV set
+        # (processed plan objects + cleaned incidental + header-only placeholders).
+        if copy_to_plan:
+            sync_to_plan(plan_dir, extraction_dir, output_dir, reference_plan_dir, verbose)
 
     # Print diff summary
     print_diff_summary(diff_report)

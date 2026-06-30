@@ -82,6 +82,7 @@ def run_post_process_script(
     logger: Optional[Any] = None,
     reference_plan_dir: Optional[str] = None,
     code_map_file: Optional[str] = None,
+    copy_to_plan: bool = False,
 ) -> None:
     """Run post_process_extraction.py to make extracted CSVs v5 import-ready ($$ columns, header normalization).
     Shared by ExtractSFDMUData and TestSFDMUIdempotency.
@@ -103,6 +104,8 @@ def run_post_process_script(
         cmd += ["--reference-plan-dir", reference_plan_dir]
     if code_map_file:
         cmd += ["--code-map-file", code_map_file]
+    if copy_to_plan:
+        cmd += ["--copy-to-plan"]
     if logger:
         logger.info(f"Running post-process: {shlex.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
@@ -1025,6 +1028,17 @@ class ExtractSFDMUData(SFDXBaseTask):
                 "use the plan's own CSV schema."
             ),
             "required": False
+        },
+        "copy_to_plan": {
+            "description": (
+                "If true, write the processed extraction back into the plan directory as its "
+                "tracked CSV set (processed plan objects + cleaned incidental CSVs + header-only "
+                "placeholders for 0-record objects, uniform with the reference plan), completing "
+                "the extract->plan-dir loop in one command. Non-destructive: plan CSVs outside the "
+                "reference set are left in place and reported. Default false (writes only to "
+                "<output_dir>/processed/)."
+            ),
+            "required": False
         }
     }
 
@@ -1353,12 +1367,16 @@ class ExtractSFDMUData(SFDXBaseTask):
                     with open(code_map_file, "w", encoding="utf-8") as f:
                         json.dump(code_map, f, indent=2, ensure_ascii=False)
                     self.logger.info(f"Wrote code backfill map: {code_map_file}")
+                copy_to_plan = str(self.options.get("copy_to_plan", "")).strip().lower() in {"1", "true", "yes"}
                 run_post_process_script(
                     output_dir, plan_dir, processed_dir,
                     cwd=self.options.get("dir"), logger=self.logger,
                     reference_plan_dir=reference_plan_dir,
                     code_map_file=code_map_file,
+                    copy_to_plan=copy_to_plan,
                 )
+                if copy_to_plan:
+                    self.logger.info(f"Synced processed extraction into plan dir: {plan_dir}")
                 export_src = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
                 shutil.copy2(export_src, os.path.join(processed_dir, EXPORT_JSON_FILENAME))
                 self.return_values["processed_dir"] = processed_dir
