@@ -35,10 +35,11 @@ import requests
 
 try:
     from cumulusci.tasks.salesforce import BaseSalesforceTask
-    from cumulusci.core.exceptions import TaskOptionsError
+    from cumulusci.core.exceptions import CommandException, TaskOptionsError
 except ImportError:
     BaseSalesforceTask = object
     TaskOptionsError = Exception
+    CommandException = Exception
 
 
 # ===================================================================
@@ -120,16 +121,18 @@ class ExportBRE(BaseSalesforceTask):
         records: List[dict] = []
         resp = requests.get(self._query_url, headers=self._headers, params={"q": soql})
         if resp.status_code != 200:
-            self.logger.error(f"SOQL query failed ({resp.status_code}): {resp.text}")
-            return records
+            raise CommandException(
+                f"SOQL query failed ({resp.status_code}): {resp.text}"
+            )
         body = resp.json()
         records.extend(body.get("records", []))
         while not body.get("done", True) and body.get("nextRecordsUrl"):
             url = f"{self._instance_url}{body['nextRecordsUrl']}"
             resp = requests.get(url, headers=self._headers)
             if resp.status_code != 200:
-                self.logger.error(f"SOQL pagination failed ({resp.status_code}): {resp.text}")
-                break
+                raise CommandException(
+                    f"SOQL pagination failed ({resp.status_code}): {resp.text}"
+                )
             body = resp.json()
             records.extend(body.get("records", []))
         return records
@@ -255,14 +258,16 @@ class ExportBRE(BaseSalesforceTask):
         result = subprocess.run(cmd, capture_output=True, text=True)
 
         if result.returncode != 0:
-            self.logger.warning(f"Metadata retrieval failed (exit {result.returncode})")
+            self.logger.error(f"Metadata retrieval failed (exit {result.returncode})")
             if result.stderr:
                 for line in result.stderr.strip().splitlines():
-                    self.logger.warning(f"  {line}")
+                    self.logger.error(f"  {line}")
             if result.stdout:
                 for line in result.stdout.strip().splitlines():
-                    self.logger.warning(f"  {line}")
-            return
+                    self.logger.error(f"  {line}")
+            raise CommandException(
+                f"BRE metadata retrieval failed (exit {result.returncode}); see sf CLI output above"
+            )
 
         self.logger.info("Metadata retrieved successfully")
 

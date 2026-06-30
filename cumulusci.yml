@@ -2026,13 +2026,6 @@ tasks:
       pathtoexportjson: *q3_rates_dataset
 
 
-  # TODO: set_org_company_info — populate Organization.Name/Phone/Fax/Street/City/State/PostalCode
-  # on fresh scratch orgs so RLM_Seller_*__c formula fields return real company data for
-  # internal users (who have no AccountId and fall back to $Organization.*). Implement as an
-  # AnonymousApexTask running scripts/apex/setOrgCompanyInfo.apex and add as step 2 of
-  # prepare_scratch (when: org_config.scratch). The Apex script contains placeholder values
-  # that must be replaced with real company info before enabling.
-
   insert_scratch_data:
     group: Revenue Lifecycle Management
     description: Insert Scratch Data
@@ -4544,6 +4537,24 @@ flows:
         # Intentional exclusion: legacy qb-guidedselling idempotency remains standalone
         # because that plan is preservation-only until CSVs are regenerated from a canonical org.
         task: test_qb_guidedselling_products_idempotency
+      # Steps 10-14: feature-gated module idempotency tests. Each is guarded by the same
+      # feature flags as its data-load task, so the flow stays runnable on a base org where
+      # the module's data was never loaded.
+      10:
+        task: test_qb_approvals_idempotency
+        when: project_config.project__custom__qb and project_config.project__custom__approvals
+      11:
+        task: test_qb_prm_idempotency
+        when: project_config.project__custom__prm and project_config.project__custom__qb
+      12:
+        task: test_qb_prm_pricing_idempotency
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
+      13:
+        task: test_qb_billing_idempotency
+        when: project_config.project__custom__billing and project_config.project__custom__qb
+      14:
+        task: test_qb_tax_idempotency
+        when: project_config.project__custom__tax and project_config.project__custom__qb
 
   stamp_git_commit:
     group: RLM Administration

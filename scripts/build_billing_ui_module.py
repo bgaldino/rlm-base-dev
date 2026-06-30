@@ -7,10 +7,18 @@ from extracted/maaron-billinglwc/, applying RLM namespace prefixes throughout.
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
 
-ROOT = Path("/Users/brian/Documents/GitHub/bgaldino/_bgaldino/rlm-base-dev")
-SRC = ROOT / "extracted" / "maaron-billinglwc"
+# Repo root = parent of this script's directory (scripts/).
+ROOT = Path(__file__).resolve().parents[1]
+# Source of the extracted billing LWC bundle. Defaults to extracted/maaron-billinglwc
+# under the repo, but can be overridden for a different checkout via the
+# RLM_BILLING_LWC_SRC env var or the first CLI argument.
+SRC = Path(
+    os.environ.get("RLM_BILLING_LWC_SRC")
+    or (sys.argv[1] if len(sys.argv) > 1 else ROOT / "extracted" / "maaron-billinglwc")
+)
 DEST_MODULE = ROOT / "unpackaged" / "post_billing_ui"
 DEST_FLEXIPAGES = ROOT / "templates" / "flexipages" / "standalone" / "billing_ui"
 
