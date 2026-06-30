@@ -2476,6 +2476,13 @@ tasks:
 # Extract tasks (group: Data Management - Extract): SFDMU org → CSV. Output in datasets/sfdmu/extractions/<plan_name>/<timestamp>. Post-process runs by default; re-import-ready CSVs in <timestamp>/processed/.
 # Idempotency tasks (group: Data Management - Idempotency): run plan load twice, assert no record count increase. Use --group to list or run by group.
 
+  validate_source_keys:
+    group: Data Management - Extract
+    description: "Pre-extraction guard: validate (and optionally populate) a plan's source-org externalId key fields (StockKeepingUnit, *.Code, *.UnitCode, ...) so extraction produces unambiguous composite keys. Report-only by default; pass populate=true to fill null single-field keys with unique derived values. Set pathtoexportjson to the plan dir."
+    class_path: tasks.rlm_validate_keys.ValidateSourceDataKeys
+    options:
+      pathtoexportjson: *quantumbit_product_dataset
+
   extract_qb_pcm_data:
     group: Data Management - Extract
     description: "Extract qb-pcm (product catalog) from org to CSV. Output in datasets/sfdmu/extractions/qb-pcm/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."

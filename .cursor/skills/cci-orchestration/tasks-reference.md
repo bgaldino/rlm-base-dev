@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**253 tasks** across **10 groups**.
+**254 tasks** across **10 groups**.
 
 ---
 
@@ -93,7 +93,7 @@
 
 ## Data Management - Extract
 
-*17 task(s)*
+*18 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -297,6 +297,18 @@
 
 - `pathtoexportjson`: `datasets/sfdmu/scratch_data`
 - `extractions_base_dir`: `datasets/sfdmu/extractions`
+
+---
+
+### `validate_source_keys`
+
+**Description:** Pre-extraction guard: validate (and optionally populate) a plan's source-org externalId key fields (StockKeepingUnit, *.Code, *.UnitCode, ...) so extraction produces unambiguous composite keys. Report-only by default; pass populate=true to fill null single-field keys with unique derived values. Set pathtoexportjson to the plan dir.
+
+**Class:** `tasks.rlm_validate_keys.ValidateSourceDataKeys`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-pcm`
 
 ---
 
