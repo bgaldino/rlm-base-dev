@@ -1,0 +1,1 @@
+$$PaymentGatewayErrorCategory$PaymentRetryRuleSet.Name$RetryIntervalType,CurrencyIsoCode,Description,IntervalUnit,IntervalValue,MaximumRetryCount,PaymentGatewayErrorCategory,PaymentGatewayErrorCode,PaymentGatewayId,PaymentRetryRuleSet.Name,RetryIntervalType

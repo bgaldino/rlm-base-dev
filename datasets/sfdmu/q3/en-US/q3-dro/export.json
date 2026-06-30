@@ -17,9 +17,45 @@
           "excluded": false
         },
         {
+          "query": "SELECT DestinationPrimitiveType, IsDestinationEnumerated, IsSourceEnumerated, Name, SourcePrimitiveType, UsageType, Id FROM ValTfrmGrp",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT InputPicklistValueId, OutputPicklistValueId, IsInputBoolean, InputDate, InputDatetime, InputNumber, InputString, Name, IsOutputBoolean, OutputDate, OutputDatetime, OutputNumber, OutputString, ValueTransformGroupId, Id FROM ValTfrm",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT SourceAttributeDefinitionId, DestinationAttributeDefinitionId, CalculationMethod, DecompositionRuleId, DestinationApiName, DestinationAttributeIdentifier, DestinationContextTag, DestinationType, ListMappingGroupId, Name, Id, RuleEnforcement, SourceApiName, SourceAttributeIdentifier, SourceContextTag, SourceType FROM ProductDecompEnrichmentRule",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": true
+        },
+        {
           "query": "SELECT Id, Name, UsageType FROM FulfillmentStepDefinitionGroup",
           "operation": "Upsert",
           "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, Name FROM User",
+          "operation": "ReadOnly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, Name FROM Group WHERE Type = 'Queue'",
+          "operation": "ReadOnly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, DeveloperName FROM IntegrationProviderDef",
+          "operation": "ReadOnly",
+          "externalId": "DeveloperName",
           "excluded": false
         },
         {
@@ -61,6 +97,12 @@
         },
         {
           "query": "SELECT EstimatedDuration, EstimatedDurationUnit, FlowDefinition, Id, StepType, JeopardyThreshold, JeopardyThresholdUnit, Name, IntegrationDefinition.DeveloperName FROM FulfillmentStepJeopardyRule",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ConditionId, DestinationId, Id, Name, Priority, SourceId, TaskAllocationType FROM FulfillmentTaskAssignmentRule",
           "operation": "Upsert",
           "externalId": "Name",
           "excluded": false
