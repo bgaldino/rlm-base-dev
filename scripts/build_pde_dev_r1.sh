@@ -57,15 +57,22 @@ ARTIFACT_PATHS=(unpackaged/post_ux datasets/sfdmu)
 # never runs a destructive clean on a tree it didn't pre-check.
 ARTIFACTS_PRECHECKED=false
 
+# Set true only after $BACKUP actually holds a copy of cumulusci.yml. mktemp
+# creates $BACKUP empty, so the trap must NOT copy it back until it's populated —
+# otherwise an early abort (e.g. the artifact pre-check below) would overwrite
+# cumulusci.yml with an empty file.
+BACKUP_POPULATED=false
+
 log() { printf '\n[build-pde] %s\n' "$*"; }
 
 restore() {
-  # 1) Revert the runtime cumulusci.yml flag overrides.
-  if [[ -f "$BACKUP" ]]; then
+  # 1) Revert the runtime cumulusci.yml flag overrides — only if we actually
+  #    populated the backup. Always remove the temp file regardless.
+  if [[ "$BACKUP_POPULATED" == "true" && -f "$BACKUP" ]]; then
     cp "$BACKUP" "$CCI_YML"
-    rm -f "$BACKUP"
     log "Restored original ${CCI_YML} (runtime flag overrides reverted)."
   fi
+  rm -f "$BACKUP"
 
   # 2) Revert ALL build-generated churn under ARTIFACT_PATHS. Safe to wipe the
   #    whole path set only because we verified it started clean (see pre-check);
@@ -103,6 +110,7 @@ fi
 
 log "Backing up ${CCI_YML} before applying runtime flag overrides."
 cp "$CCI_YML" "$BACKUP"
+BACKUP_POPULATED=true
 
 # Apply the two runtime-only overrides. Each flag is matched exactly once at the
 # project.custom indentation level; if the match count is anything other than 1
