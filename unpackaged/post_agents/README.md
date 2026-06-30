@@ -137,10 +137,10 @@ Fix:
 3. Reassign permission sets (if needed):
 
    ```bash
-   cci task run assign_permission_sets --org <alias> -o api_names "RLM_QuotingAgent,RLM_BillingEmployeeAgent"
+   cci task run assign_permission_sets --org <alias> -o api_names "RLM_QuotingAgent,RLM_QuotingAssistant,RLM_BillingEmployeeAgent"
    ```
 
-4. Verify `SetupEntityAccess` rows exist for both permission sets and current `BotDefinition` records, then hard-refresh UI.
+4. Verify `SetupEntityAccess` rows exist for all three permission sets and current `BotDefinition` records, then hard-refresh UI.
 
 ### Publish fails with restricted picklist error on `Generative AI Function Definition ID`
 

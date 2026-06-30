@@ -54,11 +54,10 @@ AGENT_TEST_SUITES = {
         "tests_path": "unpackaged/post_agents/tests/quoting-assistant",
         "api_name_prefix": "RLM_QuotingAsst",
     },
-    "quote": {
-        "label": "RLM_Quoting_Assistant",
-        "tests_path": "unpackaged/post_agents/tests/quoting-assistant",
-        "api_name_prefix": "RLM_QuotingAsst",
-    },
+}
+
+AGENT_SUITE_ALIASES = {
+    "quote": "quoting-assistant",
 }
 # Substring that marks the harmless "no expectedOutcome" output_validation skip.
 HARMLESS_OUTPUT_SKIP = "missing expected input"
@@ -177,8 +176,9 @@ class TestAgents(BaseSalesforceTask):
                 )
             return [self._suite_config(name) for name in AGENT_TEST_SUITES]
 
+        agent = AGENT_SUITE_ALIASES.get(agent, agent)
         if agent not in AGENT_TEST_SUITES:
-            allowed = ", ".join(sorted([*AGENT_TEST_SUITES.keys(), "all"]))
+            allowed = ", ".join(sorted([*AGENT_TEST_SUITES.keys(), *AGENT_SUITE_ALIASES.keys(), "all"]))
             raise TaskOptionsError(
                 f"Unknown agent test suite '{agent}'. Use one of: {allowed}."
             )

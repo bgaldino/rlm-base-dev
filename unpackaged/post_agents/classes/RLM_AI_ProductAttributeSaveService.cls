@@ -134,8 +134,9 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
                         pvByPicklist.put(apv.PicklistId, new Map<String, Id>());
                     }
                     pvByPicklist.get(apv.PicklistId).put(apv.Value, apv.Id);
-                    if (String.isNotBlank(apv.Name) && apv.Name != apv.Value) {
-                        pvByPicklist.get(apv.PicklistId).putIfAbsent(apv.Name, apv.Id);
+                    if (String.isNotBlank(apv.Name) && apv.Name != apv.Value
+                        && !pvByPicklist.get(apv.PicklistId).containsKey(apv.Name)) {
+                        pvByPicklist.get(apv.PicklistId).put(apv.Name, apv.Id);
                     }
                 }
             }
