@@ -42,8 +42,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `prm_pricing` | `True` | 16 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 6 flow step(s) |
-| `q3` | `False` | 10 flow step(s) |
-| `qb` | `True` | 37 flow step(s) |
+| `q3` | `False` | 11 flow step(s) |
+| `qb` | `True` | 38 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
 | `ramps` | `True` | 4 flow step(s) |
@@ -322,7 +322,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `q3` (default: `False`)
 
 - `prepare_product_data` step 2 → `insert_q3_pcm_data`
-- `prepare_pricing_data` step 3 → `insert_q3_pricing_data`
+- `prepare_pricing_data` step 3 → `delete_q3_pricing_data`
+- `prepare_pricing_data` step 4 → `insert_q3_pricing_data`
 - `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
 - `prepare_dro` step 4 → `insert_q3_dro_data_prod`
 - `prepare_billing` step 3 → `insert_q3_billing_data`
@@ -339,7 +340,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_product_data` step 3 → `insert_quantumbit_product_image_data`
 - `prepare_pricing_data` step 1 → `delete_quantumbit_pricing_data`
 - `prepare_pricing_data` step 2 → `insert_quantumbit_pricing_data`
-- `prepare_pricing_data` step 3 → `insert_q3_pricing_data`
+- `prepare_pricing_data` step 3 → `delete_q3_pricing_data`
+- `prepare_pricing_data` step 4 → `insert_q3_pricing_data`
 - `prepare_dro` step 2 → `insert_qb_dro_data`
 - `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
 - `prepare_dro` step 4 → `insert_q3_dro_data_prod`

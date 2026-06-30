@@ -3,13 +3,13 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**269 tasks** across **10 groups**.
+**270 tasks** across **10 groups**.
 
 ---
 
 ## Data Maintenance
 
-*5 task(s)*
+*6 task(s)*
 
 ### `delete_draft_billing_records`
 
@@ -20,6 +20,18 @@
 **Options:**
 
 - `path`: `scripts/apex/deleteDraftBillingRecords.apex`
+
+---
+
+### `delete_q3_pricing_data`
+
+**Description:** Delete all Insert-operation records from the q3-pricing plan (CostBookEntry, PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment, AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic, mirrors delete_quantumbit_pricing_data. Run before insert_q3_pricing_data so q3 pricing loads (plain Insert, no deleteOldData) are safe to rerun.
+
+**Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-pricing`
 
 ---
 

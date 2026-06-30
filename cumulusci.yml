@@ -2432,6 +2432,19 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_pricing_dataset
 
+  delete_q3_pricing_data:
+    group: Data Maintenance
+    description: >
+      Delete all Insert-operation records from the q3-pricing plan (CostBookEntry,
+      PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment,
+      AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier)
+      in reverse plan order (children first). Shape-agnostic, mirrors
+      delete_quantumbit_pricing_data. Run before insert_q3_pricing_data so q3
+      pricing loads (plain Insert, no deleteOldData) are safe to rerun.
+    class_path: tasks.rlm_sfdmu.DeleteSFDMUData
+    options:
+      pathtoexportjson: *q3_pricing_dataset
+
   delete_quantumbit_prm_pricing_data:
     group: Data Maintenance
     description: >
@@ -3830,6 +3843,9 @@ flows:
         task: insert_quantumbit_pricing_data
         when: project_config.project__custom__qb
       3:
+        task: delete_q3_pricing_data
+        when: project_config.project__custom__q3 and not project_config.project__custom__qb
+      4:
         task: insert_q3_pricing_data
         when: project_config.project__custom__q3 and not project_config.project__custom__qb
 

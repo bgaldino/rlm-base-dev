@@ -456,7 +456,8 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 
 1. **task** `delete_quantumbit_pricing_data`  `when: project_config.project__custom__qb`
 2. **task** `insert_quantumbit_pricing_data`  `when: project_config.project__custom__qb`
-3. **task** `insert_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
+3. **task** `delete_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
+4. **task** `insert_q3_pricing_data`  `when: project_config.project__custom__q3 and not project_config.project__custom__qb`
 
 ---
 
