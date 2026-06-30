@@ -276,6 +276,7 @@ that topic.
 | Wire pricing recipes/procedures/plans | `.cursor/skills/pricing-wiring/SKILL.md` |
 | Author/CRUD Expression Sets (pricing procedures, etc.) via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
 | Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |
+| Build a PDE (or other org type) via runtime-only feature-flag overrides | `.cursor/skills/pde-org-build/SKILL.md` |
 | Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
 | Maintain the In-App Learning framework (`inapp` integration) | `.cursor/skills/inapp-framework/SKILL.md` |

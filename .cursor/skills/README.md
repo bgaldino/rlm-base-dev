@@ -17,6 +17,7 @@ repo root.
 | Wire pricing recipes, procedures, or lookup table mappings | Pricing Wiring | `pricing-wiring/SKILL.md` |
 | Author/CRUD Expression Sets (Connect/Metadata API) and build step overlays | Expression Sets | `expression-sets/SKILL.md` |
 | Run build harness profiles/resume/report | Build Harness | `build-harness/SKILL.md` |
+| Build a PDE (or other org type) via runtime-only feature-flag overrides | PDE Org Build | `pde-org-build/SKILL.md` |
 | Write a Python CCI task class | Custom Task Authoring | `cci-orchestration/custom-task-authoring.md` |
 | Create/modify SFDMU data plans | SFDMU Data Plans | `sfdmu-data-plans/SKILL.md` |
 | Maintain the In-App Learning framework (`inapp`) | In-App Framework | `inapp-framework/SKILL.md` |
