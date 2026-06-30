@@ -1,11 +1,13 @@
 ---
-description: Build a Partner Development Environment (PDE) org on scratch def dev-r1 with runtime-only flags pde=true, billing_ui=false (reverted after build)
+description: Build a Partner Development Environment (PDE) org from the dev-r1 shape into a fresh pde<datetime> alias, with runtime-only flags pde=true, billing_ui=false (reverted after build)
 ---
 
-# Build PDE org (dev-r1)
+# Build PDE org (dev-r1 shape → pde<datetime> alias)
 
 Build a **Partner Development Environment** using the `dev-r1` scratch
-definition, with two **runtime-only** CumulusCI feature-flag overrides:
+**shape**, provisioned into a **fresh, uniquely-aliased** scratch org
+(`pde<datetimestamp>`, e.g. `pde20260630181725`), with two **runtime-only**
+CumulusCI feature-flag overrides:
 
 | Flag         | On `main` | This build | Effect |
 |--------------|-----------|------------|--------|
@@ -17,6 +19,10 @@ The edits to `cumulusci.yml` are temporary: the file is backed up before the
 build and restored on exit (success, failure, or interrupt), so **nothing is
 ever staged or committed** as a result of this build.
 
+The build always targets a **new** scratch org alias so scheduled runs never
+collide or reuse a prior org. The alias is derived as `pde$(date +%Y%m%d%H%M%S)`
+and registered from the `dev-r1` shape via `cci org scratch dev-r1 <alias>`.
+
 ## How to run it
 
 Run the dedicated, self-reverting build script from the repo root:
@@ -25,42 +31,58 @@ Run the dedicated, self-reverting build script from the repo root:
 scripts/build_pde_dev_r1.sh
 ```
 
-For a fresh scratch org each run (e.g. on a schedule), delete-and-recreate first:
+To pin a specific alias instead of the auto-generated one:
 
 ```bash
-RECREATE_ORG=true scripts/build_pde_dev_r1.sh
+ORG=pde-demo scripts/build_pde_dev_r1.sh
 ```
 
 The script:
 
 1. Backs up `cumulusci.yml`, then sets `pde: true` and `billing_ui: false`
    (aborting if either flag isn't matched exactly once).
-2. Runs `cci flow run prepare_rlm_org --org dev-r1` (CCI auto-creates the
-   `dev-r1` scratch org if it doesn't exist).
-3. Restores the original `cumulusci.yml` via an `EXIT` trap in all cases.
+2. Generates a unique alias `pde<datetime>` (override with `ORG=`) and registers
+   it from the `dev-r1` shape: `cci org scratch dev-r1 <alias>`.
+3. Runs `cci flow run prepare_rlm_org --org <alias>` (CCI creates the actual
+   scratch org on first use).
+4. Restores the original `cumulusci.yml` **and** reverts any tracked churn the
+   build regenerated under `unpackaged/post_ux/` and `datasets/sfdmu/` (UX
+   assembly output, SFDMU `export.json` writeback) via an `EXIT` trap in all
+   cases — leaving the working tree clean.
+
+Overridable environment variables:
+
+| Var    | Default                     | Purpose |
+|--------|-----------------------------|---------|
+| `ORG`  | `pde$(date +%Y%m%d%H%M%S)`  | Scratch-org alias to create/build |
+| `SHAPE`| `dev-r1`                    | Scratch shape (config under `orgs.scratch`) to base the alias on |
+| `FLOW` | `prepare_rlm_org`           | CCI flow to run |
+| `CLEAN_BUILD_ARTIFACTS` | `true`         | Revert tracked churn the build regenerates under `unpackaged/post_ux/` and `datasets/sfdmu/` (only files this build dirtied) so the branch stays clean |
 
 ## Agent responsibilities
 
 When you (the agent) run this command:
 
-1. From the repo root, execute `scripts/build_pde_dev_r1.sh` (add
-   `RECREATE_ORG=true` only if a fresh org is wanted).
+1. From the repo root, execute `scripts/build_pde_dev_r1.sh`.
 2. Stream/inspect the CCI output. If the build fails, surface the failing step
    and consult `.cursor/skills/troubleshooting/SKILL.md`. Do **not** re-commit
    or "fix" `cumulusci.yml` — the override is intentional and is auto-reverted.
 3. After the run, confirm `git status` shows **no** modification to
    `cumulusci.yml` (the trap should have restored it). If it somehow remained
    modified, restore it with `git checkout -- cumulusci.yml` and report this.
-4. Report the org alias, the flow result, and the SF CLI alias
-   (`rlm-base__dev-r1`) for opening the org.
+4. Report the generated alias, the flow result, and the SF CLI alias
+   (`rlm-base__<alias>`) for opening the org.
 
 ## Converting to a Cloud Agent (scheduled runs)
 
 This file is self-contained on purpose. To run on a schedule, create a Cursor
 Cloud Agent whose prompt is: *"Run the `build-pde-dev-r1` command in this repo"*
-(or paste this file's body). For a clean org each run, instruct it to use
-`RECREATE_ORG=true`. The build never mutates tracked files, so scheduled runs
-leave the branch clean.
+(or paste this file's body). Each run provisions a fresh `pde<datetime>` org, so
+scheduled builds never collide and the branch is never mutated.
+
+When automating, **poll for completion** rather than assuming success: the build
+takes tens of minutes, and any follow-up action (e.g. opening a PR, notifying)
+must be gated on the flow's exit status (`0` = success).
 
 ## Notes / guardrails
 
@@ -69,5 +91,8 @@ leave the branch clean.
 - `pde` is currently a declared flag with no `when:` gate in `cumulusci.yml`;
   setting it is correct for org-type intent but has no build-time effect on its
   own today. `billing_ui: false` is what materially changes this build.
+- Scheduled runs accumulate scratch-org config entries (one per `pde<datetime>`
+  alias). The underlying scratch orgs expire on their own (30 days); prune stale
+  aliases with `cci org scratch_delete <alias>` if needed.
 - Per `AGENTS.md`, never push directly to `main`; this command does not commit
   anything.
