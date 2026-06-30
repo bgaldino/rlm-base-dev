@@ -18,21 +18,21 @@
           "excluded": false
         },
         {
-          "query": "SELECT PriceBookId, RateCardId, RateCardType, PriceBook.Name, RateCard.Name FROM PriceBookRateCard ORDER BY PriceBook.Name ASC, RateCard.Name ASC, RateCardType ASC",
+          "query": "SELECT PriceBookId, RateCardId, RateCardType, PriceBook.Name, RateCard.Name FROM PriceBookRateCard WHERE RateCard.Name IN ('AT&T Mobile Plan Rate Card', 'Cloud Storage Pro Rate Card', 'API Access Premium Rate Card', 'API Access Premium Tier Rate Card') ORDER BY PriceBook.Name ASC, RateCard.Name ASC, RateCardType ASC",
           "operation": "Upsert",
           "deleteOldData": true,
           "externalId": "PriceBook.Name;RateCard.Name;RateCardType",
           "excluded": false
         },
         {
-          "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureId, EffectiveFrom, EffectiveTo, ProductId, ProductSellingModelId, Rate, RateCardId, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureId, Status, UsageResourceId, Product.StockKeepingUnit, RateCard.Name, UsageResource.Name FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Name ASC",
+          "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureId, EffectiveFrom, EffectiveTo, ProductId, ProductSellingModelId, Rate, RateCardId, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureId, Status, UsageResourceId, Product.StockKeepingUnit, RateCard.Name, UsageResource.Name FROM RateCardEntry WHERE RateCard.Name IN ('AT&T Mobile Plan Rate Card', 'Cloud Storage Pro Rate Card', 'API Access Premium Rate Card', 'API Access Premium Tier Rate Card') ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Name ASC",
           "operation": "Insert",
           "deleteOldData": true,
           "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Name",
           "excluded": false
         },
         {
-          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, ProductSellingModelId, RateCardEntryId, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, UpperBound, UsageResourceId, Product.StockKeepingUnit, RateCardEntry.Name, RateUnitOfMeasure.UnitCode, UsageResource.Code FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
+          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, ProductSellingModelId, RateCardEntryId, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, UpperBound, UsageResourceId, Product.StockKeepingUnit, RateCardEntry.Name, RateUnitOfMeasure.UnitCode, UsageResource.Code FROM RateAdjustmentByTier WHERE RateCardEntry.RateCard.Name IN ('AT&T Mobile Plan Rate Card', 'Cloud Storage Pro Rate Card', 'API Access Premium Rate Card', 'API Access Premium Tier Rate Card') ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
           "operation": "Insert",
           "deleteOldData": true,
           "externalId": "Product.StockKeepingUnit;RateCardEntry.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code",
