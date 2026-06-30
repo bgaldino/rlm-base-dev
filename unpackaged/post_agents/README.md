@@ -36,11 +36,11 @@ Driven by the `prepare_agents` flow (`cumulusci.yml`):
 2. `deploy_agents_settings` → `unpackaged/post_agents/settings`
 3. `deploy_agent_classes` → `unpackaged/post_agents/classes` (Apex invocable services used by Product Configuration flows)
 4. `deploy_agent_flows` → `unpackaged/post_agents/flows` (custom autolaunched flows backing Product Configuration actions)
-5. `deploy_legacy_agents` → `unpackaged/post_agents/legacy` (Bot + BotVersion + GenAiPlannerBundle — standard metadata deploy, no publish needed)
-6. `deploy_agents` → the authoring bundles under `unpackaged/post_agents/aiAuthoringBundles`
-7. `publish_agents` → runs `sf agent publish authoring-bundle` for each `aiAuthoringBundles/<Name>/` so the platform compiles the bundle into a runnable `BotVersion`
-8. `activate_agents` → runs `sf agent activate` for all agents (both authoring bundles and legacy bots)
-9. `set_default_agent` → sets `Revenue_Quote_Management` as the default copilot via `EinsteinCopilotSettings`
+5. `deactivate_agents` → deactivates legacy agents so metadata can be redeployed idempotently (tolerates not-yet-deployed or already-inactive agents)
+6. `deploy_legacy_agents` → `unpackaged/post_agents/legacy` (Bot + BotVersion + GenAiPlannerBundle — standard metadata deploy, no publish needed)
+7. `deploy_agents` → the authoring bundles under `unpackaged/post_agents/aiAuthoringBundles`
+8. `publish_agents` → runs `sf agent publish authoring-bundle` for each `aiAuthoringBundles/<Name>/` so the platform compiles the bundle into a runnable `BotVersion`
+9. `activate_agents` → runs `sf agent activate` for all agents (both authoring bundles and legacy bots)
 10. `deploy_agent_permission_sets` → `unpackaged/post_agents/permissionsets` (must run **after** publish/activate: each PS's `<agentAccesses>` compiles to a `botDefinition` reference)
 11. `assign_permission_sets` → `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` (the `ps_aea` anchor)
 

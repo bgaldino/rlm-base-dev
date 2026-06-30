@@ -402,7 +402,16 @@ public with sharing class RLM_AI_UpdateRecordFieldsService {
             }
         }
         if (dt == Schema.DisplayType.BOOLEAN) {
-            return Boolean.valueOf(rawValue);
+            String normalized = rawValue.trim().toLowerCase();
+            if (normalized == 'true' || normalized == 'yes' || normalized == 'y' || normalized == '1') {
+                return true;
+            }
+            if (normalized == 'false' || normalized == 'no' || normalized == 'n' || normalized == '0') {
+                return false;
+            }
+            throw new IllegalArgumentException(
+                'Invalid boolean value for ' + dfr.getName() + '. Use true/false, yes/no, or 1/0.'
+            );
         }
         if (dt == Schema.DisplayType.INTEGER) {
             try {

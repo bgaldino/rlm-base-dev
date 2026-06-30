@@ -126,7 +126,7 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
             Map<Id, Map<String, Id>> pvByPicklist = new Map<Id, Map<String, Id>>();
             if (!picklistIds.isEmpty()) {
                 for (AttributePicklistValue apv : [
-                    SELECT Id, Value, PicklistId
+                    SELECT Id, Name, Value, PicklistId
                     FROM   AttributePicklistValue
                     WHERE  PicklistId IN :picklistIds
                 ]) {
@@ -134,6 +134,9 @@ public with sharing class RLM_AI_ProductAttributeSaveService {
                         pvByPicklist.put(apv.PicklistId, new Map<String, Id>());
                     }
                     pvByPicklist.get(apv.PicklistId).put(apv.Value, apv.Id);
+                    if (String.isNotBlank(apv.Name) && apv.Name != apv.Value) {
+                        pvByPicklist.get(apv.PicklistId).putIfAbsent(apv.Name, apv.Id);
+                    }
                 }
             }
 

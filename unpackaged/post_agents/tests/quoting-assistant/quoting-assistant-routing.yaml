@@ -2,13 +2,13 @@
 # start_agent `agent_router` sends each functional request to the correct
 # subagent across Quinn's arc: ProductSelection, QuoteManagement, LineManagement,
 # ProductConfiguration (+ off_topic / ambiguous_question, covered in
-# quinn-guardrail.yaml). QuoteManagement owns quote create / header / card;
-# LineManagement owns add-product, discounts, and line-field edits.
+# quoting-assistant-guardrail.yaml). QuoteManagement owns quote create / header /
+# card; LineManagement owns add-product, discounts, and line-field edits.
 #
 # Quinn is a deliberately SCOPED demo agent — it intentionally has NO
 # QuoteLifecycleManagement (asset amend/renew) or ConsumptionManagement (usage)
-# topics, unlike RLM_Revenue_Quote_Management. Requests for those are out of
-# scope and route to off_topic (asserted in quinn-guardrail.yaml), not here.
+# topics. Requests for those are out of scope and route to off_topic (asserted in
+# quoting-assistant-guardrail.yaml), not here.
 #
 # CLI Testing Center is effectively single-turn (see
 # [[project_agent_testing_findings]]): a request that completes its whole flow

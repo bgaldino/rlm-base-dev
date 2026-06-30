@@ -267,17 +267,16 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
         if (spec.mode == 'percent') {
             return spec.percent;
         }
-        Decimal listPrice = resolveListPrice(qli);
-        if (listPrice == null || listPrice <= 0) {
-            return null;
-        }
         if (spec.mode == 'percentOfList') {
-            // Sell at X% of list -> discount of (100 - X)%.
             return 100 - spec.targetPercentOfList;
         }
         if (spec.mode == 'targetPrice') {
+            Decimal listPrice = resolveListPrice(qli);
+            if (listPrice == null || listPrice <= 0) {
+                return null;
+            }
             if (spec.targetPrice >= listPrice) {
-                return 0; // no discount when target meets or exceeds list
+                return 0;
             }
             return (1 - (spec.targetPrice / listPrice)) * 100;
         }

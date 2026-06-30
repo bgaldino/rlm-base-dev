@@ -54,6 +54,11 @@ AGENT_TEST_SUITES = {
         "tests_path": "unpackaged/post_agents/tests/quoting-assistant",
         "api_name_prefix": "RLM_QuotingAsst",
     },
+    "quote": {
+        "label": "RLM_Quoting_Assistant",
+        "tests_path": "unpackaged/post_agents/tests/quoting-assistant",
+        "api_name_prefix": "RLM_QuotingAsst",
+    },
 }
 # Substring that marks the harmless "no expectedOutcome" output_validation skip.
 HARMLESS_OUTPUT_SKIP = "missing expected input"

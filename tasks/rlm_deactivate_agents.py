@@ -66,5 +66,7 @@ class DeactivateAgents(BaseSalesforceTask):
             msg = str(exc).lower()
             if "not active" in msg or "inactive" in msg or "no active" in msg:
                 self.logger.info(f"    {api_name} already inactive — skipping")
+            elif "not found" in msg or "does not exist" in msg or "no bot" in msg:
+                self.logger.info(f"    {api_name} not yet deployed — skipping")
             else:
                 raise
