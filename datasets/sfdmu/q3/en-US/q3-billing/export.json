@@ -30,7 +30,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT Description, PaymentTermId, PaymentTimeframe, Period, PeriodUnit, Type FROM PaymentTermItem",
+          "query": "SELECT Description, PaymentTermId, PaymentTimeframe, Period, PeriodUnit, Type, PaymentTerm.Name FROM PaymentTermItem",
           "operation": "Upsert",
           "externalId": "PaymentTerm.Name",
           "excluded": false
@@ -42,13 +42,13 @@
           "excluded": false
         },
         {
-          "query": "SELECT BillingPolicyId, CurrencyIsoCode, Description, IsMilestoneBilling, ExcludeFromBilling, LegalEntityId, Name, Status FROM BillingTreatment",
+          "query": "SELECT BillingPolicyId, CurrencyIsoCode, Description, IsMilestoneBilling, ExcludeFromBilling, LegalEntityId, Name, Status, BillingPolicy.Name, LegalEntity.Name FROM BillingTreatment",
           "operation": "Upsert",
           "externalId": "Name;BillingPolicy.Name;LegalEntity.Name",
           "excluded": false
         },
         {
-          "query": "SELECT BillingTreatmentId, BillingType, Controller, CurrencyIsoCode, Description, FlatAmount, MilestoneStartDateOffset, MilestoneStartDateOffsetUnit, MilestoneStartDate, MilestoneType, Name, Percentage, ProcessingOrder, Sequencing, Status, Type, Handling0Amount FROM BillingTreatmentItem",
+          "query": "SELECT BillingTreatmentId, BillingType, Controller, CurrencyIsoCode, Description, FlatAmount, MilestoneStartDateOffset, MilestoneStartDateOffsetUnit, MilestoneStartDate, MilestoneType, Name, Percentage, ProcessingOrder, Sequencing, Status, Type, Handling0Amount, BillingTreatment.Name FROM BillingTreatmentItem",
           "operation": "Upsert",
           "externalId": "Name;BillingTreatment.Name",
           "excluded": false
@@ -60,13 +60,13 @@
           "excluded": false
         },
         {
-          "query": "SELECT AccountingCode, AccountingName, AccountingType, CurrencyIsoCode, Description, FinancialStatement, LegalEntityId, Name FROM GeneralLedgerAccount",
+          "query": "SELECT AccountingCode, AccountingName, AccountingType, CurrencyIsoCode, Description, FinancialStatement, LegalEntityId, Name, LegalEntity.Name FROM GeneralLedgerAccount",
           "operation": "Upsert",
           "externalId": "Name;LegalEntity.Name",
           "excluded": false
         },
         {
-          "query": "SELECT CurrencyIsoCode, FilterCriteria, FilterLogic, DebitGeneralLedgerAccountId, CreditGeneralLedgerAccountId, LegalEntityId, Name, Priority, Status, TransactionType FROM GeneralLedgerAcctAsgntRule",
+          "query": "SELECT CurrencyIsoCode, FilterCriteria, FilterLogic, DebitGeneralLedgerAccountId, CreditGeneralLedgerAccountId, LegalEntityId, Name, Priority, Status, TransactionType, LegalEntity.Name FROM GeneralLedgerAcctAsgntRule",
           "operation": "Upsert",
           "externalId": "Name;LegalEntity.Name",
           "excluded": false
