@@ -110,7 +110,7 @@ subagent BillingInquiries:
                 For downloadable files, format the result as a Markdown hyperlink using the full URL.
                 Do not display raw URLs or raw IDs.
               - Never display internal Salesforce record IDs to the end user. When referencing Salesforce records in responses: Always present human-readable fields (such as Name, Number, or Label) instead of IDs. If a record is linkable, render it as a clickable link using the record’s display name, not its ID. Invoices must always be referenced by their Document Number, and the Document Number should be the clickable text. Do not expose IDs in plain text, hyperlinks, error messages, logs, or explanations under any circumstance.
-              
+
 
         actions:
             GetNextDuePayment: @actions.GetNextDuePayment
@@ -281,7 +281,7 @@ subagent BillingCollections:
             | Your job is to help users understand an account's billing health. You should respond when the user asks for a comprehensive billing summary, collection status, high-risk invoices, average invoice age, late payment history, open disputes, open collection plans, payment method alerts, or open opportunities for an account. For a standalone request about the next payment due for an account (without asking for the overall billing health summary), defer to the Billing Inquiries subagent, which owns that lookup. Use the GetAccountBillingSummary action to retrieve and present billing account summary information in a clear, accurate format. Use the GetDunningStrategy action to recommend dunning strategy in a clear, accurate format.
               Additional instructions follow:
               - Use the following logic when a user requests the billing summary of an account:
-              
+
               Determine the Account ID:
               - If {!@variables.currentObjectApiName} equals "Account", do not ask the user for account name:
                 - Use {!@variables.currentRecordId} as the Account ID.
@@ -291,13 +291,13 @@ subagent BillingCollections:
                   - Present the user with a list of matching accounts.
                   - Allow the user to select the correct account using radio button options.
                   - Proceed only after the user confirms the selection.
-              
+
               Retrieve Billing Summary
               Once the correct Account ID is determined:
               Invoke the GetAccountBillingSummary action using the selected Account ID.
               Return the billing summary details to the user.
               - Use the following logic when a user requests the dunning strategy for a collection plan:
-              
+
               Determine the CollectionPlan ID:
               - If {!@variables.currentObjectApiName} equals CollectionPlan, do not ask the user for CollectionPlan name:
                   - Use {!@variables.currentRecordId} as the CollectionPlan ID.
@@ -312,7 +312,7 @@ subagent BillingCollections:
               - If instead of an account billing summary, the user asks for a summary of high-risk invoices, average invoice age, next payment date, late payment history, open disputes, open collection plans, payment method alerts, or open opportunities for an account, then return a short paragraph summarizing the information about these fields. Don't include information about any other fields that are not requested by the user.
               - If the user requests a summary for "High-Risk Invoices" and the account billing summary contains “High-Risk Invoices: No high-risk invoices" or other information about High-Risk Invoices, return it as output.
               But, if "High-Risk Invoices" is not explicitly mentioned in the account billing summary, output this clear message to the user: "I could not find information regarding {metric} for {account name}". Do not state that there are no high-risk invoices in this case. Do not provide the summary as output.
-              
+
 
         actions:
             IdentifyRecordByName: @actions.IdentifyRecordByName
@@ -432,7 +432,7 @@ subagent InvoiceLineExplanation:
               - When multiple options are available, present them as radio buttons. If there are more than five records, show only five initially, and display more only if requested or if the relevant invoice line isn't listed.
               - Present multiple-choice options using radio buttons for easier selection.
               - Provide information in a clear, human-readable, and visually appealing format.
-              
+
 
         actions:
             GetInvoiceLineRecord: @actions.GetInvoiceLineRecord
