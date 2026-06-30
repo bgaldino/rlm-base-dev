@@ -10,6 +10,8 @@
       ".cursor/skills/cci-orchestration/flows-reference.md",
       ".cursor/skills/cci-orchestration/tasks-reference.md",
       ".cursor/skills/doc-consistency/SKILL.md",
+      ".cursor/skills/expression-sets/SKILL.md",
+      ".cursor/skills/inapp-framework/SKILL.md",
       ".cursor/skills/pmos-integration/SKILL.md",
       ".cursor/skills/pricing-wiring/SKILL.md",
       ".cursor/skills/qb-demo-script/SKILL.md",
@@ -38,18 +40,20 @@
     "missing": []
   },
   "counts": {
-    "agents_skill_references": 33,
-    "cursor_rules": 10,
-    "errors": 0,
+    "agents_skill_references": 35,
+    "cursor_rules": 11,
+    "errors": 1,
     "generated_cci_reference_files_present": 3,
     "generated_cci_reference_files_total": 3,
     "missing_agents_skill_references": 0,
     "required_files_present": 6,
     "required_files_total": 6,
-    "skills_markdown_files": 43,
+    "skills_markdown_files": 45,
     "warnings": 0
   },
-  "errors": [],
+  "errors": [
+    "analysis-artifacts.mdc has no corresponding skill or stand-alone note"
+  ],
   "generated_cci_reference_files": {
     ".cursor/skills/cci-orchestration/feature-flags.md": true,
     ".cursor/skills/cci-orchestration/flows-reference.md": true,
@@ -66,12 +70,14 @@
     "manifest_version": "2",
     "present": true,
     "salesforce_release_active": "262",
-    "skill_count": 16,
+    "skill_count": 18,
     "skill_ids": [
       "apex-security-hardening",
       "audit-review",
       "cci-orchestration",
       "doc-consistency",
+      "expression-sets",
+      "inapp-framework",
       "pmos-integration",
       "qb-demo-script",
       "release-enablement",
@@ -90,6 +96,8 @@
       ".cursor/skills/audit-review/SKILL.md",
       ".cursor/skills/cci-orchestration/SKILL.md",
       ".cursor/skills/doc-consistency/SKILL.md",
+      ".cursor/skills/expression-sets/SKILL.md",
+      ".cursor/skills/inapp-framework/SKILL.md",
       ".cursor/skills/pmos-integration/SKILL.md",
       ".cursor/skills/qb-demo-script/SKILL.md",
       ".cursor/skills/release-enablement/SKILL.md",
@@ -113,6 +121,11 @@
     "scripts/ai/README.md": true
   },
   "rule_mappings": [
+    {
+      "rule": "analysis-artifacts.mdc",
+      "status": "missing",
+      "target": "No row in AGENTS.md File-Specific Rules table"
+    },
     {
       "rule": "apex-classes.mdc",
       "status": "standalone",
@@ -165,6 +178,7 @@
     }
   ],
   "rules": [
+    ".cursor/rules/analysis-artifacts.mdc",
     ".cursor/rules/apex-classes.mdc",
     ".cursor/rules/apex-scripts.mdc",
     ".cursor/rules/cci-python-tasks.mdc",
@@ -187,6 +201,8 @@
     ".cursor/skills/cci-orchestration/flows-reference.md",
     ".cursor/skills/cci-orchestration/tasks-reference.md",
     ".cursor/skills/doc-consistency/SKILL.md",
+    ".cursor/skills/expression-sets/SKILL.md",
+    ".cursor/skills/inapp-framework/SKILL.md",
     ".cursor/skills/pmos-integration/SKILL.md",
     ".cursor/skills/pricing-wiring/SKILL.md",
     ".cursor/skills/qb-demo-script/SKILL.md",
@@ -221,6 +237,6 @@
     ".cursor/skills/troubleshooting/SKILL.md",
     ".cursor/skills/troubleshooting/large-deal-preprocess-reference.md"
   ],
-  "status": "pass",
+  "status": "fail",
   "warnings": []
 }

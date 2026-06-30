@@ -6,13 +6,13 @@
 
 ## Summary
 
-- Overall status: **PASS**
+- Overall status: **FAIL**
 - Required files: **6/6** present
-- Skills inventoried: **43** Markdown files under `.cursor/skills/`
-- Cursor rules inventoried: **10** `.mdc` files under `.cursor/rules/`
-- AGENTS.md skill references: **33** checked, **0** missing
+- Skills inventoried: **45** Markdown files under `.cursor/skills/`
+- Cursor rules inventoried: **11** `.mdc` files under `.cursor/rules/`
+- AGENTS.md skill references: **35** checked, **0** missing
 - Generated CCI references: **3/3** present
-- Errors: **0**
+- Errors: **1**
 - Warnings: **0**
 
 ## Required Agent Entry Points
@@ -36,6 +36,8 @@
 - `.cursor/skills/cci-orchestration/flows-reference.md`
 - `.cursor/skills/cci-orchestration/tasks-reference.md`
 - `.cursor/skills/doc-consistency/SKILL.md`
+- `.cursor/skills/expression-sets/SKILL.md`
+- `.cursor/skills/inapp-framework/SKILL.md`
 - `.cursor/skills/pmos-integration/SKILL.md`
 - `.cursor/skills/pricing-wiring/SKILL.md`
 - `.cursor/skills/qb-demo-script/SKILL.md`
@@ -72,6 +74,7 @@
 
 ## Cursor Rule Inventory
 
+- `.cursor/rules/analysis-artifacts.mdc`
 - `.cursor/rules/apex-classes.mdc`
 - `.cursor/rules/apex-scripts.mdc`
 - `.cursor/rules/cci-python-tasks.mdc`
@@ -94,6 +97,8 @@
 - ✅ `.cursor/skills/cci-orchestration/flows-reference.md`
 - ✅ `.cursor/skills/cci-orchestration/tasks-reference.md`
 - ✅ `.cursor/skills/doc-consistency/SKILL.md`
+- ✅ `.cursor/skills/expression-sets/SKILL.md`
+- ✅ `.cursor/skills/inapp-framework/SKILL.md`
 - ✅ `.cursor/skills/pmos-integration/SKILL.md`
 - ✅ `.cursor/skills/pricing-wiring/SKILL.md`
 - ✅ `.cursor/skills/qb-demo-script/SKILL.md`
@@ -123,6 +128,7 @@
 
 Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules table for an equivalent skill or an explicit stand-alone note. See `.agents/context/rule-skill-coverage.md` for the full coverage matrix and recommendations.
 
+- ❌ `analysis-artifacts.mdc` — No row in AGENTS.md File-Specific Rules table
 - ✅ `apex-classes.mdc` — explicit stand-alone note
 - ✅ `apex-scripts.mdc` — mapped to `.cursor/skills/troubleshooting/SKILL.md`
 - ✅ `cci-python-tasks.mdc` — mapped to `.cursor/skills/cci-orchestration/custom-task-authoring.md`
@@ -146,11 +152,13 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
 - Manifest version: `2`
 - Last verified: `2026-05-23`
 - Active Salesforce release: `262`
-- Manifest skill count: **16**
+- Manifest skill count: **18**
   - `apex-security-hardening`
   - `audit-review`
   - `cci-orchestration`
   - `doc-consistency`
+  - `expression-sets`
+  - `inapp-framework`
   - `pmos-integration`
   - `qb-demo-script`
   - `release-enablement`
@@ -166,7 +174,9 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
 
 ## Findings
 
-- ✅ No blocking errors found.
+### Errors
+
+- ❌ analysis-artifacts.mdc has no corresponding skill or stand-alone note
 
 ## Notes
 
