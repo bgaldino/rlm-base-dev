@@ -4537,24 +4537,28 @@ flows:
         # Intentional exclusion: legacy qb-guidedselling idempotency remains standalone
         # because that plan is preservation-only until CSVs are regenerated from a canonical org.
         task: test_qb_guidedselling_products_idempotency
-      # Steps 10-14: feature-gated module idempotency tests. Each is guarded by the same
-      # feature flags as its data-load task, so the flow stays runnable on a base org where
-      # the module's data was never loaded.
+      # Steps 10-14: feature-gated module idempotency tests, ordered to match the module
+      # load order in prepare_rlm_org so cross-plan dependencies resolve on an org that does
+      # not already have the data. Notably TAX before BILLING: qb-billing references
+      # LegalEntity.Name with LegalEntity as Readonly, and those LegalEntity rows are created
+      # by qb-tax (LegalEntity = Upsert). prm also precedes prm_pricing (the pricing overlay).
+      # Each is guarded by the same feature flags as its data-load task, so the flow stays
+      # runnable on a base org where the module's data was never loaded.
       10:
-        task: test_qb_approvals_idempotency
-        when: project_config.project__custom__qb and project_config.project__custom__approvals
-      11:
-        task: test_qb_prm_idempotency
-        when: project_config.project__custom__prm and project_config.project__custom__qb
-      12:
-        task: test_qb_prm_pricing_idempotency
-        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
-      13:
-        task: test_qb_billing_idempotency
-        when: project_config.project__custom__billing and project_config.project__custom__qb
-      14:
         task: test_qb_tax_idempotency
         when: project_config.project__custom__tax and project_config.project__custom__qb
+      11:
+        task: test_qb_billing_idempotency
+        when: project_config.project__custom__billing and project_config.project__custom__qb
+      12:
+        task: test_qb_prm_idempotency
+        when: project_config.project__custom__prm and project_config.project__custom__qb
+      13:
+        task: test_qb_approvals_idempotency
+        when: project_config.project__custom__qb and project_config.project__custom__approvals
+      14:
+        task: test_qb_prm_pricing_idempotency
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
 
   stamp_git_commit:
     group: RLM Administration
