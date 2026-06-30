@@ -22,6 +22,7 @@ of six objects key on their unique `Name`; only the junction needs a true compos
 
 | # | Object | Operation | externalId | Records | Key type |
 |---|--------|-----------|------------|---------|----------|
+| — | `RecordType`                   | Readonly | `DeveloperName;SobjectType` | 19  | lookup resolve — record types matched by DeveloperName (see note 2 below) |
 | 1 | `RLM_Learning_Icon__c`         | Upsert | `Name` | 22  | natural — direct, unique 22/22 |
 | 2 | `RLM_Learning_Page__c`         | Upsert | `Name` | 10  | natural — direct, unique 10/10 |
 | 3 | `RLM_Learning_Section__c`      | Upsert | `Name` | 72  | natural — direct, unique 72/72 |
