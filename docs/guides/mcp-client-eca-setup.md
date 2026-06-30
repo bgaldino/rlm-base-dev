@@ -119,10 +119,12 @@ URL to the `.ecaGlblOauth` file and redeploy `post_mcp`.
 
 | Client | Configure | Callback URL (already on the ECA) |
 |--------|-----------|-----------------------------------|
-| **Claude Code** | `claude mcp add --transport http --scope user --client-id <key> --callback-port 8675 <name> <url>` | `http://localhost:8675/callback` |
+| **Claude Code** | `claude mcp add --transport http --scope user --client-id <key> --callback-port 8675 <name> <url>` | `http://localhost:8675/callback` (or `8080` — the ECA accepts both) |
 | **Claude Desktop** | Connectors → **+** → add custom → Server URL → Advanced → OAuth Client ID = `<key>` | `https://claude.ai/api/mcp/auth_callback` |
 | **Cursor** | add to `mcp.json`: server `url` + client id `<key>` | `cursor://anysphere.cursor-mcp/oauth/callback` |
 | **Postman** | HTTP transport; OAuth2 Auth-Code-with-PKCE; scope `mcp_api refresh_token` | `https://oauth.pstmn.io/v1/callback` |
+| **MCP Inspector** | `npx @modelcontextprotocol/inspector` → enter endpoint + Consumer Key | `http://localhost:6274/oauth/callback/debug` |
+| **mcp-remote** | `npx mcp-remote <endpoint>` — stdio↔HTTP proxy for clients lacking native HTTP transport | `http://localhost:<port>/oauth/callback` (port dynamic) |
 
 Claude Code example (one entry per server, all reusing the **same** key):
 ```bash

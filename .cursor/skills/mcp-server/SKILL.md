@@ -122,9 +122,11 @@ The client is configured with the ECA **Consumer Key** as its OAuth client id an
 | Client | Callback URL |
 |--------|--------------|
 | Claude Desktop / web | `https://claude.ai/api/mcp/auth_callback` |
-| Claude Code (CLI) | `http://localhost:<port>/callback` (port must match `--callback-port`) |
+| Claude Code (CLI) | `http://localhost:<port>/callback` (port must match `--callback-port`; default 8080) |
 | Cursor | `cursor://anysphere.cursor-mcp/oauth/callback` |
 | Postman (desktop) | `https://oauth.pstmn.io/v1/callback` (web: `/v1/browser-callback`) |
+| MCP Inspector | `http://localhost:6274/oauth/callback/debug` |
+| mcp-remote proxy | `http://localhost:<port>/oauth/callback` (port dynamic; path fixed) |
 | ChatGPT | copied from its Advanced settings |
 
 ---

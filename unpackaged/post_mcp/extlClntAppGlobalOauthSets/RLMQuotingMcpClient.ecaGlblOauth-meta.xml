@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ExtlClntAppGlobalOauthSettings xmlns="http://soap.sforce.com/2006/04/metadata">
     <callbackUrl>http://localhost:8675/callback
+http://localhost:8080/callback
+http://localhost:8080/oauth/callback
+http://localhost:6274/oauth/callback/debug
 https://claude.ai/api/mcp/auth_callback
 cursor://anysphere.cursor-mcp/oauth/callback
 https://oauth.pstmn.io/v1/callback</callbackUrl>
