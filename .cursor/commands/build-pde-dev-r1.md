@@ -1,10 +1,10 @@
 ---
-description: Build a Partner Development Environment (PDE) org from the dev-r1 shape into a fresh pde<datetime> alias, with runtime-only flags pde=true, billing_ui=false (reverted after build)
+description: Build a Partner Development Environment (PDE) org from the tfid-pde shape into a fresh pde<datetime> alias, with runtime-only flags pde=true, billing_ui=false (reverted after build)
 ---
 
-# Build PDE org (dev-r1 shape → pde<datetime> alias)
+# Build PDE org (tfid-pde shape → pde<datetime> alias)
 
-Build a **Partner Development Environment** using the `dev-r1` scratch
+Build a **Partner Development Environment** using the `tfid-pde` scratch
 **shape**, provisioned into a **fresh, uniquely-aliased** scratch org
 (`pde<datetimestamp>`, e.g. `pde20260630181725`), with two **runtime-only**
 CumulusCI feature-flag overrides:
@@ -21,7 +21,7 @@ ever staged or committed** as a result of this build.
 
 The build always targets a **new** scratch org alias so scheduled runs never
 collide or reuse a prior org. The alias is derived as `pde$(date +%Y%m%d%H%M%S)`
-and registered from the `dev-r1` shape via `cci org scratch dev-r1 <alias>`.
+and registered from the `tfid-pde` shape via `cci org scratch tfid-pde <alias>`.
 
 ## How to run it
 
@@ -42,7 +42,7 @@ The script:
 1. Backs up `cumulusci.yml`, then sets `pde: true` and `billing_ui: false`
    (aborting if either flag isn't matched exactly once).
 2. Generates a unique alias `pde<datetime>` (override with `ORG=`) and registers
-   it from the `dev-r1` shape: `cci org scratch dev-r1 <alias>`.
+   it from the `tfid-pde` shape: `cci org scratch tfid-pde <alias>`.
 3. Runs `cci flow run prepare_rlm_org --org <alias>` (CCI creates the actual
    scratch org on first use).
 4. Restores the original `cumulusci.yml` **and** reverts any tracked churn the
@@ -55,7 +55,7 @@ Overridable environment variables:
 | Var    | Default                     | Purpose |
 |--------|-----------------------------|---------|
 | `ORG`  | `pde$(date +%Y%m%d%H%M%S)`  | Scratch-org alias to create/build |
-| `SHAPE`| `dev-r1`                    | Scratch shape (config under `orgs.scratch`) to base the alias on |
+| `SHAPE`| `tfid-pde`                  | Scratch shape (config under `orgs.scratch`) to base the alias on |
 | `FLOW` | `prepare_rlm_org`           | CCI flow to run |
 | `CLEAN_BUILD_ARTIFACTS` | `true`         | Revert tracked churn the build regenerates under `unpackaged/post_ux/` and `datasets/sfdmu/` (only files this build dirtied) so the branch stays clean |
 

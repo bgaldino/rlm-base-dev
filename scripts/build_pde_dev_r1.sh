@@ -3,7 +3,7 @@
 # build_pde_dev_r1.sh — Build a Partner Development Environment (PDE) org.
 #
 # Provisions a NEW, uniquely-aliased scratch org (pde<datetimestamp>) from the
-# `dev-r1` scratch shape and runs `prepare_rlm_org` with two runtime-only
+# `tfid-pde` scratch shape and runs `prepare_rlm_org` with two runtime-only
 # feature-flag overrides applied to cumulusci.yml:
 #
 #     pde:        false -> true
@@ -21,7 +21,7 @@
 #
 # Overridable via environment variables:
 #   ORG=pde<datetime>            scratch-org alias to create/build
-#   SHAPE=dev-r1                 scratch shape (config under orgs.scratch)
+#   SHAPE=tfid-pde               scratch shape (config under orgs.scratch)
 #   FLOW=prepare_rlm_org         CCI flow to run
 #   CLEAN_BUILD_ARTIFACTS=true   revert build-generated post_ux/datasets churn
 #
@@ -32,7 +32,7 @@
 set -euo pipefail
 
 ORG="${ORG:-pde$(date +%Y%m%d%H%M%S)}"
-SHAPE="${SHAPE:-dev-r1}"
+SHAPE="${SHAPE:-tfid-pde}"
 FLOW="${FLOW:-prepare_rlm_org}"
 CLEAN_BUILD_ARTIFACTS="${CLEAN_BUILD_ARTIFACTS:-true}"
 
@@ -119,7 +119,7 @@ grep -Eq '^    billing_ui: false( |$|#)' "$CCI_YML" || { echo "[build-pde] ERROR
 log "Verified overrides in ${CCI_YML}:"
 grep -E '^    (pde|billing_ui):' "$CCI_YML" | sed 's/^/         /'
 
-# Register a fresh, uniquely-aliased scratch org from the dev-r1 shape. The
+# Register a fresh, uniquely-aliased scratch org from the configured shape. The
 # actual org is created lazily by CCI when the flow first runs against it.
 if cci org info "$ORG" >/dev/null 2>&1; then
   log "Scratch-org alias '${ORG}' already registered; reusing it."
