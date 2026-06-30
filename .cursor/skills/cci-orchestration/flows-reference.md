@@ -41,7 +41,7 @@ Run all Q3 data idempotency tests (load twice, assert no new records). Use --org
 3. **task** `test_q3_rates_idempotency`
 4. **task** `test_q3_dro_idempotency`
 5. **task** `test_q3_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__q3`
-6. **task** `test_q3_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__q3`
+6. **task** `test_q3_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__q3`
 
 ---
 

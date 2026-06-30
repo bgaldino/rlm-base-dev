@@ -51,7 +51,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `rating` | `True` | 15 flow step(s) |
 | `refresh` | `False` | 13 flow step(s) |
 | `sample_data` | `True` | 1 flow step(s) |
-| `tax` | `True` | 7 flow step(s) |
+| `tax` | `True` | 8 flow step(s) |
 | `trial` | `False` | — |
 | `tso` | `False` | 15 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
@@ -454,6 +454,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_tax` step 4 → `activate_tax_records`
 - `run_qb_idempotency_tests` step 10 → `test_qb_tax_idempotency`
 - `run_q3_idempotency_tests` step 5 → `test_q3_tax_idempotency`
+- `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
 ### `tso` (default: `False`)
 

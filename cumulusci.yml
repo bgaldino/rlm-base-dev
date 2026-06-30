@@ -4747,7 +4747,7 @@ flows:
         when: project_config.project__custom__tax and project_config.project__custom__q3
       6:
         task: test_q3_billing_idempotency
-        when: project_config.project__custom__billing and project_config.project__custom__q3
+        when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__q3
 
   stamp_git_commit:
     group: RLM Administration
