@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = Path(
     os.environ.get("RLM_BILLING_LWC_SRC")
     or (sys.argv[1] if len(sys.argv) > 1 else ROOT / "extracted" / "maaron-billinglwc")
-)
+).resolve()
 DEST_MODULE = ROOT / "unpackaged" / "post_billing_ui"
 DEST_FLEXIPAGES = ROOT / "templates" / "flexipages" / "standalone" / "billing_ui"
 
@@ -81,19 +81,29 @@ def apply_all_renames(text: str) -> str:
     return text
 
 
+def _disp(path: Path) -> str:
+    """Render a path relative to ROOT when it lives inside the repo, else absolute.
+    SRC may be overridden (RLM_BILLING_LWC_SRC / argv[1]) to a dir outside the repo,
+    so source paths are not guaranteed to be under ROOT."""
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def read_write(src_path: Path, dst_path: Path, transform=None):
     """Copy a file, optionally transforming its text content."""
     dst_path.parent.mkdir(parents=True, exist_ok=True)
     if transform is None:
         shutil.copy2(src_path, dst_path)
-        print(f"  COPY  {src_path.relative_to(ROOT)}  →  {dst_path.relative_to(ROOT)}")
+        print(f"  COPY  {_disp(src_path)}  →  {_disp(dst_path)}")
     else:
         content = src_path.read_text(encoding="utf-8")
         new_content = transform(content)
         dst_path.write_text(new_content, encoding="utf-8")
         changed = content != new_content
         marker = "[modified]" if changed else "[unchanged]"
-        print(f"  WRITE {marker}  {dst_path.relative_to(ROOT)}")
+        print(f"  WRITE {marker}  {_disp(dst_path)}")
 
 
 # ── 1. LWC components ────────────────────────────────────────────────────────
