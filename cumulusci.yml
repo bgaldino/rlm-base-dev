@@ -55,6 +55,9 @@ orgs:
     tfid-cdo-rlm:
       config_file: orgs/tfid/tfid-cdo-rlm.json
       days: 30
+    tfid-pde:
+      config_file: orgs/tfid/tfid-pde.json
+      days: 30
     tfid-qb-tso:
       config_file: orgs/tfid/tfid-qb-tso.json
       days: 30
