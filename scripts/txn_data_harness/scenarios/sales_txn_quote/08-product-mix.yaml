@@ -29,6 +29,7 @@ scenarios:
     products:
       - sku: "QB-API"               # Additional API
         quantity: 5
+        selling_model: "Term Annual"
     count: 10
 
   - account: "Infinitech"

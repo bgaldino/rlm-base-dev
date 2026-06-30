@@ -23,7 +23,7 @@ import logging
 import random
 import time
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, NamedTuple, Optional
+from typing import Any, Callable, NamedTuple, Optional
 
 from .auth import SfRestClient
 from .discovery import Account, PostalAddress, Product
@@ -854,6 +854,7 @@ def generate_invoice(
     timeout: int = 180,
     *,
     already_submitted: bool = False,
+    on_submitted: Callable[[], None] | None = None,
 ) -> tuple[str, str]:
     """Generate a Draft invoice from billing schedule(s); return (id, number).
 
@@ -896,6 +897,8 @@ def generate_invoice(
         if not result or not result.get("success"):
             errs = result.get("errors") if isinstance(result, dict) else result
             raise LifecycleError("invoice", f"generate failed: {errs}")
+        if on_submitted is not None:
+            on_submitted()
 
     # Poll for the generated invoice via the billing schedule back-link across
     # all submitted schedules -- the first one to surface an InvoiceLine wins.

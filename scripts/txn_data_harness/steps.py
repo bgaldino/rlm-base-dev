@@ -199,11 +199,15 @@ def run_usage(ctx: StepContext, manifest: Manifest) -> Manifest:
 
 def run_invoice(ctx: StepContext, manifest: Manifest) -> Manifest:
     already_submitted = manifest.invoice_generate_submitted
-    manifest.invoice_generate_submitted = True
-    _checkpoint(ctx, manifest)
+
+    def _on_post_submitted() -> None:
+        manifest.invoice_generate_submitted = True
+        _checkpoint(ctx, manifest)
+
     manifest.invoice_id, manifest.invoice_number = lifecycle.generate_invoice(
         ctx.client, manifest.billing_schedule_ids, ctx.run_id, timeout=ctx.poll_timeout,
         already_submitted=already_submitted,
+        on_submitted=_on_post_submitted,
     )
     lifecycle.tag_invoice(ctx.client, manifest.invoice_id, ctx.run_id)
     manifest.reached_stage = "invoice_draft"
