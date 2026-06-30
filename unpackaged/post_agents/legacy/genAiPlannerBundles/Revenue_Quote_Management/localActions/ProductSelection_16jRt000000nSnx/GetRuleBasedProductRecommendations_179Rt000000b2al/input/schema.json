@@ -1,0 +1,22 @@
+{
+  "required" : [ "quoteId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "quoteId" : {
+      "title" : "quoteId",
+      "description" : "The quote Id to get the recommendations.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "quoteLineItemId" : {
+      "title" : "quoteLineItemId",
+      "description" : "The ID of the quote line item for which recommendations are retrieved. If populated, only recommendations related to this specific quote line will be retrieved.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

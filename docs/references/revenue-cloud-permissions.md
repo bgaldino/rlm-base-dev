@@ -281,7 +281,7 @@ These are assigned to the running user via `assign_permission_sets` in their res
 | `RLM_RampSchedule` | `ramps` | `prepare_ramp_builder` step 3 | FLS on ramp fields + 11 ramp Apex classes + RunFlow |
 | `RLM_Constraints` | `tso` + `constraints` | `prepare_constraints` step 3 | FLS on `RLM_ConstraintEngineNodeStatus__c` (3 objects) |
 | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` | `prepare_prm` step 8 | FLS on partner/channel program fields |
-| `RLM_RevenueQuoteManagementAgent` | `agents` | `prepare_agents` step 9 | Agent access to `RLM_Revenue_Quote_Management` |
+| `RLM_QuotingAgent` | `agents` | `prepare_agents` step 10 | Agent access to `Revenue_Quote_Management` |
 | `RLM_UtilitiesPermset` | `tso` | `prepare_tso` step 5 | `RLM_AccountUtilities` Apex class access |
 
 ### Einstein / AI Permission Sets (`rlm_ai_ps_api_names`) -- `einstein: true`
@@ -366,7 +366,7 @@ The following table shows the sequence of all permission-related steps across th
 | 18.4 | `prepare_tso` | TSO permission sets (4) | `tso` |
 | 20.7 | `prepare_prm` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
 | 21.1 | `prepare_agents` | Copilot PSGs (2) | `agents` |
-| 21.6 | `prepare_agents` | `RLM_RevenueQuoteManagementAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
+| 21.6 | `prepare_agents` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
 | 22.3 | `prepare_constraints` | `RLM_Constraints` | `tso` + `constraints` |
 | 23.1 | `prepare_guidedselling` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
 | 23.3 | `prepare_guidedselling` | `RLM_Guided_Selling` | `guidedselling` |
@@ -413,7 +413,7 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | `ramps` | -- | -- | `RLM_RampSchedule` |
 | `tso` + `constraints` | -- | -- | `RLM_Constraints` |
 | `prm` + `prm_exp_bundle` + `tso` | -- | -- | `RLM_PRM` |
-| `agents` | -- | Copilot (2) | `RLM_RevenueQuoteManagementAgent`, `RLM_QuotingAssistant` |
+| `agents` | -- | Copilot (2) | `RLM_QuotingAgent`, `RLM_QuotingAssistant` |
 | `billing` + `psg_debug` | -- | -- | 10 billing PS (debug) |
 | `tso` + `psg_debug` | -- | -- | 4 PCM PS (debug) |
 

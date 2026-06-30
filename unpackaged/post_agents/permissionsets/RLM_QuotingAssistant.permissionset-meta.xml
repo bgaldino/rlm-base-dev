@@ -5,5 +5,5 @@
         <enabled>true</enabled>
     </agentAccesses>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>RLM Quoting Assistant (Quinn)</label>
+    <label>RLM Quoting Assistant</label>
 </PermissionSet>

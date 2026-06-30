@@ -1,0 +1,26 @@
+{
+  "required" : [ "QuoteId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "quoteId" : {
+      "title" : "QuoteId",
+      "description" : "The 18 digit Quote Id.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "productIds" : {
+      "title" : "ProductIds",
+      "description" : "The list of product IDs to search for.",
+      "maxItems" : 50,
+      "items" : {
+        "lightning:type" : "lightning__textType"
+      },
+      "lightning:type" : "lightning__listType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

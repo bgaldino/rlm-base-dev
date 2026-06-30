@@ -332,7 +332,7 @@ project:
 
     ps_aea: &ps_aea
       # Agent-specific permission sets
-      - RLM_RevenueQuoteManagementAgent
+      - RLM_QuotingAgent
       - RLM_QuotingAssistant
       - RLM_BillingEmployeeAgent
 
@@ -968,6 +968,20 @@ tasks:
     options:
       path: unpackaged/post_agents/aiAuthoringBundles
 
+  deploy_legacy_agents:
+    description: Deploy legacy-format agents (Bot + BotVersion + GenAiPlannerBundle) from unpackaged/post_agents/legacy. These agents deploy as standard metadata and do not require publish/activate steps — the BotVersion is included directly.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/legacy
+
+  set_default_agent:
+    description: Set the default Agentforce copilot agent (Revenue_Quote_Management) via EinsteinCopilotSettings. Must run after activate_agents so the Bot exists and is active.
+    class_path: cumulusci.tasks.salesforce.Deploy
+    group: Revenue Lifecycle Management
+    options:
+      path: unpackaged/post_agents/default_agent_settings
+
   deploy_agent_permission_sets:
     description: Deploy the Agentforce agent permission sets from unpackaged/post_agents/permissionsets. Must run after publish_agents — each permission set's agentAccesses compiles to a botDefinition reference, and the Bot only exists once the authoring bundle is published.
     class_path: cumulusci.tasks.salesforce.Deploy
@@ -982,22 +996,22 @@ tasks:
 
   activate_agents:
     group: Revenue Lifecycle Management
-    description: Activate the latest BotVersion for each RLM agent by running `sf agent activate` for every agent discovered under unpackaged/post_agents/aiAuthoringBundles. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
+    description: Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from both unpackaged/post_agents/aiAuthoringBundles (new format) and unpackaged/post_agents/legacy/bots (legacy format). BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
     class_path: tasks.rlm_activate_agents.ActivateAgents
 
   test_agents:
     group: Revenue Lifecycle Management
-    description: Run Agentforce CLI Testing Center specs against published+activated agents. Use the agent option to run one suite (quote, billing, or quinn) or all suites in one explicit invocation; use test_files to run a comma-separated subset of YAML specs. Deploys each selected spec as an AiEvaluationDefinition (`sf agent test create`) and runs it (`sf agent test run`), failing if any topic/action assertion — or any output validation on a case that set an expectedOutcome — does not pass. Requires the target agent to be published and activated first (see prepare_agents). Not part of prepare_agents; run only on demand or in CI after activation.
+    description: Run Agentforce CLI Testing Center specs against published+activated agents. Use the agent option to run one suite (billing or quoting-assistant) or all suites in one explicit invocation; use test_files to run a comma-separated subset of YAML specs. Deploys each selected spec as an AiEvaluationDefinition (`sf agent test create`) and runs it (`sf agent test run`), failing if any topic/action assertion — or any output validation on a case that set an expectedOutcome — does not pass. Requires the target agent to be published and activated first (see prepare_agents). Not part of prepare_agents; run only on demand or in CI after activation.
     class_path: tasks.rlm_test_agents.TestAgents
     options:
-      agent: quote
+      agent: quoting-assistant
 
-  test_quinn:
+  test_quoting_assistant:
     group: Revenue Lifecycle Management
-    description: Compatibility alias for `test_agents -o agent quinn`. Runs the Quinn quoting assistant (RLM_Quoting_Assistant) Agentforce CLI Testing Center specs on demand against a published and activated agent.
+    description: Convenience alias for `test_agents -o agent quoting-assistant`. Runs the Quoting Assistant (RLM_Quoting_Assistant) Agentforce CLI Testing Center specs on demand against a published and activated agent.
     class_path: tasks.rlm_test_agents.TestAgents
     options:
-      agent: quinn
+      agent: quoting-assistant
 
   deploy_quantumbit:
     description: Deploy QuantumBit Metadata
@@ -4108,18 +4122,24 @@ flows:
         task: deploy_agent_flows
         when: project_config.project__custom__agents
       5:
-        task: deploy_agents
+        task: deploy_legacy_agents
         when: project_config.project__custom__agents
       6:
-        task: publish_agents
+        task: deploy_agents
         when: project_config.project__custom__agents
       7:
-        task: activate_agents
+        task: publish_agents
         when: project_config.project__custom__agents
       8:
-        task: deploy_agent_permission_sets
+        task: activate_agents
         when: project_config.project__custom__agents
       9:
+        task: set_default_agent
+        when: project_config.project__custom__agents
+      10:
+        task: deploy_agent_permission_sets
+        when: project_config.project__custom__agents
+      11:
         task: assign_permission_sets
         when: project_config.project__custom__agents
         options:

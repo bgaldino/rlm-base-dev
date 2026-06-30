@@ -1,0 +1,26 @@
+{
+  "required" : [ "inputFieldValues", "quoteId" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "inputFieldValues" : {
+      "title" : "inputFieldValues",
+      "description" : "A list of field API names and their corresponding values passed into the update quote details request. Each entry must use \"key\" for the field API name and \"obj\" for the field value",
+      "maxItems" : 2000,
+      "items" : {
+        "lightning:type" : "@apexClassType/RevSalesTrxn__RecordMapWrapper?isAuraEnabled=true"
+      },
+      "lightning:type" : "lightning__listType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "quoteId" : {
+      "title" : "quoteId",
+      "description" : "The ID of the quote record.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

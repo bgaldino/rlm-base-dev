@@ -18,7 +18,7 @@ try:
 except ImportError:
     BaseSalesforceTask = object
 
-from tasks.rlm_agents_common import discover_agent_bundles, run_sf_json
+from tasks.rlm_agents_common import discover_agent_bundles, discover_legacy_agents, run_sf_json
 
 DEFAULT_BUNDLES_PATH = "unpackaged/post_agents/aiAuthoringBundles"
 
@@ -44,19 +44,21 @@ class ActivateAgents(BaseSalesforceTask):
     def _run_task(self):
         bundles_root = Path(self.options.get("bundles_path") or DEFAULT_BUNDLES_PATH)
         agents = discover_agent_bundles(bundles_root)
+        legacy = discover_legacy_agents()
+        all_agents = sorted(set(agents + legacy))
 
-        if not agents:
+        if not all_agents:
             self.logger.info(
-                f"No agents discovered under {bundles_root}; nothing to activate."
+                f"No agents discovered under {bundles_root} or legacy bots; nothing to activate."
             )
             return
 
         target = self.org_config.username
         self.logger.info(
-            f"Activating {len(agents)} agent(s) on {target}: " + ", ".join(agents)
+            f"Activating {len(all_agents)} agent(s) on {target}: " + ", ".join(all_agents)
         )
 
-        for api_name in agents:
+        for api_name in all_agents:
             self._activate(api_name, target)
 
     def _activate(self, api_name, target):

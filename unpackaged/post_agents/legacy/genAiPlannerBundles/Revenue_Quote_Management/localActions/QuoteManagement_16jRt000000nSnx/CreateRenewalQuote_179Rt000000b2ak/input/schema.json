@@ -1,0 +1,33 @@
+{
+  "required" : [ "assetIds" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "assetIds" : {
+      "title" : "assetIds",
+      "description" : "The list of asset IDs to include in a renewal quote.",
+      "maxItems" : 2000,
+      "items" : {
+        "lightning:type" : "lightning__textType"
+      },
+      "lightning:type" : "lightning__listType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "renewalEndDate" : {
+      "title" : "renewalEndDate",
+      "description" : "The end date for the renewal quote.",
+      "lightning:type" : "lightning__dateTimeStringType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "renewalStartDate" : {
+      "title" : "renewalStartDate",
+      "description" : "The start date for the renewal quote.",
+      "lightning:type" : "lightning__dateTimeStringType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

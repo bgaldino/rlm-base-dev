@@ -1,0 +1,22 @@
+{
+  "required" : [ "Input:accountIds" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "Input:accountIds" : {
+      "title" : "Account IDs",
+      "description" : "The list of comma-delimited account IDs whose usage details are to be fetched.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "outputLanguage" : {
+      "title" : "Prompt Operation output language",
+      "description" : "Select Prompt Operation output language",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

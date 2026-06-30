@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**254 tasks** across **10 groups**.
+**255 tasks** across **10 groups**.
 
 ---
 
@@ -852,11 +852,11 @@
 
 ## Revenue Lifecycle Management
 
-*161 task(s)*
+*162 task(s)*
 
 ### `activate_agents`
 
-**Description:** Activate the latest BotVersion for each RLM agent by running `sf agent activate` for every agent discovered under unpackaged/post_agents/aiAuthoringBundles. BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
+**Description:** Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from both unpackaged/post_agents/aiAuthoringBundles (new format) and unpackaged/post_agents/legacy/bots (legacy format). BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
 
 **Class:** `tasks.rlm_activate_agents.ActivateAgents`
 
@@ -1594,6 +1594,18 @@
 
 - `path`: `force-app/main/default`
 - `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//ExpressionSetDefinition/versions/variables/value...`
+
+---
+
+### `deploy_legacy_agents`
+
+**Description:** Deploy legacy-format agents (Bot + BotVersion + GenAiPlannerBundle) from unpackaged/post_agents/legacy. These agents deploy as standard metadata and do not require publish/activate steps — the BotVersion is included directly.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_agents/legacy`
 
 ---
 
@@ -2874,25 +2886,25 @@
 
 ### `test_agents`
 
-**Description:** Run Agentforce CLI Testing Center specs against published+activated agents. Use the agent option to run one suite (quote, billing, or quinn) or all suites in one explicit invocation; use test_files to run a comma-separated subset of YAML specs. Deploys each selected spec as an AiEvaluationDefinition (`sf agent test create`) and runs it (`sf agent test run`), failing if any topic/action assertion — or any output validation on a case that set an expectedOutcome — does not pass. Requires the target agent to be published and activated first (see prepare_agents). Not part of prepare_agents; run only on demand or in CI after activation.
+**Description:** Run Agentforce CLI Testing Center specs against published+activated agents. Use the agent option to run one suite (billing or quoting-assistant) or all suites in one explicit invocation; use test_files to run a comma-separated subset of YAML specs. Deploys each selected spec as an AiEvaluationDefinition (`sf agent test create`) and runs it (`sf agent test run`), failing if any topic/action assertion — or any output validation on a case that set an expectedOutcome — does not pass. Requires the target agent to be published and activated first (see prepare_agents). Not part of prepare_agents; run only on demand or in CI after activation.
 
 **Class:** `tasks.rlm_test_agents.TestAgents`
 
 **Options:**
 
-- `agent`: `quote`
+- `agent`: `quoting-assistant`
 
 ---
 
-### `test_quinn`
+### `test_quoting_assistant`
 
-**Description:** Compatibility alias for `test_agents -o agent quinn`. Runs the Quinn quoting assistant (RLM_Quoting_Assistant) Agentforce CLI Testing Center specs on demand against a published and activated agent.
+**Description:** Convenience alias for `test_agents -o agent quoting-assistant`. Runs the Quoting Assistant (RLM_Quoting_Assistant) Agentforce CLI Testing Center specs on demand against a published and activated agent.
 
 **Class:** `tasks.rlm_test_agents.TestAgents`
 
 **Options:**
 
-- `agent`: `quinn`
+- `agent`: `quoting-assistant`
 
 ---
 

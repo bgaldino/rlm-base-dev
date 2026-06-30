@@ -19,8 +19,8 @@ Notes:
   * ``--target-org`` is passed explicitly on every CLI call (from
     ``org_config.username``) so the task never silently hits the user's default
     SF CLI org.
-  * The task can target one named agent suite (``quote``, ``billing``,
-    ``quinn``), all suites in one invocation, or a comma-separated subset of
+  * The task can target one named agent suite (``billing``,
+    ``quoting-assistant``), all suites in one invocation, or a comma-separated subset of
     YAML spec files. api-names are derived deterministically from each spec's
     filename and sanitized to the ``AiEvaluationDefinition`` naming rules.
   * ``sf agent test run --wait`` exits non-zero when test cases fail, so the run
@@ -42,22 +42,17 @@ except ImportError:  # pragma: no cover - allows bare import in unit context
 
 from tasks.rlm_agents_common import run_sf_json
 
-DEFAULT_AGENT = "quote"
+DEFAULT_AGENT = "quoting-assistant"
 AGENT_TEST_SUITES = {
-    "quote": {
-        "label": "RLM_Revenue_Quote_Management",
-        "tests_path": "unpackaged/post_agents/tests/quote",
-        "api_name_prefix": "RLM_Quote",
-    },
     "billing": {
         "label": "RLM_Billing_Employee_Assistance",
         "tests_path": "unpackaged/post_agents/tests/billing",
         "api_name_prefix": "RLM_Billing",
     },
-    "quinn": {
+    "quoting-assistant": {
         "label": "RLM_Quoting_Assistant",
-        "tests_path": "unpackaged/post_agents/tests/quinn",
-        "api_name_prefix": "RLM_Quinn",
+        "tests_path": "unpackaged/post_agents/tests/quoting-assistant",
+        "api_name_prefix": "RLM_QuotingAsst",
     },
 }
 # Substring that marks the harmless "no expectedOutcome" output_validation skip.
@@ -76,7 +71,7 @@ class TestAgents(BaseSalesforceTask):
     task_options = {
         "agent": {
             "description": (
-                "Agent test suite to run: quote, billing, quinn, or all. "
+                "Agent test suite to run: quote, billing, quoting-assistant, or all. "
                 f"Default: {DEFAULT_AGENT}. Ignored when tests_path is provided."
             ),
             "required": False,

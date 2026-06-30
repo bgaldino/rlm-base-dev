@@ -1,0 +1,19 @@
+{
+  "required" : [ "productIds" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "productIds" : {
+      "title" : "productIds",
+      "description" : "A list of 18-character Product2 record IDs used to retrieve product details.",
+      "maxItems" : 2000,
+      "items" : {
+        "lightning:type" : "lightning__textType"
+      },
+      "lightning:type" : "lightning__listType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

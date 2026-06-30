@@ -1,0 +1,16 @@
+{
+  "required" : [ "recordDetailInput" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "recordDetailInput" : {
+      "title" : "Record Detail Input",
+      "description" : "Fields and their values for the record to be updated. This input is the exact output of the ExtractFieldsAndValuesFromUserInput action.",
+      "lightning:type" : "lightning__recordInfoType",
+      "einstein:description" : "Field-value pairs for the record to be updated. The value of this input parameter must be the exact output of ExtractFieldsAndValuesFromUserInput recordDetails, don't ever change the recordDetails output",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

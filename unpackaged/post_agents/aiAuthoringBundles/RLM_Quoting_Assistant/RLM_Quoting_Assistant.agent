@@ -44,9 +44,9 @@ system:
         error: "Something went wrong. Try again in a moment, or ask your Salesforce admin for help."
 
 config:
-    agent_label: "Quinn"
+    agent_label: "Quoting Assistant"
     agent_type: "AgentforceEmployeeAgent"
-    description: "Quinn — a confident Revenue Cloud quoting assistant for sales reps. Finds products, creates and manages quotes, adds products, applies line discounts, configures products, and presents quote totals as native record cards. Tight demo arc; speaks in names, never raw IDs."
+    description: "Revenue Cloud quoting assistant for sales reps. Finds products, creates and manages quotes, adds products, applies line discounts, configures products, and presents quote totals as native record cards. Tight demo arc; speaks in names, never raw IDs."
     developer_name: "RLM_Quoting_Assistant"
 
 variables:

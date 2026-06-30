@@ -31,6 +31,22 @@ def discover_agent_bundles(bundles_root):
     return sorted(p.name for p in bundles_root.iterdir() if p.is_dir())
 
 
+DEFAULT_LEGACY_BOTS_PATH = "unpackaged/post_agents/legacy/bots"
+
+
+def discover_legacy_agents(bots_root=None):
+    """Return sorted directory names under the legacy ``bots/`` directory.
+
+    Each subdirectory name is a bot developer name that can be passed to
+    ``sf agent activate --api-name``.
+    """
+    from pathlib import Path
+    root = Path(bots_root) if bots_root else Path(DEFAULT_LEGACY_BOTS_PATH)
+    if not root.is_dir():
+        return []
+    return sorted(p.name for p in root.iterdir() if p.is_dir())
+
+
 def run_sf_json(cmd, *, timeout, label, cwd=None):
     """Run an ``sf ... --json`` command and return its parsed payload.
 

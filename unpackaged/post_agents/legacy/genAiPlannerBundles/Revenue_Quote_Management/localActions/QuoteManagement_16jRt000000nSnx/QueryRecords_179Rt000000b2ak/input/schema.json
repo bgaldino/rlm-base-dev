@@ -1,0 +1,22 @@
+{
+  "required" : [ "query" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "query" : {
+      "title" : "query",
+      "description" : "The question or request from the user's input. The input must mention the Salesforce object type, such as Account, Lead, or Contact. Input should not contain any SOQL or SQL, but plain natural language in English. Do not generate SQL or SOQL.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "customizationInstructions" : {
+      "title" : "customizationInstructions",
+      "description" : "Custom instructions for the action from the user's input to optimize the query.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}
