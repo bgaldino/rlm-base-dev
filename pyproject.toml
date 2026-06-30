@@ -9,13 +9,13 @@
 requires_python = ">=3.11"
 
 [tool.pytest.ini_options]
-# Scope discovery to the build-harness suite — the only pytest-style tests in
-# the repo. Top-level tests/*.py (e.g. tests/test_fix_scratch_identity.py) follow
+# Scope discovery to pytest-style test suites. Currently: build-harness and
+# txn-data-harness. Top-level tests/*.py (e.g. tests/test_fix_scratch_identity.py) follow
 # this repo's lightweight self-contained convention: they use an internal check()
 # aggregator (not assert) and gate via main()'s exit code, so they are run
 # directly (`python tests/<name>.py`), NOT collected by pytest — under pytest
 # their test_* functions would false-pass since the checks never raise.
-testpaths = ["tests/build_harness"]
+testpaths = ["tests/build_harness", "tests/txn_data_harness"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
