@@ -48,6 +48,13 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         'IncludedMillionHitsGBText' => 'AAP Requests'
     };
 
+    // Prefix every System.debug line so they're trivially grep-able in the
+    // raw debug log. DEBUG_VERSION is bumped when behavior changes so an
+    // operator can confirm which build is actually running in the org
+    // (Apex caches compiled classes; a stale post-deploy can otherwise hide).
+    private static final String DEBUG_PREFIX = 'RLM_AAPGrantPostHook';
+    private static final String DEBUG_VERSION = 'V1.0';
+
     // Recursion guard. updateContextAttributes() can re-trigger a pricing pass,
     // which would re-fire this posthook -> infinite loop (and CPU governor
     // exhaustion). Pattern lifted from the External Pricing posthook sample in
@@ -75,8 +82,10 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
 
     global RevSignaling.TransactionResponse execute(RevSignaling.TransactionRequest request) {
         RevSignaling.TransactionResponse response = new RevSignaling.TransactionResponse();
+        logInfo('=== execute() ENTER version=' + DEBUG_VERSION + ' ===');
 
         if (isRunning) {
+            logInfo('execute() SKIP: recursion guard latched (isRunning=true); returning SUCCESS no-op');
             response.status = RevSignaling.TransactionStatus.SUCCESS;
             response.message = 'Skipped recursive execution.';
             return response;
@@ -87,7 +96,9 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         // mark the transaction as errored. A missing context id means "nothing
         // priced here", not "pricing should fail".
         String contextId = request != null ? request.ctxInstanceId : null;
+        logInfo('execute() contextId=' + contextId);
         if (String.isBlank(contextId)) {
+            logInfo('execute() SKIP: blank contextId; returning SUCCESS no-op');
             response.status = RevSignaling.TransactionStatus.SUCCESS;
             response.message = 'No context id supplied; nothing to do.';
             return response;
@@ -95,6 +106,7 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
 
         try {
             isRunning = true;
+            logFine('execute() recursion guard SET (isRunning=true)');
 
             // Same SUCCESS-on-empty rationale for the three early-out branches
             // below: a Sales Transaction with zero AAP-family lines (or AAP
@@ -102,7 +114,10 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             // non-error case. We only want to fail the procedure plan if an
             // unexpected exception escapes.
             Set<String> aapItemCtxIds = queryAapItemCtxIds(contextId);
+            logInfo('execute() step 1/4 AAP items found=' + aapItemCtxIds.size()
+                + ' ctxIds=' + aapItemCtxIds);
             if (aapItemCtxIds.isEmpty()) {
+                logInfo('execute() SKIP: no AAP items; returning SUCCESS no-op');
                 response.status = RevSignaling.TransactionStatus.SUCCESS;
                 response.message = 'No AAP product-family items in context; nothing to do.';
                 return response;
@@ -110,16 +125,21 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
 
             Map<String, Map<String, Integer>> qtyByItemByResource =
                 queryQuantitiesByItem(contextId, aapItemCtxIds);
+            logInfo('execute() step 2/4 items with queued quantities=' + qtyByItemByResource.size());
+            logFine('execute() step 2/4 qtyByItemByResource=' + qtyByItemByResource);
             if (qtyByItemByResource.isEmpty()) {
+                logInfo('execute() SKIP: no matching SalesTransactionItemAttribute rows; returning SUCCESS no-op');
                 response.status = RevSignaling.TransactionStatus.SUCCESS;
                 response.message = 'No matching SalesTransactionItemAttribute rows for AAP items; nothing to do.';
                 return response;
             }
 
             Map<Id, String> resourceNameById = loadResourceNameById();
+            logInfo('execute() step 3/4 UsageResource records resolved=' + resourceNameById.size());
 
             List<Object> nodeUpdates =
                 buildGrantUpdates(contextId, aapItemCtxIds, qtyByItemByResource, resourceNameById);
+            logInfo('execute() step 4/4 grant updates built=' + nodeUpdates.size());
 
             // Batched in a single updateContextAttributes call so the engine
             // sees ONE atomic update event per posthook run, not N events
@@ -129,17 +149,22 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
                     'contextId' => contextId,
                     'nodePathAndAttributes' => nodeUpdates
                 };
+                logFine('execute() submitting updateContextAttributes input=' + JSON.serializePretty(updateInput));
                 industriesContext.updateContextAttributes(updateInput);
+                logInfo('execute() updateContextAttributes returned OK (' + nodeUpdates.size() + ' updates submitted)');
+            } else {
+                logInfo('execute() no updates to submit; skipping updateContextAttributes call');
             }
 
             response.status = RevSignaling.TransactionStatus.SUCCESS;
             response.message = 'AAP grant quantities updated: ' + nodeUpdates.size();
+            logInfo('=== execute() EXIT status=SUCCESS updatesSubmitted=' + nodeUpdates.size() + ' ===');
             return response;
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'RLM_AAPGrantPostHook error: ' + e.getMessage()
-                + ' stack=' + e.getStackTraceString());
+            logError('execute() FAILED: ' + e.getMessage() + ' stack=' + e.getStackTraceString());
             response.status = RevSignaling.TransactionStatus.FAILED;
-            response.message = 'RLM_AAPGrantPostHook error: ' + e.getMessage();
+            response.message = DEBUG_PREFIX + ' error: ' + e.getMessage();
+            logInfo('=== execute() EXIT status=FAILED ===');
             return response;
         } finally {
             // MUST reset in finally, not at the bottom of try: an uncaught
@@ -148,6 +173,7 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             // disabling the posthook for every subsequent transaction in the
             // same execution context.
             isRunning = false;
+            logFine('execute() recursion guard CLEARED (isRunning=false)');
         }
     }
 
@@ -161,31 +187,47 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
      * we don't want a casing drift to silently disable the hook.
      */
     private Set<String> queryAapItemCtxIds(String contextId) {
+        logFine('queryAapItemCtxIds() ENTER contextId=' + contextId);
         Map<String, Object> input = new Map<String, Object>{
             'contextId' => contextId,
             'tags' => new List<String>{ TAG_STI }
         };
         Map<String, Object> output = industriesContext.queryTags(input);
         List<Object> items = readNodes(output, TAG_STI);
+        logInfo('queryAapItemCtxIds() queryTags returned ' + items.size() + ' ' + TAG_STI + ' node(s)');
 
         Set<String> ctxIds = new Set<String>();
+        Integer skippedNoTagMap = 0;
+        Integer skippedNonAap = 0;
+        Integer skippedBlankCtxId = 0;
         for (Object itemObj : items) {
             Map<String, Object> node = (Map<String, Object>) itemObj;
             Map<String, Object> tagMap = (Map<String, Object>) node.get('tagValue');
             if (tagMap == null) {
+                skippedNoTagMap++;
                 continue;
             }
             String family = readTagString(tagMap, ITEM_FAMILY_ATTR);
-            if (AAP_PRODUCT_FAMILY.equalsIgnoreCase(family)) {
-                // The item's own ctx id is always the leaf of its dataPath;
-                // the engine guarantees the path is rooted at the context id
-                // and ends at the node being described.
-                String itemCtxId = lastDataPathSegment(node);
-                if (String.isNotBlank(itemCtxId)) {
-                    ctxIds.add(itemCtxId);
-                }
+            if (!AAP_PRODUCT_FAMILY.equalsIgnoreCase(family)) {
+                skippedNonAap++;
+                logFine('queryAapItemCtxIds() skip non-AAP item: family=' + family);
+                continue;
             }
+            // The item's own ctx id is always the leaf of its dataPath;
+            // the engine guarantees the path is rooted at the context id
+            // and ends at the node being described.
+            String itemCtxId = lastDataPathSegment(node);
+            if (String.isBlank(itemCtxId)) {
+                skippedBlankCtxId++;
+                continue;
+            }
+            ctxIds.add(itemCtxId);
+            logFine('queryAapItemCtxIds() matched AAP item ctxId=' + itemCtxId);
         }
+        logInfo('queryAapItemCtxIds() EXIT matched=' + ctxIds.size()
+            + ' skipped_no_tagMap=' + skippedNoTagMap
+            + ' skipped_non_aap=' + skippedNonAap
+            + ' skipped_blank_ctxid=' + skippedBlankCtxId);
         return ctxIds;
     }
 
@@ -200,31 +242,48 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         String contextId,
         Set<String> aapItemCtxIds
     ) {
+        logFine('queryQuantitiesByItem() ENTER contextId=' + contextId
+            + ' aapItemCtxIds=' + aapItemCtxIds);
         Map<String, Object> input = new Map<String, Object>{
             'contextId' => contextId,
             'tags' => new List<String>{ TAG_STIA }
         };
         Map<String, Object> output = industriesContext.queryTags(input);
         List<Object> attrs = readNodes(output, TAG_STIA);
+        logInfo('queryQuantitiesByItem() queryTags returned ' + attrs.size() + ' ' + TAG_STIA + ' node(s)');
 
         Map<String, Map<String, Integer>> byItem = new Map<String, Map<String, Integer>>();
+        Integer skippedNoTagMap = 0;
+        Integer skippedNonAapParent = 0;
+        Integer skippedUnmappedAttrName = 0;
+        Integer skippedBlankValue = 0;
+        Integer skippedNonInteger = 0;
+        Integer captured = 0;
         for (Object attrObj : attrs) {
             Map<String, Object> node = (Map<String, Object>) attrObj;
             Map<String, Object> tagMap = (Map<String, Object>) node.get('tagValue');
             if (tagMap == null) {
+                skippedNoTagMap++;
                 continue;
             }
             String parentItemCtxId = readTagString(tagMap, ATTR_STIA_PARENT);
             if (String.isBlank(parentItemCtxId) || !aapItemCtxIds.contains(parentItemCtxId)) {
+                skippedNonAapParent++;
                 continue;
             }
             String attrName = readTagString(tagMap, ATTR_NAME);
             String resourceName = ATTR_NAME_TO_RESOURCE_NAME.get(attrName);
             if (resourceName == null) {
+                skippedUnmappedAttrName++;
+                logFine('queryQuantitiesByItem() skip unmapped attrName=' + attrName
+                    + ' on item ' + parentItemCtxId);
                 continue;
             }
             String rawValue = readTagString(tagMap, ATTR_VALUE);
             if (String.isBlank(rawValue)) {
+                skippedBlankValue++;
+                logFine('queryQuantitiesByItem() skip blank AttributeValue for '
+                    + attrName + ' on item ' + parentItemCtxId);
                 continue;
             }
             // Per-row try/catch (rather than failing the whole posthook) so
@@ -234,8 +293,9 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             try {
                 qty = Integer.valueOf(rawValue.trim());
             } catch (Exception parseEx) {
-                System.debug(LoggingLevel.WARN, 'RLM_AAPGrantPostHook: non-integer AttributeValue "'
-                    + rawValue + '" for ' + attrName + ' on item ' + parentItemCtxId
+                skippedNonInteger++;
+                logWarn('queryQuantitiesByItem() non-integer AttributeValue "' + rawValue
+                    + '" for ' + attrName + ' on item ' + parentItemCtxId
                     + '; skipping (' + parseEx.getMessage() + ')');
                 continue;
             }
@@ -245,7 +305,17 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
                 byItem.put(parentItemCtxId, byResource);
             }
             byResource.put(resourceName, qty);
+            captured++;
+            logFine('queryQuantitiesByItem() captured item=' + parentItemCtxId
+                + ' resource=' + resourceName + ' qty=' + qty);
         }
+        logInfo('queryQuantitiesByItem() EXIT items_with_qty=' + byItem.size()
+            + ' captured_attrs=' + captured
+            + ' skipped_no_tagMap=' + skippedNoTagMap
+            + ' skipped_non_aap_parent=' + skippedNonAapParent
+            + ' skipped_unmapped_attr=' + skippedUnmappedAttrName
+            + ' skipped_blank_value=' + skippedBlankValue
+            + ' skipped_non_integer=' + skippedNonInteger);
         return byItem;
     }
 
@@ -259,8 +329,9 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
      * matching `allowRead=true` on UsageResource lives in RLM_QuantumBit.permissionset.
      */
     private Map<Id, String> loadResourceNameById() {
-        Map<Id, String> nameById = new Map<Id, String>();
         Set<String> wantedNames = new Set<String>(ATTR_NAME_TO_RESOURCE_NAME.values());
+        logFine('loadResourceNameById() ENTER wantedNames=' + wantedNames);
+        Map<Id, String> nameById = new Map<Id, String>();
         for (UsageResource ur : [
             SELECT Id, Name
             FROM UsageResource
@@ -268,7 +339,20 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             WITH USER_MODE
         ]) {
             nameById.put(ur.Id, ur.Name);
+            logFine('loadResourceNameById() resolved Name=' + ur.Name + ' Id=' + ur.Id);
         }
+        // A missing UsageResource isn't fatal (buildGrantUpdates simply skips
+        // the affected grants) but it's almost always a deployment/data bug,
+        // so surface it loudly so it's easy to spot in the debug log.
+        Set<String> foundNames = new Set<String>(nameById.values());
+        Set<String> missingNames = new Set<String>(wantedNames);
+        missingNames.removeAll(foundNames);
+        if (!missingNames.isEmpty()) {
+            logWarn('loadResourceNameById() missing UsageResource records by Name: '
+                + missingNames + ' (grants pointing at these will not be updated)');
+        }
+        logInfo('loadResourceNameById() EXIT resolved=' + nameById.size()
+            + '/' + wantedNames.size());
         return nameById;
     }
 
@@ -290,6 +374,9 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         Map<String, Map<String, Integer>> qtyByItemByResource,
         Map<Id, String> resourceNameById
     ) {
+        logFine('buildGrantUpdates() ENTER aapItems=' + aapItemCtxIds.size()
+            + ' itemsWithQty=' + qtyByItemByResource.size()
+            + ' knownResources=' + resourceNameById.size());
         List<Object> updates = new List<Object>();
 
         Map<String, Object> input = new Map<String, Object>{
@@ -298,23 +385,36 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         };
         Map<String, Object> output = industriesContext.queryTags(input);
         List<Object> grants = readNodes(output, TAG_GRANT);
+        logInfo('buildGrantUpdates() queryTags returned ' + grants.size() + ' ' + TAG_GRANT + ' node(s)');
 
+        Integer skippedNoTagMap = 0;
+        Integer skippedNonAapParent = 0;
+        Integer skippedNoQueuedQty = 0;
+        Integer skippedBlankResourceId = 0;
+        Integer skippedInvalidResourceId = 0;
+        Integer skippedUnknownResource = 0;
+        Integer skippedNoQty = 0;
+        Integer skippedBadPath = 0;
         for (Object grantObj : grants) {
             Map<String, Object> node = (Map<String, Object>) grantObj;
             Map<String, Object> tagMap = (Map<String, Object>) node.get('tagValue');
             if (tagMap == null) {
+                skippedNoTagMap++;
                 continue;
             }
             String parentItemCtxId = readTagString(tagMap, ATTR_GRANT_PARENT);
             if (String.isBlank(parentItemCtxId) || !aapItemCtxIds.contains(parentItemCtxId)) {
+                skippedNonAapParent++;
                 continue;
             }
             Map<String, Integer> queuedQtyByResource = qtyByItemByResource.get(parentItemCtxId);
             if (queuedQtyByResource == null || queuedQtyByResource.isEmpty()) {
+                skippedNoQueuedQty++;
                 continue;
             }
             String resourceIdString = readTagString(tagMap, ATTR_GRANT_RESOURCE);
             if (String.isBlank(resourceIdString)) {
+                skippedBlankResourceId++;
                 continue;
             }
             // Id.valueOf inside try/catch per the apex-classes rule: untrusted
@@ -324,8 +424,10 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             try {
                 resourceId = Id.valueOf(resourceIdString);
             } catch (Exception idEx) {
-                System.debug(LoggingLevel.WARN, 'RLM_AAPGrantPostHook: invalid UsageResource Id "'
-                    + resourceIdString + '"; skipping (' + idEx.getMessage() + ')');
+                skippedInvalidResourceId++;
+                logWarn('buildGrantUpdates() invalid UsageResource Id "'
+                    + resourceIdString + '" on item ' + parentItemCtxId
+                    + '; skipping (' + idEx.getMessage() + ')');
                 continue;
             }
             // resourceName == null means the grant's resource isn't one of
@@ -333,15 +435,24 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             // it doesn't exist in the org). Either way: leave the grant alone.
             String resourceName = resourceNameById.get(resourceId);
             if (resourceName == null) {
+                skippedUnknownResource++;
+                logFine('buildGrantUpdates() skip grant on item=' + parentItemCtxId
+                    + ' resourceId=' + resourceId + ' (not in our AAP resource set)');
                 continue;
             }
             Integer qty = queuedQtyByResource.get(resourceName);
             if (qty == null) {
+                skippedNoQty++;
+                logFine('buildGrantUpdates() skip grant on item=' + parentItemCtxId
+                    + ' resource=' + resourceName + ' (no queued attribute value)');
                 continue;
             }
 
             List<Object> grantPath = cloneDataPathWithoutContextId(node);
             if (grantPath == null || grantPath.isEmpty()) {
+                skippedBadPath++;
+                logWarn('buildGrantUpdates() grant on item=' + parentItemCtxId
+                    + ' has empty/null dataPath; skipping');
                 continue;
             }
 
@@ -358,7 +469,19 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
                     }
                 }
             });
+            logInfo('buildGrantUpdates() queued update item=' + parentItemCtxId
+                + ' resource=' + resourceName + ' ' + GRANT_QUANTITY_ATTR + '=' + qty
+                + ' grantPath=' + grantPath);
         }
+        logInfo('buildGrantUpdates() EXIT updates=' + updates.size()
+            + ' skipped_no_tagMap=' + skippedNoTagMap
+            + ' skipped_non_aap_parent=' + skippedNonAapParent
+            + ' skipped_no_queued_qty=' + skippedNoQueuedQty
+            + ' skipped_blank_resource_id=' + skippedBlankResourceId
+            + ' skipped_invalid_resource_id=' + skippedInvalidResourceId
+            + ' skipped_unknown_resource=' + skippedUnknownResource
+            + ' skipped_no_qty=' + skippedNoQty
+            + ' skipped_bad_path=' + skippedBadPath);
         return updates;
     }
 
@@ -439,11 +562,39 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         private final Context.IndustriesContext delegateCtx = new Context.IndustriesContext();
 
         public Map<String, Object> queryTags(Map<String, Object> input) {
+            // Tag list logged at INFO because it's small and high-value for
+            // debugging "engine returned nothing" symptoms.
+            logInfo('RealContextClient.queryTags() tags=' + input.get('tags'));
             return delegateCtx.queryTags(input);
         }
 
         public Map<String, Object> updateContextAttributes(Map<String, Object> input) {
+            Object nodes = input.get('nodePathAndAttributes');
+            Integer batchSize = (nodes instanceof List<Object>) ? ((List<Object>) nodes).size() : 0;
+            logInfo('RealContextClient.updateContextAttributes() batchSize=' + batchSize);
             return delegateCtx.updateContextAttributes(input);
         }
+    }
+
+    // Logging helpers keep call sites short and the DEBUG_PREFIX consistent.
+    // Centralised so log format, prefix, or future routing (e.g. Platform
+    // Event emission) can change in one place. Use logFine for per-iteration
+    // detail (only shown when the FINE category is raised), logInfo for
+    // lifecycle/summary, logWarn for non-fatal skips, logError for caught
+    // exceptions only.
+    private static void logInfo(String msg) {
+        System.debug(LoggingLevel.INFO, DEBUG_PREFIX + ': ' + msg);
+    }
+
+    private static void logFine(String msg) {
+        System.debug(LoggingLevel.FINE, DEBUG_PREFIX + ': ' + msg);
+    }
+
+    private static void logWarn(String msg) {
+        System.debug(LoggingLevel.WARN, DEBUG_PREFIX + ': ' + msg);
+    }
+
+    private static void logError(String msg) {
+        System.debug(LoggingLevel.ERROR, DEBUG_PREFIX + ': ' + msg);
     }
 }
