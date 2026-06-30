@@ -3,13 +3,13 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**270 tasks** across **10 groups**.
+**272 tasks** across **10 groups**.
 
 ---
 
 ## Data Maintenance
 
-*6 task(s)*
+*8 task(s)*
 
 ### `delete_draft_billing_records`
 
@@ -32,6 +32,30 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/q3/en-US/q3-pricing`
+
+---
+
+### `delete_q3_rates_data`
+
+**Description:** Delete all rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard), deactivating Active records first. Shape-agnostic — reuses deleteQbRatesData.apex. Run before re-inserting q3-rates so a rerun on a q3 org doesn't fail deleting Active records (the q3-rates plan uses Insert+deleteOldData and activation makes them Active).
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/deleteQbRatesData.apex`
+
+---
+
+### `delete_q3_rating_data`
+
+**Description:** Delete all rating data (PUG, PURP, PUR, RatingFrequencyPolicy, etc.), deactivating Active PUGs first. Shape-agnostic — reuses deleteQbRatingData.apex. Run before re-inserting q3-rating so a rerun on a q3 org doesn't fail deleting Active records.
+
+**Class:** `cumulusci.tasks.apex.anon.AnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/deleteQbRatingData.apex`
 
 ---
 

@@ -2470,6 +2470,20 @@ tasks:
     options:
       path: scripts/apex/deleteQbRatingData.apex
 
+  delete_q3_rates_data:
+    group: Data Maintenance
+    description: Delete all rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard), deactivating Active records first. Shape-agnostic — reuses deleteQbRatesData.apex. Run before re-inserting q3-rates so a rerun on a q3 org doesn't fail deleting Active records (the q3-rates plan uses Insert+deleteOldData and activation makes them Active).
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteQbRatesData.apex
+
+  delete_q3_rating_data:
+    group: Data Maintenance
+    description: Delete all rating data (PUG, PURP, PUR, RatingFrequencyPolicy, etc.), deactivating Active PUGs first. Shape-agnostic — reuses deleteQbRatingData.apex. Run before re-inserting q3-rating so a rerun on a q3 org doesn't fail deleting Active records.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteQbRatingData.apex
+
   delete_draft_billing_records:
     group: Data Maintenance
     description: Delete all draft billing-related records (BillingTreatmentItem, BillingTreatment, BillingPolicy, PaymentTermItem, PaymentTerm) in dependency order. Use before re-running the billing data plan to avoid duplicates.
@@ -4015,7 +4029,7 @@ flows:
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
       3:
         task: insert_q3_billing_data
-        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
+        when: project_config.project__custom__billing and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
       4:
         task: create_sequence_policies
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
@@ -4198,18 +4212,24 @@ flows:
         task: insert_qb_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
       4:
+        task: delete_q3_rates_data
+        when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh
+      5:
+        task: delete_q3_rating_data
+        when: project_config.project__custom__rating and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh
+      6:
         task: insert_q3_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
-      5:
+      7:
         task: insert_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-      6:
+      8:
         task: insert_q3_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
-      7:
+      9:
         task: activate_rating_records
         when: project_config.project__custom__rating and project_config.project__custom__rates
-      8:
+      10:
         task: activate_rates
         when: project_config.project__custom__rating and project_config.project__custom__rates
 

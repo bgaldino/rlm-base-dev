@@ -201,7 +201,7 @@ Extract rating and rates data from an org into CSV files
 
 1. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
 2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
-3. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+3. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
 4. **task** `create_sequence_policies`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
 5. **task** `activate_flow`  `when: project_config.project__custom__billing`
    - `developer_names`: `RLM_Order_to_Billing_Schedule_Flow`
@@ -563,11 +563,13 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 1. **task** `delete_qb_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__qb and not project_config.project__custom__refresh`
 2. **task** `delete_qb_rating_data`  `when: project_config.project__custom__rating and project_config.project__custom__qb and not project_config.project__custom__refresh`
 3. **task** `insert_qb_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb`
-4. **task** `insert_q3_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
-5. **task** `insert_qb_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb`
-6. **task** `insert_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
-7. **task** `activate_rating_records`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
-8. **task** `activate_rates`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
+4. **task** `delete_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh`
+5. **task** `delete_q3_rating_data`  `when: project_config.project__custom__rating and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh`
+6. **task** `insert_q3_rating_data`  `when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+7. **task** `insert_qb_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb`
+8. **task** `insert_q3_rates_data`  `when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
+9. **task** `activate_rating_records`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
+10. **task** `activate_rates`  `when: project_config.project__custom__rating and project_config.project__custom__rates`
 
 ---
 
