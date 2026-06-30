@@ -103,7 +103,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
 - `prepare_billing_portal` step 3 → `publish_community`
 - `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
-- `run_q3_idempotency_tests` step 7 → `test_q3_billing_idempotency`
+- `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
 ### `billing_portal` (default: `False`)
 
@@ -330,8 +330,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_rating` step 4 → `insert_q3_rating_data`
 - `prepare_rating` step 6 → `insert_q3_rates_data`
-- `run_q3_idempotency_tests` step 6 → `test_q3_tax_idempotency`
-- `run_q3_idempotency_tests` step 7 → `test_q3_billing_idempotency`
+- `run_q3_idempotency_tests` step 5 → `test_q3_tax_idempotency`
+- `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
 ### `qb` (default: `True`)
 
@@ -443,7 +443,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_tax` step 4 → `activate_tax_records`
 - `run_qb_idempotency_tests` step 10 → `test_qb_tax_idempotency`
-- `run_q3_idempotency_tests` step 6 → `test_q3_tax_idempotency`
+- `run_q3_idempotency_tests` step 5 → `test_q3_tax_idempotency`
 
 ### `tso` (default: `False`)
 

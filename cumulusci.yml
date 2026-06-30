@@ -4710,19 +4710,22 @@ flows:
     steps:
       1:
         task: test_q3_pcm_idempotency
+      # Intentional exclusion: q3-pricing uses plain Insert (no deleteOldData, mirroring
+      # qb-pricing), so a two-load idempotency test would add duplicate rows instead of
+      # proving rerun safety. q3-pricing rerun safety is provided by delete_q3_pricing_data
+      # before insert_q3_pricing_data in prepare_pricing_data. test_q3_pricing_idempotency
+      # remains standalone (matching the qb-guidedselling exclusion pattern above).
       2:
-        task: test_q3_pricing_idempotency
-      3:
         task: test_q3_rating_idempotency
-      4:
+      3:
         task: test_q3_rates_idempotency
-      5:
+      4:
         task: test_q3_dro_idempotency
       # tax before billing: q3-billing references LegalEntity rows that q3-tax upserts.
-      6:
+      5:
         task: test_q3_tax_idempotency
         when: project_config.project__custom__tax and project_config.project__custom__q3
-      7:
+      6:
         task: test_q3_billing_idempotency
         when: project_config.project__custom__billing and project_config.project__custom__q3
 
