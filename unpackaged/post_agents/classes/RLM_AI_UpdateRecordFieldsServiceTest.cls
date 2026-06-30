@@ -862,4 +862,49 @@ private class RLM_AI_UpdateRecordFieldsServiceTest {
         System.assert(String.isNotBlank(out.candidateQuoteLineSummariesDisplay),
             'Should have candidate display');
     }
+
+    // ---- Boolean coercion ----
+    @isTest
+    static void coercesBooleanYesNoValues() {
+        Fixture f = buildFixture(new List<String>{ 'BoolTest Product' });
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'Product2';
+        input.recordId = String.valueOf(
+            [SELECT Product2Id FROM QuoteLineItem WHERE Id = :f.lineIds[0]].Product2Id
+        );
+        input.fieldUpdatesJson = '[{"fieldApiName":"IsActive","value":"yes"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assertEquals(null, out.errorMessage, 'Should succeed with yes');
+        System.assertEquals(1, out.updatedCount);
+    }
+
+    @isTest
+    static void rejectsInvalidBooleanValue() {
+        Fixture f = buildFixture(new List<String>{ 'BoolReject Product' });
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput input = baseInput(f.quoteId);
+        input.sObjectType = 'Product2';
+        input.recordId = String.valueOf(
+            [SELECT Product2Id FROM QuoteLineItem WHERE Id = :f.lineIds[0]].Product2Id
+        );
+        input.fieldUpdatesJson = '[{"fieldApiName":"IsActive","value":"maybe"}]';
+
+        Test.startTest();
+        List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput> results =
+            RLM_AI_UpdateRecordFieldsService.updateRecordFields(
+                new List<RLM_AI_UpdateRecordFieldsService.UpdateFieldsInput>{ input });
+        Test.stopTest();
+
+        RLM_AI_UpdateRecordFieldsService.UpdateFieldsOutput out = results[0];
+        System.assert(String.isNotBlank(out.errorMessage),
+            'Should reject invalid boolean');
+        System.assert(out.errorMessage.containsIgnoreCase('boolean'),
+            'Error should mention boolean: ' + out.errorMessage);
+    }
 }

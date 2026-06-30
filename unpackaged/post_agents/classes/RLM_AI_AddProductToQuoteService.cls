@@ -388,16 +388,6 @@ public with sharing class RLM_AI_AddProductToQuoteService {
         return String.valueOf(value);
     }
 
-    private static String normalizeText(String value) {
-        if (String.isBlank(value)) {
-            return '';
-        }
-        return value
-            .toLowerCase()
-            .replaceAll('[^a-z0-9]+', ' ')
-            .replaceAll('\\s+', ' ')
-            .trim();
-    }
 
     // ---- Managed add-line invocation seam (injectable for tests) ----
 

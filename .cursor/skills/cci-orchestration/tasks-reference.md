@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**255 tasks** across **10 groups**.
+**256 tasks** across **10 groups**.
 
 ---
 
@@ -852,7 +852,7 @@
 
 ## Revenue Lifecycle Management
 
-*162 task(s)*
+*163 task(s)*
 
 ### `activate_agents`
 
@@ -1367,6 +1367,14 @@
 **Options:**
 
 - `path`: `scripts/apex/createTaxEngine.apex`
+
+---
+
+### `deactivate_agents`
+
+**Description:** Deactivate the active BotVersion for each legacy agent (bots/) via `sf agent deactivate`. Required before redeploying legacy Bot+BotVersion metadata on idempotent re-runs — the platform rejects updates to active bots. Already-inactive agents are tolerated (no-op). Does not affect Agent Script (aiAuthoringBundles) agents.
+
+**Class:** `tasks.rlm_deactivate_agents.DeactivateAgents`
 
 ---
 

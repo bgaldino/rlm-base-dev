@@ -260,8 +260,8 @@ public with sharing class RLM_AI_ApplyQuoteLineDiscountsService {
 
     /**
      * Converts the discount spec to a flat percentage for a specific line.
-     * targetPrice / percentOfList need the line's ListPrice; returns null when
-     * that cannot be determined so the caller can report it cleanly.
+     * targetPrice needs the line's ListPrice; returns null when that cannot be
+     * determined so the caller can report it cleanly.
      */
     private static Decimal computePercentForLine(DiscountSpec spec, QuoteLineItem qli) {
         if (spec.mode == 'percent') {
