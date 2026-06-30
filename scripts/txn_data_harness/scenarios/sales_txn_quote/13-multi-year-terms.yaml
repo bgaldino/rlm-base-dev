@@ -17,8 +17,8 @@
 # the resolved PSM. An explicit ``term: {count, unit}`` must match the
 # PSM's ``PricingTermUnit``; mismatch raises ConfigError at plan time.
 #
-# Prereqs: QB pricing dataset loaded so QB-API-FLEX (and any multi-PBE
-# SKUs you swap in) exist in the org.
+# Prereqs: QB pricing dataset loaded so QB-API (multi-PSM: Term Monthly,
+# Term Annual, Evergreen) exists in the org.
 defaults:
   kind: sales_txn_quote        # PST chain; per-line term exercises
 
@@ -28,29 +28,40 @@ scenarios:
   - account: "Infinitech"
     target_stage: invoice_posted
     products:
-      - sku: "QB-API-FLEX"
+      - sku: "QB-API"
         quantity: 1
         term: {count: 1, unit: Annual}
+        selling_model: "Term Annual"
     count: 1
 
   # 3-year Annual deal -- exercises multi-year EndDate calculation.
   - account: "Infinitech"
     target_stage: invoice_posted
     products:
-      - sku: "QB-API-FLEX"
+      - sku: "QB-API"
         quantity: 1
         term: {count: 3, unit: Annual}
+        selling_model: "Term Annual"
     count: 1
 
-  # Bare-int form: the runner promotes the unit from the PSM.
-  # Useful when you want a friendly "give me 24 of whatever this product
-  # is measured in" without re-declaring the unit.
+  # 12-month Monthly deal -- exercises the Months code path.
   - account: "Infinitech"
     target_stage: invoice_posted
     products:
-      - sku: "QB-API-FLEX"
+      - sku: "QB-API"
         quantity: 1
-        term: 24
+        term: {count: 12, unit: Months}
+        selling_model: "Term Monthly"
+    count: 1
+
+  # 24-month Monthly deal -- multi-year via monthly cadence.
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API"
+        quantity: 1
+        term: {count: 24, unit: Months}
+        selling_model: "Term Monthly"
     count: 1
 
   # PSM-default fallback: no ``term:`` block -> harness uses the PSM's
@@ -59,8 +70,9 @@ scenarios:
   - account: "Infinitech"
     target_stage: invoice_posted
     products:
-      - sku: "QB-API-FLEX"
+      - sku: "QB-API"
         quantity: 1
+        selling_model: "Term Annual"
     count: 1
 
   # Mixed terms on one quote: a 12-month line and a 3-year Annual line
@@ -68,10 +80,12 @@ scenarios:
   - account: "Infinitech"
     target_stage: invoice_posted
     products:
-      - sku: "QB-API-FLEX"
+      - sku: "QB-API"
         quantity: 1
         term: {count: 12, unit: Months}
-      - sku: "QB-API-FLEX"
+        selling_model: "Term Monthly"
+      - sku: "QB-API"
         quantity: 1
         term: {count: 3, unit: Annual}
+        selling_model: "Term Annual"
     count: 1

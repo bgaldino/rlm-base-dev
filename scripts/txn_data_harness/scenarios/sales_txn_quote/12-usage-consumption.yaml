@@ -26,7 +26,7 @@ scenarios:
           quantity: [100, 500]
           records_per_line: [5, 10]
           days_back: 30                 # spread ActivityDate over last 30 days
-      - sku: "QB-TOKENS-PACK"
+      - sku: "QB-DB-TOKEN"              # grants QB-TOKEN (has ProductUsageGrant)
         quantity: 1
         usage:
           resource: "QB-TOKEN"           # explicit (single binding, optional)
