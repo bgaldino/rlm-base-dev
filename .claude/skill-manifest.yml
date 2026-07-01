@@ -193,6 +193,13 @@ foundations:
         - scripts/ai/skill_manifest.py
       governs: .claude/skill-manifest.yml
 
+    - id: pde-org-build
+      path: .cursor/skills/pde-org-build/SKILL.md
+      purpose: "Build a PDE (or other org type) via runtime-only feature-flag overrides with a self-reverting script + Cloud-Agent command"
+      consumed_by_pmos: []
+      tooling:
+        - scripts/build_pde_dev_r1.sh
+
   # CCI tasks that Foundations exposes for cross-repo workflows
   cci_tasks:
     - id: snapshot_salesforce_help

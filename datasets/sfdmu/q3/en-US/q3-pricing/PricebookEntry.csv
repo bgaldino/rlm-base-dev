@@ -1,0 +1,747 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$CurrencyIsoCode,CurrencyIsoCode,IsActive,IsDerived,Name,Pricebook2.$$Name$IsStandard,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,UnitPrice
+ACERT001;Term Based - Yearly;USD,USD,true,false,Admin Certification,Standard Price Book;true,ACERT001,Term Based - Yearly;TermDefined,2000
+ACERT001;Term Based - Yearly;SEK,SEK,true,false,Admin Certification,Standard Price Book;true,ACERT001,Term Based - Yearly;TermDefined,21300
+ACERT001;Term Based - Yearly;JPY,JPY,true,false,Admin Certification,Standard Price Book;true,ACERT001,Term Based - Yearly;TermDefined,298440
+ACERT001;Term Based - Yearly;INR,INR,true,false,Admin Certification,Standard Price Book;true,ACERT001,Term Based - Yearly;TermDefined,167920
+ACERT001;Term Based - Yearly;GBP,GBP,true,false,Admin Certification,Standard Price Book;true,ACERT001,Term Based - Yearly;TermDefined,1580
+ACERT001;Term Based - Yearly;EUR,EUR,true,false,Admin Certification,Standard Price Book;true,ACERT001,Term Based - Yearly;TermDefined,1920
+ACERT001;Term Based - Yearly;CAD,CAD,true,false,Admin Certification,Standard Price Book;true,ACERT001,Term Based - Yearly;TermDefined,2840
+ACERT001;Term Based - Yearly;BRL,BRL,true,false,Admin Certification,Standard Price Book;true,ACERT001,Term Based - Yearly;TermDefined,11480
+ACERT001;Term Based - Yearly;AUD,AUD,true,false,Admin Certification,Standard Price Book;true,ACERT001,Term Based - Yearly;TermDefined,3140
+ACERT001;Term Based - Yearly;AED,AED,true,false,Admin Certification,Standard Price Book;true,ACERT001,Term Based - Yearly;TermDefined,7340
+ANC01;Term Based - Monthly;USD,USD,true,false,Anchor Product with Token,Standard Price Book;true,ANC01,Term Based - Monthly;TermDefined,30
+ANC01-2;Term Based - Monthly;USD,USD,true,false,Anchor C,Standard Price Book;true,ANC01-2,Term Based - Monthly;TermDefined,30
+APTRG001;One Time;USD,USD,true,false,AI Specialist Training,Standard Price Book;true,APTRG001,One Time;OneTime,1500
+APTRG001;One Time;SEK,SEK,true,false,AI Specialist Training,Standard Price Book;true,APTRG001,One Time;OneTime,15975
+APTRG001;One Time;JPY,JPY,true,false,AI Specialist Training,Standard Price Book;true,APTRG001,One Time;OneTime,223830
+APTRG001;One Time;INR,INR,true,false,AI Specialist Training,Standard Price Book;true,APTRG001,One Time;OneTime,125940
+APTRG001;One Time;GBP,GBP,true,false,AI Specialist Training,Standard Price Book;true,APTRG001,One Time;OneTime,1185
+APTRG001;One Time;EUR,EUR,true,false,AI Specialist Training,Standard Price Book;true,APTRG001,One Time;OneTime,1440
+APTRG001;One Time;CAD,CAD,true,false,AI Specialist Training,Standard Price Book;true,APTRG001,One Time;OneTime,2130
+APTRG001;One Time;BRL,BRL,true,false,AI Specialist Training,Standard Price Book;true,APTRG001,One Time;OneTime,8610
+APTRG001;One Time;AUD,AUD,true,false,AI Specialist Training,Standard Price Book;true,APTRG001,One Time;OneTime,2355
+APTRG001;One Time;AED,AED,true,false,AI Specialist Training,Standard Price Book;true,APTRG001,One Time;OneTime,5505
+ASTCERT001;Term Based - Yearly;USD,USD,true,false,AI Specialist Certification,Standard Price Book;true,ASTCERT001,Term Based - Yearly;TermDefined,2000
+ASTCERT001;Term Based - Yearly;SEK,SEK,true,false,AI Specialist Certification,Standard Price Book;true,ASTCERT001,Term Based - Yearly;TermDefined,21300
+ASTCERT001;Term Based - Yearly;JPY,JPY,true,false,AI Specialist Certification,Standard Price Book;true,ASTCERT001,Term Based - Yearly;TermDefined,298440
+ASTCERT001;Term Based - Yearly;INR,INR,true,false,AI Specialist Certification,Standard Price Book;true,ASTCERT001,Term Based - Yearly;TermDefined,167920
+ASTCERT001;Term Based - Yearly;GBP,GBP,true,false,AI Specialist Certification,Standard Price Book;true,ASTCERT001,Term Based - Yearly;TermDefined,1580
+ASTCERT001;Term Based - Yearly;EUR,EUR,true,false,AI Specialist Certification,Standard Price Book;true,ASTCERT001,Term Based - Yearly;TermDefined,1920
+ASTCERT001;Term Based - Yearly;CAD,CAD,true,false,AI Specialist Certification,Standard Price Book;true,ASTCERT001,Term Based - Yearly;TermDefined,2840
+ASTCERT001;Term Based - Yearly;BRL,BRL,true,false,AI Specialist Certification,Standard Price Book;true,ASTCERT001,Term Based - Yearly;TermDefined,11480
+ASTCERT001;Term Based - Yearly;AUD,AUD,true,false,AI Specialist Certification,Standard Price Book;true,ASTCERT001,Term Based - Yearly;TermDefined,3140
+ASTCERT001;Term Based - Yearly;AED,AED,true,false,AI Specialist Certification,Standard Price Book;true,ASTCERT001,Term Based - Yearly;TermDefined,7340
+ATRG001;Term Based - Yearly;USD,USD,true,false,Advanced Training,Standard Price Book;true,ATRG001,Term Based - Yearly;TermDefined,5000
+ATRG001;Term Based - Yearly;SEK,SEK,true,false,Advanced Training,Standard Price Book;true,ATRG001,Term Based - Yearly;TermDefined,53250
+ATRG001;Term Based - Yearly;JPY,JPY,true,false,Advanced Training,Standard Price Book;true,ATRG001,Term Based - Yearly;TermDefined,746100
+ATRG001;Term Based - Yearly;INR,INR,true,false,Advanced Training,Standard Price Book;true,ATRG001,Term Based - Yearly;TermDefined,419800
+ATRG001;Term Based - Yearly;GBP,GBP,true,false,Advanced Training,Standard Price Book;true,ATRG001,Term Based - Yearly;TermDefined,3950
+ATRG001;Term Based - Yearly;EUR,EUR,true,false,Advanced Training,Standard Price Book;true,ATRG001,Term Based - Yearly;TermDefined,4800
+ATRG001;Term Based - Yearly;CAD,CAD,true,false,Advanced Training,Standard Price Book;true,ATRG001,Term Based - Yearly;TermDefined,7100
+ATRG001;Term Based - Yearly;BRL,BRL,true,false,Advanced Training,Standard Price Book;true,ATRG001,Term Based - Yearly;TermDefined,28700
+ATRG001;Term Based - Yearly;AUD,AUD,true,false,Advanced Training,Standard Price Book;true,ATRG001,Term Based - Yearly;TermDefined,7850
+ATRG001;Term Based - Yearly;AED,AED,true,false,Advanced Training,Standard Price Book;true,ATRG001,Term Based - Yearly;TermDefined,18350
+ATTMB001;Term Based - Monthly;USD,USD,true,false,AT&T Mobile Plan,Standard Price Book;true,ATTMB001,Term Based - Monthly;TermDefined,60
+ATTMB001;Term Based - Monthly;SEK,SEK,true,false,AT&T Mobile Plan,Standard Price Book;true,ATTMB001,Term Based - Monthly;TermDefined,639
+ATTMB001;Term Based - Monthly;JPY,JPY,true,false,AT&T Mobile Plan,Standard Price Book;true,ATTMB001,Term Based - Monthly;TermDefined,8953.2
+ATTMB001;Term Based - Monthly;INR,INR,true,false,AT&T Mobile Plan,Standard Price Book;true,ATTMB001,Term Based - Monthly;TermDefined,5037.6
+ATTMB001;Term Based - Monthly;GBP,GBP,true,false,AT&T Mobile Plan,Standard Price Book;true,ATTMB001,Term Based - Monthly;TermDefined,47.4
+ATTMB001;Term Based - Monthly;EUR,EUR,true,false,AT&T Mobile Plan,Standard Price Book;true,ATTMB001,Term Based - Monthly;TermDefined,57.6
+ATTMB001;Term Based - Monthly;CAD,CAD,true,false,AT&T Mobile Plan,Standard Price Book;true,ATTMB001,Term Based - Monthly;TermDefined,85.2
+ATTMB001;Term Based - Monthly;BRL,BRL,true,false,AT&T Mobile Plan,Standard Price Book;true,ATTMB001,Term Based - Monthly;TermDefined,344.4
+ATTMB001;Term Based - Monthly;AUD,AUD,true,false,AT&T Mobile Plan,Standard Price Book;true,ATTMB001,Term Based - Monthly;TermDefined,94.2
+ATTMB001;Term Based - Monthly;AED,AED,true,false,AT&T Mobile Plan,Standard Price Book;true,ATTMB001,Term Based - Monthly;TermDefined,220.2
+AV001;Evergreen - Yearly;USD,USD,true,false,Antivirus,Nonprofit;false,AV001,Evergreen - Yearly;Evergreen,49.99
+AV001;Evergreen - Yearly;SEK,SEK,true,false,Antivirus,Nonprofit;false,AV001,Evergreen - Yearly;Evergreen,532.3935
+AV001;Evergreen - Yearly;JPY,JPY,true,false,Antivirus,Nonprofit;false,AV001,Evergreen - Yearly;Evergreen,7459.5078
+AV001;Evergreen - Yearly;INR,INR,true,false,Antivirus,Nonprofit;false,AV001,Evergreen - Yearly;Evergreen,4197.1604
+AV001;Evergreen - Yearly;GBP,GBP,true,false,Antivirus,Nonprofit;false,AV001,Evergreen - Yearly;Evergreen,39.4921
+AV001;Evergreen - Yearly;EUR,EUR,true,false,Antivirus,Nonprofit;false,AV001,Evergreen - Yearly;Evergreen,47.9904
+AV001;Evergreen - Yearly;CAD,CAD,true,false,Antivirus,Nonprofit;false,AV001,Evergreen - Yearly;Evergreen,70.9858
+AV001;Evergreen - Yearly;BRL,BRL,true,false,Antivirus,Nonprofit;false,AV001,Evergreen - Yearly;Evergreen,286.9426
+AV001;Evergreen - Yearly;AUD,AUD,true,false,Antivirus,Nonprofit;false,AV001,Evergreen - Yearly;Evergreen,78.4843
+AV001;Evergreen - Yearly;AED,AED,true,false,Antivirus,Nonprofit;false,AV001,Evergreen - Yearly;Evergreen,183.4633
+AV001;Evergreen - Yearly;USD,USD,true,false,Antivirus,Standard Price Book;true,AV001,Evergreen - Yearly;Evergreen,99.99
+AV001;Evergreen - Yearly;SEK,SEK,true,false,Antivirus,Standard Price Book;true,AV001,Evergreen - Yearly;Evergreen,1064.8935
+AV001;Evergreen - Yearly;JPY,JPY,true,false,Antivirus,Standard Price Book;true,AV001,Evergreen - Yearly;Evergreen,14920.5078
+AV001;Evergreen - Yearly;INR,INR,true,false,Antivirus,Standard Price Book;true,AV001,Evergreen - Yearly;Evergreen,8395.1604
+AV001;Evergreen - Yearly;GBP,GBP,true,false,Antivirus,Standard Price Book;true,AV001,Evergreen - Yearly;Evergreen,78.9921
+AV001;Evergreen - Yearly;EUR,EUR,true,false,Antivirus,Standard Price Book;true,AV001,Evergreen - Yearly;Evergreen,95.9904
+AV001;Evergreen - Yearly;CAD,CAD,true,false,Antivirus,Standard Price Book;true,AV001,Evergreen - Yearly;Evergreen,141.9858
+AV001;Evergreen - Yearly;BRL,BRL,true,false,Antivirus,Standard Price Book;true,AV001,Evergreen - Yearly;Evergreen,573.9426
+AV001;Evergreen - Yearly;AUD,AUD,true,false,Antivirus,Standard Price Book;true,AV001,Evergreen - Yearly;Evergreen,156.9843
+AV001;Evergreen - Yearly;AED,AED,true,false,Antivirus,Standard Price Book;true,AV001,Evergreen - Yearly;Evergreen,366.9633
+CERT007;Term Based - Yearly;USD,USD,true,false,Specialized Certifications,Standard Price Book;true,CERT007,Term Based - Yearly;TermDefined,3000
+CERT007;Term Based - Yearly;SEK,SEK,true,false,Specialized Certifications,Standard Price Book;true,CERT007,Term Based - Yearly;TermDefined,31950
+CERT007;Term Based - Yearly;JPY,JPY,true,false,Specialized Certifications,Standard Price Book;true,CERT007,Term Based - Yearly;TermDefined,447660
+CERT007;Term Based - Yearly;INR,INR,true,false,Specialized Certifications,Standard Price Book;true,CERT007,Term Based - Yearly;TermDefined,251880
+CERT007;Term Based - Yearly;GBP,GBP,true,false,Specialized Certifications,Standard Price Book;true,CERT007,Term Based - Yearly;TermDefined,2370
+CERT007;Term Based - Yearly;EUR,EUR,true,false,Specialized Certifications,Standard Price Book;true,CERT007,Term Based - Yearly;TermDefined,2880
+CERT007;Term Based - Yearly;CAD,CAD,true,false,Specialized Certifications,Standard Price Book;true,CERT007,Term Based - Yearly;TermDefined,4260
+CERT007;Term Based - Yearly;BRL,BRL,true,false,Specialized Certifications,Standard Price Book;true,CERT007,Term Based - Yearly;TermDefined,17220
+CERT007;Term Based - Yearly;AUD,AUD,true,false,Specialized Certifications,Standard Price Book;true,CERT007,Term Based - Yearly;TermDefined,4710
+CERT007;Term Based - Yearly;AED,AED,true,false,Specialized Certifications,Standard Price Book;true,CERT007,Term Based - Yearly;TermDefined,11010
+CLOUD001;Term Based - Monthly;USD,USD,true,false,Cloud Storage Pro,Standard Price Book;true,CLOUD001,Term Based - Monthly;TermDefined,50
+CLOUD001;Term Based - Monthly;SEK,SEK,true,false,Cloud Storage Pro,Standard Price Book;true,CLOUD001,Term Based - Monthly;TermDefined,532.5
+CLOUD001;Term Based - Monthly;JPY,JPY,true,false,Cloud Storage Pro,Standard Price Book;true,CLOUD001,Term Based - Monthly;TermDefined,7461
+CLOUD001;Term Based - Monthly;INR,INR,true,false,Cloud Storage Pro,Standard Price Book;true,CLOUD001,Term Based - Monthly;TermDefined,4198
+CLOUD001;Term Based - Monthly;GBP,GBP,true,false,Cloud Storage Pro,Standard Price Book;true,CLOUD001,Term Based - Monthly;TermDefined,39.5
+CLOUD001;Term Based - Monthly;EUR,EUR,true,false,Cloud Storage Pro,Standard Price Book;true,CLOUD001,Term Based - Monthly;TermDefined,48
+CLOUD001;Term Based - Monthly;CAD,CAD,true,false,Cloud Storage Pro,Standard Price Book;true,CLOUD001,Term Based - Monthly;TermDefined,71
+CLOUD001;Term Based - Monthly;BRL,BRL,true,false,Cloud Storage Pro,Standard Price Book;true,CLOUD001,Term Based - Monthly;TermDefined,287
+CLOUD001;Term Based - Monthly;AUD,AUD,true,false,Cloud Storage Pro,Standard Price Book;true,CLOUD001,Term Based - Monthly;TermDefined,78.5
+CLOUD001;Term Based - Monthly;AED,AED,true,false,Cloud Storage Pro,Standard Price Book;true,CLOUD001,Term Based - Monthly;TermDefined,183.5
+CLOUD001-2;Term Based - Monthly;USD,USD,true,false,API Access Premium,Standard Price Book;true,CLOUD001-2,Term Based - Monthly;TermDefined,75
+CLOUD001-2;Term Based - Monthly;SEK,SEK,true,false,API Access Premium,Standard Price Book;true,CLOUD001-2,Term Based - Monthly;TermDefined,798.75
+CLOUD001-2;Term Based - Monthly;JPY,JPY,true,false,API Access Premium,Standard Price Book;true,CLOUD001-2,Term Based - Monthly;TermDefined,11191.5
+CLOUD001-2;Term Based - Monthly;INR,INR,true,false,API Access Premium,Standard Price Book;true,CLOUD001-2,Term Based - Monthly;TermDefined,6297
+CLOUD001-2;Term Based - Monthly;GBP,GBP,true,false,API Access Premium,Standard Price Book;true,CLOUD001-2,Term Based - Monthly;TermDefined,59.25
+CLOUD001-2;Term Based - Monthly;EUR,EUR,true,false,API Access Premium,Standard Price Book;true,CLOUD001-2,Term Based - Monthly;TermDefined,72
+CLOUD001-2;Term Based - Monthly;CAD,CAD,true,false,API Access Premium,Standard Price Book;true,CLOUD001-2,Term Based - Monthly;TermDefined,106.5
+CLOUD001-2;Term Based - Monthly;BRL,BRL,true,false,API Access Premium,Standard Price Book;true,CLOUD001-2,Term Based - Monthly;TermDefined,430.5
+CLOUD001-2;Term Based - Monthly;AUD,AUD,true,false,API Access Premium,Standard Price Book;true,CLOUD001-2,Term Based - Monthly;TermDefined,117.75
+CLOUD001-2;Term Based - Monthly;AED,AED,true,false,API Access Premium,Standard Price Book;true,CLOUD001-2,Term Based - Monthly;TermDefined,275.25
+CLOUD002;Term Based - Monthly;USD,USD,true,false,Data Access Basic,Standard Price Book;true,CLOUD002,Term Based - Monthly;TermDefined,25
+CLOUD002;Term Based - Monthly;SEK,SEK,true,false,Data Access Basic,Standard Price Book;true,CLOUD002,Term Based - Monthly;TermDefined,266.25
+CLOUD002;Term Based - Monthly;JPY,JPY,true,false,Data Access Basic,Standard Price Book;true,CLOUD002,Term Based - Monthly;TermDefined,3730.5
+CLOUD002;Term Based - Monthly;INR,INR,true,false,Data Access Basic,Standard Price Book;true,CLOUD002,Term Based - Monthly;TermDefined,2099
+CLOUD002;Term Based - Monthly;GBP,GBP,true,false,Data Access Basic,Standard Price Book;true,CLOUD002,Term Based - Monthly;TermDefined,19.75
+CLOUD002;Term Based - Monthly;EUR,EUR,true,false,Data Access Basic,Standard Price Book;true,CLOUD002,Term Based - Monthly;TermDefined,24
+CLOUD002;Term Based - Monthly;CAD,CAD,true,false,Data Access Basic,Standard Price Book;true,CLOUD002,Term Based - Monthly;TermDefined,35.5
+CLOUD002;Term Based - Monthly;BRL,BRL,true,false,Data Access Basic,Standard Price Book;true,CLOUD002,Term Based - Monthly;TermDefined,143.5
+CLOUD002;Term Based - Monthly;AUD,AUD,true,false,Data Access Basic,Standard Price Book;true,CLOUD002,Term Based - Monthly;TermDefined,39.25
+CLOUD002;Term Based - Monthly;AED,AED,true,false,Data Access Basic,Standard Price Book;true,CLOUD002,Term Based - Monthly;TermDefined,91.75
+COMMITMENT-A;Term Based - Monthly;USD,USD,true,false,Commitment - A,Standard Price Book;true,COMMITMENT-A,Term Based - Monthly;TermDefined,20
+COMMITMENT-B;Term Based - Monthly;USD,USD,true,false,Commitment - B,Standard Price Book;true,COMMITMENT-B,Term Based - Monthly;TermDefined,50
+CS001;Evergreen - Monthly;USD,USD,true,false,Cloud Storage,Nonprofit;false,CS001,Evergreen - Monthly;Evergreen,7.99
+CS001;Evergreen - Monthly;SEK,SEK,true,false,Cloud Storage,Nonprofit;false,CS001,Evergreen - Monthly;Evergreen,85.0935
+CS001;Evergreen - Monthly;JPY,JPY,true,false,Cloud Storage,Nonprofit;false,CS001,Evergreen - Monthly;Evergreen,1192.2678
+CS001;Evergreen - Monthly;INR,INR,true,false,Cloud Storage,Nonprofit;false,CS001,Evergreen - Monthly;Evergreen,670.8404
+CS001;Evergreen - Monthly;GBP,GBP,true,false,Cloud Storage,Nonprofit;false,CS001,Evergreen - Monthly;Evergreen,6.3121
+CS001;Evergreen - Monthly;EUR,EUR,true,false,Cloud Storage,Nonprofit;false,CS001,Evergreen - Monthly;Evergreen,7.6704
+CS001;Evergreen - Monthly;CAD,CAD,true,false,Cloud Storage,Nonprofit;false,CS001,Evergreen - Monthly;Evergreen,11.3458
+CS001;Evergreen - Monthly;BRL,BRL,true,false,Cloud Storage,Nonprofit;false,CS001,Evergreen - Monthly;Evergreen,45.8626
+CS001;Evergreen - Monthly;AUD,AUD,true,false,Cloud Storage,Nonprofit;false,CS001,Evergreen - Monthly;Evergreen,12.5443
+CS001;Evergreen - Monthly;AED,AED,true,false,Cloud Storage,Nonprofit;false,CS001,Evergreen - Monthly;Evergreen,29.3233
+CS001;Evergreen - Monthly;USD,USD,true,false,Cloud Storage,Standard Price Book;true,CS001,Evergreen - Monthly;Evergreen,9.99
+CS001;Evergreen - Monthly;SEK,SEK,true,false,Cloud Storage,Standard Price Book;true,CS001,Evergreen - Monthly;Evergreen,106.3935
+CS001;Evergreen - Monthly;JPY,JPY,true,false,Cloud Storage,Standard Price Book;true,CS001,Evergreen - Monthly;Evergreen,1490.7078
+CS001;Evergreen - Monthly;INR,INR,true,false,Cloud Storage,Standard Price Book;true,CS001,Evergreen - Monthly;Evergreen,838.7604
+CS001;Evergreen - Monthly;GBP,GBP,true,false,Cloud Storage,Standard Price Book;true,CS001,Evergreen - Monthly;Evergreen,7.8921
+CS001;Evergreen - Monthly;EUR,EUR,true,false,Cloud Storage,Standard Price Book;true,CS001,Evergreen - Monthly;Evergreen,9.5904
+CS001;Evergreen - Monthly;CAD,CAD,true,false,Cloud Storage,Standard Price Book;true,CS001,Evergreen - Monthly;Evergreen,14.1858
+CS001;Evergreen - Monthly;BRL,BRL,true,false,Cloud Storage,Standard Price Book;true,CS001,Evergreen - Monthly;Evergreen,57.3426
+CS001;Evergreen - Monthly;AUD,AUD,true,false,Cloud Storage,Standard Price Book;true,CS001,Evergreen - Monthly;Evergreen,15.6843
+CS001;Evergreen - Monthly;AED,AED,true,false,Cloud Storage,Standard Price Book;true,CS001,Evergreen - Monthly;Evergreen,36.6633
+DCERT001;Term Based - Yearly;USD,USD,true,false,Developer Certification,Standard Price Book;true,DCERT001,Term Based - Yearly;TermDefined,250
+DCERT001;Term Based - Yearly;SEK,SEK,true,false,Developer Certification,Standard Price Book;true,DCERT001,Term Based - Yearly;TermDefined,2662.5
+DCERT001;Term Based - Yearly;JPY,JPY,true,false,Developer Certification,Standard Price Book;true,DCERT001,Term Based - Yearly;TermDefined,37305
+DCERT001;Term Based - Yearly;INR,INR,true,false,Developer Certification,Standard Price Book;true,DCERT001,Term Based - Yearly;TermDefined,20990
+DCERT001;Term Based - Yearly;GBP,GBP,true,false,Developer Certification,Standard Price Book;true,DCERT001,Term Based - Yearly;TermDefined,197.5
+DCERT001;Term Based - Yearly;EUR,EUR,true,false,Developer Certification,Standard Price Book;true,DCERT001,Term Based - Yearly;TermDefined,240
+DCERT001;Term Based - Yearly;CAD,CAD,true,false,Developer Certification,Standard Price Book;true,DCERT001,Term Based - Yearly;TermDefined,355
+DCERT001;Term Based - Yearly;BRL,BRL,true,false,Developer Certification,Standard Price Book;true,DCERT001,Term Based - Yearly;TermDefined,1435
+DCERT001;Term Based - Yearly;AUD,AUD,true,false,Developer Certification,Standard Price Book;true,DCERT001,Term Based - Yearly;TermDefined,392.5
+DCERT001;Term Based - Yearly;AED,AED,true,false,Developer Certification,Standard Price Book;true,DCERT001,Term Based - Yearly;TermDefined,917.5
+DS001;One Time;USD,USD,true,false,Desktop,Standard Price Book;true,DS001,One Time;OneTime,1149
+DS001;One Time;SEK,SEK,true,false,Desktop,Standard Price Book;true,DS001,One Time;OneTime,12236.85
+DS001;One Time;JPY,JPY,true,false,Desktop,Standard Price Book;true,DS001,One Time;OneTime,171453.78
+DS001;One Time;INR,INR,true,false,Desktop,Standard Price Book;true,DS001,One Time;OneTime,96470.04
+DS001;One Time;GBP,GBP,true,false,Desktop,Standard Price Book;true,DS001,One Time;OneTime,907.71
+DS001;One Time;EUR,EUR,true,false,Desktop,Standard Price Book;true,DS001,One Time;OneTime,1103.04
+DS001;One Time;CAD,CAD,true,false,Desktop,Standard Price Book;true,DS001,One Time;OneTime,1631.58
+DS001;One Time;BRL,BRL,true,false,Desktop,Standard Price Book;true,DS001,One Time;OneTime,6595.26
+DS001;One Time;AUD,AUD,true,false,Desktop,Standard Price Book;true,DS001,One Time;OneTime,1803.93
+DS001;One Time;AED,AED,true,false,Desktop,Standard Price Book;true,DS001,One Time;OneTime,4216.83
+EAS098781A;Evergreen - Yearly;USD,USD,true,false,Elastic Analytics Suite (EAS) Bundle,Standard Price Book;true,EAS098781A,Evergreen - Yearly;Evergreen,249.99
+EAS098781A;Evergreen - Yearly;SEK,SEK,true,false,Elastic Analytics Suite (EAS) Bundle,Standard Price Book;true,EAS098781A,Evergreen - Yearly;Evergreen,2662.3935
+EAS098781A;Evergreen - Yearly;JPY,JPY,true,false,Elastic Analytics Suite (EAS) Bundle,Standard Price Book;true,EAS098781A,Evergreen - Yearly;Evergreen,37303.5078
+EAS098781A;Evergreen - Yearly;INR,INR,true,false,Elastic Analytics Suite (EAS) Bundle,Standard Price Book;true,EAS098781A,Evergreen - Yearly;Evergreen,20989.1604
+EAS098781A;Evergreen - Yearly;GBP,GBP,true,false,Elastic Analytics Suite (EAS) Bundle,Standard Price Book;true,EAS098781A,Evergreen - Yearly;Evergreen,197.4921
+EAS098781A;Evergreen - Yearly;EUR,EUR,true,false,Elastic Analytics Suite (EAS) Bundle,Standard Price Book;true,EAS098781A,Evergreen - Yearly;Evergreen,239.9904
+EAS098781A;Evergreen - Yearly;CAD,CAD,true,false,Elastic Analytics Suite (EAS) Bundle,Standard Price Book;true,EAS098781A,Evergreen - Yearly;Evergreen,354.9858
+EAS098781A;Evergreen - Yearly;BRL,BRL,true,false,Elastic Analytics Suite (EAS) Bundle,Standard Price Book;true,EAS098781A,Evergreen - Yearly;Evergreen,1434.9426
+EAS098781A;Evergreen - Yearly;AUD,AUD,true,false,Elastic Analytics Suite (EAS) Bundle,Standard Price Book;true,EAS098781A,Evergreen - Yearly;Evergreen,392.4843
+EAS098781A;Evergreen - Yearly;AED,AED,true,false,Elastic Analytics Suite (EAS) Bundle,Standard Price Book;true,EAS098781A,Evergreen - Yearly;Evergreen,917.4633
+EAS1001;Evergreen - Monthly;USD,USD,true,false,Elastic Analytics Suite (EAS),Standard Price Book;true,EAS1001,Evergreen - Monthly;Evergreen,149.99
+EAS1001;Evergreen - Monthly;SEK,SEK,true,false,Elastic Analytics Suite (EAS),Standard Price Book;true,EAS1001,Evergreen - Monthly;Evergreen,1597.3935
+EAS1001;Evergreen - Monthly;JPY,JPY,true,false,Elastic Analytics Suite (EAS),Standard Price Book;true,EAS1001,Evergreen - Monthly;Evergreen,22381.5078
+EAS1001;Evergreen - Monthly;INR,INR,true,false,Elastic Analytics Suite (EAS),Standard Price Book;true,EAS1001,Evergreen - Monthly;Evergreen,12593.1604
+EAS1001;Evergreen - Monthly;GBP,GBP,true,false,Elastic Analytics Suite (EAS),Standard Price Book;true,EAS1001,Evergreen - Monthly;Evergreen,118.4921
+EAS1001;Evergreen - Monthly;EUR,EUR,true,false,Elastic Analytics Suite (EAS),Standard Price Book;true,EAS1001,Evergreen - Monthly;Evergreen,143.9904
+EAS1001;Evergreen - Monthly;CAD,CAD,true,false,Elastic Analytics Suite (EAS),Standard Price Book;true,EAS1001,Evergreen - Monthly;Evergreen,212.9858
+EAS1001;Evergreen - Monthly;BRL,BRL,true,false,Elastic Analytics Suite (EAS),Standard Price Book;true,EAS1001,Evergreen - Monthly;Evergreen,860.9426
+EAS1001;Evergreen - Monthly;AUD,AUD,true,false,Elastic Analytics Suite (EAS),Standard Price Book;true,EAS1001,Evergreen - Monthly;Evergreen,235.4843
+EAS1001;Evergreen - Monthly;AED,AED,true,false,Elastic Analytics Suite (EAS),Standard Price Book;true,EAS1001,Evergreen - Monthly;Evergreen,550.4633
+EHD009;One Time;USD,USD,true,false,External Hard Drive,Standard Price Book;true,EHD009,One Time;OneTime,179.99
+EHD009;One Time;SEK,SEK,true,false,External Hard Drive,Standard Price Book;true,EHD009,One Time;OneTime,1916.8935
+EHD009;One Time;JPY,JPY,true,false,External Hard Drive,Standard Price Book;true,EHD009,One Time;OneTime,26858.1078
+EHD009;One Time;INR,INR,true,false,External Hard Drive,Standard Price Book;true,EHD009,One Time;OneTime,15111.9604
+EHD009;One Time;GBP,GBP,true,false,External Hard Drive,Standard Price Book;true,EHD009,One Time;OneTime,142.1921
+EHD009;One Time;EUR,EUR,true,false,External Hard Drive,Standard Price Book;true,EHD009,One Time;OneTime,172.7904
+EHD009;One Time;CAD,CAD,true,false,External Hard Drive,Standard Price Book;true,EHD009,One Time;OneTime,255.5858
+EHD009;One Time;BRL,BRL,true,false,External Hard Drive,Standard Price Book;true,EHD009,One Time;OneTime,1033.1426
+EHD009;One Time;AUD,AUD,true,false,External Hard Drive,Standard Price Book;true,EHD009,One Time;OneTime,282.5843
+EHD009;One Time;AED,AED,true,false,External Hard Drive,Standard Price Book;true,EHD009,One Time;OneTime,660.5633
+FIG001;Term Based - Semi-Annual;USD,USD,true,false,Figma Subscription,Standard Price Book;true,FIG001,Term Based - Semi-Annual;TermDefined,89.99
+FIG001;Term Based - Semi-Annual;SEK,SEK,true,false,Figma Subscription,Standard Price Book;true,FIG001,Term Based - Semi-Annual;TermDefined,958.3935
+FIG001;Term Based - Semi-Annual;JPY,JPY,true,false,Figma Subscription,Standard Price Book;true,FIG001,Term Based - Semi-Annual;TermDefined,13428.3078
+FIG001;Term Based - Semi-Annual;INR,INR,true,false,Figma Subscription,Standard Price Book;true,FIG001,Term Based - Semi-Annual;TermDefined,7555.5604
+FIG001;Term Based - Semi-Annual;GBP,GBP,true,false,Figma Subscription,Standard Price Book;true,FIG001,Term Based - Semi-Annual;TermDefined,71.0921
+FIG001;Term Based - Semi-Annual;EUR,EUR,true,false,Figma Subscription,Standard Price Book;true,FIG001,Term Based - Semi-Annual;TermDefined,86.3904
+FIG001;Term Based - Semi-Annual;CAD,CAD,true,false,Figma Subscription,Standard Price Book;true,FIG001,Term Based - Semi-Annual;TermDefined,127.7858
+FIG001;Term Based - Semi-Annual;BRL,BRL,true,false,Figma Subscription,Standard Price Book;true,FIG001,Term Based - Semi-Annual;TermDefined,516.5426
+FIG001;Term Based - Semi-Annual;AUD,AUD,true,false,Figma Subscription,Standard Price Book;true,FIG001,Term Based - Semi-Annual;TermDefined,141.2843
+FIG001;Term Based - Semi-Annual;AED,AED,true,false,Figma Subscription,Standard Price Book;true,FIG001,Term Based - Semi-Annual;TermDefined,330.2633
+GPTW001;Term Based - Monthly;USD,USD,true,true,GPT for workspace,Standard Price Book;true,GPTW001,Term Based - Monthly;TermDefined,0
+GPTW001;Term Based - Monthly;SEK,SEK,true,true,GPT for workspace,Standard Price Book;true,GPTW001,Term Based - Monthly;TermDefined,0
+GPTW001;Term Based - Monthly;JPY,JPY,true,true,GPT for workspace,Standard Price Book;true,GPTW001,Term Based - Monthly;TermDefined,0
+GPTW001;Term Based - Monthly;INR,INR,true,true,GPT for workspace,Standard Price Book;true,GPTW001,Term Based - Monthly;TermDefined,0
+GPTW001;Term Based - Monthly;GBP,GBP,true,true,GPT for workspace,Standard Price Book;true,GPTW001,Term Based - Monthly;TermDefined,0
+GPTW001;Term Based - Monthly;EUR,EUR,true,true,GPT for workspace,Standard Price Book;true,GPTW001,Term Based - Monthly;TermDefined,0
+GPTW001;Term Based - Monthly;CAD,CAD,true,true,GPT for workspace,Standard Price Book;true,GPTW001,Term Based - Monthly;TermDefined,0
+GPTW001;Term Based - Monthly;BRL,BRL,true,true,GPT for workspace,Standard Price Book;true,GPTW001,Term Based - Monthly;TermDefined,0
+GPTW001;Term Based - Monthly;AUD,AUD,true,true,GPT for workspace,Standard Price Book;true,GPTW001,Term Based - Monthly;TermDefined,0
+GPTW001;Term Based - Monthly;AED,AED,true,true,GPT for workspace,Standard Price Book;true,GPTW001,Term Based - Monthly;TermDefined,0
+GW001;Term Based - Monthly;USD,USD,true,false,Google Workspace,Standard Price Book;true,GW001,Term Based - Monthly;TermDefined,25
+GW001;Term Based - Monthly;SEK,SEK,true,false,Google Workspace,Standard Price Book;true,GW001,Term Based - Monthly;TermDefined,266.25
+GW001;Term Based - Monthly;JPY,JPY,true,false,Google Workspace,Standard Price Book;true,GW001,Term Based - Monthly;TermDefined,3730.5
+GW001;Term Based - Monthly;INR,INR,true,false,Google Workspace,Standard Price Book;true,GW001,Term Based - Monthly;TermDefined,2099
+GW001;Term Based - Monthly;GBP,GBP,true,false,Google Workspace,Standard Price Book;true,GW001,Term Based - Monthly;TermDefined,19.75
+GW001;Term Based - Monthly;EUR,EUR,true,false,Google Workspace,Standard Price Book;true,GW001,Term Based - Monthly;TermDefined,24
+GW001;Term Based - Monthly;CAD,CAD,true,false,Google Workspace,Standard Price Book;true,GW001,Term Based - Monthly;TermDefined,35.5
+GW001;Term Based - Monthly;BRL,BRL,true,false,Google Workspace,Standard Price Book;true,GW001,Term Based - Monthly;TermDefined,143.5
+GW001;Term Based - Monthly;AUD,AUD,true,false,Google Workspace,Standard Price Book;true,GW001,Term Based - Monthly;TermDefined,39.25
+GW001;Term Based - Monthly;AED,AED,true,false,Google Workspace,Standard Price Book;true,GW001,Term Based - Monthly;TermDefined,91.75
+HDS001;One Time;USD,USD,true,false,Headset,Standard Price Book;true,HDS001,One Time;OneTime,49.99
+HDS001;One Time;SEK,SEK,true,false,Headset,Standard Price Book;true,HDS001,One Time;OneTime,532.3935
+HDS001;One Time;JPY,JPY,true,false,Headset,Standard Price Book;true,HDS001,One Time;OneTime,7459.5078
+HDS001;One Time;INR,INR,true,false,Headset,Standard Price Book;true,HDS001,One Time;OneTime,4197.1604
+HDS001;One Time;GBP,GBP,true,false,Headset,Standard Price Book;true,HDS001,One Time;OneTime,39.4921
+HDS001;One Time;EUR,EUR,true,false,Headset,Standard Price Book;true,HDS001,One Time;OneTime,47.9904
+HDS001;One Time;CAD,CAD,true,false,Headset,Standard Price Book;true,HDS001,One Time;OneTime,70.9858
+HDS001;One Time;BRL,BRL,true,false,Headset,Standard Price Book;true,HDS001,One Time;OneTime,286.9426
+HDS001;One Time;AUD,AUD,true,false,Headset,Standard Price Book;true,HDS001,One Time;OneTime,78.4843
+HDS001;One Time;AED,AED,true,false,Headset,Standard Price Book;true,HDS001,One Time;OneTime,183.4633
+INTERNET-SERVICE;Term Based - Monthly;USD,USD,true,false,Internet Service,Standard Price Book;true,INTERNET-SERVICE,Term Based - Monthly;TermDefined,10
+KB001;One Time;USD,USD,true,false,Keyboard,Standard Price Book;true,KB001,One Time;OneTime,14.99
+KB001;One Time;SEK,SEK,true,false,Keyboard,Standard Price Book;true,KB001,One Time;OneTime,159.6435
+KB001;One Time;JPY,JPY,true,false,Keyboard,Standard Price Book;true,KB001,One Time;OneTime,2236.8078
+KB001;One Time;INR,INR,true,false,Keyboard,Standard Price Book;true,KB001,One Time;OneTime,1258.5604
+KB001;One Time;GBP,GBP,true,false,Keyboard,Standard Price Book;true,KB001,One Time;OneTime,11.8421
+KB001;One Time;EUR,EUR,true,false,Keyboard,Standard Price Book;true,KB001,One Time;OneTime,14.3904
+KB001;One Time;CAD,CAD,true,false,Keyboard,Standard Price Book;true,KB001,One Time;OneTime,21.2858
+KB001;One Time;BRL,BRL,true,false,Keyboard,Standard Price Book;true,KB001,One Time;OneTime,86.0426
+KB001;One Time;AUD,AUD,true,false,Keyboard,Standard Price Book;true,KB001,One Time;OneTime,23.5343
+KB001;One Time;AED,AED,true,false,Keyboard,Standard Price Book;true,KB001,One Time;OneTime,55.0133
+KTC677R;One Time;USD,USD,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,One Time;OneTime,249.99
+KTC677R;Term Based - Yearly;USD,USD,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,Term Based - Yearly;TermDefined,199.99
+KTC677R;One Time;SEK,SEK,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,One Time;OneTime,2662.3935
+KTC677R;Term Based - Yearly;SEK,SEK,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,Term Based - Yearly;TermDefined,2129.8935
+KTC677R;One Time;JPY,JPY,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,One Time;OneTime,37303.5078
+KTC677R;Term Based - Yearly;JPY,JPY,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,Term Based - Yearly;TermDefined,29842.5078
+KTC677R;One Time;INR,INR,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,One Time;OneTime,20989.1604
+KTC677R;Term Based - Yearly;INR,INR,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,Term Based - Yearly;TermDefined,16791.1604
+KTC677R;One Time;GBP,GBP,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,One Time;OneTime,197.4921
+KTC677R;Term Based - Yearly;GBP,GBP,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,Term Based - Yearly;TermDefined,157.9921
+KTC677R;One Time;EUR,EUR,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,One Time;OneTime,239.9904
+KTC677R;Term Based - Yearly;EUR,EUR,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,Term Based - Yearly;TermDefined,191.9904
+KTC677R;One Time;CAD,CAD,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,One Time;OneTime,354.9858
+KTC677R;Term Based - Yearly;CAD,CAD,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,Term Based - Yearly;TermDefined,283.9858
+KTC677R;One Time;BRL,BRL,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,One Time;OneTime,1434.9426
+KTC677R;Term Based - Yearly;BRL,BRL,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,Term Based - Yearly;TermDefined,1147.9426
+KTC677R;One Time;AUD,AUD,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,One Time;OneTime,392.4843
+KTC677R;Term Based - Yearly;AUD,AUD,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,Term Based - Yearly;TermDefined,313.9843
+KTC677R;One Time;AED,AED,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,One Time;OneTime,917.4633
+KTC677R;Term Based - Yearly;AED,AED,true,false,Kyocera Thermal Compound,Standard Price Book;true,KTC677R,Term Based - Yearly;TermDefined,733.9633
+LA001;One Time;USD,USD,true,false,Laptop Accessories,Standard Price Book;true,LA001,One Time;OneTime,57.24
+LA001;One Time;SEK,SEK,true,false,Laptop Accessories,Standard Price Book;true,LA001,One Time;OneTime,609.606
+LA001;One Time;JPY,JPY,true,false,Laptop Accessories,Standard Price Book;true,LA001,One Time;OneTime,8541.3528
+LA001;One Time;INR,INR,true,false,Laptop Accessories,Standard Price Book;true,LA001,One Time;OneTime,4805.8704
+LA001;One Time;GBP,GBP,true,false,Laptop Accessories,Standard Price Book;true,LA001,One Time;OneTime,45.2196
+LA001;One Time;EUR,EUR,true,false,Laptop Accessories,Standard Price Book;true,LA001,One Time;OneTime,54.9504
+LA001;One Time;CAD,CAD,true,false,Laptop Accessories,Standard Price Book;true,LA001,One Time;OneTime,81.2808
+LA001;One Time;BRL,BRL,true,false,Laptop Accessories,Standard Price Book;true,LA001,One Time;OneTime,328.5576
+LA001;One Time;AUD,AUD,true,false,Laptop Accessories,Standard Price Book;true,LA001,One Time;OneTime,89.8668
+LA001;One Time;AED,AED,true,false,Laptop Accessories,Standard Price Book;true,LA001,One Time;OneTime,210.0708
+LB001;One Time;USD,USD,true,false,Laptop Basic Bundle,Standard Price Book;true,LB001,One Time;OneTime,1100
+LB001;One Time;SEK,SEK,true,false,Laptop Basic Bundle,Standard Price Book;true,LB001,One Time;OneTime,11715
+LB001;One Time;JPY,JPY,true,false,Laptop Basic Bundle,Standard Price Book;true,LB001,One Time;OneTime,164142
+LB001;One Time;INR,INR,true,false,Laptop Basic Bundle,Standard Price Book;true,LB001,One Time;OneTime,92356
+LB001;One Time;GBP,GBP,true,false,Laptop Basic Bundle,Standard Price Book;true,LB001,One Time;OneTime,869
+LB001;One Time;EUR,EUR,true,false,Laptop Basic Bundle,Standard Price Book;true,LB001,One Time;OneTime,1056
+LB001;One Time;CAD,CAD,true,false,Laptop Basic Bundle,Standard Price Book;true,LB001,One Time;OneTime,1562
+LB001;One Time;BRL,BRL,true,false,Laptop Basic Bundle,Standard Price Book;true,LB001,One Time;OneTime,6314
+LB001;One Time;AUD,AUD,true,false,Laptop Basic Bundle,Standard Price Book;true,LB001,One Time;OneTime,1727
+LB001;One Time;AED,AED,true,false,Laptop Basic Bundle,Standard Price Book;true,LB001,One Time;OneTime,4037
+LBG001;One Time;USD,USD,true,false,Laptop Bag,Standard Price Book;true,LBG001,One Time;OneTime,15.26
+LBG001;One Time;SEK,SEK,true,false,Laptop Bag,Standard Price Book;true,LBG001,One Time;OneTime,162.519
+LBG001;One Time;JPY,JPY,true,false,Laptop Bag,Standard Price Book;true,LBG001,One Time;OneTime,2277.0972
+LBG001;One Time;INR,INR,true,false,Laptop Bag,Standard Price Book;true,LBG001,One Time;OneTime,1281.2296
+LBG001;One Time;GBP,GBP,true,false,Laptop Bag,Standard Price Book;true,LBG001,One Time;OneTime,12.0554
+LBG001;One Time;EUR,EUR,true,false,Laptop Bag,Standard Price Book;true,LBG001,One Time;OneTime,14.6496
+LBG001;One Time;CAD,CAD,true,false,Laptop Bag,Standard Price Book;true,LBG001,One Time;OneTime,21.6692
+LBG001;One Time;BRL,BRL,true,false,Laptop Bag,Standard Price Book;true,LBG001,One Time;OneTime,87.5924
+LBG001;One Time;AUD,AUD,true,false,Laptop Bag,Standard Price Book;true,LBG001,One Time;OneTime,23.9582
+LBG001;One Time;AED,AED,true,false,Laptop Bag,Standard Price Book;true,LBG001,One Time;OneTime,56.0042
+LCD001;Term Based - Monthly;USD,USD,true,true,Lucidchart,Standard Price Book;true,LCD001,Term Based - Monthly;TermDefined,0
+LCD001;Term Based - Monthly;SEK,SEK,true,true,Lucidchart,Standard Price Book;true,LCD001,Term Based - Monthly;TermDefined,0
+LCD001;Term Based - Monthly;JPY,JPY,true,true,Lucidchart,Standard Price Book;true,LCD001,Term Based - Monthly;TermDefined,0
+LCD001;Term Based - Monthly;INR,INR,true,true,Lucidchart,Standard Price Book;true,LCD001,Term Based - Monthly;TermDefined,0
+LCD001;Term Based - Monthly;GBP,GBP,true,true,Lucidchart,Standard Price Book;true,LCD001,Term Based - Monthly;TermDefined,0
+LCD001;Term Based - Monthly;EUR,EUR,true,true,Lucidchart,Standard Price Book;true,LCD001,Term Based - Monthly;TermDefined,0
+LCD001;Term Based - Monthly;CAD,CAD,true,true,Lucidchart,Standard Price Book;true,LCD001,Term Based - Monthly;TermDefined,0
+LCD001;Term Based - Monthly;BRL,BRL,true,true,Lucidchart,Standard Price Book;true,LCD001,Term Based - Monthly;TermDefined,0
+LCD001;Term Based - Monthly;AUD,AUD,true,true,Lucidchart,Standard Price Book;true,LCD001,Term Based - Monthly;TermDefined,0
+LCD001;Term Based - Monthly;AED,AED,true,true,Lucidchart,Standard Price Book;true,LCD001,Term Based - Monthly;TermDefined,0
+LCP001;Term Based - Monthly;USD,USD,true,false,Laptop Care Package,Nonprofit;false,LCP001,Term Based - Monthly;TermDefined,48.97
+LCP001;Term Based - Monthly;SEK,SEK,true,false,Laptop Care Package,Nonprofit;false,LCP001,Term Based - Monthly;TermDefined,521.5305
+LCP001;Term Based - Monthly;JPY,JPY,true,false,Laptop Care Package,Nonprofit;false,LCP001,Term Based - Monthly;TermDefined,7307.3034
+LCP001;Term Based - Monthly;INR,INR,true,false,Laptop Care Package,Nonprofit;false,LCP001,Term Based - Monthly;TermDefined,4111.5212
+LCP001;Term Based - Monthly;GBP,GBP,true,false,Laptop Care Package,Nonprofit;false,LCP001,Term Based - Monthly;TermDefined,38.6863
+LCP001;Term Based - Monthly;EUR,EUR,true,false,Laptop Care Package,Nonprofit;false,LCP001,Term Based - Monthly;TermDefined,47.0112
+LCP001;Term Based - Monthly;CAD,CAD,true,false,Laptop Care Package,Nonprofit;false,LCP001,Term Based - Monthly;TermDefined,69.5374
+LCP001;Term Based - Monthly;BRL,BRL,true,false,Laptop Care Package,Nonprofit;false,LCP001,Term Based - Monthly;TermDefined,281.0878
+LCP001;Term Based - Monthly;AUD,AUD,true,false,Laptop Care Package,Nonprofit;false,LCP001,Term Based - Monthly;TermDefined,76.8829
+LCP001;Term Based - Monthly;AED,AED,true,false,Laptop Care Package,Nonprofit;false,LCP001,Term Based - Monthly;TermDefined,179.7199
+LCP001;Term Based - Monthly;USD,USD,true,false,Laptop Care Package,Standard Price Book;true,LCP001,Term Based - Monthly;TermDefined,89.97
+LCP001;Term Based - Monthly;SEK,SEK,true,false,Laptop Care Package,Standard Price Book;true,LCP001,Term Based - Monthly;TermDefined,958.1805
+LCP001;Term Based - Monthly;JPY,JPY,true,false,Laptop Care Package,Standard Price Book;true,LCP001,Term Based - Monthly;TermDefined,13425.3234
+LCP001;Term Based - Monthly;INR,INR,true,false,Laptop Care Package,Standard Price Book;true,LCP001,Term Based - Monthly;TermDefined,7553.8812
+LCP001;Term Based - Monthly;GBP,GBP,true,false,Laptop Care Package,Standard Price Book;true,LCP001,Term Based - Monthly;TermDefined,71.0763
+LCP001;Term Based - Monthly;EUR,EUR,true,false,Laptop Care Package,Standard Price Book;true,LCP001,Term Based - Monthly;TermDefined,86.3712
+LCP001;Term Based - Monthly;CAD,CAD,true,false,Laptop Care Package,Standard Price Book;true,LCP001,Term Based - Monthly;TermDefined,127.7574
+LCP001;Term Based - Monthly;BRL,BRL,true,false,Laptop Care Package,Standard Price Book;true,LCP001,Term Based - Monthly;TermDefined,516.4278
+LCP001;Term Based - Monthly;AUD,AUD,true,false,Laptop Care Package,Standard Price Book;true,LCP001,Term Based - Monthly;TermDefined,141.2529
+LCP001;Term Based - Monthly;AED,AED,true,false,Laptop Care Package,Standard Price Book;true,LCP001,Term Based - Monthly;TermDefined,330.1899
+LLMCERT001;Term Based - Yearly;USD,USD,true,false,LLM Certification,Standard Price Book;true,LLMCERT001,Term Based - Yearly;TermDefined,2000
+LLMCERT001;Term Based - Yearly;SEK,SEK,true,false,LLM Certification,Standard Price Book;true,LLMCERT001,Term Based - Yearly;TermDefined,21300
+LLMCERT001;Term Based - Yearly;JPY,JPY,true,false,LLM Certification,Standard Price Book;true,LLMCERT001,Term Based - Yearly;TermDefined,298440
+LLMCERT001;Term Based - Yearly;INR,INR,true,false,LLM Certification,Standard Price Book;true,LLMCERT001,Term Based - Yearly;TermDefined,167920
+LLMCERT001;Term Based - Yearly;GBP,GBP,true,false,LLM Certification,Standard Price Book;true,LLMCERT001,Term Based - Yearly;TermDefined,1580
+LLMCERT001;Term Based - Yearly;EUR,EUR,true,false,LLM Certification,Standard Price Book;true,LLMCERT001,Term Based - Yearly;TermDefined,1920
+LLMCERT001;Term Based - Yearly;CAD,CAD,true,false,LLM Certification,Standard Price Book;true,LLMCERT001,Term Based - Yearly;TermDefined,2840
+LLMCERT001;Term Based - Yearly;BRL,BRL,true,false,LLM Certification,Standard Price Book;true,LLMCERT001,Term Based - Yearly;TermDefined,11480
+LLMCERT001;Term Based - Yearly;AUD,AUD,true,false,LLM Certification,Standard Price Book;true,LLMCERT001,Term Based - Yearly;TermDefined,3140
+LLMCERT001;Term Based - Yearly;AED,AED,true,false,LLM Certification,Standard Price Book;true,LLMCERT001,Term Based - Yearly;TermDefined,7340
+LLMTRG001;One Time;USD,USD,true,false,Machine Learning Model Training,Standard Price Book;true,LLMTRG001,One Time;OneTime,1895
+LLMTRG001;One Time;SEK,SEK,true,false,Machine Learning Model Training,Standard Price Book;true,LLMTRG001,One Time;OneTime,20181.75
+LLMTRG001;One Time;JPY,JPY,true,false,Machine Learning Model Training,Standard Price Book;true,LLMTRG001,One Time;OneTime,282771.9
+LLMTRG001;One Time;INR,INR,true,false,Machine Learning Model Training,Standard Price Book;true,LLMTRG001,One Time;OneTime,159104.2
+LLMTRG001;One Time;GBP,GBP,true,false,Machine Learning Model Training,Standard Price Book;true,LLMTRG001,One Time;OneTime,1497.05
+LLMTRG001;One Time;EUR,EUR,true,false,Machine Learning Model Training,Standard Price Book;true,LLMTRG001,One Time;OneTime,1819.2
+LLMTRG001;One Time;CAD,CAD,true,false,Machine Learning Model Training,Standard Price Book;true,LLMTRG001,One Time;OneTime,2690.9
+LLMTRG001;One Time;BRL,BRL,true,false,Machine Learning Model Training,Standard Price Book;true,LLMTRG001,One Time;OneTime,10877.3
+LLMTRG001;One Time;AUD,AUD,true,false,Machine Learning Model Training,Standard Price Book;true,LLMTRG001,One Time;OneTime,2975.15
+LLMTRG001;One Time;AED,AED,true,false,Machine Learning Model Training,Standard Price Book;true,LLMTRG001,One Time;OneTime,6954.65
+LP001;One Time;USD,USD,true,false,Laptop,Nonprofit;false,LP001,One Time;OneTime,699
+LP001;One Time;SEK,SEK,true,false,Laptop,Nonprofit;false,LP001,One Time;OneTime,7444.35
+LP001;One Time;JPY,JPY,true,false,Laptop,Nonprofit;false,LP001,One Time;OneTime,104304.78
+LP001;One Time;INR,INR,true,false,Laptop,Nonprofit;false,LP001,One Time;OneTime,58688.04
+LP001;One Time;GBP,GBP,true,false,Laptop,Nonprofit;false,LP001,One Time;OneTime,552.21
+LP001;One Time;EUR,EUR,true,false,Laptop,Nonprofit;false,LP001,One Time;OneTime,671.04
+LP001;One Time;CAD,CAD,true,false,Laptop,Nonprofit;false,LP001,One Time;OneTime,992.58
+LP001;One Time;BRL,BRL,true,false,Laptop,Nonprofit;false,LP001,One Time;OneTime,4012.26
+LP001;One Time;AUD,AUD,true,false,Laptop,Nonprofit;false,LP001,One Time;OneTime,1097.43
+LP001;One Time;AED,AED,true,false,Laptop,Nonprofit;false,LP001,One Time;OneTime,2565.33
+LP001;One Time;USD,USD,true,false,Laptop,Standard Price Book;true,LP001,One Time;OneTime,1049
+LP001;One Time;SEK,SEK,true,false,Laptop,Standard Price Book;true,LP001,One Time;OneTime,11171.85
+LP001;One Time;JPY,JPY,true,false,Laptop,Standard Price Book;true,LP001,One Time;OneTime,156531.78
+LP001;One Time;INR,INR,true,false,Laptop,Standard Price Book;true,LP001,One Time;OneTime,88074.04
+LP001;One Time;GBP,GBP,true,false,Laptop,Standard Price Book;true,LP001,One Time;OneTime,828.71
+LP001;One Time;EUR,EUR,true,false,Laptop,Standard Price Book;true,LP001,One Time;OneTime,1007.04
+LP001;One Time;CAD,CAD,true,false,Laptop,Standard Price Book;true,LP001,One Time;OneTime,1489.58
+LP001;One Time;BRL,BRL,true,false,Laptop,Standard Price Book;true,LP001,One Time;OneTime,6021.26
+LP001;One Time;AUD,AUD,true,false,Laptop,Standard Price Book;true,LP001,One Time;OneTime,1646.93
+LP001;One Time;AED,AED,true,false,Laptop,Standard Price Book;true,LP001,One Time;OneTime,3849.83
+LPB001;One Time;USD,USD,true,false,Laptop Pro Bundle,Nonprofit;false,LPB001,One Time;OneTime,799
+LPB001;One Time;SEK,SEK,true,false,Laptop Pro Bundle,Nonprofit;false,LPB001,One Time;OneTime,8509.35
+LPB001;One Time;JPY,JPY,true,false,Laptop Pro Bundle,Nonprofit;false,LPB001,One Time;OneTime,119226.78
+LPB001;One Time;INR,INR,true,false,Laptop Pro Bundle,Nonprofit;false,LPB001,One Time;OneTime,67084.04
+LPB001;One Time;GBP,GBP,true,false,Laptop Pro Bundle,Nonprofit;false,LPB001,One Time;OneTime,631.21
+LPB001;One Time;EUR,EUR,true,false,Laptop Pro Bundle,Nonprofit;false,LPB001,One Time;OneTime,767.04
+LPB001;One Time;CAD,CAD,true,false,Laptop Pro Bundle,Nonprofit;false,LPB001,One Time;OneTime,1134.58
+LPB001;One Time;BRL,BRL,true,false,Laptop Pro Bundle,Nonprofit;false,LPB001,One Time;OneTime,4586.26
+LPB001;One Time;AUD,AUD,true,false,Laptop Pro Bundle,Nonprofit;false,LPB001,One Time;OneTime,1254.43
+LPB001;One Time;AED,AED,true,false,Laptop Pro Bundle,Nonprofit;false,LPB001,One Time;OneTime,2932.33
+LPB001;One Time;USD,USD,true,false,Laptop Pro Bundle,Standard Price Book;true,LPB001,One Time;OneTime,1150
+LPB001;One Time;SEK,SEK,true,false,Laptop Pro Bundle,Standard Price Book;true,LPB001,One Time;OneTime,12247.5
+LPB001;One Time;JPY,JPY,true,false,Laptop Pro Bundle,Standard Price Book;true,LPB001,One Time;OneTime,171603
+LPB001;One Time;INR,INR,true,false,Laptop Pro Bundle,Standard Price Book;true,LPB001,One Time;OneTime,96554
+LPB001;One Time;GBP,GBP,true,false,Laptop Pro Bundle,Standard Price Book;true,LPB001,One Time;OneTime,908.5
+LPB001;One Time;EUR,EUR,true,false,Laptop Pro Bundle,Standard Price Book;true,LPB001,One Time;OneTime,1104
+LPB001;One Time;CAD,CAD,true,false,Laptop Pro Bundle,Standard Price Book;true,LPB001,One Time;OneTime,1633
+LPB001;One Time;BRL,BRL,true,false,Laptop Pro Bundle,Standard Price Book;true,LPB001,One Time;OneTime,6601
+LPB001;One Time;AUD,AUD,true,false,Laptop Pro Bundle,Standard Price Book;true,LPB001,One Time;OneTime,1805.5
+LPB001;One Time;AED,AED,true,false,Laptop Pro Bundle,Standard Price Book;true,LPB001,One Time;OneTime,4220.5
+LPB001-2;One Time;USD,USD,true,false,Laptop Productivity Bundle,Standard Price Book;true,LPB001-2,One Time;OneTime,1499.99
+LPB001-2;One Time;SEK,SEK,true,false,Laptop Productivity Bundle,Standard Price Book;true,LPB001-2,One Time;OneTime,15974.8935
+LPB001-2;One Time;JPY,JPY,true,false,Laptop Productivity Bundle,Standard Price Book;true,LPB001-2,One Time;OneTime,223828.5078
+LPB001-2;One Time;INR,INR,true,false,Laptop Productivity Bundle,Standard Price Book;true,LPB001-2,One Time;OneTime,125939.1604
+LPB001-2;One Time;GBP,GBP,true,false,Laptop Productivity Bundle,Standard Price Book;true,LPB001-2,One Time;OneTime,1184.9921
+LPB001-2;One Time;EUR,EUR,true,false,Laptop Productivity Bundle,Standard Price Book;true,LPB001-2,One Time;OneTime,1439.9904
+LPB001-2;One Time;CAD,CAD,true,false,Laptop Productivity Bundle,Standard Price Book;true,LPB001-2,One Time;OneTime,2129.9858
+LPB001-2;One Time;BRL,BRL,true,false,Laptop Productivity Bundle,Standard Price Book;true,LPB001-2,One Time;OneTime,8609.9426
+LPB001-2;One Time;AUD,AUD,true,false,Laptop Productivity Bundle,Standard Price Book;true,LPB001-2,One Time;OneTime,2354.9843
+LPB001-2;One Time;AED,AED,true,false,Laptop Productivity Bundle,Standard Price Book;true,LPB001-2,One Time;OneTime,5504.9633
+LPST001;One Time;USD,USD,true,false,Laptop Stand,Standard Price Book;true,LPST001,One Time;OneTime,79.99
+LPST001;One Time;SEK,SEK,true,false,Laptop Stand,Standard Price Book;true,LPST001,One Time;OneTime,851.8935
+LPST001;One Time;JPY,JPY,true,false,Laptop Stand,Standard Price Book;true,LPST001,One Time;OneTime,11936.1078
+LPST001;One Time;INR,INR,true,false,Laptop Stand,Standard Price Book;true,LPST001,One Time;OneTime,6715.9604
+LPST001;One Time;GBP,GBP,true,false,Laptop Stand,Standard Price Book;true,LPST001,One Time;OneTime,63.1921
+LPST001;One Time;EUR,EUR,true,false,Laptop Stand,Standard Price Book;true,LPST001,One Time;OneTime,76.7904
+LPST001;One Time;CAD,CAD,true,false,Laptop Stand,Standard Price Book;true,LPST001,One Time;OneTime,113.5858
+LPST001;One Time;BRL,BRL,true,false,Laptop Stand,Standard Price Book;true,LPST001,One Time;OneTime,459.1426
+LPST001;One Time;AUD,AUD,true,false,Laptop Stand,Standard Price Book;true,LPST001,One Time;OneTime,125.5843
+LPST001;One Time;AED,AED,true,false,Laptop Stand,Standard Price Book;true,LPST001,One Time;OneTime,293.5633
+MAIN0098;Term Based - Monthly;USD,USD,true,true,Hardware Maintenance,Standard Price Book;true,MAIN0098,Term Based - Monthly;TermDefined,0
+MAIN0098;Term Based - Monthly;SEK,SEK,true,true,Hardware Maintenance,Standard Price Book;true,MAIN0098,Term Based - Monthly;TermDefined,0
+MAIN0098;Term Based - Monthly;JPY,JPY,true,true,Hardware Maintenance,Standard Price Book;true,MAIN0098,Term Based - Monthly;TermDefined,0
+MAIN0098;Term Based - Monthly;INR,INR,true,true,Hardware Maintenance,Standard Price Book;true,MAIN0098,Term Based - Monthly;TermDefined,0
+MAIN0098;Term Based - Monthly;GBP,GBP,true,true,Hardware Maintenance,Standard Price Book;true,MAIN0098,Term Based - Monthly;TermDefined,0
+MAIN0098;Term Based - Monthly;EUR,EUR,true,true,Hardware Maintenance,Standard Price Book;true,MAIN0098,Term Based - Monthly;TermDefined,0
+MAIN0098;Term Based - Monthly;CAD,CAD,true,true,Hardware Maintenance,Standard Price Book;true,MAIN0098,Term Based - Monthly;TermDefined,0
+MAIN0098;Term Based - Monthly;BRL,BRL,true,true,Hardware Maintenance,Standard Price Book;true,MAIN0098,Term Based - Monthly;TermDefined,0
+MAIN0098;Term Based - Monthly;AUD,AUD,true,true,Hardware Maintenance,Standard Price Book;true,MAIN0098,Term Based - Monthly;TermDefined,0
+MAIN0098;Term Based - Monthly;AED,AED,true,true,Hardware Maintenance,Standard Price Book;true,MAIN0098,Term Based - Monthly;TermDefined,0
+MO001;One Time;USD,USD,true,false,Monitor,Nonprofit;false,MO001,One Time;OneTime,129.99
+MO001;One Time;SEK,SEK,true,false,Monitor,Nonprofit;false,MO001,One Time;OneTime,1384.3935
+MO001;One Time;JPY,JPY,true,false,Monitor,Nonprofit;false,MO001,One Time;OneTime,19397.1078
+MO001;One Time;INR,INR,true,false,Monitor,Nonprofit;false,MO001,One Time;OneTime,10913.9604
+MO001;One Time;GBP,GBP,true,false,Monitor,Nonprofit;false,MO001,One Time;OneTime,102.6921
+MO001;One Time;EUR,EUR,true,false,Monitor,Nonprofit;false,MO001,One Time;OneTime,124.7904
+MO001;One Time;CAD,CAD,true,false,Monitor,Nonprofit;false,MO001,One Time;OneTime,184.5858
+MO001;One Time;BRL,BRL,true,false,Monitor,Nonprofit;false,MO001,One Time;OneTime,746.1426
+MO001;One Time;AUD,AUD,true,false,Monitor,Nonprofit;false,MO001,One Time;OneTime,204.0843
+MO001;One Time;AED,AED,true,false,Monitor,Nonprofit;false,MO001,One Time;OneTime,477.0633
+MO001;One Time;USD,USD,true,false,Monitor,Standard Price Book;true,MO001,One Time;OneTime,144.99
+MO001;One Time;SEK,SEK,true,false,Monitor,Standard Price Book;true,MO001,One Time;OneTime,1544.1435
+MO001;One Time;JPY,JPY,true,false,Monitor,Standard Price Book;true,MO001,One Time;OneTime,21635.4078
+MO001;One Time;INR,INR,true,false,Monitor,Standard Price Book;true,MO001,One Time;OneTime,12173.3604
+MO001;One Time;GBP,GBP,true,false,Monitor,Standard Price Book;true,MO001,One Time;OneTime,114.5421
+MO001;One Time;EUR,EUR,true,false,Monitor,Standard Price Book;true,MO001,One Time;OneTime,139.1904
+MO001;One Time;CAD,CAD,true,false,Monitor,Standard Price Book;true,MO001,One Time;OneTime,205.8858
+MO001;One Time;BRL,BRL,true,false,Monitor,Standard Price Book;true,MO001,One Time;OneTime,832.2426
+MO001;One Time;AUD,AUD,true,false,Monitor,Standard Price Book;true,MO001,One Time;OneTime,227.6343
+MO001;One Time;AED,AED,true,false,Monitor,Standard Price Book;true,MO001,One Time;OneTime,532.1133
+MOU001;One Time;USD,USD,true,false,Mouse,Standard Price Book;true,MOU001,One Time;OneTime,7.99
+MOU001;One Time;SEK,SEK,true,false,Mouse,Standard Price Book;true,MOU001,One Time;OneTime,85.0935
+MOU001;One Time;JPY,JPY,true,false,Mouse,Standard Price Book;true,MOU001,One Time;OneTime,1192.2678
+MOU001;One Time;INR,INR,true,false,Mouse,Standard Price Book;true,MOU001,One Time;OneTime,670.8404
+MOU001;One Time;GBP,GBP,true,false,Mouse,Standard Price Book;true,MOU001,One Time;OneTime,6.3121
+MOU001;One Time;EUR,EUR,true,false,Mouse,Standard Price Book;true,MOU001,One Time;OneTime,7.6704
+MOU001;One Time;CAD,CAD,true,false,Mouse,Standard Price Book;true,MOU001,One Time;OneTime,11.3458
+MOU001;One Time;BRL,BRL,true,false,Mouse,Standard Price Book;true,MOU001,One Time;OneTime,45.8626
+MOU001;One Time;AUD,AUD,true,false,Mouse,Standard Price Book;true,MOU001,One Time;OneTime,12.5443
+MOU001;One Time;AED,AED,true,false,Mouse,Standard Price Book;true,MOU001,One Time;OneTime,29.3233
+NCH025;One Time;USD,USD,true,false,Noise-Canceling Headphones,Standard Price Book;true,NCH025,One Time;OneTime,89.99
+NCH025;One Time;SEK,SEK,true,false,Noise-Canceling Headphones,Standard Price Book;true,NCH025,One Time;OneTime,958.3935
+NCH025;One Time;JPY,JPY,true,false,Noise-Canceling Headphones,Standard Price Book;true,NCH025,One Time;OneTime,13428.3078
+NCH025;One Time;INR,INR,true,false,Noise-Canceling Headphones,Standard Price Book;true,NCH025,One Time;OneTime,7555.5604
+NCH025;One Time;GBP,GBP,true,false,Noise-Canceling Headphones,Standard Price Book;true,NCH025,One Time;OneTime,71.0921
+NCH025;One Time;EUR,EUR,true,false,Noise-Canceling Headphones,Standard Price Book;true,NCH025,One Time;OneTime,86.3904
+NCH025;One Time;CAD,CAD,true,false,Noise-Canceling Headphones,Standard Price Book;true,NCH025,One Time;OneTime,127.7858
+NCH025;One Time;BRL,BRL,true,false,Noise-Canceling Headphones,Standard Price Book;true,NCH025,One Time;OneTime,516.5426
+NCH025;One Time;AUD,AUD,true,false,Noise-Canceling Headphones,Standard Price Book;true,NCH025,One Time;OneTime,141.2843
+NCH025;One Time;AED,AED,true,false,Noise-Canceling Headphones,Standard Price Book;true,NCH025,One Time;OneTime,330.2633
+OF001;Term Based - Monthly;USD,USD,true,false,Office 365,Standard Price Book;true,OF001,Term Based - Monthly;TermDefined,9.99
+OF001;Term Based - Monthly;SEK,SEK,true,false,Office 365,Standard Price Book;true,OF001,Term Based - Monthly;TermDefined,106.3935
+OF001;Term Based - Monthly;JPY,JPY,true,false,Office 365,Standard Price Book;true,OF001,Term Based - Monthly;TermDefined,1490.7078
+OF001;Term Based - Monthly;INR,INR,true,false,Office 365,Standard Price Book;true,OF001,Term Based - Monthly;TermDefined,838.7604
+OF001;Term Based - Monthly;GBP,GBP,true,false,Office 365,Standard Price Book;true,OF001,Term Based - Monthly;TermDefined,7.8921
+OF001;Term Based - Monthly;EUR,EUR,true,false,Office 365,Standard Price Book;true,OF001,Term Based - Monthly;TermDefined,9.5904
+OF001;Term Based - Monthly;CAD,CAD,true,false,Office 365,Standard Price Book;true,OF001,Term Based - Monthly;TermDefined,14.1858
+OF001;Term Based - Monthly;BRL,BRL,true,false,Office 365,Standard Price Book;true,OF001,Term Based - Monthly;TermDefined,57.3426
+OF001;Term Based - Monthly;AUD,AUD,true,false,Office 365,Standard Price Book;true,OF001,Term Based - Monthly;TermDefined,15.6843
+OF001;Term Based - Monthly;AED,AED,true,false,Office 365,Standard Price Book;true,OF001,Term Based - Monthly;TermDefined,36.6633
+PB001;One Time;USD,USD,true,false,Printer Bundle,Standard Price Book;true,PB001,One Time;OneTime,205
+PB001;One Time;SEK,SEK,true,false,Printer Bundle,Standard Price Book;true,PB001,One Time;OneTime,2183.25
+PB001;One Time;JPY,JPY,true,false,Printer Bundle,Standard Price Book;true,PB001,One Time;OneTime,30590.1
+PB001;One Time;INR,INR,true,false,Printer Bundle,Standard Price Book;true,PB001,One Time;OneTime,17211.8
+PB001;One Time;GBP,GBP,true,false,Printer Bundle,Standard Price Book;true,PB001,One Time;OneTime,161.95
+PB001;One Time;EUR,EUR,true,false,Printer Bundle,Standard Price Book;true,PB001,One Time;OneTime,196.8
+PB001;One Time;CAD,CAD,true,false,Printer Bundle,Standard Price Book;true,PB001,One Time;OneTime,291.1
+PB001;One Time;BRL,BRL,true,false,Printer Bundle,Standard Price Book;true,PB001,One Time;OneTime,1176.7
+PB001;One Time;AUD,AUD,true,false,Printer Bundle,Standard Price Book;true,PB001,One Time;OneTime,321.85
+PB001;One Time;AED,AED,true,false,Printer Bundle,Standard Price Book;true,PB001,One Time;OneTime,752.35
+PCERT001;Term Based - Yearly;USD,USD,true,false,Professional Certifications,Standard Price Book;true,PCERT001,Term Based - Yearly;TermDefined,3500
+PCERT001;Term Based - Yearly;SEK,SEK,true,false,Professional Certifications,Standard Price Book;true,PCERT001,Term Based - Yearly;TermDefined,37275
+PCERT001;Term Based - Yearly;JPY,JPY,true,false,Professional Certifications,Standard Price Book;true,PCERT001,Term Based - Yearly;TermDefined,522270
+PCERT001;Term Based - Yearly;INR,INR,true,false,Professional Certifications,Standard Price Book;true,PCERT001,Term Based - Yearly;TermDefined,293860
+PCERT001;Term Based - Yearly;GBP,GBP,true,false,Professional Certifications,Standard Price Book;true,PCERT001,Term Based - Yearly;TermDefined,2765
+PCERT001;Term Based - Yearly;EUR,EUR,true,false,Professional Certifications,Standard Price Book;true,PCERT001,Term Based - Yearly;TermDefined,3360
+PCERT001;Term Based - Yearly;CAD,CAD,true,false,Professional Certifications,Standard Price Book;true,PCERT001,Term Based - Yearly;TermDefined,4970
+PCERT001;Term Based - Yearly;BRL,BRL,true,false,Professional Certifications,Standard Price Book;true,PCERT001,Term Based - Yearly;TermDefined,20090
+PCERT001;Term Based - Yearly;AUD,AUD,true,false,Professional Certifications,Standard Price Book;true,PCERT001,Term Based - Yearly;TermDefined,5495
+PCERT001;Term Based - Yearly;AED,AED,true,false,Professional Certifications,Standard Price Book;true,PCERT001,Term Based - Yearly;TermDefined,12845
+PM002;Evergreen - Quarterly;USD,USD,true,false,Printer Maintenance,Standard Price Book;true,PM002,Evergreen - Quarterly;Evergreen,19.99
+PM002;Evergreen - Quarterly;SEK,SEK,true,false,Printer Maintenance,Standard Price Book;true,PM002,Evergreen - Quarterly;Evergreen,212.8935
+PM002;Evergreen - Quarterly;JPY,JPY,true,false,Printer Maintenance,Standard Price Book;true,PM002,Evergreen - Quarterly;Evergreen,2982.9078
+PM002;Evergreen - Quarterly;INR,INR,true,false,Printer Maintenance,Standard Price Book;true,PM002,Evergreen - Quarterly;Evergreen,1678.3604
+PM002;Evergreen - Quarterly;GBP,GBP,true,false,Printer Maintenance,Standard Price Book;true,PM002,Evergreen - Quarterly;Evergreen,15.7921
+PM002;Evergreen - Quarterly;EUR,EUR,true,false,Printer Maintenance,Standard Price Book;true,PM002,Evergreen - Quarterly;Evergreen,19.1904
+PM002;Evergreen - Quarterly;CAD,CAD,true,false,Printer Maintenance,Standard Price Book;true,PM002,Evergreen - Quarterly;Evergreen,28.3858
+PM002;Evergreen - Quarterly;BRL,BRL,true,false,Printer Maintenance,Standard Price Book;true,PM002,Evergreen - Quarterly;Evergreen,114.7426
+PM002;Evergreen - Quarterly;AUD,AUD,true,false,Printer Maintenance,Standard Price Book;true,PM002,Evergreen - Quarterly;Evergreen,31.3843
+PM002;Evergreen - Quarterly;AED,AED,true,false,Printer Maintenance,Standard Price Book;true,PM002,Evergreen - Quarterly;Evergreen,73.3633
+PP001;One Time;USD,USD,true,false,Printer Paper,Standard Price Book;true,PP001,One Time;OneTime,8.99
+PP001;One Time;SEK,SEK,true,false,Printer Paper,Standard Price Book;true,PP001,One Time;OneTime,95.7435
+PP001;One Time;JPY,JPY,true,false,Printer Paper,Standard Price Book;true,PP001,One Time;OneTime,1341.4878
+PP001;One Time;INR,INR,true,false,Printer Paper,Standard Price Book;true,PP001,One Time;OneTime,754.8004
+PP001;One Time;GBP,GBP,true,false,Printer Paper,Standard Price Book;true,PP001,One Time;OneTime,7.1021
+PP001;One Time;EUR,EUR,true,false,Printer Paper,Standard Price Book;true,PP001,One Time;OneTime,8.6304
+PP001;One Time;CAD,CAD,true,false,Printer Paper,Standard Price Book;true,PP001,One Time;OneTime,12.7658
+PP001;One Time;BRL,BRL,true,false,Printer Paper,Standard Price Book;true,PP001,One Time;OneTime,51.6026
+PP001;One Time;AUD,AUD,true,false,Printer Paper,Standard Price Book;true,PP001,One Time;OneTime,14.1143
+PP001;One Time;AED,AED,true,false,Printer Paper,Standard Price Book;true,PP001,One Time;OneTime,32.9933
+PRN001;One Time;USD,USD,true,false,Printer,Standard Price Book;true,PRN001,One Time;OneTime,199
+PRN001;One Time;SEK,SEK,true,false,Printer,Standard Price Book;true,PRN001,One Time;OneTime,2119.35
+PRN001;One Time;JPY,JPY,true,false,Printer,Standard Price Book;true,PRN001,One Time;OneTime,29694.78
+PRN001;One Time;INR,INR,true,false,Printer,Standard Price Book;true,PRN001,One Time;OneTime,16708.04
+PRN001;One Time;GBP,GBP,true,false,Printer,Standard Price Book;true,PRN001,One Time;OneTime,157.21
+PRN001;One Time;EUR,EUR,true,false,Printer,Standard Price Book;true,PRN001,One Time;OneTime,191.04
+PRN001;One Time;CAD,CAD,true,false,Printer,Standard Price Book;true,PRN001,One Time;OneTime,282.58
+PRN001;One Time;BRL,BRL,true,false,Printer,Standard Price Book;true,PRN001,One Time;OneTime,1142.26
+PRN001;One Time;AUD,AUD,true,false,Printer,Standard Price Book;true,PRN001,One Time;OneTime,312.43
+PRN001;One Time;AED,AED,true,false,Printer,Standard Price Book;true,PRN001,One Time;OneTime,730.33
+PS001;Term Based - Quarterly;USD,USD,true,false,Podcast Subscription,Standard Price Book;true,PS001,Term Based - Quarterly;TermDefined,40
+PS001;Term Based - Quarterly;SEK,SEK,true,false,Podcast Subscription,Standard Price Book;true,PS001,Term Based - Quarterly;TermDefined,426
+PS001;Term Based - Quarterly;JPY,JPY,true,false,Podcast Subscription,Standard Price Book;true,PS001,Term Based - Quarterly;TermDefined,5968.8
+PS001;Term Based - Quarterly;INR,INR,true,false,Podcast Subscription,Standard Price Book;true,PS001,Term Based - Quarterly;TermDefined,3358.4
+PS001;Term Based - Quarterly;GBP,GBP,true,false,Podcast Subscription,Standard Price Book;true,PS001,Term Based - Quarterly;TermDefined,31.6
+PS001;Term Based - Quarterly;EUR,EUR,true,false,Podcast Subscription,Standard Price Book;true,PS001,Term Based - Quarterly;TermDefined,38.4
+PS001;Term Based - Quarterly;CAD,CAD,true,false,Podcast Subscription,Standard Price Book;true,PS001,Term Based - Quarterly;TermDefined,56.8
+PS001;Term Based - Quarterly;BRL,BRL,true,false,Podcast Subscription,Standard Price Book;true,PS001,Term Based - Quarterly;TermDefined,229.6
+PS001;Term Based - Quarterly;AUD,AUD,true,false,Podcast Subscription,Standard Price Book;true,PS001,Term Based - Quarterly;TermDefined,62.8
+PS001;Term Based - Quarterly;AED,AED,true,false,Podcast Subscription,Standard Price Book;true,PS001,Term Based - Quarterly;TermDefined,146.8
+PUP001A45;One Time;USD,USD,true,false,Purified Aluminium Powder,Standard Price Book;true,PUP001A45,One Time;OneTime,199.99
+PUP001A45;One Time;SEK,SEK,true,false,Purified Aluminium Powder,Standard Price Book;true,PUP001A45,One Time;OneTime,2129.8935
+PUP001A45;One Time;JPY,JPY,true,false,Purified Aluminium Powder,Standard Price Book;true,PUP001A45,One Time;OneTime,29842.5078
+PUP001A45;One Time;INR,INR,true,false,Purified Aluminium Powder,Standard Price Book;true,PUP001A45,One Time;OneTime,16791.1604
+PUP001A45;One Time;GBP,GBP,true,false,Purified Aluminium Powder,Standard Price Book;true,PUP001A45,One Time;OneTime,157.9921
+PUP001A45;One Time;EUR,EUR,true,false,Purified Aluminium Powder,Standard Price Book;true,PUP001A45,One Time;OneTime,191.9904
+PUP001A45;One Time;CAD,CAD,true,false,Purified Aluminium Powder,Standard Price Book;true,PUP001A45,One Time;OneTime,283.9858
+PUP001A45;One Time;BRL,BRL,true,false,Purified Aluminium Powder,Standard Price Book;true,PUP001A45,One Time;OneTime,1147.9426
+PUP001A45;One Time;AUD,AUD,true,false,Purified Aluminium Powder,Standard Price Book;true,PUP001A45,One Time;OneTime,313.9843
+PUP001A45;One Time;AED,AED,true,false,Purified Aluminium Powder,Standard Price Book;true,PUP001A45,One Time;OneTime,733.9633
+PVS9876;Term Based - Yearly;USD,USD,true,false,Pro Visualization Suite,Standard Price Book;true,PVS9876,Term Based - Yearly;TermDefined,25
+PVS9876;Term Based - Yearly;SEK,SEK,true,false,Pro Visualization Suite,Standard Price Book;true,PVS9876,Term Based - Yearly;TermDefined,266.25
+PVS9876;Term Based - Yearly;JPY,JPY,true,false,Pro Visualization Suite,Standard Price Book;true,PVS9876,Term Based - Yearly;TermDefined,3730.5
+PVS9876;Term Based - Yearly;INR,INR,true,false,Pro Visualization Suite,Standard Price Book;true,PVS9876,Term Based - Yearly;TermDefined,2099
+PVS9876;Term Based - Yearly;GBP,GBP,true,false,Pro Visualization Suite,Standard Price Book;true,PVS9876,Term Based - Yearly;TermDefined,19.75
+PVS9876;Term Based - Yearly;EUR,EUR,true,false,Pro Visualization Suite,Standard Price Book;true,PVS9876,Term Based - Yearly;TermDefined,24
+PVS9876;Term Based - Yearly;CAD,CAD,true,false,Pro Visualization Suite,Standard Price Book;true,PVS9876,Term Based - Yearly;TermDefined,35.5
+PVS9876;Term Based - Yearly;BRL,BRL,true,false,Pro Visualization Suite,Standard Price Book;true,PVS9876,Term Based - Yearly;TermDefined,143.5
+PVS9876;Term Based - Yearly;AUD,AUD,true,false,Pro Visualization Suite,Standard Price Book;true,PVS9876,Term Based - Yearly;TermDefined,39.25
+PVS9876;Term Based - Yearly;AED,AED,true,false,Pro Visualization Suite,Standard Price Book;true,PVS9876,Term Based - Yearly;TermDefined,91.75
+QBO0021;Term Based - Yearly;USD,USD,true,false,Quickbooks Online,Standard Price Book;true,QBO0021,Term Based - Yearly;TermDefined,49.99
+QBO0021;Term Based - Yearly;SEK,SEK,true,false,Quickbooks Online,Standard Price Book;true,QBO0021,Term Based - Yearly;TermDefined,532.3935
+QBO0021;Term Based - Yearly;JPY,JPY,true,false,Quickbooks Online,Standard Price Book;true,QBO0021,Term Based - Yearly;TermDefined,7459.5078
+QBO0021;Term Based - Yearly;INR,INR,true,false,Quickbooks Online,Standard Price Book;true,QBO0021,Term Based - Yearly;TermDefined,4197.1604
+QBO0021;Term Based - Yearly;GBP,GBP,true,false,Quickbooks Online,Standard Price Book;true,QBO0021,Term Based - Yearly;TermDefined,39.4921
+QBO0021;Term Based - Yearly;EUR,EUR,true,false,Quickbooks Online,Standard Price Book;true,QBO0021,Term Based - Yearly;TermDefined,47.9904
+QBO0021;Term Based - Yearly;CAD,CAD,true,false,Quickbooks Online,Standard Price Book;true,QBO0021,Term Based - Yearly;TermDefined,70.9858
+QBO0021;Term Based - Yearly;BRL,BRL,true,false,Quickbooks Online,Standard Price Book;true,QBO0021,Term Based - Yearly;TermDefined,286.9426
+QBO0021;Term Based - Yearly;AUD,AUD,true,false,Quickbooks Online,Standard Price Book;true,QBO0021,Term Based - Yearly;TermDefined,78.4843
+QBO0021;Term Based - Yearly;AED,AED,true,false,Quickbooks Online,Standard Price Book;true,QBO0021,Term Based - Yearly;TermDefined,183.4633
+QP001;Term Based - Monthly;USD,USD,true,false,Quip,Standard Price Book;true,QP001,Term Based - Monthly;TermDefined,25
+QP001;Term Based - Monthly;SEK,SEK,true,false,Quip,Standard Price Book;true,QP001,Term Based - Monthly;TermDefined,266.25
+QP001;Term Based - Monthly;JPY,JPY,true,false,Quip,Standard Price Book;true,QP001,Term Based - Monthly;TermDefined,3730.5
+QP001;Term Based - Monthly;INR,INR,true,false,Quip,Standard Price Book;true,QP001,Term Based - Monthly;TermDefined,2099
+QP001;Term Based - Monthly;GBP,GBP,true,false,Quip,Standard Price Book;true,QP001,Term Based - Monthly;TermDefined,19.75
+QP001;Term Based - Monthly;EUR,EUR,true,false,Quip,Standard Price Book;true,QP001,Term Based - Monthly;TermDefined,24
+QP001;Term Based - Monthly;CAD,CAD,true,false,Quip,Standard Price Book;true,QP001,Term Based - Monthly;TermDefined,35.5
+QP001;Term Based - Monthly;BRL,BRL,true,false,Quip,Standard Price Book;true,QP001,Term Based - Monthly;TermDefined,143.5
+QP001;Term Based - Monthly;AUD,AUD,true,false,Quip,Standard Price Book;true,QP001,Term Based - Monthly;TermDefined,39.25
+QP001;Term Based - Monthly;AED,AED,true,false,Quip,Standard Price Book;true,QP001,Term Based - Monthly;TermDefined,91.75
+SBP10907;One Time;USD,USD,true,false,Storage Boost Pack,Standard Price Book;true,SBP10907,One Time;OneTime,30
+SBP10907;One Time;SEK,SEK,true,false,Storage Boost Pack,Standard Price Book;true,SBP10907,One Time;OneTime,319.5
+SBP10907;One Time;JPY,JPY,true,false,Storage Boost Pack,Standard Price Book;true,SBP10907,One Time;OneTime,4476.6
+SBP10907;One Time;INR,INR,true,false,Storage Boost Pack,Standard Price Book;true,SBP10907,One Time;OneTime,2518.8
+SBP10907;One Time;GBP,GBP,true,false,Storage Boost Pack,Standard Price Book;true,SBP10907,One Time;OneTime,23.7
+SBP10907;One Time;EUR,EUR,true,false,Storage Boost Pack,Standard Price Book;true,SBP10907,One Time;OneTime,28.8
+SBP10907;One Time;CAD,CAD,true,false,Storage Boost Pack,Standard Price Book;true,SBP10907,One Time;OneTime,42.6
+SBP10907;One Time;BRL,BRL,true,false,Storage Boost Pack,Standard Price Book;true,SBP10907,One Time;OneTime,172.2
+SBP10907;One Time;AUD,AUD,true,false,Storage Boost Pack,Standard Price Book;true,SBP10907,One Time;OneTime,47.1
+SBP10907;One Time;AED,AED,true,false,Storage Boost Pack,Standard Price Book;true,SBP10907,One Time;OneTime,110.1
+SDP001;Term Based - Yearly;USD,USD,true,false,Skill Development Package,Standard Price Book;true,SDP001,Term Based - Yearly;TermDefined,1500
+SDP001;Term Based - Yearly;SEK,SEK,true,false,Skill Development Package,Standard Price Book;true,SDP001,Term Based - Yearly;TermDefined,15975
+SDP001;Term Based - Yearly;JPY,JPY,true,false,Skill Development Package,Standard Price Book;true,SDP001,Term Based - Yearly;TermDefined,223830
+SDP001;Term Based - Yearly;INR,INR,true,false,Skill Development Package,Standard Price Book;true,SDP001,Term Based - Yearly;TermDefined,125940
+SDP001;Term Based - Yearly;GBP,GBP,true,false,Skill Development Package,Standard Price Book;true,SDP001,Term Based - Yearly;TermDefined,1185
+SDP001;Term Based - Yearly;EUR,EUR,true,false,Skill Development Package,Standard Price Book;true,SDP001,Term Based - Yearly;TermDefined,1440
+SDP001;Term Based - Yearly;CAD,CAD,true,false,Skill Development Package,Standard Price Book;true,SDP001,Term Based - Yearly;TermDefined,2130
+SDP001;Term Based - Yearly;BRL,BRL,true,false,Skill Development Package,Standard Price Book;true,SDP001,Term Based - Yearly;TermDefined,8610
+SDP001;Term Based - Yearly;AUD,AUD,true,false,Skill Development Package,Standard Price Book;true,SDP001,Term Based - Yearly;TermDefined,2355
+SDP001;Term Based - Yearly;AED,AED,true,false,Skill Development Package,Standard Price Book;true,SDP001,Term Based - Yearly;TermDefined,5505
+SLKDPP007;Term Based - Monthly;USD,USD,true,true,Slack Support,Standard Price Book;true,SLKDPP007,Term Based - Monthly;TermDefined,0
+SLKDPP007;Term Based - Monthly;SEK,SEK,true,true,Slack Support,Standard Price Book;true,SLKDPP007,Term Based - Monthly;TermDefined,0
+SLKDPP007;Term Based - Monthly;JPY,JPY,true,true,Slack Support,Standard Price Book;true,SLKDPP007,Term Based - Monthly;TermDefined,0
+SLKDPP007;Term Based - Monthly;INR,INR,true,true,Slack Support,Standard Price Book;true,SLKDPP007,Term Based - Monthly;TermDefined,0
+SLKDPP007;Term Based - Monthly;GBP,GBP,true,true,Slack Support,Standard Price Book;true,SLKDPP007,Term Based - Monthly;TermDefined,0
+SLKDPP007;Term Based - Monthly;EUR,EUR,true,true,Slack Support,Standard Price Book;true,SLKDPP007,Term Based - Monthly;TermDefined,0
+SLKDPP007;Term Based - Monthly;CAD,CAD,true,true,Slack Support,Standard Price Book;true,SLKDPP007,Term Based - Monthly;TermDefined,0
+SLKDPP007;Term Based - Monthly;BRL,BRL,true,true,Slack Support,Standard Price Book;true,SLKDPP007,Term Based - Monthly;TermDefined,0
+SLKDPP007;Term Based - Monthly;AUD,AUD,true,true,Slack Support,Standard Price Book;true,SLKDPP007,Term Based - Monthly;TermDefined,0
+SLKDPP007;Term Based - Monthly;AED,AED,true,true,Slack Support,Standard Price Book;true,SLKDPP007,Term Based - Monthly;TermDefined,0
+SLKDPP008;Term Based - Monthly;USD,USD,true,true,Slack Training,Standard Price Book;true,SLKDPP008,Term Based - Monthly;TermDefined,0
+SLKDPP008;Term Based - Monthly;SEK,SEK,true,true,Slack Training,Standard Price Book;true,SLKDPP008,Term Based - Monthly;TermDefined,0
+SLKDPP008;Term Based - Monthly;JPY,JPY,true,true,Slack Training,Standard Price Book;true,SLKDPP008,Term Based - Monthly;TermDefined,0
+SLKDPP008;Term Based - Monthly;INR,INR,true,true,Slack Training,Standard Price Book;true,SLKDPP008,Term Based - Monthly;TermDefined,0
+SLKDPP008;Term Based - Monthly;GBP,GBP,true,true,Slack Training,Standard Price Book;true,SLKDPP008,Term Based - Monthly;TermDefined,0
+SLKDPP008;Term Based - Monthly;EUR,EUR,true,true,Slack Training,Standard Price Book;true,SLKDPP008,Term Based - Monthly;TermDefined,0
+SLKDPP008;Term Based - Monthly;CAD,CAD,true,true,Slack Training,Standard Price Book;true,SLKDPP008,Term Based - Monthly;TermDefined,0
+SLKDPP008;Term Based - Monthly;BRL,BRL,true,true,Slack Training,Standard Price Book;true,SLKDPP008,Term Based - Monthly;TermDefined,0
+SLKDPP008;Term Based - Monthly;AUD,AUD,true,true,Slack Training,Standard Price Book;true,SLKDPP008,Term Based - Monthly;TermDefined,0
+SLKDPP008;Term Based - Monthly;AED,AED,true,true,Slack Training,Standard Price Book;true,SLKDPP008,Term Based - Monthly;TermDefined,0
+SLKDPP009;Term Based - Monthly;USD,USD,true,true,Slack Sandbox,Standard Price Book;true,SLKDPP009,Term Based - Monthly;TermDefined,0
+SLKDPP009;Term Based - Monthly;SEK,SEK,true,true,Slack Sandbox,Standard Price Book;true,SLKDPP009,Term Based - Monthly;TermDefined,0
+SLKDPP009;Term Based - Monthly;JPY,JPY,true,true,Slack Sandbox,Standard Price Book;true,SLKDPP009,Term Based - Monthly;TermDefined,0
+SLKDPP009;Term Based - Monthly;INR,INR,true,true,Slack Sandbox,Standard Price Book;true,SLKDPP009,Term Based - Monthly;TermDefined,0
+SLKDPP009;Term Based - Monthly;GBP,GBP,true,true,Slack Sandbox,Standard Price Book;true,SLKDPP009,Term Based - Monthly;TermDefined,0
+SLKDPP009;Term Based - Monthly;EUR,EUR,true,true,Slack Sandbox,Standard Price Book;true,SLKDPP009,Term Based - Monthly;TermDefined,0
+SLKDPP009;Term Based - Monthly;CAD,CAD,true,true,Slack Sandbox,Standard Price Book;true,SLKDPP009,Term Based - Monthly;TermDefined,0
+SLKDPP009;Term Based - Monthly;BRL,BRL,true,true,Slack Sandbox,Standard Price Book;true,SLKDPP009,Term Based - Monthly;TermDefined,0
+SLKDPP009;Term Based - Monthly;AUD,AUD,true,true,Slack Sandbox,Standard Price Book;true,SLKDPP009,Term Based - Monthly;TermDefined,0
+SLKDPP009;Term Based - Monthly;AED,AED,true,true,Slack Sandbox,Standard Price Book;true,SLKDPP009,Term Based - Monthly;TermDefined,0
+SLKSRC001;Term Based - Monthly;USD,USD,true,false,Slack,Standard Price Book;true,SLKSRC001,Term Based - Monthly;TermDefined,99.99
+SLKSRC001;Term Based - Monthly;SEK,SEK,true,false,Slack,Standard Price Book;true,SLKSRC001,Term Based - Monthly;TermDefined,1064.8935
+SLKSRC001;Term Based - Monthly;JPY,JPY,true,false,Slack,Standard Price Book;true,SLKSRC001,Term Based - Monthly;TermDefined,14920.5078
+SLKSRC001;Term Based - Monthly;INR,INR,true,false,Slack,Standard Price Book;true,SLKSRC001,Term Based - Monthly;TermDefined,8395.1604
+SLKSRC001;Term Based - Monthly;GBP,GBP,true,false,Slack,Standard Price Book;true,SLKSRC001,Term Based - Monthly;TermDefined,78.9921
+SLKSRC001;Term Based - Monthly;EUR,EUR,true,false,Slack,Standard Price Book;true,SLKSRC001,Term Based - Monthly;TermDefined,95.9904
+SLKSRC001;Term Based - Monthly;CAD,CAD,true,false,Slack,Standard Price Book;true,SLKSRC001,Term Based - Monthly;TermDefined,141.9858
+SLKSRC001;Term Based - Monthly;BRL,BRL,true,false,Slack,Standard Price Book;true,SLKSRC001,Term Based - Monthly;TermDefined,573.9426
+SLKSRC001;Term Based - Monthly;AUD,AUD,true,false,Slack,Standard Price Book;true,SLKSRC001,Term Based - Monthly;TermDefined,156.9843
+SLKSRC001;Term Based - Monthly;AED,AED,true,false,Slack,Standard Price Book;true,SLKSRC001,Term Based - Monthly;TermDefined,366.9633
+SP001;Evergreen - Yearly;USD,USD,true,false,Support,Standard Price Book;true,SP001,Evergreen - Yearly;Evergreen,7.99
+SP001;Term Based - Monthly;USD,USD,true,false,Support,Standard Price Book;true,SP001,Term Based - Monthly;TermDefined,9.99
+SP001;Term Based - Monthly;SEK,SEK,true,false,Support,Standard Price Book;true,SP001,Term Based - Monthly;TermDefined,106.3935
+SP001;Term Based - Monthly;JPY,JPY,true,false,Support,Standard Price Book;true,SP001,Term Based - Monthly;TermDefined,1490.7078
+SP001;Term Based - Monthly;INR,INR,true,false,Support,Standard Price Book;true,SP001,Term Based - Monthly;TermDefined,838.7604
+SP001;Term Based - Monthly;GBP,GBP,true,false,Support,Standard Price Book;true,SP001,Term Based - Monthly;TermDefined,7.8921
+SP001;Term Based - Monthly;EUR,EUR,true,false,Support,Standard Price Book;true,SP001,Term Based - Monthly;TermDefined,9.5904
+SP001;Term Based - Monthly;CAD,CAD,true,false,Support,Standard Price Book;true,SP001,Term Based - Monthly;TermDefined,14.1858
+SP001;Term Based - Monthly;BRL,BRL,true,false,Support,Standard Price Book;true,SP001,Term Based - Monthly;TermDefined,57.3426
+SP001;Term Based - Monthly;AUD,AUD,true,false,Support,Standard Price Book;true,SP001,Term Based - Monthly;TermDefined,15.6843
+SP001;Term Based - Monthly;AED,AED,true,false,Support,Standard Price Book;true,SP001,Term Based - Monthly;TermDefined,36.6633
+SSS001;Evergreen - Semi-Annual;USD,USD,true,false,Security Systems Surveillance,Standard Price Book;true,SSS001,Evergreen - Semi-Annual;Evergreen,100
+SSS001;Evergreen - Semi-Annual;SEK,SEK,true,false,Security Systems Surveillance,Standard Price Book;true,SSS001,Evergreen - Semi-Annual;Evergreen,1065
+SSS001;Evergreen - Semi-Annual;JPY,JPY,true,false,Security Systems Surveillance,Standard Price Book;true,SSS001,Evergreen - Semi-Annual;Evergreen,14922
+SSS001;Evergreen - Semi-Annual;INR,INR,true,false,Security Systems Surveillance,Standard Price Book;true,SSS001,Evergreen - Semi-Annual;Evergreen,8396
+SSS001;Evergreen - Semi-Annual;GBP,GBP,true,false,Security Systems Surveillance,Standard Price Book;true,SSS001,Evergreen - Semi-Annual;Evergreen,79
+SSS001;Evergreen - Semi-Annual;EUR,EUR,true,false,Security Systems Surveillance,Standard Price Book;true,SSS001,Evergreen - Semi-Annual;Evergreen,96
+SSS001;Evergreen - Semi-Annual;CAD,CAD,true,false,Security Systems Surveillance,Standard Price Book;true,SSS001,Evergreen - Semi-Annual;Evergreen,142
+SSS001;Evergreen - Semi-Annual;BRL,BRL,true,false,Security Systems Surveillance,Standard Price Book;true,SSS001,Evergreen - Semi-Annual;Evergreen,574
+SSS001;Evergreen - Semi-Annual;AUD,AUD,true,false,Security Systems Surveillance,Standard Price Book;true,SSS001,Evergreen - Semi-Annual;Evergreen,157
+SSS001;Evergreen - Semi-Annual;AED,AED,true,false,Security Systems Surveillance,Standard Price Book;true,SSS001,Evergreen - Semi-Annual;Evergreen,367
+TIM12367;One Time;USD,USD,true,false,Fluid Film Corrosion Inhibitor,Standard Price Book;true,TIM12367,One Time;OneTime,299.99
+TIM12367;One Time;SEK,SEK,true,false,Fluid Film Corrosion Inhibitor,Standard Price Book;true,TIM12367,One Time;OneTime,3194.8935
+TIM12367;One Time;JPY,JPY,true,false,Fluid Film Corrosion Inhibitor,Standard Price Book;true,TIM12367,One Time;OneTime,44764.5078
+TIM12367;One Time;INR,INR,true,false,Fluid Film Corrosion Inhibitor,Standard Price Book;true,TIM12367,One Time;OneTime,25187.1604
+TIM12367;One Time;GBP,GBP,true,false,Fluid Film Corrosion Inhibitor,Standard Price Book;true,TIM12367,One Time;OneTime,236.9921
+TIM12367;One Time;EUR,EUR,true,false,Fluid Film Corrosion Inhibitor,Standard Price Book;true,TIM12367,One Time;OneTime,287.9904
+TIM12367;One Time;CAD,CAD,true,false,Fluid Film Corrosion Inhibitor,Standard Price Book;true,TIM12367,One Time;OneTime,425.9858
+TIM12367;One Time;BRL,BRL,true,false,Fluid Film Corrosion Inhibitor,Standard Price Book;true,TIM12367,One Time;OneTime,1721.9426
+TIM12367;One Time;AUD,AUD,true,false,Fluid Film Corrosion Inhibitor,Standard Price Book;true,TIM12367,One Time;OneTime,470.9843
+TIM12367;One Time;AED,AED,true,false,Fluid Film Corrosion Inhibitor,Standard Price Book;true,TIM12367,One Time;OneTime,1100.9633
+TIM235A7;One Time;USD,USD,true,false,Propylene Glycol,Standard Price Book;true,TIM235A7,One Time;OneTime,299.99
+TIM235A7;One Time;SEK,SEK,true,false,Propylene Glycol,Standard Price Book;true,TIM235A7,One Time;OneTime,3194.8935
+TIM235A7;One Time;JPY,JPY,true,false,Propylene Glycol,Standard Price Book;true,TIM235A7,One Time;OneTime,44764.5078
+TIM235A7;One Time;INR,INR,true,false,Propylene Glycol,Standard Price Book;true,TIM235A7,One Time;OneTime,25187.1604
+TIM235A7;One Time;GBP,GBP,true,false,Propylene Glycol,Standard Price Book;true,TIM235A7,One Time;OneTime,236.9921
+TIM235A7;One Time;EUR,EUR,true,false,Propylene Glycol,Standard Price Book;true,TIM235A7,One Time;OneTime,287.9904
+TIM235A7;One Time;CAD,CAD,true,false,Propylene Glycol,Standard Price Book;true,TIM235A7,One Time;OneTime,425.9858
+TIM235A7;One Time;BRL,BRL,true,false,Propylene Glycol,Standard Price Book;true,TIM235A7,One Time;OneTime,1721.9426
+TIM235A7;One Time;AUD,AUD,true,false,Propylene Glycol,Standard Price Book;true,TIM235A7,One Time;OneTime,470.9843
+TIM235A7;One Time;AED,AED,true,false,Propylene Glycol,Standard Price Book;true,TIM235A7,One Time;OneTime,1100.9633
+TIM67542E;One Time;USD,USD,true,false,EasyDye,Standard Price Book;true,TIM67542E,One Time;OneTime,89.99
+TIM67542E;One Time;SEK,SEK,true,false,EasyDye,Standard Price Book;true,TIM67542E,One Time;OneTime,958.3935
+TIM67542E;One Time;JPY,JPY,true,false,EasyDye,Standard Price Book;true,TIM67542E,One Time;OneTime,13428.3078
+TIM67542E;One Time;INR,INR,true,false,EasyDye,Standard Price Book;true,TIM67542E,One Time;OneTime,7555.5604
+TIM67542E;One Time;GBP,GBP,true,false,EasyDye,Standard Price Book;true,TIM67542E,One Time;OneTime,71.0921
+TIM67542E;One Time;EUR,EUR,true,false,EasyDye,Standard Price Book;true,TIM67542E,One Time;OneTime,86.3904
+TIM67542E;One Time;CAD,CAD,true,false,EasyDye,Standard Price Book;true,TIM67542E,One Time;OneTime,127.7858
+TIM67542E;One Time;BRL,BRL,true,false,EasyDye,Standard Price Book;true,TIM67542E,One Time;OneTime,516.5426
+TIM67542E;One Time;AUD,AUD,true,false,EasyDye,Standard Price Book;true,TIM67542E,One Time;OneTime,141.2843
+TIM67542E;One Time;AED,AED,true,false,EasyDye,Standard Price Book;true,TIM67542E,One Time;OneTime,330.2633
+TIMB893AB45;One Time;USD,USD,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,One Time;OneTime,699.99
+TIMB893AB45;Term Based - Monthly;USD,USD,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,Term Based - Monthly;TermDefined,299.99
+TIMB893AB45;One Time;SEK,SEK,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,One Time;OneTime,7454.8935
+TIMB893AB45;Term Based - Monthly;SEK,SEK,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,Term Based - Monthly;TermDefined,3194.8935
+TIMB893AB45;One Time;JPY,JPY,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,One Time;OneTime,104452.5078
+TIMB893AB45;Term Based - Monthly;JPY,JPY,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,Term Based - Monthly;TermDefined,44764.5078
+TIMB893AB45;One Time;INR,INR,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,One Time;OneTime,58771.1604
+TIMB893AB45;Term Based - Monthly;INR,INR,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,Term Based - Monthly;TermDefined,25187.1604
+TIMB893AB45;One Time;GBP,GBP,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,One Time;OneTime,552.9921
+TIMB893AB45;Term Based - Monthly;GBP,GBP,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,Term Based - Monthly;TermDefined,236.9921
+TIMB893AB45;One Time;EUR,EUR,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,One Time;OneTime,671.9904
+TIMB893AB45;Term Based - Monthly;EUR,EUR,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,Term Based - Monthly;TermDefined,287.9904
+TIMB893AB45;One Time;CAD,CAD,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,One Time;OneTime,993.9858
+TIMB893AB45;Term Based - Monthly;CAD,CAD,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,Term Based - Monthly;TermDefined,425.9858
+TIMB893AB45;One Time;BRL,BRL,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,One Time;OneTime,4017.9426
+TIMB893AB45;Term Based - Monthly;BRL,BRL,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,Term Based - Monthly;TermDefined,1721.9426
+TIMB893AB45;One Time;AUD,AUD,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,One Time;OneTime,1098.9843
+TIMB893AB45;Term Based - Monthly;AUD,AUD,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,Term Based - Monthly;TermDefined,470.9843
+TIMB893AB45;One Time;AED,AED,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,One Time;OneTime,2568.9633
+TIMB893AB45;Term Based - Monthly;AED,AED,true,false,Data Center Bundle,Standard Price Book;true,TIMB893AB45,Term Based - Monthly;TermDefined,1100.9633
+TPP01;Evergreen - Yearly;USD,USD,true,false,Training Platform Package,Standard Price Book;true,TPP01,Evergreen - Yearly;Evergreen,59.99
+TPP01;Evergreen - Yearly;SEK,SEK,true,false,Training Platform Package,Standard Price Book;true,TPP01,Evergreen - Yearly;Evergreen,638.8935
+TPP01;Evergreen - Yearly;JPY,JPY,true,false,Training Platform Package,Standard Price Book;true,TPP01,Evergreen - Yearly;Evergreen,8951.7078
+TPP01;Evergreen - Yearly;INR,INR,true,false,Training Platform Package,Standard Price Book;true,TPP01,Evergreen - Yearly;Evergreen,5036.7604
+TPP01;Evergreen - Yearly;GBP,GBP,true,false,Training Platform Package,Standard Price Book;true,TPP01,Evergreen - Yearly;Evergreen,47.3921
+TPP01;Evergreen - Yearly;EUR,EUR,true,false,Training Platform Package,Standard Price Book;true,TPP01,Evergreen - Yearly;Evergreen,57.5904
+TPP01;Evergreen - Yearly;CAD,CAD,true,false,Training Platform Package,Standard Price Book;true,TPP01,Evergreen - Yearly;Evergreen,85.1858
+TPP01;Evergreen - Yearly;BRL,BRL,true,false,Training Platform Package,Standard Price Book;true,TPP01,Evergreen - Yearly;Evergreen,344.3426
+TPP01;Evergreen - Yearly;AUD,AUD,true,false,Training Platform Package,Standard Price Book;true,TPP01,Evergreen - Yearly;Evergreen,94.1843
+TPP01;Evergreen - Yearly;AED,AED,true,false,Training Platform Package,Standard Price Book;true,TPP01,Evergreen - Yearly;Evergreen,220.1633
+TRG001;Term Based - Monthly;USD,USD,true,false,Basic Training,Standard Price Book;true,TRG001,Term Based - Monthly;TermDefined,29.99
+TRG001;Term Based - Monthly;SEK,SEK,true,false,Basic Training,Standard Price Book;true,TRG001,Term Based - Monthly;TermDefined,319.3935
+TRG001;Term Based - Monthly;JPY,JPY,true,false,Basic Training,Standard Price Book;true,TRG001,Term Based - Monthly;TermDefined,4475.1078
+TRG001;Term Based - Monthly;INR,INR,true,false,Basic Training,Standard Price Book;true,TRG001,Term Based - Monthly;TermDefined,2517.9604
+TRG001;Term Based - Monthly;GBP,GBP,true,false,Basic Training,Standard Price Book;true,TRG001,Term Based - Monthly;TermDefined,23.6921
+TRG001;Term Based - Monthly;EUR,EUR,true,false,Basic Training,Standard Price Book;true,TRG001,Term Based - Monthly;TermDefined,28.7904
+TRG001;Term Based - Monthly;CAD,CAD,true,false,Basic Training,Standard Price Book;true,TRG001,Term Based - Monthly;TermDefined,42.5858
+TRG001;Term Based - Monthly;BRL,BRL,true,false,Basic Training,Standard Price Book;true,TRG001,Term Based - Monthly;TermDefined,172.1426
+TRG001;Term Based - Monthly;AUD,AUD,true,false,Basic Training,Standard Price Book;true,TRG001,Term Based - Monthly;TermDefined,47.0843
+TRG001;Term Based - Monthly;AED,AED,true,false,Basic Training,Standard Price Book;true,TRG001,Term Based - Monthly;TermDefined,110.0633
+UA001;Evergreen - Monthly;USD,USD,true,false,Udemy Access,Standard Price Book;true,UA001,Evergreen - Monthly;Evergreen,30
+UA001;Evergreen - Monthly;SEK,SEK,true,false,Udemy Access,Standard Price Book;true,UA001,Evergreen - Monthly;Evergreen,319.5
+UA001;Evergreen - Monthly;JPY,JPY,true,false,Udemy Access,Standard Price Book;true,UA001,Evergreen - Monthly;Evergreen,4476.6
+UA001;Evergreen - Monthly;INR,INR,true,false,Udemy Access,Standard Price Book;true,UA001,Evergreen - Monthly;Evergreen,2518.8
+UA001;Evergreen - Monthly;GBP,GBP,true,false,Udemy Access,Standard Price Book;true,UA001,Evergreen - Monthly;Evergreen,23.7
+UA001;Evergreen - Monthly;EUR,EUR,true,false,Udemy Access,Standard Price Book;true,UA001,Evergreen - Monthly;Evergreen,28.8
+UA001;Evergreen - Monthly;CAD,CAD,true,false,Udemy Access,Standard Price Book;true,UA001,Evergreen - Monthly;Evergreen,42.6
+UA001;Evergreen - Monthly;BRL,BRL,true,false,Udemy Access,Standard Price Book;true,UA001,Evergreen - Monthly;Evergreen,172.2
+UA001;Evergreen - Monthly;AUD,AUD,true,false,Udemy Access,Standard Price Book;true,UA001,Evergreen - Monthly;Evergreen,47.1
+UA001;Evergreen - Monthly;AED,AED,true,false,Udemy Access,Standard Price Book;true,UA001,Evergreen - Monthly;Evergreen,110.1
+USB01;One Time;USD,USD,true,false,USB C multiport adapter hub with 4K HDMI,Standard Price Book;true,USB01,One Time;OneTime,33.99
+USB01;One Time;SEK,SEK,true,false,USB C multiport adapter hub with 4K HDMI,Standard Price Book;true,USB01,One Time;OneTime,361.9935
+USB01;One Time;JPY,JPY,true,false,USB C multiport adapter hub with 4K HDMI,Standard Price Book;true,USB01,One Time;OneTime,5071.9878
+USB01;One Time;INR,INR,true,false,USB C multiport adapter hub with 4K HDMI,Standard Price Book;true,USB01,One Time;OneTime,2853.8004
+USB01;One Time;GBP,GBP,true,false,USB C multiport adapter hub with 4K HDMI,Standard Price Book;true,USB01,One Time;OneTime,26.8521
+USB01;One Time;EUR,EUR,true,false,USB C multiport adapter hub with 4K HDMI,Standard Price Book;true,USB01,One Time;OneTime,32.6304
+USB01;One Time;CAD,CAD,true,false,USB C multiport adapter hub with 4K HDMI,Standard Price Book;true,USB01,One Time;OneTime,48.2658
+USB01;One Time;BRL,BRL,true,false,USB C multiport adapter hub with 4K HDMI,Standard Price Book;true,USB01,One Time;OneTime,195.1026
+USB01;One Time;AUD,AUD,true,false,USB C multiport adapter hub with 4K HDMI,Standard Price Book;true,USB01,One Time;OneTime,53.3643
+USB01;One Time;AED,AED,true,false,USB C multiport adapter hub with 4K HDMI,Standard Price Book;true,USB01,One Time;OneTime,124.7433
+VIL8899089;One Time;USD,USD,true,false,Vaseline Gel,Standard Price Book;true,VIL8899089,One Time;OneTime,59.99
+VIL8899089;One Time;SEK,SEK,true,false,Vaseline Gel,Standard Price Book;true,VIL8899089,One Time;OneTime,638.8935
+VIL8899089;One Time;JPY,JPY,true,false,Vaseline Gel,Standard Price Book;true,VIL8899089,One Time;OneTime,8951.7078
+VIL8899089;One Time;INR,INR,true,false,Vaseline Gel,Standard Price Book;true,VIL8899089,One Time;OneTime,5036.7604
+VIL8899089;One Time;GBP,GBP,true,false,Vaseline Gel,Standard Price Book;true,VIL8899089,One Time;OneTime,47.3921
+VIL8899089;One Time;EUR,EUR,true,false,Vaseline Gel,Standard Price Book;true,VIL8899089,One Time;OneTime,57.5904
+VIL8899089;One Time;CAD,CAD,true,false,Vaseline Gel,Standard Price Book;true,VIL8899089,One Time;OneTime,85.1858
+VIL8899089;One Time;BRL,BRL,true,false,Vaseline Gel,Standard Price Book;true,VIL8899089,One Time;OneTime,344.3426
+VIL8899089;One Time;AUD,AUD,true,false,Vaseline Gel,Standard Price Book;true,VIL8899089,One Time;OneTime,94.1843
+VIL8899089;One Time;AED,AED,true,false,Vaseline Gel,Standard Price Book;true,VIL8899089,One Time;OneTime,220.1633
+W001;Term Based - Yearly;USD,USD,true,false,Warranty,Standard Price Book;true,W001,Term Based - Yearly;TermDefined,49.99
+W001;Term Based - Yearly;SEK,SEK,true,false,Warranty,Standard Price Book;true,W001,Term Based - Yearly;TermDefined,532.3935
+W001;Term Based - Yearly;JPY,JPY,true,false,Warranty,Standard Price Book;true,W001,Term Based - Yearly;TermDefined,7459.5078
+W001;Term Based - Yearly;INR,INR,true,false,Warranty,Standard Price Book;true,W001,Term Based - Yearly;TermDefined,4197.1604
+W001;Term Based - Yearly;GBP,GBP,true,false,Warranty,Standard Price Book;true,W001,Term Based - Yearly;TermDefined,39.4921
+W001;Term Based - Yearly;EUR,EUR,true,false,Warranty,Standard Price Book;true,W001,Term Based - Yearly;TermDefined,47.9904
+W001;Term Based - Yearly;CAD,CAD,true,false,Warranty,Standard Price Book;true,W001,Term Based - Yearly;TermDefined,70.9858
+W001;Term Based - Yearly;BRL,BRL,true,false,Warranty,Standard Price Book;true,W001,Term Based - Yearly;TermDefined,286.9426
+W001;Term Based - Yearly;AUD,AUD,true,false,Warranty,Standard Price Book;true,W001,Term Based - Yearly;TermDefined,78.4843
+W001;Term Based - Yearly;AED,AED,true,false,Warranty,Standard Price Book;true,W001,Term Based - Yearly;TermDefined,183.4633

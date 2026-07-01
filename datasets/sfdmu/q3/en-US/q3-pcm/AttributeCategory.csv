@@ -1,0 +1,13 @@
+Code,Description,Name
+CT001,,Connection Type
+DIS,,Display
+GRA,,Graphics
+MEM,,Memory
+P001,,Printer
+PP001,,Paper
+PRO,,Processor
+PSR67832,Ratio of the standard color composition.,Paste Ratio
+SP001,,Support
+STO,,Storage
+T001,,Training
+TC009C67,Category of attributes that are required for thermal compounds.,Thermal Composition

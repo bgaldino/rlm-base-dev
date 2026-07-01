@@ -1,0 +1,15 @@
+DataType,Description,Name,Code,Status,UnitOfMeasure.UnitCode
+Number,Weight In Kilograms,Compound Weight,Compound Weight,Active,KG
+Text,,Display Picklist,Display Picklist,Active,
+Text,,Display Size Picklist,Display Size Picklist,Active,
+Number,Gel Quantity in grams,Gel Quantity,Gel Quantity,Active,GRAMS
+Text,,Graphics Picklist,Graphics Picklist,Active,
+Text,,Memory Picklist,Memory Picklist,Active,
+Text,,Paper Size Picklist,Paper Size Picklist,Active,
+Number,,Paste Color Ratio,Paste Color Ratio,Active,ML
+Text,,Printer Picklist,Printer Picklist,Active,
+Text,,Processor Picklist,Processor Picklist,Active,
+Text,,Storage Picklist,Storage Picklist,Active,
+Text,Subscription Type,Subscription Type,Subscription Type,Active,
+Text,,Support Level Picklist,Support Level Picklist,Active,
+Text,,Training Type Picklist,Training Type Picklist,Active,

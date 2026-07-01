@@ -55,6 +55,9 @@ orgs:
     tfid-cdo-rlm:
       config_file: orgs/tfid/tfid-cdo-rlm.json
       days: 30
+    tfid-pde:
+      config_file: orgs/tfid/tfid-pde.json
+      days: 30
     tfid-qb-tso:
       config_file: orgs/tfid/tfid-qb-tso.json
       days: 30
@@ -570,7 +573,8 @@ project:
     core_pricing_recipe_table_mappings: &core_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json" # Core pricing recipe table mapping payload
     prm_pricing_recipe_table_mappings: &prm_pricing_recipe_table_mappings "datasets/tooling/PricingRecipeTableMappings/prm_ngp_default.json" # PRM pricing recipe table mapping payload
 
-    q3_product_dataset: &q3_product_dataset "datasets/sfdmu/q3/en-US/q3-multicurrency"                               # Q3 product data
+    q3_pcm_dataset: &q3_pcm_dataset "datasets/sfdmu/q3/en-US/q3-pcm"                                                 # Q3 product catalog data (split from former q3-multicurrency)
+    q3_pricing_dataset: &q3_pricing_dataset "datasets/sfdmu/q3/en-US/q3-pricing"                                     # Q3 pricing data (split from former q3-multicurrency)
     q3_billing_dataset: &q3_billing_dataset "datasets/sfdmu/q3/en-US/q3-billing"                                     # Q3 billing data
     q3_dro_dataset: &q3_dro_dataset "datasets/sfdmu/q3/en-US/q3-dro"                                                 # Q3 DRO data
     q3_tax_dataset: &q3_tax_dataset "datasets/sfdmu/q3/en-US/q3-tax"                                                 # Q3 tax data
@@ -1906,12 +1910,19 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_product_image_dataset
 
-  insert_q3_data:
+  insert_q3_pcm_data:
     group: Revenue Lifecycle Management
-    description: Insert Q3 Data
+    description: Insert Q3 PCM (product catalog) Data
     class_path: tasks.rlm_sfdmu.LoadSFDMUData
     options:
-      pathtoexportjson: *q3_product_dataset
+      pathtoexportjson: *q3_pcm_dataset
+
+  insert_q3_pricing_data:
+    group: Revenue Lifecycle Management
+    description: Insert Q3 Pricing Data
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *q3_pricing_dataset
 
   insert_quantumbit_prm_data:
     group: Revenue Lifecycle Management
@@ -2442,6 +2453,19 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_pricing_dataset
 
+  delete_q3_pricing_data:
+    group: Data Maintenance
+    description: >
+      Delete all Insert-operation records from the q3-pricing plan (CostBookEntry,
+      PricebookEntryDerivedPrice, PricebookEntry, BundleBasedAdjustment,
+      AttributeBasedAdjustment, AttributeAdjustmentCondition, PriceAdjustmentTier)
+      in reverse plan order (children first). Shape-agnostic, mirrors
+      delete_quantumbit_pricing_data. Run before insert_q3_pricing_data so q3
+      pricing loads (plain Insert, no deleteOldData) are safe to rerun.
+    class_path: tasks.rlm_sfdmu.DeleteSFDMUData
+    options:
+      pathtoexportjson: *q3_pricing_dataset
+
   delete_quantumbit_prm_pricing_data:
     group: Data Maintenance
     description: >
@@ -2463,6 +2487,20 @@ tasks:
   delete_qb_rating_data:
     group: Data Maintenance
     description: Delete all qb-rating data (PUG, PURP, PUR, RatingFrequencyPolicy, UsageGrantRolloverPolicy, etc.) in dependency order. Use before re-running insert_qb_rating_data to clear duplicates.
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteQbRatingData.apex
+
+  delete_q3_rates_data:
+    group: Data Maintenance
+    description: Delete all rates data (RateAdjustmentByTier, RateCardEntry, PriceBookRateCard, RateCard), deactivating Active records first. Shape-agnostic — reuses deleteQbRatesData.apex. Run before re-inserting q3-rates so a rerun on a q3 org doesn't fail deleting Active records (the q3-rates plan uses Insert+deleteOldData and activation makes them Active).
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/deleteQbRatesData.apex
+
+  delete_q3_rating_data:
+    group: Data Maintenance
+    description: Delete all rating data (PUG, PURP, PUR, RatingFrequencyPolicy, etc.), deactivating Active PUGs first. Shape-agnostic — reuses deleteQbRatingData.apex. Run before re-inserting q3-rating so a rerun on a q3 org doesn't fail deleting Active records.
     class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
     options:
       path: scripts/apex/deleteQbRatingData.apex
@@ -2493,6 +2531,13 @@ tasks:
 #-------------------------------------#
 # Extract tasks (group: Data Management - Extract): SFDMU org → CSV. Output in datasets/sfdmu/extractions/<plan_name>/<timestamp>. Post-process runs by default; re-import-ready CSVs in <timestamp>/processed/.
 # Idempotency tasks (group: Data Management - Idempotency): run plan load twice, assert no record count increase. Use --group to list or run by group.
+
+  validate_source_keys:
+    group: Data Management - Extract
+    description: "Pre-extraction guard: validate (and optionally populate) a plan's source-org externalId key fields (StockKeepingUnit, *.Code, *.UnitCode, ...) so extraction produces unambiguous composite keys. Report-only by default; pass populate=true to fill null single-field keys with unique derived values. Set pathtoexportjson to the plan dir."
+    class_path: tasks.rlm_validate_keys.ValidateSourceDataKeys
+    options:
+      pathtoexportjson: *quantumbit_product_dataset
 
   extract_qb_pcm_data:
     group: Data Management - Extract
@@ -2614,6 +2659,57 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_tax_dataset
 
+  # Q3 extract tasks: post-process auto-aligns output to the qb/en-US sibling schema and
+  # backfills cross-object code keys from the source org. Pass --sourceusername to pick the org.
+  extract_q3_pcm_data:
+    group: Data Management - Extract
+    description: "Extract q3-pcm (product catalog) from org to CSV, aligned to the qb-pcm schema. Output in datasets/sfdmu/extractions/q3-pcm/<timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *q3_pcm_dataset
+
+  extract_q3_pricing_data:
+    group: Data Management - Extract
+    description: "Extract q3-pricing from org to CSV, aligned to the qb-pricing schema. Output in datasets/sfdmu/extractions/q3-pricing/<timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *q3_pricing_dataset
+
+  extract_q3_rates_data:
+    group: Data Management - Extract
+    description: "Extract q3-rates from org to CSV, aligned to the qb-rates schema. Output in datasets/sfdmu/extractions/q3-rates/<timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *q3_rates_dataset
+
+  extract_q3_rating_data:
+    group: Data Management - Extract
+    description: "Extract q3-rating from org to CSV, aligned to the qb-rating schema. Output in datasets/sfdmu/extractions/q3-rating/<timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *q3_rating_dataset
+
+  extract_q3_billing_data:
+    group: Data Management - Extract
+    description: "Extract q3-billing from org to CSV, aligned to the qb-billing schema. Output in datasets/sfdmu/extractions/q3-billing/<timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *q3_billing_dataset
+
+  extract_q3_tax_data:
+    group: Data Management - Extract
+    description: "Extract q3-tax from org to CSV, aligned to the qb-tax schema. Output in datasets/sfdmu/extractions/q3-tax/<timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *q3_tax_dataset
+
+  extract_q3_dro_data:
+    group: Data Management - Extract
+    description: "Extract q3-dro from org to CSV, aligned to the qb-dro schema. Output in datasets/sfdmu/extractions/q3-dro/<timestamp>/processed/. Use run_post_process false to skip."
+    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
+    options:
+      pathtoexportjson: *q3_dro_dataset
+
   test_qb_pcm_idempotency:
     group: Data Management - Idempotency
     description: Idempotency test for qb-pcm (product catalog). Uses extraction roundtrip by default (extract -> post-process -> load) and writes to datasets/sfdmu/extractions/qb-pcm/<timestamp>.
@@ -2734,6 +2830,65 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_tax_dataset
+      use_extraction_roundtrip: false
+
+  # Q3 idempotency tests: load each plan twice from source CSVs, assert no record-count
+  # increase. Run against a feature-complete q3 org (q3-billing/q3-dro need the Billing/DRO
+  # features enabled; q3-262 lacks them). Roundtrip is off (source CSVs are the canonical state).
+  test_q3_pcm_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for q3-pcm (product catalog). Loads twice from source, asserts no new records.
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *q3_pcm_dataset
+      use_extraction_roundtrip: false
+
+  test_q3_pricing_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for q3-pricing (load twice from source, assert no new records).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *q3_pricing_dataset
+      use_extraction_roundtrip: false
+
+  test_q3_rating_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for q3-rating (load twice from source, assert no new records).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *q3_rating_dataset
+      use_extraction_roundtrip: false
+
+  test_q3_rates_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for q3-rates (load twice from source, assert no new records).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *q3_rates_dataset
+      use_extraction_roundtrip: false
+
+  test_q3_dro_idempotency:
+    group: Data Management - Idempotency
+    description: "Idempotency test for q3-dro. Requires the DRO feature enabled on the target org (q3-262 has no DRO records)."
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *q3_dro_dataset
+      use_extraction_roundtrip: false
+
+  test_q3_tax_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for q3-tax (tax policies and treatments).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *q3_tax_dataset
+      use_extraction_roundtrip: false
+
+  test_q3_billing_idempotency:
+    group: Data Management - Idempotency
+    description: "Idempotency test for q3-billing. Requires the Billing feature enabled on the target org (q3-262 reports GeneralLedgerAccount/BillingPolicy unsupported)."
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *q3_billing_dataset
       use_extraction_roundtrip: false
 
 #------------------#
@@ -3707,8 +3862,8 @@ flows:
         task: insert_quantumbit_pcm_data
         when: project_config.project__custom__qb
       2:
-        task: insert_q3_data
-        when: project_config.project__custom__q3
+        task: insert_q3_pcm_data
+        when: project_config.project__custom__q3 and not project_config.project__custom__qb
       3:
         task: insert_quantumbit_product_image_data
         when: project_config.project__custom__qb
@@ -3722,6 +3877,12 @@ flows:
       2:
         task: insert_quantumbit_pricing_data
         when: project_config.project__custom__qb
+      3:
+        task: delete_q3_pricing_data
+        when: project_config.project__custom__q3 and not project_config.project__custom__qb
+      4:
+        task: insert_q3_pricing_data
+        when: project_config.project__custom__q3 and not project_config.project__custom__qb
 
   prepare_scratch:
     group: Revenue Lifecycle Management
@@ -3827,10 +3988,10 @@ flows:
         when: project_config.project__custom__dro and project_config.project__custom__qb
       3:
         task: insert_q3_dro_data_scratch
-        when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
+        when: org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3 and not project_config.project__custom__qb
       4:
         task: insert_q3_dro_data_prod
-        when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3
+        when: not org_config.scratch and project_config.project__custom__dro and project_config.project__custom__q3 and not project_config.project__custom__qb
       5:
         task: update_product_fulfillment_decomp_rules
         when: project_config.project__custom__dro
@@ -3889,7 +4050,7 @@ flows:
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
       3:
         task: insert_q3_billing_data
-        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__q3
+        when: project_config.project__custom__billing and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
       4:
         task: create_sequence_policies
         when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
@@ -4054,7 +4215,7 @@ flows:
         when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb
       3:
         task: insert_q3_tax_data
-        when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3
+        when: project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
       4:
         task: activate_tax_records
         when: project_config.project__custom__tax
@@ -4072,18 +4233,24 @@ flows:
         task: insert_qb_rating_data
         when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__qb
       4:
-        task: insert_q3_rating_data
-        when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3
+        task: delete_q3_rates_data
+        when: project_config.project__custom__rating and project_config.project__custom__rates and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh
       5:
+        task: delete_q3_rating_data
+        when: project_config.project__custom__rating and project_config.project__custom__q3 and not project_config.project__custom__qb and not project_config.project__custom__refresh
+      6:
+        task: insert_q3_rating_data
+        when: project_config.project__custom__rating and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
+      7:
         task: insert_qb_rates_data
         when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__qb
-      6:
+      8:
         task: insert_q3_rates_data
-        when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3
-      7:
+        when: project_config.project__custom__rating and project_config.project__custom__rates and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
+      9:
         task: activate_rating_records
         when: project_config.project__custom__rating and project_config.project__custom__rates
-      8:
+      10:
         task: activate_rates
         when: project_config.project__custom__rating and project_config.project__custom__rates
 
@@ -4598,6 +4765,31 @@ flows:
       14:
         task: test_qb_prm_pricing_idempotency
         when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
+
+  run_q3_idempotency_tests:
+    group: Data Management - Idempotency
+    description: Run all Q3 data idempotency tests (load twice, assert no new records). Use --org to specify a feature-complete q3 org (q3-billing/q3-dro need Billing/DRO enabled).
+    steps:
+      1:
+        task: test_q3_pcm_idempotency
+      # Intentional exclusion: q3-pricing uses plain Insert (no deleteOldData, mirroring
+      # qb-pricing), so a two-load idempotency test would add duplicate rows instead of
+      # proving rerun safety. q3-pricing rerun safety is provided by delete_q3_pricing_data
+      # before insert_q3_pricing_data in prepare_pricing_data. test_q3_pricing_idempotency
+      # remains standalone (matching the qb-guidedselling exclusion pattern above).
+      2:
+        task: test_q3_rating_idempotency
+      3:
+        task: test_q3_rates_idempotency
+      4:
+        task: test_q3_dro_idempotency
+      # tax before billing: q3-billing references LegalEntity rows that q3-tax upserts.
+      5:
+        task: test_q3_tax_idempotency
+        when: project_config.project__custom__tax and project_config.project__custom__q3
+      6:
+        task: test_q3_billing_idempotency
+        when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__q3
 
   stamp_git_commit:
     group: RLM Administration

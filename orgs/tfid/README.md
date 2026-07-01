@@ -22,6 +22,7 @@ Each file is wired to a CCI org alias under `orgs:` in `cumulusci.yml` (e.g.
 |-------------------|-------------|----------|------|------------|
 | `tfid-cdo` (`tfid-cdo.json`) | `0TTKX000001N46s` | USA1016 | future baseline | **Base CDO license template, no modifications.** The *eventual* `tso=true` baseline goal — reached once all the black-tab mods (see `tfid-cdo-rlm`) are folded into the base license shape template. |
 | `tfid-cdo-rlm` (`tfid-cdo-rlm.json`) | `0TTWt000000rQ2n` | USA1016 | **`tso=true` baseline (input)** | `tfid-cdo` **plus** minor "black tab" (internal) license and org value/permission adjustments for RLM. **This is the current starting shape that `prepare_rlm_org` builds *onto* when `tso: true`.** |
+| `tfid-pde` (`tfid-pde.json`) | `0TTe60000001Zzp` | USA1016 | **Partner Developer Edition (PDE) baseline (input)** | TFID snapshot for **Partner Developer Edition** builds (`pde: true`). This is the **PDE license base in R1**. Unlike the external `dev-r1` baseline (a standard DE scratch config), this is the TFID-snapshot path for PDE. |
 | `tfid-qb-tso` (`tfid-qb-tso.json`) | `0TTWs000001kiiD` | USA1016 | **`tso=true` output** | TFID of the **fully built QuantumBit (QB) org we release** — captured by cloning an org that `prepare_rlm_org` (tso=true) built successfully and logging that template ID here. *Not* a build input; used for testing and idempotency work (re-running the build against an already-built org). |
 | `tfid` (`tfid.json`) | `0TTWs000001w7YP` | USA1016 | _TBD_ | _TBD — to be documented._ |
 | `tfid-sdo` (`tfid-sdo.json`) | `0TTKX000001hzYr` | USA1016 | _TBD_ | _TBD — to be documented._ |
@@ -36,6 +37,11 @@ snapshots:
 |----------|---------|----------|
 | `ent-r1` | Enterprise | external Enterprise builds (trials, etc.) |
 | `dev-r1` | Developer | external Developer-edition builds (e.g. `pde: true`) |
+
+> **PDE has two baseline paths:** the external standard-scratch `dev-r1` config
+> (above) **or** the TFID-snapshot `tfid-pde` shape (in the catalog above). Use
+> `tfid-pde` when you need the PDE org to start from a Trialforce snapshot rather
+> than a vanilla DE scratch config.
 
 ## The `tso=true` build cycle (input → output)
 
@@ -65,7 +71,7 @@ So: **`tfid-cdo-rlm` (in) → prepare_rlm_org [tso=true] → `tfid-qb-tso` (out)
   `.agents/artifacts/collections-ux-baseline-feature-gaps.md` (private artifacts repo).
 - **External builds** don't use TFID snapshots: Enterprise builds (trials, etc.)
   baseline from `ent-r1`; Developer-edition builds (e.g. `pde: true`) baseline
-  from `dev-r1`.
+  from `dev-r1`. For a TFID-snapshot PDE baseline instead, use `tfid-pde`.
 - "Black tab" = Salesforce-internal license/feature toggles layered on top of
   the base CDO template. The long-term goal is to fold these into the base
   license shape so `tfid-cdo` can serve as the build baseline directly.

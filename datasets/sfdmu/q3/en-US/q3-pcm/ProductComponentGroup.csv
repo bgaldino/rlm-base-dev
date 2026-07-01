@@ -1,0 +1,19 @@
+Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentGroup.Code,ParentProduct.StockKeepingUnit,Sequence
+TRAININGS,,,,Trainings,,ATRG001,
+AT-T-MOBILE-GROUP,,,,AT&T Mobile Group,,ATTM001,1
+ANALYTICS,,,,Analytics,,EAS098781A,
+COMPOUND-GROUP,,,,Compound Group,,KTC677R,
+LAPTOP-ACCESSORIES,,,,Laptop Accessories,,LA001,
+COMPUTER-PROTECTION,,,,Computer Protection,,LB001,2
+LAPTOP,,,,Laptop,,LB001,1
+LAPTOP-CARE,,,,Laptop Care,,LCP001,
+ACCESSORIES,,,,Accessories,,LPB001,2
+LAPTOP-2,,,,Laptop,,LPB001,1
+SFT001,,,,Software,,LPB001,
+MEGA-PACKAGE,,,,Mega Package,,LPB001-2,
+PRINTER,,,,Printer,,PB001,1
+PRINTER-ACCESSORIES,,,,Printer Accessories,,PB001,2
+CERTIFICATIONS,,,,Certifications,,PCERT001,
+SKILL-DEVELOPMENT,,,,Skill Development,,SDP001,
+TIMF998A32,,,,Thermal Interface Materials,,TIMB893AB45,
+TRAINING-GROUP,,,,Training Group,,TPP01,

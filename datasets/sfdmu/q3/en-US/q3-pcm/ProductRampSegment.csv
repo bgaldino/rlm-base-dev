@@ -1,0 +1,3 @@
+$$Product.StockKeepingUnit$ProductSellingModel.SellingModelType$SegmentType,DurationType,Product.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,SegmentType,TrialDuration
+QBO0021;TermDefined;Yearly,,QBO0021,Term Based - Yearly;TermDefined,Yearly,
+QBO0021;TermDefined;FreeTrial,Days,QBO0021,Term Based - Yearly;TermDefined,FreeTrial,45

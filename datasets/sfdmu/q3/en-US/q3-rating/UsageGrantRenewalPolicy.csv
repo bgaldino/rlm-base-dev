@@ -1,2 +1,3 @@
 Code,IsRenewalAllowed,Name,RenewalFrequency,RenewalFrequencyUnit,Status
+REF01,true,Basic: grant-monthly-refresh-policy,1,Month,Active
 URRENEW01,true,Mobile Plan Renewal Policy,1,Month,Active
