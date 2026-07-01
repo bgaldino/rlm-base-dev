@@ -1,0 +1,27 @@
+# Multi-account — billable + pipeline-only accounts in one run.
+#
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/07-multi-account.yaml --concurrency 3
+#
+# Demonstrates the auto-cap: Infinitech (has a BillingAccount) runs the full
+# chain to `post`, while Global Media (no BillingAccount) is automatically capped
+# at `order` with a warning instead of failing the run — it still leaves behind
+# quotes AND orders, just not activated/invoiced. One config, two account
+# profiles — the tool does the right thing for each.
+defaults:
+  kind: sales_txn_quote        # PST chain; auto-caps to 'order' on non-billing accounts
+
+scenarios:
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 15
+
+  - account: "Global Media"      # no BillingAccount -> auto-capped to `order_draft`
+    target_stage: invoice_posted  # requested 'invoice_posted'; the tool caps + warns
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 15

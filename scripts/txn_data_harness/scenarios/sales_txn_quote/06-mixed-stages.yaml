@@ -1,0 +1,37 @@
+# Mixed stages — a realistic spread across the lifecycle in one run.
+#
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/06-mixed-stages.yaml --concurrency 3
+#
+# A single run that leaves the org looking "lived-in": some open pipeline, some
+# activated orders, and some fully billed invoices — the proportions you'd expect
+# in a real book of business (lots of quotes, fewer posted invoices). Each spec
+# is an independent shape, so concurrency overlaps their waits.
+defaults:
+  kind: sales_txn_quote        # PST chain (each spec picks its own target_stage)
+
+scenarios:
+  # Open pipeline (no billing) — the bulk.
+  - account: "Infinitech"
+    target_stage: quote_placed
+    with_opportunity: true
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 30
+
+  # Won deals, activated, not yet billed.
+  - account: "Infinitech"
+    target_stage: order_activated
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 15
+
+  # Fully billed — posted invoices.
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 10

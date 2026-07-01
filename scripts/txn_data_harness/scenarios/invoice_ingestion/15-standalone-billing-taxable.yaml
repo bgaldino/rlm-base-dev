@@ -1,0 +1,108 @@
+# Standalone billing -- Posted-invoice ingest with InvoiceLineTax records.
+#
+# Same lifecycle as `15-standalone-billing.yaml` (one POST, Posted invoice +
+# lines in a single composite-graph call) but every line carries an
+# `InvoiceLineTax` graph record so the platform stores the tax instead of
+# inferring it from the line's `TaxTreatment`.
+#
+# Prereqs (both seeded idempotently):
+#   - An active non-taxable `TaxTreatment` (`IsTaxable=false Status=Active`)
+#     -- stamped on every non-taxable line. Required because the action
+#     resolves the org's *default* treatment when none is stamped, and a
+#     taxable default would reject lines without a related InvoiceLineTax.
+#   - An active taxable `TaxTreatment` (`IsTaxable=true Status=Active`)
+#     -- stamped on every `taxable: true` line. The dev guide (R262/v67.0
+#     "Graph Record for Invoice Ingestion") makes this invariant explicit:
+#       * A Posted invoice line marked taxable MUST include an InvoiceLineTax
+#       * A Posted invoice line marked nontaxable MUST NOT include one
+#
+# Seed once (idempotent; values are illustrative):
+#   sf data create record --sobject TaxTreatment \
+#     --values "Name='Harness Non-Taxable' IsTaxable=false Status=Active TaxCode=NONE"
+#   sf data create record --sobject TaxTreatment \
+#     --values "Name='Harness Taxable' IsTaxable=true Status=Active TaxCode=TX-SALES"
+#
+# How tax fields are sourced (priority order, line wins):
+#   1. Per-line `tax:` block overrides.
+#   2. Scenario-level `tax:` defaults (this file).
+#   3. Built-in fallbacks: `taxAmount = chargeAmount * rate` if `amount` not
+#      pinned; `taxTransactionNumber = <run_id>-tx<idx>`,
+#      `taxDocumentNumber = <run_id>-doc`,
+#      `taxEffectiveDate = invoice.invoice_date or today`.
+#
+# `invoice.taxable_tax_treatment_name` is optional -- when unset the harness
+# discovers the most-recently-created Active taxable treatment on the org.
+defaults:
+  kind: invoice_ingestion
+  target_stage: invoice_posted
+  invoice:
+    tax_calculation_status: Posted     # auto-defaulted; pinned for clarity
+  tax:
+    # Scenario-level defaults inherited by every `taxable: true` line below.
+    # Per-line `tax:` blocks override individual fields.
+    rate: 0.08
+    name: "Sales Tax"
+    code: "TX-SALES"
+
+scenarios:
+  # Uniform 8% sales tax across all lines -- the common SaaS demo shape.
+  - account: "Infinitech"
+    count: 2
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 10
+        unit_price: 25
+        taxable: true
+      - name: API Standard
+        sku: QB-API
+        quantity: 4
+        unit_price: 50
+        taxable: true
+
+  # Mixed payload: one taxable line + one non-taxable line on the same
+  # invoice. Exercises the per-line stamping path -- the InvoiceLineTax
+  # graph record attaches to the taxable line only; the harness stamps the
+  # non-taxable TaxTreatment id on the other.
+  - account: "Infinitech"
+    count: 1
+    invoice_lines:
+      - name: API Flex (taxed)
+        sku: QB-API-FLEX
+        quantity: 5
+        unit_price: 100
+        taxable: true
+      - name: API Flex (exempt)
+        sku: QB-API-FLEX
+        quantity: 5
+        unit_price: 100
+        taxable: false
+
+  # Per-line tax overrides: a flat-amount line, and a different
+  # jurisdiction/rate on the next line. Exercises the per-field
+  # line.tax > scenario.tax merge -- not whole-block override.
+  - account: "Global Media"
+    count: 1
+    invoice_lines:
+      - name: API Flex (flat tax)
+        sku: QB-API-FLEX
+        quantity: 1
+        unit_price: 1000
+        taxable: true
+        tax:
+          # taxAmount ships verbatim ($75). taxRate stays at the scenario
+          # default (0.08) -- the harness only back-derives rate from
+          # amount/chargeAmount when scenario.rate is also unset. Per-line
+          # `name` / `code` overrides win.
+          amount: 75
+          name: "VAT"
+          code: "VAT-EU"
+      - name: API Standard (high-rate)
+        sku: QB-API
+        quantity: 2
+        unit_price: 250
+        taxable: true
+        tax:
+          rate: 0.15            # overrides scenario default 0.08; taxAmount = qty*unit_price*rate = 75
+          name: "VAT"
+          code: "VAT-EU"

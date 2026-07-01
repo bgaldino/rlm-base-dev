@@ -1,0 +1,138 @@
+# Explicit ``end_date`` overrides for co-terming and off-cycle deals.
+#
+#   python -m scripts.txn_data_harness.cli run --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/14-end-date-overrides.yaml \
+#       --target-stage order_activated --concurrency 1 -v
+#
+# Stresses the optional ``end_date`` override across a wide spread of
+# start dates, end anchors, and offset forms. The matrix below is
+# deliberately varied so the live-verify isn't just "Jan 15 -> Jan 15":
+#
+#   * Q2 mid-year start + multi-year absolute end (long span)
+#   * leap-day start with relative ``1y``
+#   * end-of-month start (Aug 31) + ``1mo`` -> day clamp to Sep 30
+#   * end-of-month start (Jan 31) crossing into Feb 28 (non-leap)
+#   * short ramp: ``90d`` from a quarter-start
+#   * ``3q`` (9 calendar months) -> non-Annual span
+#   * scenario-level co-term across two lines starting on different days
+#   * bare-int days form to hit the platform's inclusive convention
+#
+# The platform honors the explicit date and prorates ``PricingTermCount``
+# against the actual span. Runs through ``order_activated`` to validate the
+# override survives the post-Quote stages.
+defaults:
+  kind: sales_txn_quote        # PST chain; end_date override matrix
+
+scenarios:
+
+  # 1. Long span: Q2 start, multi-year absolute anchor.
+  - account: "Infinitech"
+    target_stage: order_activated
+    start_date: "2026-04-01"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+        term: {count: 3, unit: Annual}
+        end_date: "2029-03-31"   # exactly 3 calendar years - 1d
+    count: 1
+
+  # 2. Leap-day start with relative 1y. 2028 is a leap year; 2024 -> 2025
+  # would clamp Feb 29 -> Feb 28, but here we start on a leap day and go
+  # forward to a non-leap year via the standard month-clamp rule.
+  - account: "Infinitech"
+    target_stage: order_activated
+    start_date: "2028-02-29"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+        term: {count: 1, unit: Annual}
+        end_date: "1y"           # -> 2029-02-28 (day clamp)
+    count: 1
+
+  # 3. End-of-month day clamp: Aug 31 + 1mo -> Sep 30.
+  # QB-API has both Annual and Monthly PSMs; pin Monthly for these tests.
+  - account: "Infinitech"
+    target_stage: order_activated
+    start_date: "2026-08-31"
+    products:
+      - sku: "QB-API"
+        selling_model: "Term Monthly"
+        quantity: 1
+        term: {count: 1, unit: Months}
+        end_date: "1mo"
+    count: 1
+
+  # 4. End-of-month into Feb (non-leap): Jan 31 + 1mo -> Feb 28 in 2027.
+  - account: "Infinitech"
+    target_stage: order_activated
+    start_date: "2027-01-31"
+    products:
+      - sku: "QB-API"
+        selling_model: "Term Monthly"
+        quantity: 1
+        term: {count: 1, unit: Months}
+        end_date: "1mo"
+    count: 1
+
+  # 5. Short ramp: 90-day relative offset from a quarter-start.
+  - account: "Infinitech"
+    target_stage: order_activated
+    start_date: "2026-07-01"
+    products:
+      - sku: "QB-API"
+        selling_model: "Term Monthly"
+        quantity: 1
+        term: {count: 3, unit: Months}
+        end_date: "90d"          # -> 2026-09-29
+    count: 1
+
+  # 6. 3q (9 calendar months) -> non-Annual relative span.
+  - account: "Infinitech"
+    target_stage: order_activated
+    start_date: "2026-05-15"
+    products:
+      - sku: "QB-API"
+        selling_model: "Term Monthly"
+        quantity: 1
+        term: {count: 9, unit: Months}
+        end_date: "3q"           # -> 2027-02-15
+    count: 1
+
+  # 7. Scenario-level co-term: two lines, both anchored to 2027-12-31.
+  - account: "Infinitech"
+    target_stage: order_activated
+    start_date: "2026-06-15"
+    end_date: "2027-12-31"
+    term: {count: 1, unit: Annual}
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+      - sku: "QB-API-FLEX"
+        quantity: 3
+    count: 1
+
+  # 8. Bare-int days: "give me a 730-day deal" off an odd start date.
+  - account: "Infinitech"
+    target_stage: order_activated
+    start_date: "2026-10-07"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+        term: {count: 2, unit: Annual}
+        end_date: 730            # -> 2028-10-06
+    count: 1
+
+  # 9. Per-line offsets differ on the same quote (line wins over scenario).
+  # Scenario default anchors to "2027-06-30", but line 1 pins "6mo".
+  - account: "Infinitech"
+    target_stage: order_activated
+    start_date: "2026-09-15"
+    end_date: "2027-06-30"
+    term: {count: 1, unit: Annual}
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+        end_date: "6mo"          # line wins -> 2027-03-15
+      - sku: "QB-API-FLEX"
+        quantity: 2              # falls through to scenario -> 2027-06-30
+    count: 1

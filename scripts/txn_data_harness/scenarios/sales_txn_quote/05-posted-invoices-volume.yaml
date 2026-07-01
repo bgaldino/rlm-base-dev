@@ -1,0 +1,21 @@
+# Posted invoices at volume — the full chain, many times.
+#
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/05-posted-invoices-volume.yaml \
+#       --concurrency 3
+#
+# Bulk billing data: 50 transactions each driven all the way to a Posted invoice.
+# This is the heavy one — every record waits on the generate (~10-15s) and post
+# (~12s) async barriers, so run it with `--concurrency` to overlap those waits.
+# Start at 3 and raise gradually (higher is untested against API limits).
+defaults:
+  kind: sales_txn_quote        # PST chain (Opp -> Quote -> Order -> Activate -> Invoice -> Post)
+  target_stage: invoice_posted
+  with_opportunity: true         # realistic: opp -> quote -> order -> invoice -> post
+
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 50
