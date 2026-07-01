@@ -75,8 +75,9 @@ def _build_metadata_index(metadata):
     """Build lookups from field metadata across all object types.
 
     Returns:
-        by_name: dict field_name -> field_info (raises on collision in _resolve_entry)
+        by_name: dict field_name -> field_info
         by_type_name: dict (type, name) -> field_info (unambiguous)
+        ambiguous_names: set of field names that appear in multiple types
     """
     by_name = {}
     ambiguous_names = set()
@@ -234,7 +235,7 @@ class ConfigureSearchIndex(BaseSalesforceApiTask):
             )
         if not desired_fields:
             self.logger.info("No fields specified in configuration — nothing to do.")
-            self.return_values = {"added": [], "updated": [], "total_configs": 0}
+            self.return_values = {"added": [], "updated": [], "removed": [], "total_configs": 0}
             return self.return_values
 
         # Mode: task option overrides config file value; default additive
