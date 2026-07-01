@@ -297,6 +297,22 @@ scenarios:
         opt = load_scenarios(_args(config=config))[0].products[0]
         assert opt.selling_model == "Term Based - Quarterly"
 
+    def test_scenario_level_selling_model_applies_to_product_pool(self, tmp_path) -> None:
+        config = _write_yaml(
+            tmp_path,
+            """
+scenarios:
+  - selling_model: "Term Monthly"
+    products:
+      - sku: QB-API
+      - sku: QB-LIC-CLOUD
+        selling_model: "Term Annual"
+""",
+        )
+        spec = load_scenarios(_args(config=config))[0]
+        assert spec.products[0].selling_model == "Term Monthly"
+        assert spec.products[1].selling_model == "Term Annual"
+
 
 class TestEndDateCoercion:
     """``_coerce_end_date`` accepts absolute dates, bare-int days, and

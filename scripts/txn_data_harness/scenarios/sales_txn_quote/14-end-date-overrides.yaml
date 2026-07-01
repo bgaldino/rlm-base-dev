@@ -2,7 +2,7 @@
 #
 #   python -m scripts.txn_data_harness.cli run --org <sf-alias> \
 #       --config scripts/txn_data_harness/scenarios/sales_txn_quote/14-end-date-overrides.yaml \
-#       --target-stage quote_placed --concurrency 1 -v
+#       --target-stage order_activated --concurrency 1 -v
 #
 # Stresses the optional ``end_date`` override across a wide spread of
 # start dates, end anchors, and offset forms. The matrix below is
@@ -18,8 +18,8 @@
 #   * bare-int days form to hit the platform's inclusive convention
 #
 # The platform honors the explicit date and prorates ``PricingTermCount``
-# against the actual span. Stops at ``quote`` because the override's
-# observable surface is on QuoteLineItem.
+# against the actual span. Runs through ``order_activated`` to validate the
+# override survives the post-Quote stages.
 defaults:
   kind: sales_txn_quote        # PST chain; end_date override matrix
 

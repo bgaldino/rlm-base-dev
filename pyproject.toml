@@ -12,7 +12,8 @@ requires_python = ">=3.11"
 # Scope discovery to pytest-style test suites. Currently: build-harness and
 # txn-data-harness. The build-harness suite requires
 # `pip install -r scripts/build_harness/tui/requirements.txt`; the txn-data-harness
-# suite additionally requires `requests` (`pip install requests`).
+# suite additionally requires `requests` and `PyYAML`
+# (`pip install requests PyYAML`).
 # (Or use .harness/tui-venv/bin/python — see docs/guides/build-harness.md § Tests.)
 # Top-level tests/*.py (e.g. tests/test_fix_scratch_identity.py) follow
 # this repo's lightweight self-contained convention: they use an internal check()

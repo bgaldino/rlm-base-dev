@@ -803,20 +803,26 @@ def _coerce_enum(
 
 
 def _coerce_product_option(
-    raw: Any, where: str, default_qty: Any, default_discount: Any
+    raw: Any,
+    where: str,
+    default_qty: Any,
+    default_discount: Any,
+    default_selling_model: Any,
 ) -> ProductOption:
     """Build one :class:`ProductOption` from a ``products[]`` entry (a mapping).
 
-    Per-entry ``quantity``/``discount`` win over the scenario-level fallbacks
-    (``default_qty``/``default_discount``), mirroring how a scenario field wins
-    over ``defaults``. ``period_boundary``/``billing_frequency`` are per-product
-    only (no scenario-level fallback) -- they're product-specific proration knobs.
+    Per-entry ``quantity``/``discount``/``selling_model`` win over the
+    scenario-level fallbacks, mirroring how a scenario field wins over
+    ``defaults``. ``period_boundary``/``billing_frequency`` are per-product only
+    (no scenario-level fallback) -- they're product-specific proration knobs.
     """
     if not isinstance(raw, dict) or not raw.get("sku"):
         raise ConfigError(f"{where}: each product needs an 'sku'")
     qty = raw["quantity"] if "quantity" in raw else default_qty
     disc = raw["discount"] if "discount" in raw else default_discount
-    selling_model = raw.get("selling_model")
+    selling_model = (
+        raw["selling_model"] if "selling_model" in raw else default_selling_model
+    )
     if selling_model is not None and not isinstance(selling_model, str):
         raise ConfigError(f"{where}: selling_model must be a string")
     return ProductOption(
@@ -920,7 +926,13 @@ def _coerce_sales_transaction_spec(
         if not isinstance(products_raw, list):
             raise ConfigError(f"{where}: 'products' must be a list")
         products = [
-            _coerce_product_option(p, f"{where}.products[{i}]", default_qty, default_discount)
+            _coerce_product_option(
+                p,
+                f"{where}.products[{i}]",
+                default_qty,
+                default_discount,
+                default_selling_model,
+            )
             for i, p in enumerate(products_raw)
         ]
     else:
