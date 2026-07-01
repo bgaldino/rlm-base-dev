@@ -29,7 +29,7 @@ _STAGES_BY_KIND: dict[str, list[str]] = {
         "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
     ],
     "sales_txn_order": [
-        "opportunity_created", "order_draft",
+        "order_draft",
         "order_activated", "usage_upload", "invoice_draft", "invoice_posted",
     ],
     "invoice_ingestion": ["invoice_draft", "invoice_posted"],

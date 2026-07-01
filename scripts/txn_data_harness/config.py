@@ -912,6 +912,9 @@ def _coerce_sales_transaction_spec(
     # pool. `products:` is the pool a transaction draws a random subset from.
     default_qty = merged.get("quantity", 1)
     default_discount = merged.get("discount")
+    default_selling_model = merged.get("selling_model")
+    if default_selling_model is not None and not isinstance(default_selling_model, str):
+        raise ConfigError(f"{where}: selling_model must be a string")
     products_raw = merged.get("products")
     if products_raw:
         if not isinstance(products_raw, list):
@@ -934,6 +937,7 @@ def _coerce_sales_transaction_spec(
                 billing_frequency=_coerce_enum(
                     merged.get("billing_frequency"), where, "billing_frequency",
                     _VALID_BILLING_FREQUENCIES),
+                selling_model=default_selling_model,
             )
         ]
 
@@ -1290,8 +1294,9 @@ _KIND_COERCERS: dict[str, Any] = {
 def _coerce_spec(merged: dict[str, Any], where: str):
     """Coerce a merged config dict into a kind-specific spec.
 
-    Returns a :class:`ScenarioSpec` for ``kind: sales_transaction`` and an
-    :class:`InvoiceIngestionScenarioSpec` for ``kind: invoice_ingestion``.
+    Returns a :class:`ScenarioSpec` for ``kind: sales_txn_quote`` /
+    ``kind: sales_txn_order`` and an :class:`InvoiceIngestionScenarioSpec`
+    for ``kind: invoice_ingestion``.
     Each kind has its own dataclass so PST-only knobs vs ingestion-only
     knobs can't accidentally mix in one type, and so a misplaced field on
     the wrong kind fails at parse time, not at lifecycle time.

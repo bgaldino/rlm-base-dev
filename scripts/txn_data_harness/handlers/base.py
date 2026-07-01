@@ -1,7 +1,8 @@
 """Scenario handler protocol.
 
 A handler owns the parse/discover/resolve/run pipeline for one ``kind`` of
-scenario (today: ``sales_transaction`` and ``invoice_ingestion``). The
+scenario (today: ``sales_txn_quote``, ``sales_txn_order``, and
+``invoice_ingestion``). The
 dispatcher in ``generate.py`` / ``cli.py`` looks up
 ``SCENARIO_HANDLERS[merged["kind"]]`` after the defaults merge and delegates
 through this protocol so each lifecycle stays in its own module instead of

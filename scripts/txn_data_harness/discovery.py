@@ -256,6 +256,7 @@ def discover_accounts(client: SfRestClient, account_name: Optional[str] = None) 
     account_ids = [r["AccountId"] for r in rows]
     addresses = _resolve_account_addresses(client, account_ids)
     contact_by_account = _resolve_default_contact_id(client, account_ids)
+    currency_by_account = _account_currency_map(client, account_ids)
     accounts: list[Account] = []
     for r in rows:
         acct = r.get("Account") or {}
@@ -266,6 +267,7 @@ def discover_accounts(client: SfRestClient, account_name: Optional[str] = None) 
             name=acct.get("Name", acct_id),
             billing_account_id=r["Id"],
             bill_to_contact_id=contact_by_account.get(acct_id),
+            currency_iso_code=currency_by_account.get(acct_id),
             billing_address=billing_addr,
             shipping_address=shipping_addr,
         ))

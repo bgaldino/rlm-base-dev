@@ -222,7 +222,16 @@ def _cmd_step(args: argparse.Namespace) -> int:
 
     try:
         for step in steps:
-            manifest = execute_step(step, step_ctx, manifest)
+            # Handlers may expose public stage names that map to different
+            # internal step ids in STEP_REGISTRY (for example order_draft ->
+            # order_from_quote/order_direct on PST kinds). The full batch runner
+            # does this translation before dispatch; mirror it here for resume.
+            internal_step = (
+                handler._internal_step(step)
+                if hasattr(handler, "_internal_step")
+                else step
+            )
+            manifest = execute_step(internal_step, step_ctx, manifest)
             write_manifest(manifest)
     except LifecycleError as exc:
         manifest.error = str(exc)
