@@ -102,7 +102,8 @@ IF(AND({!Manager_Approver.Outputs.approvalDecision} == &quot;Approve&quot;), TRU
         <dataType>Boolean</dataType>
         <expression>OR(
 CONTAINS({!Manager_Approver.Outputs.approvalDecision}, &quot;Reject&quot;),
-CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
+CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;),
+CONTAINS({!VP_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
 )</expression>
     </formulas>
     <interviewLabel>RLM Quote Smart Approval {!$Flow.CurrentDateTime}</interviewLabel>
@@ -155,21 +156,37 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         <connector>
             <targetReference>Was_Rejected</targetReference>
         </connector>
-        <exitConditionLogic>(1 AND 2) OR (2 AND 3 AND 4) OR  (6 AND 7) OR 5</exitConditionLogic>
+        <exitConditionLogic>1 OR ((2 OR (3 AND 4 AND 8) OR (5 AND 6 AND 8 AND 9) OR (7 AND 8 AND 9 AND 10)) AND (11 OR 12))</exitConditionLogic>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>rejectedQuote</leftValueReference>
+            <operator>EqualTo</operator>
+            <rightValue>
+                <booleanValue>true</booleanValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
+            <operator>EqualTo</operator>
+            <rightValue>
+                <numberValue>0.0</numberValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
+            <operator>GreaterThanOrEqualTo</operator>
+            <rightValue>
+                <numberValue>1.0</numberValue>
+            </rightValue>
+        </exitConditions>
         <exitConditions>
             <conditionType>ExitCondition</conditionType>
             <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
             <operator>LessThan</operator>
             <rightValue>
                 <numberValue>2.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>Manager_Approver.Status</leftValueReference>
-            <operator>EqualTo</operator>
-            <rightValue>
-                <stringValue>Completed</stringValue>
             </rightValue>
         </exitConditions>
         <exitConditions>
@@ -182,6 +199,30 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         </exitConditions>
         <exitConditions>
             <conditionType>ExitCondition</conditionType>
+            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
+            <operator>LessThan</operator>
+            <rightValue>
+                <numberValue>3.0</numberValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
+            <operator>GreaterThanOrEqualTo</operator>
+            <rightValue>
+                <numberValue>3.0</numberValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>Manager_Approver.Status</leftValueReference>
+            <operator>EqualTo</operator>
+            <rightValue>
+                <stringValue>Completed</stringValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
             <leftValueReference>Director_Approver.Status</leftValueReference>
             <operator>EqualTo</operator>
             <rightValue>
@@ -190,15 +231,7 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         </exitConditions>
         <exitConditions>
             <conditionType>ExitCondition</conditionType>
-            <leftValueReference>rejectedQuote</leftValueReference>
-            <operator>EqualTo</operator>
-            <rightValue>
-                <booleanValue>true</booleanValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>Payment_Terms.Status</leftValueReference>
+            <leftValueReference>VP_Approver.Status</leftValueReference>
             <operator>EqualTo</operator>
             <rightValue>
                 <stringValue>Completed</stringValue>
@@ -207,9 +240,17 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
         <exitConditions>
             <conditionType>ExitCondition</conditionType>
             <leftValueReference>QueryApprovalData.Outputs.PaymentTerms</leftValueReference>
-            <operator>NotEqualTo</operator>
+            <operator>EqualTo</operator>
             <rightValue>
                 <stringValue>Net 30</stringValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>Payment_Terms.Status</leftValueReference>
+            <operator>EqualTo</operator>
+            <rightValue>
+                <stringValue>Completed</stringValue>
             </rightValue>
         </exitConditions>
         <stageSteps>
@@ -365,6 +406,80 @@ CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
                 </value>
             </inputParameters>
             <label>Director Approver</label>
+            <outputConfigParams>
+                <name>approvalComments</name>
+                <value xsi:nil="true"/>
+            </outputConfigParams>
+            <outputConfigParams>
+                <name>approvalDecision</name>
+                <value xsi:nil="true"/>
+            </outputConfigParams>
+            <requiresAsyncProcessing>false</requiresAsyncProcessing>
+            <runAsUser>false</runAsUser>
+            <shouldLock>false</shouldLock>
+            <stepSubtype>ApprovalStep</stepSubtype>
+        </stageSteps>
+        <stageSteps>
+            <name>VP_Approver</name>
+            <actionName>RLM_AA_Evaluate_Approval_Request</actionName>
+            <actionType>stepApproval</actionType>
+            <assignees>
+                <assignee>
+                    <stringValue>VP</stringValue>
+                </assignee>
+                <assigneeType>Group</assigneeType>
+            </assignees>
+            <canAssigneeEdit>false</canAssigneeEdit>
+            <debugSimulateStep>false</debugSimulateStep>
+            <entryConditionLogic>and</entryConditionLogic>
+            <entryConditions>
+                <conditionType>EntryCondition</conditionType>
+                <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
+                <operator>GreaterThanOrEqualTo</operator>
+                <rightValue>
+                    <numberValue>3.0</numberValue>
+                </rightValue>
+            </entryConditions>
+            <entryConditions>
+                <conditionType>EntryCondition</conditionType>
+                <leftValueReference>Director_Approver.Outputs.approvalDecision</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Approve</stringValue>
+                </rightValue>
+            </entryConditions>
+            <exitConditionLogic>and</exitConditionLogic>
+            <inputParameters>
+                <name>recordId</name>
+                <value>
+                    <elementReference>recordId</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__RecordId</name>
+                <value>
+                    <elementReference>recordId</elementReference>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__CustomEmailSubject</name>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__CustomEmailBody</name>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__ApprovalChainName</name>
+                <value>
+                    <stringValue>Discount</stringValue>
+                </value>
+            </inputParameters>
+            <inputParameters>
+                <name>ActionInput__CanUseSmartApproval</name>
+                <value>
+                    <stringValue>true</stringValue>
+                </value>
+            </inputParameters>
+            <label>VP Approver</label>
             <outputConfigParams>
                 <name>approvalComments</name>
                 <value xsi:nil="true"/>
