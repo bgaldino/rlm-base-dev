@@ -909,12 +909,13 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 27 | `prepare_large_stx` | `large_stx` |
 | 28 | `prepare_personas` | `personas` |
 | 29 | `prepare_ux` | `ux` |
-| 30 | `prepare_scratch` | Always |
-| 31 | `refresh_all_decision_tables` | Always |
-| 32 | `rebuild_search_index` | Always |
-| 33 | `stamp_git_commit` | Always |
+| 30 | `prepare_inapp` | `inapp` |
+| 31 | `prepare_scratch` | Always |
+| 32 | `refresh_all_decision_tables` | Always |
+| 33 | `rebuild_search_index` | Always |
+| 34 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 31 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 32 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 33 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 32 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 33 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 34 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 
@@ -953,7 +954,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
 | `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |
 | `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, configure settings, import CML models, activate | `constraints`, `constraints_data`, `qb` |
-| `prepare_guidedselling` | Assign guided selling permissions, deploy Guided Selling metadata, and update Product2 guided-selling field values | `guidedselling`, `qb` |
+| `prepare_guidedselling` | Assign guided selling permissions, deploy Guided Selling metadata, update Product2 guided-selling field values, and configure guided-selling fields in the PCM search index | `guidedselling`, `qb` |
 | `prepare_payments` | Deploy payments site, publish community, deploy settings | `payments` |
 
 ### UX Assembly Flow
