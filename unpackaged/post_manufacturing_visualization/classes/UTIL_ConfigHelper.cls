@@ -86,8 +86,12 @@ public with sharing class UTIL_ConfigHelper {
         Product2 prod = new Product2();
         try{
             String queryString = 'SELECT Id, Name, ChildProductId, ChildProduct.ProductCode, ChildProduct.Name FROM ProductRelatedComponent WHERE Id =:Id LIMIT 1';
-            SObject prc =  Database.query(queryString);
-            String productId = (String)prc.get('ChildProductId')?? '';
+            // Database.query returns List<SObject>; index the first row (mirrors getAttributeForId at line 10-11).
+            // Guard against an empty result so we return an empty Product2 instead of throwing.
+            List<SObject> results = Database.query(queryString);
+            if (results.isEmpty()) { return prod; }
+            SObject prc = results[0];
+            String productId = (String)prc.get('ChildProductId') ?? '';
             prod = [SELECT Id, ProductCode, Name FROM Product2 WHERE Id =:productId LIMIT 1];
         } catch(Exception e){
             System.debug(e);
