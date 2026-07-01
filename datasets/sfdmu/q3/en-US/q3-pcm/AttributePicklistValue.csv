@@ -1,0 +1,39 @@
+Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Value
+,1080p Built-in Display,1080p Built-in Display,true,1080p Built-in Display,Display Picklist,1,Active,1080p Built-in Display
+,13IN,13 Inch,false,13 Inch,Display Size Picklist,1,Active,13 Inch
+,15IN,15 Inch,false,15 Inch,Display Size Picklist,2,Active,15 Inch
+,24IN,24 Inch,false,24 Inch,Display Size Picklist,3,Active,24 Inch
+,27IN,27 Inch,false,27 Inch,Display Size Picklist,4,Active,27 Inch
+,2k Built-in Display,2k Built-in Display,false,2k Built-in Display,Display Picklist,2,Active,2k Built-in Display
+,4k Built-in Display,4k Built-in Display,false,4k Built-in Display,Display Picklist,3,Active,4k Built-in Display
+,A4,A4,false,A4,Paper Size Picklist,2,Active,A4
+,BUS001,Business,false,Business,Subscription Type,2,Active,Business
+,CSE - 6TB,Cloud Storage Enterprise - 6 TB,false,Cloud Storage Enterprise - 6 TB,Storage Picklist,6,Active,Cloud Storage Enterprise - 6 TB
+,CSE-TB,Cloud Storage Enterprise - 2 TB,false,Cloud Storage Enterprise - 2 TB,Storage Picklist,5,Active,Cloud Storage Enterprise - 2 TB
+,ENT001,Enterprise,false,Enterprise,Subscription Type,1,Active,Enterprise
+,GEL250A1,GEL 250,false,GEL250,Gel Quantity,1,Active,250.55
+,GEL50012A,GEL 500,false,GEL500,Gel Quantity,2,Active,500.5125
+,i5-CPU 4.4GHz,i5-CPU 4.4GHz,true,i5-CPU 4.4GHz,Processor Picklist,1,Active,i5-CPU 4.4GHz
+,i7-CPU 4.7GHz,i7-CPU 4.7GHz,false,i7-CPU 4.7GHz,Processor Picklist,2,Active,i7-CPU 4.7GHz
+,IC5.2,Intel Core i9 5.2 GHz,false,Intel Core i9 5.2 GHz,Processor Picklist,3,Active,Intel Core i9 5.2 GHz
+,IN001,Inkjet,false,Inkjet,Printer Picklist,2,Active,Inkjet
+,Intel Iris Xe Graphics,Intel Iris Xe Graphics,false,Intel Iris Xe Graphics,Graphics Picklist,1,Active,Intel Iris Xe Graphics
+,L001,Letter,false,Letter,Paper Size Picklist,1,Active,Letter
+,LS001,Laser,false,Laser,Printer Picklist,1,Active,Laser
+,MSI Gaming GeForce RTX 3060,MSI Gaming GeForce RTX 3060,false,MSI Gaming GeForce RTX 3060,Graphics Picklist,2,Active,MSI Gaming GeForce RTX 3060
+,PasteColor225,Paste 2.251,false,PasteColorRatio225,Paste Color Ratio,1,Active,2.251
+,PasteColor325,Paste 3.251,false,PasteColorRatio325,Paste Color Ratio,2,Active,3.251
+,Premium Plus Support,Premium Plus Support,false,Premium Plus Support,Support Level Picklist,2,Draft,Premium Plus Support
+,Premium Support,Premium Support,true,Premium Support,Support Level Picklist,1,Active,Premium Support
+,RAM 16GB,RAM 16GB,false,RAM 16GB,Memory Picklist,2,Active,RAM 16GB
+,RAM 32GB,RAM 32GB,true,RAM 32GB,Memory Picklist,3,Active,RAM 32GB
+,RAM 64GB,RAM 64GB,false,RAM 64GB,Memory Picklist,4,Active,RAM 64GB
+,RAM 8GB,RAM 8GB,false,RAM 8GB,Memory Picklist,1,Active,RAM 8GB
+,Security Training,Security Training,false,Security Training,Training Type Picklist,2,Active,Security Training
+,Software Training,Software Training,false,Software Training,Training Type Picklist,1,Active,Software Training
+,SSD Hard Drive 1TB,SSD Hard Drive 1TB,false,SSD Hard Drive 1TB,Storage Picklist,3,Active,SSD Hard Drive 1TB
+,SSD Hard Drive 256GB,SSD Hard Drive 256GB,false,SSD Hard Drive 256GB,Storage Picklist,1,Active,SSD Hard Drive 256GB
+,SSD Hard Drive 2TB,SSD Hard Drive 2TB,false,SSD Hard Drive 2TB,Storage Picklist,4,Active,SSD Hard Drive 2TB
+,SSD Hard Drive 512GB,SSD Hard Drive 512GB,false,SSD Hard Drive 512GB,Storage Picklist,2,Active,SSD Hard Drive 512GB
+,WEIGHT25,Weight 2.5,false,2.5,Compound Weight,1,Active,2.5
+,WEIGHT35,Weight 3.5,false,3.5,Compound Weight,2,Active,3.5

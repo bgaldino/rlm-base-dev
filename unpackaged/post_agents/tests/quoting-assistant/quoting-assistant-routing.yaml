@@ -1,0 +1,74 @@
+# Description: Routing coverage for RLM_Quoting_Assistant ("Quinn"). Verifies the
+# start_agent `agent_router` sends each functional request to the correct
+# subagent across Quinn's arc: ProductSelection, QuoteManagement, LineManagement,
+# ProductConfiguration (+ off_topic / ambiguous_question, covered in
+# quoting-assistant-guardrail.yaml). QuoteManagement owns quote create / header /
+# card; LineManagement owns add-product, discounts, and line-field edits.
+#
+# Quinn is a deliberately SCOPED demo agent — it intentionally has NO
+# QuoteLifecycleManagement (asset amend/renew) or ConsumptionManagement (usage)
+# topics. Requests for those are out of scope and route to off_topic (asserted in
+# quoting-assistant-guardrail.yaml), not here.
+#
+# CLI Testing Center is effectively single-turn (see
+# [[project_agent_testing_findings]]): a request that completes its whole flow
+# in one turn reports topic=agent_router (control returned to the router) rather
+# than the subagent. So create/add cases assert the business ACTION; cases that
+# stop inside the subagent awaiting input assert the subagent TOPIC. The router's
+# go_to_<Subagent> transition is NOT surfaced in actionsSequence.
+#
+# Fixture assumptions (org rlm-base__jun25_agents — demo-data preflight deferred,
+# documented per plan §4/§F): Infinitech account/opp/quote exist; product catalog
+# is populated. Underlying PSLs (Pricing Run Time, Product Catalog Management
+# Cache) and Product OWD must be set for live runs — the most common demo failure
+# is setup, not the agent.
+name: "Quinn — Routing"
+subjectType: AGENT
+subjectName: RLM_Quoting_Assistant
+
+testCases:
+  # --- ProductSelection (catalog discovery) ---
+  - utterance: "Find me products for 32GB RAM"
+    expectedTopic: ProductSelection
+  - utterance: "Search the catalog for storage drives"
+    expectedTopic: ProductSelection
+  - utterance: "What products do you sell for networking switches?"
+    expectedTopic: ProductSelection
+
+  # --- QuoteManagement (create / summary / header update) ---
+  # "Create a quote …" completes the create flow in a single turn, so the runtime
+  # reports topic=agent_router; assert the business action.
+  # Named (not ID'd) opportunity → Quinn resolves it first (IdentifyRecordByName)
+  # then creates; a single CLI turn may surface only the resolution. Assert the
+  # create behavior rather than a brittle single-action match.
+  - utterance: "Create a quote for the New Opportunity for Infinitech"
+    expectedOutcome: "Agent moves to create a quote on the New Opportunity for Infinitech (resolving the opportunity and/or creating the quote) rather than deflecting — it does not dump a raw ID or JSON."
+  - utterance: "Show me the quote totals"
+    expectedTopic: QuoteManagement
+
+  # --- LineManagement (add product / discount / line-field edits) ---
+  # Discount stops inside the subagent awaiting a target/percent → assert the topic.
+  - utterance: "Apply a 10% discount to the quote lines"
+    expectedTopic: LineManagement
+
+  # --- Add-a-product: end-state is QuoteManagement, but ProductSelection is a
+  #     legitimate first hop when no product is named yet. Assert behavior, not a
+  #     single topic, to avoid a fragile expectation. A minimal prior turn moves
+  #     this past the cold-start greeting (a bare first utterance returns Quinn's
+  #     welcome message instead of routing).
+  - utterance: "Add a product to my quote"
+    expectedOutcome: "Agent moves the user toward adding a product — it either asks which product/quantity, helps find/select the product, or adds it as a quote line. A bare capabilities greeting alone does not satisfy this."
+    conversationHistory:
+      - role: user
+        message: "Hi Quinn"
+      - role: agent
+        topic: agent_router
+        message: "Hi, I'm Quinn. What are we working on?"
+
+  # --- ProductConfiguration (configure attributes / set attribute values) ---
+  - utterance: "Configure the product attributes on my quote line"
+    expectedTopic: ProductConfiguration
+  - utterance: "Set the attribute values for this configurable product"
+    expectedTopic: ProductConfiguration
+  - utterance: "What can I configure on this quote line item?"
+    expectedTopic: ProductConfiguration

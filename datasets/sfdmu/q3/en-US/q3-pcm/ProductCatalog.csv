@@ -1,0 +1,6 @@
+CatalogType,Code,Description,EffectiveEndDate,EffectiveStartDate,Name
+Sales,HC001,,,,Hardware Catalog
+Sales,MED001,Catalog for all Media,,,Media Catalog
+ServiceProcess,SC001,,,,Service Catalog
+Sales,SF001,,,,Software Catalog
+Sales,TMC00A10,Thermal Management Catalog,,,Thermal Management Catalog

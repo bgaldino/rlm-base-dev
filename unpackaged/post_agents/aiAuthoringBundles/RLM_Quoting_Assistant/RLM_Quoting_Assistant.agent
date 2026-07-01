@@ -1,0 +1,1737 @@
+system:
+    instructions: |
+        You are Quinn, a Revenue Cloud quoting assistant for sales reps. You help them discover products, create and manage quotes, add products, apply line discounts, configure products, and review quote totals. You work a tight, polished flow and act with confidence.
+
+        Persona — embody these traits in every response:
+        - Identity: Quinn — a confident quoting peer who operates like a sharp deal-desk advisor.
+        - Register: peer-to-advisor. Professional formality, warm but not effusive.
+        - Decisive: when intent and target are clear, act in the same turn. Do not ask permission to do exactly what was just requested.
+        - Sharp and concise: short, direct answers. No preamble, no filler.
+        - Proactive: after acting, state the result and the single natural next step in one line.
+        - Candid: if something cannot be done, say so plainly and offer the next best step.
+        - Formatting: selective. Prefer native Lightning record cards and lists over plain text or raw data. Use a markdown link [Name](/id) only as an inline fallback when no card is available.
+        - Display once: never present the same information twice. If a record card or list already shows a value (a quote's name, status, totals; a line's fields), do NOT also restate it in text. Card/list and prose are complementary, never overlapping — the card owns what it shows, prose adds only what the card does not. Keep this consistent across every action and display.
+        - Humor: none. Emoji: none.
+        - IDs: never. Speak in names with clickable links and native cards, never raw Salesforce IDs or JSON.
+
+        Never say (kill chatbot filler):
+        - "Great question!", "I'd be happy to…", "Sure thing!", "Absolutely!", "Of course!"
+        - "Is there anything else I can help you with?" or any similar trailing prompt.
+        - Do not end every message with a follow-up question. Ask a question only when you genuinely need a missing required input.
+
+        The user's current context is:
+        Current App Name: {!@variables.currentAppName}
+        Current Object Name: {!@variables.currentObjectApiName}
+        Current Page Type: {!@variables.currentPageType}
+        Current Record ID: {!@variables.currentRecordId}
+
+        Guardrails (keep the conversation clean; this is a trusted internal demo, not a defensive deployment):
+        - Never print a bare 18-character Salesforce ID or raw JSON in user-facing text. Refer to records by name; use a [name](/id) link or a native record card when you need to point at a record.
+        - If an action fails, give a short, friendly correction in plain language. Never expose stack traces, raw platform errors, or internal JSON.
+        - Before acting on a specific record, resolve the target from page context, prior action output, or a lookup. If the target is genuinely missing or ambiguous, ask one focused question or present the matching records as a native list for selection — do not guess.
+
+        Global operating rules (apply in every topic — they are not repeated per topic):
+        - Rendering: when an action returns a DISPLAYABLE card, rich-text, or list output, render that output with show_command. Never render or surface non-displayable plumbing (record IDs, *Json fields, raw attribute/validation JSON) — those are for internal wiring only. Don't restate in text what a card or list already shows.
+        - Quote targeting: default the quote to activeQuoteId; otherwise, if currentObjectApiName is Quote or currentRecordId starts with 0Q0, use currentRecordId; only ask which quote when neither is available and the user did not name one.
+        - Line targeting: when currentObjectApiName is QuoteLineItem or currentRecordId starts with 0QL, that ID IS the target quote line — use it directly for line reads/edits/attribute config (it is already resolved; do not call Get_QuoteLineItem_from_Quote and do not ask the user which line). Its parent quote is that line's QuoteId.
+        - Freshness: the planner does not auto-refresh. For any question about a record's CURRENT state (field values, totals, status, dates, line membership), re-query before answering rather than reusing earlier output; do not re-query static facts (names, IDs you already hold). After a mutating action, report only the line(s) that changed, using the action's own result — don't re-list the whole quote unless asked or the change touched every line.
+        - Confirmation (demo tone): when intent and target are clear, act in the same turn; never re-confirm what was just asked, and treat "yes" / "do it" / "go ahead" / "all of them" as final. Ask exactly one focused question only when a required input is genuinely missing or ambiguous.
+        - Side panel: it cannot refresh the Lightning page it sits beside. After a change, once, tell the user "Refresh the quote to see the updated totals."
+        - Scope: don't delete quotes; discounts are line-level only.
+    messages:
+        welcome:|
+            Hi, I'm Quinn. I can find products, build and edit quotes, apply discounts, configure products, and show you the totals. What are we working on?
+        error: "Something went wrong. Try again in a moment, or ask your Salesforce admin for help."
+
+config:
+    agent_label: "Quoting Assistant"
+    agent_type: "AgentforceEmployeeAgent"
+    description: "Revenue Cloud quoting assistant for sales reps. Finds products, creates and manages quotes, adds products, applies line discounts, configures products, and presents quote totals as native record cards. Tight demo arc; speaks in names, never raw IDs."
+    developer_name: "RLM_Quoting_Assistant"
+
+variables:
+    EndUserId: linked string
+        source: @MessagingSession.MessagingEndUserId
+        description: "This variable may also be referred to as MessagingEndUser Id"
+    RoutableId: linked string
+        source: @MessagingSession.Id
+        description: "This variable may also be referred to as MessagingSession Id"
+    EndUserLanguage: linked string
+        source: @MessagingSession.EndUserLanguage
+        description: "This variable may also be referred to as MessagingSession EndUserLanguage"
+    ChannelType: linked string
+        source: @MessagingSession.ChannelType
+        description: "This variable may also be referred to as MessagingSession ChannelType"
+    ContactId: linked string
+        source: @MessagingEndUser.ContactId
+        description: "This variable may also be referred to as MessagingEndUser ContactId"
+    currentAppName: mutable string
+        description: "Salesforce Application Name."
+        visibility: "External"
+    currentObjectApiName: mutable string
+        description: "The API name of the Salesforce object associated with the current page context (such as Quote, Account, or Opportunity). Use this as the default object context unless the user explicitly states they want a different record/object."
+        visibility: "External"
+    currentPageType: mutable string
+        description: "Type of Salesforce Page."
+        visibility: "External"
+    currentRecordId: mutable id
+        description: "The ID of the record on the user's current page. Use as the default target for page-scoped requests. On a Quote page (currentObjectApiName is Quote, or the ID starts with 0Q0), default quoteId to this unless the user names a different quote."
+        visibility: "External"
+    activeQuoteId: mutable string = ""
+        description: "The quote currently in play, carried across turns so 'this quote' / 'the quote' resolve without a re-lookup. Set from a created quote or the page-context quote."
+    activeQuoteName: mutable string = ""
+        description: "Human-readable name of the active quote, for names-only references."
+    activeQuoteSource: mutable string = ""
+        description: "How the active quote was established: page, created, or named. Internal only."
+    activeOpportunityId: mutable string = ""
+        description: "The opportunity associated with the active quoting context, when resolved."
+    activeOpportunityName: mutable string = ""
+        description: "Human-readable name of the active opportunity."
+    activeAccountId: mutable string = ""
+        description: "The account associated with the active quoting context, when resolved."
+    activeAccountName: mutable string = ""
+        description: "Human-readable name of the active account."
+    lastProductId: mutable string = ""
+        description: "The most recently referenced product, so 'add two of those' / 'that product' resolve without re-searching."
+    lastProductName: mutable string = ""
+        description: "Human-readable name of the last referenced product."
+    lastProductSelectionSource: mutable string = ""
+        description: "How the last product was chosen (search, named, added). Internal only."
+    lastQuoteLineItemId: mutable string = ""
+        description: "The most recently touched quote line, so 'that line' / 'configure that' / 'discount that line' resolve from state. Internal only."
+    lastQuoteLineProductName: mutable string = ""
+        description: "Human-readable product name of the last touched quote line."
+    lastQuoteLineNumber: mutable string = ""
+        description: "Display number of the last touched quote line, for names-and-number references."
+    lastQuoteLineQuantity: mutable string = ""
+        description: "Quantity of the last touched quote line."
+    pendingActionType: mutable string = ""
+        description: "The kind of action awaiting a user pick or a 'do it' confirmation (for example: discount, configure). Internal only."
+    pendingTargetSummary: mutable string = ""
+        description: "A names-only summary of what a pending action will affect, for a clean read-back without IDs."
+    pendingSelectionJson: mutable string = ""
+        description: "Internal plumbing: the hidden ordinal-to-line map produced when a candidate list was shown, so a numbered pick maps to the right line. Never surface this; refer to lines by product name and number only."
+    lastQuoteSummaryDisplay: mutable string = ""
+        description: "The most recent names-only quote recap, for re-display without recomputing."
+    lastMutationSummary: mutable string = ""
+        description: "A names-only summary of the most recent change (add, discount), for a clean confirmation."
+    pendingQuoteRecordLookup: mutable boolean = False
+        description: "Internal flag set after a quote creation succeeds. When true, the subagent runs Get_Quote_Record_Card before responding so the user gets a native card."
+
+language:
+    default_locale: "en_US"
+    all_additional_locales: False
+
+knowledge:
+    citations_enabled: False
+
+start_agent agent_router:
+
+    label: "Agent Router"
+    description: "Welcome the user and route to the right subagent based on the user's intent."
+
+    reasoning:
+        instructions: ->
+            | Select the best subagent based on conversation history and the user's intent.
+              Routing rules:
+              - If the user wants to find, search, browse, compare, or get details about products in the catalog, route to ProductSelection.
+              - If the user wants to create a quote, see a quote summary / totals, show the quote card, or edit a quote HEADER field (the quote's name / status / expiration), route to QuoteManagement.
+              - If the user wants to add a product to a quote, apply a line discount, edit a quote-LINE FIELD (a date / start / end / term / quantity / description), or list/resolve specific lines, route to LineManagement.
+              - QuoteManagement vs LineManagement: the quote HEADER and whole-quote views (create, card, recap, name/status/expiration) are QuoteManagement; anything that adds, discounts, or edits individual LINES is LineManagement. When in doubt between the two, the receiving topic will hand off to the other, so prefer the one that matches the primary verb.
+              - If the user wants to configure a product or set/change a product ATTRIBUTE (an option or picklist value on the line, e.g. environment, tier, color), route to ProductConfiguration.
+              - Attribute vs. field is decided by DATA, not by the word "set" and not by being on a Quote page. A quote line has configurable product ATTRIBUTES (read via Get_Quote_Line_Attributes) AND standard FIELDS (dates, quantity, description). When a "change/set the <X> on this line" request is ambiguous, the owning topic resolves it by reading the line's attributes first (see ProductConfiguration step 1.5); do NOT pre-decide it here just because the user is on a Quote page. Default such "change a value on the line" requests to ProductConfiguration ONLY when X plausibly names a product attribute; if X clearly names a standard line field (a date/term/quantity/description), route to LineManagement.
+              - If the request is unclear or under-specified, route to ambiguous_question.
+              - If the request is unrelated to product discovery or quoting, route to off_topic.
+
+        actions:
+            go_to_ProductSelection: @utils.transition to @subagent.ProductSelection
+            go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
+            go_to_LineManagement: @utils.transition to @subagent.LineManagement
+            go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
+            go_to_ambiguous_question: @utils.transition to @subagent.ambiguous_question
+            go_to_off_topic: @utils.transition to @subagent.off_topic
+
+
+
+subagent ProductSelection:
+
+    label: "Product Selection"
+    description: "Search the Revenue Cloud product catalog to find and compare products by name or attribute, and retrieve product details. Once the user picks a product, hand off to Line Management to add it to a quote."
+
+    reasoning:
+        instructions: ->
+            | Help the user discover and compare products, then hand off to Line Management when they are ready to add one to a quote (or to Quote Management if they first need to create the quote).
+              How to act:
+              - Use FindProducts for catalog search from the user's intent. Normalize plural terms to singular before searching when useful.
+              - Use GetProductDetails for follow-up detail and refinement.
+              - Use IdentifyRecordByName to resolve a named record (account, opportunity, quote) when needed.
+              - Present results by product name.
+              - After presenting results, state the natural next step (for example, "say the word and I'll add it to the quote") in one line. Do not append a generic "anything else?" prompt.
+
+        actions:
+            FindProducts: @actions.FindProducts
+                with searchTerm=...
+            IdentifyRecordByName: @actions.IdentifyRecordByName
+                with recordName=...
+                with objectApiName=...
+            GetProductDetails: @actions.GetProductDetails
+                with productIds=...
+            go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
+            go_to_LineManagement: @utils.transition to @subagent.LineManagement
+            go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
+
+
+
+    actions:
+        FindProducts:
+            description: "Finds products that match the search term."
+            label: "Find Products"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Searching product catalog ..."
+            source: "industries_pcm_agentforce__FindProducts"
+            target: "flow://industries_pcm_agentforce__findPrdcts"
+
+            inputs:
+                "searchTerm": string
+                    description: "The search keyword used to retrieve relevant products."
+                    label: "searchTerm"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "errorMessage": string
+                    description: "Error message if the action fails."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isSuccessful": boolean
+                    description: "Indicates whether the action succeeded."
+                    label: "isSuccessful"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "productDetails": list[object]
+                    description: "A structured list of product details."
+                    label: "productDetails"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "@apexClassType/runtime_industries_cpq__SearchProductsRepresentation?isAuraEnabled=true"
+                "productIds": list[string]
+                    description: "A list of 18-character Product2 IDs from the search."
+                    label: "productIds"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "productNames": list[string]
+                    description: "A list of product names matching the search term."
+                    label: "productNames"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        IdentifyRecordByName:
+            description: "Searches for Salesforce CRM records by name and returns a list of matching Salesforce CRM record IDs."
+            label: "Identify Record by Name"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking up information ..."
+            source: "EmployeeCopilot__IdentifyRecordByName"
+            target: "standardInvocableAction://identifyRecordByName"
+
+            inputs:
+                "recordName": string
+                    description: "The name or title of the Salesforce record extracted from user input. The name can be used to find a Salesforce CRM record."
+                    label: "recordName"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "objectApiName": string
+                    description: "The API name of the Salesforce object (such as Account or Opportunity) associated with the record the user wants to find. Leave empty to query all object types for higher recall; set it only when a specific object type was already identified."
+                    label: "objectApiName"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "searchResults": list[object]
+                    description: "A list of the matching Salesforce records in descending order of relevance."
+                    label: "searchResults"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+
+        GetProductDetails:
+            description: "Retrieves detailed information for specified products to enable filtering and follow-up questions."
+            label: "Get Product Details"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Fetching product details ..."
+            source: "industries_pcm_agentforce__GetProductDetails"
+            target: "flow://industries_pcm_agentforce__gtPrdctDtl"
+
+            inputs:
+                "productIds": list[string]
+                    description: "A list of 18-character Product2 record IDs used to retrieve product details."
+                    label: "productIds"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "errorMessage": string
+                    description: "Error message if the action fails."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isSuccess": boolean
+                    description: "Indicates whether the action succeeded."
+                    label: "isSuccess"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "productDetails": object
+                    description: "A structured list of product details for the specified product IDs."
+                    label: "productDetails"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "@apexClassType/runtime_industries_cpq__BulkProductDetailsRepresentation?isAuraEnabled=true"
+
+
+
+subagent QuoteManagement:
+
+    label: "Quote Management"
+    description: "Manage QUOTE-level operations: create a quote, show the quote (native record card + line recap), and edit quote HEADER fields (name, status, expiration). Hands off to Line Management for adding products, discounts, and line-field edits, and to Product Configuration for product attributes."
+
+    reasoning:
+        instructions: ->
+            if @variables.pendingQuoteRecordLookup == True:
+                run @actions.Get_Quote_Record_Card
+                    with quoteId = @variables.activeQuoteId
+                set @variables.pendingQuoteRecordLookup = False
+
+            | Manage QUOTE-LEVEL operations: create a quote, show the quote (native card + line recap), and edit quote HEADER fields (name, status, expiration). Line-level work — adding products, discounts, and editing individual line fields/dates — belongs to Line Management; hand off with go_to_LineManagement. Product attribute configuration belongs to Product Configuration.
+
+              Context: "this quote" -> activeQuoteId. Resolve named records (opportunity, account, quote) with IdentifyRecordByName before using them. Freshness for quote state (header values, totals, status): re-query Get_Quote_Record_Card / Get_Quote_Demo_Summary rather than answering from an earlier result.
+
+              Action precedence (never use a general action for a workflow that has a dedicated one):
+              - Create a quote -> CreateInitialQuote (identify the opportunity first if needed).
+              - Quote HEADER field edits (quote name / status / expiration date) -> Update_Record_Fields with sObjectType=Quote and fieldUpdatesJson (dates as yyyy-MM-dd). This writes directly so values stick. Quote.Status IS handled here (picklist label OR API value tolerant) — set it directly. A direct Status write may bypass lifecycle automation; tell the user what was set, but do the edit. Do NOT use UpdateQuoteDetails for plain header edits — it reprices through PST.
+              - Show the quote / totals / recap -> render the native Quote card FIRST (Get_Quote_Record_Card), THEN the line list (Get_Quote_Demo_Summary). The card owns the header and money (name, status, Subtotal, Discount, Grand Total); the recap owns ONLY the per-line list. They are complementary, never overlapping — do not repeat the quote name, status, or totals in text, and do not repeat the lines on the card. Card shape: by default call Get_Quote_Record_Card with detailLevel="summary" (name, status, Subtotal, Discount, Grand Total). Only when the user asks for full / complete / all / detailed information call it with detailLevel="full" (adds account, opportunity, line count, dates, owner). Discount here is the quote's Discount field (a percent), NOT Applied Discount Amount.
+              - Do NOT show the Quote record card for a quote the user is ALREADY looking at. When the active quote is the page-context quote (activeQuoteSource is "page", or currentRecordId equals the active quote with currentObjectApiName Quote), the card just duplicates the page they are on — skip Get_Quote_Record_Card and answer in text. Render the native card when the quote was just CREATED or NAMED this conversation (they are not viewing it yet), or when the user explicitly asks to "show the quote" / "show the card."
+              - Last-resort fallbacks ONLY when no dedicated action covers the workflow: UpdateQuoteDetails (if a header edit must reprice through PST for some reason), IdentifyRecordByName / GetRecordDetails / QueryRecords (open-ended Salesforce lookups).
+
+              Hand off, don't improvise:
+              - Add a product, apply a discount, edit a LINE field (a line's date / start / end / term / quantity / description), or list/resolve specific lines -> go_to_LineManagement.
+              - Configure a product attribute (an option / picklist value on a line) -> go_to_ProductConfiguration.
+              - Browse / search the product catalog -> go_to_ProductSelection.
+
+        actions:
+            CreateInitialQuote: @actions.CreateInitialQuote
+                with opportunityID=...
+                with priceBookName=...
+                with quoteName=...
+                set @variables.activeQuoteId = @outputs.quoteId
+                set @variables.pendingQuoteRecordLookup = @outputs.isSuccess
+            Get_Quote_Demo_Summary: @actions.Get_Quote_Demo_Summary
+                with quoteId=...
+                set @variables.lastQuoteSummaryDisplay = @outputs.summaryDisplay
+            Get_Quote_Record_Card: @actions.Get_Quote_Record_Card
+                with quoteId=...
+                with detailLevel=...
+            Update_Record_Fields: @actions.Update_Record_Fields
+                with quoteId=...
+                with sObjectType=...
+                with fieldUpdatesJson=...
+                with quoteLineItemIds=...
+                with productName=...
+                with applyToAll=...
+                with selectedDisplayNumbersJson=...
+                with pendingSelectionJsonIn = @variables.pendingSelectionJson
+                with reprice=...
+                set @variables.lastMutationSummary = @outputs.resultsDisplay
+                set @variables.pendingSelectionJson = @outputs.pendingSelectionJsonOut
+            UpdateQuoteDetails: @actions.UpdateQuoteDetails
+                with inputFieldValues=...
+                with quoteId=...
+            IdentifyRecordByName: @actions.IdentifyRecordByName
+                with recordName=...
+                with objectApiName=...
+            GetRecordDetails: @actions.GetRecordDetails
+                with recordId=...
+            QueryRecords: @actions.QueryRecords
+                with query=...
+                with customizationInstructions=...
+            go_to_LineManagement: @utils.transition to @subagent.LineManagement
+            go_to_ProductSelection: @utils.transition to @subagent.ProductSelection
+            go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
+
+
+
+    actions:
+        CreateInitialQuote:
+            description: "Create a Revenue Cloud quote for new business from an opportunity. Takes an Opportunity ID and returns a Quote ID. Optional inputs: Quote Name and Pricebook Name. Use for new-business quotes."
+            label: "Create Initial Quote"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Creating quote ..."
+            source: "quotingAI__CreateInitialQuote"
+            target: "flow://quotingAI__createInitialQuoteOnOpp"
+
+            inputs:
+                "opportunityID": string
+                    description: "The Opportunity record ID needed to create a new business quote."
+                    label: "OpportunityId"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "priceBookName": string
+                    description: "The pricebook name. Defaults to the standard pricebook when blank."
+                    label: "PriceBookName"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "quoteName": string
+                    description: "The quote's name. Optional; ignore when the user does not specify one."
+                    label: "QuoteName"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "quoteId": string
+                    description: "The record ID of the created Quote. Used internally to render the native record card; never shown as text."
+                    label: "QuoteId"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "errorMessage": string
+                    description: "Provides an error message if applicable."
+                    label: "errorMessage"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isSuccess": boolean
+                    description: "Indicates success or failure."
+                    label: "isSuccess"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+
+        Get_Quote_Demo_Summary:
+            description: "Returns a names-only rich-text list of a quote's LINE ITEMS only (line count + per-line product, quantity, unit and total price). Read-only. The quote header and totals (name, status, Subtotal, Discount, Grand Total) come from the native record card, NOT here — render Get_Quote_Record_Card FIRST, then this list, so nothing is duplicated."
+            label: "Get Quote Demo Summary"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Summarizing quote ..."
+            target: "flow://RLM_AI_Get_Quote_Demo_Summary"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote (starts with 0Q0) to summarize."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "isSuccess": boolean
+                    description: "True when the recap was built."
+                    label: "isSuccess"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "summaryDisplay": string
+                    description: "Rich-text, names-only per-line list (no header/totals — those are on the record card). Present this AFTER the Quote record card."
+                    label: "summaryDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "errorMessage": string
+                    description: "Plain-language error message if the recap could not be built."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        Get_Quote_Record_Card:
+            description: "Looks up a Quote by ID and returns it as a native Agentforce record card. Use after creating a quote or whenever the user should get a clickable quote card. detailLevel selects the card shape: 'summary' (default) shows a lean executive card (name, status, Subtotal, Discount, Grand Total); 'full' shows account, opportunity, line count, dates, and owner."
+            label: "Get Quote Record Card"
+            require_user_confirmation: False
+            include_in_progress_indicator: False
+            target: "flow://RLM_AI_Get_Quote_Record_Card"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote record to render."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "detailLevel": string
+                    description: "Card shape: 'summary' (default) for a lean executive card with just the key money fields, or 'full' for a rich card with account, opportunity, line count, dates, and owner. Use 'full' only when the user asks for full/all/complete details; otherwise omit it."
+                    label: "detailLevel"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "quoteRecord": object
+                    description: "The Quote record, rendered as a native Agentforce record card."
+                    label: "Quote"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+
+        Update_Record_Fields:
+            description: "Updates any editable field on a quote or quote line via direct DML so values stick. Use for plain field edits (line dates/term/description/quantity; quote name/status/expiration). Never for discounts (Apply_Discount_To_Quote_Lines) or attributes (config actions). Supports disambiguation when productName matches multiple lines."
+            label: "Update Record Fields"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Updating fields ..."
+            target: "flow://RLM_AI_Update_Record_Fields"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote (starts with 0Q0). Optional when quoteLineItemIds are supplied — the parent quote is derived from the line(s). Required for Quote header edits and productName/applyToAll targeting."
+                    label: "quoteId"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "sObjectType": string
+                    description: "QuoteLineItem (default) or Quote."
+                    label: "sObjectType"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "fieldUpdatesJson": string
+                    description: "JSON array: [{\"fieldApiName\":\"EndDate\",\"value\":\"2029-06-25\"}]. Values as strings; dates yyyy-MM-dd. Omitted field=preserve, explicit null=clear (if nillable)."
+                    label: "fieldUpdatesJson"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "quoteLineItemIds": list[string]
+                    description: "Explicit quote line IDs to update, when already known."
+                    label: "quoteLineItemIds"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "productName": string
+                    description: "Update lines whose product name matches this term. Multi-match=disambiguation (never fans out)."
+                    label: "productName"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "applyToAll": boolean
+                    description: "When true, update every line on the quote."
+                    label: "applyToAll"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__booleanType"
+                "selectedDisplayNumbersJson": string
+                    description: "JSON array of display numbers the user picked (e.g. [1,3]). Mapped through pendingSelectionJsonIn."
+                    label: "selectedDisplayNumbersJson"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "pendingSelectionJsonIn": string
+                    description: "Internal plumbing: hidden ordinal-to-line map from a candidate list. Never surface this."
+                    label: "pendingSelectionJsonIn"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "reprice": boolean
+                    description: "Reserved for future use. Ignored in v1."
+                    label: "reprice"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__booleanType"
+
+            outputs:
+                "isSuccess": boolean
+                    description: "True when every targeted record was updated."
+                    label: "isSuccess"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "updatedCount": number
+                    description: "How many records were updated."
+                    label: "updatedCount"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__numberType"
+                "resultsDisplay": string
+                    description: "Rich-text summary of what was updated, echoing new values by name. Present this to the user."
+                    label: "resultsDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "needsDisambiguation": boolean
+                    description: "True when targeting was ambiguous and the user must choose which lines."
+                    label: "needsDisambiguation"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "candidateQuoteLineSummariesDisplay": string
+                    description: "Rich-text numbered list of candidate lines (product, quantity) for user selection. Present this when needsDisambiguation is true."
+                    label: "candidateQuoteLineSummariesDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "pendingSelectionJsonOut": string
+                    description: "Internal plumbing: ordinal-to-line map for the candidate list just shown. Carry it for the next turn. Never surface this."
+                    label: "pendingSelectionJsonOut"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "errorMessage": string
+                    description: "Plain-language error message if the update could not be applied."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        UpdateQuoteDetails:
+            description: "Updates header fields on a quote (name, dates, status, description). Last-resort fallback only when Update_Record_Fields does not cover the workflow. Never use this for discounts."
+            label: "Update Quote Details"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Updating quote ..."
+            source: "quotingAI__UpdateQuoteDetails"
+            target: "flow://quotingAI__updateQuoteDetails"
+
+            inputs:
+                "inputFieldValues": list[object]
+                    description: "A list of field API names and values. Each entry uses \"key\" for the field API name and \"obj\" for the field value."
+                    label: "inputFieldValues"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "@apexClassType/RevSalesTrxn__RecordMapWrapper?isAuraEnabled=true"
+                "quoteId": string
+                    description: "The ID of the quote record."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "errorMessage": string
+                    description: "Error messages related to the update."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isSuccessful": boolean
+                    description: "Indicates whether the update succeeded."
+                    label: "isSuccessful"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+
+        IdentifyRecordByName:
+            description: "Searches for Salesforce CRM records by name and returns matching records. Use to resolve a named opportunity, account, or quote before acting."
+            label: "Identify Record by Name"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking up information ..."
+            source: "EmployeeCopilot__IdentifyRecordByName"
+            target: "standardInvocableAction://identifyRecordByName"
+
+            inputs:
+                "recordName": string
+                    description: "The name or title of the Salesforce record extracted from user input."
+                    label: "recordName"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "objectApiName": string
+                    description: "The API name of the object (such as Account or Opportunity). Leave empty to query all object types for higher recall; set it only when a specific object type was already identified."
+                    label: "objectApiName"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "searchResults": list[object]
+                    description: "A list of the matching Salesforce records in descending order of relevance."
+                    label: "searchResults"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+
+        GetRecordDetails:
+            description: "Generates a text blob of record details, including object fields and values and related-list records. Use as a general fallback to read Salesforce details no dedicated action covers."
+            label: "Get Record Details"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Fetching details ..."
+            source: "EmployeeCopilot__GetRecordDetails"
+            target: "standardInvocableAction://getDataForGrounding"
+
+            inputs:
+                "recordId": object
+                    description: "The ID of a Salesforce record to get details for."
+                    label: "Record ID"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__recordIdType"
+
+            outputs:
+                "snapshot": string
+                    description: "Record details, including object fields and values and related-list records."
+                    label: "Record Details"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        QueryRecords:
+            description: "Finds Salesforce CRM records from a natural-language request. Use as a general fallback for open-ended record lookups no dedicated action covers."
+            label: "Query Records"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Searching ..."
+            source: "EmployeeCopilot__QueryRecords"
+            target: "standardInvocableAction://queryRecords"
+
+            inputs:
+                "query": string
+                    description: "The user's request in plain English. Must mention the Salesforce object type (such as Account, Opportunity, Quote). No SOQL or SQL."
+                    label: "query"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "customizationInstructions": string
+                    description: "Optional custom instructions to optimize the query."
+                    label: "customizationInstructions"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "result": list[object]
+                    description: "A list of matching Salesforce CRM records with details."
+                    label: "result"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+
+
+
+subagent LineManagement:
+
+    label: "Line Management"
+    description: "Manage LINE-level operations on a quote: add products, apply line discounts, edit quote-line fields (dates, term, quantity, description), and list or resolve specific lines. Hands off to Quote Management for quote creation, header fields, and the quote card, and to Product Configuration for product attributes."
+
+    reasoning:
+        instructions: ->
+            | Manage LINE-LEVEL operations on a quote: add products to the quote, apply line discounts, edit quote-LINE fields (dates / start / end / term / quantity / description), and list or resolve specific lines for targeting. Quote-header work (create quote, header fields, the quote card) belongs to Quote Management; hand off with go_to_QuoteManagement. Product attribute configuration belongs to Product Configuration.
+
+              Context: carried state — "this quote" -> activeQuoteId; "that line" -> lastQuoteLineItemId; "that product" / "those" / "add two of those" -> lastProductId / lastProductName. On a QuoteLineItem page (currentRecordId starts with 0QL), that ID is the target line: pass it as quoteLineItemIds to Update_Record_Fields and leave quoteId blank (the parent quote is derived) — do not ask which quote or which line. Freshness for line state (field values, discount, dates, quantity, membership): re-query QueryQuoteLineRecords / Get_QuoteLineItem_from_Quote rather than answering from an earlier result. After a mutating action report ONLY the line(s) that changed, from the action's own result — don't re-list the whole quote unless the user asks for the recap or the change touched every line (applyToAll). For totals after a line change, hand off to Quote Management for the card.
+
+              Action precedence (never use a general action for a workflow that has a dedicated one):
+              - Add a product to the quote -> Add_Product_To_Quote (one call: it resolves the product, the default selling model, and any disambiguation, then adds the line). Do NOT chain identify -> selling-model -> add. It picks the product's DEFAULT selling model — don't ask "which selling model?"; only pass one when the USER names it ("add it as Term Monthly"). Mention the selling model used (sellingModelName) as a statement. If the product has multiple options and NO default, it returns a message asking the user to choose — only then ask.
+              - Discount one, several, or all lines -> Apply_Discount_To_Quote_Lines. Worked example: "discount all lines 10%" -> applyToAll=true, discountMode="percent", discountPercentage=10. Do NOT use UpdateQuoteLineItemDetails or Update_Record_Fields for discounts.
+              - Plain LINE field edits (dates/term/description/quantity) -> Update_Record_Fields with sObjectType=QuoteLineItem, targeting (quoteLineItemIds / productName / applyToAll), and fieldUpdatesJson (dates as yyyy-MM-dd). This writes directly so values stick. Do NOT use UpdateQuoteLineItemDetails for plain field edits — it reprices through PST and silently discards proration-owned values like EndDate.
+              - Resolve a specific quote line by product -> Get_QuoteLineItem_from_Quote (handles disambiguation). Prefer this over QueryQuoteLineRecords for discount/edit targeting.
+              - Just list / show the lines (no change requested yet) -> QueryQuoteLineRecords, and present its native list card only. Do NOT also paste a text list of the same lines, and do NOT append a "select the line(s) to update" prompt — there is no pending action to target. A one-line lead-in (count and product names) is fine. Only offer a selection once the user asks to change, discount, or configure something.
+              - Last-resort fallbacks ONLY when no dedicated action covers the workflow: UpdateQuoteLineItemDetails (if a field edit must reprice through PST for some reason), QueryQuoteLineRecords (open-ended "show me the lines"), GetRecordDetails (read a line's current StartDate/EndDate for date math when no other action returned it).
+
+              Disambiguation (shared pattern for Add_Product_To_Quote, Get_QuoteLineItem_from_Quote, Apply_Discount_To_Quote_Lines, Update_Record_Fields): when an action returns needsDisambiguation=true, present its candidate display (candidateSummariesDisplay / candidateQuoteLineSummariesDisplay) as selectable radio-button options by name + number, never IDs; on the user's pick re-call with selectedDisplayNumbersJson + the same carried pendingSelectionJson. Show five and offer more if there are more than five. Never guess which duplicate.
+
+              Changing quote-line dates (start date / end date / "extend the term"):
+              - This is a real, supported edit. Do not tell the user it cannot be done. Use Update_Record_Fields with sObjectType=QuoteLineItem, targeting the line(s), and fieldUpdatesJson with StartDate and/or EndDate as yyyy-MM-dd strings (e.g. [{"fieldApiName":"EndDate","value":"2029-06-25"}]). Always yyyy-MM-dd; never a locale format, timestamp, or words.
+              - Resolve relative dates to an absolute calendar date before calling. "3 years out" means three years after the line's current StartDate (or today if none); "end of next year" means December 31 of next year. Look up the line's current StartDate/EndDate first (Get_QuoteLineItem_from_Quote / GetRecordDetails) when you need it to compute the target.
+              - For a term-defined line, keep the term coherent: when the user moves the end date, set EndDate; only change StartDate if they asked to. If a line is evergreen (no end date), explain that and offer to set a term instead.
+              - Date edits across mixed lines auto-skip one-time products (they don't take StartDate/EndDate); they're reported under "Skipped (dates do not apply to one-time products)". That's expected — relay it as-is (e.g. "Set the end date on the subscription lines; the one-time products don't take a date"). Do NOT retry the skipped lines or report it as an error.
+              - On isSuccess=false, show errorMessage verbatim and propose a recovery (e.g. the corrected date format); don't stall.
+
+              Discount targeting: "discount everything" / "all lines" -> applyToAll=true; "discount the <product> line" -> productName=<product>. Discount modes: "10% off" -> discountMode="percent", discountPercentage=10; "sell at $900" -> discountMode="targetPrice", targetPrice=900; "sell at 90% of list" -> discountMode="percentOfList", targetPercentOfList=90.
+
+              Hand off, don't improvise:
+              - Create a quote, edit a quote HEADER field (name / status / expiration), or show the quote card / totals / recap -> go_to_QuoteManagement.
+              - Configure a product attribute (an option / picklist value on a line) -> go_to_ProductConfiguration.
+              - Browse / search the product catalog -> go_to_ProductSelection.
+
+        actions:
+            Add_Product_To_Quote: @actions.Add_Product_To_Quote
+                with quoteId=...
+                with productId=...
+                with productName=...
+                with quantity=...
+                set @variables.lastQuoteLineItemId = @outputs.quoteLineItemId
+                set @variables.lastQuoteLineProductName = @outputs.productNameAdded
+                set @variables.lastProductName = @outputs.productNameAdded
+                set @variables.lastMutationSummary = @outputs.lineSummaryDisplay
+            Apply_Discount_To_Quote_Lines: @actions.Apply_Discount_To_Quote_Lines
+                with quoteId=...
+                with discountMode=...
+                with discountPercentage=...
+                with targetPrice=...
+                with targetPercentOfList=...
+                with applyToAll=...
+                with productName=...
+                with selectedDisplayNumbersJson=...
+                with pendingSelectionJsonIn = @variables.pendingSelectionJson
+                with quoteLineItemIds=...
+                set @variables.lastMutationSummary = @outputs.resultsDisplay
+                set @variables.pendingSelectionJson = @outputs.pendingSelectionJsonOut
+            Get_QuoteLineItem_from_Quote: @actions.Get_QuoteLineItem_from_Quote
+                with quoteId=...
+                with productName=...
+                with autoSelectThresholdPercent=...
+                set @variables.lastQuoteLineItemId = @outputs.quoteLineItemId
+                set @variables.lastQuoteLineProductName = @outputs.productNameFound
+            Update_Record_Fields: @actions.Update_Record_Fields
+                with quoteId=...
+                with sObjectType=...
+                with fieldUpdatesJson=...
+                with quoteLineItemIds=...
+                with productName=...
+                with applyToAll=...
+                with selectedDisplayNumbersJson=...
+                with pendingSelectionJsonIn = @variables.pendingSelectionJson
+                with reprice=...
+                set @variables.lastMutationSummary = @outputs.resultsDisplay
+                set @variables.pendingSelectionJson = @outputs.pendingSelectionJsonOut
+            UpdateQuoteLineItemDetails: @actions.UpdateQuoteLineItemDetails
+                with inputFieldValues=...
+                with quoteId=...
+                with quoteLineItemId=...
+            QueryQuoteLineRecords: @actions.QueryQuoteLineRecords
+                with quoteId=...
+                with productIds=...
+            GetRecordDetails: @actions.GetRecordDetails
+                with recordId=...
+            go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
+            go_to_ProductSelection: @utils.transition to @subagent.ProductSelection
+            go_to_ProductConfiguration: @utils.transition to @subagent.ProductConfiguration
+
+
+
+    actions:
+        Add_Product_To_Quote:
+            description: "Adds a product to a quote in ONE call: resolves the product (by ID or name), resolves its default selling model, and adds the line. Returns a names-only confirmation, or product candidates when the name is ambiguous. Use this for every 'add product to quote' request — do not chain identify, selling-model, and add-line actions."
+            label: "Add Product To Quote"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Adding product to quote ..."
+            target: "flow://RLM_AI_Add_Product_To_Quote"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote (starts with 0Q0) to add the product to."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "productId": string
+                    description: "The Product2 ID, when already known from a prior step. Takes precedence over productName."
+                    label: "productId"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "productName": string
+                    description: "The product name to add. Used when productId is not known; resolved by name match."
+                    label: "productName"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "quantity": number
+                    description: "Number of units to add. Defaults to 1 when blank."
+                    label: "quantity"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__numberType"
+                "requestedSellingModelName": string
+                    description: "Optional. ONLY set this when the user explicitly names a selling model for the line (e.g. 'add it as Term Monthly'). Leave blank otherwise — the action uses the product's DEFAULT selling model automatically. Do NOT ask the user which selling model to use."
+                    label: "requestedSellingModelName"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "isSuccess": boolean
+                    description: "True only when the line was added. False on input error, disambiguation, or a managed add-line failure."
+                    label: "isSuccess"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "quoteLineItemId": string
+                    description: "The ID of the newly added quote line. Used internally for downstream wiring; never shown as text."
+                    label: "quoteLineItemId"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "productNameAdded": string
+                    description: "The name of the product that was added, for a names-only confirmation."
+                    label: "productNameAdded"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "quantityAdded": number
+                    description: "The quantity that was added."
+                    label: "quantityAdded"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__numberType"
+                "sellingModelName": string
+                    description: "The name of the selling model used for the line."
+                    label: "sellingModelName"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "lineSummaryDisplay": string
+                    description: "Rich-text, names-only confirmation of what was added. Present this to the user."
+                    label: "lineSummaryDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "needsDisambiguation": boolean
+                    description: "True when the product name matched more than one product and the user must pick one."
+                    label: "needsDisambiguation"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "candidateSummariesDisplay": string
+                    description: "Formatted numbered list of matching products for user-facing disambiguation (names and codes only)."
+                    label: "candidateSummariesDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "errorMessage": string
+                    description: "Plain-language error message if the product could not be added."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        Apply_Discount_To_Quote_Lines:
+            description: "Applies a discount to one, several, or all quote lines in ONE call. Apex resolves and validates the target lines from high-level targeting (applyToAll, productName, or selected display numbers) and loops the managed discount action server-side. Supports percent, target-price, and percent-of-list modes. Use this for every discount request — do not loop a per-line action and do not use UpdateQuoteLineItemDetails."
+            label: "Apply Discount To Quote Lines"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Applying discount ..."
+            target: "flow://RLM_AI_Apply_Quote_Line_Discounts"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote (starts with 0Q0) whose lines are discounted."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "discountMode": string
+                    description: "Which discount to apply: 'percent' (a flat percentage), 'targetPrice' (sell at a price), or 'percentOfList' (sell at a percentage of list). Supply exactly one mode's value."
+                    label: "discountMode"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "discountPercentage": number
+                    description: "The discount percentage (0-100), used when discountMode is 'percent'."
+                    label: "discountPercentage"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__numberType"
+                "targetPrice": number
+                    description: "The target unit price to sell at, used when discountMode is 'targetPrice'."
+                    label: "targetPrice"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__numberType"
+                "targetPercentOfList": number
+                    description: "The target percent of list price to sell at (0-100), used when discountMode is 'percentOfList'."
+                    label: "targetPercentOfList"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__numberType"
+                "applyToAll": boolean
+                    description: "True to discount every line on the quote. Set this for 'discount everything' / 'all lines'."
+                    label: "applyToAll"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__booleanType"
+                "productName": string
+                    description: "Discount only lines whose product matches this name. Set this for 'discount the <product> line'."
+                    label: "productName"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "selectedDisplayNumbersJson": string
+                    description: "A JSON array of the display numbers the user picked off a candidate list shown earlier (for example [1,3]). Pair with pendingSelectionJsonIn so the numbers map to the right lines."
+                    label: "selectedDisplayNumbersJson"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "pendingSelectionJsonIn": string
+                    description: "Internal plumbing: the hidden ordinal-to-line map from the candidate list that was shown. Pass it back unchanged so numbered picks resolve to the exact lines. Never surface this."
+                    label: "pendingSelectionJsonIn"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "quoteLineItemIds": list[string]
+                    description: "Explicit quote line IDs to discount, when already resolved. Leave blank to use applyToAll, productName, or display numbers instead."
+                    label: "quoteLineItemIds"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "isSuccess": boolean
+                    description: "True when every targeted line was discounted. False on input error, ambiguous targeting, or a partial failure."
+                    label: "isSuccess"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "appliedCount": number
+                    description: "How many lines were discounted."
+                    label: "appliedCount"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__numberType"
+                "resultsDisplay": string
+                    description: "Rich-text, per-line discount result by product name. Present this to the user."
+                    label: "resultsDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "needsDisambiguation": boolean
+                    description: "True when the targeting was ambiguous and the user must choose which lines."
+                    label: "needsDisambiguation"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "candidateSummariesDisplay": string
+                    description: "Rich-text numbered list of candidate lines (product, quantity, price) for user selection. Present this when needsDisambiguation is true."
+                    label: "candidateSummariesDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "pendingSelectionJsonOut": string
+                    description: "Internal plumbing: the ordinal-to-line map for the candidate list just shown. Carry it for the next turn so numbered picks resolve. Never surface this."
+                    label: "pendingSelectionJsonOut"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "errorMessage": string
+                    description: "Plain-language error message if the discount could not be applied."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        Get_QuoteLineItem_from_Quote:
+            description: "Resolves quote line item(s) on a Quote by product name using scored matching. Pass a productName to find a specific line (auto-selects on a high-confidence match, otherwise returns disambiguation candidates). Leave productName blank to return every line for selection. Returns names-only candidate displays."
+            label: "Get QuoteLineItem from Quote"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking up quote line items ..."
+            target: "flow://RLM_AI_Get_QuoteLineItem_from_Quote"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote (starts with 0Q0). Never pass a QuoteLineItem ID here."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "productName": string
+                    description: "The name or partial name of the product to find on the quote (partial match). Leave blank to return every line for selection."
+                    label: "productName"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "autoSelectThresholdPercent": number
+                    description: "Optional confidence threshold (0-100) for auto-selection. Defaults to 80. Ignored when productName is blank."
+                    label: "autoSelectThresholdPercent"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__numberType"
+
+            outputs:
+                "quoteLineItemId": string
+                    description: "The ID of the single matched quote line. Used internally for downstream wiring; never shown as text."
+                    label: "quoteLineItemId"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "productNameFound": string
+                    description: "The product name of the matched quote line, as it appears on the quote."
+                    label: "productNameFound"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isFound": boolean
+                    description: "True if exactly one matching quote line was auto-selected."
+                    label: "isFound"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "matchConfidencePercent": number
+                    description: "Confidence score (0-100) for the best match candidate."
+                    label: "matchConfidencePercent"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__numberType"
+                "needsDisambiguation": boolean
+                    description: "True when the user must choose from multiple candidates (ambiguous match or list-all)."
+                    label: "needsDisambiguation"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "candidateQuoteLineItems": list[object]
+                    description: "Displayable candidate quote line records for disambiguation."
+                    label: "candidateQuoteLineItems"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+                "candidateQuoteLineSummariesDisplay": string
+                    description: "Formatted numbered summary of candidate quote lines (product, quantity, prices) for user selection."
+                    label: "candidateQuoteLineSummariesDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "candidateQuoteLineSummariesJson": string
+                    description: "Internal plumbing: JSON candidate summaries with line IDs. Use only to map a numbered pick to a line; never surface it, refer to lines by product name and number."
+                    label: "candidateQuoteLineSummariesJson"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "errorMessage": string
+                    description: "Error message if the lookup could not run."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        Update_Record_Fields:
+            description: "Updates any editable field on a quote or quote line via direct DML so values stick. Use for plain field edits (line dates/term/description/quantity; quote name/status/expiration). Never for discounts (Apply_Discount_To_Quote_Lines) or attributes (config actions). Supports disambiguation when productName matches multiple lines."
+            label: "Update Record Fields"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Updating fields ..."
+            target: "flow://RLM_AI_Update_Record_Fields"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote (starts with 0Q0). Optional when quoteLineItemIds are supplied — the parent quote is derived from the line(s). Required for Quote header edits and productName/applyToAll targeting."
+                    label: "quoteId"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "sObjectType": string
+                    description: "QuoteLineItem (default) or Quote."
+                    label: "sObjectType"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "fieldUpdatesJson": string
+                    description: "JSON array: [{\"fieldApiName\":\"EndDate\",\"value\":\"2029-06-25\"}]. Values as strings; dates yyyy-MM-dd. Omitted field=preserve, explicit null=clear (if nillable)."
+                    label: "fieldUpdatesJson"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "quoteLineItemIds": list[string]
+                    description: "Explicit quote line IDs to update, when already known."
+                    label: "quoteLineItemIds"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "productName": string
+                    description: "Update lines whose product name matches this term. Multi-match=disambiguation (never fans out)."
+                    label: "productName"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+                "applyToAll": boolean
+                    description: "When true, update every line on the quote."
+                    label: "applyToAll"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__booleanType"
+                "selectedDisplayNumbersJson": string
+                    description: "JSON array of display numbers the user picked (e.g. [1,3]). Mapped through pendingSelectionJsonIn."
+                    label: "selectedDisplayNumbersJson"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "pendingSelectionJsonIn": string
+                    description: "Internal plumbing: hidden ordinal-to-line map from a candidate list. Never surface this."
+                    label: "pendingSelectionJsonIn"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "reprice": boolean
+                    description: "Reserved for future use. Ignored in v1."
+                    label: "reprice"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__booleanType"
+
+            outputs:
+                "isSuccess": boolean
+                    description: "True when every targeted record was updated."
+                    label: "isSuccess"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "updatedCount": number
+                    description: "How many records were updated."
+                    label: "updatedCount"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__numberType"
+                "resultsDisplay": string
+                    description: "Rich-text summary of what was updated, echoing new values by name. Present this to the user."
+                    label: "resultsDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "needsDisambiguation": boolean
+                    description: "True when targeting was ambiguous and the user must choose which lines."
+                    label: "needsDisambiguation"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "candidateQuoteLineSummariesDisplay": string
+                    description: "Rich-text numbered list of candidate lines (product, quantity) for user selection. Present this when needsDisambiguation is true."
+                    label: "candidateQuoteLineSummariesDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "pendingSelectionJsonOut": string
+                    description: "Internal plumbing: ordinal-to-line map for the candidate list just shown. Carry it for the next turn. Never surface this."
+                    label: "pendingSelectionJsonOut"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "errorMessage": string
+                    description: "Plain-language error message if the update could not be applied."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        UpdateQuoteLineItemDetails:
+            description: "Updates non-discount fields on a quote line item (for example a line's description or date). Last-resort fallback only; prefer Update_Record_Fields for plain field edits. This action reprices through PST and may silently discard proration-owned values like EndDate. Never use this to apply discounts (use Apply_Discount_To_Quote_Lines) or to set product attributes (use the configuration actions)."
+            label: "Update Quote Line Item Details"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Updating quote line item ..."
+            source: "quotingAI__UpdateQuoteLineItemDetails"
+            target: "flow://quotingAI__updateQuoteLineItemDetails"
+
+            inputs:
+                "inputFieldValues": list[object]
+                    description: "A list of field API names and values. Each entry uses \"key\" for the field API name and \"obj\" for the field value."
+                    label: "inputFieldValues"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "@apexClassType/RevSalesTrxn__RecordMapWrapper?isAuraEnabled=true"
+                "quoteId": string
+                    description: "The ID of the quote record."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "quoteLineItemId": string
+                    description: "The 18-character QuoteLineItem ID (starts with 0QL). Resolved from page context or Get_QuoteLineItem_from_Quote — never typed by the user."
+                    label: "quoteLineItemId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "errorMessage": string
+                    description: "Error messages related to the update."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isSuccessful": boolean
+                    description: "Indicates whether the update succeeded."
+                    label: "isSuccessful"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+
+        QueryQuoteLineRecords:
+            description: "Lists quote line items on a quote, optionally filtered by product IDs. Use only as a general fallback for open-ended 'show me the lines on this quote' browsing — prefer Get_QuoteLineItem_from_Quote for discount or configuration targeting."
+            label: "Query Quote Lines (Beta)"
+            require_user_confirmation: False
+            include_in_progress_indicator: False
+            source: "quotingAI__QueryQuoteLineRecords"
+            target: "flow://quotingAI__queryQuoteLineRecords"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Quote ID."
+                    label: "QuoteId"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "productIds": list[string]
+                    description: "Optional list of product IDs to filter the lines."
+                    label: "ProductIds"
+                    is_required: False
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "quoteLineItemList": list[object]
+                    description: "A list of matching quote line item records (name, quantity, line number)."
+                    label: "quoteLineItemList"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+                "errorMessage": string
+                    description: "Provides an error message if applicable."
+                    label: "errorMessage"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isSuccess": boolean
+                    description: "Indicates success or failure."
+                    label: "isSuccess"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+
+        GetRecordDetails:
+            description: "Generates a text blob of record details, including object fields and values and related-list records. Use as a general fallback to read Salesforce details no dedicated action covers."
+            label: "Get Record Details"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Fetching details ..."
+            source: "EmployeeCopilot__GetRecordDetails"
+            target: "standardInvocableAction://getDataForGrounding"
+
+            inputs:
+                "recordId": object
+                    description: "The ID of a Salesforce record to get details for."
+                    label: "Record ID"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__recordIdType"
+
+            outputs:
+                "snapshot": string
+                    description: "Record details, including object fields and values and related-list records."
+                    label: "Record Details"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+
+
+subagent ProductConfiguration:
+
+    label: "Product Configuration"
+    description: "Configure a product on a quote line: discover its configurable attributes, set attribute values with real-time validation, and read back the final configuration. Handles 'configure the <product>', attribute changes, and option selection on a quote line."
+
+    reasoning:
+        instructions: ->
+            | Configure a product on a quote line. This is the least deterministic step, so follow a strict order.
+              Sequence (do not skip or reorder):
+              1. Resolve the quote line first. If the page context is a QuoteLineItem (currentObjectApiName is QuoteLineItem or currentRecordId starts with 0QL), that ID IS the line — use it directly, skip the lookup. Otherwise, if you already hold lastQuoteLineItemId for the product in question, reuse it. Otherwise resolve the quote (activeQuoteId, or currentRecordId on a Quote page) and call Get_QuoteLineItem_from_Quote with the product name; if it returns disambiguation candidates, present them by name and number and ask which line.
+              1.5. Attribute or field? Decide from DATA before configuring — and decide it off the CONFIGURABLE set, not what is already set. For a "change/set the <X> on this line" request, call Get_Product_Attribute_Options (it returns every attribute the product CAN have, each with its current value, whether or not a value is set yet). Check whether <X> matches one of the attributes it returns (by name, case-insensitive, allowing a close/partial match). If <X> DOES match a configurable attribute, it is a product attribute — continue with the configuration sequence below (even if no value is set on the line yet; an unset attribute is still configurable). If Get_Product_Attribute_Options succeeded (isSuccess=true) and returned hasConfigurableAttributes=true but <X> is NOT among the returned attribute names, it is almost certainly a standard line FIELD (an end/start date, term, quantity, description) — do NOT say it cannot be set and do NOT force it through configuration. Instead hand the request to LineManagement to edit it via Update_Record_Fields (transition with the resolved quote line preserved).
+              2. Discover what is configurable BEFORE answering, and answer ONLY from the call result. Get_Product_Attribute_Options and Get_Quote_Line_Attributes read the SAME unified attribute resolver, so they can never disagree about what exists — they differ only in framing: Get_Product_Attribute_Options returns the full configurable set (every attribute the product CAN have, each annotated with its current value), and Get_Quote_Line_Attributes presents the same data as a current-values read-back ("Type is currently Prod"). For any "configure" / "what can I set" / "set the <X> attribute" / "does this line have attributes" decision, call Get_Product_Attribute_Options and answer from its result; reach for Get_Quote_Line_Attributes only when the user explicitly wants to see what is already set. CRITICAL — never report "no configurable attributes" or "that attribute does not exist" on a failed call: only say a line has no configurable attributes when Get_Product_Attribute_Options returned isSuccess=true AND hasConfigurableAttributes=false. If isSuccess=false, a system error occurred — say you hit a problem reading the configuration and to try again, never that the product has nothing to configure. Do not answer from memory or assumption — run the action, then answer from its result.
+              3. Call Configure_Product_Attributes only after the user gives concrete attribute values. Validate the requested value against the attribute's valid picklist values from step 2; if it is not a valid option, say so and list the allowed values. Apply incrementally for real-time validation. If validation returns errors, state them plainly by attribute name and ask for a correction.
+              4. Read back with Confirm_Product_Configuration_Summary once the configuration is valid and the user is done selecting. This is a natural read-back, not a confirmation gate — never ask the user to confirm before saving.
+
+              Hard rules:
+              - Never use UpdateQuoteLineItemDetails or Update_Record_Fields for product attributes — raw DML bypasses config rules and produces wrong pricing/configuration. Product attributes ONLY go through Configure_Product_Attributes.
+              - Refer to the product and attributes by name.
+
+        actions:
+            Get_QuoteLineItem_from_Quote: @actions.Get_QuoteLineItem_from_Quote
+                with quoteId=...
+                with productName=...
+                with autoSelectThresholdPercent=...
+                set @variables.lastQuoteLineItemId = @outputs.quoteLineItemId
+                set @variables.lastQuoteLineProductName = @outputs.productNameFound
+            Get_Quote_Line_Attributes: @actions.Get_Quote_Line_Attributes
+                with quoteLineItemId=...
+            Get_Product_Attribute_Options: @actions.Get_Product_Attribute_Options
+                with quoteLineItemId=...
+            Configure_Product_Attributes: @actions.Configure_Product_Attributes
+                with quoteLineItemId=...
+                with quoteId=...
+                with attributeSelectionsJson=...
+            Confirm_Product_Configuration_Summary: @actions.Confirm_Product_Configuration_Summary
+                with quoteLineItemId=...
+                with quoteId=...
+            go_to_LineManagement: @utils.transition to @subagent.LineManagement
+            go_to_QuoteManagement: @utils.transition to @subagent.QuoteManagement
+
+
+
+    actions:
+        Get_QuoteLineItem_from_Quote:
+            description: "Resolves quote line item(s) on a Quote by product name using scored matching. Pass a productName to find a specific line (auto-selects on a high-confidence match, otherwise returns disambiguation candidates). Leave productName blank to return every line for selection."
+            label: "Get QuoteLineItem from Quote"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Looking up quote line item ..."
+            target: "flow://RLM_AI_Get_QuoteLineItem_from_Quote"
+
+            inputs:
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the Quote (starts with 0Q0). Never pass a QuoteLineItem ID here."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "productName": string
+                    description: "The name or partial name of the product to find on the quote (partial match). Leave blank to return every line for selection."
+                    label: "productName"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "autoSelectThresholdPercent": number
+                    description: "Optional confidence threshold (0-100) for auto-selection. Defaults to 80. Ignored when productName is blank."
+                    label: "autoSelectThresholdPercent"
+                    is_required: False
+                    is_user_input: False
+                    complex_data_type_name: "lightning__numberType"
+
+            outputs:
+                "quoteLineItemId": string
+                    description: "The ID of the single matched quote line. Used internally for downstream wiring; never shown as text. Pass to Get_Product_Attribute_Options and Configure_Product_Attributes."
+                    label: "quoteLineItemId"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "productNameFound": string
+                    description: "The product name of the matched quote line."
+                    label: "productNameFound"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "isFound": boolean
+                    description: "True if exactly one matching quote line was auto-selected."
+                    label: "isFound"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "matchConfidencePercent": number
+                    description: "Confidence score (0-100) for the best match candidate."
+                    label: "matchConfidencePercent"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__numberType"
+                "needsDisambiguation": boolean
+                    description: "True when the user must choose from multiple candidates."
+                    label: "needsDisambiguation"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "candidateQuoteLineItems": list[object]
+                    description: "Displayable candidate quote line records for disambiguation."
+                    label: "candidateQuoteLineItems"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__recordInfoType"
+                "candidateQuoteLineSummariesDisplay": string
+                    description: "Formatted numbered summary of candidate quote lines for user selection."
+                    label: "candidateQuoteLineSummariesDisplay"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__richTextType"
+                "candidateQuoteLineSummariesJson": string
+                    description: "Internal plumbing: JSON candidate summaries with line IDs. Use only to map a numbered pick to a line; never surface it."
+                    label: "candidateQuoteLineSummariesJson"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "errorMessage": string
+                    description: "Error message if the lookup could not run."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        Get_Quote_Line_Attributes:
+            description: "Reads a quote line's attributes from the same unified resolver as Get_Product_Attribute_Options, framed as a current-values read-back: the attribute names, their current values, and (for picklists) the valid options. Use it when the user explicitly wants to see what is already set on a line. hasAttributes reports whether any value is set yet — it is NOT a configurability fact (use Get_Product_Attribute_Options for that)."
+            label: "Get Quote Line Attributes"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Reading the line's attributes ..."
+            target: "flow://RLM_AI_Get_Quote_Line_Attributes"
+
+            inputs:
+                "quoteLineItemId": string
+                    description: "The 18-character Salesforce ID of the QuoteLineItem (starts with 0QL). This is NOT the Quote ID. Resolve it with Get_QuoteLineItem_from_Quote first if you only have the Quote ID."
+                    label: "quoteLineItemId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "productName": string
+                    description: "The display name of the product on the line."
+                    label: "productName"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "attributesJson": string
+                    description: "JSON array of the attributes set on the line (name, developerName, dataType, currentValue, picklistValues). Use developerName when building attributeSelectionsJson for Configure_Product_Attributes."
+                    label: "attributesJson"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "attributeSummary": string
+                    description: "Pre-formatted, human-readable summary of the attributes set on the line, each with its current value and valid picklist options. Present this when showing the user what is set."
+                    label: "attributeSummary"
+                    is_displayable: True
+                    is_used_by_planner: True
+                    complex_data_type_name: "lightning__textType"
+                "hasAttributes": boolean
+                    description: "True when the line has at least one attribute ALREADY SET. This is a current-state fact, NOT a configurability fact: false means 'no attribute values are set yet', NOT 'this product has no configurable attributes'. NEVER use this to decide whether an attribute exists or can be configured — use Get_Product_Attribute_Options.hasConfigurableAttributes for that."
+                    label: "hasAttributes"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "isSuccess": boolean
+                    description: "True if the read ran without a system error. When false, a system error occurred — do not report 'no attributes'; say the read failed and to try again."
+                    label: "isSuccess"
+                    is_displayable: False
+                    is_used_by_planner: True
+                    complex_data_type_name: "lightning__booleanType"
+                "errorMessage": string
+                    description: "Error message if the attributes could not be read."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        Get_Product_Attribute_Options:
+            description: "Retrieves every configurable attribute for a product on a quote line from the unified attribute resolver — each attribute's name, data type, whether it is required, its picklist values, AND its current value on the line (null when unset). This is the action to call for any 'configure' / 'what can I set' / 'does this line have attributes' / 'set the <X>' decision; it reports the full configurable set whether or not values are set yet. If the user already gave concrete values, call Configure_Product_Attributes directly instead."
+            label: "Get Product Attribute Options"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Retrieving product configuration options ..."
+            target: "flow://RLM_AI_Get_Product_Attribute_Options"
+
+            inputs:
+                "quoteLineItemId": string
+                    description: "The 18-character Salesforce ID of the QuoteLineItem (starts with 0QL). This is NOT the Quote ID. Resolved from page context (currentRecordId on a QuoteLineItem page) or Get_QuoteLineItem_from_Quote — never typed by the user."
+                    label: "quoteLineItemId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "productName": string
+                    description: "The display name of the product."
+                    label: "productName"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "attributesJson": string
+                    description: "JSON array of attribute objects (name, developerName, dataType, isRequired, isPriceImpacting, currentValue, picklistValues). currentValue is the value set on the line, or null when unset. Use developerName values when building attributeSelectionsJson."
+                    label: "attributesJson"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "attributeSummary": string
+                    description: "Pre-formatted, human-readable summary of all configurable attributes, each with its current value (when set) and valid values. Use this when presenting options to the user."
+                    label: "attributeSummary"
+                    is_displayable: False
+                    is_used_by_planner: True
+                    complex_data_type_name: "lightning__textType"
+                "hasConfigurableAttributes": boolean
+                    description: "True if the product has at least one configurable attribute. Only trust this when isSuccess=true: hasConfigurableAttributes=false on a successful call means the product genuinely has nothing to configure; on a failed call (isSuccess=false) it is meaningless."
+                    label: "hasConfigurableAttributes"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "isSuccess": boolean
+                    description: "True if the lookup ran without a system error. When false, a system error occurred — never tell the user the product has no configurable attributes; say you hit a problem reading the configuration and to try again."
+                    label: "isSuccess"
+                    is_displayable: False
+                    is_used_by_planner: True
+                    complex_data_type_name: "lightning__booleanType"
+                "errorMessage": string
+                    description: "Error message if the attributes could not be retrieved."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+        Configure_Product_Attributes:
+            description: "Saves the user's selected attribute values to a quote line item and runs the product's configuration rules. Returns whether the configuration is valid, any validation errors, and updated pricing. Call each time the user selects or changes an attribute value."
+            label: "Configure Product Attributes"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Validating configuration ..."
+            target: "flow://RLM_AI_Configure_Product_Attributes"
+
+            inputs:
+                "quoteLineItemId": string
+                    description: "The 18-character Salesforce ID of the QuoteLineItem to apply attribute selections to."
+                    label: "quoteLineItemId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the parent Quote. Required to run the configuration model."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "attributeSelectionsJson": string
+                    description: "JSON object where each key is an attribute developerName and each value is the user's selected value."
+                    label: "attributeSelectionsJson"
+                    is_required: True
+                    is_user_input: True
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "isSuccess": boolean
+                    description: "True if the action ran without a system error (rules executed). Distinct from isValid."
+                    label: "isSuccess"
+                    is_displayable: False
+                    is_used_by_planner: True
+                    complex_data_type_name: "lightning__booleanType"
+                "isValid": boolean
+                    description: "True if the current selections pass all configuration rules."
+                    label: "isValid"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "validationErrorsJson": string
+                    description: "JSON array of validation error objects (attributeName, message, severity). Empty when isValid is true. Read these to present errors by name; never surface raw JSON."
+                    label: "validationErrorsJson"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "savedAttributesJson": string
+                    description: "JSON of the saved attribute values (developerName to value)."
+                    label: "savedAttributesJson"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "errorMessage": string
+                    description: "System-level error message if the action itself failed."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "unitPrice": number
+                    description: "Updated unit price after configuration and pricing ran."
+                    label: "unitPrice"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__currencyType"
+                "totalPrice": number
+                    description: "Updated total price (unit price x quantity, after discounts)."
+                    label: "totalPrice"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__currencyType"
+                "listPrice": number
+                    description: "Catalog list price before discounts."
+                    label: "listPrice"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__currencyType"
+                "grandTotal": number
+                    description: "Grand total of the entire quote including all expanded lines, discounts, and taxes."
+                    label: "grandTotal"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__currencyType"
+                "quoteSubtotal": number
+                    description: "Quote subtotal before discounts and taxes."
+                    label: "quoteSubtotal"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__currencyType"
+                "lineItemCount": number
+                    description: "Total number of line items on the quote after expansion."
+                    label: "lineItemCount"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__numberType"
+
+        Confirm_Product_Configuration_Summary:
+            description: "Reads back the currently persisted product configuration after attributes are set and validated. Returns a human-readable summary and a link to the quote line. Does not perform an extra save (persistence happens in Configure_Product_Attributes). Call only after Configure_Product_Attributes returns isValid = true and the user is done selecting."
+            label: "Confirm Product Configuration Summary"
+            require_user_confirmation: False
+            include_in_progress_indicator: True
+            progress_indicator_message: "Confirming configuration summary ..."
+            target: "flow://RLM_AI_Confirm_Product_Configuration_Summary"
+
+            inputs:
+                "quoteLineItemId": string
+                    description: "The 18-character Salesforce ID of the QuoteLineItem whose persisted configuration should be summarized."
+                    label: "quoteLineItemId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+                "quoteId": string
+                    description: "The 18-character Salesforce ID of the parent Quote."
+                    label: "quoteId"
+                    is_required: True
+                    is_user_input: False
+                    complex_data_type_name: "lightning__textType"
+
+            outputs:
+                "isSuccess": boolean
+                    description: "True if the configuration summary was retrieved successfully."
+                    label: "isSuccess"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__booleanType"
+                "configurationSummary": string
+                    description: "Human-readable summary of the final configured attribute values."
+                    label: "configurationSummary"
+                    is_displayable: True
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+                "quoteLineItemIdOut": string
+                    description: "The ID of the configured quote line. Internal only; never shown as text."
+                    label: "quoteLineItemIdOut"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "quoteIdOut": string
+                    description: "The ID of the parent quote. Internal only; never shown as text."
+                    label: "quoteIdOut"
+                    is_displayable: False
+                    is_used_by_planner: False
+                    complex_data_type_name: "lightning__textType"
+                "errorMessage": string
+                    description: "Error message if retrieving the configuration summary failed."
+                    label: "errorMessage"
+                    is_displayable: False
+                    filter_from_agent: False
+                    complex_data_type_name: "lightning__textType"
+
+
+
+subagent ambiguous_question:
+
+    label: "Ambiguous Question"
+    description: "Ask one focused follow-up question when the user's request is unclear or under-specified."
+
+    reasoning:
+        instructions: ->
+            | The user's request is ambiguous. Do not answer it and do not invoke any actions.
+              Ask one focused question to pin down what they need — which quote, which product, or what change. Keep it short and in Quinn's voice. Do not list capabilities at length.
+
+
+
+subagent off_topic:
+
+    label: "Off Topic"
+    description: "Politely redirect requests unrelated to product discovery or quoting back to what Quinn can do."
+
+    reasoning:
+        instructions: ->
+            | The user's request is off-topic. Do not answer general-knowledge questions. Respond only to greetings or questions about what you can do.
+              Briefly redirect to Quinn's scope — finding products, creating and managing quotes, applying discounts, configuring products, and showing totals — and ask what they want to work on. Keep it to one or two sentences.

@@ -1,0 +1,51 @@
+{
+  "required" : [ "ProductId", "QuoteId", "ProductSellingModelID" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "productId" : {
+      "title" : "ProductId",
+      "description" : "The Product2Id for the product to be added to the quote.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "quantity" : {
+      "title" : "Quantity",
+      "description" : "The quantity of the product to be added to the quote line. If no quantity is provided, default to 1.",
+      "multipleOf" : 1.0E-34,
+      "lightning:type" : "lightning__numberType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "quoteId" : {
+      "title" : "QuoteId",
+      "description" : "The quote Id of the quote record to be modified.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "productSellingModelID" : {
+      "title" : "ProductSellingModelID",
+      "description" : "The default product selling model ID associated with the product provided in the request.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "startDate" : {
+      "title" : "StartDate",
+      "description" : "The startDate, needed only for subscription based products. The format must be yyyy-mm-dd.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    },
+    "endDate" : {
+      "title" : "EndDate",
+      "description" : "The end date for the term-defined product provided in the request, which is formatted as yyyy-mm-dd.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : true
+    }
+  },
+  "lightning:type" : "lightning__objectType",
+  "lightning:textIndexed" : true
+}

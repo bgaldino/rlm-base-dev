@@ -1,0 +1,10 @@
+ProductUsageResource.Product.StockKeepingUnit,ProductUsageResource.UsageResource.Code,RatingFrequencyPolicy.RatingPeriod,UsageAggregationPolicy.Code,UsageCommitmentPolicy.Name,UsageOveragePolicy.Name
+ANC01,DS,Daily,ST01,,Basic: UsageOveragePolicy
+ANC01,DSU,,,,Basic: UsageOveragePolicy
+ANC01-2,DS,Daily,ST01,,Basic: UsageOveragePolicy
+ANC01-2,DSU,,,,Basic: UsageOveragePolicy
+COMMITMENT-A,DS,,,Default Commitment Policy,
+COMMITMENT-A,DSU,,,Default Commitment Policy,
+COMMITMENT-B,DS,,,Default Commitment Policy,
+COMMITMENT-B,DSU,,,Default Commitment Policy,
+INTERNET-SERVICE,DS,Daily,ST01,,Basic: UsageOveragePolicy

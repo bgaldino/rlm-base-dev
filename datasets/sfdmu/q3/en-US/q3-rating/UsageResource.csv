@@ -1,16 +1,17 @@
-Category,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
-Usage,URSMS01,Count,,Usage for SMS,Active,SMS01,,MOBPOL01
-Usage,URCASE01,Each,,Usage for Case,Active,CAS01,,MOBPOL01
-Usage,URDATA01,MB,,Usage for Data,Active,DAT01,,MOBPOL01
-Usage,URCALLS01,MIN,,Usage for Calls,Active,CALLUNITS01,,MOBPOL01
-Usage,CS001,GB,,Storage Data,Active,DAT01,CO478,DefaultUsageResourceBillingPolicy
-Usage,CS002,GB,,Backup Data,Active,DAT01,,DefaultUsageResourceBillingPolicy
-Usage,CS003,XFER,,File Transfers,Active,COUNT,,DefaultUsageResourceBillingPolicy
-Usage,CS004,ACCTS,,User Accounts,Active,COUNT,,DefaultUsageResourceBillingPolicy
-Usage,CS005,LOGS,,Access Logs,Active,COUNT,,DefaultUsageResourceBillingPolicy
-Usage,API001,CALLS,,API Calls,Active,COUNT,CO479,DefaultUsageResourceBillingPolicy
-Usage,API002,GB,,Data Transfers,Active,DAT01,,DefaultUsageResourceBillingPolicy
-Usage,API003,SESH,,User Sessions,Active,COUNT,,DefaultUsageResourceBillingPolicy
-Usage,API004,LOGS,,Error Logs,Active,COUNT,,DefaultUsageResourceBillingPolicy
-Usage,API005,TPS,,Rate Limits,Active,COUNT,,DefaultUsageResourceBillingPolicy
-Usage,CO457,UOM3421,,Courses,Active,COUNT,CO480,DefaultUsageResourceBillingPolicy
+Category,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,TokenResource.Code,UnitOfMeasureClass.Code,UsageDefinitionProduct.StockKeepingUnit,UsageResourceBillingPolicy.Code
+Usage,API001,CALLS,,API Calls,Draft,,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,API002,GB,,Data Transfers,Draft,,DAT01,,DefaultUsageResourceBillingPolicy
+Usage,API003,SESH,,User Sessions,Draft,,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,API004,LOGS,,Error Logs,Draft,,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,API005,TPS,,Rate Limits,Draft,,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,CS001,GB,,Storage Data,Draft,,DAT01,,DefaultUsageResourceBillingPolicy
+Usage,CS002,GB,,Backup Data,Draft,,DAT01,,DefaultUsageResourceBillingPolicy
+Usage,CS003,XFER,,File Transfers,Draft,,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,CS004,ACCTS,,User Accounts,Draft,,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,CS005,LOGS,,Access Logs,Draft,,COUNT,,DefaultUsageResourceBillingPolicy
+Usage,DS,BASIC-GB,,Basic: Data Storage,Draft,,GB,,ST01
+Token,DSU,Basic: Data Units,,Basic: Data Storage Units,Draft,,DSU,,ST01
+Usage,URCALLS01,MIN,,Usage for Calls,Draft,,CALLUNITS01,,MOBPOL01
+Usage,URCASE01,Each,,Usage for Case,Draft,,CAS01,,MOBPOL01
+Usage,URDATA01,MB,,Usage for Data,Draft,,DAT01,,MOBPOL01
+Usage,URSMS01,Count,,Usage for SMS,Draft,,SMS01,,MOBPOL01

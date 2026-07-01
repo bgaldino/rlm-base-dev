@@ -1,0 +1,5 @@
+$$Name$LegalEntity.Name$TaxPolicy.Name,LegalEntity.Name,Name,Status,TaxPolicy.Name
+,Default Legal Entity - US,Tax Treatment for US LE,Active,Tax Policy for LE
+,#N/A,Tax Treatment for taxable products,Active,Tax Policy for taxable products
+,#N/A,Tax Treatment for non-taxable products,Active,Tax Policy for non-taxable products
+,Default Legal Entity - Canada,Tax Treatment for Canada LE,Active,Tax Policy for LE
