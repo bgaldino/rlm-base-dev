@@ -1,0 +1,54 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT Id, Name FROM Account ORDER BY Name",
+          "operation": "Readonly",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, StockKeepingUnit FROM Product2 ORDER BY StockKeepingUnit",
+          "operation": "Readonly",
+          "externalId": "StockKeepingUnit",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, Code, CatalogId, Name FROM ProductCategory ORDER BY Catalog.Code, Code",
+          "operation": "Readonly",
+          "externalId": "Code",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, StartDate, EndDate, FullyQualifiedLabel, Type FROM Period ORDER BY StartDate",
+          "operation": "Readonly",
+          "externalId": "FullyQualifiedLabel",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, DeveloperName FROM AdvAccountForecastSet ORDER BY DeveloperName",
+          "operation": "Readonly",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, Name, AccountId, AdvAccountForecastSetId, Status, Account.Name, AdvAccountForecastSet.DeveloperName FROM AdvAcctForecastSetPartner ORDER BY AdvAccountForecastSet.DeveloperName, Account.Name",
+          "operation": "Insert",
+          "externalId": "Name",
+          "deleteOldData": true,
+          "excluded": false
+        },
+        {
+          "query": "SELECT Id, Name, AccountId, Status, AdvAcctForecastSetPartnerId, PeriodId, PeriodStartDate, ProductId, Category__c, Category__r.Code, SalesAgreementRevenue, SalesAgreementQuantity, OrderRevenue, OrderQuantity, OpportunityRevenue, OpportunityQuantity, LastYearOrderRevenue, LastYearOrderQuantity, ForecastedRevenue, ForecastedQuantity, Account_Manager_Forecasted_Revenue__c, Account_Manager_Forecasted_Quantity__c, AdvAcctForecastSetPartner.Name, AdvAcctForecastSetPartner.Account.Name, Period.StartDate, Period.Type, Product.StockKeepingUnit FROM AdvAccountForecastFact ORDER BY AdvAcctForecastSetPartner.Account.Name, Period.StartDate, Product.StockKeepingUnit NULLS LAST",
+          "operation": "Insert",
+          "externalId": "AdvAcctForecastSetPartner.Name;Period.FullyQualifiedLabel;Product.StockKeepingUnit;Category__r.Code;Account.Name",
+          "deleteOldData": true,
+          "excluded": false
+        }
+      ]
+    }
+  ]
+}

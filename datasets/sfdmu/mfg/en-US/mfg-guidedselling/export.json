@@ -1,0 +1,72 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "false",
+  "objectSets": [
+    {
+      "name": "First Pass - Insert/Upsert with Draft Status",
+      "objects": [
+        {
+          "query": "SELECT DeveloperName, Language, MasterLabel FROM AssessmentQuestionConfig",
+          "operation": "Upsert",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DeveloperName, Language, MasterLabel FROM AssessmentQuestionSetConfig",
+          "operation": "Upsert",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT ActiveVersionId, CurrencyIsoCode, DataType, Description, DeveloperName, Name, QuestionCategory, QuestionText, RelatedQuestionId, ShouldExcludeFromMetadata, ShouldHideInDesigner, UniqueIndex FROM AssessmentQuestion",
+          "operation": "Upsert",
+          "externalId": "UniqueIndex",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DeveloperName, Name, UniqueIndex FROM AssessmentQuestionSet",
+          "operation": "Upsert",
+          "externalId": "UniqueIndex",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AssessmentQuestionId, AssessmentQuestionSetId FROM AssessmentQuestionAssignment",
+          "operation": "Upsert",
+          "externalId": "AssessmentQuestion.UniqueIndex;AssessmentQuestionSet.UniqueIndex",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AdditionalInformation, AssessmentQuestionId, CurrencyIsoCode, DataType, DeactivationDateTime, Description, ExternalAsmtContentVersion, GuidanceInformation, HelpText, IsActive, IsOptionSourceResponseValue, Name, QuestionText, ResponseValues, Status, VersionNumber FROM AssessmentQuestionVersion WHERE Status = 'Active'",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT IsMetadataCacheDisabled, IsTestProcedure, Description, OverrideKey, Name, OmniProcessKey, Language, PropertySetConfig, LastPreviewPage, OmniProcessType, ElementTypeComponentMapping, SubType, ResponseCacheType, IsOmniScriptEmbeddable, CustomJavaScript, IsIntegrationProcedure, VersionNumber, DesignerCustomizationType, Namespace, Type, RequiredPermission, WebComponentKey, IsWebCompEnabled, UniqueName FROM OmniProcess WHERE OmniProcessType='Omniscript'",
+          "operation": "Upsert",
+          "externalId": "UniqueName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Description, DesignerCustomizationType, DiscoveryFrameworkUsageType, EmbeddedOmniScriptKey, IsActive, IsOmniScriptEmbeddable, Level, Name, OmniProcessId, OmniProcessVersionNumber, ParentElementId, ParentElementName, ParentElementType, PropertySetConfig, SequenceNumber, Type FROM OmniProcessElement",
+          "operation": "Upsert",
+          "externalId": "OmniProcess.UniqueName;Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT DeveloperName, Language, MasterLabel FROM OmniScriptConfig",
+          "operation": "Upsert",
+          "externalId": "DeveloperName",
+          "excluded": false
+        },
+        {
+          "query": "SELECT AssessmentQuestionVersionId, IsPrefill, OmniProcessElementId, OmniProcessId FROM OmniProcessAsmtQuestionVer",
+          "operation": "Upsert",
+          "externalId": "AssessmentQuestionVersion.Name;OmniProcessElement.Name",
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

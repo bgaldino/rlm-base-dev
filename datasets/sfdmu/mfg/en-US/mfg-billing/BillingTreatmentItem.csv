@@ -1,0 +1,3 @@
+BillingTreatment.Name,BillingType,Controller,CurrencyIsoCode,Description,FlatAmount,Handling0Amount,MilestoneStartDate,MilestoneStartDateOffset,MilestoneStartDateOffsetUnit,MilestoneType,Name,Percentage,ProcessingOrder,Sequencing,Status,Type
+Billing Treatment - USA - Advance,Advance,BillingScheduleGroup,USD,,,CreateInvoice,,,,,Billing Treatment Item - Advance - USA,,1,Manual,Draft,Remainder
+Billing Treatment - USA - Arrears,Arrears,BillingScheduleGroup,USD,,,CreateInvoice,,,,,Billing Treatment Item - Arrears - USA,,1,Manual,Draft,Remainder

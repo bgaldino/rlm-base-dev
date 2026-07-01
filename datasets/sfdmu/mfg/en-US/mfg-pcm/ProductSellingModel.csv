@@ -1,0 +1,10 @@
+$$Name$SellingModelType,DoesAutoRenewAssetByDefault,Name,PricingTerm,PricingTermUnit,SellingModelType,Status
+Evergreen - Quarterly;Evergreen,false,Evergreen - Quarterly,1,Quarterly,Evergreen,Active
+Evergreen - Semi-Annual;Evergreen,false,Evergreen - Semi-Annual,1,Semi-Annual,Evergreen,Active
+Evergreen Annual;Evergreen,false,Evergreen Annual,1,Annual,Evergreen,Active
+Evergreen Monthly;Evergreen,false,Evergreen Monthly,1,Months,Evergreen,Active
+One-Time;OneTime,false,One-Time,#N/A,#N/A,OneTime,Active
+Term Annual;TermDefined,false,Term Annual,1,Annual,TermDefined,Active
+Term Based - Quarterly;TermDefined,false,Term Based - Quarterly,1,Quarterly,TermDefined,Active
+Term Based - Semi-Annual;TermDefined,false,Term Based - Semi-Annual,1,Semi-Annual,TermDefined,Active
+Term Monthly;TermDefined,false,Term Monthly,1,Months,TermDefined,Active
