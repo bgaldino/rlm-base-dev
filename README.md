@@ -18,6 +18,7 @@ The `main` branch targets Salesforce Release 262 (Summer '26), promoted from the
 - [Quick Start](#quick-start)
 - [Build Harness and TUI](#build-harness-and-tui)
 - [Feature Flags](#feature-flags)
+- [Manufacturing](#manufacturing)
 - [Custom Tasks](#custom-tasks)
 - [Flows](#flows)
 - [Data Plans](#data-plans)
@@ -576,14 +577,114 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `constraints` | `true` | Use Constraint Builder (metadata setup) |
 | `guidedselling` | `true` | Use Guided Selling |
 | `procedureplans` | `true` | Use Procedure Plans |
-| `large_stx` | `false` | Deploy Large Sales Transaction metadata (large-deal reprice / preprocess / setup-quote) via `prepare_large_stx` at step 27 |
+| `large_stx` | `false` | Deploy Large Sales Transaction metadata (large-deal reprice / preprocess / setup-quote) via `prepare_large_stx` at step 28 |
+
+### Manufacturing Flags
+
+These flags control the Manufacturing feature suite (`prepare_manufacturing`, invoked at step 33 of `prepare_rlm_org`). The master gate `manufacturing` defaults to **`false`** on `main`; all sub-flags are no-ops unless `manufacturing=true`. See [Manufacturing](#manufacturing) for the full architecture.
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `manufacturing` | `false` | Master gate — deploys all Manufacturing metadata and data via `prepare_manufacturing` at step 33 of `prepare_rlm_org`. Defaults to `false` because only the `dev-mfg*` scratch org definitions enable the `IndustriesManufacturing` org feature; enabling it on an org without that feature fails `deploy_mfg_core`. Set `true` (or use a `dev-mfg` org) to build the Manufacturing suite. |
+| `badger_data` | `true` | Controls Manufacturing seed-data insertion within the manufacturing flows (PCM, pricing, DRO, guided selling, rebates, AAF). No-op unless `manufacturing=true`. |
+| `mfg_guidedselling` | `true` | Deploy Manufacturing Guided Selling metadata and seed data (`prepare_mfg_guided_selling`). No-op unless `manufacturing=true`. |
+| `mfg_rebates` | `true` | Deploy Manufacturing Rebates metadata and seed data (`prepare_mfg_rebates`). No-op unless `manufacturing=true`. |
+| `mfg_aaf` | `true` | Deploy Manufacturing Advanced Account Forecasting metadata and seed data (`prepare_mfg_aaf`). No-op unless `manufacturing=true`. |
+| `mfg_docgen` | `true` | Deploy Manufacturing OmniStudio document generation components and templates (`prepare_mfg_docgen`). No-op unless `manufacturing=true`. |
+| `mfg_visuals` | `true` | Deploy Manufacturing 3D Visualization (RenderDraw) metadata and configuration flow assignments (`prepare_mfg_visuals`). No-op unless `manufacturing=true`. |
 
 ### Deployment Flags
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `personas` | `true` | Deploy persona profiles + permission set groups and create the Sales Rep user via `prepare_personas` at step 28 |
+| `personas` | `true` | Deploy persona profiles + permission set groups and create the Sales Rep user via `prepare_personas` at step 29 |
 | `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 30. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
+
+## Manufacturing
+
+The Manufacturing feature suite deploys and configures Salesforce Industries Manufacturing capabilities on top of the base Revenue Cloud setup. It is orchestrated by `prepare_manufacturing`, invoked at step 33 of `prepare_rlm_org` when `manufacturing=true`.
+
+> **`manufacturing` defaults to `false` on `main`.** Only the `dev-mfg*` scratch org definitions (`orgs/dev-mfg*.json`) enable the `IndustriesManufacturing` org feature, which activates the SalesAgreement sObjects the suite depends on. On an org without that feature, `deploy_mfg_core` fails. Enable Manufacturing by building against a `dev-mfg` org, or by passing `-o manufacturing true` to a compatible org.
+
+### What It Deploys
+
+| Category | Metadata / Data | Location |
+|----------|-----------------|----------|
+| Core metadata | `IndustriesManufacturing` settings (activate SalesAgreement objects), brand assets, theme, custom fields, Apex (`RLM_MFG_*`), permission sets/groups | `unpackaged/post_manufacturing/`, `unpackaged/post_manufacturing_core/` |
+| Flows + Quick Actions | Manufacturing business-process flows (`RLM_MFG_*`) and Quick Actions | `unpackaged/post_manufacturing/` |
+| OmniStudio docgen | OmniDataTransforms and document templates (`RLM_MFG_Sales_Proposal_Document`, `Price_Contract`) | `unpackaged/post_manufacturing_core/` (docgen assets) |
+| 3D Visualization | LWC, VF page, CSP Trusted Site, RenderDraw flow, config-flow assignments | `unpackaged/post_manufacturing_visualization/` |
+| UX metadata | `RLM_MFG_*` flexipages, Manufacturing layouts, Manufacturing `RLM_Revenue_Cloud` app variant | `templates/flexipages/standalone/manufacturing/`, `templates/layouts/manufacturing/`, `templates/applications/manufacturing/` → assembled into `unpackaged/post_manufacturing_ux/` |
+| Constraint models | GeneratorSet, Fuel_Cell CML models | `datasets/constraints/mfg/genSet/`, `datasets/constraints/mfg/fuelCell/` |
+| Context plan | Manufacturing Sales Transaction context extension | `datasets/context_plans/mfg/` |
+| Seed data | PCM, pricing, DRO, tax, billing, guided selling, rebates, AAF, config-flow | `datasets/sfdmu/mfg/en-US/` |
+
+### API Naming Convention
+
+All Manufacturing-specific API names follow the `RLM_MFG_` prefix convention:
+- **Apex classes:** `RLM_MFG_SalesAgreementRLMOrder`, `RLM_MFG_ServiceContractQuote`
+- **Flows / Quick Actions:** `RLM_MFG_*` (display labels prefixed `RLM MFG`)
+- **Custom fields:** `RLM_MFG_*__c` on SalesAgreement, SalesAgreementProduct, SalesAgreementProductSchedule, Quote, QuoteLineItem, ServiceContract
+- **Permission set:** `RLM_MFG_RCA`; **permission set groups:** `RLM_MFG_scratch` (dev), `RLM_MFG` (TSO/production)
+- **Flexipages:** `RLM_MFG_Account_Record_Page`, `RLM_MFG_Contract_Record_Page`, `RLM_MFG_Order_Record_Page`, `RLM_MFG_Quote_Record_Page`, `RLM_MFG_Sales_Agreement_Record_Page`
+
+### Key Design Notes
+
+- **Two-transaction core deploy:** `prepare_mfg_core` deploys brand assets + `IndustriesManufacturing` settings in a first committed transaction, then theme/custom-fields/Apex/permissions in a second. Fields on SalesAgreement objects cannot deploy in the same transaction as the settings that activate those objects.
+- **Permission propagation:** `prepare_mfg_perms` waits for metadata deployment to settle before assigning `RLM_MFG_RCA` and the Manufacturing PSG, so PSG recalculation has time to complete.
+- **External credential access:** `RLM_MFG_RCA` requires External Credential Principal Access that the Metadata API cannot set. `prepare_mfg_perms` works around this via a Tooling API callout plus `SetupEntityAccess` DML.
+- **Document template binary bug:** Salesforce assigns the same ContentDocument binary to all `DocumentTemplate` records deployed in one batch (alphabetically first wins). `prepare_mfg_docgen` corrects this after every template deploy.
+- **UX assembly second pass:** The base `prepare_ux` (step 30) runs before SalesAgreement objects exist. `prepare_mfg_ux` (step 13 of `prepare_manufacturing`) runs a separate assembly with `manufacturing=true`, writing to `unpackaged/post_manufacturing_ux/`.
+
+### Common Manufacturing Workflows
+
+```bash
+# Run full org setup with Manufacturing enabled (against a dev-mfg org, or override the flag)
+cci flow run prepare_rlm_org -o manufacturing true --org <org>
+
+# Run only the Manufacturing flow (org must already have base RLM setup)
+cci flow run prepare_manufacturing --org <org>
+
+# Manufacturing UX assembly only — dry-run (inspect output, no deploy)
+cci task run assemble_and_deploy_ux -o output_path unpackaged/post_manufacturing_ux -o manufacturing true -o deploy false --org <org>
+
+# Deploy Manufacturing UX
+cci flow run prepare_mfg_ux --org <org>
+
+# Reload AAF or pricing data (delete then re-insert)
+cci task run delete_badger_aaf_data --org <org> && cci task run insert_badger_aaf_data --org <org>
+cci task run delete_badger_pricing_data --org <org> && cci task run insert_badger_pricing_data --org <org>
+
+# Build without specific sub-features
+cci flow run prepare_rlm_org -o manufacturing true -o mfg_aaf false -o mfg_docgen false --org <org>
+```
+
+### Manufacturing Data Plans
+
+See the [Manufacturing SFDMU README](datasets/sfdmu/mfg/README.md) for full documentation of the MFG data plans. Effective gates below reflect both the master `manufacturing` gate on `prepare_manufacturing` and each sub-flow's own feature flag.
+
+| Plan | CCI Task | Effective Gate |
+|------|----------|----------------|
+| `mfg-pcm` | `insert_badger_pcm_data` | `manufacturing` |
+| `mfg-pricing` | `insert_badger_pricing_data` | `manufacturing` |
+| `mfg-dro` | `insert_badger_dro_data` | `manufacturing` |
+| `mfg-billing` | `insert_mfg_billing_data` | `manufacturing` + `billing` |
+| `mfg-tax` | `insert_mfg_tax_data` | `manufacturing` + `tax` |
+| `mfg-guidedselling` | `insert_badger_guidedselling_data` | `manufacturing` + `mfg_guidedselling` |
+| `mfg-rebates` | `insert_badger_rebates_data` | `manufacturing` + `mfg_rebates` |
+| `mfg-aaf` | `insert_badger_aaf_data` | `manufacturing` + `mfg_aaf` |
+| `mfg-configflow` | `insert_mfg_configflow_data` | `manufacturing` + `mfg_visuals` |
+
+### Manufacturing Constraint Models
+
+Two CML constraint models are imported by `import_mfg_cml`, whose expression-set versions (`GeneratorSet_V1`, `Fuel_Cell_V1`) are then activated:
+
+| Model | Directory | Description |
+|-------|-----------|-------------|
+| `GeneratorSet` | `datasets/constraints/mfg/genSet/` | Industrial generator-set constraint model |
+| `Fuel_Cell` | `datasets/constraints/mfg/fuelCell/` | Fuel-cell product constraint model |
+
+See the [Constraints Utility Guide](datasets/constraints/README.md) for export/import/validate documentation.
 
 ## Custom Tasks
 
@@ -871,7 +972,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 | Flow | Description |
 |------|-------------|
-| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (35 steps). This is the primary flow for full org setup. |
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (36 steps). This is the primary flow for full org setup. |
 
 #### prepare_rlm_org Step Order
 
@@ -890,28 +991,31 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 11 | `prepare_dro` | Always |
 | 12 | `prepare_tax` | Always |
 | 13 | `prepare_billing` | Always |
-| 14 | `prepare_analytics` | Always |
-| 15 | `prepare_clm` | Always |
-| 16 | `prepare_rating` | Always |
-| 17 | `activate_and_deploy_expression_sets` | Always |
-| 18 | `prepare_tso` | Always |
-| 19 | `prepare_procedureplans` | Always |
-| 20 | `prepare_prm` | Always |
-| 21 | `prepare_agents` | Always |
-| 22 | `prepare_constraints` | Always |
-| 23 | `prepare_guidedselling` | Always |
-| 24 | `prepare_revenue_settings` | Always |
-| 25 | `prepare_pricing_discovery` | Always |
-| 26 | `prepare_ramp_builder` | Always |
-| 27 | `prepare_large_stx` | `large_stx` |
-| 28 | `prepare_personas` | `personas` |
-| 29 | `prepare_ux` | `ux` |
-| 30 | `prepare_scratch` | Always |
-| 31 | `refresh_all_decision_tables` | Always |
-| 32 | `rebuild_search_index` | Always |
-| 33 | `stamp_git_commit` | Always |
+| 14 | `prepare_collections` | `collections` |
+| 15 | `prepare_analytics` | Always |
+| 16 | `prepare_clm` | Always |
+| 17 | `prepare_rating` | Always |
+| 18 | `activate_and_deploy_expression_sets` | Always |
+| 19 | `prepare_tso` | Always |
+| 20 | `prepare_procedureplans` | Always |
+| 21 | `prepare_prm` | Always |
+| 22 | `prepare_agents` | Always |
+| 23 | `prepare_constraints` | Always |
+| 24 | `prepare_guidedselling` | Always |
+| 25 | `prepare_revenue_settings` | Always |
+| 26 | `prepare_pricing_discovery` | Always |
+| 27 | `prepare_ramp_builder` | Always |
+| 28 | `prepare_large_stx` | `large_stx` |
+| 29 | `prepare_personas` | `personas` |
+| 30 | `prepare_ux` | `ux` |
+| 31 | `prepare_inapp` | `inapp` |
+| 32 | `prepare_scratch` | Always |
+| 33 | `prepare_manufacturing` | `manufacturing` |
+| 34 | `refresh_all_decision_tables` | Always |
+| 35 | `rebuild_search_index` | Always |
+| 36 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 31 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 32 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 33 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 30 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 33 (`prepare_manufacturing`) is gated by the `manufacturing` flag (default `false` on `main`) and runs the full Manufacturing feature suite, including a second UX assembly pass for MFG-specific pages — see [Manufacturing](#manufacturing). Step 34 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 35 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 36 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 
