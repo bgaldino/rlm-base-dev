@@ -293,7 +293,12 @@ class ConfigureSearchIndex(BaseSalesforceApiTask):
 
         # --- Resolve desired fields against metadata ---
         resolved_entries = []
-        for desired in desired_fields:
+        for i, desired in enumerate(desired_fields):
+            if not isinstance(desired, dict):
+                return self._handle_failure(
+                    f"indexConfigurations[{i}] must be an object, got {type(desired).__name__}.",
+                    raise_on_failure,
+                )
             field_name = desired.get("name")
             if not field_name:
                 return self._handle_failure(
