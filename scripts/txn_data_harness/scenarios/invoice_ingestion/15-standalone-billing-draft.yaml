@@ -1,0 +1,37 @@
+# Standalone billing — Draft invoices via the ingest API.
+#
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/invoice_ingestion/15-standalone-billing-draft.yaml
+#
+# Sibling of 15-standalone-billing.yaml that stops at Draft. Same ingest API,
+# same composite-graph payload -- only `defaults.target_stage` differs. Draft
+# ingested invoices ARE deletable, so this is the right shape for invoice-
+# review demos or for any flow that needs to leave deletable invoices behind.
+#
+# Posted ingestion is not a supported operator workflow until InvoiceLineTax
+# prerequisites are implemented and live-verified. Keep this scenario at Draft.
+defaults:
+  kind: invoice_ingestion        # standalone-billing path
+  target_stage: invoice_draft    # Draft, not Posted
+  invoice:
+    should_calculate_tax: false
+    tax_calculation_status: Pending
+
+scenarios:
+  - account: "Infinitech"
+    count: 3
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 10
+        unit_price: 25
+        taxable: false
+
+  - account: "Global Media"
+    count: 2
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 5
+        unit_price: 100
+        taxable: false

@@ -1,0 +1,61 @@
+# Standalone billing -- Posted-invoice ingest.
+#
+# Prereq: the target org must have an active non-taxable `TaxTreatment`
+# (`IsTaxable=false`, `Status=Active`). The harness discovers it via
+# `discovery.resolve_non_taxable_tax_treatment` and stamps its id on every
+# InvoiceLine. Without it, `ingest_invoice` raises `LifecycleError` with
+# seed instructions -- the action would otherwise resolve the org's default
+# taxable policy and reject (Posted) or silently tax the line (Draft -> Post).
+#
+# Seed once (idempotent):
+#   sf data create record --sobject TaxTreatment \
+#     --values "Name='Harness Non-Taxable' IsTaxable=false Status=Active TaxCode=NONE"
+#
+# Bypasses the PST chain entirely: no Opportunity, no Quote, no Order, no
+# Activate, no BillingSchedule. Each transaction is a single POST to
+# /commerce/invoicing/.../actions/ingest that creates a Posted invoice plus
+# its lines in one composite-graph call. `Invoice.CreationMode = External` is
+# the contractual marker; PST-emitted invoices stay `Salesforce`. Posted
+# ingested invoices are not deletable -- same constraint as the PST Posted
+# path.
+#
+# Tax-on Posted ingestion (lines with `taxable: true`) is live-verified in
+# a companion scenario (`15-standalone-billing-taxable.yaml`) and ships
+# `InvoiceLineTax` graph records. See `docs/contracts-invoice-ingestion.md`
+# -> *Tax-on Posted Path*.
+#
+# Account flavors verified against this scenario:
+#   - Infinitech    (billing-ready; has a BillingAccount row)
+#   - Global Media  (pipeline-only; no BillingAccount -- ingestion uses
+#                    Account.Id directly so this works natively)
+defaults:
+  kind: invoice_ingestion        # standalone-billing path
+  target_stage: invoice_posted
+  invoice:
+    should_calculate_tax: false
+    # Posted invoices REJECT taxCalculationStatus = Pending / Estimated
+    # (verified live 2026-06-25 on rlm-base__jun17_1: the ingest API returns
+    # "You can't specify a posted invoice with the taxCalculationStatus as
+    # estimated. Specify posted as the taxCalculationStatus."). The harness
+    # defaults Posted scenarios to "Posted" automatically; we set it
+    # explicitly here so the YAML is self-documenting.
+    tax_calculation_status: Posted
+
+scenarios:
+  - account: "Infinitech"
+    count: 3
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 10
+        unit_price: 25
+        taxable: false
+
+  - account: "Global Media"
+    count: 2
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 5
+        unit_price: 100
+        taxable: false

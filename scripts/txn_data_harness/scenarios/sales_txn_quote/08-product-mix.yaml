@@ -1,0 +1,41 @@
+# Product mix — posted invoices across several QB SKUs.
+#
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/08-product-mix.yaml --concurrency 3
+#
+# Spreads billed invoices across different products so invoice/revenue demos
+# aren't all the same line item. This file keeps exactly one SKU per invoice by
+# using one spec per SKU; use 11-randomized-product-mix.yaml for multi-line
+# invoices drawn from a product pool.
+#
+# NOTE: simple products (term/evergreen/one-time) and default-configured bundles
+# place cleanly. QB-API-FLEX is the proven-good simple baseline; QB-COMPLETE is
+# the proven-good bundle (PST expands its component graph from defaults). The
+# others below are plausible — if any fails to place at volume, drop it or pin
+# a known-good SKU (a failing spec is isolated; it won't abort the others).
+defaults:
+  kind: sales_txn_quote        # PST chain to Posted invoices, varied SKUs
+
+scenarios:
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API-FLEX"          # Additional API Flex (100M)
+        quantity: 1
+    count: 10
+
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API"               # Additional API
+        quantity: 5
+        selling_model: "Term Annual"
+    count: 10
+
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API"               # Additional API (Monthly)
+        quantity: 3
+        selling_model: "Term Monthly"
+    count: 10

@@ -1124,6 +1124,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Task Examples](docs/references/task-examples.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/references/context-service-utility.md) | Context Service utility usage and plan examples |
 | [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
+| [Transaction Data Harness](docs/guides/txn-data-harness.md) | Standalone tool that mints high-volume demo data (Quotes → Orders → Posted Invoices) by driving the real transaction lifecycle; usage, verification, cleanup |
 
 ### Analysis & Planning
 

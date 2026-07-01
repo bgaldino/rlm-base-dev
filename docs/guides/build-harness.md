@@ -167,6 +167,17 @@ Run the harness unit test suite from repo root:
 .harness/tui-venv/bin/python -m pytest tests/build_harness/
 ```
 
+The `.harness/tui-venv` venv is created automatically by `./tui-cci` on first run and
+already contains all required dependencies. This is the recommended way to run the tests.
+
+**Alternatively**, if you want to use your global (or project) Python environment
+instead of the harness venv, install the TUI dependencies first:
+
+```bash
+pip install -r scripts/build_harness/tui/requirements.txt
+python -m pytest tests/build_harness/ tests/txn_data_harness/
+```
+
 Python 3.11+ is required for harness/TUI tests and runtime (`StrEnum` is used by
 `scripts/build_harness/tui/state.py`).
 
