@@ -420,3 +420,62 @@ This repository provides multiple entry points for different AI tools:
 `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` resolve to the
 same content — edit `AGENTS.md` only. The `.agents/` tree is a separate routing
 and context layer that points back to `AGENTS.md` and never overrides it.
+
+---
+
+## Cursor Cloud specific instructions
+
+The Cloud VM runs **Linux** (Ubuntu 24.04), so the macOS/Homebrew flow in
+`docs/guides/dev-environment-setup.md` does **not** apply. The startup *update
+script* (registered with the environment) keeps the toolchain fresh: it
+installs/upgrades CumulusCI via `pipx`, injects `setuptools` + `robot/requirements.txt`
++ `scripts/build_harness/tui/requirements.txt` into the CCI venv, and runs
+`npm install`. The `sf` CLI and the SFDMU plugin are baked into the VM snapshot
+(not reinstalled on every startup).
+
+**PATH (the one gotcha).** `cci`/`snowfakery` live in `~/.local/bin` (pipx) and
+`sf` lives in `~/.npm-global/bin` (npm prefix set to a user dir so global installs
+need no `sudo`). Both are added to `~/.bashrc`, so **interactive** shells get them
+automatically. A **non-interactive / one-shot** shell that does not source
+`~/.bashrc` may not — if `cci` or `sf` is "command not found", prepend:
+`export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"`.
+
+**Benign npm/nvm warning.** Almost every command prints
+`Your user's .npmrc file ... has a 'globalconfig' and/or a 'prefix' setting, which
+are incompatible with nvm`. This is harmless noise from the user-level npm prefix
+(needed for sudo-free global installs) — ignore it; it does not affect any tool.
+
+**What runs WITHOUT a Salesforce org** (no Dev Hub auth is configured in the Cloud
+VM — these are the verifiable targets here):
+- `cci task run validate_setup` — 12-check toolchain validation (all PASS in the VM;
+  Chrome is pre-installed at `/usr/bin/google-chrome`, ChromeDriver via webdriver-manager).
+- `cci task run assemble_and_deploy_ux -o deploy false` — local UX assembly dry-run
+  (writes `unpackaged/post_ux/`; only `assembly_manifest.json`'s `assembled_at`
+  timestamp changes on a clean tree — `git checkout` it to avoid a spurious diff).
+- pytest build-harness suite — run with the CCI venv python so injected deps resolve:
+  `~/.local/share/pipx/venvs/cumulusci/bin/python -m pytest` (scoped to `tests/build_harness`).
+- Self-contained tests run directly: `python3 tests/test_*.py` (not collected by pytest).
+- `python scripts/validate_sfdmu_v5_datasets.py`, `npm run lint`, `npm run prettier:verify`.
+
+**What REQUIRES a live org / Dev Hub** (blocked until an org is authorized): the
+`prepare_rlm_org` flow and all `deploy_*`, `insert_*`/`delete_*`/`extract_*` SFDMU,
+context-definition, Apex, and `robot_*` browser tasks.
+
+**Authorizing a Dev Hub in this headless VM.** A `SFDX_AUTH_URL` secret (Dev Hub
+SFDX auth URL) may be configured. Cloud Agent secrets are injected as env vars only
+into **new** VMs at session start — they are *not* available in a session that was
+already running when the secret was added, so check `printenv SFDX_AUTH_URL` first.
+When present:
+
+```bash
+export SF_USE_GENERIC_UNIX_KEYCHAIN=true SF_TEMP_SHOW_SECRETS=true
+printf '%s' "$SFDX_AUTH_URL" | sf org login sfdx-url --sfdx-url-stdin --set-default-dev-hub --alias devhub
+# Then connect it to CumulusCI and create a scratch org:
+cci org connect devhub   # or use cci's default dev/scratch org config
+cci flow run prepare_rlm_org --org dev   # the full 35-step build
+```
+
+CCI logs `Unable to store an encryption key ...` on every run — expected in this
+keychain-less environment; orgs/services are just written unencrypted (that is why
+`SF_USE_GENERIC_UNIX_KEYCHAIN`/`SF_TEMP_SHOW_SECRETS` are set). See `docker/README.md`
+for more auth detail.
