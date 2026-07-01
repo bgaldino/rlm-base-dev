@@ -13,7 +13,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 | Flag | Default | Used in `when:` clauses |
 |------|---------|------------------------|
-| `agents` | `False` | 4 flow step(s) |
+| `agents` | `True` | 11 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
 | `billing` | `True` | 22 flow step(s) |
@@ -60,12 +60,19 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ## Flag Usage Detail
 
-### `agents` (default: `False`)
+### `agents` (default: `True`)
 
 - `prepare_agents` step 1 → `assign_permission_set_groups`
 - `prepare_agents` step 2 → `deploy_agents_settings`
-- `prepare_agents` step 3 → `deploy_agents`
-- `prepare_agents` step 4 → `assign_permission_sets`
+- `prepare_agents` step 3 → `deploy_agent_classes`
+- `prepare_agents` step 4 → `deploy_agent_flows`
+- `prepare_agents` step 5 → `deactivate_agents`
+- `prepare_agents` step 6 → `deploy_legacy_agents`
+- `prepare_agents` step 7 → `deploy_agents`
+- `prepare_agents` step 8 → `publish_agents`
+- `prepare_agents` step 9 → `activate_agents`
+- `prepare_agents` step 10 → `deploy_agent_permission_sets`
+- `prepare_agents` step 11 → `assign_permission_sets`
 
 ### `analytics` (default: `True`)
 
@@ -686,9 +693,11 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `ps_aea`
 
-*1 items:*
+*3 items:*
 
 - `RLM_QuotingAgent`
+- `RLM_QuotingAssistant`
+- `RLM_BillingEmployeeAgent`
 
 ### `ps_approvals`
 

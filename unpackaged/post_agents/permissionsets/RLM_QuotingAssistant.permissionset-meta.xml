@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
     <agentAccesses>
-        <agentName>RLM_Billing_Employee_Assistance</agentName>
+        <agentName>RLM_Quoting_Assistant</agentName>
         <enabled>true</enabled>
     </agentAccesses>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>RLM Billing Employee Assistance Agent</label>
+    <label>RLM Quoting Assistant</label>
 </PermissionSet>

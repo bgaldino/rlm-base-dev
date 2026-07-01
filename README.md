@@ -566,7 +566,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | `clm` | `true` | Use Contract Lifecycle Management |
 | `dro` | `true` | Use Dynamic Revenue Orchestration |
 | `einstein` | `true` | Use Einstein AI |
-| `agents` | `false` | Deploy Agentforce Agent configurations |
+| `agents` | `true` | Deploy Agentforce Agent configurations |
 | `prm` | `true` | Use Partner Relationship Management |
 | `prm_exp_bundle` | `true` | Use PRM Experience Bundle |
 | `prm_pricing` | `true` | Enable PRM pricing metadata/tasks (`prepare_prm_pricing`) |

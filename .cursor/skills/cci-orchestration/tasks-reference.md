@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**272 tasks** across **10 groups**.
+**275 tasks** across **10 groups**.
 
 ---
 
@@ -1075,7 +1075,15 @@
 
 ## Revenue Lifecycle Management
 
-*161 task(s)*
+*164 task(s)*
+
+### `activate_agents`
+
+**Description:** Activate the latest BotVersion for each RLM agent by running `sf agent activate`. Discovers agents from both unpackaged/post_agents/aiAuthoringBundles (new format) and unpackaged/post_agents/legacy/bots (legacy format). BotVersion.Status is not DML-writable, so activation must go through the platform-supported CLI wrapper around the Connect REST endpoint.
+
+**Class:** `tasks.rlm_activate_agents.ActivateAgents`
+
+---
 
 ### `activate_and_deploy_expression_sets`
 
@@ -1585,6 +1593,14 @@
 
 ---
 
+### `deactivate_agents`
+
+**Description:** Deactivate the active BotVersion for each legacy agent (bots/) via `sf agent deactivate`. Required before redeploying legacy Bot+BotVersion metadata on idempotent re-runs — the platform rejects updates to active bots. Already-inactive agents are tolerated (no-op). Does not affect Agent Script (aiAuthoringBundles) agents.
+
+**Class:** `tasks.rlm_deactivate_agents.DeactivateAgents`
+
+---
+
 ### `deactivate_collections_case_matrix`
 
 **Description:** Disable the DetermineCaseReasonAndRelatedAttributes decision-matrix version before (re)deploying the DecisionMatrixDefinition. A metadata deploy can't migrate a matrix version while an active (enabled) version with that name exists, so a second prepare_collections run fails without this. No-op on a first run (matrix not deployed yet). seed_collections_case_matrix re-enables it afterward. Run before deploy_post_collections. See scripts/apex/deactivateCollectionsCaseMatrix.apex.
@@ -1652,33 +1668,21 @@
 
 ---
 
-### `deploy_agents`
+### `deploy_agent_classes`
 
-**Description:** Deploy Agentforce Agent Configurations
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents`
-
----
-
-### `deploy_agents_bots`
-
-**Description:** Deploy Agentforce Agent Bots
+**Description:** Deploy Apex invocable services from unpackaged/post_agents/classes used by Product Configuration agent flows.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
 **Options:**
 
-- `path`: `unpackaged/post_agents/bots`
+- `path`: `unpackaged/post_agents/classes`
 
 ---
 
-### `deploy_agents_flows`
+### `deploy_agent_flows`
 
-**Description:** Deploy Agentforce Agent Flows
+**Description:** Deploy custom flows from unpackaged/post_agents/flows that back agent subagent topics. Must run before deploy_agents so the flows exist when authoring bundles are published.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1688,45 +1692,9 @@
 
 ---
 
-### `deploy_agents_genAiFunctions`
+### `deploy_agent_permission_sets`
 
-**Description:** Deploy Agentforce Agent Functions
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/genAiFunctions`
-
----
-
-### `deploy_agents_genAiPlanners`
-
-**Description:** Deploy Agentforce Agent Planner Bundles
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/genAiPlannerBundles`
-
----
-
-### `deploy_agents_genAiPlugins`
-
-**Description:** Deploy Agentforce Agent Plugins
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_agents/genAiPlugins`
-
----
-
-### `deploy_agents_permissionsets`
-
-**Description:** Deploy Agentforce Agent Permissionsets
+**Description:** Deploy the Agentforce agent permission sets from unpackaged/post_agents/permissionsets. Must run after publish_agents — each permission set's agentAccesses compiles to a botDefinition reference, and the Bot only exists once the authoring bundle is published.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1736,9 +1704,21 @@
 
 ---
 
+### `deploy_agents`
+
+**Description:** Deploy Agentforce Agent authoring bundles from unpackaged/post_agents/aiAuthoringBundles. Permission sets deploy separately (deploy_agent_permission_sets) after publish, because their agentAccesses reference a Bot that does not exist until publish_agents compiles the bundle.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_agents/aiAuthoringBundles`
+
+---
+
 ### `deploy_agents_settings`
 
-**Description:** Deploy Agentforce Agent Settings
+**Description:** Deploy Agentforce Agent Settings (EinsteinCopilot, EinsteinGpt, AgentPlatform). Required before deploying agent bots/planners.
 
 **Class:** `cumulusci.tasks.salesforce.Deploy`
 
@@ -1845,6 +1825,18 @@
 
 - `path`: `force-app/main/default`
 - `transforms`: `[{'transform': 'find_replace', 'options': {'patterns': [{'xpath': '//ExpressionSetDefinition/versions/variables/value...`
+
+---
+
+### `deploy_legacy_agents`
+
+**Description:** Deploy legacy-format agents (Bot + BotVersion + GenAiPlannerBundle) from unpackaged/post_agents/legacy. These agents deploy as standard metadata and do not require publish/activate steps — the BotVersion is included directly.
+
+**Class:** `cumulusci.tasks.salesforce.Deploy`
+
+**Options:**
+
+- `path`: `unpackaged/post_agents/legacy`
 
 ---
 
@@ -2887,6 +2879,14 @@
 
 ---
 
+### `publish_agents`
+
+**Description:** Compile each AiAuthoringBundle under unpackaged/post_agents/aiAuthoringBundles into a runnable BotVersion via `sf agent publish authoring-bundle`. Deploying the bundle metadata alone does not produce a BotVersion; this step does.
+
+**Class:** `tasks.rlm_publish_agents.PublishAgents`
+
+---
+
 ### `query_billing_state`
 
 **Description:** Query billing record state (PaymentTerm, BillingTreatment, BillingPolicy, BillingTreatmentItem) for validation; check debug logs for output.
@@ -3124,6 +3124,30 @@
 **Description:** Sync Pricing Data
 
 **Class:** `tasks.rlm_sync_pricing_data.SyncPricingData`
+
+---
+
+### `test_agents`
+
+**Description:** Run Agentforce CLI Testing Center specs against published+activated agents. Use the agent option to run one suite (billing or quoting-assistant) or all suites in one explicit invocation; use test_files to run a comma-separated subset of YAML specs. Deploys each selected spec as an AiEvaluationDefinition (`sf agent test create`) and runs it (`sf agent test run`), failing if any topic/action assertion — or any output validation on a case that set an expectedOutcome — does not pass. Requires the target agent to be published and activated first (see prepare_agents). Not part of prepare_agents; run only on demand or in CI after activation.
+
+**Class:** `tasks.rlm_test_agents.TestAgents`
+
+**Options:**
+
+- `agent`: `quoting-assistant`
+
+---
+
+### `test_quoting_assistant`
+
+**Description:** Convenience alias for `test_agents -o agent quoting-assistant`. Runs the Quoting Assistant (RLM_Quoting_Assistant) Agentforce CLI Testing Center specs on demand against a published and activated agent.
+
+**Class:** `tasks.rlm_test_agents.TestAgents`
+
+**Options:**
+
+- `agent`: `quoting-assistant`
 
 ---
 

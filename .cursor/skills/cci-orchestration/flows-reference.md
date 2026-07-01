@@ -169,9 +169,16 @@ Extract rating and rates data from an org into CSV files
 1. **task** `assign_permission_set_groups`  `when: project_config.project__custom__agents`
    - `api_names`: `['CopilotSalesforceUserPSG', 'CopilotSalesforceAdminPSG']`
 2. **task** `deploy_agents_settings`  `when: project_config.project__custom__agents`
-3. **task** `deploy_agents`  `when: project_config.project__custom__agents`
-4. **task** `assign_permission_sets`  `when: project_config.project__custom__agents`
-   - `api_names`: `['RLM_QuotingAgent']`
+3. **task** `deploy_agent_classes`  `when: project_config.project__custom__agents`
+4. **task** `deploy_agent_flows`  `when: project_config.project__custom__agents`
+5. **task** `deactivate_agents`  `when: project_config.project__custom__agents`
+6. **task** `deploy_legacy_agents`  `when: project_config.project__custom__agents`
+7. **task** `deploy_agents`  `when: project_config.project__custom__agents`
+8. **task** `publish_agents`  `when: project_config.project__custom__agents`
+9. **task** `activate_agents`  `when: project_config.project__custom__agents`
+10. **task** `deploy_agent_permission_sets`  `when: project_config.project__custom__agents`
+11. **task** `assign_permission_sets`  `when: project_config.project__custom__agents`
+   - `api_names`: `['RLM_QuotingAgent', 'RLM_QuotingAssistant', 'RLM_BillingEmployeeAgent']`
 
 ---
 
