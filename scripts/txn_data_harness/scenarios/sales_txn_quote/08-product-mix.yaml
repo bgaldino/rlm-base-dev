@@ -35,6 +35,7 @@ scenarios:
   - account: "Infinitech"
     target_stage: invoice_posted
     products:
-      - sku: "QB-LIC-CLOUD"         # Cloud License (Monthly)
+      - sku: "QB-API"               # Additional API (Monthly)
         quantity: 3
+        selling_model: "Term Monthly"
     count: 10
