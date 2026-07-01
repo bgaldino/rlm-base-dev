@@ -227,6 +227,11 @@ class ConfigureSearchIndex(BaseSalesforceApiTask):
                 )
 
         desired_fields = config.get("indexConfigurations") or []
+        if not isinstance(desired_fields, list):
+            return self._handle_failure(
+                f"'indexConfigurations' must be an array, got {type(desired_fields).__name__}.",
+                raise_on_failure,
+            )
         if not desired_fields:
             self.logger.info("No fields specified in configuration — nothing to do.")
             self.return_values = {"added": [], "updated": [], "total_configs": 0}

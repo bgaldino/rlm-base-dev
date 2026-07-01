@@ -893,29 +893,30 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 11 | `prepare_dro` | Always |
 | 12 | `prepare_tax` | Always |
 | 13 | `prepare_billing` | Always |
-| 14 | `prepare_analytics` | Always |
-| 15 | `prepare_clm` | Always |
-| 16 | `prepare_rating` | Always |
-| 17 | `activate_and_deploy_expression_sets` | Always |
-| 18 | `prepare_tso` | Always |
-| 19 | `prepare_procedureplans` | Always |
-| 20 | `prepare_prm` | Always |
-| 21 | `prepare_agents` | Always |
-| 22 | `prepare_constraints` | Always |
-| 23 | `prepare_guidedselling` | Always |
-| 24 | `prepare_revenue_settings` | Always |
-| 25 | `prepare_pricing_discovery` | Always |
-| 26 | `prepare_ramp_builder` | Always |
-| 27 | `prepare_large_stx` | `large_stx` |
-| 28 | `prepare_personas` | `personas` |
-| 29 | `prepare_ux` | `ux` |
-| 30 | `prepare_inapp` | `inapp` |
-| 31 | `prepare_scratch` | Always |
-| 32 | `refresh_all_decision_tables` | Always |
-| 33 | `rebuild_search_index` | Always |
-| 34 | `stamp_git_commit` | Always |
+| 14 | `prepare_collections` | `collections` |
+| 15 | `prepare_analytics` | Always |
+| 16 | `prepare_clm` | Always |
+| 17 | `prepare_rating` | Always |
+| 18 | `activate_and_deploy_expression_sets` | Always |
+| 19 | `prepare_tso` | Always |
+| 20 | `prepare_procedureplans` | Always |
+| 21 | `prepare_prm` | Always |
+| 22 | `prepare_agents` | Always |
+| 23 | `prepare_constraints` | Always |
+| 24 | `prepare_guidedselling` | Always |
+| 25 | `prepare_revenue_settings` | Always |
+| 26 | `prepare_pricing_discovery` | Always |
+| 27 | `prepare_ramp_builder` | Always |
+| 28 | `prepare_large_stx` | `large_stx` |
+| 29 | `prepare_personas` | `personas` |
+| 30 | `prepare_ux` | `ux` |
+| 31 | `prepare_inapp` | `inapp` |
+| 32 | `prepare_scratch` | Always |
+| 33 | `refresh_all_decision_tables` | Always |
+| 34 | `rebuild_search_index` | Always |
+| 35 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 32 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 33 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 34 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 30 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 33 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 34 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 35 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 
