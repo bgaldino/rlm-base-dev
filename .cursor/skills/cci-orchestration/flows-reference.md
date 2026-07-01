@@ -380,6 +380,8 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 3. **task** `assign_permission_sets`  `when: project_config.project__custom__guidedselling`
    - `api_names`: `['RLM_Guided_Selling']`
 4. **task** `insert_qb_guidedselling_products_data`  `when: project_config.project__custom__guidedselling and project_config.project__custom__qb`
+5. **task** `configure_search_index`  `when: project_config.project__custom__guidedselling`
+   - `path`: `datasets/search_index/guidedselling.json`
 
 ---
 

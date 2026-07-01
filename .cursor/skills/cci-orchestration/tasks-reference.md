@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**275 tasks** across **10 groups**.
+**276 tasks** across **10 groups**.
 
 ---
 
@@ -1075,7 +1075,7 @@
 
 ## Revenue Lifecycle Management
 
-*164 task(s)*
+*165 task(s)*
 
 ### `activate_agents`
 
@@ -1472,6 +1472,14 @@
 - `pricing_procedure`: `RLM Revenue Management Default Pricing Procedure`
 - `usage_rating_procedure`: `RLM Default Rating Discovery Procedure`
 - `create_orders_flow`: `RLM_CreateOrdersFromQuote`
+
+---
+
+### `configure_search_index`
+
+**Description:** Configure PCM search index fields via Connect API from a declarative JSON config (datasets/search_index/). Supports Standard, Custom, and attribute field types. Additive — merges with existing index configuration, auto-resolves types and IDs from metadata.
+
+**Class:** `tasks.rlm_configure_search_index.ConfigureSearchIndex`
 
 ---
 
