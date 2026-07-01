@@ -1,0 +1,16 @@
+Catalog.Code,Code,Description,IsNavigational,Name,ParentCategory.Code,SortOrder
+HC001,ACCESSORIES,,true,Accessories,,
+HC001,DESKTOPS,,true,Desktops,,
+HC001,LAPTOPS,,true,Laptops,,
+MED001,PODCAST,,true,Podcast,,
+SC001,BASIC-USAGE-SERVICES,,true,Basic Usage Services,,
+SC001,CLOUD-SERVICES,,true,Cloud Services,,
+SC001,PHONE-PLANS,,true,Phone Plans,,
+SC001,SUPPORT,,true,Support,,
+SC001,SURVEILLANCE,,true,Surveillance,,
+SC001,TRAINING,,true,Training,,
+SC001,WARRANTY,,true,Warranty,,
+SF001,PRODUCTIVITY-SOFTWARE,,true,Productivity Software,,
+SF001,PROTECTION-SOFTWARE,,true,Protection Software,,
+TMC00A10,TA99AB67,Thermal Adhesives,true,Thermal Adhesives,,2
+TMC00A10,TC00902A,Thermal Compounds,true,Thermal Compounds,,1

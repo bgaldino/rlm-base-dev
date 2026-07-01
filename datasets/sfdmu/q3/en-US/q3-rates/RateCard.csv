@@ -1,5 +1,11 @@
-Description,EffectiveFrom,EffectiveTo,Name,Type
-Base Rate Card for AT&T Mobile Plan,2024-08-14T19:00:00.000+0000,,AT&T Mobile Plan Rate Card,Base
-Base Rate card for Storage Data,2024-08-21T19:00:00.000+0000,,Cloud Storage Pro Rate Card,Base
-Base Rate Card for API Access Premium,2024-08-21T19:00:00.000+0000,,API Access Premium Rate Card,Base
-Tier Rate Card for Data Transfers,2024-08-21T19:00:00.000+0000,,API Access Premium Tier Rate Card,Tier
+$$Name$Type,Description,EffectiveFrom,EffectiveTo,Name,Type
+Anchor Rate Card;Base,,2025-01-01T20:00:00.000+0000,,Anchor Rate Card,Base
+API Access Premium Rate Card;Base,Base Rate Card for API Access Premium,2024-08-21T19:00:00.000+0000,,API Access Premium Rate Card,Base
+API Access Premium Tier Rate Card;Tier,Tier Rate Card for Data Transfers,2024-08-21T19:00:00.000+0000,,API Access Premium Tier Rate Card,Tier
+AT&T Mobile Plan Rate Card;Base,Base Rate Card for AT&T Mobile Plan,2024-08-14T19:00:00.000+0000,,AT&T Mobile Plan Rate Card,Base
+Basic: Internet Service Rate Card;Base,,2025-01-01T20:00:00.000+0000,,Basic: Internet Service Rate Card,Base
+Basic: Internet Service Rate Card - Tier;Tier,,2025-01-01T20:00:00.000+0000,,Basic: Internet Service Rate Card - Tier,Tier
+Cloud Storage Pro Rate Card;Base,Base Rate card for Storage Data,2024-08-21T19:00:00.000+0000,,Cloud Storage Pro Rate Card,Base
+Commitment Rate Card;Base,,2025-01-01T20:00:00.000+0000,,Commitment Rate Card,Base
+Commitment Rate Card - Tiers;Tier,,2025-01-01T20:00:00.000+0000,,Commitment Rate Card - Tiers,Tier
+Internet Service Pack;Base,,2025-01-01T20:00:00.000+0000,,Internet Service Pack,Base

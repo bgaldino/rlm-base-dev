@@ -1,5 +1,10 @@
-$$PriceBook.Name$RateCard.Name$RateCardType,PriceBook.Name,RateCard.Name,RateCardType
-Standard Price Book;AT&T Mobile Plan Rate Card;Base,Standard Price Book,AT&T Mobile Plan Rate Card,Base
-Standard Price Book;Cloud Storage Pro Rate Card;Base,Standard Price Book,Cloud Storage Pro Rate Card,Base
-Standard Price Book;API Access Premium Rate Card;Base,Standard Price Book,API Access Premium Rate Card,Base
-Standard Price Book;API Access Premium Tier Rate Card;Tier,Standard Price Book,API Access Premium Tier Rate Card,Tier
+$$PriceBook.Name$RateCard.Name$RateCardType,PriceBook.Name,RateCard.$$Name$Type,RateCardType
+Standard Price Book;Anchor Rate Card;Base,Standard Price Book,Anchor Rate Card;Base,Base
+Standard Price Book;API Access Premium Rate Card;Base,Standard Price Book,API Access Premium Rate Card;Base,Base
+Standard Price Book;API Access Premium Tier Rate Card;Tier,Standard Price Book,API Access Premium Tier Rate Card;Tier,Tier
+Standard Price Book;AT&T Mobile Plan Rate Card;Base,Standard Price Book,AT&T Mobile Plan Rate Card;Base,Base
+Standard Price Book;Basic: Internet Service Rate Card;Base,Standard Price Book,Basic: Internet Service Rate Card;Base,Base
+Standard Price Book;Basic: Internet Service Rate Card - Tier;Tier,Standard Price Book,Basic: Internet Service Rate Card - Tier;Tier,Tier
+Standard Price Book;Cloud Storage Pro Rate Card;Base,Standard Price Book,Cloud Storage Pro Rate Card;Base,Base
+Standard Price Book;Commitment Rate Card;Base,Standard Price Book,Commitment Rate Card;Base,Base
+Standard Price Book;Commitment Rate Card - Tiers;Tier,Standard Price Book,Commitment Rate Card - Tiers;Tier,Tier

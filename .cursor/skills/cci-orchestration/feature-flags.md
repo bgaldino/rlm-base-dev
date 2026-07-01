@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**42 feature flags**, **85 configuration values**, **37 YAML anchors** under `project.custom`.
+**42 feature flags**, **86 configuration values**, **37 YAML anchors** under `project.custom`.
 
 ---
 
@@ -16,7 +16,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `False` | 4 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
-| `billing` | `True` | 21 flow step(s) |
+| `billing` | `True` | 22 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
 | `billing_portal_deploy` | `True` | 1 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
@@ -42,16 +42,16 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `prm_pricing` | `True` | 16 flow step(s) |
 | `procedure_plan_definition_version_active` | `False` | — |
 | `procedureplans` | `True` | 6 flow step(s) |
-| `q3` | `False` | 7 flow step(s) |
-| `qb` | `True` | 29 flow step(s) |
+| `q3` | `False` | 13 flow step(s) |
+| `qb` | `True` | 40 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
 | `ramps` | `True` | 4 flow step(s) |
-| `rates` | `True` | 5 flow step(s) |
-| `rating` | `True` | 13 flow step(s) |
-| `refresh` | `False` | 11 flow step(s) |
+| `rates` | `True` | 6 flow step(s) |
+| `rating` | `True` | 15 flow step(s) |
+| `refresh` | `False` | 13 flow step(s) |
 | `sample_data` | `True` | 1 flow step(s) |
-| `tax` | `True` | 5 flow step(s) |
+| `tax` | `True` | 8 flow step(s) |
 | `trial` | `False` | — |
 | `tso` | `False` | 15 flow step(s) |
 | `ux` | `True` | 3 flow step(s) |
@@ -103,6 +103,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
 - `prepare_billing_portal` step 3 → `publish_community`
 - `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
+- `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
 ### `billing_portal` (default: `False`)
 
@@ -320,30 +321,47 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `q3` (default: `False`)
 
-- `prepare_product_data` step 2 → `insert_q3_data`
+- `prepare_product_data` step 2 → `insert_q3_pcm_data`
+- `prepare_pricing_data` step 3 → `delete_q3_pricing_data`
+- `prepare_pricing_data` step 4 → `insert_q3_pricing_data`
 - `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
 - `prepare_dro` step 4 → `insert_q3_dro_data_prod`
 - `prepare_billing` step 3 → `insert_q3_billing_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
-- `prepare_rating` step 4 → `insert_q3_rating_data`
-- `prepare_rating` step 6 → `insert_q3_rates_data`
+- `prepare_rating` step 4 → `delete_q3_rates_data`
+- `prepare_rating` step 5 → `delete_q3_rating_data`
+- `prepare_rating` step 6 → `insert_q3_rating_data`
+- `prepare_rating` step 8 → `insert_q3_rates_data`
+- `run_q3_idempotency_tests` step 5 → `test_q3_tax_idempotency`
+- `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
 ### `qb` (default: `True`)
 
 - `prepare_product_data` step 1 → `insert_quantumbit_pcm_data`
+- `prepare_product_data` step 2 → `insert_q3_pcm_data`
 - `prepare_product_data` step 3 → `insert_quantumbit_product_image_data`
 - `prepare_pricing_data` step 1 → `delete_quantumbit_pricing_data`
 - `prepare_pricing_data` step 2 → `insert_quantumbit_pricing_data`
+- `prepare_pricing_data` step 3 → `delete_q3_pricing_data`
+- `prepare_pricing_data` step 4 → `insert_q3_pricing_data`
 - `prepare_dro` step 2 → `insert_qb_dro_data`
+- `prepare_dro` step 3 → `insert_q3_dro_data_scratch`
+- `prepare_dro` step 4 → `insert_q3_dro_data_prod`
 - `prepare_billing` step 2 → `insert_billing_data`
+- `prepare_billing` step 3 → `insert_q3_billing_data`
 - `prepare_billing` step 4 → `create_sequence_policies`
 - `prepare_prm` step 8 → `insert_quantumbit_prm_data`
 - `prepare_prm_pricing` step 4 → `insert_quantumbit_prm_pricing_data`
 - `prepare_tax` step 2 → `insert_tax_data`
+- `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_rating` step 1 → `delete_qb_rates_data`
 - `prepare_rating` step 2 → `delete_qb_rating_data`
 - `prepare_rating` step 3 → `insert_qb_rating_data`
-- `prepare_rating` step 5 → `insert_qb_rates_data`
+- `prepare_rating` step 4 → `delete_q3_rates_data`
+- `prepare_rating` step 5 → `delete_q3_rating_data`
+- `prepare_rating` step 6 → `insert_q3_rating_data`
+- `prepare_rating` step 7 → `insert_qb_rates_data`
+- `prepare_rating` step 8 → `insert_q3_rates_data`
 - `prepare_constraints` step 6 → `validate_cml`
 - `prepare_constraints` step 7 → `import_cml`
 - `prepare_constraints` step 8 → `import_cml`
@@ -383,10 +401,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `rates` (default: `True`)
 
 - `prepare_rating` step 1 → `delete_qb_rates_data`
-- `prepare_rating` step 5 → `insert_qb_rates_data`
-- `prepare_rating` step 6 → `insert_q3_rates_data`
-- `prepare_rating` step 7 → `activate_rating_records`
-- `prepare_rating` step 8 → `activate_rates`
+- `prepare_rating` step 4 → `delete_q3_rates_data`
+- `prepare_rating` step 7 → `insert_qb_rates_data`
+- `prepare_rating` step 8 → `insert_q3_rates_data`
+- `prepare_rating` step 9 → `activate_rating_records`
+- `prepare_rating` step 10 → `activate_rates`
 
 ### `rating` (default: `True`)
 
@@ -395,11 +414,13 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_rating` step 1 → `delete_qb_rates_data`
 - `prepare_rating` step 2 → `delete_qb_rating_data`
 - `prepare_rating` step 3 → `insert_qb_rating_data`
-- `prepare_rating` step 4 → `insert_q3_rating_data`
-- `prepare_rating` step 5 → `insert_qb_rates_data`
-- `prepare_rating` step 6 → `insert_q3_rates_data`
-- `prepare_rating` step 7 → `activate_rating_records`
-- `prepare_rating` step 8 → `activate_rates`
+- `prepare_rating` step 4 → `delete_q3_rates_data`
+- `prepare_rating` step 5 → `delete_q3_rating_data`
+- `prepare_rating` step 6 → `insert_q3_rating_data`
+- `prepare_rating` step 7 → `insert_qb_rates_data`
+- `prepare_rating` step 8 → `insert_q3_rates_data`
+- `prepare_rating` step 9 → `activate_rating_records`
+- `prepare_rating` step 10 → `activate_rates`
 - `refresh_all_decision_tables` step 3 → `refresh_dt_asset`
 - `refresh_all_decision_tables` step 4 → `refresh_dt_rating`
 - `refresh_all_decision_tables` step 5 → `refresh_dt_rating_discovery`
@@ -414,9 +435,11 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_rating` step 1 → `delete_qb_rates_data`
 - `prepare_rating` step 2 → `delete_qb_rating_data`
 - `prepare_rating` step 3 → `insert_qb_rating_data`
-- `prepare_rating` step 4 → `insert_q3_rating_data`
-- `prepare_rating` step 5 → `insert_qb_rates_data`
-- `prepare_rating` step 6 → `insert_q3_rates_data`
+- `prepare_rating` step 4 → `delete_q3_rates_data`
+- `prepare_rating` step 5 → `delete_q3_rating_data`
+- `prepare_rating` step 6 → `insert_q3_rating_data`
+- `prepare_rating` step 7 → `insert_qb_rates_data`
+- `prepare_rating` step 8 → `insert_q3_rates_data`
 
 ### `sample_data` (default: `True`)
 
@@ -424,11 +447,14 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `tax` (default: `True`)
 
+- `prepare_billing` step 3 → `insert_q3_billing_data`
 - `prepare_tax` step 1 → `create_tax_engine`
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_tax` step 4 → `activate_tax_records`
 - `run_qb_idempotency_tests` step 10 → `test_qb_tax_idempotency`
+- `run_q3_idempotency_tests` step 5 → `test_q3_tax_idempotency`
+- `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
 ### `tso` (default: `False`)
 
@@ -519,7 +545,8 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `product_discovery_context_name` | `RLM_ProductDiscoveryContext` |
 | `q3_billing_dataset` | `datasets/sfdmu/q3/en-US/q3-billing` |
 | `q3_dro_dataset` | `datasets/sfdmu/q3/en-US/q3-dro` |
-| `q3_product_dataset` | `datasets/sfdmu/q3/en-US/q3-multicurrency` |
+| `q3_pcm_dataset` | `datasets/sfdmu/q3/en-US/q3-pcm` |
+| `q3_pricing_dataset` | `datasets/sfdmu/q3/en-US/q3-pricing` |
 | `q3_rates_dataset` | `datasets/sfdmu/q3/en-US/q3-rates` |
 | `q3_rating_dataset` | `datasets/sfdmu/q3/en-US/q3-rating` |
 | `q3_tax_dataset` | `datasets/sfdmu/q3/en-US/q3-tax` |

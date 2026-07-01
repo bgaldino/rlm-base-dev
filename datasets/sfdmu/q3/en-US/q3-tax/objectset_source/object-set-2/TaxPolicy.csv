@@ -1,0 +1,4 @@
+DefaultTaxTreatment.$$Name$LegalEntity.Name$TaxPolicy.Name,Description,Name,Status,TreatmentSelection
+,#N/A,Tax Policy for non-taxable products,Active,Manual
+,Test Tax Policy,Tax Policy for taxable products,Active,Default
+,#N/A,Tax Policy for LE,Active,LegalEntity

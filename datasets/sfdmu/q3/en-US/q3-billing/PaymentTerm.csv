@@ -1,3 +1,2 @@
 Description,IsDefault,Name,Status
-,false,Default Payment Term,Draft
-,false,Net 45,Draft
+,true,Default Payment Term,Active
