@@ -22,9 +22,6 @@ orgs:
     dev-sb0:
       config_file: orgs/internal/dev-sb0.json
       days: 30
-    test-sb0:
-      config_file: orgs/test-sb0.json
-      days: 30
     ent-sdb9:
       config_file: orgs/internal/ent-sdb9.json
       days: 30
@@ -66,21 +63,6 @@ orgs:
       days: 30
     tfid-sdo:
       config_file: orgs/tfid/tfid-sdo.json
-      days: 30
-    dev_preview:
-      config_file: orgs/dev_preview.json
-      days: 30
-    dev_previous:
-      config_file: orgs/dev_previous.json
-      days: 30
-    dev_datacloud:
-      config_file: orgs/dev_datacloud.json
-      days: 30
-    dev:
-      config_file: orgs/dev.json
-      days: 30
-    dev_enhanced:
-      config_file: orgs/dev-enhanced.json
       days: 30
     dev-mfg:
       config_file: orgs/dev-mfg.json
@@ -3090,14 +3072,6 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_prm_pricing_dataset
 
-  extract_scratch_data:
-    group: Data Management - Extract
-    description: "Extract scratch data (Account, Contact, BillingAccount) from org to CSV. Output in datasets/sfdmu/extractions/scratch-data/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
-    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
-    options:
-      pathtoexportjson: "datasets/sfdmu/scratch_data"
-      extractions_base_dir: "datasets/sfdmu/extractions"
-
   extract_mfg_aaf_data:
     group: Data Management - Extract
     description: "Extract mfg-aaf (Advanced Account Forecast) from org to CSV. Output in datasets/sfdmu/extractions/mfg-aaf/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -5622,10 +5596,10 @@ flows:
     steps:
       1:
         task: deploy_mfg_visualization
-        when: project_config.project__custom__mfg_visuals
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_visuals
       2:
         task: insert_mfg_configflow_data
-        when: project_config.project__custom__mfg_visuals
+        when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_visuals
 
   stamp_git_commit:
     group: RLM Administration

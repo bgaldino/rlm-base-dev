@@ -284,8 +284,8 @@ Deploy Manufacturing 3D Visualization metadata and load product configuration fl
 
 **Steps:**
 
-1. **task** `deploy_mfg_visualization`  `when: project_config.project__custom__mfg_visuals`
-2. **task** `insert_mfg_configflow_data`  `when: project_config.project__custom__mfg_visuals`
+1. **task** `deploy_mfg_visualization`  `when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_visuals`
+2. **task** `insert_mfg_configflow_data`  `when: project_config.project__custom__manufacturing and project_config.project__custom__mfg_visuals`
 
 ---
 

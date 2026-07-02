@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**49 feature flags**, **97 configuration values**, **41 YAML anchors** under `project.custom`.
+**49 feature flags**, **96 configuration values**, **41 YAML anchors** under `project.custom`.
 
 ---
 
@@ -35,7 +35,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `guidedselling` | `True` | 4 flow step(s) |
 | `inapp` | `False` | 4 flow step(s) |
 | `large_stx` | `False` | 5 flow step(s) |
-| `manufacturing` | `False` | 44 flow step(s) |
+| `manufacturing` | `False` | 46 flow step(s) |
 | `mfg_aaf` | `True` | 7 flow step(s) |
 | `mfg_docgen` | `True` | 5 flow step(s) |
 | `mfg_guidedselling` | `True` | 2 flow step(s) |
@@ -301,6 +301,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_mfg_aaf` step 6 → `deploy_mfg_aaf_forecast_set`
 - `prepare_mfg_aaf` step 7 → `insert_badger_aaf_data`
 - `prepare_mfg_ux` step 1 → `assemble_and_deploy_ux`
+- `prepare_mfg_visuals` step 1 → `deploy_mfg_visualization`
+- `prepare_mfg_visuals` step 2 → `insert_mfg_configflow_data`
 
 ### `mfg_aaf` (default: `True`)
 
@@ -677,7 +679,6 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_constraints_data_dir` | `datasets/constraints/qb/QuantumBitComplete` |
 | `quantumbit_constraints_product_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-product` |
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
-| `quantumbit_guidedselling_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling` |
 | `quantumbit_guidedselling_products_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling-products` |
 | `quantumbit_pcm_constraints_data_dir` | `datasets/constraints/qb/QuantumBitPCM` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |
