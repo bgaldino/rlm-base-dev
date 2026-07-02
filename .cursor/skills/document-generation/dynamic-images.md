@@ -210,11 +210,15 @@ custom values (e.g., `"IMG_CompanyLogo"`) break the entire ODT.
 - **Fix**: Template uses `{{IMG_CompanyLogo}}`, Transform must output key
   `IMG_CompanyLogo` (exact match)
 
-### HYP_ hyperlink error on same page
+### HYP_ "URL is invalid" error
 
-If `{{HYP_xxx}}` tokens produce a red "URL is invalid" error, this does NOT
-affect IMG_ rendering. HYP_ tokens have a separate issue with URL resolution;
-use RTB_ with `<a>` tags for hyperlinks instead (confirmed working).
+If `{{HYP_xxx}}` shows "We can't open the hyperlink because the specified URL
+is invalid", check two things:
+1. The Transform field name must be `"url"` — NOT `"src"` (wrong name was the
+   original cause of this error in our testing)
+2. The template token must be **plain text** — NOT formatted as a Word hyperlink
+
+See the HYP_ section in `SKILL.md` for the correct contract.
 
 ---
 

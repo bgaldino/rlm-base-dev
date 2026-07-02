@@ -147,7 +147,7 @@ They are **NOT** appropriate for production deployment.
 | Condition | `{{#IF_x}}...{{/IF_x}}` | `{{#IF_has_discount}}...{{/IF_has_discount}}` | `"IF_has_discount": true` (Boolean only) |
 | Inverse condition | `{{^IF_x}}...{{/IF_x}}` | `{{^IF_no_discount}}...{{/IF_no_discount}}` | Shows when value is `false`; hidden when `true` |
 | Image | `{{IMG_name}}` | `{{IMG_CompanyLogo}}` | `{"src": "069...", "width": "200", "height": "80"}` (see `dynamic-images.md`) |
-| Hyperlink | `{{HYP_name}}` | `{{HYP_PaymentLink}}` | `{"src": "url", "text": "label"}` — but see note below |
+| Hyperlink | `{{HYP_name}}` | `{{HYP_PaymentLink}}` | `{"url": "https://...", "text": "label"}` |
 | Rich text | `{{RTB_name}}` | `{{RTB_TermsContent}}` | HTML string: `"<b>Bold</b> <a href='...'>link</a>"` |
 
 ### Dynamic Content Token Notes
@@ -166,10 +166,11 @@ and inline images. Best option for hyperlinks (renders with formatting).
 - Image must be in a Content Library accessible to the Integration User
 - See `dynamic-images.md` for full verified contract
 
-**HYP_ (Hyperlinks)** — Token is recognized but currently produces an error
-("We can't open the hyperlink because the specified URL {{HYP_xxx}} is invalid")
-in our testing. **Recommended alternative:** Use `{{RTB_xxx}}` with `<a>` tags
-for hyperlinks — renders as clickable blue links in the generated PDF.
+**HYP_ (Hyperlinks)** — **Confirmed working.** Requires:
+- Field name must be `"url"` (NOT `"src"`) — using `src` causes the "URL is invalid" error
+- Template token must be **plain text** — do NOT format as a Word hyperlink (Cmd+K / Ctrl+K)
+- `"text"` is optional — if omitted, the URL itself is displayed as the link text
+- Alternative: RTB_ with `<a>` tags also works and offers richer formatting control
 
 **IF_ (Conditions)** — Must receive **Boolean values only** (`true`/`false`).
 Strings and numbers always evaluate as `true`, causing unexpected rendering.
@@ -324,7 +325,7 @@ After a formula builds an array, map it to the template:
 | `[object Object]` for images | Org below Release 256 (DocGen 1.0) | Upgrade org; or use RTB_ with HTML `<img>` as fallback |
 | IMG_ token consumed, no image | Missing `width`/`height`, or Integration User can't access file | Add both dimensions + add Integration User to Content Library |
 | Engine crash: `Cannot read properties of undefined (reading '0')` | `src` has ContentVersion ID (`068`) or file Title | Use ContentDocument ID (`069`) only |
-| HYP_ shows red "URL is invalid" error | Known limitation — HYP token resolution unreliable | Use RTB_ with `<a href>` tag instead (confirmed working) |
+| HYP_ shows red "URL is invalid" error | Wrong field name (`src` instead of `url`) or token formatted as Word hyperlink | Use `"url"` field (not `"src"`); ensure token is plain text in template |
 | Template locked for edits | Active status | Deactivate (`IsActive: false, Status: Draft`) first |
 | Specific token blank | Field not in Extract or Transform | Trace: is field queried? Is it mapped through both ODTs? |
 | Repeating section empty | Formula item missing or wrong ResultPath | Check formula at `OutputCreationSequence: 0` |
