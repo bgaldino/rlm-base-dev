@@ -140,6 +140,8 @@ def validate_against_transform(tokens, odt_name, org):
         out = item.get("OutputFieldName")
         if out and out != "Formula":
             transform_outputs.add(out)
+            if ":" in out:
+                transform_outputs.add(out.split(":")[0])
         obj = item.get("OutputObjectName")
         if obj and obj not in ("json", "Formula"):
             transform_outputs.add(obj)

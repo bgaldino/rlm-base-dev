@@ -81,6 +81,9 @@ def item_key(item):
         item.get("OutputCreationSequence"),
         item.get("OutputFieldName") or "",
         item.get("InputObjectName") or "",
+        item.get("InputFieldName") or "",
+        item.get("FilterValue") or "",
+        item.get("FilterGroup"),
     )
 
 

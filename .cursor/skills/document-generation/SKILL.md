@@ -120,8 +120,8 @@ They are **NOT** appropriate for production deployment.
     ┌──────────▼──────────┐    ┌──────────▼──────────┐
     │   Extract ODT       │    │   Transform ODT     │
     │   Type: "Extract"   │    │   Type: "Transform" │
-    │   InputType: "JSON" │    │   OutputType:       │
-    │   OutputType: "JSON"│    │   "Document Template│
+    │   InputType: "JSON" │    │   InputType: "JSON" │
+    │   OutputType: "JSON"│    │   OutputType: "JSON" │
     └──────────┬──────────┘    └──────────┬──────────┘
                │                          │
     ┌──────────▼──────────┐    ┌──────────▼──────────┐

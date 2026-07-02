@@ -117,7 +117,7 @@ TRANSFORM_EXAMPLE = {
             "OutputFieldName": "InvoiceLines",
             "OutputObjectName": "json",
             "OutputFieldFormat": "Object",
-            "OutputCreationSequence": 2,
+            "OutputCreationSequence": 1,
         },
     ],
 }

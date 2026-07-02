@@ -332,7 +332,7 @@ Read the sub-file only when you need that specific detail:
 | `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
 | `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
 | `document-generation/data-mapper-authoring.md` | Document Generation | Programmatic ODT creation via REST API, cloning patterns, shell escaping pitfalls |
-| `document-generation/dynamic-images.md` | Document Generation | Dynamic image rendering: ContentVersion approach, nested JSON object structure, known issues |
+| `document-generation/dynamic-images.md` | Document Generation | Dynamic image rendering: ContentDocument ID + width/height contract, known issues, RTB alternative |
 | `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
 
 ### File-Specific Rules (Cursor Only)
