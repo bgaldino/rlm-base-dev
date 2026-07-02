@@ -58,7 +58,8 @@ def get_items(odt_id, org):
     return sf_query(
         f"SELECT Id, Name, InputFieldName, OutputFieldName, InputObjectName, "
         f"OutputObjectName, InputObjectQuerySequence, FilterOperator, FilterValue, "
-        f"FilterGroup, OutputCreationSequence, FormulaExpression, OutputFieldFormat "
+        f"FilterGroup, OutputCreationSequence, FormulaExpression, FormulaConverted, "
+        f"FormulaResultPath, OutputFieldFormat "
         f"FROM OmniDataTransformItem WHERE OmniDataTransformationId = '{odt_id}' "
         f"ORDER BY InputObjectQuerySequence, OutputCreationSequence, OutputFieldName",
         org,
@@ -136,6 +137,36 @@ def validate(odt, items):
                     f"Empty OutputFieldName: {item['Id']} "
                     f"(Input={item.get('InputFieldName', '?')})"
                 )
+
+    # Check 7: Formula items with null FormulaConverted (unsupported function)
+    for item in items:
+        if item.get("FormulaExpression") and not item.get("FormulaConverted"):
+            errors.append(
+                f"Unsupported formula (null FormulaConverted): {item['Id']} "
+                f"(ResultPath={item.get('FormulaResultPath', '?')}, "
+                f"Expr={item.get('FormulaExpression', '?')[:60]})"
+            )
+
+    # Check 8: Field mappings with OutputCreationSequence != 1 (silently produces no output)
+    for item in field_maps:
+        ocs = item.get("OutputCreationSequence")
+        if ocs is not None and ocs != 1:
+            if not item.get("FormulaExpression"):
+                errors.append(
+                    f"OutputCreationSequence={ocs} on field mapping: {item['Id']} "
+                    f"('{item.get('InputFieldName', '?')}' -> "
+                    f"'{item.get('OutputFieldName', '?')}') — must be 1 to produce output"
+                )
+
+    # Check 9: Bare literal FilterValue (silently ignored — no WHERE condition generated)
+    for item in obj_queries:
+        fv = item.get("FilterValue") or ""
+        if fv and ":" not in fv and not fv.startswith("'") and fv != "Id":
+            warnings.append(
+                f"Bare literal FilterValue '{fv}' on: {item['Id']} "
+                f"({item.get('InputObjectName', '?')}) — unquoted literals are "
+                f"silently ignored. Use single quotes: \"'{fv}'\" "
+            )
 
     return errors, warnings
 

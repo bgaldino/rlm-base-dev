@@ -225,7 +225,7 @@ Build arrays for `{{#Section}}` tokens:
 | `OutputFieldName` | `Formula` | `Formula` |
 | `OutputObjectName` | `Formula` | `Formula` |
 | `FormulaExpression` | Function call | `FUNCTION('invoice_docgen.InvoiceDocumentGeneration', 'InvoiceLineCustom', ...)` |
-| `FormulaConverted` | RPN form (auto-generated in UI) | `\| ... FUNCTION` |
+| `FormulaConverted` | RPN form (auto-generated on save — UI and API) | `\| ... FUNCTION` |
 | `FormulaResultPath` | Output key name | `InvoiceLines` |
 | `FormulaSequence` | Execution order | `1` |
 | `OutputCreationSequence` | `0` (runs before mappings) | `0` |
@@ -287,6 +287,193 @@ After a formula builds an array, map it to the template:
 | Template locked for edits | Active status | Deactivate (`IsActive: false, Status: Draft`) first |
 | Specific token blank | Field not in Extract or Transform | Trace: is field queried? Is it mapped through both ODTs? |
 | Repeating section empty | Formula item missing or wrong ResultPath | Check formula at `OutputCreationSequence: 0` |
+| Formula produces no output | Unsupported function (FormulaConverted is null) | Check `FormulaConverted` field — if null, the function isn't supported. See Formula Function Catalog below |
+| ODT Name rejected on create | Contains underscores or spaces | Use camelCase only — alphanumeric, no special chars |
+
+---
+
+## Platform Behavior Reference
+
+Verified in Release 262, API v67.0, org `rlm-base__jun30_agents`, 2026-07-02.
+
+### FormulaConverted — Auto-Generated on Save
+
+`FormulaConverted` (RPN notation) is computed automatically from
+`FormulaExpression` when the item is saved — both via REST API and the
+OmniStudio Designer UI. Manual RPN authoring is never required.
+
+RPN format: variables prefixed `var:`, string literals in single quotes
+(spaces escaped as `/\/\//\/\/`), pipe `|` marks function boundaries,
+postfix notation (arguments before operator).
+
+### Formula Function Catalog
+
+The ODT formula engine is **not** the Salesforce formula engine — it's a
+smaller custom evaluator. Only the following functions generate valid RPN:
+
+| Category | Supported | Not Supported |
+|----------|-----------|---------------|
+| Arithmetic | `+`, `-`, `*`, `/` | |
+| Comparison | `>`, `<`, `>=`, `<=`, `==`, `!=` | |
+| Logical | `IF`, `NOT`, `AND`, `OR`, `&&`, `\|\|` | `CASE` |
+| Math | `ABS`, `ROUND`, `FLOOR`, `CEILING`, `MAX`, `MIN`, `SQRT` | `MOD`, `POWER`, `LOG` |
+| String | `CONCAT`, `SUBSTRING` | `LEN`, `UPPER`, `LOWER`, `TRIM`, `LEFT`, `RIGHT`, `CONTAINS`, `BEGINS`, `TEXT`, `FORMAT` |
+| Date | `TODAY`, `NOW`, `YEAR`, `MONTH`, `DAY` | `DATEVALUE`, `DATETIMEVALUE`, `ADDDAYS` |
+| Null check | `ISBLANK` | `ISNULL`, `NULLVALUE`, `BLANKVALUE` |
+| Array | `LIST` | |
+| Apex callout | `FUNCTION` | |
+| Type conversion | *(none)* | `VALUE`, `TEXT`, `FORMAT` |
+
+**Unsupported functions save without error** — the `FormulaExpression` is
+stored but `FormulaConverted` remains null, so the formula silently
+produces no output at runtime.
+
+Common patterns:
+```
+IF(Amount > 1000, true, false)              -- conditional boolean
+CONCAT(Name, ' - ', Status)                 -- string join
+LIST(Lines, 'Name', ProductName, 'Qty', Quantity)  -- array for {{#Section}}
+FUNCTION('pkg.Class', 'method', arg1, arg2)        -- Apex callout
+IF(ISBLANK(Field), 'N/A', Field)            -- null handling (no NULLVALUE)
+Amount > 100 && Status == 'Active'          -- compound condition
+```
+
+### FilterGroup Semantics
+
+Filters within the **same FilterGroup** are combined with **AND**.
+Filters in **different FilterGroups** are combined with **OR**.
+
+```
+FilterGroup 0: QuoteId = Quote:Id   ┐
+FilterGroup 0: Type = "Charge"      ┘  → AND (both must match)
+
+FilterGroup 0: Status = "Active"    ┐
+FilterGroup 1: Status = "Pending"   ┘  → OR (either matches)
+```
+
+**IMPORTANT**: Different FilterGroups produce **UNION ALL** (no dedup) —
+records matching multiple groups appear once per matching group. A record
+matching both FG 0 and FG 1 appears **twice** in the result set.
+
+All existing production ODTs in this repo use only FilterGroup `0`
+(all-AND filtering). Use multiple FilterGroups only when you need OR
+logic between filter conditions on the same object query sequence, and
+be aware of duplicates if records can match multiple groups.
+
+### Extract Output — Cartesian Product
+
+When an Extract has multiple multi-record query sequences, the output
+is a **cartesian product** across them. Each row in the response contains
+one combination of records from each sequence. For example: 2 records
+from Seq 2 × 6 records from Seq 3 = 12 output rows (each containing
+fields from both). This is by design — the Transform's `LIST()` formula
+then rolls these into nested arrays for the template.
+
+### FilterValue — Literal vs Reference
+
+`FilterValue` supports two formats:
+
+| Format | Example | Meaning |
+|--------|---------|---------|
+| Path reference | `Quote:Id` | Value from a previously-queried record |
+| Single-quoted literal | `'0'`, `''`, `'Active'` | Literal string/number for comparison |
+
+**Unquoted literals are silently ignored** — they don't generate a WHERE
+condition. Always single-quote literal values: `FilterValue: "'0'"` not
+`FilterValue: "0"`.
+
+### FilterOperator Values
+
+| Operator | Purpose |
+|----------|---------|
+| `=` | Equals (most common — joins and literal matches) |
+| `<>` | Not equals |
+| `<`, `>`, `<=`, `>=` | Numeric/date comparisons |
+| `LIKE` / `NOT LIKE` | Pattern matching |
+| `IN` | Set membership |
+| `IS NULL` | Null check |
+| `INCLUDES` / `EXCLUDES` | Multi-select picklist |
+| `LIMIT` | Row limit on query |
+| `OFFSET` | Pagination offset |
+| `ORDER BY` | Sort control |
+
+### Error Propagation — Sequences Are Independent
+
+Failed sequences do **not** block downstream sequences. Each runs
+independently; a failure is silently skipped (its mapped fields are
+absent from the output — not null, not empty string).
+
+- Bad field reference → sequence skipped, others unaffected
+- Nonexistent object → sequence skipped, others unaffected
+- No validation at save time — errors surface only at execution time
+
+This means ODTs degrade gracefully across orgs with different field
+sets. Missing fields produce absent output tokens rather than a
+complete failure.
+
+### ODT Name Constraints
+
+The `Name` field on `OmniDataTransform` requires **alphanumeric characters
+only** — no underscores, spaces, or special characters. Use camelCase
+(e.g., `RLMQuoteExtractBasic`).
+
+### Scale Observations
+
+No API-level limit observed for item count or sequence count:
+- 25 `InputObjectQuerySequence` values: accepted
+- 225 items per ODT (25 queries + 200 field mappings): accepted
+
+(UI/runtime performance at scale not yet verified.)
+
+### ODT Preview / Simulate API
+
+The OmniStudio Designer "Preview" button invokes an Aura controller action.
+This is the only known programmatic execution path for ODTs against arbitrary
+input data (outside of the `generateDocument` invocable, which is Invoice/CreditMemo only).
+
+**Endpoint:**
+```
+POST /aura?r=N&aura.OmniDesigner.simulateDataraptor=1
+```
+
+**Controller:** `aura://OmniDesignerController/ACTION$simulateDataraptor`
+
+**Payload (key params):**
+```json
+{
+  "dataraptorSimualateInputParams": {
+    "name": "<ODT_Record_Id>",
+    "simulationParams": [
+      {"simulationParamName": "inputData", "simulationParamValue": "{\"Id\": \"<recordId>\"}"},
+      {"simulationParamName": "inputType", "simulationParamValue": "JSON"},
+      {"simulationParamName": "ignoreCache", "simulationParamValue": "true"}
+    ]
+  }
+}
+```
+
+Note: `name` takes the ODT **record Id** (0jI prefix), not the API Name.
+
+**Response (`result` field, JSON-escaped string):**
+```json
+{
+  "error": "OK",
+  "hasErrors": false,
+  "ActualTime": 147,
+  "response": [{"field": "value"}],
+  "debugLog": [
+    "timestamp: Query: SELECT ... FROM ... WHERE ... LIMIT 50000",
+    "timestamp: Query results found: N",
+    "timestamp: Query time: Nms"
+  ]
+}
+```
+
+**Key behaviors:**
+- `debugLog` shows exact SOQL generated — invaluable for debugging filters
+- All queries get `LIMIT 50000` appended automatically
+- `ActualTime` reports execution in milliseconds
+- Requires active Lightning session auth (`sid` cookie + `aura.token` + `aura.context`) — cannot be invoked with just an OAuth access token
 
 ---
 

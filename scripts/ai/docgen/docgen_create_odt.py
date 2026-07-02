@@ -162,6 +162,24 @@ def build_item_body(item_spec, odt_id, odt_name):
         if k not in skip_keys and v is not None:
             body[k] = v
 
+    item_type = item_spec.get("type", "")
+    if item_type in ("field_mapping", "passthrough", "object_output"):
+        ocs = body.get("OutputCreationSequence")
+        if ocs is not None and ocs != 1 and ocs != 0:
+            print(f"  ⚠ WARNING: OutputCreationSequence={ocs} on field mapping "
+                  f"'{body.get('OutputFieldName', '?')}' — must be 1 (or 0 for "
+                  f"formulas) to produce output. Forcing to 1.",
+                  file=sys.stderr)
+            body["OutputCreationSequence"] = 1
+
+    if item_type == "object_query":
+        fv = body.get("FilterValue", "")
+        if fv and ":" not in fv and not fv.startswith("'"):
+            print(f"  ⚠ WARNING: FilterValue '{fv}' on '{body.get('OutputFieldName', '?')}' "
+                  f"is a bare literal — must be single-quoted (e.g., \"'{fv}'\") "
+                  f"to generate a WHERE condition. Unquoted literals are silently ignored.",
+                  file=sys.stderr)
+
     return body
 
 
@@ -178,6 +196,9 @@ def create_odt(spec, org, dry_run=False):
         print("ERROR: Failed to create ODT", file=sys.stderr)
         sys.exit(1)
 
+    if isinstance(result, list):
+        print(f"ERROR: {result}", file=sys.stderr)
+        sys.exit(1)
     if not result.get("success") and not result.get("id"):
         errors = result.get("errors") or result
         print(f"ERROR: {errors}", file=sys.stderr)
@@ -217,12 +238,40 @@ def create_odt(spec, org, dry_run=False):
     print(f"\nDone: {success_count} created, {error_count} failed")
     if odt_id != "DRY_RUN_ID":
         print(f"ODT Id: {odt_id}")
+        formula_items = [i for i in items if i.get("type") == "formula"]
+        if formula_items and not dry_run:
+            _check_formula_converted(odt_id, org)
         print(f"\nNext steps:")
         print(f"  1. Validate: python scripts/ai/docgen/validate_odt.py {odt_name} --org {org}")
         print(f"  2. Re-toggle if editing items later:")
         print(f"     sf api request rest --method PATCH --body @/tmp/p.json ...")
 
     return odt_id
+
+
+def _check_formula_converted(odt_id, org):
+    """Warn if any formula items have null FormulaConverted (unsupported function)."""
+    query = (
+        f"SELECT FormulaExpression, FormulaConverted, FormulaResultPath "
+        f"FROM OmniDataTransformItem "
+        f"WHERE OmniDataTransformationId = '{odt_id}' "
+        f"AND FormulaExpression != null"
+    )
+    result = subprocess.run(
+        ["sf", "data", "query", "-q", query, "--target-org", org, "--json"],
+        capture_output=True, text=True,
+    )
+    try:
+        data = json.loads(result.stdout)
+        records = data.get("result", {}).get("records", [])
+        bad = [r for r in records if not r.get("FormulaConverted")]
+        if bad:
+            print(f"\n⚠ WARNING: {len(bad)} formula(s) have null FormulaConverted "
+                  f"(unsupported function — will silently produce no output):")
+            for r in bad:
+                print(f"    {r.get('FormulaResultPath','?')}: {r.get('FormulaExpression','?')}")
+    except (json.JSONDecodeError, KeyError):
+        pass
 
 
 def main():

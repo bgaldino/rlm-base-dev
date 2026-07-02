@@ -31,6 +31,10 @@ breaks on fields containing quotes, colons, or long text.
 
 ### Create an ODT
 
+**Name constraint**: The `Name` field requires alphanumeric characters only —
+no underscores, spaces, or special characters. Use camelCase
+(e.g., `RLMQuoteExtractBasic`, not `RLM_Quote_Extract_Basic`).
+
 ```bash
 # Write body to file
 cat > /tmp/odt_body.json << 'EOF'
@@ -184,6 +188,21 @@ def wire_template(template_id, extract_name, transform_name, target_org):
 
 ---
 
+## Formula Items — FormulaConverted is Auto-Generated
+
+When creating formula items via the API, set only `FormulaExpression` — the
+platform auto-generates `FormulaConverted` (RPN notation) on save. Do not
+manually author RPN.
+
+To verify a formula function is supported, query back the item after creation
+and check that `FormulaConverted` is non-null. If it's null, the function is
+not recognized and will silently produce no output at runtime.
+
+See the parent skill's "Formula Function Catalog" for the supported function
+list.
+
+---
+
 ## Re-toggling ODTs (Cache Refresh)
 
 After any item changes, the ODT cache must be refreshed:
@@ -239,7 +258,7 @@ with complex field values.
 | `OmniDataTransformationId` | All | Parent ODT Id |
 | `OutputFieldName` | All | Output key or `"Formula"` |
 | `OutputObjectName` | All | Always `"json"` (or `"Formula"` for formula items) |
-| `OutputCreationSequence` | All | `0` for formulas, `1` for mappings |
+| `OutputCreationSequence` | All | `0` for formulas, **`1` for all other items** (values > 1 silently produce no output) |
 | `InputObjectName` | Object queries | SObject API name |
 | `InputFieldName` | Object queries + field mappings | Match field or source path |
 | `InputObjectQuerySequence` | Object queries | Execution order |
