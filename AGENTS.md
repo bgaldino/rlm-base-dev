@@ -295,6 +295,7 @@ that topic.
 | Author/update enablement exercises per release | `.cursor/skills/release-enablement/SKILL.md` |
 | Generate the QuantumBit demo-script canvas (per-release SE/partner artifact) | `.cursor/skills/qb-demo-script/SKILL.md` |
 | Ground product claims against Salesforce Help (Trailhead, internal docs, SME review) | `.cursor/skills/revenue-cloud-docs/SKILL.md` |
+| Create/modify .docx document templates + OmniDataTransform data mappers | `.cursor/skills/document-generation/SKILL.md` |
 
 Every top-level skill has a **Quick Rules** section, and most have **DO NOT**;
 new and migrated skills should also include **Entry Conditions**, **Examples**,
@@ -330,6 +331,8 @@ Read the sub-file only when you need that specific detail:
 | `release-enablement/resume-enablement-work.md` | Release Enablement | Cross-workstation handoff — read when picking up enablement work in a fresh conversation. 4-step re-orientation + tool grants + restart prompt template |
 | `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
 | `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
+| `document-generation/data-mapper-authoring.md` | Document Generation | Programmatic ODT creation via REST API, cloning patterns, shell escaping pitfalls |
+| `document-generation/dynamic-images.md` | Document Generation | Dynamic image rendering: ContentVersion approach, nested JSON object structure, known issues |
 | `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
 
 ### File-Specific Rules (Cursor Only)
@@ -365,6 +368,11 @@ python scripts/ai/pr_review.py status <pr>                  # Automated-PR-revie
 python scripts/ai/pr_review.py handle <pr> --comment <id> --body "…"   # reply + resolve one thread (👍 by default; --no-react to refute a false positive)
 python scripts/ai/pr_review.py verify <pr>                  # confirm 0 unresolved (paginated)
 python scripts/ai/check_plan_readme_consistency.py          # SFDMU plan README ↔ export.json/CSVs drift check (counts, ops, externalIds)
+python scripts/ai/docgen/validate_odt.py <name_or_id> --org <alias>   # Validate ODT items (null fields, duplicates, dot notation)
+python scripts/ai/docgen/compare_odts.py <source> <target> --org <alias>  # Diff two ODTs item-by-item
+python scripts/ai/docgen/docgen_create_odt.py spec.json --org <alias>     # Create ODT from JSON spec (--example extract|transform for templates)
+python scripts/ai/docgen/docgen_extract_tokens.py template.docx           # List all {{mustache}} tokens in a .docx
+python scripts/ai/docgen/docgen_build_template.py create layout.json -o out.docx  # Build .docx from JSON layout (requires python-docx)
 ```
 
 `scripts/ai/pr_review.py` executes the mechanical half of **Responding to Automated PR Reviews** (above); the `/pr-review <pr>` Claude command drives the full protocol with it.

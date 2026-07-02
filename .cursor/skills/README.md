@@ -36,6 +36,7 @@ repo root.
 | Author/update enablement exercises | Release Enablement | `release-enablement/SKILL.md` |
 | Generate the QuantumBit demo-script canvas (per-release) | QB Demo Script Generator | `qb-demo-script/SKILL.md` |
 | Ground claims against Salesforce Help | Revenue Cloud Docs | `revenue-cloud-docs/SKILL.md` |
+| Create/modify document templates + ODT data mappers | Document Generation | `document-generation/SKILL.md` |
 
 ## How Skills Are Structured
 

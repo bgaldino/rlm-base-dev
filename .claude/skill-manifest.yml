@@ -210,6 +210,17 @@ foundations:
       tooling:
         - scripts/build_pde_dev_r1.sh
 
+    - id: document-generation
+      path: .cursor/skills/document-generation/SKILL.md
+      purpose: "OmniStudio document template authoring, ODT data-mapper wiring, token mapping, dynamic images, helper scripts"
+      consumed_by_pmos: []
+      tooling:
+        - scripts/ai/docgen/validate_odt.py
+        - scripts/ai/docgen/compare_odts.py
+        - scripts/ai/docgen/docgen_create_odt.py
+        - scripts/ai/docgen/docgen_extract_tokens.py
+        - scripts/ai/docgen/docgen_build_template.py
+
   # CCI tasks that Foundations exposes for cross-repo workflows
   cci_tasks:
     - id: snapshot_salesforce_help
