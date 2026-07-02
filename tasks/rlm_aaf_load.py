@@ -15,7 +15,9 @@ import subprocess
 import tempfile
 
 from tasks.rlm_sfdmu import LoadSFDMUData, strip_ansi_codes
-from cumulusci.core.exceptions import CommandException
+from cumulusci.core.config import ScratchOrgConfig
+from cumulusci.core.exceptions import CommandException, TaskOptionsError
+from cumulusci.core.utils import process_bool_arg
 
 
 class LoadAAFData(LoadSFDMUData):
@@ -36,9 +38,35 @@ class LoadAAFData(LoadSFDMUData):
 
     def _prep_runtime(self) -> None:
         super()._prep_runtime()
-        if not self.options.get("debug_no_temp_copy"):
+        # process_bool_arg coerces the option to a real bool: a string "false"
+        # from the CLI/YAML is otherwise truthy, which would silently skip the
+        # temp copy (and modify the version-controlled plan CSVs in place).
+        if not process_bool_arg(self.options.get("debug_no_temp_copy", False)):
             self._copy_plan_to_temp()
         self._sync_period_ids_from_org()
+
+    def _get_org_for_cli(self) -> str:
+        """Resolve the org alias/username to pass as ``sf ... -o <org>``.
+
+        Mirrors the hardened helper on TestSFDMUIdempotency in rlm_sfdmu.py.
+        LoadAAFData extends LoadSFDMUData, which does NOT define this method, so
+        the logic is inlined here rather than inherited.
+
+        Never falls back to ``org_config.access_token``: a raw token fails CLI
+        auth and leaks a secret via logs, shell history, and process listings
+        (CLAUDE.md DO NOT #5). The access_token stays in the export.json orgs
+        block where SFDMU needs it.
+        """
+        if isinstance(self.org_config, ScratchOrgConfig):
+            return self.org_config.username
+        org_alias = self.options.get("targetusername") or getattr(self.org_config, "username", None)
+        if not org_alias:
+            raise TaskOptionsError(
+                "No target username/alias available for Salesforce CLI invocation. "
+                "Provide a valid 'targetusername' option or ensure org_config.username is set. "
+                "Falling back to org_config.access_token is not supported for CLI calls."
+            )
+        return org_alias
 
     def _copy_plan_to_temp(self) -> None:
         """Copy plan to temp dir so we can modify CSVs without touching the repo.
@@ -74,7 +102,7 @@ class LoadAAFData(LoadSFDMUData):
             self.logger.info("Period.csv not found, skipping sync")
             return
 
-        org_for_cli = str(getattr(self.org_config, "username", None) or self.targetusername)
+        org_for_cli = self._get_org_for_cli()
 
         # Query Period
         result = subprocess.run(
