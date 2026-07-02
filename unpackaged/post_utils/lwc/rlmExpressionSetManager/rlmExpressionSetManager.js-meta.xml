@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <description>Utility to deactivate and reactivate Expression Set Versions linked to a Context Definition, enabling safe Context Definition updates.</description>
+    <isExposed>true</isExposed>
+    <masterLabel>RLM Expression Set Manager</masterLabel>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+</LightningComponentBundle>
