@@ -76,6 +76,8 @@ export default class RlmExpressionSetManager extends LightningElement {
     _pollTimer
     _delayTimer
     _focusErrorOnRender = false
+    _loadRequestId = 0
+    _pollRequestId = 0
 
     @wire(getContextDefinitions)
     wiredContextDefinitions({ data, error }) {
@@ -177,6 +179,7 @@ export default class RlmExpressionSetManager extends LightningElement {
     }
 
     handleContextChange(event) {
+        this.cancelPolling()
         this.selectedContextId = event.detail.value
         this.selectedRowIds = []
         this.loadExpressionSets()
@@ -285,18 +288,24 @@ export default class RlmExpressionSetManager extends LightningElement {
     // --- Data Loading ---
 
     async loadExpressionSets() {
+        const requestId = ++this._loadRequestId
+        const contextDefinitionId = this.selectedContextId
         this.isLoading = true
         try {
-            const data = await getLinkedExpressionSets({ contextDefinitionId: this.selectedContextId })
+            const data = await getLinkedExpressionSets({ contextDefinitionId })
+            if (requestId !== this._loadRequestId || contextDefinitionId !== this.selectedContextId) return
             const rows = data.map(es => this.decorateExpressionSetRow(es))
             this.expressionSets = this.applySort(rows)
             this.selectedRowIds = []
         } catch (error) {
+            if (requestId !== this._loadRequestId || contextDefinitionId !== this.selectedContextId) return
             this.expressionSets = []
             this.selectedRowIds = []
             this.showToast('Error', `Failed to load Expression Sets: ${this.reduceErrors(error)}`, 'error')
         } finally {
-            this.isLoading = false
+            if (requestId === this._loadRequestId && contextDefinitionId === this.selectedContextId) {
+                this.isLoading = false
+            }
         }
     }
 
@@ -328,16 +337,19 @@ export default class RlmExpressionSetManager extends LightningElement {
     // --- Polling ---
 
     pollStatus(jobId, statusFn, contextId, defIds, initialDelay, onComplete) {
-        this.stopPolling()
+        this.cancelPolling()
+        const requestId = ++this._pollRequestId
         this.isActing = true
         let isChecking = false
         let jobAttempts = 0
         let domainAttempts = 0
         const poll = async () => {
+            if (requestId !== this._pollRequestId || contextId !== this.selectedContextId) return
             if (isChecking) return
             isChecking = true
             try {
                 const jobStatus = await getJobStatus({ jobId })
+                if (requestId !== this._pollRequestId || contextId !== this.selectedContextId) return
                 if (jobStatus.state === 'running') {
                     jobAttempts += 1
                     if (jobAttempts >= MAX_JOB_POLL_ATTEMPTS) {
@@ -355,6 +367,7 @@ export default class RlmExpressionSetManager extends LightningElement {
                 }
 
                 const status = await statusFn({ contextDefinitionId: contextId, definitionIds: defIds })
+                if (requestId !== this._pollRequestId || contextId !== this.selectedContextId) return
                 if (status === 'complete') {
                     this.stopPolling()
                     onComplete(new Set(defIds))
@@ -389,7 +402,7 @@ export default class RlmExpressionSetManager extends LightningElement {
         }
     }
 
-    stopPolling() {
+    cancelPolling() {
         if (this._delayTimer) {
             clearTimeout(this._delayTimer)
             this._delayTimer = null
@@ -399,6 +412,11 @@ export default class RlmExpressionSetManager extends LightningElement {
             this._pollTimer = null
         }
         this.isActing = false
+    }
+
+    stopPolling() {
+        this._pollRequestId += 1
+        this.cancelPolling()
     }
 
     disconnectedCallback() {

@@ -13,7 +13,7 @@
     "ramps": true,
     "tso": false,
     "prm": true,
-    "agents": true,
+    "agents": false,
     "docgen": true,
     "payments": true,
     "constraints": true,
