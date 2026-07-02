@@ -15,7 +15,10 @@ Salesforce Release 262 (Summer '26, API v67.0), now on the `main` branch
 
 Key technology stack:
 - **CumulusCI (CCI)** — orchestration engine for tasks and flows
-- **SFDMU v5** — data import/export (`sf sfdmu run`). **v5.0.0+ required.**
+- **SFDMU v5** — data import/export (`sf sfdmu run`). **v5.6.4+ required**
+  (5.6.4 fixed upsert matching for relationship-traversal externalIds —
+  older 5.x duplicates records on rerun for Upsert plans like qb-prm;
+  enforced by `validate_setup`, the Docker image build, and CI)
 - **Salesforce DX / `sf` CLI** — metadata deployment and org management
 - **Python** — custom CCI task classes in `tasks/`
 - **Apex** — post-load activation scripts in `scripts/apex/`

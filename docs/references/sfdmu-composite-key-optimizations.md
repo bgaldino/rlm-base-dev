@@ -1,6 +1,6 @@
 # SFDMU Composite Key Optimizations (QB)
 
-> **SFDMU v5 Required** — This project requires SFDMU v5.0.0+. The `validate_setup`
+> **SFDMU v5 Required** — This project requires SFDMU v5.6.4+. The `validate_setup`
 > task enforces this and will auto-update if needed. Run `cci task run validate_setup`
 > to check your environment.
 

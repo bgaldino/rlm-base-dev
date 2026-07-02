@@ -88,13 +88,17 @@ RUN set -eux; \
 # ---------------------------------------------------------------------------
 # Non-root runtime user. SFDMU is installed as this user so the plugin (which
 # lives under ~/.local/share/sf, *outside* the persisted state dirs) is baked
-# into the image and survives a fresh state volume.
+# into the image and survives a fresh state volume. The final step asserts the
+# baked plugin meets the repo floor of 5.6.4 (upsert-matching fix for
+# relationship externalIds, upstream #781; matches validate_setup's
+# required_sfdmu_version) — `sort -V -C` exits non-zero, failing the build,
+# if the installed version sorts below 5.6.4.
 # ---------------------------------------------------------------------------
 RUN set -eux; \
     useradd --create-home --uid 1000 --shell /bin/bash rlm; \
     su -s /bin/bash rlm -c 'mkdir -p ~/.config/sf && printf "%s" "[\"sfdmu\"]" > ~/.config/sf/unsignedPluginAllowList.json'; \
     su -s /bin/bash rlm -c 'sf plugins install sfdmu'; \
-    su -s /bin/bash rlm -c 'sf plugins | grep -i sfdmu'
+    su -s /bin/bash rlm -c 'v=$(sf plugins | grep -i sfdmu | awk "{print \$2}"); echo "sfdmu $v"; printf "5.6.4\n%s\n" "$v" | sort -V -C'
 
 # ---------------------------------------------------------------------------
 # Baked repo snapshot + wrapper CLI, entrypoint, and interactive banner.

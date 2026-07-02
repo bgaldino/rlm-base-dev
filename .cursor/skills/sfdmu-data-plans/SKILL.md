@@ -9,7 +9,7 @@ description: >-
 
 # SFDMU v5 Data Plans
 
-SFDMU v5.0.0+ is required. v4 syntax is not supported.
+SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversal externalIds). v4 syntax is not supported.
 
 ## Quick Rules
 

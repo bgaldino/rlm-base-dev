@@ -34,7 +34,7 @@ ends up with the same layered structure — not the same exact patch versions.
 | **pipx** | `$(pyenv prefix)/bin/python3 -m pip install --user pipx` | Isolated CLI installs (CCI) | latest |
 | **CumulusCI** | `pipx install cumulusci --python "$(pyenv prefix)/bin/python3"` | Orchestration engine | latest; ensure `setuptools>=75.4` (snowfakery 4.x requirement) |
 | **Salesforce CLI (`sf`)** | `npm install -g @salesforce/cli` | Salesforce metadata + data | latest (built-in auto-updater) |
-| **SFDMU plugin** | `sf plugins install sfdmu` | Bulk data import/export | v5+ required (enforced by `cci task run validate_setup`) |
+| **SFDMU plugin** | `sf plugins install sfdmu` | Bulk data import/export | v5.6.4+ required (enforced by `cci task run validate_setup`) |
 | **gh, git, GCM** | `brew install gh git git-credential-manager` | Source control + PR workflow | latest |
 
 **Pin philosophy:**
