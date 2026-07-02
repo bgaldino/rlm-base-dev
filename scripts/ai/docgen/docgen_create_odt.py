@@ -83,7 +83,8 @@ TRANSFORM_EXAMPLE = {
     "odt": {
         "Name": "MyDocGenTransform",
         "Type": "Transform",
-        "OutputType": "Document Template",
+        "InputType": "JSON",
+        "OutputType": "JSON",
         "IsActive": True,
         "IsFieldLevelSecurityEnabled": True,
         "IsNullInputsIncludedInOutput": False,
@@ -186,6 +187,18 @@ def build_item_body(item_spec, odt_id, odt_name):
 def create_odt(spec, org, dry_run=False):
     odt_body = dict(spec["odt"])
     odt_name = odt_body["Name"]
+
+    if odt_body.get("Type") == "Transform":
+        if not odt_body.get("InputType"):
+            print(f"  ⚠ WARNING: Transform missing InputType — adding 'JSON' "
+                  f"(Designer blocks without it).", file=sys.stderr)
+            odt_body["InputType"] = "JSON"
+        if not odt_body.get("TargetOutputFileName"):
+            target = f"{odt_name}(Version 1)"
+            print(f"  ⚠ WARNING: Transform missing TargetOutputFileName — "
+                  f"adding '{target}' (Designer blocks without it).",
+                  file=sys.stderr)
+            odt_body["TargetOutputFileName"] = target
 
     print(f"Creating ODT: {odt_name} (Type={odt_body['Type']})")
     result = sf_api(

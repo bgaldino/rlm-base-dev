@@ -56,7 +56,16 @@ sf api request rest --method POST \
   --target-org myOrg
 ```
 
-For Transform ODTs, omit `InputType` and set `OutputType: "Document Template"`.
+For Transform ODTs, set `InputType: "JSON"` and `OutputType: "JSON"` (same as
+Extract). The Designer UI displays this as "JSON→Document Template" but the API
+value is `"JSON"` for both. Also set `TargetOutputFileName: "<Name>(Version 1)"`
+(derived from the ODT name) — this links the Transform to a specific
+DocumentTemplate. All three fields are **required** — omitting `InputType` or
+`TargetOutputFileName` causes the Designer UI to show "mandatory details missing"
+and block loading. Using `OutputType: "Document Template"` causes Preview to
+return empty `{}` instead of JSON.
+The `docgen_create_odt.py` script auto-generates `TargetOutputFileName` from the
+Name if omitted.
 
 ### Create an ODT Item
 
@@ -241,8 +250,8 @@ with complex field values.
 | Field | Extract | Transform |
 |-------|---------|-----------|
 | `Type` | `"Extract"` | `"Transform"` |
-| `InputType` | `"JSON"` | `null` (omit) |
-| `OutputType` | `"JSON"` | `"Document Template"` |
+| `InputType` | `"JSON"` | `"JSON"` (required — Designer blocks without it) |
+| `OutputType` | `"JSON"` | `"JSON"` (NOT "Document Template" — that breaks Preview) |
 | `IsActive` | `true` | `true` |
 | `IsFieldLevelSecurityEnabled` | `true` | `true` |
 | `IsNullInputsIncludedInOutput` | `false` | `false` |

@@ -19,8 +19,9 @@ wiring, token mapping, image handling, and deployment to an org.
    Extract/Transform items.
 5. **Object queries need `InputFieldName` + `FilterGroup`** — the match field
    (usually `Id`) and filter group (`0`) are mandatory on every object query item.
-6. **ContentVersion for dynamic images** — the `:src` mapping expects a
-   ContentVersion Id (068 prefix), not ContentDocument Id (069 prefix).
+6. **ContentDocument for dynamic images** — the `IMG_` nested object's `src`
+   field requires a ContentDocument Id (`069` prefix). ContentVersion Id (`068`)
+   or file Title crashes the engine.
 7. **Metadata API for committed work** — production ODTs are authored as
    `.rpt-meta.xml` under `unpackaged/post_docgen/omniDataTransforms/` and deployed
    via `prepare_docgen`. The SObject REST API (helper scripts) is for scratch-org
@@ -38,10 +39,10 @@ wiring, token mapping, image handling, and deployment to an org.
   causes a runtime NPE that silently produces empty output.
 - **DO NOT** create duplicate object query items — duplicates can cause the entire
   Extract to fail silently, producing no data.
-- **DO NOT** pass a ContentDocument Id to `IMG_token:src` — the engine cannot
-  resolve the blob from a 069-prefix Id.
-- **DO NOT** use flat `:src`/`:height` string mappings for images expecting them to
-  work server-side — the engine requires a nested JSON object structure.
+- **DO NOT** pass a ContentVersion Id (`068`) or file Title to `IMG_token:src` —
+  only ContentDocument Id (`069`) works; others crash the engine.
+- **DO NOT** omit `width` or `height` from `IMG_` token objects — the image
+  silently fails to render if either dimension is missing.
 - **DO NOT** edit `TargetOutputFileName` or `MapperOmniDataTransformName` while the
   DocumentTemplate or ODT is Active — deactivate first.
 - **DO NOT** use the SObject REST API to create/edit/delete ODTs in shared,
@@ -143,8 +144,46 @@ They are **NOT** appropriate for production deployment.
 |-----------|--------|---------|-----------------|
 | Scalar | `{{Name}}` | `{{InvoiceNumber}}` | `"InvoiceNumber": "INV-001"` |
 | Repeating section | `{{#List}}...{{/List}}` | `{{#InvoiceLines}}{{ProductName}}{{/InvoiceLines}}` | `"InvoiceLines": [{...}, ...]` |
-| Image | `{{IMG_name}}` | `{{IMG_CompanyLogo}}` | Nested object (see `dynamic-images.md`) |
-| Hyperlink | `{{HYP_name}}` | `{{HYP_PaymentLink}}` | `"HYP_PaymentLink:src": "url"` |
+| Condition | `{{#IF_x}}...{{/IF_x}}` | `{{#IF_has_discount}}...{{/IF_has_discount}}` | `"IF_has_discount": true` (Boolean only) |
+| Inverse condition | `{{^IF_x}}...{{/IF_x}}` | `{{^IF_no_discount}}...{{/IF_no_discount}}` | Shows when value is `false`; hidden when `true` |
+| Image | `{{IMG_name}}` | `{{IMG_CompanyLogo}}` | `{"src": "069...", "width": "200", "height": "80"}` (see `dynamic-images.md`) |
+| Hyperlink | `{{HYP_name}}` | `{{HYP_PaymentLink}}` | `{"src": "url", "text": "label"}` — but see note below |
+| Rich text | `{{RTB_name}}` | `{{RTB_TermsContent}}` | HTML string: `"<b>Bold</b> <a href='...'>link</a>"` |
+
+### Dynamic Content Token Notes
+
+**RTB_ (Rich Text)** — **Confirmed working.** Pass an HTML string directly.
+Supports `<b>`, `<i>`, `<ul>/<li>`, `<a href>` (renders clickable links),
+and inline images. Best option for hyperlinks (renders with formatting).
+- **Limitation:** RTB tokens must NOT be placed within a paragraph (causes
+  generation failure). Place them as standalone blocks.
+- **Limitation:** Bullets in template surrounding RTB tokens are not supported.
+
+**IMG_ (Dynamic Images)** — **Confirmed working** with specific requirements:
+- `src`: ContentDocument ID (`069` prefix) — **required**
+- `width`: pixel string — **required**
+- `height`: pixel string — **required**
+- Image must be in a Content Library accessible to the Integration User
+- See `dynamic-images.md` for full verified contract
+
+**HYP_ (Hyperlinks)** — Token is recognized but currently produces an error
+("We can't open the hyperlink because the specified URL {{HYP_xxx}} is invalid")
+in our testing. **Recommended alternative:** Use `{{RTB_xxx}}` with `<a>` tags
+for hyperlinks — renders as clickable blue links in the generated PDF.
+
+**IF_ (Conditions)** — Must receive **Boolean values only** (`true`/`false`).
+Strings and numbers always evaluate as `true`, causing unexpected rendering.
+Use `IF(expression, true, false)` formula in the Transform.
+
+### Page Break and Token Spacing Guidelines
+
+- **DO NOT** place page breaks directly before `{{#IF_` or `{{#Section}}` start
+  tokens — creates blank pages when condition is false or section is empty.
+- **DO NOT** place page breaks directly after `{{/IF_` or `{{/Section}}` end
+  tokens — same blank page issue.
+- **DO** place page breaks **between** sections, not adjacent to token markers.
+- **Remove empty lines between adjacent conditional tokens** — the engine
+  interprets whitespace between tokens as content, creating blank pages.
 
 ### Repeating Sections in Tables
 
@@ -282,8 +321,10 @@ After a formula builds an array, map it to the template:
 | All tokens blank | Extract failing (duplicates, NPE) | Check for duplicate object queries, null OutputObjectName |
 | `getOutputObjectName() is null` | Item missing OutputObjectName | Set `OutputObjectName: "json"` on all items |
 | "mandatory details missing" in UI | Same as above, or missing InputFieldName on object queries | Add required fields |
-| `[object Object]` for images | Flat string instead of nested JSON | Use nested object structure (see `dynamic-images.md`) |
-| Logo blank | ContentDocument Id used instead of ContentVersion Id | Use `LatestPublishedVersionId` from ContentDocument |
+| `[object Object]` for images | Org below Release 256 (DocGen 1.0) | Upgrade org; or use RTB_ with HTML `<img>` as fallback |
+| IMG_ token consumed, no image | Missing `width`/`height`, or Integration User can't access file | Add both dimensions + add Integration User to Content Library |
+| Engine crash: `Cannot read properties of undefined (reading '0')` | `src` has ContentVersion ID (`068`) or file Title | Use ContentDocument ID (`069`) only |
+| HYP_ shows red "URL is invalid" error | Known limitation — HYP token resolution unreliable | Use RTB_ with `<a href>` tag instead (confirmed working) |
 | Template locked for edits | Active status | Deactivate (`IsActive: false, Status: Draft`) first |
 | Specific token blank | Field not in Extract or Transform | Trace: is field queried? Is it mapped through both ODTs? |
 | Repeating section empty | Formula item missing or wrong ResultPath | Check formula at `OutputCreationSequence: 0` |
@@ -294,7 +335,7 @@ After a formula builds an array, map it to the template:
 
 ## Platform Behavior Reference
 
-Verified in Release 262, API v67.0, org `rlm-base__jun30_agents`, 2026-07-02.
+Verified on Release 262, API v67.0.
 
 ### FormulaConverted — Auto-Generated on Save
 
