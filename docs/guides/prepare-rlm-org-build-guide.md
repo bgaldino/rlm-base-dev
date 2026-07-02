@@ -159,7 +159,7 @@ The 35 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 ### Phase 6: Constraints and Guided Selling (Steps 23–24)
 
-**What happens:** The Constraint Model Library (CML) is imported, constraint settings are configured via Robot Framework, and guided selling data is loaded.
+**What happens:** The Constraint Model Library (CML) is imported, constraint settings are configured via Robot Framework, and guided selling metadata is deployed with Product2 guided-selling values loaded.
 
 **Why it matters:** Constraints define the product configuration rules — what products can be combined, what options are required, what configurations are invalid. These are critical for CPQ (Configure, Price, Quote) workflows where users build complex product bundles.
 

@@ -620,7 +620,6 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `extract_qb_rating_data` | Data Management - Extract | Extract qb-rating from org to CSV | See `cumulusci.yml` |
 | `extract_qb_rates_data` | Data Management - Extract | Extract qb-rates from org to CSV | See `cumulusci.yml` |
 | `extract_qb_transactionprocessingtypes_data` | Data Management - Extract | Extract qb-transactionprocessingtypes from org to CSV | See `cumulusci.yml` |
-| `extract_qb_guidedselling_data` | Data Management - Extract | Extract qb-guidedselling from org to CSV | See `cumulusci.yml` |
 | `extract_qb_guidedselling_products_data` | Data Management - Extract | Extract qb-guidedselling-products from org to CSV | [qb-guidedselling-products README](datasets/sfdmu/qb/en-US/qb-guidedselling-products/README.md) |
 | `test_qb_pcm_idempotency` | Data Management - Idempotency | Idempotency test for qb-pcm (supports extraction roundtrip) | [qb-pcm README](datasets/sfdmu/qb/en-US/qb-pcm/README.md) |
 | `test_qb_pricing_idempotency` | Data Management - Idempotency | Idempotency test for qb-pricing | See `cumulusci.yml` |
@@ -630,7 +629,6 @@ cci flow run run_qb_idempotency_tests --org <org>
 | `test_qb_rating_idempotency` | Data Management - Idempotency | Idempotency test for qb-rating | See `cumulusci.yml` |
 | `test_qb_rates_idempotency` | Data Management - Idempotency | Idempotency test for qb-rates | See `cumulusci.yml` |
 | `test_qb_transactionprocessingtypes_idempotency` | Data Management - Idempotency | Idempotency test for qb-transactionprocessingtypes | See `cumulusci.yml` |
-| `test_qb_guidedselling_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling (legacy plan; standalone — intentionally excluded from `run_qb_idempotency_tests`, preservation-only until CSVs are regenerated from a canonical org) | See `cumulusci.yml` |
 | `test_qb_guidedselling_products_idempotency` | Data Management - Idempotency | Idempotency test for qb-guidedselling-products | [qb-guidedselling-products README](datasets/sfdmu/qb/en-US/qb-guidedselling-products/README.md) |
 | `extract_qb_prm_data` | Data Management - Extract | Extract qb-prm (partner relationship management) from org to CSV | See `cumulusci.yml` |
 | `test_qb_prm_idempotency` | Data Management - Idempotency | Idempotency test for qb-prm | See `cumulusci.yml` |
@@ -645,7 +643,7 @@ cci flow run run_qb_idempotency_tests --org <org>
 
 Extract output is written to `datasets/sfdmu/extractions/<plan_name>/<timestamp>/`. **Post-process runs by default** after extraction; re-import-ready CSVs are in `<timestamp>/processed/`. To skip post-process (raw SFDMU output only), pass `run_post_process: false` (e.g. `cci task run extract_qb_pcm_data --org <org> -o run_post_process false`). You can also run `post_process_extraction` manually for an existing extraction. See [Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md).
 
-**Supported plans (same behavior for each):** Each extract task is wired to a plan directory in `cumulusci.yml`; the task and post-process script are plan-agnostic. Output paths and post-process logic use the plan name derived from the task’s `pathtoexportjson` (e.g. qb-pcm → `extractions/qb-pcm/<timestamp>/`, qb-rating → `extractions/qb-rating/<timestamp>/`). All ten plans (qb-pcm, qb-pricing, qb-product-images, qb-dro, qb-clm, qb-rating, qb-rates, qb-transactionprocessingtypes, qb-guidedselling, qb-guidedselling-products) are supported; single-pass and multi-pass (objectSets) export.json formats are handled by the post-process script. Additional one-off tasks exist for overlays and adjacent plans such as qb-prm, qb-prm-pricing, qb-approvals, qb-billing, qb-tax, and scratch data; run those tasks directly unless they are explicitly added to the batch flows.
+**Supported plans:** `run_qb_extracts` covers the nine QB extract tasks listed above. Each extract task is wired to its plan directory in `cumulusci.yml`, and output paths are derived from that plan name (for example, `qb-pcm` -> `datasets/sfdmu/extractions/qb-pcm/<timestamp>/`). One-off extract tasks for adjacent plans such as qb-prm, qb-prm-pricing, qb-approvals, qb-billing, qb-tax, and scratch data remain standalone unless explicitly added to a batch flow.
 
 ### Apex Execution Tasks
 
@@ -921,7 +919,7 @@ Use these flows to run all QB extract tasks or all QB idempotency tests by group
 
 | Flow | Description |
 |------|-------------|
-| `run_qb_extracts` | Runs all 10 Data Management - Extract tasks (extract_qb_pcm_data, extract_qb_pricing_data, extract_qb_product_images_data, extract_qb_dro_data, extract_qb_clm_data, extract_qb_rating_data, extract_qb_rates_data, extract_qb_transactionprocessingtypes_data, extract_qb_guidedselling_data, extract_qb_guidedselling_products_data). Requires `--org`. Output in `datasets/sfdmu/extractions/<plan>/<timestamp>/`. |
+| `run_qb_extracts` | Runs all 9 Data Management - Extract tasks (extract_qb_pcm_data, extract_qb_pricing_data, extract_qb_product_images_data, extract_qb_dro_data, extract_qb_clm_data, extract_qb_rating_data, extract_qb_rates_data, extract_qb_transactionprocessingtypes_data, extract_qb_guidedselling_products_data). Requires `--org`. Output in `datasets/sfdmu/extractions/<plan>/<timestamp>/`. |
 | `run_qb_idempotency_tests` | Runs the Data Management - Idempotency tasks: the 9 core tasks (incl. `test_qb_guidedselling_products_idempotency`) plus feature-gated tasks for tax, billing, PRM, approvals, and PRM pricing (steps 10–14, ordered to match `prepare_rlm_org`'s module load order — tax before billing for the shared LegalEntity dependency — and each guarded by its module's feature flag, so on a base org without those modules they're skipped). Loads each plan twice and fails if any object's record count increases. qb-pcm uses extraction roundtrip by default. Requires `--org`. |
 
 See [Data Management Tasks](#data-management-tasks) for per-task details and group listing.
@@ -1116,7 +1114,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Dev Environment Setup](docs/guides/dev-environment-setup.md) | Canonical local toolchain architecture — shell config layout, direnv `.envrc` per-project pinning, major-line update strategy, replication on new workstations |
 | [Constraints Utility Guide](datasets/constraints/README.md) | CML constraint model export, import, validate -- architecture, workflows, polymorphic resolution |
 | [Constraints Setup](docs/guides/constraints-setup.md) | `prepare_constraints` flow order, feature flags, deployment phases |
-| [CumulusCI Reference](docs/references/cci-task-reference.md) | Stable index for generated CCI task, flow, and feature flag references |
+| [CumulusCI Tasks Reference](.cursor/skills/cci-orchestration/tasks-reference.md) | Generated CCI task reference; flow and feature flag references live alongside it |
 | [Decision Table Examples](docs/references/decision-table-examples.md) | Comprehensive examples for Decision Table management tasks |
 | [Task Examples](docs/references/task-examples.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/references/context-service-utility.md) | Context Service utility usage and plan examples |

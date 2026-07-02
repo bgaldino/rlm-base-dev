@@ -42,13 +42,6 @@ scratch_data (Account, Contact, BillingAccount)
             ├──→ qb-product-images (1 object)
             │       Product2 DisplayUrl updates
             │
-            ├╌╌  qb-guidedselling (10 objects) — PRESERVATION-ONLY (not loaded in builds)
-            │       AssessmentQuestion, OmniProcess, OmniProcessElement (OmniStudio guided selling)
-            │       Org setup is metadata-backed via unpackaged/post_guidedselling; this plan is
-            │       extraction/preservation-only until CSVs are regenerated from a canonical org.
-            │       Referenced by insert_qb_guidedselling_data / extract_qb_guidedselling_data /
-            │       test_qb_guidedselling_idempotency, but NOT by prepare_guidedselling.
-            │
             ├──→ qb-guidedselling-products (1 object)
             │       Product2 guided selling field updates; requires guided selling field metadata
             │       Decorator plan loaded by prepare_guidedselling in org builds
