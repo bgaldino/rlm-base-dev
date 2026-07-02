@@ -391,7 +391,7 @@ Source: `datasets/sfdmu/qb/en-US/qb-clm/`
 | `qb-product-images` | ContentVersion + ContentDocumentLink for product images (`/resource/RLM_quantumBit_logo_sq` + per-product images) |
 | `qb-transactionprocessingtypes` | TransactionProcessingType records (loaded before `deploy_post_constraints`) |
 | `qb-accounting` | GL Accounts, Journal Entry templates |
-| `qb-guidedselling` | Guided selling configuration |
+| `qb-guidedselling-products` | Guided selling Product2 attribute values |
 | `qb-rates` | RateCard + RateCardEntry records |
 
 ---

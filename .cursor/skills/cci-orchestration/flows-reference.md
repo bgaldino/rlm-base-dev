@@ -23,8 +23,7 @@ Run all QB data extract tasks (org → CSV). Use --org to specify source org.
 6. **task** `extract_qb_rating_data`
 7. **task** `extract_qb_rates_data`
 8. **task** `extract_qb_transactionprocessingtypes_data`
-9. **task** `extract_qb_guidedselling_data`
-10. **task** `extract_qb_guidedselling_products_data`
+9. **task** `extract_qb_guidedselling_products_data`
 
 ---
 

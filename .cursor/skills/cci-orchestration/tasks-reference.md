@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**276 tasks** across **10 groups**.
+**273 tasks** across **10 groups**.
 
 ---
 
@@ -129,7 +129,7 @@
 
 ## Data Management - Extract
 
-*25 task(s)*
+*24 task(s)*
 
 ### `export_bre_rule_library`
 
@@ -272,18 +272,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-dro`
-
----
-
-### `extract_qb_guidedselling_data`
-
-**Description:** Extract qb-guidedselling from org to CSV. Output in datasets/sfdmu/extractions/qb-guidedselling/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip.
-
-**Class:** `tasks.rlm_sfdmu.ExtractSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling`
 
 ---
 
@@ -434,7 +422,7 @@
 
 ## Data Management - Idempotency
 
-*22 task(s)*
+*21 task(s)*
 
 ### `test_q3_billing_idempotency`
 
@@ -575,19 +563,6 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-dro`
-- `use_extraction_roundtrip`: `False`
-
----
-
-### `test_qb_guidedselling_idempotency`
-
-**Description:** Idempotency test for qb-guidedselling.
-
-**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling`
 - `use_extraction_roundtrip`: `False`
 
 ---
@@ -1075,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*165 task(s)*
+*164 task(s)*
 
 ### `activate_agents`
 
@@ -2599,18 +2574,6 @@
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-dro`
 - `dynamic_assigned_to_user`: `True`
-
----
-
-### `insert_qb_guidedselling_data`
-
-**Description:** Insert QuantumBit Guided Selling Data
-
-**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
-
-**Options:**
-
-- `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-guidedselling`
 
 ---
 
