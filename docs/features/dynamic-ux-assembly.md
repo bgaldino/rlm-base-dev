@@ -3,9 +3,9 @@
 > Implemented in: `tasks/rlm_ux_assembly.py`, `tasks/rlm_writeback_ux.py`,
 > `tasks/rlm_retrieve_ux.py`, `tasks/rlm_diff_ux.py`
 > Shared utilities: `tasks/rlm_ux_utils.py` (feature flags, standalone order, source resolver)
-> Flows: `prepare_ux`, `capture_ux_drift`, `apply_ux_drift`
+> Flows: `prepare_ux`, `prepare_mfg_ux`, `capture_ux_drift`, `apply_ux_drift`
 > Template root: `templates/`
-> Output: `unpackaged/post_ux/` (git-tracked)
+> Output: `unpackaged/post_ux/` (git-tracked), `unpackaged/post_manufacturing_ux/` (git-tracked, manufacturing orgs only)
 
 ---
 
@@ -16,8 +16,32 @@ UX metadata files scattered across every `unpackaged/post_*` feature directory. 
 single late-stage CCI task (`assemble_and_deploy_ux`) builds the correct version of every
 UX artifact from composable templates and feature-flag-driven logic, then deploys them all
 in one `sf project deploy start` call at **step 30** of `prepare_rlm_org` (followed by
-`prepare_inapp` at step 31, `prepare_scratch` at step 32, and `refresh_all_decision_tables`
-at step 33).
+`prepare_inapp` at step 31, `prepare_scratch` at step 32, `prepare_manufacturing` at step 33
+when `manufacturing=true`, and `refresh_all_decision_tables` at step 34).
+
+### Two-phase UX on manufacturing orgs
+
+On manufacturing orgs (`manufacturing=true`), UX assembly runs twice:
+
+1. **Step 30 — `prepare_ux`** → assembles and deploys `unpackaged/post_ux/` (base + all
+   non-manufacturing features). Manufacturing content is **excluded** (`manufacturing=false`,
+   the task default) because the `SalesAgreement` object, `Order.SalesAgreementId` field, and
+   related manufacturing metadata do not exist until `prepare_manufacturing` runs. Base
+   versions of shared pages (e.g. `RLM_Order_Record_Page`) are deployed here as a foundation.
+
+2. **Step 33 → step 13 — `prepare_mfg_ux`** (inside `prepare_manufacturing`) → assembles and
+   deploys `unpackaged/post_manufacturing_ux/` with `manufacturing=true`. Because this runs
+   **after** `prepare_ux` and after all manufacturing metadata exists, it correctly overrides
+   shared pages with their manufacturing variants and adds manufacturing-only pages, layouts,
+   and the manufacturing `RLM_Revenue_Cloud` app variant.
+
+> **Note on this repository:** the assembler plumbing for `manufacturing=true` (the
+> `manufacturing` task option, the `_MANUFACTURING_STANDALONE` order entry, the manufacturing
+> layout/app tiers) ships in the foundation change. The manufacturing **template content**
+> itself (`templates/flexipages/standalone/manufacturing/`, `templates/layouts/manufacturing/`,
+> `templates/applications/manufacturing/`) is delivered by the manufacturing feature bundles.
+> The resolver is defensive: when a manufacturing template directory is absent, it is skipped,
+> so `manufacturing=true` is a safe no-op until that content lands.
 
 ### Problems it solves
 
@@ -134,7 +158,11 @@ templates/
 1. Base pages from `templates/flexipages/base/`
 2. Feature standalone overrides applied in deploy order:
    `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`
-   *(Canonical order defined in `tasks/rlm_ux_utils._STANDALONE_ORDER`; all three tasks — assembly, retrieve, writeback — use this shared constant)*
+   When `manufacturing=true` (i.e. `prepare_mfg_ux`), `manufacturing` is appended last so it
+   overrides all shared pages: `... → prm_pricing → manufacturing`
+   *(Canonical order defined in `tasks/rlm_ux_utils._STANDALONE_ORDER`; the appended
+   manufacturing entry is `_MANUFACTURING_STANDALONE`, added only when `manufacturing_mode=True`.
+   All three tasks — assembly, retrieve, writeback — use these shared constants)*
 
 **Patch application** (additive, in deploy order):
 `quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections → prm_pricing`
@@ -196,6 +224,10 @@ be added again.
 1. `templates/layouts/base/` — always
 2. `templates/layouts/billing/` — when `billing=true`
 3. `templates/layouts/constraints/` — when `constraints=true` (overrides `OrderItem` and `QuoteLineItem`)
+4. `templates/layouts/manufacturing/` — when `manufacturing=true` (i.e. `prepare_mfg_ux` only)
+   Adds the `SalesAgreement` layout. Not included in `prepare_ux` because the `SalesAgreement`
+   object does not exist until `prepare_manufacturing` has run. Delivered by the manufacturing
+   feature bundle; skipped when the directory is absent.
 
 No patching — layouts are copied as-is.
 
@@ -205,6 +237,9 @@ No patching — layouts are copied as-is.
 ### Applications
 
 **Versioned selection** for `RLM_Revenue_Cloud.app-meta.xml` (highest-priority active flag wins):
+- `manufacturing=true` (i.e. `prepare_mfg_ux`) → `templates/applications/manufacturing/`
+  (includes `SalesAgreement` action overrides and tab; only selected in `prepare_mfg_ux`,
+  delivered by the manufacturing feature bundle)
 - `tso=true` → `templates/applications/tso/`
 - `quantumbit=true` → `templates/applications/quantumbit/`
 - fallback → `templates/applications/base/`
@@ -258,6 +293,7 @@ cci task run assemble_and_deploy_ux [options]
 | `-o metadata_name` | (none) | Full source filename to generate one item, e.g. `RLM_Quote_Record_Page.flexipage-meta.xml`. Type is inferred from suffix. |
 | `-o deploy` | `true` | Set `false` to assemble without deploying (inspect `unpackaged/post_ux/` output) |
 | `-o output_path` | `unpackaged/post_ux` | Override output directory |
+| `-o manufacturing` | `false` | Include manufacturing standalone flexipages, manufacturing layouts, and the manufacturing `RLM_Revenue_Cloud` app variant. Set to `true` only via `prepare_mfg_ux` — these resources require the `SalesAgreement` object and other manufacturing metadata to already be deployed. |
 
 **Examples:**
 
@@ -281,6 +317,12 @@ cci task run assemble_and_deploy_ux \
 # Assemble only layouts (local; no org needed)
 cci task run assemble_and_deploy_ux \
     -o metadata_type layouts -o deploy false
+
+# Assemble manufacturing UX (dry-run) — requires manufacturing metadata to be deployed first
+cci task run assemble_and_deploy_ux \
+    -o output_path unpackaged/post_manufacturing_ux \
+    -o manufacturing true \
+    -o deploy false
 ```
 
 ### `prepare_ux` flow
@@ -289,8 +331,24 @@ cci task run assemble_and_deploy_ux \
 cci flow run prepare_ux --org dev-sb0
 ```
 
-Two-step flow: runs `assemble_and_deploy_ux` (full assembly + deploy) then
-`reorder_app_launcher`. Runs as step 30 of `prepare_rlm_org` when `ux=true`.
+Two-step flow: runs `assemble_and_deploy_ux` (full assembly + deploy, `manufacturing=false`)
+then `reorder_app_launcher`. Runs as step 30 of `prepare_rlm_org` when `ux=true`.
+Deliberately excludes manufacturing content even on manufacturing orgs — manufacturing UX is
+deployed separately by `prepare_mfg_ux` after all manufacturing metadata exists.
+
+### `prepare_mfg_ux` flow
+
+```bash
+cci flow run prepare_mfg_ux --org dev-mfg0
+```
+
+Single-step flow: runs `assemble_and_deploy_ux` with `output_path=unpackaged/post_manufacturing_ux`
+and `manufacturing=true` (gated by `manufacturing=true and ux=true`). Runs as **step 13 of
+`prepare_manufacturing`** (which is step 33 of `prepare_rlm_org`), after all manufacturing
+metadata (`SalesAgreement` object, layouts, quick actions, OmniScripts) is in place.
+
+Can be run independently to iterate on manufacturing UX changes without running the full
+`prepare_rlm_org` flow, provided manufacturing metadata is already deployed.
 
 ---
 

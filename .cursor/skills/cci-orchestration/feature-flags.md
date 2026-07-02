@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**42 feature flags**, **85 configuration values**, **37 YAML anchors** under `project.custom`.
+**49 feature flags**, **96 configuration values**, **41 YAML anchors** under `project.custom`.
 
 ---
 
@@ -16,7 +16,8 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `agents` | `True` | 11 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
 | `approvals` | `True` | 5 flow step(s) |
-| `billing` | `True` | 22 flow step(s) |
+| `badger_data` | `True` | — |
+| `billing` | `True` | 30 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
 | `billing_portal_deploy` | `True` | 1 flow step(s) |
 | `billing_ui` | `True` | 4 flow step(s) |
@@ -29,11 +30,17 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `constraints` | `True` | 12 flow step(s) |
 | `constraints_data` | `True` | 8 flow step(s) |
 | `docgen` | `True` | 10 flow step(s) |
-| `dro` | `True` | 7 flow step(s) |
+| `dro` | `True` | 8 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
 | `guidedselling` | `True` | 4 flow step(s) |
 | `inapp` | `False` | 4 flow step(s) |
 | `large_stx` | `False` | 5 flow step(s) |
+| `manufacturing` | `False` | 46 flow step(s) |
+| `mfg_aaf` | `True` | 7 flow step(s) |
+| `mfg_docgen` | `True` | 5 flow step(s) |
+| `mfg_guidedselling` | `True` | 2 flow step(s) |
+| `mfg_rebates` | `True` | 2 flow step(s) |
+| `mfg_visuals` | `True` | 2 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
 | `personas` | `True` | 10 flow step(s) |
@@ -51,10 +58,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `rating` | `True` | 15 flow step(s) |
 | `refresh` | `False` | 13 flow step(s) |
 | `sample_data` | `True` | 1 flow step(s) |
-| `tax` | `True` | 8 flow step(s) |
+| `tax` | `True` | 11 flow step(s) |
 | `trial` | `False` | — |
-| `tso` | `False` | 15 flow step(s) |
-| `ux` | `True` | 3 flow step(s) |
+| `tso` | `False` | 16 flow step(s) |
+| `ux` | `True` | 4 flow step(s) |
 
 ---
 
@@ -109,6 +116,14 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_billing_portal` step 1 → `create_billing_portal`
 - `prepare_billing_portal` step 2 → `deploy_post_billing_portal`
 - `prepare_billing_portal` step 3 → `publish_community`
+- `prepare_mfg_data` step 6 → `prepare_mfg_billing`
+- `prepare_mfg_billing` step 1 → `insert_mfg_billing_data`
+- `prepare_mfg_billing` step 2 → `activate_flow`
+- `prepare_mfg_billing` step 3 → `activate_default_payment_term`
+- `prepare_mfg_billing` step 4 → `activate_billing_records`
+- `prepare_mfg_billing` step 5 → `deploy_billing_id_settings_mfg`
+- `prepare_mfg_billing` step 6 → `deploy_post_billing`
+- `prepare_mfg_billing` step 7 → `deploy_billing_template_settings`
 - `run_qb_idempotency_tests` step 11 → `test_qb_billing_idempotency`
 - `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
@@ -203,6 +218,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `dro` (default: `True`)
 
+- `prepare_manufacturing` step 7 → `update_product_fulfillment_decomp_rules`
 - `prepare_core` step 16 → `create_dro_rule_library`
 - `extend_context_definitions` step 6 → `extend_context_fulfillment_asset`
 - `prepare_dro` step 1 → `manage_fulfillment_scope_cnfg`
@@ -238,6 +254,88 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_large_stx` step 2 → `assign_permission_sets`
 - `prepare_large_stx` step 3 → `seed_large_deal_billing_treatment`
 - `prepare_personas` step 7 → `assign_permission_sets`
+
+### `manufacturing` (default: `False`)
+
+- `prepare_rlm_org` step 33 → `prepare_manufacturing`
+- `prepare_mfg_core` step 1 → `deploy_mfg_core_assets`
+- `prepare_mfg_core` step 2 → `deploy_mfg_core`
+- `prepare_mfg_core` step 3 → `deploy_mfg_tso_perms`
+- `prepare_manufacturing` step 3 → `deploy_mfg_flows_and_actions`
+- `prepare_manufacturing` step 5 → `prepare_mfg_docgen`
+- `prepare_manufacturing` step 7 → `update_product_fulfillment_decomp_rules`
+- `prepare_manufacturing` step 12 → `util_sleep`
+- `prepare_manufacturing` step 14 → `activate_mfg_theme`
+- `prepare_billing` step 9 → `deploy_billing_id_settings`
+- `prepare_mfg_perms` step 1 → `util_sleep`
+- `prepare_mfg_perms` step 2 → `assign_permission_sets`
+- `prepare_mfg_perms` step 3 → `assign_permission_set_groups`
+- `prepare_mfg_perms` step 4 → `assign_permission_set_groups`
+- `prepare_mfg_perms` step 5 → `grant_mfg_ext_credential_access`
+- `prepare_mfg_docgen` step 1 → `deploy_mfg_omni_datatransforms`
+- `prepare_mfg_docgen` step 2 → `deploy_mfg_doc_templates`
+- `prepare_mfg_docgen` step 3 → `activate_mfg_docgen_templates`
+- `prepare_mfg_docgen` step 4 → `fix_mfg_document_template_binaries`
+- `prepare_mfg_data` step 1 → `insert_badger_pcm_data`
+- `prepare_mfg_data` step 2 → `insert_badger_pricing_data`
+- `prepare_mfg_data` step 3 → `insert_badger_dro_data`
+- `prepare_mfg_data` step 4 → `import_mfg_cml`
+- `prepare_mfg_data` step 5 → `prepare_mfg_tax`
+- `prepare_mfg_data` step 6 → `prepare_mfg_billing`
+- `prepare_mfg_context_plan` step 1 → `apply_mfg_SalesTransactionContext`
+- `prepare_mfg_context_plan` step 2 → `apply_mfg_SalesTransactionContext`
+- `import_mfg_cml` step 1 → `import_cml`
+- `import_mfg_cml` step 2 → `import_cml`
+- `import_mfg_cml` step 3 → `manage_expression_sets`
+- `prepare_mfg_dro` step 1 → `insert_badger_dro_data`
+- `prepare_mfg_dro` step 2 → `update_product_fulfillment_decomp_rules`
+- `prepare_mfg_guided_selling` step 1 → `insert_badger_guidedselling_data`
+- `prepare_mfg_guided_selling` step 2 → `deploy_mfg_guided_selling`
+- `prepare_mfg_rebates` step 1 → `deploy_mfg_rebates`
+- `prepare_mfg_rebates` step 2 → `insert_badger_rebates_data`
+- `prepare_mfg_aaf` step 1 → `deploy_mfg_aaf_fields`
+- `prepare_mfg_aaf` step 2 → `deploy_mfg_aaf_permissions`
+- `prepare_mfg_aaf` step 3 → `assign_permission_sets`
+- `prepare_mfg_aaf` step 4 → `util_sleep`
+- `prepare_mfg_aaf` step 5 → `deploy_mfg_aaf_dim_source`
+- `prepare_mfg_aaf` step 6 → `deploy_mfg_aaf_forecast_set`
+- `prepare_mfg_aaf` step 7 → `insert_badger_aaf_data`
+- `prepare_mfg_ux` step 1 → `assemble_and_deploy_ux`
+- `prepare_mfg_visuals` step 1 → `deploy_mfg_visualization`
+- `prepare_mfg_visuals` step 2 → `insert_mfg_configflow_data`
+
+### `mfg_aaf` (default: `True`)
+
+- `prepare_mfg_aaf` step 1 → `deploy_mfg_aaf_fields`
+- `prepare_mfg_aaf` step 2 → `deploy_mfg_aaf_permissions`
+- `prepare_mfg_aaf` step 3 → `assign_permission_sets`
+- `prepare_mfg_aaf` step 4 → `util_sleep`
+- `prepare_mfg_aaf` step 5 → `deploy_mfg_aaf_dim_source`
+- `prepare_mfg_aaf` step 6 → `deploy_mfg_aaf_forecast_set`
+- `prepare_mfg_aaf` step 7 → `insert_badger_aaf_data`
+
+### `mfg_docgen` (default: `True`)
+
+- `prepare_manufacturing` step 5 → `prepare_mfg_docgen`
+- `prepare_mfg_docgen` step 1 → `deploy_mfg_omni_datatransforms`
+- `prepare_mfg_docgen` step 2 → `deploy_mfg_doc_templates`
+- `prepare_mfg_docgen` step 3 → `activate_mfg_docgen_templates`
+- `prepare_mfg_docgen` step 4 → `fix_mfg_document_template_binaries`
+
+### `mfg_guidedselling` (default: `True`)
+
+- `prepare_mfg_guided_selling` step 1 → `insert_badger_guidedselling_data`
+- `prepare_mfg_guided_selling` step 2 → `deploy_mfg_guided_selling`
+
+### `mfg_rebates` (default: `True`)
+
+- `prepare_mfg_rebates` step 1 → `deploy_mfg_rebates`
+- `prepare_mfg_rebates` step 2 → `insert_badger_rebates_data`
+
+### `mfg_visuals` (default: `True`)
+
+- `prepare_mfg_visuals` step 1 → `deploy_mfg_visualization`
+- `prepare_mfg_visuals` step 2 → `insert_mfg_configflow_data`
 
 ### `payments` (default: `True`)
 
@@ -459,12 +557,16 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_tax` step 2 → `insert_tax_data`
 - `prepare_tax` step 3 → `insert_q3_tax_data`
 - `prepare_tax` step 4 → `activate_tax_records`
+- `prepare_mfg_data` step 5 → `prepare_mfg_tax`
+- `prepare_mfg_tax` step 1 → `insert_mfg_tax_data`
+- `prepare_mfg_tax` step 2 → `activate_tax_records`
 - `run_qb_idempotency_tests` step 10 → `test_qb_tax_idempotency`
 - `run_q3_idempotency_tests` step 5 → `test_q3_tax_idempotency`
 - `run_q3_idempotency_tests` step 6 → `test_q3_billing_idempotency`
 
 ### `tso` (default: `False`)
 
+- `prepare_mfg_core` step 3 → `deploy_mfg_tso_perms`
 - `prepare_core` step 12 → `recalculate_permission_set_groups`
 - `prepare_core` step 13 → `assign_permission_set_groups_tolerant`
 - `assign_feature_psls` step 4 → `assign_permission_set_licenses`
@@ -486,6 +588,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_rlm_org` step 30 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
+- `prepare_mfg_ux` step 1 → `assemble_and_deploy_ux`
 
 ### `org_config.scratch` (runtime)
 
@@ -505,6 +608,15 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `asset_context_base_reference` | `AssetContext__stdctx` |
 | `asset_context_default_mapping` | `AssetEntitiesMapping` |
 | `asset_context_name` | `RLM_AssetContext` |
+| `badger_aaf_dataset` | `datasets/sfdmu/mfg/en-US/mfg-aaf` |
+| `badger_billing_dataset` | `datasets/sfdmu/mfg/en-US/mfg-billing` |
+| `badger_configflow_dataset` | `datasets/sfdmu/mfg/en-US/mfg-configflow` |
+| `badger_dro_dataset` | `datasets/sfdmu/mfg/en-US/mfg-dro` |
+| `badger_guidedselling_dataset` | `datasets/sfdmu/mfg/en-US/mfg-guidedselling` |
+| `badger_pricing_dataset` | `datasets/sfdmu/mfg/en-US/mfg-pricing` |
+| `badger_product_dataset` | `datasets/sfdmu/mfg/en-US/mfg-pcm` |
+| `badger_rebates_dataset` | `datasets/sfdmu/mfg/en-US/mfg-rebates` |
+| `badger_tax_dataset` | `datasets/sfdmu/mfg/en-US/mfg-tax` |
 | `billing_context_base_reference` | `BillingContext__stdctx` |
 | `billing_context_default_mapping` | `BSGEntitiesMapping` |
 | `billing_context_name` | `RLM_BillingContext` |
@@ -527,9 +639,11 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `core_pricing_recipe_table_mappings` | `datasets/tooling/PricingRecipeTableMappings/core_ngp_default.json` |
 | `default_context_start_date` | `2020-01-01T00:00:00.000Z` |
 | `default_context_ttl` | `30` |
+| `fuelCell_mfg_cml` | `datasets/constraints/mfg/fuelCell` |
 | `fulfillment_asset_context_base_reference` | `FulfillmentAssetContext__stdctx` |
 | `fulfillment_asset_context_default_mapping` | `FulfillAssetEntitiesMapping` |
 | `fulfillment_asset_context_name` | `RLM_FulfillmentAssetContext` |
+| `genSet_mfg_cml` | `datasets/constraints/mfg/genSet` |
 | `inapp_dataset` | `datasets/sfdmu/inapp` |
 | `locale` | `en_US` |
 | `prm_pricing_procedure_plan_overlay` | `datasets/procedure_plan_overlays/prm_pricing.json` |
@@ -593,6 +707,30 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 ## YAML Anchors (lists/maps)
 
 These `project.custom` entries are YAML anchors (lists or maps) reused throughout the file for permission sets, decision tables, dataset paths, etc.
+
+### `badger_aaf_ps`
+
+*1 items:*
+
+- `MFG_AAF`
+
+### `badger_mfg_ps`
+
+*1 items:*
+
+- `RLM_MFG_RCA`
+
+### `badger_mfg_psg`
+
+*1 items:*
+
+- `RLM_MFG`
+
+### `badger_mfg_scratch_psg`
+
+*1 items:*
+
+- `RLM_MFG_scratch`
 
 ### `dt_activation_decision_tables`
 
