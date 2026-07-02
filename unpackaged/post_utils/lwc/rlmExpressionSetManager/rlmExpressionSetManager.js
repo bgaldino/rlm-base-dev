@@ -24,7 +24,17 @@ const COLUMNS = [
     },
     { label: 'API Name', fieldName: 'developerName', type: 'text', sortable: true },
     { label: 'Type', fieldName: 'usageType', type: 'text', sortable: true },
-    { label: 'Status', fieldName: 'statusText', type: 'text', sortable: true },
+    {
+        label: 'Status',
+        fieldName: 'statusText',
+        type: 'text',
+        sortable: true,
+        cellAttributes: {
+            iconName: { fieldName: 'statusIcon' },
+            iconPosition: 'left',
+            class: { fieldName: 'statusClass' }
+        }
+    },
     {
         label: 'Latest Version',
         fieldName: 'latestVersionUrl',
@@ -272,6 +282,8 @@ export default class RlmExpressionSetManager extends LightningElement {
                     ...es,
                     recordUrl: `/lightning/r/ExpressionSet/${es.expressionSetId}/view`,
                     statusText: es.hasActiveVersion ? 'Active' : 'Inactive',
+                    statusIcon: es.hasActiveVersion ? 'action:approval' : 'action:close',
+                    statusClass: es.hasActiveVersion ? 'slds-text-color_success' : 'slds-text-color_error',
                     latestVersionNumber: latest ? latest.versionNumber : null,
                     latestVersionLabel: latest ? `v${latest.versionNumber}` : '',
                     latestVersionUrl: latest ? this.buildVersionUrl(es, latest) : ''
