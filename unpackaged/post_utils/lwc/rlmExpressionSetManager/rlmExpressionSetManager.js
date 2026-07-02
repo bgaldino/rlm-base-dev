@@ -10,6 +10,7 @@ import getActivateStatus from '@salesforce/apex/RLM_ExpressionSetManagerControll
 
 const POLL_INTERVAL = 3000
 const ACTIVATE_DELAY = 5000
+const MAX_JOB_POLL_ATTEMPTS = 80
 const MAX_DOMAIN_POLL_ATTEMPTS = 40
 
 const COLUMNS = [
@@ -24,6 +25,19 @@ const COLUMNS = [
     },
     { label: 'API Name', fieldName: 'developerName', type: 'text', sortable: true },
     { label: 'Type', fieldName: 'usageType', type: 'text', sortable: true },
+    {
+        label: 'Linked',
+        fieldName: 'linkStatusText',
+        type: 'text',
+        sortable: true,
+        sortingFieldName: 'linkSortValue',
+        fixedWidth: 80,
+        cellAttributes: {
+            iconName: { fieldName: 'linkStatusIcon' },
+            iconPosition: 'left',
+            class: { fieldName: 'linkStatusClass' }
+        }
+    },
     {
         label: 'Status',
         fieldName: 'statusText',
@@ -50,17 +64,14 @@ const COLUMNS = [
 export default class RlmExpressionSetManager extends LightningElement {
     contextOptions = []
     selectedContextId
-    selectedContextDevName
     expressionSets = []
     selectedRowIds = []
     columns = COLUMNS
     sortedByColumn = 'usageType'
-    sortedBy = 'usageType'
     sortDirection = 'desc'
     isLoading = false
     isActing = false
     previousError = ''
-    contextDefUrl = ''
     _contextData = []
     _pollTimer
     _delayTimer
@@ -71,11 +82,11 @@ export default class RlmExpressionSetManager extends LightningElement {
         if (data) {
             this._contextData = data
             this.contextOptions = data.map(cd => ({
-                label: `${cd.label} (${cd.developerName}) [${cd.expressionSetCount} Expression Sets]`,
+                label: `${cd.label} (${cd.developerName}) [${cd.expressionSetCount} linked Expression Sets]`,
                 value: cd.id
             }))
         } else if (error) {
-            this.showToast('Error', 'Failed to load Context Definitions', 'error')
+            this.showToast('Error', `Failed to load Context Definitions: ${this.reduceErrors(error)}`, 'error')
         }
     }
 
@@ -99,6 +110,19 @@ export default class RlmExpressionSetManager extends LightningElement {
 
     get bulkActionDisabled() {
         return this.isActing || this.selectedRowIds.length === 0
+    }
+
+    get selectedContext() {
+        return this._contextData.find(cd => cd.id === this.selectedContextId)
+    }
+
+    get contextDefUrl() {
+        if (!this.selectedContext) return ''
+        const idParam = btoa(`"${this.selectedContextId}"`)
+        const nameParam = btoa(`"${this.selectedContext.developerName}"`)
+        const tab = btoa('"details"')
+        const status = btoa('"Active"')
+        return `/lightning/setup/ContextManagementSetupNode/home#contextIdFromLandingPage=${idParam}&contextDefinitionNameFromLandingPage=${nameParam}&activeTab=${tab}&status=${status}`
     }
 
     get statusMessage() {
@@ -154,19 +178,8 @@ export default class RlmExpressionSetManager extends LightningElement {
 
     handleContextChange(event) {
         this.selectedContextId = event.detail.value
-        const selected = this._contextData.find(cd => cd.id === this.selectedContextId)
-        this.selectedContextDevName = selected ? selected.developerName : ''
-        this.contextDefUrl = this.buildContextDefUrl()
         this.selectedRowIds = []
         this.loadExpressionSets()
-    }
-
-    buildContextDefUrl() {
-        const idParam = btoa(`"${this.selectedContextId}"`)
-        const nameParam = btoa(`"${this.selectedContextDevName}"`)
-        const tab = btoa('"details"')
-        const status = btoa('"Active"')
-        return `/lightning/setup/ContextManagementSetupNode/home#contextIdFromLandingPage=${idParam}&contextDefinitionNameFromLandingPage=${nameParam}&activeTab=${tab}&status=${status}`
     }
 
     handleRowSelection(event) {
@@ -174,15 +187,14 @@ export default class RlmExpressionSetManager extends LightningElement {
     }
 
     handleSort(event) {
-        const column = this.columns.find(c => c.fieldName === event.detail.fieldName)
         this.sortedByColumn = event.detail.fieldName
-        this.sortedBy = column?.sortingFieldName || event.detail.fieldName
         this.sortDirection = event.detail.sortDirection
         this.expressionSets = this.applySort([...this.expressionSets])
     }
 
     applySort(rows) {
-        const field = this.sortedBy
+        const column = this.columns.find(c => c.fieldName === this.sortedByColumn)
+        const field = column?.sortingFieldName || this.sortedByColumn
         const dir = this.sortDirection === 'asc' ? 1 : -1
         return rows.sort((a, b) => {
             const av = a[field]
@@ -226,14 +238,14 @@ export default class RlmExpressionSetManager extends LightningElement {
             this.showToast('Deactivating', `Deactivating ${defIds.length} Expression Set(s)...`, 'info')
             this.pollStatus(jobId, getDeactivateStatus, this.selectedContextId, defIds, 0, ids => {
                 this.expressionSets = this.expressionSets.map(es =>
-                    ids.has(es.definitionId) ? { ...es, hasActiveVersion: false, statusText: 'Inactive' } : es
+                    ids.has(es.definitionId) ? this.decorateExpressionSetRow({ ...es, hasActiveVersion: false }) : es
                 )
                 this.selectedRowIds = this.selectedRowIds.filter(id => !ids.has(id))
                 this.showToast('Deactivated', `${ids.size} Expression Set(s) deactivated.`, 'success')
             })
         } catch (error) {
             this.isActing = false
-            this.showToast('Error', error.body?.message || error.message, 'error')
+            this.showToast('Error', this.reduceErrors(error), 'error')
         }
     }
 
@@ -266,7 +278,7 @@ export default class RlmExpressionSetManager extends LightningElement {
             })
         } catch (error) {
             this.isActing = false
-            this.showToast('Error', error.body?.message || error.message, 'error')
+            this.showToast('Error', this.reduceErrors(error), 'error')
         }
     }
 
@@ -276,36 +288,41 @@ export default class RlmExpressionSetManager extends LightningElement {
         this.isLoading = true
         try {
             const data = await getLinkedExpressionSets({ contextDefinitionId: this.selectedContextId })
-            const rows = data.map(es => {
-                const latest = es.versions[0]
-                return {
-                    ...es,
-                    recordUrl: `/lightning/r/ExpressionSet/${es.expressionSetId}/view`,
-                    statusText: es.hasActiveVersion ? 'Active' : 'Inactive',
-                    statusIcon: es.hasActiveVersion ? 'action:approval' : 'action:close',
-                    statusClass: es.hasActiveVersion ? 'slds-text-color_success' : 'slds-text-color_error',
-                    latestVersionNumber: latest ? latest.versionNumber : null,
-                    latestVersionLabel: latest ? `v${latest.versionNumber}` : '',
-                    latestVersionUrl: latest ? this.buildVersionUrl(es, latest) : ''
-                }
-            })
+            const rows = data.map(es => this.decorateExpressionSetRow(es))
             this.expressionSets = this.applySort(rows)
             this.selectedRowIds = []
         } catch (error) {
             this.expressionSets = []
             this.selectedRowIds = []
-            this.showToast('Error', 'Failed to load Expression Sets', 'error')
+            this.showToast('Error', `Failed to load Expression Sets: ${this.reduceErrors(error)}`, 'error')
         } finally {
             this.isLoading = false
         }
     }
 
-    buildVersionUrl(es, v) {
-        if (es.usageType === 'Constraint') {
-            const versionName = encodeURIComponent(`${es.label} V${v.versionNumber}`)
-            return `/builder_industries_constraints/constraintBuilder.app?constraintId=${es.expressionSetId}&versionId=${v.versionId}&versionName=${versionName}&contextId=${this.selectedContextId}`
+    decorateExpressionSetRow(es) {
+        return {
+            ...es,
+            recordUrl: `/lightning/r/ExpressionSet/${es.expressionSetId}/view`,
+            linkStatusText: '',
+            linkSortValue: es.isLinked ? 'Linked' : 'Unlinked',
+            linkStatusIcon: es.isLinked ? 'utility:link' : '',
+            linkStatusClass: es.isLinked ? 'slds-text-color_success' : '',
+            statusText: es.hasActiveVersion ? 'Active' : 'Inactive',
+            statusIcon: es.hasActiveVersion ? 'action:approval' : 'action:close',
+            statusClass: es.hasActiveVersion ? 'slds-text-color_success' : 'slds-text-color_error',
+            latestVersionLabel: es.latestVersionNumber ? `v${es.latestVersionNumber}` : '',
+            latestVersionUrl: this.buildVersionUrl(es)
         }
-        return `/builder_industries_interaction_rule/ruleBuilder.app?ruleId=${v.versionId}`
+    }
+
+    buildVersionUrl(es) {
+        if (!es.latestVersionId) return ''
+        if (es.usageType === 'Constraint') {
+            const versionName = encodeURIComponent(`${es.label} V${es.latestVersionNumber}`)
+            return `/builder_industries_constraints/constraintBuilder.app?constraintId=${es.expressionSetId}&versionId=${es.latestVersionId}&versionName=${versionName}&contextId=${this.selectedContextId}`
+        }
+        return `/builder_industries_interaction_rule/ruleBuilder.app?ruleId=${es.latestVersionId}`
     }
 
     // --- Polling ---
@@ -314,6 +331,7 @@ export default class RlmExpressionSetManager extends LightningElement {
         this.stopPolling()
         this.isActing = true
         let isChecking = false
+        let jobAttempts = 0
         let domainAttempts = 0
         const poll = async () => {
             if (isChecking) return
@@ -321,6 +339,12 @@ export default class RlmExpressionSetManager extends LightningElement {
             try {
                 const jobStatus = await getJobStatus({ jobId })
                 if (jobStatus.state === 'running') {
+                    jobAttempts += 1
+                    if (jobAttempts >= MAX_JOB_POLL_ATTEMPTS) {
+                        this.stopPolling()
+                        this.setPreviousError('Operation is still running. Refresh to check status or try again later.')
+                        await this.loadExpressionSets()
+                    }
                     return
                 }
                 if (jobStatus.state === 'failed' || jobStatus.state === 'unknown') {
@@ -347,7 +371,7 @@ export default class RlmExpressionSetManager extends LightningElement {
                 }
             } catch (error) {
                 this.stopPolling()
-                this.showToast('Error', 'Failed to check operation status.', 'error')
+                this.showToast('Error', `Failed to check operation status: ${this.reduceErrors(error)}`, 'error')
             } finally {
                 isChecking = false
             }
@@ -384,5 +408,15 @@ export default class RlmExpressionSetManager extends LightningElement {
     showToast(title, message, variant) {
         const mode = variant === 'error' ? 'sticky' : 'dismissable'
         this.dispatchEvent(new ShowToastEvent({ title, message, variant, mode }))
+    }
+
+    reduceErrors(error) {
+        if (!error) return 'Unknown error'
+        if (Array.isArray(error.body)) {
+            return error.body.map(e => e.message).filter(Boolean).join(', ')
+        }
+        if (typeof error.body?.message === 'string') return error.body.message
+        if (typeof error.message === 'string') return error.message
+        return 'Unknown error'
     }
 }

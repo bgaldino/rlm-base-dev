@@ -123,15 +123,16 @@ private class RLM_ExpressionSetManagerControllerTest {
                 def,
                 null,
                 'Constraint',
-                new List<ExpressionSetVersion>{ version },
+                version,
                 true,
                 true
             );
 
         System.assertEquals(null, info.definitionId, 'Unset in-memory ids should map through as null');
         System.assertEquals('Test_Definition', info.developerName, 'Developer name should map through');
-        System.assertEquals(1, info.versions.size(), 'Version wrappers should be created');
-        System.assertEquals(2, info.versions[0].versionNumber, 'Version number should map through');
+        System.assertEquals(2, info.latestVersionNumber, 'Latest version number should map through');
+        System.assertEquals(1, info.versions.size(), 'Compatibility version list should include latest version');
+        System.assertEquals(2, info.versions[0].versionNumber, 'Compatibility version number should map through');
     }
 
     @IsTest

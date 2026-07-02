@@ -47,7 +47,6 @@ public with sharing class RLM_ExpressionSetManagerController {
 
     @AuraEnabled
     public static List<ExpressionSetInfo> getLinkedExpressionSets(Id contextDefinitionId) {
-        // Get currently linked expression sets
         Set<Id> linkedDefIds = new Set<Id>();
         for (ExpressionSetDefinitionContextDefinition j : [
             SELECT ExpressionSetDefinitionId
@@ -57,7 +56,6 @@ public with sharing class RLM_ExpressionSetManagerController {
             linkedDefIds.add(j.ExpressionSetDefinitionId);
         }
 
-        // Find unlinked Constraint expression sets (not linked to this context def)
         Set<Id> unlinkedConstraintDefIds = new Set<Id>();
         for (ExpressionSet es : [
             SELECT ExpressionSetDefinitionId
@@ -68,7 +66,6 @@ public with sharing class RLM_ExpressionSetManagerController {
             unlinkedConstraintDefIds.add(es.ExpressionSetDefinitionId);
         }
 
-        // Combine both sets
         Set<Id> allDefIds = new Set<Id>();
         allDefIds.addAll(linkedDefIds);
         allDefIds.addAll(unlinkedConstraintDefIds);
@@ -97,19 +94,42 @@ public with sharing class RLM_ExpressionSetManagerController {
             setByDefId.put(es.ExpressionSetDefinitionId, es);
         }
 
-        List<ExpressionSetVersion> versions = [
-            SELECT Id, ExpressionSetId, VersionNumber, IsActive, Rank
+        Map<Id, Boolean> hasActiveBySetId = new Map<Id, Boolean>();
+        for (AggregateResult ar : [
+            SELECT ExpressionSetId setId, COUNT(Id) activeCount
             FROM ExpressionSetVersion
             WHERE ExpressionSetId IN :setIds
-            ORDER BY ExpressionSetId, VersionNumber DESC
-        ];
+            AND IsActive = true
+            GROUP BY ExpressionSetId
+        ]) {
+            hasActiveBySetId.put((Id) ar.get('setId'), ((Integer) ar.get('activeCount')) > 0);
+        }
 
-        Map<Id, List<ExpressionSetVersion>> versionsBySetId = new Map<Id, List<ExpressionSetVersion>>();
-        for (ExpressionSetVersion v : versions) {
-            if (!versionsBySetId.containsKey(v.ExpressionSetId)) {
-                versionsBySetId.put(v.ExpressionSetId, new List<ExpressionSetVersion>());
+        Map<Id, Integer> latestVersionNumberBySetId = new Map<Id, Integer>();
+        Set<Integer> latestVersionNumbers = new Set<Integer>();
+        for (AggregateResult ar : [
+            SELECT ExpressionSetId setId, MAX(VersionNumber) latestVersionNumber
+            FROM ExpressionSetVersion
+            WHERE ExpressionSetId IN :setIds
+            GROUP BY ExpressionSetId
+        ]) {
+            Integer latestVersionNumber = Integer.valueOf(String.valueOf(ar.get('latestVersionNumber')));
+            latestVersionNumberBySetId.put((Id) ar.get('setId'), latestVersionNumber);
+            latestVersionNumbers.add(latestVersionNumber);
+        }
+
+        Map<Id, ExpressionSetVersion> latestVersionBySetId = new Map<Id, ExpressionSetVersion>();
+        if (!latestVersionNumbers.isEmpty()) {
+            for (ExpressionSetVersion v : [
+                SELECT Id, ExpressionSetId, VersionNumber
+                FROM ExpressionSetVersion
+                WHERE ExpressionSetId IN :setIds
+                AND VersionNumber IN :latestVersionNumbers
+            ]) {
+                if (v.VersionNumber == latestVersionNumberBySetId.get(v.ExpressionSetId)) {
+                    latestVersionBySetId.put(v.ExpressionSetId, v);
+                }
             }
-            versionsBySetId.get(v.ExpressionSetId).add(v);
         }
 
         List<ExpressionSetInfo> results = new List<ExpressionSetInfo>();
@@ -118,23 +138,15 @@ public with sharing class RLM_ExpressionSetManagerController {
             if (def == null) continue;
 
             ExpressionSet es = setByDefId.get(defId);
-            List<ExpressionSetVersion> defVersions = (es != null && versionsBySetId.containsKey(es.Id))
-                ? versionsBySetId.get(es.Id)
-                : new List<ExpressionSetVersion>();
-
-            Boolean hasActive = false;
-            for (ExpressionSetVersion v : defVersions) {
-                if (v.IsActive) {
-                    hasActive = true;
-                    break;
-                }
-            }
+            Id setId = es != null ? es.Id : null;
+            ExpressionSetVersion latestVersion = setId != null ? latestVersionBySetId.get(setId) : null;
+            Boolean hasActive = setId != null && hasActiveBySetId.containsKey(setId);
 
             results.add(new ExpressionSetInfo(
                 def,
-                es != null ? es.Id : null,
+                setId,
                 es != null ? es.UsageType : null,
-                defVersions,
+                latestVersion,
                 hasActive,
                 linkedDefIds.contains(defId)
             ));
@@ -216,7 +228,6 @@ public with sharing class RLM_ExpressionSetManagerController {
         }
         List<Id> validatedDefinitionIds = validateDefinitionIds(contextDefinitionId, definitionIds, OPERATION_MAKE_ACTIVE);
         String sessionId = getApiSessionId();
-        // Find which ones need junction recreation
         Set<Id> existingDefIds = new Set<Id>();
         for (ExpressionSetDefinitionContextDefinition j : [
             SELECT ExpressionSetDefinitionId
@@ -238,7 +249,6 @@ public with sharing class RLM_ExpressionSetManagerController {
     @AuraEnabled
     public static String getActivateStatus(Id contextDefinitionId, List<Id> definitionIds) {
         List<Id> normalizedDefinitionIds = normalizeDefinitionIds(definitionIds);
-        // Check all junctions exist
         Integer junctionCount = [
             SELECT COUNT()
             FROM ExpressionSetDefinitionContextDefinition
@@ -270,7 +280,6 @@ public with sharing class RLM_ExpressionSetManagerController {
             String baseUrl = System.Url.getOrgDomainUrl().toExternalForm();
             Set<Id> setIds = getExpressionSetIds(definitionIds);
 
-            // Deactivate all active versions
             List<ExpressionSetVersion> activeVersions = [
                 SELECT Id FROM ExpressionSetVersion
                 WHERE ExpressionSetId IN :setIds
@@ -322,7 +331,6 @@ public with sharing class RLM_ExpressionSetManagerController {
             List<Object> subrequests = new List<Object>();
             Integer refIdx = 0;
 
-            // Recreate junctions for unlinked constraints
             for (Id defId : needsJunction) {
                 Map<String, Object> sub = new Map<String, Object>();
                 sub.put('method', 'POST');
@@ -336,7 +344,6 @@ public with sharing class RLM_ExpressionSetManagerController {
                 refIdx++;
             }
 
-            // Activate highest version per expression set
             Set<Id> setIds = getExpressionSetIds(definitionIds);
 
             List<ExpressionSetVersion> allVersions = [
@@ -609,9 +616,11 @@ public with sharing class RLM_ExpressionSetManagerController {
         @AuraEnabled public String usageType;
         @AuraEnabled public Boolean hasActiveVersion;
         @AuraEnabled public Boolean isLinked;
+        @AuraEnabled public Id latestVersionId;
+        @AuraEnabled public Integer latestVersionNumber;
         @AuraEnabled public List<VersionInfo> versions;
 
-        public ExpressionSetInfo(ExpressionSetDefinition def, Id esId, String usageType, List<ExpressionSetVersion> versions, Boolean hasActive, Boolean isLinked) {
+        public ExpressionSetInfo(ExpressionSetDefinition def, Id esId, String usageType, ExpressionSetVersion latestVersion, Boolean hasActive, Boolean isLinked) {
             this.definitionId = def.Id;
             this.expressionSetId = esId;
             this.developerName = def.DeveloperName;
@@ -620,8 +629,10 @@ public with sharing class RLM_ExpressionSetManagerController {
             this.hasActiveVersion = hasActive;
             this.isLinked = isLinked;
             this.versions = new List<VersionInfo>();
-            for (ExpressionSetVersion v : versions) {
-                this.versions.add(new VersionInfo(v));
+            if (latestVersion != null) {
+                this.latestVersionId = latestVersion.Id;
+                this.latestVersionNumber = latestVersion.VersionNumber;
+                this.versions.add(new VersionInfo(latestVersion));
             }
         }
     }
@@ -629,14 +640,10 @@ public with sharing class RLM_ExpressionSetManagerController {
     public class VersionInfo {
         @AuraEnabled public Id versionId;
         @AuraEnabled public Integer versionNumber;
-        @AuraEnabled public Boolean isActive;
-        @AuraEnabled public Integer rank;
 
         public VersionInfo(ExpressionSetVersion v) {
             this.versionId = v.Id;
             this.versionNumber = v.VersionNumber;
-            this.isActive = v.IsActive;
-            this.rank = v.Rank;
         }
     }
 }
