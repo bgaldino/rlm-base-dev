@@ -1,5 +1,5 @@
 {
-  "apiVersion": "66.0",
+  "apiVersion": "67.0",
   "excludeIdsFromCSVFiles": "true",
   "objectSets": [
     {
@@ -11,7 +11,7 @@
           "excluded": false
         },
         {
-          "query": "SELECT CategoryReferenceId, DefaultLanguage, Name, Status FROM DocumentClauseSet",
+          "query": "SELECT CategoryReferenceId, DefaultLanguage, Name, Status, CategoryReference.DeveloperName FROM DocumentClauseSet",
           "operation": "Upsert",
           "externalId": "Name;CategoryReference.DeveloperName",
           "excluded": false

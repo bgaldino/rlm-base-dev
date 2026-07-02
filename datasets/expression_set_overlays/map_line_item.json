@@ -1,0 +1,427 @@
+{
+  "expressionSetApiName": "RLM_DefaultPricingProcedure",
+  "versionApiName": "RLM_DefaultPricingProcedure_V1",
+  "description": "Add Map Line Item to Detail Item step (maps SalesTransactionItem line fields to SalesTransactionItemDetail) for Advanced Detail Line Pricing",
+  "addSteps": [
+    {
+      "name": "MapLineItemtoDetailItem",
+      "description": "Map Line Item",
+      "stepType": "BusinessKnowledgeModel",
+      "actionType": "BreakdownLineMapping",
+      "resultIncluded": false,
+      "shouldExposeExecPathMsgOnly": true,
+      "shouldExposeConditionDetails": false,
+      "shouldShowExplExternally": false,
+      "hasNestedExplainability": false,
+      "passedMessageTokenMappings": [],
+      "failedMessageTokenMappings": [],
+      "noResultMessageTokenMappings": [],
+      "placement": {
+        "afterStep": "Mapcontexttagstocommonpricingvariables"
+      },
+      "customElement": {
+        "parameters": [
+          {
+            "input": true,
+            "name": "section-0-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "LineItem"
+          },
+          {
+            "input": true,
+            "name": "section-1-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "LineItemQuantity"
+          },
+          {
+            "input": true,
+            "name": "section-2-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "NetUnitPrice"
+          },
+          {
+            "input": true,
+            "name": "section-3-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "price_water_fall"
+          },
+          {
+            "input": true,
+            "name": "section-4-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "InputUnitPrice"
+          },
+          {
+            "input": true,
+            "name": "section-5-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemBillingReference"
+          },
+          {
+            "input": true,
+            "name": "section-6-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemNetTotalPrice"
+          },
+          {
+            "input": true,
+            "name": "section-7-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "TotalLineAmount"
+          },
+          {
+            "input": true,
+            "name": "section-8-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "EffectiveFrom"
+          },
+          {
+            "input": true,
+            "name": "section-9-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "EffectiveTo"
+          },
+          {
+            "input": true,
+            "name": "section-10-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "PricingTermCount"
+          },
+          {
+            "input": true,
+            "name": "section-11-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "itemTransientEndDate"
+          },
+          {
+            "input": true,
+            "name": "section-12-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemPricingSource"
+          },
+          {
+            "input": true,
+            "name": "section-13-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "DerivedPricingAttribute"
+          },
+          {
+            "input": true,
+            "name": "section-14-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemGroupSummarySubtotal"
+          },
+          {
+            "input": true,
+            "name": "section-15-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "ListPrice"
+          },
+          {
+            "input": true,
+            "name": "section-16-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "IsContracted"
+          },
+          {
+            "input": true,
+            "name": "section-17-input1",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemContractPrice"
+          },
+          {
+            "input": true,
+            "name": "section-0-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "SalesTrxnItemDetailSource"
+          },
+          {
+            "input": true,
+            "name": "section-1-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailQuantity"
+          },
+          {
+            "input": true,
+            "name": "section-2-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailNetUnitPrice"
+          },
+          {
+            "input": true,
+            "name": "section-3-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "DetailPriceWaterfallIdentifier"
+          },
+          {
+            "input": true,
+            "name": "section-4-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailUnitPrice"
+          },
+          {
+            "input": true,
+            "name": "section-5-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailBillingReference"
+          },
+          {
+            "input": true,
+            "name": "section-6-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailTotalPrice"
+          },
+          {
+            "input": true,
+            "name": "section-7-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailTotalLineAmount"
+          },
+          {
+            "input": true,
+            "name": "section-8-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailEffectiveFrom__std"
+          },
+          {
+            "input": true,
+            "name": "section-9-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailEffectiveTo__std"
+          },
+          {
+            "input": true,
+            "name": "section-10-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailPricingTermCount__std"
+          },
+          {
+            "input": true,
+            "name": "section-11-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailTransientEndDate__std"
+          },
+          {
+            "input": true,
+            "name": "section-12-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailPricingSource__std"
+          },
+          {
+            "input": true,
+            "name": "section-13-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailDerivedPricingAttribute__std"
+          },
+          {
+            "input": true,
+            "name": "section-14-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailGroupSummaryTotal__std"
+          },
+          {
+            "input": true,
+            "name": "section-15-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailListPrice__std"
+          },
+          {
+            "input": true,
+            "name": "section-16-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailIsContracted__std"
+          },
+          {
+            "input": true,
+            "name": "section-17-output",
+            "output": false,
+            "type": "Parameter",
+            "value": "ItemDetailContractPrice__std"
+          },
+          {
+            "input": true,
+            "name": "MapLineItemNodeInput",
+            "output": false,
+            "type": "Parameter",
+            "value": "SalesTransactionItem"
+          },
+          {
+            "input": true,
+            "name": "sectionCount",
+            "output": false,
+            "type": "Literal",
+            "value": "18"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString1",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-0-input1\",\"value\":\"LineItem\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-0-output\",\"value\":\"SalesTrxnItemDetailSource\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString2",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Numeric\",\"name\":\"section-1-input1\",\"value\":\"LineItemQuantity\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Numeric\",\"name\":\"section-1-output\",\"value\":\"ItemDetailQuantity\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString3",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Currency\",\"name\":\"section-2-input1\",\"value\":\"NetUnitPrice\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Currency\",\"name\":\"section-2-output\",\"value\":\"ItemDetailNetUnitPrice\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString4",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-3-input1\",\"value\":\"price_water_fall\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-3-output\",\"value\":\"DetailPriceWaterfallIdentifier\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString5",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Currency\",\"name\":\"section-4-input1\",\"value\":\"InputUnitPrice\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Currency\",\"name\":\"section-4-output\",\"value\":\"ItemDetailUnitPrice\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString6",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-5-input1\",\"value\":\"ItemBillingReference\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-5-output\",\"value\":\"ItemDetailBillingReference\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString7",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Currency\",\"name\":\"section-6-input1\",\"value\":\"ItemNetTotalPrice\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Currency\",\"name\":\"section-6-output\",\"value\":\"ItemDetailTotalPrice\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString8",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Currency\",\"name\":\"section-7-input1\",\"value\":\"TotalLineAmount\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Currency\",\"name\":\"section-7-output\",\"value\":\"ItemDetailTotalLineAmount\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString9",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"DateTime\",\"name\":\"section-8-input1\",\"value\":\"EffectiveFrom\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"DateTime\",\"name\":\"section-8-output\",\"value\":\"ItemDetailEffectiveFrom__std\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString10",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"DateTime\",\"name\":\"section-9-input1\",\"value\":\"EffectiveTo\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"DateTime\",\"name\":\"section-9-output\",\"value\":\"ItemDetailEffectiveTo__std\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString11",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Numeric\",\"name\":\"section-10-input1\",\"value\":\"PricingTermCount\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Numeric\",\"name\":\"section-10-output\",\"value\":\"ItemDetailPricingTermCount__std\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString12",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"DateTime\",\"name\":\"section-11-input1\",\"value\":\"itemTransientEndDate\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"DateTime\",\"name\":\"section-11-output\",\"value\":\"ItemDetailTransientEndDate__std\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString13",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Text\",\"name\":\"section-12-input1\",\"value\":\"ItemPricingSource\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Text\",\"name\":\"section-12-output\",\"value\":\"ItemDetailPricingSource__std\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString14",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Boolean\",\"name\":\"section-13-input1\",\"value\":\"DerivedPricingAttribute\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Boolean\",\"name\":\"section-13-output\",\"value\":\"ItemDetailDerivedPricingAttribute__std\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString15",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Currency\",\"name\":\"section-14-input1\",\"value\":\"ItemGroupSummarySubtotal\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Currency\",\"name\":\"section-14-output\",\"value\":\"ItemDetailGroupSummaryTotal__std\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString16",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Currency\",\"name\":\"section-15-input1\",\"value\":\"ListPrice\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Currency\",\"name\":\"section-15-output\",\"value\":\"ItemDetailListPrice__std\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString17",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Boolean\",\"name\":\"section-16-input1\",\"value\":\"IsContracted\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Boolean\",\"name\":\"section-16-output\",\"value\":\"ItemDetailIsContracted__std\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": true,
+            "name": "sectionJsonString18",
+            "output": false,
+            "type": "Literal",
+            "value": "{\"whereConditions\":[{\"field\":{\"dataType\":\"Currency\",\"name\":\"section-17-input1\",\"value\":\"ItemContractPrice\",\"allowCompatibleDataTypes\":true},\"value\":{\"dataType\":\"Currency\",\"name\":\"section-17-output\",\"value\":\"ItemDetailContractPrice__std\",\"allowCompatibleDataTypes\":true}}]}"
+          },
+          {
+            "input": false,
+            "name": "MapLineItemNodeOutput",
+            "output": true,
+            "type": "Parameter",
+            "value": "SalesTransactionItemDetail"
+          }
+        ]
+      }
+    }
+  ]
+}

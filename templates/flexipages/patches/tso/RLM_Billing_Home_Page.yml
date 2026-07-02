@@ -1,0 +1,20 @@
+feature: tso
+feature_flag: tso
+# tso patch — Billing app home page
+#
+# Adds the standard "Billing Cases" metrics card (runtimeRevBillCase:billingCasesMetrics)
+# back into the home page's main region. This card issues an aggregate SOQL against
+# Dispute.InvoiceId, a license-gated billing-dispute extension field that is ABSENT in a
+# baseline foundation build (Dispute has no InvoiceId/CaseId). On such builds the standard
+# card hard-errors with an ApiQueryException, so it is omitted from the base page
+# (templates/flexipages/standalone/billing_ui/RLM_Billing_Home_Page.flexipage-meta.xml) and
+# only re-added here when tso=true — the build shape that provisions the extended Dispute
+# object (InvoiceId/CaseId present), where the card works.
+patches:
+  - type: add_component
+    region: region2
+    component: runtimeRevBillCase:billingCasesMetrics
+    identifier: runtimeRevBillCase_billingCasesMetrics
+    after_identifier: runtime_hmz_billing_console_upcomingSchedulerRun
+    properties:
+      navigationLink: ""

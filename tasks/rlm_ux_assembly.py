@@ -13,13 +13,13 @@ Supported metadata types:
   applications — copy from versioned templates based on active features
   profiles     — strip-and-build: base grants + feature layout patches
 
-Usage examples:
-    cci task run assemble_and_deploy_ux --org dev-sb0
-    cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+Usage examples (this task has no --org option; deploy uses your DEFAULT cci org):
+    cci task run assemble_and_deploy_ux
+    cci task run assemble_and_deploy_ux -o deploy false        # dry-run: local only, no org
     cci task run assemble_and_deploy_ux \\
-        -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml --org dev-sb0
+        -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
     cci task run assemble_and_deploy_ux \\
-        -o metadata_type profiles -o deploy false --org dev-sb0
+        -o metadata_type profiles -o deploy false
 """
 import datetime
 import json
@@ -54,15 +54,14 @@ except ImportError:
         return str(val).lower() in ("true", "1", "yes")
 
 try:
-    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from tasks.rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, PERSONAS_PROFILES, SALES_TXN_LINE_EDITOR_IDENTIFIER
 except ImportError:
-    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources
+    from rlm_ux_utils import get_ux_feature_flags, resolve_flexipage_sources, PERSONAS_PROFILES, SALES_TXN_LINE_EDITOR_IDENTIFIER
 
 
 # Salesforce metadata XML namespace
 SF_NS = "http://soap.sforce.com/2006/04/metadata"
 SF_NS_TAG = f"{{{SF_NS}}}"
-
 # Maps full source filename suffix → canonical metadata type key
 SUFFIX_TO_TYPE: Dict[str, str] = {
     ".flexipage-meta.xml": "flexipages",
@@ -180,9 +179,34 @@ def _patch_remove_action(root: ET.Element, action: str) -> bool:
     return False
 
 
-def _patch_insert_action(root: ET.Element, anchor: str, actions: List[str]) -> bool:
+def _action_name(action: Any) -> str:
+    """An insert_action entry is either a bare action name (str) or a dict with
+    a 'name' key plus optional 'visibility' criteria."""
+    if isinstance(action, dict):
+        return action.get("name", "")
+    return action
+
+
+def _append_visibility_rule(item: ET.Element, criteria: List[Dict[str, Any]]) -> None:
+    """Add a <visibilityRule> with one <criteria> per entry. Multiple criteria are
+    ANDed (FlexiPage default with no booleanFilter). Each criteria entry is
+    {field, operator, value}; field may be 'Record.X' or a full '{!Record.X}'."""
+    if not criteria:
+        return
+    vr = _sub_elem(item, "visibilityRule")
+    for crit in criteria:
+        field = str(crit.get("field", "")).strip()
+        left = field if field.startswith("{!") else "{!" + field + "}"
+        c = _sub_elem(vr, "criteria")
+        _sub_elem(c, "leftValue", left)
+        _sub_elem(c, "operator", str(crit.get("operator", "EQUAL")))
+        _sub_elem(c, "rightValue", str(crit.get("value", "")))
+
+
+def _patch_insert_action(root: ET.Element, anchor: str, actions: List[Any]) -> bool:
     """Insert action valueListItems immediately after the anchor action.
-    Skips actions already present anywhere in the list (idempotent)."""
+    Skips actions already present anywhere in the list (idempotent). Each action
+    is either a bare name (str) or a dict {name, visibility:[{field,operator,value}]}."""
     for ci_props in root.iter(f"{SF_NS_TAG}componentInstanceProperties"):
         name_el = _find_elem(ci_props, "name")
         if name_el is None or name_el.text != "actionNames":
@@ -201,10 +225,13 @@ def _patch_insert_action(root: ET.Element, anchor: str, actions: List[str]) -> b
             if val_el is not None and val_el.text == anchor:
                 offset = 0
                 for action in actions:
-                    if action in existing:
-                        continue  # already present, skip
+                    name = _action_name(action)
+                    if not name or name in existing:
+                        continue  # missing name or already present, skip
                     new_item = _make_elem("valueListItems")
-                    _sub_elem(new_item, "value", action)
+                    _sub_elem(new_item, "value", name)
+                    if isinstance(action, dict):
+                        _append_visibility_rule(new_item, action.get("visibility", []))
                     vlist.insert(i + 1 + offset, new_item)
                     offset += 1
                 return True
@@ -232,6 +259,68 @@ def _patch_add_display_field(root: ET.Element, field: str) -> bool:
         _sub_elem(new_item, "value", field)
         vlist.append(new_item)
         return True
+    return False
+
+
+def _patch_add_component_value_list_items(
+    root: ET.Element,
+    component_identifier: str,
+    property_name: str,
+    values: List[str],
+    after: Optional[str] = None,
+) -> bool:
+    """
+    Add values to a componentInstanceProperties valueList for a specific component.
+
+    Skips values already present in the target list. If `after` is supplied,
+    new values are inserted immediately after that existing value; otherwise
+    they are appended.
+    """
+    values = [value for value in values if value]
+    if not values:
+        return True
+
+    for ci in root.iter(f"{SF_NS_TAG}componentInstance"):
+        id_el = _find_elem(ci, "identifier")
+        if id_el is None or id_el.text != component_identifier:
+            continue
+
+        for ci_props in _findall_elem(ci, "componentInstanceProperties"):
+            name_el = _find_elem(ci_props, "name")
+            if name_el is None or name_el.text != property_name:
+                continue
+
+            vlist = _find_elem(ci_props, "valueList")
+            if vlist is None:
+                return False
+
+            children = list(vlist)
+            existing = {
+                _find_elem(item, "value").text
+                for item in children
+                if _find_elem(item, "value") is not None
+            }
+            values_to_add = [value for value in values if value not in existing]
+            if not values_to_add:
+                return True
+
+            insert_at = len(children)
+            if after:
+                insert_at = -1
+                for i, item in enumerate(children):
+                    val_el = _find_elem(item, "value")
+                    if val_el is not None and val_el.text == after:
+                        insert_at = i + 1
+                        break
+                if insert_at < 0:
+                    return False
+
+            for offset, value in enumerate(values_to_add):
+                new_item = _make_elem("valueListItems")
+                _sub_elem(new_item, "value", value)
+                vlist.insert(insert_at + offset, new_item)
+            return True
+
     return False
 
 
@@ -362,11 +451,12 @@ def _patch_add_component(
     properties: Dict[str, str],
     identifier: str,
     after_identifier: Optional[str] = None,
+    before_identifier: Optional[str] = None,
 ) -> bool:
     """
     Add a componentInstance to a named flexiPageRegion's itemInstances list.
-    Inserts after `after_identifier` if given, else appends before the closing
-    <name> element of the region.
+    Inserts before `before_identifier` if given, else after `after_identifier`
+    if given, else appends before the closing <name> element of the region.
     """
     regions = _findall_elem(root, "flexiPageRegions")
     for region in regions:
@@ -386,6 +476,15 @@ def _patch_add_component(
         new_item = _make_elem("itemInstances")
         new_item.append(new_ci)
 
+        if before_identifier:
+            for item in items:
+                ci = _find_elem(item, "componentInstance")
+                if ci is not None:
+                    id_el = _find_elem(ci, "identifier")
+                    if id_el is not None and id_el.text == before_identifier:
+                        region.insert(list(region).index(item), new_item)
+                        return True
+
         if after_identifier:
             for i, item in enumerate(items):
                 ci = _find_elem(item, "componentInstance")
@@ -395,9 +494,14 @@ def _patch_add_component(
                         region.insert(list(region).index(item) + 1, new_item)
                         return True
 
-        # Append before <name> element
+        # Preserve metadata schema order by keeping all itemInstances contiguous
+        # at the front of the region (before mode/name/type).
         region_children = list(region)
-        insert_before = region_children.index(name_el) if name_el in region_children else len(region_children)
+        insert_before = len(region_children)
+        for i, child in enumerate(region_children):
+            if child.tag.rsplit("}", 1)[-1] != "itemInstances":
+                insert_before = i
+                break
         region.insert(insert_before, new_item)
         return True
     return False
@@ -408,11 +512,16 @@ def _patch_description(patch: Dict[str, Any]) -> str:
     ptype = patch.get("type", "")
     if ptype == "insert_action":
         actions = patch.get("actions", [])
-        return f"insert actions: {', '.join(actions)}"
+        names = [_action_name(a) for a in actions]
+        return f"insert actions: {', '.join(n for n in names if n)}"
     if ptype == "remove_action":
         return f"remove action: {patch.get('action', '?')}"
     if ptype == "add_display_field":
         return f"add display field: {patch.get('field', '?')}"
+    if ptype == "add_sales_txn_line_editor_field":
+        fields = patch.get("fields") or [patch.get("field", "?")]
+        prop_name = patch.get("property", "displayFields")
+        return f"add Sales Transaction Line Editor {prop_name}: {', '.join(fields)}"
     if ptype == "add_facet_field":
         fields = patch.get("fields", [])
         facet = patch.get("facet", "")
@@ -474,6 +583,34 @@ def _apply_flexipage_patch(root: ET.Element, patch: Dict[str, Any], logger=None)
         if not ok and logger:
             logger.warning(f"add_display_field: displayFields valueList not found")
 
+    elif ptype == "add_sales_txn_line_editor_field":
+        fields = patch.get("fields")
+        if not fields and patch.get("field"):
+            fields = [patch["field"]]
+        if not fields:
+            log(
+                "add_sales_txn_line_editor_field patch missing "
+                f"'field' or 'fields': {patch}"
+            )
+            return
+        prop_name = patch.get("property", "displayFields")
+        component_identifier = patch.get(
+            "component_identifier", SALES_TXN_LINE_EDITOR_IDENTIFIER
+        )
+        ok = _patch_add_component_value_list_items(
+            root,
+            component_identifier,
+            prop_name,
+            fields,
+            after=patch.get("after"),
+        )
+        if not ok and logger:
+            logger.warning(
+                "add_sales_txn_line_editor_field: "
+                f"{component_identifier}.{prop_name} valueList or anchor "
+                f"'{patch.get('after')}' not found"
+            )
+
     elif ptype == "add_facet_field":
         fields = patch.get("fields", [])
         after = patch.get("after")
@@ -493,10 +630,11 @@ def _apply_flexipage_patch(root: ET.Element, patch: Dict[str, Any], logger=None)
         properties = patch.get("properties", {})
         identifier = patch.get("identifier", component_name)
         after_id = patch.get("after_identifier")
+        before_id = patch.get("before_identifier")
         if not region_name or not component_name:
             log(f"add_component patch missing 'region' or 'component': {patch}")
             return
-        ok = _patch_add_component(root, region_name, component_name, properties, identifier, after_id)
+        ok = _patch_add_component(root, region_name, component_name, properties, identifier, after_id, before_id)
         if not ok and logger:
             logger.warning(f"add_component: region '{region_name}' not found")
 
@@ -769,17 +907,21 @@ class AssembleAndDeployUX(SFDXBaseTask):
         skipped = []
         # Patch order matches deploy-sequence (approvals before docgen before ramps)
         feature_patch_order = [
-            ("qb",          "quantumbit"),
-            ("qb",          "utils"),
+            ("quantumbit",  "quantumbit"),
+            ("quantumbit",  "utils"),
+            ("guidedselling", "guidedselling"),
             ("billing",     "billing"),
             ("billing_ui",  "billing_ui"),
             ("payments",    "payments"),
-            ("qb",          "approvals"),
+            ("quantumbit",  "approvals"),
             ("docgen",      "docgen"),
             ("tso",         "tso"),
             ("constraints", "constraints"),
             ("ramps",       "ramp_builder"),
+            ("large_stx",   "large_stx"),
             ("collections", "collections"),
+            ("personas",    "personas"),
+            ("prm_pricing", "prm_pricing"),
         ]
 
         # Flexipage types that cannot be deployed via Metadata API (platform restriction)
@@ -958,7 +1100,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
 
         # Inject new actionOverrides that aren't already present
         added = 0
-        for ao in patch_root.findall(f"{{{NS}}}actionOverrides"):
+        for ao in patch_root.findall(f".//{{{NS}}}actionOverrides"):
             sobjtype = (ao.findtext(f"{{{NS}}}pageOrSobjectType") or "").strip()
             ff = (ao.findtext(f"{{{NS}}}formFactor") or "").strip()
             if (sobjtype, ff) not in existing_keys:
@@ -1027,7 +1169,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         if not filter_name or filter_name == rev_cloud_name:
             if features.get("tso"):
                 src_dir = app_base / "tso"
-            elif features.get("qb"):
+            elif features.get("quantumbit"):
                 src_dir = app_base / "quantumbit"
             else:
                 src_dir = app_base / "base"
@@ -1037,7 +1179,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 dest = out_dir / rev_cloud_name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(str(src_file), str(dest))
-                tier = "tso" if features.get("tso") else ("quantumbit" if features.get("qb") else "base")
+                tier = "tso" if features.get("tso") else ("quantumbit" if features.get("quantumbit") else "base")
 
                 # Apply feature-conditional actionOverride patches.
                 # Patch files live in templates/applications/patches/{feature}/RLM_Revenue_Cloud.patch.xml
@@ -1045,7 +1187,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 # TSO template already contains all overrides; patches only run for non-TSO builds.
                 patches_applied = []
                 if not features.get("tso"):
-                    patch_features = ["billing", "rates", "ramps"]
+                    patch_features = ["billing", "payments", "rates", "ramps", "prm_pricing"]
                     for pf in patch_features:
                         if not features.get(pf):
                             continue
@@ -1139,6 +1281,9 @@ class AssembleAndDeployUX(SFDXBaseTask):
         for base_file in sorted(profiles_base.glob("*.profile-meta.xml")):
             fname = base_file.name
             if filter_name and fname != filter_name:
+                continue
+            if fname in PERSONAS_PROFILES and not features.get("personas"):
+                self.logger.info(f"  [profile] skipping {fname} (personas feature flag is false)")
                 continue
 
             root = ET.parse(str(base_file)).getroot()

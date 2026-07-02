@@ -1,0 +1,3 @@
+$$Name$IsStandard,CostBook.Name,Description,IsActive,IsStandard,Name,ValidFrom,ValidTo
+Standard Price Book;true,,,true,true,Standard Price Book,,
+Nonprofit;false,,Price book for nonprofit customers,true,false,Nonprofit,,

@@ -6,19 +6,23 @@ SFDMU data plan for QuantumBit (QB) Partner Relationship Management (PRM). Creat
 
 ### Flow: `prepare_prm`
 
-This plan is executed as **step 9** of the `prepare_prm` flow (when `prm=true` and `qb=true`).
+This plan is executed as **step 8** of the `prepare_prm` flow (when `prm=true` and `qb=true`).
 
-| Step | Task                              | Description                                                |
-|------|-----------------------------------|------------------------------------------------------------|
-| 1    | `create_partner_central`          | Create Partner Central community                           |
-| 2    | `patch_network_email_for_deploy`  | Replace placeholder email in rlm.network-meta.xml with Network's actual EmailSenderAddress (immutable) |
-| 3    | `setup_prm_org_email`             | Create org-wide email address for PRM                      |
-| 4    | `deploy_post_prm`                 | Deploy PRM Experience Bundle metadata                      |
-| 5    | `revert_network_email_after_deploy` | Restore placeholder email in rlm.network-meta.xml        |
-| 6    | `publish_community`               | Publish the Partner Central community                      |
-| 7    | `deploy_sharing_rules`            | Deploy sharing rules for PRM                               |
-| 8    | `assign_permission_sets`         | Assign `RLM_PRM` permission set                            |
-| 9    | `insert_quantumbit_prm_data`      | Runs this SFDMU plan (2-pass)                              |
+**Every step is gated by `prm`; several carry additional `when:` conditions in `cumulusci.yml` (shown below), so not all steps run on every org.** The flow also uses non-contiguous numeric step keys (step 4 is intentionally absent).
+
+| Step | Task                              | Extra `when:` (beyond `prm`) | Description |
+|------|-----------------------------------|------------------------------|-------------|
+| 1    | `create_partner_central`          | —                            | Create Partner Central community |
+| 2    | `patch_network_email_for_deploy`  | `prm_exp_bundle` and `tso`   | Replace placeholder email in rlm.network-meta.xml with Network's actual EmailSenderAddress (immutable) |
+| 3    | `deploy_post_prm`                 | `prm_exp_bundle` and `tso`   | Deploy PRM Experience Bundle metadata |
+| 5    | `revert_network_email_after_deploy` | `prm_exp_bundle` and `tso` | Restore placeholder email in rlm.network-meta.xml |
+| 6    | `publish_community`               | —                            | Publish the Partner Central community |
+| 7    | `assign_permission_sets`          | `prm_exp_bundle` and `tso`   | Assign `RLM_PRM` permission set |
+| 8    | `insert_quantumbit_prm_data`      | `qb`                         | Runs this SFDMU plan (2-pass) |
+| 9    | `manage_context_definition`       | —                            | Activate the PartnerAccount context definition plan |
+| 10   | flow: `prepare_prm_pricing`       | `prm_pricing`                | Deploy PRM pricing metadata and data |
+
+> **Note:** steps 2/3/5/7 also require `tso` (Trialforce Source Org), which **defaults to `false`** — so on a default dev/ent scratch build those steps (including `assign_permission_sets`) are **skipped**. This plan (step 8) still runs whenever `prm` and `qb` are true, independent of those steps.
 
 ### Task Definition
 
@@ -77,45 +81,49 @@ Custom fields carry partner-specific pricing adjustments:
 - `RLM_Adjustment_Value__c` — adjustment amount
 - `RLM_Discount_Rate__c` — partner discount rate
 
-#### Known Constraint: SFDMU v5 Bug 3
+#### Org-Verified Exception: ChannelProgramMember Traversal Key
 
-ChannelProgramMember's `externalId` (`Partner.Name;Program.Name`) uses relationship-traversal fields, which are subject to [SFDMU v5 Bug 3](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781) — Upsert with relationship-traversal externalIds never matches existing records and always inserts. This means re-running the plan may create duplicate members.
+`ChannelProgramMember` uses `Partner.Name;Program.Name` as its external ID
+because the object has no stable direct field that represents the natural
+business key for a partner's enrollment in a program. This relationship
+traversal is a narrow, org-verified exception to the general SFDMU v5 guidance
+to avoid traversal-based Upsert keys.
 
-Currently mitigated by `skipExistingRecords: true`, but this is not a reliable fix because SFDMU cannot identify existing records when matching fails. The plan passes idempotency testing with the current single-member dataset, but could produce duplicates at scale.
-
-**Potential future fixes (in order of preference):**
-
-1. **Custom External ID field** — Add an `RLM_External_Id__c` (Text, External ID) field on `ChannelProgramMember`. Populate with a composite value like `"Robot Resellers:Reseller Program"` in the CSV. SFDMU Upsert matches correctly on direct fields. Requires adding the field metadata, updating the `RLM_PRM` permission set, and deploying before the data load.
-
-2. **`Insert` + `deleteOldData: true`** — Switch the operation to Insert with `deleteOldData: true`. SFDMU deletes all existing ChannelProgramMember records first, then re-inserts from CSV. Simple but destructive — any members created outside this plan (e.g., manually or by other processes) would be deleted on every run.
-
-3. **Use direct fields for externalId** — ChannelProgramMember has no direct unique or external ID fields beyond the auto-numbered `Name`. `PartnerId` and `ProgramId` are reference fields (only accessible via relationship traversal). There are no other direct field candidates for a composite key without creating a custom field (see option 1).
+The current baseline PRM dataset has been validated against target
+environments and reruns without increasing the scoped `ChannelProgramMember`
+count. No custom external key field is required, and the plan must not switch to
+`Insert` + `deleteOldData: true` because that would delete memberships outside
+this seed-data scope. Rerun validation remains part of the PR checklist for PRM
+changes that touch this plan or its `ChannelProgramMember` records.
 
 ## Custom Fields and Permission Set
 
 ### Custom Field Metadata
 
-Custom fields are packaged under `force-app/main/default/objects/`:
+Custom fields are packaged under `unpackaged/post_prm/force-app/main/default/objects/`
+and deployed by the baseline `deploy_post_prm` task:
 
 | Object                | Field                          | Type          | Label                |
 |-----------------------|--------------------------------|---------------|----------------------|
 | ChannelProgramLevel   | `RLM_Deal_Expiration_Days__c`  | Number(18,0)  | Deal Expiration Days |
-| ChannelProgramLevel   | `RLM_Discount_Rate__c`         | Percent(18,0) | Discount Rate        |
+| ChannelProgramLevel   | `RLM_Discount_Rate__c`         | Number(18,0)  | Discount Rate ¹      |
 | ChannelProgramLevel   | `RLM_Minimum_Deal_Size__c`     | Currency(18,0)| Minimum Deal Size    |
 | ChannelProgramMember  | `RLM_Adjustment_Type__c`       | Text(255)     | Adjustment Type      |
 | ChannelProgramMember  | `RLM_Adjustment_Value__c`      | Number(18,2)  | Adjustment Value     |
 | ChannelProgramMember  | `RLM_Discount_Rate__c`         | Number(18,2)  | Discount Rate        |
 
+¹ `ChannelProgramLevel.RLM_Discount_Rate__c` was intentionally changed from `Percent(18,0)` to `Number(18,0)` in this feature branch to align with the PRM pricing bundle. The field holds the rate as a literal whole number (the seed values are `15`, `10`, `5`, `2` — i.e. `15` means a 15% discount), which the PRM pricing decision table (`RLM_Channel_Program_Level_Partner`) reads directly. A `Percent` field would be treated as a fraction (e.g. `0.15`) in formula/decision-table evaluation, so `Number` keeps the stored and evaluated values identical. Because this repo targets clean org builds, no destructive migration of existing data is required.
+
 ### Permission Set: `RLM_PRM`
 
-Grants full read/edit access to all 6 custom fields above. Assigned in step 8 of the `prepare_prm` flow before the data load, ensuring SFDMU can write to the custom fields.
+Grants full read/edit access to all 6 custom fields above. When it runs, step 7 (`assign_permission_sets`) assigns it before the data load so SFDMU can write the custom fields. Note step 7 is **conditional** — it only runs when `prm_exp_bundle` and `tso` are both true (see the flow table), so on a default `tso=false` build the assignment does not happen in this flow and `RLM_PRM` must already be granted to the automation user by another path for the load to write the custom fields.
 
 ## Composite External IDs
 
 | Object                | Composite Key             | CSV `$$` Column   | Bug 3 Risk |
 |-----------------------|---------------------------|--------------------|------------|
 | ChannelProgramLevel   | `Name;Rank`               | `$$Name$Rank`      | No — direct fields |
-| ChannelProgramMember  | `Partner.Name;Program.Name` | `$$Partner.Name$Program.Name` | **Yes** — relationship traversals |
+| ChannelProgramMember  | `Partner.Name;Program.Name` | `$$Partner.Name$Program.Name` | Org-verified exception |
 
 ## Portability
 
@@ -131,7 +139,7 @@ No auto-numbered Name fields are used as external IDs.
 
 This plan has **no upstream data plan dependencies** — it creates its own Account records.
 
-This plan is independent of the product catalog (qb-pcm) and can be loaded in any order relative to other QB plans. However, the `prepare_prm` flow runs metadata deployment, community setup, and permission assignment (steps 1-8) before this data load (step 9).
+This plan is independent of the product catalog (qb-pcm) and can be loaded in any order relative to other QB plans. Within the `prepare_prm` flow, metadata deployment, community setup, and permission assignment (steps 1-7) run before this data load (step 8) **when their `when:` conditions are met** — steps 2/3/5/7 require `prm_exp_bundle` and `tso`, so on a default `tso=false` build several are skipped (see the flow table above). The data load itself (step 8) runs whenever `prm` and `qb` are true.
 
 ## File Structure
 
@@ -143,8 +151,8 @@ qb-prm/
 │  Source CSVs
 ├── Account.csv                   # 1 record (Robot Resellers)
 ├── ChannelProgram.csv            # 1 record (Reseller Program)
-├── ChannelProgramLevel.csv       # 4 records (Platinum, Gold, Silver, Bronze)
-├── ChannelProgramMember.csv      # 1 record (Robot Resellers @ Gold)
+├── ChannelProgramLevel.csv       # 4 records (Platinum - Reseller, Gold - Reseller, Silver - Reseller, Bronze - Reseller)
+├── ChannelProgramMember.csv      # 1 record (Robot Resellers @ Silver - Reseller)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/
@@ -163,4 +171,6 @@ cci task run extract_qb_prm_data --org <your-org>
 cci task run test_qb_prm_idempotency --org <your-org>
 ```
 
-Account, ChannelProgram, and ChannelProgramLevel are fully idempotent via Upsert on direct fields. ChannelProgramMember passes idempotency testing with the current dataset but is subject to SFDMU v5 Bug 3 — see [Known Constraint](#known-constraint-sfdmu-v5-bug-3) above.
+Account, ChannelProgram, and ChannelProgramLevel are fully idempotent via
+Upsert on direct fields. `ChannelProgramMember` is the org-verified exception
+described above and must continue to pass rerun validation before merge.

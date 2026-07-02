@@ -44,8 +44,10 @@ Instead of `headlessConfigLoad(quoteId)`, query the `QuoteEntitiesMapping` conte
 
 ### How `headlessConfigSet` works
 
+> Path shorthand: `/connect/...` in this doc is the relative form of the full REST path `/services/data/v67.0/connect/...` (i.e. relative to the Salesforce REST API base, **not** the instance root). The architecture table above and the example below use this shorthand for brevity; prepend `/services/data/v67.0` when invoking against a 262 org.
+
 ```
-POST /services/data/v66.0/connect/cpq/configurator/set
+POST /connect/cpq/configurator/set
 {
   "contextMappingId": "<QuoteEntitiesMapping ID>",
   "transaction": "{\"Quote\":[{\"businessObjectType\":\"Quote\",\"id\":\"<quoteId>\"}]}"

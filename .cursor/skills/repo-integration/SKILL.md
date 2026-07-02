@@ -5,7 +5,7 @@ capabilities to the rlm-base-dev repository.
 
 ## Quick Rules
 
-1. `force-app/` = step 5. `unpackaged/post_*/` = feature steps. `templates/` = step 27.
+1. `force-app/` = step 5. `unpackaged/post_*/` = feature steps. `templates/` = step 30.
 2. Never edit `unpackaged/post_ux/` — edit `templates/` instead.
 3. Never add `layoutAssignment` to `force-app/` profiles — use `templates/profiles/`.
 4. CCI: `--org beta`. SF CLI: `--target-org rlm-base__beta`. Never mix them.
@@ -64,6 +64,10 @@ auto-updates YAML patch files. Profile writeback requires manual oversight.
 
 For full details, see `docs/features/dynamic-ux-assembly.md`.
 
+For **assembler vs retrieve**, SOAP retrieve scope, stale `appMenus/` cleanup,
+and why not to hand-edit `unpackaged/post_ux/`, read
+`.cursor/skills/repo-integration/ux-assembly-retrieve.md`.
+
 ---
 
 ## How Do I Configure Something?
@@ -112,7 +116,7 @@ strip-and-build, data dependencies, activation patterns), read
 Key rules:
 - `unpackaged/pre/` numbered subdirs deploy in order (1→2→3→5)
 - `force-app/` deploys as one bundle at step 5
-- `force-app/` profiles are classAccesses-only (full profile at step 27)
+- `force-app/` profiles are classAccesses-only (full profile at step 30)
 - Products (PCM) → pricing → billing → tax → rating → rates
 - Delete in reverse: rates → rating → billing → pricing → PCM
 

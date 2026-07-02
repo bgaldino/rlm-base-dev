@@ -1,0 +1,260 @@
+<template>
+    <lightning-card>
+        <div class="card-header" slot="title">
+            <lightning-icon icon-name="standard:flow" size="small" class="header-icon"></lightning-icon>
+            <span class="header-title">Invoice Batch Run Health</span>
+        </div>
+        <div slot="actions">
+            <lightning-button
+                label="Monitor Batch Job"
+                icon-name="utility:setup"
+                variant="neutral"
+                onclick={handleMonitorBatchJob}
+            ></lightning-button>
+        </div>
+
+        <template if:true={error}>
+            <div class="slds-p-around_medium">
+                <p class="error-text">{error}</p>
+            </div>
+        </template>
+
+        <template if:true={hasData}>
+            <div class="monitor-body">
+
+                <!-- Phase Pipeline -->
+                <div class="pipeline-section">
+                    <div class="phase-pipeline">
+                        <template for:each={runData.milestones} for:item="ms">
+                            <div key={ms.index} class={ms.cssClass}>
+                                <div class={ms.dotClass}>
+                                    <template if:true={ms.isCompleted}>
+                                        <span class="dot-check">&#10003;</span>
+                                    </template>
+                                    <template if:true={ms.isActive}>
+                                        <span class="dot-pulse"></span>
+                                    </template>
+                                    <template if:true={ms.isFailed}>
+                                        <span class="dot-x">&#10005;</span>
+                                    </template>
+                                </div>
+                                <span class="step-label">{ms.label}</span>
+                                <template if:true={ms.hasSubLabel}>
+                                    <span class="step-sub-label">{ms.subLabel}</span>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="progress-track">
+                        <div class={runData.barClass} style={runData.progressStyle}></div>
+                    </div>
+                    <div class="progress-meta">
+                        <span class="progress-pct">{runData.progressPct}%</span>
+                        <span class="progress-elapsed">Elapsed: {runData.elapsed}</span>
+                    </div>
+                </div>
+
+                <!-- Real-Time Invoice Generation Stats -->
+                <template if:true={runData.showInvoiceStats}>
+                    <div class="invoice-stats-section">
+                        <div class="invoice-stats-header">
+                            <span class="invoice-stats-title">Real-Time Invoice Generation</span>
+                            <template if:true={runData.isRunning}>
+                                <span class="live-badge">
+                                    <span class="live-pulse"></span> LIVE
+                                </span>
+                            </template>
+                        </div>
+
+                        <!-- Invoice lifecycle flow -->
+                        <div class={runData.invFlowClass}>
+                            <div class="inv-flow-node inv-node-draft">
+                                <div class={runData.draftCountClass}>{runData.liveDraft}</div>
+                                <div class="inv-flow-label">Draft</div>
+                            </div>
+                            <div class="inv-flow-arrow">
+                                <div class="inv-flow-arrow-line"></div>
+                                <div class="inv-flow-arrow-head"></div>
+                            </div>
+                            <div class="inv-flow-node inv-node-posting">
+                                <div class={runData.postingCountClass}>{runData.livePosting}</div>
+                                <div class="inv-flow-label">Posting</div>
+                            </div>
+                            <div class="inv-flow-arrow">
+                                <div class="inv-flow-arrow-line"></div>
+                                <div class="inv-flow-arrow-head"></div>
+                            </div>
+                            <div class="inv-flow-node inv-node-posted">
+                                <div class={runData.postedCountClass}>{runData.livePosted}</div>
+                                <div class="inv-flow-label">Posted</div>
+                            </div>
+                            <div class="inv-flow-separator"></div>
+                            <div class="inv-flow-node inv-node-error">
+                                <div class={runData.errorCountClass}>{runData.liveError}</div>
+                                <div class="inv-flow-label">Error</div>
+                            </div>
+                        </div>
+
+                        <template if:true={runData.isRunning}>
+                            <div class="poll-info">
+                                Polling for generated invoices every 2s ...
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <!-- Timing -->
+                <div class="timing-row">
+                    <div class="timing-item">
+                        <span class="timing-label">Start Time</span>
+                        <span class="timing-value">{runData.startFormatted}</span>
+                    </div>
+                    <div class="timing-item">
+                        <span class="timing-label">Completion Time</span>
+                        <span class="timing-value">{runData.completionFormatted}</span>
+                    </div>
+                    <template if:true={runData.hasRecovery}>
+                        <div class="timing-item">
+                            <span class="timing-label">Recovery Status</span>
+                            <span class="timing-value">{runData.recoveryStatus}</span>
+                        </div>
+                    </template>
+                    <template if:true={runData.hasCredits}>
+                        <div class="timing-item">
+                            <span class="timing-label">Credit Application</span>
+                            <span class="timing-value">{runData.creditStatus}</span>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Collapsible Summary Section -->
+                <div class="summary-header" role="button" tabindex="0"
+                     aria-expanded={summaryExpanded} aria-label="Toggle summary section"
+                     onclick={toggleSummary} onkeydown={handleSummaryKeydown}>
+                    <lightning-icon icon-name={summaryChevron} size="xx-small" class="chevron-icon"></lightning-icon>
+                    <span class="summary-title">Summary</span>
+                </div>
+
+                <template if:true={summaryExpanded}>
+                    <template if:false={runData.summaryReady}>
+                        <div class="summary-pending">
+                            <div class="summary-pending-dots">
+                                <span class="pending-dot"></span>
+                                <span class="pending-dot"></span>
+                                <span class="pending-dot"></span>
+                            </div>
+                            <span class="summary-pending-text">Calculation in progress — summary will be available once the invoice batch run is completed.</span>
+                        </div>
+                    </template>
+                    <template if:true={runData.summaryReady}>
+                        <div class="metrics-grid">
+                            <!-- Billing Schedules Card -->
+                            <div class="metric-card">
+                                <div class="metric-card-header">
+                                    <span class="metric-card-title">Billing Schedules</span>
+                                    <span class={runData.bsStatusClass}>{runData.bsStatusLabel}</span>
+                                </div>
+                                <div class="metric-card-body">
+                                    <div class="metric-row">
+                                        <span class="metric-label">Total Matched</span>
+                                        <span class="metric-val">{runData.totalBS}</span>
+                                    </div>
+                                    <div class="metric-row">
+                                        <span class="metric-label">Successfully Processed</span>
+                                        <span class="metric-val success">{runData.successBS}</span>
+                                    </div>
+                                    <div class="metric-row">
+                                        <span class="metric-label">Failed</span>
+                                        <span class={runData.failedBSClass}>{runData.failedBS}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Invoices Card -->
+                            <div class="metric-card">
+                                <div class="metric-card-header">
+                                    <span class="metric-card-title">Invoices</span>
+                                    <span class={runData.invStatusClass}>{runData.invStatusLabel}</span>
+                                </div>
+                                <div class="metric-card-body">
+                                    <div class="metric-row">
+                                        <span class="metric-label">Generated</span>
+                                        <span class="metric-val">{runData.totalInv}</span>
+                                    </div>
+                                    <div class="metric-row">
+                                        <span class="metric-label">Successfully Processed</span>
+                                        <span class="metric-val success">{runData.successInv}</span>
+                                    </div>
+                                    <div class="metric-row">
+                                        <span class="metric-label">Failed</span>
+                                        <span class={runData.failedInvClass}>{runData.failedInv}</span>
+                                    </div>
+                                    <div class="metric-row">
+                                        <span class="metric-label">Cancelled</span>
+                                        <span class="metric-val">{runData.cancelledInv}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Amounts Card -->
+                            <div class="metric-card">
+                                <div class="metric-card-header">
+                                    <span class="metric-card-title">Amounts &amp; Status</span>
+                                </div>
+                                <div class="metric-card-body">
+                                    <div class="metric-row">
+                                        <span class="metric-label">Total Invoiced Amount</span>
+                                        <span class="metric-val amount">{runData.totalAmountFmt}</span>
+                                    </div>
+                                    <div class="metric-row">
+                                        <span class="metric-label">Draft Invoice Amount</span>
+                                        <span class="metric-val">{runData.draftAmountFmt}</span>
+                                    </div>
+                                    <div class="metric-row">
+                                        <span class="metric-label">Draft Invoices</span>
+                                        <span class="metric-val">{runData.draftInv}</span>
+                                    </div>
+                                    <div class="metric-row">
+                                        <span class="metric-label">Posted Invoices</span>
+                                        <span class="metric-val success">{runData.postedInv}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Doc Gen Card (conditional) -->
+                            <template if:true={runData.hasDocGen}>
+                                <div class="metric-card">
+                                    <div class="metric-card-header">
+                                        <span class="metric-card-title">Document Generation</span>
+                                    </div>
+                                    <div class="metric-card-body">
+                                        <div class="metric-row">
+                                            <span class="metric-label">Status</span>
+                                            <span class="metric-val">{runData.docGenStatus}</span>
+                                        </div>
+                                        <div class="metric-row">
+                                            <span class="metric-label">Documents Generated</span>
+                                            <span class="metric-val success">{runData.docsGen}</span>
+                                        </div>
+                                        <div class="metric-row">
+                                            <span class="metric-label">Failures</span>
+                                            <span class="metric-val">{runData.docsFailed}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+
+            </div>
+        </template>
+
+        <template if:false={hasData}>
+            <div class="slds-p-around_medium slds-align_absolute-center">
+                <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+            </div>
+        </template>
+    </lightning-card>
+</template>

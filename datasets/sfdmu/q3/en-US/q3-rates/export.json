@@ -1,41 +1,42 @@
 {
-  "apiVersion": "66.0",
+  "apiVersion": "67.0",
   "excludeIdsFromCSVFiles": "false",
-  "objectSets": [
+  "useSeparatedCSVFiles": true,
+  "objects": [
     {
-      "name": "First Pass - Insert/Upsert with Draft Status",
-      "objects": [
-        {
-          "query": "SELECT Name, ProductCode, StockKeepingUnit, UsageModelType FROM Product2 ORDER BY StockKeepingUnit ASC",
-          "operation": "Update",
-          "externalId": "StockKeepingUnit",
-          "excluded": false
-        },
-        {
-          "query": "SELECT Description, EffectiveFrom, EffectiveTo, Name, Type FROM RateCard ORDER BY Name ASC",
-          "operation": "Upsert",
-          "externalId": "Name",
-          "excluded": false
-        },
-        {
-          "query": "SELECT PriceBookId, RateCardId, RateCardType FROM PriceBookRateCard ORDER BY PriceBook.Name ASC, RateCard.Name ASC, RateCardType ASC",
-          "operation": "Upsert",
-          "externalId": "PriceBook.Name;RateCard.Name;RateCardType",
-          "excluded": false
-        },
-        {
-          "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureId, EffectiveFrom, EffectiveTo, ProductId, ProductSellingModelId, Rate, RateCardId, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureId, Status, UsageResourceId FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Name ASC",
-          "operation": "Upsert",
-          "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Name",
-          "excluded": false
-        },
-        {
-          "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, ProductSellingModelId, RateCardEntryId, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, UpperBound, UsageResourceId FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
-          "operation": "Upsert",
-          "externalId": "Product.StockKeepingUnit;RateCardEntry.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code",
-          "excluded": false
-        }
-      ]
+      "query": "SELECT Name, ProductCode, StockKeepingUnit, UsageModelType FROM Product2 ORDER BY StockKeepingUnit ASC",
+      "operation": "Update",
+      "externalId": "StockKeepingUnit",
+      "excluded": false
+    },
+    {
+      "query": "SELECT Description, EffectiveFrom, EffectiveTo, Name, Type FROM RateCard ORDER BY Name ASC",
+      "operation": "Upsert",
+      "externalId": "Name;Type",
+      "excluded": false
+    },
+    {
+      "query": "SELECT PriceBookId, PriceBook.Name, RateCardId, RateCard.Name, RateCard.Type, RateCardType FROM PriceBookRateCard ORDER BY PriceBook.Name ASC, RateCard.Name ASC, RateCardType ASC",
+      "operation": "Upsert",
+      "externalId": "PriceBook.Name;RateCard.Name;RateCardType",
+      "excluded": false,
+      "deleteOldData": true
+    },
+    {
+      "$comment": "SFDMU v5 Bug 2: externalId contains multi-hop traversal fields (Product.StockKeepingUnit, RateCard.Name, UsageResource.Code, RateUnitOfMeasure.UnitCode). Upsert TARGET SELECT strips parent-relationship prefixes producing invalid SOQL. Fix: Insert+deleteOldData skips the TARGET SELECT phase entirely.",
+      "query": "SELECT DefaultUnitOfMeasureClassId, DefaultUnitOfMeasureClass.Name, DefaultUnitOfMeasureId, DefaultUnitOfMeasure.Name, EffectiveFrom, EffectiveTo, ProductId, Product.StockKeepingUnit, ProductSellingModelId, ProductSellingModel.Name, Rate, RateCardId, RateCard.Name, RateCard.Type, RateNegotiation, RateUnitOfMeasureClassId, RateUnitOfMeasureClass.Name, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, RateUnitOfMeasure.Name, Status, UsageResourceId, UsageResource.Code, UsageResource.Name FROM RateCardEntry ORDER BY Product.StockKeepingUnit ASC, RateCard.Name ASC, UsageResource.Code ASC",
+      "operation": "Insert",
+      "externalId": "Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode",
+      "excluded": false,
+      "deleteOldData": true
+    },
+    {
+      "$comment": "RABT must be inserted while parent RateCardEntry is Draft. Uses RateCardEntry.RateCard.Name (portable) instead of RateCardEntry.Name (auto-numbered) in the composite key. SFDMU v5 Bug 2: externalId contains multi-hop traversal fields (Product.StockKeepingUnit, RateCardEntry.RateCard.Name, UsageResource.Code, RateUnitOfMeasure.UnitCode). Fix: Insert+deleteOldData skips the TARGET SELECT phase.",
+      "query": "SELECT AdjustmentType, AdjustmentValue, EffectiveFrom, EffectiveTo, LowerBound, ProductId, Product.StockKeepingUnit, ProductSellingModelId, RateCardEntryId, RateCardEntry.RateCard.Name, RateCardEntryStatus, RateUnitOfMeasureName, RateUnitOfMeasureId, RateUnitOfMeasure.UnitCode, UpperBound, UsageResourceId, UsageResource.Code FROM RateAdjustmentByTier ORDER BY Product.StockKeepingUnit ASC, RateCardEntry.Name ASC, UsageResource.Code ASC, RateUnitOfMeasure.UnitCode ASC",
+      "operation": "Insert",
+      "externalId": "Product.StockKeepingUnit;RateCardEntry.RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound",
+      "excluded": false,
+      "deleteOldData": true
     }
   ],
   "orgs": []

@@ -39,11 +39,12 @@ scratch_data (Account, Contact, BillingAccount)
             ├──→ qb-clm (7 objects)
             │       ObjectStateDefinition, transitions, clause sets
             │
-            ├──→ qb-guidedselling (10 objects)
-            │       AssessmentQuestion, OmniProcess, OmniProcessElement
-            │
             ├──→ qb-product-images (1 object)
             │       Product2 DisplayUrl updates
+            │
+            ├──→ qb-guidedselling-products (1 object)
+            │       Product2 guided selling field updates; requires guided selling field metadata
+            │       Decorator plan loaded by prepare_guidedselling in org builds
             │
             ├──→ qb-prm (5 objects, 2 passes)
             │       Account (partner), ChannelProgram, ChannelProgramMember
@@ -79,6 +80,6 @@ Delete order (for full teardown):
 
 | Family | Plans | Notes |
 |--------|-------|-------|
-| Q3 | q3-multicurrency, q3-billing, q3-dro, q3-tax, q3-rating, q3-rates | Parallel product line; same dependency ordering |
+| Q3 | q3-pcm, q3-pricing, q3-billing, q3-dro, q3-tax, q3-rating, q3-rates | Parallel product line, mirrors qb plan shapes; same dependency ordering (q3-multicurrency was split into q3-pcm + q3-pricing) |
 | Manufacturing | mfg-configflow, mfg-constraints-p, mfg-constraints-prc, mfg-multicurrency | Configuration and constraints |
 | Procedure Plans | procedure-plans | Depends on expression sets metadata, not on QB data |

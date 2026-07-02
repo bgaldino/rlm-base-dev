@@ -1,0 +1,26 @@
+# GitHub Pages (Jekyll) configuration for the /docs site.
+#
+# This site publishes ONLY the generated artifacts — the ERD viewer (`erds/`)
+# and the API docs (`api/`). Everything else under docs/ is repo-internal and is
+# NOT meant for the public Pages site:
+#   - guides / references / analysis / features / integration — how-to + reference docs
+#   - enablement — release hands-on exercises
+#   - salesforce — captured Salesforce Help / dev-guide snapshots (vendor-doc
+#     copies kept for AI-agent grounding)
+#
+# Excluding them also fixes the Pages build: the salesforce/ snapshots contain
+# original `{{ }}` placeholders (e.g. {{contextNodeMappingId}}) that Jekyll's
+# Liquid parser fails on (Liquid syntax error, introduced in #260). Excluding the
+# non-published trees also avoids orphaned links — none of the excluded docs are
+# emitted, and erds/ + api/ don't link into them.
+#
+# Paths are relative to the Pages source dir (/docs). Add any new repo-internal
+# doc directory here so it stays out of the published site.
+exclude:
+  - analysis/
+  - enablement/
+  - features/
+  - guides/
+  - integration/
+  - references/
+  - salesforce/

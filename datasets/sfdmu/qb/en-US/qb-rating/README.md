@@ -46,17 +46,17 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 1 | UnitOfMeasure                | Upsert    | `UnitCode`                                           | 12      |
 | 2 | UnitOfMeasureClass           | Upsert    | `Code`                                               | 5       |
 | 3 | UsageResourceBillingPolicy   | Upsert    | `Code`                                               | 3       |
-| 4 | UsageResource                | Upsert    | `Code`                                               | 5       |
-| 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 164     |
+| 4 | UsageResource                | Upsert    | `Code`                                               | 9       |
+| 5 | Product2                     | Update    | `StockKeepingUnit`                                   | 9       |
 | 6 | UsageGrantRenewalPolicy      | Upsert    | `Code`                                               | 1       |
 | 7 | UsageGrantRolloverPolicy     | Upsert    | `Code`                                               | 1       |
 | 8 | UsageOveragePolicy           | Upsert    | `Name`                                               | 2       |
-| 9 | UsageCommitmentPolicy        | Upsert    | `Name`                                               | 1       |
-| 10| ProductUsageResource         | Insert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 20      |
+| 9 | UsageCommitmentPolicy        | Upsert    | `Name`                                               | 2       |
+| 10| ProductUsageResource         | Insert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 21      |
 | 11| UsagePrdGrantBindingPolicy   | Upsert    | `Name;Product2.StockKeepingUnit`                     | 1       |
 | 12| RatingFrequencyPolicy        | Upsert    | `RatingPeriod`                                       | 1       |
-| 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 17      |
-| 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 17      |
+| 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 19      |
+| 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 9       |
 
 ¹ Insert+deleteOldData (no WHERE). SFDMU v5 cannot match by relationship-traversal externalId — Upsert always inserts duplicates. deleteOldData runs in reverse array order (PUG→PURP→PUR) to satisfy FK constraints.
 
@@ -113,70 +113,67 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 
 ## Usage Resources
 
-| Code             | Category | UoM Class       | Default UoM | Billing Policy    |
-|------------------|----------|-----------------|-------------|-------------------|
-| QB-TOKEN         | Token    | Token_UoM_Class | TOKEN-UOM   | monthlytotal      |
-| UR-CPUTIME       | Usage    | TIME            | m (Minutes) | monthlytotal      |
-| UR-DATASTORAGE   | Usage    | DATAVOL         | TB          | monthlypeak       |
-| UR-DATAXFR       | Usage    | DATAVOL         | GB          | monthlytotal      |
-| UR-USD           | Currency | CURRENCY        | USD         | monthlytotal      |
+| Code               | Category | UoM Class       | Default UoM | Billing Policy    |
+|--------------------|----------|-----------------|-------------|-------------------|
+| QB-TOKEN           | Token    | Token_UoM_Class | TOKEN-UOM   | monthlytotal      |
+| UR-CPUTIME         | Usage    | TIME            | m (Minutes) | monthlytotal      |
+| UR-DATASTORAGE     | Usage    | DATAVOL         | TB          | monthlypeak       |
+| UR-DATAXFR         | Usage    | DATAVOL         | GB          | monthlytotal      |
+| UR-USD             | Currency | CURRENCY        | USD         | monthlytotal      |
+| UR-CPUTIME-TKN     | Usage    | TIME            | m (Minutes) | monthlytotal      |
+| UR-DATASTORAGE-TKN | Usage    | DATAVOL         | TB          | monthlypeak       |
+| UR-CPUTIME-MTY     | Usage    | TIME            | m (Minutes) | monthlytotal      |
+| UR-DATASTORAGE-MTY | Usage    | DATAVOL         | TB          | monthlypeak       |
 
 ## ProductUsageResource (PUR) Mapping
 
-20 records mapping products to their usage resources:
+21 records mapping products to their usage resources:
 
-| Product          | Resource        | Token Resource | Notes                              |
-|------------------|-----------------|----------------|------------------------------------|
-| QB-DB            | QB-TOKEN        | —              | Token PUR for Anchor product       |
-| QB-DB            | UR-DATASTORAGE  | —              | Usage PUR (TokenResourceId auto-populated) |
-| QB-DB            | UR-CPUTIME      | —              | Usage PUR (TokenResourceId auto-populated) |
-| QB-DAT-THPT      | UR-DATAXFR      | —              | Standalone usage (no token)        |
-| QB-TOKENS-PACK   | QB-TOKEN        | —              | Token pack                         |
-| QB-DB-TOKEN      | QB-TOKEN        | —              | Token PUR                          |
-| QB-DB-TOKEN      | UR-DATASTORAGE  | QB-TOKEN       | Usage PUR with explicit token ref  |
-| QB-DB-TOKEN      | UR-CPUTIME      | QB-TOKEN       | Usage PUR with explicit token ref  |
-| QB-CMT-TKN-EACH  | QB-TOKEN        | —              | Token PUR                          |
-| QB-CMT-TKN-EACH  | UR-DATASTORAGE  | QB-TOKEN       | Usage PUR with token ref           |
-| QB-CMT-TKN-EACH  | UR-CPUTIME      | QB-TOKEN       | Usage PUR with token ref           |
-| QB-CMT-TKN-FLAT  | QB-TOKEN        | —              | Token PUR                          |
-| QB-CMT-TKN-FLAT  | UR-CPUTIME      | QB-TOKEN       | Usage PUR with token ref           |
-| QB-CMT-TKN-FLAT  | UR-DATASTORAGE  | QB-TOKEN       | Usage PUR with token ref           |
-| QB-CMT-TKN-TIER  | QB-TOKEN        | —              | Token PUR                          |
-| QB-CMT-TKN-TIER  | UR-DATASTORAGE  | QB-TOKEN       | Usage PUR with token ref           |
-| QB-CMT-TKN-TIER  | UR-CPUTIME      | QB-TOKEN       | Usage PUR with token ref           |
-| QB-QTY-CMT       | UR-DATASTORAGE  | —              | Commitment qty (no token allowed)  |
-| QB-QTY-CMT       | UR-CPUTIME      | —              | Commitment qty (no token allowed)  |
-| QB-MTY-CMT       | UR-USD          | —              | Monetary commitment (currency)     |
+| Product          | Resource            | Notes                                       |
+|------------------|---------------------|---------------------------------------------|
+| QB-DB            | UR-DATASTORAGE      | Usage PUR (TokenResourceId auto-populated)  |
+| QB-DB            | UR-CPUTIME          | Usage PUR (TokenResourceId auto-populated)  |
+| QB-DAT-THPT      | UR-DATAXFR          | Standalone usage (no token)                 |
+| QB-TOKENS-PACK   | QB-TOKEN            | Token pack                                  |
+| QB-DB-TOKEN      | QB-TOKEN            | Token PUR                                    |
+| QB-DB-TOKEN      | UR-DATASTORAGE-TKN  | Usage PUR — dedicated token resource        |
+| QB-DB-TOKEN      | UR-CPUTIME-TKN      | Usage PUR — dedicated token resource        |
+| QB-CMT-TKN-EACH  | QB-TOKEN            | Token PUR                                    |
+| QB-CMT-TKN-EACH  | UR-DATASTORAGE-TKN  | Usage PUR — dedicated token resource        |
+| QB-CMT-TKN-EACH  | UR-CPUTIME-TKN      | Usage PUR — dedicated token resource        |
+| QB-CMT-TKN-FLAT  | QB-TOKEN            | Token PUR                                    |
+| QB-CMT-TKN-FLAT  | UR-CPUTIME-TKN      | Usage PUR — dedicated token resource        |
+| QB-CMT-TKN-FLAT  | UR-DATASTORAGE-TKN  | Usage PUR — dedicated token resource        |
+| QB-CMT-TKN-TIER  | QB-TOKEN            | Token PUR                                    |
+| QB-CMT-TKN-TIER  | UR-DATASTORAGE-TKN  | Usage PUR — dedicated token resource        |
+| QB-CMT-TKN-TIER  | UR-CPUTIME-TKN      | Usage PUR — dedicated token resource        |
+| QB-QTY-CMT       | UR-DATASTORAGE      | Commitment qty (no token allowed)           |
+| QB-QTY-CMT       | UR-CPUTIME          | Commitment qty (no token allowed)           |
+| QB-MTY-CMT       | UR-USD              | Monetary commitment (currency)              |
+| QB-MTY-CMT       | UR-CPUTIME-MTY      | Usage PUR — dedicated monetary resource     |
+| QB-MTY-CMT       | UR-DATASTORAGE-MTY  | Usage PUR — dedicated monetary resource     |
 
 ## ProductUsageGrant (PUG) Summary
 
-17 grant records across 4 usage definition products:
+9 grant records across 4 usage definition products:
 
 | Usage Definition Product | Type   | Resource          | Quantity | Validity       |
 |--------------------------|--------|-------------------|----------|----------------|
-| QB-CPU-BLNG              | Grant  | QB-DB;UR-CPUTIME             | 0     | 1 Month |
-| QB-CPU-BLNG              | Grant  | QB-DB-TOKEN;UR-CPUTIME       | 0     | 1 Month |
-| QB-CPU-BLNG              | Grant  | QB-CMT-TKN-TIER;UR-CPUTIME  | 0     | 1 Month |
-| QB-CPU-BLNG              | Grant  | QB-CMT-TKN-FLAT;UR-CPUTIME  | 0     | 1 Month |
-| QB-CPU-BLNG              | Grant  | QB-CMT-TKN-EACH;UR-CPUTIME  | 10    | 1 Month |
+| QB-CPU-BLNG              | Grant  | QB-DB;UR-CPUTIME            | 0     | 1 Month |
 | QB-CPU-BLNG              | Commit | QB-QTY-CMT;UR-CPUTIME       | 1000  | 1 Month |
-| QB-DATA-STORAGE-BLNG     | Grant  | QB-CMT-TKN-TIER;UR-DATASTORAGE | 0  | 1 Month |
-| QB-DATA-STORAGE-BLNG     | Grant  | QB-CMT-TKN-FLAT;UR-DATASTORAGE | 0  | 1 Month |
-| QB-DATA-STORAGE-BLNG     | Grant  | QB-DB;UR-DATASTORAGE         | 5     | 1 Month |
-| QB-DATA-STORAGE-BLNG     | Grant  | QB-DB-TOKEN;UR-DATASTORAGE   | 0     | 1 Month |
-| QB-DATA-STORAGE-BLNG     | Grant  | QB-CMT-TKN-EACH;UR-DATASTORAGE | 10 | 1 Month |
+| QB-DATA-STORAGE-BLNG     | Grant  | QB-DB;UR-DATASTORAGE        | 5     | 1 Month |
 | QB-DATA-STORAGE-BLNG     | Commit | QB-QTY-CMT;UR-DATASTORAGE   | 1000  | 1 Month |
-| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-FLAT;QB-TOKEN     | 1000  | 1 Month |
-| QB-TOKEN-DEF             | Grant  | QB-DB-TOKEN;QB-TOKEN         | 100000| None    |
-| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-TIER;QB-TOKEN     | 1000  | 1 Month |
-| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-EACH;QB-TOKEN     | 1000  | 1 Month |
-| RES-USD-DEF              | Commit | QB-MTY-CMT;UR-USD            | 5000  | 1 Month |
+| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-FLAT;QB-TOKEN    | 1000  | 1 Month |
+| QB-TOKEN-DEF             | Grant  | QB-DB-TOKEN;QB-TOKEN        | 100000| None    |
+| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-TIER;QB-TOKEN    | 1000  | 1 Month |
+| QB-TOKEN-DEF             | Commit | QB-CMT-TKN-EACH;QB-TOKEN    | 1000  | 1 Month |
+| RES-USD-DEF              | Commit | QB-MTY-CMT;UR-USD           | 5000  | 1 Month |
 
 ## API 260 Known Issues
 
 ### TokenResourceId Auto-Population
 
-The platform auto-populates `TokenResourceId` on non-Token PURs during ANY DML (insert or update) when their `UsageResource` has a Token association (`UsageResource.TokenResourceId` is set). This is independent of QB-TOKEN's Status -- it is driven by the UsageResource relationship field. Affected resources: UR-CPUTIME and UR-DATASTORAGE (both have `TokenResource.Code = QB-TOKEN`).
+The platform auto-populates `TokenResourceId` on non-Token PURs during ANY DML (insert or update) when their `UsageResource` has a Token association (`UsageResource.TokenResourceId` is set). This is independent of QB-TOKEN's Status -- it is driven by the UsageResource relationship field. Affected resources: the token/monetary variants `UR-CPUTIME-TKN` / `UR-DATASTORAGE-TKN` (`TokenResource.Code = QB-TOKEN`) and `UR-CPUTIME-MTY` / `UR-DATASTORAGE-MTY` (`TokenResource.Code = UR-USD`); the base `UR-CPUTIME` / `UR-DATASTORAGE` resources carry no token association.
 
 ### Activation Conflict and Clear+Activate Workaround
 
@@ -184,14 +181,14 @@ When activating a PUR (`Status='Active'`), the platform auto-populates `TokenRes
 
 **Critical nuance:** The clear+activate only works when `TokenResourceId` changes from a **non-null** value to null. A null-to-null "clear" is a no-op and does NOT prevent auto-population. This is why Step 3 of the Apex script pre-populates `TokenResourceId` on Draft PURs where it is missing -- ensuring Step 4's clear is a real field change.
 
-### Excluded Records (258 -> 260 Migration Gap)
+### Monetary Commitment Usage PURs (Dedicated `-MTY` Resources)
 
-The following PURs and their dependent PURP/PUG records are **excluded** from this plan because they cannot be activated in API 260:
+The CommitmentSpend product (`QB-MTY-CMT`) carries Usage-category PURs alongside its Currency PUR (`QB-MTY-CMT;UR-USD`):
 
-- `QB-MTY-CMT;UR-CPUTIME` — CommitmentSpend + Usage (TokenResourceId conflict)
-- `QB-MTY-CMT;UR-DATASTORAGE` — CommitmentSpend + Usage (TokenResourceId conflict)
+- `QB-MTY-CMT;UR-CPUTIME-MTY` — CommitmentSpend + Usage (dedicated monetary resource)
+- `QB-MTY-CMT;UR-DATASTORAGE-MTY` — CommitmentSpend + Usage (dedicated monetary resource)
 
-These were `IsOptional=true` records that worked in API 258 but fail validation in 260.
+Rather than reusing the QB-TOKEN-associated `-TKN` variants (whose `QB-TOKEN` association would trigger a TokenResourceId activation conflict on CommitmentSpend products), these use dedicated `-MTY` UsageResource variants whose `TokenResource.Code` points at `UR-USD` instead of `QB-TOKEN`. This keeps the monetary-commitment usage records activatable without the TokenResourceId edit conflict.
 
 ### Anchor Products Require Token PUR
 
@@ -212,17 +209,17 @@ qb-rating/
 ├── UnitOfMeasure.csv                    # 12 records
 ├── UnitOfMeasureClass.csv               # 5 records
 ├── UsageResourceBillingPolicy.csv       # 3 records
-├── UsageResource.csv                    # 5 records
-├── Product2.csv                         # 164 records (Update only)
+├── UsageResource.csv                    # 9 records
+├── Product2.csv                         # 9 records (Update only)
 ├── UsageGrantRenewalPolicy.csv          # 1 record
 ├── UsageGrantRolloverPolicy.csv         # 1 record
 ├── UsageOveragePolicy.csv               # 2 records
-├── UsageCommitmentPolicy.csv            # 1 record
-├── ProductUsageResource.csv             # 20 records
+├── UsageCommitmentPolicy.csv            # 2 records
+├── ProductUsageResource.csv             # 21 records
 ├── UsagePrdGrantBindingPolicy.csv       # 1 record
 ├── RatingFrequencyPolicy.csv            # 1 record
-├── ProductUsageResourcePolicy.csv       # 17 records
-├── ProductUsageGrant.csv                # 17 records
+├── ProductUsageResourcePolicy.csv       # 19 records
+├── ProductUsageGrant.csv                # 9 records
 │
 │  Source CSVs (Pass 2 - Activate)
 ├── objectset_source/
@@ -288,7 +285,7 @@ The SOQL queries in `export.json` include both raw ID fields (e.g., `ProductId`)
 
 ## Idempotency
 
-The plan is **fully idempotent**: every run deletes ALL PUR, PURP, and PUG records (deleteOldData, no WHERE) and re-inserts from CSV. Consecutive runs always produce PUR=20, PURP=17, PUG=17. No duplicate risk.
+The plan is **fully idempotent**: every run deletes ALL PUR, PURP, and PUG records (deleteOldData, no WHERE) and re-inserts from CSV. Consecutive runs always produce PUR=21, PURP=19, PUG=9. No duplicate risk.
 
 The idempotency test (`test_qb_rating_idempotency`) uses **extraction roundtrip** (`use_extraction_roundtrip: true`): loads from source CSVs → extracts from org → post-processes → re-imports from the processed dir, confirming no record count increase. Extraction output is persisted to `datasets/sfdmu/extractions/qb-rating/<timestamp>/`.
 
@@ -326,10 +323,11 @@ Two cleanup scripts are available:
 
 ```bash
 # Full cleanup — deletes PUG, PURP, PUR, and policies in reverse dependency order (uses CCI default org)
-cci task run execute_anon --path scripts/apex/deleteQbRatingData.apex
+# Named task (runs scripts/apex/deleteQbRatingData.apex)
+cci task run delete_qb_rating_data
 
-# Legacy cleanup — similar scope, different implementation
-cci task run execute_anon --path scripts/apex/cleanupRatingRecords.apex
+# Legacy cleanup — similar scope, different implementation (no named task)
+cci task run execute_anon -o path scripts/apex/cleanupRatingRecords.apex
 ```
 
 These scripts delete PUG, PURP, PUR, binding policies, frequency policies, overage policies, and commitment policies in reverse dependency order. They do **not** delete UoM, UoMClass, UsageResource, or UsageResourceBillingPolicy (managed by qb-billing/qb-pcm).
@@ -382,7 +380,7 @@ This self-reference is well-understood and documented in the API 260 Known Issue
 | UsageGrantRenewalPolicy      | ✅     | All fields present                                           |
 | UsageGrantRolloverPolicy     | ✅     | All fields present                                           |
 | UsageOveragePolicy           | ✅     | All fields present (Name, OverageChargeable)                 |
-| UsageCommitmentPolicy        | ⚠️     | Missing `CommitmentRate` (new picklist)                      |
+| UsageCommitmentPolicy        | ✅     | `CommitmentRate` now in SOQL (`SELECT Name, CommitmentRate`) |
 | ProductUsageResource         | ✅     | All fields present                                           |
 | UsagePrdGrantBindingPolicy   | ✅     | All fields present                                           |
 | RatingFrequencyPolicy        | ⚠️     | Missing `RatingDelayDurationUnit` (unit for delay duration)  |
@@ -393,7 +391,7 @@ This self-reference is well-understood and documented in the API 260 Known Issue
 
 - **`ProductUsageGrant.ProductSellingModelId`** and **`ProductUsageResourcePolicy.ProductSellingModelId`**: These new lookups allow associating grants and policies with specific selling models. **High priority** — enables selling-model-specific usage grant configuration, which is a key 260 rating feature.
 - **`RatingFrequencyPolicy.RatingDelayDurationUnit`**: Complements the existing `RatingDelayDuration` field with its unit (currently only duration value is captured). **Medium priority** — incomplete without the unit.
-- **`UsageCommitmentPolicy.CommitmentRate`**: Controls commitment fulfillment rate behavior. **Medium priority** — the current SOQL only captures `Name`, missing the key functional field.
+- **`UsageCommitmentPolicy.CommitmentRate`**: Controls commitment fulfillment rate behavior. **Resolved** — the SOQL now captures `CommitmentRate` alongside `Name`.
 
 ### Cross-Object Dependencies
 
@@ -467,7 +465,7 @@ All schema-unique fields are already correctly used as externalIds.
 ## Optimization Opportunities
 
 1. **Add `ProductSellingModelId` to PUG and PURP SOQL**: New 260 field for selling-model-specific usage grants and policies. May require adding ProductSellingModel as Readonly in this plan.
-2. **Add `CommitmentRate` to UsageCommitmentPolicy SOQL**: Key functional field missing from current query
+2. ~~**Add `CommitmentRate` to UsageCommitmentPolicy SOQL**~~: Resolved — `CommitmentRate` is now in the query
 3. **Add `RatingDelayDurationUnit` to RatingFrequencyPolicy SOQL**: Completes the delay duration configuration
 4. **Investigate RatingFrequencyPolicy externalId**: If more policies per period are expected, switch to a composite key
 5. **Fix `excludeIdsFromCSVFiles`**: Currently set to `"false"` — change to `"true"` for portability (same concern as qb-tax)

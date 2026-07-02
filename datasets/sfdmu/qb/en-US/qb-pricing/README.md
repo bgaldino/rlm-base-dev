@@ -37,7 +37,7 @@ insert_quantumbit_pricing_data:
 
 ## Data Plan Overview
 
-The plan uses a **delete + insert** pattern across 16 objects. Seven objects use `Insert` (instead of `Upsert`) to work around SFDMU v5 bugs with relationship-traversal externalIds; six active Insert objects are pre-cleared by `delete_quantumbit_pricing_data` before each load (`CostBookEntry` is excluded from deletion via `excluded: true`). Three objects are `Readonly` (Product2, ProductSellingModel, AttributeDefinition) — they provide SFDMU with lookup context for parent resolution without modifying them. `ProrationPolicy` and `PriceAdjustmentSchedule` use `Update` (not Upsert) because those records are always pre-provisioned by the platform.
+The plan uses a **delete + insert** pattern across 16 objects. Seven objects use `Insert` (instead of `Upsert`) to work around SFDMU v5 bugs with relationship-traversal externalIds; all seven Insert objects are pre-cleared by `delete_quantumbit_pricing_data` before each load. Three objects are `Readonly` (Product2, ProductSellingModel, AttributeDefinition) — they provide SFDMU with lookup context for parent resolution without modifying them. `ProrationPolicy` and `PriceAdjustmentSchedule` use `Update` (not Upsert) because those records are always pre-provisioned by the platform.
 
 ```
 Pre-Delete (DeleteSFDMUData)                    SFDMU Pass                              Apex Activation (scratch only)
@@ -54,8 +54,8 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 2  | ProrationPolicy              | Update    |              | `Name`                                                                                                  | 1       |
 | 3  | ProductSellingModel          | Readonly  |              | `Name;SellingModelType`                                                                                 | 9       |
 | 4  | AttributeDefinition          | Readonly  |              | `Code`                                                                                                  | 39      |
-| 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 164     |
-| 6  | CostBook                     | Upsert    |              | `Name;IsDefault`                                                                                        | 0       |
+| 5  | Product2                     | Readonly  |              | `StockKeepingUnit`                                                                                      | 315     |
+| 6  | CostBook                     | Upsert    |              | `Name`                                                                                                  | 1       |
 | 7  | Pricebook2                   | Upsert    |              | `Name;IsStandard`                                                                                       | 1       |
 | 8  | PriceAdjustmentTier          | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType;TierType;TierValue;LowerBound;CurrencyIsoCode;EffectiveFrom` | 3 |
 | 9  | PriceAdjustmentSchedule      | Update    |              | `Name;CurrencyIsoCode`                                                                                  | 3       |
@@ -63,18 +63,18 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 11 | AttributeAdjustmentCondition | Insert    | ✓            | `AttributeBasedAdjRule.Name;AttributeDefinition.Code;Product.StockKeepingUnit`                          | 4       |
 | 12 | AttributeBasedAdjustment     | Insert    | ✓            | `AttributeBasedAdjRule.Name;PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 4 |
 | 13 | BundleBasedAdjustment        | Insert    | ✓            | `PriceAdjustmentSchedule.Name;Product.StockKeepingUnit;ParentProduct.StockKeepingUnit;RootBundle.StockKeepingUnit;ProductSellingModel.Name;ParentProductSellingModel.Name;RootProductSellingModel.Name;CurrencyIsoCode` | 2 |
-| 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 114     |
+| 14 | PricebookEntry               | Insert    | ✓            | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode`                                    | 265     |
 | 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 2 |
-| 16 | CostBookEntry                | Insert    | ✓²           | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 0 (excluded) |
+| 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 87      |
 
-¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: PEDP → PBE → BBA → ABA → AAC → PAT; `CostBookEntry` is excluded and therefore not deleted). Workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components always inserts instead of matching existing records ([forcedotcom/SFDX-Data-Move-Utility #781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)).
-
-² **CostBookEntry** is `excluded: true` — the CSV is header-only (no data rows). Enabling it while `DeleteSFDMUData` is in the pipeline would destructively wipe any existing cost entries and insert nothing. Tracked in [#52](https://github.com/bgaldino/rlm-base-dev/issues/52) — enable when cost data is ready.
+¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CBE → PEDP → PBE → BBA → ABA → AAC → PAT). Workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components always inserts instead of matching existing records ([forcedotcom/SFDX-Data-Move-Utility #781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)).
 
 **Other notes:**
 - `ProrationPolicy`: `Update` (not Upsert) — records are always pre-provisioned by the platform; SFDMU v5 TARGET SELECT fails for this managed object
 - `PriceAdjustmentSchedule`: `Update` with `WHERE ContractId = NULL` — only updates non-contract schedules auto-created by the platform when the pricebook is provisioned
 - `CostBook` is ordered before `Pricebook2` — `Pricebook2` has a `CostBookId` FK; processing it first produced `#N/A` in the target result
+- `Pricebook2.csv` resolves `CostBookId` through `CostBook.Name` (`Standard Cost Book`) so the standard pricebook links to the seeded cost book deterministically.
+- `CostBook` now keys on `Name` only, and `CostBookEntry` references `CostBook.Name` directly for parent resolution.
 
 ## Apex Activation Script
 
@@ -97,7 +97,7 @@ Currency types (7 currencies including USD, CAD, EUR, etc.) and proration policy
 
 ### Pricebooks and Entries (Objects 6, 14)
 
-One non-standard pricebook with 114 pricebook entries mapping products to selling models with unit prices and currency.
+One non-standard pricebook with 265 pricebook entries mapping products to selling models with unit prices and currency.
 
 ### Price Adjustments (Objects 8-9, 10-12, 13)
 
@@ -110,6 +110,10 @@ One non-standard pricebook with 114 pricebook entries mapping products to sellin
 
 PricebookEntryDerivedPrice records that compute prices from contributing products via formulas.
 
+### Cost Books (Objects 6, 16)
+
+CostBookEntry covers every SKU with a positive pricebook price. Costs are deterministically generated from the SKU's lowest positive `PricebookEntry.UnitPrice` using a SKU-seeded multiplier between 10% and 50%, so each cost remains below the lowest pricebook price for that SKU.
+
 ## Composite External IDs
 
 Several objects use complex multi-field composite keys:
@@ -118,13 +122,13 @@ Several objects use complex multi-field composite keys:
 |------------------------------|----------------|-----------------|
 | ProductSellingModel          | Name + SellingModelType | Yes       |
 | Pricebook2                   | Name + IsStandard | Yes            |
-| CostBook                     | Name + IsDefault | Yes             |
+| CostBook                     | Name | No (single-field key) |
 | PriceAdjustmentTier          | 9-field composite | Yes            |
-| PriceAdjustmentSchedule      | Name + CurrencyIsoCode + Pricebook2.Name | Yes |
+| PriceAdjustmentSchedule      | Name + CurrencyIsoCode | Yes |
 | AttributeAdjustmentCondition | 3-field composite | Yes            |
 | AttributeBasedAdjustment     | 5-field composite | Yes            |
 | BundleBasedAdjustment        | 8-field composite | Yes            |
-| PricebookEntry               | 4-field composite | Yes            |
+| PricebookEntry               | 3-field composite | Yes            |
 | PricebookEntryDerivedPrice   | 8-field composite | Yes            |
 | CostBookEntry                | 3-field composite | Yes            |
 
@@ -181,11 +185,11 @@ qb-pricing/
 │  Source CSVs — Readonly Parents (lookup context)
 ├── ProductSellingModel.csv              # 9 records (Readonly)
 ├── AttributeDefinition.csv              # 39 records (Readonly)
-├── Product2.csv                         # 164 records (Readonly)
+├── Product2.csv                         # 315 records (Readonly)
 │
 │  Source CSVs — Pricebooks
 ├── Pricebook2.csv                       # 1 record
-├── PricebookEntry.csv                   # 114 records
+├── PricebookEntry.csv                   # 265 records
 ├── PricebookEntryDerivedPrice.csv       # 2 records
 │
 │  Source CSVs — Price Adjustments
@@ -200,9 +204,9 @@ qb-pricing/
 │  Source CSVs — Bundle Adjustments
 ├── BundleBasedAdjustment.csv            # 2 records
 │
-│  Source CSVs — Cost Books (placeholders)
-├── CostBook.csv                         # 0 records (placeholder)
-├── CostBookEntry.csv                    # 0 records (placeholder)
+│  Source CSVs — Cost Books
+├── CostBook.csv                         # 1 record
+├── CostBookEntry.csv                    # 87 records
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
@@ -211,7 +215,17 @@ qb-pricing/
 
 ## Idempotency
 
-**Validated ✅** — consecutive runs of `delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data` produce identical record counts (129 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 114 PBE, 2 PEDP).
+**Org-backed idempotency validated** — consecutive runs of
+`delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data` produce
+identical record counts (367 records: 3 PAT, 4 AAC, 4 ABA, 2 BBA, 265 PBE,
+2 PEDP, 87 CBE). The static SFDMU validator may still flag extraction-safety
+issues for relationship traversal fields in this plan; treat those as follow-up
+items before relying on extraction round-trips.
+
+The `CostBookEntry` rows are part of the validated delete-then-insert set. The
+CSV now resolves the parent CostBook through `CostBook.Name`; this preserves the
+same 87-row idempotent load behavior while avoiding an unnecessary composite
+lookup reference to the single seeded CostBook.
 
 The delete-then-insert pattern replaces the previous Upsert approach. `Readonly` objects ensure parent lookup resolution without modification. `Upsert` objects (`CurrencyType`, `CostBook`, `Pricebook2`, `AttributeBasedAdjRule`) are naturally idempotent via their direct-field externalIds.
 
@@ -311,12 +325,12 @@ This timestamp Name cascades to 2 dependent objects:
 | CurrencyType                 | 1 (`IsoCode`) | Simple | No |
 | ProrationPolicy              | 1 (`Name`) | Simple | No |
 | Pricebook2                   | 2 (`Name;IsStandard`) | Low | No — `Name` alone isn't unique (Standard + custom can share names) |
-| CostBook                     | 2 (`Name;IsDefault`) | Low | No |
-| PriceAdjustmentSchedule      | 3 (`Name;Currency;PB.Name`) | Medium | No — Name alone may not be unique across pricebooks |
+| CostBook                     | 1 (`Name`) | Low | N/A (already simplified) |
+| PriceAdjustmentSchedule      | 2 (`Name;CurrencyIsoCode`) | Medium | No |
 | PriceAdjustmentTier          | **9** fields | **Very High** | Possible — investigate if a subset guarantees uniqueness |
 | AttributeBasedAdjustment     | 5 fields | High | No — multi-dimensional adjustment targeting |
 | BundleBasedAdjustment        | **8** fields | **Very High** | No — bundle hierarchy requires all dimensions |
-| PricebookEntry               | 4 fields | Medium | No — PBE is Product+PB+PSM+Currency |
+| PricebookEntry               | 3 fields | Medium | No — PBE is Product+PSM+Currency |
 | PricebookEntryDerivedPrice   | **8** fields | **Very High** | Possible — contributing product may be enough to narrow |
 | CostBookEntry                | 3 fields | Medium | No |
 
@@ -329,6 +343,5 @@ This timestamp Name cascades to 2 dependent objects:
 3. **Investigate PriceAdjustmentTier key simplification**: Test whether a 4-5 field subset of the 9-field key is sufficient for uniqueness
 4. **Investigate PricebookEntryDerivedPrice key simplification**: Test whether fewer fields uniquely identify derived prices
 5. **Extraction available**: Use `extract_qb_pricing_data` (Data Management - Extract). Run all extracts: `cci flow run run_qb_extracts --org <org>`. Idempotency: `test_qb_pricing_idempotency` / `cci flow run run_qb_idempotency_tests --org <org>`.
-6. **Verify CostBook availability**: Confirm CostBook and CostBookEntry objects exist in 260 or remove the placeholders
-7. **Consider activation flow integration**: The `prepare_price_adjustment_schedules` flow is separate from `prepare_pricing_data` — consider whether they should be combined
-8. **Consistency**: Uses `objectSets` wrapper — consider switching to flat `objects` array for consistency with qb-pcm
+6. **Consider activation flow integration**: The `prepare_price_adjustment_schedules` flow is separate from `prepare_pricing_data` — consider whether they should be combined
+7. **Consistency**: Uses `objectSets` wrapper — consider switching to flat `objects` array for consistency with qb-pcm

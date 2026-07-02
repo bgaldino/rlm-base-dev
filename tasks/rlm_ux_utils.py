@@ -19,11 +19,19 @@ except ImportError:
 
 #: All feature flags that gate UX metadata assembly / retrieval.
 UX_KNOWN_FLAGS: List[str] = [
-    "qb", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
+    "quantumbit", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
     "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
-    "payments", "constraints", "analytics", "procedureplans",
-    "collections",
+    "payments", "constraints", "analytics", "procedureplans", "large_stx",
+    "collections", "personas", "prm_pricing",
 ]
+
+#: Profile templates only assembled when the personas feature flag is true.
+PERSONAS_PROFILES: List[str] = [
+    "RLM Sales Representative.profile-meta.xml",
+]
+
+#: LWC identifier for the Sales Transaction Line Editor component in Quote flexipages.
+SALES_TXN_LINE_EDITOR_IDENTIFIER = "runtime_rca_salesTxnLineTable"
 
 #: Standalone flexipage dirs in deploy order (last writer wins).
 #: Each entry is (directory_name, flag_key).
@@ -32,13 +40,14 @@ _STANDALONE_ORDER: List[Tuple[str, str]] = [
     ("payments",    "payments"),
     ("billing",     "billing"),
     ("billing_ui",  "billing_ui"),
-    ("quantumbit",  "qb"),
+    ("quantumbit",  "quantumbit"),
     ("tso",         "tso"),
     ("constraints", "constraints"),
-    ("utils",       "qb"),        # utils deploys with qb flow
+    ("utils",       "quantumbit"),  # utils deploys with quantumbit flow
     ("docgen",      "docgen"),
-    ("approvals",   "qb"),        # approvals deploys with qb flow
+    ("approvals",   "quantumbit"),  # approvals deploys with quantumbit flow
     ("collections", "collections"),
+    ("prm_pricing", "prm_pricing"),
 ]
 
 

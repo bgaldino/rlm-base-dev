@@ -10,7 +10,23 @@ description: >-
 
 # Revenue Cloud Data Model
 
-Revenue Cloud v66.0 (Spring '26, API v66.0 / Release 260) — 263 objects, 4,919 fields across 9 domains.
+Revenue Cloud v67.0 (Summer '26 / Release 262) — **263 objects, 4,190 platform fields, 674 relationships** across 9 domains.
+
+The ERD reflects **canonical Revenue Cloud platform schema only**. Custom fields (any `__c` suffix, including project-deployed `RLM_*__c` and managed-package fields) are excluded by validation tooling so the schema stays platform-pure.
+
+**Verified 2026-05-27 against:**
+- 260 baseline scratch org `ent-r1` (Spring '26, API v66)
+- 262 target scratch org `rlm-base__ent-sb0` (Summer '26, API v67)
+- Core UDD source at `gitcore.soma.salesforce.com/core-2206/core-262-public@p4/262-patch`
+- 127 entities individually verified against canonical entity XMLs
+
+**260 → 262 delta:** **Field-level additive** (45 fields added, 0 removed, 0 type changes, 2 polymorphic-reference targets expanded — e.g. `Invoice.ReferenceEntityId` now also accepts `Opportunity`/`Quote`) with **value-level picklist deltas** of 243 added and 62 removed. The 62 picklist removals are IANA TimeZone renames on datetime-zone fields plus cleanup of unused industry-specific `UsageType` values (`InsuranceRuleAction`, `StageManagement`) on fulfillment objects and a few miscellaneous values. Every removed value was cross-referenced against every CSV under `datasets/sfdmu/{qb,q3,mfg}/**` — **zero maintained-plan rows reference any removed value**. Nine objects with deltas appear in existing SFDMU plans per `scripts/erd/schema_diff/260-vs-262-diff.md` `--impact` output, but **no SFDMU remediation is required**: additive fields cannot break existing CSV imports, and the removed picklist values aren't in use. Full diff at `scripts/erd/schema_diff/260-vs-262-diff.md`.
+
+**Common misconceptions resolved (DO NOT propagate):**
+- The Revenue Cloud "PUG" entity is `ProductUsageGrant`, NOT `ProductUsageGroup` (which doesn't exist in core source)
+- `RateCard.Status` does not exist in any Salesforce release. The Status field is on `RateCardEntry` (slot=10, identical 260 vs 262)
+- The 262 `RateCardEntry` SOAP DML failure (#262-2) is a runtime platform regression, not a schema change
+- The 262 PUR overlap validation enforcement (#262-4) is runtime-gated, not a schema/validator code change
 
 ## Quick Rules
 
@@ -19,6 +35,8 @@ Revenue Cloud v66.0 (Spring '26, API v66.0 / Release 260) — 263 objects, 4,919
 3. Cross-domain FKs are documented in `cross-domain-relationships.md`.
 4. Product2 is the central object — most domains reference it.
 5. Standard fields often have API names without `__c` suffix.
+6. To validate ERD against an org or refresh from a new release, see `.cursor/skills/schema-validation/SKILL.md`.
+7. Custom fields are NOT in the ERD by design. To verify a `__c` field exists, query the org directly with `sf sobject describe`.
 
 ## Domain Overview
 
@@ -136,7 +154,13 @@ For live org introspection, use the Salesforce DX MCP `run_soql_query` tool.
 
 ## Source Data
 
-- `docs/erds/erd-data.json` — complete machine-readable schema (263 objects, all fields and relationships)
+- `docs/erds/erd-data.json` — canonical machine-readable schema (263 objects, 4,190 fields, 674 relationships, custom fields excluded)
 - `docs/erds/*.mermaid` — per-domain ERD diagrams
 - `docs/erds/revenue-cloud-erd.html` — interactive force-directed graph viewer
-- `docs/erds/validation-report.md` — ERD vs org schema gap analysis
+- `docs/erds/validation-report.md` — most recent ERD vs org schema gap analysis; records the **expected** feature-gated baseline (9 objects unfindable in a default RLM scratch profile, 33 objects with cross-cloud / version-gated field gaps, 822 ERD-side fields verified against Core UDD source but absent from a stock org). Use this file as the diff target for new validation runs — a clean refresh produces zero NEW gaps vs this baseline, not zero gaps absolute.
+- `scripts/erd/schema_diff/{260,262}-schema.json` — fresh-org schema snapshots for 260 and 262
+- `scripts/erd/schema_diff/260-vs-262-diff.md` — verified release delta
+
+Internal-only (not committed; intentionally git-ignored):
+- `.agents/artifacts/orphan-field-ownership.json` — per-entity ownership classification for 127 verified entities (used by the `orphan_batch_helper.py` workflow; not required to audit any claim in this skill).
+- `docs/erds/orphan-candidates-after-batch*.md` — per-batch orphan classification reports produced by the cleanup workflow. The final outcome of the cleanup is already baked into `erd-data.json` and `validation-report.md`; the intermediate batch reports are local artifacts only.

@@ -1,0 +1,7 @@
+textual>=0.58.0
+PyYAML>=6.0
+
+# Test runner. Used by `tests/build_harness/`. The TUI itself does not depend
+# on pytest at runtime, but reusing the TUI venv keeps the developer install
+# story to a single `pip install -r ...` command.
+pytest>=7.4

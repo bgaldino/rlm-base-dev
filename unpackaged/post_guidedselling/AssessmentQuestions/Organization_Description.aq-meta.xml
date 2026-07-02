@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AssessmentQuestion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <assessmentQuestionVersion>
+        <isActive>true</isActive>
+        <name>Organization Description</name>
+        <optionSourceResponseValue>false</optionSourceResponseValue>
+        <questionText>Which best describes your organization?</questionText>
+        <responseValues>Startup or small team getting started
+Mid-size company with growing data needs
+Large enterprise with strict compliance requirements
+Highly regulated industry (finance, healthcare, government)</responseValues>
+        <status>Active</status>
+        <versionNumber>1</versionNumber>
+    </assessmentQuestionVersion>
+    <dataType>Radio</dataType>
+    <developerName>Organization_Description</developerName>
+    <name>Organization Description</name>
+    <questionCategory>Demographic</questionCategory>
+</AssessmentQuestion>

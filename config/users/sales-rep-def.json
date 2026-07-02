@@ -1,0 +1,13 @@
+{
+    "Username": "salesrep@example.org",
+    "FirstName": "Kristen",
+    "LastName": "O'Reilly",
+    "Email": "salesrep@example.org",
+    "Alias": "salesrep",
+    "TimeZoneSidKey": "America/Los_Angeles",
+    "LocaleSidKey": "en_US",
+    "EmailEncodingKey": "UTF-8",
+    "LanguageLocaleKey": "en_US",
+    "profileName": "RLM Sales Representative",
+    "generatePassword": true
+}

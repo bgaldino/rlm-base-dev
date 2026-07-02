@@ -1,0 +1,395 @@
+<template>
+    <div class="c-dashboard-container">
+        <!-- Header -->
+        <header class="c-header-row">
+            <div class="c-header-left">
+                <nav aria-label="Breadcrumb">
+                    <div class="c-header-breadcrumb">Dashboard</div>
+                </nav>
+                <div class="c-header-icon-title">
+                    <lightning-icon icon-name="standard:record" size="medium" alternative-text="Collections record"></lightning-icon>
+                    <h1 class="c-header-title">Collections</h1>
+                </div>
+            </div>
+            <div class="c-header-right">
+                <div class="c-filter-group" role="group" aria-label="Dashboard filters">
+                    <div class="c-filter-item">
+                        <label class="c-filter-label" id="account-filter-label">Account</label>
+                        <lightning-combobox
+                            value={selectedAccount}
+                            options={accountOptions}
+                            variant="label-hidden"
+                            label="Account"
+                            onchange={handleAccountChange}
+                        ></lightning-combobox>
+                    </div>
+                    <div class="c-filter-item">
+                        <label class="c-filter-label" id="currency-filter-label">Currency</label>
+                        <lightning-combobox
+                            value={selectedCurrency}
+                            options={currencyOptions}
+                            variant="label-hidden"
+                            label="Currency"
+                            onchange={handleCurrencyChange}
+                        ></lightning-combobox>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content — Two Columns -->
+        <div class="c-content-row">
+            <!-- Left Column -->
+            <main class="c-left-column">
+                <!-- Summary Cards -->
+                <section class="c-summary-section" aria-label="Financial summary">
+                    <h2 class="c-section-title">Summary</h2>
+                    <div class="c-summary-cards" role="list">
+                        <div class="c-summary-card" role="listitem">
+                            <div class="c-card-label">Receivables Outstanding</div>
+                            <div class="c-card-value" title="$3,090,190.85">$3,090,190.85</div>
+                            <div class="c-card-sub">127 Invoices</div>
+                        </div>
+                        <div class="c-summary-card" role="listitem">
+                            <div class="c-card-label">Current Due</div>
+                            <div class="c-card-value" title="$1,090,19.85">$1,090,19.85</div>
+                        </div>
+                        <div class="c-summary-card" role="listitem">
+                            <div class="c-card-label">Overdue</div>
+                            <div class="c-card-value" title="$1,290,190.00">$1,290,190.00</div>
+                        </div>
+                        <div class="c-summary-card" role="listitem">
+                            <div class="c-card-label">Unapplied Payments</div>
+                            <div class="c-card-value" title="$5000.01">$5000.01</div>
+                            <div class="c-card-sub">66 Records</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Aging / Payment Promises Toggle -->
+                <section class="c-toggle-section" aria-label="Aging and payment promises">
+                    <div class="c-toggle-buttons" role="group" aria-label="View toggle">
+                        <button
+                            class={agingButtonClass}
+                            onclick={handleToggleAging}
+                            aria-pressed={isAgingActive}
+                        >Aging</button>
+                        <button
+                            class={paymentPromisesButtonClass}
+                            onclick={handleTogglePaymentPromises}
+                            aria-pressed={isPaymentPromisesActive}
+                        >Payment Promises</button>
+                    </div>
+
+                    <template if:true={isAgingActive}>
+                        <div class="c-aging-details" role="region" aria-label="Aging breakdown">
+                            <div class="c-aging-items">
+                                <button class="c-aging-item c-clickable" data-bucket="current" onclick={handleAgingClick} aria-label="Current aging bucket: $8876.00">
+                                    <span class="c-aging-label-row">
+                                        <span class="c-aging-dot c-current" aria-hidden="true"></span>
+                                        <span class="c-aging-label">Current</span>
+                                    </span>
+                                    <span class="c-aging-value">$8876.00</span>
+                                </button>
+                                <button class="c-aging-item c-clickable" data-bucket="30" onclick={handleAgingClick} aria-label="1 to 30 days aging bucket: $7876.00">
+                                    <span class="c-aging-label-row">
+                                        <span class="c-aging-dot c-days-30" aria-hidden="true"></span>
+                                        <span class="c-aging-label">1-30 Days</span>
+                                    </span>
+                                    <span class="c-aging-value">$7876.00</span>
+                                </button>
+                                <button class="c-aging-item c-clickable" data-bucket="60" onclick={handleAgingClick} aria-label="31 to 60 days aging bucket: $6099.00">
+                                    <span class="c-aging-label-row">
+                                        <span class="c-aging-dot c-days-60" aria-hidden="true"></span>
+                                        <span class="c-aging-label">31-60 Days</span>
+                                    </span>
+                                    <span class="c-aging-value">$6099.00</span>
+                                </button>
+                                <button class="c-aging-item c-clickable" data-bucket="90" onclick={handleAgingClick} aria-label="61 to 90 days aging bucket: $2876.00">
+                                    <span class="c-aging-label-row">
+                                        <span class="c-aging-dot c-days-90" aria-hidden="true"></span>
+                                        <span class="c-aging-label">61-90 Days</span>
+                                    </span>
+                                    <span class="c-aging-value">$2876.00</span>
+                                </button>
+                                <button class="c-aging-item c-clickable" data-bucket="over90" onclick={handleAgingClick} aria-label="Over 90 days aging bucket: $2076.00">
+                                    <span class="c-aging-label-row">
+                                        <span class="c-aging-dot c-days-over-90" aria-hidden="true"></span>
+                                        <span class="c-aging-label">90+ Days</span>
+                                    </span>
+                                    <span class="c-aging-value">$2076.00</span>
+                                </button>
+                            </div>
+                            <!-- Bar segments use role="img" — visual-only; interaction via buttons above -->
+                            <div class="c-aging-bar" role="img" aria-label="Aging distribution bar chart: Current 27%, 1-30 days 30%, 31-60 days 23%, 61-90 days 11%, 90+ days 9%">
+                                <div class="c-aging-bar-segment c-current" style="width:27%"></div>
+                                <div class="c-aging-bar-segment c-days-30" style="width:30%"></div>
+                                <div class="c-aging-bar-segment c-days-60" style="width:23%"></div>
+                                <div class="c-aging-bar-segment c-days-90" style="width:11%"></div>
+                                <div class="c-aging-bar-segment c-days-over-90" style="width:9%"></div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template if:true={isPaymentPromisesActive}>
+                        <div class="c-aging-details" role="region" aria-label="Payment promises breakdown">
+                            <!-- Legend items use same vertical layout as Aging: dot+label row, value below -->
+                            <div class="c-aging-items" role="list" aria-label="Payment promises legend">
+                                <div class="c-aging-item" role="listitem">
+                                    <span class="c-aging-label-row">
+                                        <span class="c-aging-dot c-pp-failed" aria-hidden="true"></span>
+                                        <span class="c-aging-label">Failed</span>
+                                    </span>
+                                    <span class="c-aging-value">$3,364,049.97</span>
+                                </div>
+                                <div class="c-aging-item" role="listitem">
+                                    <span class="c-aging-label-row">
+                                        <span class="c-aging-dot c-pp-ready" aria-hidden="true"></span>
+                                        <span class="c-aging-label">Ready for Processing</span>
+                                    </span>
+                                    <span class="c-aging-value">$1,034,424.98</span>
+                                </div>
+                                <div class="c-aging-item" role="listitem">
+                                    <span class="c-aging-label-row">
+                                        <span class="c-aging-dot c-pp-draft" aria-hidden="true"></span>
+                                        <span class="c-aging-label">Draft</span>
+                                    </span>
+                                    <span class="c-aging-value">$3,073,852.97</span>
+                                </div>
+                                <div class="c-aging-item" role="listitem">
+                                    <span class="c-aging-label-row">
+                                        <span class="c-aging-dot c-pp-processing" aria-hidden="true"></span>
+                                        <span class="c-aging-label">Processing</span>
+                                    </span>
+                                    <span class="c-aging-value">$92,567.38</span>
+                                </div>
+                            </div>
+                            <div class="c-aging-bar" role="img" aria-label="Payment promises distribution: Failed 44%, Ready for Processing 14%, Draft 41%, Processing 1%">
+                                <div class="c-aging-bar-segment c-pp-failed" style="width:44%"></div>
+                                <div class="c-aging-bar-segment c-pp-ready" style="width:14%"></div>
+                                <div class="c-aging-bar-segment c-pp-draft" style="width:41%"></div>
+                                <div class="c-aging-bar-segment c-pp-processing" style="width:1%"></div>
+                            </div>
+                        </div>
+                    </template>
+                </section>
+
+                <!-- Tabs: Critical Follow-Ups, High Value Delinquents, Disputed Invoices -->
+                <section class="c-data-tabs-section" aria-label="Collections data">
+                    <div class="c-data-tabs" role="tablist" aria-label="Collections data tabs" onkeydown={handleTabKeydown}>
+                        <button
+                            class={criticalTabClass}
+                            onclick={handleTabCritical}
+                            role="tab"
+                            aria-selected={isCriticalTab}
+                            aria-controls="tab-panel-critical"
+                            id="tab-critical"
+                            tabindex={criticalTabIndex}
+                        >Critical Follow-Ups</button>
+                        <button
+                            class={highValueTabClass}
+                            onclick={handleTabHighValue}
+                            role="tab"
+                            aria-selected={isHighValueTab}
+                            aria-controls="tab-panel-highvalue"
+                            id="tab-highvalue"
+                            tabindex={highValueTabIndex}
+                        >High Value Delinquents</button>
+                        <button
+                            class={disputedTabClass}
+                            onclick={handleTabDisputed}
+                            role="tab"
+                            aria-selected={isDisputedTab}
+                            aria-controls="tab-panel-disputed"
+                            id="tab-disputed"
+                            tabindex={disputedTabIndex}
+                        >Disputed Invoices</button>
+                    </div>
+
+                    <!-- Critical Follow-Ups / Invoices Tab -->
+                    <template if:true={isCriticalTab}>
+                        <div class="c-tab-content" role="tabpanel" id="tab-panel-critical" aria-labelledby="tab-critical">
+                            <div class="c-tab-content-header">
+                                <lightning-icon icon-name="standard:invoice" size="small" alternative-text="Invoices"></lightning-icon>
+                                <h3>Invoices ({invoicesCount})</h3>
+                            </div>
+                            <lightning-datatable
+                                key-field="Id"
+                                data={invoiceData}
+                                columns={invoiceColumns}
+                                hide-checkbox-column
+                                onrowaction={handleInvoiceRowAction}
+                            ></lightning-datatable>
+                            <div class="c-view-all-link">
+                                <a href="#" onclick={handleViewAllInvoices} aria-label="View all invoices">View All</a>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- High Value Delinquents Tab -->
+                    <template if:true={isHighValueTab}>
+                        <div class="c-tab-content" role="tabpanel" id="tab-panel-highvalue" aria-labelledby="tab-highvalue">
+                            <div class="c-tab-content-header">
+                                <lightning-icon icon-name="standard:customer" size="small" alternative-text="Customer"></lightning-icon>
+                                <h3>High Value Delinquents ({delinquentsCount})</h3>
+                            </div>
+                            <lightning-datatable
+                                key-field="Id"
+                                data={delinquentData}
+                                columns={delinquentColumns}
+                                hide-checkbox-column
+                                onrowaction={handleInvoiceRowAction}
+                            ></lightning-datatable>
+                            <div class="c-view-all-link">
+                                <a href="#" onclick={handleViewAllInvoices} aria-label="View all high value delinquents">View All</a>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Disputed Invoices Tab -->
+                    <template if:true={isDisputedTab}>
+                        <div class="c-tab-content" role="tabpanel" id="tab-panel-disputed" aria-labelledby="tab-disputed">
+                            <div class="c-tab-content-header">
+                                <lightning-icon icon-name="standard:case" size="small" alternative-text="Cases"></lightning-icon>
+                                <h3>Disputed Invoices ({disputedCount})</h3>
+                            </div>
+                            <lightning-datatable
+                                key-field="id"
+                                data={disputedInvoices}
+                                columns={disputedColumns}
+                                hide-checkbox-column
+                                onrowaction={handleDisputedRowAction}
+                            ></lightning-datatable>
+                            <div class="c-view-all-link">
+                                <a href="#" aria-label="View all disputed invoices">View All</a>
+                            </div>
+                        </div>
+                    </template>
+                </section>
+
+                <!-- Fix #8: My Collection Plans — its own card (not wrapped in data-tabs-section) -->
+                <section class="c-collection-plans-section" aria-label="My collection plans">
+                    <div class="c-section-header-row">
+                        <div class="c-tab-content-header">
+                            <lightning-icon icon-name="standard:work_plan" size="small" alternative-text="Work plan"></lightning-icon>
+                            <h3>My Collection Plans ({collectionPlansCount})</h3>
+                        </div>
+                        <lightning-button
+                            label="Create New"
+                            icon-name="utility:add"
+                            variant="neutral"
+                        ></lightning-button>
+                    </div>
+                    <lightning-datatable
+                        key-field="id"
+                        data={collectionPlans}
+                        columns={collectionPlanColumns}
+                        hide-checkbox-column
+                        onrowaction={handleCollectionPlanRowAction}
+                    ></lightning-datatable>
+                    <div class="c-view-all-link">
+                        <a href="#" aria-label="View all collection plans">View All</a>
+                    </div>
+                </section>
+            </main>
+
+            <!-- Right Column -->
+            <aside class="c-right-column" aria-label="Summary sidebar">
+                <!-- Total Balance -->
+                <section class="c-total-balance-section" aria-label="Total balance">
+                    <h2 class="c-section-title">Total Balance</h2>
+                    <div class="c-balance-label">Amount</div>
+                    <div class="c-balance-value">$5,732,755.98 <lightning-icon icon-name="utility:info" size="xx-small" alternative-text="Total balance information"></lightning-icon></div>
+                </section>
+
+                <!-- Collection Progress -->
+                <section class="c-collection-progress-section" aria-label="Collection progress">
+                    <h2 class="c-section-title">Collection Progress</h2>
+                    <div class="c-progress-stats">
+                        <div class="c-progress-stat">
+                            <div class="c-stat-label">Avg Days to Close</div>
+                            <div class="c-stat-value">8.9</div>
+                        </div>
+                        <div class="c-progress-stat">
+                            <div class="c-stat-label">Avg Days Past Due</div>
+                            <div class="c-stat-value">0</div>
+                        </div>
+                    </div>
+                    <div class="c-progress-legend" role="list" aria-label="Chart legend">
+                        <span class="c-legend-item" role="listitem">
+                            <span class="c-legend-dot c-recovered" aria-hidden="true"></span> Recovered
+                        </span>
+                        <span class="c-legend-item" role="listitem">
+                            <span class="c-legend-dot c-yet-to-recover" aria-hidden="true"></span> Yet to Recover
+                        </span>
+                    </div>
+                    <div class="c-donut-chart-container">
+                        <div class="c-donut-chart" role="group" aria-label="Recovery donut chart: $500 recovered out of $20,591.87 total">
+                            <svg viewBox="0 0 160 160">
+                                <!-- Gap ring behind segments — creates visible white space between arcs -->
+                                <circle class="c-donut-gap-ring" cx="80" cy="80" r="60" aria-hidden="true"/>
+                                <circle class="c-donut-track c-donut-interactive"
+                                    cx="80" cy="80" r="60"
+                                    data-segment="yet-to-recover"
+                                    onmouseenter={handleDonutHover}
+                                    onmouseleave={handleDonutLeave}
+                                    onmousemove={handleDonutMouseMove}
+                                    onfocus={handleDonutHover}
+                                    onblur={handleDonutLeave}
+                                    onkeydown={handleDonutKeydown}
+                                    tabindex="0"
+                                    role="button"
+                                    aria-label="Yet to Recover: $20,091.87 (97.6%)"/>
+                                <circle class="c-donut-value c-donut-interactive"
+                                    cx="80" cy="80" r="60"
+                                    stroke-dasharray="9.42 367.56"
+                                    stroke-dashoffset="94.2"
+                                    transform="rotate(-90 80 80)"
+                                    data-segment="recovered"
+                                    onmouseenter={handleDonutHover}
+                                    onmouseleave={handleDonutLeave}
+                                    onmousemove={handleDonutMouseMove}
+                                    onfocus={handleDonutHover}
+                                    onblur={handleDonutLeave}
+                                    onkeydown={handleDonutKeydown}
+                                    tabindex="0"
+                                    role="button"
+                                    aria-label="Recovered: $500 (2.4%)"/>
+                            </svg>
+                        </div>
+                        <!-- Floating tooltip positioned near cursor on segment hover -->
+                        <div class={donutFloatingTooltipClass} aria-hidden="true">
+                            <span class="c-donut-floating-label">{donutTooltipLabel}</span>
+                            <span class="c-donut-floating-value">{donutTooltipValue}</span>
+                        </div>
+                        <!-- Screen reader live region for donut segment announcements -->
+                        <div class="c-assistive-text" role="status" aria-live="polite">{donutScreenReaderText}</div>
+                    </div>
+                    <div class="c-view-details-link">
+                        <a href="#" aria-label="View collection progress details">View Details</a>
+                    </div>
+                </section>
+
+                <!-- My Tasks — Figma SLDS Card pattern with header + overflow menu -->
+                <section class="c-my-tasks-section" aria-label="My tasks">
+                    <div class="c-tab-content-header c-tasks-card-header">
+                        <lightning-icon icon-name="standard:task" size="small" alternative-text="Tasks"></lightning-icon>
+                        <h3>My Tasks</h3>
+                        <button class="c-overflow-menu-btn" aria-label="More task options">
+                            <lightning-icon icon-name="utility:down" size="xx-small" alternative-text="More options"></lightning-icon>
+                        </button>
+                    </div>
+                    <lightning-datatable
+                        key-field="id"
+                        data={tasks}
+                        columns={taskColumns}
+                        hide-checkbox-column
+                    ></lightning-datatable>
+                    <div class="c-view-all-link">
+                        <a href="#" aria-label="View all tasks">View All</a>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+</template>

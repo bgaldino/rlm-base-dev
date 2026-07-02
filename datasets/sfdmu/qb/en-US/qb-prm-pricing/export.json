@@ -1,0 +1,52 @@
+{
+  "apiVersion": "66.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "name": "First Pass - Upsert Accounts and Channel Programs",
+      "objects": [
+        {
+          "query": "SELECT Id, Industry, Name, Phone, Type, BillingCity, BillingCountry, BillingState, RLM_Primary_Distributor__r.Name, RLM_Primary_Reseller__r.Name FROM Account WHERE Name IN ('Apex Dynamics', 'Cloud Distributors', 'Robot Resellers') ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT Category, Description, Id, IsActive, Name FROM ChannelProgram WHERE Name IN ('Distributor Program', 'Reseller Program') ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT BenefitsInformation, Description, Id, Name, Program.Name, ProgramId, Rank, RLM_Deal_Expiration_Days__c, RLM_Discount_Rate__c, RLM_Minimum_Deal_Size__c, RLM_Adjustment_Type__c, RLM_Adjustment_Value__c FROM ChannelProgramLevel WHERE Program.Name IN ('Distributor Program', 'Reseller Program') ORDER BY Program.Name ASC, Rank ASC",
+          "operation": "Upsert",
+          "externalId": "Name;Rank"
+        }
+      ]
+    },
+    {
+      "name": "Second Pass - Enable Partner Accounts and Link Members",
+      "objects": [
+        {
+          "query": "SELECT Id, IsPartner, Name FROM Account WHERE Name IN ('Cloud Distributors', 'Robot Resellers') ORDER BY Name ASC",
+          "operation": "Update",
+          "externalId": "Name"
+        },
+        {
+          "query": "SELECT RLM_Adjustment_Type__c, RLM_Adjustment_Value__c, RLM_Discount_Rate__c, Id, Level.Name, LevelId, Name, Partner.Name, PartnerId, Program.Name, ProgramId FROM ChannelProgramMember WHERE Partner.Name IN ('Cloud Distributors', 'Robot Resellers') AND Program.Name IN ('Distributor Program', 'Reseller Program') ORDER BY Program.Name ASC, Partner.Name ASC",
+          "operation": "Upsert",
+          "externalId": "Partner.Name;Program.Name"
+        }
+      ]
+    },
+    {
+      "name": "Third Pass - Update Account self-lookups",
+      "objects": [
+        {
+          "query": "SELECT Id, Name, RLM_Primary_Distributor__c, RLM_Primary_Reseller__c, RLM_Primary_Distributor__r.Name, RLM_Primary_Reseller__r.Name FROM Account WHERE Name IN ('Apex Dynamics', 'Cloud Distributors', 'Robot Resellers') ORDER BY Name ASC",
+          "operation": "Update",
+          "externalId": "Name"
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

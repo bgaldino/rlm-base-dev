@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Auto-generated UX assembly output — edit templates/ instead (see AGENTS.md)
+unpackaged/post_ux/
+
+# Nested private artifacts repo — managed separately, never reformat from here
+.agents/artifacts/
+
+# Build harness runtime artifacts
+.harness/
+
+# Minified / generated assets
+**/*.min.js
+**/*.min.css
+
+# SFDMU / data CSVs are data, not source
+datasets/**/*.csv
+
+# Markdown is not Prettier-formatted in this repo. The bulk is generated doc
+# snapshots (docs/salesforce/** Help + dev-guide *.htm.md); authored docs (README,
+# .cursor/skills, docs/guides, enablement) are intentionally hand-formatted too.
+**/*.md
+
+# Lock files
+package-lock.json

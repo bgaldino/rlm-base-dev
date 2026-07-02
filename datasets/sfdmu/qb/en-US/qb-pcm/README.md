@@ -24,7 +24,7 @@ insert_quantumbit_pcm_data:
 
 ## Data Plan Overview
 
-The plan uses a **single SFDMU pass** with no Apex activation required. All 28 objects are inserted/upserted in dependency order within a single object set.
+The plan uses a **single SFDMU pass** with no Apex activation required. The `export.json` defines 28 object entries; 2 of them (ProductComponentGrpOverride and ProductRelComponentOverride) carry `"excluded": true` and are not processed by SFDMU, so 26 objects are inserted/upserted in dependency order within a single object set.
 
 ```
 Single Pass (SFDMU)
@@ -47,20 +47,20 @@ Upsert all 28 objects in dependency order
 | 7  | AttributeCategoryAttribute    | Upsert    | `AttributeCategory.Code;AttributeDefinition.Code`                                                     | 34      |
 | 8  | ProductClassification         | Upsert    | `Code`                                                                                                | 18      |
 | 9  | ProductClassificationAttr     | Upsert    | `Name`¹                                                                                               | 36      |
-| 10 | Product2                      | Upsert    | `StockKeepingUnit`                                                                                    | 162     |
+| 10 | Product2                      | Upsert    | `StockKeepingUnit`                                                                                    | 313     |
 | 11 | ProductAttributeDefinition    | Upsert    | `AttributeDefinition.Code;Product2.StockKeepingUnit`                                                  | 17      |
 | 12 | ProductSellingModel           | Upsert    | `Name;SellingModelType`                                                                               | 9       |
 | 13 | ProrationPolicy               | Upsert    | `Name`                                                                                                | 1       |
-| 14 | ProductSellingModelOption     | Upsert    | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType`              | 115     |
+| 14 | ProductSellingModelOption     | Upsert    | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType`              | 266     |
 | 15 | ProductRampSegment            | Upsert    | `Product.StockKeepingUnit;ProductSellingModel.SellingModelType;SegmentType`                            | 6       |
 | 16 | ProductRelationshipType       | Upsert    | `Name`                                                                                                | 4       |
-| 17 | ProductComponentGroup         | Upsert    | `Code`                                                                                                | 27      |
-| 18 | ProductRelatedComponent       | Upsert    | `ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name` | 84 |
-| 19 | ProductComponentGrpOverride   | Upsert    | `Name`                                                                                                | 0       |
-| 20 | ProductRelComponentOverride   | Upsert    | `ProductRelatedComponent.Name;OverrideContext.StockKeepingUnit`                                       | 0       |
+| 17 | ProductComponentGroup         | Upsert    | `Code`                                                                                                | 109     |
+| 18 | ProductRelatedComponent       | Upsert    | `ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name` | 233 |
+| 19 | ProductComponentGrpOverride   | Upsert    | `Name`                                                                                                | 0 (excluded) |
+| 20 | ProductRelComponentOverride   | Upsert    | `ProductRelatedComponent.Name;OverrideContext.StockKeepingUnit`                                       | 0 (excluded) |
 | 21 | ProductCatalog                | Upsert    | `Code`                                                                                                | 3       |
 | 22 | ProductCategory               | Upsert    | `Code`                                                                                                | 18      |
-| 23 | ProductCategoryProduct        | Upsert    | `ProductCategory.Code;Product.StockKeepingUnit`                                                       | 98      |
+| 23 | ProductCategoryProduct        | Upsert    | `ProductCategory.Code;Product.StockKeepingUnit`                                                       | 99      |
 | 24 | ProductQualification          | (default) | `Name`                                                                                                | 0       |
 | 25 | ProductDisqualification       | (default) | `Name`                                                                                                | 0       |
 | 26 | ProductCategoryDisqual        | (default) | `Name`                                                                                                | 0       |
@@ -69,7 +69,7 @@ Upsert all 28 objects in dependency order
 
 ¹ ProductClassificationAttr: SFDMU v5 uses simplified external ID from composite.
 
-**Note:** Objects 19-20 and 24-27 have empty CSVs (0 data records) and serve as placeholders for future data. Objects 24-27 do not specify an `operation` in `export.json`, so SFDMU uses the default behavior.
+**Note:** Objects 19-20 and 24-27 have empty CSVs (0 data records) and serve as placeholders for future data. Objects 19-20 carry `"excluded": true` in `export.json`, so SFDMU does not process them (their CSVs are 0-byte). Objects 24-27 do not specify an `operation` in `export.json`, so SFDMU uses the default behavior.
 
 ## Key Object Groups
 
@@ -83,7 +83,7 @@ Hierarchical product classification tree (`ParentProductClassificationId` self-r
 
 ### Products and Selling Models (Objects 10-15)
 
-Core product records (162 products) with product-level attribute overrides, 9 selling models (Evergreen, Term, One-Time variants), proration policy, selling model assignments per product, and ramp segments.
+Core product records (313 products) with product-level attribute overrides, 9 selling models (Evergreen, Term, One-Time variants), proration policy, selling model assignments per product, and ramp segments.
 
 ### Bundles and Components (Objects 16-18)
 
@@ -113,7 +113,7 @@ All other products (QB-BDL-R750, QB-BDL-SRVC, QB-BDL-STND, QB-COMPLETE) have fla
 
 ### ProductClassification (`ParentProductClassificationId` -> ProductClassification)
 
-Currently **all 16 records are root-level** (no `ParentProductClassification.Code` set). No multi-pass issue today, but adding child classifications in the future would create the same hierarchy concern.
+Currently **all 18 records are root-level** (no `ParentProductClassification.Code` set). No multi-pass issue today, but adding child classifications in the future would create the same hierarchy concern.
 
 ### ProductCategory (`ParentCategoryId` -> ProductCategory)
 
@@ -243,24 +243,24 @@ qb-pcm/
 ├── ProductClassificationAttr.csv        # 36 records
 │
 │  Source CSVs — Products and Selling Models
-├── Product2.csv                         # 162 records
+├── Product2.csv                         # 313 records
 ├── ProductAttributeDefinition.csv       # 17 records
 ├── ProductSellingModel.csv              # 9 records
 ├── ProrationPolicy.csv                  # 1 record
-├── ProductSellingModelOption.csv        # 115 records
+├── ProductSellingModelOption.csv        # 266 records
 ├── ProductRampSegment.csv               # 6 records
 │
 │  Source CSVs — Bundles and Components
 ├── ProductRelationshipType.csv          # 4 records
-├── ProductComponentGroup.csv            # 27 records
-├── ProductRelatedComponent.csv          # 84 records
-├── ProductComponentGrpOverride.csv      # 0 records (placeholder)
-├── ProductRelComponentOverride.csv      # 0 records (placeholder)
+├── ProductComponentGroup.csv            # 109 records
+├── ProductRelatedComponent.csv          # 233 records
+├── ProductComponentGrpOverride.csv      # 0 records (excluded in export.json)
+├── ProductRelComponentOverride.csv      # 0 records (excluded in export.json)
 │
 │  Source CSVs — Catalogs and Categories
 ├── ProductCatalog.csv                   # 3 records
 ├── ProductCategory.csv                  # 18 records
-├── ProductCategoryProduct.csv           # 98 records
+├── ProductCategoryProduct.csv           # 99 records
 │
 │  Source CSVs — Qualifications (placeholders)
 ├── ProductQualification.csv             # 0 records (placeholder)
@@ -306,12 +306,12 @@ cci task run test_qb_pcm_idempotency --org <your-org>
 
 That task runs the load twice and fails if any object's record count increases on the second run. By default it uses **extraction roundtrip**: the second run loads from post-processed extracted data (extract → post-process → load), validating that extracted data is v5 re-import ready. To test idempotency from source only (no extraction), run with `use_extraction_roundtrip: false` (e.g. `-o use_extraction_roundtrip false`).
 
-**Validated (2026-04-02)** — idempotency confirmed against rlmtrialtest (260 org). All 26 objects pass with zero record count increase on second run.
+**Validated (2026-04-02)** — idempotency confirmed against rlmtrialtest (260 org). All 26 processed objects pass with zero record count increase on second run (the 2 excluded objects, ProductComponentGrpOverride and ProductRelComponentOverride, are not processed).
 
 ## 260 Schema Validation Notes
 
-- **API Version**: `66.0` (Release 260)
-- **Validated (2026-04-02)** against rlmtrialtest org
+- **API Version**: `67.0` (Release 262)
+- **Validated (2026-04-02)** against rlmtrialtest org (Release 260); 262 re-validation pending
 - Self-referencing objects: ProductComponentGroup hierarchy validated — SFDMU handles multi-pass automatically with simple `ParentGroup.Code` reference
 - ProductCategory self-reference (Network Adapter → PCIe) validated
 - ProductClassification: all 18 records are root-level (no hierarchy yet)

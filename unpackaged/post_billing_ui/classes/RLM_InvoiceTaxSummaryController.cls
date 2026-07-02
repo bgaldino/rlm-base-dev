@@ -26,7 +26,7 @@ public with sharing class RLM_InvoiceTaxSummaryController {
                 SUM(TaxAmount) totalTaxAmount
             FROM InvoiceLineTax
             WHERE InvoiceLine.InvoiceId = :invoiceId
-            GROUP BY TaxName, CurrencyIsoCode
+            WITH USER_MODE GROUP BY TaxName, CurrencyIsoCode
             ORDER BY TaxName, CurrencyIsoCode
         ]) {
             rows.add(new TaxSummaryRow(

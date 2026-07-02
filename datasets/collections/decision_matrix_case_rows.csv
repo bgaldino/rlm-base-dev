@@ -1,0 +1,6 @@
+Code,Reason,Priority,Type
+CPR01,Missed Payments,Medium,Collections
+CPR02,Bounced Checks,High,Collections
+CPR03,High-Risk Borrower,Medium,Collections
+CPR04,Deceased Account,High,Collections
+CPR05,Bankruptcy,High,Collections

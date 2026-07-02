@@ -34,7 +34,11 @@ except ImportError:
     TaskOptionsError = Exception  # type: ignore[assignment,misc]
 
 # ── minimum required versions ────────────────────────────────────────────────
-MIN_PYTHON: Tuple[int, ...] = (3, 8)
+# Bumped 3.8 -> 3.10 to match the schema-diff / skill-manifest scripts which
+# use PEP 604 union syntax (`X | None`, `list[Path]`). The CI workflow pins
+# 3.13 and `docs/guides/dev-environment-setup.md` defaults to 3.13 already,
+# so 3.10 is a generous floor.
+MIN_PYTHON: Tuple[int, ...] = (3, 10)
 MIN_CCI: Tuple[int, ...] = (4, 0, 0)
 MIN_SF_MAJOR: int = 2
 MIN_SFDMU_DEFAULT: str = "5.0.0"

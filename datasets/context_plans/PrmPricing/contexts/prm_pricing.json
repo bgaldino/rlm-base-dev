@@ -1,0 +1,125 @@
+{
+  "planName": "PrmPricing",
+  "developerName": "RLM_SalesTransactionContext",
+  "contextAttributesByName": [
+    {
+      "nodeName": "SalesTransaction",
+      "name": "RLM_Distributor_Account__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "SalesTransaction",
+      "name": "PartnerAccount__c",
+      "dataType": "STRING",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "SalesTransactionItem",
+      "name": "RLM_Distributor_Unit_Price__c",
+      "dataType": "CURRENCY",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "SalesTransactionItem",
+      "name": "RLM_Distributor_Discount_Percent__c",
+      "dataType": "PERCENT",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "SalesTransactionItem",
+      "name": "RLM_Partner_Net_Total_Price__c",
+      "dataType": "CURRENCY",
+      "fieldType": "INPUTOUTPUT"
+    },
+    {
+      "nodeName": "SalesTransactionItem",
+      "name": "RLM_Transient_Distributor_Discount_Percent__c",
+      "dataType": "NUMBER",
+      "fieldType": "INPUTOUTPUT",
+      "isTransient": true
+    }
+  ],
+  "mappingRules": [
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "RLM_Distributor_Account__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "RLM_Distributor_Account__c"
+    },
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransaction",
+      "contextAttribute": "PartnerAccount__c",
+      "mappingType": "SOBJECT",
+      "sObject": "Quote",
+      "sObjectField": "PartnerAccountId"
+    },
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Distributor_Unit_Price__c",
+      "mappingType": "SOBJECT",
+      "sObject": "QuoteLineItem",
+      "sObjectField": "RLM_Distributor_Unit_Price__c"
+    },
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Distributor_Discount_Percent__c",
+      "mappingType": "SOBJECT",
+      "sObject": "QuoteLineItem",
+      "sObjectField": "RLM_Distributor_Discount_Percent__c"
+    },
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Partner_Net_Total_Price__c",
+      "mappingType": "SOBJECT",
+      "sObject": "QuoteLineItem",
+      "sObjectField": "RLM_Partner_Net_Total_Price__c"
+    },
+    {
+      "mappingName": "QuoteEntitiesMapping",
+      "contextNode": "SalesTransactionItem",
+      "contextAttribute": "RLM_Transient_Distributor_Discount_Percent__c",
+      "mappingType": "SOBJECT",
+      "sObject": "QuoteLineItem"
+    }
+  ],
+  "contextTagsByName": [
+    {
+      "nodeName": "SalesTransaction",
+      "attributeName": "RLM_Distributor_Account__c",
+      "name": "RLM_Distributor_Account__c"
+    },
+    {
+      "nodeName": "SalesTransaction",
+      "attributeName": "PartnerAccount__c",
+      "name": "PartnerAccount__c"
+    },
+    {
+      "nodeName": "SalesTransactionItem",
+      "attributeName": "RLM_Distributor_Unit_Price__c",
+      "name": "RLM_Distributor_Unit_Price__c"
+    },
+    {
+      "nodeName": "SalesTransactionItem",
+      "attributeName": "RLM_Distributor_Discount_Percent__c",
+      "name": "RLM_Distributor_Discount_Percent__c"
+    },
+    {
+      "nodeName": "SalesTransactionItem",
+      "attributeName": "RLM_Partner_Net_Total_Price__c",
+      "name": "RLM_Partner_Net_Total_Price__c"
+    },
+    {
+      "nodeName": "SalesTransactionItem",
+      "attributeName": "RLM_Transient_Distributor_Discount_Percent__c",
+      "name": "RLM_Transient_Distributor_Discount_Percent__c"
+    }
+  ],
+  "activate": true
+}

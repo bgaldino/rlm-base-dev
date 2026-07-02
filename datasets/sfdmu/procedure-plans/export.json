@@ -1,5 +1,5 @@
 {
-  "apiVersion": "66.0",
+  "apiVersion": "67.0",
   "excludeIdsFromCSVFiles": "true",
   "useSeparatedCSVFiles": true,
   "objectSets": [
@@ -37,7 +37,7 @@
           "externalId": "DeveloperName"
         },
         {
-          "query": "SELECT ProcedurePlanSectionId, ExpressionSetDefinitionId, Priority, CriteriaLogic, ReadContextMapping, SaveContextMapping FROM ProcedurePlanOption",
+          "query": "SELECT ProcedurePlanSectionId, ExpressionSetDefinitionId, Priority, CriteriaLogic, ReadContextMapping, SaveContextMapping, ProcedurePlanSection.SubSectionType FROM ProcedurePlanOption",
           "operation": "Upsert",
           "externalId": "ProcedurePlanSection.SubSectionType;Priority"
         }

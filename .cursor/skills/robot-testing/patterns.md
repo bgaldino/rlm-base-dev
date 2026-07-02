@@ -16,9 +16,12 @@ robot/rlm-base/
 │   │   └── reset_account.robot
 │   └── setup/                        # Org setup automation
 │       ├── configure_revenue_settings.robot
+│       ├── configure_core_pricing_setup.robot
+│       ├── configure_product_discovery_settings.robot
 │       ├── enable_analytics.robot
 │       ├── enable_document_builder.robot
 │       ├── enable_constraints_settings.robot
+│       ├── enable_timeline.robot
 │       └── reorder_app_launcher.robot
 ├── resources/
 │   ├── E2ECommon.robot               # ~1250 lines — main E2E keywords
@@ -43,9 +46,12 @@ robot/rlm-base/
 | CCI Task | Python Class | Suite |
 |----------|-------------|-------|
 | `configure_revenue_settings` | `ConfigureRevenueSettings` | `tests/setup/configure_revenue_settings.robot` |
-| `enable_analytics_replication` | `EnableAnalyticsReplication` | `tests/setup/enable_analytics.robot` |
+| `configure_core_pricing_setup` | `ConfigureCorePricingSetup` | `tests/setup/configure_core_pricing_setup.robot` |
+| `configure_product_discovery_settings` | `ConfigureProductDiscoverySettings` | `tests/setup/configure_product_discovery_settings.robot` |
+| `enable_analytics_replication` | `EnableAnalyticsReplication` | `tests/setup/enable_analytics.robot` (clicks "Enable CRM Analytics" on `InsightsSetupGettingStarted/home` in the main Lightning DOM; legacy `InsightsSetupSettings` VF iframe removed in 262+) |
 | `enable_document_builder_toggle` | `EnableDocumentBuilderToggle` | `tests/setup/enable_document_builder.robot` |
 | `enable_constraints_settings` | `EnableConstraintsSettings` | `tests/setup/enable_constraints_settings.robot` |
+| `enable_timeline` | `EnableTimeline` | `tests/setup/enable_timeline.robot` |
 | `reorder_app_launcher` | `ReorderAppLauncher` | `tests/setup/reorder_app_launcher.robot` |
 
 ### E2E tasks (run on demand)
@@ -92,49 +98,118 @@ session tokens from appearing in `log.html`.
 ## Shadow DOM Traversal
 
 Salesforce Lightning uses LWC synthetic shadow DOM. Standard Selenium
-locators cannot pierce shadow boundaries. The repo uses recursive
-JavaScript traversal:
+locators and XPath cannot pierce shadow boundaries. The repo uses recursive
+JavaScript traversal via two canonical helper functions shared as Robot
+variables (prepend them to `Execute JavaScript` blocks that need them).
 
-### Find single element
+### Shared helpers (Robot variables)
 
-```javascript
-function findInShadows(root, name) {
-    var all = root.querySelectorAll('*');
-    for (var i = 0; i < all.length; i++) {
-        if (all[i].matches && all[i].matches(name)) return all[i];
-        if (all[i].shadowRoot) {
-            var found = findInShadows(all[i].shadowRoot, name);
-            if (found) return found;
-        }
-    }
-    return null;
-}
+Define in `*** Variables ***` and prepend to JS blocks that need them:
+
+```robot
+# Find single element — depth-limited to 6 shadow levels
+${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
+
+# Find all elements matching selector (used for options, pills, etc.)
+# Define inline in JS block as a named function expression — see examples below
 ```
 
-### Find all buttons (common variant)
+### findEl usage in Execute JavaScript
 
-```javascript
-function findAllButtons(root) {
-    var btns = [];
-    var all = root.querySelectorAll('*');
-    for (var i = 0; i < all.length; i++) {
-        if (all[i].tagName === 'BUTTON') btns.push(all[i]);
-        if (all[i].shadowRoot)
-            btns = btns.concat(findAllButtons(all[i].shadowRoot));
-    }
-    return btns;
-}
+```robot
+${result}=    Execute JavaScript
+...    ${_JS_FIND_EL}
+...    return (function(targetValue) {
+...        var el = findEl(document, 'lightning-combobox[data-id="myField"]', 0);
+...        if (!el) return 'not_found';
+...        ...
+...    })(arguments[0])
+...    ARGUMENTS    ${my_var}
 ```
 
-### Slot traversal (for LWC slots)
+### findAll (inline variant for collecting multiple elements)
 
 ```javascript
-if (all[i].tagName === 'SLOT') {
-    var assigned = all[i].assignedElements({flatten: true});
-    for (var j = 0; j < assigned.length; j++)
-        results = results.concat(deepQueryAll(assigned[j], selector));
+function findAll(root, sel, d, acc) {
+    if (d > 6) return;
+    root.querySelectorAll(sel).forEach(function(el){acc.push(el);});
+    root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,sel,d+1,acc);});
 }
+var items = []; findAll(document, '[role="option"]', 0, items);
 ```
+
+### Lightning combobox interaction pattern
+
+Salesforce comboboxes have a 3-level shadow structure:
+`lightning-combobox` → shadowRoot → `lightning-base-combobox` → shadowRoot → `button[role="combobox"]`
+
+Options are `lightning-base-combobox-item[role="option"]` with text in their own shadow roots.
+
+```robot
+# Step 1: open the dropdown
+${open_result}=    Execute JavaScript
+...    ${_JS_FIND_EL}
+...    return (function() {
+...        var lc = findEl(document, 'lightning-combobox[data-id="myField"]', 0);
+...        if (!lc) return 'combobox_not_found';
+...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
+...        if (!lbc) return 'page_not_ready';
+...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
+...        if (!btn) return 'page_not_ready';
+...        btn.click(); return 'opened';
+...    })()
+
+# Step 2: click the matching option
+${select_result}=    Execute JavaScript
+...    return (function(targetValue) {
+...        function findAll(root, sel, d, acc) {
+...            if (d > 6) return;
+...            root.querySelectorAll(sel).forEach(function(el){acc.push(el);});
+...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,sel,d+1,acc);});
+...        }
+...        var opts = []; findAll(document, '[role="option"]', 0, opts);
+...        for (var i=0; i<opts.length; i++) {
+...            var text = opts[i].shadowRoot ? opts[i].shadowRoot.textContent.trim() : opts[i].textContent.trim();
+...            if (text === targetValue) { opts[i].click(); return 'clicked'; }
+...        }
+...        return 'not_found';
+...    })(arguments[0])
+...    ARGUMENTS    ${target_value}
+```
+
+### Toggle interaction (SetupToggles.robot)
+
+Lightning toggles nest two shadow levels:
+`lightning-input` → shadowRoot → `lightning-primitive-input-toggle` → shadowRoot → `input[role="switch"]`
+
+Plain checkboxes (`input[type="checkbox"]` in light DOM) also exist — check `lightning-input` first
+at each DOM depth; only fall back to plain inputs when no `lightning-input` is found at that depth.
+Always click the wrapping `<label>` (not the raw `<input>`) to trigger LWC save handlers:
+
+```javascript
+(pi.closest('label') || pi).click();
+```
+
+### Render timing — Wait Until Keyword Succeeds
+
+Some setup pages (e.g. CorePricingSetup) render LWC components slowly. Return a
+`'page_not_ready'` sentinel from JS when the expected element is absent, then use
+`Wait Until Keyword Succeeds` to retry:
+
+```robot
+${result}=    Wait Until Keyword Succeeds    20s    3s    _My Helper Keyword    ${arg}
+...
+
+_My Helper Keyword
+    [Arguments]    ${arg}
+    ${result}=    Execute JavaScript    ...
+    Should Not Be Equal    ${result}    page_not_ready
+    ...    msg=Page LWC components not yet rendered; retrying...
+    RETURN    ${result}
+```
+
+Return `'page_not_ready'` from JS for: element absent, inner shadow not yet rendered (`lbc_not_found`,
+`btn_not_found`), or no pills/content found at all.
 
 ---
 

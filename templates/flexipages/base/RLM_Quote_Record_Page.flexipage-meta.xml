@@ -10,10 +10,13 @@
                             <value>BrowseCatalog</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>CreateRampSchedule</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>CreateOrder</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>Quote.RLM_CreateContract</value>
+                            <value>CreateContract</value>
                         </valueListItems>
                         <valueListItems>
                             <value>GenerateQuoteDocument</value>
@@ -23,9 +26,6 @@
                         </valueListItems>
                         <valueListItems>
                             <value>QuoteAdjustment</value>
-                        </valueListItems>
-                        <valueListItems>
-                            <value>UpdateContractFromSObject</value>
                         </valueListItems>
                         <valueListItems>
                             <value>Edit</value>
@@ -46,9 +46,6 @@
                             <value>PrintableView</value>
                         </valueListItems>
                         <valueListItems>
-                            <value>CreateContractFromSObject</value>
-                        </valueListItems>
-                        <valueListItems>
                             <value>headlessPricingAction</value>
                         </valueListItems>
                     </valueList>
@@ -67,6 +64,10 @@
                 </componentInstanceProperties>
                 <componentInstanceProperties>
                     <name>hideChatterActions</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>hideSlackAction</name>
                     <value>false</value>
                 </componentInstanceProperties>
                 <componentInstanceProperties>

@@ -1,0 +1,91 @@
+# Multi-year and non-monthly subscription terms.
+#
+#   python -m scripts.txn_data_harness.cli run --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/13-multi-year-terms.yaml
+#
+# Exercises the per-line ``(count, unit)`` term model added in W1. Each
+# scenario in this file stresses a different cadence:
+#
+#   * single-year vs multi-year Annual deals (matches the platform's most
+#     common subscription shape)
+#   * Quarterly cadence (verifies the non-month code path)
+#   * PSM-default fallback (no ``term:`` -- the harness uses
+#     ``ProductSellingModel.PricingTerm`` from discovery)
+#   * mixed-term quote (two TermDefined lines + an Evergreen on one order)
+#
+# A bare-int ``term: N`` overrides the count only; the unit is taken from
+# the resolved PSM. An explicit ``term: {count, unit}`` must match the
+# PSM's ``PricingTermUnit``; mismatch raises ConfigError at plan time.
+#
+# Prereqs: QB pricing dataset loaded so QB-API (multi-PSM: Term Monthly,
+# Term Annual, Evergreen) exists in the org.
+defaults:
+  kind: sales_txn_quote        # PST chain; per-line term exercises
+
+scenarios:
+
+  # 1-year Annual deal -- a typical renewal-driver subscription.
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API"
+        quantity: 1
+        term: {count: 1, unit: Annual}
+        selling_model: "Term Annual"
+    count: 1
+
+  # 3-year Annual deal -- exercises multi-year EndDate calculation.
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API"
+        quantity: 1
+        term: {count: 3, unit: Annual}
+        selling_model: "Term Annual"
+    count: 1
+
+  # 12-month Monthly deal -- exercises the Months code path.
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API"
+        quantity: 1
+        term: {count: 12, unit: Months}
+        selling_model: "Term Monthly"
+    count: 1
+
+  # 24-month Monthly deal -- multi-year via monthly cadence.
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API"
+        quantity: 1
+        term: {count: 24, unit: Months}
+        selling_model: "Term Monthly"
+    count: 1
+
+  # PSM-default fallback: no ``term:`` block -> harness uses the PSM's
+  # declared ``PricingTerm`` / ``PricingTermUnit`` from discovery. Catches
+  # regressions where we'd accidentally start writing a hardcoded default.
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API"
+        quantity: 1
+        selling_model: "Term Annual"
+    count: 1
+
+  # Mixed terms on one quote: a 12-month line and a 3-year Annual line
+  # on the same order. Confirms term writes are per-line, not per-quote.
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    products:
+      - sku: "QB-API"
+        quantity: 1
+        term: {count: 12, unit: Months}
+        selling_model: "Term Monthly"
+      - sku: "QB-API"
+        quantity: 1
+        term: {count: 3, unit: Annual}
+        selling_model: "Term Annual"
+    count: 1

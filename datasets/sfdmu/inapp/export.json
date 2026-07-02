@@ -1,0 +1,54 @@
+{
+  "apiVersion": "67.0",
+  "excludeIdsFromCSVFiles": "true",
+  "objectSets": [
+    {
+      "objects": [
+        {
+          "query": "SELECT Id, DeveloperName, SobjectType FROM RecordType WHERE SobjectType IN ('RLM_Learning_Section__c', 'RLM_Learning_DynamicLink__c')",
+          "operation": "Readonly",
+          "externalId": "DeveloperName;SobjectType",
+          "excluded": false
+        },
+        {
+          "query": "SELECT Name, RLM_Learning_Size__c, RLM_Learning_Type__c FROM RLM_Learning_Icon__c ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT RLM_Learning_Active__c, Name, RLM_Learning_Type__c FROM RLM_Learning_Page__c ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT RLM_Learning_Active__c, RLM_Learning_Header__c, Name, RLM_Learning_Sub_Header__c, RLM_Learning_Video_Link__c, RecordTypeId, RLM_Learning_Icon__c, RLM_Learning_Page__c, RLM_Learning_Icon__r.Name, RLM_Learning_Page__r.Name FROM RLM_Learning_Section__c ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT RLM_Learning_App_API_Name__c, RLM_Learning_Filter_Name__c, RLM_Learning_Identity__c, RLM_Learning_Link__c, Name, RLM_Learning_Object__c, RLM_Learning_Page_Name__c, RLM_Learning_Relationship_API_Name__c, RLM_Learning_Relative_Url__c, RLM_Learning_Setup_Page__c, RLM_Learning_Site_Name__c, RLM_Learning_Text_Value__c, RLM_Learning_Where_Condition__c, RecordTypeId, RLM_Learning_Page__c, RLM_Learning_Section__c, RLM_Learning_Page__r.Name, RLM_Learning_Section__r.Name FROM RLM_Learning_DynamicLink__c ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT RLM_Learning_ActionText__c, RLM_Learning_Active__c, RLM_Learning_Description__c, RLM_Learning_Header__c, Name, RLM_Learning_Note__c, RLM_Learning_Sub_Header__c, RLM_Learning_Action__c, RLM_Learning_Icon__c, RLM_Learning_Action__r.Name, RLM_Learning_Icon__r.Name FROM RLM_Learning_Block__c ORDER BY Name ASC",
+          "operation": "Upsert",
+          "externalId": "Name",
+          "excluded": false
+        },
+        {
+          "query": "SELECT RLM_Learning_Order_Sequence__c, RLM_Learning_Section__c, RLM_Learning_Block__c, RLM_Learning_Section__r.Name, RLM_Learning_Block__r.Name FROM RLM_Learning_SectionBlock__c ORDER BY RLM_Learning_Section__r.Name ASC, RLM_Learning_Block__r.Name ASC, RLM_Learning_Order_Sequence__c ASC",
+          "operation": "Insert",
+          "externalId": "RLM_Learning_Section__r.Name;RLM_Learning_Block__r.Name;RLM_Learning_Order_Sequence__c",
+          "deleteOldData": true,
+          "excluded": false
+        }
+      ]
+    }
+  ],
+  "orgs": []
+}

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Show_Product_Set_Selector__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, the Set Up Quote wizard shows the QuantumBit/Siemens product-set selector.</description>
+    <label>Show Product Set Selector</label>
+    <type>Checkbox</type>
+</CustomField>

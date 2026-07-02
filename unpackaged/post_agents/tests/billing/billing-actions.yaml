@@ -1,0 +1,118 @@
+# Description: Business-action invocation coverage for
+# RLM_Billing_Employee_Assistance. Cases use conversationHistory to pre-position
+# the agent inside the target subagent so the test utterance triggers the Level 1
+# action. These cases assert action selection; they intentionally omit
+# expectedOutcome because billing records vary by org.
+name: "RLM Billing — Actions"
+subjectType: AGENT
+subjectName: RLM_Billing_Employee_Assistance
+
+testCases:
+  # --- BillingInquiries → GetAccountBalance from Account page context ---
+  - utterance: "What is this account's current balance?"
+    expectedTopic: BillingInquiries
+    expectedActions:
+      - GetAccountBalance
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "001000000000001AAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Account"
+    conversationHistory:
+      - role: user
+        message: "I need account billing details"
+      - role: agent
+        topic: BillingInquiries
+        message: "Sure — what billing detail do you need?"
+
+  # --- BillingInquiries → GetNextDuePayment from Account page context ---
+  - utterance: "When is the next payment due for this account?"
+    expectedTopic: BillingInquiries
+    expectedActions:
+      - GetNextDuePayment
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "001000000000001AAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Account"
+    conversationHistory:
+      - role: user
+        message: "I need payment information"
+      - role: agent
+        topic: BillingInquiries
+        message: "Sure — what payment information would you like?"
+
+  # --- BillingInquiries → GetPaymentPlanDetails from Invoice page context ---
+  - utterance: "Show the payment plan for this invoice"
+    expectedTopic: BillingInquiries
+    expectedActions:
+      - GetPaymentPlanDetails
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0lI000000000001AAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Invoice"
+    conversationHistory:
+      - role: user
+        message: "I need invoice payment details"
+      - role: agent
+        topic: BillingInquiries
+        message: "Sure — which invoice payment detail do you need?"
+
+  # --- BillingInquiries → InvoiceDocumentPDF by account name ---
+  - utterance: "Get the latest invoice PDF for Infinitech"
+    expectedTopic: BillingInquiries
+    expectedActions:
+      - InvoiceDocumentPDF
+    conversationHistory:
+      - role: user
+        message: "I need an invoice document"
+      - role: agent
+        topic: BillingInquiries
+        message: "Sure — which account should I use?"
+
+  # --- BillingCollections → GetAccountBillingSummary from Account page context ---
+  - utterance: "Give me this account's billing health summary"
+    expectedTopic: BillingCollections
+    expectedActions:
+      - GetAccountBillingSummary
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "001000000000001AAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Account"
+    conversationHistory:
+      - role: user
+        message: "I want to understand billing health"
+      - role: agent
+        topic: BillingCollections
+        message: "Sure — which billing health metric do you need?"
+
+  # --- BillingCollections → GetDunningStrategy by collection plan name ---
+  - utterance: "Recommend a dunning strategy for collection plan CP-000000010"
+    expectedTopic: BillingCollections
+    expectedActions:
+      - GetDunningStrategy
+    conversationHistory:
+      - role: user
+        message: "I need collection strategy guidance"
+      - role: agent
+        topic: BillingCollections
+        message: "Sure — which collection plan should I review?"
+
+  # --- InvoiceLineExplanation → GetInvoiceLineRecord before explanation ---
+  - utterance: "Explain the Installation Fee line on this invoice"
+    expectedTopic: InvoiceLineExplanation
+    expectedActions:
+      - GetInvoiceLineRecord
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0lI000000000001AAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Invoice"
+    conversationHistory:
+      - role: user
+        message: "I need help understanding an invoice line"
+      - role: agent
+        topic: InvoiceLineExplanation
+        message: "Sure — which invoice line should I explain?"

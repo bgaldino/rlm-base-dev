@@ -1,0 +1,64 @@
+// Dev Container for Revenue Cloud Base Foundations.
+//
+// Lets Cursor or VS Code (Dev Containers extension) open this repo *inside* the
+// prebuilt rlm-base image — full toolchain (CumulusCI, sf CLI, SFDMU, Robot,
+// Claude Code) with your working copy bind-mounted at /work.
+//
+// Use it two ways:
+//   • "Dev Containers: Reopen in Container"            (builds/uses the image, mounts THIS repo)
+//   • "Dev Containers: Attach to Running Container…"   (attach to one started by ./docker/rlm up)
+//
+// Inside the container terminal: run `rlm`, `cci`, `sf`, or `claude` directly.
+{
+  "name": "RLM Base Foundations",
+
+  // Build from the repo's Dockerfile so "Reopen in Container" works with no
+  // prior setup. To use a downloaded image instead, comment out "build" and
+  // set:  "image": "ghcr.io/bgaldino/rlm-base:latest"
+  "build": {
+    "dockerfile": "../docker/Dockerfile",
+    "context": ".."
+  },
+
+  "remoteUser": "rlm",
+  "workspaceFolder": "/work",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/work,type=bind,consistency=cached",
+
+  // Persist Salesforce + CumulusCI logins across rebuilds (same volume the
+  // ./docker/rlm launcher uses).
+  "mounts": [
+    "source=rlm-state,target=/home/rlm/.rlm-state,type=volume"
+  ],
+
+  // OAuth sign-in callback (rlm login). Host 1717 → relay 1718 → sf on 127.0.0.1:1717.
+  "forwardPorts": [1717],
+  "portsAttributes": {
+    "1717": { "label": "Salesforce OAuth callback", "onAutoForward": "silent" }
+  },
+
+  // overrideCommand:true lets VS Code keep the container alive with its own
+  // command — which means the image ENTRYPOINT (rlm-entrypoint) does NOT run.
+  // So the auth/keychain wiring runs here, on every start, via postStartCommand.
+  "overrideCommand": true,
+  "postStartCommand": "/usr/local/bin/rlm-setup-state",
+
+  "remoteEnv": {
+    "RLM_OAUTH_RELAY_PORT": "1718",
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}"
+  },
+
+  "postAttachCommand": "rlm version",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "salesforce.salesforcedx-vscode",
+        "anthropic.claude-code",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

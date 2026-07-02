@@ -8,11 +8,12 @@ SFDMU data plan for QuantumBit (QB) tax configuration. Creates legal entities, t
 
 This plan is executed as **step 2** of the `prepare_tax` flow (when `tax=true`, `qb=true`, `refresh=false`).
 
-| Step | Task                     | Description                                                |
-|------|--------------------------|------------------------------------------------------------|
-| 1    | `create_tax_engine`      | Runs `createTaxEngine.apex` (creates TaxEngineProvider + TaxEngine via REST API) |
-| 2    | `insert_tax_data`        | Runs this SFDMU plan (2 passes)                            |
-| 4    | `activate_tax_records`   | Runs `activateTaxRecords.apex`                             |
+| Step | Task                     | When (`when:`)                | Description                                                |
+|------|--------------------------|-------------------------------|------------------------------------------------------------|
+| 1    | `create_tax_engine`      | `tax`                         | Runs `createTaxEngine.apex` (creates TaxEngineProvider + TaxEngine via REST API) |
+| 2    | `insert_tax_data`        | `tax` and not `refresh` and `qb` | Runs this SFDMU plan (2 passes)                         |
+| 3    | `insert_q3_tax_data`     | `tax` and not `refresh` and `q3` | Loads Q3 tax data (gated by the `q3` flag)             |
+| 4    | `activate_tax_records`   | `tax`                         | Runs `activateTaxRecords.apex`                             |
 
 ### Task Definition
 
@@ -40,23 +41,25 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 
 | # | Object           | Operation | External ID                        | Records |
 |---|------------------|-----------|------------------------------------|---------|
-| 1 | LegalEntity      | Upsert    | `Name`                             | 2       |
+| 1 | LegalEntity      | Upsert    | `Name`                             | 4       |
 | 2 | TaxEngineProvider| Upsert    | `DeveloperName`                    | 1       |
 | 3 | TaxEngine        | Upsert    | `TaxEngineName`                    | 1       |
-| 4 | TaxTreatment     | Upsert    | `Name;LegalEntity.Name;TaxPolicy.Name` | 1   |
-| 5 | TaxPolicy        | Upsert    | `Name`                             | 1       |
-| 6 | Product2         | Update    | `StockKeepingUnit`                 | 164     |
+| 4 | TaxTreatment     | Upsert    | `Name`                             | 2       |
+| 5 | TaxPolicy        | Upsert    | `Name`                             | 2       |
+| 6 | Product2         | Update    | `StockKeepingUnit`                 | 315     |
 
 **Note:** TaxTreatment and TaxPolicy use `skipExistingRecords: true` to avoid updating records that already exist. Product2 is Update-only (sets `TaxPolicyId`). The `create_tax_engine` Apex script creates TaxEngineProvider and TaxEngine via REST API before this SFDMU pass runs, so the SFDMU upsert of those objects acts as a safety net.
+
+**Note:** `export.json` declares `externalId: Name` for TaxTreatment (both passes). The `TaxTreatment.csv` still carries a `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column that does not match the declared `externalId` — match is by `Name` alone.
 
 ### Pass 2 — Activate and Set Defaults
 
 | # | Object       | Operation | External ID                        | Records |
 |---|--------------|-----------|------------------------------------|---------|
-| 1 | TaxTreatment | Update    | `Name;LegalEntity.Name;TaxPolicy.Name` | 1   |
-| 2 | TaxPolicy    | Update    | `Name`                             | 1       |
+| 1 | TaxTreatment | Update    | `Name`                             | 2       |
+| 2 | TaxPolicy    | Update    | `Name`                             | 2       |
 
-Pass 2 activates TaxTreatment (sets `Status`) and sets `DefaultTaxTreatmentId` on TaxPolicy.
+Pass 2 activates TaxTreatment (sets `Status`) and sets `DefaultTaxTreatmentId` on each TaxPolicy. `Default Tax Policy` defaults to `Default Tax Policy` (taxable); `Non Taxable Tax Policy` defaults to `Non Taxable Tax Treatment` (non-taxable). All `Product2.TaxPolicyId` assignments in this plan still target `Default Tax Policy` — opting a product into non-taxable behavior requires updating `Product2.csv` (or post-load configuration) to point at `Non Taxable Tax Policy`.
 
 ## Apex Scripts
 
@@ -99,7 +102,7 @@ All external IDs use portable fields:
 - `DeveloperName` for TaxEngineProvider
 - `TaxEngineName` for TaxEngine
 - `StockKeepingUnit` for Product2
-- `Name;LegalEntity.Name;TaxPolicy.Name` for TaxTreatment (composite, all human-readable)
+- `Name` for TaxTreatment (the CSV carries an unused `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column, but the declared `externalId` is `Name`)
 
 No auto-numbered Name fields are used.
 
@@ -120,19 +123,19 @@ qb-tax/
 ├── README.md                            # This file
 │
 │  Source CSVs (Pass 1 - Draft status)
-├── LegalEntity.csv                      # 2 records
+├── LegalEntity.csv                      # 4 records
 ├── TaxEngineProvider.csv                # 1 record
 ├── TaxEngine.csv                        # 1 record
-├── TaxTreatment.csv                     # 1 record
-├── TaxPolicy.csv                        # 1 record
-├── Product2.csv                         # 164 records (Update only)
+├── TaxTreatment.csv                     # 2 records
+├── TaxPolicy.csv                        # 2 records
+├── Product2.csv                         # 315 records (Update only)
 ├── NamedCredential.csv                  # 1 record (reference only)
 │
 │  Source CSVs (Pass 2 - Activate)
 ├── objectset_source/
 │   └── object-set-2/
-│       ├── TaxTreatment.csv             # 1 record (Status -> Active)
-│       └── TaxPolicy.csv               # 1 record (DefaultTaxTreatment + Status)
+│       ├── TaxTreatment.csv             # 2 records (Status -> Active)
+│       └── TaxPolicy.csv               # 2 records (DefaultTaxTreatment + Status)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots
@@ -254,13 +257,13 @@ The missing fields fall into three categories:
 | LegalEntity      | `Name`                          | No            | No      | ✅ OK — human-readable, few records |
 | TaxEngineProvider| `DeveloperName`                 | N/A (CMDT-like)| No     | ✅ OK — standard pattern for metadata types |
 | TaxEngine        | `TaxEngineName`                 | N/A           | No      | ✅ OK — idLookup field |
-| TaxTreatment     | `Name;LegalEntity.Name;TaxPolicy.Name` | No    | No      | ✅ OK — composite ensures uniqueness across entities/policies |
+| TaxTreatment     | `Name`                          | No            | No      | ✅ OK — `export.json` declares `Name` (CSV carries an unused `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column) |
 | TaxPolicy        | `Name`                          | No            | No      | ✅ OK — human-readable, 1 record |
 | Product2         | `StockKeepingUnit`              | No*           | No*     | ✅ OK — platform-enforced unique when RLM enabled |
 
 ### Composite Key Complexity
 
-All keys are simple (1-3 fields). No simplification opportunities. The `TaxTreatment` 3-field composite is necessary because the same treatment name could exist for different legal entities or policies.
+All declared externalIds are simple single-field keys. The `TaxTreatment.csv` retains a `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column (intended to keep treatments unique across legal entities/policies), but `export.json` declares `externalId: Name`, so matching is by `Name` alone.
 
 ## Optimization Opportunities
 
@@ -270,4 +273,4 @@ All keys are simple (1-3 fields). No simplification opportunities. The `TaxTreat
 4. **Add extraction support**: Create `extract_qb_tax_data` CCI task for bidirectional operation
 5. **Clean up NamedCredential.csv**: Either add it to `export.json` or remove the orphaned file
 6. **Consider combining activation**: Pass 2 (SFDMU) and `activateTaxRecords.apex` both activate TaxTreatment and TaxPolicy — consider simplifying to one activation mechanism
-7. **API version management**: `createTaxEngine.apex` has a hardcoded `v66.0` — consider making this dynamic
+7. **API version management**: `createTaxEngine.apex` has a hardcoded `v67.0` — consider making this dynamic

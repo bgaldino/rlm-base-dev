@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Primary_Reseller__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <inlineHelpText>Primary Reseller Account with a Customer or Distributor</inlineHelpText>
+    <label>Primary Reseller</label>
+    <referenceTo>Account</referenceTo>
+    <relationshipLabel>Accounts (Primary Reseller)</relationshipLabel>
+    <relationshipName>PrimaryResellerAccounts</relationshipName>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Lookup</type>
+</CustomField>

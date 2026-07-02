@@ -1,5 +1,5 @@
 {
-  "apiVersion": "66.0",
+  "apiVersion": "67.0",
   "excludeIdsFromCSVFiles": "false",
   "objectSets": [
     {
@@ -7,7 +7,7 @@
       "objects": [
 
         {
-          "query": "SELECT ConstraintModelTag, ConstraintModelTagType, CurrencyIsoCode, ExpressionSetId, ReferenceObject.Name FROM ExpressionSetConstraintObj WHERE ConstraintModelTagType = 'Port' AND ReferenceObject.Type = 'ProductRelatedComponent' ORDER BY  ReferenceObject.Name ASC",
+          "query": "SELECT ConstraintModelTag, ConstraintModelTagType, CurrencyIsoCode, ExpressionSetId, ReferenceObject.Name, ExpressionSet.ApiName FROM ExpressionSetConstraintObj WHERE ConstraintModelTagType = 'Port' AND ReferenceObject.Type = 'ProductRelatedComponent' ORDER BY  ReferenceObject.Name ASC",
           "operation": "Upsert",
           "externalId": "ConstraintModelTag;ExpressionSet.ApiName",
           "excluded": false

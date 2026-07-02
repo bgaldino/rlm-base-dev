@@ -1,0 +1,4 @@
+Name,Scope,UsageType
+OptOutAssetization,OptOutAssetization,DynamicRevenueOrchestration
+OptOutDecompositionAction,OptOutDecompositionAction,DynamicRevenueOrchestration
+OptOutSuppementalAction,OptOutSuppementalAction,DynamicRevenueOrchestration

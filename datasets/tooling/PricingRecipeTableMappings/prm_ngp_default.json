@@ -1,0 +1,12 @@
+[
+  {
+    "pricingRecipeDeveloperName": "NGPDefaultRecipe",
+    "decisionTableDeveloperName": "RLM_CostBookEntries",
+    "pricingComponentType": "ListPrice"
+  },
+  {
+    "pricingRecipeDeveloperName": "NGPDefaultRecipe",
+    "decisionTableDeveloperName": "RLM_Channel_Program_Level_Partner",
+    "pricingComponentType": "PriceAdjustmentMatrix"
+  }
+]

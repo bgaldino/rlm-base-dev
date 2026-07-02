@@ -1,0 +1,289 @@
+:host {
+    display: flex;
+    height: 100%;
+}
+
+lightning-card {
+    width: 100%;
+}
+
+.card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* ── Status pill + tooltip ── */
+.status-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.625rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin-left: 0.5rem;
+    cursor: pointer;
+}
+
+.status-good {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-overdue {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-partial {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-dispute {
+    background: #ffedd5;
+    color: #9a3412;
+}
+
+.status-credit {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-delinquent {
+    background: #fecaca;
+    color: #7f1d1d;
+}
+
+.status-collections {
+    background: #991b1b;
+    color: #fff;
+}
+
+.status-written-off {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.status-no-activity {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.status-settled {
+    background: #bbf7d0;
+    color: #14532d;
+}
+
+.status-tooltip-fixed {
+    position: fixed;
+    background: #1e293b;
+    color: #f1f5f9;
+    font-size: 0.75rem;
+    font-weight: 400;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    min-width: 240px;
+    max-width: 300px;
+    line-height: 1.4;
+    z-index: 10000;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    white-space: normal;
+    pointer-events: none;
+}
+
+.card-body {
+    padding: 0.25rem 0.25rem 0.5rem 0.75rem;
+}
+
+.loading-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0;
+}
+
+/* ── Horizontal strip ── */
+.summary-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ── Individual box ── */
+.summary-box {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.375rem 0.625rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    min-width: 0;
+}
+
+.box-header {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.box-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.box-subtitle {
+    font-size: 0.625rem;
+    color: #94a3b8;
+    margin-top: 0.0625rem;
+}
+
+.box-amount-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.25rem;
+}
+
+.box-amount {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1e40af;
+    white-space: nowrap;
+}
+
+.box-amount.adjusted {
+    color: #059669;
+}
+
+/* ── Info icon + hover popover ── */
+.info-trigger {
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    --slds-c-icon-color-foreground-default: #94a3b8;
+}
+
+.popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    min-width: 220px;
+    z-index: 9000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+    pointer-events: none;
+}
+
+.popover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-bottom-color: #1e293b;
+}
+
+.info-trigger:hover .popover {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.popover-header {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem 0.3rem;
+    border-bottom: 1px solid #334155;
+}
+
+.popover-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.popover-body {
+    padding: 0.4rem 0.75rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.popover-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.popover-label {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.popover-value {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+}
+
+/* ── Operator between boxes ── */
+.strip-operator {
+    font-size: 1.25rem;
+    font-weight: 300;
+    color: #94a3b8;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.net-amount {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1e40af;
+    white-space: nowrap;
+    margin-top: 0.25rem;
+}
+
+.net-positive {
+    color: #059669;
+}
+
+/* ── Error state ── */
+.error-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #dc2626;
+    padding: 1rem 0;
+    font-size: 0.875rem;
+}
+
+/* ── Empty state ── */
+.empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #94a3b8;
+    padding: 1rem;
+    font-size: 0.875rem;
+}
+
+.empty-icon {
+    --slds-c-icon-color-foreground-default: #94a3b8;
+}

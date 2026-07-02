@@ -32,6 +32,28 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 
+# Path segments (relative to the scan root) that mark a directory we never validate:
+# internal SFDMU subdirs, developer-local scratch (test/), and backup dirs (*.bak).
+_SKIP_SEGMENTS = ("objectset_source", "processed", "source", "logs", "test")
+
+
+def _is_skippable_export(export_json: Path, root: Path) -> bool:
+    """Return True if an export.json found under ``root`` should be skipped.
+
+    The skip filters are applied to the path RELATIVE TO ``root`` (the SFDMU base
+    or the ``--dataset`` parent), not the absolute filesystem path. Otherwise a
+    checkout directory literally named, e.g., ``test`` or ``source`` (such as
+    ``/tmp/test/rlm-base-dev``) would wrongly filter out every shipped dataset.
+    """
+    try:
+        rel_parts = export_json.relative_to(root).parts
+    except ValueError:
+        rel_parts = export_json.parts
+    if any(seg in _SKIP_SEGMENTS for seg in rel_parts):
+        return True
+    return any(seg.endswith(".bak") for seg in rel_parts)
+
+
 class Severity(Enum):
     """Issue severity levels."""
     CRITICAL = "Critical"
@@ -75,6 +97,19 @@ class SFDMUValidator:
         "PriceBookRateCard",
         "RateCardEntry",
         "RateAdjustmentByTier",
+        # MFG AAF — forecast facts use deleteOldData for full refresh
+        "AdvAccountForecastFact",
+        "AdvAcctForecastSetPartner",
+        # Guided selling — OmniProcess/AssessmentQuestion objects require deleteOldData
+        # due to complex self-referential keys that SFDMU v5 cannot upsert safely
+        "AssessmentQuestionAssignment",
+        "AssessmentQuestionVersion",
+        "OmniProcessElement",
+        "OmniProcessAsmtQuestionVer",
+        # Rating usage grants require deleteOldData due to composite key structure
+        "ProductUsageResource",
+        "ProductUsageResourcePolicy",
+        "ProductUsageGrant",
     }
 
     # Known excluded objects (from optimization doc)
@@ -85,6 +120,8 @@ class SFDMUValidator:
         "ProductDecompEnrichmentRule",
         "ProductComponentGrpOverride",
         "ProductRelComponentOverride",
+        # CostBookEntry excluded in qb-pricing (no cost book data in base dataset)
+        "CostBookEntry",
     }
 
     # Objects with known empty CSVs (0 records placeholders)
@@ -165,8 +202,9 @@ class SFDMUValidator:
         # Find all export.json files in SFDMU directory tree
         for export_json in self.sfdmu_base.rglob("export.json"):
             dataset_dir = export_json.parent
-            # Skip if it's in a subdirectory like objectset_source or processed
-            if any(p in export_json.parts for p in ["objectset_source", "processed", "source", "logs"]):
+            # Skip internal subdirs, developer-local scratch (test/), and backup dirs (*.bak).
+            # Filter on the path relative to sfdmu_base so the checkout path can't matter.
+            if _is_skippable_export(export_json, self.sfdmu_base):
                 continue
             datasets.append(dataset_dir)
 
@@ -578,6 +616,13 @@ class SFDMUValidator:
         if not external_id or external_id == "Id":
             return
 
+        # Resolve operation once — both downstream externalId checks (nested-path
+        # traversal, SELECT-coverage) need to skip Insert mode, where externalId
+        # is used for CSV composite-key matching within the dataset rather than
+        # SOQL behavior.
+        operation = obj_config.get("operation", "Upsert")
+        is_insert = operation.lower() == "insert"
+
         # Check for legacy $$ notation in externalId definition
         if "$$" in external_id:
             result.add_issue(Issue(
@@ -586,20 +631,26 @@ class SFDMUValidator:
                 message=f"externalId uses legacy $$ notation: '{external_id}'. SFDMU v5 requires semicolon-delimited format (e.g., 'Field1;Field2')"
             ))
 
-        # Check for nested relationship paths (v5 flattening issue)
+        # Check for nested relationship paths (v5 flattening issue).
+        # Skip for Insert operations: externalId is only used for CSV composite key
+        # matching, not for SOQL traversal, so nested paths do not cause runtime errors.
         fields = external_id.split(";")
-        for field in fields:
-            # Count dots (more than 1 = nested relationship)
-            dot_count = field.count(".")
-            if dot_count > 1:
-                result.add_issue(Issue(
-                    severity=Severity.MEDIUM,
-                    object_name=obj_name,
-                    message=f"externalId contains nested relationship path '{field}' which may cause v5 flattening errors"
-                ))
+        if not is_insert:
+            for field in fields:
+                # Count dots (more than 1 = nested relationship)
+                dot_count = field.count(".")
+                if dot_count > 1:
+                    result.add_issue(Issue(
+                        severity=Severity.MEDIUM,
+                        object_name=obj_name,
+                        message=f"externalId contains nested relationship path '{field}' which may cause v5 flattening errors"
+                    ))
 
-        # Validate that composite key components are in the query
-        if ";" in external_id:
+        # Validate that composite key components are in the query.
+        # Skip for Insert operations: externalId is used only for CSV composite key
+        # matching within the dataset, not for SOQL record matching, so the fields
+        # do not need to appear in the SELECT clause.
+        if ";" in external_id and not is_insert:
             query_fields = set(obj_config.get("fields", []))
             for field in fields:
                 # Require that each externalId component is explicitly present in the query
@@ -1102,8 +1153,9 @@ Examples:
             datasets = []
             for export_json in dataset_path.rglob("export.json"):
                 dataset_dir = export_json.parent
-                # Skip if it's in a subdirectory like objectset_source or processed
-                if any(p in export_json.parts for p in ["objectset_source", "processed", "source", "logs"]):
+                # Skip internal subdirs, developer-local scratch (test/), and backup dirs (*.bak).
+                # Filter on the path relative to the --dataset parent, not the checkout path.
+                if _is_skippable_export(export_json, dataset_path):
                     continue
                 datasets.append(dataset_dir)
             datasets = sorted(datasets)

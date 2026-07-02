@@ -37,13 +37,13 @@ Update Product2.DisplayUrl
 
 | # | Object   | Operation | External ID        | Records |
 |---|----------|-----------|--------------------|---------|
-| 1 | Product2 | Update    | `StockKeepingUnit` | 165     |
+| 1 | Product2 | Update    | `StockKeepingUnit` | 315     |
 
 **Note:** This is an Update-only operation — it will not create products. Products must already exist from the qb-pcm plan. The `Name` field is included in the SOQL for reference but is not modified.
 
 ## Product Image Mapping
 
-The 165 products are mapped to static resource image paths (e.g., `/resource/RLM_quantumBit_logo_sq`, `/resource/database`, `/resource/powerswerve`). Some products have no `DisplayUrl` set (empty value in CSV), meaning they rely on a default or have no image.
+The 315 products are mapped to static resource image paths (e.g., `/resource/RLM_quantumBit_logo_sq`, `/resource/database`, `/resource/powerswerve`). Some products have no `DisplayUrl` set (empty value in CSV), meaning they rely on a default or have no image.
 
 Image categories include:
 - Generic QB branding (`/resource/RLM_quantumBit_logo_sq`) — most common
@@ -74,7 +74,7 @@ The `DisplayUrl` values reference static resources that must be deployed to the 
 qb-product-images/
 ├── export.json                          # SFDMU data plan (single pass, 1 object)
 ├── README.md                            # This file
-├── Product2.csv                         # 165 records (Update DisplayUrl)
+├── Product2.csv                         # 315 records (Update DisplayUrl)
 │
 │  SFDMU Runtime (gitignored)
 ├── source/                              # SFDMU-generated source snapshots

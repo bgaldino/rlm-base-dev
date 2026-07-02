@@ -53,13 +53,13 @@ except ImportError:
     AssembleAndDeployUX = None
     SF_NS = "http://soap.sforce.com/2006/04/metadata"
     SF_NS_TAG = f"{{{SF_NS}}}"
-
 try:
-    from tasks.rlm_ux_utils import resolve_flexipage_sources
+    from tasks.rlm_ux_utils import resolve_flexipage_sources, SALES_TXN_LINE_EDITOR_IDENTIFIER
 except ImportError:
     try:
-        from rlm_ux_utils import resolve_flexipage_sources
+        from rlm_ux_utils import resolve_flexipage_sources, SALES_TXN_LINE_EDITOR_IDENTIFIER
     except ImportError as _root_utils_err:
+        SALES_TXN_LINE_EDITOR_IDENTIFIER = "runtime_rca_salesTxnLineTable"
         def resolve_flexipage_sources(*args, **kwargs):  # type: ignore[misc]
             raise ImportError(
                 "Unable to import resolve_flexipage_sources from "
@@ -213,18 +213,27 @@ class WriteBackUXTemplates(BaseTask):
             self.logger.warning("No org-retrieved flexipages to process.")
             return []
 
+        # MUST mirror AssembleAndDeployUX._assemble_flexipages feature_patch_order
+        # exactly (same features, same order): writeback collects these patches in
+        # forward order then reverses them, so any feature the assembler applies but
+        # this list omits would never be reverse-applied — breaking base + patches =
+        # deployed and corrupting the regenerated base template for those pages.
         feature_patch_order = [
-            ("qb", "quantumbit"),
-            ("qb", "utils"),
+            ("quantumbit", "quantumbit"),
+            ("quantumbit", "utils"),
+            ("guidedselling", "guidedselling"),
             ("billing", "billing"),
             ("billing_ui", "billing_ui"),
             ("payments", "payments"),
-            ("qb", "approvals"),
+            ("quantumbit", "approvals"),
             ("docgen", "docgen"),
             ("tso", "tso"),
             ("constraints", "constraints"),
             ("ramps", "ramp_builder"),
+            ("large_stx", "large_stx"),
             ("collections", "collections"),
+            ("personas", "personas"),
+            ("prm_pricing", "prm_pricing"),
         ]
 
         results = []
@@ -639,6 +648,22 @@ class WriteBackUXTemplates(BaseTask):
                     patch["_remove"] = True
                     updated = True
 
+            elif ptype == "add_sales_txn_line_editor_field":
+                new_fields = self._extract_sales_txn_line_editor_fields(
+                    org_root, patch
+                )
+                if new_fields is not None:
+                    if not new_fields:
+                        patch["_remove"] = True
+                    elif "fields" in patch:
+                        patch["fields"] = new_fields
+                    elif len(new_fields) == 1:
+                        patch["field"] = new_fields[0]
+                    else:
+                        patch.pop("field", None)
+                        patch["fields"] = new_fields
+                    updated = True
+
             elif ptype == "add_facet_field":
                 new_fields = self._extract_facet_fields(
                     base_root, org_root, patch
@@ -781,6 +806,35 @@ class WriteBackUXTemplates(BaseTask):
         # (other patches may also add fields to this facet)
         relevant = [f for f in extra if f in patch_fields]
         return relevant
+
+    def _extract_sales_txn_line_editor_fields(
+        self,
+        org_root: ET.Element,
+        patch: Dict[str, Any],
+    ) -> Optional[List[str]]:
+        """Keep only patched Line Editor fields still present in the org state."""
+        patch_fields = _patch_field_values(patch)
+        if not patch_fields:
+            return None
+
+        component_identifier = patch.get(
+            "component_identifier", SALES_TXN_LINE_EDITOR_IDENTIFIER
+        )
+        prop_name = patch.get("property", "displayFields")
+        org_items = _get_component_value_list_items(
+            org_root, component_identifier, prop_name
+        )
+        if org_items is None:
+            # Component/property/valueList not found in the org state — cannot
+            # determine which fields survive, so leave the patch unchanged rather
+            # than dropping all of its fields (the org may use a different
+            # component identifier or property name).
+            return None
+        org_fields = set(org_items)
+        surviving = [field for field in patch_fields if field in org_fields]
+        if surviving == patch_fields:
+            return None
+        return surviving
 
     @staticmethod
     def _write_patch_yaml(path: Path, data: Dict[str, Any]) -> None:
@@ -935,6 +989,13 @@ def _reverse_patch(
     if ptype == "add_display_field":
         return "removed" if _reverse_add_display_field(root, patch) else "absent"
 
+    if ptype == "add_sales_txn_line_editor_field":
+        return (
+            "removed"
+            if _reverse_add_sales_txn_line_editor_field(root, patch)
+            else "absent"
+        )
+
     if ptype == "add_facet_field":
         return "removed" if _reverse_add_facet_field(root, patch) else "absent"
 
@@ -1001,6 +1062,23 @@ def _reverse_add_display_field(
                 vlist.remove(item)
                 return True
     return False
+
+
+def _reverse_add_sales_txn_line_editor_field(
+    root: ET.Element, patch: Dict[str, Any]
+) -> bool:
+    """Remove fields added to a Sales Transaction Line Editor valueList."""
+    fields = _patch_field_values(patch)
+    if not fields:
+        return True
+
+    component_identifier = patch.get(
+        "component_identifier", SALES_TXN_LINE_EDITOR_IDENTIFIER
+    )
+    prop_name = patch.get("property", "displayFields")
+    return _remove_component_value_list_items(
+        root, component_identifier, prop_name, fields
+    )
 
 
 def _reverse_add_facet_field(
@@ -1294,6 +1372,82 @@ def _field_exists_in_org(
             if val_el is not None and val_el.text == field_value:
                 return True
     return False
+
+
+def _patch_field_values(patch: Dict[str, Any]) -> List[str]:
+    """Normalize a patch that accepts either `field` or `fields`."""
+    fields = patch.get("fields")
+    if fields:
+        return [field for field in fields if field]
+    field = patch.get("field")
+    return [field] if field else []
+
+
+def _get_component_value_list_items(
+    root: ET.Element,
+    component_identifier: str,
+    prop_name: str,
+) -> Optional[List[str]]:
+    """Return valueList values for a property on a specific component identifier.
+
+    Returns ``None`` when the component identifier, the property, or its
+    ``valueList`` cannot be located ("cannot determine" — distinct from a
+    valueList that exists but is empty, which returns ``[]``). Callers must treat
+    ``None`` as "leave unchanged", not "the org has no fields", so a patch is not
+    silently dropped when the org uses a different component identifier/property.
+    """
+    for ci in root.iter(f"{SF_NS_TAG}componentInstance"):
+        id_el = _find_elem(ci, "identifier")
+        if id_el is None or id_el.text != component_identifier:
+            continue
+
+        for ci_props in _findall_elem(ci, "componentInstanceProperties"):
+            name_el = _find_elem(ci_props, "name")
+            if name_el is None or name_el.text != prop_name:
+                continue
+            vlist = _find_elem(ci_props, "valueList")
+            if vlist is None:
+                return None
+            return [
+                val_el.text
+                for item in _findall_elem(vlist, "valueListItems")
+                for val_el in [_find_elem(item, "value")]
+                if val_el is not None and val_el.text
+            ]
+
+    return None
+
+
+def _remove_component_value_list_items(
+    root: ET.Element,
+    component_identifier: str,
+    prop_name: str,
+    values: List[str],
+) -> bool:
+    """Remove matching valueListItems from a property on a specific component."""
+    values_to_remove = set(values)
+    removed_any = False
+
+    for ci in root.iter(f"{SF_NS_TAG}componentInstance"):
+        id_el = _find_elem(ci, "identifier")
+        if id_el is None or id_el.text != component_identifier:
+            continue
+
+        for ci_props in _findall_elem(ci, "componentInstanceProperties"):
+            name_el = _find_elem(ci_props, "name")
+            if name_el is None or name_el.text != prop_name:
+                continue
+            vlist = _find_elem(ci_props, "valueList")
+            if vlist is None:
+                return False
+            for item in list(_findall_elem(vlist, "valueListItems")):
+                val_el = _find_elem(item, "value")
+                if val_el is not None and val_el.text in values_to_remove:
+                    vlist.remove(item)
+                    removed_any = True
+            return removed_any
+
+    return removed_any
 
 
 def _component_exists_in_org(root: ET.Element, identifier: str) -> bool:

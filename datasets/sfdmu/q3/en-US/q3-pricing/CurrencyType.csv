@@ -1,0 +1,11 @@
+ConversionRate,DecimalPlaces,IsActive,IsCorporate,IsoCode
+0.27,2,true,false,AED
+0.64,2,true,false,AUD
+0.175,2,true,false,BRL
+0.7,2,true,false,CAD
+1.05,2,true,false,EUR
+1.26,2,true,false,GBP
+0.012,2,true,false,INR
+0.0067,0,true,false,JPY
+0.094,2,true,false,SEK
+1,2,true,true,USD

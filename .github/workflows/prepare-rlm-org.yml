@@ -8,36 +8,83 @@ on:
         required: false
         default: "test-org"
       scratch_config:
-        description: "Scratch org config name from orgs/ (e.g. dev, test-sb0)"
+        description: "Scratch org config name from orgs/ (e.g. dev, ent-sb0)"
         required: false
         default: "dev"
+  # Label-triggered CI for same-repo PR branches: apply the "ci:prepare-org"
+  # label to a PR to kick off a full prepare_rlm_org build against the PR's
+  # merge ref. The label is auto-removed at the start of the run, so
+  # re-applying it re-triggers the build. (Fork PRs are skipped — they have
+  # no access to the SFDX_AUTH_URL secret.)
+  pull_request:
+    types: [labeled]
 
 permissions:
   contents: read
+  pull-requests: write
+
+# Serialize runs that target the same scratch-org alias: per-PR for
+# label-triggered runs, per-ref for workflow_dispatch. Prevents two jobs from
+# concurrently creating/deleting the same org alias (flaky failures / leaked
+# scratch orgs). cancel-in-progress is false so an in-flight build finishes
+# (and tears down its org) before the next queued run starts.
+concurrency:
+  group: prepare-rlm-org-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
   prepare-rlm-org:
+    # Run on manual dispatch, or when the trigger label is applied to a
+    # same-repo PR.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.label.name == 'ci:prepare-org' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      # Dispatch uses the provided inputs; label-triggered PR runs derive a
+      # per-PR alias and default to the `dev` scratch config.
+      ORG_ALIAS: ${{ inputs.org_alias || format('pr{0}-ci', github.event.pull_request.number) }}
+      SCRATCH_CONFIG: ${{ inputs.scratch_config || 'dev' }}
     steps:
+      - name: Remove trigger label (re-apply to re-run)
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "ci:prepare-org" || true
+
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v4
+      - name: Set up Node.js 24.16.0
+        uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          # Pinned to an exact 24.x minor. node-version "24" floats to "latest 24.x",
+          # which moved 24.16.0 → 24.17.0; on 24.17.0 the npm-installed sf CLI exits 13
+          # on `sf org login` ("Detected unsettled top-level await" in the CLI entrypoint).
+          # 24.16.0 is the last-known-good — Prepare RLM Org succeeded on it 2026-06-11
+          # (run 27314890121). Re-float to "24" once a newer 24.x or sf CLI release restores
+          # compatibility (tracked alongside check-cci-token-fix.yml).
+          node-version: "24.16.0"
 
       - name: Cache npm download cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.npm
-          key: npm-cache-${{ runner.os }}-node22
+          key: npm-cache-${{ runner.os }}-node24
 
       - name: Install sf CLI and SFDMU plugin
         run: |
@@ -73,15 +120,28 @@ jobs:
           sf org login sfdx-url --sfdx-url-file /tmp/sfdx-auth-url.txt --set-default-dev-hub --alias devhub
           rm /tmp/sfdx-auth-url.txt
 
+      # SF_TEMP_SHOW_SECRETS is scoped to ONLY the steps where CumulusCI reads a
+      # scratch-org access token via `sf org display --json`. The May 2026 CLI
+      # change (forcedotcom/cli#3560) redacts tokens, so CCI reads "[REDACTED]"
+      # and fails with INVALID_AUTH_HEADER on scratch creation / org info / the
+      # flow's REST calls. Temporary shim (Salesforce removes it in Summer '26
+      # once CCI uses `sf org auth show-access-token`); kept OFF the checkout /
+      # build / setup steps so a token can't leak from unrelated JSON. Mirrors `.envrc`.
       - name: Create scratch org
+        env:
+          SF_TEMP_SHOW_SECRETS: "true"
         run: |
-          cci org scratch ${{ inputs.scratch_config }} ${{ inputs.org_alias }} --default
+          cci org scratch "$SCRATCH_CONFIG" "$ORG_ALIAS" --default
 
       - name: Run prepare_rlm_org
+        env:
+          SF_TEMP_SHOW_SECRETS: "true"  # CCI reads the scratch token for REST throughout the flow
         run: |
-          cci flow run prepare_rlm_org --org ${{ inputs.org_alias }}
+          cci flow run prepare_rlm_org --org "$ORG_ALIAS"
 
       - name: Delete scratch org
         if: always()
+        env:
+          SF_TEMP_SHOW_SECRETS: "true"  # CCI reads org info to delete the scratch
         run: |
-          cci org scratch_delete ${{ inputs.org_alias }} || true
+          cci org scratch_delete "$ORG_ALIAS" || true

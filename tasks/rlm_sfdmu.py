@@ -44,21 +44,68 @@ def strip_ansi_codes(text: str) -> str:
     return ANSI_ESCAPE_PATTERN.sub('', text)
 
 
+def derive_qb_reference_plan_dir(plan_dir: str) -> Optional[str]:
+    """Derive the qb/en-US 'golden' sibling of a variant plan directory.
+
+    Plans live at ``datasets/sfdmu/<variant>/<locale>/<variant>-<suffix>`` (e.g.
+    ``datasets/sfdmu/q3/en-US/q3-rates``).  The canonical reference is the qb,
+    en-US plan with the same suffix (``datasets/sfdmu/qb/en-US/qb-rates``).  ja
+    plans (``datasets/sfdmu/qb/ja/qb-pricing``) derive to their en-US counterpart.
+
+    Returns the reference path only when it exists on disk and differs from the
+    plan itself (so qb/en-US plans don't align to themselves); otherwise None.
+    """
+    plan_dir = os.path.normpath(plan_dir)
+    parts = plan_dir.split(os.sep)
+    try:
+        sroot = len(parts) - 1 - parts[::-1].index("sfdmu")
+    except ValueError:
+        return None
+    sfdmu_root = os.sep.join(parts[: sroot + 1])
+    plan_name = parts[-1]
+    if "-" not in plan_name:
+        return None
+    suffix = plan_name.split("-", 1)[1]
+    reference = os.path.join(sfdmu_root, "qb", "en-US", f"qb-{suffix}")
+    if os.path.normpath(reference) == plan_dir:
+        return None
+    if not os.path.isfile(os.path.join(reference, EXPORT_JSON_FILENAME)):
+        return None
+    return reference
+
+
 def run_post_process_script(
     extraction_dir: str,
     plan_dir: str,
     output_dir: str,
     cwd: Optional[str] = None,
     logger: Optional[Any] = None,
+    reference_plan_dir: Optional[str] = None,
+    code_map_file: Optional[str] = None,
+    copy_to_plan: bool = False,
 ) -> None:
     """Run post_process_extraction.py to make extracted CSVs v5 import-ready ($$ columns, header normalization).
     Shared by ExtractSFDMUData and TestSFDMUIdempotency.
+
+    When ``reference_plan_dir`` is given it is passed as ``--reference-plan-dir`` so
+    the processed CSVs are aligned to that reference plan's (golden) column schema
+    rather than to the target plan's own (possibly stale) CSVs.
+
+    When ``code_map_file`` is given it is passed as ``--code-map-file`` so the
+    post-process can backfill cross-object externalId code components (e.g.
+    UsageResource.Code) that SFDMU blanked to #N/A during extraction.
     """
     cwd = cwd or os.getcwd()
     script = os.path.join(cwd, "scripts", "post_process_extraction.py")
     if not os.path.isfile(script):
         raise FileNotFoundError(f"Post-process script not found: {script}")
     cmd = [sys.executable, script, extraction_dir, plan_dir, "--output-dir", output_dir]
+    if reference_plan_dir:
+        cmd += ["--reference-plan-dir", reference_plan_dir]
+    if code_map_file:
+        cmd += ["--code-map-file", code_map_file]
+    if copy_to_plan:
+        cmd += ["--copy-to-plan"]
     if logger:
         logger.info(f"Running post-process: {shlex.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
@@ -449,7 +496,7 @@ class DeleteSFDMUData(BaseSalesforceTask):
             "required": True,
         },
         "api_version": {
-            "description": "Salesforce API version override (e.g. '66.0'). Defaults to org or project version.",
+            "description": "Salesforce API version override (e.g. '67.0'). Defaults to org or project version.",
             "required": False,
         },
         "object_sets": {
@@ -477,7 +524,7 @@ class DeleteSFDMUData(BaseSalesforceTask):
             return str(self.options["api_version"])
         return (
             getattr(self.org_config, "api_version", None)
-            or getattr(self.project_config, "project__package__api_version", "66.0")
+            or getattr(self.project_config, "project__package__api_version", "67.0")
         )
 
     @property
@@ -969,6 +1016,29 @@ class ExtractSFDMUData(SFDXBaseTask):
                 "Use this when the plan directory is not 4 levels deep relative to the repo root."
             ),
             "required": False
+        },
+        "referenceplandir": {
+            "description": (
+                "Directory of a reference plan whose CSV column schema the processed "
+                "output should be aligned to (the 'golden' format, e.g. the qb sibling "
+                "of a q3/mfg/ja variant). Makes a freshly-extracted variant plan UNIFORM "
+                "with qb instead of inheriting its own (possibly stale) CSV schema. "
+                "If omitted, the qb/en-US sibling is auto-derived from the plan path when "
+                "it exists and differs from the plan; pass 'none' to disable alignment and "
+                "use the plan's own CSV schema."
+            ),
+            "required": False
+        },
+        "copy_to_plan": {
+            "description": (
+                "If true, write the processed extraction back into the plan directory as its "
+                "tracked CSV set (processed plan objects + cleaned incidental CSVs + header-only "
+                "placeholders for 0-record objects, uniform with the reference plan), completing "
+                "the extract->plan-dir loop in one command. Non-destructive: plan CSVs outside the "
+                "reference set are left in place and reported. Default false (writes only to "
+                "<output_dir>/processed/)."
+            ),
+            "required": False
         }
     }
 
@@ -1087,6 +1157,164 @@ class ExtractSFDMUData(SFDXBaseTask):
         self.logger.info(f"Collected {csv_count} CSV files to {output_dir}")
         return output_dir
 
+    def _cli_org(self) -> Optional[str]:
+        """CLI-safe org identifier for `sf` commands (alias or username).
+
+        The SFDMU extract may use the access_token (SFDMU keeps it in the orgs block),
+        so ``self.sourceusername`` can be an access_token for a non-scratch org with no
+        explicit sourceusername. ``sf data query --target-org`` requires a locally
+        authorized alias/username and rejects a bearer token (failing CLI auth and
+        leaking the secret), so resolve a real alias/username here: the explicit
+        sourceusername option, else org_config.username. Never the access_token.
+        """
+        return self.options.get("sourceusername") or getattr(self.org_config, "username", None)
+
+    def _sf_query_records(self, soql: str) -> List[dict]:
+        """Run a read-only SOQL query against the source org and return records.
+
+        Returns [] on any error (the backfill is best-effort: a failed map query
+        simply leaves the affected code components blank, the prior behaviour).
+        """
+        org = self._cli_org()
+        if not org:
+            self.logger.warning("No CLI-safe org alias/username for code-map query; skipping backfill")
+            return []
+        cmd = ["sf", "data", "query", "--target-org", org, "-q", soql, "--json"]
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True)
+        except Exception as e:  # pragma: no cover - subprocess failure
+            self.logger.warning(f"Code-map query error: {e}")
+            return []
+        if res.returncode != 0:
+            self.logger.warning(
+                f"Code-map query failed ({soql}): {strip_ansi_codes((res.stderr or '')[:200])}"
+            )
+            return []
+        try:
+            return json.loads(res.stdout).get("result", {}).get("records", []) or []
+        except (ValueError, AttributeError) as e:
+            self.logger.warning(f"Code-map parse failed: {e}")
+            return []
+
+    def _extracted_column_all_blank(self, output_dir: str, objname: str, col: str) -> bool:
+        """True iff the extracted CSV for objname has column col present with rows,
+        and every value is empty or SFDMU's #N/A null marker (i.e. needs backfill)."""
+        path = os.path.join(output_dir, f"{objname}.csv")
+        if not os.path.isfile(path):
+            return False
+        import csv as _csv
+        with open(path, newline="", encoding="utf-8-sig") as f:
+            reader = _csv.reader(f)
+            header = next(reader, None)
+            if not header:
+                return False
+            header = [h.strip().lstrip("﻿").strip().strip('"') for h in header]
+            if col not in header:
+                return False
+            ci = header.index(col)
+            saw_row = False
+            for row in reader:
+                saw_row = True
+                val = row[ci] if ci < len(row) else ""
+                if val not in ("", "#N/A"):
+                    return False
+            return saw_row
+
+    def _build_code_backfill_map(self, plan_dir: str, output_dir: str) -> dict:
+        """Query the source org for Name->Code maps to fill externalId code
+        components that SFDMU blanks to #N/A during extraction.
+
+        For each plan object, each single-hop externalId component ``Rel.Field``
+        (Field != Name) whose extracted column came back entirely #N/A is resolved
+        via ``SELECT Rel.Name, Rel.Field FROM Object`` on the source org.  Returns
+        ``{Object: {"Rel.Field": {Name: Code}}}``; empty when nothing needs it.
+        """
+        try:
+            with open(os.path.join(plan_dir, EXPORT_JSON_FILENAME), "r", encoding="utf-8") as f:
+                export_json = json.load(f)
+        except (OSError, ValueError):
+            return {}
+
+        object_sets = export_json.get("objectSets") or [{"objects": export_json.get("objects", [])}]
+        code_map: Dict[str, Dict[str, dict]] = {}
+        seen = set()
+        for oset in object_sets:
+            for obj in oset.get("objects", []):
+                if obj.get("excluded"):
+                    continue
+                query = obj.get("query", "")
+                objname = query.split("FROM")[1].strip().split()[0] if "FROM" in query else None
+                external_id = obj.get("externalId", "")
+                if not objname or not external_id:
+                    continue
+                for comp in external_id.split(";"):
+                    comp = comp.strip()
+                    if comp.count(".") != 1:
+                        continue  # only single-hop Rel.Field; nested resolve via fallback
+                    rel, field = comp.split(".")
+                    if field == "Name":
+                        continue
+                    key = (objname, comp)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    if not self._extracted_column_all_blank(output_dir, objname, comp):
+                        continue  # SFDMU resolved it (or target is a plan object)
+                    recs = self._sf_query_records(
+                        f"SELECT {rel}.Name, {rel}.{field} FROM {objname} WHERE {rel}.{field} != null"
+                    )
+                    mapping: Dict[str, str] = {}
+                    ambiguous = set()
+                    for r in recs:
+                        nested = r.get(rel) or {}
+                        name_val = nested.get("Name")
+                        code_val = nested.get(field)
+                        if name_val is None or code_val is None:
+                            continue
+                        if name_val in mapping and mapping[name_val] != code_val:
+                            ambiguous.add(name_val)
+                        else:
+                            mapping[name_val] = code_val
+                    for a in ambiguous:
+                        mapping.pop(a, None)  # don't guess when a Name maps to >1 Code
+                    if mapping:
+                        code_map.setdefault(objname, {})[comp] = mapping
+                        self.logger.info(
+                            f"Code-map: {objname}.{comp} <- {len(mapping)} {rel}.Name->{field} entries"
+                        )
+        return code_map
+
+    def _resolve_reference_plan_dir(self, plan_dir: str) -> Optional[str]:
+        """Resolve the reference plan dir used for golden-schema alignment.
+
+        Precedence: an explicit ``referenceplandir`` option wins ('none'/'false'
+        disables alignment); otherwise the qb/en-US sibling is auto-derived.
+        Logs the decision so the chosen schema source is visible in the run log.
+        """
+        opt = self.options.get("referenceplandir")
+        if opt is not None:
+            opt = str(opt).strip()
+            if opt.lower() in {"none", "false", ""}:
+                self.logger.info(
+                    "Reference-schema alignment disabled (referenceplandir=none); "
+                    "aligning to the plan's own CSVs."
+                )
+                return None
+            if not os.path.isdir(opt):
+                raise TaskOptionsError(f"referenceplandir not found: {opt}")
+            self.logger.info(f"Aligning processed CSVs to reference schema: {opt}")
+            return opt
+        derived = derive_qb_reference_plan_dir(plan_dir)
+        if derived:
+            self.logger.info(
+                f"Aligning processed CSVs to auto-derived qb reference schema: {derived}"
+            )
+        else:
+            self.logger.info(
+                "No qb reference sibling found; aligning to the plan's own CSVs."
+            )
+        return derived
+
     def _run_task(self) -> None:
         work_dir = None
         try:
@@ -1145,10 +1373,26 @@ class ExtractSFDMUData(SFDXBaseTask):
             if run_post_process:
                 processed_dir = os.path.join(output_dir, "processed")
                 os.makedirs(processed_dir, exist_ok=True)
+                reference_plan_dir = self._resolve_reference_plan_dir(plan_dir)
+                # Build an org-derived Name->Code map to restore externalId code
+                # components that SFDMU blanks to #N/A (cross-object .Code/.UnitCode).
+                code_map_file = None
+                code_map = self._build_code_backfill_map(plan_dir, output_dir)
+                if code_map:
+                    code_map_file = os.path.join(output_dir, "code_map.json")
+                    with open(code_map_file, "w", encoding="utf-8") as f:
+                        json.dump(code_map, f, indent=2, ensure_ascii=False)
+                    self.logger.info(f"Wrote code backfill map: {code_map_file}")
+                copy_to_plan = str(self.options.get("copy_to_plan", "")).strip().lower() in {"1", "true", "yes"}
                 run_post_process_script(
                     output_dir, plan_dir, processed_dir,
                     cwd=self.options.get("dir"), logger=self.logger,
+                    reference_plan_dir=reference_plan_dir,
+                    code_map_file=code_map_file,
+                    copy_to_plan=copy_to_plan,
                 )
+                if copy_to_plan:
+                    self.logger.info(f"Synced processed extraction into plan dir: {plan_dir}")
                 export_src = os.path.join(plan_dir, EXPORT_JSON_FILENAME)
                 shutil.copy2(export_src, os.path.join(processed_dir, EXPORT_JSON_FILENAME))
                 self.return_values["processed_dir"] = processed_dir

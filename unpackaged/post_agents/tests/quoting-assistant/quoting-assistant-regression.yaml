@@ -1,0 +1,94 @@
+# Description: Regression coverage for Quinn's redesign-specific behaviors that
+# fixed the three demo failures (plan §1): (1) uneven/redundant confirmations,
+# (2) leaking record IDs/JSON, (3) unreliable product/quote-line resolution and
+# action selection. These guard the design choices, not generic routing.
+#
+# What this asserts:
+#   - Specific action wins over generic update (precedence, plan §1e): every
+#     discount phrasing fires Apply_Discount_To_Quote_Lines (Helper B), never
+#     UpdateQuoteLineItemDetails.
+#   - One-call bulk discount with high-level targeting (applyToAll / productName)
+#     instead of a per-line loop the model has to orchestrate.
+#   - Names-not-IDs (plan §1c): user-facing text refers to lines by product name;
+#     bare 18-char IDs / raw JSON must not appear in prose (IDs inside markdown
+#     link targets and native record-card payloads are allowed).
+#   - No redundant confirmation on additive/reversible mutations (plan §1b): a
+#     plain discount request fires the action — these cases pre-position NO "yes".
+#
+# Cross-turn STATE (activeQuoteId / lastQuoteLineItemId persistence, "that line",
+# "add two of those", "do it") is explicitly OUT of CLI scope (Finding 4 —
+# [[project_agent_testing_findings]]: CLI Testing Center is single-turn). Those
+# move to the multi-turn preview/Runtime API checklist in Verification step 4, not
+# this file. Where prior state is needed it is seeded via contextVariables, not
+# relied upon as true cross-turn carry.
+#
+# Fixture assumptions (org rlm-base__jun25_agents — preflight deferred) —
+# Infinitech quote 0Q0Ru000003nedhKAA has 3 lines:
+#   "Additional API"       0QLRu000002xXWfOAM
+#   "Additional API"       0QLRu000002xXYHOA2   ← duplicate name → disambiguation
+#   "Additional API Prod"  0QLRu000002xZ5UOAU
+name: "Quinn — Discount & Names Regression"
+subjectType: AGENT
+subjectName: RLM_Quoting_Assistant
+
+testCases:
+  # --- Discount ALL lines → one call, applyToAll, NOT a generic update ---
+  - utterance: "Discount all the lines on this quote by 10%"
+    expectedActions:
+      - Apply_Discount_To_Quote_Lines
+    expectedOutcome: "Agent applies 10% across every line in one action and confirms the result by name (per line or as an all-lines summary); it does not use a generic quote-line update and does not print a bare line ID or JSON"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+
+  # --- Discount a single named line → one call, productName targeting ---
+  - utterance: "Discount the Additional API Prod line by 10%"
+    expectedTopic: LineManagement
+    expectedActions:
+      - Apply_Discount_To_Quote_Lines
+    expectedOutcome: "Agent targets the Additional API Prod line in one discount action and confirms by product name — or, if the line is momentarily locked by an in-flight pricing recalc, reports that cleanly and offers to retry. No bare ID in the prose."
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+
+  # --- Target-price intent still routes to the bulk discount helper ---
+  - utterance: "Sell the Additional API Prod line at $900"
+    expectedTopic: LineManagement
+    expectedActions:
+      - Apply_Discount_To_Quote_Lines
+    expectedOutcome: "Agent treats the target-price request as a line discount (computed to a percentage by the helper) on the named line — NOT a generic update — and either applies it or, if the line is momentarily locked by an in-flight pricing recalc, reports that cleanly and offers to retry"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+
+  # --- Ambiguous product name (two "Additional API" lines) → helper disambiguates ---
+  # Output wording is UI/LLM-phrasing sensitive; assert the action invocation and
+  # avoid brittle narrative grading. The helper returns candidates by name+number.
+  # A discount that resolves and completes in one turn returns control to the
+  # router (topic=agent_router), per the documented single-turn pattern — so
+  # assert the ACTION, not the subagent topic.
+  - utterance: "Apply a 15% discount to the Additional API line"
+    expectedActions:
+      - Apply_Discount_To_Quote_Lines
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"
+
+  # --- Bare "show the quote" uses the demo summary, names-only ---
+  - utterance: "Show me this quote"
+    expectedActions:
+      - Get_Quote_Demo_Summary
+    expectedOutcome: "Agent presents the quote by name with a recap and/or a native record card and does not dump a raw record ID or JSON blob in the text"
+    contextVariables:
+      - name: "$Context.currentRecordId"
+        value: "0Q0Ru000003nedhKAA"
+      - name: "$Context.currentObjectApiName"
+        value: "Quote"

@@ -15,16 +15,17 @@ Dynamic UX Assembly replaces the previous approach of maintaining duplicate, han
 UX metadata files scattered across every `unpackaged/post_*` feature directory. Instead, a
 single late-stage CCI task (`assemble_and_deploy_ux`) builds the correct version of every
 UX artifact from composable templates and feature-flag-driven logic, then deploys them all
-in one `sf project deploy start` call at **step 27** of `prepare_rlm_org` (immediately
-before `prepare_scratch` at step 27 and `refresh_all_decision_tables` at step 29).
+in one `sf project deploy start` call at **step 30** of `prepare_rlm_org` (followed by
+`prepare_inapp` at step 31, `prepare_scratch` at step 32, and `refresh_all_decision_tables`
+at step 33).
 
 ### Problems it solves
 
 | Before | After |
 |--------|-------|
 | 19+ copies of `RLM_Quote_Record_Page.flexipage-meta.xml` across `post_*` directories, each needing manual sync | One base template + per-feature YAML patch files; assembly is automatic |
-| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 27 after all objects exist |
-| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 27 |
+| Layouts deployed at step 5 via `deploy_full`, causing Admin profile failures on fresh orgs | Layouts, compact layouts, and list views deployed at step 30 after all objects exist |
+| `Admin.profile-meta.xml` deploying stale layout assignments every time `deploy_full` ran | Profile stripped to class-accesses-only at step 5; full profile assembled at step 30 |
 | No gate — UX always deployed even during isolated feature testing | `ux: true` feature flag in `cumulusci.yml`; set `ux: false` to bypass entirely |
 | Compact layouts and list views in feature `unpackaged/post_*` dirs, not conditionally assembled | Moved to `templates/objects/`; assembled with feature-conditional copy order |
 
@@ -40,8 +41,8 @@ ux: true   # Set false to skip prepare_ux entirely (useful for isolated feature 
 `prepare_ux` runs only when `ux=true`:
 
 ```yaml
-# prepare_rlm_org step 27
-27:
+# prepare_rlm_org step 30
+30:
   flow: prepare_ux
   when: project_config.project__custom__ux
 ```
@@ -67,7 +68,8 @@ templates/
 │   │   ├── payments/                   # RLM_Account_Record_Page (payments override) + 1 other
 │   │   ├── quantumbit/                 # 19 QB-specific pages (billing schedules, usage, etc.)
 │   │   ├── tso/                        # 6 TSO-specific overrides
-│   │   └── utils/                      # RLM_Home_Page_Default
+│   │   ├── utils/                      # RLM_Home_Page_Default
+│   │   └── prm_pricing/                # Channel Program record pages
 │   └── patches/                        # YAML patch files for additive/positional changes
 │       ├── approvals/
 │       │   └── RLM_Quote_Record_Page.yml
@@ -81,15 +83,18 @@ templates/
 │       ├── ramp_builder/
 │       │   └── RLM_Quote_Record_Page.yml
 │       ├── tso/
-│       └── utils/
-│           └── RLM_Account_Record_Page.yml
+│       ├── utils/
+│       │   └── RLM_Account_Record_Page.yml
+│       └── prm_pricing/
+│           ├── RLM_Account_Record_Page.yml
+│           └── RLM_Quote_Record_Page.yml
 ├── layouts/
 │   ├── base/                           # 17 base layouts (moved from force-app/main/default/layouts/)
 │   ├── billing/                        # 3 billing-specific layouts
 │   └── constraints/                    # 2 constraints overrides (OrderItem, QuoteLineItem)
 ├── applications/
 │   ├── base/                           # RLM_Revenue_Cloud.app-meta.xml (core/minimal)
-│   ├── quantumbit/                     # RLM_Revenue_Cloud QB variant (selected when qb=true)
+│   ├── quantumbit/                     # RLM_Revenue_Cloud QB variant (selected when quantumbit=true)
 │   ├── tso/                            # RLM_Revenue_Cloud TSO variant (selected when tso=true)
 │   └── conditional/
 │       ├── billing/                    # standard__BillingConsole (conditional)
@@ -106,9 +111,8 @@ templates/
 │   │   ├── BillingScheduleGroup/listViews/RLM_All_Billing_Schedule_Groups.listView-meta.xml
 │   │   ├── Invoice/listViews/RLM_Failed_Invoices.listView-meta.xml
 │   │   └── TransactionJournal/compactLayouts/RLM_Transaction_Journal_Compact_Layout.compactLayout-meta.xml
-│   └── collections/                    # Collections (active when collections=true, WIP)
-│       ├── Collection_Plan_Activity__c/listViews/All.listView-meta.xml
-│       └── CollectionPlan__c/listViews/RLM_All_Collection_Plans.listView-meta.xml
+│   └── collections/                    # Collections (active when collections=true)
+│       └── CollectionPlan/listViews/RLM_All_Collection_Plans.listView-meta.xml
 └── profiles/
     ├── base/                           # Full canonical profiles with all layout assignments
     │   ├── Admin.profile-meta.xml
@@ -129,11 +133,11 @@ templates/
 **Source resolution** (last write wins):
 1. Base pages from `templates/flexipages/base/`
 2. Feature standalone overrides applied in deploy order:
-   `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections`
+   `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`
    *(Canonical order defined in `tasks/rlm_ux_utils._STANDALONE_ORDER`; all three tasks — assembly, retrieve, writeback — use this shared constant)*
 
 **Patch application** (additive, in deploy order):
-`quantumbit → utils → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections`
+`quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections → prm_pricing`
 
 **Skip rule**: `EmailTemplatePage` type flexipages cannot be deployed via Metadata API
 (platform restriction). During assembly, these pages are skipped, each skip is logged as a
@@ -147,10 +151,10 @@ created at runtime by `create_approval_email_templates`.
 
 ```yaml
 feature: approvals          # Informational label
-feature_flag: qb            # Controls whether this patch group is active (checked at CCI level, not in YAML)
+feature_flag: quantumbit    # Controls whether this patch group is active (checked at CCI level, not in YAML; must be a UX_KNOWN_FLAGS name)
 patches:
   - type: insert_action
-    after: "Quote.RLM_CreateContract"   # Insert after this action value; omit to append
+    after: "CreateContract"   # Insert after this action value; omit to append
     actions:
       - "Quote.RLM_Submit_for_Approval"
 
@@ -160,6 +164,12 @@ patches:
 
   - type: add_display_field
     field: "QuoteLineItem.RLM_Approval__c"   # Adds to the displayedFields component
+
+  - type: add_sales_txn_line_editor_field
+    property: displayFields                   # Targets runtime_rca_salesTxnLineTable by default
+    after: "QuoteLineItem.DiscountAmount"     # Optional; omit to append
+    fields:
+      - "QuoteLineItem.RLM_Distributor_Discount_Percent__c"
 
   - type: add_facet_field
     facet: "Quote Information"           # Label of the target facet region
@@ -196,7 +206,7 @@ No patching — layouts are copied as-is.
 
 **Versioned selection** for `RLM_Revenue_Cloud.app-meta.xml` (highest-priority active flag wins):
 - `tso=true` → `templates/applications/tso/`
-- `qb=true` → `templates/applications/quantumbit/`
+- `quantumbit=true` → `templates/applications/quantumbit/`
 - fallback → `templates/applications/base/`
 
 **Conditional standalone apps** (copied when their flag is active):
@@ -209,7 +219,7 @@ No patching — layouts are copied as-is.
 - Early-stage profiles in `force-app/main/default/profiles/` and `unpackaged/post_*/profiles/`
   are **stripped** of `layoutAssignment` and `applicationVisibilities` elements. They deploy
   at step 5 with only `classAccesses` (and other non-personalization grants).
-- At step 27, `_assemble_profiles` reads the **base template** (full layout assignments +
+- At step 30, `_assemble_profiles` reads the **base template** (full layout assignments +
   app visibility) from `templates/profiles/base/` and applies feature patches:
 
 | Patch file | Activates when | Effect |
@@ -225,10 +235,12 @@ Simple feature-conditional copy from `templates/objects/{feature}/` into
 
 Copy order: `base` (always) → `billing` → `tso` → `collections`
 
-> **Collections note**: The `CollectionPlan__c` list view path (`objects/listViews/`) in the
-> original `unpackaged/post_collections/` was missing the object name directory and has been
-> moved to `templates/objects/collections/CollectionPlan__c/listViews/` pending verification
-> of the correct object API name.
+> **Collections note**: The `RLM_All_Collection_Plans` list view lives at
+> `templates/objects/collections/CollectionPlan/listViews/` and targets the **native
+> `CollectionPlan`** object (verified: standard object, fields `Name`/`Status`/`DaysPastDue`/
+> `AccountId`/`OwnerId`). The earlier `CollectionPlan__c` directory name was incorrect and has
+> been corrected. (The stale homegrown `Collection_Plan_Activity__c` object — never used in
+> any current org — was removed entirely; collections uses native platform objects.)
 
 ---
 
@@ -251,24 +263,24 @@ cci task run assemble_and_deploy_ux [options]
 
 ```bash
 # Assemble and deploy everything (production use via prepare_ux flow)
-cci task run assemble_and_deploy_ux --org dev-sb0
+# (no --org flag — deploys to your DEFAULT cci org)
+cci task run assemble_and_deploy_ux
 
-# Dry-run: assemble only, no deploy
-cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+# Dry-run: assemble only, no deploy (local — no org needed)
+cci task run assemble_and_deploy_ux -o deploy false
 
-# Regenerate a single flexipage
+# Regenerate a single flexipage (deploys to your DEFAULT cci org; no --org flag)
 cci task run assemble_and_deploy_ux \
-    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml \
-    --org dev-sb0
+    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
 
-# Regenerate and inspect a profile without deploying
+# Regenerate and inspect a profile without deploying (local; no org needed)
 cci task run assemble_and_deploy_ux \
     -o metadata_name Admin.profile-meta.xml \
-    -o deploy false --org dev-sb0
+    -o deploy false
 
-# Assemble only layouts
+# Assemble only layouts (local; no org needed)
 cci task run assemble_and_deploy_ux \
-    -o metadata_type layouts -o deploy false --org dev-sb0
+    -o metadata_type layouts -o deploy false
 ```
 
 ### `prepare_ux` flow
@@ -278,7 +290,7 @@ cci flow run prepare_ux --org dev-sb0
 ```
 
 Two-step flow: runs `assemble_and_deploy_ux` (full assembly + deploy) then
-`reorder_app_launcher`. Runs as step 27 of `prepare_rlm_org` when `ux=true`.
+`reorder_app_launcher`. Runs as step 30 of `prepare_rlm_org` when `ux=true`.
 
 ---
 
@@ -441,7 +453,6 @@ unpackaged/post_billing/objects/Account/compactLayouts
 unpackaged/post_billing/objects/TransactionJournal/compactLayouts
 unpackaged/post_billing/objects/BillingScheduleGroup
 unpackaged/post_billing/objects/Invoice/listViews
-unpackaged/post_collections/objects/Collection_Plan_Activity__c/listViews
 unpackaged/post_collections/objects/listViews
 ```
 
@@ -458,10 +469,10 @@ detects this type and silently skips them. These pages are created at runtime by
 
 ### Collections objects path
 
-`RLM_All_Collection_Plans.listView-meta.xml` was stored in `post_collections/objects/listViews/`
-(missing the object name directory). It has been moved to
-`templates/objects/collections/CollectionPlan__c/listViews/`. The correct object API name
-must be verified and the file path corrected before `collections=true` deployments.
+`RLM_All_Collection_Plans.listView-meta.xml` now lives at
+`templates/objects/collections/CollectionPlan/listViews/` and targets the **native
+`CollectionPlan`** object (object API name verified against a live org). The list view is
+assembled into `post_ux/objects/CollectionPlan/listViews/` only when `collections=true`.
 
 ### tso=true not yet validated
 
@@ -512,7 +523,7 @@ TSO introduces:
 1. Prepare a TSO-capable org (or set `tso=true` in the org definition)
 2. Run dry-run to inspect output:
    ```bash
-   cci task run assemble_and_deploy_ux -o deploy false --org <tso-org>
+   cci task run assemble_and_deploy_ux -o deploy false        # dry-run: local only, no org needed
    ```
 3. Verify:
    - `unpackaged/post_ux/applications/RLM_Revenue_Cloud.app-meta.xml` comes from
@@ -534,7 +545,7 @@ content parity.
 After Phases 2 and 3 pass independently:
 
 1. Run `cci flow run prepare_rlm_org --org <fresh-org>` end-to-end
-2. Confirm all UX deploys succeed at step 27
+2. Confirm all UX deploys succeed at step 30
 3. Spot-check record pages in the org UI:
    - Quote Record Page: all actions present in correct order
    - Profile layout assignments: Admin profile can open all expected record pages
@@ -549,22 +560,21 @@ After Phases 2 and 3 pass independently:
 ### Inspect the assembled output before deploying
 
 ```bash
-cci task run assemble_and_deploy_ux -o deploy false --org dev-sb0
+cci task run assemble_and_deploy_ux -o deploy false        # local only, no org needed
 ```
 Review `unpackaged/post_ux/` and `unpackaged/post_ux/assembly_manifest.json`.
 
 ### Regenerate a single item
 
 ```bash
-# Single flexipage (also deploys it)
+# Single flexipage (also deploys it — to your DEFAULT cci org; no --org flag)
 cci task run assemble_and_deploy_ux \
-    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml \
-    --org dev-sb0
+    -o metadata_name RLM_Quote_Record_Page.flexipage-meta.xml
 
-# Single layout, no deploy
+# Single layout, no deploy (local; no org needed)
 cci task run assemble_and_deploy_ux \
     -o metadata_name "Quote-RLM Quote Layout.layout-meta.xml" \
-    -o deploy false --org dev-sb0
+    -o deploy false
 ```
 
 ### Check what feature flags were active for a past assembly
@@ -603,6 +613,6 @@ cci flow run apply_ux_drift --org dev-sb0
 ### Adding a new patch type or flexipage
 
 1. Add or edit the YAML patch file in `templates/flexipages/patches/{feature}/`
-2. Run `cci task run assemble_and_deploy_ux -o metadata_name <pagename>.flexipage-meta.xml -o deploy false --org <org>`
+2. Run `cci task run assemble_and_deploy_ux -o metadata_name <pagename>.flexipage-meta.xml -o deploy false` (dry-run; local, no org)
 3. Inspect the output file and compare to the reference in `unpackaged/post_*/flexipages/`
 4. When satisfied, run without `-o deploy false` to deploy

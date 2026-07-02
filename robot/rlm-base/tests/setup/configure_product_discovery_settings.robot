@@ -1,0 +1,284 @@
+*** Settings ***
+Documentation     Configure the Product Discovery Settings page: set the Default Catalog
+...               to the specified catalog name. Must run after QB product catalog data
+...               has been loaded (insert_quantumbit_pcm_data) so the catalog record
+...               exists to be selected.
+...
+...               The "Select Default Catalog" field is a Lightning combobox. Selecting a
+...               value auto-saves and triggers a "Default Catalog Updated" toast — no
+...               explicit Save button is needed.
+Resource          ../../resources/SetupToggles.robot
+Suite Setup       Open Browser For Setup
+Suite Teardown    Close Browser After Setup
+
+*** Variables ***
+${ORG_ALIAS}                    ${EMPTY}
+${PRODUCT_DISCOVERY_URL}        ${EMPTY}
+${MANUAL_LOGIN_WAIT}            90s
+${DEFAULT_CATALOG}              QuantumBit Software
+# Shared shadow-DOM traversal helper prepended to Execute JavaScript blocks that need findEl.
+${_JS_FIND_EL}    function findEl(root, sel, d) { if (d > 6) return null; var el = root.querySelector(sel); if (el) return el; var all = root.querySelectorAll('*'); for (var i=0;i<all.length;i++){if(all[i].shadowRoot){var f=findEl(all[i].shadowRoot,sel,d+1);if(f)return f;}} return null; }
+
+*** Test Cases ***
+Configure Product Discovery Default Catalog
+    [Documentation]    Navigates to Product Discovery Settings and sets the Default Catalog
+    ...    to the value specified by ${DEFAULT_CATALOG}. Skips if the catalog is already set
+    ...    to the correct value. Reloads the page after setting to confirm server-side persistence.
+    Open Product Discovery Settings Page
+    Set Default Catalog    ${DEFAULT_CATALOG}
+    Dismiss Toast If Present
+    Capture Page Screenshot
+    # Reload and re-verify to confirm the value was saved server-side.
+    # Open Setup Page sleeps 2s for generic Lightning rendering, but the
+    # Product Discovery Settings LWC + its [data-id="selectedCatalog"]
+    # pill take longer than that to wire on the post-reload visit. Without
+    # a retry the read returns 'not_set' even when the catalog is genuinely
+    # persisted server-side. Wait Until Keyword Succeeds polls
+    # _Read Default Catalog State (which treats 'not_set' as a retry signal)
+    # until the pill renders.
+    Open Product Discovery Settings Page
+    ${verified}=    Wait Until Keyword Succeeds    30s    2s    _Read Default Catalog State
+    Should Be Equal    ${verified}    ${DEFAULT_CATALOG}
+    ...    msg=Default Catalog not persisted after page reload: expected "${DEFAULT_CATALOG}", got "${verified}"
+    Log    Product Discovery Settings: Default Catalog confirmed as "${DEFAULT_CATALOG}" after reload.
+
+*** Keywords ***
+Open Product Discovery Settings Page
+    [Documentation]    Opens the Product Discovery Settings setup page using sf org open
+    ...    when ORG_ALIAS is set, or falls back to PRODUCT_DISCOVERY_URL.
+    ${path}=    Set Variable    /lightning/setup/ProductDiscoverySettings/home
+    IF    """${ORG_ALIAS}""" != ""
+        Open Setup Page    ${path}
+    ELSE IF    """${PRODUCT_DISCOVERY_URL}""" != ""
+        Open Setup Page    url=${PRODUCT_DISCOVERY_URL}
+    ELSE
+        Fail    msg=Set ORG_ALIAS (e.g. -v ORG_ALIAS:my-scratch) or PRODUCT_DISCOVERY_URL
+    END
+
+Set Default Catalog
+    [Documentation]    Sets the "Select Default Catalog" combobox via JavaScript, piercing the
+    ...    nested LWC shadow DOMs (lightning-combobox → lightning-base-combobox → button, with
+    ...    option text read from lightning-base-combobox-item shadow roots). Clears any existing
+    ...    selection first if a different catalog is already selected. Auto-saves on selection.
+    ...
+    ...    Uses a manual retry loop (rather than Wait Until Keyword Succeeds) so it can
+    ...    distinguish transient mid-render LWC states from terminal data errors. The
+    ...    inner JS returns one of three sentinels via `_Try Set Default Catalog`:
+    ...      • `not_found:[]`            — dropdown opened before options finished
+    ...                                    server-fetching (transient → retry)
+    ...      • `not_found:[?,...]`       — options present but shadow roots still
+    ...                                    binding (transient → retry)
+    ...      • `not_found:[Cat A,...]`   — options fully loaded and target is
+    ...                                    genuinely missing (terminal → fail fast
+    ...                                    with the visible-options list)
+    ...    The terminal case used to mask as a 90s timeout under the previous
+    ...    Wait Until Keyword Succeeds wrapper; now it surfaces in one attempt so a
+    ...    missing catalog (e.g. QB PCM data load didn't run) or a mistyped name is
+    ...    obvious from the failure message instead of a generic timeout. Total
+    ...    budget for the transient/retry path stays ~90s with 5s between attempts
+    ...    to match the prior wrapper semantics.
+    [Arguments]    ${target_value}
+    ${deadline}=    Evaluate    time.time() + 90    modules=time
+    ${attempt}=    Set Variable    ${0}
+    WHILE    True    limit=30
+        ${attempt}=    Evaluate    ${attempt} + 1
+        ${status}    ${error}=    Run Keyword And Ignore Error    _Try Set Default Catalog    ${target_value}
+        IF    "${status}" == "PASS"    RETURN
+        # Extract the raw `not_found:[...]` sentinel from _Try Set Default Catalog's
+        # Fail message. A non-empty match list whose contents include any char other
+        # than `?` or `]` means the dropdown options finished loading and the target
+        # is genuinely absent — terminal. `not_found:[]`, `not_found:[?]`, and mixed
+        # `not_found:[Cat,?]` cases yield no match and fall through to the retry
+        # path (transient render). Reformatting the failure message from the bare
+        # sentinel (rather than interpolating ${error}) avoids leaking the
+        # "closing and retrying open+select cycle..." wording from the per-attempt
+        # Fail message into a context where we are explicitly NOT retrying.
+        ${terminal_match}=    Get Regexp Matches    ${error}    not_found:\\[[^?\\]]+\\]
+        IF    ${terminal_match}
+            ${sentinel}=    Set Variable    ${terminal_match}[0]
+            Fail    msg=Default Catalog "${target_value}" not present in dropdown after ${attempt} attempt(s). Visible options: ${sentinel}. Verify QB PCM data load (qb-pcm plan) completed and the catalog name matches exactly.
+        END
+        ${now}=    Evaluate    time.time()    modules=time
+        IF    ${now} >= ${deadline}
+            Fail    msg=Default Catalog "${target_value}" could not be set within 90s (${attempt} attempts). Last error: ${error}
+        END
+        Log    Default Catalog attempt ${attempt} transient — retrying: ${error}    INFO
+        Sleep    5s    reason=Wait before next open+select cycle
+    END
+
+_Try Set Default Catalog
+    [Documentation]    One attempt at configuring the Default Catalog. Returns
+    ...    normally on success or already_set; on any other state, closes any
+    ...    open dropdown with Escape and fails with a message containing the
+    ...    raw `select_result` sentinel (e.g. `not_found:[]` or
+    ...    `not_found:[Cat A,Cat B]`). The caller — `Set Default Catalog` — wraps
+    ...    this in a manual WHILE loop with `Run Keyword And Ignore Error`,
+    ...    inspects the sentinel to classify the failure as transient (retry)
+    ...    or terminal (fail fast with the visible-options list), and re-invokes
+    ...    after a 5s sleep on the transient path. The dropdown close-on-fail
+    ...    here is what guarantees the next outer attempt starts from a clean
+    ...    state, so this keyword should not be called standalone outside that
+    ...    loop.
+    [Arguments]    ${target_value}
+    # Step 1: check current state; clear wrong selection; open dropdown
+    ${open_result}=    _Open Default Catalog Combobox    ${target_value}
+    IF    "${open_result}" == "already_set"
+        Log    Default Catalog already set to "${target_value}". No change needed.
+        RETURN
+    END
+    # If a selection was cleared, give the pill-removal re-render a beat then re-open
+    IF    "${open_result}" == "cleared"
+        Sleep    2s    reason=Allow pill removal to settle before re-opening
+        ${open_result}=    _Open Default Catalog Dropdown
+    END
+    Should Be Equal    ${open_result}    opened
+    ...    msg=Could not prepare/open Default Catalog combobox: ${open_result}
+    Sleep    1s    reason=Allow dropdown options to populate
+    # Step 2: click the matching option (text is inside each option's shadow root)
+    ${select_result}=    Execute JavaScript
+    ...    return (function(targetValue) {
+    ...        function findAll(root, sel, d, acc) {
+    ...            if (d > 6) return;
+    ...            root.querySelectorAll(sel).forEach(function(el){acc.push(el);});
+    ...            root.querySelectorAll('*').forEach(function(el){if(el.shadowRoot)findAll(el.shadowRoot,sel,d+1,acc);});
+    ...        }
+    ...        var opts = []; findAll(document, '[role="option"]', 0, opts);
+    ...        for (var i=0;i<opts.length;i++) {
+    ...            var text = opts[i].shadowRoot ? opts[i].shadowRoot.textContent.trim() : '';
+    ...            if (text === targetValue) { opts[i].click(); return 'clicked'; }
+    ...        }
+    ...        return 'not_found:[' + opts.map(function(o){return o.shadowRoot?o.shadowRoot.textContent.trim():'?';}).join(',') + ']';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${target_value}
+    IF    "${select_result}" == "clicked"
+        Sleep    2s    reason=Allow selection to auto-save
+        Log    Default Catalog set to "${target_value}".
+        RETURN
+    END
+    # Close the dropdown (Esc) and fail with the raw select_result sentinel.
+    # The caller's WHILE loop (in Set Default Catalog) inspects the sentinel and
+    # decides retry-vs-fail: `not_found:[]` and `not_found:[?...]` are transient
+    # (parent's options-fetch hasn't completed or shadow roots still binding)
+    # and get retried; `not_found:[Cat A,Cat B]` means options are loaded and
+    # the target is genuinely missing — caller fails fast with the options list.
+    _Close Default Catalog Dropdown
+    Fail    msg=Default Catalog dropdown returned "${select_result}"; closing and retrying open+select cycle...
+
+_Close Default Catalog Dropdown
+    [Documentation]    Closes any open lightning-combobox dropdown between retry
+    ...    attempts in _Try Set Default Catalog so a stale-open dropdown doesn't
+    ...    interfere with the next state check. Primary path is SeleniumLibrary
+    ...    Press Keys ESCAPE sent through the native WebDriver channel — this is
+    ...    more reliable than a JS-dispatched KeyboardEvent for LWCs because the
+    ...    event reaches whichever element actually has focus inside the shadow
+    ...    tree (matches the pattern in enable_constraints_settings.robot and
+    ...    configure_revenue_settings.robot). Fallback is a composed/cancelable
+    ...    KeyboardEvent dispatched to document.activeElement so the event still
+    ...    crosses any shadow boundary if Selenium can't locate a focused input.
+    Run Keyword And Ignore Error    Press Keys    ${NONE}    ESCAPE
+    Execute JavaScript
+    ...    (function(){
+    ...        var ev = new KeyboardEvent('keydown', {key: 'Escape', code: 'Escape', keyCode: 27, which: 27, bubbles: true, cancelable: true, composed: true});
+    ...        var target = document.activeElement || document.body;
+    ...        target.dispatchEvent(ev);
+    ...    })();
+    Sleep    0.5s    reason=Allow dropdown close animation to complete
+
+_Read Default Catalog State
+    [Documentation]    Reads the current selected catalog text from [data-id="selectedCatalog"]
+    ...    after a Product Discovery Settings reload. Returns the catalog name when the pill
+    ...    has rendered, or fails with 'not_set' to drive Wait Until Keyword Succeeds retry —
+    ...    the LWC routinely takes longer than Open Setup Page's 2s default sleep to wire on
+    ...    the post-reload visit. Caller asserts the final state.
+    ${state}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
+    ...    return findEl(document, '[data-id="selectedCatalog"]', 0)?.textContent.trim() || 'not_set'
+    Should Not Be Equal    ${state}    not_set
+    ...    msg=Default Catalog pill not yet rendered post-reload; retrying...
+    RETURN    ${state}
+
+_Open Default Catalog Dropdown
+    [Documentation]    Re-opens the Default Catalog combobox after a pill clear. Used by
+    ...    _Try Set Default Catalog when the cleared-path needs to wait for the LWC to
+    ...    re-render the combobox button (pill removal is asynchronous and can take longer
+    ...    than the fixed sleep). Returns 'opened' on success, or fails the caller's
+    ...    Should Be Equal with 'page_not_ready' for any transient render miss (combobox
+    ...    / lightning-base-combobox / button not yet present). The caller's failure
+    ...    propagates up into `Set Default Catalog`'s manual WHILE loop, which retries
+    ...    the whole open+select cycle from scratch (this file uses a manual loop for
+    ...    that path so terminal-vs-transient classification can short-circuit retries;
+    ...    `configure_core_pricing_setup.robot` still uses `Wait Until Keyword Succeeds`
+    ...    for the analogous pattern because its inner helper takes a target value and
+    ...    bakes the equality check into the JS).
+    ${result}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
+    ...    return (function() {
+    ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
+    ...        if (!lc) return 'page_not_ready';
+    ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
+    ...        if (!lbc) return 'page_not_ready';
+    ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
+    ...        if (!btn) return 'page_not_ready';
+    ...        btn.click();
+    ...        return 'opened';
+    ...    })()
+    Should Be Equal    ${result}    opened
+    ...    msg=Default Catalog combobox not yet re-rendered after clear; retrying... (got: ${result})
+    RETURN    ${result}
+
+_Open Default Catalog Combobox
+    [Documentation]    Runs the state-check JS for Set Default Catalog.
+    ...    Returns 'opened' (combobox clicked open), 'already_set' (correct value present),
+    ...    'cleared' (wrong pill removed), 'remove_btn_not_found' (terminal — fails caller
+    ...    assertion), or 'page_not_ready' (any transient render miss — combobox /
+    ...    lightning-base-combobox / button not yet present, OR the LWC has a saved value
+    ...    that hasn't been swapped to a pill yet). Salesforce background processing after
+    ...    reconfigure_pricing_discovery delays LWC render; transient sentinels propagate
+    ...    via `_Try Set Default Catalog`'s Fail into `Set Default Catalog`'s manual WHILE
+    ...    loop, which re-invokes the whole open+select cycle (this file uses a manual
+    ...    loop for that path so terminal-vs-transient classification can short-circuit
+    ...    retries; `configure_core_pricing_setup.robot` still uses `Wait Until Keyword
+    ...    Succeeds` for the analogous pattern because its inner helper takes a target
+    ...    value and bakes the equality check into the JS).
+    ...
+    ...    When the LWC has a saved value (e.g. on a re-run where Default Catalog is already
+    ...    set), it briefly renders the empty-state combobox before swapping to the pill.
+    ...    The JS used to misinterpret that mid-render window as "no value set" and click
+    ...    the (empty) dropdown. We now sniff the lightning-combobox's `value` property
+    ...    before deciding: if it's non-empty and the pill hasn't rendered yet, treat as
+    ...    page_not_ready so we wait for the pill to land.
+    [Arguments]    ${target_value}
+    ${result}=    Execute JavaScript
+    ...    ${_JS_FIND_EL}
+    ...    return (function(targetValue) {
+    ...        var selEl = findEl(document, '[data-id="selectedCatalog"]', 0);
+    ...        if (selEl && selEl.textContent.trim() === targetValue) return 'already_set';
+    ...        if (selEl) {
+    ...            var removeBtn = findEl(document, 'button.slds-pill__remove', 0);
+    ...            if (!removeBtn) return 'remove_btn_not_found';
+    ...            removeBtn.click();
+    ...            return 'cleared';
+    ...        }
+    ...        var lc = findEl(document, 'lightning-combobox[data-id="defaultCatalog"]', 0);
+    ...        if (!lc) return 'page_not_ready';
+    ...        if (lc.value) return 'page_not_ready';
+    ...        var lbc = lc.shadowRoot && lc.shadowRoot.querySelector('lightning-base-combobox');
+    ...        if (!lbc) return 'page_not_ready';
+    ...        var btn = lbc.shadowRoot && lbc.shadowRoot.querySelector('button[role="combobox"]');
+    ...        if (!btn) return 'page_not_ready';
+    ...        btn.click();
+    ...        return 'opened';
+    ...    })(arguments[0])
+    ...    ARGUMENTS    ${target_value}
+    Should Not Be Equal    ${result}    page_not_ready
+    ...    msg=Product Discovery combobox or inner shadow elements not yet rendered (or pill is pending render); retrying...
+    RETURN    ${result}
+
+Dismiss Toast If Present
+    [Documentation]    Clicks the close button on any visible Salesforce toast messages.
+    ${close_btns}=    Get WebElements    xpath=//button[contains(@class, 'toastClose') or (@title='Close' and ancestor::*[contains(@class, 'toast')])]
+    FOR    ${btn}    IN    @{close_btns}
+        ${visible}=    Run Keyword And Return Status    Element Should Be Visible    ${btn}
+        Run Keyword If    ${visible}    Click Element    ${btn}
+    END
+    Sleep    0.5s
