@@ -293,18 +293,21 @@ def main():
     if not violations:
         print("  ✓ All output arrays have uniform field mapping depth")
     else:
-        print(f"  ✗ {len(violations)} output array(s) have MIXED DEPTHS:\n")
+        print(f"  ⚠ {len(violations)} output array(s) have MIXED DEPTHS:\n")
         for v in violations:
             print(f"  Array: {v['array_root']}")
             print(f"  Depths found: {v['depths_found']}")
             print(f"  Mappings:")
             for m in v["mappings"]:
-                flag = " ← SHALLOWER (will leak parent entries)" if m["depth"] < max(v["depths_found"]) else ""
+                flag = " ← SHALLOWER" if m["depth"] < max(v["depths_found"]) else ""
                 print(f"    depth {m['depth']}: {m['input']} → {m['output']}{flag}")
             print()
-        print("  Fix: All mappings for the same output array must read from the")
-        print("  same hierarchy depth. Use a redundant join to access parent fields")
-        print("  at the child level. See: extract-engine-reference.md")
+        print("  Review: mixed depths cause phantom entries when shallower fields")
+        print("  read from a PARENT that has MORE records than the child. Safe when")
+        print("  all paths share the same pivot object (e.g., Child:Field vs")
+        print("  Child:Grandchild:Field both anchored by Child).")
+        print("  Fix (if phantom entries appear): use a redundant join to read")
+        print("  parent fields at child level. See: extract-engine-reference.md")
 
     sys.exit(1 if violations else 0)
 
