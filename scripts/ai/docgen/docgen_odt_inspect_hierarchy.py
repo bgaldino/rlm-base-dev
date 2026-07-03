@@ -8,9 +8,9 @@ Queries all items from an Extract ODT and displays:
      from different hierarchy depths (the #1 cause of phantom array entries)
 
 Usage:
-  python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <sf_alias>
-  python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <alias> --validate-only
-  python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <alias> --json
+  python scripts/ai/docgen/docgen_odt_inspect_hierarchy.py <odt_name_or_id> --org dev-scratch
+  python scripts/ai/docgen/docgen_odt_inspect_hierarchy.py RLMQuoteProposalExtract --org dev-scratch --validate-only
+  python scripts/ai/docgen/docgen_odt_inspect_hierarchy.py RLMQuoteProposalExtract --org dev-scratch --json
 """
 import argparse
 import json

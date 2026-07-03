@@ -210,16 +210,26 @@ foundations:
       tooling:
         - scripts/build_pde_dev_r1.sh
 
-    - id: document-generation
-      path: .cursor/skills/document-generation/SKILL.md
-      purpose: "OmniStudio document template authoring, ODT data-mapper wiring, token mapping, dynamic images, helper scripts"
+    - id: odt-authoring
+      path: .cursor/skills/odt-authoring/SKILL.md
+      purpose: "OmniDataTransform authoring, validation, hierarchy analysis, and execution patterns"
       consumed_by_pmos: []
       tooling:
-        - scripts/ai/docgen/validate_odt.py
-        - scripts/ai/docgen/compare_odts.py
-        - scripts/ai/docgen/docgen_create_odt.py
-        - scripts/ai/docgen/docgen_extract_tokens.py
-        - scripts/ai/docgen/docgen_build_template.py
+        - scripts/ai/docgen/docgen_odt_validate.py
+        - scripts/ai/docgen/docgen_odt_compare.py
+        - scripts/ai/docgen/docgen_odt_create.py
+        - scripts/ai/docgen/docgen_odt_execute.py
+        - scripts/ai/docgen/docgen_odt_inspect_hierarchy.py
+
+    - id: document-generation
+      path: .cursor/skills/document-generation/SKILL.md
+      purpose: "Document template (.docx) authoring, token extraction, template lifecycle, and end-to-end generation"
+      consumed_by_pmos: []
+      tooling:
+        - scripts/ai/docgen/docgen_template_extract_tokens.py
+        - scripts/ai/docgen/docgen_template_build.py
+        - scripts/ai/docgen/docgen_template_manage.py
+        - scripts/ai/docgen/docgen_template_generate.py
 
   # CCI tasks that Foundations exposes for cross-repo workflows
   cci_tasks:

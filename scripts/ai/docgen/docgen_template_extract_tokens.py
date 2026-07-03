@@ -10,9 +10,9 @@ Outputs a structured report useful for validating alignment between
 a .docx template and its Transform ODT output keys.
 
 Usage:
-  python scripts/ai/docgen/docgen_extract_tokens.py /path/to/template.docx
-  python scripts/ai/docgen/docgen_extract_tokens.py /path/to/template.docx --json
-  python scripts/ai/docgen/docgen_extract_tokens.py /path/to/template.docx --validate-transform <odt_name> --org <alias>
+  python scripts/ai/docgen/docgen_template_extract_tokens.py /path/to/template.docx
+  python scripts/ai/docgen/docgen_template_extract_tokens.py /path/to/template.docx --json
+  python scripts/ai/docgen/docgen_template_extract_tokens.py /path/to/template.docx --validate-transform RLMQuoteProposalTransform --org dev-scratch
 """
 import argparse
 import json

@@ -9,16 +9,16 @@ making it suitable for CLI-based testing, CI validation, and agent
 automation. Works for both Extract and Transform ODTs.
 
 Usage (Extract — queries org data):
-  python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <sf_alias>
-  python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalExtract --record-id 0Q0O4000004gZiD --org rlm-base__beta --json
+  python scripts/ai/docgen/docgen_odt_execute.py <odt_name> --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch
+  python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json
 
 Usage (Transform — reshapes JSON input):
-  python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --input extract_output.json --org <sf_alias>
-  python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalTransform --input /tmp/extract.json --org rlm-base__beta
+  python scripts/ai/docgen/docgen_odt_execute.py <odt_name> --input extract_output.json --org dev-scratch
+  python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalTransform --input /tmp/extract.json --org dev-scratch
 
 Pipeline (Extract → Transform):
-  python scripts/ai/docgen/docgen_execute_odt.py MyExtract --record-id <id> --org <alias> --json > /tmp/e.json
-  python scripts/ai/docgen/docgen_execute_odt.py MyTransform --input /tmp/e.json --org <alias>
+  python scripts/ai/docgen/docgen_odt_execute.py MyExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json > /tmp/e.json
+  python scripts/ai/docgen/docgen_odt_execute.py MyTransform --input /tmp/e.json --org dev-scratch
 
 Options:
   --json      Output raw JSON response (for piping to jq or other tools)
@@ -36,7 +36,7 @@ import tempfile
 def execute_odt(odt_name, record_id, org, api_version="v67.0", input_file=None):
     """Execute an ODT (Extract or Transform) via REST API.
 
-    For Extracts: pass record_id (sends {"Id": "<id>"}).
+    For Extracts: pass record_id (sends {"Id": "0Q0XXXXXXXXXXXXAAA"}).
     For Transforms: pass input_file (sends the file contents as the body).
 
     Returns the parsed JSON response or None on failure.

@@ -10,9 +10,9 @@ Checks for:
   - Items with empty required fields
 
 Usage:
-  python scripts/ai/docgen/validate_odt.py <odt_name_or_id> --org <sf_alias>
-  python scripts/ai/docgen/validate_odt.py RLMInvoiceGetDetails --org gartnerCollect
-  python scripts/ai/docgen/validate_odt.py 0jIbm000000CKXdEAO --org gartnerCollect
+  python scripts/ai/docgen/docgen_odt_validate.py <odt_name_or_id> --org dev-scratch
+  python scripts/ai/docgen/docgen_odt_validate.py RLMInvoiceGetDetails --org dev-scratch
+  python scripts/ai/docgen/docgen_odt_validate.py 0jIXXXXXXXXXXXXAAA --org dev-scratch
 """
 import argparse
 import json

@@ -5,16 +5,16 @@ Supports the full template lifecycle: list, inspect, activate/deactivate,
 upload/replace binary, create new templates, and download source or output files.
 
 Usage:
-  python scripts/ai/docgen/docgen_manage_template.py list --org rlm-base__beta
-  python scripts/ai/docgen/docgen_manage_template.py status RLM_QuoteProposal --org rlm-base__beta
-  python scripts/ai/docgen/docgen_manage_template.py deactivate RLM_QuoteProposal --org rlm-base__beta
-  python scripts/ai/docgen/docgen_manage_template.py activate RLM_QuoteProposal --org rlm-base__beta
-  python scripts/ai/docgen/docgen_manage_template.py upload RLM_QuoteProposal template.docx --org rlm-base__beta
-  python scripts/ai/docgen/docgen_manage_template.py replace RLM_QuoteProposal template.docx --org rlm-base__beta
-  python scripts/ai/docgen/docgen_manage_template.py create MyTemplate template.docx --org rlm-base__beta --extract-odt MyExtract --transform-odt MyTransform --activate
-  python scripts/ai/docgen/docgen_manage_template.py update RLM_QuoteProposal --org rlm-base__beta --extract-odt NewExtract
-  python scripts/ai/docgen/docgen_manage_template.py download --template RLM_QuoteProposal --org rlm-base__beta --output template.docx
-  python scripts/ai/docgen/docgen_manage_template.py download --version-id 068xx... --org rlm-base__beta --output output.pdf
+  python scripts/ai/docgen/docgen_template_manage.py list --org dev-scratch
+  python scripts/ai/docgen/docgen_template_manage.py status RLM_QuoteProposal --org dev-scratch
+  python scripts/ai/docgen/docgen_template_manage.py deactivate RLM_QuoteProposal --org dev-scratch
+  python scripts/ai/docgen/docgen_template_manage.py activate RLM_QuoteProposal --org dev-scratch
+  python scripts/ai/docgen/docgen_template_manage.py upload RLM_QuoteProposal template.docx --org dev-scratch
+  python scripts/ai/docgen/docgen_template_manage.py replace RLM_QuoteProposal template.docx --org dev-scratch
+  python scripts/ai/docgen/docgen_template_manage.py create RLM_NewTemplate template.docx --org dev-scratch --extract-odt RLMQuoteProposalExtract --transform-odt RLMQuoteProposalTransform --activate
+  python scripts/ai/docgen/docgen_template_manage.py update RLM_QuoteProposal --org dev-scratch --extract-odt RLMQuoteProposalExtractV2
+  python scripts/ai/docgen/docgen_template_manage.py download --template RLM_QuoteProposal --org dev-scratch --output template.docx
+  python scripts/ai/docgen/docgen_template_manage.py download --version-id 068XXXXXXXXXXXXAAA --org dev-scratch --output output.pdf
 """
 import argparse
 import base64
@@ -554,7 +554,7 @@ def cmd_download(args):
         cv_id = cv_records[0]["Id"]
         default_filename = f"{template['Name']}.docx"
     else:
-        print("ERROR: Specify --template <name> or --version-id <068...>",
+        print("ERROR: Specify --template <name> or --version-id <068XXXXXXXXXXXXAAA>",
               file=sys.stderr)
         sys.exit(1)
 
@@ -645,7 +645,7 @@ def main():
     # download
     dl_p = subparsers.add_parser("download", help="Download template .docx or ContentVersion")
     dl_p.add_argument("--template", help="Template name to download source .docx")
-    dl_p.add_argument("--version-id", help="ContentVersion Id (068...) to download directly")
+    dl_p.add_argument("--version-id", help="ContentVersion Id (068XXXXXXXXXXXXAAA) to download directly")
     dl_p.add_argument("--org", required=True, help="SF CLI target org alias")
     dl_p.add_argument("--output", "-o", help="Output file path")
 

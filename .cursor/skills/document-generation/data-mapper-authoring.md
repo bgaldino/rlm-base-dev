@@ -64,7 +64,7 @@ DocumentTemplate. All three fields are **required** — omitting `InputType` or
 `TargetOutputFileName` causes the Designer UI to show "mandatory details missing"
 and block loading. Using `OutputType: "Document Template"` causes Preview to
 return empty `{}` instead of JSON.
-The `docgen_create_odt.py` script auto-generates `TargetOutputFileName` from the
+The `docgen_odt_create.py` script auto-generates `TargetOutputFileName` from the
 Name if omitted.
 
 ### Create an ODT Item
@@ -318,12 +318,12 @@ This is the format used in `unpackaged/post_docgen/omniDataTransforms/`:
 
 Retrieve from an org with:
 ```bash
-sf project retrieve start --metadata OmniDataTransform:MyExtractODT --target-org <alias>
+sf project retrieve start --metadata OmniDataTransform:MyExtractODT --target-org dev-scratch
 ```
 
 Deploy via `prepare_docgen` flow or directly:
 ```bash
-sf project deploy start --source-dir unpackaged/post_docgen/omniDataTransforms/ --target-org <alias>
+sf project deploy start --source-dir unpackaged/post_docgen/omniDataTransforms/ --target-org dev-scratch
 ```
 
 See `docs/guides/docgen-setup.md` for the full deployment sequence including

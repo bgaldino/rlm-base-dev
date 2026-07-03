@@ -1,34 +1,28 @@
 # OmniStudio Document Generation
 
 Use this skill when creating, modifying, or troubleshooting Salesforce OmniStudio
-document templates (`.docx`) and their associated OmniDataTransform (ODT) data
-mappers. Covers the full pipeline: template authoring, Extract/Transform ODT
-wiring, token mapping, image handling, and deployment to an org.
+document templates (`.docx`) and DocumentTemplate lifecycle operations.
+For ODT mapper architecture and deep ODT troubleshooting, use
+`../odt-authoring/SKILL.md`.
 
 ## Quick Rules
 
-1. **Two ODTs per template** — an Extract (queries org data) and a Transform
-   (reshapes it for template tokens). The DocumentTemplate record references both
-   by name.
-2. **Token syntax** — `{{FieldName}}` for scalars, `{{#Section}}...{{/Section}}`
-   for repeating rows, `{{IMG_name}}` for images.
-3. **Colon notation in Extract** — field paths use colons: `Invoice:Account:Name`,
-   never dots.
-4. **Every item needs `OutputObjectName`** — omitting it causes a null-pointer
-   crash: `"getOutputObjectName()" is null`. Set to `"json"` for field mappings
-   and pass-throughs; set to `"Formula"` for formula items.
-5. **Object queries need `InputFieldName` + `FilterGroup`** — the match field
-   (usually `Id`) and filter group (`0`) are mandatory on every object query item.
-6. **ContentDocument for dynamic images** — the `IMG_` nested object's `src`
-   field requires a ContentDocument Id (`069` prefix). ContentVersion Id (`068`)
-   or file Title crashes the engine.
-7. **Metadata API for committed work** — production ODTs are authored as
-   `.rpt-meta.xml` under `unpackaged/post_docgen/omniDataTransforms/` and deployed
-   via `prepare_docgen`. The SObject REST API (helper scripts) is for scratch-org
-   experimentation and repair only.
-8. **Activate after changes** — toggle `IsActive` false→true on both ODTs after
-   creating or modifying items; the cache doesn't refresh automatically.
-   (Applies to REST-based scratch-org edits only.)
+1. **Template needs two ODT names** — DocumentTemplate must reference one Extract
+   and one Transform ODT by name.
+2. **Token syntax** — use `{{FieldName}}` for scalars, `{{#Section}}...{{/Section}}`
+   for repeating rows, and `{{IMG_name}}` for images.
+3. **Use canonical template scripts** — `docgen_template_*` is the only public
+   command surface for template build, token extraction, lifecycle, and generation.
+4. **Deactivate before mutable edits** — set template to Draft before binary or
+   metadata updates; reactivate only after changes are complete.
+5. **Generate to verify behavior** — use `docgen_template_generate.py` for
+   end-to-end smoke tests after template or mapper updates.
+6. **Keep template and mapper changes in sync** — if token structure changes,
+   confirm Extract/Transform output alignment before reactivation.
+7. **Route ODT deep work to ODT skill** — hierarchy design, mapper structure,
+   filter semantics, and array-depth debugging live in `../odt-authoring/SKILL.md`.
+8. **Dynamic image contract is strict** — `IMG_*:src` must resolve to
+   ContentDocument (`069`) plus width/height; see `dynamic-images.md`.
 
 
 ## DO NOT
@@ -56,21 +50,21 @@ wiring, token mapping, image handling, and deployment to an org.
 | Task | Use this skill? |
 |------|-----------------|
 | Create a new `.docx` invoice/quote/contract template | Yes |
-| Wire up Extract + Transform ODTs for a template | Yes |
+| Wire up Extract + Transform ODTs for a template | Use `../odt-authoring/SKILL.md` |
 | Add fields/tokens to an existing template | Yes |
 | Troubleshoot blank output or generation errors | Yes |
 | Add dynamic images to a template | Yes — see `dynamic-images.md` |
-| Create ODT items programmatically via API | Yes — see `data-mapper-authoring.md` |
+| Create ODT items programmatically via API | Use `../odt-authoring/SKILL.md` |
 
 ---
 
-## Supported Paths for ODT Authoring
+## ODT Context for Template Authors
 
 | Path | Use When | Supportability |
 |------|----------|----------------|
 | **Metadata API** (`.rpt-meta.xml`) | Committed assets, CI/CD, `prepare_docgen` | Fully supported — official metadata type since API v54.0 |
 | **OmniStudio Designer UI** | Prototyping, visual editing | Fully supported |
-| **SObject REST API** (helper scripts) | Scratch-org repair, rapid iteration, debugging | **Internal use only** — not supported for production |
+| **SObject REST API** (`docgen_odt_*`) | Scratch-org repair, rapid iteration, debugging | **Internal use only** — not supported for production |
 
 ### Metadata API (Primary)
 
@@ -83,52 +77,52 @@ unpackaged/post_docgen/omniDataTransforms/
   ...
 ```
 
-Deploy via `cci flow run prepare_docgen --org <alias>`. See
+Deploy via `cci flow run prepare_docgen --org dev-scratch`. See
 `docs/guides/docgen-setup.md` for the full 10-step deployment sequence
 (formula field pre-deploy, ODT seed workaround, binary fix).
 
-### SObject REST API (Experimentation Only)
+### SObject REST API (ODT Experimentation Only)
 
 > **Salesforce official warning** (from [SObject API reference](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/sforce_api_objects_omnidatatransform.htm)):
 > *"This object and associated records are only for internal use. Don't perform
 > any create, edit, or delete operations on this object. Modifying or deleting
 > this object's records may result in errors with your implementation."*
 
-The helper scripts in `scripts/ai/docgen/` use this API for rapid scratch-org
+The ODT helper scripts (`docgen_odt_*`) use this API for rapid scratch-org
 iteration. They are appropriate for:
 - Debugging blank output (inspecting/fixing items quickly)
 - Cloning an ODT to experiment with variations
 - Validating item structure before committing as Metadata API XML
-- **Executing Extracts/Transforms** for automated testing (`docgen_execute_odt.py`)
-- **Full document generation** end-to-end (`docgen_generate_document.py`)
+- **Executing Extracts/Transforms** for automated testing (`docgen_odt_execute.py`)
+- **Full document generation** end-to-end (`docgen_template_generate.py`)
 
 They are **NOT** appropriate for production deployment.
 
 ### Template Lifecycle Management
 
-The `docgen_manage_template.py` script manages the full DocumentTemplate
+The `docgen_template_manage.py` script manages the full DocumentTemplate
 lifecycle: list, inspect, activate/deactivate, upload/replace binary,
 create new templates, and download source or generated files.
 
 ```bash
 # List all templates in an org
-python scripts/ai/docgen/docgen_manage_template.py list --org <alias>
+python scripts/ai/docgen/docgen_template_manage.py list --org dev-scratch
 
 # Show detail for a specific template
-python scripts/ai/docgen/docgen_manage_template.py status <name> --org <alias>
+python scripts/ai/docgen/docgen_template_manage.py status RLM_QuoteProposal --org dev-scratch
 
 # Full replace lifecycle (deactivate → upload → reactivate)
-python scripts/ai/docgen/docgen_manage_template.py replace <name> <file.docx> --org <alias>
+python scripts/ai/docgen/docgen_template_manage.py replace RLM_QuoteProposal template.docx --org dev-scratch
 
 # Download template source .docx
-python scripts/ai/docgen/docgen_manage_template.py download --template <name> --org <alias> -o out.docx
+python scripts/ai/docgen/docgen_template_manage.py download --template RLM_QuoteProposal --org dev-scratch -o out.docx
 
 # Download generated output by ContentVersion ID (from DGP ResponseText)
-python scripts/ai/docgen/docgen_manage_template.py download --version-id <068...> --org <alias> -o out.pdf
+python scripts/ai/docgen/docgen_template_manage.py download --version-id 068XXXXXXXXXXXXAAA --org dev-scratch -o out.pdf
 
 # Create new template with ODT wiring
-python scripts/ai/docgen/docgen_manage_template.py create <name> <file.docx> --org <alias> \
-  --extract-odt <ExtractName> --transform-odt <TransformName> \
+python scripts/ai/docgen/docgen_template_manage.py create RLM_NewProposal template.docx --org dev-scratch \
+  --extract-odt RLMQuoteProposalExtract --transform-odt RLMQuoteProposalTransform \
   --usage-type Revenue_Lifecycle_Management --activate
 ```
 
@@ -136,7 +130,7 @@ Use `--template-id <2dt...>` or `--content-doc-id <069...>` on mutating
 commands when disambiguation is needed.
 
 **Key behaviors:**
-- DGP `ResponseText` returns 15-char ContentVersion IDs (e.g., `068O400000SPuRt`);
+- DGP `ResponseText` returns 15-char ContentVersion IDs (e.g., `068xxxxxxxxxxxx`);
   the download command accepts both 15- and 18-char IDs.
 - Generated `.docx` output is inspectable with `python-docx` (tables, paragraphs,
   token fill values). PDF output is compressed and requires `poppler` for text
@@ -153,18 +147,18 @@ Lightning session needed). Works for both Extracts and Transforms:
 
 ```bash
 # Execute an Extract against a record
-python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias>
+python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch
 
 # Execute a Transform (pass Extract output as input)
-python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --input extract_output.json --org <alias>
+python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalTransform --input extract_output.json --org dev-scratch
 
 # Pipeline: Extract → Transform (--json pipes output)
-python scripts/ai/docgen/docgen_execute_odt.py MyExtract --record-id <id> --org <alias> --json > /tmp/e.json
-python scripts/ai/docgen/docgen_execute_odt.py MyTransform --input /tmp/e.json --org <alias>
+python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json > /tmp/e.json
+python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalTransform --input /tmp/e.json --org dev-scratch
 
 # Full end-to-end document generation (DGP: Extract → Transform → .docx → PDF)
-python scripts/ai/docgen/docgen_generate_document.py \
-  --record-id <id> --template-id <templateId> --org <alias>
+python scripts/ai/docgen/docgen_template_generate.py \
+  --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch
 ```
 
 Use this for:
@@ -239,9 +233,9 @@ Use this for:
 ```
 
 **Testable at each stage:**
-- Stage 2: `python scripts/ai/docgen/docgen_execute_odt.py <extract> --record-id <id> --org <alias>`
-- Stage 3: `sf api request rest --method POST --body @extract_output.json /services/data/v67.0/omnistudio/dataraptor/<transform> --target-org <alias>`
-- Full pipeline: `python scripts/ai/docgen/docgen_generate_document.py --record-id <id> --template-id <id> --org <alias>`
+- Stage 2: `python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch`
+- Stage 3: `sf api request rest --method POST --body @extract_output.json /services/data/v67.0/omnistudio/dataraptor/RLMQuoteProposalTransform --target-org dev-scratch`
+- Full pipeline: `python scripts/ai/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch`
 
 ---
 
@@ -465,7 +459,7 @@ After a formula builds an array, map it to the template:
 | Repeating section empty | Formula item missing or wrong ResultPath | Check formula at `OutputCreationSequence: 0` |
 | Formula produces no output | Unsupported function (FormulaConverted is null) | Check `FormulaConverted` field — if null, the function isn't supported. See Formula Function Catalog below |
 | ODT Name rejected on create | Contains underscores or spaces | Use camelCase only — alphanumeric, no special chars |
-| More array entries than expected | Field mappings at mixed hierarchy depths | Run `docgen_inspect_hierarchy.py` — all mappings for same output array must be at uniform depth |
+| More array entries than expected | Field mappings at mixed hierarchy depths | Run `docgen_odt_inspect_hierarchy.py` — all mappings for same output array must be at uniform depth |
 | Array is singleton (object, not list) | OutputFieldName at root level | Nest under parent: use `Root:ArrayName` not just `ArrayName` |
 | Missing child records in output | Parent sequence has restrictive filter | Child sequences inherit parent scope — create independent hierarchy with broader filter |
 | N×M×G explosion in child results | Multiple FilterGroups on nested sequence | Each parent × each FilterGroup evaluated independently — use single FilterGroup or separate hierarchy |
@@ -534,42 +528,24 @@ Scripts in `scripts/ai/docgen/` support document generation workflows.
 Install deps first: `pip install -r scripts/ai/docgen/requirements.txt`
 
 ```bash
-# Validate an ODT for common issues (null OutputObjectName, missing fields, duplicates)
-python scripts/ai/docgen/validate_odt.py <odt_name_or_id> --org <sf_alias>
-
-# Compare two ODTs item-by-item (find differences after cloning/editing)
-python scripts/ai/docgen/compare_odts.py <source> <target> --org <sf_alias>
-
-# Create an ODT from a JSON spec (no cloning required)
-python scripts/ai/docgen/docgen_create_odt.py spec.json --org <sf_alias>
-python scripts/ai/docgen/docgen_create_odt.py --example extract > my_spec.json   # generate spec template
+# ODT workflows are covered by ../odt-authoring/SKILL.md (docgen_odt_* commands).
 
 # Extract all mustache tokens from a .docx template
-python scripts/ai/docgen/docgen_extract_tokens.py template.docx
-python scripts/ai/docgen/docgen_extract_tokens.py template.docx --validate-transform <odt_name> --org <alias>
+python scripts/ai/docgen/docgen_template_extract_tokens.py template.docx
+python scripts/ai/docgen/docgen_template_extract_tokens.py template.docx --validate-transform RLMQuoteProposalTransform --org dev-scratch
 
 # Build/modify .docx templates programmatically (requires python-docx)
 # NOTE: replace/audit operate on body + tables only — headers/footers NOT searched.
-# Use docgen_extract_tokens.py for full-template token inventory (includes headers/footers).
-python scripts/ai/docgen/docgen_build_template.py create layout.json --output template.docx
-python scripts/ai/docgen/docgen_build_template.py replace template.docx --tokens '{"Old": "New"}'
-python scripts/ai/docgen/docgen_build_template.py audit template.docx
-python scripts/ai/docgen/docgen_build_template.py --example > layout.json   # generate layout spec
-
-# Inspect Extract hierarchy tree + validate field mapping depth uniformity
-python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <sf_alias>
-python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <alias> --validate-only
-python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <alias> --json
-
-# Execute an Extract or Transform via REST API (automated testing)
-python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias>
-python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias> --json   # raw output
-python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias> --count  # quick counts
+# Use docgen_template_extract_tokens.py for full-template token inventory (includes headers/footers).
+python scripts/ai/docgen/docgen_template_build.py create layout.json --output template.docx
+python scripts/ai/docgen/docgen_template_build.py replace template.docx --tokens '{"Old": "New"}'
+python scripts/ai/docgen/docgen_template_build.py audit template.docx
+python scripts/ai/docgen/docgen_template_build.py --example > layout.json   # generate layout spec
 
 # Full document generation (DGP): Extract → Transform → .docx → PDF
-python scripts/ai/docgen/docgen_generate_document.py --record-id <id> --template-id <id> --org <alias>
-python scripts/ai/docgen/docgen_generate_document.py --record-id <id> --template-id <id> --org <alias> --no-convert  # .docx only
-python scripts/ai/docgen/docgen_generate_document.py --record-id <id> --template-id <id> --org <alias> --title "Custom Name"
+python scripts/ai/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch
+python scripts/ai/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --no-convert  # .docx only
+python scripts/ai/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --title "Custom Name"
 ```
 
 ---
@@ -581,7 +557,7 @@ For the full deployment guide, see **`docs/guides/docgen-setup.md`**.
 ### Key points:
 
 - **Metadata path**: `unpackaged/post_docgen/omniDataTransforms/*.rpt-meta.xml`
-- **Deploy flow**: `cci flow run prepare_docgen --org <alias>` (10 steps)
+- **Deploy flow**: `cci flow run prepare_docgen --org dev-scratch` (10 steps)
 - **Fresh-org bug**: ODT INSERT fails when formula fields referenced in
   `inputFieldName` don't exist yet. Steps 3–5 of `prepare_docgen` pre-deploy
   formula fields and seed stub ODT records as a workaround.
@@ -594,7 +570,7 @@ For the full deployment guide, see **`docs/guides/docgen-setup.md`**.
 ### Retrieve an ODT from a scratch org:
 
 ```bash
-sf project retrieve start --metadata OmniDataTransform:RLMInvoiceGetDetails --target-org <alias>
+sf project retrieve start --metadata OmniDataTransform:RLMInvoiceGetDetails --target-org dev-scratch
 ```
 
 Then move the retrieved `.rpt-meta.xml` to `unpackaged/post_docgen/omniDataTransforms/`.
@@ -603,6 +579,7 @@ Then move the retrieved `.rpt-meta.xml` to `unpackaged/post_docgen/omniDataTrans
 
 ## Related Skills
 
+- `../odt-authoring/SKILL.md` — ODT architecture, mapper design, and execution patterns
 - `expression-sets/SKILL.md` — Expression Set authoring (pricing procedures use
   similar Connect/Metadata API patterns)
 - `repo-integration/SKILL.md` — Where to place template metadata in the repo

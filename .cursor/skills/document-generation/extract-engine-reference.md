@@ -314,13 +314,13 @@ data actually exists at that depth.
 parent-child array grouping — the engine flattens everything into
 one-entry-per-child.
 
-**Validation:** Run `python scripts/ai/docgen/docgen_inspect_hierarchy.py`
+**Validation:** Run `python scripts/ai/docgen/docgen_odt_inspect_hierarchy.py`
 to detect mixed-depth violations automatically.
 
 ### Mixed Depth — When It's Safe vs Dangerous (Live-Verified)
 
-All scenarios below were live-tested via `docgen_execute_odt.py` against
-`rlm-base__jun30_agents` (Quote `0Q0O4000004gZiDKAU`, 7 QLIs, 5 Grants
+All scenarios below were live-tested via `docgen_odt_execute.py` against
+`dev-scratch` (Quote `0Q0XXXXXXXXXXXXAAA`, 7 QLIs, 5 Grants
 on 2 of 7 QLIs).
 
 ---
@@ -453,11 +453,11 @@ FK field on the pivot) are always safe regardless of depth mixing.
   `Pivot:UsageResourceId`). Pattern: "resolve this FK to its target record."
 
 **Automated validation:**
-- `python scripts/ai/docgen/docgen_inspect_hierarchy.py` — static analysis
+- `python scripts/ai/docgen/docgen_odt_inspect_hierarchy.py` — static analysis
   using the FilterValue heuristic (HIGH = child-of, LOW = all FK lookups)
-- `python scripts/ai/docgen/docgen_execute_odt.py` — live execution to
+- `python scripts/ai/docgen/docgen_odt_execute.py` — live execution to
   empirically verify actual output entry count for any Extract + record
-- `python scripts/ai/docgen/docgen_generate_document.py` — full end-to-end
+- `python scripts/ai/docgen/docgen_template_generate.py` — full end-to-end
   generation (Extract → Transform → .docx → PDF) for template testing
 
 ### Filtering to "Only Parents That Have Children" (No Subquery Support)
@@ -638,19 +638,19 @@ POST /services/data/v67.0/omnistudio/dataraptor/<ODTName>
 **Example (via `sf` CLI):**
 ```bash
 sf api request rest --method POST \
-  --body '{"Id":"0Q0O4000004gZiDKAU"}' \
+  --body '{"Id":"0Q0XXXXXXXXXXXXAAA"}' \
   /services/data/v67.0/omnistudio/dataraptor/RLMQuoteProposalExtract \
-  --target-org rlm-base__beta
+  --target-org dev-scratch
 ```
 
 **Helper script (wraps the above with summary/count/json modes):**
 ```bash
-python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalExtract \
-  --record-id 0Q0O4000004gZiD --org rlm-base__beta
-python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalExtract \
-  --record-id 0Q0O4000004gZiD --org rlm-base__beta --json
-python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalExtract \
-  --record-id 0Q0O4000004gZiD --org rlm-base__beta --count
+python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract \
+  --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch
+python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract \
+  --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json
+python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract \
+  --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --count
 ```
 
 **Response:** Direct JSON — the Extract output array or object. No wrapper envelope.
@@ -691,14 +691,14 @@ this is automatic. For standalone testing, pass the Extract output directly:
 
 ```bash
 # Step 1: Execute Extract
-python scripts/ai/docgen/docgen_execute_odt.py MyExtract \
-  --record-id <id> --org <alias> --json > /tmp/extract_output.json
+python scripts/ai/docgen/docgen_odt_execute.py MyExtract \
+  --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json > /tmp/extract_output.json
 
 # Step 2: Pass Extract output to Transform
 sf api request rest --method POST \
   --body @/tmp/extract_output.json \
   /services/data/v67.0/omnistudio/dataraptor/MyTransform \
-  --target-org <alias>
+  --target-org dev-scratch
 ```
 
 **CRITICAL:** Passing `{"Id": "<recordId>"}` to a Transform produces
@@ -920,15 +920,15 @@ Output: {"Products": [{"Label": "W"}]}
 
 ```bash
 # Full pipeline test (Extract → Transform → verify output)
-python scripts/ai/docgen/docgen_execute_odt.py MyExtract \
-  --record-id <id> --org <alias> --json > /tmp/extract.json
+python scripts/ai/docgen/docgen_odt_execute.py MyExtract \
+  --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json > /tmp/extract.json
 
-python scripts/ai/docgen/docgen_execute_odt.py MyTransform \
-  --input /tmp/extract.json --org <alias>
+python scripts/ai/docgen/docgen_odt_execute.py MyTransform \
+  --input /tmp/extract.json --org dev-scratch
 
 # With --json for raw output, --count for quick validation
-python scripts/ai/docgen/docgen_execute_odt.py MyTransform \
-  --input /tmp/extract.json --org <alias> --json
+python scripts/ai/docgen/docgen_odt_execute.py MyTransform \
+  --input /tmp/extract.json --org dev-scratch --json
 ```
 
 **Endpoint:** Same as Extract: `POST /services/data/v67.0/omnistudio/dataraptor/<Name>`

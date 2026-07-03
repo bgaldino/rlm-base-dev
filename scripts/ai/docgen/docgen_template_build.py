@@ -10,10 +10,10 @@ Supports:
 Requires: pip install python-docx
 
 Usage:
-  python scripts/ai/docgen/docgen_build_template.py create layout.json --output template.docx
-  python scripts/ai/docgen/docgen_build_template.py replace template.docx --tokens '{"OldToken": "NewToken"}'
-  python scripts/ai/docgen/docgen_build_template.py audit template.docx
-  python scripts/ai/docgen/docgen_build_template.py --example > layout.json
+  python scripts/ai/docgen/docgen_template_build.py create layout.json --output template.docx
+  python scripts/ai/docgen/docgen_template_build.py replace template.docx --tokens '{"OldToken": "NewToken"}'
+  python scripts/ai/docgen/docgen_template_build.py audit template.docx
+  python scripts/ai/docgen/docgen_template_build.py --example > layout.json
 """
 import argparse
 import json
@@ -34,7 +34,7 @@ except ImportError:
 
 
 LAYOUT_EXAMPLE = {
-    "_comment": "Layout spec for docgen_build_template.py create",
+    "_comment": "Layout spec for docgen_template_build.py create",
     "page": {"margin_inches": 0.75},
     "elements": [
         {
