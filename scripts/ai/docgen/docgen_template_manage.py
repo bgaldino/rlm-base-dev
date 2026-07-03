@@ -576,6 +576,11 @@ def cmd_download(args):
         print(f"ERROR: Download failed ({resp.status_code}): {resp.text}", file=sys.stderr)
         sys.exit(1)
 
+    if os.path.exists(output_path) and not os.environ.get("DOCGEN_FORCE_OVERWRITE"):
+        print(f"ERROR: '{output_path}' already exists. Set DOCGEN_FORCE_OVERWRITE=1 or choose a different --output path.",
+              file=sys.stderr)
+        sys.exit(1)
+
     with open(output_path, "wb") as f:
         f.write(resp.content)
     print(f"  Saved: {output_path} ({len(resp.content) // 1024}KB)")
