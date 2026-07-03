@@ -744,6 +744,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `enable_constraints_settings` | `rlm_enable_constraints_settings.py` | Set Default Transaction Type, Asset Context, and enable Constraints Engine toggle via Robot Framework | [Constraints Setup](docs/guides/constraints-setup.md) |
 | `configure_revenue_settings` | `rlm_configure_revenue_settings.py` | Configure Revenue Settings: Pricing Procedure, Usage Rating, Instant Pricing toggle, Create Orders Flow, and (optionally) Create Contracts Flow and Manage Assets Flow (Robot Framework) | See `cumulusci.yml` |
 | `configure_core_pricing_setup` | `rlm_configure_core_pricing_setup.py` | Configure Salesforce Pricing Setup (CorePricingSetup) default Pricing Procedure via Robot Framework | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
+| `configure_search_index` | `rlm_configure_search_index.py` | Configure PCM search index fields from declarative JSON (`datasets/search_index/`). Supports Standard, Custom, and attribute types; auto-resolves IDs from metadata. Additive merge. | See `cumulusci.yml` |
 | `configure_product_discovery_settings` | `rlm_configure_product_discovery_settings.py` | Set the Product Discovery default catalog to QuantumBit Software via Robot Framework | [Robot Setup README](robot/rlm-base/tests/setup/README.md) |
 | `reconfigure_pricing_discovery` | `rlm_reconfigure_expression_set.py` | Reconfigure autoproc `Salesforce_Default_Pricing_Discovery_Procedure`: fix context definition, rank, start date | See `cumulusci.yml` |
 | `create_procedure_plan_definition` | `rlm_create_procedure_plan_def.py` | Create Procedure Plan Definition + inactive Version via Connect API (idempotent) | [procedure-plans README](datasets/sfdmu/procedure-plans/README.md) |
@@ -890,28 +891,30 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 11 | `prepare_dro` | Always |
 | 12 | `prepare_tax` | Always |
 | 13 | `prepare_billing` | Always |
-| 14 | `prepare_analytics` | Always |
-| 15 | `prepare_clm` | Always |
-| 16 | `prepare_rating` | Always |
-| 17 | `activate_and_deploy_expression_sets` | Always |
-| 18 | `prepare_tso` | Always |
-| 19 | `prepare_procedureplans` | Always |
-| 20 | `prepare_prm` | Always |
-| 21 | `prepare_agents` | Always |
-| 22 | `prepare_constraints` | Always |
-| 23 | `prepare_guidedselling` | Always |
-| 24 | `prepare_revenue_settings` | Always |
-| 25 | `prepare_pricing_discovery` | Always |
-| 26 | `prepare_ramp_builder` | Always |
-| 27 | `prepare_large_stx` | `large_stx` |
-| 28 | `prepare_personas` | `personas` |
-| 29 | `prepare_ux` | `ux` |
-| 30 | `prepare_scratch` | Always |
-| 31 | `refresh_all_decision_tables` | Always |
-| 32 | `rebuild_search_index` | Always |
-| 33 | `stamp_git_commit` | Always |
+| 14 | `prepare_collections` | `collections` |
+| 15 | `prepare_analytics` | Always |
+| 16 | `prepare_clm` | Always |
+| 17 | `prepare_rating` | Always |
+| 18 | `activate_and_deploy_expression_sets` | Always |
+| 19 | `prepare_tso` | Always |
+| 20 | `prepare_procedureplans` | Always |
+| 21 | `prepare_prm` | Always |
+| 22 | `prepare_agents` | Always |
+| 23 | `prepare_constraints` | Always |
+| 24 | `prepare_guidedselling` | Always |
+| 25 | `prepare_revenue_settings` | Always |
+| 26 | `prepare_pricing_discovery` | Always |
+| 27 | `prepare_ramp_builder` | Always |
+| 28 | `prepare_large_stx` | `large_stx` |
+| 29 | `prepare_personas` | `personas` |
+| 30 | `prepare_ux` | `ux` |
+| 31 | `prepare_inapp` | `inapp` |
+| 32 | `prepare_scratch` | Always |
+| 33 | `refresh_all_decision_tables` | Always |
+| 34 | `rebuild_search_index` | Always |
+| 35 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 31 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 32 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 33 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 30 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 33 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 34 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 35 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 
@@ -950,7 +953,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 | `prepare_price_adjustment_schedules` | Activate price adjustment schedules | Scratch only |
 | `prepare_procedureplans` | Deploy procedure plans metadata + `skipOrgSttPricing` setting, create PPD via Connect API, load sections/options, activate | `procedureplans` |
 | `prepare_constraints` | Load TransactionProcessingTypes, deploy metadata, configure settings, import CML models, activate | `constraints`, `constraints_data`, `qb` |
-| `prepare_guidedselling` | Assign guided selling permissions, deploy Guided Selling metadata, and update Product2 guided-selling field values | `guidedselling`, `qb` |
+| `prepare_guidedselling` | Assign guided selling permissions, deploy Guided Selling metadata, update Product2 guided-selling field values, and configure guided-selling fields in the PCM search index | `guidedselling`, `qb` |
 | `prepare_payments` | Deploy payments site, publish community, deploy settings | `payments` |
 
 ### UX Assembly Flow
