@@ -91,7 +91,7 @@ CCI and `sf` CLI use **different alias registries**:
 | CCI task/flow | `--org <cci_alias>` | `cci task run insert_quantumbit_pricing_data --org beta` |
 | SF CLI command | `--target-org <sf_alias_or_username>` | `sf data query -q "..." --target-org <sf_alias_or_username>` |
 
-CCI alias `beta` maps to an SF CLI alias (for example, `<sf_alias_for_beta>`). Never mix them.
+CCI alias `beta` maps to an SF CLI alias `rlm-base__beta`. Never mix them.
 
 In Python tasks: use `self.org_config.username` for CLI calls,
 `self.org_config.access_token` + `.instance_url` for REST API only.
