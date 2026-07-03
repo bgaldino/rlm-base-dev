@@ -26,7 +26,7 @@ These standard objects have `actionOverrides` and `compactLayoutAssignment`
 in `templates/objects/base/` (NOT `force-app/`):
 - Asset, Quote, Order, OrderItem, QuoteLineItem, FulfillmentOrderLineItem
 
-They deploy at step 30 after referenced flexipages exist. The `force-app/`
+They deploy at step 29 after referenced flexipages exist. The `force-app/`
 paths are forceignored.
 
 ### Metadata dependencies

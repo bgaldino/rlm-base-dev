@@ -905,7 +905,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
         # 3. For each resolved source, apply YAML patches and write to output
         assembled = []
         skipped = []
-        # Patch order matches deploy-sequence (approvals before docgen before ramps)
+        # Patch order matches deploy-sequence (approvals before docgen).
         feature_patch_order = [
             ("quantumbit",  "quantumbit"),
             ("quantumbit",  "utils"),

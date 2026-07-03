@@ -226,7 +226,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `inapp` (default: `False`)
 
-- `prepare_rlm_org` step 31 → `prepare_inapp`
+- `prepare_rlm_org` step 30 → `prepare_inapp`
 - `prepare_inapp` step 1 → `deploy_post_inapp`
 - `prepare_inapp` step 2 → `assign_permission_sets`
 - `prepare_inapp` step 3 → `load_inapp_dataset`
@@ -252,7 +252,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `personas` (default: `True`)
 
-- `prepare_rlm_org` step 29 → `prepare_personas`
+- `prepare_rlm_org` step 28 → `prepare_personas`
 - `prepare_personas` step 1 → `set_personas_org_wide_defaults`
 - `prepare_personas` step 2 → `deploy_post_personas`
 - `prepare_personas` step 3 → `recalculate_personas_sales_rep_psg`
@@ -475,7 +475,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `ux` (default: `True`)
 
-- `prepare_rlm_org` step 30 → `prepare_ux`
+- `prepare_rlm_org` step 29 → `prepare_ux`
 - `prepare_ux` step 1 → `assemble_and_deploy_ux`
 - `prepare_ux` step 2 → `reorder_app_launcher`
 

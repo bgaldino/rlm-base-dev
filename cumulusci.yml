@@ -3619,22 +3619,22 @@ flows:
       27:
         flow: prepare_large_stx
         when: project_config.project__custom__large_stx
-      29:
+      28:
         flow: prepare_personas
         when: project_config.project__custom__personas
-      30:
+      29:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      31:
+      30:
         flow: prepare_inapp
         when: project_config.project__custom__inapp
-      32:
+      31:
         flow: prepare_scratch
-      33:
+      32:
         flow: refresh_all_decision_tables
-      34:
+      33:
         task: rebuild_search_index
-      35:
+      34:
         flow: stamp_git_commit
 
   prepare_core:
@@ -4481,7 +4481,7 @@ flows:
         when: project_config.project__custom__collections
     # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
     # RLM_Collections_Account_Record_Page) and the standard__CollectionConsole app variant
-    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 30), gated on
+    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 29), gated on
     # the same collections flag. The native CollectionsAndRecoveryPsl is always assigned via
     # rlm_psl_api_names in prepare_core.
 
@@ -4514,8 +4514,8 @@ flows:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, profiles) from feature-conditional templates. Runs at step 30 of
-      prepare_rlm_org, after all feature provisioning (including personas at step 29)
+      applications, profiles) from feature-conditional templates. Runs at step 29 of
+      prepare_rlm_org, after all feature provisioning (including personas at step 28)
       is complete, ensuring all referenced objects, fields, and components exist before
       UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
     steps:
@@ -4564,9 +4564,9 @@ flows:
     description: >
       Deploy persona metadata (profiles, permission set groups, permission sets) from
       unpackaged/post_personas and create the Sales Rep persona user (scratch and
-      non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of
+      non-scratch orgs). Gated by the personas feature flag. Runs as step 28 of
       prepare_rlm_org, before prepare_ux
-      (step 30), so that persona profile templates are assembled and deployed by
+      (step 29), so that persona profile templates are assembled and deployed by
       the UX assembler in the same pass.
     steps:
       1:

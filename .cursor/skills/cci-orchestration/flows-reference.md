@@ -427,7 +427,7 @@ Deploy the In-App Learning framework, assign its permission set, and load the na
 
 ### `prepare_personas`
 
-Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep persona user (scratch and non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of prepare_rlm_org, before prepare_ux (step 30), so that persona profile templates are assembled and deployed by the UX assembler in the same pass.
+Deploy persona metadata (profiles, permission set groups, permission sets) from unpackaged/post_personas and create the Sales Rep persona user (scratch and non-scratch orgs). Gated by the personas feature flag. Runs as step 28 of prepare_rlm_org, before prepare_ux (step 29), so that persona profile templates are assembled and deployed by the UX assembler in the same pass.
 
 **Steps:**
 
@@ -608,13 +608,13 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 25. **flow** `prepare_revenue_settings`
 26. **flow** `prepare_pricing_discovery`
 27. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
-29. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
-30. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
-31. **flow** `prepare_inapp`  `when: project_config.project__custom__inapp`
-32. **flow** `prepare_scratch`
-33. **flow** `refresh_all_decision_tables`
-34. **task** `rebuild_search_index`
-35. **flow** `stamp_git_commit`
+28. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
+29. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
+30. **flow** `prepare_inapp`  `when: project_config.project__custom__inapp`
+31. **flow** `prepare_scratch`
+32. **flow** `refresh_all_decision_tables`
+33. **task** `rebuild_search_index`
+34. **flow** `stamp_git_commit`
 
 ---
 
@@ -705,7 +705,7 @@ Retrieves live flexipages from the target org into unpackaged/post_ux/, then dif
 
 ### `prepare_ux`
 
-Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 30 of prepare_rlm_org, after all feature provisioning (including personas at step 29) is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
+Assemble and deploy all project UX personalization metadata (flexipages, layouts, applications, profiles) from feature-conditional templates. Runs at step 29 of prepare_rlm_org, after all feature provisioning (including personas at step 28) is complete, ensuring all referenced objects, fields, and components exist before UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
 
 **Steps:**
 
