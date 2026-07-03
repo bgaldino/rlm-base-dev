@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**47 flows** across **5 groups**.
+**46 flows** across **5 groups**.
 
 ---
 
@@ -442,10 +442,7 @@ Deploy persona metadata (profiles, permission set groups, permission sets) from 
 7. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__large_stx`
    - `api_names`: `['RLM_LargeSalesTransaction']`
    - `user_alias`: `salesrep`
-8. **task** `assign_permission_sets`  `when: project_config.project__custom__personas and project_config.project__custom__ramps`
-   - `api_names`: `['RLM_RampSchedule']`
-   - `user_alias`: `salesrep`
-9. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
+8. **task** `verify_personas_org_wide_defaults`  `when: project_config.project__custom__personas`
 
 ---
 
@@ -551,19 +548,6 @@ Deploy PRM pricing metadata and data (prm_pricing flag). Deactivates PRM express
 
 ---
 
-### `prepare_ramp_builder`
-
-Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGroup custom fields, Lightning Message Channel, all Apex classes, six LWC bundles, the RLM_Create_Ramp_Schedule_V4 screen flow, and the Quote quick action in dependency order. Adds RampMode__c/GroupRampMode__c context attributes to the Sales Transaction context definition mapped to QuoteLineItem, QuoteLineGroup, OrderItem, and OrderItemGroup. After this flow runs, add the "Create Ramp Schedule" action to the Quote page layout (or Dynamic Actions highlights panel) and ensure the flow is Active in Setup.
-
-**Steps:**
-
-1. **task** `deploy_post_ramp_builder`  `when: project_config.project__custom__ramps`
-2. **task** `apply_context_ramp_mode`  `when: project_config.project__custom__ramps`
-3. **task** `assign_permission_sets`  `when: project_config.project__custom__ramps`
-   - `api_names`: `['RLM_RampSchedule']`
-
----
-
 ### `prepare_rating`
 
 **Steps:**
@@ -623,8 +607,7 @@ Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGro
 24. **flow** `prepare_guidedselling`
 25. **flow** `prepare_revenue_settings`
 26. **flow** `prepare_pricing_discovery`
-27. **flow** `prepare_ramp_builder`
-28. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
+27. **flow** `prepare_large_stx`  `when: project_config.project__custom__large_stx`
 29. **flow** `prepare_personas`  `when: project_config.project__custom__personas`
 30. **flow** `prepare_ux`  `when: project_config.project__custom__ux`
 31. **flow** `prepare_inapp`  `when: project_config.project__custom__inapp`

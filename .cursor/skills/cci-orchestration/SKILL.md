@@ -270,15 +270,14 @@ prepare_rlm_org
 ├── 24. prepare_guidedselling
 ├── 25. prepare_revenue_settings
 ├── 26. prepare_pricing_discovery
-├── 27. prepare_ramp_builder
-├── 28. prepare_large_stx (when: large_stx=true)
-├── 29. prepare_personas (when: personas=true)
-├── 30. prepare_ux (when: ux=true)
-├── 31. prepare_inapp (when: inapp=true)
-├── 32. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
-├── 33. refresh_all_decision_tables
-├── 34. rebuild_search_index (PCM catalog search index, async)
-└── 35. stamp_git_commit
+├── 27. prepare_large_stx (when: large_stx=true)
+├── 28. prepare_personas (when: personas=true)
+├── 29. prepare_ux (when: ux=true)
+├── 30. prepare_inapp (when: inapp=true)
+├── 31. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
+├── 32. refresh_all_decision_tables
+├── 33. rebuild_search_index (PCM catalog search index, async)
+└── 34. stamp_git_commit
 ```
 
 > For the complete flow listing with all steps and `when:` conditions, read

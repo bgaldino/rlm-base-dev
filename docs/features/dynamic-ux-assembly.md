@@ -80,8 +80,6 @@ templates/
 │       │   └── RLM_Quote_Record_Page.yml
 │       ├── payments/
 │       ├── quantumbit/
-│       ├── ramp_builder/
-│       │   └── RLM_Quote_Record_Page.yml
 │       ├── tso/
 │       ├── utils/
 │       │   └── RLM_Account_Record_Page.yml
@@ -137,7 +135,7 @@ templates/
    *(Canonical order defined in `tasks/rlm_ux_utils._STANDALONE_ORDER`; all three tasks — assembly, retrieve, writeback — use this shared constant)*
 
 **Patch application** (additive, in deploy order):
-`quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections → prm_pricing`
+`quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → collections → prm_pricing`
 
 **Skip rule**: `EmailTemplatePage` type flexipages cannot be deployed via Metadata API
 (platform restriction). During assembly, these pages are skipped, each skip is logged as a
@@ -429,7 +427,6 @@ unpackaged/post_billing/flexipages
 unpackaged/post_constraints/flexipages
 unpackaged/post_payments/flexipages
 unpackaged/post_utils/flexipages
-unpackaged/post_ramp_builder/flexipages
 unpackaged/post_tso/flexipages
 unpackaged/post_docgen/flexipages
 unpackaged/post_quantumbit/flexipages
@@ -490,11 +487,11 @@ below.
 |------|-----|--------|
 | `assemble_and_deploy_ux -o deploy false` (dry run, all types) | dev-sb0 | 71 items assembled; EmailTemplatePage pages correctly skipped |
 | `assemble_and_deploy_ux` (full deploy) | dev-sb0 | 69 components deployed; `status=Succeeded` |
-| Single-item generation: `RLM_Quote_Record_Page.flexipage-meta.xml` | dev-sb0 | 14 patches applied; action order matches `post_ramp_builder` reference |
+| Single-item generation: `RLM_Quote_Record_Page.flexipage-meta.xml` | dev-sb0 | 14 patches applied |
 | PRM profile patches (12 layout assignments) | dev-sb0 | Confirmed via assembly log |
 
 **Active flags during Phase 1:**
-`qb, billing, tax, rating, rates, clm, dro, ramps, prm, docgen, payments, constraints, analytics, procedureplans`
+`qb, billing, tax, rating, rates, clm, dro, prm, docgen, payments, constraints, analytics, procedureplans`
 
 ---
 

@@ -127,12 +127,11 @@ Reverse dependency order (children before parents):
 | 24 | prepare_guidedselling | Guided selling PSets + metadata + Product2 field values (qb-guidedselling-products) |
 | 25 | prepare_revenue_settings | Revenue Settings (Robot) |
 | 26 | prepare_pricing_discovery | Pricing discovery refresh |
-| 27 | prepare_ramp_builder | Ramp builder metadata |
-| 28 | prepare_large_stx | Large-deal sales-transaction metadata (when `large_stx`) |
-| 29 | prepare_personas | Persona profiles + PSGs + Sales Rep scratch user (when `personas`) |
-| 30 | prepare_ux | UX assembly + deploy (when `ux`) |
-| 31 | prepare_inapp | In-App Learning framework + PSet + content dataset (when `inapp`) |
-| 32 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
-| 33 | refresh_all_decision_tables | DT cache refresh |
-| 34 | rebuild_search_index | PCM catalog search index build (async) |
-| 35 | stamp_git_commit | Always last |
+| 27 | prepare_large_stx | Large-deal sales-transaction metadata (when `large_stx`) |
+| 28 | prepare_personas | Persona profiles + PSGs + Sales Rep scratch user (when `personas`) |
+| 29 | prepare_ux | UX assembly + deploy (when `ux`) |
+| 30 | prepare_inapp | In-App Learning framework + PSet + content dataset (when `inapp`) |
+| 31 | prepare_scratch | Scratch-only data (Account, Contact, BillingAccount) |
+| 32 | refresh_all_decision_tables | DT cache refresh |
+| 33 | rebuild_search_index | PCM catalog search index build (async) |
+| 34 | stamp_git_commit | Always last |

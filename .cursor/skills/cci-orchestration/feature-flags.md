@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**42 feature flags**, **85 configuration values**, **37 YAML anchors** under `project.custom`.
+**41 feature flags**, **85 configuration values**, **36 YAML anchors** under `project.custom`.
 
 ---
 
@@ -36,7 +36,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `large_stx` | `False` | 5 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
 | `pde` | `False` | — |
-| `personas` | `True` | 10 flow step(s) |
+| `personas` | `True` | 9 flow step(s) |
 | `prm` | `True` | 25 flow step(s) |
 | `prm_exp_bundle` | `False` | 4 flow step(s) |
 | `prm_pricing` | `True` | 16 flow step(s) |
@@ -46,7 +46,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `qb` | `True` | 40 flow step(s) |
 | `qbrix` | `False` | — |
 | `quantumbit` | `True` | 10 flow step(s) |
-| `ramps` | `True` | 4 flow step(s) |
 | `rates` | `True` | 6 flow step(s) |
 | `rating` | `True` | 15 flow step(s) |
 | `refresh` | `False` | 13 flow step(s) |
@@ -234,7 +233,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `large_stx` (default: `False`)
 
-- `prepare_rlm_org` step 28 → `prepare_large_stx`
+- `prepare_rlm_org` step 27 → `prepare_large_stx`
 - `prepare_large_stx` step 1 → `deploy_post_large_stx`
 - `prepare_large_stx` step 2 → `assign_permission_sets`
 - `prepare_large_stx` step 3 → `seed_large_deal_billing_treatment`
@@ -261,8 +260,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_personas` step 5 → `assign_personas_sales_rep_psg`
 - `prepare_personas` step 6 → `assign_permission_sets`
 - `prepare_personas` step 7 → `assign_permission_sets`
-- `prepare_personas` step 8 → `assign_permission_sets`
-- `prepare_personas` step 9 → `verify_personas_org_wide_defaults`
+- `prepare_personas` step 8 → `verify_personas_org_wide_defaults`
 
 ### `prm` (default: `True`)
 
@@ -398,13 +396,6 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_approvals` step 3 → `assign_permission_sets`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
-
-### `ramps` (default: `True`)
-
-- `prepare_ramp_builder` step 1 → `deploy_post_ramp_builder`
-- `prepare_ramp_builder` step 2 → `apply_context_ramp_mode`
-- `prepare_ramp_builder` step 3 → `assign_permission_sets`
-- `prepare_personas` step 8 → `assign_permission_sets`
 
 ### `rates` (default: `True`)
 
@@ -771,12 +762,6 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_QuantumBit`
-
-### `ps_ramp_builder`
-
-*1 items:*
-
-- `RLM_RampSchedule`
 
 ### `psg_tso`
 

@@ -917,7 +917,6 @@ class AssembleAndDeployUX(SFDXBaseTask):
             ("docgen",      "docgen"),
             ("tso",         "tso"),
             ("constraints", "constraints"),
-            ("ramps",       "ramp_builder"),
             ("large_stx",   "large_stx"),
             ("collections", "collections"),
             ("personas",    "personas"),
@@ -1187,7 +1186,7 @@ class AssembleAndDeployUX(SFDXBaseTask):
                 # TSO template already contains all overrides; patches only run for non-TSO builds.
                 patches_applied = []
                 if not features.get("tso"):
-                    patch_features = ["billing", "payments", "rates", "ramps", "prm_pricing"]
+                    patch_features = ["billing", "payments", "rates", "prm_pricing"]
                     for pf in patch_features:
                         if not features.get(pf):
                             continue
@@ -1497,13 +1496,21 @@ class AssembleAndDeployUX(SFDXBaseTask):
         deploy_status = deploy_result.get("status", "Unknown")
 
         if status != 0 or deploy_status not in ("Succeeded", "SucceededPartial"):
-            errors = deploy_result.get("details", {}).get("componentFailures", [])
+            # Surface CLI-level errors (e.g. MissingPackageDirectoryError) that
+            # occur before a deploy job is created — result will be empty.
+            cli_message = output.get("message", "")
+            cli_name = output.get("name", "")
 
+            errors = deploy_result.get("details", {}).get("componentFailures", [])
 
             err_msgs = [
                 f"  {e.get('componentType')}/{e.get('fullName')}: {e.get('problem')}"
                 for e in errors[:20]
             ]
+
+            if cli_message and not err_msgs:
+                err_msgs = [f"  [{cli_name}] {cli_message}"]
+
             raise CommandException(
                 f"Deployment failed (status={deploy_status}).\n"
                 + "\n".join(err_msgs)

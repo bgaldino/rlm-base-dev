@@ -550,7 +550,6 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 |------|---------|-------------|
 | `rating` | `true` | Insert Rating design-time data |
 | `rates` | `true` | Insert Rates |
-| `ramps` | `true` | Insert and configure ramps |
 | `clm_data` | `false` | Load Contract Lifecycle Management data |
 | `constraints_data` | `true` | Load constraint model data (CML import + activation) |
 
@@ -904,8 +903,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 24 | `prepare_guidedselling` | Always |
 | 25 | `prepare_revenue_settings` | Always |
 | 26 | `prepare_pricing_discovery` | Always |
-| 27 | `prepare_ramp_builder` | Always |
-| 28 | `prepare_large_stx` | `large_stx` |
+| 27 | `prepare_large_stx` | `large_stx` |
 | 29 | `prepare_personas` | `personas` |
 | 30 | `prepare_ux` | `ux` |
 | 31 | `prepare_inapp` | `inapp` |
@@ -962,7 +960,7 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 |------|-------------|--------------|
 | `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 30 of `prepare_rlm_org`. | `ux` |
 
-**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`) followed by sequential YAML patch application (order: `quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections → prm_pricing`). One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing, rates, and ramps are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
+**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`) followed by sequential YAML patch application (order: `quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → collections → prm_pricing`). One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing and rates are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
 
 ### Utility Flows and Tasks
 
@@ -1173,14 +1171,14 @@ rlm-base-dev/
 │   │   │   ├── quantumbit/     # QB-core pages (Account, Home, Order, Transaction Journal, Usage Summary)
 │   │   │   ├── billing/        # Billing + usage/rating object pages (assembled when billing=true)
 │   │   │   ├── tso/            # Intentionally empty — TSO inherits QB via tso > qb > base
-│   │   │   └── ...             # constraints, collections, utils, payments, docgen, approvals, ramps
+│   │   │   └── ...             # constraints, collections, utils, payments, docgen, approvals
 │   │   └── patches/            # YAML semantic patch files per feature (additive component changes)
 │   ├── layouts/
 │   │   ├── base/               # 17 base layouts (moved from force-app)
 │   │   ├── billing/            # Billing-specific layouts
 │   │   └── constraints/        # OrderItem + QuoteLineItem overrides
 │   ├── applications/           # RLM_Revenue_Cloud variants (base, quantumbit, tso) + standalones
-│   │   └── patches/            # Feature-conditional actionOverride patches (billing, rates, ramps)
+│   │   └── patches/            # Feature-conditional actionOverride patches (billing, rates)
 │   ├── appMenus/
 │   │   └── base/               # AppSwitcher snapshot (reference only; not assembled/deployed — order applied via reorder_app_launcher)
 │   ├── objects/                # Object-level UX bindings + compact layouts + list views
