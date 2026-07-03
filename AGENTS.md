@@ -378,6 +378,11 @@ python scripts/ai/docgen/docgen_inspect_hierarchy.py <name_or_id> --org <alias> 
 python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias>  # Execute Extract via REST API (--json, --count for modes)
 python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --input extract.json --org <alias>  # Execute Transform (pass Extract output as input)
 python scripts/ai/docgen/docgen_generate_document.py --record-id <id> --template-id <id> --org <alias>  # Full doc generation (DGP): triggers Extract→Transform→render→PDF, polls to completion
+python scripts/ai/docgen/docgen_manage_template.py list --org <alias>                                  # List all DocumentTemplates (name, status, ODTs, usage type)
+python scripts/ai/docgen/docgen_manage_template.py status <name> --org <alias>                         # Show template detail + ContentDocument info
+python scripts/ai/docgen/docgen_manage_template.py replace <name> <file> --org <alias>                 # Full lifecycle: deactivate → upload binary → reactivate
+python scripts/ai/docgen/docgen_manage_template.py download --template <name> --org <alias> -o out.docx  # Download template source .docx
+python scripts/ai/docgen/docgen_manage_template.py download --version-id <068id> --org <alias> -o f.pdf  # Download any ContentVersion (DGP output, etc.)
 ```
 
 `scripts/ai/pr_review.py` executes the mechanical half of **Responding to Automated PR Reviews** (above); the `/pr-review <pr>` Claude command drives the full protocol with it.

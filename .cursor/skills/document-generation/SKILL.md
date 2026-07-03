@@ -104,6 +104,48 @@ iteration. They are appropriate for:
 
 They are **NOT** appropriate for production deployment.
 
+### Template Lifecycle Management
+
+The `docgen_manage_template.py` script manages the full DocumentTemplate
+lifecycle: list, inspect, activate/deactivate, upload/replace binary,
+create new templates, and download source or generated files.
+
+```bash
+# List all templates in an org
+python scripts/ai/docgen/docgen_manage_template.py list --org <alias>
+
+# Show detail for a specific template
+python scripts/ai/docgen/docgen_manage_template.py status <name> --org <alias>
+
+# Full replace lifecycle (deactivate → upload → reactivate)
+python scripts/ai/docgen/docgen_manage_template.py replace <name> <file.docx> --org <alias>
+
+# Download template source .docx
+python scripts/ai/docgen/docgen_manage_template.py download --template <name> --org <alias> -o out.docx
+
+# Download generated output by ContentVersion ID (from DGP ResponseText)
+python scripts/ai/docgen/docgen_manage_template.py download --version-id <068...> --org <alias> -o out.pdf
+
+# Create new template with ODT wiring
+python scripts/ai/docgen/docgen_manage_template.py create <name> <file.docx> --org <alias> \
+  --extract-odt <ExtractName> --transform-odt <TransformName> \
+  --usage-type Revenue_Lifecycle_Management --activate
+```
+
+Use `--template-id <2dt...>` or `--content-doc-id <069...>` on mutating
+commands when disambiguation is needed.
+
+**Key behaviors:**
+- DGP `ResponseText` returns 15-char ContentVersion IDs (e.g., `068O400000SPuRt`);
+  the download command accepts both 15- and 18-char IDs.
+- Generated `.docx` output is inspectable with `python-docx` (tables, paragraphs,
+  token fill values). PDF output is compressed and requires `poppler` for text
+  extraction — prefer downloading the `.docx` intermediate for verification.
+- To get both `.docx` and `.pdf` from a single DGP run, set
+  `"keepIntermediate": true` in `RequestText`.
+- `RequestText` must include `templateContentVersionId` (the 068 ID of the
+  template binary). Without it, DGP returns `INVALID_INPUT`.
+
 ### OmniStudio REST API (Execution & Testing)
 
 The OmniStudio REST endpoint executes ODTs with standard OAuth (no

@@ -92,8 +92,38 @@ def resolve_template(template_id, org):
     return records[0]
 
 
+def resolve_content_version(template_name, org):
+    """Find the latest ContentVersion ID for a template's binary in the DocGen library."""
+    safe_name = soql_escape(template_name)
+    records = sf_query(
+        f"SELECT Id FROM ContentWorkspace "
+        f"WHERE DeveloperName = 'DocgenDocumentTemplateLibrary' LIMIT 1", org
+    )
+    if not records:
+        return None
+    library_id = records[0]["Id"]
+
+    records = sf_query(
+        f"SELECT Id FROM ContentDocument "
+        f"WHERE Title LIKE '{safe_name}%' "
+        f"AND Id IN (SELECT ContentDocumentId FROM ContentWorkspaceDoc "
+        f"WHERE ContentWorkspaceId = '{library_id}') "
+        f"ORDER BY CreatedDate DESC LIMIT 1", org
+    )
+    if not records:
+        return None
+    doc_id = records[0]["Id"]
+
+    records = sf_query(
+        f"SELECT Id FROM ContentVersion "
+        f"WHERE ContentDocumentId = '{doc_id}' "
+        f"ORDER BY VersionNumber DESC LIMIT 1", org
+    )
+    return records[0]["Id"] if records else None
+
+
 def create_dgp(record_id, template_id, org, title=None, generate_only=False,
-               mapping_method=None):
+               mapping_method=None, template_name=None):
     """Create a DocumentGenerationProcess record to trigger generation."""
     dgp_type = "Generate" if generate_only else "GenerateAndConvert"
 
@@ -101,13 +131,17 @@ def create_dgp(record_id, template_id, org, title=None, generate_only=False,
         "Type": dgp_type,
         "ReferenceObject": record_id,
         "DocumentTemplateId": template_id,
-        "DocGenApiVersionType": "Advanced",
         "DocumentInputType": "DocumentTemplate",
     }
 
     request_text = {"keepIntermediate": True}
     if title:
         request_text["title"] = title
+
+    cv_id = resolve_content_version(template_name, org) if template_name else None
+    if cv_id:
+        request_text["templateContentVersionId"] = cv_id
+
     body["RequestText"] = json.dumps(request_text)
 
     if mapping_method == "ContextService":
@@ -231,6 +265,7 @@ def main():
         title=args.title,
         generate_only=args.no_convert,
         mapping_method=mapping_method,
+        template_name=template.get("Name"),
     )
     print(f"DGP Id: {dgp_id}")
     print(f"Polling (timeout: {args.timeout}s)...")
