@@ -315,6 +315,19 @@ After a formula builds an array, map it to the template:
 5. All object queries have `InputFieldName` and `FilterGroup` set
 6. Field mapping paths use colons, not dots
 
+### Common Extract Architecture Pitfalls
+
+| Pitfall | Symptom | Root Cause | Fix |
+|---------|---------|------------|-----|
+| Cartesian product | N×M rows instead of N+M | Two multi-record sequences at the same nesting level | Nest child under parent via hierarchical OutputFieldName |
+| FilterGroup cartesian | Records × groups explosion | Multiple FilterGroups on a nested child sequence | Use separate independent hierarchy instead of OR filters |
+| Missing children | Only top-level records' children appear | Parent sequence has restrictive filter (e.g., ParentId = null) | Create separate root query without the restriction |
+| Singleton instead of array | One object instead of array | Root-level OutputFieldName or all records collapse to same context | Nest under a parent (e.g., `Quote:MyArray` not just `MyArray`) |
+| Null field values | Field silently blank | Relationship traversal without explicit join sequence | Use direct field or add join sequence for intermediate object |
+| Output path confusion | Data in wrong JSON location | Using internal hierarchy paths for output field mappings | Use separate top-level output path (e.g., `Line:*` not `Quote:QuoteLineItem:*`) |
+| Mixed-depth leakage | Parent + child count entries (e.g., 7+5=10 instead of 5) | Field mappings for same output array read from different hierarchy depths | All mappings must read from same depth — use redundant join for parent fields |
+| Grantless parents in array | Empty rows for records without children | No subquery filtering; parent-level mapping includes all parents | Use child-first hierarchy with redundant parent join at child level |
+
 ### Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -336,186 +349,36 @@ After a formula builds an array, map it to the template:
 
 ## Platform Behavior Reference
 
-Verified on Release 262, API v67.0.
+> Full detail: **[`extract-engine-reference.md`](extract-engine-reference.md)**
+> (formula catalog, filter mechanics, hierarchy semantics, array patterns, Preview API)
 
-### FormulaConverted — Auto-Generated on Save
+Verified on Release 262, API v67.0. Key concepts summarized below;
+read the sub-file when designing or debugging complex Extracts.
 
-`FormulaConverted` (RPN notation) is computed automatically from
-`FormulaExpression` when the item is saved — both via REST API and the
-OmniStudio Designer UI. Manual RPN authoring is never required.
+### Critical Rules (quick reference)
 
-RPN format: variables prefixed `var:`, string literals in single quotes
-(spaces escaped as `/\/\//\/\/`), pipe `|` marks function boundaries,
-postfix notation (arguments before operator).
+| Rule | Detail |
+|------|--------|
+| **Internal ≠ Output paths** | Object query `OutputFieldName` (join scope) is decoupled from field mapping `OutputFieldName` (JSON shape). They share colon syntax but are independent namespaces. |
+| **Depth uniformity** | ALL field mappings for the same output array must read from the same internal hierarchy depth. Mixed depths → parent entries leak into child array. |
+| **Redundant join for parent fields** | To get a parent's field at child level without leaking grantless parents, re-join the parent object at the child level (Seq N filtering by child FK). |
+| **Section-as-conditional** | `{{#FieldName}}...{{/FieldName}}` acts as truthy/falsy gate — renders when non-empty string/array/object; skips when absent, null, false, or empty. |
+| **FilterGroup = OR** | Multiple FilterGroups are UNION ALL — on nested sequences this causes N×M×G cartesian explosion. Use only on root queries. |
+| **Literals must be quoted** | `FilterValue: "'Active'"` not `FilterValue: "Active"`. Unquoted literals generate no WHERE clause. |
+| **No subqueries** | Cannot filter "only parents with children." Use child-first hierarchy + redundant join pattern. |
+| **Transform formulas are scalar** | `FormulaResultPath` cannot target per-array-element paths. Use section-as-conditional instead. |
 
-### Formula Function Catalog
+### Formula Quick Reference
 
-The ODT formula engine is **not** the Salesforce formula engine — it's a
-smaller custom evaluator. Only the following functions generate valid RPN:
+Supported: `IF`, `ISBLANK`, `CONCAT`, `SUBSTRING`, `LIST`, `FUNCTION`,
+arithmetic, comparisons, `AND`/`OR`/`NOT`, `ABS`/`ROUND`/`FLOOR`/`CEILING`/`MAX`/`MIN`.
 
-| Category | Supported | Not Supported |
-|----------|-----------|---------------|
-| Arithmetic | `+`, `-`, `*`, `/` | |
-| Comparison | `>`, `<`, `>=`, `<=`, `==`, `!=` | |
-| Logical | `IF`, `NOT`, `AND`, `OR`, `&&`, `\|\|` | `CASE` |
-| Math | `ABS`, `ROUND`, `FLOOR`, `CEILING`, `MAX`, `MIN`, `SQRT` | `MOD`, `POWER`, `LOG` |
-| String | `CONCAT`, `SUBSTRING` | `LEN`, `UPPER`, `LOWER`, `TRIM`, `LEFT`, `RIGHT`, `CONTAINS`, `BEGINS`, `TEXT`, `FORMAT` |
-| Date | `TODAY`, `NOW`, `YEAR`, `MONTH`, `DAY` | `DATEVALUE`, `DATETIMEVALUE`, `ADDDAYS` |
-| Null check | `ISBLANK` | `ISNULL`, `NULLVALUE`, `BLANKVALUE` |
-| Array | `LIST` | |
-| Apex callout | `FUNCTION` | |
-| Type conversion | *(none)* | `VALUE`, `TEXT`, `FORMAT` |
+**Not supported** (saves silently, produces no output): `CASE`, `LEN`,
+`UPPER`/`LOWER`, `TEXT`, `FORMAT`, `VALUE`, `MOD`, `POWER`.
 
-**Unsupported functions save without error** — the `FormulaExpression` is
-stored but `FormulaConverted` remains null, so the formula silently
-produces no output at runtime.
+### ODT Naming
 
-Common patterns:
-```
-IF(Amount > 1000, true, false)              -- conditional boolean
-CONCAT(Name, ' - ', Status)                 -- string join
-LIST(Lines, 'Name', ProductName, 'Qty', Quantity)  -- array for {{#Section}}
-FUNCTION('pkg.Class', 'method', arg1, arg2)        -- Apex callout
-IF(ISBLANK(Field), 'N/A', Field)            -- null handling (no NULLVALUE)
-Amount > 100 && Status == 'Active'          -- compound condition
-```
-
-### FilterGroup Semantics
-
-Filters within the **same FilterGroup** are combined with **AND**.
-Filters in **different FilterGroups** are combined with **OR**.
-
-```
-FilterGroup 0: QuoteId = Quote:Id   ┐
-FilterGroup 0: Type = "Charge"      ┘  → AND (both must match)
-
-FilterGroup 0: Status = "Active"    ┐
-FilterGroup 1: Status = "Pending"   ┘  → OR (either matches)
-```
-
-**IMPORTANT**: Different FilterGroups produce **UNION ALL** (no dedup) —
-records matching multiple groups appear once per matching group. A record
-matching both FG 0 and FG 1 appears **twice** in the result set.
-
-All existing production ODTs in this repo use only FilterGroup `0`
-(all-AND filtering). Use multiple FilterGroups only when you need OR
-logic between filter conditions on the same object query sequence, and
-be aware of duplicates if records can match multiple groups.
-
-### Extract Output — Cartesian Product
-
-When an Extract has multiple multi-record query sequences, the output
-is a **cartesian product** across them. Each row in the response contains
-one combination of records from each sequence. For example: 2 records
-from Seq 2 × 6 records from Seq 3 = 12 output rows (each containing
-fields from both). This is by design — the Transform's `LIST()` formula
-then rolls these into nested arrays for the template.
-
-### FilterValue — Literal vs Reference
-
-`FilterValue` supports two formats:
-
-| Format | Example | Meaning |
-|--------|---------|---------|
-| Path reference | `Quote:Id` | Value from a previously-queried record |
-| Single-quoted literal | `'0'`, `''`, `'Active'` | Literal string/number for comparison |
-
-**Unquoted literals are silently ignored** — they don't generate a WHERE
-condition. Always single-quote literal values: `FilterValue: "'0'"` not
-`FilterValue: "0"`.
-
-### FilterOperator Values
-
-| Operator | Purpose |
-|----------|---------|
-| `=` | Equals (most common — joins and literal matches) |
-| `<>` | Not equals |
-| `<`, `>`, `<=`, `>=` | Numeric/date comparisons |
-| `LIKE` / `NOT LIKE` | Pattern matching |
-| `IN` | Set membership |
-| `IS NULL` | Null check |
-| `INCLUDES` / `EXCLUDES` | Multi-select picklist |
-| `LIMIT` | Row limit on query |
-| `OFFSET` | Pagination offset |
-| `ORDER BY` | Sort control |
-
-### Error Propagation — Sequences Are Independent
-
-Failed sequences do **not** block downstream sequences. Each runs
-independently; a failure is silently skipped (its mapped fields are
-absent from the output — not null, not empty string).
-
-- Bad field reference → sequence skipped, others unaffected
-- Nonexistent object → sequence skipped, others unaffected
-- No validation at save time — errors surface only at execution time
-
-This means ODTs degrade gracefully across orgs with different field
-sets. Missing fields produce absent output tokens rather than a
-complete failure.
-
-### ODT Name Constraints
-
-The `Name` field on `OmniDataTransform` requires **alphanumeric characters
-only** — no underscores, spaces, or special characters. Use camelCase
-(e.g., `RLMQuoteExtractBasic`).
-
-### Scale Observations
-
-No API-level limit observed for item count or sequence count:
-- 25 `InputObjectQuerySequence` values: accepted
-- 225 items per ODT (25 queries + 200 field mappings): accepted
-
-(UI/runtime performance at scale not yet verified.)
-
-### ODT Preview / Simulate API
-
-The OmniStudio Designer "Preview" button invokes an Aura controller action.
-This is the only known programmatic execution path for ODTs against arbitrary
-input data (outside of the `generateDocument` invocable, which is Invoice/CreditMemo only).
-
-**Endpoint:**
-```
-POST /aura?r=N&aura.OmniDesigner.simulateDataraptor=1
-```
-
-**Controller:** `aura://OmniDesignerController/ACTION$simulateDataraptor`
-
-**Payload (key params):**
-```json
-{
-  "dataraptorSimualateInputParams": {
-    "name": "<ODT_Record_Id>",
-    "simulationParams": [
-      {"simulationParamName": "inputData", "simulationParamValue": "{\"Id\": \"<recordId>\"}"},
-      {"simulationParamName": "inputType", "simulationParamValue": "JSON"},
-      {"simulationParamName": "ignoreCache", "simulationParamValue": "true"}
-    ]
-  }
-}
-```
-
-Note: `name` takes the ODT **record Id** (0jI prefix), not the API Name.
-
-**Response (`result` field, JSON-escaped string):**
-```json
-{
-  "error": "OK",
-  "hasErrors": false,
-  "ActualTime": 147,
-  "response": [{"field": "value"}],
-  "debugLog": [
-    "timestamp: Query: SELECT ... FROM ... WHERE ... LIMIT 50000",
-    "timestamp: Query results found: N",
-    "timestamp: Query time: Nms"
-  ]
-}
-```
-
-**Key behaviors:**
-- `debugLog` shows exact SOQL generated — invaluable for debugging filters
-- All queries get `LIMIT 50000` appended automatically
-- `ActualTime` reports execution in milliseconds
-- Requires active Lightning session auth (`sid` cookie + `aura.token` + `aura.context`) — cannot be invoked with just an OAuth access token
+Alphanumeric only (no underscores/spaces). Use camelCase: `RLMQuoteExtractBasic`.
 
 ---
 
@@ -565,6 +428,11 @@ python scripts/ai/docgen/docgen_build_template.py create layout.json --output te
 python scripts/ai/docgen/docgen_build_template.py replace template.docx --tokens '{"Old": "New"}'
 python scripts/ai/docgen/docgen_build_template.py audit template.docx
 python scripts/ai/docgen/docgen_build_template.py --example > layout.json   # generate layout spec
+
+# Inspect Extract hierarchy tree + validate field mapping depth uniformity
+python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <sf_alias>
+python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <alias> --validate-only
+python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <alias> --json
 ```
 
 ---

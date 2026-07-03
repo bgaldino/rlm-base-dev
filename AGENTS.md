@@ -333,6 +333,7 @@ Read the sub-file only when you need that specific detail:
 | `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
 | `document-generation/data-mapper-authoring.md` | Document Generation | Programmatic ODT creation via REST API, cloning patterns, shell escaping pitfalls |
 | `document-generation/dynamic-images.md` | Document Generation | Dynamic image rendering: ContentDocument ID + width/height contract, known issues, RTB alternative |
+| `document-generation/extract-engine-reference.md` | Document Generation | Extract/Transform engine deep-dive: formula catalog, filter mechanics, hierarchy semantics, depth-uniformity rule, redundant join pattern, Preview API |
 | `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
 
 ### File-Specific Rules (Cursor Only)
@@ -373,6 +374,7 @@ python scripts/ai/docgen/compare_odts.py <source> <target> --org <alias>  # Diff
 python scripts/ai/docgen/docgen_create_odt.py spec.json --org <alias>     # Create ODT from JSON spec (--example extract|transform for templates)
 python scripts/ai/docgen/docgen_extract_tokens.py template.docx           # List all {{mustache}} tokens in a .docx
 python scripts/ai/docgen/docgen_build_template.py create layout.json -o out.docx  # Build .docx from JSON layout (requires python-docx)
+python scripts/ai/docgen/docgen_inspect_hierarchy.py <name_or_id> --org <alias>   # Visualize Extract hierarchy tree + validate depth uniformity
 ```
 
 `scripts/ai/pr_review.py` executes the mechanical half of **Responding to Automated PR Reviews** (above); the `/pr-review <pr>` Claude command drives the full protocol with it.
