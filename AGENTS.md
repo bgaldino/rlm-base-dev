@@ -332,9 +332,9 @@ Read the sub-file only when you need that specific detail:
 | `release-enablement/resume-enablement-work.md` | Release Enablement | Cross-workstation handoff — read when picking up enablement work in a fresh conversation. 4-step re-orientation + tool grants + restart prompt template |
 | `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
 | `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
-| `document-generation/data-mapper-authoring.md` | ODT Authoring | Programmatic ODT creation via REST API, cloning patterns, shell escaping pitfalls |
-| `document-generation/dynamic-images.md` | ODT Authoring | Dynamic image rendering: ContentDocument ID + width/height contract, known issues, RTB alternative |
-| `document-generation/extract-engine-reference.md` | ODT Authoring | Extract/Transform engine deep-dive: formula catalog, filter mechanics, hierarchy semantics, depth-uniformity rule, redundant join pattern, Preview API |
+| `document-generation/data-mapper-authoring.md` | Document Generation | Programmatic ODT creation via REST API, cloning patterns, shell escaping pitfalls |
+| `document-generation/dynamic-images.md` | Document Generation | Dynamic image rendering: ContentDocument ID + width/height contract, known issues, RTB alternative |
+| `document-generation/extract-engine-reference.md` | Document Generation | Extract/Transform engine deep-dive: formula catalog, filter mechanics, hierarchy semantics, depth-uniformity rule, redundant join pattern, Preview API |
 | `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
 
 ### File-Specific Rules (Cursor Only)

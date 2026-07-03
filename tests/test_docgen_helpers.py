@@ -46,7 +46,7 @@ class TestSoqlEscape:
 
 # ─── docgen_inspect_hierarchy — pure functions ──────────────────────────────
 
-from docgen_inspect_hierarchy import (
+from docgen_odt_inspect_hierarchy import (
     classify_items,
     build_hierarchy_tree,
     compute_depth,
@@ -267,7 +267,7 @@ class TestValidateDepthUniformity:
 
 # ─── docgen_execute_odt — pure functions ────────────────────────────────────
 
-from docgen_execute_odt import count_arrays, filter_fields
+from docgen_odt_execute import count_arrays, filter_fields
 
 
 class TestCountArrays:

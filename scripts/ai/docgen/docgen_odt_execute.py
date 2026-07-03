@@ -157,13 +157,6 @@ def print_summary(data, odt_name, record_id):
         elif data:
             print(f"  (non-object entries: {type(data[0]).__name__})")
 
-            null_fields = [k for k, v in sample.items() if v is None]
-            if null_fields:
-                print(f"\nNull fields in first entry: {', '.join(null_fields)}")
-                null_count = sum(1 for item in data if any(item.get(k) is None for k in null_fields))
-                if null_count > 1:
-                    print(f"  ({null_count}/{len(data)} entries have null values — possible phantom entries)")
-
     elif isinstance(data, dict):
         print(f"Result: single object with {len(data)} keys")
         for k, v in sorted(data.items()):

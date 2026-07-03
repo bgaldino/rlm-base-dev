@@ -20,9 +20,12 @@ import argparse
 import base64
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
+
+from _soql import soql_escape
 
 try:
     import requests
@@ -121,12 +124,16 @@ def _find_library(org):
 def _resolve_template(name_or_id, org, require_unique=True):
     """Resolve a template by Name or Id. Returns record dict or exits."""
     if name_or_id.startswith("2dt"):
+        if not re.match(r'^[a-zA-Z0-9]{15,18}$', name_or_id):
+            print(f"ERROR: Invalid Salesforce Id format: '{name_or_id}'", file=sys.stderr)
+            sys.exit(1)
+        safe_id = soql_escape(name_or_id)
         records = _sf_query(
             f"SELECT {TEMPLATE_FIELDS} FROM DocumentTemplate "
-            f"WHERE Id = '{name_or_id}' LIMIT 1", org
+            f"WHERE Id = '{safe_id}' LIMIT 1", org
         )
     else:
-        safe_name = name_or_id.replace("'", "\\'")
+        safe_name = soql_escape(name_or_id)
         records = _sf_query(
             f"SELECT {TEMPLATE_FIELDS} FROM DocumentTemplate "
             f"WHERE Name = '{safe_name}' ORDER BY VersionNumber DESC", org
@@ -163,7 +170,7 @@ def _find_content_doc(template_name, library_id, org, content_doc_id_override=No
     if content_doc_id_override:
         return content_doc_id_override
 
-    safe_name = template_name.replace("'", "\\'")
+    safe_name = soql_escape(template_name)
     records = _sf_query(
         f"SELECT Id FROM ContentDocument "
         f"WHERE Title = '{safe_name}' "

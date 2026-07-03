@@ -273,6 +273,8 @@ def create_odt(spec, org, dry_run=False):
             error_count += 1
 
     print(f"\nDone: {success_count} created, {error_count} failed")
+    if error_count > 0:
+        sys.exit(1)
     if odt_id != "DRY_RUN_ID":
         print(f"ODT Id: {odt_id}")
         formula_items = [i for i in items if i.get("type") == "formula"]

@@ -104,7 +104,7 @@ def resolve_content_version(template_name, org):
 
     records = sf_query(
         f"SELECT Id FROM ContentDocument "
-        f"WHERE Title LIKE '{safe_name}%' "
+        f"WHERE Title = '{safe_name}' "
         f"AND Id IN (SELECT ContentDocumentId FROM ContentWorkspaceDoc "
         f"WHERE ContentWorkspaceId = '{library_id}') "
         f"ORDER BY CreatedDate DESC LIMIT 1", org
@@ -240,7 +240,7 @@ def main():
     parser.add_argument("--record-id", required=True,
                         help="Source record Id (e.g., Quote Id)")
     parser.add_argument("--template-id", required=True,
-                        help="DocumentTemplate Id (0TR prefix)")
+                        help="DocumentTemplate Id (2dt prefix)")
     parser.add_argument("--org", required=True, help="SF CLI target org alias")
     parser.add_argument("--title", help="Custom document filename")
     parser.add_argument("--json", action="store_true", dest="json_output",
