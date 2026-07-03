@@ -879,6 +879,43 @@ section-as-conditional pattern in the template.
 | Related-object traversal | No | YES — Extract joins related objects |
 | Aggregate/rollup values | Limited (no SUM/COUNT) | Must pre-compute in Apex/formula field |
 
+### Missing Input Behavior (Live-Verified)
+
+| Situation | Behavior |
+|-----------|----------|
+| Pass-through references missing key | Field **absent** from output (not null) |
+| Formula references missing variable | Treated as **empty string** for CONCAT, **falsy** for comparisons |
+| Formula IF(missing > N) | Evaluates to **false** (undefined < any number) |
+| Input is array `[{...}]` | Works identically to object `{...}` |
+| Input has extra keys not mapped | Silently ignored |
+
+### FormulaSequence Ordering (Live-Verified)
+
+Formulas within OCS=0 execute in `FormulaSequence` order. A formula at
+seq=2 CAN reference the `FormulaResultPath` of a formula at seq=1.
+Formulas at the SAME sequence number cannot reference each other.
+
+```
+Seq 1: CONCAT(First, ' ', Last) → "FullName"     ← runs first
+Seq 2: CONCAT('Hello, ', FullName, '!') → "Greeting"  ← can reference FullName ✓
+Seq 1: CONCAT(Greeting, ' Welcome.') → "Welcome"  ← CANNOT reference Greeting (same seq, runs in parallel)
+```
+
+### LIST() Formula — Extract vs Transform Context
+
+`LIST()` is designed for **Extract** context where cartesian-product flat
+rows need to be rolled into template arrays. In Transform context, LIST()
+produces a raw flat array `[null, "key1", val1, "key2", val2, ...]` which
+is NOT template-ready.
+
+**For Transforms: use colon-path pass-throughs for array manipulation.**
+They automatically iterate input array elements and can rename/restructure:
+```
+Input:  {"Lines": [{"Name": "W", "Price": 100}]}
+Item:   InputFieldName: "Lines:Name" → OutputFieldName: "Products:Label"
+Output: {"Products": [{"Label": "W"}]}
+```
+
 ### REST API Testing Pattern for Transforms
 
 ```bash
@@ -886,13 +923,12 @@ section-as-conditional pattern in the template.
 python scripts/ai/docgen/docgen_execute_odt.py MyExtract \
   --record-id <id> --org <alias> --json > /tmp/extract.json
 
-sf api request rest --method POST \
-  --body @/tmp/extract.json \
-  /services/data/v67.0/omnistudio/dataraptor/MyTransform \
-  --target-org <alias>
+python scripts/ai/docgen/docgen_execute_odt.py MyTransform \
+  --input /tmp/extract.json --org <alias>
 
-# Or use the helper script directly on the Transform
-# (but you must pass the EXTRACT output as the record context)
+# With --json for raw output, --count for quick validation
+python scripts/ai/docgen/docgen_execute_odt.py MyTransform \
+  --input /tmp/extract.json --org <alias> --json
 ```
 
 **Endpoint:** Same as Extract: `POST /services/data/v67.0/omnistudio/dataraptor/<Name>`
