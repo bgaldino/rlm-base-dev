@@ -676,6 +676,231 @@ python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalExtract \
 
 ---
 
+---
+
+## Transform Engine (Live-Verified)
+
+The Transform ODT reshapes Extract output into template-ready JSON. It does
+NOT query the org — it operates purely on the JSON passed as input.
+
+### Execution Model
+
+**Input:** The Transform receives the Extract's full JSON output (typically
+a single-element array: `[{key: value, ...}]`). In the production pipeline,
+this is automatic. For standalone testing, pass the Extract output directly:
+
+```bash
+# Step 1: Execute Extract
+python scripts/ai/docgen/docgen_execute_odt.py MyExtract \
+  --record-id <id> --org <alias> --json > /tmp/extract_output.json
+
+# Step 2: Pass Extract output to Transform
+sf api request rest --method POST \
+  --body @/tmp/extract_output.json \
+  /services/data/v67.0/omnistudio/dataraptor/MyTransform \
+  --target-org <alias>
+```
+
+**CRITICAL:** Passing `{"Id": "<recordId>"}` to a Transform produces
+only formula-constant fields (e.g., hardcoded dimensions). The Transform
+cannot query the org — it needs the Extract's data as input.
+
+### Execution Order (OutputCreationSequence)
+
+| OCS | Phase | What runs | Can reference |
+|-----|-------|-----------|---------------|
+| 0 | Formula phase | All formula items (by `FormulaSequence` order) | Raw input fields only |
+| 1 | Mapping phase | All pass-throughs and field mappings | Raw input fields + formula results |
+
+Formulas at OCS=0 inject computed values into the data pool via
+`FormulaResultPath`. Pass-throughs at OCS=1 then map both raw input
+fields AND formula-produced values to the final output structure.
+
+**Example flow:**
+```
+Input: {"Amount": 5000, "FirstName": "John", "LastName": "Doe"}
+
+OCS=0 formulas:
+  CONCAT(FirstName, ' ', LastName)  → FormulaResultPath: "FullName"    → "John Doe"
+  IF(Amount > 1000, true, false)    → FormulaResultPath: "IsLarge"     → true
+
+OCS=1 pass-throughs:
+  FullName  → ComputedName     (references formula result)
+  IsLarge   → IF_large_amount  (references formula result)
+  Amount    → Amount           (references raw input)
+
+Output: {"ComputedName": "John Doe", "IF_large_amount": true, "Amount": 5000}
+```
+
+### Item Types
+
+#### Pass-through (Field Mapping)
+
+Maps an input field to an output field. Can rename, restructure, or pass
+through unchanged.
+
+```
+InputFieldName: "AccountName"    OutputFieldName: "AccountName"    → simple rename/pass
+InputFieldName: "Items:Price"    OutputFieldName: "Line:Amount"    → restructure array path
+```
+
+#### Formula
+
+Computes a value from input fields using the formula engine (same function
+catalog as Extract formulas — see Formula Engine section above).
+
+Required fields: `FormulaExpression`, `FormulaResultPath`, `FormulaSequence`,
+`OutputCreationSequence: 0`, `OutputObjectName: "Formula"`,
+`OutputFieldName: "Formula"`.
+
+#### Object Output
+
+Bridges formula-built arrays into the `json` output namespace. Used with
+`LIST()` formulas to pass arrays to templates.
+
+Required fields: `InputFieldName` (= FormulaResultPath of the LIST formula),
+`OutputFieldName` (template token name), `OutputFieldFormat: "Object"`,
+`OutputObjectName: "json"`, `OutputCreationSequence: 1`.
+
+### Building Nested Objects — Colon-Path Pattern (Live-Verified)
+
+Colon-separated `OutputFieldName` on pass-throughs builds nested JSON objects:
+
+```
+Input:   {"DocId": "069...", "ImgW": "200", "ImgH": "80"}
+Items:
+  DocId → IMG_Logo:src       (OutputObjectName: "json", OCS: 1)
+  ImgW  → IMG_Logo:width     (OutputObjectName: "json", OCS: 1)
+  ImgH  → IMG_Logo:height    (OutputObjectName: "json", OCS: 1)
+
+Output:  {"IMG_Logo": {"src": "069...", "width": "200", "height": "80"}}
+```
+
+**This is the ONLY way to build nested objects.** The `OutputObjectName`
+field does NOT create namespacing — items targeting `OutputObjectName: "MyGroup"`
+still appear at the top level (same as `"json"`). Only colon-paths in
+`OutputFieldName` create structure.
+
+**Supported prefixes using this pattern:**
+- `IMG_<name>:<prop>` — Dynamic images (`src`, `width`, `height`)
+- `HYP_<name>:<prop>` — Hyperlinks (`url`, `text`)
+- Any custom nested object
+
+### Array Pass-Through — Colon-Path Iteration (Live-Verified)
+
+When the input contains an array, colon-path `InputFieldName` automatically
+iterates over array elements:
+
+```
+Input:   {"Lines": [{"Name": "W", "Price": 100}, {"Name": "G", "Price": 200}]}
+Items:
+  Lines:Name  → Lines:ProductName   (renames field within array)
+  Lines:Price → Lines:Amount        (renames field within array)
+
+Output:  {"Lines": [{"ProductName": "W", "Amount": 100}, {"ProductName": "G", "Amount": 200}]}
+```
+
+**Renaming the array path:**
+```
+  Lines:Name  → Output:ProductName  (moves to different array name)
+  Lines:Price → Output:Amount
+
+Output:  {"Output": [{"ProductName": "W", "Amount": 100}, ...]}
+```
+
+**WARNING — Cross-array merge produces cartesian product:**
+
+Mapping fields from TWO different input arrays to the SAME output path
+produces N×M entries (identical to Extract behavior):
+
+```
+Input:   {"Items": [{A}, {B}], "Details": [{X}, {Y}]}
+Items:
+  Items:Name    → Combined:Name
+  Details:SKU   → Combined:SKU
+
+Output:  {"Combined": [{A,X}, {A,Y}, {B,X}, {B,Y}]}  ← 2×2 = 4 entries
+```
+
+**Rule:** Each output array path should source from exactly ONE input array.
+Use the Extract hierarchy to pre-join related data, not the Transform.
+
+### OutputFieldFormat — Value Formatting (Live-Verified)
+
+| Format | Effect | Example |
+|--------|--------|---------|
+| *(blank)* | Pass-through unchanged | `123.456` → `123.456` |
+| `Boolean` | Coerces string → boolean | `"true"` → `true` |
+| `Number(N)` | Rounds to N decimals, returns **string** | `123.456` → `"123.46"` |
+| `Currency` | Adds `$` prefix + comma separators | `1234.5` → `"$1,234.50"` |
+| `Object` | Marks value as a nested object/array (for Object Output items) | |
+
+**Key behaviors:**
+- `Boolean` format is needed when the input is a **string** `"true"`/`"false"`.
+  When a formula already produces a boolean (`IF(..., true, false)`), the
+  format is redundant — the value is already typed correctly.
+- `Number(N)` converts the number to a **formatted string** — not a rounded
+  number. Use only for display tokens, not for values that downstream
+  formulas will reference.
+- `Currency` similarly produces a formatted string.
+
+### OutputObjectName — No Effect on Structure (Live-Verified)
+
+For pass-through items, `OutputObjectName` has **no effect** on output
+structure. Items targeting `OutputObjectName: "SomeGroup"` produce the
+exact same top-level output as `OutputObjectName: "json"`.
+
+**Valid values:**
+- `"json"` — standard for pass-throughs and field mappings (use this)
+- `"Formula"` — required for formula items (formulas break with other values)
+- Any other string — accepted but functionally identical to `"json"`
+
+**Do NOT use** `OutputObjectName` to group output. Use colon-separated
+`OutputFieldName` instead (see Nested Objects section above).
+
+### Transform Cannot Add Per-Element Booleans to Existing Arrays
+
+(Detailed in Formula Engine section above.) Transform formulas operate on
+the scalar/top-level data pool. They cannot iterate over array elements to
+produce per-element values. For per-element conditionals, add the field in
+the Extract phase (e.g., a formula field on the queried object) or use the
+section-as-conditional pattern in the template.
+
+### When to Use Transform Formulas vs Extract Formulas
+
+| Need | Use Transform formula | Use Extract mapping |
+|------|-----------------------|---------------------|
+| String concatenation for display | YES — `CONCAT(First, ' ', Last)` | No (Extract queries raw fields) |
+| Conditional boolean for `{{#IF_x}}` | YES — `IF(val > 0, true, false)` | No |
+| Computed URL for hyperlinks | YES — `CONCAT('https://.../', Id)` | No |
+| Constant values (dimensions, defaults) | YES — `CONCAT('200', '')` | No |
+| Array building from flat cross-joins | YES — `LIST(...)` | Or use Extract hierarchy |
+| Per-record field extraction | No | YES — Extract queries the field |
+| Related-object traversal | No | YES — Extract joins related objects |
+| Aggregate/rollup values | Limited (no SUM/COUNT) | Must pre-compute in Apex/formula field |
+
+### REST API Testing Pattern for Transforms
+
+```bash
+# Full pipeline test (Extract → Transform → verify output)
+python scripts/ai/docgen/docgen_execute_odt.py MyExtract \
+  --record-id <id> --org <alias> --json > /tmp/extract.json
+
+sf api request rest --method POST \
+  --body @/tmp/extract.json \
+  /services/data/v67.0/omnistudio/dataraptor/MyTransform \
+  --target-org <alias>
+
+# Or use the helper script directly on the Transform
+# (but you must pass the EXTRACT output as the record context)
+```
+
+**Endpoint:** Same as Extract: `POST /services/data/v67.0/omnistudio/dataraptor/<Name>`
+**Body:** The full Extract output JSON (array or object)
+**Response:** The template-ready JSON with all tokens resolved
+
+---
+
 ### ODT Preview / Simulate API (Aura — Debug Use Only)
 
 The OmniStudio Designer "Preview" button invokes an Aura controller action.

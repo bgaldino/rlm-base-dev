@@ -375,7 +375,8 @@ python scripts/ai/docgen/docgen_create_odt.py spec.json --org <alias>     # Crea
 python scripts/ai/docgen/docgen_extract_tokens.py template.docx           # List all {{mustache}} tokens in a .docx
 python scripts/ai/docgen/docgen_build_template.py create layout.json -o out.docx  # Build .docx from JSON layout (requires python-docx)
 python scripts/ai/docgen/docgen_inspect_hierarchy.py <name_or_id> --org <alias>   # Visualize Extract hierarchy tree + validate depth uniformity
-python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias>  # Execute Extract ODT via REST API (--json, --count for modes)
+python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias>  # Execute Extract via REST API (--json, --count for modes)
+python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --input extract.json --org <alias>  # Execute Transform (pass Extract output as input)
 python scripts/ai/docgen/docgen_generate_document.py --record-id <id> --template-id <id> --org <alias>  # Full doc generation (DGP): triggers Extract→Transform→render→PDF, polls to completion
 ```
 

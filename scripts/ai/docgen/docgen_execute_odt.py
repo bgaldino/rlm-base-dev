@@ -1,23 +1,30 @@
 """
-Execute an Extract ODT via the OmniStudio REST API and display results.
+Execute an ODT (Extract or Transform) via the OmniStudio REST API.
 
 Uses the public OmniStudio REST endpoint:
   POST /services/data/v67.0/omnistudio/dataraptor/<ODTName>
 
 This endpoint accepts standard OAuth (no Lightning session required),
 making it suitable for CLI-based testing, CI validation, and agent
-automation.
+automation. Works for both Extract and Transform ODTs.
 
-Usage:
+Usage (Extract — queries org data):
   python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <sf_alias>
-  python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalExtract --record-id 0Q0O4000004gZiD --org rlm-base__beta
   python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalExtract --record-id 0Q0O4000004gZiD --org rlm-base__beta --json
-  python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalExtract --record-id 0Q0O4000004gZiD --org rlm-base__beta --count
+
+Usage (Transform — reshapes JSON input):
+  python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --input extract_output.json --org <sf_alias>
+  python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalTransform --input /tmp/extract.json --org rlm-base__beta
+
+Pipeline (Extract → Transform):
+  python scripts/ai/docgen/docgen_execute_odt.py MyExtract --record-id <id> --org <alias> --json > /tmp/e.json
+  python scripts/ai/docgen/docgen_execute_odt.py MyTransform --input /tmp/e.json --org <alias>
 
 Options:
   --json      Output raw JSON response (for piping to jq or other tools)
   --count     Show only record counts per output array (quick validation)
   --field     Filter output to show only specific output fields
+  --input     JSON file to use as request body (for Transform testing)
 """
 import argparse
 import json
@@ -26,19 +33,31 @@ import sys
 import tempfile
 
 
-def execute_odt(odt_name, record_id, org, api_version="v67.0"):
-    """Execute an Extract ODT via REST API.
+def execute_odt(odt_name, record_id, org, api_version="v67.0", input_file=None):
+    """Execute an ODT (Extract or Transform) via REST API.
+
+    For Extracts: pass record_id (sends {"Id": "<id>"}).
+    For Transforms: pass input_file (sends the file contents as the body).
 
     Returns the parsed JSON response or None on failure.
     """
     endpoint = f"/services/data/{api_version}/omnistudio/dataraptor/{odt_name}"
-    body = {"Id": record_id}
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".json", delete=False
-    ) as f:
-        json.dump(body, f)
-        tmp_path = f.name
+    if input_file:
+        with open(input_file) as f:
+            body = json.load(f)
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as f:
+            json.dump(body, f)
+            tmp_path = f.name
+    else:
+        body = {"Id": record_id}
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as f:
+            json.dump(body, f)
+            tmp_path = f.name
 
     result = subprocess.run(
         [
@@ -139,10 +158,13 @@ def print_summary(data, odt_name, record_id):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Execute an Extract ODT via OmniStudio REST API"
+        description="Execute an ODT (Extract or Transform) via OmniStudio REST API"
     )
     parser.add_argument("odt_name", help="ODT Name (not Id)")
-    parser.add_argument("--record-id", required=True, help="Record Id to extract (e.g., Quote Id)")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--record-id", help="Record Id to extract (e.g., Quote Id)")
+    group.add_argument("--input", dest="input_file",
+                       help="JSON file to use as request body (for Transform testing)")
     parser.add_argument("--org", required=True, help="SF CLI target org alias")
     parser.add_argument("--json", action="store_true", dest="json_output",
                         help="Output raw JSON response")
@@ -154,24 +176,26 @@ def main():
                         help="Salesforce API version (default: v67.0)")
     args = parser.parse_args()
 
-    data = execute_odt(args.odt_name, args.record_id, args.org, args.api_version)
+    data = execute_odt(args.odt_name, args.record_id, args.org, args.api_version,
+                       input_file=args.input_file)
     if data is None:
         sys.exit(1)
 
     if args.fields:
         data = filter_fields(data, set(args.fields))
 
+    source = args.record_id or args.input_file
     if args.json_output:
         print(json.dumps(data, indent=2))
     elif args.count:
         counts = count_arrays(data)
-        print(f"ODT: {args.odt_name}  Record: {args.record_id}")
+        print(f"ODT: {args.odt_name}  Source: {source}")
         if not counts:
             print(f"  Result: empty or scalar")
         for key, count in counts.items():
             print(f"  {key}: {count}")
     else:
-        print_summary(data, args.odt_name, args.record_id)
+        print_summary(data, args.odt_name, source)
 
     sys.exit(0)
 

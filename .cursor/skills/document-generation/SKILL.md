@@ -113,11 +113,12 @@ Lightning session needed). Works for both Extracts and Transforms:
 # Execute an Extract against a record
 python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias>
 
-# Execute a Transform (pass the Extract output as input)
-sf api request rest --method POST \
-  --body '{"key":"value",...}' \
-  /services/data/v67.0/omnistudio/dataraptor/<TransformName> \
-  --target-org <alias>
+# Execute a Transform (pass Extract output as input)
+python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --input extract_output.json --org <alias>
+
+# Pipeline: Extract → Transform (--json pipes output)
+python scripts/ai/docgen/docgen_execute_odt.py MyExtract --record-id <id> --org <alias> --json > /tmp/e.json
+python scripts/ai/docgen/docgen_execute_odt.py MyTransform --input /tmp/e.json --org <alias>
 
 # Full end-to-end document generation (DGP: Extract → Transform → .docx → PDF)
 python scripts/ai/docgen/docgen_generate_document.py \
