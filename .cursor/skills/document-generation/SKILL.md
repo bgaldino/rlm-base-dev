@@ -15,8 +15,8 @@ wiring, token mapping, image handling, and deployment to an org.
 3. **Colon notation in Extract** — field paths use colons: `Invoice:Account:Name`,
    never dots.
 4. **Every item needs `OutputObjectName`** — omitting it causes a null-pointer
-   crash: `"getOutputObjectName()" is null`. Always set to `"json"` for
-   Extract/Transform items.
+   crash: `"getOutputObjectName()" is null`. Set to `"json"` for field mappings
+   and pass-throughs; set to `"Formula"` for formula items.
 5. **Object queries need `InputFieldName` + `FilterGroup`** — the match field
    (usually `Id`) and filter group (`0`) are mandatory on every object query item.
 6. **ContentDocument for dynamic images** — the `IMG_` nested object's `src`
@@ -429,6 +429,8 @@ python scripts/ai/docgen/docgen_extract_tokens.py template.docx
 python scripts/ai/docgen/docgen_extract_tokens.py template.docx --validate-transform <odt_name> --org <alias>
 
 # Build/modify .docx templates programmatically (requires python-docx)
+# NOTE: replace/audit operate on body + tables only — headers/footers NOT searched.
+# Use docgen_extract_tokens.py for full-template token inventory (includes headers/footers).
 python scripts/ai/docgen/docgen_build_template.py create layout.json --output template.docx
 python scripts/ai/docgen/docgen_build_template.py replace template.docx --tokens '{"Old": "New"}'
 python scripts/ai/docgen/docgen_build_template.py audit template.docx

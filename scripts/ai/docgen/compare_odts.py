@@ -97,27 +97,40 @@ def compare_odt_headers(source, target):
     return diffs
 
 
+def detect_duplicates(items, label):
+    """Report items that share the same key (potential duplicate queries)."""
+    by_key = defaultdict(list)
+    for item in items:
+        k = item_key(item)
+        by_key[k].append(item)
+
+    duplicates = []
+    for k, group in by_key.items():
+        if len(group) > 1:
+            duplicates.append({
+                "key": k,
+                "count": len(group),
+                "ids": [item["Id"] for item in group],
+                "side": label,
+            })
+
+    return by_key, duplicates
+
+
 def compare_items(source_items, target_items):
-    source_by_key = {}
-    target_by_key = {}
-
-    for item in source_items:
-        k = item_key(item)
-        source_by_key[k] = item
-
-    for item in target_items:
-        k = item_key(item)
-        target_by_key[k] = item
+    source_by_key, source_dupes = detect_duplicates(source_items, "source")
+    target_by_key, target_dupes = detect_duplicates(target_items, "target")
 
     only_in_source = []
     only_in_target = []
     field_diffs = []
 
-    for k, s_item in source_by_key.items():
+    for k, s_group in source_by_key.items():
+        s_item = s_group[0]
         if k not in target_by_key:
             only_in_source.append(s_item)
         else:
-            t_item = target_by_key[k]
+            t_item = target_by_key[k][0]
             for field in COMPARE_FIELDS:
                 sv = s_item.get(field)
                 tv = t_item.get(field)
@@ -131,11 +144,11 @@ def compare_items(source_items, target_items):
                         "target_id": t_item["Id"],
                     })
 
-    for k, t_item in target_by_key.items():
+    for k, t_group in target_by_key.items():
         if k not in source_by_key:
-            only_in_target.append(t_item)
+            only_in_target.append(t_group[0])
 
-    return only_in_source, only_in_target, field_diffs
+    return only_in_source, only_in_target, field_diffs, source_dupes + target_dupes
 
 
 def format_item(item):
@@ -179,7 +192,12 @@ def main():
     print(f"\nSource items: {len(source_items)}")
     print(f"Target items: {len(target_items)}")
 
-    only_source, only_target, diffs = compare_items(source_items, target_items)
+    only_source, only_target, diffs, duplicates = compare_items(source_items, target_items)
+
+    if duplicates:
+        print(f"\n--- Duplicate Items ({len(duplicates)}) ---")
+        for d in duplicates:
+            print(f"  ⚠ {d['side']}: {d['count']} items share the same key — IDs: {d['ids']}")
 
     if only_source:
         print(f"\n--- Only in Source ({len(only_source)}) ---")
@@ -200,7 +218,10 @@ def main():
             )
             print(f"    Source ID: {d['source_id']}  Target ID: {d['target_id']}")
 
-    total_issues = len(only_source) + len(only_target) + len(diffs) + len(header_diffs)
+    total_issues = (
+        len(only_source) + len(only_target) + len(diffs)
+        + len(header_diffs) + len(duplicates)
+    )
     if total_issues == 0:
         print("\n✓ ODTs are equivalent")
     else:

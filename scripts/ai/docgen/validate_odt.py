@@ -168,6 +168,41 @@ def validate(odt, items):
                 f"silently ignored. Use single quotes: \"'{fv}'\" "
             )
 
+    # Check 10: IMG_ token contract (Transform ODTs) — require src, width, height items
+    img_outputs = defaultdict(set)
+    for item in items:
+        out = item.get("OutputFieldName") or ""
+        obj = item.get("OutputObjectName") or ""
+        if obj.startswith("IMG_"):
+            img_outputs[obj].add(out)
+        elif out.startswith("IMG_") and ":" in out:
+            token = out.split(":")[0]
+            field = out.split(":", 1)[1]
+            img_outputs[token].add(field)
+
+    for token, fields in img_outputs.items():
+        required = {"src", "width", "height"}
+        missing = required - fields
+        if missing:
+            errors.append(
+                f"{token} missing required fields: {sorted(missing)} "
+                f"— image will silently fail to render"
+            )
+        if "src" in fields:
+            src_items = [
+                i for i in items
+                if (i.get("OutputFieldName") or "").endswith(":src")
+                or (i.get("OutputObjectName") or "") == token
+                and (i.get("OutputFieldName") or "") == "src"
+            ]
+            for si in src_items:
+                inp = si.get("InputFieldName") or ""
+                if inp and inp.startswith("'") and not inp.strip("'").startswith("069"):
+                    warnings.append(
+                        f"{token}:src literal '{inp}' does not start with '069' "
+                        f"(ContentDocument prefix) — may crash the engine"
+                    )
+
     return errors, warnings
 
 

@@ -166,10 +166,10 @@ def build_item_body(item_spec, odt_id, odt_name):
     item_type = item_spec.get("type", "")
     if item_type in ("field_mapping", "passthrough", "object_output"):
         ocs = body.get("OutputCreationSequence")
-        if ocs is not None and ocs != 1 and ocs != 0:
+        if ocs is not None and ocs != 1:
             print(f"  ⚠ WARNING: OutputCreationSequence={ocs} on field mapping "
-                  f"'{body.get('OutputFieldName', '?')}' — must be 1 (or 0 for "
-                  f"formulas) to produce output. Forcing to 1.",
+                  f"'{body.get('OutputFieldName', '?')}' — must be 1 for "
+                  f"non-formula items to produce output. Forcing to 1.",
                   file=sys.stderr)
             body["OutputCreationSequence"] = 1
 
