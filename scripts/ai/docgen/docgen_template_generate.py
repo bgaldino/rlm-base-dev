@@ -134,14 +134,13 @@ def create_dgp(record_id, template_id, org, title=None, generate_only=False,
     }
 
     request_text = {"keepIntermediate": True}
-    if title:
-        request_text["title"] = title
+    request_text["title"] = title or template_name or "GeneratedDocument"
 
     cv_id = resolve_content_version(template_name, org) if template_name else None
     if cv_id:
         request_text["templateContentVersionId"] = cv_id
 
-    body["RequestText"] = json.dumps(request_text)
+    body["RequestText"] = json.dumps(request_text, separators=(",", ":"))
 
     if mapping_method == "ContextService":
         body["DocGenAdditionalInputType"] = "ContextService"
