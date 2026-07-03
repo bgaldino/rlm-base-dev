@@ -31,7 +31,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
-| `guidedselling` | `True` | 4 flow step(s) |
+| `guidedselling` | `True` | 5 flow step(s) |
 | `inapp` | `False` | 4 flow step(s) |
 | `large_stx` | `False` | 5 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
@@ -223,6 +223,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
 - `prepare_guidedselling` step 3 → `assign_permission_sets`
 - `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
+- `prepare_guidedselling` step 5 → `configure_search_index`
 
 ### `inapp` (default: `False`)
 

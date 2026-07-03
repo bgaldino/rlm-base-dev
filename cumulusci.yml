@@ -2922,6 +2922,11 @@ tasks:
     options:
       developerNames: *dt_commerce_decision_tables
 
+  configure_search_index:
+    group: Revenue Lifecycle Management
+    description: Configure PCM search index fields via Connect API from a declarative JSON config (datasets/search_index/). Supports Standard, Custom, and attribute field types. Additive — merges with existing index configuration, auto-resolves types and IDs from metadata.
+    class_path: tasks.rlm_configure_search_index.ConfigureSearchIndex
+
   rebuild_search_index:
     group: Revenue Lifecycle Management
     description: Rebuild the Product Catalog (PCM) search index via Connect API (FULL, IMMEDIATE). Asynchronous - initiates the build and logs the snapshot id. Warns and continues on API failure unless raise_on_failure is set.
@@ -4448,6 +4453,11 @@ flows:
       4:
         task: insert_qb_guidedselling_products_data
         when: project_config.project__custom__guidedselling and project_config.project__custom__qb
+      5:
+        task: configure_search_index
+        when: project_config.project__custom__guidedselling
+        options:
+          path: datasets/search_index/guidedselling.json
 
   prepare_analytics:
     group: Revenue Lifecycle Management
