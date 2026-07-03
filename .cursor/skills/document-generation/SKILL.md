@@ -144,7 +144,8 @@ They are **NOT** appropriate for production deployment.
 |-----------|--------|---------|-----------------|
 | Scalar | `{{Name}}` | `{{InvoiceNumber}}` | `"InvoiceNumber": "INV-001"` |
 | Repeating section | `{{#List}}...{{/List}}` | `{{#InvoiceLines}}{{ProductName}}{{/InvoiceLines}}` | `"InvoiceLines": [{...}, ...]` |
-| Condition | `{{#IF_x}}...{{/IF_x}}` | `{{#IF_has_discount}}...{{/IF_has_discount}}` | `"IF_has_discount": true` (Boolean only) |
+| Truthy gate | `{{#Field}}...{{/Field}}` | `{{#GrantType}}row content{{/GrantType}}` | Renders when field is non-empty string/object; skips when absent/null/empty |
+| Condition (boolean) | `{{#IF_x}}...{{/IF_x}}` | `{{#IF_has_discount}}...{{/IF_has_discount}}` | `"IF_has_discount": true` (Boolean only) |
 | Inverse condition | `{{^IF_x}}...{{/IF_x}}` | `{{^IF_no_discount}}...{{/IF_no_discount}}` | Shows when value is `false`; hidden when `true` |
 | Image | `{{IMG_name}}` | `{{IMG_CompanyLogo}}` | `{"src": "069...", "width": "200", "height": "80"}` (see `dynamic-images.md`) |
 | Hyperlink | `{{HYP_name}}` | `{{HYP_PaymentLink}}` | `{"url": "https://...", "text": "label"}` |
@@ -344,6 +345,10 @@ After a formula builds an array, map it to the template:
 | Repeating section empty | Formula item missing or wrong ResultPath | Check formula at `OutputCreationSequence: 0` |
 | Formula produces no output | Unsupported function (FormulaConverted is null) | Check `FormulaConverted` field — if null, the function isn't supported. See Formula Function Catalog below |
 | ODT Name rejected on create | Contains underscores or spaces | Use camelCase only — alphanumeric, no special chars |
+| More array entries than expected | Field mappings at mixed hierarchy depths | Run `docgen_inspect_hierarchy.py` — all mappings for same output array must be at uniform depth |
+| Array is singleton (object, not list) | OutputFieldName at root level | Nest under parent: use `Root:ArrayName` not just `ArrayName` |
+| Missing child records in output | Parent sequence has restrictive filter | Child sequences inherit parent scope — create independent hierarchy with broader filter |
+| N×M×G explosion in child results | Multiple FilterGroups on nested sequence | Each parent × each FilterGroup evaluated independently — use single FilterGroup or separate hierarchy |
 
 ---
 
