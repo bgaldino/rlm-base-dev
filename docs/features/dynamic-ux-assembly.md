@@ -16,8 +16,8 @@ UX metadata files scattered across every `unpackaged/post_*` feature directory. 
 single late-stage CCI task (`assemble_and_deploy_ux`) builds the correct version of every
 UX artifact from composable templates and feature-flag-driven logic, then deploys them all
 in one `sf project deploy start` call at **step 29** of `prepare_rlm_org` (followed by
-`prepare_inapp` at step 31, `prepare_scratch` at step 32, and `refresh_all_decision_tables`
-at step 33).
+`prepare_inapp` at step 30, `prepare_scratch` at step 31, and `refresh_all_decision_tables`
+at step 32).
 
 ### Problems it solves
 
@@ -42,7 +42,7 @@ ux: true   # Set false to skip prepare_ux entirely (useful for isolated feature 
 
 ```yaml
 # prepare_rlm_org step 29
-30:
+29:
   flow: prepare_ux
   when: project_config.project__custom__ux
 ```

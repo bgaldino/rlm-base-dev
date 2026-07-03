@@ -9,7 +9,7 @@
 
 ## What This Document Covers
 
-Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 35-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
+Revenue Cloud Base Foundations automates the creation and configuration of Salesforce Revenue Lifecycle Management (RLM) environments. The centerpiece of this automation is the `prepare_rlm_org` flow — a 34-step orchestration that transforms a bare Salesforce org into a fully functional Revenue Cloud environment, complete with product catalogs, pricing engines, billing configurations, and more.
 
 This guide walks through that build process from start to finish, explaining not just *what* happens at each stage, but *why* each step exists and how the pieces fit together. Whether you're onboarding to the team, preparing a demo environment, or troubleshooting a failed build, this document gives you the full picture.
 
@@ -57,7 +57,7 @@ The most commonly used flags and their defaults:
 
 ## The Build Process: Phase by Phase
 
-The 35 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
+The 34 steps of `prepare_rlm_org` can be understood as eight logical phases. Each phase builds on the previous one — you can't load product data before the metadata that defines those objects is deployed, and you can't activate billing records before they're inserted.
 
 ---
 

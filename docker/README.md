@@ -78,7 +78,7 @@ The credential is piped straight host→container (never written to host disk or
 shown in a terminal), used by `sf`, and shredded. Drop `--devhub` (and use a
 different alias) to import a regular org you want to customize.
 
-`rlm build` creates a scratch org and runs the full 35-step `prepare_rlm_org`
+`rlm build` creates a scratch org and runs the full 34-step `prepare_rlm_org`
 flow. It can take a while. If a step fails (usually transient), just run
 `./docker/rlm resume` to continue from where it stopped.
 

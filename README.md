@@ -871,7 +871,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 | Flow | Description |
 |------|-------------|
-| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (35 steps). This is the primary flow for full org setup. |
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (34 steps). This is the primary flow for full org setup. |
 
 #### prepare_rlm_org Step Order
 
