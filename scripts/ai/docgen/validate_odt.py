@@ -19,6 +19,10 @@ import json
 import subprocess
 import sys
 from collections import defaultdict
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _soql import soql_escape
 
 
 def sf_query(query, org):
@@ -38,14 +42,15 @@ def sf_query(query, org):
 
 
 def resolve_odt(name_or_id, org):
-    if name_or_id.startswith("0jI"):
+    escaped = soql_escape(name_or_id)
+    if name_or_id.startswith("0jI") and len(name_or_id) in (15, 18):
         records = sf_query(
-            f"SELECT Id, Name, Type, IsActive FROM OmniDataTransform WHERE Id = '{name_or_id}'",
+            f"SELECT Id, Name, Type, IsActive FROM OmniDataTransform WHERE Id = '{escaped}'",
             org,
         )
     else:
         records = sf_query(
-            f"SELECT Id, Name, Type, IsActive FROM OmniDataTransform WHERE Name = '{name_or_id}'",
+            f"SELECT Id, Name, Type, IsActive FROM OmniDataTransform WHERE Name = '{escaped}'",
             org,
         )
     if not records:
@@ -191,9 +196,9 @@ def validate(odt, items):
         if "src" in fields:
             src_items = [
                 i for i in items
-                if (i.get("OutputFieldName") or "").endswith(":src")
-                or (i.get("OutputObjectName") or "") == token
-                and (i.get("OutputFieldName") or "") == "src"
+                if ((i.get("OutputFieldName") or "") == f"{token}:src")
+                or ((i.get("OutputObjectName") or "") == token
+                    and (i.get("OutputFieldName") or "") == "src")
             ]
             for si in src_items:
                 inp = si.get("InputFieldName") or ""

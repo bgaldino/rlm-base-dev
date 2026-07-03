@@ -13,6 +13,10 @@ import json
 import subprocess
 import sys
 from collections import defaultdict
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _soql import soql_escape
 
 
 COMPARE_FIELDS = [
@@ -47,16 +51,17 @@ def sf_query(query, org):
 
 
 def resolve_odt(name_or_id, org):
-    if name_or_id.startswith("0jI"):
+    escaped = soql_escape(name_or_id)
+    if name_or_id.startswith("0jI") and len(name_or_id) in (15, 18):
         records = sf_query(
             f"SELECT Id, Name, Type, IsActive, InputType, OutputType "
-            f"FROM OmniDataTransform WHERE Id = '{name_or_id}'",
+            f"FROM OmniDataTransform WHERE Id = '{escaped}'",
             org,
         )
     else:
         records = sf_query(
             f"SELECT Id, Name, Type, IsActive, InputType, OutputType "
-            f"FROM OmniDataTransform WHERE Name = '{name_or_id}'",
+            f"FROM OmniDataTransform WHERE Name = '{escaped}'",
             org,
         )
     if not records:

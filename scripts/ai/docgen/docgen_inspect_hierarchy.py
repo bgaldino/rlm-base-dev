@@ -17,6 +17,10 @@ import json
 import subprocess
 import sys
 from collections import defaultdict
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _soql import soql_escape
 
 
 def sf_query(query, org):
@@ -36,10 +40,11 @@ def sf_query(query, org):
 
 
 def resolve_odt(name_or_id, org):
-    if name_or_id.startswith("0jI"):
-        where = f"Id = '{name_or_id}'"
+    escaped = soql_escape(name_or_id)
+    if name_or_id.startswith("0jI") and len(name_or_id) in (15, 18):
+        where = f"Id = '{escaped}'"
     else:
-        where = f"Name = '{name_or_id}'"
+        where = f"Name = '{escaped}'"
 
     records = sf_query(
         f"SELECT Id, Name, Type FROM OmniDataTransform WHERE {where}", org
@@ -56,9 +61,10 @@ def get_items(odt_id, org):
         "OutputObjectName, InputObjectQuerySequence, OutputCreationSequence, "
         "FilterOperator, FilterValue, FilterGroup"
     )
+    escaped_id = soql_escape(odt_id)
     return sf_query(
         f"SELECT {fields} FROM OmniDataTransformItem "
-        f"WHERE OmniDataTransformationId = '{odt_id}' "
+        f"WHERE OmniDataTransformationId = '{escaped_id}' "
         f"ORDER BY InputObjectQuerySequence NULLS LAST, OutputCreationSequence, OutputFieldName",
         org,
     )

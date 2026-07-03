@@ -19,6 +19,10 @@ import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _soql import soql_escape
 
 
 EXTRACT_EXAMPLE = {
@@ -129,17 +133,26 @@ def sf_api(method, path, body, org, dry_run=False):
         print(f"    Body: {json.dumps(body, indent=2)[:200]}...")
         return {"id": "DRY_RUN_ID", "success": True}
 
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".json", delete=False
-    ) as f:
-        json.dump(body, f)
-        tmp_path = f.name
+    import os
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        ) as f:
+            json.dump(body, f)
+            tmp_path = f.name
 
-    result = subprocess.run(
-        ["sf", "api", "request", "rest", "--method", method,
-         "--body", f"@{tmp_path}", path, "--target-org", org],
-        capture_output=True, text=True,
-    )
+        result = subprocess.run(
+            ["sf", "api", "request", "rest", "--method", method,
+             "--body", f"@{tmp_path}", path, "--target-org", org],
+            capture_output=True, text=True,
+        )
+    finally:
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
 
     try:
         data = json.loads(result.stdout)
@@ -275,10 +288,11 @@ def create_odt(spec, org, dry_run=False):
 
 def _check_formula_converted(odt_id, org):
     """Warn if any formula items have null FormulaConverted (unsupported function)."""
+    escaped_id = soql_escape(odt_id)
     query = (
         f"SELECT FormulaExpression, FormulaConverted, FormulaResultPath "
         f"FROM OmniDataTransformItem "
-        f"WHERE OmniDataTransformationId = '{odt_id}' "
+        f"WHERE OmniDataTransformationId = '{escaped_id}' "
         f"AND FormulaExpression != null"
     )
     result = subprocess.run(

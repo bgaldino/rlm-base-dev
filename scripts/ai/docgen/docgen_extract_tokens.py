@@ -20,7 +20,11 @@ import re
 import subprocess
 import sys
 import zipfile
+from pathlib import Path
 from xml.etree import ElementTree as ET
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _soql import soql_escape
 
 
 WORD_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -103,7 +107,8 @@ def extract_tokens_from_docx(docx_path):
 
 
 def validate_against_transform(tokens, odt_name, org):
-    query = f"SELECT Id FROM OmniDataTransform WHERE Name = '{odt_name}'"
+    escaped_name = soql_escape(odt_name)
+    query = f"SELECT Id FROM OmniDataTransform WHERE Name = '{escaped_name}'"
     result = subprocess.run(
         ["sf", "data", "query", "-q", query, "--target-org", org, "--json"],
         capture_output=True, text=True,
@@ -120,9 +125,10 @@ def validate_against_transform(tokens, odt_name, org):
         return None
 
     odt_id = records[0]["Id"]
+    escaped_id = soql_escape(odt_id)
     query = (
         f"SELECT OutputFieldName, OutputObjectName, FormulaExpression "
-        f"FROM OmniDataTransformItem WHERE OmniDataTransformationId = '{odt_id}'"
+        f"FROM OmniDataTransformItem WHERE OmniDataTransformationId = '{escaped_id}'"
     )
     result = subprocess.run(
         ["sf", "data", "query", "-q", query, "--target-org", org, "--json"],

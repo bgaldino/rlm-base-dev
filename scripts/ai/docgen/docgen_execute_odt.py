@@ -44,31 +44,43 @@ def execute_odt(odt_name, record_id, org, api_version="v67.0", input_file=None):
     endpoint = f"/services/data/{api_version}/omnistudio/dataraptor/{odt_name}"
 
     if input_file:
-        with open(input_file) as f:
-            body = json.load(f)
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
-            json.dump(body, f)
-            tmp_path = f.name
+        try:
+            with open(input_file) as f:
+                body = json.load(f)
+        except FileNotFoundError:
+            print(f"ERROR: Input file not found: {input_file}", file=sys.stderr)
+            return None
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Invalid JSON in input file: {e}", file=sys.stderr)
+            return None
     else:
         body = {"Id": record_id}
+
+    tmp_path = None
+    try:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".json", delete=False
         ) as f:
             json.dump(body, f)
             tmp_path = f.name
 
-    result = subprocess.run(
-        [
-            "sf", "api", "request", "rest",
-            "--method", "POST",
-            "--body", f"@{tmp_path}",
-            endpoint,
-            "--target-org", org,
-        ],
-        capture_output=True, text=True,
-    )
+        result = subprocess.run(
+            [
+                "sf", "api", "request", "rest",
+                "--method", "POST",
+                "--body", f"@{tmp_path}",
+                endpoint,
+                "--target-org", org,
+            ],
+            capture_output=True, text=True,
+        )
+    finally:
+        if tmp_path:
+            import os
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
 
     if result.returncode != 0:
         print(f"ERROR: sf api request failed (exit {result.returncode})", file=sys.stderr)
@@ -88,10 +100,11 @@ def count_arrays(data):
     counts = {}
     if isinstance(data, list):
         counts["(root)"] = len(data)
-        if data:
+        if data and isinstance(data[0], dict):
             for key, val in data[0].items():
                 if isinstance(val, list):
-                    lengths = [len(item.get(key, [])) for item in data if isinstance(item.get(key), list)]
+                    lengths = [len(item.get(key, [])) for item in data
+                               if isinstance(item, dict) and isinstance(item.get(key), list)]
                     counts[key] = f"{sum(lengths)} total across {len(lengths)} parents"
     elif isinstance(data, dict):
         for key, val in data.items():
@@ -103,7 +116,8 @@ def count_arrays(data):
 def filter_fields(data, fields):
     """Filter response to show only specified output fields."""
     if isinstance(data, list):
-        return [{k: v for k, v in item.items() if k in fields} for item in data]
+        return [{k: v for k, v in item.items() if k in fields}
+                for item in data if isinstance(item, dict)]
     elif isinstance(data, dict):
         return {k: v for k, v in data.items() if k in fields}
     return data
@@ -117,7 +131,7 @@ def print_summary(data, odt_name, record_id):
 
     if isinstance(data, list):
         print(f"Result: {len(data)} entries")
-        if data:
+        if data and isinstance(data[0], dict):
             fields = sorted(data[0].keys())
             print(f"Fields ({len(fields)}): {', '.join(fields)}")
 
@@ -125,7 +139,8 @@ def print_summary(data, odt_name, record_id):
                 val = data[0].get(key)
                 if isinstance(val, list) and val:
                     sub_fields = sorted(val[0].keys()) if isinstance(val[0], dict) else []
-                    total = sum(len(item.get(key, [])) for item in data if isinstance(item.get(key), list))
+                    total = sum(len(item.get(key, [])) for item in data
+                                if isinstance(item, dict) and isinstance(item.get(key), list))
                     print(f"  {key}: {total} nested entries")
                     if sub_fields:
                         print(f"    Sub-fields: {', '.join(sub_fields)}")
@@ -139,6 +154,8 @@ def print_summary(data, odt_name, record_id):
                     print(f"  {k}: {v[:77]}...")
                 else:
                     print(f"  {k}: {v}")
+        elif data:
+            print(f"  (non-object entries: {type(data[0]).__name__})")
 
             null_fields = [k for k, v in sample.items() if v is None]
             if null_fields:

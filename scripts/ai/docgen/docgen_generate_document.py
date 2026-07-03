@@ -27,19 +27,33 @@ import subprocess
 import sys
 import tempfile
 import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _soql import soql_escape
 
 
 def sf_api_post(path, body, org):
     """POST to Salesforce REST API, return parsed JSON."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        json.dump(body, f)
-        tmp_path = f.name
+    import os
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(body, f)
+            tmp_path = f.name
 
-    result = subprocess.run(
-        ["sf", "api", "request", "rest", "--method", "POST",
-         "--body", f"@{tmp_path}", path, "--target-org", org],
-        capture_output=True, text=True,
-    )
+        result = subprocess.run(
+            ["sf", "api", "request", "rest", "--method", "POST",
+             "--body", f"@{tmp_path}", path, "--target-org", org],
+            capture_output=True, text=True,
+        )
+    finally:
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
     try:
         return json.loads(result.stdout)
     except json.JSONDecodeError:
@@ -67,9 +81,10 @@ def sf_query(query, org):
 
 def resolve_template(template_id, org):
     """Look up DocumentTemplate to determine mapping method."""
+    escaped = soql_escape(template_id)
     records = sf_query(
         f"SELECT Id, Name, TokenMappingMethodType FROM DocumentTemplate "
-        f"WHERE Id = '{template_id}'", org
+        f"WHERE Id = '{escaped}'", org
     )
     if not records:
         print(f"ERROR: DocumentTemplate '{template_id}' not found", file=sys.stderr)
@@ -127,15 +142,23 @@ def poll_dgp(dgp_id, org, timeout=120):
     """Poll DGP status until completion or timeout."""
     start = time.time()
     last_status = None
+    escaped_id = soql_escape(dgp_id)
+    consecutive_errors = 0
 
     while time.time() - start < timeout:
         records = sf_query(
             f"SELECT Id, Status, ResponseText, ReferenceObject "
-            f"FROM DocumentGenerationProcess WHERE Id = '{dgp_id}'", org
+            f"FROM DocumentGenerationProcess WHERE Id = '{escaped_id}'", org
         )
         if not records:
+            consecutive_errors += 1
+            if consecutive_errors >= 5:
+                print(f"ERROR: Query failed {consecutive_errors} times in a row",
+                      file=sys.stderr)
+                return None
             time.sleep(3)
             continue
+        consecutive_errors = 0
 
         dgp = records[0]
         status = dgp.get("Status")
