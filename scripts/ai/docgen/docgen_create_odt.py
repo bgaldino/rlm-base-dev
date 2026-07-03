@@ -175,10 +175,21 @@ def build_item_body(item_spec, odt_id, odt_name):
 
     if item_type == "object_query":
         fv = body.get("FilterValue", "")
-        if fv and ":" not in fv and not fv.startswith("'"):
-            print(f"  ⚠ WARNING: FilterValue '{fv}' on '{body.get('OutputFieldName', '?')}' "
+        ifn = body.get("InputFieldName", "")
+        ofn = body.get("OutputFieldName", "")
+
+        if fv and ":" not in fv and not fv.startswith("'") and fv != "Id":
+            print(f"  ⚠ WARNING: FilterValue '{fv}' on '{ofn}' "
                   f"is a bare literal — must be single-quoted (e.g., \"'{fv}'\") "
                   f"to generate a WHERE condition. Unquoted literals are silently ignored.",
+                  file=sys.stderr)
+
+        if fv and ":" in fv and fv.endswith(":Id") and ifn == "Id":
+            print(f"  ⚠ WARNING: InputFieldName='Id' with FilterValue='{fv}' on '{ofn}' "
+                  f"— this means WHERE Target.Id = Parent.Id (self-join). "
+                  f"For child-of joins, InputFieldName should be the child's FK field "
+                  f"(e.g., 'QuoteId', 'ParentId'). For FK lookups, FilterValue "
+                  f"should reference the FK field (e.g., 'Parent:Product2Id').",
                   file=sys.stderr)
 
     return body

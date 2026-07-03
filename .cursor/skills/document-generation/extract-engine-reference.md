@@ -106,6 +106,38 @@ logic on a **root-level** query, not on nested child sequences.
 condition. Always single-quote literal values: `FilterValue: "'0'"` not
 `FilterValue: "0"`.
 
+### InputFieldName on Object Queries — Join Semantics (Critical)
+
+**Common mistake:** Setting `InputFieldName: "Id"` on all object queries.
+`InputFieldName` specifies **which field on the TARGET object** to match
+against the `FilterValue` from the parent. It generates the WHERE clause:
+
+```
+WHERE <InputFieldName> = <resolved FilterValue>
+```
+
+**Two join patterns:**
+
+| Pattern | InputFieldName | FilterValue | Generated WHERE | Cardinality |
+|---------|---------------|-------------|-----------------|-------------|
+| Child-of (1:many) | Child's FK field | `Parent:Id` | `WHERE ChildFKField = '<parentId>'` | 0..N children per parent |
+| FK lookup (many:1) | `Id` | `Parent:FKField` | `WHERE Id = '<parentFKValue>'` | 0..1 target per parent |
+
+**Examples:**
+```
+# Child-of: "Give me all QLIs belonging to this Quote"
+OQ: QuoteLineItem, InputFieldName: "QuoteId", FilterValue: "Quote:Id"
+→ WHERE QuoteLineItem.QuoteId = '<quoteId>'
+
+# FK lookup: "Give me the Product2 record for this QLI's Product2Id"
+OQ: Product2, InputFieldName: "Id", FilterValue: "Quote:QLI:Product2Id"
+→ WHERE Product2.Id = '<product2IdFromQLI>'
+```
+
+**Rule:** `InputFieldName: "Id"` is correct ONLY for FK lookups (where you're
+resolving a parent's FK value to get the target record). For child-of joins,
+use the child's FK field name (e.g., `QuoteId`, `QuoteLineItemId`).
+
 ### FilterOperator Values
 
 | Operator | Purpose |
@@ -285,6 +317,149 @@ one-entry-per-child.
 **Validation:** Run `python scripts/ai/docgen/docgen_inspect_hierarchy.py`
 to detect mixed-depth violations automatically.
 
+### Mixed Depth — When It's Safe vs Dangerous (Live-Verified)
+
+All scenarios below were live-tested via `docgen_execute_odt.py` against
+`rlm-base__jun30_agents` (Quote `0Q0O4000004gZiDKAU`, 7 QLIs, 5 Grants
+on 2 of 7 QLIs).
+
+---
+
+#### Scenario A — Child-of join (one-to-many): DANGEROUS
+
+**ODT:** `RESEARCHDepthMixV2`
+```
+Hierarchy:
+  Quote (root, FilterValue: Id)
+  Quote:QLI (InputFieldName: QuoteId, FilterValue: Quote:Id)       ← 7 records
+  Quote:QLI:Grant (InputFieldName: QuoteLineItemId, FilterValue: Quote:QLI:Id) ← 5 on 2 QLIs
+
+Mappings (mixed depth 2 + 3 → same output):
+  Quote:QLI:RLM_ProductName__c     → Items:ProductName  (depth 2)
+  Quote:QLI:Grant:GrantQuantity    → Items:GrantQty     (depth 3)
+```
+**Result: 10 entries** — 5 with GrantQty (real), 5 without GrantQty (phantoms).
+Engine iterates at SHALLOWEST depth. QLIs with grants expand; QLIs without
+grants still emit one entry with the deeper field **absent** (not null).
+
+---
+
+#### Scenario B — FK lookup (many-to-one): SAFE
+
+**ODT:** `RLMQuoteProposalExtract` Grant sub-tree + `RESEARCHNonUniqueFKv2`
+```
+Hierarchy:
+  Quote:QLI (pivot, 7 records)
+  Quote:QLI:Product (InputFieldName: Id, FilterValue: Quote:QLI:Product2Id)  ← FK lookup
+
+Mappings (mixed depth 2 + 3):
+  Quote:QLI:Quantity          → Items:Qty          (depth 2)
+  Quote:QLI:Product:ProductCode → Items:SKU        (depth 3)
+```
+**Result: 7 entries, ALL fields populated.** Each QLI resolves exactly
+one Product2 via FK — no expansion, no phantoms.
+
+---
+
+#### Scenario C — Orphan FK (FK value is null): SAFE
+
+**ODT:** `RESEARCHOrphanFKv2`
+```
+Hierarchy:
+  Quote:QLI (pivot, 7 records — ALL have OpportunityLineItemId = null)
+  Quote:QLI:OpptyLine (InputFieldName: Id, FilterValue: Quote:QLI:OpportunityLineItemId)
+
+Mappings (mixed depth 2 + 3):
+  Quote:QLI:RLM_ProductName__c    → Items:ProductName  (depth 2)
+  Quote:QLI:OpptyLine:TotalPrice  → Items:OpptyPrice   (depth 3)
+```
+**Result: 7 entries with ProductName only; OpptyPrice ABSENT (not null).**
+When the FK resolves to null, the deeper OQ simply finds 0 records — the
+engine gracefully skips that join. The deeper field is absent from output
+(same as an error/skipped sequence). No phantoms.
+
+---
+
+#### Scenario D — Mixed FK + child-of on same pivot: DANGEROUS
+
+**ODT:** `RESEARCHMixedJoinsv2`
+```
+Hierarchy:
+  Quote:QLI (pivot, 7 records)
+  Quote:QLI:Product (InputFieldName: Id, FilterValue: Quote:QLI:Product2Id)  ← FK (safe)
+  Quote:QLI:Grant (InputFieldName: QuoteLineItemId, FilterValue: Quote:QLI:Id)  ← child-of (dangerous)
+
+Mappings (depth 2 + 3 + 3):
+  Quote:QLI:RLM_ProductName__c  → Items:ProductName      (depth 2)
+  Quote:QLI:Product:Name        → Items:ProductFullName  (depth 3, FK)
+  Quote:QLI:Grant:GrantQuantity → Items:GrantQty         (depth 3, child-of)
+```
+**Result: 10 entries.**
+- 5 QLIs without grants: 1 entry each (ProductName + ProductFullName, GrantQty absent)
+- 2 QLIs with grants: expanded (2+3 entries), each has all 3 fields
+
+**Key finding:** The child-of join DOMINATES expansion even when a safe FK
+join is also present. The FK join's fields are correctly resolved on every
+expanded entry (no phantoms in the FK-joined field), but the child-of
+expansion still creates multiple entries per parent.
+
+---
+
+#### Scenario E — 3+ levels of mixed depth (all FK): SAFE
+
+**ODT:** `RESEARCHThreeLevelsv2`
+```
+Hierarchy:
+  Quote (root, depth 1)
+  Quote:QLI (depth 2)
+  Quote:QLI:Product (depth 3, FK join)
+
+Mappings (depths 1 + 2 + 3 → same output):
+  Quote:Name                  → Items:QuoteName        (depth 1)
+  Quote:QLI:RLM_ProductName__c → Items:ProductName     (depth 2)
+  Quote:QLI:Product:Name      → Items:ProductFullName  (depth 3)
+```
+**Result: 7 entries, ALL 3 fields populated on every entry.**
+Multi-level mixed depth is perfectly safe when all deeper joins are FK
+lookups. The engine resolves parent fields "down" to the deepest level
+without phantom expansion.
+
+---
+
+#### Summary Table
+
+These rules apply to ANY object hierarchy — the test data used Quote/QLI
+but the behavior is engine-level, not object-specific.
+
+| Scenario | Deeper join type | FilterValue pattern | Result | Safe? |
+|----------|-----------------|---------------------|--------|-------|
+| A | Child-of (1:many) | `Pivot:Id` | Phantoms | NO |
+| B | FK lookup (many:1) | `Pivot:FKField` | Clean | YES |
+| C | FK to null value | `Pivot:NullFKField` | Field absent | YES |
+| D | FK + child-of mix | Both patterns | Phantoms (child-of dominates) | NO |
+| E | Multi-level FK | All `Pivot:FKField` | Clean | YES |
+
+**Canonical rule:** Mixed depth produces phantoms **if and only if** at
+least one deeper OQ is a child-of join (`FilterValue` ends with `:Id` on
+the pivot's path). FK lookups (where `FilterValue` references a specific
+FK field on the pivot) are always safe regardless of depth mixing.
+
+**How to tell them apart (applies to any object):**
+- **Child-of** (dangerous): deeper OQ's `InputFieldName` is a FK field on
+  the child (e.g., `QuoteId`, `ParentId`, `AccountId`) and `FilterValue`
+  references the parent's Id. Pattern: "find all children of this parent."
+- **FK lookup** (safe): deeper OQ's `InputFieldName` is `Id` and
+  `FilterValue` references a FK field on the pivot (e.g., `Pivot:Product2Id`,
+  `Pivot:UsageResourceId`). Pattern: "resolve this FK to its target record."
+
+**Automated validation:**
+- `python scripts/ai/docgen/docgen_inspect_hierarchy.py` — static analysis
+  using the FilterValue heuristic (HIGH = child-of, LOW = all FK lookups)
+- `python scripts/ai/docgen/docgen_execute_odt.py` — live execution to
+  empirically verify actual output entry count for any Extract + record
+- `python scripts/ai/docgen/docgen_generate_document.py` — full end-to-end
+  generation (Extract → Transform → .docx → PDF) for template testing
+
 ### Filtering to "Only Parents That Have Children" (No Subquery Support)
 
 The Extract engine does not support subqueries or semi-joins. You cannot
@@ -445,11 +620,67 @@ No API-level limit observed for item count or sequence count:
 
 (UI/runtime performance at scale not yet verified.)
 
-### ODT Preview / Simulate API
+### ODT Execution via REST API (Recommended for CLI/Agent Use)
+
+The OmniStudio REST API provides a clean programmatic execution path for
+Extract ODTs. Uses standard OAuth — no Lightning session required.
+
+**Endpoint:**
+```
+POST /services/data/v67.0/omnistudio/dataraptor/<ODTName>
+```
+
+**Body:**
+```json
+{"Id": "<recordId>"}
+```
+
+**Example (via `sf` CLI):**
+```bash
+sf api request rest --method POST \
+  --body '{"Id":"0Q0O4000004gZiDKAU"}' \
+  /services/data/v67.0/omnistudio/dataraptor/RLMQuoteProposalExtract \
+  --target-org rlm-base__beta
+```
+
+**Helper script (wraps the above with summary/count/json modes):**
+```bash
+python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalExtract \
+  --record-id 0Q0O4000004gZiD --org rlm-base__beta
+python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalExtract \
+  --record-id 0Q0O4000004gZiD --org rlm-base__beta --json
+python scripts/ai/docgen/docgen_execute_odt.py RLMQuoteProposalExtract \
+  --record-id 0Q0O4000004gZiD --org rlm-base__beta --count
+```
+
+**Response:** Direct JSON — the Extract output array or object. No wrapper envelope.
+```json
+[
+  {"ProductName": "Widget", "Quantity": 5, "Grant": [...]},
+  {"ProductName": "Gadget", "Quantity": 3, "Grant": [...]}
+]
+```
+
+**Key behaviors (live-verified):**
+- Takes the ODT **Name** (not Id)
+- Requires the ODT to be Active (`IsActive: true`)
+- Returns the Extract output directly (no `response`/`debugLog` wrapper)
+- Works with standard OAuth via `sf api request rest`
+- No SOQL debug log available (use the Aura Preview API below for that)
+
+**Use cases:**
+- Automated testing: execute an Extract and assert record counts / field presence
+- Phantom entry detection: compare expected vs actual entry count
+- Regression testing: execute before/after a change and diff the output
+- Agent validation: any agent can run this without browser automation
+
+---
+
+### ODT Preview / Simulate API (Aura — Debug Use Only)
 
 The OmniStudio Designer "Preview" button invokes an Aura controller action.
-This is the only known programmatic execution path for ODTs against arbitrary
-input data (outside of the `generateDocument` invocable, which is Invoice/CreditMemo only).
+Provides `debugLog` with exact SOQL, but requires active Lightning session
+auth (cannot be used from CLI/agents without a browser session).
 
 **Endpoint:**
 ```
@@ -494,3 +725,4 @@ Note: `name` takes the ODT **record Id** (0jI prefix), not the API Name.
 - All queries get `LIMIT 50000` appended automatically
 - `ActualTime` reports execution in milliseconds
 - Requires active Lightning session auth (`sid` cookie + `aura.token` + `aura.context`) — cannot be invoked with just an OAuth access token
+- Use for **debugging** filter/query issues; use the REST API above for **automated validation**

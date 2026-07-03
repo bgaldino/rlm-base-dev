@@ -99,8 +99,36 @@ iteration. They are appropriate for:
 - Debugging blank output (inspecting/fixing items quickly)
 - Cloning an ODT to experiment with variations
 - Validating item structure before committing as Metadata API XML
+- **Executing Extracts/Transforms** for automated testing (`docgen_execute_odt.py`)
+- **Full document generation** end-to-end (`docgen_generate_document.py`)
 
 They are **NOT** appropriate for production deployment.
+
+### OmniStudio REST API (Execution & Testing)
+
+The OmniStudio REST endpoint executes ODTs with standard OAuth (no
+Lightning session needed). Works for both Extracts and Transforms:
+
+```bash
+# Execute an Extract against a record
+python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias>
+
+# Execute a Transform (pass the Extract output as input)
+sf api request rest --method POST \
+  --body '{"key":"value",...}' \
+  /services/data/v67.0/omnistudio/dataraptor/<TransformName> \
+  --target-org <alias>
+
+# Full end-to-end document generation (DGP: Extract → Transform → .docx → PDF)
+python scripts/ai/docgen/docgen_generate_document.py \
+  --record-id <id> --template-id <templateId> --org <alias>
+```
+
+Use this for:
+- Automated validation of Extract output (entry counts, field presence)
+- Phantom-entry detection (compare expected vs actual entry count)
+- Transform output verification before wiring to a template
+- End-to-end template smoke tests (DGP script triggers generation + polls)
 
 ---
 
@@ -133,8 +161,44 @@ They are **NOT** appropriate for production deployment.
                                └─────────────────────┘
 ```
 
-**Data flow:** Input JSON (`{"Id": "recordId"}`) → Extract queries org → raw data
-→ Transform reshapes → token-keyed JSON → engine merges with `.docx` template.
+**Data flow (live-verified via REST API):**
+
+```
+1. TRIGGER: DocumentGenerationProcess record inserted
+   Input: {"Id": "<recordId>"}
+   (DGP reads DocumentTemplate → resolves Extract + Transform names)
+
+2. EXTRACT: POST /omnistudio/dataraptor/<ExtractName>
+   - Receives: {"Id": "<recordId>"}
+   - Executes object queries (SOQL) per sequence number
+   - Applies filters (FilterValue + FilterOperator + FilterGroup)
+   - Maps InputFieldName → OutputFieldName on field mapping items
+   - Returns: raw data JSON (nested arrays/objects reflecting hierarchy)
+
+3. TRANSFORM: POST /omnistudio/dataraptor/<TransformName>
+   - Receives: Extract output JSON (entire response, as-is)
+   - Applies: pass-through renames, formula computations (LIST, IF, CONCAT),
+     object builders (IMG_, HYP_), Boolean casts (IF_ conditions)
+   - Returns: template-ready JSON (keys = exact token names in .docx)
+
+4. RENDER: Engine merges Transform output with .docx template
+   - Scalar tokens: {{TokenName}} → replaced with string value
+   - Repeating sections: {{#Array}}...{{/Array}} → one row per array element
+   - Conditional sections: {{#IF_x}}...{{/IF_x}} → rendered/hidden by Boolean
+   - Dynamic content: IMG_, HYP_, RTB_ → rendered per their contract
+   - Output: .docx (intermediate)
+
+5. CONVERT (optional): .docx → .pdf via Microsoft 365 service
+   - Only when DGP.Type = "GenerateAndConvert"
+   - Output: two ContentVersions (068 IDs) — .docx + .pdf
+
+6. COMPLETE: DGP.Status → "Success", ResponseText = comma-separated 068 IDs
+```
+
+**Testable at each stage:**
+- Stage 2: `python scripts/ai/docgen/docgen_execute_odt.py <extract> --record-id <id> --org <alias>`
+- Stage 3: `sf api request rest --method POST --body @extract_output.json /services/data/v67.0/omnistudio/dataraptor/<transform> --target-org <alias>`
+- Full pipeline: `python scripts/ai/docgen/docgen_generate_document.py --record-id <id> --template-id <id> --org <alias>`
 
 ---
 
@@ -209,19 +273,32 @@ Define which SObjects to query and how to join them:
 | Field | Purpose | Example |
 |-------|---------|---------|
 | `InputObjectName` | SObject to query | `Invoice` |
-| `InputFieldName` | Field to match on (usually `Id`) | `Id` |
-| `OutputFieldName` | Alias for query results | `Invoice` |
+| `InputFieldName` | Field on this object to match against FilterValue (see below) | `Id`, `InvoiceId` |
+| `OutputFieldName` | Internal hierarchy path (join scope) | `Invoice`, `Invoice:Account` |
 | `OutputObjectName` | Always `json` | `json` |
 | `InputObjectQuerySequence` | Execution order (1, 2, 3...) | `1` |
 | `FilterOperator` | Match operator | `=` |
-| `FilterValue` | Value or path to match | `Id` (for root), `Invoice:BillingAccountId` (for joins) |
+| `FilterValue` | Value or path to match | `Id` (for root), `Invoice:BillingAccountId` (for FK lookup) |
 | `FilterGroup` | Required grouping | `0` |
 
-**Join pattern:** Later sequences reference earlier ones via colon paths:
+**InputFieldName semantics (critical — generates the WHERE clause):**
 ```
-Seq 1: Invoice (FilterValue: "Id")                    ← root, matches input Id
-Seq 4: Account (FilterValue: "Invoice:BillingAccountId")  ← joins on FK
-Seq 5: Contact (FilterValue: "Invoice:BillToContactId")
+WHERE <InputFieldName> = <resolved FilterValue>
+```
+
+Two join patterns:
+
+| Pattern | InputFieldName | FilterValue | Meaning |
+|---------|---------------|-------------|---------|
+| **Root** (input param) | `Id` | `Id` | Match input `Id` param → this object's `Id` |
+| **FK lookup** (many:1) | `Id` | `Parent:FKField` | Match parent's FK → target's `Id` (1 result per parent) |
+| **Child-of** (1:many) | Child's FK field | `Parent:Id` | Match parent's Id → child's FK (0..N per parent) |
+
+**Examples:**
+```
+Seq 1: Invoice,     InputFieldName="Id",        FilterValue="Id"                        ← root
+Seq 4: Account,     InputFieldName="Id",        FilterValue="Invoice:BillingAccountId"  ← FK lookup (safe)
+Seq 5: InvoiceLine, InputFieldName="InvoiceId", FilterValue="Invoice:Id"                ← child-of (1:many)
 ```
 
 **Multi-filter objects** (e.g., InvoiceLine with type filter):
@@ -440,6 +517,16 @@ python scripts/ai/docgen/docgen_build_template.py --example > layout.json   # ge
 python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <sf_alias>
 python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <alias> --validate-only
 python scripts/ai/docgen/docgen_inspect_hierarchy.py <odt_name_or_id> --org <alias> --json
+
+# Execute an Extract or Transform via REST API (automated testing)
+python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias>
+python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias> --json   # raw output
+python scripts/ai/docgen/docgen_execute_odt.py <odt_name> --record-id <id> --org <alias> --count  # quick counts
+
+# Full document generation (DGP): Extract → Transform → .docx → PDF
+python scripts/ai/docgen/docgen_generate_document.py --record-id <id> --template-id <id> --org <alias>
+python scripts/ai/docgen/docgen_generate_document.py --record-id <id> --template-id <id> --org <alias> --no-convert  # .docx only
+python scripts/ai/docgen/docgen_generate_document.py --record-id <id> --template-id <id> --org <alias> --title "Custom Name"
 ```
 
 ---

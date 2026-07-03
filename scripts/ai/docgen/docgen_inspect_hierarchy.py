@@ -152,10 +152,87 @@ def print_tree(tree, indent=0, prefix=""):
         print_tree(subtree, indent + 1, next_prefix)
 
 
+def find_pivot_path(mappings, object_queries):
+    """Find the deepest common object-query prefix shared by all mappings.
+
+    If all input paths share a common object-query ancestor, that's the
+    cardinality-defining pivot. Fields on that object and its children
+    will produce the same number of entries (safe mixed depth).
+    """
+    oq_paths = set(oq["OutputFieldName"] for oq in object_queries)
+
+    input_paths = [m["input"].split(":") for m in mappings]
+    if not input_paths:
+        return None
+
+    min_len = min(len(p) for p in input_paths)
+    common_prefix = []
+    for i in range(min_len):
+        vals = set(p[i] for p in input_paths)
+        if len(vals) == 1:
+            common_prefix.append(vals.pop())
+        else:
+            break
+
+    for length in range(len(common_prefix), 0, -1):
+        candidate = ":".join(common_prefix[:length])
+        if candidate in oq_paths:
+            return candidate
+
+    return None
+
+
+def _deeper_oqs_are_many_to_one(pivot_path, mappings, object_queries):
+    """Check if deeper-than-pivot OQs use many-to-one (FK lookup) joins.
+
+    Live-verified behavior: mixed depth is safe ONLY when deeper OQs
+    filter by a non-Id FK field on the pivot (e.g., FilterValue =
+    "Pivot:SomeForeignKeyId"). This means each pivot record joins to
+    exactly one deeper record (many-to-one).
+
+    Dangerous: deeper OQ filters by "Pivot:Id" — this is a one-to-many
+    child-of join where a pivot record can have 0..N children. Records
+    with 0 children produce phantom entries.
+
+    Returns True only if ALL deeper OQs used by field mappings are
+    many-to-one joins from the pivot.
+    """
+    pivot_depth = len(pivot_path.split(":"))
+    oq_by_path = {oq["OutputFieldName"]: oq for oq in object_queries}
+
+    deeper_oq_paths = set()
+    for m in mappings:
+        if m["depth"] <= pivot_depth:
+            continue
+        input_parts = m["input"].split(":")
+        for length in range(len(input_parts), 0, -1):
+            candidate = ":".join(input_parts[:length])
+            if candidate in oq_by_path and len(candidate.split(":")) > pivot_depth:
+                deeper_oq_paths.add(candidate)
+                break
+
+    for path in deeper_oq_paths:
+        oq = oq_by_path[path]
+        filter_val = oq.get("FilterValue") or ""
+        # A many-to-one join filters by a FK field on the pivot:
+        #   FilterValue = "PivotPath:SomeFKField" (not ending in :Id)
+        # A one-to-many join filters by the pivot's Id:
+        #   FilterValue = "PivotPath:Id" or "PivotPath"
+        if filter_val.endswith(":Id") or filter_val == pivot_path:
+            return False
+
+    return True
+
+
 def validate_depth_uniformity(field_mappings, object_queries):
     """Check that all field mappings for the same output array read from the same depth.
 
-    Returns list of violations: [{array_root, mappings: [{path, depth, output}]}]
+    Returns list of violations: [{array_root, mappings, pivot_path, severity}]
+
+    Severity:
+      - "high": depths differ and deeper paths expand into new objects (will leak)
+      - "low": depths differ but deeper paths re-join objects already in the
+        ancestry (redundant join pattern — same cardinality, safe)
     """
     by_array = defaultdict(list)
 
@@ -177,10 +254,19 @@ def validate_depth_uniformity(field_mappings, object_queries):
     for array_root, mappings in by_array.items():
         depths = set(m["depth"] for m in mappings)
         if len(depths) > 1:
+            pivot = find_pivot_path(mappings, object_queries)
+
+            if pivot and _deeper_oqs_are_many_to_one(pivot, mappings, object_queries):
+                severity = "low"
+            else:
+                severity = "high"
+
             violations.append({
                 "array_root": array_root,
                 "depths_found": sorted(depths),
                 "mappings": mappings,
+                "pivot_path": pivot,
+                "severity": severity,
             })
 
     return violations
@@ -266,7 +352,8 @@ def main():
             "violations": violations,
         }
         print(json.dumps(output, indent=2))
-        sys.exit(1 if violations else 0)
+        has_high = any(v["severity"] == "high" for v in violations)
+        sys.exit(1 if has_high else 0)
 
     print(f"ODT: {odt['Name']} ({odt['Id']})  Type: {odt['Type']}")
     print(f"Items: {len(object_queries)} queries + {len(field_mappings)} field mappings")
@@ -290,26 +377,40 @@ def main():
     print("DEPTH VALIDATION")
     print(f"{'='*60}\n")
 
+    high_violations = [v for v in violations if v["severity"] == "high"]
+    low_violations = [v for v in violations if v["severity"] == "low"]
+
     if not violations:
         print("  ✓ All output arrays have uniform field mapping depth")
     else:
-        print(f"  ⚠ {len(violations)} output array(s) have MIXED DEPTHS:\n")
-        for v in violations:
-            print(f"  Array: {v['array_root']}")
-            print(f"  Depths found: {v['depths_found']}")
-            print(f"  Mappings:")
-            for m in v["mappings"]:
-                flag = " ← SHALLOWER" if m["depth"] < max(v["depths_found"]) else ""
-                print(f"    depth {m['depth']}: {m['input']} → {m['output']}{flag}")
-            print()
-        print("  Review: mixed depths cause phantom entries when shallower fields")
-        print("  read from a PARENT that has MORE records than the child. Safe when")
-        print("  all paths share the same pivot object (e.g., Child:Field vs")
-        print("  Child:Grandchild:Field both anchored by Child).")
-        print("  Fix (if phantom entries appear): use a redundant join to read")
-        print("  parent fields at child level. See: extract-engine-reference.md")
+        if high_violations:
+            print(f"  ✗ {len(high_violations)} HIGH — will produce phantom array entries:\n")
+            for v in high_violations:
+                print(f"  Array: {v['array_root']}")
+                print(f"  Depths found: {v['depths_found']}")
+                print(f"  Mappings:")
+                for m in v["mappings"]:
+                    flag = " ← SHALLOWER (leaks parent entries)" if m["depth"] < max(v["depths_found"]) else ""
+                    print(f"    depth {m['depth']}: {m['input']} → {m['output']}{flag}")
+                print()
+            print("  Fix: use a redundant join to read parent fields at child level.")
+            print("  See: extract-engine-reference.md\n")
 
-    sys.exit(1 if violations else 0)
+        if low_violations:
+            print(f"  ℹ {len(low_violations)} LOW — mixed depths but shared pivot (likely safe):\n")
+            for v in low_violations:
+                pivot = v.get("pivot_path", "?")
+                print(f"  Array: {v['array_root']}  (pivot: {pivot})")
+                print(f"  Depths found: {v['depths_found']}")
+                print(f"  Mappings:")
+                for m in v["mappings"]:
+                    print(f"    depth {m['depth']}: {m['input']} → {m['output']}")
+                print()
+            print("  These paths share a common pivot object — fields on that object")
+            print("  and its 1:1 children produce the same cardinality. Safe unless the")
+            print("  child join is actually one-to-many (verify record counts if unsure).")
+
+    sys.exit(1 if high_violations else 0)
 
 
 if __name__ == "__main__":
