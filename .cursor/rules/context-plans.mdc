@@ -29,6 +29,13 @@ artifact. Full guidance: `.cursor/skills/context-service/SKILL.md`
   hard-delete a definition / custom artifacts) is a **separate, out-of-band**
   step — the experimental `scripts/context_service/delete_context.py`, not the plan
   format. Deletes are **blocked while the version is active** (deactivate first).
+- The plan format is **design-time only** — it defines a Context *Definition*.
+  Runtime *hydration* (loading records into a context instance) and *persistence*
+  (writing values back) are **not** expressed in a plan; they are handled at
+  runtime by the consuming engines, and can be exercised for
+  debugging/validation by the EXPERIMENTAL runtime scripts
+  (`context_session.py`, `build_hydration_data.py`, …) — see
+  `.cursor/skills/context-service/runtime-and-persistence.md`.
 - `deactivate_before` defaults to `false`; **adding new** attributes/tags/nodes
   applies in place on an active version. But **modifying an existing artifact**
   (flipping `isTransient`, re-pointing the default mapping) is **blocked while

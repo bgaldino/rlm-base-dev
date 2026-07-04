@@ -41,19 +41,26 @@ class Transport:
         self.dry_run = dry_run
         self.logger = logger or _client.eprint
 
-    def request(self, method: str, path: str, body: Any = None) -> Any:
+    def request(self, method: str, path: str, body: Any = None,
+                *, dry_run: Optional[bool] = None) -> Any:
+        # ``dry_run`` overrides the transport's bound flag for this one call — the
+        # runtime path uses it to force read-shaped POSTs (query-record,
+        # query-tags) to execute even under a dry-run session (see _runtime.py /
+        # the dry-run contract). ``None`` (the design-time default) inherits.
         return _client.connect_request(
             method, path, body,
             target_org=self.target_org, api_version=self.api_version,
-            dry_run=self.dry_run, logger=self.logger,
+            dry_run=self.dry_run if dry_run is None else dry_run,
+            logger=self.logger,
         )
 
     def sobject(self, method: str, sobject: str, record_id: Optional[str] = None,
-                body: Any = None) -> Any:
+                body: Any = None, *, dry_run: Optional[bool] = None) -> Any:
         return _client.sobjects_request(
             method, sobject, record_id, body,
             target_org=self.target_org, api_version=self.api_version,
-            dry_run=self.dry_run, logger=self.logger,
+            dry_run=self.dry_run if dry_run is None else dry_run,
+            logger=self.logger,
         )
 
     def soql(self, query: str) -> List[Dict[str, Any]]:

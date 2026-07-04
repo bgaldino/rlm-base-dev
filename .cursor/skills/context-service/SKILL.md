@@ -14,10 +14,13 @@ expression-set steps that consume it. This skill is consumable by any AI agent
 > grounded in `tasks/rlm_context_service.py`, `tasks/rlm_extend_stdctx.py`, the
 > repo's context plans, `docs/references/context-service-utility.md`, Core UDD,
 > the Connect OAS, and Salesforce Help — re-verify edge behavior on the target
-> release at merge time. The detailed reference lives in two sub-files:
+> release at merge time. The detailed reference lives in three sub-files:
 > **`data-model-and-api.md`** (object model, enums, endpoints, plan format,
-> limits, MDAPI) and **`authoring-and-lifecycle.md`** (definition types,
-> activation, versioning, upgrade/Sync, standard contexts, gotchas).
+> limits, MDAPI), **`authoring-and-lifecycle.md`** (definition types,
+> activation, versioning, upgrade/Sync, standard contexts, gotchas), and
+> **`runtime-and-persistence.md`** (the runtime instance lifecycle —
+> hydrate → query → persist → delete, `contextId` scoping/TTL, the `data`
+> payload shape, definition interfaces, and the runtime helper scripts).
 
 ## Quick Rules
 
@@ -54,6 +57,33 @@ expression-set steps that consume it. This skill is consumable by any AI agent
    `contexts/<plan>.json`. The 6 active plans (`Billing`,
    `ConstraintEngineNodeStatus`, `DocGen`, `PartnerAccount`, `PrmPricing`,
    `RampMode`) are known-good; `archive/` is legacy — do not apply it.
+8. **Runtime = a separate lifecycle from design-time.** A Context *Definition*
+   (rules 1–7) is design-time schema; a runtime *instance* is hydrated from
+   records, queried, and persisted back. A runtime `contextId` is a
+   **request-scoped** opaque cache handle (UUID/hex — never prefix-validate it):
+   per Salesforce it may not survive across separate calls unless the org's
+   "Runtime Context Instance Reuse" setting is on and within `contextTtl`. Use
+   **`context_session.py`** (create→use→persist→delete in one process) as the
+   default runtime entry point; build the `data` payload with
+   `build_hydration_data.py`. These runtime scripts are **EXPERIMENTAL /
+   verify-live** and exist **primarily to debug, understand, and validate
+   runtime behavior** (does hydration/persistence/tagging actually work the way
+   the definition says?) — **not** as a production runtime or build path
+   (engines like pricing/DocGen/BRE hydrate their own contexts). See
+   `runtime-and-persistence.md`.
+9. **Runtime hydration gotcha + REST-vs-Apex reality (live-verified, v67.0).**
+   In the `data` payload, `businessObjectType` must be the **mapped SObject
+   name** (e.g. `Quote`), **not** the context-node name (`SalesTransaction`) —
+   the array *key* is the node name, but a node-name `businessObjectType`
+   hydrates **zero** records (silent empty result). `build_hydration_data.py`
+   now emits the mapped name (from the mapping's `contextNodeMappings`). Also:
+   REST `create` works, but REST **`query-record`/`query-tags` are pilot-gated**
+   (`API_DISABLED_FOR_ORG`, confirmed on scratch **and** production), and a
+   `contextId` doesn't survive across separate `sf api request` calls — so on a
+   normal org, validate hydration via the **Apex `Context.IndustriesContext`
+   `buildContext` + `leanerQueryTags`** snippet in `runtime-and-persistence.md`,
+   not the REST query scripts. Tag names are a **distinct namespace** from
+   attribute names (attr `Quantity` → tag `LineItemQuantity`).
 
 ## DO NOT
 
@@ -80,6 +110,13 @@ expression-set steps that consume it. This skill is consumable by any AI agent
 - **DO NOT** treat `force-app/main/default/contextDefinitions/` as
   auto-generated — it is **tracked** metadata deployed by
   `deploy_context_definitions`. Prefer plans + tasks for additive changes.
+- **DO NOT** assume a runtime `contextId` survives across separate `sf`/CLI
+  invocations — it is request-scoped (rule 8). If a standalone
+  `query`/`persist`/`delete` fails not-found, the instance expired; use
+  `context_session.py` (one process) or enable the org's Instance-Reuse setting.
+  And **DO NOT** confuse `delete_context_instance.py` (evicts a runtime instance
+  / clears the runtime schema cache) with `delete_context.py` (deactivates /
+  hard-deletes a Context **Definition**) — different scripts, different targets.
 
 ## Entry Conditions
 
@@ -100,6 +137,13 @@ expression-set steps that consume it. This skill is consumable by any AI agent
 | Make one granular in-place edit to an existing definition (flip `isTransient`, re-point the default mapping, add/remove a tag) | `python scripts/context_service/mutate_context.py --target-org <sf_alias> --developer-name <name> --set-transient <Node.Attr> <bool> \| --set-default-mapping <name> \| --add-tag <Node.Attr> <tag__c> \| --remove-tag <tag>` — previews unless `--confirm`; modifies/deletes need `--deactivate-first --reactivate` (only `--add-tag` runs on an active version). EXPERIMENTAL |
 | Deploy tracked `contextDefinitions/` metadata | `deploy_context_definitions` |
 | Upgrade after a release (Sync) | `authoring-and-lifecycle.md` → upgrade/Sync (`upgradeMode` Sync/Preview/Override) |
+| Build the runtime **hydration payload** (the `data` object) for a definition | `python scripts/context_service/build_hydration_data.py --target-org <sf_alias> --developer-name <name> [--mapping-name NAME] [--node NAME] --out records.json` — read-only skeleton; fill in ids (values optional, id-only hydrates from the org). Add `--from-record <id> [--node NAME]` for a ready-to-run **id-only** payload (parent + children hydrate server-side). `businessObjectType` is the **mapped SObject** name, resolved from the chosen mapping (default mapping unless `--mapping-name`) |
+| Run the full **runtime** lifecycle (hydrate → query → persist) end-to-end | `python scripts/context_service/context_session.py --target-org <sf_alias> --developer-name <name> --data-file records.json --query [--persist --target-mapping-name <m>]` — one process, EXPERIMENTAL. See `runtime-and-persistence.md` |
+| Create / query / persist / delete a runtime instance **individually** (reuse-on org or debugging) | `create_context_instance.py` (`--id-only`) → `query_context_instance.py --context-id <id>` → `persist_context_instance.py --context-id <id> --target-mapping-id <11j…>` → `delete_context_instance.py --context-id <id>` |
+| Read hydrated attribute values by **tag** at runtime | `python scripts/context_service/query_context_instance.py --target-org <sf_alias> --context-id <id> --tags <TAG …> [--leaner]` |
+| Clear a definition's cached **runtime schema** (force re-read after a mapping change) | `python scripts/context_service/delete_context_instance.py --target-org <sf_alias> --clear-schema-cache --developer-name <name>` |
+| List context **definition interfaces** in an org | `python scripts/context_service/list_context_interfaces.py --target-org <sf_alias> [--interface <name>]` |
+| Understand the runtime lifecycle, `contextId` scoping/TTL, `data` payload shape, dry-run contract | `runtime-and-persistence.md` |
 | Understand the object model, enums, endpoints, plan format, limits | `data-model-and-api.md` |
 | Debug a Connect API error (JSON_PARSER, hydration wipe, blocked deactivate) | DO NOT list above + `authoring-and-lifecycle.md` → gotchas table |
 | Author a pricing procedure / expression set that reads a context | `.cursor/skills/expression-sets/SKILL.md`, `.cursor/skills/pricing-wiring/SKILL.md` |
@@ -118,7 +162,9 @@ generated list; all in group *Revenue Lifecycle Management*):
 | `deploy_context_definitions` | `cumulusci.tasks.salesforce.Deploy` | Deploy `force-app/main/default/contextDefinitions/` |
 
 Helper scripts (`scripts/context_service/` — the first block is offline/read-only, the
-second **mutates/destroys** and is EXPERIMENTAL; see the directory `README.md`):
+second **mutates/destroys** and is EXPERIMENTAL, and the third is the **runtime
+instance** lifecycle (EXPERIMENTAL / verify-live); see the directory `README.md`
+and `runtime-and-persistence.md`):
 
 | Script | Org? | Purpose |
 |--------|------|---------|
@@ -132,6 +178,20 @@ second **mutates/destroys** and is EXPERIMENTAL; see the directory `README.md`):
 | `apply_context_plan.py` | **Mutates** (EXPERIMENTAL) | sf-CLI mirror of `manage_context_definition` — apply an additive plan / create a definition without CCI. `--dry-run` previews. **Prefer the CCI task for build work**; never wire this into a flow |
 | `delete_context.py` | **Destructive** (EXPERIMENTAL) | Deactivate (default) or hard-delete a definition / custom artifacts. Hard delete is opt-in (`--confirm-delete`); three pre-flight guards (inheritance / active-state / dependents) refuse a bad delete. Orchestration in `_delete.py`. No production delete task exists |
 | `mutate_context.py` | **Mutates** (EXPERIMENTAL) | One granular in-place edit to an existing definition: `--set-transient` / `--set-default-mapping` / `--add-tag` / `--remove-tag`. Previews unless `--confirm`; op-specific inheritance + active-state guards (only `--add-tag`, a pure insert, runs on an active version). Orchestration in `_mutate.py`. Prefer a plan via `manage_context_definition` for build work |
+
+Runtime instance scripts (`scripts/context_service/` — EXPERIMENTAL / verify-live;
+a runtime `contextId` is request-scoped, so `context_session.py` is the reliable
+entry point. Shared logic in `_runtime.py` / `_resolve.py` / `_runtime_cli.py`):
+
+| Script | Org? | Purpose |
+|--------|------|---------|
+| `build_hydration_data.py` | Read-only | Build the nested `data` hydration payload (node-name keys + `businessObjectType` = **mapped SObject** name). Default: fillable **skeleton** (child arrays + typed placeholders); `--mapping-name` picks the mapping, `--node` restricts to a subtree. `--from-record <id> [--node NAME]`: ready-to-run **id-only** payload (parent + children hydrate server-side). Feed to create/session |
+| `context_session.py` | **Mutates** (EXPERIMENTAL) | **Primary runtime entry point** — one process: create (or `--context-id` reuse) → `--update-attr` → `--write-tag` → `--query` → `--persist` → auto-delete (unless `--keep`). Honors the dry-run contract |
+| `create_context_instance.py` | **Mutates** (EXPERIMENTAL) | `POST /connect/contexts` — hydrate an instance from a mapping + records; output modes `default` / `--json` / `--id-only` |
+| `query_context_instance.py` | Read-only | `query-record` (flattens the tree with `depth`, decodes stringified compound values) or `--tags … [--leaner]` → `query-tags[-leaner]` |
+| `persist_context_instance.py` | **Mutates** (EXPERIMENTAL) | `persist-records` — write attribute values back to a **target** mapping's SObjects; prints `referenceId`, emits the FK caveat |
+| `delete_context_instance.py` | **Mutates** (EXPERIMENTAL) | Evict one instance (`--context-id`) XOR `--clear-schema-cache --developer-name <name>` (runtime cache — NOT the definition; that is `delete_context.py`) |
+| `list_context_interfaces.py` | Read-only | List context definition interfaces (or `--interface NAME` for one) |
 
 ## Examples
 
@@ -155,6 +215,20 @@ cci task run extend_context_sales_transaction --org beta
 python scripts/context_service/list_contexts.py --target-org rlm-base__beta
 python scripts/context_service/describe_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext
+
+# Runtime round trip (EXPERIMENTAL): build the data payload, then hydrate → query → persist
+# id-only payload for a real record — ready to hydrate as-is (parent + children, server-side)
+python scripts/context_service/build_hydration_data.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext \
+  --from-record 0Q0O9000005sX7NKAU --node SalesTransaction --out /tmp/records.json
+# (or omit --from-record for a fillable skeleton, then fill in each record's id + attribute values)
+python scripts/context_service/context_session.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json \
+  --query --persist --target-mapping-name QuoteEntitiesMapping
+
+# Dry-run the same session (mutations logged, query still runs against a real id only)
+python scripts/context_service/context_session.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json --dry-run
 ```
 
 ## Validation Checks
@@ -181,6 +255,10 @@ python scripts/context_service/describe_context.py --target-org rlm-base__beta \
   endpoints, three mapping types, repo plan-file format, guardrail limits, MDAPI.
 - `authoring-and-lifecycle.md` — three definition types, extend-vs-clone,
   activation/deactivation, versioning, upgrade/Sync, standard contexts, gotchas.
+- `runtime-and-persistence.md` — the runtime instance lifecycle (hydrate → query →
+  persist → delete), `contextId` request-scoping / TTL / reuse setting, the `data`
+  payload shape + builder, stringified compound fields, persist FK caveat,
+  definition interfaces, the dry-run contract, and the runtime helper scripts.
 - `docs/references/context-service-utility.md` — `manage_context_definition`
   option reference.
 - `.cursor/skills/expression-sets/SKILL.md` — expression sets that consume a

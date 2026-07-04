@@ -129,3 +129,39 @@ SOBJECT_CONTEXT_NODE_MAPPING = "ContextNodeMapping"
 SOBJECT_CONTEXT_ATTRIBUTE = "ContextAttribute"
 SOBJECT_CONTEXT_ATTRIBUTE_MAPPING = "ContextAttributeMapping"
 SOBJECT_CONTEXT_ATTR_HYDRATION_DETAIL = "ContextAttrHydrationDetail"
+
+# ========================================================================== #
+# RUNTIME resources (context INSTANCE lifecycle)                             #
+# ========================================================================== #
+# These operate on a hydrated context **instance**, not a design-time
+# **definition** — a different half of the Context Service surface. Confirmed
+# against the public "Runtime Context Instance Management" and "Persistence
+# Context Management" REST references (262 / v67.0); the two PATCH bodies
+# (attributes, write-through-tags) are grounded in internal sources and marked
+# verify-live in _runtime.py / the runtime sub-file. The "since" version on each
+# line is the API version that added the resource.
+#
+# Runtime identity: a runtime ``contextId`` is a request-scoped **cache handle**
+# (an opaque UUID/hex string, NOT a 15/18-char SObject id and NOT prefix-typed).
+# The create doc is explicit that a context object "applies only to a single
+# request and cannot pass data across multiple requests" unless the org's
+# "Runtime Context Instance Reuse to Improve Response Times" setting is on and
+# the call is within contextTtl. Do not prefix-validate a contextId.
+#
+# NB: distinct from the design-time DEFINITION_QUERY_TAGS
+# (connect/context-definitions/query-tags) above — the runtime tag reads below
+# hang off connect/contexts/ and take a live contextId, not a definition id.
+CONTEXTS_COLLECTION = "connect/contexts"                       # POST create (59.0)
+CONTEXT_ITEM = "connect/contexts/{context_id}"                 # GET, DELETE (59.0)
+CONTEXT_QUERY_RECORD = "connect/contexts/query-record"         # POST (+ ?children=) (59.0)
+CONTEXT_ATTRIBUTES = "connect/contexts/attributes"             # PATCH (59.0)
+CONTEXT_QUERY_TAGS = "connect/contexts/query-tags"             # POST (59.0)
+CONTEXT_QUERY_TAGS_LEANER = "connect/contexts/query-tags-leaner"  # POST (66.0)
+CONTEXT_WRITE_THROUGH_TAGS = "connect/contexts/write-through-tags"  # PATCH (63.0)
+CONTEXT_PERSIST_RECORDS = "connect/contexts/persist-records"   # POST (59.0)
+# DELETE + ?contextDefinitionName=&contextMappingNames= — evicts the cached
+# runtime schema so the next hydration re-reads the definition (65.0).
+CONTEXT_RUNTIME_SCHEMA_CLEAR = "connect/context-runtime-schema/clear"  # DELETE (65.0)
+# Definition interfaces are not tied to a specific definition instance.
+CONTEXT_DEFINITION_INTERFACES = "connect/context-definition-interfaces"  # GET (62.0)
+CONTEXT_DEFINITION_INTERFACE_ITEM = "connect/context-definition-interfaces/{name}"  # GET (62.0)

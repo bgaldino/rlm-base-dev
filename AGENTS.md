@@ -334,6 +334,7 @@ Read the sub-file only when you need that specific detail:
 | `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
 | `.cursor/skills/context-service/data-model-and-api.md` | Context Service | Version-centric object model, canonical enums, Connect-vs-SObject-REST endpoint split, three mapping types, plan-file format, guardrail limits, MDAPI |
 | `.cursor/skills/context-service/authoring-and-lifecycle.md` | Context Service | Three definition types, extend-vs-clone, activation/deactivation, versioning, upgrade/Sync, standard-context inventory, gotchas table |
+| `.cursor/skills/context-service/runtime-and-persistence.md` | Context Service | Runtime context-instance lifecycle (hydrate → query → persist → delete), request-scoped `contextId`/TTL/reuse, `data` payload shape + builder, compound fields, persist FK caveat, definition interfaces, dry-run contract, runtime helper scripts |
 
 ### File-Specific Rules (Cursor Only)
 
@@ -375,7 +376,7 @@ python scripts/ai/check_plan_readme_consistency.py          # SFDMU plan README 
 
 `scripts/ai/skill_manifest.py` is the resolver for the cross-repo skill manifest at `.claude/skill-manifest.yml` — see `.cursor/skills/pmos-integration/SKILL.md` for the integration pattern.
 
-Scripts in `scripts/context_service/` inspect and validate Context Definitions (see `.cursor/skills/context-service/SKILL.md`):
+Scripts in `scripts/context_service/` inspect, validate, apply, and (at runtime) execute Context Service — design-time Context Definitions plus the runtime context-instance lifecycle (see `.cursor/skills/context-service/SKILL.md`):
 
 ```bash
 python scripts/context_service/validate_context_plan.py                              # Offline lint of context plan JSON (enums, limits, __c rule)
@@ -412,6 +413,27 @@ python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
 ```
 
 Active-version rule (live-verified, v67.0): the platform allows **inserting a new artifact** (POST node/attribute/tag) on an active version but blocks **modifying or deleting an existing one** (`RECORD_UPDATE_FAILED` "Cannot modify/delete an active context definition"). So `--add-tag` runs on an active version; `--set-transient`, `--set-default-mapping`, and `--remove-tag` need `--deactivate-first` (pair with `--reactivate`).
+
+**Runtime** context-*instance* scripts also live here (**EXPERIMENTAL / verify-live**, not wired into any CCI flow). They exercise the runtime lifecycle — hydrate → query → persist → delete — **primarily to debug, understand, and validate runtime behavior** (does a definition actually hydrate/persist/tag the way it claims?), not as a production runtime or build path. A runtime `contextId` is a **request-scoped** opaque handle (never prefix-validate it), so `context_session.py` (one process) is the reliable entry point; see `.cursor/skills/context-service/runtime-and-persistence.md`:
+
+Runtime reality (live-verified, v67.0 — scratch + production/demo, platform-wide): in the `data` payload, **`businessObjectType` must be the mapped SObject name** (e.g. `Quote`), not the context-node name — a node-name value hydrates **zero** records (silent empty result); the builder now emits the mapped name. REST `create` works but **`query-record`/`query-tags` are pilot-gated** (`API_DISABLED_FOR_ORG`, `ContextServicePilot`/`SessionScopeContext`), and a `contextId` doesn't survive across separate `sf api request` calls — so on a normal org, **validate hydration via Apex `Context.IndustriesContext` (`buildContext` + `leanerQueryTags` in one transaction)**, not the REST query scripts. Tag names are a distinct namespace from attribute names (attr `Quantity` → tag `LineItemQuantity`).
+
+```bash
+python scripts/context_service/build_hydration_data.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext --out records.json             # Build the `data` skeleton; businessObjectType = mapped SObject name (read-only). --from-record <id> [--node NAME] → ready-to-run id-only payload (parent + children hydrate server-side)
+python scripts/context_service/context_session.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext --data-file records.json \
+  --query --persist --target-mapping-name QuoteEntitiesMapping                # PRIMARY: create→query→persist→delete in one process (EXPERIMENTAL; --dry-run previews)
+python scripts/context_service/create_context_instance.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext --data-file records.json --id-only  # Hydrate one instance; print bare contextId (EXPERIMENTAL)
+python scripts/context_service/query_context_instance.py --target-org rlm-base__beta \
+  --context-id <uuid>                                                         # query-record (flatten + decode compound) / --tags … [--leaner] (read-only)
+python scripts/context_service/persist_context_instance.py --target-org rlm-base__beta \
+  --context-id <uuid> --target-mapping-id 11j...                              # persist-records → referenceId; FK caveat (EXPERIMENTAL)
+python scripts/context_service/delete_context_instance.py --target-org rlm-base__beta \
+  --context-id <uuid>                                                         # Evict one instance; --clear-schema-cache --developer-name <name> clears the runtime schema (EXPERIMENTAL)
+python scripts/context_service/list_context_interfaces.py --target-org rlm-base__beta  # List context definition interfaces (read-only)
+```
 
 ### Schema Validation Scripts
 
