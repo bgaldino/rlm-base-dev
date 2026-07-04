@@ -225,9 +225,11 @@ def test_write_tags_body_shape():
 
 
 def test_persist_body_shape():
+    # Flat shape, live-verified v67.0 — NOT wrapped in contextPersistInput (the
+    # doc's wrapper is rejected at the parser; the flat form parses).
     body = _runtime.build_persist_body("CID", "11j0002")
-    check("persist body envelope shape",
-          body == {"contextPersistInput": {"contextId": "CID", "targetMappingId": "11j0002"}})
+    check("persist body is flat contextId + targetMappingId",
+          body == {"contextId": "CID", "targetMappingId": "11j0002"})
 
 
 def test_query_record_body_omits_empty_optionals():

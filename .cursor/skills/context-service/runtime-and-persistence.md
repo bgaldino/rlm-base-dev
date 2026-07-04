@@ -235,8 +235,17 @@ the same input: `{contextId, tags[]}`.
 
 `persist-records` writes the instance's (possibly updated) attribute values back
 to the SObjects of a **target** context mapping and returns a `referenceId` (which
-maps to a `ContextPersistenceEvent`). Body:
-`{"contextPersistInput": {"contextId", "targetMappingId (11j…)"}}`.
+maps to a `ContextPersistenceEvent`). Body (**flat, live-verified v67.0** — the
+public doc's `contextPersistInput` wrapper is rejected at the parser;
+`persist_context_instance.py` emits the flat form):
+`{"contextId": "…", "targetMappingId": "11j…"}`.
+
+Unlike `query-record`/`query-tags`, **`persist-records` is NOT pilot-gated** — a
+live POST parses the body and reaches contextId validation (rather than
+`API_DISABLED_FOR_ORG`). It's still bounded by the request-scoped `contextId`
+(non-survival across `sf` calls), so the working path is Apex `persistContext`
+(build + persist in one transaction — returns the `referenceId`) or
+`context_session.py --persist` in one process.
 
 > **FK caveat.** Reference / lookup **foreign-key** changes are **not reliably
 > saved** by persist — scalar field updates are the supported path. `persist_context_instance.py`

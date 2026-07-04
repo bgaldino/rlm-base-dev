@@ -172,13 +172,17 @@ def build_query_tags_body(context_id: str, tags: List[str]) -> Dict[str, Any]:
 
 
 def build_persist_body(context_id: str, target_mapping_id: str) -> Dict[str, Any]:
-    """Body for ``POST /connect/contexts/persist-records``."""
-    return {
-        "contextPersistInput": {
-            "contextId": context_id,
-            "targetMappingId": target_mapping_id,
-        }
-    }
+    """Body for ``POST /connect/contexts/persist-records``.
+
+    **Flat shape, live-verified (v67.0).** The endpoint takes ``contextId`` and
+    ``targetMappingId`` at the top level — NOT wrapped in a ``contextPersistInput``
+    object. The public doc shows the wrapper, but a live POST of the wrapped form
+    is rejected at the parser (``JSON_PARSER_ERROR: Unrecognized field
+    "contextPersistInput"``) while the flat form parses and reaches contextId
+    validation. This matches the Apex ``persistContext`` example, which passes a
+    flat ``{contextId, targetMappingId}`` map.
+    """
+    return {"contextId": context_id, "targetMappingId": target_mapping_id}
 
 
 # --------------------------------------------------------------------------- #
