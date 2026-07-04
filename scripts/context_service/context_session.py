@@ -23,10 +23,19 @@ read step (query-record) still executes when it has a real ``contextId``. Under
 ``--dry-run`` create is not performed, so there is no ``contextId`` and the
 dependent steps are skipped with a log line (unless you pass ``--context-id``).
 
-NODEPATH arguments (``--update-attr`` / ``--write-tag``) are a dot-joined node
-path from the root node (use ``-`` or ``""`` for the root node itself).
+NODEPATH arguments (``--update-attr`` / ``--write-tag``) are a dot-joined path
+of **record IDs** from root to target (e.g. ``0Q0...quoteId`` for a root record,
+``0Q0...quoteId.0QL...lineId`` for a child). Use ``-`` or ``""`` for the root
+node when no specific record targeting is needed (silently returns success but
+does not mutate the value — node-name paths behave identically).
 
 Usage:
+    # SESSION scope on a pilot org: full multi-call lifecycle
+    python scripts/context_service/context_session.py --target-org rlm-base__july4_ctxPilot \
+        --developer-name RLM_SalesTransactionContext --context-scope SESSION \
+        --data-file /tmp/records.json --query --persist \
+        --target-mapping-name QuoteEntitiesMapping
+
     # hydrate from a file, query the result, persist to the same mapping
     python scripts/context_service/context_session.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json \
@@ -102,6 +111,12 @@ def main(argv=None) -> int:
     add_data_args(parser)
     parser.add_argument("--tagged-data", choices=["true", "false"],
                         help="Set metadata.taggedData on create (omitted when unset).")
+    parser.add_argument("--context-scope", choices=["REQUEST", "SESSION"],
+                        help="Set metadata.contextScope on create. SESSION persists "
+                             "the contextId to a distributed cache so it survives "
+                             "across separate CLI calls (subject to contextTtl). "
+                             "Requires the ContextServicePilot permission. Default "
+                             "(omitted) is REQUEST (thread-local, ~15 s).")
     parser.add_argument("--context-id",
                         help="Operate on an existing instance (skip create; also skips "
                              "the auto-delete at the end).")
@@ -109,7 +124,8 @@ def main(argv=None) -> int:
     parser.add_argument("--update-attr", nargs=3, action="append",
                         metavar=("NODEPATH", "NAME", "VALUE"),
                         help="Set an attribute (repeatable). NODEPATH is dot-joined "
-                             "('-' for root).")
+                             "record IDs ('-' for root). Only record-ID paths "
+                             "actually mutate values; node names silently no-op.")
     parser.add_argument("--write-tag", nargs=3, action="append",
                         metavar=("NODEPATH", "TAG", "VALUE"),
                         help="Write a tag value (repeatable). NODEPATH is dot-joined "
@@ -178,6 +194,7 @@ def main(argv=None) -> int:
             "mapping_id": mapping_id,
             "data": records,
             "tagged_data": tagged_data,
+            "context_scope": args.context_scope,
         }
 
     # Resolve the persist target mapping up front (so a bad name fails before create).

@@ -28,6 +28,21 @@ lifecycle** (see the roadblock table).
 | **Normal GA org** (no pilot) | **Apex `Context.IndustriesContext`** (scripted / debugging) **or one Flow** chaining the invocable actions (no-code). Whole lifecycle in **one request/transaction.** | just GA **`IndustriesContext`** |
 | SESSION-scope pilot (`SessionScopeContext` via `ContextServicePilot`) and/or "Runtime Context Instance Reuse" (`ContextReuse`) | The REST scripts / multi-call REST — `contextId` survives across calls | pilot / reuse setting |
 
+**Live-verified (2026-07-04, org `rlm-base__july4_ctxPilot`, 262 / v67.0) with
+`ContextServicePilot` enabled:**
+
+| REST step | Status | Notes |
+|-----------|--------|-------|
+| `POST /contexts` with `contextScope: "SESSION"` | ✅ works | contextId survives across separate CLI calls |
+| `POST /contexts/query-record` | ✅ works | Pilot gate lifted — returns full attribute tree |
+| `POST /contexts/query-tags-leaner` | ✅ works | Pilot gate lifted — returns tag values by name |
+| `PATCH /contexts/attributes` | ✅ accepted | Flat body `{contextId, nodePathAndAttributes}` — NOT the `updateContextAttributesInput` wrapper |
+| `PATCH /contexts/write-through-tags` | ✅ accepted | Flat body `{contextId, nodePathAndTagValues}` |
+| `POST /contexts/persist-records` | ✅ reaches tracker | Flat body `{contextId, targetMappingId}` — returns `referenceId` (16P) |
+| `DELETE /contexts/{id}` | ✅ works | Evicts the session-scoped instance |
+
+**CLI flag:** `--context-scope SESSION` on `context_session.py` / `create_context_instance.py`.
+
 **Why REST multi-call is not an option on a normal org** (both gates, not one):
 
 | REST step | Status without pilot | Reason |
@@ -64,9 +79,21 @@ System.debug(q.get('recordIds'));          // [] means nothing hydrated → chec
 System.debug(q.get('leanerQueryTagResult'));
 
 // (optional) UPDATE an attribute so persist sees it as dirty, then PERSIST:
+// ⚠ dataPath MUST contain RECORD IDs [parentId, childId], NOT node names.
+//   e.g. [quoteId] for root, [quoteId, qliId] for a child line.
+//   Live-verified: node-name or empty dataPath silently no-ops (isSuccess=true,
+//   value unchanged); record-ID path stages the edit for real.
+// ⚠ Key is "nodePathAndAttributes" (NATIVE List<Map>) — NOT the stringified
+//   "nodePathAndUpdatedValues" (which ALWAYS throws UnexpectedException in direct Apex).
+List<String> dp = new List<String>{'<recordId>'};      // root-level: just the record id
+// For child: new List<String>{'<parentRecordId>', '<childRecordId>'}
+Map<String,Object> np = new Map<String,Object>{'dataPath' => dp};
+List<Map<String,Object>> attrs = new List<Map<String,Object>>{
+    new Map<String,Object>{'attributeName' => 'Quantity', 'attributeValue' => '5'}};
+List<Map<String,Object>> npa = new List<Map<String,Object>>{
+    new Map<String,Object>{'nodePath' => np, 'attributes' => attrs}};
 ctx.updateContextAttributes(new Map<String,Object>{
-    'contextId' => cid,
-    'nodePathAndUpdatedValues' => '[{"nodePath":{"dataPath":["SalesTransaction","SalesTransactionItem"]},"attributes":[{"attributeName":"Quantity","attributeValue":"5"}]}]'});
+    'contextId' => cid, 'nodePathAndAttributes' => npa});
 Object refId = ctx.persistContext(new Map<String,Object>{
     'contextId' => cid, 'contextMappingId' => '<persistMappingId>'});   // returns referenceId (16P…)
 System.debug(refId);
@@ -249,7 +276,7 @@ Action names on the org (`GET /services/data/v67.0/actions/standard`, filtered):
 | Action | Required inputs | Optional | Outputs |
 |--------|-----------------|----------|---------|
 | `buildContext` | `contextDefinitionId` | `contextMappingId`, `contextData` (stringified JSON), `isTaggedData` | `contextId`, `contextDefinitionId`, `contextMappingId` |
-| `updateContextAttributes` | `contextId`, `nodePathAndUpdatedValues` (stringified JSON) | — | — |
+| `updateContextAttributes` | `contextId`, `nodePathAndUpdatedValues` (stringified JSON — **invocable only**; direct Apex uses key `nodePathAndAttributes` as native `List<Map>`) | — | — |
 | `persistContextData` | `contextId` | `contextMappingId`, `trackingId` | `referenceId` |
 | `queryContextTags` | `contextId`, `tagsList` (**real `String[]`**, not stringified) | — | `queryResult` (stringified JSON) |
 

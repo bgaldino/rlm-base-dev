@@ -197,15 +197,32 @@ def test_create_body_shape():
           isinstance(body["data"], str) and body["data"].startswith("{"))
 
 
+def test_create_body_context_scope_omitted_by_default():
+    body = _runtime.build_create_body("11O1", "11j1", {"Order": []})
+    check("contextScope not in metadata when unset",
+          "contextScope" not in body["metadata"])
+
+
+def test_create_body_context_scope_session():
+    body = _runtime.build_create_body("11O1", "11j1", {"Order": []}, context_scope="SESSION")
+    check("contextScope SESSION in metadata",
+          body["metadata"]["contextScope"] == "SESSION")
+
+
+def test_create_body_context_scope_case_normalized():
+    body = _runtime.build_create_body("11O1", "11j1", {"Order": []}, context_scope="session")
+    check("contextScope uppercased",
+          body["metadata"]["contextScope"] == "SESSION")
+
+
 def test_update_attributes_body_shape():
     body = _runtime.build_update_attributes_body(
         "CID", [{"dataPath": ["Order"], "attributes": [
             {"attributeName": "RampMode__c", "attributeValue": "RAMP"}]}]
     )
-    inp = body["updateContextAttributesInput"]
-    check("update-attrs body has the envelope + contextId",
-          inp["contextId"] == "CID")
-    entry = inp["nodePathAndAttributes"][0]
+    check("update-attrs body is flat (contextId at top level)",
+          body["contextId"] == "CID")
+    entry = body["nodePathAndAttributes"][0]
     check("update-attrs nodePath.dataPath preserved",
           entry["nodePath"]["dataPath"] == ["Order"])
     check("update-attrs attribute name/value shape",

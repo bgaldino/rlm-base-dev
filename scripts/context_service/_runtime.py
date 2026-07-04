@@ -48,12 +48,21 @@ def build_create_metadata(
     context_definition_id: str,
     mapping_id: str,
     tagged_data: Optional[bool] = None,
+    context_scope: Optional[str] = None,
 ) -> Dict[str, Any]:
     """The ``metadata`` block for ``POST /connect/contexts``.
 
     ``taggedData`` is included only when explicitly set (True/False) — it is on
     the Context MetaData Input rep per internal sources; omit it otherwise to
     avoid a ``JSON_PARSER_ERROR`` on an org that does not accept it (verify live).
+
+    ``contextScope`` controls cross-call survival of the minted ``contextId``:
+    - ``REQUEST`` (default when omitted) — thread/request-local, ~15 s TTL,
+      cannot be looked up by a later HTTP call.
+    - ``SESSION`` — persisted to a distributed cache, survives across calls
+      (subject to ``contextTtl``). **Pilot-gated**: requires the
+      ``SessionScopeContext`` user permission (via ``ContextServicePilot``).
+      Live-verified on 262 / v67.0.
     """
     metadata: Dict[str, Any] = {
         "contextDefinitionId": context_definition_id,
@@ -61,6 +70,8 @@ def build_create_metadata(
     }
     if tagged_data is not None:
         metadata["taggedData"] = bool(tagged_data)
+    if context_scope is not None:
+        metadata["contextScope"] = context_scope.upper()
     return metadata
 
 
@@ -79,10 +90,13 @@ def build_create_body(
     mapping_id: str,
     records: Any,
     tagged_data: Optional[bool] = None,
+    context_scope: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Full ``POST /connect/contexts`` body."""
     return {
-        "metadata": build_create_metadata(context_definition_id, mapping_id, tagged_data),
+        "metadata": build_create_metadata(
+            context_definition_id, mapping_id, tagged_data, context_scope
+        ),
         "data": stringify_data(records),
     }
 
@@ -90,8 +104,11 @@ def build_create_body(
 def build_node_path(data_path: Optional[List[str]]) -> Dict[str, Any]:
     """A ``nodePath`` wrapper: ``{"nodePath": {"dataPath": [...]}}``.
 
-    ``dataPath`` is the ordered node-name path from the root node to the target
-    node (empty list = the root node itself).
+    ``dataPath`` is an ordered list of **record IDs** from root to target
+    (e.g. ``["0Q0...quoteId"]`` for a root-level record, or
+    ``["0Q0...quoteId", "0QL...lineId"]`` for a child). Empty list or
+    node-name paths return ``isSuccess=true`` but **silently no-op** — the
+    value is never mutated. Live-verified on 262 / v67.0.
     """
     return {"nodePath": {"dataPath": list(data_path or [])}}
 
@@ -99,11 +116,15 @@ def build_node_path(data_path: Optional[List[str]]) -> Dict[str, Any]:
 def build_update_attributes_body(
     context_id: str, updates: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
-    """Body for ``PATCH /connect/contexts/attributes`` (verify-live).
+    """Body for ``PATCH /connect/contexts/attributes`` (live-verified, v67.0).
 
     ``updates`` is a list of ``{"dataPath": [...], "attributes": [{"attributeName",
-    "attributeValue"}, ...]}`` entries. Shaped into the documented-internal
-    ``updateContextAttributesInput`` envelope.
+    "attributeValue"}, ...]}`` entries.
+
+    **Flat shape** — ``contextId`` + ``nodePathAndAttributes`` at the top level,
+    NOT wrapped in ``updateContextAttributesInput``. The wrapped form is rejected
+    with ``JSON_PARSER_ERROR: Unrecognized field "updateContextAttributesInput"``.
+    Live-verified on a ContextServicePilot org (262 / v67.0).
     """
     node_path_and_attributes = []
     for entry in updates:
@@ -115,10 +136,8 @@ def build_update_attributes_body(
             ],
         })
     return {
-        "updateContextAttributesInput": {
-            "contextId": context_id,
-            "nodePathAndAttributes": node_path_and_attributes,
-        }
+        "contextId": context_id,
+        "nodePathAndAttributes": node_path_and_attributes,
     }
 
 
@@ -475,8 +494,10 @@ class RuntimeContextClient:
     # ---- mutations (honor dry_run) --------------------------------------- #
 
     def create_instance(self, *, context_definition_id, mapping_id, data,
-                        tagged_data=None) -> Any:
-        body = build_create_body(context_definition_id, mapping_id, data, tagged_data)
+                        tagged_data=None, context_scope=None) -> Any:
+        body = build_create_body(
+            context_definition_id, mapping_id, data, tagged_data, context_scope
+        )
         return self.t.request("POST", ep.CONTEXTS_COLLECTION, body)
 
     def get_instance(self, context_id: str) -> Any:

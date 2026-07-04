@@ -70,6 +70,12 @@ def main(argv=None) -> int:
     add_data_args(parser)
     parser.add_argument("--tagged-data", choices=["true", "false"],
                         help="Set the metadata.taggedData flag (omitted when unset; verify live).")
+    parser.add_argument("--context-scope", choices=["REQUEST", "SESSION"],
+                        help="Set metadata.contextScope on create. SESSION persists "
+                             "the contextId to a distributed cache so it survives "
+                             "across separate CLI calls (subject to contextTtl). "
+                             "Requires the ContextServicePilot permission. Default "
+                             "(omitted) is REQUEST (thread-local, ~15 s).")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
                         help=f"API version (default {DEFAULT_API_VERSION}).")
     parser.add_argument("--dry-run", action="store_true",
@@ -127,6 +133,7 @@ def main(argv=None) -> int:
             mapping_id=mapping_id,
             data=records,
             tagged_data=tagged_data,
+            context_scope=getattr(args, "context_scope", None),
         )
     except ContextClientError as exc:
         eprint(f"Error: {exc}")

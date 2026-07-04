@@ -309,6 +309,89 @@ Every error below was observed live against the mutation endpoints. `<field>` /
 
 ---
 
+## Runtime instance mutation shapes (live-verified 2026-07-04, ContextServicePilot org)
+
+These are the **runtime** (context-instance) mutation bodies, distinct from the
+design-time definition-management PATCHes above. All are flat (no wrapper object).
+
+### `PATCH /connect/contexts/attributes` — update attribute values
+
+```json
+{
+  "contextId": "<opaque-hex-contextId>",
+  "nodePathAndAttributes": [
+    {
+      "nodePath": {"dataPath": ["<recordId>"]},
+      "attributes": [
+        {"attributeName": "SalesTransactionName", "attributeValue": "New Value"},
+        {"attributeName": "Status", "attributeValue": "InReview"}
+      ]
+    }
+  ]
+}
+```
+
+- `dataPath` contains **record IDs** from root to target, NOT node names.
+  `["<quoteId>"]` = root record; `["<quoteId>", "<qliId>"]` = child.
+  An empty `[]` or node-name-based dataPath silently no-ops (returns
+  `isSuccess:true` but no value changes). Live-verified: both REST and Apex
+  confirm **only record IDs mutate values** (262 / v67.0, pilot + non-pilot).
+- Uses **attribute names** (not tag names).
+- **NOT** wrapped in `updateContextAttributesInput` — the wrapper is rejected:
+  `JSON_PARSER_ERROR: Unrecognized field "updateContextAttributesInput"`.
+- **REST and Apex use the SAME key and shape**: `nodePathAndAttributes`
+  (parsed JSON for REST; native `List<Map<String,Object>>` for Apex). The
+  stringified `nodePathAndUpdatedValues` key ALWAYS throws
+  `UnexpectedException` in direct Apex — it is only for the Flow invocable
+  adapter (which deserializes it internally and uses tag names, not attribute
+  names).
+
+### `PATCH /connect/contexts/write-through-tags` — write values by tag
+
+```json
+{
+  "contextId": "<opaque-hex-contextId>",
+  "nodePathAndTagValues": [
+    {
+      "nodePath": {"dataPath": []},
+      "tagValues": [
+        {"tagName": "SalesTransactionName", "tagValue": "Written via Tag"}
+      ]
+    }
+  ]
+}
+```
+
+- Uses **tag names** (distinct namespace from attribute names).
+
+### `POST /connect/contexts/persist-records` — persist to mapped SObjects
+
+```json
+{"contextId": "<opaque-hex-contextId>", "targetMappingId": "11j…"}
+```
+
+- Flat — **NOT** wrapped in `contextPersistInput`.
+- Returns `{"referenceId": "16P…"}` (async; confirm via `AsyncOperationTracker`).
+
+### `POST /connect/contexts` — create (hydrate)
+
+```json
+{
+  "metadata": {
+    "contextDefinitionId": "11O…",
+    "mappingId": "11j…",
+    "contextScope": "SESSION"
+  },
+  "data": "<stringified JSON payload>"
+}
+```
+
+- `contextScope` is optional (omit → `REQUEST` default, thread-local ~15 s).
+- `SESSION` requires `ContextServicePilot` permission; persists to distributed cache.
+- `data` is a **JSON string** (not a nested object).
+
+---
+
 ## Related references
 
 - [`context-service-utility.md`](./context-service-utility.md) — plan-file
