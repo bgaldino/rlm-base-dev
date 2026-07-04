@@ -127,18 +127,32 @@ The typical order when standing up context configuration on an org:
 - **`IsActive` is version-level.** One version active at a time; a version needs
   a **default mapping** to activate. Each extended definition exposes exactly one
   active `ContextDefinitionVersion`.
-- **In-place by default — but only for *inserts*.** `manage_context_definition`
-  and `apply_context_*` run with `deactivate_before: false` (`rlm_context_service.py`).
-  **Adding a new artifact** (POST a node, attribute, or tag) applies **without** a
-  deactivate cycle on an active version. But **modifying or deleting an *existing*
-  artifact is blocked while the version is active** (`RECORD_UPDATE_FAILED`
-  "Cannot modify/delete an active context definition") — this covers an
-  `IsTransient` PATCH, an `isDefault` mapping PATCH, and any DELETE. The platform
-  rule is literal in that error text: **insert-new = OK on active;
-  modify/delete-existing = deactivate first.** So an *additive* plan (the normal
-  case) needs no deactivate; a plan that flips `isTransient` or re-points the
-  default mapping does. Pass `deactivate_before: true` for those, or use
-  `mutate_context.py --deactivate-first` for a one-off.
+- **In-place by default — but the "insert vs modify/delete" split is per-endpoint,
+  not universal.** `manage_context_definition` and `apply_context_*` run with
+  `deactivate_before: false` (`rlm_context_service.py`); the broad rule holds —
+  `RECORD_UPDATE_FAILED` "Cannot modify/delete an active context definition" fires
+  on many modify/delete paths — but the actual per-URL behavior on an active
+  version is more nuanced (live-probed v67.0):
+
+  | Op | Endpoint | On active |
+  |---|---|---|
+  | Insert new node/attr/tag/mapping-shell | Connect POST children of definition | **Allowed** |
+  | `IsTransient` PATCH | SObject REST PATCH `ContextAttribute` | **Blocked** — `RECORD_UPDATE_FAILED` |
+  | `isDefault` / mapping metadata PATCH | Connect PATCH `context-definitions/{id}/context-mappings` | **Blocked** — `RECORD_UPDATE_FAILED` |
+  | Node-mappings PATCH (with partial children) | Connect PATCH `context-mappings/{id}/context-node-mappings` | **⚠ Silently destructive** — returns `isSuccess:true` + empty body, wipes sibling `ContextAttributeMapping` rows not re-emitted |
+  | `MappedContextDefinition` PATCH | SObject REST PATCH `ContextNodeMapping` | **Allowed** (any direction) |
+  | Traversal-hydration POST (`ContextAttributeMapping` + `ContextAttrHydrationDetail`) | SObject REST POST | **Allowed** |
+  | Add tag POST | Connect POST `context-tags` | **Allowed** |
+  | Leaf DELETE | SObject REST DELETE `ContextAttributeMapping/{id}` | **Allowed** |
+
+  Practical rule: an *additive* plan (nodes/attrs/tags/mapping shells/traversal
+  hydration/`MappedContextDefinition`) applies **in place on active** — this is
+  what the build path relies on. A plan that flips `IsTransient` or re-points the
+  default mapping needs deactivate-first (`deactivate_before: true` on the task,
+  or `mutate_context.py --deactivate-first`). And a plan that PATCHes node-mappings
+  with less than the full existing child set is worse than blocked — it silently
+  destroys the omitted rows; either send the full children or use the granular
+  `context-attribute-mappings` endpoint.
 - **Deactivation is blocked while an active consumer references the definition**
   — ExpressionSet, ContextRules, PricingActionParameters, or a decision table.
   The deactivate PATCH fails with **`RECORD_UPDATE_FAILED`**; a definition with
@@ -177,29 +191,31 @@ then deactivate the definition. Reactivate the definition before re-linking.
 
 ## Versioning
 
-**The model supports multiple retained versions — one active at a time.**
-`ContextDefinitionVersion` is a **1-to-many child** of `ContextDefinition`
-(`contextDefinitionVersions` is typed `ContextDefinitionVersion[]` in the MDAPI;
-the SObject exposes a `ContextDefinitionVersions` child relationship). The
-current-vs-retained distinction is carried by **`IsActive`** (plus effective
-dating via **`StartDate` / `EndDate`**) — there is **no `IsLatest` and no
-`Status` field**, so do not assert one. *(Confirmed from the MDAPI type and the
-`ContextDefinitionVersion` SObject field list, v67.0.)*
+**The platform enforces exactly one `ContextDefinitionVersion` per
+`ContextDefinition` — a 1:1 singleton, not 1:N.**  Attempting to insert a
+second version via SObject REST returns `MAX_LIMIT_EXCEEDED: "Version already
+exists for this Context Definition"`. *(Live-verified v67.0, 2026-07-04.)*
 
-**What this repo's apply path does:** an additive Connect PATCH (`apply_context_*`
-/ `manage_context_definition`) **bumps `VersionNumber` in place on the single
-active version** — it does *not* mint a new version record (the mutated row's
-`CreatedDate` precedes its `LastModifiedDate`; each extended `RLM_*` definition
-carries exactly one `ContextDefinitionVersion` row). Standard `__stdctx`
+The MDAPI type *appears* 1-to-many (`ContextDefinitionVersions` child
+relationship, `ContextDefinitionVersion[]` in the type definition), and
+`IsActive` + `StartDate`/`EndDate` fields suggest multi-version history was
+designed — but the platform **runtime constraint blocks it**. There is **no
+`IsLatest` and no `Status` field**, so do not assert one.
+
+**What mutations do:** an additive Connect PATCH (`apply_context_*` /
+`manage_context_definition`) and a deactivate/reactivate cycle both **bump
+`VersionNumber` in place on the single version record** — they do *not* mint a
+new version row. The record's `CreatedDate` precedes its `LastModifiedDate`;
+the ID is stable across deactivate/reactivate/edit. Standard `__stdctx`
 definitions expose **no queryable `ContextDefinitionVersion` rows** — only the
 extended `RLM_*` layer does.
 
-**Do not claim prior versions are deleted.** Observing one row reflects the
-additive-PATCH path minting no new rows — **not** a platform guarantee that
-history is discarded. The schema allows many rows; whether **Sync/upgrade** or an
-MDAPI deploy of a new `versionNumber` creates additional (retained, inactive)
-version records is **unverified** — treat multi-version history as *possible per
-the schema* and re-verify live before relying on either rollback or its absence.
+**Implication for code:** `contextDefinitionVersionList[0]` and an
+`isActive`-preferring lookup always resolve to the same (only) version. Both
+patterns are safe; the defensive `active_version()` helper exists for
+forward-compatibility if the platform ever relaxes the singleton constraint,
+but today they are equivalent.
+
 There is **no "save as new version" verb** in the Connect API (public REST
 reference lists only create/clone/extend, PATCH-by-id, and Upgrade); the only
 version-crossing operation is Upgrade/Sync (below).
@@ -305,7 +321,8 @@ binding using exactly this table — `->` hydrate, `<-` persist, `<->` both.
 | Relationship traversal rejected on PATCH | Connect does not accept traversals | Use **SObject REST** (`childSObject`/`childSObjectField`) |
 | Deactivate fails | An active consumer (ExpressionSet/ContextRules/PricingActionParameters/DecisionTable) references it | Unlink/deactivate consumers first |
 | Pricing procedure breaks | Its context definition was deactivated | Reactivate; don't deactivate a consumed definition |
-| **`RECORD_UPDATE_FAILED` "Cannot modify/delete an active context definition"** on a delete **or an in-place edit** | **The version is active.** The platform blocks **modifying or deleting an *existing* artifact** while active — a DELETE (whole-definition down to a single custom `__c` tag), an `IsTransient` PATCH, or an `isDefault` mapping PATCH (all live-verified v67.0). **Inserting a new** node/attribute/tag is **allowed** on active — the asymmetry is *insert-new* vs *modify/delete-existing*, not *add* vs *delete* | **Deactivate first, then edit/delete.** `delete_context.py --deactivate-first` (delete) or `mutate_context.py --deactivate-first --reactivate` (edit) does this in one run; `manage_context_definition -o deactivate_before true` for a plan that edits existing artifacts |
+| **`RECORD_UPDATE_FAILED` "Cannot modify/delete an active context definition"** on a delete **or an in-place edit** | **The version is active** AND the endpoint enforces the block. Live-probed v67.0: **BLOCKED on active** — Connect PATCH `context-definitions/{id}/context-mappings` (any body, including `isDefault`/`description`), SObject REST PATCH `ContextAttribute` (`IsTransient`), Connect DELETE of any existing artifact. **NOT blocked on active** — Connect POST children (nodes/attrs/tags/mapping shells), SObject REST PATCH `ContextNodeMapping` (`MappedContextDefinition`), SObject REST POST `ContextAttributeMapping`+`ContextAttrHydrationDetail` (traversal), SObject REST DELETE `ContextAttributeMapping/{id}` | **Deactivate first, then edit/delete.** `delete_context.py --deactivate-first` (delete) or `mutate_context.py --deactivate-first --reactivate` (edit) does this in one run; `manage_context_definition -o deactivate_before true` for a plan that edits existing artifacts. See the matrix in *Activation & deactivation* above for the full per-endpoint picture |
+| **Node-mappings PATCH silently wipes sibling `ContextAttributeMapping` rows on an active version** — returns `isSuccess:true` + empty body, no error, but rows not re-emitted in the payload disappear | Connect PATCH `context-mappings/{id}/context-node-mappings` has **whole-body-replace semantics** — an omitted child is interpreted as a delete. Deactivating first does *not* stop this (it's not blocked; it's destructive). Live-verified v67.0 | Re-emit the full existing `contextAttributeMappings` list in the PATCH body, or write via the granular `context-attribute-mappings` (`ATTR_MAPPING_COLLECTION`) endpoint one row at a time |
 | `TransactionType` mapping change ignored | Inherited from the standard base; the task skips it | Leave it; it comes from the base |
 | Orphan definition after a failed create | Payload-create has **no full rollback** on partial failure | Inspect with `describe_context.py`; delete/clean up the orphan before retrying |
 | Context tag rejected / collides | A tag equals a decision table's label/API name | Rename the tag |

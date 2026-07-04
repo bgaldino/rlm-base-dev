@@ -290,23 +290,27 @@ class ContextApplier:
     def _apply_traversal_hydration(
         self, rules: List[Dict[str, Any]], detail: Dict[str, Any]
     ) -> None:
-        """Port of ``_apply_traversal_hydration`` (SObject REST + SOQL idempotency)."""
-        version0 = detail.get("contextDefinitionVersionList", []) if isinstance(detail, dict) else []
-        mappings = version0[0].get("contextMappings", []) if version0 else []
-        node_mapping_id_index: Dict[tuple, str] = {}
-        for mapping in mappings or []:
-            if not isinstance(mapping, dict):
-                continue
-            m_name = mapping.get("name") or mapping.get("title")
-            for node_map in mapping.get("contextNodeMappings", []) or []:
-                if not isinstance(node_map, dict):
-                    continue
-                n_name = node_map.get("contextNodeName")
-                n_map_id = node_map.get("contextNodeMappingId")
-                if m_name and n_name and n_map_id:
-                    node_mapping_id_index[(m_name, n_name)] = n_map_id
+        """Create ContextAttributeMapping + chained ContextAttrHydrationDetail rows
+        for relationship-traversal mapping rules, via SObject REST.
+
+        Idempotency uses two SOQL probes. Unlike the CCI-task original, both are:
+          * **node-scoped** — the ContextAttributeMapping probe matches on
+            ``ContextInputAttributeName`` *and* ``ContextNodeMappingId``, so a
+            same-named attribute on another node/definition can't be mistaken for
+            this one and bind hydration to the wrong mapping;
+          * **batched** — one ``IN (...)`` query up front instead of one probe per
+            rule (the per-rule reads dominated idempotent re-runs);
+          * **escaped** — plan-authored ``attr_name`` values go through
+            ``_client.soql_literal`` so a stray quote yields a valid literal, not
+            malformed SOQL.
+        """
+        node_mapping_id_index = _index_node_mapping_ids(detail)
         _, attr_index = _payload.collect_context_indexes(detail, {})
 
+        # Resolve each usable rule to its keys once. A rule whose node mapping
+        # can't be resolved is misconfigured for this definition (we could
+        # neither scope a match nor create the row), so skip it with a log.
+        prepared: List[Dict[str, Any]] = []
         for rule in rules:
             attr_name = rule.get("contextAttribute")
             mapping_name = rule.get("mappingName")
@@ -318,60 +322,99 @@ class ContextApplier:
             if not all([attr_name, mapping_name, node_name, s_object, s_object_field,
                         child_s_object, child_s_object_field]):
                 continue
+            node_mapping_id = node_mapping_id_index.get((mapping_name, node_name))
+            if not node_mapping_id:
+                self.log(f"Cannot resolve node mapping for {attr_name} "
+                         f"(mapping={mapping_name}, node={node_name}); skipping.")
+                continue
+            prepared.append({
+                "attr_name": attr_name, "node_mapping_id": node_mapping_id,
+                "attr_id": attr_index.get((node_name, attr_name)),
+                "s_object": s_object, "s_object_field": s_object_field,
+                "child_s_object": child_s_object,
+                "child_s_object_field": child_s_object_field,
+            })
+        if not prepared:
+            return
 
-            existing = self.t.soql(
-                f"SELECT Id,CreatedDate FROM ContextAttributeMapping "
-                f"WHERE ContextInputAttributeName='{attr_name}' ORDER BY CreatedDate DESC"
-            )
-            if existing:
-                keeper_id = existing[0]["Id"]
-            else:
-                node_mapping_id = node_mapping_id_index.get((mapping_name, node_name))
-                attr_id = attr_index.get((node_name, attr_name))
-                if not node_mapping_id or not attr_id:
-                    self.log(f"Cannot create ContextAttributeMapping for {attr_name}: "
-                             f"node_mapping_id={node_mapping_id} attr_id={attr_id}")
+        # One batched probe for existing ContextAttributeMapping rows, keyed by
+        # (attr_name, node_mapping_id). ORDER BY CreatedDate DESC + setdefault
+        # keeps the most-recent row per key (matching the original's existing[0]).
+        attr_names = sorted({p["attr_name"] for p in prepared})
+        nm_ids = sorted({p["node_mapping_id"] for p in prepared})
+        cam_by_key: Dict[tuple, str] = {}
+        for row in self.t.soql(
+            f"SELECT Id,CreatedDate,ContextInputAttributeName,ContextNodeMappingId "
+            f"FROM ContextAttributeMapping "
+            f"WHERE ContextInputAttributeName IN ({_soql_in(attr_names)}) "
+            f"AND ContextNodeMappingId IN ({_soql_in(nm_ids)}) "
+            f"ORDER BY CreatedDate DESC"
+        ):
+            key = (row.get("ContextInputAttributeName"), row.get("ContextNodeMappingId"))
+            if row.get("Id"):
+                cam_by_key.setdefault(key, row["Id"])
+
+        # Resolve a keeper ContextAttributeMapping id for each rule, creating the
+        # row when absent (creation is per-record; it can't be batched here).
+        for p in prepared:
+            keeper_id = cam_by_key.get((p["attr_name"], p["node_mapping_id"]))
+            if not keeper_id:
+                if not p["attr_id"]:
+                    self.log(f"Cannot create ContextAttributeMapping for {p['attr_name']}: "
+                             f"attr_id unresolved")
+                    p["keeper_id"] = None
                     continue
                 cam_resp = self.t.sobject(
                     "POST", ep.SOBJECT_CONTEXT_ATTRIBUTE_MAPPING, None,
                     {
-                        "ContextNodeMappingId": node_mapping_id,
-                        "ContextAttributeId": attr_id,
-                        "ContextInputAttributeName": attr_name,
+                        "ContextNodeMappingId": p["node_mapping_id"],
+                        "ContextAttributeId": p["attr_id"],
+                        "ContextInputAttributeName": p["attr_name"],
                     },
                 )
-                if self.dry_run:
-                    continue
-                keeper_id = _record_id(cam_resp)
-                if not keeper_id:
-                    self.log(f"Failed to create ContextAttributeMapping for {attr_name}")
-                    continue
+                keeper_id = None if self.dry_run else _record_id(cam_resp)
+                if not keeper_id and not self.dry_run:
+                    self.log(f"Failed to create ContextAttributeMapping for {p['attr_name']}")
+            p["keeper_id"] = keeper_id
 
-            hd_existing = self.t.soql(
-                f"SELECT Id FROM ContextAttrHydrationDetail "
-                f"WHERE ContextAttributeMappingId='{keeper_id}'"
+        keeper_ids = sorted({p["keeper_id"] for p in prepared if p.get("keeper_id")})
+        if not keeper_ids:
+            return
+
+        # One batched probe for existing hydration details across all keepers.
+        keepers_with_hydration = {
+            row.get("ContextAttributeMappingId")
+            for row in self.t.soql(
+                f"SELECT Id,ContextAttributeMappingId FROM ContextAttrHydrationDetail "
+                f"WHERE ContextAttributeMappingId IN ({_soql_in(keeper_ids)})"
             )
-            if hd_existing:
-                self.log(f"Traversal hydration already exists for {attr_name}; skipping")
-                continue
+        }
 
-            self.log(f"Creating traversal hydration for {attr_name}: "
-                     f"{s_object}.{s_object_field} -> {child_s_object}.{child_s_object_field}")
+        for p in prepared:
+            keeper_id = p.get("keeper_id")
+            if not keeper_id:
+                continue
+            if keeper_id in keepers_with_hydration:
+                self.log(f"Traversal hydration already exists for {p['attr_name']}; skipping")
+                continue
+            self.log(f"Creating traversal hydration for {p['attr_name']}: "
+                     f"{p['s_object']}.{p['s_object_field']} -> "
+                     f"{p['child_s_object']}.{p['child_s_object_field']}")
             parent_resp = self.t.sobject(
                 "POST", ep.SOBJECT_CONTEXT_ATTR_HYDRATION_DETAIL, None,
-                {"ContextAttributeMappingId": keeper_id, "ObjectName": s_object,
-                 "QueryAttribute": s_object_field},
+                {"ContextAttributeMappingId": keeper_id, "ObjectName": p["s_object"],
+                 "QueryAttribute": p["s_object_field"]},
             )
             if self.dry_run:
                 continue
             parent_id = _record_id(parent_resp)
             if not parent_id:
-                self.log(f"Failed to get parent hydration detail id for {attr_name}")
+                self.log(f"Failed to get parent hydration detail id for {p['attr_name']}")
                 continue
             self.t.sobject(
                 "POST", ep.SOBJECT_CONTEXT_ATTR_HYDRATION_DETAIL, None,
-                {"ContextAttributeMappingId": keeper_id, "ObjectName": child_s_object,
-                 "QueryAttribute": child_s_object_field, "ParentHydrationDetailId": parent_id},
+                {"ContextAttributeMappingId": keeper_id, "ObjectName": p["child_s_object"],
+                 "QueryAttribute": p["child_s_object_field"], "ParentHydrationDetailId": parent_id},
             )
 
     def _set_active(self, context_id: str, is_active: bool) -> None:
@@ -689,7 +732,13 @@ class ContextApplier:
 # --------------------------------------------------------------------------- #
 
 def _iter_context_mappings(detail: Dict[str, Any]):
-    """Yield each contextMapping dict on the (first/active) version."""
+    """Yield each contextMapping dict on the (single) version.
+
+    ContextDefinitionVersion is a 1:1 singleton with its definition (live-verified
+    v67.0: a second version is rejected MAX_LIMIT_EXCEEDED; deactivate/reactivate
+    bumps VersionNumber in place), so ``versions[0]`` and the active version are
+    always the same record.
+    """
     if not isinstance(detail, dict):
         return
     versions = detail.get("contextDefinitionVersionList", [])
@@ -697,6 +746,26 @@ def _iter_context_mappings(detail: Dict[str, Any]):
     for mapping in mappings or []:
         if isinstance(mapping, dict):
             yield mapping
+
+
+def _index_node_mapping_ids(detail: Dict[str, Any]) -> Dict[tuple, str]:
+    """(mapping_name, node_name) -> contextNodeMappingId across all mappings."""
+    index: Dict[tuple, str] = {}
+    for mapping in _iter_context_mappings(detail):
+        m_name = mapping.get("name") or mapping.get("title")
+        for node_map in mapping.get("contextNodeMappings", []) or []:
+            if not isinstance(node_map, dict):
+                continue
+            n_name = node_map.get("contextNodeName")
+            n_map_id = node_map.get("contextNodeMappingId")
+            if m_name and n_name and n_map_id:
+                index[(m_name, n_name)] = n_map_id
+    return index
+
+
+def _soql_in(values) -> str:
+    """Render an escaped, quoted comma list for a SOQL ``IN (...)`` clause."""
+    return ", ".join(f"'{_client.soql_literal(v)}'" for v in values)
 
 
 def _index_node_ids(detail: Dict[str, Any]) -> Dict[str, str]:

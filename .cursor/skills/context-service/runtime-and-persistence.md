@@ -214,6 +214,33 @@ default skeleton mode only when you want to hand-author attribute *overrides*.
 (Boolean) is included **only** when you pass `--tagged-data` — it is on the
 Context MetaData Input rep per internal sources; omit it otherwise (verify live).
 
+> **⚠ Hydration is a sparse subset — you never get "all the tags."** A hydrated
+> instance returns far fewer values than the definition defines, via a
+> three-stage funnel (live-measured on `RLM_SalesTransactionContext` +
+> `QuoteEntitiesMapping`, a 4-line quote):
+> 1. **Definition ceiling** — e.g. 754 attributes / 761 tags; `isTransient` attrs
+>    never hydrate.
+> 2. **Mapping ceiling** — only attributeMappings with a `queryAttribute` read a
+>    field (≈300 of 399 for QuoteEntitiesMapping; the rest are
+>    computed/reference/derived). Field binding lives at
+>    `attributeMappings[].contextAttrHydrationDetailList[].queryAttribute`
+>    (+ `sObjectDomain`), **not** a `mappedField` key.
+> 3. **Instance reality** — a tag only carries a value if the record it lives on
+>    exists for *this* instance. A quote with no tax/recipient/rate-card/adjustment
+>    children hydrates records for only ~2 of the mapping's 19 nodes; the other 17
+>    nodes get **zero records**.
+>
+> **Querying a tag whose node hydrated 0 records THROWS** an uncatchable
+> `System.UnexpectedException` (`ContextCoreRuntimeServiceAPIException`) — so a
+> bulk "query every tag" call fails. Query tags only for nodes you know hydrated
+> (check `recordIds` / `recordsInfo[].recordId` first, then query that node's
+> tags). `leanerQueryTags` returns `{leanerQueryTagResult:{<tagName>:
+> [{isNodeLevelTag, recordIdIndexesForPath:[…], tagValue}]}, recordIds[],
+> recordsInfo[], isSuccess}` — the value field is **`tagValue`** (singular), and
+> `recordIdIndexesForPath` (`[0]`=root, `[0,n]`=nth child) positions it in the
+> tree. This sparse-hydrate / broad-writeback asymmetry is exactly why a dirty
+> persist fails (see Persistence below).
+
 ## Query results: flattening + compound fields
 
 `query-record` returns a **Query Context Record Result**: `contextId`, `isDone`,
@@ -246,6 +273,45 @@ live POST parses the body and reaches contextId validation (rather than
 (non-survival across `sf` calls), so the working path is Apex `persistContext`
 (build + persist in one transaction — returns the `referenceId`) or
 `context_session.py --persist` in one process.
+
+> **⚠ Persist is ASYNCHRONOUS — a `referenceId` is NOT proof the writeback landed
+> (live-verified 2026-07-04, v67.0).** `persistContext` returns
+> `{referenceId:"16P…"}` immediately having done **zero synchronous DML**. The real
+> success/failure lands later on the **`ContextPersistenceEvent`** platform event
+> (`/event/ContextPersistenceEvent`, key prefix `16P` — the referenceId IS the event
+> handle; `RequestIdentifier` == the referenceId). That event carries a single
+> **`HasErrors`** boolean (`false` = success, `true` = failure) and **no error text**
+> — there is no AsyncApexJob, no error SObject, and no readable debug log for the async
+> write. It is NOT queryable (`describeSObjects` only); to read the outcome, subscribe
+> with an `after insert` Apex trigger / Flow / CometD on `/event/ContextPersistenceEvent`
+> and sink `HasErrors` + `RequestIdentifier` somewhere queryable. **So: never treat a
+> returned `referenceId` as confirmation — verify via `ContextPersistenceEvent.HasErrors`
+> AND by re-querying the target SObject.**
+
+> **⚠ Writeback of a *modified* record is gated/unverified on non-pilot orgs
+> (live-verified 2026-07-04).** On a scratch org (System Admin, Quote in Draft, no
+> validation rules, target field plain-DML-updatable), a no-op persist (hydrate →
+> persist unchanged) fired `HasErrors=false`, but **every persist of a dirty record
+> fired `HasErrors=true` and the SObject did not change.** The two Apex edit paths are
+> exactly complementary and neither writes back on this org:
+> - `updateContextAttributes` (attr name `Quantity`, full dataPath `[quoteId,qliId]`
+>   from the root) DOES apply the value in memory (`leanerQueryTags` → new value,
+>   `recordsInfo.dmlStatusOrdinal:1` = dirty) → persist attempts the DML → `HasErrors=true`.
+>   (`queryRecordStatus` pre-persist shows `processingStatus:NONE, contextErrors:[]` —
+>   clean; the failure is only exposed on the event.)
+> - `addRecordsToContext` (`overWriteExistingRecords:true`) does **not** stage a value
+>   edit — the value is ignored in memory (`dmlStatusOrdinal:0`, not dirty) → persist is
+>   a no-op (`HasErrors=false`, nothing written).
+>
+> The persist *pipeline* is healthy (no-op succeeds); the failure is specifically the
+> DML of a dirty record — likely persist writing the full mapped fieldset (the standard
+> QuoteEntitiesMapping item node maps 90+ fields, **37 non-updateable**: TotalPrice /
+> Subtotal / NetTotalPrice / LastModified* / calculated currency) and/or a persist-write
+> entitlement not enabled outside the Context Service pilot. **Treat writeback as
+> unverified on a normal org**: hydration + in-memory update are proven; the writeback
+> returns a `referenceId` but its success is not guaranteed and must be checked via the
+> platform event. (Providing a child record inline in the create `data` payload throws an
+> uncatchable `System.UnexpectedException` — unsupported, same class as eager hydration.)
 
 > **FK caveat.** Reference / lookup **foreign-key** changes are **not reliably
 > saved** by persist — scalar field updates are the supported path. `persist_context_instance.py`

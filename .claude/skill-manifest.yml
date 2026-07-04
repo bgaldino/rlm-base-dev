@@ -137,6 +137,7 @@ foundations:
       sub_skills:
         - .cursor/skills/context-service/data-model-and-api.md
         - .cursor/skills/context-service/authoring-and-lifecycle.md
+        - .cursor/skills/context-service/runtime-and-persistence.md
       tooling:
         # read-only inspection / validation
         - scripts/context_service/validate_context_plan.py

@@ -73,6 +73,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _client import ContextClientError  # noqa: E402
 from _model import model_to_plan  # noqa: E402
 from diff_context import (  # noqa: E402
+    _definition_index,
     _fetch_model,
     _load_plan_models,
     diff_models,
@@ -260,8 +261,10 @@ def main(argv=None) -> int:
                 print("Error: plan declared no definitions (no developerName).",
                       file=sys.stderr)
                 return 1
+            target_index = _definition_index(args.target_org, args.api_version)
             for name, plan_model in plan_models.items():
-                org_model = _fetch_model(name, args.target_org, args.api_version)
+                org_model = _fetch_model(name, args.target_org, args.api_version,
+                                         index=target_index)
                 if args.apply_to == "org":
                     # plan is truth -> patch updates the org. Source is a plan.
                     entries[name] = (plan_model, org_model or {}, False, False)
@@ -271,11 +274,15 @@ def main(argv=None) -> int:
                         org_model or {}, plan_model, not args.include_inherited, True
                     )
         else:
+            source_index = _definition_index(args.source_org, args.api_version)
+            target_index = _definition_index(args.target_org, args.api_version)
             names = ([args.developer_name] if args.developer_name
-                     else _both_org_names(args))
+                     else sorted(set(source_index) | set(target_index)))
             for name in names:
-                source = _fetch_model(name, args.source_org, args.api_version)
-                target = _fetch_model(name, args.target_org, args.api_version)
+                source = _fetch_model(name, args.source_org, args.api_version,
+                                      index=source_index)
+                target = _fetch_model(name, args.target_org, args.api_version,
+                                      index=target_index)
                 # source org is truth -> patch makes the target match it. Source
                 # is a full org (candidate deletions are meaningful).
                 entries[name] = (source or {}, target or {}, False, True)
@@ -316,13 +323,6 @@ def main(argv=None) -> int:
     )
     print("\n".join(lines), file=sys.stderr)
     return 0
-
-
-def _both_org_names(args) -> list:
-    from diff_context import _list_developer_names
-    source = set(_list_developer_names(args.source_org, args.api_version))
-    target = set(_list_developer_names(args.target_org, args.api_version))
-    return sorted(source | target)
 
 
 def _write_patches(patches: dict, out_path: Path):

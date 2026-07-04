@@ -53,32 +53,43 @@ from _model import normalize_definition, normalize_plan  # noqa: E402
 
 # ---- fetch helpers ---------------------------------------------------------
 
-def _list_developer_names(target_org: str, api_version: str) -> list:
-    response = connect_get(
-        "connect/context-definitions?includeInactive=true", target_org, api_version
-    )
-    names = []
-    for item in normalize_definition_list(response):
-        name = definition_developer_name(item)
-        if name:
-            names.append(name)
-    return sorted(set(names))
+def _definition_index(target_org: str, api_version: str) -> dict:
+    """GET the definition collection once → ``{developerName: contextDefinitionId}``.
 
-
-def _fetch_model(developer_name: str, target_org: str, api_version: str):
-    """GET one definition by developerName and return its normalized model.
-
-    Returns None when the definition does not exist in the org (so the diff can
-    report it as removed/added rather than crashing).
+    Callers that resolve more than one definition against the same org should
+    fetch this once and reuse it, rather than re-listing the whole collection per
+    definition (the per-call list GET is the dominant cost of an all-definitions
+    diff).
     """
     response = connect_get(
         "connect/context-definitions?includeInactive=true", target_org, api_version
     )
-    ctx_id = None
+    index = {}
     for item in normalize_definition_list(response):
-        if definition_developer_name(item) == developer_name:
-            ctx_id = item.get("contextDefinitionId")
-            break
+        name = definition_developer_name(item)
+        ctx_id = item.get("contextDefinitionId")
+        if name and ctx_id:
+            index[name] = ctx_id
+    return index
+
+
+def _list_developer_names(target_org: str, api_version: str) -> list:
+    return sorted(_definition_index(target_org, api_version))
+
+
+def _fetch_model(developer_name: str, target_org: str, api_version: str, index: dict = None):
+    """GET one definition by developerName and return its normalized model.
+
+    Pass ``index`` (from :func:`_definition_index`) to skip the collection GET
+    when resolving several definitions against the same org; omit it for a
+    one-shot lookup and the collection is fetched inline.
+
+    Returns None when the definition does not exist in the org (so the diff can
+    report it as removed/added rather than crashing).
+    """
+    if index is None:
+        index = _definition_index(target_org, api_version)
+    ctx_id = index.get(developer_name)
     if not ctx_id:
         return None
     defn = connect_get(
@@ -368,8 +379,10 @@ def main(argv=None) -> int:
                       file=sys.stderr)
                 return 1
             diffs = {}
+            target_index = _definition_index(args.target_org, args.api_version)
             for name, plan_model in plan_models.items():
-                org_model = _fetch_model(name, args.target_org, args.api_version)
+                org_model = _fetch_model(name, args.target_org, args.api_version,
+                                         index=target_index)
                 diffs[name] = diff_models(plan_model, org_model)
             left_label, right_label = "plan", f"org:{args.target_org}"
             plan_mode = True
@@ -384,16 +397,16 @@ def main(argv=None) -> int:
             right_label = f"org:{args.target_org}:{args.target_dev_name}"
             plan_mode = False
         else:
+            src_index = _definition_index(args.source_org, args.api_version)
+            tgt_index = _definition_index(args.target_org, args.api_version)
             if args.developer_name:
                 names = [args.developer_name]
             else:
-                names_src = set(_list_developer_names(args.source_org, args.api_version))
-                names_tgt = set(_list_developer_names(args.target_org, args.api_version))
-                names = sorted(names_src | names_tgt)
+                names = sorted(set(src_index) | set(tgt_index))
             diffs = {}
             for name in names:
-                left = _fetch_model(name, args.source_org, args.api_version)
-                right = _fetch_model(name, args.target_org, args.api_version)
+                left = _fetch_model(name, args.source_org, args.api_version, index=src_index)
+                right = _fetch_model(name, args.target_org, args.api_version, index=tgt_index)
                 diffs[name] = diff_models(left, right)
             left_label = f"org:{args.source_org}"
             right_label = f"org:{args.target_org}"

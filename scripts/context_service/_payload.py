@@ -235,6 +235,16 @@ def build_create_payload(plan: Dict[str, Any]) -> Dict[str, Any]:
     """
     raw_name = plan.get("label") or plan.get("name") or plan.get("developerName") or ""
     api_name = "".join(c for c in raw_name if c.isalnum())
+    if not api_name:
+        # Punctuation-only label collapses to '' — fall back to developerName
+        # so the create POST doesn't fail with an opaque required-field error.
+        api_name = "".join(c for c in (plan.get("developerName") or "") if c.isalnum())
+    if not api_name:
+        raise ValueError(
+            "Cannot derive an alphanumeric 'name' for the create payload from "
+            "label / name / developerName — all are empty after stripping "
+            "non-alphanumeric characters."
+        )
     payload: Dict[str, Any] = {
         "name": api_name,
         "developerName": plan.get("developerName"),
@@ -405,11 +415,15 @@ def resolve_tags_by_name(
                 if attr_id and node_name and attr_name:
                     attr_index[(node_name, attr_name)] = attr_id
                     tags = attr.get("attributeTags") or attr.get("tags") or []
+                    if isinstance(tags, dict):
+                        tags = tags.get("attributeTags") or []
                     if isinstance(tags, list):
                         attr_tag_index[(node_name, attr_name)] = {
                             t.get("name") for t in tags if isinstance(t, dict) and t.get("name")
                         }
             tags = node.get("tags") or []
+            if isinstance(tags, dict):
+                tags = tags.get("tags") or []
             if isinstance(tags, list) and node_name:
                 node_tag_index[node_name] = {
                     t.get("name") for t in tags if isinstance(t, dict) and t.get("name")

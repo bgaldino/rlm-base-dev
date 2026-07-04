@@ -26,7 +26,7 @@ nodes/attributes.
 
 ```
 ContextDefinition                     (developerName, label; NO IsActive here)
-└─ ContextDefinitionVersion           (IsActive lives HERE; one active at a time)
+└─ ContextDefinitionVersion           (IsActive lives HERE; 1:1 singleton per definition)
    │
    ├─ LAYER 1 — abstract schema (no SObject)
    │  └─ ContextNode                  (hierarchy via childNodes / parentNodeName)
@@ -274,6 +274,18 @@ The mutating tasks (`rlm_context_service.py`) apply SObject mappings **before**
 CONTEXT-to-CONTEXT mappings so referenced IDs exist. On a Connect PATCH,
 `isDeleteExistingHydrationDetail` defaults **true** — a re-run **wipes existing
 hydration** unless you preserve it.
+
+> **Whole-body-replace hazard on Connect PATCH `context-mappings/{id}/context-node-mappings`.**
+> Live-verified v67.0. This endpoint returns `isSuccess:true` on an active
+> version (no `RECORD_UPDATE_FAILED`) but interprets an omitted
+> `contextAttributeMappings` child as a **delete**, silently wiping sibling
+> attribute-mapping rows that the caller didn't re-emit. Deactivating first does
+> **not** change this — the fix is either re-emit the full existing child list
+> in the payload, or write via the granular **`ATTR_MAPPING_COLLECTION`**
+> endpoint (POST/PATCH one row at a time) which does not have whole-body-replace
+> semantics. See `authoring-and-lifecycle.md` → *Activation & deactivation* for
+> the full per-endpoint matrix (which surfaces block on active, which allow,
+> and which are silently destructive).
 
 ## The three mapping types
 

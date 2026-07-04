@@ -311,10 +311,7 @@ class ContextMutator:
                 f"No attribute '{node_attr}' found on this definition."
             )
         self.guard_inherited("add-tag", target, node_attr)  # no-op (rule allows inherited)
-        existing = {
-            t.get("name")
-            for t in _tags_on_attribute(detail, target["contextAttributeId"])
-        }
+        existing = _tag_names_on_attribute(detail, target["contextAttributeId"])
         return {
             "op": "add-tag",
             "target": f"{target['node_name']}.{target['name']}",
@@ -361,15 +358,26 @@ class ContextMutator:
 # Module helpers
 # --------------------------------------------------------------------------- #
 
-def _tags_on_attribute(detail: Dict[str, Any], attr_id: str) -> List[Dict[str, Any]]:
-    """Every tag whose contextAttributeId matches, across the active version."""
-    out: List[Dict[str, Any]] = []
+def _tag_names_on_attribute(detail: Dict[str, Any], attr_id: str) -> set:
+    """Names of every tag hanging off the attribute whose id matches.
+
+    Nested ``attributeTags`` on a Connect GET only carry ``{name, dynamic}`` —
+    ``contextAttributeId`` lives on the enclosing attribute, so a
+    ``contextAttributeId``-based filter finds nothing and duplicates the tag on
+    re-run. Since the caller has already located the attribute, collect ``name``
+    from that attribute's tag list directly.
+    """
     version = _client.active_version(detail)
     for node, _depth in _client.iter_nodes(version.get("contextNodes", [])):
         for attr in _client.node_attributes(node):
             if not isinstance(attr, dict):
                 continue
-            for tag in attr.get("attributeTags") or attr.get("tags") or []:
-                if isinstance(tag, dict) and tag.get("contextAttributeId") == attr_id:
-                    out.append(tag)
-    return out
+            if attr.get("contextAttributeId") != attr_id:
+                continue
+            tags = attr.get("attributeTags") or attr.get("tags") or []
+            if isinstance(tags, dict):
+                tags = tags.get("attributeTags") or []
+            if not isinstance(tags, list):
+                continue
+            return {t.get("name") for t in tags if isinstance(t, dict) and t.get("name")}
+    return set()

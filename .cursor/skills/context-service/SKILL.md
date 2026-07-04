@@ -38,7 +38,13 @@ expression-set steps that consume it. This skill is consumable by any AI agent
    at a time. `manage_context_definition` and `apply_context_*` update **in place
    by default** (`deactivate_before: false`, verified at
    `rlm_context_service.py:160-162`) — additive attribute/tag/mapping changes do
-   not require a deactivate cycle.
+   not require a deactivate cycle. **Per-endpoint behavior on an active version
+   is NOT uniform**: some mutations block with `RECORD_UPDATE_FAILED`, some
+   succeed silently, and one (Connect PATCH `context-node-mappings`) is
+   **silently destructive** (whole-body-replace wipes sibling
+   `ContextAttributeMapping` rows not re-emitted). Before authoring any mutation
+   path, read the full per-endpoint allow/block matrix in
+   `authoring-and-lifecycle.md` → *Activation & deactivation*.
 4. **Deactivation is blocked while an active consumer references the
    definition** (ExpressionSet, ContextRules, PricingActionParameters, decision
    table). Deactivating a definition a pricing procedure uses **breaks that

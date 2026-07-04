@@ -214,6 +214,19 @@ def sobjects_request(
     )
 
 
+def soql_literal(value: Any) -> str:
+    """Escape a value for safe interpolation inside a single-quoted SOQL literal.
+
+    SOQL string literals escape ``\\`` and ``'`` with a backslash (per the SOQL
+    reference). Callers still supply the surrounding quotes:
+    ``f"WHERE Name='{soql_literal(name)}'"``. This guards plan-authored values
+    (e.g. a ``contextAttribute`` name) from producing a malformed query — Context
+    Service attribute API names are normally alphanumeric, but plan JSON is
+    free-text and reaches these queries unvalidated.
+    """
+    return str(value).replace("\\", "\\\\").replace("'", "\\'")
+
+
 def soql_query(
     soql: str, *, target_org: str, api_version: str = DEFAULT_API_VERSION
 ) -> List[Dict[str, Any]]:
@@ -258,9 +271,12 @@ def definition_developer_name(definition: Dict[str, Any]) -> Optional[str]:
 def active_version(definition: Dict[str, Any]) -> Dict[str, Any]:
     """Return the *active* version block of a context-definition GET response.
 
-    The response order is not guaranteed to place the active version first, so
-    prefer the version whose ``isActive`` flag is set; fall back to the first
-    version only when none is flagged active.
+    The platform enforces exactly one ContextDefinitionVersion per definition
+    (MAX_LIMIT_EXCEEDED on second insert, live-verified v67.0), so
+    ``contextDefinitionVersionList`` is always a 0-or-1-element list and
+    ``versions[0]`` is equivalent to an isActive-preferring search. This helper
+    exists for forward-compatibility; prefer the version whose ``isActive``
+    flag is set, fall back to the first (only) entry when none is flagged.
     """
     if not isinstance(definition, dict):
         return {}
