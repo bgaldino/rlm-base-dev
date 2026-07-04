@@ -275,6 +275,7 @@ that topic.
 | Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |
 | Wire pricing recipes/procedures/plans | `.cursor/skills/pricing-wiring/SKILL.md` |
 | Author/CRUD Expression Sets (pricing procedures, etc.) via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
+| Read/extend/apply/deploy/upgrade Context Definitions (Context Service); inspect/validate context plans | `.cursor/skills/context-service/SKILL.md` |
 | Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | `.cursor/skills/pde-org-build/SKILL.md` |
 | Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
@@ -331,6 +332,8 @@ Read the sub-file only when you need that specific detail:
 | `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
 | `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
 | `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
+| `.cursor/skills/context-service/data-model-and-api.md` | Context Service | Version-centric object model, canonical enums, Connect-vs-SObject-REST endpoint split, three mapping types, plan-file format, guardrail limits, MDAPI |
+| `.cursor/skills/context-service/authoring-and-lifecycle.md` | Context Service | Three definition types, extend-vs-clone, activation/deactivation, versioning, upgrade/Sync, standard-context inventory, gotchas table |
 
 ### File-Specific Rules (Cursor Only)
 
@@ -350,6 +353,7 @@ same guidance, or use the parent skill which covers the same content:
 | `.cursor/rules/ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
 | `.cursor/rules/robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
 | `.cursor/rules/doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
+| `.cursor/rules/context-plans.mdc` | `datasets/context_plans/**/*.json` | `context-service/SKILL.md` |
 
 ### AI Utility Scripts
 
@@ -370,6 +374,44 @@ python scripts/ai/check_plan_readme_consistency.py          # SFDMU plan README 
 `scripts/ai/pr_review.py` executes the mechanical half of **Responding to Automated PR Reviews** (above); the `/pr-review <pr>` Claude command drives the full protocol with it.
 
 `scripts/ai/skill_manifest.py` is the resolver for the cross-repo skill manifest at `.claude/skill-manifest.yml` — see `.cursor/skills/pmos-integration/SKILL.md` for the integration pattern.
+
+Scripts in `scripts/context_service/` inspect and validate Context Definitions (see `.cursor/skills/context-service/SKILL.md`):
+
+```bash
+python scripts/context_service/validate_context_plan.py                              # Offline lint of context plan JSON (enums, limits, __c rule)
+python scripts/context_service/list_contexts.py --target-org rlm-base__beta          # List context definitions in an org (read-only)
+python scripts/context_service/describe_context.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext                               # Pretty-print one definition (read-only)
+python scripts/context_service/trace_context.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext --field RLM_RampMode__c       # Trace field↔tag↔attribute both ways (hydration/persistence); --tag/--attribute/--unmapped (read-only)
+python scripts/context_service/diff_context.py --target-org rlm-base__beta \
+  --plan-file datasets/context_plans/RampMode/manifest.json                  # Drift: plan-vs-org or org-vs-org (read-only)
+python scripts/context_service/patch_context.py --plan-file <manifest> \
+  --target-org rlm-base__beta --out patch.json                               # Extract drift into an applicable plan-JSON patch (read-only)
+python scripts/context_service/export_context.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext --custom-only                 # Serialize a live definition to repo plan JSON (read-only)
+```
+
+Three **EXPERIMENTAL** mutation scripts also live here (not build-critical, not wired into any CCI flow — the production path is `cci task run manage_context_definition`). Auth is still delegated to the `sf` CLI (no access token handled):
+
+```bash
+python scripts/context_service/apply_context_plan.py --plan-file <manifest> \
+  --target-org rlm-base__beta --dry-run                                      # Apply/create a context plan (EXPERIMENTAL; --dry-run previews)
+python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+  --developer-name RLM_QuoteDocGenContext                                     # Deactivate (default) — reversible soft-disable
+python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext --custom-teardown \
+  --deactivate-first --confirm-delete                                        # HARD DELETE custom (__c) artifacts (EXPERIMENTAL, destructive; deletes blocked while active)
+python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext \
+  --add-tag SalesTransactionItem.RampMode__c RampModeAlias__c --confirm      # One granular in-place edit (EXPERIMENTAL; previews unless --confirm)
+python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext \
+  --set-transient SalesTransactionItem.RampMode__c true \
+  --deactivate-first --reactivate --confirm                                  # Modify/delete an existing artifact → needs --deactivate-first (only --add-tag runs on an active version)
+```
+
+Active-version rule (live-verified, v67.0): the platform allows **inserting a new artifact** (POST node/attribute/tag) on an active version but blocks **modifying or deleting an existing one** (`RECORD_UPDATE_FAILED` "Cannot modify/delete an active context definition"). So `--add-tag` runs on an active version; `--set-transient`, `--set-default-mapping`, and `--remove-tag` need `--deactivate-first` (pair with `--reactivate`).
 
 ### Schema Validation Scripts
 

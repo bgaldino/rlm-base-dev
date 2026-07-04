@@ -129,6 +129,31 @@ foundations:
       caveats:
         - "Pinned to Release 262 / API v67.0 — re-verify enums and behavior on the target release"
 
+    - id: context-service
+      path: .cursor/skills/context-service/SKILL.md
+      purpose: "Context Definition read/extend/apply/deploy/upgrade lifecycle: version-centric model, Connect-vs-SObject-REST mapping split, three mapping types, plan-file format, guardrail limits, activation/Sync gotchas"
+      consumed_by_pmos: []
+      provenance: hand-authored from rlm_context_service.py + rlm_extend_stdctx.py + context plans + context-service-utility.md + Core UDD/OAS/Help
+      sub_skills:
+        - .cursor/skills/context-service/data-model-and-api.md
+        - .cursor/skills/context-service/authoring-and-lifecycle.md
+      tooling:
+        # read-only inspection / validation
+        - scripts/context_service/validate_context_plan.py
+        - scripts/context_service/list_contexts.py
+        - scripts/context_service/describe_context.py
+        - scripts/context_service/diff_context.py
+        - scripts/context_service/patch_context.py
+        - scripts/context_service/export_context.py
+        - scripts/context_service/trace_context.py
+        # EXPERIMENTAL mutators — not build-critical, not wired into any CCI flow
+        # (production path is `cci task run manage_context_definition`); sf-CLI transport only
+        - scripts/context_service/apply_context_plan.py
+        - scripts/context_service/delete_context.py
+        - scripts/context_service/mutate_context.py
+      caveats:
+        - "Pinned to Release 262 / API v67.0 — verify edge behavior (versioning, standard-context availability) against a live org"
+
     - id: sfdmu-data-plans
       path: .cursor/skills/sfdmu-data-plans/SKILL.md
       purpose: "SFDMU v5 plan authoring + composite-key patterns"
