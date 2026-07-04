@@ -46,7 +46,7 @@ from typing import Any, Dict, List, Optional
 try:  # allow both "python scripts/context_service/x.py" and package-style import
     from _client import active_version, iter_nodes, node_attributes
 except ImportError:  # pragma: no cover - fallback for alternate import paths
-    from scripts.context._client import (  # type: ignore
+    from scripts.context_service._client import (  # type: ignore
         active_version,
         iter_nodes,
         node_attributes,
