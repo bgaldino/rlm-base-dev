@@ -7,12 +7,82 @@ the **runtime** context *instance*: hydrating one from live records, querying /
 inspecting the hydrated attribute values, updating them, reading / writing tags,
 and persisting them back to the mapped SObjects.
 
-> **Pinned to Release 262 / API v67.0.** Endpoint paths and the
-> create / query-record / persist / query-tags-leaner request shapes are confirmed
-> against the public **Runtime Context Instance Management** and **Persistence
-> Context Management** REST references. The two PATCH bodies
-> (`/contexts/attributes`, `/contexts/write-through-tags`) are grounded in internal
-> sources and are **verify-live** — re-confirm on a live org before relying on them.
+> **Pinned to Release 262 / API v67.0.** Endpoint paths and the create /
+> query-record / persist / query-tags-leaner request shapes are confirmed against
+> the public **Runtime Context Instance Management** and **Persistence Context
+> Management** REST references, cross-checked against near-core Java source and
+> CS engineering. The runtime REST endpoints are all implemented and resolve, but
+> the create `contextId` is **REQUEST-scoped by default** and does not survive
+> across separate `sf api request` calls, and `query-record`/`query-tags` are
+> **pilot-gated**. On a normal org, drive the whole lifecycle from one Apex
+> transaction or one Flow. Re-verify edge behavior on the target release at merge.
+
+## Start here — which runtime path works on your org
+
+Pick the path by what the org has enabled. **On a normal GA org, use Apex or a
+single Flow — the stateless multi-call REST scripts will not complete the
+lifecycle** (see the roadblock table).
+
+| Org capability | Working runtime path | Perm needed |
+|----------------|----------------------|-------------|
+| **Normal GA org** (no pilot) | **Apex `Context.IndustriesContext`** (scripted / debugging) **or one Flow** chaining the invocable actions (no-code). Whole lifecycle in **one request/transaction.** | just GA **`IndustriesContext`** |
+| SESSION-scope pilot (`SessionScopeContext` via `ContextServicePilot`) and/or "Runtime Context Instance Reuse" (`ContextReuse`) | The REST scripts / multi-call REST — `contextId` survives across calls | pilot / reuse setting |
+
+**Why REST multi-call is not an option on a normal org** (both gates, not one):
+
+| REST step | Status without pilot | Reason |
+|-----------|----------------------|--------|
+| `POST /contexts` (create) | ✅ works | GA |
+| `query-record` / `query-tags` | ❌ `API_DISABLED_FOR_ORG` | pilot-gated (`ContextServicePilot`) |
+| `persist-records` (and the PATCHes) | ❌ `RECORD_NOT_FOUND` | GA endpoint, but the REQUEST-scoped `contextId` from the create call is already gone by the next `sf api request` — surviving it needs **SESSION scope** (pilot) |
+
+So without SESSION scope **and** `ContextServicePilot`, **Apex (or a single Flow)
+is the only working path** — and it needs no pilot permission, only GA
+`IndustriesContext`. Both keep create → query → (update) → persist in one request,
+where the `contextId` never expires and the query methods aren't behind the REST
+pilot gate.
+
+**Copy-paste Apex — the full lifecycle in one transaction** (`sf apex run --file`).
+Replace the `<…>` placeholders (`describe_context.py` gives you the ids and the
+mapped SObject / tag names):
+
+```apex
+Context.IndustriesContext ctx = new Context.IndustriesContext();
+Map<String,String> md = new Map<String,String>{
+    'contextDefinitionId' => '<contextDefinitionId>',   // 11O…
+    'mappingId'           => '<hydrationMappingId>'};    // 11j… a HYDRATION-intent mapping
+// id-only payload — the engine hydrates parent + children from the org, server-side.
+// NOTE businessObjectType = the MAPPED SObject name ("Quote"), NOT the node name.
+Map<String,Object> bi = new Map<String,Object>{'metadata' => md,
+    'data' => '{"SalesTransaction":[{"id":"<recordId>","businessObjectType":"Quote"}]}'};
+String cid = (String) ctx.buildContext(bi).get('contextId');            // 0 SOQL — lazy
+
+// READ by tag (tag names, not attribute/field names):
+Map<String,Object> q = ctx.leanerQueryTags(new Map<String,Object>{
+    'contextId' => cid, 'tags' => new List<String>{'SalesTransactionName','LineItemQuantity'}});
+System.debug(q.get('recordIds'));          // [] means nothing hydrated → check businessObjectType
+System.debug(q.get('leanerQueryTagResult'));
+
+// (optional) UPDATE an attribute so persist sees it as dirty, then PERSIST:
+ctx.updateContextAttributes(new Map<String,Object>{
+    'contextId' => cid,
+    'nodePathAndUpdatedValues' => '[{"nodePath":{"dataPath":["SalesTransaction","SalesTransactionItem"]},"attributes":[{"attributeName":"Quantity","attributeValue":"5"}]}]'});
+Object refId = ctx.persistContext(new Map<String,Object>{
+    'contextId' => cid, 'contextMappingId' => '<persistMappingId>'});   // returns referenceId (16P…)
+System.debug(refId);
+// persist is ASYNC — confirm via AsyncOperationTracker (see Persistence below), not refId.
+```
+
+The **Flow equivalent** is `buildContext → updateContextAttributes →
+persistContextData` (+ `queryContextTags`) as invocable actions in one Flow — same
+one-request guarantee, zero Apex, only the GA perm. Build it as a reusable subflow.
+
+> **One caveat that no path escapes:** a **dirty** persist through the default
+> `QuoteEntitiesMapping` fails on non-updateable fields (see *Persistence* → the
+> `errorNodes` mechanism) — this is a field-updateability limit of the mapping, not
+> a permission gate, so it affects Apex, Flow, and REST identically. A **no-op**
+> persist (hydrate → persist unchanged) succeeds. Hydration and in-memory
+> query/update are fully working on the Apex/Flow path.
 
 ## What these scripts are for (and are not)
 
@@ -62,61 +132,156 @@ validate it like `11O…`/`11j…`). The create reference is explicit that a con
 object *"applies only to a single request and cannot pass data across multiple
 requests."*
 
+This is governed by **`metadata.contextScope`** on the create body (near-core
+enum `DataPersistenceScope { REQUEST, SESSION }`):
+
+- **`REQUEST` (default)** — the instance is **thread/request-local** (the near-core
+  builder puts it in a thread-local store, guardrail TTL capped at ~15 s). It
+  **cannot** be looked up by a later, separate stateless HTTP call →
+  `RECORD_NOT_FOUND` "doesn't exist or expired." This is by design.
+- **`SESSION`** — the instance is written to a **distributed cache**, so the
+  `contextId` **survives across separate calls** (subject to `contextTtl`). But
+  SESSION is **pilot-gated**: sending `contextScope:"SESSION"` on a non-pilot org
+  returns `API_DISABLED_FOR_ORG` *"you don't have permission to call Session
+  Scope."* Enabled by the **`SessionScopeContext`** user permission (shipped via
+  `ContextServicePilot`, PM-approval — not GA). Per CS engineering, only REQUEST
+  scope is openly available; SESSION scope is limited to specific pilot teams,
+  and REQUEST is the recommended scope for customer use cases.
+
 Consequences:
 
-- A `contextId` minted by one `sf`/CLI invocation is **not guaranteed** to be
-  usable by a later, separate invocation. Cross-invocation reuse works **only**
-  when the org setting **"Runtime Context Instance Reuse to Improve Response
-  Times"** is on *and* the call is within `contextTtl` (definition-level;
-  ~10 min default, 45 max).
-- Therefore the **primary entry point is `context_session.py`**, which does
-  create → use → persist → delete back-to-back in one process, so the handle
-  never has to survive across calls.
+- On a normal (non-pilot / REQUEST-scope) org a `contextId` from one `sf`/CLI
+  invocation is **not** usable by a later, separate invocation. Cross-call REST use
+  needs **SESSION scope** (pilot) and/or the RLM setting **"Runtime Context
+  Instance Reuse to Improve Response Times"** (internal id **`ContextReuse`**, under
+  Revenue Lifecycle Management Setup), within `contextTtl`.
+- Therefore the **primary entry point is `context_session.py`** for the
+  reuse/pilot case; but on a normal org even it can't keep a REQUEST contextId
+  alive across its own steps (each shells out to a separate `sf api request`) — use
+  the **Apex bridge or a Flow** to keep the whole lifecycle in one request.
 - The standalone `create/query/persist/delete` scripts accept `--context-id` for
   the reuse-enabled or step-by-step-debugging case, and each print a one-line
   stderr warning to that effect. If one of them fails *not-found*, the instance
-  expired between calls — use `context_session.py` or enable the org setting.
+  expired between calls — use SESSION scope, the Apex bridge, or a single Flow.
 
-> `contextTtl` is a **definition** property. Do **not** try to send a per-instance
-> TTL on the runtime create body — TTL is not a documented create field and an
-> unexpected key risks a `JSON_PARSER_ERROR` (the same failure mode as
-> `primaryDomainObject` on a definition create).
+> **`contextTtl` is a ContextDefinition property, in minutes** (near-core
+> `contextTtlInMinutes`; default **10 min**, org max raised to **45 min** at R254+
+> via `ContextMaxTtlInMinutes`/`NccsMaxTtlInMinutes`). It only matters for SESSION
+> scope; REQUEST contexts are hard-capped at ~15 s. **Do not send a TTL on the
+> runtime create body** — TTL is definition/org-driven, not a create field; the
+> create-body scope control is **`contextScope`**, not a TTL. An unexpected key
+> risks a `JSON_PARSER_ERROR` (the same failure mode as `primaryDomainObject` on a
+> definition create).
 
-## Live-verified reality: REST create works, REST query is gated, Apex is the inspection path
+## The REST endpoints resolve — the wall is REQUEST scope, not broken routes
 
-Live testing (v67.0, against both a scratch org **and** a production/demo org — so
-these are **platform behaviors, not instance quirks**) established the actual
-runtime surface:
+The runtime REST surface is fully implemented at v67.0. Two facts govern what
+works from stateless CLI calls:
 
-- **`POST /connect/contexts` (create) works** over REST. It mints a `contextId`
-  (request scope) and returns Context Info. This is the un-gated entry.
+> **⚠ ALWAYS use the fully versioned path with `sf api request rest`.** Call
+> `sf api request rest "/services/data/v67.0/connect/contexts/attributes" …`, **not**
+> the bare `connect/contexts/attributes`. A bare (un-versioned) path is NOT
+> auto-prefixed for these resources — it misroutes to an HTML **"URL No Longer
+> Exists"** page (an edge 404, and a **501 for `PATCH`**). That 501 is the *edge
+> server rejecting an unrouted PATCH*, **not** the Context endpoint being
+> unimplemented — the endpoints ARE implemented at v67.0 (the core system of
+> record marks the PATCH ops `status: implemented`; core fit-tests PATCH them
+> expecting 200). With the versioned path they resolve correctly.
+> `_client.connect_request` already prepends the version, so the Python scripts are
+> fine; the artifact only bites hand-run `sf api request` probes.
+
+Endpoint map (v67.0, platform-wide — the same on scratch and production/demo):
+
+- **`POST /connect/contexts` (create) works** and mints a `contextId`. The create
+  `metadata` accepts **`contextScope`** (`REQUEST` | `SESSION`) — **this is the
+  knob that governs cross-call survival, and it defaults to `REQUEST`.**
+- **`contextScope: SESSION` is pilot-gated** (`API_DISABLED_FOR_ORG`, user
+  permission `SessionScopeContext` via `ContextServicePilot`). SESSION scope is
+  what persists the instance to a distributed cache so a `contextId` survives
+  across separate HTTP calls; default REQUEST scope is request-local (~15 s
+  guardrail TTL), so a REQUEST `contextId` is `RECORD_NOT_FOUND` on any *separate*
+  `sf api request` call. This is **by design**: each CLI call is its own request,
+  and the near-core builder writes REQUEST contexts only to a thread-local,
+  SESSION contexts to the durable store.
+- **`GET /connect/contexts/{id}` returns `200` but `isSuccess:false`** for an
+  expired REQUEST id (a *soft* not-found that echoes the id back). The mutating
+  ops return a *hard* 400 `RECORD_NOT_FOUND`.
 - **`POST /connect/contexts/query-record` and `query-tags[-leaner]` are
-  pilot-gated.** They return `API_DISABLED_FOR_ORG` — *"Looks like you don't have
-  permission to call Query Record."* This is an **org-level gate**
-  (`ContextServicePilot` org perm / `SessionScopeContext` user perm) that gates the
-  **SESSION** scope those reads need. **Confirmed identical on scratch AND
-  production/demo** → it is not something you can flip on with a permission set on
-  a normal org; it is a pilot enablement.
-- **A `contextId` does not survive across separate HTTP calls.** Each
-  `sf api request` is a distinct HTTP request that can land on a different app
-  server, so a `contextId` from one call is `RECORD_NOT_FOUND` ("doesn't exist or
-  expired") on the next — even from a single Python process, because the scripts
-  shell out to a fresh `sf api request` per call. Request-scope reuse across calls
-  needs the org's Instance-Reuse setting (pilot-adjacent), so in practice the
-  standalone `query`/`persist`/`delete` scripts will fail not-found on most orgs.
+  pilot-gated** — `API_DISABLED_FOR_ORG` *"…call Query Record"*, even on a fresh
+  in-TTL contextId, on scratch and production alike (`ContextServicePilot`; the
+  write endpoints are GA).
+- **`PATCH /connect/contexts/attributes`, `PATCH …/write-through-tags`, and
+  `POST …/persist-records` all resolve and reach contextId validation** (400
+  `RECORD_NOT_FOUND` on a dead REQUEST id) — i.e. they are **implemented and
+  GA-consumable**; they only fail from CLI because a REQUEST-scoped `contextId`
+  can't survive to a *second* call. On a **SESSION-enabled** org (or from one
+  transaction) they work.
 
-**The viable inspection path is Apex.** `Context.IndustriesContext` does
-build + query **in one Apex transaction** (same app server), so the `contextId`
-survives and the query methods are reachable without the REST pilot gate:
+**Net: the REST runtime API is not broken — it is scope-gated.** On a normal GA
+org the contextId is REQUEST-scoped, so the multi-call REST sequence (create in
+one call, then query/patch/persist in *separate* calls) cannot work — the instance
+is request-local. Genuine cross-call REST use requires **SESSION scope** (pilot:
+`SessionScopeContext`) and/or the RLM **"Runtime Context Instance Reuse"** setting
+(`ContextReuse`). Separately, `query-record`/`query-tags` need the
+`ContextServicePilot` gate regardless of scope.
+
+**Therefore, on a normal (non-pilot) org, drive the whole lifecycle inside ONE
+request** — Apex `Context.IndustriesContext` (`sf apex run`) or a single Flow
+chaining the invocable actions. This is Salesforce's documented **design intent**,
+not a workaround: internal engine call sites (pricing
+`PricingRuntimeContextServiceImpl`, expression sets
+`NearCoreExpressionSetRESTController`) all resolve context via the in-process
+`ContextRuntimeService.getContext(...)`, never by chaining outbound
+`/connect/contexts/*` calls; and CS engineering states that the REST APIs do not
+support querying in REQUEST-scope context, with Apex and Flow the recommended
+alternatives.
+
+### The invocable-actions path (fourth surface) — same request-scope wall
+
+Context Service also ships **standard invocable actions** (Flow-/REST-invocable,
+[doc](https://developer.salesforce.com/docs/atlas.en-us.industries_reference.meta/industries_reference/context_service_invocable_actions_parent.htm)).
+Action names on the org (`GET /services/data/v67.0/actions/standard`, filtered):
+**`buildContext`**, **`updateContextAttributes`**, **`persistContextData`**,
+**`queryContextTags`**, **`deleteContextCache`**, plus `addContextRecords` /
+`deleteContextRecords` / `getAgentContext`. Input schemas (via
+`GET /actions/standard/{name}`):
+
+| Action | Required inputs | Optional | Outputs |
+|--------|-----------------|----------|---------|
+| `buildContext` | `contextDefinitionId` | `contextMappingId`, `contextData` (stringified JSON), `isTaggedData` | `contextId`, `contextDefinitionId`, `contextMappingId` |
+| `updateContextAttributes` | `contextId`, `nodePathAndUpdatedValues` (stringified JSON) | — | — |
+| `persistContextData` | `contextId` | `contextMappingId`, `trackingId` | `referenceId` |
+| `queryContextTags` | `contextId`, `tagsList` (**real `String[]`**, not stringified) | — | `queryResult` (stringified JSON) |
+
+Over REST as *separate* calls the invocable actions hit the **exact same
+request-scope wall** as raw Connect: `buildContext` works (`isSuccess:true`,
+returns a `contextId`), but a *separate* REST `queryContextTags`/`persistContextData`
+call with that `contextId` fails **`RECORD_NOT_FOUND` "doesn't exist or expired"** —
+each REST invocation is its own request, and the instance is evicted between them.
+(Gotcha: `tagsList` must be a genuine JSON array; a stringified array →
+`INVALID_ARGUMENT_TYPE "expected String[]"`.)
+
+**Where invocable actions win:** inside a **single Flow**, all the actions run in
+**one transaction/request**, so a Flow `buildContext → updateContextAttributes →
+persistContextData` keeps the `contextId` alive — the declarative equivalent of the
+Apex bridge, with **zero Apex and only the GA `IndustriesContext` perm**. That
+makes them the best *composable, low-dependency, no-code* runtime path (a reusable
+subflow). They are **not** usable as separate `sf api request` CLI steps.
+
+### The viable inspection path is Apex
+
+`Context.IndustriesContext` does build + query **in one Apex transaction** (same
+app server), so the `contextId` survives and the query methods are reachable
+without the REST pilot gate:
 
 ```apex
 Context.IndustriesContext ctx = new Context.IndustriesContext();
 Map<String,String> md = new Map<String,String>{
-    'contextDefinitionId' => '11O…',        // ContextDefinitionId
-    'mappingId'           => '11j…'};        // a HYDRATION-intent ContextMapping
+    'contextDefinitionId' => '<contextDefinitionId>',  // 11O… ContextDefinitionId
+    'mappingId'           => '<mappingId>'};            // 11j… a HYDRATION-intent ContextMapping
 Map<String,Object> bi = new Map<String,Object>{'metadata' => md,
     // NOTE businessObjectType = the MAPPED SObject name ("Quote"), not the node name
-    'data' => '{"SalesTransaction":[{"id":"0Q0…","businessObjectType":"Quote"}]}'};
+    'data' => '{"SalesTransaction":[{"id":"<recordId>","businessObjectType":"Quote"}]}'};
 String cid = (String) ctx.buildContext(bi).get('contextId');   // 0 SOQL — lazy
 Map<String,Object> out = ctx.leanerQueryTags(new Map<String,Object>{
     'contextId' => cid, 'tags' => new List<String>{'SalesTransactionName','LineItemQuantity'}});
@@ -124,12 +289,12 @@ Map<String,Object> out = ctx.leanerQueryTags(new Map<String,Object>{
 // out.recordIds → the hydrated parent + child record ids
 ```
 
-Live-verified method map on `Context.IndustriesContext`:
+Method map on `Context.IndustriesContext`:
 
 | Method | Works? | Notes |
 |--------|--------|-------|
 | `buildContext(input)` | ✅ | Returns Context Info (`contextId` + the 5 metadata keys). **0 SOQL** — hydration is lazy; the engine queries the org server-side on read. |
-| `queryTags(input)` | ✅ | `{queryResult:{tag:[…]}, isSuccess, isDone}`. Empty arrays when the payload's `businessObjectType` is wrong (see the gotcha above). |
+| `queryTags(input)` | ✅ | `{queryResult:{tag:[…]}, isSuccess, isDone}`. Empty arrays when the payload's `businessObjectType` is wrong (see the gotcha below). |
 | `leanerQueryTags(input)` | ✅ | Lower-heap shape: `{leanerQueryTagResult, recordIds[], recordsInfo[], isSuccess}`. **The clearest signal** — `recordIds:[]` means *nothing hydrated*. |
 | `getContext(input)` | ⚠ | Returns only the Context Info metadata (not hydrated data); its values are non-serializable proxies (`JSON.serialize` → `"null"`). Not a data-read path. |
 | `queryContextRecordsAndChildren` | ❌ | Uncatchable `System.UnexpectedException` — effectively not exposed. Use `queryTags`. |
@@ -143,11 +308,11 @@ tag `LineItemQuantity`; attribute `Pricebook` → tag `PriceBooks`). Read the ta
 names off the definition (`describe_context.py`, or the node/attribute
 `tags`/`attributeTags[].name`), not the SObject field names.
 
-> **Why the scripts still exist.** The REST runtime scripts remain the documented,
+> **Why the scripts still exist.** The REST runtime scripts are the documented,
 > tool-agnostic contract (and work fully on a pilot-enabled / reuse-enabled org),
 > but on a normal org the **Apex snippet above is the reliable way to validate
-> that a definition actually hydrates**. This is exactly the debugging/validation
-> purpose these scripts serve — not a production runtime.
+> that a definition actually hydrates** — the debugging/validation purpose these
+> scripts serve, not a production runtime.
 
 ## The `data` hydration payload
 
@@ -161,28 +326,27 @@ arrays named by the child node**:
 {
   "SalesTransaction": [                     // ← array key = context NODE name
     {
-      "id": "0Q0O9000005sX7NKAU",
+      "id": "<quoteId>",
       "businessObjectType": "Quote",        // ← MAPPED SObject name, NOT the node name
       "SalesTransactionName": "ACME-0001",
       "TotalAmount": 1200,
       "SalesTransactionItem": [             // child node → nested array (node name)
-        { "id": "0QL...", "businessObjectType": "QuoteLineItem", "Quantity": 3 }
+        { "id": "<lineId>", "businessObjectType": "QuoteLineItem", "Quantity": 3 }
       ]
     }
   ]
 }
 ```
 
-> **⚠ The #1 hydration gotcha (live-verified, v67.0).** `businessObjectType` must
-> be the **mapped SObject name** for that node under the chosen mapping (e.g. the
-> `SalesTransaction` node maps to `Quote` under `QuoteEntitiesMapping`), **not**
-> the context-node name. A payload whose `businessObjectType` is the node name
-> hydrates **zero records** — the engine silently returns empty tag results
-> (`recordIds: []`) with `isSuccess: true`, which *looks* like a
-> permission/definition problem but is really a node-name-vs-SObject-name
-> mismatch. The array **key** stays the node name; only `businessObjectType`
-> changes. The node→SObject map lives on the mapping's `contextNodeMappings`
-> (`contextNodeName` → `sObjectName`).
+> **⚠ The #1 hydration gotcha.** `businessObjectType` must be the **mapped SObject
+> name** for that node under the chosen mapping (e.g. the `SalesTransaction` node
+> maps to `Quote` under `QuoteEntitiesMapping`), **not** the context-node name. A
+> payload whose `businessObjectType` is the node name hydrates **zero records** —
+> the engine silently returns empty tag results (`recordIds: []`) with
+> `isSuccess: true`, which *looks* like a permission/definition problem but is
+> really a node-name-vs-SObject-name mismatch. The array **key** stays the node
+> name; only `businessObjectType` changes. The node→SObject map lives on the
+> mapping's `contextNodeMappings` (`contextNodeName` → `sObjectName`).
 
 This shape is easy to get wrong by hand, so **`build_hydration_data.py`** fetches
 the definition (one Connect GET), resolves the mapping's node→SObject lookup, and
@@ -193,19 +357,19 @@ the child-array names as emitted. `--mapping-name` picks the mapping to shape
 against (default = the definition's default mapping); `--node NAME` (repeatable)
 restricts output to a subtree.
 
-**Hydration sourcing (live-verified).** With only `id` + `businessObjectType` set,
-the engine **queries the org itself** for the mapped fields — and does so
-**server-side, invisible to the Apex SOQL governor** (0 `Limits.getQueries()`
-consumed at build). Any attribute values you *do* include in the payload
-**override** the org-queried values for that record. So an id-only payload is the
-normal case (hydrate live data); inline values are for what-if / test overrides.
+**Hydration sourcing.** With only `id` + `businessObjectType` set, the engine
+**queries the org itself** for the mapped fields — and does so **server-side,
+invisible to the Apex SOQL governor** (0 `Limits.getQueries()` consumed at build).
+Any attribute values you *do* include in the payload **override** the org-queried
+values for that record. So an id-only payload is the normal case (hydrate live
+data); inline values are for what-if / test overrides.
 
 The server-side query also **cascades to child nodes**: a payload with only the
 **root** record's `id` (no child arrays) hydrates the parent *and* its children —
 the engine walks the mapping's node tree and queries each child SObject itself
-(live-verified: one root Quote id → the Quote + all its QuoteLineItems, no child
-ids listed). That is why **`build_hydration_data.py --from-record <rootId>`** emits
-just `{nodeName: [{"id": <rootId>, "businessObjectType": <mapped SObject>}]}` — no
+(one root Quote id → the Quote + all its QuoteLineItems, no child ids listed).
+That is why **`build_hydration_data.py --from-record <rootId>`** emits just
+`{nodeName: [{"id": <rootId>, "businessObjectType": <mapped SObject>}]}` — no
 placeholders, no child arrays — and it is ready to hydrate as-is (pass `--node` to
 name the root node when the definition has more than one top-level node). Use the
 default skeleton mode only when you want to hand-author attribute *overrides*.
@@ -216,19 +380,18 @@ Context MetaData Input rep per internal sources; omit it otherwise (verify live)
 
 > **⚠ Hydration is a sparse subset — you never get "all the tags."** A hydrated
 > instance returns far fewer values than the definition defines, via a
-> three-stage funnel (live-measured on `RLM_SalesTransactionContext` +
-> `QuoteEntitiesMapping`, a 4-line quote):
-> 1. **Definition ceiling** — e.g. 754 attributes / 761 tags; `isTransient` attrs
+> three-stage funnel (measured on `RLM_SalesTransactionContext` +
+> `QuoteEntitiesMapping`):
+> 1. **Definition ceiling** — the full attribute/tag count; `isTransient` attrs
 >    never hydrate.
 > 2. **Mapping ceiling** — only attributeMappings with a `queryAttribute` read a
->    field (≈300 of 399 for QuoteEntitiesMapping; the rest are
->    computed/reference/derived). Field binding lives at
+>    field (the rest are computed/reference/derived). Field binding lives at
 >    `attributeMappings[].contextAttrHydrationDetailList[].queryAttribute`
 >    (+ `sObjectDomain`), **not** a `mappedField` key.
 > 3. **Instance reality** — a tag only carries a value if the record it lives on
 >    exists for *this* instance. A quote with no tax/recipient/rate-card/adjustment
->    children hydrates records for only ~2 of the mapping's 19 nodes; the other 17
->    nodes get **zero records**.
+>    children hydrates records for only a couple of the mapping's ~19 nodes; the
+>    rest get **zero records**.
 >
 > **Querying a tag whose node hydrated 0 records THROWS** an uncatchable
 > `System.UnexpectedException` (`ContextCoreRuntimeServiceAPIException`) — so a
@@ -262,61 +425,92 @@ the same input: `{contextId, tags[]}`.
 
 `persist-records` writes the instance's (possibly updated) attribute values back
 to the SObjects of a **target** context mapping and returns a `referenceId` (which
-maps to a `ContextPersistenceEvent`). Body (**flat, live-verified v67.0** — the
-public doc's `contextPersistInput` wrapper is rejected at the parser;
+maps to a `ContextPersistenceEvent`). Body (**flat form** — the public doc's
+`contextPersistInput` wrapper is rejected at the parser;
 `persist_context_instance.py` emits the flat form):
 `{"contextId": "…", "targetMappingId": "11j…"}`.
 
 Unlike `query-record`/`query-tags`, **`persist-records` is NOT pilot-gated** — a
-live POST parses the body and reaches contextId validation (rather than
-`API_DISABLED_FOR_ORG`). It's still bounded by the request-scoped `contextId`
-(non-survival across `sf` calls), so the working path is Apex `persistContext`
-(build + persist in one transaction — returns the `referenceId`) or
-`context_session.py --persist` in one process.
+live POST parses the body and reaches contextId validation (400 `RECORD_NOT_FOUND`
+on a dead id, rather than `API_DISABLED_FOR_ORG`). The endpoint is implemented and
+GA. But it's bounded by the **REQUEST-scoped** `contextId`, and
+**`context_session.py --persist` does NOT survive this** — despite being "one
+process," each step shells out to a *separate* `sf api request`, so the
+REQUEST-scoped contextId minted by create is already `RECORD_NOT_FOUND` by the
+persist call (and `--update-attr` PATCH hits the same wall). **The persist path
+that works on a normal org is the Apex bridge:** `Context.IndustriesContext` doing
+build → (`updateContextAttributes`) → `persistContext` in **one Apex transaction**
+(`sf apex run --file`), which returns the `referenceId`. The REST `persist-records`
+call works only when the instance survives — i.e. with **SESSION scope** (pilot)
+or within a single request.
 
-> **⚠ Persist is ASYNCHRONOUS — a `referenceId` is NOT proof the writeback landed
-> (live-verified 2026-07-04, v67.0).** `persistContext` returns
-> `{referenceId:"16P…"}` immediately having done **zero synchronous DML**. The real
-> success/failure lands later on the **`ContextPersistenceEvent`** platform event
-> (`/event/ContextPersistenceEvent`, key prefix `16P` — the referenceId IS the event
-> handle; `RequestIdentifier` == the referenceId). That event carries a single
-> **`HasErrors`** boolean (`false` = success, `true` = failure) and **no error text**
-> — there is no AsyncApexJob, no error SObject, and no readable debug log for the async
-> write. It is NOT queryable (`describeSObjects` only); to read the outcome, subscribe
-> with an `after insert` Apex trigger / Flow / CometD on `/event/ContextPersistenceEvent`
-> and sink `HasErrors` + `RequestIdentifier` somewhere queryable. **So: never treat a
-> returned `referenceId` as confirmation — verify via `ContextPersistenceEvent.HasErrors`
-> AND by re-querying the target SObject.**
+> **⚠ Persist is ASYNCHRONOUS — a `referenceId` is NOT proof the writeback
+> landed.** `persistContext` returns `{referenceId:"16P…"}` immediately having done
+> **zero synchronous DML**. The real success/failure lands asynchronously and is
+> exposed in **two** places:
+> 1. **`ContextPersistenceEvent`** platform event (`/event/ContextPersistenceEvent`,
+>    key prefix `16P` — the referenceId IS the event handle; `RequestIdentifier` ==
+>    the referenceId). Carries only a **`HasErrors`** boolean and is NOT queryable
+>    (`describeSObjects` only) — subscribe with an `after insert` Apex trigger / Flow /
+>    CometD to read it.
+> 2. **`AsyncOperationTracker`** (SOQL-queryable! prefix `16P`, `queryable=true`) —
+>    **this is THE diagnostic; read it first.** Every persist writes a row with
+>    `JobType='ContextPersistence'`, `Status='Completed'`, and a **`Response`** long-text
+>    field holding the node-level breakdown:
+>    `{"contextDefinitionId","graphId","savedNodes":{…},"skippedNodes":[…recordIds…],"errorNodes":{"<recordId>":"<full DML error>"}}`.
+>    ```bash
+>    sf data query --query "SELECT AsyncOperationNumber,Status,Response FROM AsyncOperationTracker WHERE JobType='ContextPersistence' ORDER BY CreatedDate DESC LIMIT 5" --target-org <sf-alias>
+>    ```
+>    `savedNodes` = written; `skippedNodes` = eligible-but-DML-skipped; `errorNodes` =
+>    recordId → the exact error. **So: never treat a returned `referenceId` as
+>    confirmation — read `AsyncOperationTracker.Response` (detail) and/or
+>    `ContextPersistenceEvent.HasErrors` (boolean), plus re-query the target SObject.**
 
-> **⚠ Writeback of a *modified* record is gated/unverified on non-pilot orgs
-> (live-verified 2026-07-04).** On a scratch org (System Admin, Quote in Draft, no
-> validation rules, target field plain-DML-updatable), a no-op persist (hydrate →
-> persist unchanged) fired `HasErrors=false`, but **every persist of a dirty record
-> fired `HasErrors=true` and the SObject did not change.** The two Apex edit paths are
-> exactly complementary and neither writes back on this org:
-> - `updateContextAttributes` (attr name `Quantity`, full dataPath `[quoteId,qliId]`
->   from the root) DOES apply the value in memory (`leanerQueryTags` → new value,
->   `recordsInfo.dmlStatusOrdinal:1` = dirty) → persist attempts the DML → `HasErrors=true`.
->   (`queryRecordStatus` pre-persist shows `processingStatus:NONE, contextErrors:[]` —
->   clean; the failure is only exposed on the event.)
-> - `addRecordsToContext` (`overWriteExistingRecords:true`) does **not** stage a value
->   edit — the value is ignored in memory (`dmlStatusOrdinal:0`, not dirty) → persist is
->   a no-op (`HasErrors=false`, nothing written).
+> **⚠ Persist SKIPS a clean record and REJECTS a dirty record whose node carries
+> non-updateable fields.** Two distinct outcomes, both visible in the tracker
+> `Response`, both explained by near-core `DMLTypeResolver.java`:
+> - **No-op / skip (`skippedNodes`, `HasErrors=false`).** A hydrated-but-unedited record
+>   has DmlStatus `CREATED` + a **real Salesforce id**. `DMLTypeResolver.isDMLNoOp`
+>   (real id + `CREATED` → no-op; `getHttpMethod` → null) skips it — "it already exists,
+>   nothing to change." Only records that are `UPDATED` (real id → PATCH), or `CREATED`/
+>   `UPDATED` with a **synthetic** id (→ POST), or `DELETED` are persisted. *This eligibility
+>   gate was added in 254* (the 3-arg `isDMLNoOp` is `@Deprecated(since=254)`). A record
+>   that never flipped `CREATED`→`UPDATED` (e.g. values supplied at build time rather than
+>   via a post-hydration `updateContextAttributes`) silently no-ops.
+> - **Reject (`errorNodes`, `HasErrors=true`).** A genuinely dirty record (`UPDATED`) IS
+>   eligible → persist attempts an **atomic SObject-graph UPDATE over the FULL mapped
+>   fieldset for that node — not just the changed column.** `removeRestrictedFields` strips
+>   only **FLS**-restricted fields, NOT `updateable=false` ones, so every system-derived /
+>   create-only field the mapping carries enters the graph. On the standard
+>   QuoteEntitiesMapping SalesTransactionItem→QuoteLineItem node, the writeback set includes
+>   **~29 `updateable=false` fields** (`TotalPrice`, `Subtotal`, `NetUnitPrice`,
+>   `NetTotalPrice`, `ListPrice`, `TotalCost`, `Product2Id`, `PricebookEntryId`,
+>   `StartDateTime`/`EndDateTime`, …). The whole node UPDATE is rejected atomically →
+>   `errorNodes` = *"Unable to create/update fields: … Please check the security settings…"*.
+>   The one field actually edited (e.g. `Quantity`, `updateable=true`) is **not** in the list —
+>   it fails because of its non-updateable travelling companions. The "check security
+>   settings" hint is **misleading**: no permission fixes `updateable=false`; the fix is a
+>   PERSISTENCE mapping whose writeback set excludes non-updateable fields (and the Apex/REST
+>   persist has **no** knob to narrow the fieldset — `removeRestrictedFields`/
+>   `smartUpdatesEnabled` are not surfaced by the Apex bridge).
 >
-> The persist *pipeline* is healthy (no-op succeeds); the failure is specifically the
-> DML of a dirty record — likely persist writing the full mapped fieldset (the standard
-> QuoteEntitiesMapping item node maps 90+ fields, **37 non-updateable**: TotalPrice /
-> Subtotal / NetTotalPrice / LastModified* / calculated currency) and/or a persist-write
-> entitlement not enabled outside the Context Service pilot. **Treat writeback as
-> unverified on a normal org**: hydration + in-memory update are proven; the writeback
-> returns a `referenceId` but its success is not guaranteed and must be checked via the
-> platform event. (Providing a child record inline in the create `data` payload throws an
-> uncatchable `System.UnexpectedException` — unsupported, same class as eager hydration.)
+> This is a **field-updateability gate**, not a pilot entitlement — fully diagnosable from
+> `AsyncOperationTracker.Response`, and it reproduces identically across the Apex
+> attribute-path and the Flow tag-path (both funnel into the same near-core engine —
+> `AbstractContextColumnarUpdateService.writeThroughTags` delegates to
+> `updateContextAttributes` after tag→attribute resolution) and on a fresh single-line quote
+> (so it is not record complexity). **Bottom line for tooling:** hydration + in-memory update
+> are proven; a **no-op persist succeeds**; a **dirty persist through the default
+> QuoteEntitiesMapping fails atomically** on non-updateable fields — read
+> `AsyncOperationTracker.Response.errorNodes` for the exact list. Open follow-up (untested):
+> whether a custom PERSISTENCE mapping restricted to updateable fields lets a dirty write land.
+> (Providing a child record inline in the create `data` payload throws an uncatchable
+> `System.UnexpectedException` — unsupported, same class as eager hydration.)
 
 > **FK caveat.** Reference / lookup **foreign-key** changes are **not reliably
-> saved** by persist — scalar field updates are the supported path. `persist_context_instance.py`
-> emits this caveat on every run; confirm any FK write directly on the target
-> SObject.
+> saved** by persist — scalar field updates are the supported path.
+> `persist_context_instance.py` emits this caveat on every run; confirm any FK
+> write directly on the target SObject.
 
 Persistence reuses the same hydration binding, run backward: there is **no
 separate persistence structure** — `ContextAttrHydrationDetail` is the single
@@ -333,7 +527,7 @@ field a persist would target and whether the direction is active.
 contract that context definitions can implement, used by engines to discover a
 compatible definition. Interfaces are **not tied to a specific definition** — that
 is why this is a separate script from `describe_context.py` (which requires a
-definition selector).
+definition selector). This endpoint is **not** gated (a plain Connect GET).
 
 ## Clearing the runtime schema cache
 
@@ -382,26 +576,26 @@ Offline (no org):
 Live (EXPERIMENTAL — required before merging any behavioral change here), against a
 scratch org with an active definition (e.g. `RLM_SalesTransactionContext`):
 
-1. `build_hydration_data.py … --out /tmp/records.json`; fill in real ids (values
+1. `build_hydration_data.py … --out records.json`; fill in real ids (values
    optional — id-only hydrates from the org) — or use `--from-record <rootId>
    [--node NAME]` for a ready-to-run id-only payload. Confirm each record's
    `businessObjectType` is the **mapped SObject name** (e.g. `Quote`), which the
    builder emits.
-2. `context_session.py … --data-file /tmp/records.json --query` — on a
+2. `context_session.py … --data-file records.json --query` — on a
    **pilot-enabled** org this returns a `contextId` and the hydrated values. On a
-   normal org expect `API_DISABLED_FOR_ORG` on the query (see "Live-verified
-   reality" above) and/or a not-found `contextId` between calls; fall back to the
-   Apex path below to validate hydration.
+   normal org expect `API_DISABLED_FOR_ORG` on the query (see "The REST endpoints
+   resolve" above) and/or a not-found `contextId` between calls; fall back to the
+   Apex path to validate hydration.
 3. Add `--persist --target-mapping-name <mapping>` → returns a `referenceId`;
    confirm the scalar attributes wrote back to the mapped SObject (note the FK
-   caveat). Also pilot/reuse-gated.
+   caveat, and read `AsyncOperationTracker`). Also pilot/reuse-gated.
 4. `list_context_interfaces.py` → lists interfaces; `--interface <name>` → one.
-   (This one is **not** gated — a plain Connect GET; verified on scratch + prod.)
+   (Not gated — a plain Connect GET.)
 5. **Apex validation (the reliable path on a normal org):** run the
    `Context.IndustriesContext` `buildContext` + `leanerQueryTags` snippet from
-   "Live-verified reality" above via `sf apex run`. `recordIds` non-empty and real
-   `tagValue`s confirm the definition + mapping hydrate; `recordIds:[]` means the
-   payload's `businessObjectType` doesn't match the mapping's SObject.
+   "The viable inspection path is Apex" via `sf apex run`. `recordIds` non-empty
+   and real `tagValue`s confirm the definition + mapping hydrate; `recordIds:[]`
+   means the payload's `businessObjectType` doesn't match the mapping's SObject.
 
 Record the actual v67.0 request/response shapes and adjust the two verify-live
 PATCH builders (`build_update_attributes_body`, `build_write_tags_body`) and the

@@ -9,6 +9,13 @@ the guardrail limits, or the MDAPI type schema.
 > `docs/references/context-service-utility.md`, Core UDD, the Connect OAS, and
 > Salesforce Help. **Pinned to Release 262 / API v67.0** — re-verify enums and
 > response shapes against a live org if the platform changes.
+>
+> **Mutation-endpoint accept-shapes** (fields each PATCH/POST endpoint accepts
+> vs rejects, GET-vs-PATCH shape gap, response-only fields, hydration nesting,
+> active-version behavior matrix): see
+> [`docs/references/context-service-patch-shapes.md`](../../docs/references/context-service-patch-shapes.md).
+> Every rule there is live-verified — check it first when you hit a
+> `JSON_PARSER_ERROR: Unrecognized field` or `INVALID_DEFINITION` on a mutation.
 
 ## Object model (version-centric)
 
@@ -254,7 +261,7 @@ requires the **fully versioned path** (a bare `connect/...` 404s with
 | **Context Definition Filters** — create / get / update / delete filters on a definition | Connect (GET/POST + by-id GET/PATCH/DELETE) | `connect/context-definitions/<id>/filters[/<filterId>]` |
 | Context nodes / attributes / tags / node-mappings / mappings — granular create/update/**delete-by-id** | Connect (POST/PATCH/DELETE) | `connect/context-definitions/<id>/<subresource>[/<subId>]` |
 | Query tags (memory-optimized) | Connect (POST) | `connect/context-definitions/.../query-tags` (leaner result for Apex / low-heap clients) |
-| **Runtime context instances** — create / query-record / update-attributes / query-tags[-leaner] / write-through-tags / persist-records / delete; clear runtime schema; definition interfaces | Connect (POST/GET/PATCH/DELETE) | `connect/contexts[/…]`, `connect/context-runtime-schema/clear`, `connect/context-definition-interfaces[/…]`. **Not** used by the build tasks, but exercised by the **runtime helper scripts** (`context_session.py` et al.) for debugging/validation — see `runtime-and-persistence.md`. Live-verified: `create` + `context-definition-interfaces` work, but **`query-record`/`query-tags` are pilot-gated** (`API_DISABLED_FOR_ORG`, universal across scratch + prod) and a `contextId` doesn't survive across separate calls — validate hydration via Apex `Context.IndustriesContext` instead |
+| **Runtime context instances** — create / query-record / update-attributes / query-tags[-leaner] / write-through-tags / persist-records / delete; clear runtime schema; definition interfaces | Connect (POST/GET/PATCH/DELETE) | `connect/contexts[/…]`, `connect/context-runtime-schema/clear`, `connect/context-definition-interfaces[/…]`. **Not** used by the build tasks, but exercised by the **runtime helper scripts** (`context_session.py` et al.) for debugging/validation — see `runtime-and-persistence.md`. `create` + `context-definition-interfaces` are GA; **`query-record`/`query-tags` are pilot-gated** (`API_DISABLED_FOR_ORG`, scratch + prod) and a `contextId` is REQUEST-scoped (doesn't survive across separate calls without the SESSION-scope pilot). On a normal org, drive the lifecycle in one request via **Apex `Context.IndustriesContext`** (or one Flow) — see `runtime-and-persistence.md` → *Start here* |
 | **Relationship-traversal hydration** | **SObject REST** | (not settable via Connect PATCH — rejected) |
 | **`MappedContextDefinition` (CONTEXT `mappedContextDefinitionName`)** | **SObject REST** | (Connect PATCH silently ignores it) |
 | **`IsTransient` on an attribute** | **SObject REST** | (not honored by Connect PATCH) |

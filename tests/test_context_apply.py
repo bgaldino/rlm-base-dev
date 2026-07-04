@@ -231,6 +231,296 @@ def test_traversal_skips_unresolvable_node_mapping():
 
 
 # --------------------------------------------------------------------------- #
+# _apply_mapping_updates — non-destructive PATCH (P2, whole-body-replace fix)
+# --------------------------------------------------------------------------- #
+
+def _detail_with_siblings():
+    """A detail with one existing node mapping carrying TWO attribute mappings —
+    used to verify the PATCH doesn't destroy the sibling the plan didn't touch.
+
+    Shape mirrors the live GET response: ``attributeMappings`` is a bare list of
+    row dicts (with ``contextAttributeMappingId``); the outgoing PATCH wraps
+    them under ``attributeMappings.contextAttributeMappings``.
+    """
+    # Response-shape mirror of a live GET: ``contextAttributeName`` is the
+    # response-only mirror of ``contextInputAttributeName``. The Quantity row
+    # also carries a flat hydration list — the PATCH must re-nest this under
+    # ``hydrationDetails.contextAttrHydrationDetails`` (live-verified 2026-07-04).
+    return {
+        "contextDefinitionVersionList": [
+            {
+                "contextMappings": [
+                    {
+                        "name": "QuoteEntitiesMapping",
+                        "contextMappingId": "11j1",
+                        "contextNodeMappings": [
+                            {
+                                "contextNodeName": "SalesTransaction",
+                                "contextNodeMappingId": "11b1",
+                                "attributeMappings": [
+                                    {"contextAttributeName": "RampMode__c",
+                                     "contextInputAttributeName": "RampMode__c",
+                                     "contextAttributeId": "11n1",
+                                     "contextAttributeMappingId": "11a1",
+                                     "mappedField": "RampMode__c",
+                                     "baseReference": "std/x/y/RampMode__c",
+                                     "parentNodeMappingId": "11b0"},
+                                    {"contextAttributeName": "Quantity",
+                                     "contextInputAttributeName": "Quantity",
+                                     "contextAttributeId": "11n2",
+                                     "contextAttributeMappingId": "11a2",
+                                     "mappedField": "Quantity",
+                                     "baseReference": "std/x/y/Quantity",
+                                     "parentNodeMappingId": "11b0",
+                                     "contextAttrHydrationDetailList": [
+                                         {"sObjectDomain": "Quote",
+                                          "queryAttribute": "Quantity",
+                                          "contextAttrHydrationDetailId": "11P0",
+                                          "baseReference": "std/x/hyd"}
+                                     ]},
+                                ],
+                            }
+                        ],
+                    }
+                ]
+            }
+        ]
+    }
+
+
+def _payload_touching_one_attr():
+    """A ``contextMappings`` PATCH body that re-emits only ONE of the two
+    attribute mappings on the node — the shape that would silently delete the
+    other sibling without the merge fix (P2)."""
+    return {
+        "contextMappings": [
+            {
+                "contextMappingId": "11j1",
+                "contextNodeMappings": [
+                    {
+                        "contextNodeName": "SalesTransaction",
+                        "contextNodeMappingId": "11b1",
+                        "attributeMappings": [
+                            {"contextAttributeId": "11n1",
+                             "contextAttributeName": "RampMode__c",
+                             "mappedField": "RampModeAlias__c"},
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+
+
+def test_apply_mapping_updates_preserves_untouched_siblings():
+    t = RecordingTransport()
+    _applier(t)._apply_mapping_updates(
+        "11O1", _payload_touching_one_attr(), detail=_detail_with_siblings()
+    )
+    patch = next(
+        (r for r in t.requests if r[0] == "PATCH" and "context-node-mappings" in r[1]),
+        None,
+    )
+    check("PATCH to context-node-mappings was issued", patch is not None)
+    if not patch:
+        return
+    node_maps = patch[2]["contextNodeMappings"]
+    inner = node_maps[0]["attributeMappings"]["contextAttributeMappings"]
+    # Caller row uses ``contextAttributeName`` (that's what plan builders emit
+    # for the touched row); the merged sibling row was projected to remove that
+    # response-only key, so look for it via ``contextInputAttributeName`` too.
+    names = {a.get("contextAttributeName") or a.get("contextInputAttributeName")
+             for a in inner}
+    check("plan-touched RampMode__c is in the PATCH body", "RampMode__c" in names)
+    check("untouched sibling Quantity was merged back in (not deleted)",
+          "Quantity" in names)
+    check("exactly two attribute mappings in the outgoing PATCH", len(inner) == 2)
+    # Live-verified projection contract (2026-07-04): the Connect PATCH rejects
+    # response-only fields on each attribute mapping row. Merged siblings must
+    # not carry ``baseReference`` / ``parentNodeMappingId`` / ``contextAttributeName``.
+    merged = next(a for a in inner
+                  if a.get("contextInputAttributeName") == "Quantity"
+                  or a.get("contextAttributeId") == "11n2")
+    check("merged sibling drops response-only 'baseReference'",
+          "baseReference" not in merged)
+    check("merged sibling drops response-only 'parentNodeMappingId'",
+          "parentNodeMappingId" not in merged)
+    check("merged sibling drops response-only 'contextAttributeName'",
+          "contextAttributeName" not in merged)
+    # And the flat GET-side ``contextAttrHydrationDetailList`` was re-nested
+    # under ``hydrationDetails.contextAttrHydrationDetails`` with the entry
+    # projected to only ``sObjectDomain`` + ``queryAttribute``.
+    check("flat contextAttrHydrationDetailList not carried through as top-level",
+          "contextAttrHydrationDetailList" not in merged)
+    hyd = ((merged.get("hydrationDetails") or {})
+           .get("contextAttrHydrationDetails") or [])
+    check("hydrationDetails re-nested with one entry",
+          isinstance(hyd, list) and len(hyd) == 1)
+    if hyd:
+        check("hydration entry projected to writable sub-fields only",
+              set(hyd[0].keys()) == {"sObjectDomain", "queryAttribute"})
+
+
+def test_apply_mapping_updates_deduplicates_by_id():
+    # If the caller re-emits an existing row (by contextAttributeMappingId), the
+    # merge must not double-count it.
+    payload = _payload_touching_one_attr()
+    payload["contextMappings"][0]["contextNodeMappings"][0]["attributeMappings"][0][
+        "contextAttributeMappingId"] = "11a1"
+    t = RecordingTransport()
+    _applier(t)._apply_mapping_updates("11O1", payload, detail=_detail_with_siblings())
+    patch = next(r for r in t.requests if r[0] == "PATCH")
+    inner = patch[2]["contextNodeMappings"][0]["attributeMappings"]["contextAttributeMappings"]
+    ids = [a.get("contextAttributeMappingId") for a in inner]
+    check("no duplicate ContextAttributeMapping rows in the PATCH body",
+          ids.count("11a1") == 1)
+
+
+def test_apply_mapping_updates_skips_inherited_siblings():
+    # Attribute mappings inherited from the standard base carry a
+    # ``baseReference`` into ``…__stdctx/…``. Re-emitting them on a PATCH
+    # against a child definition raises INVALID_INPUT "An Inherited mapping
+    # for ContextAttribute X already exists." — live-verified 2026-07-04.
+    # The merge must skip them entirely rather than project them through.
+    detail = _detail_with_siblings()
+    inh = {"contextAttributeName": "PeriodBoundary",
+           "contextInputAttributeName": "PeriodBoundary",
+           "contextAttributeId": "11nStd",
+           "contextAttributeMappingId": "11aStd",
+           "baseReference":
+               "SalesTransactionContext__stdctx/version/QuoteEntitiesMapping/"
+               "SalesTransactionItem/PeriodBoundary",
+           "parentNodeMappingId": "11b0"}
+    detail["contextDefinitionVersionList"][0]["contextMappings"][0][
+        "contextNodeMappings"][0]["attributeMappings"].append(inh)
+    t = RecordingTransport()
+    _applier(t)._apply_mapping_updates("11O1", _payload_touching_one_attr(), detail=detail)
+    patch = next(r for r in t.requests if r[0] == "PATCH")
+    inner = patch[2]["contextNodeMappings"][0]["attributeMappings"]["contextAttributeMappings"]
+    names = {a.get("contextAttributeName") or a.get("contextInputAttributeName")
+             for a in inner}
+    check("inherited-from-base sibling is NOT re-emitted",
+          "PeriodBoundary" not in names)
+    check("plan-touched RampMode__c is in the PATCH body", "RampMode__c" in names)
+    check("custom sibling Quantity IS preserved (non-inherited)",
+          "Quantity" in names)
+
+
+def test_apply_mapping_updates_deduplicates_by_name_when_id_absent():
+    # The caller re-emits the same attribute WITHOUT its
+    # contextAttributeMappingId; merge must dedupe on (attrId, name).
+    payload = _payload_touching_one_attr()
+    t = RecordingTransport()
+    _applier(t)._apply_mapping_updates("11O1", payload, detail=_detail_with_siblings())
+    patch = next(r for r in t.requests if r[0] == "PATCH")
+    inner = patch[2]["contextNodeMappings"][0]["attributeMappings"]["contextAttributeMappings"]
+    names = [a.get("contextAttributeName") or a.get("contextInputAttributeName")
+             for a in inner]
+    check("re-emitted attr not duplicated (dedup on attrId+name)",
+          names.count("RampMode__c") == 1)
+
+
+def test_apply_mapping_updates_without_detail_is_a_noop_merge():
+    # Backward-compat: if the caller doesn't pass a detail snapshot the merge
+    # does nothing and the original behavior is preserved (destructive but
+    # unchanged from historical).
+    t = RecordingTransport()
+    _applier(t)._apply_mapping_updates("11O1", _payload_touching_one_attr(), detail=None)
+    patch = next(r for r in t.requests if r[0] == "PATCH")
+    inner = patch[2]["contextNodeMappings"][0]["attributeMappings"]["contextAttributeMappings"]
+    check("no merge when detail is None (only the caller's row goes through)",
+          len(inner) == 1)
+
+
+def test_apply_mapping_updates_post_branch_is_untouched():
+    # A brand-new node mapping (no contextNodeMappingId) goes through the POST
+    # branch, which has no siblings to preserve — the merge must not touch it.
+    payload = {
+        "contextMappings": [
+            {
+                "contextMappingId": "11j1",
+                "contextNodeMappings": [
+                    {
+                        "contextNodeName": "SalesTransaction",
+                        "attributeMappings": [
+                            {"contextAttributeName": "New__c",
+                             "contextAttributeId": "11n9"},
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+    t = RecordingTransport()
+    _applier(t)._apply_mapping_updates("11O1", payload, detail=_detail_with_siblings())
+    post = next(
+        (r for r in t.requests if r[0] == "POST" and "context-node-mappings" in r[1]),
+        None,
+    )
+    check("POST branch is used for new node mappings", post is not None)
+    if not post:
+        return
+    inner = post[2]["contextNodeMappings"][0]["attributeMappings"]["contextAttributeMappings"]
+    check("POST body carries exactly the caller's rows (no merge)",
+          len(inner) == 1 and inner[0].get("contextAttributeName") == "New__c")
+
+
+# --------------------------------------------------------------------------- #
+# _guard_active_for_patch — deactivate-first guards (P2)
+# --------------------------------------------------------------------------- #
+
+def _active_detail():
+    return {"isActive": True,
+            "contextDefinitionVersionList": [{"isActive": True, "contextMappings": []}]}
+
+
+def _inactive_detail():
+    return {"isActive": False,
+            "contextDefinitionVersionList": [{"isActive": False, "contextMappings": []}]}
+
+
+def test_guard_active_refuses_when_not_opted_in():
+    t = RecordingTransport()
+    applier = _applier(t)
+    applier._deactivate_first = False
+    raised = False
+    try:
+        applier._guard_active_for_patch("11O1", _active_detail(), "sync IsTransient")
+    except _client.ContextClientError as exc:
+        raised = "ACTIVE" in str(exc) and "deactivate_before" in str(exc)
+    check("active + no deactivate_before → raises with actionable message", raised)
+
+
+def test_guard_active_deactivates_when_opted_in():
+    # Two requests: the first `sf api request` is the isActive:false PATCH; the
+    # second is the fetch_detail. RecordingTransport.request returns {}; we need
+    # the post-deactivate detail to be inactive so the guard doesn't loop, so
+    # patch fetch_detail on the applier instance.
+    t = RecordingTransport()
+    applier = _applier(t)
+    applier._deactivate_first = True
+    applier.fetch_detail = lambda ctx: _inactive_detail()  # type: ignore
+    out = applier._guard_active_for_patch("11O1", _active_detail(), "sync IsTransient")
+    patch = next(
+        (r for r in t.requests if r[0] == "PATCH" and "context-definitions/11O1" in r[1]),
+        None,
+    )
+    check("active + deactivate_before → issues the isActive:false PATCH",
+          patch is not None and patch[2] == {"isActive": "false"})
+    check("guard returns the post-deactivate detail", out.get("isActive") is False)
+
+
+def test_guard_active_is_noop_when_already_inactive():
+    t = RecordingTransport()
+    applier = _applier(t)
+    applier._deactivate_first = False  # not opted in — must still be a no-op
+    out = applier._guard_active_for_patch("11O1", _inactive_detail(), "op")
+    check("inactive detail → no PATCH issued", not t.requests)
+    check("inactive detail → detail returned unchanged",
+          out is not None and out.get("isActive") is False)
+
+
+# --------------------------------------------------------------------------- #
 # diff_context._fetch_model — N+1 collection GET fix
 # --------------------------------------------------------------------------- #
 
@@ -280,6 +570,123 @@ def test_fetch_model_without_index_still_lists_inline():
               len(calls) == 2)
     finally:
         diff_context.connect_get = orig
+
+
+def test_validate_shape_accepts_well_formed_patch():
+    body = {
+        "contextNodeMappings": [
+            {
+                "contextNodeId":        "11a",
+                "contextNodeMappingId": "11b",
+                "sObjectName":          "QuoteLineItem",
+                "mappedContextNodeId":  "11a",
+                "attributeMappings": {
+                    "contextAttributeMappings": [
+                        {
+                            "contextAttributeId":         "11c",
+                            "contextInputAttributeName":  "MyAttr__c",
+                            "contextAttributeMappingId":  "11d",
+                            "isKey":                       False,
+                            "isValue":                     True,
+                            "hydrationDetails": {
+                                "contextAttrHydrationDetails": [
+                                    {"sObjectDomain": "QuoteLineItem",
+                                     "queryAttribute": "Description"}
+                                ]
+                            },
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+    violations = _apply.validate_node_mapping_patch_shape(body)
+    check("well-formed PATCH body has zero violations", violations == [])
+
+
+def test_validate_shape_flags_missing_node_shell_fields():
+    body = {
+        "contextNodeMappings": [
+            {
+                "contextNodeMappingId": "11b",
+                # missing contextNodeId, sObjectName, mappedContextNodeId
+                "attributeMappings": {"contextAttributeMappings": []},
+            }
+        ]
+    }
+    violations = _apply.validate_node_mapping_patch_shape(body)
+    paths = {v["path"] for v in violations}
+    check("missing contextNodeId flagged",
+          "contextNodeMappings[0].contextNodeId" in paths)
+    check("missing sObjectName flagged",
+          "contextNodeMappings[0].sObjectName" in paths)
+    check("missing mappedContextNodeId flagged",
+          "contextNodeMappings[0].mappedContextNodeId" in paths)
+
+
+def test_validate_shape_ignores_post_intent_node_shell():
+    """A POST (no contextNodeMappingId) is not required to carry the full
+    PATCH shell — the validator only enforces shell fields when it looks
+    like a PATCH intent, so a fresh POST body can still be validated for
+    response-only-field violations without false positives."""
+    body = {
+        "contextNodeMappings": [
+            {
+                # No contextNodeMappingId -> POST intent
+                "contextNodeId":       "11a",
+                "sObjectName":         "QuoteLineItem",
+                "mappedContextNodeId": "11a",
+                "attributeMappings": {"contextAttributeMappings": []},
+            }
+        ]
+    }
+    violations = _apply.validate_node_mapping_patch_shape(
+        body, require_node_shell=False,
+    )
+    check("POST intent skips shell-required-field checks", violations == [])
+
+
+def test_validate_shape_flags_response_only_attribute_fields():
+    body = {
+        "contextNodeMappings": [
+            {
+                "contextNodeId":        "11a",
+                "contextNodeMappingId": "11b",
+                "sObjectName":          "QuoteLineItem",
+                "mappedContextNodeId":  "11a",
+                "attributeMappings": {
+                    "contextAttributeMappings": [
+                        {
+                            "contextAttributeId":         "11c",
+                            "contextInputAttributeName":  "MyAttr__c",
+                            # response-only offenders below
+                            "baseReference":              "std/…",
+                            "contextAttributeName":       "MyAttr__c",
+                            "parentNodeMappingId":        "11b",
+                            "mappedField":                "Description",
+                            "contextAttrHydrationDetailList": [{}],
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+    violations = _apply.validate_node_mapping_patch_shape(body)
+    flagged_leaves = {v["path"].rsplit(".", 1)[-1] for v in violations}
+    check("baseReference flagged", "baseReference" in flagged_leaves)
+    check("contextAttributeName flagged", "contextAttributeName" in flagged_leaves)
+    check("parentNodeMappingId flagged", "parentNodeMappingId" in flagged_leaves)
+    check("mappedField (SObject REST) flagged", "mappedField" in flagged_leaves)
+    check("flat contextAttrHydrationDetailList flagged",
+          "contextAttrHydrationDetailList" in flagged_leaves)
+    check("each violation carries a rule string",
+          all(isinstance(v.get("rule"), str) and v["rule"] for v in violations))
+
+
+def test_validate_shape_flags_non_dict_payload():
+    violations = _apply.validate_node_mapping_patch_shape(["not", "a", "dict"])
+    check("non-dict payload flagged",
+          len(violations) == 1 and violations[0]["path"] == "<root>")
 
 
 def test_fetch_model_unknown_name_returns_none():

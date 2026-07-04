@@ -459,20 +459,45 @@ interface/schema reads still **execute**. Because create is a mutation, a dry-ru
 session mints **no** `contextId` and skips the steps that need one (with a log
 line) — no fabricated id.
 
-**Live-verified reality (v67.0, scratch + production/demo — platform-wide, not
-instance-specific):** REST `create` works, but the REST **`query-record` /
-`query-tags[-leaner]` are pilot-gated** — they return `API_DISABLED_FOR_ORG`
-("you don't have permission to call Query Record") on a normal org
-(`ContextServicePilot` / `SessionScopeContext`, gating SESSION scope). And a
-`contextId` **does not survive across separate `sf api request` calls**
-(`RECORD_NOT_FOUND`), so the standalone `query`/`persist` scripts fail not-found
-on most orgs even within one process. **To validate that a definition actually
-hydrates, use Apex** `Context.IndustriesContext` (`buildContext` +
-`leanerQueryTags` in one transaction — the `contextId` survives, the query is
-un-gated); the full snippet and method map are in
-`runtime-and-persistence.md` → "Live-verified reality". Tag names are a **distinct
+**On a normal GA org, use Apex — the stateless REST scripts can't complete the
+lifecycle.** REST `create` is GA, but **`query-record` / `query-tags[-leaner]` are
+pilot-gated** (`API_DISABLED_FOR_ORG`, scratch and production alike;
+`ContextServicePilot`), and `persist-records`/the PATCHes are GA but need a
+surviving `contextId` — which a REQUEST-scoped id is not across separate
+`sf api request` calls (cross-call survival needs SESSION scope, the
+`SessionScopeContext` pilot). So without both pilots the standalone
+`query`/`persist` scripts fail not-found. **Without any pilot perm, keep the whole
+hydrate → query → (update) → persist in one request** via **Apex
+`Context.IndustriesContext`** (`buildContext` + `leanerQueryTags`
+[+ `updateContextAttributes` + `persistContext`], one transaction) — it needs only
+the GA `IndustriesContext` perm, the `contextId` survives, and the query isn't
+behind the REST pilot gate. A single Flow chaining the invocable actions is the
+no-code equivalent. The copy-paste snippet + method map are in
+`runtime-and-persistence.md` → **Start here**. Tag names are a **distinct
 namespace** from attribute names (attr `Quantity` → tag `LineItemQuantity`);
 `list_context_interfaces.py` is *not* gated (plain Connect GET).
+
+**Debugging a persist (`persist_context_instance.py` / `context_session.py --persist`):**
+persist is **asynchronous** — the returned `referenceId` is not confirmation. The
+per-record outcome is in **`AsyncOperationTracker`** (SOQL-queryable, richer than
+the `ContextPersistenceEvent.HasErrors` boolean):
+
+```bash
+sf data query --query "SELECT AsyncOperationNumber,Status,Response FROM AsyncOperationTracker WHERE JobType='ContextPersistence' ORDER BY CreatedDate DESC LIMIT 5" --target-org <sf-alias>
+```
+
+`Response` is JSON with `savedNodes` (written), `skippedNodes` (eligible but
+DML-skipped), and `errorNodes` (recordId → error text). A **no-op** persist
+(hydrate → persist unchanged) succeeds; a **dirty** persist through the default
+`QuoteEntitiesMapping` fails atomically with `errorNodes` = *"Unable to
+create/update fields: TotalPrice, Subtotal, NetUnitPrice, Product2Id,
+PricebookEntryId, …"* — the persist graph writes the **full mapped fieldset** for a
+touched node, and that set includes ~29 `updateable=false` QLI fields;
+`removeRestrictedFields` strips FLS only, not non-updateable fields, so **no
+permission fixes it and it affects Apex, Flow, and REST identically** (a
+field-updateability limit of the mapping, not a gate; reproduces on a fresh 1-line
+quote). See `runtime-and-persistence.md` for the full mechanism + `DMLTypeResolver`
+no-op matrix.
 
 ### `build_hydration_data.py` — hydration payload (read-only)
 
@@ -511,7 +536,7 @@ python scripts/context_service/build_hydration_data.py --target-org rlm-base__be
 # id-only payload for a real record — ready to hydrate (parent + children)
 python scripts/context_service/build_hydration_data.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
-  --from-record 0Q0O9000005sX7NKAU --node SalesTransaction --out /tmp/records.json
+  --from-record <quoteId> --node SalesTransaction --out /tmp/records.json
 # then feed either to create/session via --data-file
 ```
 

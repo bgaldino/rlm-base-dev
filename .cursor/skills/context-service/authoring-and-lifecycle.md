@@ -194,7 +194,7 @@ then deactivate the definition. Reactivate the definition before re-linking.
 **The platform enforces exactly one `ContextDefinitionVersion` per
 `ContextDefinition` — a 1:1 singleton, not 1:N.**  Attempting to insert a
 second version via SObject REST returns `MAX_LIMIT_EXCEEDED: "Version already
-exists for this Context Definition"`. *(Live-verified v67.0, 2026-07-04.)*
+exists for this Context Definition"`. *(Live-verified v67.0.)*
 
 The MDAPI type *appears* 1-to-many (`ContextDefinitionVersions` child
 relationship, `ContextDefinitionVersion[]` in the type definition), and

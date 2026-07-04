@@ -85,6 +85,10 @@ class ContextApplier:
         self.t = transport
         self.log = logger or transport.logger
         self.dry_run = transport.dry_run
+        # Set by ``apply_plan`` from its ``deactivate_before`` kwarg; consulted
+        # by ``_guard_active_for_patch`` at each hazard point (see P2 in
+        # .claude/plans/context-service-followup-fixes.md).
+        self._deactivate_first = False
 
     # ---- definition resolution / creation -------------------------------- #
 
@@ -229,15 +233,38 @@ class ContextApplier:
                 {"IsTransient": u["is_transient"]},
             )
 
-    def _apply_mapping_updates(self, context_id: str, payload: Dict[str, Any]) -> None:
+    def _apply_mapping_updates(
+        self, context_id: str, payload: Dict[str, Any],
+        detail: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """Port of ``_apply_context_mapping_updates``: split node mappings out to
         the context-node-mappings endpoint; set MappedContextDefinition via
-        sObject REST; PATCH the remainder via context-mappings."""
+        sObject REST; PATCH the remainder via context-mappings.
+
+        **Whole-body-replace hazard on the PATCH branch (v67.0):** Connect
+        ``PATCH context-mappings/{id}/context-node-mappings`` returns
+        ``isSuccess:true`` on an active version but interprets a
+        ``contextAttributeMappings`` list that omits sibling rows as a
+        **delete** of those siblings — a silent data-loss surface. Live-verified
+        2026-07-04, `RLM_TEMP_ContextProbe` on ``rlm-base__july3_noramps``.
+
+        Mitigation on the PATCH path: before issuing, look up the existing
+        ``contextAttributeMappings`` for each target node mapping from the
+        supplied ``detail`` snapshot and merge any siblings we did not re-emit
+        back into the payload. This keeps the PATCH non-destructive without
+        changing the endpoint. If ``detail`` is not supplied the merge is a
+        no-op and the historical destructive behavior is unchanged — new callers
+        should thread the current ``detail`` snapshot in.
+
+        The POST branch (new node mappings) is unaffected; the platform has no
+        siblings to lose.
+        """
         if not isinstance(payload, dict):
             return
         mappings = payload.get("contextMappings")
         if not isinstance(mappings, list):
             return
+        existing_children = _existing_node_mapping_children(detail)
         remaining = []
         for mapping in mappings:
             if not isinstance(mapping, dict):
@@ -251,15 +278,34 @@ class ContextApplier:
                 for node_map in node_maps or []:
                     node_map = _payload.normalize_attribute_mappings(node_map)
                     if isinstance(node_map, dict):
+                        node_map = _merge_existing_attribute_mappings(
+                            node_map, existing_children, logger=self.log
+                        )
                         normalized.append(node_map)
                 if normalized:
                     nm_path = ep.NODE_MAPPING_COLLECTION.format(
                         context_mapping_id=context_mapping_id
                     )
                     verb = "PATCH" if any(m.get("contextNodeMappingId") for m in normalized) else "POST"
+                    body = {"contextNodeMappings": normalized}
+                    # Pre-flight shape check — logs any client-catchable
+                    # ``JSON_PARSER_ERROR: Unrecognized field`` or
+                    # ``INVALID_DEFINITION: Invalid mapping for given context``
+                    # class before we hit the wire. Log-only by design: the
+                    # primary builder (``_payload.translate_mapping_rules``)
+                    # and the projection helper are the sources of truth; a
+                    # flag here means either has drifted from the accept-shape.
+                    violations = validate_node_mapping_patch_shape(
+                        body, require_node_shell=(verb == "PATCH"),
+                    )
+                    for v in violations:
+                        self.log(
+                            f"[shape-check] {verb} node-mappings: {v['path']} — "
+                            f"{v['rule']}"
+                        )
                     self.log(f"{verb} {len(normalized)} node mapping(s) for "
                              f"mappingId={context_mapping_id}")
-                    self.t.request(verb, nm_path, {"contextNodeMappings": normalized})
+                    self.t.request(verb, nm_path, body)
                 mapped_ctx_def = mapping.get("mappedContextDefinitionName")
                 if mapped_ctx_def:
                     for nm in normalized:
@@ -269,6 +315,12 @@ class ContextApplier:
                 continue
             remaining.append(mapping)
         if remaining:
+            # The remaining branch is a Connect PATCH against
+            # context-definitions/{id}/context-mappings — BLOCKED on active
+            # (P2 matrix, live-verified 2026-07-04). Guard before mutating.
+            self._guard_active_for_patch(
+                context_id, detail or {}, "patch context-mappings (metadata)"
+            )
             self._patch_context_mappings(context_id, remaining)
 
     def _patch_context_mappings(self, context_id: str, mappings: List[Dict[str, Any]]) -> None:
@@ -453,6 +505,48 @@ class ContextApplier:
             return bool(versions[0].get("isActive"))
         return False
 
+    def _guard_active_for_patch(self, context_id: str, detail: Dict[str, Any],
+                                op_label: str) -> Dict[str, Any]:
+        """Deactivate (or refuse) before a mutation that the platform blocks on
+        an active version.
+
+        Applied at exactly the two apply-path hazard surfaces the P2 matrix
+        classifies as **BLOCKED on active**:
+
+          * ``_sync_transient`` — SObject REST PATCH ``ContextAttribute.IsTransient``
+          * ``_ensure_default_mapping`` / ``_patch_context_mappings`` — Connect
+            PATCH ``context-definitions/{id}/context-mappings``
+
+        Other surfaces reached from ``_run_additive_flow`` are safe on active:
+        ``_apply_traversal_hydration`` (POST), ``_apply_tags`` (POST),
+        ``_set_mapped_context_definition`` (SObject REST PATCH, allowed on
+        active), and any POST of a new artifact. ``_apply_mapping_updates``'s
+        PATCH branch is a *silently destructive* surface — deactivation does
+        NOT fix it; the sibling-merge in ``_merge_existing_attribute_mappings``
+        does.
+
+        If already inactive: no-op, returns ``detail`` unchanged.
+        If active and ``deactivate_first`` opted in: deactivates, refetches, logs.
+        If active and not opted in: raises with an actionable message.
+        """
+        if not self._is_active(detail):
+            return detail
+        if not self._deactivate_first:
+            raise _client.ContextClientError(
+                f"Definition {context_id} is ACTIVE, and '{op_label}' modifies an "
+                f"existing artifact — the platform blocks that on an active version "
+                f"(\"Cannot modify/delete an active context definition\"). Re-apply "
+                f"with deactivate_before=True (CLI: --deactivate-first). Note: "
+                f"deactivation is itself blocked while an Expression Set references "
+                f"this definition; detach the reference first if that happens."
+            )
+        self.log(f"Definition {context_id} is active; deactivating before "
+                 f"'{op_label}' (deactivate_before=True).")
+        self._set_active(context_id, False)
+        if self.dry_run:
+            return detail
+        return self.fetch_detail(context_id)
+
     def _has_default_mapping(self, detail: Dict[str, Any]) -> bool:
         """True if any contextMapping on the active version is flagged default."""
         for mapping in _iter_context_mappings(detail):
@@ -527,6 +621,9 @@ class ContextApplier:
         developer_name = developer_name or plan.get("developerName")
         if activate is None:
             activate = _payload.as_bool(plan.get("activate"))
+        # Latch for the run so hazard-point guards (_guard_active_for_patch)
+        # see the same setting the caller passed.
+        self._deactivate_first = bool(deactivate_before)
         created = False
 
         if not context_id:
@@ -591,6 +688,11 @@ class ContextApplier:
                 detail = self.fetch_detail(context_id)
             transient = _payload.transient_updates(plan["contextAttributesByName"], detail)
             if transient:
+                # SObject PATCH IsTransient is BLOCKED on active (P2 matrix,
+                # live-verified 2026-07-04); guard before mutating.
+                detail = self._guard_active_for_patch(
+                    context_id, detail, "sync IsTransient on ContextAttribute"
+                )
                 self._sync_transient(transient)
                 detail = self.fetch_detail(context_id)
 
@@ -599,7 +701,7 @@ class ContextApplier:
 
         if plan.get("contextMappingUpdates"):
             resolved = _payload.resolve_context_mapping_ids(detail, plan["contextMappingUpdates"])
-            self._apply_mapping_updates(context_id, resolved)
+            self._apply_mapping_updates(context_id, resolved, detail=detail)
 
         self._apply_tags(context_id, plan, detail)
 
@@ -611,7 +713,14 @@ class ContextApplier:
             # Guard against DATA_MAPPING_NOT_FOUND if the def has no default
             # mapping yet (only acts when the plan supplies defaultMapping and
             # none is already flagged).
-            self._ensure_default_mapping(context_id, plan, self.fetch_detail(context_id))
+            pre_active = self.fetch_detail(context_id)
+            if plan.get("defaultMapping") and not self._has_default_mapping(pre_active):
+                # Connect PATCH context-mappings is BLOCKED on active (P2 matrix);
+                # guard before setting isDefault.
+                pre_active = self._guard_active_for_patch(
+                    context_id, pre_active, "set default context mapping"
+                )
+            self._ensure_default_mapping(context_id, plan, pre_active)
             self._set_active(context_id, True)
         return result
 
@@ -650,7 +759,7 @@ class ContextApplier:
 
         if plan.get("contextMappingUpdates"):
             resolved = _payload.resolve_context_mapping_ids(detail, plan["contextMappingUpdates"])
-            self._apply_mapping_updates(context_id, resolved)
+            self._apply_mapping_updates(context_id, resolved, detail=detail)
 
         self._apply_tags(context_id, plan, detail)
 
@@ -687,7 +796,7 @@ class ContextApplier:
                 )
                 if translated:
                     resolved = _payload.resolve_context_mapping_ids(detail, translated)
-                    self._apply_mapping_updates(context_id, resolved)
+                    self._apply_mapping_updates(context_id, resolved, detail=detail)
                     detail = self.fetch_detail(context_id)
                 self._run_side_effects(side_effects)
             if traversal_rules:
@@ -700,7 +809,7 @@ class ContextApplier:
             )
             if translated:
                 resolved = _payload.resolve_context_mapping_ids(detail, translated)
-                self._apply_mapping_updates(context_id, resolved)
+                self._apply_mapping_updates(context_id, resolved, detail=detail)
                 detail = self.fetch_detail(context_id)
             self._run_side_effects(side_effects)
         return detail
@@ -801,3 +910,353 @@ def _record_id(resp: Any) -> Optional[str]:
     if isinstance(resp, dict):
         return resp.get("id") or resp.get("Id")
     return None
+
+
+def _existing_node_mapping_children(
+    detail: Optional[Dict[str, Any]],
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Index existing ``attributeMappings`` rows by ``contextNodeMappingId``.
+
+    Used by ``_apply_mapping_updates`` to re-emit sibling rows on a PATCH so the
+    whole-body-replace semantics don't silently delete them (v67.0 hazard,
+    live-verified 2026-07-04). If ``detail`` is None/empty the index is empty
+    and the merge is a no-op.
+
+    The GET response returns ``attributeMappings`` as a bare list of rows
+    (``{contextAttributeName, contextAttributeId, contextAttributeMappingId,
+    ...}``). The outgoing PATCH shape wraps that list under
+    ``attributeMappings.contextAttributeMappings`` (see
+    :func:`_payload.normalize_attribute_mappings`); the merge below handles
+    both.
+    """
+    out: Dict[str, List[Dict[str, Any]]] = {}
+    if not isinstance(detail, dict):
+        return out
+    for mapping in _iter_context_mappings(detail):
+        for node_map in mapping.get("contextNodeMappings", []) or []:
+            if not isinstance(node_map, dict):
+                continue
+            nm_id = node_map.get("contextNodeMappingId")
+            if not nm_id:
+                continue
+            attr_maps = node_map.get("attributeMappings")
+            if isinstance(attr_maps, dict):
+                attr_maps = attr_maps.get("contextAttributeMappings", [])
+            if not isinstance(attr_maps, list):
+                continue
+            out[nm_id] = [a for a in attr_maps if isinstance(a, dict)]
+    return out
+
+
+def _merge_existing_attribute_mappings(
+    node_map: Dict[str, Any],
+    existing_by_nm_id: Dict[str, List[Dict[str, Any]]],
+    *, logger: Callable[..., None] = None,
+) -> Dict[str, Any]:
+    """Merge omitted sibling attribute mappings back into ``node_map``.
+
+    Rationale (v67.0, live-verified 2026-07-04): the Connect endpoint
+    ``PATCH context-mappings/{id}/context-node-mappings`` uses whole-body-replace
+    semantics for the ``attributeMappings.contextAttributeMappings`` child
+    collection. A row that exists on the org but is absent from the outgoing
+    payload is **silently deleted** (response is ``isSuccess:true`` with no
+    diagnostic). To keep the PATCH non-destructive we merge sibling rows from
+    the current ``detail`` snapshot back onto the payload — matching on
+    ``contextAttributeMappingId`` first, then on
+    ``(contextAttributeId, contextAttributeName)`` for rows the caller
+    re-emitted with fresh keys.
+
+    ``node_map`` is expected in the outgoing (post-``normalize_attribute_mappings``)
+    shape — ``{attributeMappings: {contextAttributeMappings: [ ... ]}}``. New
+    (POST) node mappings — no ``contextNodeMappingId`` — are returned unchanged.
+    Existing (PATCH) node mappings with no entry in the index are also
+    unchanged (nothing to merge).
+    """
+    nm_id = node_map.get("contextNodeMappingId")
+    if not nm_id:
+        return node_map
+    existing = existing_by_nm_id.get(nm_id)
+    if not existing:
+        return node_map
+    outer = node_map.get("attributeMappings")
+    inner: List[Dict[str, Any]] = []
+    if isinstance(outer, dict):
+        raw = outer.get("contextAttributeMappings")
+        if isinstance(raw, list):
+            inner = [a for a in raw if isinstance(a, dict)]
+    elif isinstance(outer, list):
+        inner = [a for a in outer if isinstance(a, dict)]
+    outgoing_ids = {a.get("contextAttributeMappingId")
+                    for a in inner if a.get("contextAttributeMappingId")}
+    outgoing_keys = {
+        (a.get("contextAttributeId"),
+         a.get("contextAttributeName") or a.get("contextInputAttributeName"))
+        for a in inner
+        if a.get("contextAttributeId")
+        or a.get("contextAttributeName")
+        or a.get("contextInputAttributeName")
+    }
+    added = 0
+    skipped_inherited = 0
+    for sibling in existing:
+        sib_id = sibling.get("contextAttributeMappingId")
+        sib_key = (
+            sibling.get("contextAttributeId"),
+            sibling.get("contextAttributeName") or sibling.get("contextInputAttributeName"),
+        )
+        if sib_id and sib_id in outgoing_ids:
+            continue
+        if sib_key != (None, None) and sib_key in outgoing_keys:
+            continue
+        # Skip *inherited* siblings — they belong to the standard base
+        # (``baseReference`` points into ``…__stdctx/…``). Re-emitting an
+        # inherited mapping on the child definition raises
+        # ``INVALID_INPUT: "An Inherited mapping for ContextAttribute X
+        # already exists. Create custom mappings for attributes that do not
+        # have inherited attribute mappings."`` (live-verified 2026-07-04 on
+        # ``rlm-base__july3_noramps`` against ``RLM_SalesTransactionContext``).
+        # The base already carries these; nothing to preserve on the child.
+        if _is_inherited_row(sibling):
+            skipped_inherited += 1
+            continue
+        # Project to fields the PATCH endpoint accepts. The GET shape carries
+        # response-only fields (``baseReference``, ``dataType``, ``sourceObject``,
+        # …) that the Connect PATCH rejects with JSON_PARSER_ERROR. Live-verified
+        # 2026-07-04 on rlm-base__july3_noramps.
+        inner.append(_project_attribute_mapping_for_patch(sibling))
+        added += 1
+    if logger is not None and (added or skipped_inherited):
+        parts = []
+        if added:
+            parts.append(f"preserving {added} custom sibling(s)")
+        if skipped_inherited:
+            parts.append(f"skipping {skipped_inherited} inherited sibling(s) "
+                         f"(already carried by base)")
+        logger(f"Non-destructive PATCH on ContextNodeMapping {nm_id}: "
+               + ", ".join(parts) + ".")
+    merged = dict(node_map)
+    merged["attributeMappings"] = {"contextAttributeMappings": inner}
+    return merged
+
+
+def _is_inherited_row(row: Dict[str, Any]) -> bool:
+    """Return True if this attribute-mapping row came from the standard base.
+
+    Inherited attribute mappings carry a ``baseReference`` path pointing into
+    ``…__stdctx/…`` (i.e. the standard context base the current definition
+    extends). Re-emitting these on the child raises
+    ``INVALID_INPUT: "An Inherited mapping for ContextAttribute X already
+    exists. Create custom mappings for attributes that do not have inherited
+    attribute mappings."`` — live-verified 2026-07-04 on
+    ``rlm-base__july3_noramps``.
+    """
+    if not isinstance(row, dict):
+        return False
+    ref = row.get("baseReference") or ""
+    return isinstance(ref, str) and "__stdctx/" in ref
+
+
+# Fields the Connect ``context-node-mappings`` PATCH endpoint accepts on each
+# child ``contextAttributeMapping``. The GET response carries additional
+# response-only fields (``baseReference``, ``contextAttributeName``,
+# ``parentNodeMappingId``, ``dataType``, ``sourceObject``, ``mappedContextTag``,
+# …) that the same endpoint rejects with ``JSON_PARSER_ERROR: Unrecognized
+# field``. Live-verified 2026-07-04 on ``rlm-base__july3_noramps``.
+#
+# Notably, ``contextAttributeName`` is a response-only mirror of the writable
+# ``contextInputAttributeName`` — the primary builder in
+# ``_payload.translate_mapping_rules`` only emits the latter. Sending the
+# former back gets ``JSON_PARSER_ERROR: Unrecognized field "contextAttributeName"``.
+_ATTR_MAPPING_PATCH_FIELDS = frozenset({
+    "contextAttributeMappingId",
+    "contextAttributeId",
+    "contextInputAttributeName",
+    "mappedContextAttributeName",
+    "mappedContextTagName",
+    "isKey",
+    "isValue",
+    "sequence",
+    # NOTE: ``mappedField`` is the SObject REST / ``ATTR_MAPPING_COLLECTION``
+    # shape — the Connect ``context-node-mappings`` PATCH endpoint rejects it
+    # with ``JSON_PARSER_ERROR: Unrecognized field``. Live-verified 2026-07-04.
+    # SObject-domain field mapping on this endpoint goes through
+    # ``hydrationDetails.contextAttrHydrationDetails[{sObjectDomain,queryAttribute}]``
+    # (see ``_payload.translate_mapping_rules`` at ~L710).
+})
+
+# The GET also flattens hydration into two response-side lists — SObject-domain
+# hydration under ``contextAttrHydrationDetailList`` and CONTEXT-mapping-source
+# hydration under ``contextAttrContextHydrationDetailList``. The PATCH expects
+# them nested under ``hydrationDetails`` with only the writable sub-fields per
+# entry — the primary builder emits ``sObjectDomain`` + ``queryAttribute`` for
+# the sobject side and ``queryAttribute`` + ``parentAttributeMappingId`` for
+# the context side (``_payload.translate_mapping_rules``). All other entry
+# fields (``baseReference``, ``contextAttrHydrationDetailId``,
+# ``mappedAttributeDataTypeInfo``, ``childDetails``, …) are response-only.
+_SOBJECT_HYDRATION_ENTRY_FIELDS = frozenset({"sObjectDomain", "queryAttribute"})
+_CONTEXT_HYDRATION_ENTRY_FIELDS = frozenset({
+    "queryAttribute", "parentAttributeMappingId",
+})
+
+
+def _project_attribute_mapping_for_patch(row: Dict[str, Any]) -> Dict[str, Any]:
+    """Return a copy of ``row`` restricted to keys the PATCH endpoint accepts.
+
+    Response-only fields on the GET (``baseReference``, ``contextAttributeName``,
+    ``parentNodeMappingId``, ``dataType``, ``sourceObject``, …) would raise
+    ``JSON_PARSER_ERROR: Unrecognized field`` on the PATCH. Hydration lists on
+    the GET are flat top-level fields (``contextAttrHydrationDetailList`` /
+    ``contextAttrContextHydrationDetailList``); the PATCH expects them nested
+    under ``hydrationDetails.contextAttrHydrationDetails`` /
+    ``contextAttrContextHydrationDetails`` with only the writable sub-fields
+    per entry — so we re-shape here.
+    """
+    projected: Dict[str, Any] = {
+        k: v for k, v in row.items() if k in _ATTR_MAPPING_PATCH_FIELDS
+    }
+
+    sobj_hyd = row.get("contextAttrHydrationDetailList") or []
+    ctx_hyd = row.get("contextAttrContextHydrationDetailList") or []
+
+    # Also accept an already-nested ``hydrationDetails`` shape (defensive — we
+    # may be re-projecting a row that a previous merge left in the nested
+    # form). Merge both sources.
+    nested = row.get("hydrationDetails") or {}
+    if isinstance(nested, dict):
+        sobj_hyd = sobj_hyd + (nested.get("contextAttrHydrationDetails") or [])
+        ctx_hyd = ctx_hyd + (nested.get("contextAttrContextHydrationDetails") or [])
+
+    hydration: Dict[str, Any] = {}
+    if sobj_hyd:
+        hydration["contextAttrHydrationDetails"] = [
+            {k: v for k, v in entry.items() if k in _SOBJECT_HYDRATION_ENTRY_FIELDS}
+            for entry in sobj_hyd
+            if isinstance(entry, dict)
+        ]
+    if ctx_hyd:
+        hydration["contextAttrContextHydrationDetails"] = [
+            {k: v for k, v in entry.items() if k in _CONTEXT_HYDRATION_ENTRY_FIELDS}
+            for entry in ctx_hyd
+            if isinstance(entry, dict)
+        ]
+    if hydration:
+        projected["hydrationDetails"] = hydration
+
+    return projected
+
+
+# --------------------------------------------------------------------------- #
+# Pre-flight shape validator for the Connect node-mapping PATCH
+# --------------------------------------------------------------------------- #
+
+# Node-mapping shell fields required by the Connect PATCH ``context-mappings/
+# {id}/context-node-mappings`` endpoint. Omitting any raises the generic
+# ``INVALID_DEFINITION: "Invalid mapping for given context"`` — which does not
+# name the missing field. Detecting client-side saves a round-trip.
+_NODE_MAPPING_PATCH_REQUIRED = frozenset({
+    "contextNodeId",
+    "contextNodeMappingId",
+    "sObjectName",
+    "mappedContextNodeId",
+})
+
+# Response-only fields — if the caller re-emits them the platform raises
+# ``JSON_PARSER_ERROR: Unrecognized field "<name>"``. Catch them here first.
+_ATTR_MAPPING_RESPONSE_ONLY = frozenset({
+    "baseReference", "contextAttributeName", "parentNodeMappingId",
+    "dataType", "sourceObject", "mappedContextTag",
+    "contextAttrHydrationDetailList",           # flat GET shape
+    "contextAttrContextHydrationDetailList",    # flat GET shape
+    "mappedField",                              # SObject REST shape
+})
+
+
+def validate_node_mapping_patch_shape(
+    payload: Dict[str, Any], *, require_node_shell: bool = True,
+) -> List[Dict[str, Any]]:
+    """Pre-flight validate a payload destined for
+    ``PATCH connect/context-mappings/{id}/context-node-mappings``.
+
+    Returns a list of violations, each as
+    ``{"path": <str>, "rule": <str>, "offending": <value>}``. An empty list
+    means the shape is likely acceptable to the platform on shape grounds
+    (semantic validity — mappings actually existing, no many-to-one, active
+    version, etc. — is out of scope for this checker; those errors come back
+    from the platform).
+
+    Purpose: catch the common ``JSON_PARSER_ERROR: Unrecognized field`` and
+    ``INVALID_DEFINITION: Invalid mapping for given context`` classes before
+    the round-trip. These are the two error classes the P2 live-probe
+    iteratively surfaced. Live-verified rules per
+    ``docs/references/context-service-patch-shapes.md``.
+
+    Rules enforced:
+    - Every ``contextNodeMappings`` entry with a ``contextNodeMappingId``
+      (PATCH intent) must carry the four required shell fields
+      (:data:`_NODE_MAPPING_PATCH_REQUIRED`), unless ``require_node_shell``
+      is False.
+    - Every ``contextAttributeMappings`` row must not carry any key in
+      :data:`_ATTR_MAPPING_RESPONSE_ONLY` (project via
+      :func:`_project_attribute_mapping_for_patch` first).
+    - Hydration must be nested under ``hydrationDetails`` — flat top-level
+      ``contextAttrHydrationDetailList`` / ``contextAttrContextHydrationDetailList``
+      on an attribute-mapping row is caught by the response-only rule above.
+
+    Pure function; no network. Safe to call in dry-run / test paths.
+    """
+    violations: List[Dict[str, Any]] = []
+
+    def flag(path: str, rule: str, offending: Any = None) -> None:
+        violations.append({"path": path, "rule": rule, "offending": offending})
+
+    if not isinstance(payload, dict):
+        flag("<root>", "payload must be a dict", type(payload).__name__)
+        return violations
+
+    node_maps = payload.get("contextNodeMappings")
+    if not isinstance(node_maps, list):
+        flag("contextNodeMappings", "must be a list", type(node_maps).__name__)
+        return violations
+
+    for i, nm in enumerate(node_maps):
+        nm_path = f"contextNodeMappings[{i}]"
+        if not isinstance(nm, dict):
+            flag(nm_path, "must be a dict", type(nm).__name__)
+            continue
+        nm_id = nm.get("contextNodeMappingId")
+        if require_node_shell and nm_id:
+            for key in _NODE_MAPPING_PATCH_REQUIRED:
+                if not nm.get(key):
+                    flag(
+                        f"{nm_path}.{key}",
+                        "required for PATCH — omitting yields "
+                        "INVALID_DEFINITION: 'Invalid mapping for given context'",
+                        nm.get(key),
+                    )
+        attr_maps = nm.get("attributeMappings")
+        if isinstance(attr_maps, dict):
+            inner = attr_maps.get("contextAttributeMappings")
+            inner_path = f"{nm_path}.attributeMappings.contextAttributeMappings"
+        elif isinstance(attr_maps, list):
+            inner = attr_maps  # backward compat — bare list
+            inner_path = f"{nm_path}.attributeMappings"
+        else:
+            continue
+        if not isinstance(inner, list):
+            continue
+        for j, row in enumerate(inner):
+            row_path = f"{inner_path}[{j}]"
+            if not isinstance(row, dict):
+                flag(row_path, "must be a dict", type(row).__name__)
+                continue
+            offenders = [k for k in row.keys() if k in _ATTR_MAPPING_RESPONSE_ONLY]
+            for offender in offenders:
+                flag(
+                    f"{row_path}.{offender}",
+                    "response-only field — rejected by PATCH with "
+                    "JSON_PARSER_ERROR: Unrecognized field. Project via "
+                    "_project_attribute_mapping_for_patch first.",
+                    row.get(offender),
+                )
+
+    return violations

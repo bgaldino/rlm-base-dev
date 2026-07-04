@@ -77,19 +77,40 @@ expression-set steps that consume it. This skill is consumable by any AI agent
    the definition says?) — **not** as a production runtime or build path
    (engines like pricing/DocGen/BRE hydrate their own contexts). See
    `runtime-and-persistence.md`.
-9. **Runtime hydration gotcha + REST-vs-Apex reality (live-verified, v67.0).**
-   In the `data` payload, `businessObjectType` must be the **mapped SObject
-   name** (e.g. `Quote`), **not** the context-node name (`SalesTransaction`) —
-   the array *key* is the node name, but a node-name `businessObjectType`
-   hydrates **zero** records (silent empty result). `build_hydration_data.py`
-   now emits the mapped name (from the mapping's `contextNodeMappings`). Also:
-   REST `create` works, but REST **`query-record`/`query-tags` are pilot-gated**
-   (`API_DISABLED_FOR_ORG`, confirmed on scratch **and** production), and a
-   `contextId` doesn't survive across separate `sf api request` calls — so on a
-   normal org, validate hydration via the **Apex `Context.IndustriesContext`
-   `buildContext` + `leanerQueryTags`** snippet in `runtime-and-persistence.md`,
-   not the REST query scripts. Tag names are a **distinct namespace** from
-   attribute names (attr `Quantity` → tag `LineItemQuantity`).
+9. **On a normal GA org, Apex (or one Flow) is the only working runtime path.**
+   Stateless multi-call REST cannot complete the lifecycle: `query-record` /
+   `query-tags` are **pilot-gated** (`API_DISABLED_FOR_ORG`, scratch and
+   production alike), and `persist-records`/the PATCHes are GA but need a
+   **surviving** `contextId` — which a REQUEST-scoped id is not across separate
+   `sf api request` calls (cross-call survival needs **SESSION scope**, the
+   `SessionScopeContext` pilot). Without both pilots, keep the whole
+   hydrate → query → (update) → persist in **one request**: **Apex
+   `Context.IndustriesContext`** (scripted) or **one Flow** chaining the invocable
+   actions (no-code) — both need only the **GA `IndustriesContext`** perm. See
+   `runtime-and-persistence.md` → *Start here* for the copy-paste Apex snippet.
+10. **Runtime hydration gotcha + tag namespace.** In the `data` payload,
+    `businessObjectType` must be the **mapped SObject name** (e.g. `Quote`),
+    **not** the context-node name (`SalesTransaction`) — the array *key* is the
+    node name, but a node-name `businessObjectType` hydrates **zero** records
+    (silent empty result, `isSuccess:true`). `build_hydration_data.py` emits the
+    mapped name (from the mapping's `contextNodeMappings`). Tag names are a
+    **distinct namespace** from attribute names (attr `Quantity` →
+    tag `LineItemQuantity`) — query by tag name, read off the definition.
+11. **Persist is asynchronous → confirm via `AsyncOperationTracker`, not the
+    `referenceId`.** The returned `referenceId` is not proof the write landed. The
+    per-record outcome is SOQL-queryable (richer than the fire-and-forget
+    `ContextPersistenceEvent.HasErrors` boolean): `SELECT
+    AsyncOperationNumber,Status,Response FROM AsyncOperationTracker WHERE
+    JobType='ContextPersistence' ORDER BY CreatedDate DESC` — `Response` JSON has
+    `savedNodes`/`skippedNodes`/`errorNodes`. A **no-op** persist (hydrate →
+    persist unchanged) succeeds; a **dirty** persist through the default
+    `QuoteEntitiesMapping` fails atomically (`errorNodes` "Unable to create/update
+    fields: TotalPrice, Subtotal, Product2Id, …") because the persist graph writes
+    the **full mapped fieldset** for a touched node and that set carries ~29
+    non-updateable QLI fields; `removeRestrictedFields` strips FLS only, not
+    `updateable=false` fields — **no permission fixes it, and it affects Apex,
+    Flow, and REST identically** (a field-updateability limit of the mapping, not
+    a gate). See `runtime-and-persistence.md`.
 
 ## DO NOT
 
@@ -226,7 +247,7 @@ python scripts/context_service/describe_context.py --target-org rlm-base__beta \
 # id-only payload for a real record — ready to hydrate as-is (parent + children, server-side)
 python scripts/context_service/build_hydration_data.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
-  --from-record 0Q0O9000005sX7NKAU --node SalesTransaction --out /tmp/records.json
+  --from-record <quoteId> --node SalesTransaction --out /tmp/records.json
 # (or omit --from-record for a fillable skeleton, then fill in each record's id + attribute values)
 python scripts/context_service/context_session.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json \

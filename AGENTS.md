@@ -335,6 +335,7 @@ Read the sub-file only when you need that specific detail:
 | `.cursor/skills/context-service/data-model-and-api.md` | Context Service | Version-centric object model, canonical enums, Connect-vs-SObject-REST endpoint split, three mapping types, plan-file format, guardrail limits, MDAPI |
 | `.cursor/skills/context-service/authoring-and-lifecycle.md` | Context Service | Three definition types, extend-vs-clone, activation/deactivation, versioning, upgrade/Sync, standard-context inventory, gotchas table |
 | `.cursor/skills/context-service/runtime-and-persistence.md` | Context Service | Runtime context-instance lifecycle (hydrate → query → persist → delete), request-scoped `contextId`/TTL/reuse, `data` payload shape + builder, compound fields, persist FK caveat, definition interfaces, dry-run contract, runtime helper scripts |
+| `docs/references/context-service-patch-shapes.md` | Context Service | Live-verified accept-shapes for Connect + SObject REST mutation endpoints: GET-vs-PATCH shape gap, per-endpoint required fields + response-only fields, hydration nesting, active-version behavior matrix, error → resolution table |
 
 ### File-Specific Rules (Cursor Only)
 
@@ -376,64 +377,33 @@ python scripts/ai/check_plan_readme_consistency.py          # SFDMU plan README 
 
 `scripts/ai/skill_manifest.py` is the resolver for the cross-repo skill manifest at `.claude/skill-manifest.yml` — see `.cursor/skills/pmos-integration/SKILL.md` for the integration pattern.
 
-Scripts in `scripts/context_service/` inspect, validate, apply, and (at runtime) execute Context Service — design-time Context Definitions plus the runtime context-instance lifecycle (see `.cursor/skills/context-service/SKILL.md`):
+Scripts in `scripts/context_service/` inspect, validate, apply, and (at runtime) execute Context Service — design-time Context Definitions plus the runtime context-instance lifecycle. Auth is delegated to the `sf` CLI (`--target-org` is the SF CLI alias, no access token handled). This is a **command index only** — the object model, endpoint split, lifecycle rules, runtime scoping, and persist mechanics live in the **context-service skill** (`.cursor/skills/context-service/SKILL.md` + its `data-model-and-api.md`, `authoring-and-lifecycle.md`, `runtime-and-persistence.md` sub-files). Read the skill before authoring any mutation or runtime path.
 
 ```bash
-python scripts/context_service/validate_context_plan.py                              # Offline lint of context plan JSON (enums, limits, __c rule)
-python scripts/context_service/list_contexts.py --target-org rlm-base__beta          # List context definitions in an org (read-only)
-python scripts/context_service/describe_context.py --target-org rlm-base__beta \
-  --developer-name RLM_SalesTransactionContext                               # Pretty-print one definition (read-only)
-python scripts/context_service/trace_context.py --target-org rlm-base__beta \
-  --developer-name RLM_SalesTransactionContext --field RLM_RampMode__c       # Trace field↔tag↔attribute both ways (hydration/persistence); --tag/--attribute/--unmapped (read-only)
-python scripts/context_service/diff_context.py --target-org rlm-base__beta \
-  --plan-file datasets/context_plans/RampMode/manifest.json                  # Drift: plan-vs-org or org-vs-org (read-only)
-python scripts/context_service/patch_context.py --plan-file <manifest> \
-  --target-org rlm-base__beta --out patch.json                               # Extract drift into an applicable plan-JSON patch (read-only)
-python scripts/context_service/export_context.py --target-org rlm-base__beta \
-  --developer-name RLM_SalesTransactionContext --custom-only                 # Serialize a live definition to repo plan JSON (read-only)
+# Read-only design-time (safe anytime)
+python scripts/context_service/validate_context_plan.py                     # Offline lint of context plan JSON (enums, limits, __c rule)
+python scripts/context_service/list_contexts.py --target-org <sf-alias>      # List context definitions
+python scripts/context_service/describe_context.py --target-org <sf-alias> --developer-name <name>   # Pretty-print one definition
+python scripts/context_service/trace_context.py --target-org <sf-alias> --developer-name <name> --field <field>   # Trace field↔tag↔attribute (--tag/--attribute/--unmapped)
+python scripts/context_service/diff_context.py --target-org <sf-alias> --plan-file <manifest>         # Drift: plan-vs-org or org-vs-org
+python scripts/context_service/patch_context.py --plan-file <manifest> --target-org <sf-alias> --out patch.json   # Extract drift into an applicable plan-JSON patch
+python scripts/context_service/export_context.py --target-org <sf-alias> --developer-name <name> --custom-only    # Serialize a live definition to repo plan JSON
+
+# EXPERIMENTAL mutators — NOT build-critical, not in any CCI flow (production path: cci task run manage_context_definition)
+python scripts/context_service/apply_context_plan.py --plan-file <manifest> --target-org <sf-alias> --dry-run     # Apply/create a plan (--dry-run previews)
+python scripts/context_service/delete_context.py --target-org <sf-alias> --developer-name <name>                  # Deactivate (default, reversible); --custom-teardown --deactivate-first --confirm-delete = HARD DELETE __c artifacts
+python scripts/context_service/mutate_context.py --target-org <sf-alias> --developer-name <name> --add-tag <Node.Attr> <tag__c> --confirm   # One granular in-place edit; previews unless --confirm
+
+# EXPERIMENTAL runtime instance lifecycle — verify-live, for debugging/validating hydration (not a production runtime)
+python scripts/context_service/build_hydration_data.py --target-org <sf-alias> --developer-name <name> --out records.json   # Build the `data` payload (skeleton, or --from-record <id> for a ready-to-run id-only payload)
+python scripts/context_service/context_session.py --target-org <sf-alias> --developer-name <name> --data-file records.json --query --persist --target-mapping-name <mapping>   # PRIMARY: create→query→persist→delete in one process
+python scripts/context_service/list_context_interfaces.py --target-org <sf-alias>   # List context definition interfaces (read-only)
+#   also: create_context_instance.py / query_context_instance.py / persist_context_instance.py / delete_context_instance.py (individual verbs — see the skill)
 ```
 
-Three **EXPERIMENTAL** mutation scripts also live here (not build-critical, not wired into any CCI flow — the production path is `cci task run manage_context_definition`). Auth is still delegated to the `sf` CLI (no access token handled):
-
-```bash
-python scripts/context_service/apply_context_plan.py --plan-file <manifest> \
-  --target-org rlm-base__beta --dry-run                                      # Apply/create a context plan (EXPERIMENTAL; --dry-run previews)
-python scripts/context_service/delete_context.py --target-org rlm-base__beta \
-  --developer-name RLM_QuoteDocGenContext                                     # Deactivate (default) — reversible soft-disable
-python scripts/context_service/delete_context.py --target-org rlm-base__beta \
-  --developer-name RLM_SalesTransactionContext --custom-teardown \
-  --deactivate-first --confirm-delete                                        # HARD DELETE custom (__c) artifacts (EXPERIMENTAL, destructive; deletes blocked while active)
-python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
-  --developer-name RLM_SalesTransactionContext \
-  --add-tag SalesTransactionItem.RampMode__c RampModeAlias__c --confirm      # One granular in-place edit (EXPERIMENTAL; previews unless --confirm)
-python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
-  --developer-name RLM_SalesTransactionContext \
-  --set-transient SalesTransactionItem.RampMode__c true \
-  --deactivate-first --reactivate --confirm                                  # Modify/delete an existing artifact → needs --deactivate-first (only --add-tag runs on an active version)
-```
-
-Active-version rule (live-verified, v67.0): the platform allows **inserting a new artifact** (POST node/attribute/tag) on an active version but blocks **modifying or deleting an existing one** (`RECORD_UPDATE_FAILED` "Cannot modify/delete an active context definition"). So `--add-tag` runs on an active version; `--set-transient`, `--set-default-mapping`, and `--remove-tag` need `--deactivate-first` (pair with `--reactivate`).
-
-**Runtime** context-*instance* scripts also live here (**EXPERIMENTAL / verify-live**, not wired into any CCI flow). They exercise the runtime lifecycle — hydrate → query → persist → delete — **primarily to debug, understand, and validate runtime behavior** (does a definition actually hydrate/persist/tag the way it claims?), not as a production runtime or build path. A runtime `contextId` is a **request-scoped** opaque handle (never prefix-validate it), so `context_session.py` (one process) is the reliable entry point; see `.cursor/skills/context-service/runtime-and-persistence.md`:
-
-Runtime reality (live-verified, v67.0 — scratch + production/demo, platform-wide): in the `data` payload, **`businessObjectType` must be the mapped SObject name** (e.g. `Quote`), not the context-node name — a node-name value hydrates **zero** records (silent empty result); the builder now emits the mapped name. REST `create` works but **`query-record`/`query-tags` are pilot-gated** (`API_DISABLED_FOR_ORG`, `ContextServicePilot`/`SessionScopeContext`), and a `contextId` doesn't survive across separate `sf api request` calls — so on a normal org, **validate hydration via Apex `Context.IndustriesContext` (`buildContext` + `leanerQueryTags` in one transaction)**, not the REST query scripts. Tag names are a distinct namespace from attribute names (attr `Quantity` → tag `LineItemQuantity`).
-
-```bash
-python scripts/context_service/build_hydration_data.py --target-org rlm-base__beta \
-  --developer-name RLM_SalesTransactionContext --out records.json             # Build the `data` skeleton; businessObjectType = mapped SObject name (read-only). --from-record <id> [--node NAME] → ready-to-run id-only payload (parent + children hydrate server-side)
-python scripts/context_service/context_session.py --target-org rlm-base__beta \
-  --developer-name RLM_SalesTransactionContext --data-file records.json \
-  --query --persist --target-mapping-name QuoteEntitiesMapping                # PRIMARY: create→query→persist→delete in one process (EXPERIMENTAL; --dry-run previews)
-python scripts/context_service/create_context_instance.py --target-org rlm-base__beta \
-  --developer-name RLM_SalesTransactionContext --data-file records.json --id-only  # Hydrate one instance; print bare contextId (EXPERIMENTAL)
-python scripts/context_service/query_context_instance.py --target-org rlm-base__beta \
-  --context-id <uuid>                                                         # query-record (flatten + decode compound) / --tags … [--leaner] (read-only)
-python scripts/context_service/persist_context_instance.py --target-org rlm-base__beta \
-  --context-id <uuid> --target-mapping-id 11j...                              # persist-records → referenceId; FK caveat (EXPERIMENTAL)
-python scripts/context_service/delete_context_instance.py --target-org rlm-base__beta \
-  --context-id <uuid>                                                         # Evict one instance; --clear-schema-cache --developer-name <name> clears the runtime schema (EXPERIMENTAL)
-python scripts/context_service/list_context_interfaces.py --target-org rlm-base__beta  # List context definition interfaces (read-only)
-```
+Two rules worth pinning at this level (full detail + rationale in the skill):
+- **Design-time active-version rule** — the platform lets you *insert* a new artifact (node/attribute/tag) on an active version, but *modifying or deleting* an existing one is blocked (`RECORD_UPDATE_FAILED`) → deactivate first. Add-only edits apply in place.
+- **Runtime `contextId` is request-scoped** — an opaque handle (never prefix-validate it) that does not survive across separate CLI calls on a normal org (create scope defaults to `REQUEST`; cross-call `SESSION` scope and REST `query-record`/`query-tags` are pilot-gated). Drive the whole hydrate→query→persist in **one request** (`context_session.py`, or Apex `Context.IndustriesContext` / one Flow). Persist is **async** — confirm via `AsyncOperationTracker` (`JobType='ContextPersistence'`, `Response` JSON), not the returned `referenceId`.
 
 ### Schema Validation Scripts
 
