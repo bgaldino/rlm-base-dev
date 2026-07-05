@@ -178,11 +178,41 @@ enums the validator enforces.
 `executionMode` (`Cloud|Local`), `executionScale` (`High|Low`), `usageSubtype`,
 `contextDefinitions[]` (`{id, name}`), `versions[]`. Output-only: `id`, `error`.
 
-- `interfaceSourceType`: `Constraint`, `DiscoveryProcedure`, `EventOrchestration`,
-  `GpaCalculationProcedure`, `IntelligentDecisionStudio`, `ItServiceManagement`,
-  `PricingProcedure`, `QualificationProcedure`, `RatingDiscoveryProcedure`,
-  `RatingProcedure`, `Sample`.
+- `interfaceSourceType` (complete enum, 11): `Constraint`, `DiscoveryProcedure`,
+  `EventOrchestration`, `GpaCalculationProcedure`, `IntelligentDecisionStudio`,
+  `ItServiceManagement`, `PricingProcedure`, `QualificationProcedure`,
+  `RatingDiscoveryProcedure`, `RatingProcedure`, `Sample`. This field lives on the
+  **runtime `ExpressionSet` object** (not tooling `ExpressionSetDefinition`).
+  Revenue Cloud uses six of them — see the Revenue-Cloud taxonomy below.
 - `resourceInitializationType`: `Default`, `Off`.
+
+### Revenue Cloud `interfaceSourceType` taxonomy
+
+Grounded against the live org
+(`SELECT InterfaceSourceType, UsageType, COUNT(Id) FROM ExpressionSet GROUP BY …`,
+verified on `rlm-base__july4_ctxPilot`, Release 262) and the dev-guide/Help
+snapshots. Only the first six are Revenue Cloud.
+
+| `interfaceSourceType` | Live `usageType` | Purpose | Shipped RC example(s) | Authoring model |
+|---|---|---|---|---|
+| `PricingProcedure` | `DefaultPricing` | Pricing waterfall (list → discounts → net) on repricing | `RLM_DefaultPricingProcedure`, `RLM_ProductDiscoveryPricingProcedure`, `RLM_PRM_DISTI_Pricing_Procedure`, `RLM_Price_Distribution_Procedure`, `RLM_Revenue_Management_Recalc_Procedure` | Step graph |
+| `DiscoveryProcedure` | `PricingDiscovery` | Product Discovery pricing (pre-quote browse/add) | `RLM_DefaultPricingDiscoveryProcedure`, `Salesforce_Pricing_Discovery_Procedure` | Step graph |
+| `RatingProcedure` | `DefaultRating` | Usage/consumption rating | `RLM_DefaultRatingProcedure`, `Negotiable_Rating_Procedure` | Step graph |
+| `RatingDiscoveryProcedure` | `RatingDiscovery` | Rating discovery (discovery-phase rating) | `RLM_DefaultRatingDiscoveryProcedure` | Step graph |
+| `QualificationProcedure` | `ProductQualification` | Product (dis)qualification / eligibility gating | `RLM_ProductDiscoveryQualificationProcedure` | Step graph |
+| `Constraint` | `Constraint` | Product Configurator constraint rules (GA 262) | *(constraint models, not `expressionSetDefinition` step XML)* | **CML** (not a step graph) |
+
+**`Constraint` is CML-based.** It surfaces in the same `ExpressionSet` enum (4
+live in the pilot org) but is authored in Constraint Modeling Language via the
+Configurator Constraint Builder / CML editor — the `steps[]`/`parentStep` model
+and Connect-overlay tooling documented here **do not apply** to it. See the
+`cml_*` dev-guide articles and the Configurator Help suite. Deep CML coverage is
+out of scope for this reference.
+
+**Not Revenue Cloud** (engine-supported, other clouds/verticals):
+`EventOrchestration`, `GpaCalculationProcedure`, `IntelligentDecisionStudio`,
+`ItServiceManagement`. **`Sample`** is a dev-guide placeholder (the "Declarative
+Metadata Sample Definition" example) with 0 live instances — not a real RC type.
 
 **Version** (`ExpressionSetVersionRepresentation`): `id` (**keep for PATCH**),
 `apiName`, `name`, `description`, `versionNumber`, `rank`, `decimalScale`,
