@@ -44,21 +44,33 @@ class FakeTransport:
     ``responses`` maps a path substring → canned return value.
     """
 
-    def __init__(self, dry_run=False, responses=None):
+    def __init__(self, dry_run=False, responses=None, soql_results=None):
         self.dry_run = dry_run
         self.logger = lambda *a, **k: None
         self.calls = []
         self.responses = responses or {}
+        # ``soql_results`` is a list of per-call return values (each a list of
+        # record dicts). Successive ``soql`` calls consume the list in order; the
+        # last entry is repeated once exhausted, so a single-element list models a
+        # tracker that is already terminal. ``soql_calls`` counts invocations.
+        self.soql_results = list(soql_results) if soql_results is not None else None
+        self.soql_calls = 0
+        self.soql_queries = []
 
     def request(self, method, path, body=None, *, dry_run=None):
         effective = self.dry_run if dry_run is None else dry_run
         self.calls.append((method, path, body, effective))
         if effective and method not in ("GET", "HEAD"):
             return {}  # transport-layer mutation skip
+        # Prefer the most-specific matching needle: the one that appears
+        # furthest right in the path, so a broad prefix like "connect/contexts"
+        # does not shadow the deeper "connect/contexts/persist-records".
+        best = None  # (start_index, needle, resp)
         for needle, resp in self.responses.items():
-            if needle in path:
-                return resp
-        return {}
+            idx = path.find(needle)
+            if idx >= 0 and (best is None or idx > best[0]):
+                best = (idx, needle, resp)
+        return best[2] if best else {}
 
     def sobject(self, method, sobject, record_id=None, body=None, *, dry_run=None):
         effective = self.dry_run if dry_run is None else dry_run
@@ -66,7 +78,12 @@ class FakeTransport:
         return {}
 
     def soql(self, query):
-        return []
+        self.soql_calls += 1
+        self.soql_queries.append(query)
+        if self.soql_results is None:
+            return []
+        idx = min(self.soql_calls - 1, len(self.soql_results) - 1)
+        return self.soql_results[idx]
 
 
 # --------------------------------------------------------------------------- #
@@ -534,6 +551,175 @@ def test_session_create_then_delete_live_path():
     check("live session auto-deleted the instance", summary["deleted"] is True)
     deletes = [c for c in t.calls if c[0] == "DELETE"]
     check("live session issued exactly one DELETE", len(deletes) == 1)
+
+
+# --------------------------------------------------------------------------- #
+# _runtime — persist async confirmation (AsyncOperationTracker poll)
+# --------------------------------------------------------------------------- #
+
+def _tracker(status, response=None, tid="16P0"):
+    return {"Id": tid, "Status": status, "Response": response,
+            "JobType": "ContextPersistence"}
+
+
+def test_persist_tracker_soql_is_id_lookup_and_escaped():
+    soql = _runtime.build_persist_tracker_soql("16P'x")
+    check("tracker SOQL selects from AsyncOperationTracker",
+          "FROM AsyncOperationTracker" in soql)
+    check("tracker SOQL is a direct Id lookup", "WHERE Id = '" in soql)
+    check("tracker SOQL escapes the single quote in the referenceId",
+          "16P\\'x" in soql)
+
+
+def test_decode_persist_response_json_vs_error_string():
+    parsed = _runtime.decode_persist_response('{"savedNodes": {"a": 1}}')
+    check("JSON Response is parsed to a dict",
+          isinstance(parsed, dict) and parsed["savedNodes"] == {"a": 1})
+    raw = _runtime.decode_persist_response("An unexpected error occurred. ErrorId: 1")
+    check("plain-string Response is left raw", raw == "An unexpected error occurred. ErrorId: 1")
+    check("None Response passes through", _runtime.decode_persist_response(None) is None)
+
+
+def test_summarize_persist_success():
+    row = _tracker("Completed", '{"savedNodes": {"Order": ["x"]}, "skippedNodes": [], "errorNodes": {}}')
+    s = _runtime.summarize_persist_tracker(row)
+    check("terminal Completed is_terminal", s["is_terminal"] is True)
+    check("clean Completed is_failure False", s["is_failure"] is False)
+    check("saved nodes decoded", s["saved"] == {"Order": ["x"]})
+
+
+def test_summarize_persist_dirty_completed_is_failure():
+    # The documented dirty-persist signature: Status=Completed but errorNodes set.
+    row = _tracker("Completed",
+                   '{"savedNodes": {}, "skippedNodes": [], '
+                   '"errorNodes": {"0Q0": "Unable to create/update fields"}}')
+    s = _runtime.summarize_persist_tracker(row)
+    check("Completed-with-errorNodes is a failure", s["is_failure"] is True)
+    check("errorNodes surfaced", "0Q0" in (s["errors"] or {}))
+
+
+def test_summarize_persist_failure_status_with_error_string():
+    row = _tracker("Failure", "An unexpected error occurred. ErrorId: 12345")
+    s = _runtime.summarize_persist_tracker(row)
+    check("Failure status is_failure True", s["is_failure"] is True)
+    check("raw error string preserved", s["raw_response"].startswith("An unexpected"))
+
+
+def test_summarize_persist_nonterminal_is_undecided():
+    s = _runtime.summarize_persist_tracker(_tracker("InProgress"))
+    check("InProgress is not terminal", s["is_terminal"] is False)
+    check("non-terminal is_failure is None (undecided)", s["is_failure"] is None)
+
+
+def test_summarize_persist_missing_row():
+    s = _runtime.summarize_persist_tracker(None)
+    check("missing tracker row → found False", s["found"] is False)
+    check("missing tracker row → is_failure None", s["is_failure"] is None)
+
+
+def test_confirm_persist_polls_until_terminal():
+    # First poll: InProgress; second: Completed. Poller must keep going.
+    t = FakeTransport(dry_run=False, soql_results=[
+        [_tracker("InProgress")],
+        [_tracker("Completed", '{"savedNodes": {}, "skippedNodes": [], "errorNodes": {}}')],
+    ])
+    client = _runtime.RuntimeContextClient(t)
+    sleeps = []
+    outcome = client.confirm_persist("16P0", poll_seconds=10, interval_seconds=2,
+                                     sleep=sleeps.append)
+    check("poller ran two SOQL queries (InProgress then Completed)", t.soql_calls == 2)
+    check("poller slept once between polls", sleeps == [2])
+    check("final outcome is terminal Completed", outcome["status"] == "Completed")
+    check("final outcome is not a failure", outcome["is_failure"] is False)
+
+
+def test_confirm_persist_times_out_nonterminal():
+    t = FakeTransport(dry_run=False, soql_results=[[_tracker("InProgress")]])
+    client = _runtime.RuntimeContextClient(t)
+    outcome = client.confirm_persist("16P0", poll_seconds=0, interval_seconds=1,
+                                     sleep=lambda s: None)
+    check("timed-out poll reports timed_out", outcome["timed_out"] is True)
+    check("timed-out poll is not terminal", outcome["is_terminal"] is False)
+
+
+def test_confirm_persist_no_reference_id():
+    t = FakeTransport(dry_run=False)
+    client = _runtime.RuntimeContextClient(t)
+    outcome = client.confirm_persist("")
+    check("empty referenceId → not found, no SOQL run",
+          outcome["found"] is False and t.soql_calls == 0)
+
+
+def test_session_persist_confirms_and_flags_failure():
+    # Create ok, persist returns a referenceId, tracker says Failure → the session
+    # must record persist_outcome with is_failure True.
+    t = FakeTransport(
+        dry_run=False,
+        responses={
+            "connect/contexts": {"contextId": "NEW", "isSuccess": True},
+            "persist-records": {"referenceId": "16PZ"},
+        },
+        soql_results=[[_tracker("Failure", "boom", tid="16PZ")]],
+    )
+    client = _runtime.RuntimeContextClient(t)
+    session = _runtime.RuntimeSession(client)
+    summary = session.run(
+        create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                     "data": {"Order": []}},
+        persist_target_mapping_id="11j2",
+        persist_poll_seconds=0,
+    )
+    check("session captured the persist referenceId",
+          summary["persist"]["referenceId"] == "16PZ")
+    check("session confirmed the persist outcome via tracker",
+          summary.get("persist_outcome", {}).get("found") is True)
+    check("session flags the persist as a failure",
+          summary["persist_outcome"]["is_failure"] is True)
+
+
+def test_session_persist_confirm_can_be_disabled():
+    t = FakeTransport(
+        dry_run=False,
+        responses={
+            "connect/contexts": {"contextId": "NEW", "isSuccess": True},
+            "persist-records": {"referenceId": "16PZ"},
+        },
+        soql_results=[[_tracker("Failure", "boom", tid="16PZ")]],
+    )
+    client = _runtime.RuntimeContextClient(t)
+    session = _runtime.RuntimeSession(client)
+    summary = session.run(
+        create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                     "data": {"Order": []}},
+        persist_target_mapping_id="11j2",
+        confirm_persist=False,
+    )
+    check("confirm_persist=False runs no tracker SOQL", t.soql_calls == 0)
+    check("confirm_persist=False records no persist_outcome",
+          "persist_outcome" not in summary)
+
+
+def test_session_create_isSuccess_false_aborts():
+    # A create returning isSuccess:false must abort — no query/persist/delete.
+    t = FakeTransport(
+        dry_run=False,
+        responses={"connect/contexts": {"isSuccess": False, "contextId": "GHOST"}},
+    )
+    client = _runtime.RuntimeContextClient(t)
+    session = _runtime.RuntimeSession(client)
+    summary = session.run(
+        create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                     "data": {"Order": []}},
+        do_query=True,
+        persist_target_mapping_id="11j2",
+    )
+    check("create isSuccess:false sets create_failed", summary.get("create_failed") is True)
+    check("create isSuccess:false does not report created", summary["created"] is False)
+    check("create isSuccess:false runs no query", summary.get("query") is None)
+    check("create isSuccess:false runs no persist", summary.get("persist") is None)
+    non_get = [c for c in t.calls if c[0] not in ("GET", "HEAD")]
+    check("create isSuccess:false issues only the create POST (no persist/delete)",
+          len(non_get) == 1)
 
 
 # --------------------------------------------------------------------------- #

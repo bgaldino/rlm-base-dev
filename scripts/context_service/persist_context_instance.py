@@ -44,6 +44,7 @@ from _runtime_cli import (  # noqa: E402
     CONTEXT_ID_SCOPE_NOTE,
     EXPERIMENTAL_BANNER,
     add_mapping_source_args,
+    print_persist_outcome,
     resolve_mapping_id,
 )
 
@@ -69,6 +70,12 @@ def main(argv=None) -> int:
                         help="Log the intended persist call without mutating the org.")
     parser.add_argument("--json", action="store_true",
                         help="Emit the raw persist response as JSON.")
+    parser.add_argument("--no-confirm", action="store_true",
+                        help="Skip the AsyncOperationTracker poll (do not wait for "
+                             "the async persist outcome; report only the referenceId).")
+    parser.add_argument("--poll-seconds", type=float, default=30.0,
+                        help="Max seconds to poll AsyncOperationTracker for the "
+                             "persist outcome (default 30).")
     args = parser.parse_args(argv)
 
     eprint(EXPERIMENTAL_BANNER)
@@ -103,12 +110,35 @@ def main(argv=None) -> int:
         return 0
 
     result = result if isinstance(result, dict) else {}
-    if args.json:
-        print(json.dumps(result, indent=2))
-        return 0
     reference_id = result.get("referenceId") or result.get("id")
-    print(f"referenceId: {reference_id}" if reference_id
-          else json.dumps(result, indent=2))
+
+    # persist-records is async: the referenceId is an AsyncOperationTracker Id,
+    # not a success signal. Poll it for the real outcome unless --no-confirm.
+    outcome = None
+    if reference_id and not args.no_confirm:
+        try:
+            outcome = client.confirm_persist(
+                reference_id, poll_seconds=args.poll_seconds
+            )
+        except ContextClientError as exc:
+            eprint(f"Warning: could not confirm persist outcome: {exc}")
+
+    if args.json:
+        payload = {"persist": result}
+        if outcome is not None:
+            payload["persist_outcome"] = outcome
+        print(json.dumps(payload, indent=2, default=str))
+    else:
+        print(f"referenceId: {reference_id}" if reference_id
+              else json.dumps(result, indent=2))
+        if outcome is not None:
+            print_persist_outcome(outcome)
+        elif reference_id and args.no_confirm:
+            eprint("persist outcome: not confirmed (--no-confirm); check "
+                   f"AsyncOperationTracker Id={reference_id}.")
+
+    if isinstance(outcome, dict) and outcome.get("is_failure"):
+        return 1
     return 0
 
 

@@ -29,11 +29,17 @@ Caveats
   usually an **inherited** artifact, not drift; "in plan, not in org" is the
   real signal that the plan has not been applied (or drifted). The report labels
   the two directions and does not treat inherited org artifacts as errors.
-* **CONTEXT-to-CONTEXT sources** are compared by the raw
-  ``mappedContextDefinitionId`` (org side) / ``mappedContextDefinitionName``
-  (plan side). This tool does **not** resolve an ID back to a developerName, so
-  an org-vs-org diff of a CONTEXT mapping can show an ID mismatch that is really
-  the same definition under two different IDs. Confirm with ``describe_context``.
+* **CONTEXT-to-CONTEXT sources** are compared on their SObject + hydration hop
+  only; the CONTEXT reference itself is **excluded from equality**. The org side
+  carries a raw ``mappedContextDefinitionId`` (an ``11O…`` ID) and the plan side
+  a ``mappedContextDefinitionName`` (a developerName, usually empty because repo
+  rules author ``sourceContextNode``/``sourceContextAttribute`` instead), which
+  can never compare equal — so including it flagged every CONTEXT mapping as
+  perpetually changed. It is retained for display on a row that changed for a
+  real reason. **Limitation:** because neither normalizer captures
+  ``sourceContextNode`` / ``sourceContextAttribute``, a *changed* CONTEXT source
+  is not detected — only its presence/absence. Confirm CONTEXT sources with
+  ``describe_context``.
 """
 
 import argparse
@@ -135,6 +141,11 @@ def _flatten_mapping_attrs(mappings: dict) -> dict:
     it is an internal context-input-attribute name that repo plans do not model,
     so including it would flag every plan-vs-org mapping as "changed". The
     hydration hop (``Object.field``) carries the field mapping both sides share.
+
+    ``mappedContextDefinitionId`` is carried for **display only** (so a changed
+    row can show the CONTEXT ref) but is deliberately **excluded from equality**
+    by :func:`_mapping_attr_differs` — see that function for why the plan-side
+    name and org-side ID can never be compared directly.
     """
     flat = {}
     for mname, mapping in (mappings or {}).items():
@@ -149,6 +160,37 @@ def _flatten_mapping_attrs(mappings: dict) -> dict:
                     ),
                 }
     return flat
+
+
+def _mapping_attr_differs(left: dict, right: dict) -> bool:
+    """Equality for a flattened attribute-mapping row, excluding the CONTEXT ref.
+
+    ``mappedContextDefinitionId`` is **not** comparable across the two sides:
+
+    * the **plan** side stores ``mappedContextDefinitionName`` (a developerName,
+      and in practice ``None`` — repo CONTEXT rules author
+      ``sourceContextNode``/``sourceContextAttribute`` and leave the name slot
+      empty), while
+    * the **org** side stores the raw ``11O…``-prefixed ``ContextDefinition`` ID.
+
+    A ``name`` (or ``None``) vs an org-scoped ID never satisfy ``==``, so
+    including this field flagged **every** CONTEXT mapping as ``~ changed`` on
+    every run — permanent, non-convergent drift. Resolving the org ID back to a
+    developerName would not help the dominant plan-vs-org case (the plan side is
+    ``None``), so the field is excluded from equality entirely; the SObject and
+    hydration hop — which both sides model faithfully — are what the mapping diff
+    compares on.
+
+    Known limitation: ``sourceContextNode`` / ``sourceContextAttribute`` (the
+    fields that actually define a CONTEXT source) are not captured by either
+    normalizer, so a *changed* CONTEXT source is not detected here — only its
+    presence/absence (via added/removed). See P6 in the follow-up plan.
+    """
+    left = left or {}
+    right = right or {}
+    return (left.get("sObject"), left.get("hydration") or []) != (
+        right.get("sObject"), right.get("hydration") or []
+    )
 
 
 def diff_models(left: dict, right: dict) -> dict:
@@ -169,6 +211,10 @@ def diff_models(left: dict, right: dict) -> dict:
     m_added, m_removed, m_changed = _diff_dicts(
         _flatten_mapping_attrs(left.get("mappings")),
         _flatten_mapping_attrs(right.get("mappings")),
+        # CONTEXT mappings carry a name (plan) vs org-scoped ID (org) that can
+        # never compare equal; exclude it from equality (compare sObject +
+        # hydration only) so a CONTEXT mapping no longer reports perpetual drift.
+        compare=_mapping_attr_differs,
     )
     t_added, t_removed, t_changed = _diff_dicts(left.get("tags"), right.get("tags"))
 

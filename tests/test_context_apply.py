@@ -15,6 +15,10 @@ org is touched):
     probes are batched (bounded query count regardless of rule count).
   * ``diff_context._fetch_model`` — passing a prefetched definition index skips
     the per-call collection GET (the N+1 fix).
+  * ``diff_context`` CONTEXT-mapping comparison — the name(plan)-vs-ID(org)
+    ``mappedContextDefinitionId`` is excluded from equality (P6), so a CONTEXT
+    mapping no longer reports perpetual ``~ changed`` drift, while a genuine
+    SObject/hydration change on the row is still detected.
 """
 import os
 import sys
@@ -24,6 +28,7 @@ sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "context_service"))
 
 import _apply  # noqa: E402
 import _client  # noqa: E402
+import _model  # noqa: E402
 import diff_context  # noqa: E402
 
 RESULTS = []
@@ -291,7 +296,15 @@ def _detail_with_siblings():
 def _payload_touching_one_attr():
     """A ``contextMappings`` PATCH body that re-emits only ONE of the two
     attribute mappings on the node — the shape that would silently delete the
-    other sibling without the merge fix (P2)."""
+    other sibling without the merge fix (P2).
+
+    Mirrors what the real builder (``_payload.translate_mapping_rules``) emits: the
+    node mapping carries the four required shell fields (``contextNodeId``,
+    ``contextNodeMappingId``, ``sObjectName``, ``mappedContextNodeId``) and the
+    caller's attribute row uses the writable ``contextInputAttributeName`` +
+    ``hydrationDetails`` — NOT the response-only ``contextAttributeName`` /
+    ``mappedField``. This keeps the fixture inside the PATCH accept-shape so the
+    pre-flight block does not (correctly) refuse it."""
     return {
         "contextMappings": [
             {
@@ -299,11 +312,19 @@ def _payload_touching_one_attr():
                 "contextNodeMappings": [
                     {
                         "contextNodeName": "SalesTransaction",
+                        "contextNodeId": "11nST",
                         "contextNodeMappingId": "11b1",
+                        "sObjectName": "Quote",
+                        "mappedContextNodeId": "11mcST",
                         "attributeMappings": [
                             {"contextAttributeId": "11n1",
-                             "contextAttributeName": "RampMode__c",
-                             "mappedField": "RampModeAlias__c"},
+                             "contextInputAttributeName": "RampMode__c",
+                             "hydrationDetails": {
+                                 "contextAttrHydrationDetails": [
+                                     {"sObjectDomain": "Quote",
+                                      "queryAttribute": "RampModeAlias__c"}
+                                 ]
+                             }},
                         ],
                     }
                 ],
@@ -463,6 +484,78 @@ def test_apply_mapping_updates_post_branch_is_untouched():
     inner = post[2]["contextNodeMappings"][0]["attributeMappings"]["contextAttributeMappings"]
     check("POST body carries exactly the caller's rows (no merge)",
           len(inner) == 1 and inner[0].get("contextAttributeName") == "New__c")
+
+
+def test_apply_mapping_updates_patch_shape_violation_raises_before_wire():
+    # A PATCH whose node mapping is missing the required shell fields is a shape
+    # violation on the whole-body-replace endpoint. Since the merge has already
+    # folded siblings in, sending it risks silent data loss — the applier must
+    # RAISE and issue no PATCH, not log-and-send.
+    bad_payload = {
+        "contextMappings": [
+            {
+                "contextMappingId": "11j1",
+                "contextNodeMappings": [
+                    {
+                        # existing node mapping (PATCH intent) but missing
+                        # contextNodeId / sObjectName / mappedContextNodeId
+                        "contextNodeName": "SalesTransaction",
+                        "contextNodeMappingId": "11b1",
+                        "attributeMappings": [
+                            {"contextAttributeId": "11n1",
+                             "contextInputAttributeName": "RampMode__c"},
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+    t = RecordingTransport()
+    raised = False
+    try:
+        _applier(t)._apply_mapping_updates(
+            "11O1", bad_payload, detail=_detail_with_siblings()
+        )
+    except _client.ContextClientError as exc:
+        raised = True
+        msg = str(exc)
+    check("a malformed PATCH body raises ContextClientError", raised)
+    if raised:
+        check("the error names the destructive-PATCH refusal",
+              "Refusing destructive node-mapping PATCH" in msg)
+    patches = [r for r in t.requests
+               if r[0] == "PATCH" and "context-node-mappings" in r[1]]
+    check("no PATCH was sent to the wire after a shape violation", not patches)
+
+
+def test_apply_mapping_updates_post_shape_violation_does_not_raise():
+    # The block is PATCH-only: a POST (new node mapping) with the same missing
+    # shell fields is fine (the platform has no siblings to lose and rejects a
+    # bad POST loudly), so it must NOT raise.
+    payload = {
+        "contextMappings": [
+            {
+                "contextMappingId": "11j1",
+                "contextNodeMappings": [
+                    {   # no contextNodeMappingId → POST branch
+                        "contextNodeName": "SalesTransaction",
+                        "attributeMappings": [
+                            {"contextAttributeId": "11n9",
+                             "contextInputAttributeName": "New__c"},
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+    t = RecordingTransport()
+    raised = False
+    try:
+        _applier(t)._apply_mapping_updates("11O1", payload, detail=_detail_with_siblings())
+    except _client.ContextClientError:
+        raised = True
+    check("a POST with missing shell fields does not raise (POST is log-only)",
+          not raised)
 
 
 # --------------------------------------------------------------------------- #
@@ -700,6 +793,115 @@ def test_fetch_model_unknown_name_returns_none():
               diff_context._fetch_model("RLM_Missing", "orgA", "67.0", index=index) is None)
     finally:
         diff_context.connect_get = orig
+
+
+# --------------------------------------------------------------------------- #
+# P6 — CONTEXT mapping no longer reports perpetual name<->ID drift
+# --------------------------------------------------------------------------- #
+
+def _context_plan():
+    """A repo plan authoring a CONTEXT mapping rule the way live plans do:
+    ``sourceContextNode``/``sourceContextAttribute`` set, no
+    ``mappedContextDefinitionName`` (mirrors ConstraintEngineNodeStatus)."""
+    return {
+        "developerName": "RLM_CtxTest",
+        "activate": True,
+        "mappingRules": [
+            {
+                "mappingName": "AssetToSalesTransactionMapping",
+                "contextNode": "SalesTransactionItem",
+                "contextAttribute": "ConstraintEngineNodeStatus__c",
+                "mappingType": "CONTEXT",
+                "sourceContextNode": "AssetActionSource",
+                "sourceContextAttribute": "AssetConstraintEngineNodeStatus__c",
+            }
+        ],
+    }
+
+
+def _context_org_get():
+    """The org GET for the same definition: the CONTEXT node mapping carries the
+    org-scoped ``mappedContextDefinitionId`` (an ``11O…`` ID) — the value that
+    used to force a perpetual ``~ changed``."""
+    return {
+        "developerName": "RLM_CtxTest",
+        "isActive": True,
+        "contextDefinitionVersionList": [
+            {
+                "isActive": True,
+                "contextNodes": [
+                    {
+                        "name": "SalesTransactionItem",
+                        "contextAttributes": [
+                            {"name": "ConstraintEngineNodeStatus__c",
+                             "dataType": "STRING", "fieldType": "INPUTOUTPUT"},
+                        ],
+                        "childNodes": [],
+                    }
+                ],
+                "contextMappings": [
+                    {
+                        "name": "AssetToSalesTransactionMapping",
+                        "isDefault": False,
+                        "contextNodeMappings": [
+                            {
+                                "contextNodeName": "SalesTransactionItem",
+                                "sObjectName": None,
+                                "mappedContextDefinitionId": "11O5F000000ABCDUAO",
+                                "attributeMappings": [
+                                    {
+                                        "contextAttributeName":
+                                            "ConstraintEngineNodeStatus__c",
+                                        "contextAttrHydrationDetailList": [],
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+
+
+def test_context_mapping_no_perpetual_drift():
+    plan_model = _model.normalize_plan(_context_plan())
+    org_model = _model.normalize_definition(_context_org_get())
+
+    flat_key = ("AssetToSalesTransactionMapping/SalesTransactionItem/"
+                "ConstraintEngineNodeStatus__c")
+    plan_flat = diff_context._flatten_mapping_attrs(plan_model["mappings"])
+    org_flat = diff_context._flatten_mapping_attrs(org_model["mappings"])
+    check("plan side stores name-slot (None) for the CONTEXT ref",
+          plan_flat[flat_key]["mappedContextDefinitionId"] is None)
+    check("org side stores the raw 11O… ID for the CONTEXT ref",
+          org_flat[flat_key]["mappedContextDefinitionId"] == "11O5F000000ABCDUAO")
+
+    diff = diff_context.diff_models(plan_model, org_model)
+    changed_keys = {c["key"] for c in diff["mappings"]["changed"]}
+    check("CONTEXT mapping does NOT report perpetual ~changed drift (P6)",
+          flat_key not in changed_keys)
+    check("no spurious mapping drift at all for the CONTEXT row",
+          not diff["mappings"]["changed"])
+
+
+def test_context_mapping_real_sobject_change_still_detected():
+    """The exclusion is narrow: a genuine SObject/hydration change on a mapping
+    row must still surface (proves we didn't blunt the diff wholesale)."""
+    left = {"sObject": "Quote", "hydration": ["Quote.Name"],
+            "mappedContextDefinitionId": None}
+    right = {"sObject": "Order", "hydration": ["Order.Name"],
+             "mappedContextDefinitionId": None}
+    check("differing sObject is still a change",
+          diff_context._mapping_attr_differs(left, right))
+
+    same_but_diff_ref_left = {"sObject": None, "hydration": [],
+                              "mappedContextDefinitionId": None}
+    same_but_diff_ref_right = {"sObject": None, "hydration": [],
+                               "mappedContextDefinitionId": "11O…"}
+    check("differing CONTEXT ref alone is NOT a change",
+          not diff_context._mapping_attr_differs(
+              same_but_diff_ref_left, same_but_diff_ref_right))
 
 
 # --------------------------------------------------------------------------- #

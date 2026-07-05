@@ -146,15 +146,24 @@ def main(argv=None) -> int:
         return 0
 
     info = info if isinstance(info, dict) else {}
+    # A create can return isSuccess:false (or hydrate zero records with a
+    # contextId) — surface it and exit non-zero rather than emit a contextId that
+    # points at a failed/empty instance.
+    create_failed = info.get("isSuccess") is False
+    if create_failed:
+        eprint("Error: create returned isSuccess:false — the instance was not "
+               f"hydrated. Response: {json.dumps(info)}")
     if args.id_only:
         context_id = info.get("contextId") or info.get("id") or ""
+        if create_failed:
+            return 1
         print(context_id)
         return 0 if context_id else 1
     if args.json:
         print(json.dumps(info, indent=2))
-        return 0
+        return 1 if create_failed else 0
     _print_human(info)
-    return 0
+    return 1 if create_failed else 0
 
 
 if __name__ == "__main__":

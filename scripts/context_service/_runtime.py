@@ -35,9 +35,23 @@ downstream steps that need one, with a log line — no fabricated id.
 """
 
 import json
+import time
 from typing import Any, Callable, Dict, List, Optional
 
+import _client
 import _endpoints as ep
+
+# ``persist-records`` is asynchronous: the synchronous response returns a
+# ``referenceId`` that is the **Id of an AsyncOperationTracker row** (live-verified
+# 2026-07-05 on rlm-base__july4_ctxPilot — the returned referenceId equalled
+# ``AsyncOperationTracker.Id`` exactly). The real per-node outcome lands on that
+# row's ``Response`` (JSON with ``savedNodes``/``skippedNodes``/``errorNodes`` on
+# success; a plain error string on failure) once ``Status`` reaches a terminal
+# value. Polling by Id is therefore deterministic — no "most recent row" heuristic.
+_PERSIST_TERMINAL_STATUSES = frozenset(
+    {"Completed", "CompletedWithFailures", "Failure"}
+)
+_PERSIST_FAILURE_STATUSES = frozenset({"CompletedWithFailures", "Failure"})
 
 
 # --------------------------------------------------------------------------- #
@@ -202,6 +216,83 @@ def build_persist_body(context_id: str, target_mapping_id: str) -> Dict[str, Any
     flat ``{contextId, targetMappingId}`` map.
     """
     return {"contextId": context_id, "targetMappingId": target_mapping_id}
+
+
+def build_persist_tracker_soql(reference_id: str) -> str:
+    """SOQL to look up the ``AsyncOperationTracker`` row for a persist ``referenceId``.
+
+    The persist ``referenceId`` **is** the tracker row Id (live-verified), so this
+    is a direct Id lookup — deterministic, no ``JobType``/``CreatedDate`` ordering
+    needed. ``reference_id`` is escaped for the single-quoted literal because it
+    reaches the query as free text from the persist response.
+    """
+    return (
+        "SELECT Id, Status, Response, JobType, CreatedDate "
+        "FROM AsyncOperationTracker "
+        f"WHERE Id = '{_client.soql_literal(reference_id)}'"
+    )
+
+
+def decode_persist_response(response: Any) -> Any:
+    """Parse an ``AsyncOperationTracker.Response`` value.
+
+    On a successful persist the ``Response`` is a JSON object
+    (``savedNodes``/``skippedNodes``/``errorNodes``); on a hard failure it is a
+    plain error string (e.g. *"An unexpected error occurred… ErrorId: …"*). Parse
+    JSON when it looks like JSON, otherwise return the raw value untouched so the
+    caller can surface the error text.
+    """
+    if isinstance(response, (dict, list)) or response is None:
+        return response
+    if isinstance(response, str):
+        stripped = response.strip()
+        if stripped[:1] in ("{", "["):
+            try:
+                return json.loads(stripped)
+            except (ValueError, TypeError):
+                return response
+    return response
+
+
+def summarize_persist_tracker(
+    row: Optional[Dict[str, Any]], *, timed_out: bool = False
+) -> Dict[str, Any]:
+    """Reduce an ``AsyncOperationTracker`` row to a persist-outcome summary.
+
+    Returns a dict with ``found``/``status``/``is_terminal``/``is_failure`` plus
+    the decoded ``saved``/``skipped``/``errors`` node maps and the ``raw_response``.
+    ``is_failure`` is ``None`` until the job is terminal; a terminal job is a
+    failure when its ``Status`` is a failure status **or** its ``errorNodes`` map
+    is non-empty (a ``Completed`` status with populated ``errorNodes`` is the
+    documented dirty-persist signature and must not read as success).
+    """
+    if not isinstance(row, dict):
+        return {
+            "found": False, "timed_out": timed_out, "status": None,
+            "is_terminal": False, "is_failure": None,
+            "saved": None, "skipped": None, "errors": None, "raw_response": None,
+        }
+    status = row.get("Status")
+    is_terminal = status in _PERSIST_TERMINAL_STATUSES
+    parsed = decode_persist_response(row.get("Response"))
+    saved = parsed.get("savedNodes") if isinstance(parsed, dict) else None
+    skipped = parsed.get("skippedNodes") if isinstance(parsed, dict) else None
+    errors = parsed.get("errorNodes") if isinstance(parsed, dict) else None
+    is_failure: Optional[bool] = None
+    if is_terminal:
+        is_failure = (status in _PERSIST_FAILURE_STATUSES) or bool(errors)
+    return {
+        "found": True,
+        "id": row.get("Id"),
+        "status": status,
+        "is_terminal": is_terminal,
+        "timed_out": timed_out and not is_terminal,
+        "is_failure": is_failure,
+        "saved": saved,
+        "skipped": skipped,
+        "errors": errors,
+        "raw_response": parsed,
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -391,8 +482,6 @@ def build_hydration_skeleton(
     top-level keys (each with its full subtree) — restrict to a subtree without
     hand-editing the whole payload.
     """
-    import _client  # local import to avoid a hard dep for pure-helper importers
-
     sobject_by_node = node_sobject_lookup(mapping)
 
     version = _client.active_version(detail)
@@ -441,8 +530,6 @@ def build_from_record_skeleton(
     so the caller can ask for ``--node``. Returns ``(skeleton_or_None,
     error_or_None)``.
     """
-    import _client  # local import — keep pure-helper importers free of the dep
-
     version = _client.active_version(detail)
     top_nodes = version.get("contextNodes") if isinstance(version, dict) else None
     top_nodes = [
@@ -523,6 +610,40 @@ class RuntimeContextClient:
         body = build_persist_body(context_id, target_mapping_id)
         return self.t.request("POST", ep.CONTEXT_PERSIST_RECORDS, body)
 
+    def confirm_persist(
+        self, reference_id: str, *,
+        poll_seconds: float = 30.0, interval_seconds: float = 2.0,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> Dict[str, Any]:
+        """Poll ``AsyncOperationTracker`` until the persist job is terminal.
+
+        ``persist-records`` is async — its synchronous ``referenceId`` is the Id
+        of the tracker row that carries the real outcome. Poll that row (a SOQL
+        read, so it runs even under a dry-run transport) until ``Status`` reaches
+        a terminal value or ``poll_seconds`` elapses, then return the summary from
+        :func:`summarize_persist_tracker`. A persist that "succeeded"
+        synchronously but wrote nothing (``errorNodes`` populated, or a ``Failure``
+        status) comes back with ``is_failure=True`` — the whole point of the poll.
+
+        ``sleep`` is injectable so unit tests can drive the loop without real time.
+        """
+        if not reference_id:
+            return summarize_persist_tracker(None)
+        soql = build_persist_tracker_soql(reference_id)
+        deadline = poll_seconds
+        elapsed = 0.0
+        last_row: Optional[Dict[str, Any]] = None
+        while True:
+            rows = self.t.soql(soql)
+            last_row = rows[0] if rows else None
+            summary = summarize_persist_tracker(last_row)
+            if summary["is_terminal"]:
+                return summary
+            if elapsed >= deadline:
+                return summarize_persist_tracker(last_row, timed_out=True)
+            sleep(interval_seconds)
+            elapsed += interval_seconds
+
     # ---- reads (ALWAYS execute, even under dry-run) ---------------------- #
 
     def query_record(self, *, context_id: str, children: bool = True,
@@ -593,6 +714,8 @@ class RuntimeSession:
             do_query: bool = False,
             query_spec: Optional[Dict[str, Any]] = None,
             persist_target_mapping_id: Optional[str] = None,
+            confirm_persist: bool = True,
+            persist_poll_seconds: float = 30.0,
             keep_instance: bool = False) -> Dict[str, Any]:
         """Execute the requested runtime lifecycle steps in order.
 
@@ -624,6 +747,16 @@ class RuntimeSession:
                     "skipping attribute/tag/query/persist/delete steps that need one."
                 )
                 return summary
+            # A create can return ``isSuccess:false`` (with or without a
+            # contextId) — do not proceed to query/persist an instance the
+            # platform reported as failed. Surface it and abort.
+            if isinstance(resp, dict) and resp.get("isSuccess") is False:
+                summary["create_failed"] = True
+                self.log(
+                    "Create returned isSuccess:false; aborting session. "
+                    f"Response: {json.dumps(resp)}"
+                )
+                return summary
             context_id = self._extract_context_id(resp)
             summary["created"] = bool(context_id)
             if not context_id:
@@ -650,9 +783,41 @@ class RuntimeSession:
                 context_id=context_id, **query_spec
             )
         if persist_target_mapping_id:
-            summary["persist"] = self.client.persist_records(
+            persist_resp = self.client.persist_records(
                 context_id=context_id, target_mapping_id=persist_target_mapping_id
             )
+            summary["persist"] = persist_resp
+            # persist-records is async — the referenceId is a tracker Id, not a
+            # success signal. Poll AsyncOperationTracker for the real outcome so a
+            # dirty persist (errorNodes / Failure) is not reported as success.
+            # Skipped under dry-run (no real persist ran → no tracker row).
+            if confirm_persist and not self.dry_run:
+                reference_id = (
+                    (persist_resp.get("referenceId") or persist_resp.get("id"))
+                    if isinstance(persist_resp, dict) else None
+                )
+                if reference_id:
+                    outcome = self.client.confirm_persist(
+                        reference_id, poll_seconds=persist_poll_seconds
+                    )
+                    summary["persist_outcome"] = outcome
+                    if outcome.get("is_failure"):
+                        self.log(
+                            "Persist FAILED per AsyncOperationTracker "
+                            f"(status={outcome.get('status')}): "
+                            f"{json.dumps(outcome.get('raw_response'), default=str)}"
+                        )
+                    elif outcome.get("timed_out"):
+                        self.log(
+                            "Persist still running after poll window "
+                            f"(status={outcome.get('status')}); confirm "
+                            f"AsyncOperationTracker Id={reference_id} manually."
+                        )
+                else:
+                    self.log(
+                        "Persist returned no referenceId; cannot confirm async "
+                        "outcome via AsyncOperationTracker."
+                    )
 
         # Evict the instance unless the caller wants to keep it or is operating on
         # a supplied (reused) id it did not create.

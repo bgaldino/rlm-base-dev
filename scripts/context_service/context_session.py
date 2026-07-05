@@ -61,6 +61,7 @@ from _runtime_cli import (  # noqa: E402
     add_data_args,
     add_mapping_source_args,
     load_records,
+    print_persist_outcome,
     resolve_mapping_id,
 )
 
@@ -143,6 +144,13 @@ def main(argv=None) -> int:
     parser.add_argument("--target-mapping-name",
                         help="Target mapping name for --persist (resolved against the "
                              "definition; default mapping if omitted).")
+    parser.add_argument("--no-confirm-persist", action="store_true",
+                        help="Skip the AsyncOperationTracker poll after --persist "
+                             "(report only the referenceId; do not wait for the "
+                             "async outcome).")
+    parser.add_argument("--persist-poll-seconds", type=float, default=30.0,
+                        help="Max seconds to poll AsyncOperationTracker for the "
+                             "persist outcome (default 30).")
     parser.add_argument("--keep", action="store_true",
                         help="Do not evict the created instance at the end.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
@@ -222,6 +230,8 @@ def main(argv=None) -> int:
             do_query=args.query,
             query_spec=query_spec,
             persist_target_mapping_id=persist_target_mapping_id,
+            confirm_persist=not args.no_confirm_persist,
+            persist_poll_seconds=args.persist_poll_seconds,
             keep_instance=args.keep,
         )
     except ContextClientError as exc:
@@ -243,6 +253,16 @@ def main(argv=None) -> int:
             persist = summary["persist"] or {}
             ref = persist.get("referenceId") if isinstance(persist, dict) else None
             eprint(f"persist referenceId: {ref}" if ref else f"persist: {persist}")
+            outcome = summary.get("persist_outcome")
+            if isinstance(outcome, dict):
+                print_persist_outcome(outcome)
+    # A confirmed persist failure is a non-zero exit — the tool exists to catch
+    # exactly this, so it must not report success on a dirty persist.
+    outcome = summary.get("persist_outcome")
+    if isinstance(outcome, dict) and outcome.get("is_failure"):
+        return 1
+    if summary.get("create_failed"):
+        return 1
     return 0
 
 

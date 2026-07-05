@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
+from _client import eprint
 from _resolve import fetch_detail, resolve_definition_id, resolve_mapping
 
 # One-line note printed by the standalone (non-session) scripts. A runtime
@@ -34,6 +35,42 @@ EXPERIMENTAL_BANNER = (
     "⚠️  EXPERIMENTAL / verify-live (262 / v67.0): runtime Context Service tooling "
     "is not build-critical and is not wired into any CCI flow."
 )
+
+
+def print_persist_outcome(outcome: dict) -> None:
+    """Report an AsyncOperationTracker-confirmed persist outcome to stderr.
+
+    Shared by ``context_session.py`` and ``persist_context_instance.py`` so both
+    describe a persist result the same way. ``outcome`` is the dict returned by
+    ``_runtime.summarize_persist_tracker``.
+    """
+    if not isinstance(outcome, dict):
+        return
+    if not outcome.get("found"):
+        if outcome.get("timed_out"):
+            eprint("persist outcome: tracker row not found within poll window "
+                   "(confirm AsyncOperationTracker manually).")
+        else:
+            eprint("persist outcome: no tracker row (outcome unconfirmed).")
+        return
+    status = outcome.get("status")
+    if outcome.get("is_failure"):
+        eprint(f"persist outcome: FAILED (status={status})")
+        errors = outcome.get("errors")
+        if errors:
+            eprint(f"  errorNodes: {json.dumps(errors, default=str)}")
+        raw = outcome.get("raw_response")
+        if not errors and isinstance(raw, str):
+            eprint(f"  response: {raw}")
+    elif outcome.get("timed_out"):
+        eprint(f"persist outcome: still running (status={status}) — not confirmed.")
+    else:
+        saved = outcome.get("saved") or {}
+        skipped = outcome.get("skipped") or []
+        n_saved = len(saved) if hasattr(saved, "__len__") else saved
+        n_skipped = len(skipped) if hasattr(skipped, "__len__") else skipped
+        eprint(f"persist outcome: OK (status={status}, "
+               f"savedNodes={n_saved}, skippedNodes={n_skipped}).")
 
 
 def add_data_args(parser) -> None:

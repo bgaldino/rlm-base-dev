@@ -303,6 +303,27 @@ class ContextApplier:
                             f"[shape-check] {verb} node-mappings: {v['path']} — "
                             f"{v['rule']}"
                         )
+                    # A shape violation on a PATCH is fatal, not advisory: this is
+                    # the whole-body-replace endpoint, so we have *already* folded
+                    # the existing sibling attribute-mappings into ``body`` via
+                    # ``_merge_existing_attribute_mappings``. Firing a PATCH the
+                    # platform rejects (JSON_PARSER_ERROR / INVALID_DEFINITION)
+                    # after that merge risks the silent sibling-loss the merge
+                    # exists to prevent — so refuse to send it and surface the
+                    # drift instead. POST has no siblings to lose and the platform
+                    # rejects a bad POST loudly, so those stay log-only.
+                    if verb == "PATCH" and violations:
+                        summary = "; ".join(
+                            f"{v['path']}: {v['rule']}" for v in violations
+                        )
+                        raise _client.ContextClientError(
+                            f"Refusing destructive node-mapping PATCH for "
+                            f"mappingId={context_mapping_id}: payload failed the "
+                            f"accept-shape pre-flight ({len(violations)} "
+                            f"violation(s)). The builder or projection has drifted "
+                            f"from the PATCH accept-shape; sending it could silently "
+                            f"drop sibling attribute-mappings. Violations: {summary}"
+                        )
                     self.log(f"{verb} {len(normalized)} node mapping(s) for "
                              f"mappingId={context_mapping_id}")
                     self.t.request(verb, nm_path, body)
