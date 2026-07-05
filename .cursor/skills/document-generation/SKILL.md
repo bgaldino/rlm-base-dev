@@ -106,22 +106,22 @@ create new templates, and download source or generated files.
 
 ```bash
 # List all templates in an org
-python scripts/ai/docgen/docgen_template_manage.py list --org dev-scratch
+python scripts/docgen/docgen_template_manage.py list --org dev-scratch
 
 # Show detail for a specific template
-python scripts/ai/docgen/docgen_template_manage.py status RLM_QuoteProposal --org dev-scratch
+python scripts/docgen/docgen_template_manage.py status RLM_QuoteProposal --org dev-scratch
 
 # Full replace lifecycle (deactivate → upload → reactivate)
-python scripts/ai/docgen/docgen_template_manage.py replace RLM_QuoteProposal template.docx --org dev-scratch
+python scripts/docgen/docgen_template_manage.py replace RLM_QuoteProposal template.docx --org dev-scratch
 
 # Download template source .docx
-python scripts/ai/docgen/docgen_template_manage.py download --template RLM_QuoteProposal --org dev-scratch -o out.docx
+python scripts/docgen/docgen_template_manage.py download --template RLM_QuoteProposal --org dev-scratch -o out.docx
 
 # Download generated output by ContentVersion ID (from DGP ResponseText)
-python scripts/ai/docgen/docgen_template_manage.py download --version-id 068XXXXXXXXXXXXAAA --org dev-scratch -o out.pdf
+python scripts/docgen/docgen_template_manage.py download --version-id 068XXXXXXXXXXXXAAA --org dev-scratch -o out.pdf
 
 # Create new template with ODT wiring
-python scripts/ai/docgen/docgen_template_manage.py create RLM_NewProposal template.docx --org dev-scratch \
+python scripts/docgen/docgen_template_manage.py create RLM_NewProposal template.docx --org dev-scratch \
   --extract-odt RLMQuoteProposalExtract --transform-odt RLMQuoteProposalTransform \
   --usage-type Revenue_Lifecycle_Management --activate
 ```
@@ -147,17 +147,17 @@ Lightning session needed). Works for both Extracts and Transforms:
 
 ```bash
 # Execute an Extract against a record
-python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch
+python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch
 
 # Execute a Transform (pass Extract output as input)
-python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalTransform --input extract_output.json --org dev-scratch
+python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalTransform --input extract_output.json --org dev-scratch
 
 # Pipeline: Extract → Transform (--json pipes output)
-python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json > /tmp/e.json
-python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalTransform --input /tmp/e.json --org dev-scratch
+python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json > /tmp/e.json
+python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalTransform --input /tmp/e.json --org dev-scratch
 
 # Full end-to-end document generation (DGP: Extract → Transform → .docx → PDF)
-python scripts/ai/docgen/docgen_template_generate.py \
+python scripts/docgen/docgen_template_generate.py \
   --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch
 ```
 
@@ -233,9 +233,9 @@ Use this for:
 ```
 
 **Testable at each stage:**
-- Stage 2: `python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch`
+- Stage 2: `python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch`
 - Stage 3: `sf api request rest --method POST --body @extract_output.json /services/data/v67.0/omnistudio/dataraptor/RLMQuoteProposalTransform --target-org dev-scratch`
-- Full pipeline: `python scripts/ai/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch`
+- Full pipeline: `python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch`
 
 ---
 
@@ -524,28 +524,28 @@ Extract + Transform ODTs with all items.
 
 ## Helper Scripts
 
-Scripts in `scripts/ai/docgen/` support document generation workflows.
-Install deps first: `pip install -r scripts/ai/docgen/requirements.txt`
+Scripts in `scripts/docgen/` support document generation workflows.
+Install deps first: `pip install -r scripts/docgen/requirements.txt`
 
 ```bash
 # ODT workflows are covered by ../odt-authoring/SKILL.md (docgen_odt_* commands).
 
 # Extract all mustache tokens from a .docx template
-python scripts/ai/docgen/docgen_template_extract_tokens.py template.docx
-python scripts/ai/docgen/docgen_template_extract_tokens.py template.docx --validate-transform RLMQuoteProposalTransform --org dev-scratch
+python scripts/docgen/docgen_template_extract_tokens.py template.docx
+python scripts/docgen/docgen_template_extract_tokens.py template.docx --validate-transform RLMQuoteProposalTransform --org dev-scratch
 
 # Build/modify .docx templates programmatically (requires python-docx)
 # NOTE: replace/audit operate on body + tables only — headers/footers NOT searched.
 # Use docgen_template_extract_tokens.py for full-template token inventory (includes headers/footers).
-python scripts/ai/docgen/docgen_template_build.py create layout.json --output template.docx
-python scripts/ai/docgen/docgen_template_build.py replace template.docx --tokens '{"Old": "New"}'
-python scripts/ai/docgen/docgen_template_build.py audit template.docx
-python scripts/ai/docgen/docgen_template_build.py --example > layout.json   # generate layout spec
+python scripts/docgen/docgen_template_build.py create layout.json --output template.docx
+python scripts/docgen/docgen_template_build.py replace template.docx --tokens '{"Old": "New"}'
+python scripts/docgen/docgen_template_build.py audit template.docx
+python scripts/docgen/docgen_template_build.py --example > layout.json   # generate layout spec
 
 # Full document generation (DGP): Extract → Transform → .docx → PDF
-python scripts/ai/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch
-python scripts/ai/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --no-convert  # .docx only
-python scripts/ai/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --title "Custom Name"
+python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch
+python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --no-convert  # .docx only
+python scripts/docgen/docgen_template_generate.py --record-id 0Q0XXXXXXXXXXXXAAA --template-id 2dtXXXXXXXXXXXXAAA --org dev-scratch --title "Custom Name"
 ```
 
 ---

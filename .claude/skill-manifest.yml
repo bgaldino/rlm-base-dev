@@ -215,21 +215,21 @@ foundations:
       purpose: "OmniDataTransform authoring, validation, hierarchy analysis, and execution patterns"
       consumed_by_pmos: []
       tooling:
-        - scripts/ai/docgen/docgen_odt_validate.py
-        - scripts/ai/docgen/docgen_odt_compare.py
-        - scripts/ai/docgen/docgen_odt_create.py
-        - scripts/ai/docgen/docgen_odt_execute.py
-        - scripts/ai/docgen/docgen_odt_inspect_hierarchy.py
+        - scripts/docgen/docgen_odt_validate.py
+        - scripts/docgen/docgen_odt_compare.py
+        - scripts/docgen/docgen_odt_create.py
+        - scripts/docgen/docgen_odt_execute.py
+        - scripts/docgen/docgen_odt_inspect_hierarchy.py
 
     - id: document-generation
       path: .cursor/skills/document-generation/SKILL.md
       purpose: "Document template (.docx) authoring, token extraction, template lifecycle, and end-to-end generation"
       consumed_by_pmos: []
       tooling:
-        - scripts/ai/docgen/docgen_template_extract_tokens.py
-        - scripts/ai/docgen/docgen_template_build.py
-        - scripts/ai/docgen/docgen_template_manage.py
-        - scripts/ai/docgen/docgen_template_generate.py
+        - scripts/docgen/docgen_template_extract_tokens.py
+        - scripts/docgen/docgen_template_build.py
+        - scripts/docgen/docgen_template_manage.py
+        - scripts/docgen/docgen_template_generate.py
 
   # CCI tasks that Foundations exposes for cross-repo workflows
   cci_tasks:

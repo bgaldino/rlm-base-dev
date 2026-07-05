@@ -370,25 +370,32 @@ python scripts/ai/pr_review.py status <pr>                  # Automated-PR-revie
 python scripts/ai/pr_review.py handle <pr> --comment <id> --body "…"   # reply + resolve one thread (👍 by default; --no-react to refute a false positive)
 python scripts/ai/pr_review.py verify <pr>                  # confirm 0 unresolved (paginated)
 python scripts/ai/check_plan_readme_consistency.py          # SFDMU plan README ↔ export.json/CSVs drift check (counts, ops, externalIds)
-python scripts/ai/docgen/docgen_odt_validate.py <name_or_id> --org <alias>      # Validate ODT items (null fields, duplicates, dot notation)
-python scripts/ai/docgen/docgen_odt_compare.py <source> <target> --org <alias>   # Diff two ODTs item-by-item
-python scripts/ai/docgen/docgen_odt_create.py spec.json --org <alias>             # Create ODT from JSON spec (--example extract|transform for templates)
-python scripts/ai/docgen/docgen_odt_inspect_hierarchy.py <name_or_id> --org <alias>  # Visualize Extract hierarchy tree + validate depth uniformity
-python scripts/ai/docgen/docgen_odt_execute.py <odt_name> --record-id <id> --org <alias>  # Execute Extract via REST API (--json, --count for modes)
-python scripts/ai/docgen/docgen_odt_execute.py <odt_name> --input extract.json --org <alias>  # Execute Transform (pass Extract output as input)
-python scripts/ai/docgen/docgen_template_extract_tokens.py template.docx          # List all {{mustache}} tokens in a .docx
-python scripts/ai/docgen/docgen_template_build.py create layout.json -o out.docx  # Build .docx from JSON layout (requires python-docx)
-python scripts/ai/docgen/docgen_template_generate.py --record-id <id> --template-id <id> --org <alias>  # Full doc generation (DGP): triggers Extract→Transform→render→PDF
-python scripts/ai/docgen/docgen_template_manage.py list --org <alias>             # List all DocumentTemplates (name, status, ODTs, usage type)
-python scripts/ai/docgen/docgen_template_manage.py status <name> --org <alias>    # Show template detail + ContentDocument info
-python scripts/ai/docgen/docgen_template_manage.py replace <name> <file> --org <alias>  # Full lifecycle: deactivate → upload binary → reactivate
-python scripts/ai/docgen/docgen_template_manage.py download --template <name> --org <alias> -o out.docx  # Download template source .docx
-python scripts/ai/docgen/docgen_template_manage.py download --version-id <068id> --org <alias> -o f.pdf  # Download any ContentVersion (DGP output, etc.)
 ```
 
 `scripts/ai/pr_review.py` executes the mechanical half of **Responding to Automated PR Reviews** (above); the `/pr-review <pr>` Claude command drives the full protocol with it.
 
 `scripts/ai/skill_manifest.py` is the resolver for the cross-repo skill manifest at `.claude/skill-manifest.yml` — see `.cursor/skills/pmos-integration/SKILL.md` for the integration pattern.
+
+### Document Generation Scripts
+
+Scripts in `scripts/docgen/` drive ODT (OmniDataTransform) and DocumentTemplate workflows. See `.cursor/skills/document-generation/SKILL.md`. Install deps first: `pip install -r scripts/docgen/requirements.txt`.
+
+```bash
+python scripts/docgen/docgen_odt_validate.py <name_or_id> --org <alias>      # Validate ODT items (null fields, duplicates, dot notation)
+python scripts/docgen/docgen_odt_compare.py <source> <target> --org <alias>   # Diff two ODTs item-by-item
+python scripts/docgen/docgen_odt_create.py spec.json --org <alias>             # Create ODT from JSON spec (--example extract|transform for templates)
+python scripts/docgen/docgen_odt_inspect_hierarchy.py <name_or_id> --org <alias>  # Visualize Extract hierarchy tree + validate depth uniformity
+python scripts/docgen/docgen_odt_execute.py <odt_name> --record-id <id> --org <alias>  # Execute Extract via REST API (--json, --count for modes)
+python scripts/docgen/docgen_odt_execute.py <odt_name> --input extract.json --org <alias>  # Execute Transform (pass Extract output as input)
+python scripts/docgen/docgen_template_extract_tokens.py template.docx          # List all {{mustache}} tokens in a .docx
+python scripts/docgen/docgen_template_build.py create layout.json -o out.docx  # Build .docx from JSON layout (requires python-docx)
+python scripts/docgen/docgen_template_generate.py --record-id <id> --template-id <id> --org <alias>  # Full doc generation (DGP): triggers Extract→Transform→render→PDF
+python scripts/docgen/docgen_template_manage.py list --org <alias>             # List all DocumentTemplates (name, status, ODTs, usage type)
+python scripts/docgen/docgen_template_manage.py status <name> --org <alias>    # Show template detail + ContentDocument info
+python scripts/docgen/docgen_template_manage.py replace <name> <file> --org <alias>  # Full lifecycle: deactivate → upload binary → reactivate
+python scripts/docgen/docgen_template_manage.py download --template <name> --org <alias> -o out.docx  # Download template source .docx
+python scripts/docgen/docgen_template_manage.py download --version-id <068id> --org <alias> -o f.pdf  # Download any ContentVersion (DGP output, etc.)
+```
 
 ### Schema Validation Scripts
 

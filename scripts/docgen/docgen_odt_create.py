@@ -6,12 +6,12 @@ Handles all item types: object queries, field mappings, pass-throughs,
 formulas, and array builders.
 
 Usage:
-  python scripts/ai/docgen/docgen_odt_create.py spec.json --org dev-scratch
-  python scripts/ai/docgen/docgen_odt_create.py spec.json --org dev-scratch --dry-run
+  python scripts/docgen/docgen_odt_create.py spec.json --org dev-scratch
+  python scripts/docgen/docgen_odt_create.py spec.json --org dev-scratch --dry-run
 
 Spec file format (see --example for a full template):
-  python scripts/ai/docgen/docgen_odt_create.py --example extract > my_extract_spec.json
-  python scripts/ai/docgen/docgen_odt_create.py --example transform > my_transform_spec.json
+  python scripts/docgen/docgen_odt_create.py --example extract > my_extract_spec.json
+  python scripts/docgen/docgen_odt_create.py --example transform > my_transform_spec.json
 """
 import argparse
 import json
@@ -281,7 +281,7 @@ def create_odt(spec, org, dry_run=False):
         if formula_items and not dry_run:
             _check_formula_converted(odt_id, org)
         print(f"\nNext steps:")
-        print(f"  1. Validate: python scripts/ai/docgen/docgen_odt_validate.py {odt_name} --org {org}")
+        print(f"  1. Validate: python scripts/docgen/docgen_odt_validate.py {odt_name} --org {org}")
         print(f"  2. Re-toggle if editing items later:")
         print(f"     sf api request rest --method PATCH --body @/tmp/p.json ...")
 

@@ -42,21 +42,21 @@ DocumentTemplate lifecycle, token rendering, or final output verification.
 
 After creating or editing an ODT:
 
-1. `python scripts/ai/docgen/docgen_odt_validate.py <name> --org <alias>` — catches
+1. `python scripts/docgen/docgen_odt_validate.py <name> --org <alias>` — catches
    null fields, duplicate sequences, dot-notation misuse
-2. `python scripts/ai/docgen/docgen_odt_inspect_hierarchy.py <name> --org <alias>` —
+2. `python scripts/docgen/docgen_odt_inspect_hierarchy.py <name> --org <alias>` —
    visualizes hierarchy tree, validates depth uniformity
-3. `python scripts/ai/docgen/docgen_odt_execute.py <name> --record-id <id> --org <alias>` —
+3. `python scripts/docgen/docgen_odt_execute.py <name> --record-id <id> --org <alias>` —
    runs Extract against live data; confirms output shape
 
 ## Canonical ODT Scripts
 
 ```bash
-python scripts/ai/docgen/docgen_odt_validate.py RLMQuoteProposalExtract --org dev-scratch
-python scripts/ai/docgen/docgen_odt_compare.py RLMQuoteProposalExtract RLMQuoteProposalExtractV2 --org dev-scratch
-python scripts/ai/docgen/docgen_odt_create.py spec.json --org dev-scratch
-python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch
-python scripts/ai/docgen/docgen_odt_inspect_hierarchy.py RLMQuoteProposalExtract --org dev-scratch
+python scripts/docgen/docgen_odt_validate.py RLMQuoteProposalExtract --org dev-scratch
+python scripts/docgen/docgen_odt_compare.py RLMQuoteProposalExtract RLMQuoteProposalExtractV2 --org dev-scratch
+python scripts/docgen/docgen_odt_create.py spec.json --org dev-scratch
+python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch
+python scripts/docgen/docgen_odt_inspect_hierarchy.py RLMQuoteProposalExtract --org dev-scratch
 ```
 
 ## Deep References

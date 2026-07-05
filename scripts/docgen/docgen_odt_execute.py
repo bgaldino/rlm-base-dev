@@ -9,16 +9,16 @@ making it suitable for CLI-based testing, CI validation, and agent
 automation. Works for both Extract and Transform ODTs.
 
 Usage (Extract — queries org data):
-  python scripts/ai/docgen/docgen_odt_execute.py <odt_name> --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch
-  python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json
+  python scripts/docgen/docgen_odt_execute.py <odt_name> --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch
+  python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json
 
 Usage (Transform — reshapes JSON input):
-  python scripts/ai/docgen/docgen_odt_execute.py <odt_name> --input extract_output.json --org dev-scratch
-  python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalTransform --input /tmp/extract.json --org dev-scratch
+  python scripts/docgen/docgen_odt_execute.py <odt_name> --input extract_output.json --org dev-scratch
+  python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalTransform --input /tmp/extract.json --org dev-scratch
 
 Pipeline (Extract → Transform):
-  python scripts/ai/docgen/docgen_odt_execute.py MyExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json > /tmp/e.json
-  python scripts/ai/docgen/docgen_odt_execute.py MyTransform --input /tmp/e.json --org dev-scratch
+  python scripts/docgen/docgen_odt_execute.py MyExtract --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json > /tmp/e.json
+  python scripts/docgen/docgen_odt_execute.py MyTransform --input /tmp/e.json --org dev-scratch
 
 Options:
   --json      Output raw JSON response (for piping to jq or other tools)

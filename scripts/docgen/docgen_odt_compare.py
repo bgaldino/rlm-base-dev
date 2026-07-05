@@ -5,8 +5,8 @@ Useful for debugging cloned ODTs or verifying a new ODT matches
 its source after modifications.
 
 Usage:
-  python scripts/ai/docgen/docgen_odt_compare.py <source_name_or_id> <target_name_or_id> --org dev-scratch
-  python scripts/ai/docgen/docgen_odt_compare.py BillingDocumentGenerationGetInvoiceDetails RLMInvoiceGetDetails --org dev-scratch
+  python scripts/docgen/docgen_odt_compare.py <source_name_or_id> <target_name_or_id> --org dev-scratch
+  python scripts/docgen/docgen_odt_compare.py BillingDocumentGenerationGetInvoiceDetails RLMInvoiceGetDetails --org dev-scratch
 """
 import argparse
 import json

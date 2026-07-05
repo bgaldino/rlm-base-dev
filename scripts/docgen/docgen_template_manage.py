@@ -5,16 +5,16 @@ Supports the full template lifecycle: list, inspect, activate/deactivate,
 upload/replace binary, create new templates, and download source or output files.
 
 Usage:
-  python scripts/ai/docgen/docgen_template_manage.py list --org dev-scratch
-  python scripts/ai/docgen/docgen_template_manage.py status RLM_QuoteProposal --org dev-scratch
-  python scripts/ai/docgen/docgen_template_manage.py deactivate RLM_QuoteProposal --org dev-scratch
-  python scripts/ai/docgen/docgen_template_manage.py activate RLM_QuoteProposal --org dev-scratch
-  python scripts/ai/docgen/docgen_template_manage.py upload RLM_QuoteProposal template.docx --org dev-scratch
-  python scripts/ai/docgen/docgen_template_manage.py replace RLM_QuoteProposal template.docx --org dev-scratch
-  python scripts/ai/docgen/docgen_template_manage.py create RLM_NewTemplate template.docx --org dev-scratch --extract-odt RLMQuoteProposalExtract --transform-odt RLMQuoteProposalTransform --activate
-  python scripts/ai/docgen/docgen_template_manage.py update RLM_QuoteProposal --org dev-scratch --extract-odt RLMQuoteProposalExtractV2
-  python scripts/ai/docgen/docgen_template_manage.py download --template RLM_QuoteProposal --org dev-scratch --output template.docx
-  python scripts/ai/docgen/docgen_template_manage.py download --version-id 068XXXXXXXXXXXXAAA --org dev-scratch --output output.pdf
+  python scripts/docgen/docgen_template_manage.py list --org dev-scratch
+  python scripts/docgen/docgen_template_manage.py status RLM_QuoteProposal --org dev-scratch
+  python scripts/docgen/docgen_template_manage.py deactivate RLM_QuoteProposal --org dev-scratch
+  python scripts/docgen/docgen_template_manage.py activate RLM_QuoteProposal --org dev-scratch
+  python scripts/docgen/docgen_template_manage.py upload RLM_QuoteProposal template.docx --org dev-scratch
+  python scripts/docgen/docgen_template_manage.py replace RLM_QuoteProposal template.docx --org dev-scratch
+  python scripts/docgen/docgen_template_manage.py create RLM_NewTemplate template.docx --org dev-scratch --extract-odt RLMQuoteProposalExtract --transform-odt RLMQuoteProposalTransform --activate
+  python scripts/docgen/docgen_template_manage.py update RLM_QuoteProposal --org dev-scratch --extract-odt RLMQuoteProposalExtractV2
+  python scripts/docgen/docgen_template_manage.py download --template RLM_QuoteProposal --org dev-scratch --output template.docx
+  python scripts/docgen/docgen_template_manage.py download --version-id 068XXXXXXXXXXXXAAA --org dev-scratch --output output.pdf
 """
 import argparse
 import base64

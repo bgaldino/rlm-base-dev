@@ -10,9 +10,9 @@ Checks for:
   - Items with empty required fields
 
 Usage:
-  python scripts/ai/docgen/docgen_odt_validate.py <odt_name_or_id> --org dev-scratch
-  python scripts/ai/docgen/docgen_odt_validate.py RLMInvoiceGetDetails --org dev-scratch
-  python scripts/ai/docgen/docgen_odt_validate.py 0jIXXXXXXXXXXXXAAA --org dev-scratch
+  python scripts/docgen/docgen_odt_validate.py <odt_name_or_id> --org dev-scratch
+  python scripts/docgen/docgen_odt_validate.py RLMInvoiceGetDetails --org dev-scratch
+  python scripts/docgen/docgen_odt_validate.py 0jIXXXXXXXXXXXXAAA --org dev-scratch
 """
 import argparse
 import json

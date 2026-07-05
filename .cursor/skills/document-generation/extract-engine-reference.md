@@ -314,7 +314,7 @@ data actually exists at that depth.
 parent-child array grouping — the engine flattens everything into
 one-entry-per-child.
 
-**Validation:** Run `python scripts/ai/docgen/docgen_odt_inspect_hierarchy.py`
+**Validation:** Run `python scripts/docgen/docgen_odt_inspect_hierarchy.py`
 to detect mixed-depth violations automatically.
 
 ### Mixed Depth — When It's Safe vs Dangerous (Live-Verified)
@@ -453,11 +453,11 @@ FK field on the pivot) are always safe regardless of depth mixing.
   `Pivot:UsageResourceId`). Pattern: "resolve this FK to its target record."
 
 **Automated validation:**
-- `python scripts/ai/docgen/docgen_odt_inspect_hierarchy.py` — static analysis
+- `python scripts/docgen/docgen_odt_inspect_hierarchy.py` — static analysis
   using the FilterValue heuristic (HIGH = child-of, LOW = all FK lookups)
-- `python scripts/ai/docgen/docgen_odt_execute.py` — live execution to
+- `python scripts/docgen/docgen_odt_execute.py` — live execution to
   empirically verify actual output entry count for any Extract + record
-- `python scripts/ai/docgen/docgen_template_generate.py` — full end-to-end
+- `python scripts/docgen/docgen_template_generate.py` — full end-to-end
   generation (Extract → Transform → .docx → PDF) for template testing
 
 ### Filtering to "Only Parents That Have Children" (No Subquery Support)
@@ -645,11 +645,11 @@ sf api request rest --method POST \
 
 **Helper script (wraps the above with summary/count/json modes):**
 ```bash
-python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract \
+python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract \
   --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch
-python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract \
+python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract \
   --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json
-python scripts/ai/docgen/docgen_odt_execute.py RLMQuoteProposalExtract \
+python scripts/docgen/docgen_odt_execute.py RLMQuoteProposalExtract \
   --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --count
 ```
 
@@ -691,7 +691,7 @@ this is automatic. For standalone testing, pass the Extract output directly:
 
 ```bash
 # Step 1: Execute Extract
-python scripts/ai/docgen/docgen_odt_execute.py MyExtract \
+python scripts/docgen/docgen_odt_execute.py MyExtract \
   --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json > /tmp/extract_output.json
 
 # Step 2: Pass Extract output to Transform
@@ -920,14 +920,14 @@ Output: {"Products": [{"Label": "W"}]}
 
 ```bash
 # Full pipeline test (Extract → Transform → verify output)
-python scripts/ai/docgen/docgen_odt_execute.py MyExtract \
+python scripts/docgen/docgen_odt_execute.py MyExtract \
   --record-id 0Q0XXXXXXXXXXXXAAA --org dev-scratch --json > /tmp/extract.json
 
-python scripts/ai/docgen/docgen_odt_execute.py MyTransform \
+python scripts/docgen/docgen_odt_execute.py MyTransform \
   --input /tmp/extract.json --org dev-scratch
 
 # With --json for raw output, --count for quick validation
-python scripts/ai/docgen/docgen_odt_execute.py MyTransform \
+python scripts/docgen/docgen_odt_execute.py MyTransform \
   --input /tmp/extract.json --org dev-scratch --json
 ```
 

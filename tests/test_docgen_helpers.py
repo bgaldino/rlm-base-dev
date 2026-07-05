@@ -1,4 +1,4 @@
-"""Unit tests for pure-logic helpers in scripts/ai/docgen/.
+"""Unit tests for pure-logic helpers in scripts/docgen/.
 
 Tests functions that don't require org access — hierarchy analysis,
 depth computation, pivot detection, array root extraction, SOQL escaping,
@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 # Add docgen scripts to path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts" / "ai" / "docgen"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts" / "docgen"))
 
 from _soql import soql_escape
 
