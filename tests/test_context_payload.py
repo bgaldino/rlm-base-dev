@@ -125,6 +125,97 @@ def _traversal_get():
     }
 
 
+def _from_scratch_get():
+    """A GET for a from-scratch custom definition (no baseReference).
+
+    Author-chosen node/attribute/tag names that do NOT end with ``__c`` — this is
+    legal for a create-new definition (nothing is inherited), and the exported
+    plan must re-lint clean, which requires ``create: true`` in the output.
+    """
+    return {
+        "developerName": "RLM_CtxTest_AccountContact",
+        "isActive": True,
+        "baseReference": None,
+        "label": "RLM CtxTest Account Contact",
+        "description": "From-scratch Account+Contact test definition.",
+        "contextDefinitionVersionList": [
+            {
+                "isActive": True,
+                "contextNodes": [
+                    {
+                        "name": "Account",
+                        "contextNodeId": "11oA",
+                        "contextAttributes": [
+                            {"name": "AccountName", "contextAttributeId": "11nA",
+                             "dataType": "STRING", "fieldType": "INPUTOUTPUT"},
+                        ],
+                        "childNodes": [
+                            {
+                                "name": "Contact",
+                                "contextNodeId": "11oC",
+                                "parentNodeName": "Account",
+                                "contextAttributes": [
+                                    {"name": "ContactLastName", "contextAttributeId": "11nC",
+                                     "dataType": "STRING", "fieldType": "INPUTOUTPUT"},
+                                ],
+                                "childNodes": [],
+                            }
+                        ],
+                    }
+                ],
+                "contextMappings": [
+                    {
+                        "name": "AccountContactMapping",
+                        "isDefault": True,
+                        "contextNodeMappings": [
+                            {
+                                "contextNodeName": "Account",
+                                "sObjectName": "Account",
+                                "attributeMappings": [
+                                    {
+                                        "contextAttributeName": "AccountName",
+                                        "contextAttrHydrationDetailList": [
+                                            {"sObjectDomain": "Account",
+                                             "queryAttribute": "Name"}
+                                        ],
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+
+
+def _extension_get():
+    """A GET for a definition that EXTENDS a standard base (baseReference set)."""
+    return {
+        "developerName": "RLM_SalesTransactionContext",
+        "isActive": True,
+        "baseReference": "SalesTransactionContext__stdctx",
+        "description": "Extension of Standard Sales Transaction Context Definition",
+        "contextDefinitionVersionList": [
+            {
+                "isActive": True,
+                "contextNodes": [
+                    {
+                        "name": "SalesTransactionItem",
+                        "contextNodeId": "11oS",
+                        "contextAttributes": [
+                            {"name": "CtxTestFlag__c", "contextAttributeId": "11nS",
+                             "dataType": "STRING", "fieldType": "INPUTOUTPUT"},
+                        ],
+                        "childNodes": [],
+                    }
+                ],
+                "contextMappings": [],
+            }
+        ],
+    }
+
+
 # ----------------------------------------------------------------------
 # _payload — build_create_payload allow-list
 # ----------------------------------------------------------------------
@@ -296,6 +387,89 @@ def test_model_to_plan_output_lints_clean():
         "patch delta lints with 0 errors",
         not result.errors,
     )
+
+
+# ----------------------------------------------------------------------
+# _model — from-scratch export emits create:true and lints clean
+# ----------------------------------------------------------------------
+
+def test_from_scratch_export_sets_create_true():
+    model = _model.normalize_definition(_from_scratch_get())
+    check("model captures absent baseReference as None",
+          model.get("baseReference") is None)
+    plan = _model.model_to_plan(model)  # whole export (include=None)
+    check("from-scratch whole export sets create:true",
+          plan.get("create") is True)
+    check("from-scratch export carries label for the create name source",
+          plan.get("label") == "RLM CtxTest Account Contact")
+    check("from-scratch export carries description",
+          plan.get("description") == "From-scratch Account+Contact test definition.")
+    check("from-scratch export emits author-named node definitions",
+          any(n.get("name") == "Contact" and n.get("parentNodeName") == "Account"
+              for n in (plan.get("contextNodeDefinitions") or [])))
+
+
+def test_from_scratch_export_lints_clean():
+    # The bug: without create:true the exported plan re-lints as an additive plan
+    # against a standard base, firing false __c-suffix errors on author-named
+    # nodes/attrs/tags (e.g. AccountName, ContactLastName). With create:true the
+    # validator's _is_create_new() suppresses the suffix rule and the plan lints
+    # clean — closing the export -> lint -> apply round trip.
+    sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "context_service"))
+    import validate_context_plan as V
+
+    model = _model.normalize_definition(_from_scratch_get())
+    plan = _model.model_to_plan(model)
+    plan.pop("_caveats", None)
+    result = V.PlanResult(path="<from-scratch>")
+    V._validate_plan_object(plan, result, "from-scratch")
+    check("from-scratch export lints with 0 errors (create:true suppresses __c rule)",
+          not result.errors)
+
+
+def test_patch_delta_never_sets_create_true():
+    # patch_context passes an include dict (even for a from-scratch source) — the
+    # emitted delta is additive against an existing definition and must never
+    # carry create:true, else re-applying it would try to re-create the def.
+    model = _model.normalize_definition(_from_scratch_get())
+    plan = _model.model_to_plan(
+        model,
+        include={"nodes": set(), "attributes": {"Account.AccountName"},
+                 "mappings": set(), "tags": set()},
+    )
+    check("patch delta from a from-scratch source does NOT set create:true",
+          "create" not in plan)
+    check("patch delta does not leak label/description",
+          "label" not in plan and "description" not in plan)
+
+
+def test_empty_patch_delta_not_treated_as_whole_export():
+    # An empty include ({} with all-empty sets) is a no-delta patch, NOT a whole
+    # export — it must not gain create:true. Guards the include-is-None vs
+    # include-is-empty distinction in model_to_plan.
+    model = _model.normalize_definition(_from_scratch_get())
+    plan = _model.model_to_plan(
+        model,
+        include={"nodes": set(), "attributes": set(),
+                 "mappings": set(), "tags": set()},
+    )
+    check("empty patch include does not set create:true",
+          "create" not in plan)
+
+
+def test_full_extension_export_flags_caveat():
+    # A full (non custom-only) export of an extension emits inherited standard
+    # artifacts and is not directly appliable; model_to_plan flags it as a caveat
+    # rather than emitting create:true.
+    model = _model.normalize_definition(_extension_get())
+    check("model captures baseReference for an extension",
+          model.get("baseReference") == "SalesTransactionContext__stdctx")
+    plan = _model.model_to_plan(model)  # whole export
+    check("full extension export does NOT set create:true",
+          "create" not in plan)
+    caveats = plan.get("_caveats") or []
+    check("full extension export flags a not-appliable caveat",
+          any("not directly appliable" in c for c in caveats))
 
 
 # ----------------------------------------------------------------------

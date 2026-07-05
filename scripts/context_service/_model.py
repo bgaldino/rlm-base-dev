@@ -143,6 +143,13 @@ def normalize_definition(defn: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "developerName": defn.get("developerName") or defn.get("DeveloperName"),
         "isActive": _as_bool(is_active),
+        # Top-level baseReference distinguishes a from-scratch custom definition
+        # (None) from one that extends a standard base (e.g.
+        # "SalesTransactionContext__stdctx"). ``model_to_plan`` uses this to decide
+        # whether a whole-definition export should carry ``create: true``.
+        "baseReference": defn.get("baseReference") or None,
+        "label": defn.get("label"),
+        "description": defn.get("description"),
         "nodes": nodes,
         "attributes": attributes,
         "mappings": mappings,
@@ -330,6 +337,12 @@ def model_to_plan(
     surface it to the user separately.
     """
     model = model or {}
+    # A whole-definition export passes ``include=None`` (emit everything); a
+    # ``patch_context`` delta always passes an ``include`` dict (even an empty
+    # one when nothing drifted). Capture that distinction *before* the ``or {}``
+    # collapse, so the create-new detection below never misreads a no-delta patch
+    # as a whole export.
+    whole_export = include is None
     include = include or {}
 
     def _wanted(category: str, key: str) -> bool:
@@ -388,6 +401,35 @@ def model_to_plan(
         })
 
     plan: Dict[str, Any] = {"developerName": model.get("developerName")}
+
+    # Create-new vs extend detection — only meaningful for a *whole-definition*
+    # export (``include is None``). A ``patch_context`` delta always passes an
+    # ``include`` and must never carry ``create: true`` (it is additive against an
+    # existing definition). A from-scratch custom definition has no top-level
+    # ``baseReference``; an extension of a standard base does. Without
+    # ``create: true`` the emitted plan re-lints as an additive plan against a
+    # standard base, which wrongly enforces the ``__c`` suffix rule on the
+    # definition's author-chosen node/attribute/tag names.
+    base_reference = model.get("baseReference")
+    if whole_export and not base_reference:
+        plan["create"] = True
+        # Give the create payload a clean name source (``build_create_payload``
+        # derives ``name`` from label/name/developerName).
+        if model.get("label"):
+            plan["label"] = model["label"]
+        if model.get("description"):
+            plan["description"] = model["description"]
+    elif whole_export and base_reference:
+        # A full export of an *extension* cannot faithfully round-trip: it emits
+        # the inherited standard artifacts, which cannot be re-created against the
+        # base. Flag it rather than pretend the output is directly appliable —
+        # ``--custom-only`` is the appliable form for an extension.
+        caveats.append(
+            f"Full export of an extension of '{base_reference}' includes inherited "
+            f"standard artifacts and is not directly appliable; re-export with "
+            f"--custom-only to emit only the custom (__c) layer."
+        )
+
     if node_defs:
         plan["contextNodeDefinitions"] = node_defs
     if attrs_by_name:
