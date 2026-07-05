@@ -38,7 +38,7 @@ lifecycle** (see the roadblock table).
 | `POST /contexts/query-tags-leaner` | ✅ works | Pilot gate lifted — returns tag values by name |
 | `PATCH /contexts/attributes` | ✅ accepted | Flat body `{contextId, nodePathAndAttributes}` — NOT the `updateContextAttributesInput` wrapper |
 | `PATCH /contexts/write-through-tags` | ✅ accepted | Flat body `{contextId, nodePathAndTagValues}` |
-| `POST /contexts/persist-records` | ✅ reaches tracker | Flat body `{contextId, targetMappingId}` — returns `referenceId` (16P) |
+| `POST /contexts/persist-records` | ✅ end-to-end | Flat body `{contextId, targetMappingId}` — returns `referenceId` (16P) that **equals the `AsyncOperationTracker.Id`**. Both a no-op persist (`savedNodes={}`, OK) and a **dirty** persist (`Status=Completed` + populated `errorNodes`, FAILED) reproduced live over this REST path — see *Persistence* |
 | `DELETE /contexts/{id}` | ✅ works | Evicts the session-scoped instance |
 
 **CLI flag:** `--context-scope SESSION` on `context_session.py` / `create_context_instance.py`.
@@ -482,16 +482,43 @@ or within a single request.
 >    CometD to read it.
 > 2. **`AsyncOperationTracker`** (SOQL-queryable! prefix `16P`, `queryable=true`) —
 >    **this is THE diagnostic; read it first.** Every persist writes a row with
->    `JobType='ContextPersistence'`, `Status='Completed'`, and a **`Response`** long-text
+>    `JobType='ContextPersistence'`, a `Status`, and a **`Response`** long-text
 >    field holding the node-level breakdown:
 >    `{"contextDefinitionId","graphId","savedNodes":{…},"skippedNodes":[…recordIds…],"errorNodes":{"<recordId>":"<full DML error>"}}`.
+>    **The returned `referenceId` IS the tracker's `Id` — exactly, not a
+>    correlation key** (live-verified 2026-07-05, `rlm-base__july4_ctxPilot`). So
+>    poll it deterministically by primary key, not with a "most-recent-row"
+>    heuristic:
 >    ```bash
->    sf data query --query "SELECT AsyncOperationNumber,Status,Response FROM AsyncOperationTracker WHERE JobType='ContextPersistence' ORDER BY CreatedDate DESC LIMIT 5" --target-org <sf-alias>
+>    sf data query --query "SELECT Id,Status,Response FROM AsyncOperationTracker WHERE Id = '16P…referenceId…'" --target-org <sf-alias>
 >    ```
->    `savedNodes` = written; `skippedNodes` = eligible-but-DML-skipped; `errorNodes` =
->    recordId → the exact error. **So: never treat a returned `referenceId` as
->    confirmation — read `AsyncOperationTracker.Response` (detail) and/or
->    `ContextPersistenceEvent.HasErrors` (boolean), plus re-query the target SObject.**
+>    `Status` picklist: `Submitted` / `InProgress` / `Completed` /
+>    `CompletedWithFailures` / `Failure` (the first two are non-terminal — keep
+>    polling). `savedNodes` = written; `skippedNodes` = eligible-but-DML-skipped;
+>    `errorNodes` = recordId → the exact error. **So: never treat a returned
+>    `referenceId` as confirmation — read `AsyncOperationTracker.Response` (detail)
+>    and/or `ContextPersistenceEvent.HasErrors` (boolean), plus re-query the target
+>    SObject.**
+>
+> **⚠ A dirty persist reports `Status='Completed'` WITH a populated `errorNodes`
+> — "Completed" alone is NOT success.** Live-reproduced 2026-07-05 (SESSION-scope
+> REST, `QuoteEntitiesMapping`, a 1-line quote with `Quantity` edited on the QLI
+> node): `Status='Completed'`, `savedNodes={}`, `skippedNodes=[<qliId>]`, and
+> `errorNodes={<qliId>: "Unable to create/update fields: TotalPrice, Subtotal,
+> NetUnitPrice, Product2Id, PricebookEntryId, …"}`. So the failure test is
+> **`Status ∈ {CompletedWithFailures, Failure}` OR `errorNodes` non-empty** — a
+> populated `errorNodes` on a `Completed` row is still a failure. This is exactly
+> what `_runtime.summarize_persist_tracker` computes (`is_failure`).
+>
+> **The runtime scripts now confirm this for you (2026-07-05).**
+> `context_session.py --persist` and `persist_context_instance.py` poll the
+> tracker by `Id` after persist (`_runtime.confirm_persist`), print
+> `persist outcome: OK …` / `persist outcome: FAILED …`, and **exit non-zero on a
+> confirmed failure** — so a dirty persist no longer reports success. Control the
+> poll with `--persist-poll-seconds` / `--poll-seconds` (default 30) and opt out
+> with `--no-confirm-persist` / `--no-confirm` (reports only the `referenceId`).
+> `create_context_instance.py` / the session likewise abort (non-zero, no
+> `contextId` emitted) when create returns `isSuccess:false`.
 
 > **⚠ Persist SKIPS a clean record and REJECTS a dirty record whose node carries
 > non-updateable fields.** Two distinct outcomes, both visible in the tracker
@@ -613,9 +640,14 @@ scratch org with an active definition (e.g. `RLM_SalesTransactionContext`):
    normal org expect `API_DISABLED_FOR_ORG` on the query (see "The REST endpoints
    resolve" above) and/or a not-found `contextId` between calls; fall back to the
    Apex path to validate hydration.
-3. Add `--persist --target-mapping-name <mapping>` → returns a `referenceId`;
-   confirm the scalar attributes wrote back to the mapped SObject (note the FK
-   caveat, and read `AsyncOperationTracker`). Also pilot/reuse-gated.
+3. Add `--persist --target-mapping-name <mapping>` → the script polls
+   `AsyncOperationTracker` by the returned `referenceId` (== the tracker `Id`) and
+   reports `persist outcome: OK/FAILED`, exiting non-zero on a confirmed failure.
+   Confirm the scalar attributes wrote back to the mapped SObject (note the FK
+   caveat). A **no-op** persist (id-only hydrate → persist unchanged) reports OK
+   with `savedNodes={}`; a **dirty** persist through `QuoteEntitiesMapping`
+   (`--update-attr <parentId>.<qliId> Quantity N`) reports FAILED with populated
+   `errorNodes`. Also pilot/reuse-gated (SESSION scope for the REST path).
 4. `list_context_interfaces.py` → lists interfaces; `--interface <name>` → one.
    (Not gated — a plain Connect GET.)
 5. **Apex validation (the reliable path on a normal org):** run the

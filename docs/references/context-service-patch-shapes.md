@@ -66,6 +66,16 @@ an existing sibling row is interpreted as a request to delete that sibling
 (the platform still returns `isSuccess: true`). Live-verified silent-destroy
 on active versions.
 
+> **Two-layer guard in `_apply.py`.** (1) `_merge_existing_attribute_mappings`
+> folds every existing non-inherited sibling back into the body so the
+> whole-body-replace endpoint sees a complete child set. (2) The accept-shape
+> pre-flight (`validate_node_mapping_patch_shape`) now **blocks a PATCH** whose
+> body fails validation, raising `ContextClientError` before the wire — because
+> we have *already* merged siblings into that body, and firing a payload the
+> platform rejects after the merge risks the exact silent sibling-loss the merge
+> exists to prevent. A **POST** stays log-only (no siblings to lose; the platform
+> rejects a bad POST loudly).
+
 **Body:**
 
 ```json
@@ -239,7 +249,7 @@ Live-verified on an active version (v67.0).
 
 | Endpoint                                                                    | On active           | Notes                                                                 |
 |-----------------------------------------------------------------------------|---------------------|-----------------------------------------------------------------------|
-| Connect `PATCH context-mappings/{id}/context-node-mappings` (attr-mappings) | ⚠ SILENTLY DESTRUCTIVE | `isSuccess:true` + wipes sibling `ContextAttributeMapping` rows not re-emitted. **Mitigated** by the sibling-merge in `_apply.py`. |
+| Connect `PATCH context-mappings/{id}/context-node-mappings` (attr-mappings) | ⚠ SILENTLY DESTRUCTIVE | `isSuccess:true` + wipes sibling `ContextAttributeMapping` rows not re-emitted. **Mitigated** by the sibling-merge in `_apply.py`, and a shape-violation now **blocks the PATCH** (raises before the wire; POST stays log-only). |
 | Connect `PATCH context-definitions/{id}/context-mappings` (mapping metadata) | BLOCKED             | `RECORD_UPDATE_FAILED`. Deactivate first.                             |
 | SObject REST `PATCH sobjects/ContextAttribute/{id}` (`IsTransient`)          | BLOCKED             | `RECORD_UPDATE_FAILED`. Deactivate first.                             |
 | SObject REST `PATCH sobjects/ContextNodeMapping/{id}` (`MappedContextDefinition`) | ALLOWED         | Silent success.                                                       |
@@ -306,6 +316,11 @@ Every error below was observed live against the mutation endpoints. `<field>` /
 - **Active-version guard:** `_guard_active_for_patch` in `_apply.py` — routes
   the two Connect/SObject PATCH hazard points through a deactivate-first
   wrapper when `deactivate_before=True` was passed to `apply_plan`.
+- **Destructive-PATCH block:** in `_apply_mapping_updates` (`_apply.py`), a
+  non-empty shape-check `violations` list on `verb == "PATCH"` raises
+  `ContextClientError` before `self.t.request(verb, …)` — refusing to fire a
+  post-merge body the platform would reject. POST-verb violations remain
+  log-only.
 
 ---
 
@@ -371,7 +386,13 @@ design-time definition-management PATCHes above. All are flat (no wrapper object
 ```
 
 - Flat — **NOT** wrapped in `contextPersistInput`.
-- Returns `{"referenceId": "16P…"}` (async; confirm via `AsyncOperationTracker`).
+- Returns `{"referenceId": "16P…"}` (async). **The `referenceId` IS the
+  `AsyncOperationTracker.Id`** (exact equality, live-verified 2026-07-05) — poll
+  `SELECT Id,Status,Response FROM AsyncOperationTracker WHERE Id = '<referenceId>'`.
+  A dirty persist returns `Status='Completed'` **with** a populated `errorNodes`,
+  so "Completed" alone is not success. `persist_context_instance.py` /
+  `context_session.py --persist` poll this automatically and exit non-zero on a
+  confirmed failure (see `runtime-and-persistence.md` → Persistence).
 
 ### `POST /connect/contexts` — create (hydrate)
 

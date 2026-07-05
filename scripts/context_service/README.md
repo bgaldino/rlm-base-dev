@@ -227,9 +227,14 @@ python scripts/context_service/diff_context.py ... --json   # structured output
 **plan-vs-org is directional.** Repo plans are *additive* (they declare only
 what they add onto a standard/extended base), so `+ (only in org)` items are
 usually **inherited** base artifacts, not drift; `- (only in plan)` items are
-the real signal that the plan is unapplied. CONTEXT-to-CONTEXT sources are
-compared by raw `mappedContextDefinitionId` (not resolved to a developerName) —
-confirm an apparent ID mismatch with `describe_context.py`.
+the real signal that the plan is unapplied. **CONTEXT-to-CONTEXT sources** are
+compared on their SObject + hydration hop only; the CONTEXT reference itself
+(`mappedContextDefinitionId`, an `11O…` ID org-side vs a usually-empty
+developerName plan-side) is **excluded from equality** — including it flagged
+every CONTEXT mapping as perpetually `~ changed`. It is kept for display on a row
+that changed for a real reason. *Limitation:* a *changed* CONTEXT source is not
+detected, only its presence/absence — confirm CONTEXT sources with
+`describe_context.py`.
 
 ## `patch_context.py` — extract a diff into an applicable patch (read-only)
 
@@ -478,26 +483,33 @@ namespace** from attribute names (attr `Quantity` → tag `LineItemQuantity`);
 `list_context_interfaces.py` is *not* gated (plain Connect GET).
 
 **Debugging a persist (`persist_context_instance.py` / `context_session.py --persist`):**
-persist is **asynchronous** — the returned `referenceId` is not confirmation. The
-per-record outcome is in **`AsyncOperationTracker`** (SOQL-queryable, richer than
-the `ContextPersistenceEvent.HasErrors` boolean):
+persist is **asynchronous** — the returned `referenceId` is not confirmation. Both
+scripts now **poll `AsyncOperationTracker` for you** (by `Id` — the `referenceId`
+**equals** the tracker `Id`, live-verified) and print `persist outcome: OK` /
+`persist outcome: FAILED`, **exiting non-zero on a confirmed failure**. Tune with
+`--persist-poll-seconds` / `--poll-seconds` (default 30); opt out with
+`--no-confirm-persist` / `--no-confirm` to report only the `referenceId`. To read
+the tracker by hand:
 
 ```bash
-sf data query --query "SELECT AsyncOperationNumber,Status,Response FROM AsyncOperationTracker WHERE JobType='ContextPersistence' ORDER BY CreatedDate DESC LIMIT 5" --target-org <sf-alias>
+sf data query --query "SELECT Id,Status,Response FROM AsyncOperationTracker WHERE Id = '16P…referenceId…'" --target-org <sf-alias>
 ```
 
 `Response` is JSON with `savedNodes` (written), `skippedNodes` (eligible but
-DML-skipped), and `errorNodes` (recordId → error text). A **no-op** persist
-(hydrate → persist unchanged) succeeds; a **dirty** persist through the default
+DML-skipped), and `errorNodes` (recordId → error text). **A dirty persist reports
+`Status='Completed'` WITH a populated `errorNodes` — "Completed" alone is not
+success**, so the outcome is flagged failed when `Status ∈ {CompletedWithFailures,
+Failure}` **or** `errorNodes` is non-empty. A **no-op** persist (hydrate → persist
+unchanged) succeeds (`savedNodes={}`, OK); a **dirty** persist through the default
 `QuoteEntitiesMapping` fails atomically with `errorNodes` = *"Unable to
 create/update fields: TotalPrice, Subtotal, NetUnitPrice, Product2Id,
 PricebookEntryId, …"* — the persist graph writes the **full mapped fieldset** for a
 touched node, and that set includes ~29 `updateable=false` QLI fields;
 `removeRestrictedFields` strips FLS only, not non-updateable fields, so **no
 permission fixes it and it affects Apex, Flow, and REST identically** (a
-field-updateability limit of the mapping, not a gate; reproduces on a fresh 1-line
-quote). See `runtime-and-persistence.md` for the full mechanism + `DMLTypeResolver`
-no-op matrix.
+field-updateability limit of the mapping, not a gate; live-reproduced 2026-07-05
+on a fresh 1-line quote). See `runtime-and-persistence.md` for the full mechanism +
+`DMLTypeResolver` no-op matrix.
 
 ### `build_hydration_data.py` — hydration payload (read-only)
 
@@ -581,10 +593,12 @@ python scripts/context_service/delete_context_instance.py --target-org rlm-base_
 `depth`) and best-effort **decodes stringified compound values** (e.g. Address) in
 the human view (`--json` leaves them raw). `--tags TAG …` switches to
 `query-tags` (`--leaner` → `query-tags-leaner`). `persist_context_instance.py` prints the
-returned `referenceId` and emits the **FK caveat** (reference/lookup writes are
-not reliably saved by persist). `delete_context_instance.py` is the **runtime**
-delete — distinct from `delete_context.py`, which deactivates / hard-deletes a
-Context Definition.
+returned `referenceId`, **polls `AsyncOperationTracker` by that id for the async
+outcome** (`--no-confirm` / `--poll-seconds` to control), reports `OK`/`FAILED`,
+exits non-zero on a confirmed failure, and emits the **FK caveat** (reference/lookup
+writes are not reliably saved by persist). `delete_context_instance.py` is the
+**runtime** delete — distinct from `delete_context.py`, which deactivates /
+hard-deletes a Context Definition.
 
 ### `list_context_interfaces.py` — definition interfaces (read-only)
 

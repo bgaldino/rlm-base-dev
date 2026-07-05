@@ -97,20 +97,24 @@ expression-set steps that consume it. This skill is consumable by any AI agent
     **distinct namespace** from attribute names (attr `Quantity` →
     tag `LineItemQuantity`) — query by tag name, read off the definition.
 11. **Persist is asynchronous → confirm via `AsyncOperationTracker`, not the
-    `referenceId`.** The returned `referenceId` is not proof the write landed. The
-    per-record outcome is SOQL-queryable (richer than the fire-and-forget
-    `ContextPersistenceEvent.HasErrors` boolean): `SELECT
-    AsyncOperationNumber,Status,Response FROM AsyncOperationTracker WHERE
-    JobType='ContextPersistence' ORDER BY CreatedDate DESC` — `Response` JSON has
-    `savedNodes`/`skippedNodes`/`errorNodes`. A **no-op** persist (hydrate →
-    persist unchanged) succeeds; a **dirty** persist through the default
-    `QuoteEntitiesMapping` fails atomically (`errorNodes` "Unable to create/update
-    fields: TotalPrice, Subtotal, Product2Id, …") because the persist graph writes
-    the **full mapped fieldset** for a touched node and that set carries ~29
-    non-updateable QLI fields; `removeRestrictedFields` strips FLS only, not
-    `updateable=false` fields — **no permission fixes it, and it affects Apex,
-    Flow, and REST identically** (a field-updateability limit of the mapping, not
-    a gate). See `runtime-and-persistence.md`.
+    `referenceId`.** The returned `referenceId` is not proof the write landed — but
+    it **IS the `AsyncOperationTracker.Id`** (exact, live-verified), so poll by
+    primary key: `SELECT Id,Status,Response FROM AsyncOperationTracker WHERE
+    Id = '<referenceId>'` — `Response` JSON has `savedNodes`/`skippedNodes`/`errorNodes`
+    (richer than the fire-and-forget `ContextPersistenceEvent.HasErrors` boolean).
+    **A dirty persist reports `Status='Completed'` WITH a populated `errorNodes` —
+    "Completed" alone is NOT success** (failure = `Status ∈ {CompletedWithFailures,
+    Failure}` OR `errorNodes` non-empty). `context_session.py --persist` and
+    `persist_context_instance.py` now poll this automatically and **exit non-zero on
+    a confirmed failure** (`--no-confirm*` / `--*-poll-seconds` to control). A
+    **no-op** persist (hydrate → persist unchanged) succeeds; a **dirty** persist
+    through the default `QuoteEntitiesMapping` fails atomically (`errorNodes`
+    "Unable to create/update fields: TotalPrice, Subtotal, Product2Id, …") because
+    the persist graph writes the **full mapped fieldset** for a touched node and
+    that set carries ~29 non-updateable QLI fields; `removeRestrictedFields` strips
+    FLS only, not `updateable=false` fields — **no permission fixes it, and it
+    affects Apex, Flow, and REST identically** (a field-updateability limit of the
+    mapping, not a gate). See `runtime-and-persistence.md`.
 
 ## DO NOT
 
