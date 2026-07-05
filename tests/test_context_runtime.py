@@ -18,11 +18,11 @@ import os
 import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "context_service"))
+sys.path.insert(0, REPO_ROOT)
 
-import _runtime  # noqa: E402
-import _resolve  # noqa: E402
-import list_context_interfaces as lci  # noqa: E402
+import scripts.context_service._runtime as _runtime  # noqa: E402
+import scripts.context_service._resolve as _resolve  # noqa: E402
+import scripts.context_service.definition.list_context_interfaces as lci  # noqa: E402
 
 RESULTS = []
 

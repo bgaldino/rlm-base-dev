@@ -20,8 +20,8 @@ Mapping ids matter for the runtime lifecycle: create needs a *source* mapping
 
 from typing import Any, Dict, List, Optional, Tuple
 
-import _client
-import _endpoints as ep
+from . import _client
+from . import _endpoints as ep
 
 
 def resolve_definition_id(

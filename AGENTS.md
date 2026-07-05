@@ -336,6 +336,7 @@ Read the sub-file only when you need that specific detail:
 | `.cursor/skills/context-service/authoring-and-lifecycle.md` | Context Service | Three definition types, extend-vs-clone, activation/deactivation, versioning, upgrade/Sync, standard-context inventory, gotchas table |
 | `.cursor/skills/context-service/runtime-and-persistence.md` | Context Service | Runtime context-instance lifecycle (hydrate → query → persist → delete), request-scoped `contextId`/TTL/reuse, `data` payload shape + builder, compound fields, persist FK caveat, definition interfaces, dry-run contract, runtime helper scripts |
 | `docs/references/context-service-patch-shapes.md` | Context Service | Live-verified accept-shapes for Connect + SObject REST mutation endpoints: GET-vs-PATCH shape gap, per-endpoint required fields + response-only fields, hydration nesting, active-version behavior matrix, error → resolution table |
+| `docs/references/context-service-utility.md` | Context Service | `manage_context_definition` CCI-task option reference + plan-file format (create-vs-update, mapping rules, activation/deactivation defaults) — the org-build authoring path |
 
 ### File-Specific Rules (Cursor Only)
 
@@ -381,24 +382,24 @@ Scripts in `scripts/context_service/` inspect, validate, apply, and (at runtime)
 
 ```bash
 # Read-only design-time (safe anytime)
-python scripts/context_service/validate_context_plan.py                     # Offline lint of context plan JSON (enums, limits, __c rule)
-python scripts/context_service/list_contexts.py --target-org <sf-alias>      # List context definitions
-python scripts/context_service/describe_context.py --target-org <sf-alias> --developer-name <name>   # Pretty-print one definition
-python scripts/context_service/trace_context.py --target-org <sf-alias> --developer-name <name> --field <field>   # Trace field↔tag↔attribute (--tag/--attribute/--unmapped)
-python scripts/context_service/diff_context.py --target-org <sf-alias> --plan-file <manifest>         # Drift: plan-vs-org or org-vs-org
-python scripts/context_service/patch_context.py --plan-file <manifest> --target-org <sf-alias> --out patch.json   # Extract drift into an applicable plan-JSON patch
-python scripts/context_service/export_context.py --target-org <sf-alias> --developer-name <name> --custom-only    # Serialize a live definition to repo plan JSON
+python scripts/context_service/definition/validate_context_plan.py                     # Offline lint of context plan JSON (enums, limits, __c rule)
+python scripts/context_service/definition/list_contexts.py --target-org <sf-alias>      # List context definitions
+python scripts/context_service/definition/describe_context.py --target-org <sf-alias> --developer-name <name>   # Pretty-print one definition
+python scripts/context_service/definition/trace_context.py --target-org <sf-alias> --developer-name <name> --field <field>   # Trace field↔tag↔attribute (--tag/--attribute/--unmapped)
+python scripts/context_service/definition/diff_context.py --target-org <sf-alias> --plan-file <manifest>         # Drift: plan-vs-org or org-vs-org
+python scripts/context_service/definition/patch_context.py --plan-file <manifest> --target-org <sf-alias> --out patch.json   # Extract drift into an applicable plan-JSON patch
+python scripts/context_service/definition/export_context.py --target-org <sf-alias> --developer-name <name> --custom-only    # Serialize a live definition to repo plan JSON
 
-# EXPERIMENTAL mutators — NOT build-critical, not in any CCI flow (production path: cci task run manage_context_definition)
-python scripts/context_service/apply_context_plan.py --plan-file <manifest> --target-org <sf-alias> --dry-run     # Apply/create a plan (--dry-run previews)
-python scripts/context_service/delete_context.py --target-org <sf-alias> --developer-name <name>                  # Deactivate (default, reversible); --custom-teardown --deactivate-first --confirm-delete = HARD DELETE __c artifacts
-python scripts/context_service/mutate_context.py --target-org <sf-alias> --developer-name <name> --add-tag <Node.Attr> <tag__c> --confirm   # One granular in-place edit; previews unless --confirm
+# Design-time mutators — live-proven, for one-off exploration & updates (org build uses: cci task run manage_context_definition)
+python scripts/context_service/definition/apply_context_plan.py --plan-file <manifest> --target-org <sf-alias> --dry-run     # Apply/create a plan (--dry-run previews)
+python scripts/context_service/definition/delete_context.py --target-org <sf-alias> --developer-name <name>                  # Deactivate (default, reversible); --custom-teardown --deactivate-first --confirm-delete = HARD DELETE __c artifacts
+python scripts/context_service/definition/mutate_context.py --target-org <sf-alias> --developer-name <name> --add-tag <Node.Attr> <tag__c> --confirm   # One granular in-place edit; previews unless --confirm
 
-# EXPERIMENTAL runtime instance lifecycle — verify-live, for debugging/validating hydration (not a production runtime)
-python scripts/context_service/build_hydration_data.py --target-org <sf-alias> --developer-name <name> --out records.json   # Build the `data` payload (skeleton, or --from-record <id> for a ready-to-run id-only payload)
-python scripts/context_service/context_session.py --target-org <sf-alias> --developer-name <name> --data-file records.json --query --persist --target-mapping-name <mapping>   # PRIMARY: create→query→persist→delete in one process
-python scripts/context_service/list_context_interfaces.py --target-org <sf-alias>   # List context definition interfaces (read-only)
-#   also: create_context_instance.py / query_context_instance.py / persist_context_instance.py / delete_context_instance.py (individual verbs — see the skill)
+# Runtime instance lifecycle — verify-live, for debugging/validating hydration (pilot-gated on GA orgs — see runtime-and-persistence.md)
+python scripts/context_service/instance/build_hydration_data.py --target-org <sf-alias> --developer-name <name> --out records.json   # Build the `data` payload (skeleton, or --from-record <id> for a ready-to-run id-only payload)
+python scripts/context_service/instance/context_session.py --target-org <sf-alias> --developer-name <name> --data-file records.json --query --persist --target-mapping-name <mapping>   # create→query→persist→delete in one process (needs ContextServicePilot on GA orgs; Apex is the GA runtime path)
+python scripts/context_service/definition/list_context_interfaces.py --target-org <sf-alias>   # List context definition interfaces (read-only)
+#   also: create_context_instance.py / query_context_instance.py / persist_context_instance.py / delete_context_instance.py (individual verbs — see runtime-and-persistence.md)
 ```
 
 Two rules worth pinning at this level (full detail + rationale in the skill):

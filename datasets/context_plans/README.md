@@ -66,12 +66,12 @@ of truth:
 
 ```bash
 # Lint (offline — no org). Must be 0 errors before applying.
-python scripts/context_service/validate_context_plan.py \
+python scripts/context_service/definition/validate_context_plan.py \
   datasets/context_plans/RampMode/manifest.json
 
 # Inspect / compare a live definition (read-only)
-python scripts/context_service/describe_context.py --target-org <sf_alias> --developer-name <name>
-python scripts/context_service/diff_context.py --target-org <sf_alias> \
+python scripts/context_service/definition/describe_context.py --target-org <sf_alias> --developer-name <name>
+python scripts/context_service/definition/diff_context.py --target-org <sf_alias> \
   --plan-file datasets/context_plans/RampMode/manifest.json
 
 # Apply (mutates the org) — via the CCI task, not a script

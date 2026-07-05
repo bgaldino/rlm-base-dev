@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""Delete Context Definition artifacts from an org (EXPERIMENTAL — HARD DELETE).
+"""Delete Context Definition artifacts from an org (DESTRUCTIVE — HARD DELETE).
 
-⚠️  **Experimental / non-build-critical, and DESTRUCTIVE.** There is no
-production CCI "delete-a-context" task; the supported lifecycle verb is
-*deactivation* (soft-disable), which this script does by default. A hard delete
-is **strictly opt-in** via ``--confirm-delete`` and cannot be undone. This
-standalone script runs on the ``sf``-CLI transport — **no access token is ever
-handled or passed** (``--target-org`` is the *SF CLI* alias, e.g.
-``rlm-base__beta``, never the CCI alias ``beta``). It is **not** wired into
-``cumulusci.yml`` or any flow.
+⚠️  **DESTRUCTIVE.** There is no org-build CCI "delete-a-context" task; the
+supported lifecycle verb is *deactivation* (soft-disable), which this script
+does by default. A hard delete is **strictly opt-in** via ``--confirm-delete``
+and cannot be undone. Live-proven, for one-off teardown. This standalone script
+runs on the ``sf``-CLI transport — **no access token is ever handled or passed**
+(``--target-org`` is the *SF CLI* alias, e.g. ``rlm-base__beta``, never the CCI
+alias ``beta``). It is **not** wired into ``cumulusci.yml`` or any flow.
 
 Safety model (see ``_delete.py``):
   * **Prefer deactivate.** With no ``--confirm-delete`` the script deactivates
@@ -66,10 +65,10 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _apply import Transport  # noqa: E402
-from _client import ContextClientError, DEFAULT_API_VERSION, eprint  # noqa: E402
-from _delete import (  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from scripts.context_service._apply import Transport  # noqa: E402
+from scripts.context_service._client import ContextClientError, DEFAULT_API_VERSION, eprint  # noqa: E402
+from scripts.context_service._delete import (  # noqa: E402
     ContextDeleter,
     DeletePreflightError,
     build_artifact_catalog,
@@ -88,7 +87,7 @@ def _print_plan(ordered, header):
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        description="Delete / deactivate a Context Definition (EXPERIMENTAL, destructive).",
+        description="Delete / deactivate a Context Definition (DESTRUCTIVE).",
     )
     parser.add_argument("--target-org", required=True,
                         help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.")
@@ -121,9 +120,9 @@ def main(argv=None) -> int:
     parser.add_argument("--json", action="store_true", help="Emit the result summary as JSON.")
     args = parser.parse_args(argv)
 
-    eprint("⚠️  EXPERIMENTAL: delete_context.py is not build-critical and performs "
-           "DESTRUCTIVE hard deletes. The supported teardown is deactivation; a "
-           "hard delete requires --confirm-delete and cannot be undone.")
+    eprint("⚠️  delete_context.py performs DESTRUCTIVE hard deletes. The supported "
+           "teardown is deactivation; a hard delete requires --confirm-delete and "
+           "cannot be undone.")
 
     # A delete mode without --confirm-delete is a preview; drive the transport in
     # dry_run so even the (guarded) deactivate/delete calls are logged, not run.

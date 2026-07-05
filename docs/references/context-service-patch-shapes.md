@@ -324,7 +324,7 @@ Every error below was observed live against the mutation endpoints. `<field>` /
 
 ---
 
-## Runtime instance mutation shapes (live-verified 2026-07-04, ContextServicePilot org)
+## Runtime instance mutation shapes (require `ContextServicePilot` on a GA org)
 
 These are the **runtime** (context-instance) mutation bodies, distinct from the
 design-time definition-management PATCHes above. All are flat (no wrapper object).
@@ -387,7 +387,7 @@ design-time definition-management PATCHes above. All are flat (no wrapper object
 
 - Flat — **NOT** wrapped in `contextPersistInput`.
 - Returns `{"referenceId": "16P…"}` (async). **The `referenceId` IS the
-  `AsyncOperationTracker.Id`** (exact equality, live-verified 2026-07-05) — poll
+  `AsyncOperationTracker.Id`** (exact equality) — poll
   `SELECT Id,Status,Response FROM AsyncOperationTracker WHERE Id = '<referenceId>'`.
   A dirty persist returns `Status='Completed'` **with** a populated `errorNodes`,
   so "Completed" alone is not success. `persist_context_instance.py` /
@@ -423,5 +423,3 @@ design-time definition-management PATCHes above. All are flat (no wrapper object
   SObject REST endpoint split at the model level.
 - `.cursor/skills/context-service/runtime-and-persistence.md` — runtime
   context-instance API (separate surface; not the design-time PATCH shapes).
-- `.claude/plans/context-service-followup-fixes.md` — P2 fix plan, live
-  verification ledger.

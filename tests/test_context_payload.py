@@ -21,12 +21,10 @@ import os
 import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# The modules bootstrap their siblings with a bare ``import`` off their own
-# directory, so put that directory on the path for a standalone import.
-sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "context_service"))
+sys.path.insert(0, REPO_ROOT)
 
-import _payload  # noqa: E402
-import _model  # noqa: E402
+import scripts.context_service._payload as _payload  # noqa: E402
+import scripts.context_service._model as _model  # noqa: E402
 
 RESULTS = []
 
@@ -365,8 +363,7 @@ def test_model_to_plan_output_lints_clean():
     # nodes/attributes/tags to isolate the mapping delta (inherited nodes like
     # SalesTransactionItem would otherwise be emitted and — correctly — trip the
     # __c node-name lint, which is why the export path selects a subset).
-    sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "context_service"))
-    import validate_context_plan as V
+    import scripts.context_service.definition.validate_context_plan as V
 
     model = _model.normalize_definition(_traversal_get())
     flat_key = "QuoteLineEntitiesMapping/SalesTransactionItem/ProductCode__c"
@@ -415,8 +412,7 @@ def test_from_scratch_export_lints_clean():
     # nodes/attrs/tags (e.g. AccountName, ContactLastName). With create:true the
     # validator's _is_create_new() suppresses the suffix rule and the plan lints
     # clean — closing the export -> lint -> apply round trip.
-    sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "context_service"))
-    import validate_context_plan as V
+    import scripts.context_service.definition.validate_context_plan as V
 
     model = _model.normalize_definition(_from_scratch_get())
     plan = _model.model_to_plan(model)

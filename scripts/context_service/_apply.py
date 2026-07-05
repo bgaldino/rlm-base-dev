@@ -18,56 +18,10 @@ IsTransient, traversal hydration) go through ``Transport.sobject`` /
 
 from typing import Any, Callable, Dict, List, Optional
 
-import _client
-import _endpoints as ep
-import _payload
-
-
-# --------------------------------------------------------------------------- #
-# Transport adapter (injectable)
-# --------------------------------------------------------------------------- #
-
-class Transport:
-    """Binds the CLI transport to one org / api-version / dry-run setting.
-
-    Swappable in tests: any object exposing ``request``, ``sobject``, ``soql``
-    with these signatures works.
-    """
-
-    def __init__(self, target_org: str, api_version: str = _client.DEFAULT_API_VERSION,
-                 dry_run: bool = False, logger: Callable[..., None] = None):
-        self.target_org = target_org
-        self.api_version = api_version
-        self.dry_run = dry_run
-        self.logger = logger or _client.eprint
-
-    def request(self, method: str, path: str, body: Any = None,
-                *, dry_run: Optional[bool] = None) -> Any:
-        # ``dry_run`` overrides the transport's bound flag for this one call — the
-        # runtime path uses it to force read-shaped POSTs (query-record,
-        # query-tags) to execute even under a dry-run session (see _runtime.py /
-        # the dry-run contract). ``None`` (the design-time default) inherits.
-        return _client.connect_request(
-            method, path, body,
-            target_org=self.target_org, api_version=self.api_version,
-            dry_run=self.dry_run if dry_run is None else dry_run,
-            logger=self.logger,
-        )
-
-    def sobject(self, method: str, sobject: str, record_id: Optional[str] = None,
-                body: Any = None, *, dry_run: Optional[bool] = None) -> Any:
-        return _client.sobjects_request(
-            method, sobject, record_id, body,
-            target_org=self.target_org, api_version=self.api_version,
-            dry_run=self.dry_run if dry_run is None else dry_run,
-            logger=self.logger,
-        )
-
-    def soql(self, query: str) -> List[Dict[str, Any]]:
-        # Reads always execute (non-mutating), even under dry_run.
-        return _client.soql_query(
-            query, target_org=self.target_org, api_version=self.api_version
-        )
+from . import _client
+from . import _endpoints as ep
+from . import _payload
+from ._client import Transport  # re-exported here for back-compat with callers
 
 
 # --------------------------------------------------------------------------- #

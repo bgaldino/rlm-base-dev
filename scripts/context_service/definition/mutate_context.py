@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Mutate one Context Definition artifact in place (EXPERIMENTAL).
+"""Mutate one Context Definition artifact in place.
 
-⚠️  **Experimental / non-build-critical.** The production path for context
-changes is a plan applied by ``cci task run manage_context_definition`` (or
-``apply_context_plan.py``); this script is a *granular* companion for one-off
-edits to an **existing** definition — flip an attribute's ``IsTransient``,
-re-designate the default context mapping, or add / remove a single tag. It runs
-on the ``sf``-CLI transport — **no access token is ever handled** (``--target-org``
-is the *SF CLI* alias, e.g. ``rlm-base__beta``, never the CCI alias). It is
-**not** wired into ``cumulusci.yml`` or any flow.
+Live-proven, for one-off **granular** edits to an **existing** definition — flip
+an attribute's ``IsTransient``, re-designate the default context mapping, or add
+/ remove a single tag. The org-*build* path for context changes is a plan
+applied by ``cci task run manage_context_definition`` (or
+``apply_context_plan.py`` for a whole plan); use this when you want to change one
+artifact rather than re-apply a plan. It runs on the ``sf``-CLI transport —
+**no access token is ever handled** (``--target-org`` is the *SF CLI* alias,
+e.g. ``rlm-base__beta``, never the CCI alias). It is **not** wired into
+``cumulusci.yml`` or any flow.
 
 Safety model (see ``_mutate.py``, all live-verified on v67.0):
   * **Op-specific inheritance guard.** ``set-transient`` and ``remove-tag``
@@ -63,10 +64,10 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _apply import Transport  # noqa: E402
-from _client import ContextClientError, DEFAULT_API_VERSION, eprint  # noqa: E402
-from _mutate import ContextMutator, MutatePreflightError  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from scripts.context_service._apply import Transport  # noqa: E402
+from scripts.context_service._client import ContextClientError, DEFAULT_API_VERSION, eprint  # noqa: E402
+from scripts.context_service._mutate import ContextMutator, MutatePreflightError  # noqa: E402
 
 
 def _clean(summary):
@@ -104,7 +105,8 @@ def _describe_plan(change):
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        description="Mutate one Context Definition artifact in place (EXPERIMENTAL).",
+        description="Mutate one Context Definition artifact in place "
+                    "(one granular edit; org build uses manage_context_definition).",
     )
     parser.add_argument("--target-org", required=True,
                         help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.")
@@ -136,9 +138,8 @@ def main(argv=None) -> int:
     parser.add_argument("--json", action="store_true", help="Emit the result summary as JSON.")
     args = parser.parse_args(argv)
 
-    eprint("⚠️  EXPERIMENTAL: mutate_context.py is not build-critical. The production "
-           "path for context changes is a plan via manage_context_definition; this "
-           "makes one granular in-place edit.")
+    eprint("mutate_context.py — one granular in-place edit. The org-build path for "
+           "context changes is a plan via manage_context_definition.")
 
     # Resolve the op name for the guards.
     if args.set_transient:

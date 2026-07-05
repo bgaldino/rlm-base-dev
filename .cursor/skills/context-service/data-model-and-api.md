@@ -13,7 +13,7 @@ the guardrail limits, or the MDAPI type schema.
 > **Mutation-endpoint accept-shapes** (fields each PATCH/POST endpoint accepts
 > vs rejects, GET-vs-PATCH shape gap, response-only fields, hydration nesting,
 > active-version behavior matrix): see
-> [`docs/references/context-service-patch-shapes.md`](../../docs/references/context-service-patch-shapes.md).
+> `docs/references/context-service-patch-shapes.md`.
 > Every rule there is live-verified — check it first when you hit a
 > `JSON_PARSER_ERROR: Unrecognized field` or `INVALID_DEFINITION` on a mutation.
 
@@ -241,7 +241,7 @@ just nodes + mappings + tags.
 > **Normalization note.** The file-based `.contextDefinition` MDAPI format /
 > internal validator uses a slightly different allow-list (`INTEGER` instead of
 > `INT`, lowercased intents). Treat the **Core enum above as canonical**; the
-> offline plan validator (`scripts/context_service/validate_context_plan.py`) checks
+> offline plan validator (`scripts/context_service/definition/validate_context_plan.py`) checks
 > against it. Normalize to Core when authoring plan JSON.
 
 ## Connect API vs SObject REST

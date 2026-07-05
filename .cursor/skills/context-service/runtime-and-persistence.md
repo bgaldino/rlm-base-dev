@@ -28,8 +28,8 @@ lifecycle** (see the roadblock table).
 | **Normal GA org** (no pilot) | **Apex `Context.IndustriesContext`** (scripted / debugging) **or one Flow** chaining the invocable actions (no-code). Whole lifecycle in **one request/transaction.** | just GA **`IndustriesContext`** |
 | SESSION-scope pilot (`SessionScopeContext` via `ContextServicePilot`) and/or "Runtime Context Instance Reuse" (`ContextReuse`) | The REST scripts / multi-call REST — `contextId` survives across calls | pilot / reuse setting |
 
-**Live-verified (2026-07-04, org `rlm-base__july4_ctxPilot`, 262 / v67.0) with
-`ContextServicePilot` enabled:**
+**On an org with `ContextServicePilot` enabled (262 / v67.0), the REST path
+completes end-to-end:**
 
 | REST step | Status | Notes |
 |-----------|--------|-------|
@@ -38,7 +38,7 @@ lifecycle** (see the roadblock table).
 | `POST /contexts/query-tags-leaner` | ✅ works | Pilot gate lifted — returns tag values by name |
 | `PATCH /contexts/attributes` | ✅ accepted | Flat body `{contextId, nodePathAndAttributes}` — NOT the `updateContextAttributesInput` wrapper |
 | `PATCH /contexts/write-through-tags` | ✅ accepted | Flat body `{contextId, nodePathAndTagValues}` |
-| `POST /contexts/persist-records` | ✅ end-to-end | Flat body `{contextId, targetMappingId}` — returns `referenceId` (16P) that **equals the `AsyncOperationTracker.Id`**. Both a no-op persist (`savedNodes={}`, OK) and a **dirty** persist (`Status=Completed` + populated `errorNodes`, FAILED) reproduced live over this REST path — see *Persistence* |
+| `POST /contexts/persist-records` | ✅ end-to-end | Flat body `{contextId, targetMappingId}` — returns `referenceId` (16P) that **equals the `AsyncOperationTracker.Id`**. Both a no-op persist (`savedNodes={}`, OK) and a **dirty** persist (`Status=Completed` + populated `errorNodes`, FAILED) occur over this REST path — see *Persistence* |
 | `DELETE /contexts/{id}` | ✅ works | Evicts the session-scoped instance |
 
 **CLI flag:** `--context-scope SESSION` on `context_session.py` / `create_context_instance.py`.
@@ -125,7 +125,9 @@ static inspection tools (`describe_context.py`, `trace_context.py`,
 consuming engines — pricing, DocGen, BRE / expression sets, the configurator,
 billing, DRO — hydrate their own contexts as part of their own flows. Nothing in
 the org build calls these scripts, and they are **not** wired into any CCI flow.
-They are **EXPERIMENTAL / verify-live**, matching `apply/delete/mutate_context.py`.
+They carry **pilot caveats** the design-time `apply/delete/mutate_context.py` do
+not: on a GA org `query`/`persist` need `ContextServicePilot`, and Apex
+`Context.IndustriesContext` is the GA runtime path (see **Start here** below).
 
 ## The runtime lifecycle
 
@@ -486,9 +488,8 @@ or within a single request.
 >    field holding the node-level breakdown:
 >    `{"contextDefinitionId","graphId","savedNodes":{…},"skippedNodes":[…recordIds…],"errorNodes":{"<recordId>":"<full DML error>"}}`.
 >    **The returned `referenceId` IS the tracker's `Id` — exactly, not a
->    correlation key** (live-verified 2026-07-05, `rlm-base__july4_ctxPilot`). So
->    poll it deterministically by primary key, not with a "most-recent-row"
->    heuristic:
+>    correlation key.** So poll it deterministically by primary key, not with a
+>    "most-recent-row" heuristic:
 >    ```bash
 >    sf data query --query "SELECT Id,Status,Response FROM AsyncOperationTracker WHERE Id = '16P…referenceId…'" --target-org <sf-alias>
 >    ```
@@ -501,8 +502,8 @@ or within a single request.
 >    SObject.**
 >
 > **⚠ A dirty persist reports `Status='Completed'` WITH a populated `errorNodes`
-> — "Completed" alone is NOT success.** Live-reproduced 2026-07-05 (SESSION-scope
-> REST, `QuoteEntitiesMapping`, a 1-line quote with `Quantity` edited on the QLI
+> — "Completed" alone is NOT success.** Concretely (SESSION-scope REST,
+> `QuoteEntitiesMapping`, a 1-line quote with `Quantity` edited on the QLI
 > node): `Status='Completed'`, `savedNodes={}`, `skippedNodes=[<qliId>]`, and
 > `errorNodes={<qliId>: "Unable to create/update fields: TotalPrice, Subtotal,
 > NetUnitPrice, Product2Id, PricebookEntryId, …"}`. So the failure test is
@@ -510,11 +511,11 @@ or within a single request.
 > populated `errorNodes` on a `Completed` row is still a failure. This is exactly
 > what `_runtime.summarize_persist_tracker` computes (`is_failure`).
 >
-> **The runtime scripts now confirm this for you (2026-07-05).**
+> **The runtime scripts confirm this for you.**
 > `context_session.py --persist` and `persist_context_instance.py` poll the
 > tracker by `Id` after persist (`_runtime.confirm_persist`), print
 > `persist outcome: OK …` / `persist outcome: FAILED …`, and **exit non-zero on a
-> confirmed failure** — so a dirty persist no longer reports success. Control the
+> confirmed failure** — so a dirty persist is not reported as success. Control the
 > poll with `--persist-poll-seconds` / `--poll-seconds` (default 30) and opt out
 > with `--no-confirm-persist` / `--no-confirm` (reports only the `referenceId`).
 > `create_context_instance.py` / the session likewise abort (non-zero, no
@@ -556,8 +557,8 @@ or within a single request.
 > (so it is not record complexity). **Bottom line for tooling:** hydration + in-memory update
 > are proven; a **no-op persist succeeds**; a **dirty persist through the default
 > QuoteEntitiesMapping fails atomically** on non-updateable fields — read
-> `AsyncOperationTracker.Response.errorNodes` for the exact list. Open follow-up (untested):
-> whether a custom PERSISTENCE mapping restricted to updateable fields lets a dirty write land.
+> `AsyncOperationTracker.Response.errorNodes` for the exact list. A custom PERSISTENCE
+> mapping restricted to updateable fields is the expected way to let a dirty write land.
 > (Providing a child record inline in the create `data` payload throws an uncatchable
 > `System.UnexpectedException` — unsupported, same class as eager hydration.)
 
@@ -627,7 +628,7 @@ Offline (no org):
 - `--help` and `--dry-run` on each script exercise import + argument wiring
   without touching an org.
 
-Live (EXPERIMENTAL — required before merging any behavioral change here), against a
+Live (verify-live — required before merging any behavioral change here), against a
 scratch org with an active definition (e.g. `RLM_SalesTransactionContext`):
 
 1. `build_hydration_data.py … --out records.json`; fill in real ids (values

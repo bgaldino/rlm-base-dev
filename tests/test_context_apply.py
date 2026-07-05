@@ -24,12 +24,12 @@ import os
 import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "context_service"))
+sys.path.insert(0, REPO_ROOT)
 
-import _apply  # noqa: E402
-import _client  # noqa: E402
-import _model  # noqa: E402
-import diff_context  # noqa: E402
+import scripts.context_service._apply as _apply  # noqa: E402
+import scripts.context_service._client as _client  # noqa: E402
+import scripts.context_service._model as _model  # noqa: E402
+import scripts.context_service.definition.diff_context as diff_context  # noqa: E402
 
 RESULTS = []
 

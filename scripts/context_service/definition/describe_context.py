@@ -24,8 +24,8 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _client import (  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from scripts.context_service._client import (  # noqa: E402
     ContextClientError,
     active_version,
     connect_get,

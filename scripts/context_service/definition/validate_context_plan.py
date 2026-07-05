@@ -54,7 +54,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+# definition/validate_context_plan.py → context_service → scripts → <repo root>
+REPO_ROOT = Path(__file__).resolve().parents[3]
 CONTEXT_PLANS_DIR = REPO_ROOT / "datasets" / "context_plans"
 
 # Canonical Core enums (UDD, API v67.0). The file-based .contextDefinition format

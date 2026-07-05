@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Apply an additive Context Definition plan to an org (EXPERIMENTAL).
+"""Apply an additive Context Definition plan to an org.
 
-⚠️  **Experimental / non-build-critical.** The production org-build path is the
-CumulusCI task ``manage_context_definition`` (``tasks/rlm_context_service.py``).
-This standalone script mirrors that task's apply logic on the ``sf``-CLI
-transport so context plans can be iterated on without the CCI runtime. It is
-**not** wired into ``cumulusci.yml`` or any flow. Auth is delegated to the
-``sf`` CLI — **no access token is ever handled or passed** (``--target-org`` is
-the *SF CLI* alias, e.g. ``rlm-base__beta``, never the CCI alias ``beta``).
+Live-proven, for **one-off exploration and updates** outside the org build. The
+org-*build* path is the CumulusCI task ``manage_context_definition``
+(``tasks/rlm_context_service.py``); this standalone script applies the same plan
+logic on the ``sf``-CLI transport so context plans can be iterated on without
+the CCI runtime. It is **not** wired into ``cumulusci.yml`` or any flow. Auth is
+delegated to the ``sf`` CLI — **no access token is ever handled or passed**
+(``--target-org`` is the *SF CLI* alias, e.g. ``rlm-base__beta``, never the CCI
+alias ``beta``).
 
 It applies the same repo plan format as the CCI task
 (``datasets/context_plans/<Name>/manifest.json`` → ``contexts/<plan>.json``):
@@ -24,12 +25,12 @@ Preflight order (mirrors the skill's Quick Rule 6):
 Examples
 --------
     # dry-run the RampMode plan (no org mutation; prints ordered call sequence)
-    python scripts/context_service/apply_context_plan.py \
+    python scripts/context_service/definition/apply_context_plan.py \
         --plan-file datasets/context_plans/RampMode/manifest.json \
         --target-org rlm-base__beta --dry-run
 
     # apply + verify + activate
-    python scripts/context_service/apply_context_plan.py \
+    python scripts/context_service/definition/apply_context_plan.py \
         --plan-file datasets/context_plans/RampMode/manifest.json \
         --target-org rlm-base__beta --verify --activate
 """
@@ -39,10 +40,10 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _apply import ContextApplier, Transport  # noqa: E402
-from _client import ContextClientError, DEFAULT_API_VERSION, eprint  # noqa: E402
-from validate_context_plan import validate_manifest  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from scripts.context_service._apply import ContextApplier, Transport  # noqa: E402
+from scripts.context_service._client import ContextClientError, DEFAULT_API_VERSION, eprint  # noqa: E402
+from scripts.context_service.definition.validate_context_plan import validate_manifest  # noqa: E402
 
 
 def _load_manifest_plans(manifest_path: Path):
@@ -121,7 +122,8 @@ def _render_verification(verification: dict) -> None:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        description="Apply an additive Context Definition plan to an org (EXPERIMENTAL).",
+        description="Apply an additive Context Definition plan to an org "
+                    "(one-off updates; org build uses manage_context_definition).",
     )
     parser.add_argument("--target-org", required=True,
                         help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.")
@@ -155,8 +157,8 @@ def main(argv=None) -> int:
                         help="Skip the offline validator preflight (not recommended).")
     args = parser.parse_args(argv)
 
-    eprint("⚠️  EXPERIMENTAL: apply_context_plan.py is not build-critical. The "
-           "production path is `cci task run manage_context_definition`.")
+    eprint("apply_context_plan.py — one-off plan apply. The org-build path is "
+           "`cci task run manage_context_definition`.")
 
     manifest_path = Path(args.plan_file)
     if not manifest_path.is_file():

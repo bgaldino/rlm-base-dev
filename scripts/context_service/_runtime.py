@@ -38,8 +38,8 @@ import json
 import time
 from typing import Any, Callable, Dict, List, Optional
 
-import _client
-import _endpoints as ep
+from . import _client
+from . import _endpoints as ep
 
 # ``persist-records`` is asynchronous: the synchronous response returns a
 # ``referenceId`` that is the **Id of an AsyncOperationTracker row** (live-verified

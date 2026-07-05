@@ -37,10 +37,10 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _client import ContextClientError, DEFAULT_API_VERSION  # noqa: E402
-from _model import model_to_plan  # noqa: E402
-from diff_context import _fetch_model  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from scripts.context_service._client import ContextClientError, DEFAULT_API_VERSION  # noqa: E402
+from scripts.context_service._model import model_to_plan  # noqa: E402
+from scripts.context_service.definition.diff_context import _fetch_model  # noqa: E402
 
 
 def _is_custom(name: str) -> bool:

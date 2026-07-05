@@ -16,7 +16,7 @@ artifact. Full guidance: `.cursor/skills/context-service/SKILL.md`
 ## Always
 
 - **Lint before applying** (offline, no org):
-  `python scripts/context_service/validate_context_plan.py <manifest.json>` — must be 0 errors.
+  `python scripts/context_service/definition/validate_context_plan.py <manifest.json>` — must be 0 errors.
 - If you add/rename a recognized key, update the schema table in
   `.cursor/skills/context-service/data-model-and-api.md` in the same change
   (per `.cursor/skills/doc-consistency/SKILL.md`).
@@ -27,7 +27,7 @@ artifact. Full guidance: `.cursor/skills/context-service/SKILL.md`
   **no per-artifact delete directive** — do not expect one. Deactivation is
   whole-version (`deactivate_before`), off by default. Teardown (deactivate or
   hard-delete a definition / custom artifacts) is a **separate, out-of-band**
-  step — the experimental `scripts/context_service/delete_context.py`, not the plan
+  step — the experimental `scripts/context_service/definition/delete_context.py`, not the plan
   format. Deletes are **blocked while the version is active** (deactivate first).
 - The plan format is **design-time only** — it defines a Context *Definition*.
   Runtime *hydration* (loading records into a context instance) and *persistence*
@@ -42,7 +42,7 @@ artifact. Full guidance: `.cursor/skills/context-service/SKILL.md`
   active** (`RECORD_UPDATE_FAILED` "Cannot modify/delete an active context
   definition", live-verified) — the platform rule is insert-new = OK on active,
   modify/delete-existing = deactivate first. Set `deactivate_before: true` for a
-  plan that edits existing artifacts, or use `scripts/context_service/mutate_context.py
+  plan that edits existing artifacts, or use `scripts/context_service/definition/mutate_context.py
   --deactivate-first --reactivate` for a one-off.
 
 ## Canonical enums (Core UDD, v67.0)

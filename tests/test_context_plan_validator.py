@@ -20,12 +20,10 @@ import os
 import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# The module bootstraps its own siblings with a bare ``import`` off its own
-# directory, so put that directory on the path for a standalone import.
-sys.path.insert(0, os.path.join(REPO_ROOT, "scripts", "context_service"))
+sys.path.insert(0, REPO_ROOT)
 
-import validate_context_plan as V  # noqa: E402
-from validate_context_plan import (  # noqa: E402
+import scripts.context_service.definition.validate_context_plan as V  # noqa: E402
+from scripts.context_service.definition.validate_context_plan import (  # noqa: E402
     LIMIT_ATTRS_PER_NODE,
     LIMIT_REFERENCED_DEFINITIONS,
     LIMIT_TOTAL_ATTRS,

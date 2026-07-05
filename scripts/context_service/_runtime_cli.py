@@ -17,8 +17,8 @@ import sys
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
-from _client import eprint
-from _resolve import fetch_detail, resolve_definition_id, resolve_mapping
+from ._client import eprint
+from ._resolve import fetch_detail, resolve_definition_id, resolve_mapping
 
 # One-line note printed by the standalone (non-session) scripts. A runtime
 # contextId is a request-scoped cache handle and may not survive across separate

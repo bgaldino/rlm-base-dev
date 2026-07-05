@@ -62,14 +62,14 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _client import ContextClientError, eprint  # noqa: E402
-from _resolve import (  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from scripts.context_service._client import ContextClientError, eprint  # noqa: E402
+from scripts.context_service._resolve import (  # noqa: E402
     fetch_detail,
     iter_context_mappings,
     resolve_definition_id,
 )
-from _runtime import (  # noqa: E402
+from scripts.context_service._runtime import (  # noqa: E402
     build_from_record_skeleton,
     build_hydration_skeleton,
 )

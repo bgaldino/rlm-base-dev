@@ -50,9 +50,10 @@ leaving the inherited base intact. It is the exact inverse of
 
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-import _client
-import _endpoints as ep
-from _apply import ContextApplier, Transport  # reuse verified resolve/fetch/_set_active
+from . import _client
+from . import _endpoints as ep
+from ._apply import ContextApplier  # reuse verified resolve/fetch/_set_active
+from ._client import Transport
 
 
 # --------------------------------------------------------------------------- #

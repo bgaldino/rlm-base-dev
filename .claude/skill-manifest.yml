@@ -139,19 +139,29 @@ foundations:
         - .cursor/skills/context-service/authoring-and-lifecycle.md
         - .cursor/skills/context-service/runtime-and-persistence.md
       tooling:
-        # read-only inspection / validation
-        - scripts/context_service/validate_context_plan.py
-        - scripts/context_service/list_contexts.py
-        - scripts/context_service/describe_context.py
-        - scripts/context_service/diff_context.py
-        - scripts/context_service/patch_context.py
-        - scripts/context_service/export_context.py
-        - scripts/context_service/trace_context.py
-        # EXPERIMENTAL mutators — not build-critical, not wired into any CCI flow
-        # (production path is `cci task run manage_context_definition`); sf-CLI transport only
-        - scripts/context_service/apply_context_plan.py
-        - scripts/context_service/delete_context.py
-        - scripts/context_service/mutate_context.py
+        # design-time: read-only inspection / validation
+        - scripts/context_service/definition/validate_context_plan.py
+        - scripts/context_service/definition/list_contexts.py
+        - scripts/context_service/definition/describe_context.py
+        - scripts/context_service/definition/diff_context.py
+        - scripts/context_service/definition/patch_context.py
+        - scripts/context_service/definition/export_context.py
+        - scripts/context_service/definition/trace_context.py
+        - scripts/context_service/definition/list_context_interfaces.py
+        # design-time mutators — live-proven, for one-off exploration & updates, not
+        # build-critical and not wired into any CCI flow (production path is
+        # `cci task run manage_context_definition`); sf-CLI transport only
+        - scripts/context_service/definition/apply_context_plan.py
+        - scripts/context_service/definition/delete_context.py
+        - scripts/context_service/definition/mutate_context.py
+        # runtime instance lifecycle — verify-live (pilot caveats on GA orgs), for
+        # debugging/validating hydration; not a production runtime, not wired into any flow
+        - scripts/context_service/instance/build_hydration_data.py
+        - scripts/context_service/instance/context_session.py
+        - scripts/context_service/instance/create_context_instance.py
+        - scripts/context_service/instance/query_context_instance.py
+        - scripts/context_service/instance/persist_context_instance.py
+        - scripts/context_service/instance/delete_context_instance.py
       caveats:
         - "Pinned to Release 262 / API v67.0 — verify edge behavior (versioning, standard-context availability) against a live org"
 

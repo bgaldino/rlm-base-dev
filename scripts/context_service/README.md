@@ -16,13 +16,15 @@ Full guidance lives in the **context-service skill**:
 
 | Lifecycle stage | Production path | These helpers |
 |-----------------|-----------------|---------------|
-| **Author / apply / deploy** a definition | CCI tasks (`manage_context_definition`, `extend_context_*`, `deploy_context_definitions`) | `apply_context_plan.py`, `mutate_context.py`, `delete_context.py` — EXPERIMENTAL mirrors, not build-critical |
+| **Author / apply / deploy** a definition | CCI tasks (`manage_context_definition`, `extend_context_*`, `deploy_context_definitions`) | `apply_context_plan.py`, `mutate_context.py`, `delete_context.py` — live-proven, for one-off exploration & updates outside the build |
 | **Inspect / validate / diff / export** a definition | — | the read-only design-time scripts below (safe anytime) |
-| **Run** a context *instance* (hydrate → query → persist) | — (no build task; runtime is not part of org setup) | the runtime scripts below — EXPERIMENTAL / verify-live, for debugging & validating hydration |
+| **Run** a context *instance* (hydrate → query → persist) | — (no build task; runtime is not part of org setup) | the runtime scripts below — verify-live (pilot caveats), for debugging & validating hydration |
 
 So: the CCI tasks own the build; the **read-only** scripts are always safe; the
-**EXPERIMENTAL** ones (design mutators + all runtime scripts) are for
-exploration/validation, not the setup path.
+design-time **mutators** (`apply`/`mutate`/`delete`) are live-proven for one-off
+exploration and updates outside the build; the **runtime** scripts are
+verify-live (pilot caveats — see below), for exploration/validation rather than
+the setup path.
 
 **Design-time (Context Definitions):**
 
@@ -35,17 +37,17 @@ exploration/validation, not the setup path.
 | `diff_context.py` | Read-only | Diff a definition org-vs-org or plan-vs-org (drift): added / removed / changed. |
 | `patch_context.py` | Read-only | Extract a diff into an applicable **plan-JSON patch** (adds & updates; never mutates). |
 | `export_context.py` | Read-only | Serialize a live definition back into repo **plan JSON** (round-trips with the validator). |
-| `apply_context_plan.py` | **Mutates** | Apply an additive plan (or create a new definition) — EXPERIMENTAL mirror of `manage_context_definition`. |
-| `delete_context.py` | **Destructive** | Deactivate (default) or hard-delete a definition / custom artifacts — EXPERIMENTAL, `--confirm-delete` required. |
-| `mutate_context.py` | **Mutates** | One granular in-place edit (`--set-transient` / `--set-default-mapping` / `--add-tag` / `--remove-tag`) — EXPERIMENTAL, `--confirm` required. |
+| `apply_context_plan.py` | **Mutates** | Apply an additive plan (or create a new definition) — same plan logic as `manage_context_definition`, for one-off updates. |
+| `delete_context.py` | **Destructive** | Deactivate (default) or hard-delete a definition / custom artifacts — `--confirm-delete` required for a hard delete. |
+| `mutate_context.py` | **Mutates** | One granular in-place edit (`--set-transient` / `--set-default-mapping` / `--add-tag` / `--remove-tag`) — `--confirm` required. |
 
-**Runtime (context instances — EXPERIMENTAL / verify-live; see
+**Runtime (context instances — verify-live, pilot caveats; see
 `runtime-and-persistence.md`):**
 
 | Script | Org? | Purpose |
 |--------|------|---------|
 | `build_hydration_data.py` | Read-only | Build the nested `data` hydration payload for a definition — fillable **skeleton**, or `--from-record <id>` for a ready-to-run **id-only** payload (parent + children hydrate server-side). |
-| `context_session.py` | **Mutates** | **Primary runtime entry point** — one process: create → update-attr/write-tag → query → persist → delete. |
+| `context_session.py` | **Mutates** | The single-process runtime driver — create → update-attr/write-tag → query → persist → delete in one request. On a GA org `--query`/`--persist` need `ContextServicePilot`; Apex `Context.IndustriesContext` is the GA runtime path (see caveats below). |
 | `create_context_instance.py` | **Mutates** | `POST /connect/contexts` — hydrate an instance; returns the Context Info (`--id-only` for `$(...)` capture). |
 | `query_context_instance.py` | Read-only | `query-record` (flatten + decode compound) / `query-tags[-leaner]` against a live `contextId`. |
 | `persist_context_instance.py` | **Mutates** | `persist-records` — write attribute values back to a target mapping's SObjects (FK caveat). |
@@ -71,14 +73,14 @@ Static check of the plan JSON consumed by `manage_context_definition` /
 
 ```bash
 # canonical: validate the 6 active (non-archive) plans
-python scripts/context_service/validate_context_plan.py
+python scripts/context_service/definition/validate_context_plan.py
 
 # explicit paths
-python scripts/context_service/validate_context_plan.py \
+python scripts/context_service/definition/validate_context_plan.py \
   datasets/context_plans/DocGen/manifest.json
 
 # include the archive/ plans; treat warnings as failures
-python scripts/context_service/validate_context_plan.py --include-archive --strict
+python scripts/context_service/definition/validate_context_plan.py --include-archive --strict
 ```
 
 Discovery skips `datasets/context_plans/archive/` unless `--include-archive` is
@@ -108,12 +110,12 @@ legitimately `RLM_*Context`, not `__c`.
 ## `list_contexts.py` / `describe_context.py` — read-only inspectors
 
 ```bash
-python scripts/context_service/list_contexts.py --target-org rlm-base__beta
-python scripts/context_service/list_contexts.py --target-org rlm-base__beta --json
+python scripts/context_service/definition/list_contexts.py --target-org rlm-base__beta
+python scripts/context_service/definition/list_contexts.py --target-org rlm-base__beta --json
 
-python scripts/context_service/describe_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/describe_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext
-python scripts/context_service/describe_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/describe_context.py --target-org rlm-base__beta \
   --id 11Og... --json
 ```
 
@@ -134,26 +136,26 @@ field per mapping (the reuse-lens: `Quote.AccountId` in `QuoteEntitiesMapping`,
 
 ```bash
 # everything that touches a field, across all lenses (hydration + persistence)
-python scripts/context_service/trace_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext --field RLM_RampMode__c
 
 # every field a tag reads/writes; scope to one lens with --mapping
-python scripts/context_service/trace_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext --tag RampMode__c \
   --mapping QuoteEntitiesMapping
 
 # one attribute (node.attr or bare name)
-python scripts/context_service/trace_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
   --attribute SalesTransactionItem.RampMode__c
 
 # gaps: tagged-but-unbound (never populated), bound-but-untagged (unreachable by
 # an ES), inert (neither). Drop --mapping for the never-anywhere signal.
-python scripts/context_service/trace_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext --unmapped
 
 # no selector → per-mapping (lens) binding summary; --json on any mode
-python scripts/context_service/trace_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext
 ```
 
@@ -207,21 +209,21 @@ source org or the plan on the left.
 
 ```bash
 # org-vs-org (same developerName on both orgs)
-python scripts/context_service/diff_context.py \
+python scripts/context_service/definition/diff_context.py \
   --source-org rlm-base__A --target-org rlm-base__B \
   --developer-name RLM_SalesTransactionContext
 
 # org-vs-org with differently-named defs across the two orgs
-python scripts/context_service/diff_context.py \
+python scripts/context_service/definition/diff_context.py \
   --source-org rlm-base__A --source-dev-name RLM_FooContext \
   --target-org rlm-base__B --target-dev-name RLM_BarContext
 
 # plan-vs-org drift (directional — see caveat)
-python scripts/context_service/diff_context.py \
+python scripts/context_service/definition/diff_context.py \
   --target-org rlm-base__beta \
   --plan-file datasets/context_plans/RampMode/manifest.json
 
-python scripts/context_service/diff_context.py ... --json   # structured output
+python scripts/context_service/definition/diff_context.py ... --json   # structured output
 ```
 
 **plan-vs-org is directional.** Repo plans are *additive* (they declare only
@@ -266,17 +268,17 @@ round-trips: `patch_context.py` → `validate_context_plan.py` →
 
 ```bash
 # plan is truth → patch brings the org up to the plan (default --apply-to org)
-python scripts/context_service/patch_context.py \
+python scripts/context_service/definition/patch_context.py \
   --plan-file datasets/context_plans/RampMode/manifest.json \
   --target-org rlm-base__beta --out /tmp/ramp_patch.json
 
 # source org is truth → patch makes the target org match it
-python scripts/context_service/patch_context.py \
+python scripts/context_service/definition/patch_context.py \
   --source-org rlm-base__A --target-org rlm-base__B \
   --developer-name RLM_SalesTransactionContext --out /tmp/patch.json
 
 # org is truth → fold the org's *custom* (__c) state back into the repo plan
-python scripts/context_service/patch_context.py \
+python scripts/context_service/definition/patch_context.py \
   --plan-file datasets/context_plans/RampMode/manifest.json \
   --target-org rlm-base__beta --apply-to plan > /tmp/plan.json
 #   add --include-inherited to also emit inherited (non-__c) artifacts
@@ -301,12 +303,12 @@ serializer, so **lint the output** and verify flagged reversals.
 
 ```bash
 # Whole definition (a snapshot — includes inherited standard artifacts)
-python scripts/context_service/export_context.py \
+python scripts/context_service/definition/export_context.py \
   --target-org rlm-base__beta --developer-name RLM_SalesTransactionContext \
   --out /tmp/export.json
 
 # Just the custom (__c) layer — the repo-authoring plan for an extended base
-python scripts/context_service/export_context.py \
+python scripts/context_service/definition/export_context.py \
   --target-org rlm-base__beta --developer-name RLM_SalesTransactionContext \
   --custom-only --out /tmp/plan.json
 ```
@@ -320,7 +322,7 @@ clean and round-trips. CONTEXT-to-CONTEXT and multi-hop traversal reversals are
 flagged as `_caveats` / `_todo` (both `_`-prefixed, ignored by the task and
 validator), not fabricated.
 
-## `delete_context.py` — deactivate / hard-delete (EXPERIMENTAL, destructive)
+## `delete_context.py` — deactivate / hard-delete (destructive)
 
 > **No production delete task exists.** The supported lifecycle verb is
 > *deactivation* (soft-disable), which this script does **by default**. A hard
@@ -330,27 +332,27 @@ validator), not fabricated.
 
 ```bash
 # safe default: deactivate only (reversible)
-python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
   --developer-name RLM_QuoteDocGenContext
 
 # preview a custom teardown (no mutation — delete modes without --confirm-delete
 # only print the ordered plan)
-python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext --custom-teardown
 
 # strip every custom (__c) artifact, deactivating first (deletes are blocked while active)
-python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext --custom-teardown \
   --deactivate-first --confirm-delete
 
 # one custom attribute + its dependent tag/attr-mapping
-python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
   --delete-artifact attribute SalesTransactionItem.RampMode__c \
   --cascade --deactivate-first --confirm-delete
 
 # whole definition (platform cascade)
-python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
   --developer-name RLM_QuoteDocGenContext --delete-definition --confirm-delete
 ```
 
@@ -378,7 +380,7 @@ single DELETE that the platform cascades. (`_client.py` note: `sf api request
 rest` rejects a bodiless mutating verb — DELETE included — so the transport
 pipes an empty `-b -` body on every non-GET/HEAD request.)
 
-## `mutate_context.py` — granular in-place edit (EXPERIMENTAL)
+## `mutate_context.py` — granular in-place edit
 
 > **Prefer a plan for build work.** The production path for context changes is a
 > plan applied by `manage_context_definition` / `apply_context_plan.py`. This is
@@ -389,23 +391,23 @@ Four mutually-exclusive ops; previews unless `--confirm`:
 
 ```bash
 # flip a custom attribute's IsTransient (a modify → deactivate first, reactivate after)
-python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
   --set-transient SalesTransactionItem.RampMode__c true \
   --deactivate-first --reactivate --confirm
 
 # re-designate the default context mapping (a modify → deactivate first)
-python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
   --developer-name RLM_QuoteDocGenContext \
   --set-default-mapping QuoteEntitiesMapping --deactivate-first --reactivate --confirm
 
 # add a custom tag alias to an attribute (an insert → runs on the active version)
-python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
   --add-tag SalesTransactionItem.RampMode__c RampModeAlias__c --confirm
 
 # remove a custom tag (a delete → deactivate first)
-python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
   --remove-tag RampModeAlias__c --deactivate-first --reactivate --confirm
 ```
@@ -426,7 +428,7 @@ Two op-specific guards, both **live-verified** on v67.0:
   restore active state after). No-op edits (setting a value that already holds)
   are detected and skipped.
 
-## Runtime instance scripts (EXPERIMENTAL / verify-live)
+## Runtime instance scripts (verify-live, pilot caveats)
 
 > **The runtime half of Context Service.** Where the scripts above operate on a
 > Context **Definition** (design-time schema), these operate on a runtime context
@@ -440,8 +442,8 @@ Two op-specific guards, both **live-verified** on v67.0:
 > consuming engines (pricing, DocGen, BRE, the configurator) hydrate their own
 > contexts; you reach for these to reproduce and verify what those engines see.
 >
-> All are **EXPERIMENTAL / verify-live (262 / v67.0)** and not wired into any CCI
-> flow. Endpoint paths and the create/query-record/persist/query-tags-leaner body
+> All are **verify-live (262 / v67.0, pilot caveats below)** and not wired into
+> any CCI flow. Endpoint paths and the create/query-record/persist/query-tags-leaner body
 > shapes are confirmed against the public REST references; the two PATCH bodies
 > (`attributes`, `write-through-tags`) are grounded in internal sources — re-verify
 > on a live org. Full narrative in
@@ -507,8 +509,8 @@ PricebookEntryId, …"* — the persist graph writes the **full mapped fieldset*
 touched node, and that set includes ~29 `updateable=false` QLI fields;
 `removeRestrictedFields` strips FLS only, not non-updateable fields, so **no
 permission fixes it and it affects Apex, Flow, and REST identically** (a
-field-updateability limit of the mapping, not a gate; live-reproduced 2026-07-05
-on a fresh 1-line quote). See `runtime-and-persistence.md` for the full mechanism +
+field-updateability limit of the mapping, not a gate; it reproduces even on a
+fresh 1-line quote). See `runtime-and-persistence.md` for the full mechanism +
 `DMLTypeResolver` no-op matrix.
 
 ### `build_hydration_data.py` — hydration payload (read-only)
@@ -541,18 +543,18 @@ node→SObject lookup, walks its active-version node tree. Two modes:
 
 ```bash
 # skeleton to hand-fill (values optional — id-only hydrates from the org)
-python scripts/context_service/build_hydration_data.py --target-org rlm-base__beta \
+python scripts/context_service/instance/build_hydration_data.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext --node SalesTransactionItem \
   --out /tmp/records.json
 
 # id-only payload for a real record — ready to hydrate (parent + children)
-python scripts/context_service/build_hydration_data.py --target-org rlm-base__beta \
+python scripts/context_service/instance/build_hydration_data.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
   --from-record <quoteId> --node SalesTransaction --out /tmp/records.json
 # then feed either to create/session via --data-file
 ```
 
-### `context_session.py` — full runtime round trip (primary entry point)
+### `context_session.py` — full runtime round trip (single-process driver)
 
 One process: create (or reuse `--context-id`) → `--update-attr NODEPATH NAME
 VALUE` (repeatable) → `--write-tag NODEPATH TAG VALUE` (repeatable) → `--query` →
@@ -561,7 +563,7 @@ VALUE` (repeatable) → `--write-tag NODEPATH TAG VALUE` (repeatable) → `--que
 (`-` or `""` = the root node).
 
 ```bash
-python scripts/context_service/context_session.py --target-org rlm-base__beta \
+python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json \
   --query --persist --target-mapping-name QuoteEntitiesMapping
 ```
@@ -577,15 +579,15 @@ Mapping resolution is `--mapping-id`/`--target-mapping-id` directly, else
 
 ```bash
 # reuse-enabled org: create → capture id → query → persist → evict
-CID=$(python scripts/context_service/create_context_instance.py --target-org rlm-base__beta \
+CID=$(python scripts/context_service/instance/create_context_instance.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json --id-only)
-python scripts/context_service/query_context_instance.py --target-org rlm-base__beta --context-id "$CID"
-python scripts/context_service/persist_context_instance.py --target-org rlm-base__beta \
+python scripts/context_service/instance/query_context_instance.py --target-org rlm-base__beta --context-id "$CID"
+python scripts/context_service/instance/persist_context_instance.py --target-org rlm-base__beta \
   --context-id "$CID" --target-mapping-id 11j...
-python scripts/context_service/delete_context_instance.py --target-org rlm-base__beta --context-id "$CID"
+python scripts/context_service/instance/delete_context_instance.py --target-org rlm-base__beta --context-id "$CID"
 
 # clear a definition's cached runtime schema (not the definition)
-python scripts/context_service/delete_context_instance.py --target-org rlm-base__beta \
+python scripts/context_service/instance/delete_context_instance.py --target-org rlm-base__beta \
   --clear-schema-cache --developer-name RLM_SalesTransactionContext
 ```
 
@@ -602,12 +604,15 @@ hard-deletes a Context Definition.
 
 ### `list_context_interfaces.py` — definition interfaces (read-only)
 
+A **design-time** read (it lives in `definition/`, and unlike the runtime scripts
+above it is a plain Connect GET — **not** pilot-gated). It is documented here only
+because it is interface-level rather than definition-level:
 `GET /connect/context-definition-interfaces` (or `--interface NAME` for one).
 Interfaces are not tied to a specific definition, so no `--developer-name` is
 required — which is why this is a separate script from `describe_context.py`.
 
 ```bash
-python scripts/context_service/list_context_interfaces.py --target-org rlm-base__beta
+python scripts/context_service/definition/list_context_interfaces.py --target-org rlm-base__beta
 ```
 
 ### Auth — delegated to the `sf` CLI

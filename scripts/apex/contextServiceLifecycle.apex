@@ -6,7 +6,7 @@ updateContextAttributes → persistContext, all in one request where the
 contextId never expires.
 
 BEFORE RUNNING: fill in the 3 placeholders below. Get them from:
-  python scripts/context_service/describe_context.py \
+  python scripts/context_service/definition/describe_context.py \
     --target-org <your-sf-alias> --developer-name RLM_SalesTransactionContext
 
 Surface differences (Apex vs REST vs Flow):

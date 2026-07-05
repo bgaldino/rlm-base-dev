@@ -327,3 +327,53 @@ def node_attributes(node: Dict[str, Any]) -> List[Dict[str, Any]]:
 def eprint(*args, **kwargs):
     """Print to stderr (so --json stdout stays clean)."""
     print(*args, file=sys.stderr, **kwargs)
+
+
+# --------------------------------------------------------------------------- #
+# Transport adapter (injectable)
+# --------------------------------------------------------------------------- #
+
+class Transport:
+    """Binds the CLI transport to one org / api-version / dry-run setting.
+
+    A thin OO wrapper over the ``connect_request`` / ``sobjects_request`` /
+    ``soql_query`` module functions above — it exists as the injectable seam so
+    the design-time orchestrator (``_apply.ContextApplier``) and the runtime
+    lifecycle (``_runtime``) can be unit-tested with a fake (no org). Any object
+    exposing ``request`` / ``sobject`` / ``soql`` with these signatures works.
+    """
+
+    def __init__(self, target_org: str, api_version: str = DEFAULT_API_VERSION,
+                 dry_run: bool = False, logger: Callable[..., None] = None):
+        self.target_org = target_org
+        self.api_version = api_version
+        self.dry_run = dry_run
+        self.logger = logger or eprint
+
+    def request(self, method: str, path: str, body: Any = None,
+                *, dry_run: Optional[bool] = None) -> Any:
+        # ``dry_run`` overrides the transport's bound flag for this one call — the
+        # runtime path uses it to force read-shaped POSTs (query-record,
+        # query-tags) to execute even under a dry-run session (see _runtime.py /
+        # the dry-run contract). ``None`` (the design-time default) inherits.
+        return connect_request(
+            method, path, body,
+            target_org=self.target_org, api_version=self.api_version,
+            dry_run=self.dry_run if dry_run is None else dry_run,
+            logger=self.logger,
+        )
+
+    def sobject(self, method: str, sobject: str, record_id: Optional[str] = None,
+                body: Any = None, *, dry_run: Optional[bool] = None) -> Any:
+        return sobjects_request(
+            method, sobject, record_id, body,
+            target_org=self.target_org, api_version=self.api_version,
+            dry_run=self.dry_run if dry_run is None else dry_run,
+            logger=self.logger,
+        )
+
+    def soql(self, query: str) -> List[Dict[str, Any]]:
+        # Reads always execute (non-mutating), even under dry_run.
+        return soql_query(
+            query, target_org=self.target_org, api_version=self.api_version
+        )

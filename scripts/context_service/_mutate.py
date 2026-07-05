@@ -58,11 +58,12 @@ Three properties make this distinct from a raw PATCH:
 
 from typing import Any, Callable, Dict, List, Optional
 
-import _client
-import _endpoints as ep
-import _payload
-from _apply import ContextApplier, Transport, _iter_context_mappings
-from _delete import ContextDeleter, DeletePreflightError, build_artifact_catalog
+from . import _client
+from . import _endpoints as ep
+from . import _payload
+from ._apply import ContextApplier, _iter_context_mappings
+from ._client import Transport
+from ._delete import ContextDeleter, DeletePreflightError, build_artifact_catalog
 
 
 # --------------------------------------------------------------------------- #
