@@ -445,73 +445,38 @@ Two op-specific guards, both **live-verified** on v67.0:
 > All are **verify-live (262 / v67.0, pilot caveats below)** and not wired into
 > any CCI flow. Endpoint paths and the create/query-record/persist/query-tags-leaner body
 > shapes are confirmed against the public REST references; the two PATCH bodies
-> (`attributes`, `write-through-tags`) are grounded in internal sources — re-verify
+> (`attributes`, `write-through-tags`) are best-effort — re-verify
 > on a live org. Full narrative in
 > `.cursor/skills/context-service/runtime-and-persistence.md`.
 
-**A runtime `contextId` is request-scoped.** It is an opaque cache handle (a
-UUID/hex string, **not** an SObject id — never prefix-validate it) that, per
-Salesforce docs, "applies only to a single request and cannot pass data across
-multiple requests" unless the org's *"Runtime Context Instance Reuse to Improve
-Response Times"* setting is on and the call is within `contextTtl` (~10 min
-default, 45 max). That is why the reliable entry point,
-**`context_session.py`**, does create→use→persist→delete in one process. The
-standalone scripts accept `--context-id` for the reuse-enabled / debugging case
-and each print a one-line scope warning.
+The mechanism (request-scope, the pilot gates, the Apex/Flow path, the dirty-persist
+`errorNodes` limit) is documented once in
+`.cursor/skills/context-service/runtime-and-persistence.md` — read it before using
+these scripts. What's script-specific:
 
-**Dry-run contract (consistent across the mutating runtime scripts).** Under
-`--dry-run`, mutations (create, `persist-records`, the two PATCHes, both DELETEs)
-only **log**; read-shaped POSTs (`query-record`, `query-tags[-leaner]`) and the
-interface/schema reads still **execute**. Because create is a mutation, a dry-run
-session mints **no** `contextId` and skips the steps that need one (with a log
-line) — no fabricated id.
+- **Request-scope → `context_session.py` is the entry point.** A `contextId` is
+  request-scoped, so it can't be reused across separate `sf api request` calls
+  unless SESSION scope / the *Runtime Context Instance Reuse* setting is on;
+  `context_session.py` does create→use→persist→delete in one process. The
+  standalone scripts accept `--context-id` (reuse/debugging) and print a scope
+  warning. **On a normal GA org, validate hydration via Apex** (`runtime-and-persistence.md`
+  → *Start here*) — the stateless REST scripts can't complete the lifecycle.
+- **Dry-run contract.** Under `--dry-run`, mutations (create, `persist-records`,
+  the two PATCHes, both DELETEs) only **log**; read-shaped POSTs (`query-record`,
+  `query-tags[-leaner]`) and interface/schema reads still **execute**. A dry-run
+  session mints **no** `contextId` and skips the steps that need one — no
+  fabricated id.
+- **Persist confirmation.** `persist_context_instance.py` / `context_session.py --persist`
+  **poll `AsyncOperationTracker` for you** (by `Id` == the returned `referenceId`)
+  and print `persist outcome: OK`/`FAILED`, **exiting non-zero on a confirmed
+  failure** (failure = `Status ∈ {CompletedWithFailures, Failure}` **or**
+  `errorNodes` non-empty — a `Completed` row with populated `errorNodes` is still a
+  failure). Tune with `--persist-poll-seconds`/`--poll-seconds` (default 30); opt
+  out with `--no-confirm-persist`/`--no-confirm`. Read the tracker by hand:
 
-**On a normal GA org, use Apex — the stateless REST scripts can't complete the
-lifecycle.** REST `create` is GA, but **`query-record` / `query-tags[-leaner]` are
-pilot-gated** (`API_DISABLED_FOR_ORG`, scratch and production alike;
-`ContextServicePilot`), and `persist-records`/the PATCHes are GA but need a
-surviving `contextId` — which a REQUEST-scoped id is not across separate
-`sf api request` calls (cross-call survival needs SESSION scope, the
-`SessionScopeContext` pilot). So without both pilots the standalone
-`query`/`persist` scripts fail not-found. **Without any pilot perm, keep the whole
-hydrate → query → (update) → persist in one request** via **Apex
-`Context.IndustriesContext`** (`buildContext` + `leanerQueryTags`
-[+ `updateContextAttributes` + `persistContext`], one transaction) — it needs only
-the GA `IndustriesContext` perm, the `contextId` survives, and the query isn't
-behind the REST pilot gate. A single Flow chaining the invocable actions is the
-no-code equivalent. The copy-paste snippet + method map are in
-`runtime-and-persistence.md` → **Start here**. Tag names are a **distinct
-namespace** from attribute names (attr `Quantity` → tag `LineItemQuantity`);
-`list_context_interfaces.py` is *not* gated (plain Connect GET).
-
-**Debugging a persist (`persist_context_instance.py` / `context_session.py --persist`):**
-persist is **asynchronous** — the returned `referenceId` is not confirmation. Both
-scripts now **poll `AsyncOperationTracker` for you** (by `Id` — the `referenceId`
-**equals** the tracker `Id`, live-verified) and print `persist outcome: OK` /
-`persist outcome: FAILED`, **exiting non-zero on a confirmed failure**. Tune with
-`--persist-poll-seconds` / `--poll-seconds` (default 30); opt out with
-`--no-confirm-persist` / `--no-confirm` to report only the `referenceId`. To read
-the tracker by hand:
-
-```bash
-sf data query --query "SELECT Id,Status,Response FROM AsyncOperationTracker WHERE Id = '16P…referenceId…'" --target-org <sf-alias>
-```
-
-`Response` is JSON with `savedNodes` (written), `skippedNodes` (eligible but
-DML-skipped), and `errorNodes` (recordId → error text). **A dirty persist reports
-`Status='Completed'` WITH a populated `errorNodes` — "Completed" alone is not
-success**, so the outcome is flagged failed when `Status ∈ {CompletedWithFailures,
-Failure}` **or** `errorNodes` is non-empty. A **no-op** persist (hydrate → persist
-unchanged) succeeds (`savedNodes={}`, OK); a **dirty** persist through the default
-`QuoteEntitiesMapping` fails atomically with `errorNodes` = *"Unable to
-create/update fields: TotalPrice, Subtotal, NetUnitPrice, Product2Id,
-PricebookEntryId, …"* — the persist graph writes the **full mapped fieldset** for a
-touched node, and that set includes ~29 `updateable=false` QLI fields;
-`removeRestrictedFields` strips FLS only, not non-updateable fields, so **no
-permission fixes it and it affects Apex, Flow, and REST identically** (a
-field-updateability limit of the mapping, not a gate; it reproduces even on a
-fresh 1-line quote). See `runtime-and-persistence.md` for the full mechanism +
-`DMLTypeResolver` no-op matrix.
+  ```bash
+  sf data query --query "SELECT Id,Status,Response FROM AsyncOperationTracker WHERE Id = '16P…referenceId…'" --target-org <sf-alias>
+  ```
 
 ### `build_hydration_data.py` — hydration payload (read-only)
 

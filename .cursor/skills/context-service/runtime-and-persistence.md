@@ -10,8 +10,8 @@ and persisting them back to the mapped SObjects.
 > **Pinned to Release 262 / API v67.0.** Endpoint paths and the create /
 > query-record / persist / query-tags-leaner request shapes are confirmed against
 > the public **Runtime Context Instance Management** and **Persistence Context
-> Management** REST references, cross-checked against near-core Java source and
-> CS engineering. The runtime REST endpoints are all implemented and resolve, but
+> Management** REST references and cross-checked against live-org behavior. The
+> runtime REST endpoints are all implemented and resolve, but
 > the create `contextId` is **REQUEST-scoped by default** and does not survive
 > across separate `sf api request` calls, and `query-record`/`query-tags` are
 > **pilot-gated**. On a normal org, drive the whole lifecycle from one Apex
@@ -161,41 +161,37 @@ validate it like `11O…`/`11j…`). The create reference is explicit that a con
 object *"applies only to a single request and cannot pass data across multiple
 requests."*
 
-This is governed by **`metadata.contextScope`** on the create body (near-core
-enum `DataPersistenceScope { REQUEST, SESSION }`):
+This is governed by **`metadata.contextScope`** on the create body
+(`REQUEST` | `SESSION`):
 
-- **`REQUEST` (default)** — the instance is **thread/request-local** (the near-core
-  builder puts it in a thread-local store, guardrail TTL capped at ~15 s). It
-  **cannot** be looked up by a later, separate stateless HTTP call →
-  `RECORD_NOT_FOUND` "doesn't exist or expired." This is by design.
-- **`SESSION`** — the instance is written to a **distributed cache**, so the
-  `contextId` **survives across separate calls** (subject to `contextTtl`). But
-  SESSION is **pilot-gated**: sending `contextScope:"SESSION"` on a non-pilot org
-  returns `API_DISABLED_FOR_ORG` *"you don't have permission to call Session
-  Scope."* Enabled by the **`SessionScopeContext`** user permission (shipped via
-  `ContextServicePilot`, PM-approval — not GA). Per CS engineering, only REQUEST
-  scope is openly available; SESSION scope is limited to specific pilot teams,
-  and REQUEST is the recommended scope for customer use cases.
+- **`REQUEST` (default)** — the instance is **request-local** (guardrail TTL
+  observed at ~15 s). It **cannot** be looked up by a later, separate stateless
+  HTTP call → `RECORD_NOT_FOUND` "doesn't exist or expired." This is by design.
+- **`SESSION`** — the instance survives across separate calls (subject to
+  `contextTtl`). But SESSION is **pilot-gated**: sending `contextScope:"SESSION"`
+  on a non-pilot org returns `API_DISABLED_FOR_ORG` *"you don't have permission to
+  call Session Scope."* Enabled by the **`SessionScopeContext`** user permission
+  (shipped via the `ContextServicePilot` pilot — not GA). Only REQUEST scope is
+  openly available; SESSION scope is pilot-limited, and REQUEST is the recommended
+  scope for customer use cases.
 
 Consequences:
 
 - On a normal (non-pilot / REQUEST-scope) org a `contextId` from one `sf`/CLI
   invocation is **not** usable by a later, separate invocation. Cross-call REST use
   needs **SESSION scope** (pilot) and/or the RLM setting **"Runtime Context
-  Instance Reuse to Improve Response Times"** (internal id **`ContextReuse`**, under
-  Revenue Lifecycle Management Setup), within `contextTtl`.
-- Therefore the **primary entry point is `context_session.py`** for the
-  reuse/pilot case; but on a normal org even it can't keep a REQUEST contextId
-  alive across its own steps (each shells out to a separate `sf api request`) — use
-  the **Apex bridge or a Flow** to keep the whole lifecycle in one request.
+  Instance Reuse to Improve Response Times"** (id **`ContextReuse`**, under Revenue
+  Lifecycle Management Setup), within `contextTtl`.
+- `context_session.py` is the reuse/pilot entry point, but even it can't keep a
+  REQUEST contextId alive across its own steps (each shells out to a separate
+  `sf api request`) — use Apex or a Flow for the whole lifecycle in one request.
 - The standalone `create/query/persist/delete` scripts accept `--context-id` for
-  the reuse-enabled or step-by-step-debugging case, and each print a one-line
-  stderr warning to that effect. If one of them fails *not-found*, the instance
-  expired between calls — use SESSION scope, the Apex bridge, or a single Flow.
+  the reuse-enabled or step-by-step-debugging case (each prints a one-line stderr
+  scope warning). A *not-found* means the instance expired between calls.
 
-> **`contextTtl` is a ContextDefinition property, in minutes** (near-core
-> `contextTtlInMinutes`; default **10 min**, org max raised to **45 min** at R254+
-> via `ContextMaxTtlInMinutes`/`NccsMaxTtlInMinutes`). It only matters for SESSION
+> **`contextTtl` is a ContextDefinition property, in minutes** (default
+> **10 min**, org max raised to **45 min** at R254+ via the
+> `ContextMaxTtlInMinutes` org setting). It only matters for SESSION
 > scope; REQUEST contexts are hard-capped at ~15 s. **Do not send a TTL on the
 > runtime create body** — TTL is definition/org-driven, not a create field; the
 > create-body scope control is **`contextScope`**, not a TTL. An unexpected key
@@ -213,9 +209,9 @@ works from stateless CLI calls:
 > auto-prefixed for these resources — it misroutes to an HTML **"URL No Longer
 > Exists"** page (an edge 404, and a **501 for `PATCH`**). That 501 is the *edge
 > server rejecting an unrouted PATCH*, **not** the Context endpoint being
-> unimplemented — the endpoints ARE implemented at v67.0 (the core system of
-> record marks the PATCH ops `status: implemented`; core fit-tests PATCH them
-> expecting 200). With the versioned path they resolve correctly.
+> unimplemented — the endpoints ARE implemented at v67.0 (the PATCH ops return
+> 200 when reached over the versioned path). With the versioned path they resolve
+> correctly.
 > `_client.connect_request` already prepends the version, so the Python scripts are
 > fine; the artifact only bites hand-run `sf api request` probes.
 
@@ -226,12 +222,12 @@ Endpoint map (v67.0, platform-wide — the same on scratch and production/demo):
   knob that governs cross-call survival, and it defaults to `REQUEST`.**
 - **`contextScope: SESSION` is pilot-gated** (`API_DISABLED_FOR_ORG`, user
   permission `SessionScopeContext` via `ContextServicePilot`). SESSION scope is
-  what persists the instance to a distributed cache so a `contextId` survives
+  what lets a `contextId` survive
   across separate HTTP calls; default REQUEST scope is request-local (~15 s
   guardrail TTL), so a REQUEST `contextId` is `RECORD_NOT_FOUND` on any *separate*
   `sf api request` call. This is **by design**: each CLI call is its own request,
-  and the near-core builder writes REQUEST contexts only to a thread-local,
-  SESSION contexts to the durable store.
+  so a REQUEST-scoped instance does not outlive it, whereas a SESSION-scoped one
+  persists across calls.
 - **`GET /connect/contexts/{id}` returns `200` but `isSuccess:false`** for an
   expired REQUEST id (a *soft* not-found that echoes the id back). The mutating
   ops return a *hard* 400 `RECORD_NOT_FOUND`.
@@ -246,24 +242,15 @@ Endpoint map (v67.0, platform-wide — the same on scratch and production/demo):
   can't survive to a *second* call. On a **SESSION-enabled** org (or from one
   transaction) they work.
 
-**Net: the REST runtime API is not broken — it is scope-gated.** On a normal GA
-org the contextId is REQUEST-scoped, so the multi-call REST sequence (create in
-one call, then query/patch/persist in *separate* calls) cannot work — the instance
-is request-local. Genuine cross-call REST use requires **SESSION scope** (pilot:
-`SessionScopeContext`) and/or the RLM **"Runtime Context Instance Reuse"** setting
-(`ContextReuse`). Separately, `query-record`/`query-tags` need the
-`ContextServicePilot` gate regardless of scope.
-
-**Therefore, on a normal (non-pilot) org, drive the whole lifecycle inside ONE
-request** — Apex `Context.IndustriesContext` (`sf apex run`) or a single Flow
-chaining the invocable actions. This is Salesforce's documented **design intent**,
-not a workaround: internal engine call sites (pricing
-`PricingRuntimeContextServiceImpl`, expression sets
-`NearCoreExpressionSetRESTController`) all resolve context via the in-process
-`ContextRuntimeService.getContext(...)`, never by chaining outbound
-`/connect/contexts/*` calls; and CS engineering states that the REST APIs do not
-support querying in REQUEST-scope context, with Apex and Flow the recommended
-alternatives.
+**Net: the REST runtime API is not broken — it is scope-gated** (see *`contextId`
+is request-scoped* above). Two independent gates: the multi-call REST sequence
+needs **SESSION scope** (pilot `SessionScopeContext`) and/or the RLM **"Runtime
+Context Instance Reuse"** setting (`ContextReuse`) for the `contextId` to survive
+between calls, and `query-record`/`query-tags` need `ContextServicePilot`
+regardless of scope. So on a normal org, drive the whole lifecycle inside **one
+request** (Apex/Flow — see *Start here*). This is design intent: platform consumers
+(pricing, expression sets) resolve a context in-process within the same request,
+not by chaining outbound `/connect/contexts/*` calls.
 
 ### The invocable-actions path (fourth surface) — same request-scope wall
 
@@ -282,20 +269,14 @@ Action names on the org (`GET /services/data/v67.0/actions/standard`, filtered):
 | `persistContextData` | `contextId` | `contextMappingId`, `trackingId` | `referenceId` |
 | `queryContextTags` | `contextId`, `tagsList` (**real `String[]`**, not stringified) | — | `queryResult` (stringified JSON) |
 
-Over REST as *separate* calls the invocable actions hit the **exact same
-request-scope wall** as raw Connect: `buildContext` works (`isSuccess:true`,
-returns a `contextId`), but a *separate* REST `queryContextTags`/`persistContextData`
-call with that `contextId` fails **`RECORD_NOT_FOUND` "doesn't exist or expired"** —
-each REST invocation is its own request, and the instance is evicted between them.
-(Gotcha: `tagsList` must be a genuine JSON array; a stringified array →
-`INVALID_ARGUMENT_TYPE "expected String[]"`.)
-
-**Where invocable actions win:** inside a **single Flow**, all the actions run in
-**one transaction/request**, so a Flow `buildContext → updateContextAttributes →
+As *separate* REST calls these hit the **same request-scope wall** as raw Connect
+(`buildContext` mints a `contextId`; a separate `queryContextTags` /
+`persistContextData` call fails `RECORD_NOT_FOUND`). But inside a **single Flow**
+they run in one request, so `buildContext → updateContextAttributes →
 persistContextData` keeps the `contextId` alive — the declarative equivalent of the
-Apex bridge, with **zero Apex and only the GA `IndustriesContext` perm**. That
-makes them the best *composable, low-dependency, no-code* runtime path (a reusable
-subflow). They are **not** usable as separate `sf api request` CLI steps.
+Apex bridge, zero Apex, only the GA `IndustriesContext` perm. This is the best
+no-code runtime path (a reusable subflow). (Gotcha: `tagsList` must be a genuine
+JSON array; a stringified array → `INVALID_ARGUMENT_TYPE "expected String[]"`.)
 
 ### The viable inspection path is Apex
 
@@ -303,22 +284,8 @@ subflow). They are **not** usable as separate `sf api request` CLI steps.
 app server), so the `contextId` survives and the query methods are reachable
 without the REST pilot gate:
 
-```apex
-Context.IndustriesContext ctx = new Context.IndustriesContext();
-Map<String,String> md = new Map<String,String>{
-    'contextDefinitionId' => '<contextDefinitionId>',  // 11O… ContextDefinitionId
-    'mappingId'           => '<mappingId>'};            // 11j… a HYDRATION-intent ContextMapping
-Map<String,Object> bi = new Map<String,Object>{'metadata' => md,
-    // NOTE businessObjectType = the MAPPED SObject name ("Quote"), not the node name
-    'data' => '{"SalesTransaction":[{"id":"<recordId>","businessObjectType":"Quote"}]}'};
-String cid = (String) ctx.buildContext(bi).get('contextId');   // 0 SOQL — lazy
-Map<String,Object> out = ctx.leanerQueryTags(new Map<String,Object>{
-    'contextId' => cid, 'tags' => new List<String>{'SalesTransactionName','LineItemQuantity'}});
-// out.leanerQueryTagResult → {tagName: [{tagValue, recordIdIndexesForPath, isNodeLevelTag}]}
-// out.recordIds → the hydrated parent + child record ids
-```
-
-Method map on `Context.IndustriesContext`:
+See the copy-paste snippet in *Start here* for the full build → query → update →
+persist sequence. Method map on `Context.IndustriesContext`:
 
 | Method | Works? | Notes |
 |--------|--------|-------|
@@ -404,8 +371,8 @@ name the root node when the definition has more than one top-level node). Use th
 default skeleton mode only when you want to hand-author attribute *overrides*.
 
 `metadata` = `{contextDefinitionId (11O…), mappingId (11j…)}`. `taggedData`
-(Boolean) is included **only** when you pass `--tagged-data` — it is on the
-Context MetaData Input rep per internal sources; omit it otherwise (verify live).
+(Boolean) is included **only** when you pass `--tagged-data` — it is an optional
+key on the create metadata; omit it otherwise (verify live).
 
 > **⚠ Hydration is a sparse subset — you never get "all the tags."** A hydrated
 > instance returns far fewer values than the definition defines, via a
@@ -523,38 +490,35 @@ or within a single request.
 
 > **⚠ Persist SKIPS a clean record and REJECTS a dirty record whose node carries
 > non-updateable fields.** Two distinct outcomes, both visible in the tracker
-> `Response`, both explained by near-core `DMLTypeResolver.java`:
-> - **No-op / skip (`skippedNodes`, `HasErrors=false`).** A hydrated-but-unedited record
->   has DmlStatus `CREATED` + a **real Salesforce id**. `DMLTypeResolver.isDMLNoOp`
->   (real id + `CREATED` → no-op; `getHttpMethod` → null) skips it — "it already exists,
->   nothing to change." Only records that are `UPDATED` (real id → PATCH), or `CREATED`/
->   `UPDATED` with a **synthetic** id (→ POST), or `DELETED` are persisted. *This eligibility
->   gate was added in 254* (the 3-arg `isDMLNoOp` is `@Deprecated(since=254)`). A record
->   that never flipped `CREATED`→`UPDATED` (e.g. values supplied at build time rather than
->   via a post-hydration `updateContextAttributes`) silently no-ops.
-> - **Reject (`errorNodes`, `HasErrors=true`).** A genuinely dirty record (`UPDATED`) IS
+> `Response` and reproducible from an org:
+> - **No-op / skip (`skippedNodes`, `HasErrors=false`).** A hydrated-but-unedited
+>   record (a real Salesforce id, never modified in memory) is treated as
+>   "already exists, nothing to change" and skipped. Only records that were
+>   actually edited (real id → PATCH), or newly created with a **synthetic** id
+>   (→ POST), or deleted are persisted. A record that never changed after
+>   hydration (e.g. values supplied at build time rather than via a
+>   post-hydration `updateContextAttributes`) silently no-ops.
+> - **Reject (`errorNodes`, `HasErrors=true`).** A genuinely dirty record IS
 >   eligible → persist attempts an **atomic SObject-graph UPDATE over the FULL mapped
->   fieldset for that node — not just the changed column.** `removeRestrictedFields` strips
->   only **FLS**-restricted fields, NOT `updateable=false` ones, so every system-derived /
+>   fieldset for that node — not just the changed column.** FLS-restricted fields are
+>   dropped, but `updateable=false` fields are **not**, so every system-derived /
 >   create-only field the mapping carries enters the graph. On the standard
 >   QuoteEntitiesMapping SalesTransactionItem→QuoteLineItem node, the writeback set includes
->   **~29 `updateable=false` fields** (`TotalPrice`, `Subtotal`, `NetUnitPrice`,
+>   **~29 non-updateable fields** (`TotalPrice`, `Subtotal`, `NetUnitPrice`,
 >   `NetTotalPrice`, `ListPrice`, `TotalCost`, `Product2Id`, `PricebookEntryId`,
 >   `StartDateTime`/`EndDateTime`, …). The whole node UPDATE is rejected atomically →
 >   `errorNodes` = *"Unable to create/update fields: … Please check the security settings…"*.
 >   The one field actually edited (e.g. `Quantity`, `updateable=true`) is **not** in the list —
 >   it fails because of its non-updateable travelling companions. The "check security
 >   settings" hint is **misleading**: no permission fixes `updateable=false`; the fix is a
->   PERSISTENCE mapping whose writeback set excludes non-updateable fields (and the Apex/REST
->   persist has **no** knob to narrow the fieldset — `removeRestrictedFields`/
->   `smartUpdatesEnabled` are not surfaced by the Apex bridge).
+>   PERSISTENCE mapping whose writeback set excludes non-updateable fields (persist exposes
+>   **no** knob to narrow the fieldset).
 >
-> This is a **field-updateability gate**, not a pilot entitlement — fully diagnosable from
+> This is a **field-updateability limit**, not a pilot entitlement — fully diagnosable from
 > `AsyncOperationTracker.Response`, and it reproduces identically across the Apex
-> attribute-path and the Flow tag-path (both funnel into the same near-core engine —
-> `AbstractContextColumnarUpdateService.writeThroughTags` delegates to
-> `updateContextAttributes` after tag→attribute resolution) and on a fresh single-line quote
-> (so it is not record complexity). **Bottom line for tooling:** hydration + in-memory update
+> attribute-path and the Flow tag-path (a `write-through-tags` write resolves tag→attribute
+> and then follows the same `updateContextAttributes` writeback) and on a fresh single-line
+> quote (so it is not record complexity). **Bottom line for tooling:** hydration + in-memory update
 > are proven; a **no-op persist succeeds**; a **dirty persist through the default
 > QuoteEntitiesMapping fails atomically** on non-updateable fields — read
 > `AsyncOperationTracker.Response.errorNodes` for the exact list. A custom PERSISTENCE
@@ -567,13 +531,11 @@ or within a single request.
 > `persist_context_instance.py` emits this caveat on every run; confirm any FK
 > write directly on the target SObject.
 
-Persistence reuses the same hydration binding, run backward: there is **no
-separate persistence structure** — `ContextAttrHydrationDetail` is the single
-field↔attribute binding, and direction is gated by the mapping's `intents`
-(`HYDRATION` / `PERSISTENCE`) and the attribute's `fieldType`
-(`INPUT` read-only / `OUTPUT` write-only / `INPUTOUTPUT` both; `isTransient`
-skips persist). See `trace_context.py` (design-time) to see, per attribute, which
-field a persist would target and whether the direction is active.
+Persistence reuses the same hydration binding, run backward — direction is gated
+by the mapping's `intents` and the attribute's `fieldType` (`isTransient` skips
+persist). See `authoring-and-lifecycle.md` → *Hydration, persistence & the mapping
+intents* for the full intent/fieldType tables, and `trace_context.py` to see, per
+attribute, which field a persist would target and whether the direction is active.
 
 ## Definition interfaces
 

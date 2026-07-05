@@ -66,55 +66,36 @@ expression-set steps that consume it. This skill is consumable by any AI agent
 8. **Runtime = a separate lifecycle from design-time.** A Context *Definition*
    (rules 1–7) is design-time schema; a runtime *instance* is hydrated from
    records, queried, and persisted back. A runtime `contextId` is a
-   **request-scoped** opaque cache handle (UUID/hex — never prefix-validate it):
-   per Salesforce it may not survive across separate calls unless the org's
-   "Runtime Context Instance Reuse" setting is on and within `contextTtl`. Use
-   **`context_session.py`** (create→use→persist→delete in one process) as the
-   single-process runtime driver; build the `data` payload with
-   `build_hydration_data.py`. These runtime scripts are **verify-live (pilot
-   caveats — rule 9)** and exist **primarily to debug, understand, and validate
-   runtime behavior** (does hydration/persistence/tagging actually work the way
-   the definition says?) — **not** as a production runtime or build path
-   (engines like pricing/DocGen/BRE hydrate their own contexts). See
+   **request-scoped** opaque cache handle (UUID/hex — never prefix-validate it)
+   that may not survive across separate calls. The runtime helper scripts exist
+   **to debug/validate runtime behavior**, not as a production runtime (engines
+   like pricing/DocGen/BRE hydrate their own contexts). Use `context_session.py`
+   (create→use→persist→delete in one process) with a `data` payload from
+   `build_hydration_data.py`. Full lifecycle, scoping, and TTL in
    `runtime-and-persistence.md`.
 9. **On a normal GA org, Apex (or one Flow) is the only working runtime path.**
-   Stateless multi-call REST cannot complete the lifecycle: `query-record` /
-   `query-tags` are **pilot-gated** (`API_DISABLED_FOR_ORG`, scratch and
-   production alike), and `persist-records`/the PATCHes are GA but need a
-   **surviving** `contextId` — which a REQUEST-scoped id is not across separate
-   `sf api request` calls (cross-call survival needs **SESSION scope**, the
-   `SessionScopeContext` pilot). Without both pilots, keep the whole
-   hydrate → query → (update) → persist in **one request**: **Apex
-   `Context.IndustriesContext`** (scripted) or **one Flow** chaining the invocable
-   actions (no-code) — both need only the **GA `IndustriesContext`** perm. See
-   `runtime-and-persistence.md` → *Start here* for the copy-paste Apex snippet.
+   Multi-call REST can't complete the lifecycle — `query-record`/`query-tags` are
+   pilot-gated and a REQUEST-scoped `contextId` doesn't survive between separate
+   calls. Keep hydrate → query → (update) → persist in **one request** via Apex
+   `Context.IndustriesContext` or one Flow (GA `IndustriesContext` perm only). See
+   `runtime-and-persistence.md` → *Start here* for the copy-paste snippet + the
+   pilot-gate detail.
 10. **Runtime hydration gotcha + tag namespace.** In the `data` payload,
     `businessObjectType` must be the **mapped SObject name** (e.g. `Quote`),
-    **not** the context-node name (`SalesTransaction`) — the array *key* is the
-    node name, but a node-name `businessObjectType` hydrates **zero** records
-    (silent empty result, `isSuccess:true`). `build_hydration_data.py` emits the
-    mapped name (from the mapping's `contextNodeMappings`). Tag names are a
-    **distinct namespace** from attribute names (attr `Quantity` →
-    tag `LineItemQuantity`) — query by tag name, read off the definition.
+    **not** the context-node name (`SalesTransaction`) — a node-name value
+    hydrates **zero** records silently (`isSuccess:true`).
+    `build_hydration_data.py` emits the mapped name. Tag names are a **distinct
+    namespace** from attribute names (attr `Quantity` → tag `LineItemQuantity`) —
+    query by tag name, read off the definition.
 11. **Persist is asynchronous → confirm via `AsyncOperationTracker`, not the
-    `referenceId`.** The returned `referenceId` is not proof the write landed — but
-    it **IS the `AsyncOperationTracker.Id`** (exact, live-verified), so poll by
-    primary key: `SELECT Id,Status,Response FROM AsyncOperationTracker WHERE
-    Id = '<referenceId>'` — `Response` JSON has `savedNodes`/`skippedNodes`/`errorNodes`
-    (richer than the fire-and-forget `ContextPersistenceEvent.HasErrors` boolean).
-    **A dirty persist reports `Status='Completed'` WITH a populated `errorNodes` —
-    "Completed" alone is NOT success** (failure = `Status ∈ {CompletedWithFailures,
-    Failure}` OR `errorNodes` non-empty). `context_session.py --persist` and
-    `persist_context_instance.py` poll this automatically and **exit non-zero on
-    a confirmed failure** (`--no-confirm*` / `--*-poll-seconds` to control). A
-    **no-op** persist (hydrate → persist unchanged) succeeds; a **dirty** persist
-    through the default `QuoteEntitiesMapping` fails atomically (`errorNodes`
-    "Unable to create/update fields: TotalPrice, Subtotal, Product2Id, …") because
-    the persist graph writes the **full mapped fieldset** for a touched node and
-    that set carries ~29 non-updateable QLI fields; `removeRestrictedFields` strips
-    FLS only, not `updateable=false` fields — **no permission fixes it, and it
-    affects Apex, Flow, and REST identically** (a field-updateability limit of the
-    mapping, not a gate). See `runtime-and-persistence.md`.
+    `referenceId`.** The `referenceId` **IS the `AsyncOperationTracker.Id`**, so
+    poll `SELECT Id,Status,Response FROM AsyncOperationTracker WHERE Id =
+    '<referenceId>'` — a `Completed` row with populated `errorNodes` is still a
+    **failure**. `context_session.py --persist` / `persist_context_instance.py`
+    poll this automatically and exit non-zero on a confirmed failure. A dirty
+    persist through the default `QuoteEntitiesMapping` fails atomically on
+    non-updateable fields (a mapping limit, not a gate — affects Apex/Flow/REST
+    alike). Full mechanism + `Response` shape in `runtime-and-persistence.md`.
 
 ## DO NOT
 

@@ -12,7 +12,7 @@ EXPERIMENTAL / verify-live (262 / v67.0). Endpoint paths and the
 create/query-record/persist/query-tags-leaner body shapes are confirmed against
 the public Context Service REST references; the two PATCH bodies
 (``update_attributes`` → ``/contexts/attributes``, ``write_through_tags`` →
-``/contexts/write-through-tags``) are grounded in internal sources and should be
+``/contexts/write-through-tags``) are best-effort and should be
 re-verified on a live org. See ``.cursor/skills/context-service/runtime-and-persistence.md``.
 
 Transport is the injected ``_apply.Transport`` adapter (or any object exposing
@@ -66,14 +66,14 @@ def build_create_metadata(
 ) -> Dict[str, Any]:
     """The ``metadata`` block for ``POST /connect/contexts``.
 
-    ``taggedData`` is included only when explicitly set (True/False) — it is on
-    the Context MetaData Input rep per internal sources; omit it otherwise to
+    ``taggedData`` is included only when explicitly set (True/False) — it is an
+    optional key on the create metadata; omit it otherwise to
     avoid a ``JSON_PARSER_ERROR`` on an org that does not accept it (verify live).
 
     ``contextScope`` controls cross-call survival of the minted ``contextId``:
-    - ``REQUEST`` (default when omitted) — thread/request-local, ~15 s TTL,
+    - ``REQUEST`` (default when omitted) — request-local, ~15 s TTL,
       cannot be looked up by a later HTTP call.
-    - ``SESSION`` — persisted to a distributed cache, survives across calls
+    - ``SESSION`` — survives across separate calls
       (subject to ``contextTtl``). **Pilot-gated**: requires the
       ``SessionScopeContext`` user permission (via ``ContextServicePilot``).
       Live-verified on 262 / v67.0.

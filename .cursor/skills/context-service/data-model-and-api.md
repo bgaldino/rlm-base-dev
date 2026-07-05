@@ -205,9 +205,9 @@ is a list; POSTing a second `ContextTag` with the same `contextAttributeId` (and
 *different*, definition-unique `name`) yields `attributeTags: [{…tag1}, {…tag2}]` —
 both sharing the `contextAttributeId`, each with its own `contextTagId`. Each tag
 is an **independent by-name alias** for the same attribute value: an expression set
-referencing either name resolves to the identical attribute (confirmed against
-Core source + the Context Management architecture doc). There is **no documented
-priority/ordering** among tags — the pricing pre-processor keys tags by name and
+referencing either name resolves to the identical attribute (live-confirmed
+v67.0). There is **no documented priority/ordering** among tags — the pricing
+pre-processor keys tags by name and
 takes the first match — so treat multiple tags as parallel names, safe for reads,
 not as a precedence list. The common use is adding a custom `__c` alias next to an
 inherited standard tag so a consumer can reference a stable name you control.
@@ -268,8 +268,8 @@ requires the **fully versioned path** (a bare `connect/...` 404s with
 
 > **Source.** Verbs/resources above are from the public **Context Service API
 > REST Reference** (`developer.salesforce.com` → industries_reference →
-> context_service_apis) cross-checked against the internal MDAPI type + Connect
-> endpoint inventory. Two notes for this repo: there is **no "save as new
+> context_service_apis) cross-checked against the `ContextDefinition` MDAPI type
+> and live-org behavior. Two notes for this repo: there is **no "save as new
 > version" verb** — the only version-crossing operation is Upgrade/Sync (see
 > *Versioning* in `authoring-and-lifecycle.md`); and the **granular delete-by-id**
 > sub-resource endpoints exist at the API even though this repo's plan format /

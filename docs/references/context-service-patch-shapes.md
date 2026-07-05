@@ -407,8 +407,8 @@ design-time definition-management PATCHes above. All are flat (no wrapper object
 }
 ```
 
-- `contextScope` is optional (omit → `REQUEST` default, thread-local ~15 s).
-- `SESSION` requires `ContextServicePilot` permission; persists to distributed cache.
+- `contextScope` is optional (omit → `REQUEST` default, request-local ~15 s).
+- `SESSION` requires `ContextServicePilot` permission; survives across separate calls.
 - `data` is a **JSON string** (not a nested object).
 
 ---

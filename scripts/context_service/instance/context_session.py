@@ -113,11 +113,11 @@ def main(argv=None) -> int:
     parser.add_argument("--tagged-data", choices=["true", "false"],
                         help="Set metadata.taggedData on create (omitted when unset).")
     parser.add_argument("--context-scope", choices=["REQUEST", "SESSION"],
-                        help="Set metadata.contextScope on create. SESSION persists "
-                             "the contextId to a distributed cache so it survives "
+                        help="Set metadata.contextScope on create. SESSION lets "
+                             "the contextId survive "
                              "across separate CLI calls (subject to contextTtl). "
                              "Requires the ContextServicePilot permission. Default "
-                             "(omitted) is REQUEST (thread-local, ~15 s).")
+                             "(omitted) is REQUEST (request-local, ~15 s).")
     parser.add_argument("--context-id",
                         help="Operate on an existing instance (skip create; also skips "
                              "the auto-delete at the end).")

@@ -137,7 +137,7 @@ SOBJECT_CONTEXT_ATTR_HYDRATION_DETAIL = "ContextAttrHydrationDetail"
 # **definition** — a different half of the Context Service surface. Confirmed
 # against the public "Runtime Context Instance Management" and "Persistence
 # Context Management" REST references (262 / v67.0); the two PATCH bodies
-# (attributes, write-through-tags) are grounded in internal sources and marked
+# (attributes, write-through-tags) are best-effort and marked
 # verify-live in _runtime.py / the runtime sub-file. The "since" version on each
 # line is the API version that added the resource.
 #
