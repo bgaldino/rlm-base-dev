@@ -12,7 +12,7 @@ vendored validator.
 These are independent of the CCI task's suite (``tests/test_expression_set_schema.py``),
 which tests ``tasks/`` — this file tests ``scripts/expression_sets/`` only.
 
-Run:  python scripts/expression_sets/test_expression_sets_toolkit.py
+Run:  python tests/test_expression_sets_toolkit.py
 Exit: 0 = all pass, 1 = one or more failures.
 """
 
@@ -21,7 +21,7 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from scripts.expression_sets._graph import (  # noqa: E402
     SCOPE_CUSTOM,
     SCOPE_STANDARD,
@@ -44,7 +44,7 @@ from scripts.expression_sets._payload import (  # noqa: E402
 from scripts.expression_sets._schema import validate_overlay  # noqa: E402
 from scripts.expression_sets.export_overlay import build_overlay  # noqa: E402
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 _PASS = 0
 _FAIL = 0

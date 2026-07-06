@@ -74,10 +74,10 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | `_graph.py` | Flat `steps[]` → producer/consumer dependency graph + three-scope classifier. Imports `_schema` (in-package). Pure. |
 | `_lifecycle.py` | The `LifecycleEngine`: deactivate → PATCH/POST → reactivate sequencer, the `ProcedurePlanDefinitionVersion` cascade (with rollback), version-state polling, `ResourceInitializationType` alignment, and delete-with-rollback — all on the `Transport` seam. A failed PATCH leaves the version **DEACTIVATED** and re-raises (never reactivated over a half-mutated definition). |
 
-**Tests:** `test_expression_sets_toolkit.py` — offline unit tests (no org, no
-`sf`, no pytest) for `_graph` / `_payload` / `_overlay` / `export_overlay` +
+**Tests:** `tests/test_expression_sets_toolkit.py` — offline unit tests (no org,
+no `sf`, no pytest) for `_graph` / `_payload` / `_overlay` / `export_overlay` +
 shipped-fixture validator parity. Run:
-`python scripts/expression_sets/test_expression_sets_toolkit.py`.
+`python tests/test_expression_sets_toolkit.py`.
 
 ## Quick start — export → trace → slice → apply-to-clone
 
