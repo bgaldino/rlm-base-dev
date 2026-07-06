@@ -157,6 +157,9 @@ handle the first three automatically.
 | Transient version-apiName divergence | GET can briefly serve a stale clone version apiName disagreeing with the `ExpressionSetVersion` sObject (eventual-consistency in the GET serializer; not persistent). | Identity is resolved from the sObject (source of truth); `_check_version_name_consistency` logs a warning if GET disagrees. Re-GET / toggle activation until aligned. |
 | Semantic rule-builder errors, e.g. `Select list filter as the first element in list group` | The step graph is genuinely invalid (ordering/shape). | Fix the graph; these messages are specific. The Metadata API surfaces the same class of message on deploy. |
 | `FIELD_INTEGRITY_EXCEPTION` on a Tooling `Metadata` PATCH that appends a step | Appending a step to an existing version via Tooling PATCH is unreliable. | Prefer create-with-content (a new `ExpressionSetDefinitionVersion`) or the Metadata API deploy. |
+| `INVALID_ID_FIELD: LatestVersionSnapshotId not found for expressionSetDefinitionId …` on a Tooling `Metadata` PATCH | The version is **active**; the Tooling `Metadata` PATCH (used to set step `label`s) is rejected and does **not** persist, mirroring the Connect active-version guard. | Deactivate the `ExpressionSetVersion` first (`PATCH sobjects/ExpressionSetVersion/{9QM} {"IsActive":false}`), PATCH the `Metadata`, then reactivate. See [Step names vs. labels](#step-names-vs-labels). |
+| `JSON_PARSER_ERROR: Unrecognized field "label"` on a Connect POST/PATCH | The Connect `ExpressionSetInputRepresentation` has **no** `label` field (like `developerName` / top-level `id`, it is rejected on input). | Never send `label` to Connect. Set labels only via the Tooling `Metadata` path. See [Step names vs. labels](#step-names-vs-labels). |
+| `INVALID_INPUT: Enter an API Name … Spaces and consecutive underscores aren't allowed.` on a Connect POST/PATCH | A step `name` contained spaces; `name` is validated as an API Name (it is the `parentStep` foreign key). | Keep `name` identifier-safe (underscores are the only legal separator); put the human-readable text in `label` via Tooling. See [Step names vs. labels](#step-names-vs-labels). |
 
 > A real mutation failure can still be reported as an opaque server error by the
 > PATCH/POST handler, so when a failure is opaque, **bisect the
@@ -412,6 +415,72 @@ Characteristics:
 Deploying to a scratch org skips the 75% Apex-coverage gate a production
 `deploy validate` enforces; the `expressionSetDefinition` component validates
 independently of that gate.
+
+## <a name="step-names-vs-labels"></a>Step names vs. labels
+
+Every step carries **two** human-facing fields, and they behave very differently
+across the three management paths. This trips people up because the Connect
+export/describe output shows only run-on, spaceless step names
+(`Mapcontexttagstocommonpricingvariables`) while the Setup UI shows a friendly,
+spaced title (`Map Context Tags to Common Pricing Variables`).
+
+| Field | Example | Role |
+|---|---|---|
+| `name` | `ApplyHeaderPriceOverride` | **API-Name identifier.** It is the **foreign key** every child step's `parentStep` points at, so the platform validates it as an API Name: alphanumerics + underscores only, must start with a letter, **no spaces**, no consecutive/trailing underscores. |
+| `label` | `Apply Header Price Override` | **Human-readable display text** shown in the Setup UI. Free text (spaces, hyphens allowed). |
+
+**Where each field lives, by path** (all live-verified on 262 / v67.0):
+
+| Path | `name` | `label` |
+|---|---|---|
+| **Connect** GET / POST / PATCH | ✅ present | ❌ **absent** — the `ExpressionSetInputRepresentation` has no `label` field; sending one → `JSON_PARSER_ERROR: Unrecognized field "label"`. |
+| **Metadata API** (`expressionSetDefinition` XML) | ✅ `<name>` | ✅ `<label>` — this is how shipped procedures get readable labels (the default PP carries a spaced `<label>` on 92 of 93 steps). |
+| **Tooling** `ExpressionSetDefinitionVersion.Metadata.steps[]` | ✅ present | ✅ present (read **and** write). |
+
+**Two consequences that drive the tooling design:**
+
+1. **A Connect full-graph PATCH clobbers every step's `label` back to its `name`.**
+   `import_expression_set` and `apply_expression_set_overlay` both do a
+   GET→merge→**full-graph PATCH replace**; because the Connect representation has
+   no `label`, the server rebuilds each step's label from its `name` on every
+   write. Steps created via Connect therefore come out with `label == name`
+   (spaceless). **This is the mechanism behind the run-on names**, and it means a
+   Connect mutation and Tooling-set labels are mutually exclusive on the same
+   version: any Connect write wipes the labels. A relabel pass must run **last**,
+   after all Connect work — or be re-applied after each Connect round trip.
+
+2. **Labels are read and written only via the Tooling API.** The
+   `ExpressionSetDefinitionVersion.Metadata.steps[]` shape is richer than Connect
+   (adds `label`, `aggregation`, `assignment`, `decisionTable`, `subExpression`,
+   explainer templates, the legacy-misspelled `shouldExposExecPathMsgOnly`).
+   - **Read:** `GET tooling/sobjects/ExpressionSetDefinitionVersion/{9QB}` →
+     `Metadata.steps[].label`. Join onto Connect steps **by `name`** (a clean 1:1;
+     `name` is a de-spaced/de-punctuated derivation of `label`, occasionally with a
+     uniqueness suffix, e.g. `Filterlineswithoutcontractorlasttransactionpricing36`).
+   - **Write:** `PATCH tooling/sobjects/ExpressionSetDefinitionVersion/{9QB}` with
+     `{"Metadata": {…full metadata, read-only `urls` key dropped…}}`. It is a
+     full-`Metadata` PATCH (~180 KB on the default PP), not a targeted field patch.
+     The **active-version guard applies** (as with Connect): PATCHing an active
+     version fails with `INVALID_ID_FIELD: LatestVersionSnapshotId not found …` and
+     does not persist. Sequence: deactivate `ExpressionSetVersion.IsActive` →
+     Tooling `Metadata` PATCH → reactivate. Labels survive reactivation.
+
+**Toolkit support** (`scripts/expression_sets/`):
+- `describe_expression_set.py --labels` — read-only; joins Tooling labels onto the
+  execution-ordered steps and flags any step where `label == name` (the
+  Connect-clobbered drift signal).
+- `relabel_expression_set.py` — mutator (preview-by-default, `--confirm`); sets
+  readable `label`s via the deactivate→Tooling-PATCH→reactivate lifecycle. Run it
+  **last**, after any Connect import/overlay, or the labels get clobbered.
+
+**Guidance:** for a genuinely new step that must ship with a readable label, author
+it as an `expressionSetDefinition` `<steps>` block with `<label>` and deploy via
+the Metadata API (the build's existing, label-preserving path). Use the Connect
+overlay + Tooling relabel combo for exploration on a **disposable clone** (Quick
+Rule 8). Never try to reverse-derive `label` from `name` or vice-versa after a
+relabel — key any join on `name`, which is immutable-ish (it is the `parentStep`
+FK); renaming a shipped step's `name` breaks every `parentStep` reference and any
+name-targeting overlay.
 
 ### Tooling / sObject versioning (alternative)
 

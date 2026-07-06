@@ -47,9 +47,9 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | Script | Org? | Purpose |
 |--------|------|---------|
 | `list_expression_sets.py` | Read-only | One row per set: `interfaceSourceType` (the RC type), `usageType`, active version, IsActive — grouped by type. |
-| `describe_expression_set.py` | Read-only | Pretty-print one set: version → steps in execution (per-parent `sequenceNumber`) order → params / variables. `--params` for the full parameter dump. |
+| `describe_expression_set.py` | Read-only | Pretty-print one set: version → steps in execution (per-parent `sequenceNumber`) order → params / variables. `--params` for the full parameter dump; `--labels` joins the readable step **labels** from the Tooling API (Connect has none) and flags `label==name` drift. |
 | `export_expression_set.py` | Read-only | GET a definition → JSON file (the read half of the round trip). `--for-import` strips read-only fields + HTML-unescapes so the output is import-ready. |
-| **`trace_expression_set.py`** | Read-only | **Flagship** — variable producer→consumer graph + three-scope classifier (version / custom / standard). `--variable` (safe-removal view), `--step` (dependency closure + capture guidance), `--field`, `--orphans`. |
+| **`trace_expression_set.py`** | Read-only | **Flagship** — variable producer→consumer graph + three-scope classifier (version / custom / standard). `--variable` (safe-removal view), `--step` (dependency closure + capture guidance), `--field`, `--orphans`. `--mermaid deps\|flow` renders a diagram (`--out` to a `.mmd` file); `--step` scopes `deps` to one step's neighborhood. |
 | `diff_expression_set.py` | Read-only | Added / removed / changed / reordered steps + variables, org-vs-org or org-vs-JSON. |
 | `export_expression_set_overlay.py` | Read-only (writes local file) | Slice step(s) from a live GET into a **validated** `addSteps` overlay with the three dependency scopes pre-classified (version deps → `addVariables`; custom refs → `externalDependencies`). |
 
@@ -60,6 +60,7 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | `import_expression_set.py` | **Mutates** | Create (POST) or replace (PATCH) a whole set from a JSON file; **auto-detects** create-vs-replace; runs the full deactivate→mutate→reactivate lifecycle. |
 | `apply_expression_set_overlay.py` | **Mutates** | Merge a declarative overlay (`addSteps` / `removeSteps` / `updateSteps` / `reorderSteps` / `addVariables` / `removeVariables`) into a live version; **all local pre-flights run BEFORE any deactivation**. |
 | `activate_expression_set.py` | **Mutates** | `--activate` / `--deactivate` a version (+ the procedure-plan cascade), standalone. Use to re-enable a version left off by a failed apply. |
+| `relabel_expression_set.py` | **Mutates** | Set readable step **labels** via the Tooling `Metadata` PATCH (the ONLY place labels live — Connect has no `label` and clobbers it on every PATCH). `--auto` (lossy derive for drift steps), `--labels-file` (`{name: label}` JSON), `--set NAME=LABEL` (repeatable). Runs the same deactivate→PATCH→reactivate lifecycle. **Run LAST** — any later Connect import/overlay clobbers the labels. |
 | `delete_expression_set.py` | **Destructive** | Delete a whole set (Connect DELETE + cascade) or one version (`--version`). `--confirm` REQUIRED (absence of `--confirm` IS the preview). |
 
 **Shared modules (imported by the CLIs, not run directly):**
@@ -72,11 +73,12 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | `_payload.py` | Verb-specific field rules (strip top-level `id`; keep-and-rewrite vs strip version `id`); HTML-entity normalization (`unescape_value` / `normalize_html_entities`). Pure. |
 | `_overlay.py` | Declarative step / variable merge (`add_steps` / `remove_steps` / `update_steps` / `reorder_steps` / `add_variables` / `remove_variables` / `renumber_top_level_steps`). Pure. |
 | `_graph.py` | Flat `steps[]` → producer/consumer dependency graph + three-scope classifier. Imports `_schema` (in-package). Pure. |
-| `_lifecycle.py` | The `LifecycleEngine`: deactivate → PATCH/POST → reactivate sequencer, the `ProcedurePlanDefinitionVersion` cascade (with rollback), version-state polling, `ResourceInitializationType` alignment, and delete-with-rollback — all on the `Transport` seam. A failed PATCH leaves the version **DEACTIVATED** and re-raises (never reactivated over a half-mutated definition). |
+| `_tooling.py` | Tooling-API access for step **labels** — the one thing Connect can't touch. Pure helpers (`step_labels` / `label_drift` / `humanize_name` / `derive_labels` / `apply_labels` / `strip_metadata_readonly`) + I/O over the `Transport` (`resolve_esdv` (9QB) / `fetch_metadata` / `patch_metadata`, dropping the read-only `urls` key). The active-version guard applies to the Metadata PATCH exactly as to a Connect mutation. |
+| `_lifecycle.py` | The `LifecycleEngine`: deactivate → PATCH/POST → reactivate sequencer, the `ProcedurePlanDefinitionVersion` cascade (with rollback), version-state polling, `ResourceInitializationType` alignment, and delete-with-rollback — all on the `Transport` seam. A failed PATCH leaves the version **DEACTIVATED** and re-raises (never reactivated over a half-mutated definition). Drives both the Connect and the Tooling-`Metadata` (relabel) mutations. |
 
 **Tests:** `tests/test_expression_sets_toolkit.py` — offline unit tests (no org,
-no `sf`, no pytest) for `_graph` / `_payload` / `_overlay` / `export_expression_set_overlay` +
-shipped-fixture validator parity. Run:
+no `sf`, no pytest) for `_graph` / `_payload` / `_overlay` / `_tooling` /
+`export_expression_set_overlay` + shipped-fixture validator parity. Run:
 `python tests/test_expression_sets_toolkit.py`.
 
 ## Quick start — export → trace → slice → apply-to-clone
@@ -95,6 +97,12 @@ python scripts/expression_sets/export_expression_set.py --target-org $ORG \
 python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
     --developer-name RLM_DefaultPricingProcedure --variable NetUnitPrice
 
+# 3b. Draw it — a Mermaid dependency diagram (scope-colored) or execution-flow
+#     chart. --out writes a .mmd file; --step scopes the deps view to one step.
+python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
+    --developer-name RLM_DefaultPricingProcedure --mermaid deps \
+    --out /tmp/pricing.deps.mmd
+
 # 4. Slice a step into a validated overlay (three scopes pre-classified).
 python scripts/expression_sets/export_expression_set_overlay.py --target-org $ORG \
     --developer-name RLM_DefaultPricingProcedure --step "Apply Discount" \
@@ -107,7 +115,39 @@ python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG
 # 6. Apply it for real.
 python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG \
     --expression-set RLM_MyClone --overlay /tmp/apply_discount.overlay.json --confirm
+
+# 7. LAST — restore readable step labels (Connect mutations above clobber them to
+#    the spaceless names). Inspect drift, then relabel via the Tooling Metadata PATCH.
+python scripts/expression_sets/describe_expression_set.py --target-org $ORG \
+    --developer-name RLM_MyClone --labels          # shows label==name drift
+python scripts/expression_sets/relabel_expression_set.py --target-org $ORG \
+    --expression-set RLM_MyClone --labels-file /tmp/labels.json --confirm
 ```
+
+## Visualizing a procedure (Mermaid)
+
+`trace_expression_set.py --mermaid` emits a [Mermaid](https://mermaid.js.org/)
+diagram to stdout (or a `.mmd` file with `--out`). Paste it into any Mermaid
+renderer — `mermaid.live`, a GitHub Markdown ` ```mermaid ` fence, or the VS Code
+Mermaid preview. Two views:
+
+- **`--mermaid flow`** — execution order: top-level steps chained by their
+  `sequenceNumber`, each `ListGroup`/parent's children hanging off it by a dashed
+  `child` edge. The "what does this procedure do, in order" view.
+- **`--mermaid deps`** (the default) — the data-dependency graph: steps are boxes,
+  every referenced variable is a rounded node **colored by scope** (green =
+  version variable → ship in `addVariables`; red = custom `__c`/`__r` →
+  `externalDependencies`; blue = standard context → declare nothing). Edge labels
+  carry the role symbol (`>` produces, `<` consumes, `?` filter criterion,
+  `~` best-effort Formula token). Add `--step "<name>"` to scope the diagram to
+  that step plus the variables it touches and their immediate neighbor steps —
+  the drawn form of the `--step` text closure.
+
+The diagram is built from the same `_graph.py` model as the text trace, so it is
+read-only, offline after the GET, and deterministic (same definition → identical
+output). Highly-coupled steps (those touching hot shared variables like
+`NetUnitPrice`) produce large `deps` neighborhoods — that coupling is real; scope
+to a leaf-ish step or use the full `deps` view with a renderer that pans/zooms.
 
 ## Safety model
 
@@ -121,5 +161,12 @@ python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG
   DEACTIVATED and re-raises rather than reactivating a half-mutated definition.
   Re-enable it with `activate_expression_set.py --activate` once you've inspected
   and restored it.
+- **Labels are Connect-clobbered; relabel LAST.** Step labels live only in the
+  Tooling `Metadata`; every Connect PATCH (`import` / `apply_expression_set_overlay`)
+  rebuilds them from the spaceless `name`. Run `relabel_expression_set.py` as the
+  final step, after all Connect mutations — anything Connect afterward wipes the
+  labels again. `--auto` is best-effort/lossy; prefer an explicit `{name: label}`
+  map (`--labels-file`) when the true labels are known. See
+  `.cursor/skills/expression-sets/metadata-vs-connect.md` → *Step names vs. labels*.
 - **`--target-org` is the SF CLI alias**, never the CCI alias. CCI alias `beta`
   → SF CLI alias `rlm-base__beta`.

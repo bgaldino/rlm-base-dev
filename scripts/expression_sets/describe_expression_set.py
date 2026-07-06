@@ -13,6 +13,14 @@ For each step it shows: sequence, name, stepType, action type (from
 parameters and any ``advancedCondition`` filter criteria. Version variables are
 listed with their dataType.
 
+The Connect GET this reads has **no ``label`` field** — the readable UI title of
+each step lives only in the Tooling ``ExpressionSetDefinitionVersion.Metadata``.
+Pass ``--labels`` to join those in (one extra Tooling GET): each step then prints
+its readable label above the ``name``, and steps whose label is missing or equal
+to the spaceless name (the fingerprint of a Connect-created / Connect-clobbered
+step) are flagged as drift. See ``metadata-vs-connect.md`` → *Step names vs.
+labels*.
+
 Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled
 here. ``--target-org`` is the *SF CLI* alias, never the CCI alias. Read-only.
 Pinned to Release 262 / v67.0.
@@ -27,6 +35,11 @@ Usage
     python scripts/expression_sets/describe_expression_set.py \
         --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --params
+
+    # join readable Tooling labels + flag label drift
+    python scripts/expression_sets/describe_expression_set.py \
+        --target-org rlm-base__beta \
+        --developer-name RLM_DefaultPricingProcedure --labels
 """
 
 import argparse
@@ -39,12 +52,19 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.expression_sets._client import (  # noqa: E402
     DEFAULT_API_VERSION,
     ExpressionSetClientError,
+    Transport,
     eprint,
 )
 from scripts.expression_sets._payload import unescape_value  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
     resolve_expression_set_id,
+)
+from scripts.expression_sets._tooling import (  # noqa: E402
+    ToolingError,
+    fetch_metadata,
+    resolve_esdv,
+    step_labels,
 )
 from scripts.expression_sets.export_expression_set import fetch_definition  # noqa: E402
 
@@ -110,6 +130,29 @@ def _order_steps(steps: List[dict]) -> List[dict]:
     return ordered
 
 
+def _fetch_labels(version: dict, target_org: str, api_version: str) -> Dict[str, Optional[str]]:
+    """Join Tooling step labels for a version, keyed by step ``name``.
+
+    The Connect ``version.apiName`` equals the Tooling
+    ``ExpressionSetDefinitionVersion.DeveloperName``, so it pins the label read to
+    the exact version being described. Returns ``{}`` (and warns) if the Tooling
+    read fails — labels are an enrichment, never a reason to fail a read-only
+    describe.
+    """
+    version_api_name = version.get("apiName")
+    if not version_api_name:
+        eprint("Warning: version has no apiName; cannot join Tooling labels.")
+        return {}
+    transport = Transport(target_org=target_org, api_version=api_version, logger=eprint)
+    try:
+        esdv = resolve_esdv(transport, version_api_name=version_api_name)
+        metadata = fetch_metadata(transport, esdv["Id"])
+    except ToolingError as exc:
+        eprint(f"Warning: could not read Tooling labels ({exc}); showing names only.")
+        return {}
+    return step_labels(metadata)
+
+
 def _print_params(step: dict, indent: str):
     ce = step.get("customElement") or {}
     for p in ce.get("parameters") or []:
@@ -143,6 +186,9 @@ def main(argv=None) -> int:
                         help="Version apiName to describe (default: first).")
     parser.add_argument("--params", action="store_true",
                         help="Show each step's parameters and filter criteria.")
+    parser.add_argument("--labels", action="store_true",
+                        help="Join readable step labels from the Tooling API "
+                             "(Connect has none) and flag label==name drift.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
                         help=f"API version (default {DEFAULT_API_VERSION}).")
     parser.add_argument("--json", action="store_true",
@@ -166,20 +212,36 @@ def main(argv=None) -> int:
     variables = [v for v in (version.get("variables") or []) if isinstance(v, dict)]
     ordered = _order_steps(steps)
 
+    # Tooling label join (opt-in): the Connect GET has no `label`; enrich from
+    # the Tooling Metadata. A step is "drift" when its label is missing or equals
+    # the spaceless name (Connect-created / Connect-clobbered).
+    labels: Dict[str, Optional[str]] = {}
+    if args.labels:
+        labels = _fetch_labels(version, args.target_org, args.api_version)
+
+    def _drift(step_name):
+        label = labels.get(step_name)
+        return not label or label == step_name
+
     if args.json:
-        print(json.dumps({
+        payload = {
             "developerName": definition.get("developerName") or definition.get("apiName"),
             "version": version.get("apiName"),
             "isActive": version.get("enabled") or version.get("isActive"),
             "steps": [
                 {"sequenceNumber": s.get("sequenceNumber"), "name": s.get("name"),
                  "parentStep": s.get("parentStep"), "stepType": s.get("stepType"),
-                 "actionType": _action_type(s), "depth": s.get("_depth", 0)}
+                 "actionType": _action_type(s), "depth": s.get("_depth", 0),
+                 **({"label": labels.get(s.get("name")),
+                     "labelDrift": _drift(s.get("name"))} if args.labels else {})}
                 for s in ordered
             ],
             "variables": [{"name": v.get("name"), "dataType": v.get("dataType")}
                           for v in variables],
-        }, indent=2))
+        }
+        if args.labels:
+            payload["labelDriftCount"] = sum(1 for s in ordered if _drift(s.get("name")))
+        print(json.dumps(payload, indent=2))
         return 0
 
     name = definition.get("developerName") or definition.get("apiName") or es_id
@@ -195,10 +257,28 @@ def main(argv=None) -> int:
         indent = "    " + "  " * depth
         seq = s.get("sequenceNumber", "?")
         marker = "└─ " if depth else ""
-        print(f"{indent}{marker}[{seq}] {s.get('name')}  "
-              f"<{s.get('stepType')}/{_action_type(s)}>")
+        step_name = s.get("name")
+        if args.labels:
+            label = labels.get(step_name)
+            drift = " ⚠ no label" if _drift(step_name) else ""
+            shown = label if (label and label != step_name) else step_name
+            print(f"{indent}{marker}[{seq}] {shown}{drift}")
+            print(f"{indent}{'   ' if depth else ''}     name: {step_name}  "
+                  f"<{s.get('stepType')}/{_action_type(s)}>")
+        else:
+            print(f"{indent}{marker}[{seq}] {step_name}  "
+                  f"<{s.get('stepType')}/{_action_type(s)}>")
         if args.params:
             _print_params(s, indent)
+
+    if args.labels:
+        drifted = [s.get("name") for s in ordered if _drift(s.get("name"))]
+        if drifted:
+            print(f"\n  ⚠ {len(drifted)} step(s) have no readable label "
+                  f"(label missing or == name): {', '.join(drifted)}")
+            print("    Set readable labels with relabel_expression_set.py.")
+        else:
+            print(f"\n  ✓ all {len(ordered)} step(s) have a readable label.")
 
     if variables:
         print("\n  Variables:")

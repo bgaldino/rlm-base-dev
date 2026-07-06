@@ -34,6 +34,7 @@ names and dotted path segments can appear as phantom consumers. The trace CLI
 labels them ``~`` and its caveat text says so.
 """
 
+import re
 from typing import Any, Dict, List, Optional, Set
 
 # Reuse the package's own validator harvesters/detectors so scope logic never
@@ -49,6 +50,57 @@ from ._schema import (
 SCOPE_VERSION = "version"
 SCOPE_CUSTOM = "custom"
 SCOPE_STANDARD = "standard"
+
+# Mermaid scope styling — one classDef per dependency scope, so a rendered
+# dependency diagram is color-legible without a legend: green=version variable
+# (ship in addVariables), red=custom (externalDependencies / target must define),
+# blue=standard context (declare nothing). Kept here next to the SCOPE_* names so
+# the two never drift.
+_MERMAID_CLASSDEFS = [
+    "classDef version fill:#e7f5e7,stroke:#2e7d32,color:#1b5e20;",
+    "classDef custom fill:#fdecea,stroke:#c62828,color:#b71c1c;",
+    "classDef standard fill:#e8eef7,stroke:#1565c0,color:#0d47a1;",
+    "classDef step fill:#ffffff,stroke:#555555,color:#111111;",
+]
+
+
+def _mermaid_escape(label: str) -> str:
+    """Make a human label safe inside a Mermaid ``["…"]`` quoted node.
+
+    Only the double-quote needs escaping inside a quoted label (Mermaid reads the
+    ``#quot;`` entity); ``<br/>`` and other markup are intentionally passed
+    through so multi-line labels render.
+    """
+    return str(label).replace('"', "#quot;")
+
+
+class _MermaidIds:
+    """Allocate stable, collision-free Mermaid node ids from arbitrary names.
+
+    Mermaid node ids must be identifier-ish; step/variable names carry spaces and
+    punctuation. Sanitize to ``[A-Za-z0-9_]``, prefix per namespace (``s_`` steps,
+    ``v_`` variables) so a step and a like-named variable never collide, and
+    append a counter on the rare post-sanitization clash. Insertion-order
+    deterministic — same definition renders byte-identical output every run.
+    """
+
+    def __init__(self, prefix: str):
+        self.prefix = prefix
+        self._by_name: Dict[str, str] = {}
+        self._used: Set[str] = set()
+
+    def get(self, name: str) -> str:
+        if name in self._by_name:
+            return self._by_name[name]
+        raw = re.sub(r"[^0-9A-Za-z]", "_", str(name)) or "x"
+        base = f"{self.prefix}{raw}"
+        candidate, i = base, 2
+        while candidate in self._used:
+            candidate = f"{base}_{i}"
+            i += 1
+        self._used.add(candidate)
+        self._by_name[name] = candidate
+        return candidate
 
 
 class Edge:
@@ -232,3 +284,156 @@ class ExpressionSetGraph:
             "produced_unused": produced_unused,
             "undeclared_custom": undeclared_custom,
         }
+
+    # -- ordering ------------------------------------------------------
+
+    def ordered_steps(self) -> List[dict]:
+        """Steps in execution order: top-level by sequenceNumber, children nested.
+
+        Matches ``describe_expression_set._order_steps`` — top-level steps
+        (``parentStep is None``) sorted by sequenceNumber, each parent's children
+        following it in their own per-parent sequenceNumber order. Steps whose
+        named parent is absent are appended last so nothing is dropped.
+        """
+        children: Dict[str, List[dict]] = {}
+        top: List[dict] = []
+        for s in self.steps:
+            parent = s.get("parentStep")
+            if parent:
+                children.setdefault(parent, []).append(s)
+            else:
+                top.append(s)
+        top.sort(key=lambda s: s.get("sequenceNumber", 0))
+        for kids in children.values():
+            kids.sort(key=lambda s: s.get("sequenceNumber", 0))
+
+        ordered: List[dict] = []
+        seen: Set[str] = set()
+
+        def emit(step: dict):
+            name = step.get("name")
+            if name in seen:
+                return
+            seen.add(name)
+            ordered.append(step)
+            for kid in children.get(name, []):
+                emit(kid)
+
+        for s in top:
+            emit(s)
+        # Any child whose parent name never appeared as a step — don't drop it.
+        for s in self.steps:
+            if s.get("name") not in seen:
+                ordered.append(s)
+                seen.add(s.get("name"))
+        return ordered
+
+    # -- Mermaid rendering ---------------------------------------------
+
+    def to_mermaid_flow(self, *, title: Optional[str] = None) -> str:
+        """Execution-flow diagram: steps in sequenceNumber order, children nested.
+
+        A top-down ``flowchart`` where consecutive top-level steps are chained by
+        a solid arrow (the run order) and each child hangs off its parent by a
+        dashed ``-. child .->`` edge. Pure — no org access; deterministic output.
+        """
+        ids = _MermaidIds("s_")
+        lines: List[str] = ["flowchart TD"]
+        if title:
+            lines.append(f'  %% {title}')
+
+        ordered = self.ordered_steps()
+        prev_top: Optional[str] = None  # last top-level node id, for run-order chain
+        for step in ordered:
+            name = step.get("name") or "(unnamed)"
+            nid = ids.get(name)
+            stype = step.get("stepType") or step.get("actionType") or ""
+            label = name if not stype else f"{name}<br/><i>{stype}</i>"
+            lines.append(f'  {nid}["{_mermaid_escape(label)}"]')
+            parent = step.get("parentStep")
+            if parent:
+                lines.append(f'  {ids.get(parent)} -. child .-> {nid}')
+            else:
+                if prev_top is not None:
+                    lines.append(f'  {prev_top} --> {nid}')
+                prev_top = nid
+            lines.append(f"  class {nid} step;")
+
+        if len(ordered) == 0:
+            lines.append("  empty[/no steps in this version/]")
+        lines.extend("  " + d for d in _MERMAID_CLASSDEFS)
+        return "\n".join(lines) + "\n"
+
+    def to_mermaid_deps(
+        self, *, only_steps: Optional[Set[str]] = None, title: Optional[str] = None
+    ) -> str:
+        """Data-dependency diagram: producer → variable → consumer, scope-colored.
+
+        Steps are boxes; every referenced name is a rounded node classed by scope
+        (version / custom / standard). Edges carry the role symbol as their label
+        (``>`` producer→var, ``<`` / ``?`` / ``~`` var→consumer). Pass
+        ``only_steps`` to scope the diagram to those steps plus the variables they
+        touch and the immediate neighbor steps on the other side of each variable
+        (the one-step neighborhood — what ``trace --step`` shows, drawn). Pure.
+        """
+        step_ids = _MermaidIds("s_")
+        var_ids = _MermaidIds("v_")
+        lines: List[str] = ["flowchart LR"]
+        if title:
+            lines.append(f'  %% {title}')
+
+        # Which edges to draw. With only_steps, keep every edge touching a focus
+        # step, then pull in each connected variable's OTHER edges so the neighbor
+        # steps (producers/consumers on the far side of the variable) show too.
+        edges = self.edges
+        if only_steps:
+            focus_vars = {e.name for e in edges if e.step in only_steps}
+            edges = [
+                e for e in edges
+                if e.step in only_steps or e.name in focus_vars
+            ]
+
+        step_names: List[str] = []
+        var_names: List[str] = []
+        rendered: Set[str] = set()
+
+        def _step_node(name: str):
+            if name in rendered:
+                return
+            rendered.add(name)
+            step_names.append(name)
+            nid = step_ids.get(name)
+            focus = only_steps and name in only_steps
+            label = f"{name}" + ("<br/><b>◆ focus</b>" if focus else "")
+            lines.append(f'  {nid}["{_mermaid_escape(label)}"]')
+
+        def _var_node(name: str):
+            key = f"__var__{name}"
+            if key in rendered:
+                return
+            rendered.add(key)
+            var_names.append(name)
+            vid = var_ids.get(name)
+            lines.append(f'  {vid}("{_mermaid_escape(name)}")')
+
+        for e in edges:
+            _step_node(e.step)
+            _var_node(e.name)
+            sid = step_ids.get(e.step)
+            vid = var_ids.get(e.name)
+            if e.role == ">":  # step produces variable
+                lines.append(f'  {sid} -->|"{e.role}"| {vid}')
+            else:  # variable consumed by step (<, ?, ~)
+                style = "-.->" if e.role in ("?", "~") else "-->"
+                lines.append(f'  {vid} {style}|"{e.role}"| {sid}')
+
+        if not edges:
+            lines.append("  empty[/no variable references/]")
+
+        # Class assignments: steps → step; variables → their scope.
+        for name in step_names:
+            lines.append(f"  class {step_ids.get(name)} step;")
+        for name in var_names:
+            lines.append(f"  class {var_ids.get(name)} {self.scope(name)};")
+        lines.extend("  " + d for d in _MERMAID_CLASSDEFS)
+        return "\n".join(lines) + "\n"

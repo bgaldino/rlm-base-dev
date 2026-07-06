@@ -56,6 +56,17 @@ Usage
     python scripts/expression_sets/trace_expression_set.py \
         --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --orphans
+
+    # a Mermaid diagram — 'deps' (producer→var→consumer, scope-colored) or 'flow'
+    # (steps in sequenceNumber order, children nested). --step scopes it to one
+    # step's neighborhood; --out writes a .mmd file instead of stdout.
+    python scripts/expression_sets/trace_expression_set.py \
+        --target-org rlm-base__beta \
+        --developer-name RLM_DefaultPricingProcedure --mermaid deps \
+        --out /tmp/pricing.deps.mmd
+
+Paste the emitted text into any Mermaid renderer (mermaid.live, a GitHub
+Markdown ```mermaid fence, VS Code Mermaid preview).
 """
 
 import argparse
@@ -211,6 +222,17 @@ def main(argv=None) -> int:
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
                         help=f"API version (default {DEFAULT_API_VERSION}).")
     parser.add_argument("--json", action="store_true", help="Emit the result as JSON.")
+    parser.add_argument(
+        "--mermaid", nargs="?", const="deps", choices=("deps", "flow"),
+        help="Emit a Mermaid diagram instead of a text trace. 'deps' (default): "
+             "producer→variable→consumer, scope-colored (version/custom/standard). "
+             "'flow': steps in execution (sequenceNumber) order, children nested. "
+             "Combine with --step to scope 'deps' to that step's neighborhood.",
+    )
+    parser.add_argument(
+        "--out", type=Path,
+        help="Write --mermaid output to this file (default: stdout).",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -226,6 +248,21 @@ def main(argv=None) -> int:
         return 1
 
     graph = ExpressionSetGraph(definition, args.version_api_name)
+
+    if args.mermaid:
+        title = f"{args.developer_name or es_id} — version {graph.version_api_name}"
+        if args.mermaid == "flow":
+            diagram = graph.to_mermaid_flow(title=title)
+        else:  # 'deps'
+            # --step scopes the dependency diagram to that step's neighborhood.
+            only = {args.step} if args.step else None
+            diagram = graph.to_mermaid_deps(only_steps=only, title=title)
+        if args.out:
+            args.out.write_text(diagram, encoding="utf-8")
+            eprint(f"Wrote Mermaid {args.mermaid} diagram to {args.out}")
+        else:
+            print(diagram, end="")
+        return 0
 
     if args.json:
         if args.variable is not None:

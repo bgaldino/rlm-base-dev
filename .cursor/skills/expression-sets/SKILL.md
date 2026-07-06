@@ -102,6 +102,14 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
    the tasks enforce this, including the procedure-plan cascade.
 8. **Test Connect CRUD on a disposable clone** (POST-create a renamed copy),
    never the shipped procedure — except for an intentional, approved change.
+9. **Step `name` ≠ `label`.** `name` is the spaceless API-Name identifier (and the
+   `parentStep` FK); `label` is the readable UI text. **Connect has no `label`
+   field and clobbers it to `name` on every full-graph PATCH**, so Connect-built
+   steps read as run-on names. Labels live only in the **Metadata XML `<label>`**
+   and the **Tooling `Metadata`** path. Read/write them with
+   `describe_expression_set.py --labels` / `relabel_expression_set.py`, and run
+   any relabel **last** (after all Connect work). See
+   `metadata-vs-connect.md` → *Step names vs. labels*.
 
 ## DO NOT
 
@@ -134,6 +142,14 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
 - **DO NOT** append a step to an existing version via a Tooling `Metadata`
   PATCH — it returns `FIELD_INTEGRITY_EXCEPTION`. Use create-with-content or a
   Metadata API deploy.
+- **DO NOT** send a `label` field to Connect (`JSON_PARSER_ERROR: Unrecognized
+  field "label"`) or put spaces in a step `name` (`INVALID_INPUT` — `name` is an
+  API Name). Readable labels are a **Tooling `Metadata`** concern only.
+- **DO NOT** relabel a version and then run a Connect import/overlay on it — the
+  Connect full-graph PATCH resets every `label` to `name`. Relabel is always the
+  **last** step; re-run it after any later Connect mutation. A Tooling `Metadata`
+  PATCH on an **active** version is rejected (`INVALID_ID_FIELD:
+  LatestVersionSnapshotId not found …`) — deactivate first, PATCH, reactivate.
 
 ## Entry Conditions
 
@@ -170,6 +186,10 @@ python scripts/expression_sets/export_expression_set.py --target-org $ORG \
 python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
     --developer-name RLM_DefaultPricingProcedure --variable NetUnitPrice
 
+# 3b. Or draw it — a scope-colored Mermaid dependency graph (or --mermaid flow).
+python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
+    --developer-name RLM_DefaultPricingProcedure --mermaid deps --out /tmp/pp.deps.mmd
+
 # 4. Slice a step into a validated overlay (three scopes pre-classified).
 python scripts/expression_sets/export_expression_set_overlay.py --target-org $ORG \
     --developer-name RLM_DefaultPricingProcedure --step "Apply Discount" \
@@ -196,6 +216,7 @@ toolkit mirrors the tasks' live-verified rules. Full toolkit detail:
 | Pretty-print one procedure's steps in execution order | `python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> --developer-name <name>` (read-only) |
 | Export a definition to JSON (snapshot, or `--for-import`) | `python scripts/expression_sets/export_expression_set.py --target-org <sf_alias> --developer-name <name> --out <path>` (read-only) |
 | **Trace** who produces/consumes a variable; classify a step's dependency scopes; find orphans | `python scripts/expression_sets/trace_expression_set.py --target-org <sf_alias> --developer-name <name> --variable <v> \| --step <s> \| --field <f> \| --orphans` (read-only) |
+| **Visualize** a procedure as a Mermaid diagram — data-dependency (scope-colored) or execution-flow | `python scripts/expression_sets/trace_expression_set.py --target-org <sf_alias> --developer-name <name> --mermaid deps\|flow [--step <s>] [--out <path.mmd>]` (read-only) |
 | Diff a procedure org-vs-org or org-vs-JSON | `python scripts/expression_sets/diff_expression_set.py --target-org <sf_alias> --developer-name <name> --right-org <sf_alias2> \| --right-file <path>` (read-only) |
 | Slice step(s) into a validated overlay with scoped deps | `python scripts/expression_sets/export_expression_set_overlay.py --target-org <sf_alias> --developer-name <name> --step <s> --out <path>` (read-only; writes a local file) |
 | Create/replace a whole ES from JSON | `import_expression_set` (CCI, build) **or** `python scripts/expression_sets/import_expression_set.py --target-org <sf_alias> --input-file <path>` (preview; `--confirm` to write) |

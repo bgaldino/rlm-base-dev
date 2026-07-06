@@ -5,7 +5,8 @@ No org, no ``sf`` CLI, no pytest — a plain ``check()`` runner (matching the st
 of ``tests/test_expression_set_schema.py``). Exercises the package's OWN pure
 modules — ``_graph`` (producer/consumer index + scope + orphans), ``_payload``
 (verb-specific field rules + HTML-entity normalization), ``_overlay`` (step /
-variable merge), and ``export_expression_set_overlay.build_overlay`` (the slice-to-overlay
+variable merge), ``_tooling`` (step-label read/derive/apply + Metadata read-only
+strip), and ``export_expression_set_overlay.build_overlay`` (the slice-to-overlay
 logic) — plus a parity check that the two shipped overlay fixtures still pass the
 vendored validator.
 
@@ -42,6 +43,14 @@ from scripts.expression_sets._payload import (  # noqa: E402
     unescape_value,
 )
 from scripts.expression_sets._schema import validate_overlay  # noqa: E402
+from scripts.expression_sets._tooling import (  # noqa: E402
+    apply_labels,
+    derive_labels,
+    humanize_name,
+    label_drift,
+    step_labels,
+    strip_metadata_readonly,
+)
 from scripts.expression_sets.export_expression_set_overlay import build_overlay  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -278,6 +287,142 @@ def test_build_overlay():
 
 
 # --------------------------------------------------------------------------- #
+# _graph Mermaid rendering
+# --------------------------------------------------------------------------- #
+
+def test_mermaid():
+    print("test_mermaid")
+    g = ExpressionSetGraph(_sample_definition())
+
+    # --- flow view --------------------------------------------------------
+    flow = g.to_mermaid_flow(title="TEST_Proc")
+    check("flow starts with flowchart TD", flow.startswith("flowchart TD"), flow[:40])
+    check("flow chains top-level steps in sequence order",
+          "s_GetPrice --> s_ApplyMarkup" in flow and "s_ApplyMarkup --> s_DeadStep" in flow, flow)
+    check("flow emits every step node",
+          all(f"s_{n}[" in flow for n in ("GetPrice", "ApplyMarkup", "DeadStep")), flow)
+    check("flow includes the scope classDefs", "classDef custom" in flow, flow)
+    check("flow is deterministic", g.to_mermaid_flow(title="TEST_Proc") == flow)
+
+    # A child step hangs off its parent with a dashed 'child' edge, not a run-order arrow.
+    child_defn = _sample_definition()
+    child_defn["versions"][0]["steps"].append(
+        {"name": "Kid", "parentStep": "ApplyMarkup", "sequenceNumber": 1,
+         "stepType": "BusinessKnowledgeModel", "customElement": {"parameters": []}})
+    cflow = ExpressionSetGraph(child_defn).to_mermaid_flow()
+    check("child step uses dashed child edge", "s_ApplyMarkup -. child .-> s_Kid" in cflow, cflow)
+    check("child step is NOT in the run-order chain", "--> s_Kid" not in cflow.replace("-. child .-> s_Kid", ""), cflow)
+
+    # --- deps view --------------------------------------------------------
+    deps = g.to_mermaid_deps(title="TEST_Proc")
+    check("deps starts with flowchart LR", deps.startswith("flowchart LR"), deps[:40])
+    check("deps draws producer edge (step > var)", 's_GetPrice -->|">"| v_ListPrice' in deps, deps)
+    check("deps draws consumer edge (var < step)", 'v_ListPrice -->|"<"| s_ApplyMarkup' in deps, deps)
+    check("deps classes version var green", "class v_Constant_Markup version;" in deps, deps)
+    check("deps classes custom ref red", "class v_RLM_RampMode__c custom;" in deps, deps)
+    check("deps classes standard ctx blue", "class v_NetPrice standard;" in deps, deps)
+    check("deps is deterministic", g.to_mermaid_deps(title="TEST_Proc") == deps)
+
+    # --- deps scoped to one step's neighborhood ---------------------------
+    scoped = g.to_mermaid_deps(only_steps={"ApplyMarkup"})
+    check("scoped marks the focus step", "◆ focus" in scoped, scoped)
+    check("scoped keeps the producer-neighbor (GetPrice via ListPrice)",
+          "s_GetPrice[" in scoped, scoped)
+    check("scoped excludes unrelated step (DeadStep)", "s_DeadStep[" not in scoped, scoped)
+    check("scoped excludes unrelated var (UnusedOut)", "v_UnusedOut(" not in scoped, scoped)
+
+    # --- empty version renders without crashing --------------------------
+    empty = ExpressionSetGraph({"versions": [{"apiName": "V", "steps": [], "variables": []}]})
+    check("empty flow renders placeholder", "no steps" in empty.to_mermaid_flow(), empty.to_mermaid_flow())
+    check("empty deps renders placeholder", "no variable references" in empty.to_mermaid_deps())
+
+    # --- label with a double-quote is escaped -----------------------------
+    q_defn = _sample_definition()
+    q_defn["versions"][0]["steps"][0]["name"] = 'Say "hi"'
+    qflow = ExpressionSetGraph(q_defn).to_mermaid_flow()
+    check("double-quote in label is escaped", '#quot;hi#quot;' in qflow, qflow)
+
+
+# --------------------------------------------------------------------------- #
+# _tooling — step-label read / derive / apply (Tooling Metadata; pure half)
+# --------------------------------------------------------------------------- #
+
+def _sample_metadata():
+    """A Tooling-Metadata-shaped blob: steps carry `label`; `urls` is read-only.
+
+    Mirrors the live shape (v67.0): a readable label, a spaceless run-on whose
+    label == name (Connect-clobbered drift), and a step with no label at all.
+    """
+    return {
+        "urls": {"metadata": "/services/data/v67.0/tooling/…"},  # read-only
+        "label": "Sample Procedure",
+        "steps": [
+            {"name": "MapContextTags", "label": "Map Context Tags", "sequenceNumber": 1},
+            {"name": "ApplyHeaderPriceOverride", "label": "ApplyHeaderPriceOverride",
+             "sequenceNumber": 2},                                  # drift: label == name
+            {"name": "Uplift", "sequenceNumber": 3},                # drift: no label
+        ],
+    }
+
+
+def test_tooling():
+    print("test_tooling")
+
+    md = _sample_metadata()
+
+    # step_labels: one entry per named step, None preserved.
+    labels = step_labels(md)
+    check("step_labels maps name→label", labels.get("MapContextTags") == "Map Context Tags")
+    check("step_labels keeps None label", labels.get("Uplift") is None, labels)
+    check("step_labels has all 3 steps", len(labels) == 3, labels)
+
+    # label_drift: label missing OR == name.
+    drift = label_drift(md)
+    check("drift flags label==name", "ApplyHeaderPriceOverride" in drift, drift)
+    check("drift flags missing label", "Uplift" in drift, drift)
+    check("drift excludes good label", "MapContextTags" not in drift, drift)
+
+    # humanize_name: underscores + camelCase split; lossy on lowercase run-ons.
+    check("humanize underscores", humanize_name("Map_Context_Tags") == "Map Context Tags")
+    check("humanize camelCase", humanize_name("ApplyHeaderPriceOverride") == "Apply Header Price Override")
+    check("humanize acronym boundary", humanize_name("ESVName") == "ESV Name",
+          humanize_name("ESVName"))
+    check("humanize lossy on lowercase run-on",
+          humanize_name("applyheaderdiscount") == "applyheaderdiscount")
+    check("humanize empty is safe", humanize_name("") == "")
+
+    # derive_labels: only_drift touches only the drift steps.
+    derived = derive_labels(md, only_drift=True)
+    check("derive covers only drift names",
+          set(derived) == {"ApplyHeaderPriceOverride", "Uplift"}, set(derived))
+    check("derive humanizes the drift step",
+          derived["ApplyHeaderPriceOverride"] == "Apply Header Price Override", derived)
+    all_derived = derive_labels(md, only_drift=False)
+    check("derive only_drift=False covers all", len(all_derived) == 3, all_derived)
+
+    # apply_labels: returns new blob + changed list; skips no-ops/blanks; no mutation.
+    new_md, changed = apply_labels(md, {
+        "ApplyHeaderPriceOverride": "Apply Header Price Override",  # real change
+        "MapContextTags": "Map Context Tags",                       # no-op (already)
+        "Uplift": "",                                               # blank → skipped
+        "NoSuchStep": "Ignored",                                    # absent → skipped
+    })
+    changed_labels = step_labels(new_md)
+    check("apply changes the drift step",
+          changed_labels["ApplyHeaderPriceOverride"] == "Apply Header Price Override")
+    check("apply reports only real change", changed == ["ApplyHeaderPriceOverride"], changed)
+    check("apply skips blank label", changed_labels["Uplift"] is None, changed_labels)
+    check("apply does not mutate input",
+          step_labels(md)["ApplyHeaderPriceOverride"] == "ApplyHeaderPriceOverride")
+
+    # strip_metadata_readonly: drops `urls`, keeps everything else; no mutation.
+    stripped = strip_metadata_readonly(md)
+    check("strip drops urls", "urls" not in stripped)
+    check("strip keeps steps", len(stripped.get("steps", [])) == 3)
+    check("strip does not mutate input", "urls" in md)
+
+
+# --------------------------------------------------------------------------- #
 # Shipped fixtures still validate (parity with the vendored validator)
 # --------------------------------------------------------------------------- #
 
@@ -294,8 +439,8 @@ def test_shipped_fixtures():
 
 
 def main():
-    for fn in (test_graph, test_payload, test_overlay, test_build_overlay,
-               test_shipped_fixtures):
+    for fn in (test_graph, test_payload, test_overlay, test_tooling,
+               test_build_overlay, test_mermaid, test_shipped_fixtures):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

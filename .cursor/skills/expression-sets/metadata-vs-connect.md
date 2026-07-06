@@ -120,6 +120,45 @@ sequence.
 
 ---
 
+## Step names vs. labels
+
+Each step has a spaceless **`name`** (API-Name identifier; the `parentStep`
+foreign key) and a readable **`label`** (UI display text). They diverge sharply by
+path — the reason Connect export/describe shows run-on names
+(`Mapcontexttagstocommonpricingvariables`) while the UI shows a spaced title.
+
+| Path | `name` | `label` |
+|---|---|---|
+| Connect (GET/POST/PATCH) | ✅ | ❌ no such field — sending it → `JSON_PARSER_ERROR: Unrecognized field "label"` |
+| Metadata XML | ✅ `<name>` | ✅ `<label>` (shipped procedures ship readable labels this way) |
+| Tooling `ExpressionSetDefinitionVersion.Metadata.steps[]` | ✅ | ✅ read + write |
+
+**The load-bearing fact:** a **Connect full-graph PATCH clobbers every `label`
+back to its `name`.** `import_expression_set` and `apply_expression_set_overlay`
+do GET→merge→full-graph-replace, and the Connect representation has no `label`, so
+the server rebuilds each label from `name` on every write. Steps created via
+Connect come out with `label == name` (spaceless). Connect mutations and
+Tooling-set labels are therefore mutually exclusive on one version.
+
+**Reading/writing labels (Tooling only):**
+- Read: `GET tooling/sobjects/ExpressionSetDefinitionVersion/{9QB}` →
+  `Metadata.steps[].label`; join onto Connect steps by `name` (1:1; `name` is a
+  de-spaced/de-punctuated derivation of `label`, occasionally with a uniqueness
+  suffix like `…pricing36`).
+- Write: `PATCH …/{9QB}` with `{"Metadata": {…drop read-only `urls`…}}` — a full
+  `Metadata` PATCH (~180 KB). **Active-version guard applies**: PATCHing an active
+  version → `INVALID_ID_FIELD: LatestVersionSnapshotId not found …` (does not
+  persist). Deactivate `ExpressionSetVersion.IsActive` → PATCH → reactivate;
+  labels survive.
+
+**Toolkit:** `describe_expression_set.py --labels` (read, flags `label==name`
+drift); `relabel_expression_set.py` (write, via deactivate→PATCH→reactivate). Run
+relabel **last**, after all Connect work, or the labels get clobbered. For a new
+step that must ship with a label, author it in the Metadata XML `<label>` and
+deploy — that path preserves labels and is source-controlled.
+
+---
+
 ## Related
 
 - Overlays, three-scope dependency capture, safe step removal:
