@@ -59,9 +59,10 @@ Usage
 
     # a Mermaid diagram — 'deps' (producer→name→consumer; each name shaped &
     # colored by kind: step / version constant / version variable / custom /
-    # __std field / context tag) or 'flow' (steps in sequenceNumber order, children
-    # nested). --step scopes deps to one step's neighborhood; --labels titles step
-    # nodes with their readable Tooling label; --out writes a .mmd file.
+    # __std field / context tag) or 'flow' (top-down; ListGroups drawn as subgraph
+    # boxes CONTAINING their children in sequenceNumber order). --step scopes deps
+    # to one step's neighborhood; --labels titles step nodes with their readable
+    # Tooling label; --out writes a .mmd file.
     python scripts/expression_sets/trace_expression_set.py \
         --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --mermaid deps --labels \
@@ -258,8 +259,9 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--mermaid", nargs="?", const="deps", choices=("deps", "flow"),
         help="Emit a Mermaid diagram instead of a text trace. 'deps' (default): "
-             "producer→variable→consumer, scope-colored (version/custom/standard). "
-             "'flow': steps in execution (sequenceNumber) order, children nested. "
+             "producer→variable→consumer, each node shaped/colored by kind. "
+             "'flow': top-down execution order, ListGroups drawn as subgraph boxes "
+             "containing their children in sequenceNumber order. "
              "Combine with --step to scope 'deps' to that step's neighborhood.",
     )
     parser.add_argument(

@@ -131,9 +131,12 @@ diagram to stdout (or a `.mmd` file with `--out`). Paste it into any Mermaid
 renderer — `mermaid.live`, a GitHub Markdown ` ```mermaid ` fence, or the VS Code
 Mermaid preview. Two views:
 
-- **`--mermaid flow`** — execution order: top-level steps chained by their
-  `sequenceNumber`, each `ListGroup`/parent's children hanging off it by a dashed
-  `child` edge. The "what does this procedure do, in order" view.
+- **`--mermaid flow`** — execution order, top-down: top-level steps chained by
+  their `sequenceNumber`, and each `ListGroup` drawn as a **subgraph box that
+  contains** its children — chained inside in their own `sequenceNumber` order, so
+  the diagram shows containment, not just a relationship edge. The group box takes
+  the parent's slot in the top-level chain; nested ListGroups nest recursively. The
+  "what does this procedure do, in order" view.
 - **`--mermaid deps`** (the default) — the data-dependency graph: steps are
   rectangles, and every referenced name is drawn with a **shape + color keyed to
   its kind**, a finer split than the three scopes but grounded only in what the

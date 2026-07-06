@@ -142,6 +142,18 @@ def test_graph():
     check("ApplyMarkup closure consumes ListPrice+Constant_Markup",
           {"ListPrice", "Constant_Markup"} <= consumed_names, consumed_names)
 
+    # ordered_steps: flat execution order — top-level by sequenceNumber, a
+    # parent's children nested right after it.
+    og = ExpressionSetGraph({"versions": [{"apiName": "V", "variables": [], "steps": [
+        {"name": "B", "parentStep": None, "sequenceNumber": 2, "customElement": {"parameters": []}},
+        {"name": "A", "parentStep": None, "sequenceNumber": 1, "customElement": {"parameters": []}},
+        {"name": "A_kid2", "parentStep": "A", "sequenceNumber": 2, "customElement": {"parameters": []}},
+        {"name": "A_kid1", "parentStep": "A", "sequenceNumber": 1, "customElement": {"parameters": []}},
+    ]}]})
+    order = [s["name"] for s in og.ordered_steps()]
+    check("ordered_steps nests children after parent in sequence order",
+          order == ["A", "A_kid1", "A_kid2", "B"], order)
+
 
 # --------------------------------------------------------------------------- #
 # _payload
@@ -331,14 +343,45 @@ def test_mermaid():
     check("flow label==name collapses to name (no <small>)",
           "ApplyMarkup<br/><small>" not in lflow, lflow)
 
-    # A child step hangs off its parent with a dashed 'child' edge, not a run-order arrow.
+    # A step with children (a ListGroup) becomes a subgraph CONTAINING them, and
+    # the group box — not the parent node — participates in the top-level chain.
     child_defn = _sample_definition()
-    child_defn["versions"][0]["steps"].append(
-        {"name": "Kid", "parentStep": "ApplyMarkup", "sequenceNumber": 1,
-         "stepType": "BusinessKnowledgeModel", "customElement": {"parameters": []}})
+    child_defn["versions"][0]["steps"] += [
+        {"name": "Kid2", "parentStep": "ApplyMarkup", "sequenceNumber": 2,
+         "stepType": "BusinessKnowledgeModel", "customElement": {"parameters": []}},
+        {"name": "Kid1", "parentStep": "ApplyMarkup", "sequenceNumber": 1,
+         "stepType": "AdvancedListFilter", "customElement": {"parameters": []}},
+    ]
     cflow = ExpressionSetGraph(child_defn).to_mermaid_flow()
-    check("child step uses dashed child edge", "s_ApplyMarkup -. child .-> s_Kid" in cflow, cflow)
-    check("child step is NOT in the run-order chain", "--> s_Kid" not in cflow.replace("-. child .-> s_Kid", ""), cflow)
+    check("parent with children becomes a subgraph", 'subgraph sg_ApplyMarkup["ApplyMarkup"]' in cflow, cflow)
+    check("subgraph declares top-to-bottom direction", "direction TB" in cflow, cflow)
+    check("every subgraph is balanced with an end",
+          cflow.count("subgraph ") == len([l for l in cflow.splitlines() if l.strip() == "end"]), cflow)
+    check("children rendered as nodes inside", "s_Kid1[" in cflow and "s_Kid2[" in cflow, cflow)
+    check("children chained in sequenceNumber order (Kid1 seq1 → Kid2 seq2)",
+          "s_Kid1 --> s_Kid2" in cflow, cflow)
+    # The group id (not the plain parent node) carries the top-level chain.
+    check("top chain enters the group box, not the raw parent node",
+          "s_GetPrice --> sg_ApplyMarkup" in cflow, cflow)
+    check("top chain exits the group box to the next top-level step",
+          "sg_ApplyMarkup --> s_DeadStep" in cflow, cflow)
+    check("no dashed child edge remains", "-. child .->" not in cflow, cflow)
+    check("group box is tinted with a style line", "style sg_ApplyMarkup fill:" in cflow, cflow)
+
+    # A ListGroup whose only child is itself a ListGroup nests recursively.
+    nested_defn = _sample_definition()
+    nested_defn["versions"][0]["steps"] += [
+        {"name": "Outer", "parentStep": None, "sequenceNumber": 4, "stepType": "ListGroup",
+         "customElement": {"parameters": []}},
+        {"name": "Inner", "parentStep": "Outer", "sequenceNumber": 1, "stepType": "ListGroup",
+         "customElement": {"parameters": []}},
+        {"name": "Leaf", "parentStep": "Inner", "sequenceNumber": 1,
+         "stepType": "BusinessKnowledgeModel", "customElement": {"parameters": []}},
+    ]
+    nflow = ExpressionSetGraph(nested_defn).to_mermaid_flow()
+    check("nested groups produce nested subgraphs",
+          "subgraph sg_Outer[" in nflow and "subgraph sg_Inner[" in nflow, nflow)
+    check("nested leaf rendered inside", "s_Leaf[" in nflow, nflow)
 
     # --- deps view: kind-shaped, kind-classed nodes -----------------------
     deps = g.to_mermaid_deps(title="TEST_Proc")

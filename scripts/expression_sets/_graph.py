@@ -369,13 +369,14 @@ class ExpressionSetGraph:
 
     # -- ordering ------------------------------------------------------
 
-    def ordered_steps(self) -> List[dict]:
-        """Steps in execution order: top-level by sequenceNumber, children nested.
+    def _step_tree(self) -> "tuple[Dict[str, List[dict]], List[dict]]":
+        """The parent→children map and top-level list, each sorted by sequenceNumber.
 
-        Matches ``describe_expression_set._order_steps`` — top-level steps
-        (``parentStep is None``) sorted by sequenceNumber, each parent's children
-        following it in their own per-parent sequenceNumber order. Steps whose
-        named parent is absent are appended last so nothing is dropped.
+        The shared spine of both the flat ``ordered_steps()`` view and the nested
+        ``to_mermaid_flow()`` render, so execution order is defined in exactly one
+        place. ``children[parent_name]`` is that parent's children in per-parent
+        sequenceNumber order; ``top`` is the ``parentStep is None`` steps in
+        sequenceNumber order.
         """
         children: Dict[str, List[dict]] = {}
         top: List[dict] = []
@@ -388,7 +389,17 @@ class ExpressionSetGraph:
         top.sort(key=lambda s: s.get("sequenceNumber", 0))
         for kids in children.values():
             kids.sort(key=lambda s: s.get("sequenceNumber", 0))
+        return children, top
 
+    def ordered_steps(self) -> List[dict]:
+        """Steps in execution order as a FLAT list: top-level by sequenceNumber,
+        each parent's children nested right after it.
+
+        Matches ``describe_expression_set._order_steps``. Steps whose named parent
+        is absent are appended last so nothing is dropped. (The nested-container
+        form of this same order is what ``to_mermaid_flow`` draws.)
+        """
+        children, top = self._step_tree()
         ordered: List[dict] = []
         seen: Set[str] = set()
 
@@ -416,45 +427,97 @@ class ExpressionSetGraph:
         self, *, title: Optional[str] = None,
         labels: Optional[Dict[str, Optional[str]]] = None,
     ) -> str:
-        """Execution-flow diagram: steps in sequenceNumber order, children nested.
+        """Execution-flow diagram: top-down, children NESTED inside their ListGroup.
 
-        A top-down ``flowchart`` where consecutive top-level steps are chained by
-        a solid arrow (the run order) and each child hangs off its parent by a
-        dashed ``-. child .->`` edge. Pass ``labels`` (``{step-name: label}`` from
-        the Tooling API — see ``_tooling.step_labels``) to title each node with its
-        readable label instead of the spaceless ``name`` (the ``name`` is then
-        shown small underneath as the API name). Pure — no org access;
-        deterministic output.
+        A top-down (``flowchart TD``) run-order view. Top-level steps are chained
+        by solid arrows in ``sequenceNumber`` order. A step that has children (a
+        ``ListGroup``) is drawn as a Mermaid ``subgraph`` **containing** its
+        children — chained inside, in their own per-parent ``sequenceNumber``
+        order — so the diagram shows containment, not just a relationship edge. The
+        group's box participates in the top-level chain in the group's own sequence
+        slot. Nesting is recursive: a ListGroup inside a ListGroup becomes a nested
+        subgraph.
+
+        Pass ``labels`` (``{step-name: label}`` from the Tooling API — see
+        ``_tooling.step_labels``) to title each node/group with its readable label
+        over the small API name. Pure — no org access; deterministic output.
         """
         labels = labels or {}
-        ids = _MermaidIds("s_")
+        step_ids = _MermaidIds("s_")
+        group_ids = _MermaidIds("sg_")
+
+        # Parent→children tree + top-level list, both in sequenceNumber order —
+        # the same spine ordered_steps() flattens.
+        children, top = self._step_tree()
+
         lines: List[str] = ["flowchart TD"]
         if title:
             lines.append(f'  %% {title}')
 
-        ordered = self.ordered_steps()
-        prev_top: Optional[str] = None  # last top-level node id, for run-order chain
-        for step in ordered:
-            name = step.get("name") or "(unnamed)"
-            nid = ids.get(name)
-            stype = step.get("stepType") or step.get("actionType") or ""
-            label = _step_display(name, labels.get(name))
-            if stype:
-                label = f"{label}<br/><i>{stype}</i>"
-            lines.append(_mermaid_node(nid, label, "step"))
-            parent = step.get("parentStep")
-            if parent:
-                lines.append(f'  {ids.get(parent)} -. child .-> {nid}')
-            else:
-                if prev_top is not None:
-                    lines.append(f'  {prev_top} --> {nid}')
-                prev_top = nid
-            lines.append(f"  class {nid} step;")
+        seen: Set[str] = set()
+        group_ids_emitted: List[str] = []
 
-        if len(ordered) == 0:
+        def _label(step: dict, *, with_type: bool) -> str:
+            name = step.get("name") or "(unnamed)"
+            label = _step_display(name, labels.get(name))
+            if with_type:
+                stype = step.get("stepType") or step.get("actionType") or ""
+                if stype:
+                    label = f"{label}<br/><i>{stype}</i>"
+            return label
+
+        def emit(step: dict, indent: str) -> str:
+            """Emit a step (recursively) and return the id to chain it by.
+
+            A childless step → a ``step`` node (its own id). A step with children →
+            a ``subgraph`` box containing the children chained in sequence order
+            (the subgraph's id). Either id is what the parent chain arrows into.
+            """
+            name = step.get("name") or "(unnamed)"
+            seen.add(name)
+            kids = children.get(name)
+            if kids:
+                gid = group_ids.get(name)
+                group_ids_emitted.append(gid)
+                # Subgraph title carries the group label (its ListGroup nature is
+                # already conveyed by the box), children stack top-to-bottom.
+                lines.append(f'{indent}subgraph {gid}["{_mermaid_escape(_label(step, with_type=False))}"]')
+                lines.append(f'{indent}  direction TB')
+                prev: Optional[str] = None
+                for kid in kids:
+                    cid = emit(kid, indent + "  ")
+                    if prev is not None:
+                        lines.append(f'{indent}  {prev} --> {cid}')
+                    prev = cid
+                lines.append(f'{indent}end')
+                return gid
+            nid = step_ids.get(name)
+            lines.append(f'{indent}{_mermaid_node(nid, _label(step, with_type=True), "step")}')
+            lines.append(f'{indent}class {nid} step;')
+            return nid
+
+        prev_top: Optional[str] = None  # last top-level chain id, for run-order chain
+        for s in top:
+            cid = emit(s, "  ")
+            if prev_top is not None:
+                lines.append(f'  {prev_top} --> {cid}')
+            prev_top = cid
+        # Any step whose named parent never appeared — surface as top-level, don't drop.
+        for s in self.steps:
+            if s.get("name") not in seen:
+                cid = emit(s, "  ")
+                if prev_top is not None:
+                    lines.append(f'  {prev_top} --> {cid}')
+                prev_top = cid
+
+        if not self.steps:
             lines.append("  empty[/no steps in this version/]")
         # Flow has only step nodes — emit just that classDef so the legend matches.
         lines.extend("  " + d for d in _mermaid_classdefs(["step"]))
+        # Tint the ListGroup subgraph boxes so containment reads at a glance
+        # (a `style` line, not a classDef — keeps the legend to the step kind).
+        for gid in group_ids_emitted:
+            lines.append(f"  style {gid} fill:#f4f0fb,stroke:#7e57c2,color:#3d2b6b;")
         return "\n".join(lines) + "\n"
 
     def to_mermaid_deps(
