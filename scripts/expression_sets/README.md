@@ -73,7 +73,7 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | `_payload.py` | Verb-specific field rules (strip top-level `id`; keep-and-rewrite vs strip version `id`); HTML-entity normalization (`unescape_value` / `normalize_html_entities`). Pure. |
 | `_overlay.py` | Declarative step / variable merge (`add_steps` / `remove_steps` / `update_steps` / `reorder_steps` / `add_variables` / `remove_variables` / `renumber_top_level_steps`). Pure. |
 | `_graph.py` | Flat `steps[]` → producer/consumer dependency graph + three-scope classifier. Imports `_schema` (in-package). Pure. |
-| `_tooling.py` | Tooling-API access for step **labels** — the one thing Connect can't touch. Pure helpers (`step_labels` / `label_drift` / `humanize_name` / `derive_labels` / `apply_labels` / `strip_metadata_readonly`) + I/O over the `Transport` (`resolve_esdv` (9QB) / `fetch_metadata` / `patch_metadata`, dropping the read-only `urls` key). The active-version guard applies to the Metadata PATCH exactly as to a Connect mutation. |
+| `_tooling.py` | Tooling-API access for step **labels** — the one thing Connect can't touch. Pure helpers (`step_labels` / `label_drift` / `readable_labels` / `humanize_name` / `derive_labels` / `apply_labels` / `strip_metadata_readonly`) + I/O over the `Transport` (`resolve_esdv` (9QB) / `fetch_metadata` / `patch_metadata`, dropping the read-only `urls` key) + `warn_label_clobber` (best-effort, non-fatal pre-PATCH warning the Connect mutators call). The active-version guard applies to the Metadata PATCH exactly as to a Connect mutation. |
 | `_lifecycle.py` | The `LifecycleEngine`: deactivate → PATCH/POST → reactivate sequencer, the `ProcedurePlanDefinitionVersion` cascade (with rollback), version-state polling, `ResourceInitializationType` alignment, and delete-with-rollback — all on the `Transport` seam. A failed PATCH leaves the version **DEACTIVATED** and re-raises (never reactivated over a half-mutated definition). Drives both the Connect and the Tooling-`Metadata` (relabel) mutations. |
 
 **Tests:** `tests/test_expression_sets_toolkit.py` — offline unit tests (no org,
@@ -163,10 +163,13 @@ to a leaf-ish step or use the full `deps` view with a renderer that pans/zooms.
   and restored it.
 - **Labels are Connect-clobbered; relabel LAST.** Step labels live only in the
   Tooling `Metadata`; every Connect PATCH (`import` / `apply_expression_set_overlay`)
-  rebuilds them from the spaceless `name`. Run `relabel_expression_set.py` as the
-  final step, after all Connect mutations — anything Connect afterward wipes the
-  labels again. `--auto` is best-effort/lossy; prefer an explicit `{name: label}`
-  map (`--labels-file`) when the true labels are known. See
-  `.cursor/skills/expression-sets/metadata-vs-connect.md` → *Step names vs. labels*.
+  rebuilds them from the spaceless `name`. Those two mutators now **warn**
+  (best-effort, non-fatal) before the PATCH — "N readable labels will be reset" —
+  in both preview and confirm, so the loss is never silent. Run
+  `relabel_expression_set.py` as the final step, after all Connect mutations —
+  anything Connect afterward wipes the labels again. `--auto` is best-effort/lossy;
+  prefer an explicit `{name: label}` map (`--labels-file`) when the true labels
+  are known. See `.cursor/skills/expression-sets/metadata-vs-connect.md` →
+  *Step names vs. labels*.
 - **`--target-org` is the SF CLI alias**, never the CCI alias. CCI alias `beta`
   → SF CLI alias `rlm-base__beta`.

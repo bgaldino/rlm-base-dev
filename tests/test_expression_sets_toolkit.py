@@ -48,8 +48,10 @@ from scripts.expression_sets._tooling import (  # noqa: E402
     derive_labels,
     humanize_name,
     label_drift,
+    readable_labels,
     step_labels,
     strip_metadata_readonly,
+    warn_label_clobber,
 )
 from scripts.expression_sets.export_expression_set_overlay import build_overlay  # noqa: E402
 
@@ -382,6 +384,10 @@ def test_tooling():
     check("drift flags missing label", "Uplift" in drift, drift)
     check("drift excludes good label", "MapContextTags" not in drift, drift)
 
+    # readable_labels: the complement — steps a Connect PATCH would reset.
+    readable = readable_labels(md)
+    check("readable is the drift complement", readable == ["MapContextTags"], readable)
+
     # humanize_name: underscores + camelCase split; lossy on lowercase run-ons.
     check("humanize underscores", humanize_name("Map_Context_Tags") == "Map Context Tags")
     check("humanize camelCase", humanize_name("ApplyHeaderPriceOverride") == "Apply Header Price Override")
@@ -420,6 +426,57 @@ def test_tooling():
     check("strip drops urls", "urls" not in stripped)
     check("strip keeps steps", len(stripped.get("steps", [])) == 3)
     check("strip does not mutate input", "urls" in md)
+
+    # warn_label_clobber: best-effort pre-PATCH warning over a FAKE transport.
+    # It resolves the ESDV (tooling/query) then GETs Metadata (tooling/sobjects/…),
+    # counts readable labels, and must NEVER raise.
+    class _FakeTransport:
+        def __init__(self, *, query_records=None, metadata=None, raise_on=None):
+            self._query_records = query_records
+            self._metadata = metadata
+            self._raise_on = raise_on or ()
+
+        def connect(self, method, path, body=None, **kw):
+            if any(tok in path for tok in self._raise_on):
+                from scripts.expression_sets._client import ExpressionSetClientError
+                raise ExpressionSetClientError("boom")
+            if "tooling/query" in path:
+                return {"records": self._query_records or []}
+            if "tooling/sobjects/" in path:
+                return {"Metadata": self._metadata or {}}
+            return {}
+
+    logs = []
+    # Happy path: one readable label → count 1, one warning logged.
+    n = warn_label_clobber(
+        _FakeTransport(query_records=[{"Id": "9QBx"}], metadata=md),
+        "TEST_V1", logs.append,
+    )
+    check("warn counts readable labels", n == 1, n)
+    check("warn logs a reset warning", any("RESET" in m for m in logs), logs)
+
+    # No version name → 0, no log, no call.
+    logs2 = []
+    check("warn no-version returns 0", warn_label_clobber(_FakeTransport(), None, logs2.append) == 0)
+    check("warn no-version stays silent", logs2 == [], logs2)
+
+    # Tooling read error → swallowed (returns 0, soft note, never raises).
+    logs3 = []
+    n3 = warn_label_clobber(
+        _FakeTransport(raise_on=("tooling/query",)), "TEST_V1", logs3.append
+    )
+    check("warn swallows read error", n3 == 0, n3)
+    check("warn notes read failure softly", any("could not" in m for m in logs3), logs3)
+
+    # All-drift metadata → 0 readable, no warning (nothing to lose).
+    logs4 = []
+    all_drift_md = {"steps": [{"name": "X", "label": "X"}, {"name": "Y"}]}
+    n4 = warn_label_clobber(
+        _FakeTransport(query_records=[{"Id": "9QBx"}], metadata=all_drift_md),
+        "TEST_V1", logs4.append,
+    )
+    check("warn 0 when no readable labels", n4 == 0, n4)
+    check("warn silent when nothing to lose", logs4 == [], logs4)
 
 
 # --------------------------------------------------------------------------- #

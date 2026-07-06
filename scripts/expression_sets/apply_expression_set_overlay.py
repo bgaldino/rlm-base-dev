@@ -69,6 +69,7 @@ from scripts.expression_sets._schema import (  # noqa: E402
     validate_definition,
     validate_overlay_against_definition,
 )
+from scripts.expression_sets._tooling import warn_label_clobber  # noqa: E402
 
 
 def _report(result, label):
@@ -165,6 +166,11 @@ def main(argv=None) -> int:
         eprint(f"Apply overlay → '{es_api_name}' (es_id={es_id}, version={esv.get('ApiName')}), "
                f"activate_after={activate_after}, cascade={cascade}, "
                f"{'PREVIEW' if preview else 'CONFIRM'}")
+
+        # A full-graph Connect PATCH resets step labels to their spaceless names.
+        # Warn (best-effort, non-fatal) how many readable labels will be lost — in
+        # both preview and confirm, since preview is where the operator plans.
+        warn_label_clobber(transport, esv.get("ApiName"), eprint)
 
         engine.ensure_resource_initialization_type(
             es_id, preflight_def.get("resourceInitializationType")

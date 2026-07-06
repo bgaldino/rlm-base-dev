@@ -65,6 +65,7 @@ from scripts.expression_sets._resolve import (  # noqa: E402
     resolve_version_by_es_id,
 )
 from scripts.expression_sets._schema import validate_definition  # noqa: E402
+from scripts.expression_sets._tooling import warn_label_clobber  # noqa: E402
 
 
 def _developer_name(payload: dict) -> str:
@@ -158,6 +159,11 @@ def main(argv=None) -> int:
                 es_id, target_org=args.target_org, api_version=args.api_version,
                 logger=eprint,
             )
+            # A replace is a full-graph Connect PATCH — it resets step labels to
+            # their spaceless names. Warn (best-effort, non-fatal) how many
+            # readable labels on the target version will be lost. (create/POST
+            # starts label-less, so no warning there.)
+            warn_label_clobber(transport, esv.get("ApiName"), eprint)
             engine.ensure_resource_initialization_type(
                 es_id, payload.get("resourceInitializationType")
             )

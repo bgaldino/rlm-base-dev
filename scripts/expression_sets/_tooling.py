@@ -42,6 +42,8 @@ from copy import deepcopy
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
+from ._client import ExpressionSetClientError
+
 ESDV_SOBJECT = "ExpressionSetDefinitionVersion"
 
 # The one read-only key inside a Tooling ``Metadata`` blob that a PATCH rejects:
@@ -84,6 +86,20 @@ def label_drift(metadata: dict) -> List[str]:
         name
         for name, label in step_labels(metadata).items()
         if not label or label == name
+    ]
+
+
+def readable_labels(metadata: dict) -> List[str]:
+    """Names of steps that DO have a readable label (label present and != name).
+
+    The complement of :func:`label_drift` — the steps a Connect full-graph PATCH
+    would reset to their spaceless name. Used to size the pre-PATCH clobber
+    warning ("N labels will be reset"). Pure.
+    """
+    return [
+        name
+        for name, label in step_labels(metadata).items()
+        if label and label != name
     ]
 
 
@@ -254,3 +270,37 @@ def patch_metadata(transport, esdv_id: str, metadata: dict) -> Any:
     return transport.connect(
         "PATCH", f"tooling/sobjects/{ESDV_SOBJECT}/{esdv_id}", body
     )
+
+
+def warn_label_clobber(transport, version_api_name: Optional[str], logger) -> int:
+    """Warn (best-effort) that a Connect full-graph PATCH will reset step labels.
+
+    A Connect PATCH (``import`` / ``apply_expression_set_overlay``) has no ``label``
+    field and rebuilds every label from the spaceless ``name``, silently wiping any
+    readable labels on the version. Before such a PATCH, this reads the current
+    Tooling labels and — if any readable ones exist — logs how many will be reset
+    and how to restore them with ``relabel_expression_set.py``.
+
+    **Best-effort and non-fatal by contract:** a label warning must NEVER break a
+    mutation, so any failure (no ``version_api_name``, Tooling read error, missing
+    Metadata) is swallowed with a soft note and returns 0. Returns the count of
+    readable labels that would be reset (0 if none / unknown).
+    """
+    if not version_api_name:
+        return 0
+    try:
+        esdv = resolve_esdv(transport, version_api_name=version_api_name)
+        metadata = fetch_metadata(transport, esdv["Id"])
+    except (ToolingError, ExpressionSetClientError) as exc:
+        logger(f"Note: could not pre-check step labels before the PATCH ({exc}).")
+        return 0
+    readable = readable_labels(metadata)
+    if readable:
+        logger(
+            f"⚠ This Connect PATCH will RESET {len(readable)} readable step "
+            f"label(s) on version '{version_api_name}' to their spaceless names "
+            f"(Connect has no label field). Restore them AFTER this completes with: "
+            f"relabel_expression_set.py --expression-set <name> "
+            f"[--labels-file <map> | --auto]."
+        )
+    return len(readable)
