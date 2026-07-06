@@ -145,17 +145,51 @@ Tooling-set labels are therefore mutually exclusive on one version.
   `Metadata.steps[].label`; join onto Connect steps by `name` (1:1; `name` is a
   de-spaced/de-punctuated derivation of `label`, occasionally with a uniqueness
   suffix like `…pricing36`).
+- **Resolving the 9QB record — use the stable key.** The documented join
+  `9QB.DeveloperName == 9QM.ApiName` holds at rest but is **NOT stable across a
+  Connect full-graph PATCH**: a Connect PATCH *rewrites the ESDV `DeveloperName` in
+  place* (live-verified 262/v67.0 — after an overlay apply, the same 9QB Id came
+  back under an unrelated `DeveloperName`, so a lookup by ApiName returned 0 rows).
+  The runtime `9QM.ApiName` and the `9QB.ExpressionSetDefinitionId` (→ 9QA) stay
+  stable. Any path that resolves the 9QB **right after a Connect mutation** (i.e.
+  auto-restore, or a relabel of a just-imported set) must query
+  `ExpressionSetDefinitionId = {9QA} [AND VersionNumber = N]`, not `DeveloperName`.
+  `_tooling.resolve_esdv(es_def_id=…, version_number=…)` does this; `capture_labels`
+  and `relabel_version` pass the stable pair through.
 - Write: `PATCH …/{9QB}` with `{"Metadata": {…drop read-only `urls`…}}` — a full
   `Metadata` PATCH (~180 KB). **Active-version guard applies**: PATCHing an active
   version → `INVALID_ID_FIELD: LatestVersionSnapshotId not found …` (does not
   persist). Deactivate `ExpressionSetVersion.IsActive` → PATCH → reactivate;
   labels survive.
 
-**Toolkit:** `describe_expression_set.py --labels` (read, flags `label==name`
-drift); `relabel_expression_set.py` (write, via deactivate→PATCH→reactivate). Run
-relabel **last**, after all Connect work, or the labels get clobbered. For a new
-step that must ship with a label, author it in the Metadata XML `<label>` and
-deploy — that path preserves labels and is source-controlled.
+**Toolkit — read/write labels:**
+- `describe_expression_set.py --labels` (read, flags `label==name` drift); the
+  `trace … --mermaid --labels` diagrams title step nodes with the label.
+- `relabel_expression_set.py` (write, via deactivate→PATCH→reactivate). Label
+  source: `--auto` (lossy derive), `--labels-file` (`{name: label}` JSON), `--set
+  NAME=LABEL`, or **`--from-metadata <xml>`** — read the authoritative map straight
+  from a source-controlled `force-app/…/expressionSetDefinition/*.expressionSetDefinition-meta.xml`.
+
+**Auto-preservation (default-on).** The two Connect mutators no longer *lose*
+labels: `import_expression_set` (replace) and `apply_expression_set_overlay`
+**capture** the readable labels before the clobbering PATCH and **restore** them
+after, in a second deactivate→Tooling-PATCH→reactivate cycle (`--no-preserve-labels`
+to opt out). Two step populations are covered:
+- **survivors** → restored from the pre-PATCH target-org snapshot (`capture_labels`).
+  A step renamed/added on the clone won't match the snapshot by `name` — correct,
+  since the snapshot only knows pre-PATCH names.
+- **new steps** → labeled from the overlay's own `labels` block or per-`addSteps`
+  `label` (`overlay_labels`); `export_expression_set_overlay.py --with-labels` writes
+  that block so a sliced step travels self-describing.
+
+Restore is **non-fatal** (the Connect mutation already succeeded; a restore failure
+is reported with a `relabel_expression_set.py` fix hint, never raised) and runs only
+when the version is reactivated (`activate_after`) — a relabel needs its own
+deactivate window. Shared core: `_tooling.relabel_version`; auto-restore entry:
+`_tooling.restore_labels_after_clobber`. Run a manual `relabel` **last**, after all
+Connect work, if you opted out or a restore failed. For a step that must ship with a
+label in the build, author it in the Metadata XML `<label>` and deploy — that path
+preserves labels and is source-controlled.
 
 ---
 

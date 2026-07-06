@@ -75,6 +75,18 @@ before the Connect call (`normalize_html_entities`, default `true`).
   `SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion WHERE ExpressionSetId = '<ExpressionSetId>' ORDER BY IsActive DESC, VersionNumber DESC`
 - referencing plans:
   `SELECT Id, ProcedurePlanSection.ProcedurePlanVersionId FROM ProcedurePlanOption WHERE ExpressionSetDefinitionId = '<ExpressionSetDefinitionId>'`
+- runtime version → Tooling `ExpressionSetDefinitionVersion` (9QB, for label read/write):
+  `SELECT Id, DeveloperName, VersionNumber FROM ExpressionSetDefinitionVersion WHERE ExpressionSetDefinitionId = '<9QA>' [AND VersionNumber = N]`
+
+> ⚠ **9QB resolution — use the STABLE key.** At rest, `9QB.DeveloperName == 9QM.ApiName`, so a
+> label read can find the ESDV by ApiName. But a **Connect full-graph PATCH rewrites the ESDV
+> `DeveloperName` in place** (live-verified 262/v67.0 — after an overlay apply, the same 9QB Id
+> returned under an *unrelated* `DeveloperName`, so a lookup by ApiName got 0 rows and label
+> auto-restore silently no-op'd). The stable identifiers are `9QM.ApiName`,
+> `9QM.ExpressionSetDefinitionId`, and `9QB.ExpressionSetDefinitionId` (→ 9QA). Any path that
+> resolves the 9QB **right after a Connect mutation** (label auto-restore, relabel of a
+> just-imported set) MUST query `ExpressionSetDefinitionId [+ VersionNumber]`, not `DeveloperName`.
+> `scripts/expression_sets/_tooling.resolve_esdv(es_def_id=…, version_number=…)` is the stable path.
 
 ---
 

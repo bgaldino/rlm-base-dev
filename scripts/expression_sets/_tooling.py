@@ -23,6 +23,15 @@ This module is the seam for that (live-verified on 262 / v67.0):
     resolve the Tooling version id (:func:`resolve_esdv`), GET its ``Metadata``
     (:func:`fetch_metadata`), and PATCH ``Metadata`` back (:func:`patch_metadata`,
     dropping the read-only ``urls`` key).
+  * **Label preservation** around a clobbering Connect mutation: snapshot the
+    readable labels a PATCH is about to reset (:func:`capture_labels`), warn about
+    it (:func:`warn_label_clobber`), and re-apply them afterwards
+    (:func:`restore_labels_after_clobber`) — a deliberate SECOND deactivate →
+    Tooling PATCH → reactivate cycle that reuses the shared relabel core
+    (:func:`relabel_version`, also the engine behind ``relabel_expression_set.py``),
+    rather than smuggling a label into the Connect body (Connect has no label
+    field). Seed a name→label map from a shipped ``.expressionSetDefinition-meta.xml``
+    with :func:`labels_from_metadata_xml`.
 
 Object model: the Tooling ``ExpressionSetDefinitionVersion`` (prefix ``9QB``) is a
 1:1 sibling of the runtime ``ExpressionSetVersion`` (prefix ``9QM``) — its
@@ -38,6 +47,7 @@ and, because a Connect mutation clobbers labels, a relabel must run **last**.
 """
 
 import re
+import xml.etree.ElementTree as ET
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote
@@ -166,6 +176,40 @@ def derive_labels(metadata: dict, *, only_drift: bool = True) -> Dict[str, str]:
     return out
 
 
+# Namespace on every Salesforce Metadata-API XML root.
+_MD_NS = "{http://soap.sforce.com/2006/04/metadata}"
+
+
+def labels_from_metadata_xml(xml_text: str) -> Dict[str, str]:
+    """Parse ``{step name: label}`` from a ``.expressionSetDefinition-meta.xml``.
+
+    The source-controlled Metadata XML is the authoritative name→label registry
+    for a *shipped* procedure: every ``<steps>`` element carries its own direct
+    ``<name>`` and ``<label>`` children (distinct from the nested
+    ``<parameters><name>`` / ``<variables><name>`` tags, which we ignore by
+    reading only the step element's *direct* children). Only steps that have BOTH
+    a name and a non-empty label are returned. Pure — no org, no I/O beyond the
+    passed-in string. Raises :class:`ToolingError` on unparseable XML.
+
+    Note this seeds labels by *name*: it can restore a step whose name is
+    unchanged from the repo, but a step the operator renamed on the target org
+    won't match (use a live capture for those — see :func:`capture_labels`).
+    """
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        raise ToolingError(f"Could not parse expressionSetDefinition XML: {exc}")
+    out: Dict[str, str] = {}
+    # <steps> can appear under the root or nested in <versions>; findall over the
+    # whole tree catches both. Namespaced tag names use the metadata NS.
+    for steps_el in root.iter(f"{_MD_NS}steps"):
+        name = steps_el.findtext(f"{_MD_NS}name")
+        label = steps_el.findtext(f"{_MD_NS}label")
+        if name and label:
+            out[name] = label
+    return out
+
+
 def strip_metadata_readonly(metadata: dict) -> dict:
     """Drop the read-only keys a Tooling ``Metadata`` PATCH rejects (``urls``).
 
@@ -200,20 +244,37 @@ def _soql_literal(value: Any) -> str:
 def resolve_esdv(
     transport,
     *,
+    es_def_id: Optional[str] = None,
+    version_number: Optional[int] = None,
     version_api_name: Optional[str] = None,
     developer_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Resolve the Tooling ``ExpressionSetDefinitionVersion`` (9QB) record.
 
-    Prefer ``version_api_name`` (the runtime ``ExpressionSetVersion.ApiName``,
-    which equals the 9QB ``DeveloperName``) — it pins the label write to the exact
-    version the lifecycle engine deactivates. Falls back to ``developer_name`` (the
-    ``ExpressionSetDefinition`` DeveloperName), taking the highest ``VersionNumber``.
+    Resolution priority (most stable identifier first):
+
+      1. ``es_def_id`` — the parent ``ExpressionSetDefinition`` Id (9QA), optionally
+         pinned to an exact ``version_number``. **This is the stable key** and the
+         one every mutating/restore caller should use. Absent ``version_number``,
+         takes the highest ``VersionNumber``.
+      2. ``version_api_name`` — the runtime ``ExpressionSetVersion.ApiName``. This
+         *usually* equals the 9QB ``DeveloperName``, but **that equality is NOT
+         stable across a Connect full-graph PATCH**: a Connect PATCH rewrites the
+         ESDV ``DeveloperName`` in place (live-verified 262/v67.0 — the same 9QB Id
+         came back under an unrelated ``DeveloperName`` after an overlay apply), so
+         a lookup by ``DeveloperName`` right after a Connect mutation can miss.
+         Prefer ``es_def_id`` in any post-PATCH (restore/relabel) path.
+      3. ``developer_name`` — the ``ExpressionSetDefinition`` DeveloperName (highest
+         ``VersionNumber``). Convenience for read-only callers.
 
     Returns the record dict (``Id``, ``DeveloperName``, ``VersionNumber``). Raises
-    :class:`ToolingError` if none match or neither identifier is given.
+    :class:`ToolingError` if none match or no identifier is given.
     """
-    if version_api_name:
+    if es_def_id:
+        where = f"ExpressionSetDefinitionId = '{_soql_literal(es_def_id)}'"
+        if version_number is not None:
+            where += f" AND VersionNumber = {int(version_number)}"
+    elif version_api_name:
         where = f"DeveloperName = '{_soql_literal(version_api_name)}'"
     elif developer_name:
         where = (
@@ -222,7 +283,7 @@ def resolve_esdv(
         )
     else:
         raise ToolingError(
-            "resolve_esdv requires version_api_name or developer_name."
+            "resolve_esdv requires es_def_id, version_api_name, or developer_name."
         )
     records = _tooling_query(
         transport,
@@ -230,7 +291,7 @@ def resolve_esdv(
         f"WHERE {where} ORDER BY VersionNumber DESC",
     )
     if not records:
-        target = version_api_name or developer_name
+        target = es_def_id or version_api_name or developer_name
         raise ToolingError(
             f"No {ESDV_SOBJECT} found for '{target}'. Confirm the expression set "
             f"and version exist in the org."
@@ -272,6 +333,179 @@ def patch_metadata(transport, esdv_id: str, metadata: dict) -> Any:
     )
 
 
+def capture_labels(
+    transport,
+    version_api_name: Optional[str],
+    logger=None,
+    *,
+    es_def_id: Optional[str] = None,
+    version_number: Optional[int] = None,
+) -> Dict[str, str]:
+    """Snapshot the target version's readable ``{name: label}`` map (best-effort).
+
+    Reads the current Tooling ``Metadata`` for the version and returns the labels
+    for steps that HAVE a readable label (label present and != name) — the exact set
+    a Connect full-graph PATCH is about to clobber. Taken BEFORE the clobbering PATCH
+    so the labels can be re-applied afterwards to whatever steps survive under the
+    same name (renamed / newly-added steps simply won't match on restore, which is
+    correct — the snapshot only knows the pre-PATCH names).
+
+    Resolves the Tooling version by the **stable** ``es_def_id`` (9QA) +
+    ``version_number`` when the caller can supply them (a mutator always can), since
+    the ESDV ``DeveloperName`` is unstable across a Connect PATCH; falls back to
+    ``version_api_name`` for callers that only hold the runtime ApiName.
+
+    **Best-effort and non-fatal by contract**, exactly like :func:`warn_label_clobber`:
+    any failure (no version, Tooling read error, missing Metadata) is swallowed with
+    an optional soft note and returns ``{}`` — capturing labels must never break a
+    mutation. Pure-ish: one Tooling read, no writes.
+    """
+    if not (version_api_name or es_def_id):
+        return {}
+    try:
+        esdv = resolve_esdv(
+            transport, es_def_id=es_def_id, version_number=version_number,
+            version_api_name=version_api_name,
+        )
+        metadata = fetch_metadata(transport, esdv["Id"])
+    except (ToolingError, ExpressionSetClientError) as exc:
+        if logger:
+            logger(f"Note: could not capture step labels before the PATCH ({exc}).")
+        return {}
+    labels = step_labels(metadata)
+    return {n: l for n, l in labels.items() if l and l != n}
+
+
+def relabel_version(
+    engine,
+    *,
+    es_def_id: str,
+    esv: dict,
+    name_to_label: Dict[str, str],
+    activate_after: bool = True,
+    cascade: bool = True,
+    verify: bool = True,
+) -> Dict[str, Any]:
+    """Write step labels to a version's Tooling ``Metadata``, through the lifecycle.
+
+    The shared relabel core used by BOTH ``relabel_expression_set.py`` (the
+    standalone CLI) and the auto-restore step of the Connect mutators. Resolves the
+    Tooling ``ExpressionSetDefinitionVersion`` via the **stable** ``es_def_id`` (9QA)
+    + the version's ``VersionNumber`` — NOT the ESDV ``DeveloperName``, which a
+    Connect full-graph PATCH rewrites in place (so the auto-restore path, which runs
+    right after a Connect PATCH, would otherwise miss the record). Computes which
+    labels actually change (skips no-ops / blanks / names absent from the version),
+    and — only if something changes — runs the deactivate → Tooling PATCH →
+    reactivate lifecycle via ``engine.run_mutation`` (the same active-version guard
+    a Connect mutation obeys: a PATCH on an active version returns
+    ``INVALID_ID_FIELD: LatestVersionSnapshotId not found``).
+
+    ``engine`` is a ``_lifecycle.LifecycleEngine`` (duck-typed: uses ``.t``,
+    ``.log``, ``.dry_run``, ``.run_mutation``). Returns ``{"esdvId", "changed",
+    "planned"}``; ``changed``/``planned`` are the sorted step names whose label was
+    (or, in dry-run, would be) written. A name in ``name_to_label`` that matches no
+    step is a silent no-op — safe for auto-restore, where a captured/overlay label
+    may reference a step the Connect mutation removed.
+    """
+    transport = engine.t
+    # Resolve by the stable (es_def_id, VersionNumber) pair. Fall back to the
+    # version ApiName only if the caller couldn't supply a VersionNumber (older
+    # callers) — resolve_esdv still accepts version_api_name for that case.
+    esdv = resolve_esdv(
+        transport, es_def_id=es_def_id, version_number=esv.get("VersionNumber"),
+        version_api_name=esv.get("ApiName"),
+    )
+    esdv_id = esdv["Id"]
+    current = step_labels(fetch_metadata(transport, esdv_id))
+    planned = {
+        n: l for n, l in name_to_label.items()
+        if l and n in current and current.get(n) != l
+    }
+    if not planned:
+        return {"esdvId": esdv_id, "changed": [], "planned": []}
+
+    def mutate():
+        # Re-read post-deactivation so the PATCH reflects current stored Metadata;
+        # re-apply as a guard against drift between pre-flight and the write window.
+        metadata = fetch_metadata(transport, esdv_id)
+        new_md, changed = apply_labels(metadata, planned, logger=engine.log)
+        if not changed:
+            engine.log("No label changes to write after re-read; skipping PATCH.")
+            return
+        patch_metadata(transport, esdv_id, new_md)
+        engine.log(
+            f"PATCHed Tooling Metadata for {esdv_id} ({len(changed)} label(s))."
+        )
+        if verify and not engine.dry_run:
+            labels = step_labels(fetch_metadata(transport, esdv_id))
+            missing = {n: l for n, l in planned.items() if labels.get(n) != l}
+            if missing:
+                raise RuntimeError(
+                    f"Relabel verification failed: {len(missing)} label(s) did not "
+                    f"persist: {sorted(missing)}."
+                )
+
+    engine.run_mutation(
+        es_def_id=es_def_id, esv=esv, mutate=mutate,
+        activate_after=activate_after, cascade=cascade, verb="Relabel",
+    )
+    return {"esdvId": esdv_id, "changed": sorted(planned), "planned": sorted(planned)}
+
+
+def restore_labels_after_clobber(
+    engine,
+    *,
+    es_id: str,
+    es_def_id: str,
+    version_api_name: Optional[str],
+    name_to_label: Dict[str, str],
+    cascade: bool = True,
+    logger=None,
+) -> Dict[str, Any]:
+    """Re-apply captured/overlay labels after a Connect mutation clobbered them.
+
+    The auto-restore half of label preservation: run AFTER a Connect
+    import/overlay has completed and reactivated the version. Re-resolves the
+    version's CURRENT state (the Connect PATCH may have reactivated it, so the
+    ``esv`` the caller held is stale), then runs the shared :func:`relabel_version`
+    to restore labels for every step that still exists under the same name — a
+    second deactivate → Tooling PATCH → reactivate cycle.
+
+    **Non-fatal by contract:** the Connect mutation already succeeded, so a restore
+    failure must not turn a good mutation into a reported failure — it is caught,
+    logged, and reported in the result as ``ok: False``/``error`` so the operator
+    can re-run ``relabel_expression_set.py`` manually. Skips silently when there is
+    nothing to restore. Returns ``{"ok", "changed", "error"}``.
+    """
+    log = logger or engine.log
+    if not name_to_label or not version_api_name:
+        return {"ok": True, "changed": [], "error": None}
+    try:
+        rows = engine.t.soql(
+            "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
+            f"WHERE ExpressionSetId = '{es_id}' AND ApiName = '{version_api_name}'"
+        )
+        if not rows:
+            log(f"Note: could not restore labels — version '{version_api_name}' "
+                f"not found after the mutation.")
+            return {"ok": False, "changed": [], "error": "version not found"}
+        result = relabel_version(
+            engine, es_def_id=es_def_id, esv=rows[0],
+            name_to_label=name_to_label, activate_after=True, cascade=cascade,
+        )
+        if result["changed"]:
+            log(f"Restored {len(result['changed'])} step label(s) clobbered by the "
+                f"Connect PATCH: {', '.join(result['changed'])}.")
+        else:
+            log("No step labels needed restoring after the Connect PATCH.")
+        return {"ok": True, "changed": result["changed"], "error": None}
+    except Exception as exc:  # noqa: BLE001 — restore must never fail the mutation
+        log(f"⚠ Connect mutation succeeded but label RESTORE failed ({exc}). The "
+            f"version is labeled with spaceless names. Re-run relabel_expression_set.py "
+            f"--expression-set <name> to restore readable labels.")
+        return {"ok": False, "changed": [], "error": str(exc)}
+
+
 def warn_label_clobber(transport, version_api_name: Optional[str], logger) -> int:
     """Warn (best-effort) that a Connect full-graph PATCH will reset step labels.
 
@@ -285,21 +519,18 @@ def warn_label_clobber(transport, version_api_name: Optional[str], logger) -> in
     mutation, so any failure (no ``version_api_name``, Tooling read error, missing
     Metadata) is swallowed with a soft note and returns 0. Returns the count of
     readable labels that would be reset (0 if none / unknown).
+
+    Shares its one Tooling read with :func:`capture_labels` — the map it returns is
+    exactly the set this warning counts, so a caller that both warns and auto-
+    restores need only capture once.
     """
-    if not version_api_name:
-        return 0
-    try:
-        esdv = resolve_esdv(transport, version_api_name=version_api_name)
-        metadata = fetch_metadata(transport, esdv["Id"])
-    except (ToolingError, ExpressionSetClientError) as exc:
-        logger(f"Note: could not pre-check step labels before the PATCH ({exc}).")
-        return 0
-    readable = readable_labels(metadata)
+    readable = capture_labels(transport, version_api_name, logger)
     if readable:
         logger(
             f"⚠ This Connect PATCH will RESET {len(readable)} readable step "
             f"label(s) on version '{version_api_name}' to their spaceless names "
-            f"(Connect has no label field). Restore them AFTER this completes with: "
+            f"(Connect has no label field). They will be auto-restored after the "
+            f"mutation unless --no-preserve-labels is set; otherwise restore with "
             f"relabel_expression_set.py --expression-set <name> "
             f"[--labels-file <map> | --auto]."
         )

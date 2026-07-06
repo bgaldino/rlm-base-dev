@@ -51,16 +51,16 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | `export_expression_set.py` | Read-only | GET a definition → JSON file (the read half of the round trip). `--for-import` strips read-only fields + HTML-unescapes so the output is import-ready. |
 | **`trace_expression_set.py`** | Read-only | **Flagship** — variable producer→consumer graph + three-scope classifier (version / custom / standard). `--variable` (safe-removal view), `--step` (dependency closure + capture guidance), `--field`, `--orphans`. `--mermaid deps\|flow` renders a diagram (`--out` to a `.mmd` file) where each node is **shaped & colored by kind** (step / version constant / version variable / custom / `__std` field / context tag); `--step` scopes `deps` to one step's neighborhood; `--labels` titles step nodes with their readable Tooling label. |
 | `diff_expression_set.py` | Read-only | Added / removed / changed / reordered steps + variables, org-vs-org or org-vs-JSON. |
-| `export_expression_set_overlay.py` | Read-only (writes local file) | Slice step(s) from a live GET into a **validated** `addSteps` overlay with the three dependency scopes pre-classified (version deps → `addVariables`; custom refs → `externalDependencies`). |
+| `export_expression_set_overlay.py` | Read-only (writes local file) | Slice step(s) from a live GET into a **validated** `addSteps` overlay with the three dependency scopes pre-classified (version deps → `addVariables`; custom refs → `externalDependencies`). `--with-labels` joins each sliced step's readable **label** (from the Tooling Metadata — Connect can't serialize it) into a top-level `labels` block, so the overlay is self-describing and `apply_expression_set_overlay` restores the label after the Connect PATCH clobbers it. |
 
 **Mutators (preview by default; `--confirm` to write — never on a shipped procedure):**
 
 | Script | Org? | Purpose |
 |--------|------|---------|
-| `import_expression_set.py` | **Mutates** | Create (POST) or replace (PATCH) a whole set from a JSON file; **auto-detects** create-vs-replace; runs the full deactivate→mutate→reactivate lifecycle. |
-| `apply_expression_set_overlay.py` | **Mutates** | Merge a declarative overlay (`addSteps` / `removeSteps` / `updateSteps` / `reorderSteps` / `addVariables` / `removeVariables`) into a live version; **all local pre-flights run BEFORE any deactivation**. |
+| `import_expression_set.py` | **Mutates** | Create (POST) or replace (PATCH) a whole set from a JSON file; **auto-detects** create-vs-replace; runs the full deactivate→mutate→reactivate lifecycle. On a REPLACE it **auto-preserves step labels** (captures them before the clobbering PATCH, restores the survivors after — `--no-preserve-labels` to skip). |
+| `apply_expression_set_overlay.py` | **Mutates** | Merge a declarative overlay (`addSteps` / `removeSteps` / `updateSteps` / `reorderSteps` / `addVariables` / `removeVariables`) into a live version; **all local pre-flights run BEFORE any deactivation**. **Auto-preserves step labels** (captures the survivors before the PATCH + honors any labels the overlay carries for its new steps, restores after — `--no-preserve-labels` to skip). |
 | `activate_expression_set.py` | **Mutates** | `--activate` / `--deactivate` a version (+ the procedure-plan cascade), standalone. Use to re-enable a version left off by a failed apply. |
-| `relabel_expression_set.py` | **Mutates** | Set readable step **labels** via the Tooling `Metadata` PATCH (the ONLY place labels live — Connect has no `label` and clobbers it on every PATCH). `--auto` (lossy derive for drift steps), `--labels-file` (`{name: label}` JSON), `--set NAME=LABEL` (repeatable). Runs the same deactivate→PATCH→reactivate lifecycle. **Run LAST** — any later Connect import/overlay clobbers the labels. |
+| `relabel_expression_set.py` | **Mutates** | Set readable step **labels** via the Tooling `Metadata` PATCH (the ONLY place labels live — Connect has no `label` and clobbers it on every PATCH). Label source: `--auto` (lossy derive for drift steps), `--labels-file` (`{name: label}` JSON), `--set NAME=LABEL` (repeatable), or **`--from-metadata <file>`** (read the authoritative `{name: label}` map straight from a `*.expressionSetDefinition-meta.xml` — the source-controlled `force-app/…/expressionSetDefinition/` files, or a target-org retrieve). Runs the same deactivate→PATCH→reactivate lifecycle. The Connect mutators now auto-restore labels, so this is mainly for a manual fix or a bulk relabel from the repo XML. |
 | `delete_expression_set.py` | **Destructive** | Delete a whole set (Connect DELETE + cascade) or one version (`--version`). `--confirm` REQUIRED (absence of `--confirm` IS the preview). |
 
 **Shared modules (imported by the CLIs, not run directly):**
@@ -71,13 +71,15 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | `_resolve.py` | api-name → `ExpressionSetDefinition` (9QA) / `ExpressionSet` (9QL) / active `ExpressionSetVersion`; the "prefer active version" ordering. |
 | `_schema.py` | **Vendored** validator + enums (mirror of `tasks/expression_set_schema.py`): `validate_definition` / `validate_overlay` / `validate_overlay_against_definition`, `_step_variable_refs` / `_step_all_refs`, `_is_custom_ref`, `INTERFACE_SOURCE_TYPES` / `USAGE_TYPES`. Stdlib-only. |
 | `_payload.py` | Verb-specific field rules (strip top-level `id`; keep-and-rewrite vs strip version `id`); HTML-entity normalization (`unescape_value` / `normalize_html_entities`). Pure. |
-| `_overlay.py` | Declarative step / variable merge (`add_steps` / `remove_steps` / `update_steps` / `reorder_steps` / `add_variables` / `remove_variables` / `renumber_top_level_steps`). Pure. |
+| `_overlay.py` | Declarative step / variable merge (`add_steps` / `remove_steps` / `update_steps` / `reorder_steps` / `add_variables` / `remove_variables` / `renumber_top_level_steps`) + `overlay_labels` (harvest the `{name: label}` map an overlay carries — top-level `labels` block and/or per-`addSteps` `label`, per-step wins) + `OVERLAY_ONLY_STEP_KEYS` (`placement` / `label` — stripped from a step before the Connect send). Pure. |
 | `_graph.py` | Flat `steps[]` → producer/consumer dependency graph + three-scope classifier. Imports `_schema` (in-package). Pure. |
-| `_tooling.py` | Tooling-API access for step **labels** — the one thing Connect can't touch. Pure helpers (`step_labels` / `label_drift` / `readable_labels` / `humanize_name` / `derive_labels` / `apply_labels` / `strip_metadata_readonly`) + I/O over the `Transport` (`resolve_esdv` (9QB) / `fetch_metadata` / `patch_metadata`, dropping the read-only `urls` key) + `warn_label_clobber` (best-effort, non-fatal pre-PATCH warning the Connect mutators call). The active-version guard applies to the Metadata PATCH exactly as to a Connect mutation. |
+| `_tooling.py` | Tooling-API access for step **labels** — the one thing Connect can't touch. Pure helpers (`step_labels` / `label_drift` / `readable_labels` / `humanize_name` / `derive_labels` / `apply_labels` / `strip_metadata_readonly` / `labels_from_metadata_xml` (read `{name: label}` from a `*.expressionSetDefinition-meta.xml`)) + I/O over the `Transport` (`resolve_esdv` (9QB) / `fetch_metadata` / `patch_metadata`, dropping the read-only `urls` key). **Label-preservation trio:** `capture_labels` (best-effort snapshot of the readable labels a Connect PATCH will clobber), `relabel_version` (the shared deactivate→Tooling PATCH→reactivate core, used by both `relabel_expression_set.py` and auto-restore), and `restore_labels_after_clobber` (non-fatal re-apply after a Connect mutation — re-resolves the version, restores survivors, never fails the mutation). Plus `warn_label_clobber` (best-effort pre-PATCH warning). The active-version guard applies to the Metadata PATCH exactly as to a Connect mutation. |
 | `_lifecycle.py` | The `LifecycleEngine`: deactivate → PATCH/POST → reactivate sequencer, the `ProcedurePlanDefinitionVersion` cascade (with rollback), version-state polling, `ResourceInitializationType` alignment, and delete-with-rollback — all on the `Transport` seam. A failed PATCH leaves the version **DEACTIVATED** and re-raises (never reactivated over a half-mutated definition). Drives both the Connect and the Tooling-`Metadata` (relabel) mutations. |
 
 **Tests:** `tests/test_expression_sets_toolkit.py` — offline unit tests (no org,
-no `sf`, no pytest) for `_graph` / `_payload` / `_overlay` / `_tooling` /
+no `sf`, no pytest) for `_graph` / `_payload` / `_overlay` / `_tooling` (incl. the
+label-preservation trio `capture_labels` / `relabel_version` /
+`restore_labels_after_clobber`, `labels_from_metadata_xml`, and `overlay_labels`) /
 `export_expression_set_overlay` + shipped-fixture validator parity. Run:
 `python tests/test_expression_sets_toolkit.py`.
 
@@ -112,16 +114,22 @@ python scripts/expression_sets/export_expression_set_overlay.py --target-org $OR
 python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG \
     --expression-set RLM_MyClone --overlay /tmp/apply_discount.overlay.json
 
-# 6. Apply it for real.
+# 6. Apply it for real. Step labels are auto-preserved: the surviving steps' labels
+#    are captured before the clobbering PATCH and restored after (a second
+#    deactivate→relabel→reactivate cycle); a NEW step keeps its label if the overlay
+#    carries one (top-level "labels" block, or export --with-labels). --no-preserve-labels
+#    opts out.
 python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG \
     --expression-set RLM_MyClone --overlay /tmp/apply_discount.overlay.json --confirm
 
-# 7. LAST — restore readable step labels (Connect mutations above clobber them to
-#    the spaceless names). Inspect drift, then relabel via the Tooling Metadata PATCH.
+# 7. (Optional) Manual relabel — only if you skipped preservation (--no-preserve-labels),
+#    a restore failed, or you want to bulk-apply the authoritative labels from the repo XML.
 python scripts/expression_sets/describe_expression_set.py --target-org $ORG \
     --developer-name RLM_MyClone --labels          # shows label==name drift
 python scripts/expression_sets/relabel_expression_set.py --target-org $ORG \
-    --expression-set RLM_MyClone --labels-file /tmp/labels.json --confirm
+    --expression-set RLM_MyClone \
+    --from-metadata force-app/main/default/expressionSetDefinition/RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml \
+    --confirm
 ```
 
 ## Visualizing a procedure (Mermaid)
@@ -181,15 +189,24 @@ to a leaf-ish step or use the full `deps` view with a renderer that pans/zooms.
   DEACTIVATED and re-raises rather than reactivating a half-mutated definition.
   Re-enable it with `activate_expression_set.py --activate` once you've inspected
   and restored it.
-- **Labels are Connect-clobbered; relabel LAST.** Step labels live only in the
+- **Labels are Connect-clobbered — and auto-restored.** Step labels live only in the
   Tooling `Metadata`; every Connect PATCH (`import` / `apply_expression_set_overlay`)
-  rebuilds them from the spaceless `name`. Those two mutators now **warn**
-  (best-effort, non-fatal) before the PATCH — "N readable labels will be reset" —
-  in both preview and confirm, so the loss is never silent. Run
-  `relabel_expression_set.py` as the final step, after all Connect mutations —
-  anything Connect afterward wipes the labels again. `--auto` is best-effort/lossy;
-  prefer an explicit `{name: label}` map (`--labels-file`) when the true labels
-  are known. See `.cursor/skills/expression-sets/metadata-vs-connect.md` →
-  *Step names vs. labels*.
+  rebuilds them from the spaceless `name`. Both mutators now **capture** the readable
+  labels before the PATCH and **restore** them after, in a second
+  deactivate→Tooling-PATCH→reactivate cycle (default-on; `--no-preserve-labels` to skip).
+  This covers two step populations: **survivors** (restored from the pre-PATCH
+  target-org snapshot — a renamed/added step simply won't match, which is correct) and
+  **new steps** (labeled from the overlay's own `labels` block / per-step `label`, so a
+  sliced step exported `--with-labels` lands readable). Restore is **non-fatal**: the
+  Connect mutation already succeeded, so a restore failure is reported (with a
+  `relabel_expression_set.py` fix hint), never raised. It runs only when the version is
+  reactivated (`activate_after`) — a relabel needs its own deactivate window; with
+  `--no-activate` the labels are left for a manual relabel. The authoritative
+  `{name: label}` map is source-controlled in
+  `force-app/main/default/expressionSetDefinition/*.expressionSetDefinition-meta.xml`
+  — feed it to `relabel_expression_set.py --from-metadata` for a bulk manual fix.
+  `--auto` is best-effort/lossy; prefer an explicit map (`--from-metadata` / `--labels-file`)
+  when the true labels are known. See
+  `.cursor/skills/expression-sets/metadata-vs-connect.md` → *Step names vs. labels*.
 - **`--target-org` is the SF CLI alias**, never the CCI alias. CCI alias `beta`
   → SF CLI alias `rlm-base__beta`.

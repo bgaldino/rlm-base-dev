@@ -45,10 +45,15 @@ from scripts.expression_sets._payload import (  # noqa: E402
 from scripts.expression_sets._schema import validate_overlay  # noqa: E402
 from scripts.expression_sets._tooling import (  # noqa: E402
     apply_labels,
+    capture_labels,
     derive_labels,
     humanize_name,
     label_drift,
+    labels_from_metadata_xml,
     readable_labels,
+    relabel_version,
+    resolve_esdv,
+    restore_labels_after_clobber,
     step_labels,
     strip_metadata_readonly,
     warn_label_clobber,
@@ -224,6 +229,15 @@ def test_overlay():
     check("add beforeStep places at target", bseq["PRE"] == 1, bseq)
     check("add beforeStep shifts A", bseq["A"] == 2, bseq)
 
+    # An overlay 'label' rides along for the Tooling relabel but must NEVER reach
+    # the Connect step payload (Connect rejects it → JSON_PARSER_ERROR).
+    labelled = add_steps(deepcopy(steps),
+                         [{"name": "LBL", "label": "My Label",
+                           "placement": {"afterStep": "A"}}])
+    new_step = next(s for s in labelled if s["name"] == "LBL")
+    check("overlay label stripped from Connect step", "label" not in new_step, new_step)
+    check("overlay placement stripped from Connect step", "placement" not in new_step)
+
     # remove B → renumber contiguous.
     removed = remove_steps(deepcopy(steps), [{"name": "B"}])
     rseq = {s["name"]: s["sequenceNumber"] for s in removed}
@@ -299,6 +313,18 @@ def test_build_overlay():
     except Exception:
         raised = True
     check("build_overlay missing step raises", raised)
+
+    # --- labels block: {name: label} map, string→string, optional ------------
+    good = {"addSteps": [{"name": "NewStep", "stepType": "BusinessKnowledgeModel"}],
+            "labels": {"NewStep": "New Step"}}
+    check("overlay with valid labels block validates", validate_overlay(good).passed,
+          validate_overlay(good).format_report())
+    check("overlay with no labels block validates", validate_overlay(
+        {"addSteps": [{"name": "S", "stepType": "BusinessKnowledgeModel"}]}).passed)
+    not_a_map = validate_overlay({"addSteps": [], "labels": ["nope"]})
+    check("labels-not-a-map is an error", not not_a_map.passed, not_a_map.format_report())
+    bad_val = validate_overlay({"addSteps": [], "labels": {"S": 123}})
+    check("labels non-string value is an error", not bad_val.passed, bad_val.format_report())
 
 
 # --------------------------------------------------------------------------- #
@@ -564,6 +590,193 @@ def test_tooling():
 
 
 # --------------------------------------------------------------------------- #
+# _tooling — label PRESERVATION (capture / restore / metadata-XML / relabel core)
+# --------------------------------------------------------------------------- #
+
+class _StatefulTransport:
+    """A fake Transport that keeps ExpressionSetVersion.IsActive + Tooling Metadata
+    state, enough to drive the full relabel deactivate→PATCH→reactivate cycle
+    offline (no org, no sf). Duck-types _client.Transport: connect/get/sobject/soql
+    + dry_run/logger.
+    """
+
+    def __init__(self, *, esdv_id="9QBx", version_api_name="TEST_V1",
+                 metadata=None, is_active=True, raise_on_patch=False):
+        self.esdv_id = esdv_id
+        self.version_api_name = version_api_name
+        self.metadata = metadata if metadata is not None else _sample_metadata()
+        self.is_active = is_active
+        self.raise_on_patch = raise_on_patch
+        self.dry_run = False
+        self.logger = lambda *a, **k: None
+        self.patched_metadata_count = 0
+        self.last_tooling_query = None
+
+    def connect(self, method, path, body=None, **kw):
+        if "tooling/query" in path:
+            from urllib.parse import unquote
+            self.last_tooling_query = unquote(path.split("q=", 1)[-1])
+            return {"records": [{"Id": self.esdv_id,
+                                 "DeveloperName": self.version_api_name,
+                                 "VersionNumber": 1}]}
+        if "tooling/sobjects/" in path:
+            if method == "GET":
+                return {"Metadata": self.metadata}
+            if method == "PATCH":
+                if self.raise_on_patch:
+                    from scripts.expression_sets._tooling import ToolingError
+                    raise ToolingError("metadata patch boom")
+                self.metadata = (body or {}).get("Metadata", self.metadata)
+                self.patched_metadata_count += 1
+                return {}
+        return {}
+
+    def get(self, path):
+        return {}
+
+    def sobject(self, method, sobject, record_id=None, body=None, **kw):
+        if sobject == "ExpressionSetVersion" and method == "PATCH":
+            self.is_active = bool((body or {}).get("IsActive"))
+        return {}
+
+    def soql(self, query):
+        if "FROM ProcedurePlanOption" in query:
+            return []  # no cascade in the fake
+        if "FROM ExpressionSetVersion" in query:
+            row = {"Id": "9QMv", "ApiName": self.version_api_name,
+                   "IsActive": self.is_active, "VersionNumber": 1}
+            return [row]
+        if "FROM ExpressionSet " in query:
+            return [{"Id": "9QLx", "ResourceInitializationType": "Off"}]
+        return []
+
+
+def test_label_preservation():
+    print("test_label_preservation")
+    from scripts.expression_sets._lifecycle import LifecycleEngine
+    from scripts.expression_sets._overlay import overlay_labels
+
+    # --- labels_from_metadata_xml: read {name: label} from shipped metadata ----
+    xml_path = (REPO_ROOT / "force-app" / "main" / "default" / "expressionSetDefinition"
+                / "RLM_DefaultRatingProcedure.expressionSetDefinition-meta.xml")
+    if xml_path.exists():
+        m = labels_from_metadata_xml(xml_path.read_text(encoding="utf-8"))
+        check("xml maps step name→label",
+              m.get("AttributeBasedRateDiscount") == "Attribute-Based Rate Discount", m)
+        # nested <parameters><name> tags must NOT leak in as step keys.
+        check("xml ignores nested parameter names", "AttributeValue" not in m, list(m)[:5])
+        check("xml found all 4 labeled steps", len(m) == 4, len(m))
+    # malformed XML → ToolingError (caught by the CLI loader as a ValueError).
+    try:
+        labels_from_metadata_xml("<not-valid")
+        check("xml raises on bad input", False)
+    except Exception as exc:
+        check("xml raises ToolingError on bad input", exc.__class__.__name__ == "ToolingError", exc)
+
+    # --- overlay_labels: top-level block + per-step label, per-step wins -------
+    ov = {
+        "addSteps": [
+            {"name": "NewStepA", "label": "New Step A"},          # per-step
+            {"name": "NewStepB"},                                  # none here
+        ],
+        "labels": {"NewStepB": "New Step B", "NewStepA": "OVERRIDDEN"},
+    }
+    ol = overlay_labels(ov)
+    check("overlay per-step label wins over top-level", ol.get("NewStepA") == "New Step A", ol)
+    check("overlay top-level label picked up", ol.get("NewStepB") == "New Step B", ol)
+    check("overlay_labels empty when none", overlay_labels({"addSteps": [{"name": "X"}]}) == {})
+
+    # --- resolve_esdv: prefer the STABLE (es_def_id, VersionNumber) key ---------
+    # The ESDV DeveloperName is rewritten in place by a Connect full-graph PATCH
+    # (live-verified), so the auto-restore path must resolve by the parent
+    # definition id + version number, NOT the ApiName/DeveloperName.
+    tq = _StatefulTransport()
+    resolve_esdv(tq, es_def_id="9QAx", version_number=2)
+    check("resolve_esdv(es_def_id) queries ExpressionSetDefinitionId",
+          "ExpressionSetDefinitionId = '9QAx'" in tq.last_tooling_query, tq.last_tooling_query)
+    check("resolve_esdv pins VersionNumber when given",
+          "VersionNumber = 2" in tq.last_tooling_query, tq.last_tooling_query)
+    tq2 = _StatefulTransport()
+    resolve_esdv(tq2, version_api_name="TEST_V1")
+    check("resolve_esdv(version_api_name) falls back to DeveloperName",
+          "DeveloperName = 'TEST_V1'" in tq2.last_tooling_query, tq2.last_tooling_query)
+    try:
+        resolve_esdv(_StatefulTransport())
+        check("resolve_esdv requires an identifier", False)
+    except Exception as exc:
+        check("resolve_esdv no-id raises ToolingError",
+              exc.__class__.__name__ == "ToolingError", exc)
+
+    # --- capture_labels: snapshot the readable labels a PATCH would clobber ----
+    t = _StatefulTransport(metadata=_sample_metadata())
+    captured = capture_labels(t, "TEST_V1")
+    check("capture returns only readable labels",
+          captured == {"MapContextTags": "Map Context Tags"}, captured)
+    check("capture no-version returns {}", capture_labels(t, None) == {})
+    # Stable-key capture: resolves via es_def_id even with no version_api_name.
+    ts = _StatefulTransport(metadata=_sample_metadata())
+    cap_stable = capture_labels(ts, None, es_def_id="9QAx", version_number=1)
+    check("capture via es_def_id (no ApiName) still reads labels",
+          cap_stable == {"MapContextTags": "Map Context Tags"}, cap_stable)
+    check("capture via es_def_id used the stable query",
+          "ExpressionSetDefinitionId = '9QAx'" in ts.last_tooling_query, ts.last_tooling_query)
+
+    # --- relabel_version: the shared deactivate→Tooling PATCH→reactivate core --
+    t2 = _StatefulTransport(metadata=_sample_metadata(), is_active=True)
+    engine = LifecycleEngine(t2, logger=lambda *a, **k: None)
+    esv = {"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True}
+    res = relabel_version(
+        engine, es_def_id="9QAx", esv=esv,
+        name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+    )
+    check("relabel_version reports the changed step",
+          res["changed"] == ["ApplyHeaderPriceOverride"], res)
+    check("relabel_version wrote the metadata once", t2.patched_metadata_count == 1,
+          t2.patched_metadata_count)
+    check("relabel_version left version reactivated", t2.is_active is True, t2.is_active)
+    check("relabel_version persisted the label",
+          step_labels(t2.metadata)["ApplyHeaderPriceOverride"] == "Apply Header Price Override")
+    # A name matching no step is a silent no-op (safe for auto-restore).
+    t3 = _StatefulTransport(metadata=_sample_metadata())
+    engine3 = LifecycleEngine(t3, logger=lambda *a, **k: None)
+    res3 = relabel_version(engine3, es_def_id="9QAx",
+                           esv={"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True},
+                           name_to_label={"GhostStep": "Nope"})
+    check("relabel_version no-op on unknown name", res3["changed"] == [], res3)
+    check("relabel_version no PATCH on no-op", t3.patched_metadata_count == 0)
+
+    # --- restore_labels_after_clobber: re-applies, non-fatal on failure --------
+    t4 = _StatefulTransport(metadata=_sample_metadata(), is_active=True)
+    engine4 = LifecycleEngine(t4, logger=lambda *a, **k: None)
+    r4 = restore_labels_after_clobber(
+        engine4, es_id="9QLx", es_def_id="9QAx", version_api_name="TEST_V1",
+        name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+    )
+    check("restore reports ok", r4["ok"] is True, r4)
+    check("restore lists changed step", r4["changed"] == ["ApplyHeaderPriceOverride"], r4)
+    # Empty map / no version → silent success, nothing written.
+    t5 = _StatefulTransport()
+    engine5 = LifecycleEngine(t5, logger=lambda *a, **k: None)
+    r5 = restore_labels_after_clobber(engine5, es_id="9QLx", es_def_id="9QAx",
+                                      version_api_name="TEST_V1", name_to_label={})
+    check("restore empty map is a no-op ok", r5 == {"ok": True, "changed": [], "error": None})
+    check("restore empty map writes nothing", t5.patched_metadata_count == 0)
+    # A Tooling PATCH failure must NOT raise — the Connect mutation already
+    # succeeded, so restore reports ok=False and logs how to fix, never throws.
+    logs6 = []
+    t6 = _StatefulTransport(metadata=_sample_metadata(), raise_on_patch=True)
+    engine6 = LifecycleEngine(t6, logger=lambda *a, **k: None)
+    r6 = restore_labels_after_clobber(
+        engine6, es_id="9QLx", es_def_id="9QAx", version_api_name="TEST_V1",
+        name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+        logger=logs6.append,
+    )
+    check("restore swallows PATCH failure (ok=False, no raise)", r6["ok"] is False, r6)
+    check("restore logs a fix hint on failure",
+          any("relabel_expression_set.py" in m for m in logs6), logs6)
+
+
+# --------------------------------------------------------------------------- #
 # Shipped fixtures still validate (parity with the vendored validator)
 # --------------------------------------------------------------------------- #
 
@@ -581,7 +794,8 @@ def test_shipped_fixtures():
 
 def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
-               test_build_overlay, test_mermaid, test_shipped_fixtures):
+               test_label_preservation, test_build_overlay, test_mermaid,
+               test_shipped_fixtures):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
     return 1 if _FAIL else 0

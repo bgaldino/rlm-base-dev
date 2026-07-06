@@ -65,7 +65,10 @@ from scripts.expression_sets._resolve import (  # noqa: E402
     resolve_version_by_es_id,
 )
 from scripts.expression_sets._schema import validate_definition  # noqa: E402
-from scripts.expression_sets._tooling import warn_label_clobber  # noqa: E402
+from scripts.expression_sets._tooling import (  # noqa: E402
+    capture_labels,
+    restore_labels_after_clobber,
+)
 
 
 def _developer_name(payload: dict) -> str:
@@ -92,6 +95,12 @@ def main(argv=None) -> int:
                         help="Leave the version DEACTIVATED after import (default: activate).")
     parser.add_argument("--no-cascade", action="store_true",
                         help="Do NOT cascade-deactivate referencing procedure-plan versions.")
+    parser.add_argument("--no-preserve-labels", action="store_true",
+                        help="Do NOT auto-restore step labels after a REPLACE. By "
+                             "default the readable labels the Connect PATCH clobbers "
+                             "are captured beforehand and re-applied afterwards via a "
+                             "second deactivate→Tooling PATCH→reactivate cycle. (No "
+                             "effect on create — a new set starts label-less.)")
     parser.add_argument("--confirm", action="store_true",
                         help="Actually perform the import. Without it, only PREVIEWS.")
     parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
@@ -128,6 +137,7 @@ def main(argv=None) -> int:
     preview = not args.confirm
     activate_after = not args.no_activate
     cascade = not args.no_cascade
+    preserve_labels = not args.no_preserve_labels
     transport = Transport(
         target_org=args.target_org, api_version=args.api_version,
         dry_run=preview, logger=eprint,
@@ -160,10 +170,26 @@ def main(argv=None) -> int:
                 logger=eprint,
             )
             # A replace is a full-graph Connect PATCH — it resets step labels to
-            # their spaceless names. Warn (best-effort, non-fatal) how many
-            # readable labels on the target version will be lost. (create/POST
-            # starts label-less, so no warning there.)
-            warn_label_clobber(transport, esv.get("ApiName"), eprint)
+            # their spaceless names (Connect has no label field). Capture the
+            # readable labels it is about to clobber (best-effort, non-fatal) so
+            # they can be re-applied afterwards. (An import definition JSON is
+            # Connect-shaped and carries NO labels, so the target-org snapshot is
+            # the only source; create/POST starts label-less, so nothing to do.)
+            version_api_name_live = esv.get("ApiName")
+            restore_map = (
+                capture_labels(
+                    transport, version_api_name_live, eprint,
+                    es_def_id=es_def_id, version_number=esv.get("VersionNumber"),
+                )
+                if preserve_labels else {}
+            )
+            if preserve_labels and restore_map:
+                eprint(f"Will restore {len(restore_map)} step label(s) after the "
+                       f"PATCH via a second deactivate→relabel→reactivate cycle. "
+                       f"--no-preserve-labels to skip.")
+            elif not preserve_labels:
+                eprint("--no-preserve-labels: clobbered step labels will NOT be "
+                       "restored (run relabel_expression_set.py to fix).")
             engine.ensure_resource_initialization_type(
                 es_id, payload.get("resourceInitializationType")
             )
@@ -179,6 +205,18 @@ def main(argv=None) -> int:
                 es_def_id=es_def_id, esv=esv, mutate=mutate,
                 activate_after=activate_after, cascade=cascade, verb="Import",
             )
+            # Restore clobbered labels (second lifecycle cycle). Only when the
+            # version was reactivated — a relabel needs its own deactivate window.
+            if preserve_labels and restore_map and activate_after:
+                restore_labels_after_clobber(
+                    engine, es_id=es_id, es_def_id=es_def_id,
+                    version_api_name=version_api_name_live,
+                    name_to_label=restore_map, cascade=cascade,
+                )
+            elif preserve_labels and restore_map and not activate_after:
+                eprint("Note: --no-activate set — leaving labels un-restored "
+                       "(relabel needs to reactivate). Run relabel_expression_set.py "
+                       "when ready.")
             result["expressionSetId"] = es_id
             result["versionId"] = esv["Id"]
         else:  # create

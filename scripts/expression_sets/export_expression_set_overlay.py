@@ -49,6 +49,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from scripts.expression_sets._client import (  # noqa: E402
     DEFAULT_API_VERSION,
     ExpressionSetClientError,
+    Transport,
     eprint,
 )
 from scripts.expression_sets._graph import ExpressionSetGraph  # noqa: E402
@@ -58,6 +59,7 @@ from scripts.expression_sets._resolve import (  # noqa: E402
     resolve_expression_set_id,
 )
 from scripts.expression_sets._schema import validate_overlay  # noqa: E402
+from scripts.expression_sets._tooling import capture_labels  # noqa: E402
 from scripts.expression_sets.export_expression_set import fetch_definition  # noqa: E402
 
 
@@ -157,6 +159,12 @@ def main(argv=None) -> int:
                         help="Source version apiName (default: first).")
     parser.add_argument("--no-variables", action="store_true",
                         help="Do NOT emit version-scoped deps into addVariables.")
+    parser.add_argument("--with-labels", action="store_true",
+                        help="Join each sliced step's readable label (from the Tooling "
+                             "Metadata — Connect can't serialize it) into a top-level "
+                             "'labels' block, so the overlay is self-describing and "
+                             "apply_expression_set_overlay can restore the label after "
+                             "the Connect PATCH clobbers it.")
     parser.add_argument("--allow-warnings", action="store_true",
                         help="Write the overlay even if validation emits warnings "
                              "(errors always fail).")
@@ -179,6 +187,23 @@ def main(argv=None) -> int:
             after=args.after,
             include_variables=not args.no_variables,
         )
+        if args.with_labels:
+            # Labels live only in the Tooling Metadata (Connect can't serialize
+            # them). Resolve the version apiName (explicit or the first version's)
+            # and capture its readable labels, then keep only the sliced steps'.
+            versions = definition.get("versions") or []
+            version_api_name = args.version_api_name or (
+                versions[0].get("apiName") if versions else None
+            )
+            transport = Transport(
+                target_org=args.target_org, api_version=args.api_version,
+                dry_run=True, logger=eprint,
+            )
+            all_labels = capture_labels(transport, version_api_name, eprint)
+            sliced = set(args.steps)
+            labels = {n: l for n, l in all_labels.items() if n in sliced}
+            if labels:
+                overlay["labels"] = labels
     except (ExpressionSetClientError, ResolveError) as exc:
         eprint(f"Error: {exc}")
         return 1
@@ -198,7 +223,8 @@ def main(argv=None) -> int:
     ext_fields = (overlay.get("externalDependencies") or {}).get("customFields", [])
     eprint(f"Sliced {len(overlay['addSteps'])} step(s); "
            f"addVariables={len(overlay.get('addVariables', []))}, "
-           f"externalDependencies.customFields={len(ext_fields)}.")
+           f"externalDependencies.customFields={len(ext_fields)}, "
+           f"labels={len(overlay.get('labels', {}))}.")
     if ext_fields:
         eprint("  externalDependencies.customFields (target org MUST define these — "
                "overlay cannot create them):")

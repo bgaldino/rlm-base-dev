@@ -54,7 +54,11 @@ from scripts.expression_sets._client import (  # noqa: E402
     eprint,
 )
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
-from scripts.expression_sets._overlay import OverlayError, apply_overlay  # noqa: E402
+from scripts.expression_sets._overlay import (  # noqa: E402
+    OverlayError,
+    apply_overlay,
+    overlay_labels,
+)
 from scripts.expression_sets._payload import (  # noqa: E402
     normalize_html_entities,
     strip_readonly_fields,
@@ -69,7 +73,10 @@ from scripts.expression_sets._schema import (  # noqa: E402
     validate_definition,
     validate_overlay_against_definition,
 )
-from scripts.expression_sets._tooling import warn_label_clobber  # noqa: E402
+from scripts.expression_sets._tooling import (  # noqa: E402
+    capture_labels,
+    restore_labels_after_clobber,
+)
 
 
 def _report(result, label):
@@ -99,6 +106,12 @@ def main(argv=None) -> int:
                              "else the active version).")
     parser.add_argument("--no-verify", action="store_true",
                         help="Skip the post-PATCH verification re-GET.")
+    parser.add_argument("--no-preserve-labels", action="store_true",
+                        help="Do NOT auto-restore step labels after the PATCH. By "
+                             "default the readable labels the Connect PATCH clobbers "
+                             "are captured beforehand and re-applied afterwards (plus "
+                             "any labels the overlay carries), via a second "
+                             "deactivate→Tooling PATCH→reactivate cycle.")
     parser.add_argument("--no-activate", action="store_true",
                         help="Leave the version DEACTIVATED after apply.")
     parser.add_argument("--no-cascade", action="store_true",
@@ -130,6 +143,7 @@ def main(argv=None) -> int:
     activate_after = not args.no_activate
     cascade = not args.no_cascade
     verify = not args.no_verify
+    preserve_labels = not args.no_preserve_labels
     transport = Transport(
         target_org=args.target_org, api_version=args.api_version,
         dry_run=preview, logger=eprint,
@@ -167,10 +181,25 @@ def main(argv=None) -> int:
                f"activate_after={activate_after}, cascade={cascade}, "
                f"{'PREVIEW' if preview else 'CONFIRM'}")
 
-        # A full-graph Connect PATCH resets step labels to their spaceless names.
-        # Warn (best-effort, non-fatal) how many readable labels will be lost — in
-        # both preview and confirm, since preview is where the operator plans.
-        warn_label_clobber(transport, esv.get("ApiName"), eprint)
+        # A full-graph Connect PATCH resets step labels to their spaceless names
+        # (Connect has no label field). Capture the readable labels it is about to
+        # clobber (best-effort, non-fatal) so they can be re-applied afterwards,
+        # merged with any labels the overlay itself carries (for its new steps).
+        # --no-preserve-labels opts out (then this is just informational).
+        version_api_name_live = esv.get("ApiName")
+        captured = capture_labels(
+            transport, version_api_name_live, eprint,
+            es_def_id=es_def_id, version_number=esv.get("VersionNumber"),
+        ) if preserve_labels else {}
+        restore_map = {**captured, **overlay_labels(overlay)} if preserve_labels else {}
+        if preserve_labels and restore_map:
+            eprint(f"Will restore {len(restore_map)} step label(s) after the PATCH "
+                   f"(captured {len(captured)}, overlay-supplied "
+                   f"{len(overlay_labels(overlay))}) via a second "
+                   f"deactivate→relabel→reactivate cycle. --no-preserve-labels to skip.")
+        elif not preserve_labels:
+            eprint("--no-preserve-labels: step labels the Connect PATCH clobbers "
+                   "will NOT be restored (run relabel_expression_set.py to fix).")
 
         engine.ensure_resource_initialization_type(
             es_id, preflight_def.get("resourceInitializationType")
@@ -198,6 +227,21 @@ def main(argv=None) -> int:
             es_def_id=es_def_id, esv=esv, mutate=mutate,
             activate_after=activate_after, cascade=cascade, verb="Overlay apply",
         )
+
+        # The Connect PATCH above clobbered labels; restore them now (a second
+        # deactivate→Tooling PATCH→reactivate cycle). Only meaningful when the
+        # version was reactivated (activate_after) — a relabel needs the same
+        # deactivate window and would leave it off again otherwise. Non-fatal: the
+        # overlay already applied, so a restore failure is reported, not raised.
+        if preserve_labels and restore_map and activate_after:
+            restore_labels_after_clobber(
+                engine, es_id=es_id, es_def_id=es_def_id,
+                version_api_name=version_api_name_live,
+                name_to_label=restore_map, cascade=cascade,
+            )
+        elif preserve_labels and restore_map and not activate_after:
+            eprint("Note: --no-activate set — leaving labels un-restored (relabel "
+                   "needs to reactivate). Run relabel_expression_set.py when ready.")
 
     except (ExpressionSetClientError, ResolveError, LifecycleError, OverlayError) as exc:
         eprint(f"\nFAILED: {exc}")

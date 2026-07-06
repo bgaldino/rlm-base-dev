@@ -42,8 +42,12 @@ class OverlayError(Exception):
 
 # Overlay-only metadata that must NOT be forwarded to the Connect payload.
 # ``placement`` directs :func:`add_steps` to compute sequenceNumber and never
-# goes to the API. Add new overlay-local keys here as the schema evolves.
-OVERLAY_ONLY_STEP_KEYS = frozenset({"placement"})
+# goes to the API. ``label`` is the readable step label — Connect has NO label
+# field and rejects it (``JSON_PARSER_ERROR: Unrecognized field "label"``), so an
+# overlay carries it here purely for the post-PATCH Tooling relabel to consume
+# (see :func:`overlay_labels`), and it is stripped before the Connect send. Add
+# new overlay-local keys here as the schema evolves.
+OVERLAY_ONLY_STEP_KEYS = frozenset({"placement", "label"})
 
 # Sensible defaults filled in for the small set of required-by-engine flags when
 # an overlay omits them (the validator gates the rest of the step shape).
@@ -60,6 +64,32 @@ _STEP_DEFAULTS = {
 
 def _log(logger, level, *args):
     (logger or _LOGGER).__getattribute__(level)(*args)
+
+
+def overlay_labels(overlay: dict) -> dict:
+    """Harvest the ``{step name: label}`` map an overlay carries, if any.
+
+    An overlay can ship readable labels for the steps it adds/updates two ways
+    (a per-step ``label`` wins over the top-level map on a name collision):
+
+      * a top-level ``"labels": {"StepName": "Readable Label"}`` block (canonical,
+        same shape as ``relabel_expression_set.py --labels-file``), and/or
+      * a ``"label"`` field on an individual ``addSteps`` entry (self-describing —
+        travels with a sliced step; stripped from the Connect send by
+        :data:`OVERLAY_ONLY_STEP_KEYS`).
+
+    Connect has no label field, so these never reach the Connect PATCH; the
+    mutator feeds this map to the post-PATCH Tooling relabel so a newly-added step
+    lands with its readable label. Only string labels are kept. Pure.
+    """
+    out: dict = {}
+    top = overlay.get("labels")
+    if isinstance(top, dict):
+        out.update({k: v for k, v in top.items() if isinstance(v, str)})
+    for step in overlay.get("addSteps", []) or []:
+        if isinstance(step, dict) and isinstance(step.get("label"), str) and step.get("name"):
+            out[step["name"]] = step["label"]
+    return out
 
 
 # ----------------------------------------------------------------------

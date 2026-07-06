@@ -17,9 +17,19 @@ Label sources (combine freely; later overrides earlier):
      that currently lack a readable label (``label`` missing or == ``name``).
      **Lossy** — despacing already discarded the original casing/punctuation, so
      an all-lowercase run-on can't be fully recovered. Prefer an explicit map.
-  2. ``--labels-file <json>`` — a JSON object ``{"StepName": "Readable Label"}``
+  2. ``--from-metadata <xml>`` — read the authoritative ``{name: label}`` map from
+     a source-controlled ``.expressionSetDefinition-meta.xml`` (the shipped
+     procedure's labels, including the exact human text for run-on names). Seeds
+     by NAME, so it restores steps whose name is unchanged from the repo; a step
+     renamed/added on the clone simply won't match (that's why the Connect
+     mutators capture live labels instead — see ``_tooling.capture_labels``).
+  3. ``--labels-file <json>`` — a JSON object ``{"StepName": "Readable Label"}``
      (or ``{"labels": { … }}``).
-  3. ``--set StepName="Readable Label"`` (repeatable) — inline overrides.
+  4. ``--set StepName="Readable Label"`` (repeatable) — inline overrides.
+
+``--auto`` and ``--from-metadata`` are SEEDS (a name they don't match is a
+no-op); ``--labels-file`` / ``--set`` are EXPLICIT (a name that matches no step
+is an error — a typo'd explicit label should never silently vanish).
 
 **Run relabel LAST.** Any later Connect mutation on the same version clobbers
 these labels back to the names. See ``metadata-vs-connect.md`` → *Step names vs.
@@ -40,6 +50,12 @@ Usage
     # preview auto-derived labels for the run-on (drift) steps
     python scripts/expression_sets/relabel_expression_set.py \
         --target-org rlm-base__beta --expression-set RLM_MyClone --auto
+
+    # restore labels straight from the shipped procedure's source-controlled metadata
+    python scripts/expression_sets/relabel_expression_set.py \
+        --target-org rlm-base__beta --expression-set RLM_MyClone \
+        --from-metadata force-app/main/default/expressionSetDefinition/\
+RLM_DefaultPricingProcedure.expressionSetDefinition-meta.xml --confirm
 
     # apply an explicit label map
     python scripts/expression_sets/relabel_expression_set.py \
@@ -73,10 +89,10 @@ from scripts.expression_sets._resolve import (  # noqa: E402
 )
 from scripts.expression_sets._tooling import (  # noqa: E402
     ToolingError,
-    apply_labels,
     derive_labels,
     fetch_metadata,
-    patch_metadata,
+    labels_from_metadata_xml,
+    relabel_version,
     resolve_esdv,
     step_labels,
 )
@@ -114,6 +130,17 @@ def _load_labels_file(path_str):
     return data
 
 
+def _load_metadata_labels(path_str):
+    """Load the ``{name: label}`` map from a ``.expressionSetDefinition-meta.xml``."""
+    path = Path(path_str)
+    if not path.exists():
+        raise ValueError(f"metadata file not found: {path}")
+    try:
+        return labels_from_metadata_xml(path.read_text(encoding="utf-8"))
+    except ToolingError as exc:
+        raise ValueError(str(exc))
+
+
 def _resolve_target_version(engine, es_id, version_api_name, target_org, api_version):
     """Resolve the ExpressionSetVersion (9QM) to relabel — explicit or active/latest."""
     if version_api_name:
@@ -147,6 +174,9 @@ def main(argv=None) -> int:
     parser.add_argument("--auto", action="store_true",
                         help="Derive best-effort labels (lossy) for steps that lack a "
                              "readable one (label missing or == name).")
+    parser.add_argument("--from-metadata", dest="from_metadata",
+                        help="Seed labels from a source-controlled "
+                             ".expressionSetDefinition-meta.xml (authoritative names→labels).")
     parser.add_argument("--labels-file",
                         help="JSON object {name: label} (or {\"labels\": {…}}).")
     parser.add_argument("--set", dest="set_pairs", action="append", default=[],
@@ -165,11 +195,13 @@ def main(argv=None) -> int:
     parser.add_argument("--json", action="store_true", help="Emit a result summary as JSON.")
     args = parser.parse_args(argv)
 
-    if not (args.auto or args.labels_file or args.set_pairs):
-        eprint("Error: provide at least one label source (--auto, --labels-file, or --set).")
+    if not (args.auto or args.from_metadata or args.labels_file or args.set_pairs):
+        eprint("Error: provide at least one label source "
+               "(--auto, --from-metadata, --labels-file, or --set).")
         return 2
 
     try:
+        metadata_map = _load_metadata_labels(args.from_metadata) if args.from_metadata else {}
         file_map = _load_labels_file(args.labels_file) if args.labels_file else {}
         set_map = _parse_set(args.set_pairs)
     except ValueError as exc:
@@ -199,21 +231,31 @@ def main(argv=None) -> int:
         version_api_name = esv.get("ApiName")
 
         # ---- local pre-flights (BEFORE any deactivation) ----------------- #
-        esdv = resolve_esdv(transport, version_api_name=version_api_name)
+        # Resolve the Tooling version by the stable (es_def_id, VersionNumber) pair
+        # — the ESDV DeveloperName is unstable across a Connect PATCH, so a bare
+        # ApiName lookup can miss a version last touched by a Connect mutation.
+        esdv = resolve_esdv(
+            transport, es_def_id=es_def_id, version_number=esv.get("VersionNumber"),
+            version_api_name=version_api_name,
+        )
         esdv_id = esdv["Id"]
         preflight_md = fetch_metadata(transport, esdv_id)
         current = step_labels(preflight_md)
 
-        # Build the {name: label} map: auto (base) → file → set (each overrides).
+        # Build the {name: label} map, later source overrides earlier:
+        #   auto (seed) → from-metadata (seed) → labels-file → set (explicit).
         name_to_label = {}
         if args.auto:
             name_to_label.update(derive_labels(preflight_md, only_drift=True))
+        name_to_label.update(metadata_map)
         name_to_label.update(file_map)
         name_to_label.update(set_map)
 
-        # Fail loudly on a typo'd step name from an explicit source (file/set) —
-        # a silent no-op is how a mislabeled step slips through. --auto names are
-        # derived from the metadata so are always present.
+        # Fail loudly on a typo'd step name from an EXPLICIT source (file/set) —
+        # a silent no-op is how a mislabeled step slips through. Seed sources
+        # (--auto derives from the metadata; --from-metadata is a whole-procedure
+        # map that legitimately includes steps this version renamed away) are
+        # NOT checked: a seed name that matches nothing is an intended no-op.
         explicit = set(file_map) | set(set_map)
         unknown = sorted(n for n in explicit if n not in current)
         if unknown:
@@ -221,10 +263,11 @@ def main(argv=None) -> int:
                    f"'{version_api_name}': {unknown}")
             return 1
 
-        # The set of labels that would actually change (skip no-ops / blanks).
+        # The set of labels that would actually change (skip no-ops / blanks) —
+        # for the preview diff. relabel_version recomputes this identically.
         planned = {
             n: l for n, l in name_to_label.items()
-            if l and current.get(n) != l
+            if l and n in current and current.get(n) != l
         }
         if args.auto:
             eprint("Note: --auto labels are best-effort (lossy) — despacing "
@@ -250,23 +293,12 @@ def main(argv=None) -> int:
         eprint("Reminder: run this LAST — a later Connect import/overlay clobbers "
                "these labels back to the step names.")
 
-        def mutate():
-            # Re-read post-deactivation so the PATCH reflects the current stored
-            # Metadata; re-apply the map as a guard against drift.
-            metadata = fetch_metadata(transport, esdv_id)
-            new_md, changed = apply_labels(metadata, name_to_label, logger=engine.log)
-            if not changed:
-                engine.log("No label changes to write after re-read; skipping PATCH.")
-                return
-            patch_metadata(transport, esdv_id, new_md)
-            engine.log(f"PATCHed Tooling Metadata for {esdv_id} "
-                       f"({len(changed)} label(s)).")
-            if verify and not preview:
-                _verify(transport, esdv_id, planned)
-
-        engine.run_mutation(
-            es_def_id=es_def_id, esv=esv, mutate=mutate,
-            activate_after=activate_after, cascade=cascade, verb="Relabel",
+        # The deactivate → Tooling PATCH → reactivate lifecycle lives in the shared
+        # relabel core (also the engine behind the Connect mutators' auto-restore),
+        # so the CLI and the auto-restore path apply labels identically.
+        relabel_version(
+            engine, es_def_id=es_def_id, esv=esv, name_to_label=name_to_label,
+            activate_after=activate_after, cascade=cascade, verify=verify,
         )
 
     except (ExpressionSetClientError, ResolveError, LifecycleError, ToolingError) as exc:
@@ -284,18 +316,6 @@ def main(argv=None) -> int:
             "esdvId": esdv_id, "changed": sorted(planned), "dryRun": preview,
         }, indent=2))
     return 0
-
-
-def _verify(transport, esdv_id, planned):
-    """Confirm the intended labels are present after the PATCH."""
-    labels = step_labels(fetch_metadata(transport, esdv_id))
-    missing = {n: l for n, l in planned.items() if labels.get(n) != l}
-    if missing:
-        raise LifecycleError(
-            f"Verification failed: {len(missing)} label(s) did not persist: "
-            f"{sorted(missing)}."
-        )
-    eprint(f"Verified {len(planned)} label(s) applied.")
 
 
 if __name__ == "__main__":
