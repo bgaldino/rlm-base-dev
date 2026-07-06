@@ -49,7 +49,7 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 | `list_expression_sets.py` | Read-only | One row per set: `interfaceSourceType` (the RC type), `usageType`, active version, IsActive — grouped by type. |
 | `describe_expression_set.py` | Read-only | Pretty-print one set: version → steps in execution (per-parent `sequenceNumber`) order → params / variables. `--params` for the full parameter dump; `--labels` joins the readable step **labels** from the Tooling API (Connect has none) and flags `label==name` drift. |
 | `export_expression_set.py` | Read-only | GET a definition → JSON file (the read half of the round trip). `--for-import` strips read-only fields + HTML-unescapes so the output is import-ready. |
-| **`trace_expression_set.py`** | Read-only | **Flagship** — variable producer→consumer graph + three-scope classifier (version / custom / standard). `--variable` (safe-removal view), `--step` (dependency closure + capture guidance), `--field`, `--orphans`. `--mermaid deps\|flow` renders a diagram (`--out` to a `.mmd` file); `--step` scopes `deps` to one step's neighborhood. |
+| **`trace_expression_set.py`** | Read-only | **Flagship** — variable producer→consumer graph + three-scope classifier (version / custom / standard). `--variable` (safe-removal view), `--step` (dependency closure + capture guidance), `--field`, `--orphans`. `--mermaid deps\|flow` renders a diagram (`--out` to a `.mmd` file) where each node is **shaped & colored by kind** (step / version constant / version variable / custom / `__std` field / context tag); `--step` scopes `deps` to one step's neighborhood; `--labels` titles step nodes with their readable Tooling label. |
 | `diff_expression_set.py` | Read-only | Added / removed / changed / reordered steps + variables, org-vs-org or org-vs-JSON. |
 | `export_expression_set_overlay.py` | Read-only (writes local file) | Slice step(s) from a live GET into a **validated** `addSteps` overlay with the three dependency scopes pre-classified (version deps → `addVariables`; custom refs → `externalDependencies`). |
 
@@ -134,14 +134,31 @@ Mermaid preview. Two views:
 - **`--mermaid flow`** — execution order: top-level steps chained by their
   `sequenceNumber`, each `ListGroup`/parent's children hanging off it by a dashed
   `child` edge. The "what does this procedure do, in order" view.
-- **`--mermaid deps`** (the default) — the data-dependency graph: steps are boxes,
-  every referenced variable is a rounded node **colored by scope** (green =
-  version variable → ship in `addVariables`; red = custom `__c`/`__r` →
-  `externalDependencies`; blue = standard context → declare nothing). Edge labels
-  carry the role symbol (`>` produces, `<` consumes, `?` filter criterion,
-  `~` best-effort Formula token). Add `--step "<name>"` to scope the diagram to
-  that step plus the variables it touches and their immediate neighbor steps —
-  the drawn form of the `--step` text closure.
+- **`--mermaid deps`** (the default) — the data-dependency graph: steps are
+  rectangles, and every referenced name is drawn with a **shape + color keyed to
+  its kind**, a finer split than the three scopes but grounded only in what the
+  Connect GET reveals:
+
+  | Node kind | Scope | Shape | Color | Capture meaning |
+  |---|---|---|---|---|
+  | step | — | rectangle `[ ]` | grey | a procedure step |
+  | version **constant** | version | hexagon `{{ }}` | green | a `type: Constant` version variable → ship in `addVariables` |
+  | version **variable** | version | rounded `( )` | green | a non-Constant version variable → ship in `addVariables` |
+  | **custom** | custom | cylinder `[( )]` | red | a `__c`/`__r` field/relationship → `externalDependencies` (target org must define) |
+  | **std** | standard | subroutine `[[ ]]` | blue | a `__std` standard-context field → declare nothing |
+  | **context** | standard | stadium `([ ])` | blue | a bare context-supplied tag/attribute → declare nothing (the ES GET can't say tag-vs-attribute, so neither does the tool) |
+
+  Edge labels carry the role symbol (`>` produces, `<` consumes, `?` filter
+  criterion, `~` best-effort Formula token). Add `--step "<name>"` to scope the
+  diagram to that step plus the variables it touches and their immediate neighbor
+  steps — the drawn form of the `--step` text closure. The legend (`classDef`
+  block) lists only the kinds actually drawn.
+
+Add **`--labels`** (either view) to title each step node with its readable label
+from the Tooling API — the Connect GET carries only the spaceless `name`, so labels
+cost one extra Tooling GET. A step then shows its label over the small API name; a
+step whose label is missing or equals the name (Connect-clobbered drift) shows the
+name alone. Label-read failure only **warns** — the diagram still renders with names.
 
 The diagram is built from the same `_graph.py` model as the text trace, so it is
 read-only, offline after the GET, and deterministic (same definition → identical

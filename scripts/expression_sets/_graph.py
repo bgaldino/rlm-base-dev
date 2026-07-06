@@ -51,17 +51,56 @@ SCOPE_VERSION = "version"
 SCOPE_CUSTOM = "custom"
 SCOPE_STANDARD = "standard"
 
-# Mermaid scope styling — one classDef per dependency scope, so a rendered
-# dependency diagram is color-legible without a legend: green=version variable
-# (ship in addVariables), red=custom (externalDependencies / target must define),
-# blue=standard context (declare nothing). Kept here next to the SCOPE_* names so
-# the two never drift.
-_MERMAID_CLASSDEFS = [
-    "classDef version fill:#e7f5e7,stroke:#2e7d32,color:#1b5e20;",
-    "classDef custom fill:#fdecea,stroke:#c62828,color:#b71c1c;",
-    "classDef standard fill:#e8eef7,stroke:#1565c0,color:#0d47a1;",
-    "classDef step fill:#ffffff,stroke:#555555,color:#111111;",
-]
+# Mermaid node kinds — a finer *display* taxonomy layered over the three
+# dependency SCOPES. scope() stays the load-bearing capture-logic axis (the
+# validator depends on its version/custom/standard trichotomy); node_kind()
+# refines it purely for the diagram, splitting version→(constant, variable) by
+# the variable's declared ``type`` and standard→(std, context) by the ``__std``
+# suffix. Every kind carries the same color as its parent scope (green=version,
+# red=custom, blue=standard) PLUS a distinct node SHAPE, so the diagram stays
+# legible in monochrome and a reader can tell a step from a constant from a
+# context tag at a glance. Grounded only in what the Connect GET itself reveals:
+#
+#   kind      what it is                                     scope     shape       delims
+#   step      a procedure step                               —         rectangle   [ ]
+#   constant  a version variable, type=Constant              version   hexagon     {{ }}
+#   variable  a version variable, non-Constant type          version   rounded     ( )
+#   custom    a __c / __r custom field or relationship        custom    cylinder    [( )]
+#   std       a __std standard-context field                 standard  subroutine  [[ ]]
+#   context   a bare context-supplied name (a tag/attribute  standard  stadium     ([ ])
+#             the bound ContextDefinition provides — the ES
+#             GET can't say tag-vs-attribute, so we don't)
+#
+# Each entry: (open-delim, close-delim, classDef-style). Order is stable so the
+# emitted classDef block is deterministic.
+_MERMAID_KINDS = {
+    "step":     ("[",  "]",  "fill:#ffffff,stroke:#555555,color:#111111"),
+    "constant": ("{{", "}}", "fill:#e7f5e7,stroke:#2e7d32,color:#1b5e20"),
+    "variable": ("(",  ")",  "fill:#d5ead5,stroke:#2e7d32,color:#1b5e20"),
+    "custom":   ("[(", ")]", "fill:#fdecea,stroke:#c62828,color:#b71c1c"),
+    "std":      ("[[", "]]", "fill:#e8eef7,stroke:#1565c0,color:#0d47a1"),
+    "context":  ("([", "])", "fill:#eef3fb,stroke:#1565c0,color:#0d47a1"),
+}
+
+
+def _mermaid_classdefs(kinds: Optional[List[str]] = None) -> List[str]:
+    """The ``classDef`` lines for the given node kinds (default: all), stable order.
+
+    Pass a subset (e.g. ``["step"]`` for the flow view, which has only step nodes)
+    so the emitted legend matches the kinds actually present in the diagram.
+    """
+    wanted = kinds if kinds is not None else list(_MERMAID_KINDS)
+    return [
+        f"classDef {kind} {_MERMAID_KINDS[kind][2]};"
+        for kind in _MERMAID_KINDS
+        if kind in wanted
+    ]
+
+
+def _mermaid_node(nid: str, label: str, kind: str) -> str:
+    """A Mermaid node-declaration line: id + kind-specific shape wrapping a quoted label."""
+    open_d, close_d, _style = _MERMAID_KINDS.get(kind, _MERMAID_KINDS["context"])
+    return f'  {nid}{open_d}"{_mermaid_escape(label)}"{close_d}'
 
 
 def _mermaid_escape(label: str) -> str:
@@ -72,6 +111,20 @@ def _mermaid_escape(label: str) -> str:
     through so multi-line labels render.
     """
     return str(label).replace('"', "#quot;")
+
+
+def _step_display(name: str, label: Optional[str]) -> str:
+    """Node title for a step: readable ``label`` over the API ``name`` when they differ.
+
+    With no label, or a label equal to the (spaceless) name — the fingerprint of a
+    Connect-created / Connect-clobbered step, where the label carries no more
+    information than the name — just show the name. Otherwise show the label on top
+    with the API name small underneath, so the diagram stays traceable back to the
+    definition. Mirrors ``describe --labels`` drift handling.
+    """
+    if label and label != name:
+        return f"{label}<br/><small>{name}</small>"
+    return name
 
 
 class _MermaidIds:
@@ -167,6 +220,14 @@ class ExpressionSetGraph:
             for v in version.get("variables", []) or []
             if isinstance(v, dict) and v.get("name")
         }
+        # name → the variable's declared ``type`` (e.g. "Constant"), for
+        # node_kind()'s constant-vs-variable split. Untyped vars fall back to
+        # the generic "variable" kind.
+        self.variable_types: Dict[str, Optional[str]] = {
+            v.get("name"): v.get("type")
+            for v in version.get("variables", []) or []
+            if isinstance(v, dict) and v.get("name")
+        }
 
         self.edges: List[Edge] = []
         self.producers: Dict[str, List[str]] = {}
@@ -219,6 +280,27 @@ class ExpressionSetGraph:
         if _is_custom_ref(name):
             return SCOPE_CUSTOM
         return SCOPE_STANDARD
+
+    def node_kind(self, name: str) -> str:
+        """Refine ``scope()`` into a display node-kind (a key of ``_MERMAID_KINDS``).
+
+        A finer split than the three scopes, using only signals present in the
+        Connect GET:
+          * version  → ``constant`` if the variable's ``type`` is ``Constant``,
+            else ``variable``.
+          * custom   → ``custom`` (a ``__c`` / ``__r`` field or relationship).
+          * standard → ``std`` if the name ends ``__std`` (a standard-context
+            field), else ``context`` (a bare context-supplied tag/attribute — the
+            GET does not distinguish tag from attribute, so neither do we).
+        Never returns ``step`` — step nodes are labeled by the renderer, not by a
+        referenced-name lookup.
+        """
+        sc = self.scope(name)
+        if sc == SCOPE_VERSION:
+            return "constant" if self.variable_types.get(name) == "Constant" else "variable"
+        if sc == SCOPE_CUSTOM:
+            return "custom"
+        return "std" if isinstance(name, str) and name.endswith("__std") else "context"
 
     def produced_by(self, name: str) -> List[str]:
         return list(self.producers.get(name, []))
@@ -330,13 +412,21 @@ class ExpressionSetGraph:
 
     # -- Mermaid rendering ---------------------------------------------
 
-    def to_mermaid_flow(self, *, title: Optional[str] = None) -> str:
+    def to_mermaid_flow(
+        self, *, title: Optional[str] = None,
+        labels: Optional[Dict[str, Optional[str]]] = None,
+    ) -> str:
         """Execution-flow diagram: steps in sequenceNumber order, children nested.
 
         A top-down ``flowchart`` where consecutive top-level steps are chained by
         a solid arrow (the run order) and each child hangs off its parent by a
-        dashed ``-. child .->`` edge. Pure — no org access; deterministic output.
+        dashed ``-. child .->`` edge. Pass ``labels`` (``{step-name: label}`` from
+        the Tooling API — see ``_tooling.step_labels``) to title each node with its
+        readable label instead of the spaceless ``name`` (the ``name`` is then
+        shown small underneath as the API name). Pure — no org access;
+        deterministic output.
         """
+        labels = labels or {}
         ids = _MermaidIds("s_")
         lines: List[str] = ["flowchart TD"]
         if title:
@@ -348,8 +438,10 @@ class ExpressionSetGraph:
             name = step.get("name") or "(unnamed)"
             nid = ids.get(name)
             stype = step.get("stepType") or step.get("actionType") or ""
-            label = name if not stype else f"{name}<br/><i>{stype}</i>"
-            lines.append(f'  {nid}["{_mermaid_escape(label)}"]')
+            label = _step_display(name, labels.get(name))
+            if stype:
+                label = f"{label}<br/><i>{stype}</i>"
+            lines.append(_mermaid_node(nid, label, "step"))
             parent = step.get("parentStep")
             if parent:
                 lines.append(f'  {ids.get(parent)} -. child .-> {nid}')
@@ -361,21 +453,30 @@ class ExpressionSetGraph:
 
         if len(ordered) == 0:
             lines.append("  empty[/no steps in this version/]")
-        lines.extend("  " + d for d in _MERMAID_CLASSDEFS)
+        # Flow has only step nodes — emit just that classDef so the legend matches.
+        lines.extend("  " + d for d in _mermaid_classdefs(["step"]))
         return "\n".join(lines) + "\n"
 
     def to_mermaid_deps(
-        self, *, only_steps: Optional[Set[str]] = None, title: Optional[str] = None
+        self, *, only_steps: Optional[Set[str]] = None, title: Optional[str] = None,
+        labels: Optional[Dict[str, Optional[str]]] = None,
     ) -> str:
-        """Data-dependency diagram: producer → variable → consumer, scope-colored.
+        """Data-dependency diagram: producer → name → consumer, kind-shaped & colored.
 
-        Steps are boxes; every referenced name is a rounded node classed by scope
-        (version / custom / standard). Edges carry the role symbol as their label
-        (``>`` producer→var, ``<`` / ``?`` / ``~`` var→consumer). Pass
-        ``only_steps`` to scope the diagram to those steps plus the variables they
-        touch and the immediate neighbor steps on the other side of each variable
-        (the one-step neighborhood — what ``trace --step`` shows, drawn). Pure.
+        Steps are rectangles; every referenced name is drawn with a shape + color
+        keyed to its ``node_kind`` — so the diagram distinguishes not just the
+        three scopes but the kinds within them: version **constants** (hexagon,
+        green) vs other version **variables** (rounded, green); **custom** fields
+        (cylinder, red); standard **std** ``__std`` fields (subroutine, blue) vs
+        bare **context** tags/attributes (stadium, blue). Edges carry the role
+        symbol (``>`` producer→name, ``<`` / ``?`` / ``~`` name→consumer). Pass
+        ``labels`` (``{step-name: label}``) to title step nodes with their readable
+        Tooling label. Pass ``only_steps`` to scope the diagram to those steps plus
+        the names they touch and the immediate neighbor steps on the other side of
+        each name (the one-step neighborhood — what ``trace --step`` shows, drawn).
+        Pure.
         """
+        labels = labels or {}
         step_ids = _MermaidIds("s_")
         var_ids = _MermaidIds("v_")
         lines: List[str] = ["flowchart LR"]
@@ -404,8 +505,10 @@ class ExpressionSetGraph:
             step_names.append(name)
             nid = step_ids.get(name)
             focus = only_steps and name in only_steps
-            label = f"{name}" + ("<br/><b>◆ focus</b>" if focus else "")
-            lines.append(f'  {nid}["{_mermaid_escape(label)}"]')
+            label = _step_display(name, labels.get(name))
+            if focus:
+                label = f"{label}<br/><b>◆ focus</b>"
+            lines.append(_mermaid_node(nid, label, "step"))
 
         def _var_node(name: str):
             key = f"__var__{name}"
@@ -414,7 +517,7 @@ class ExpressionSetGraph:
             rendered.add(key)
             var_names.append(name)
             vid = var_ids.get(name)
-            lines.append(f'  {vid}("{_mermaid_escape(name)}")')
+            lines.append(_mermaid_node(vid, name, self.node_kind(name)))
 
         for e in edges:
             _step_node(e.step)
@@ -430,10 +533,14 @@ class ExpressionSetGraph:
         if not edges:
             lines.append("  empty[/no variable references/]")
 
-        # Class assignments: steps → step; variables → their scope.
+        # Class assignments: steps → step; names → their finer node_kind.
+        present: Set[str] = {"step"} if step_names else set()
         for name in step_names:
             lines.append(f"  class {step_ids.get(name)} step;")
         for name in var_names:
-            lines.append(f"  class {var_ids.get(name)} {self.scope(name)};")
-        lines.extend("  " + d for d in _MERMAID_CLASSDEFS)
+            kind = self.node_kind(name)
+            present.add(kind)
+            lines.append(f"  class {var_ids.get(name)} {kind};")
+        # Emit only the classDefs for kinds actually drawn, so the legend matches.
+        lines.extend("  " + d for d in _mermaid_classdefs(sorted(present)))
         return "\n".join(lines) + "\n"

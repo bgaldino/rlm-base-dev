@@ -99,6 +99,7 @@ def _sample_definition():
                  "customElement": {"definition": "Formula", "parameters": [
                      _param("in1", "ListPrice", input=True),
                      _param("in2", "Constant_Markup", input=True),
+                     _param("in3", "AppliedDiscount__std", input=True),
                      _param("out1", "NetPrice", output=True),
                      {"type": "Formula", "name": "f", "value": "ListPrice * Constant_Markup"}]}},
                 {"name": "DeadStep", "parentStep": None, "sequenceNumber": 3,
@@ -296,6 +297,21 @@ def test_mermaid():
     print("test_mermaid")
     g = ExpressionSetGraph(_sample_definition())
 
+    # --- node_kind: the finer display taxonomy over scope -----------------
+    check("node_kind Constant_Markup=constant", g.node_kind("Constant_Markup") == "constant",
+          g.node_kind("Constant_Markup"))
+    check("node_kind RLM_RampMode__c=custom", g.node_kind("RLM_RampMode__c") == "custom")
+    check("node_kind AppliedDiscount__std=std", g.node_kind("AppliedDiscount__std") == "std")
+    check("node_kind NetPrice=context (bare standard)", g.node_kind("NetPrice") == "context",
+          g.node_kind("NetPrice"))
+    # A non-Constant version variable is 'variable', not 'constant'.
+    gv = ExpressionSetGraph({"versions": [{"apiName": "V", "variables": [
+        {"name": "LocalTmp", "type": "Variable", "dataType": "Numeric"}], "steps": [
+        {"name": "S", "parentStep": None, "sequenceNumber": 1, "customElement": {
+            "parameters": [_param("i", "LocalTmp", input=True)]}}]}]})
+    check("node_kind non-Constant version var=variable", gv.node_kind("LocalTmp") == "variable",
+          gv.node_kind("LocalTmp"))
+
     # --- flow view --------------------------------------------------------
     flow = g.to_mermaid_flow(title="TEST_Proc")
     check("flow starts with flowchart TD", flow.startswith("flowchart TD"), flow[:40])
@@ -303,8 +319,17 @@ def test_mermaid():
           "s_GetPrice --> s_ApplyMarkup" in flow and "s_ApplyMarkup --> s_DeadStep" in flow, flow)
     check("flow emits every step node",
           all(f"s_{n}[" in flow for n in ("GetPrice", "ApplyMarkup", "DeadStep")), flow)
-    check("flow includes the scope classDefs", "classDef custom" in flow, flow)
+    check("flow emits the step classDef", "classDef step" in flow, flow)
+    check("flow legend has ONLY the step kind (no var kinds)",
+          "classDef custom" not in flow and "classDef context" not in flow, flow)
     check("flow is deterministic", g.to_mermaid_flow(title="TEST_Proc") == flow)
+
+    # Labels: readable label shown over the API name; label==name / no-label show name only.
+    lflow = g.to_mermaid_flow(labels={"GetPrice": "Get Price", "ApplyMarkup": "ApplyMarkup"})
+    check("flow label shown over api name",
+          "Get Price<br/><small>GetPrice</small>" in lflow, lflow)
+    check("flow label==name collapses to name (no <small>)",
+          "ApplyMarkup<br/><small>" not in lflow, lflow)
 
     # A child step hangs off its parent with a dashed 'child' edge, not a run-order arrow.
     child_defn = _sample_definition()
@@ -315,15 +340,31 @@ def test_mermaid():
     check("child step uses dashed child edge", "s_ApplyMarkup -. child .-> s_Kid" in cflow, cflow)
     check("child step is NOT in the run-order chain", "--> s_Kid" not in cflow.replace("-. child .-> s_Kid", ""), cflow)
 
-    # --- deps view --------------------------------------------------------
+    # --- deps view: kind-shaped, kind-classed nodes -----------------------
     deps = g.to_mermaid_deps(title="TEST_Proc")
     check("deps starts with flowchart LR", deps.startswith("flowchart LR"), deps[:40])
     check("deps draws producer edge (step > var)", 's_GetPrice -->|">"| v_ListPrice' in deps, deps)
     check("deps draws consumer edge (var < step)", 'v_ListPrice -->|"<"| s_ApplyMarkup' in deps, deps)
-    check("deps classes version var green", "class v_Constant_Markup version;" in deps, deps)
-    check("deps classes custom ref red", "class v_RLM_RampMode__c custom;" in deps, deps)
-    check("deps classes standard ctx blue", "class v_NetPrice standard;" in deps, deps)
+    # Kind classes (finer than scope): constant / custom / std / context.
+    check("deps classes version constant", "class v_Constant_Markup constant;" in deps, deps)
+    check("deps classes custom ref", "class v_RLM_RampMode__c custom;" in deps, deps)
+    check("deps classes __std field as std", "class v_AppliedDiscount__std std;" in deps, deps)
+    check("deps classes bare standard as context", "class v_NetPrice context;" in deps, deps)
+    # Kind shapes: constant hexagon {{ }}, __std subroutine [[ ]], context stadium ([ ]).
+    check("constant node uses hexagon shape", 'v_Constant_Markup{{"Constant_Markup"}}' in deps, deps)
+    check("__std node uses subroutine shape",
+          'v_AppliedDiscount__std[["AppliedDiscount__std"]]' in deps, deps)
+    check("context node uses stadium shape", 'v_NetPrice(["NetPrice"])' in deps, deps)
+    check("custom node uses cylinder shape", 'v_RLM_RampMode__c[("RLM_RampMode__c")]' in deps, deps)
+    # Legend lists only kinds actually drawn (custom present here; variable absent).
+    check("deps legend includes drawn kinds", "classDef constant" in deps and "classDef std" in deps, deps)
+    check("deps legend omits undrawn 'variable' kind", "classDef variable" not in deps, deps)
     check("deps is deterministic", g.to_mermaid_deps(title="TEST_Proc") == deps)
+
+    # deps step labels too.
+    ldeps = g.to_mermaid_deps(labels={"GetPrice": "Get Price"})
+    check("deps step label shown over api name",
+          "Get Price<br/><small>GetPrice</small>" in ldeps, ldeps)
 
     # --- deps scoped to one step's neighborhood ---------------------------
     scoped = g.to_mermaid_deps(only_steps={"ApplyMarkup"})
@@ -331,7 +372,7 @@ def test_mermaid():
     check("scoped keeps the producer-neighbor (GetPrice via ListPrice)",
           "s_GetPrice[" in scoped, scoped)
     check("scoped excludes unrelated step (DeadStep)", "s_DeadStep[" not in scoped, scoped)
-    check("scoped excludes unrelated var (UnusedOut)", "v_UnusedOut(" not in scoped, scoped)
+    check("scoped excludes unrelated var (UnusedOut)", "v_UnusedOut" not in scoped, scoped)
 
     # --- empty version renders without crashing --------------------------
     empty = ExpressionSetGraph({"versions": [{"apiName": "V", "steps": [], "variables": []}]})

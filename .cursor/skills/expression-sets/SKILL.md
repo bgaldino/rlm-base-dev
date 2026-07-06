@@ -186,9 +186,10 @@ python scripts/expression_sets/export_expression_set.py --target-org $ORG \
 python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
     --developer-name RLM_DefaultPricingProcedure --variable NetUnitPrice
 
-# 3b. Or draw it — a scope-colored Mermaid dependency graph (or --mermaid flow).
+# 3b. Or draw it — a kind-shaped Mermaid dependency graph (or --mermaid flow).
+#     --labels titles step nodes with their readable Tooling label (Connect has none).
 python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
-    --developer-name RLM_DefaultPricingProcedure --mermaid deps --out /tmp/pp.deps.mmd
+    --developer-name RLM_DefaultPricingProcedure --mermaid deps --labels --out /tmp/pp.deps.mmd
 
 # 4. Slice a step into a validated overlay (three scopes pre-classified).
 python scripts/expression_sets/export_expression_set_overlay.py --target-org $ORG \
@@ -216,7 +217,7 @@ toolkit mirrors the tasks' live-verified rules. Full toolkit detail:
 | Pretty-print one procedure's steps in execution order | `python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> --developer-name <name>` (read-only) |
 | Export a definition to JSON (snapshot, or `--for-import`) | `python scripts/expression_sets/export_expression_set.py --target-org <sf_alias> --developer-name <name> --out <path>` (read-only) |
 | **Trace** who produces/consumes a variable; classify a step's dependency scopes; find orphans | `python scripts/expression_sets/trace_expression_set.py --target-org <sf_alias> --developer-name <name> --variable <v> \| --step <s> \| --field <f> \| --orphans` (read-only) |
-| **Visualize** a procedure as a Mermaid diagram — data-dependency (scope-colored) or execution-flow | `python scripts/expression_sets/trace_expression_set.py --target-org <sf_alias> --developer-name <name> --mermaid deps\|flow [--step <s>] [--out <path.mmd>]` (read-only) |
+| **Visualize** a procedure as a Mermaid diagram — data-dependency (nodes shaped & colored by kind: step / version constant / version variable / custom / `__std` field / context tag) or execution-flow; `--labels` titles steps with their readable Tooling label | `python scripts/expression_sets/trace_expression_set.py --target-org <sf_alias> --developer-name <name> --mermaid deps\|flow [--step <s>] [--labels] [--out <path.mmd>]` (read-only) |
 | Diff a procedure org-vs-org or org-vs-JSON | `python scripts/expression_sets/diff_expression_set.py --target-org <sf_alias> --developer-name <name> --right-org <sf_alias2> \| --right-file <path>` (read-only) |
 | Slice step(s) into a validated overlay with scoped deps | `python scripts/expression_sets/export_expression_set_overlay.py --target-org <sf_alias> --developer-name <name> --step <s> --out <path>` (read-only; writes a local file) |
 | Create/replace a whole ES from JSON | `import_expression_set` (CCI, build) **or** `python scripts/expression_sets/import_expression_set.py --target-org <sf_alias> --input-file <path>` (preview; `--confirm` to write) |

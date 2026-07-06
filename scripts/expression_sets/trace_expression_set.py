@@ -57,12 +57,14 @@ Usage
         --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --orphans
 
-    # a Mermaid diagram — 'deps' (producer→var→consumer, scope-colored) or 'flow'
-    # (steps in sequenceNumber order, children nested). --step scopes it to one
-    # step's neighborhood; --out writes a .mmd file instead of stdout.
+    # a Mermaid diagram — 'deps' (producer→name→consumer; each name shaped &
+    # colored by kind: step / version constant / version variable / custom /
+    # __std field / context tag) or 'flow' (steps in sequenceNumber order, children
+    # nested). --step scopes deps to one step's neighborhood; --labels titles step
+    # nodes with their readable Tooling label; --out writes a .mmd file.
     python scripts/expression_sets/trace_expression_set.py \
         --target-org rlm-base__beta \
-        --developer-name RLM_DefaultPricingProcedure --mermaid deps \
+        --developer-name RLM_DefaultPricingProcedure --mermaid deps --labels \
         --out /tmp/pricing.deps.mmd
 
 Paste the emitted text into any Mermaid renderer (mermaid.live, a GitHub
@@ -81,10 +83,17 @@ from scripts.expression_sets._client import (  # noqa: E402
     ExpressionSetClientError,
     eprint,
 )
+from scripts.expression_sets._client import Transport  # noqa: E402
 from scripts.expression_sets._graph import ExpressionSetGraph  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
     resolve_expression_set_id,
+)
+from scripts.expression_sets._tooling import (  # noqa: E402
+    ToolingError,
+    fetch_metadata,
+    resolve_esdv,
+    step_labels,
 )
 from scripts.expression_sets.export_expression_set import fetch_definition  # noqa: E402
 
@@ -100,6 +109,30 @@ _REMOVAL_NOTE = (
 
 def _fmt_scope(scope: str) -> str:
     return {"version": "version-var", "custom": "CUSTOM", "standard": "std-ctx"}.get(scope, scope)
+
+
+def _fetch_labels(graph: ExpressionSetGraph, target_org: str, api_version: str) -> dict:
+    """Join Tooling step labels for the traced version, keyed by step ``name``.
+
+    The Connect GET carries no ``label`` (only the spaceless ``name``); readable
+    labels live only in the Tooling ``ExpressionSetDefinitionVersion.Metadata``.
+    The version's ``apiName`` equals the Tooling ``DeveloperName``, so it pins the
+    read to the exact version being traced. Returns ``{}`` (and warns) on any
+    failure — labels enrich a diagram, they are never a reason to fail a read-only
+    trace. Mirrors ``describe_expression_set._fetch_labels``.
+    """
+    version_api_name = graph.version_api_name
+    if not version_api_name:
+        eprint("Warning: version has no apiName; cannot join Tooling labels.")
+        return {}
+    transport = Transport(target_org=target_org, api_version=api_version, logger=eprint)
+    try:
+        esdv = resolve_esdv(transport, version_api_name=version_api_name)
+        metadata = fetch_metadata(transport, esdv["Id"])
+    except ToolingError as exc:
+        eprint(f"Warning: could not read Tooling labels ({exc}); showing names only.")
+        return {}
+    return step_labels(metadata)
 
 
 def _trace_variable(graph: ExpressionSetGraph, name: str) -> dict:
@@ -233,6 +266,12 @@ def main(argv=None) -> int:
         "--out", type=Path,
         help="Write --mermaid output to this file (default: stdout).",
     )
+    parser.add_argument(
+        "--labels", action="store_true",
+        help="Title --mermaid step nodes with their readable Tooling label (one "
+             "extra Tooling GET) instead of the spaceless Connect name. Failure to "
+             "read labels only WARNS — the diagram still renders with names.",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -251,12 +290,16 @@ def main(argv=None) -> int:
 
     if args.mermaid:
         title = f"{args.developer_name or es_id} — version {graph.version_api_name}"
+        labels = (
+            _fetch_labels(graph, args.target_org, args.api_version)
+            if args.labels else None
+        )
         if args.mermaid == "flow":
-            diagram = graph.to_mermaid_flow(title=title)
+            diagram = graph.to_mermaid_flow(title=title, labels=labels)
         else:  # 'deps'
             # --step scopes the dependency diagram to that step's neighborhood.
             only = {args.step} if args.step else None
-            diagram = graph.to_mermaid_deps(only_steps=only, title=title)
+            diagram = graph.to_mermaid_deps(only_steps=only, title=title, labels=labels)
         if args.out:
             args.out.write_text(diagram, encoding="utf-8")
             eprint(f"Wrote Mermaid {args.mermaid} diagram to {args.out}")
