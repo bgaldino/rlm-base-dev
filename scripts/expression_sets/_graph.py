@@ -212,6 +212,9 @@ class ExpressionSetGraph:
         self.definition = definition
         version = _version(definition, version_api_name)
         self.version_api_name = version.get("apiName")
+        # Connect version number — the stable pin (with the def id) for a Tooling
+        # label read, since the ESDV DeveloperName is rewritten by a Connect PATCH.
+        self.version_number = version.get("versionNumber")
         self.steps: List[dict] = [
             s for s in version.get("steps", []) or [] if isinstance(s, dict)
         ]

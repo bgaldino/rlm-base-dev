@@ -56,6 +56,7 @@ from scripts.expression_sets._graph import ExpressionSetGraph  # noqa: E402
 from scripts.expression_sets._payload import unescape_value  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
+    resolve_definition_id_by_es_id,
     resolve_expression_set_id,
 )
 from scripts.expression_sets._schema import validate_overlay  # noqa: E402
@@ -189,17 +190,33 @@ def main(argv=None) -> int:
         )
         if args.with_labels:
             # Labels live only in the Tooling Metadata (Connect can't serialize
-            # them). Resolve the version apiName (explicit or the first version's)
-            # and capture its readable labels, then keep only the sliced steps'.
+            # them). Resolve the version (explicit or the first) and capture its
+            # readable labels via the STABLE ExpressionSetDefinitionId (9QA) +
+            # versionNumber — the ESDV DeveloperName is rewritten by a Connect PATCH,
+            # so an ApiName lookup can miss a Connect-mutated set. Then keep only the
+            # sliced steps' labels.
             versions = definition.get("versions") or []
-            version_api_name = args.version_api_name or (
-                versions[0].get("apiName") if versions else None
-            )
+            version = next(
+                (v for v in versions if v.get("apiName") == args.version_api_name),
+                versions[0] if versions else {},
+            ) if args.version_api_name else (versions[0] if versions else {})
+            version_api_name = version.get("apiName")
+            version_number = version.get("versionNumber")
             transport = Transport(
                 target_org=args.target_org, api_version=args.api_version,
                 dry_run=True, logger=eprint,
             )
-            all_labels = capture_labels(transport, version_api_name, eprint)
+            es_def_id = None
+            try:
+                es_def_id = resolve_definition_id_by_es_id(
+                    es_id, target_org=args.target_org, api_version=args.api_version
+                )
+            except ResolveError as exc:
+                eprint(f"Warning: falling back to unstable ApiName label lookup ({exc}).")
+            all_labels = capture_labels(
+                transport, version_api_name, eprint,
+                es_def_id=es_def_id, version_number=version_number,
+            )
             sliced = set(args.steps)
             labels = {n: l for n, l in all_labels.items() if n in sliced}
             if labels:

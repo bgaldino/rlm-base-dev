@@ -88,6 +88,7 @@ from scripts.expression_sets._client import Transport  # noqa: E402
 from scripts.expression_sets._graph import ExpressionSetGraph  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
+    resolve_definition_id_by_es_id,
     resolve_expression_set_id,
 )
 from scripts.expression_sets._tooling import (  # noqa: E402
@@ -112,23 +113,40 @@ def _fmt_scope(scope: str) -> str:
     return {"version": "version-var", "custom": "CUSTOM", "standard": "std-ctx"}.get(scope, scope)
 
 
-def _fetch_labels(graph: ExpressionSetGraph, target_org: str, api_version: str) -> dict:
+def _fetch_labels(
+    graph: ExpressionSetGraph, es_id: str, target_org: str, api_version: str
+) -> dict:
     """Join Tooling step labels for the traced version, keyed by step ``name``.
 
     The Connect GET carries no ``label`` (only the spaceless ``name``); readable
     labels live only in the Tooling ``ExpressionSetDefinitionVersion.Metadata``.
-    The version's ``apiName`` equals the Tooling ``DeveloperName``, so it pins the
-    read to the exact version being traced. Returns ``{}`` (and warns) on any
-    failure — labels enrich a diagram, they are never a reason to fail a read-only
-    trace. Mirrors ``describe_expression_set._fetch_labels``.
+    Resolves the ESDV by the **stable** ``ExpressionSetDefinitionId`` (9QA, from the
+    runtime ``es_id``) + the Connect ``versionNumber`` rather than the ESDV
+    ``DeveloperName`` — a Connect PATCH rewrites that name in place, so a
+    Connect-mutated set would otherwise resolve 0 rows. Falls back to the
+    ``apiName``/``DeveloperName`` lookup if the 9QA can't be resolved. Returns ``{}``
+    (and warns) on any failure — labels enrich a diagram, they are never a reason to
+    fail a read-only trace. Mirrors ``describe_expression_set._fetch_labels``.
     """
-    version_api_name = graph.version_api_name
-    if not version_api_name:
-        eprint("Warning: version has no apiName; cannot join Tooling labels.")
-        return {}
     transport = Transport(target_org=target_org, api_version=api_version, logger=eprint)
+    version_api_name = graph.version_api_name
+    version_number = graph.version_number
     try:
-        esdv = resolve_esdv(transport, version_api_name=version_api_name)
+        es_def_id = None
+        try:
+            es_def_id = resolve_definition_id_by_es_id(
+                es_id, target_org=target_org, api_version=api_version
+            )
+        except ResolveError as exc:
+            if not version_api_name:
+                eprint(f"Warning: cannot resolve definition for labels ({exc}); "
+                       "showing names only.")
+                return {}
+            eprint(f"Warning: falling back to unstable ApiName label lookup ({exc}).")
+        esdv = resolve_esdv(
+            transport, es_def_id=es_def_id, version_number=version_number,
+            version_api_name=version_api_name,
+        )
         metadata = fetch_metadata(transport, esdv["Id"])
     except ToolingError as exc:
         eprint(f"Warning: could not read Tooling labels ({exc}); showing names only.")
@@ -293,7 +311,7 @@ def main(argv=None) -> int:
     if args.mermaid:
         title = f"{args.developer_name or es_id} — version {graph.version_api_name}"
         labels = (
-            _fetch_labels(graph, args.target_org, args.api_version)
+            _fetch_labels(graph, es_id, args.target_org, args.api_version)
             if args.labels else None
         )
         if args.mermaid == "flow":

@@ -56,6 +56,30 @@ def resolve_expression_set_id(
     return records[0]["Id"]
 
 
+def resolve_definition_id_by_es_id(
+    es_id: str, *, target_org: str, api_version: str = _client.DEFAULT_API_VERSION
+) -> str:
+    """Resolve the tooling ``ExpressionSetDefinition`` Id (9QA) from a runtime
+    ``ExpressionSet`` Id (9QL).
+
+    The 9QA is the **stable** key for the Tooling ``ExpressionSetDefinitionVersion``
+    (see ``_tooling.resolve_esdv``): unlike the ESDV ``DeveloperName`` (rewritten in
+    place by a Connect PATCH), ``ExpressionSet.ExpressionSetDefinitionId`` survives.
+    Read-only callers that hold only the 9QL (``describe`` / ``trace`` invoked with
+    ``--expression-set-id``) use this to pin a label read to the right definition.
+    """
+    safe = _client.soql_literal(es_id)
+    records = _query(
+        f"SELECT ExpressionSetDefinitionId FROM ExpressionSet WHERE Id = '{safe}'",
+        target_org=target_org, api_version=api_version,
+    )
+    if not records or not records[0].get("ExpressionSetDefinitionId"):
+        raise ResolveError(
+            f"ExpressionSetDefinition Id not found for ExpressionSet {es_id}."
+        )
+    return records[0]["ExpressionSetDefinitionId"]
+
+
 def resolve_version_by_es_id(
     es_id: str, *, target_org: str, api_version: str = _client.DEFAULT_API_VERSION,
     logger=None,

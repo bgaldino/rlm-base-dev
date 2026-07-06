@@ -24,8 +24,8 @@ This module is the seam for that (live-verified on 262 / v67.0):
     (:func:`fetch_metadata`), and PATCH ``Metadata`` back (:func:`patch_metadata`,
     dropping the read-only ``urls`` key).
   * **Label preservation** around a clobbering Connect mutation: snapshot the
-    readable labels a PATCH is about to reset (:func:`capture_labels`), warn about
-    it (:func:`warn_label_clobber`), and re-apply them afterwards
+    readable labels a PATCH is about to reset (:func:`capture_labels`) and re-apply
+    them afterwards
     (:func:`restore_labels_after_clobber`) — a deliberate SECOND deactivate →
     Tooling PATCH → reactivate cycle that reuses the shared relabel core
     (:func:`relabel_version`, also the engine behind ``relabel_expression_set.py``),
@@ -355,10 +355,10 @@ def capture_labels(
     the ESDV ``DeveloperName`` is unstable across a Connect PATCH; falls back to
     ``version_api_name`` for callers that only hold the runtime ApiName.
 
-    **Best-effort and non-fatal by contract**, exactly like :func:`warn_label_clobber`:
-    any failure (no version, Tooling read error, missing Metadata) is swallowed with
-    an optional soft note and returns ``{}`` — capturing labels must never break a
-    mutation. Pure-ish: one Tooling read, no writes.
+    **Best-effort and non-fatal by contract:** any failure (no version, Tooling
+    read error, missing Metadata) is swallowed with an optional soft note and
+    returns ``{}`` — capturing labels must never break a mutation. Pure-ish: one
+    Tooling read, no writes.
     """
     if not (version_api_name or es_def_id):
         return {}
@@ -504,34 +504,3 @@ def restore_labels_after_clobber(
             f"version is labeled with spaceless names. Re-run relabel_expression_set.py "
             f"--expression-set <name> to restore readable labels.")
         return {"ok": False, "changed": [], "error": str(exc)}
-
-
-def warn_label_clobber(transport, version_api_name: Optional[str], logger) -> int:
-    """Warn (best-effort) that a Connect full-graph PATCH will reset step labels.
-
-    A Connect PATCH (``import`` / ``apply_expression_set_overlay``) has no ``label``
-    field and rebuilds every label from the spaceless ``name``, silently wiping any
-    readable labels on the version. Before such a PATCH, this reads the current
-    Tooling labels and — if any readable ones exist — logs how many will be reset
-    and how to restore them with ``relabel_expression_set.py``.
-
-    **Best-effort and non-fatal by contract:** a label warning must NEVER break a
-    mutation, so any failure (no ``version_api_name``, Tooling read error, missing
-    Metadata) is swallowed with a soft note and returns 0. Returns the count of
-    readable labels that would be reset (0 if none / unknown).
-
-    Shares its one Tooling read with :func:`capture_labels` — the map it returns is
-    exactly the set this warning counts, so a caller that both warns and auto-
-    restores need only capture once.
-    """
-    readable = capture_labels(transport, version_api_name, logger)
-    if readable:
-        logger(
-            f"⚠ This Connect PATCH will RESET {len(readable)} readable step "
-            f"label(s) on version '{version_api_name}' to their spaceless names "
-            f"(Connect has no label field). They will be auto-restored after the "
-            f"mutation unless --no-preserve-labels is set; otherwise restore with "
-            f"relabel_expression_set.py --expression-set <name> "
-            f"[--labels-file <map> | --auto]."
-        )
-    return len(readable)

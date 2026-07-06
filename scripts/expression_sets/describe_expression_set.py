@@ -58,6 +58,7 @@ from scripts.expression_sets._client import (  # noqa: E402
 from scripts.expression_sets._payload import unescape_value  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
     ResolveError,
+    resolve_definition_id_by_es_id,
     resolve_expression_set_id,
 )
 from scripts.expression_sets._tooling import (  # noqa: E402
@@ -130,22 +131,39 @@ def _order_steps(steps: List[dict]) -> List[dict]:
     return ordered
 
 
-def _fetch_labels(version: dict, target_org: str, api_version: str) -> Dict[str, Optional[str]]:
+def _fetch_labels(
+    version: dict, es_id: str, target_org: str, api_version: str
+) -> Dict[str, Optional[str]]:
     """Join Tooling step labels for a version, keyed by step ``name``.
 
-    The Connect ``version.apiName`` equals the Tooling
-    ``ExpressionSetDefinitionVersion.DeveloperName``, so it pins the label read to
-    the exact version being described. Returns ``{}`` (and warns) if the Tooling
-    read fails — labels are an enrichment, never a reason to fail a read-only
-    describe.
+    Resolves the Tooling ``ExpressionSetDefinitionVersion`` by the **stable**
+    ``ExpressionSetDefinitionId`` (9QA, from the runtime ``es_id``) + the Connect
+    ``versionNumber`` — NOT the ESDV ``DeveloperName``, which a Connect PATCH
+    rewrites in place, so a set that has ever been Connect-mutated (including one
+    whose labels were just auto-restored) would otherwise resolve 0 rows. Falls back
+    to the ``apiName``/``DeveloperName`` lookup only if the 9QA can't be resolved.
+    Returns ``{}`` (and warns) if the Tooling read fails — labels are an enrichment,
+    never a reason to fail a read-only describe.
     """
-    version_api_name = version.get("apiName")
-    if not version_api_name:
-        eprint("Warning: version has no apiName; cannot join Tooling labels.")
-        return {}
     transport = Transport(target_org=target_org, api_version=api_version, logger=eprint)
+    version_api_name = version.get("apiName")
+    version_number = version.get("versionNumber")
     try:
-        esdv = resolve_esdv(transport, version_api_name=version_api_name)
+        es_def_id = None
+        try:
+            es_def_id = resolve_definition_id_by_es_id(
+                es_id, target_org=target_org, api_version=api_version
+            )
+        except ResolveError as exc:
+            if not version_api_name:
+                eprint(f"Warning: cannot resolve definition for labels ({exc}); "
+                       "showing names only.")
+                return {}
+            eprint(f"Warning: falling back to unstable ApiName label lookup ({exc}).")
+        esdv = resolve_esdv(
+            transport, es_def_id=es_def_id, version_number=version_number,
+            version_api_name=version_api_name,
+        )
         metadata = fetch_metadata(transport, esdv["Id"])
     except ToolingError as exc:
         eprint(f"Warning: could not read Tooling labels ({exc}); showing names only.")
@@ -217,7 +235,7 @@ def main(argv=None) -> int:
     # the spaceless name (Connect-created / Connect-clobbered).
     labels: Dict[str, Optional[str]] = {}
     if args.labels:
-        labels = _fetch_labels(version, args.target_org, args.api_version)
+        labels = _fetch_labels(version, es_id, args.target_org, args.api_version)
 
     def _drift(step_name):
         label = labels.get(step_name)
