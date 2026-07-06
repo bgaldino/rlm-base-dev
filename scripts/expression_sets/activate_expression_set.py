@@ -49,6 +49,7 @@ from scripts.expression_sets._client import (  # noqa: E402
     ExpressionSetClientError,
     Transport,
     eprint,
+    soql_literal,
 )
 from scripts.expression_sets._lifecycle import LifecycleEngine, LifecycleError  # noqa: E402
 from scripts.expression_sets._resolve import (  # noqa: E402
@@ -155,7 +156,8 @@ def main(argv=None) -> int:
 def _list_versions(engine, es_id):
     return engine.t.soql(
         "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
-        f"WHERE ExpressionSetId = '{es_id}' ORDER BY IsActive DESC, VersionNumber DESC"
+        f"WHERE ExpressionSetId = '{soql_literal(es_id)}' "
+        "ORDER BY IsActive DESC, VersionNumber DESC"
     )
 
 

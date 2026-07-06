@@ -34,10 +34,12 @@ This module is the seam for that (live-verified on 262 / v67.0):
     with :func:`labels_from_metadata_xml`.
 
 Object model: the Tooling ``ExpressionSetDefinitionVersion`` (prefix ``9QB``) is a
-1:1 sibling of the runtime ``ExpressionSetVersion`` (prefix ``9QM``) — its
-``DeveloperName`` equals the 9QM ``ApiName`` (e.g.
-``RLM_DefaultPricingProcedure_V1``). That equality is the join key, so a relabel
-targets the *exact* version the lifecycle engine deactivates.
+1:1 sibling of the runtime ``ExpressionSetVersion`` (prefix ``9QM``). Do **not**
+join them by ``9QB.DeveloperName == 9QM.ApiName`` after a Connect full-graph
+PATCH: that ``DeveloperName`` has been observed changing in place. Use the stable
+``ExpressionSetDefinitionId`` (9QA) plus ``VersionNumber`` whenever the caller can
+supply it, so a relabel targets the *exact* version the lifecycle engine
+deactivates.
 
 **Active-version guard applies.** A Tooling ``Metadata`` PATCH on an *active*
 version returns ``INVALID_ID_FIELD: LatestVersionSnapshotId not found`` and does
@@ -52,7 +54,7 @@ from copy import deepcopy
 from typing import Any, Dict, List, Optional
 from urllib.parse import quote
 
-from ._client import ExpressionSetClientError
+from ._client import ExpressionSetClientError, soql_literal
 
 ESDV_SOBJECT = "ExpressionSetDefinitionVersion"
 
@@ -237,10 +239,6 @@ def _tooling_query(transport, soql: str) -> List[Dict[str, Any]]:
     return []
 
 
-def _soql_literal(value: Any) -> str:
-    return str(value).replace("\\", "\\\\").replace("'", "\\'")
-
-
 def resolve_esdv(
     transport,
     *,
@@ -271,15 +269,15 @@ def resolve_esdv(
     :class:`ToolingError` if none match or no identifier is given.
     """
     if es_def_id:
-        where = f"ExpressionSetDefinitionId = '{_soql_literal(es_def_id)}'"
+        where = f"ExpressionSetDefinitionId = '{soql_literal(es_def_id)}'"
         if version_number is not None:
             where += f" AND VersionNumber = {int(version_number)}"
     elif version_api_name:
-        where = f"DeveloperName = '{_soql_literal(version_api_name)}'"
+        where = f"DeveloperName = '{soql_literal(version_api_name)}'"
     elif developer_name:
         where = (
             "ExpressionSetDefinition.DeveloperName = "
-            f"'{_soql_literal(developer_name)}'"
+            f"'{soql_literal(developer_name)}'"
         )
     else:
         raise ToolingError(
@@ -440,7 +438,7 @@ def relabel_version(
             labels = step_labels(fetch_metadata(transport, esdv_id))
             missing = {n: l for n, l in planned.items() if labels.get(n) != l}
             if missing:
-                raise RuntimeError(
+                raise ToolingError(
                     f"Relabel verification failed: {len(missing)} label(s) did not "
                     f"persist: {sorted(missing)}."
                 )
@@ -448,6 +446,11 @@ def relabel_version(
     engine.run_mutation(
         es_def_id=es_def_id, esv=esv, mutate=mutate,
         activate_after=activate_after, cascade=cascade, verb="Relabel",
+        # A relabel is a label-only Tooling Metadata PATCH — it never touches the
+        # definition graph, so a failure leaves the stored Metadata byte-identical
+        # (only the cosmetic labels are stale). Reactivate even on failure so a
+        # cosmetic relabel error can't take a live procedure offline.
+        reactivate_on_failure=True,
     )
     return {"esdvId": esdv_id, "changed": sorted(planned), "planned": sorted(planned)}
 
@@ -472,10 +475,11 @@ def restore_labels_after_clobber(
     second deactivate → Tooling PATCH → reactivate cycle.
 
     **Non-fatal by contract:** the Connect mutation already succeeded, so a restore
-    failure must not turn a good mutation into a reported failure — it is caught,
-    logged, and reported in the result as ``ok: False``/``error`` so the operator
-    can re-run ``relabel_expression_set.py`` manually. Skips silently when there is
-    nothing to restore. Returns ``{"ok", "changed", "error"}``.
+    failure must not raise or roll back the applied mutation. It is caught, logged,
+    and reported in the result as ``ok: False``/``error`` so the caller can surface
+    it at the CLI boundary and the operator can re-run ``relabel_expression_set.py``
+    manually. Skips silently when there is nothing to restore. Returns
+    ``{"ok", "changed", "error"}``.
     """
     log = logger or engine.log
     if not name_to_label or not version_api_name:
@@ -483,7 +487,8 @@ def restore_labels_after_clobber(
     try:
         rows = engine.t.soql(
             "SELECT Id, ApiName, IsActive, VersionNumber FROM ExpressionSetVersion "
-            f"WHERE ExpressionSetId = '{es_id}' AND ApiName = '{version_api_name}'"
+            f"WHERE ExpressionSetId = '{soql_literal(es_id)}' "
+            f"AND ApiName = '{soql_literal(version_api_name)}'"
         )
         if not rows:
             log(f"Note: could not restore labels — version '{version_api_name}' "
@@ -501,6 +506,7 @@ def restore_labels_after_clobber(
         return {"ok": True, "changed": result["changed"], "error": None}
     except Exception as exc:  # noqa: BLE001 — restore must never fail the mutation
         log(f"⚠ Connect mutation succeeded but label RESTORE failed ({exc}). The "
-            f"version is labeled with spaceless names. Re-run relabel_expression_set.py "
-            f"--expression-set <name> to restore readable labels.")
+            f"procedure stays LIVE (a relabel is non-corrupting, so the version was "
+            f"reactivated) — only the readable labels are stale (spaceless names). "
+            f"Re-run relabel_expression_set.py --expression-set <name> to restore them.")
         return {"ok": False, "changed": [], "error": str(exc)}

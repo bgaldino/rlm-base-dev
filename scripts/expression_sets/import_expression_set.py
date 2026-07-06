@@ -138,6 +138,10 @@ def main(argv=None) -> int:
     activate_after = not args.no_activate
     cascade = not args.no_cascade
     preserve_labels = not args.no_preserve_labels
+    # Default = nothing to restore (preview, create, --no-preserve-labels,
+    # --no-activate, or an empty restore map all leave this untouched → ok). A
+    # performed REPLACE restore overwrites it; its `ok` gates the exit code below.
+    restore_result = {"ok": True, "changed": [], "error": None}
     transport = Transport(
         target_org=args.target_org, api_version=args.api_version,
         dry_run=preview, logger=eprint,
@@ -207,8 +211,10 @@ def main(argv=None) -> int:
             )
             # Restore clobbered labels (second lifecycle cycle). Only when the
             # version was reactivated — a relabel needs its own deactivate window.
+            # A restore failure is non-fatal (the replace already applied) but is
+            # surfaced at the CLI boundary (exit code + JSON) below.
             if preserve_labels and restore_map and activate_after:
-                restore_labels_after_clobber(
+                restore_result = restore_labels_after_clobber(
                     engine, es_id=es_id, es_def_id=es_def_id,
                     version_api_name=version_api_name_live,
                     name_to_label=restore_map, cascade=cascade,
@@ -248,13 +254,20 @@ def main(argv=None) -> int:
         eprint(f"\nFAILED: {exc}")
         return 1
 
+    restore_ok = restore_result.get("ok", True)
+    result["labelRestore"] = restore_result
     if preview:
         eprint("\n[preview] No mutation performed. Re-run with --confirm to apply.")
-    else:
+    elif restore_ok:
         eprint(f"\nImport complete for '{api_name}'.")
+    else:
+        eprint(f"\nImport applied for '{api_name}', but step-label RESTORE FAILED "
+               f"({restore_result.get('error')}). The set is live; only the readable "
+               f"labels are stale. Re-run relabel_expression_set.py "
+               f"--expression-set {api_name} to restore them.")
     if args.json:
         print(json.dumps(result, indent=2))
-    return 0
+    return 0 if restore_ok else 1
 
 
 if __name__ == "__main__":

@@ -185,10 +185,20 @@ to a leaf-ish step or use the full `deps` view with a renderer that pans/zooms.
   `--confirm` IS the preview.
 - **Never mutate a shipped procedure** (Quick Rule 8). Import/overlay/activate/
   delete only against a disposable clone (POST-create a renamed copy first).
-- **A failed PATCH is not atomic.** The lifecycle engine leaves the version
-  DEACTIVATED and re-raises rather than reactivating a half-mutated definition.
-  Re-enable it with `activate_expression_set.py --activate` once you've inspected
-  and restored it.
+- **A failed Connect PATCH is not atomic.** The lifecycle engine leaves the
+  version DEACTIVATED and re-raises rather than reactivating a half-mutated
+  definition. Re-enable it with `activate_expression_set.py --activate` once
+  you've inspected and restored it. **A failed label-only Tooling `Metadata`
+  PATCH (the relabel path) is different** — it never touches the definition
+  graph, so the stored Metadata is byte-identical after a failure and only the
+  cosmetic labels are stale. That path therefore **reactivates** the version even
+  on failure (`run_mutation(reactivate_on_failure=True)`), so a cosmetic relabel
+  error never knocks a live procedure offline; the error is still reported.
+- **Default reactivation.** Every mutator defaults to `activate_after=True`, so
+  applying/importing/relabeling reactivates the version on success. If you are
+  operating on an **intentionally inactive** version, pass `--no-activate` or it
+  will be switched on. (`--no-activate` also skips the post-PATCH label restore,
+  since a relabel needs its own deactivate→reactivate window.)
 - **Labels are Connect-clobbered — and auto-restored.** Step labels live only in the
   Tooling `Metadata`; every Connect PATCH (`import` / `apply_expression_set_overlay`)
   rebuilds them from the spaceless `name`. Both mutators now **capture** the readable
@@ -197,11 +207,13 @@ to a leaf-ish step or use the full `deps` view with a renderer that pans/zooms.
   This covers two step populations: **survivors** (restored from the pre-PATCH
   target-org snapshot — a renamed/added step simply won't match, which is correct) and
   **new steps** (labeled from the overlay's own `labels` block / per-step `label`, so a
-  sliced step exported `--with-labels` lands readable). Restore is **non-fatal**: the
-  Connect mutation already succeeded, so a restore failure is reported (with a
-  `relabel_expression_set.py` fix hint), never raised. It runs only when the version is
-  reactivated (`activate_after`) — a relabel needs its own deactivate window; with
-  `--no-activate` the labels are left for a manual relabel. The authoritative
+  sliced step exported `--with-labels` lands readable). Restore is **non-fatal but
+  surfaced**: the Connect mutation already succeeded, so a restore failure is never
+  raised — but the mutator **exits non-zero** and emits `labelRestore.ok=false` in its
+  `--json` summary (with a `relabel_expression_set.py` fix hint), so an operator/CI
+  never reads plain success over a version whose labels are stale. It runs only when the
+  version is reactivated (`activate_after`) — a relabel needs its own deactivate window;
+  with `--no-activate` the labels are left for a manual relabel. The authoritative
   `{name: label}` map is source-controlled in
   `force-app/main/default/expressionSetDefinition/*.expressionSetDefinition-meta.xml`
   — feed it to `relabel_expression_set.py --from-metadata` for a bulk manual fix.

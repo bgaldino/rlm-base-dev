@@ -268,12 +268,24 @@ class LifecycleEngine:
         activate_after: bool,
         cascade: bool,
         verb: str = "mutation",
+        reactivate_on_failure: bool = False,
     ) -> None:
         """Run the safety-critical deactivate→mutate→reactivate lifecycle.
 
         ``mutate`` is the verb-specific body (it runs while the version is
         deactivated). Re-raises the original failure (chaining a reactivation
         failure onto it when both happen).
+
+        ``reactivate_on_failure`` relaxes the "leave a failed mutation DEACTIVATED"
+        rule for **non-corrupting** mutations. That rule exists because a failed
+        Connect full-graph PATCH can leave a half-mutated, corrupt definition, and
+        re-enabling that is worse than leaving it offline. A **label-only Tooling
+        ``Metadata`` PATCH** (the relabel path) never touches the definition graph —
+        the sObject update is atomic, so a failure leaves the stored Metadata
+        byte-identical and only the (cosmetic) labels are stale. For that case the
+        version is reactivated even when ``mutate`` failed, so a cosmetic relabel
+        failure never knocks a live procedure offline. The failure is still raised.
+        Default False preserves the strict Connect-PATCH safety.
         """
         esv_id = esv["Id"]
         was_active = bool(esv.get("IsActive"))
@@ -297,8 +309,18 @@ class LifecycleEngine:
         except Exception as exc:
             failure = exc
         finally:
-            should_activate = activate_after and (mutate_succeeded or self.dry_run)
+            should_activate = activate_after and (
+                mutate_succeeded
+                or self.dry_run
+                or (reactivate_on_failure and deactivated)
+            )
             if should_activate:
+                if failure and not (mutate_succeeded or self.dry_run):
+                    self.log(
+                        f"{verb} failed, but it is a non-corrupting (label-only) "
+                        f"mutation, so reactivating ExpressionSetVersion {esv_id} "
+                        f"rather than leaving it offline. The failure is still reported."
+                    )
                 try:
                     self.set_version_active(esv_id, True)
                     self.wait_for_version_state(esv_id, True)

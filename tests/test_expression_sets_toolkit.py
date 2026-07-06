@@ -19,6 +19,7 @@ Exit: 0 = all pass, 1 = one or more failures.
 
 import json
 import sys
+import tempfile
 from copy import deepcopy
 from pathlib import Path
 
@@ -549,12 +550,14 @@ class _StatefulTransport:
     """
 
     def __init__(self, *, esdv_id="9QBx", version_api_name="TEST_V1",
-                 metadata=None, is_active=True, raise_on_patch=False):
+                 metadata=None, is_active=True, raise_on_patch=False,
+                 persist_patch=True):
         self.esdv_id = esdv_id
         self.version_api_name = version_api_name
         self.metadata = metadata if metadata is not None else _sample_metadata()
         self.is_active = is_active
         self.raise_on_patch = raise_on_patch
+        self.persist_patch = persist_patch
         self.dry_run = False
         self.logger = lambda *a, **k: None
         self.patched_metadata_count = 0
@@ -574,7 +577,8 @@ class _StatefulTransport:
                 if self.raise_on_patch:
                     from scripts.expression_sets._tooling import ToolingError
                     raise ToolingError("metadata patch boom")
-                self.metadata = (body or {}).get("Metadata", self.metadata)
+                if self.persist_patch:
+                    self.metadata = (body or {}).get("Metadata", self.metadata)
                 self.patched_metadata_count += 1
                 return {}
         return {}
@@ -684,6 +688,57 @@ def test_label_preservation():
     check("relabel_version left version reactivated", t2.is_active is True, t2.is_active)
     check("relabel_version persisted the label",
           step_labels(t2.metadata)["ApplyHeaderPriceOverride"] == "Apply Header Price Override")
+    # A PATCH that returns success but fails verification must raise a toolkit error
+    # the CLI catches, not a bare RuntimeError traceback.
+    t2verify = _StatefulTransport(metadata=_sample_metadata(), is_active=True,
+                                  persist_patch=False)
+    engine2verify = LifecycleEngine(t2verify, logger=lambda *a, **k: None)
+    try:
+        relabel_version(
+            engine2verify, es_def_id="9QAx",
+            esv={"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True},
+            name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+        )
+        check("relabel_version verification failure raises", False)
+    except Exception as exc:
+        check("relabel_version verification failure raises ToolingError",
+              exc.__class__.__name__ == "ToolingError", exc)
+    check("relabel_version reactivates after verification failure",
+          t2verify.is_active is True, t2verify.is_active)
+    # A relabel is a label-only Tooling Metadata PATCH — non-corrupting. When the
+    # PATCH FAILS the version must still be REACTIVATED (a cosmetic relabel failure
+    # must never take a live procedure offline), and the failure must still raise.
+    t2b = _StatefulTransport(metadata=_sample_metadata(), is_active=True,
+                             raise_on_patch=True)
+    engine2b = LifecycleEngine(t2b, logger=lambda *a, **k: None)
+    raised2b = False
+    try:
+        relabel_version(
+            engine2b, es_def_id="9QAx",
+            esv={"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True},
+            name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+        )
+    except Exception:
+        raised2b = True
+    check("relabel_version reactivates version even on PATCH failure",
+          t2b.is_active is True, t2b.is_active)
+    check("relabel_version still raises on PATCH failure", raised2b)
+    # ...but a version that started INACTIVE (we never deactivated it) must NOT be
+    # spuriously activated by a failed relabel — reactivate-on-failure only restores
+    # versions this engine took down.
+    t2c = _StatefulTransport(metadata=_sample_metadata(), is_active=False,
+                             raise_on_patch=True)
+    engine2c = LifecycleEngine(t2c, logger=lambda *a, **k: None)
+    try:
+        relabel_version(
+            engine2c, es_def_id="9QAx",
+            esv={"Id": "9QMv", "ApiName": "TEST_V1", "IsActive": False},
+            name_to_label={"ApplyHeaderPriceOverride": "Apply Header Price Override"},
+        )
+    except Exception:
+        pass
+    check("relabel_version does NOT activate an already-inactive version on failure",
+          t2c.is_active is False, t2c.is_active)
     # A name matching no step is a silent no-op (safe for auto-restore).
     t3 = _StatefulTransport(metadata=_sample_metadata())
     engine3 = LifecycleEngine(t3, logger=lambda *a, **k: None)
@@ -702,6 +757,7 @@ def test_label_preservation():
     )
     check("restore reports ok", r4["ok"] is True, r4)
     check("restore lists changed step", r4["changed"] == ["ApplyHeaderPriceOverride"], r4)
+    check("restore leaves version ACTIVE on success", t4.is_active is True, t4.is_active)
     # Empty map / no version → silent success, nothing written.
     t5 = _StatefulTransport()
     engine5 = LifecycleEngine(t5, logger=lambda *a, **k: None)
@@ -711,8 +767,13 @@ def test_label_preservation():
     check("restore empty map writes nothing", t5.patched_metadata_count == 0)
     # A Tooling PATCH failure must NOT raise — the Connect mutation already
     # succeeded, so restore reports ok=False and logs how to fix, never throws.
+    # CRUCIALLY it must also leave the version REACTIVATED: a cosmetic label PATCH
+    # is non-corrupting, so a restore failure must not leave a live procedure
+    # offline (regression guard for the "silent success can leave a version
+    # deactivated" bug — the caller keys its exit code off ok=False too).
     logs6 = []
-    t6 = _StatefulTransport(metadata=_sample_metadata(), raise_on_patch=True)
+    t6 = _StatefulTransport(metadata=_sample_metadata(), raise_on_patch=True,
+                            is_active=True)
     engine6 = LifecycleEngine(t6, logger=lambda *a, **k: None)
     r6 = restore_labels_after_clobber(
         engine6, es_id="9QLx", es_def_id="9QAx", version_api_name="TEST_V1",
@@ -720,8 +781,193 @@ def test_label_preservation():
         logger=logs6.append,
     )
     check("restore swallows PATCH failure (ok=False, no raise)", r6["ok"] is False, r6)
+    check("restore surfaces the error string", bool(r6.get("error")), r6)
+    check("restore leaves version ACTIVE after a failed label PATCH",
+          t6.is_active is True, t6.is_active)
     check("restore logs a fix hint on failure",
           any("relabel_expression_set.py" in m for m in logs6), logs6)
+
+
+# --------------------------------------------------------------------------- #
+# CLI boundary — a FAILED label restore must be surfaced (exit code + JSON)
+# --------------------------------------------------------------------------- #
+
+class _FakeEngine:
+    """A no-op LifecycleEngine stand-in so a mutator's main() can run its
+    orchestration without an org. run_mutation does nothing (it is the real
+    Connect PATCH the test isn't exercising), so this isolates the ONE thing
+    under test: the post-mutation label-restore wiring at the CLI boundary."""
+
+    def __init__(self, *a, **k):
+        self.log = lambda *a, **k: None
+
+    def get_definition(self, es_id):
+        return {"versions": [{"apiName": "TEST_V1", "steps": [], "variables": []}]}
+
+    def ensure_resource_initialization_type(self, *a, **k):
+        return None
+
+    def run_mutation(self, *a, **k):
+        return None
+
+    def patch_definition(self, *a, **k):
+        return {}
+
+    def post_definition(self, *a, **k):
+        return {"id": "9QLx"}
+
+
+def _patch(module, **names):
+    """Temporarily set module attributes; returns a restore() callable."""
+    saved = {k: getattr(module, k) for k in names}
+    for k, v in names.items():
+        setattr(module, k, v)
+    return lambda: [setattr(module, k, v) for k, v in saved.items()]
+
+
+def _passing_validation():
+    from scripts.expression_sets._schema import ValidationResult
+    return ValidationResult()
+
+
+def test_cli_restore_boundary():
+    """A failed label restore must exit non-zero (and surface labelRestore) — never
+    print plain success over a version whose labels are stale. End-to-end guard for
+    the "silent success can leave a version deactivated" wiring in both mutators."""
+    print("test_cli_restore_boundary")
+    import scripts.expression_sets.apply_expression_set_overlay as apply_mod
+    import scripts.expression_sets.import_expression_set as import_mod
+
+    fail_restore = lambda *a, **k: {"ok": False, "changed": [], "error": "patch boom"}
+    ok_restore = lambda *a, **k: {"ok": True, "changed": ["S"], "error": None}
+
+    class _EmptyPostPatchEngine:
+        def get_definition(self, es_id):
+            return {"versions": []}
+
+    try:
+        apply_mod._verify(_EmptyPostPatchEngine(), "9QLx", {}, None)
+        check("apply _verify empty versions raises", False)
+    except Exception as exc:
+        check("apply _verify empty versions raises LifecycleError",
+              exc.__class__.__name__ == "LifecycleError", exc)
+
+    with tempfile.TemporaryDirectory() as td:
+        overlay_path = Path(td) / "ov.json"
+        overlay_path.write_text(json.dumps(
+            {"addSteps": [{"name": "S", "stepType": "BusinessKnowledgeModel"}]}))
+        import_path = Path(td) / "imp.json"
+        import_path.write_text(json.dumps(
+            {"apiName": "TEST", "versions": [{"apiName": "TEST_V1", "steps": [],
+                                              "variables": []}]}))
+
+        # ---- apply_expression_set_overlay -------------------------------
+        undo = _patch(
+            apply_mod,
+            LifecycleEngine=_FakeEngine,
+            Transport=lambda **k: None,
+            resolve_expression_set_id=lambda *a, **k: "9QLx",
+            resolve_definition_id=lambda *a, **k: "9QAx",
+            resolve_version_by_es_id=lambda *a, **k: {
+                "Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
+            validate_overlay_against_definition=lambda *a, **k: _passing_validation(),
+            apply_overlay=lambda *a, **k: {
+                "versions": [{"apiName": "TEST_V1", "steps": [], "variables": []}]},
+            validate_definition=lambda *a, **k: _passing_validation(),
+            normalize_html_entities=lambda p, **k: p,
+            strip_readonly_fields=lambda p, **k: p,
+            capture_labels=lambda *a, **k: {"GetPrice": "Get Price"},
+        )
+        try:
+            u = _patch(apply_mod, restore_labels_after_clobber=fail_restore)
+            rc = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
+                                 "--overlay", str(overlay_path), "--confirm"])
+            u()
+            check("apply: failed restore → exit 1", rc == 1, rc)
+
+            u = _patch(apply_mod, restore_labels_after_clobber=ok_restore)
+            rc_ok = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
+                                    "--overlay", str(overlay_path), "--confirm"])
+            u()
+            check("apply: successful restore → exit 0", rc_ok == 0, rc_ok)
+
+            u = _patch(apply_mod, restore_labels_after_clobber=fail_restore)
+            rc_np = apply_mod.main(["--target-org", "x", "--expression-set", "TEST",
+                                    "--overlay", str(overlay_path), "--confirm",
+                                    "--no-preserve-labels"])
+            u()
+            check("apply: --no-preserve-labels → exit 0 (no restore attempted)",
+                  rc_np == 0, rc_np)
+        finally:
+            undo()
+
+        # ---- import_expression_set (replace path) -----------------------
+        undo = _patch(
+            import_mod,
+            LifecycleEngine=_FakeEngine,
+            Transport=lambda **k: None,
+            resolve_expression_set_id=lambda *a, **k: "9QLx",
+            resolve_definition_id=lambda *a, **k: "9QAx",  # found → replace mode
+            resolve_version_by_es_id=lambda *a, **k: {
+                "Id": "9QMv", "ApiName": "TEST_V1", "IsActive": True, "VersionNumber": 1},
+            validate_definition=lambda *a, **k: _passing_validation(),
+            capture_labels=lambda *a, **k: {"GetPrice": "Get Price"},
+            strip_readonly_fields=lambda p, **k: p,
+            rewrite_version_id=lambda p, vid: p,
+            normalize_html_entities=lambda p, **k: p,
+        )
+        try:
+            u = _patch(import_mod, restore_labels_after_clobber=fail_restore)
+            rc = import_mod.main(["--target-org", "x", "--input-file",
+                                  str(import_path), "--confirm"])
+            u()
+            check("import: failed restore → exit 1", rc == 1, rc)
+
+            u = _patch(import_mod, restore_labels_after_clobber=ok_restore)
+            rc_ok = import_mod.main(["--target-org", "x", "--input-file",
+                                     str(import_path), "--confirm"])
+            u()
+            check("import: successful restore → exit 0", rc_ok == 0, rc_ok)
+        finally:
+            undo()
+
+
+def test_export_overlay_with_labels():
+    """export_expression_set_overlay --with-labels joins the sliced steps' readable
+    labels (Tooling-only) into a top-level 'labels' block, keeping ONLY the sliced
+    steps' labels — the label-capture output path (previously untested)."""
+    print("test_export_overlay_with_labels")
+    import scripts.expression_sets.export_expression_set_overlay as exp_mod
+
+    defn = _sample_definition()
+    defn["versions"][0]["versionNumber"] = 1
+    # The org carries readable labels for several steps; only the SLICED one should
+    # ride into the overlay's labels block.
+    all_labels = {"GetPrice": "Get Price", "ApplyMarkup": "Apply Markup",
+                  "DeadStep": "Dead Step"}
+
+    with tempfile.TemporaryDirectory() as td:
+        out_path = Path(td) / "ov.json"
+        undo = _patch(
+            exp_mod,
+            resolve_expression_set_id=lambda *a, **k: "9QLx",
+            resolve_definition_id_by_es_id=lambda *a, **k: "9QAx",
+            fetch_definition=lambda *a, **k: defn,
+            Transport=lambda **k: None,
+            capture_labels=lambda *a, **k: dict(all_labels),
+        )
+        try:
+            rc = exp_mod.main([
+                "--target-org", "x", "--developer-name", "TEST_Proc",
+                "--step", "GetPrice", "--with-labels", "--out", str(out_path)])
+        finally:
+            undo()
+        check("export --with-labels exits 0", rc == 0, rc)
+        written = json.loads(out_path.read_text())
+        check("export --with-labels emits a labels block",
+              written.get("labels") == {"GetPrice": "Get Price"}, written.get("labels"))
+        check("export --with-labels drops non-sliced steps' labels",
+              "ApplyMarkup" not in written.get("labels", {}), written.get("labels"))
 
 
 # --------------------------------------------------------------------------- #
@@ -742,7 +988,8 @@ def test_shipped_fixtures():
 
 def main():
     for fn in (test_graph, test_payload, test_overlay, test_tooling,
-               test_label_preservation, test_build_overlay, test_mermaid,
+               test_label_preservation, test_cli_restore_boundary,
+               test_export_overlay_with_labels, test_build_overlay, test_mermaid,
                test_shipped_fixtures):
         fn()
     print(f"\n{_PASS} passed, {_FAIL} failed.")
