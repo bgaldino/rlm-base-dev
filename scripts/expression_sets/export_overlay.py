@@ -27,14 +27,14 @@ Usage
 -----
     # slice one step into an overlay, placed after another step
     python scripts/expression_sets/export_overlay.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure \
         --step "Apply Discount" --after "Get List Price" \
         --out /tmp/apply_discount.overlay.json
 
     # slice several steps, keep source sequence, print to stdout
     python scripts/expression_sets/export_overlay.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure \
         --step "Step A" --step "Step B"
 """
@@ -144,7 +144,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__july4_ctxPilot) — NOT the CCI alias.",
+        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
     )
     ident = parser.add_mutually_exclusive_group(required=True)
     ident.add_argument("--developer-name", help="ExpressionSetDefinition DeveloperName.")

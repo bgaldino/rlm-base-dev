@@ -23,13 +23,13 @@ Usage
 -----
     # faithful snapshot to a file
     python scripts/expression_sets/export_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure \
         --out /tmp/pricing.json
 
     # import-ready (stripped + HTML-unescaped) to stdout
     python scripts/expression_sets/export_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --for-import
 """
 
@@ -74,7 +74,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__july4_ctxPilot) — NOT the CCI alias.",
+        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
     )
     ident = parser.add_mutually_exclusive_group(required=True)
     ident.add_argument("--developer-name",

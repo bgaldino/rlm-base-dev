@@ -5,7 +5,7 @@ discovery / rating / qualification procedures and constraint rules). It covers
 the whole lifecycle — inspect, export, trace, diff, and the guarded
 create/replace/overlay/activate/delete mutators — on the ``sf`` CLI transport,
 so **no access token is ever handled or passed** (``--target-org`` is the *SF
-CLI* alias, e.g. ``rlm-base__july4_ctxPilot``, never the CCI alias).
+CLI* alias, e.g. ``rlm-base__beta``, never the CCI alias).
 
 INDEPENDENT of the CCI tasks. This package imports **nothing** from ``tasks/``
 and nothing under ``tasks/`` imports from it. The CCI task

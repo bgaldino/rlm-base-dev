@@ -8,7 +8,7 @@ qualification procedures and constraint rules. It covers the whole lifecycle:
 
 Auth is delegated to the **`sf` CLI** (`sf api request rest --target-org …`), so
 **no access token is ever handled or passed**. `--target-org` is always the
-**SF CLI alias** (e.g. `rlm-base__july4_ctxPilot`), **never** the CCI alias.
+**SF CLI alias** (e.g. `rlm-base__beta`), **never** the CCI alias.
 Pinned to Release 262 / API v67.0.
 
 Full guidance lives in the **expression-sets skill**:
@@ -82,7 +82,7 @@ shipped-fixture validator parity. Run:
 ## Quick start — export → trace → slice → apply-to-clone
 
 ```bash
-ORG=rlm-base__july4_ctxPilot
+ORG=rlm-base__beta
 
 # 1. See what's in the org, grouped by Revenue Cloud type.
 python scripts/expression_sets/list_expression_sets.py --target-org $ORG

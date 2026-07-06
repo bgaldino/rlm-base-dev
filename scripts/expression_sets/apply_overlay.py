@@ -32,12 +32,12 @@ Usage
 -----
     # preview the merge (no mutation)
     python scripts/expression_sets/apply_overlay.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --expression-set RLM_MyClone --overlay /tmp/add_step.overlay.json
 
     # apply
     python scripts/expression_sets/apply_overlay.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --expression-set RLM_MyClone --overlay /tmp/add_step.overlay.json --confirm
 """
 
@@ -87,7 +87,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__july4_ctxPilot) — NOT the CCI alias.",
+        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
     )
     parser.add_argument("--overlay", required=True, help="Overlay JSON file.")
     parser.add_argument("--expression-set", dest="es_api_name",

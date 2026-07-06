@@ -26,15 +26,15 @@ Usage
 -----
     # deactivate (preview, then confirm)
     python scripts/expression_sets/activate_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --expression-set RLM_MyClone --deactivate
     python scripts/expression_sets/activate_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --expression-set RLM_MyClone --deactivate --confirm
 
     # reactivate a version left off by a failed apply
     python scripts/expression_sets/activate_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --expression-set RLM_MyClone --activate --confirm
 """
 
@@ -66,7 +66,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__july4_ctxPilot) — NOT the CCI alias.",
+        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
     )
     parser.add_argument("--expression-set", dest="es_api_name", required=True,
                         help="ExpressionSetDefinition DeveloperName.")

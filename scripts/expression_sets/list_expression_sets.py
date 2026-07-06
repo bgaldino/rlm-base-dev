@@ -9,23 +9,23 @@ Surfaces the Revenue Cloud **type taxonomy** for every expression set: the
 procedure is this, and which version is live?".
 
 Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens are handled
-here. ``--target-org`` is the *SF CLI* alias (e.g. ``rlm-base__july4_ctxPilot``),
+here. ``--target-org`` is the *SF CLI* alias (e.g. ``rlm-base__beta``),
 never the CCI alias. Read-only: never mutates. Pinned to Release 262 / v67.0.
 
 Usage
 -----
     # every expression set, grouped by interfaceSourceType
     python scripts/expression_sets/list_expression_sets.py \
-        --target-org rlm-base__july4_ctxPilot
+        --target-org rlm-base__beta
 
     # one set, with its full version list (active first)
     python scripts/expression_sets/list_expression_sets.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --versions
 
     # only pricing procedures, as JSON
     python scripts/expression_sets/list_expression_sets.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --type PricingProcedure --json
 """
 
@@ -83,7 +83,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__july4_ctxPilot) — NOT the CCI alias.",
+        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
     )
     parser.add_argument(
         "--developer-name",

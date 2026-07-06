@@ -20,12 +20,12 @@ Pinned to Release 262 / v67.0.
 Usage
 -----
     python scripts/expression_sets/describe_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure
 
     # with full parameter detail per step
     python scripts/expression_sets/describe_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --params
 """
 
@@ -134,7 +134,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__july4_ctxPilot) — NOT the CCI alias.",
+        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
     )
     ident = parser.add_mutually_exclusive_group(required=True)
     ident.add_argument("--developer-name", help="ExpressionSetDefinition DeveloperName.")

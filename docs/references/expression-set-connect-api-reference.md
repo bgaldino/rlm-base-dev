@@ -188,10 +188,10 @@ enums the validator enforces.
 
 ### Revenue Cloud `interfaceSourceType` taxonomy
 
-Grounded against the live org
-(`SELECT InterfaceSourceType, UsageType, COUNT(Id) FROM ExpressionSet GROUP BY …`,
-verified on `rlm-base__july4_ctxPilot`, Release 262) and the dev-guide/Help
-snapshots. Only the first six are Revenue Cloud.
+Grounded against a live RLM org
+(`SELECT InterfaceSourceType, UsageType, COUNT(Id) FROM ExpressionSet GROUP BY …`
+on Release 262) and the dev-guide/Help snapshots. Only the first six are
+Revenue Cloud.
 
 | `interfaceSourceType` | Live `usageType` | Purpose | Shipped RC example(s) | Authoring model |
 |---|---|---|---|---|
@@ -202,8 +202,8 @@ snapshots. Only the first six are Revenue Cloud.
 | `QualificationProcedure` | `ProductQualification` | Product (dis)qualification / eligibility gating | `RLM_ProductDiscoveryQualificationProcedure` | Step graph |
 | `Constraint` | `Constraint` | Product Configurator constraint rules (GA 262) | *(constraint models, not `expressionSetDefinition` step XML)* | **CML** (not a step graph) |
 
-**`Constraint` is CML-based.** It surfaces in the same `ExpressionSet` enum (4
-live in the pilot org) but is authored in Constraint Modeling Language via the
+**`Constraint` is CML-based.** It surfaces in the same `ExpressionSet` enum but
+is authored in Constraint Modeling Language via the
 Configurator Constraint Builder / CML editor — the `steps[]`/`parentStep` model
 and Connect-overlay tooling documented here **do not apply** to it. See the
 `cml_*` dev-guide articles and the Configurator Help suite. Deep CML coverage is

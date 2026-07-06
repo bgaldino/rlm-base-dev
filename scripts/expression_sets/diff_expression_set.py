@@ -24,12 +24,12 @@ Usage
     # org vs org (same developer name in two orgs)
     python scripts/expression_sets/diff_expression_set.py \
         --developer-name RLM_DefaultPricingProcedure \
-        --target-org rlm-base__source --right-org rlm-base__july4_ctxPilot
+        --target-org rlm-base__A --right-org rlm-base__B
 
     # live org vs an exported snapshot
     python scripts/expression_sets/diff_expression_set.py \
         --developer-name RLM_DefaultPricingProcedure \
-        --target-org rlm-base__july4_ctxPilot --right-file /tmp/pricing.json
+        --target-org rlm-base__beta --right-file /tmp/pricing.json
 
     # two files
     python scripts/expression_sets/diff_expression_set.py \

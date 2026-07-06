@@ -52,7 +52,7 @@ Release 262 dev-guide/Help snapshots:
 > Language) via the Configurator Constraint Builder / CML editor, not as a flat
 > `steps[]` graph. The Connect-overlay tooling and `steps[]`/`parentStep` model
 > in this skill **do not apply** to Constraint sets. They surface in the same
-> `ExpressionSet`/`interfaceSourceType` enum (4 live in the pilot org), so they
+> `ExpressionSet`/`interfaceSourceType` enum, so they
 > are listed here for completeness; deep CML authoring guidance is **deferred to
 > future work** (see the CML docs under `docs/salesforce/262/dev-guide/` —
 > `cml_*` articles — and the Configurator Help suite).
@@ -157,7 +157,7 @@ using the standalone toolkit (`--target-org` is the *SF CLI* alias, never the CC
 alias):
 
 ```bash
-ORG=rlm-base__july4_ctxPilot
+ORG=rlm-base__beta
 
 # 1. What's in the org, grouped by Revenue Cloud type.
 python scripts/expression_sets/list_expression_sets.py --target-org $ORG

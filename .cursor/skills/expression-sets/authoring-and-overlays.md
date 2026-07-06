@@ -24,7 +24,7 @@ declared by **anchor**, not numeric sequence:
   "versionApiName": "RLM_DefaultPricingProcedure_V1",
   "addSteps": [
     { "name": "MyStep", "stepType": "BusinessKnowledgeModel",
-      "placement": { "afterStep": "Mapcontexttagstocommonpricingvariables" },
+      "placement": { "afterStep": "Get List Price" },
       "customElement": { "parameters": [ /* … */ ] } }
   ]
 }

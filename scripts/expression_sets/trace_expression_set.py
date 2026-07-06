@@ -39,22 +39,22 @@ Usage
 -----
     # who produces / consumes a variable — the safe-removal view
     python scripts/expression_sets/trace_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --variable NetUnitPrice
 
     # a step's full dependency closure with scopes — what export_overlay uses
     python scripts/expression_sets/trace_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --step "Apply Discount"
 
     # reverse: every step that references a field/token
     python scripts/expression_sets/trace_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --field RLM_RampMode__c
 
     # orphans: consumed-with-no-producer (removal danger), dead outputs, undeclared __c
     python scripts/expression_sets/trace_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --orphans
 """
 
@@ -191,7 +191,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__july4_ctxPilot) — NOT the CCI alias.",
+        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
     )
     ident = parser.add_mutually_exclusive_group(required=True)
     ident.add_argument("--developer-name", help="ExpressionSetDefinition DeveloperName.")

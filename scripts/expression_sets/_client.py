@@ -8,7 +8,7 @@ through ``sf api request rest '<path>' -X <METHOD> [-b -] --target-org <alias>``
 which authenticates with the CLI's stored credentials.
 
 ``--target-org`` is always the *SF CLI* alias/username (e.g.
-``rlm-base__july4_ctxPilot``), NEVER the CCI alias — there is no token on any
+``rlm-base__beta``), NEVER the CCI alias — there is no token on any
 command line and no CCI-vs-SF alias ambiguity.
 
 The BRE Expression Set Connect resource is ``connect/business-rules/
@@ -179,7 +179,7 @@ def connect_request(
             f"sf api request {method} '{path}' failed for org '{target_org}'"
             f"{code_note}:\n{detail}\n\n"
             f"Confirm the SF CLI alias is correct (this is the *sf* alias, e.g. "
-            f"'rlm-base__july4_ctxPilot', not the CCI alias) and that you are "
+            f"'rlm-base__beta', not the CCI alias) and that you are "
             f"authenticated (`sf org login web --alias {target_org}`).",
             error_codes=error_codes,
             body=stdout,

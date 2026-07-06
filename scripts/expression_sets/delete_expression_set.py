@@ -29,15 +29,15 @@ Usage
 -----
     # preview deleting a whole clone
     python scripts/expression_sets/delete_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot --expression-set RLM_MyClone
+        --target-org rlm-base__beta --expression-set RLM_MyClone
 
     # actually delete it
     python scripts/expression_sets/delete_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot --expression-set RLM_MyClone --confirm
+        --target-org rlm-base__beta --expression-set RLM_MyClone --confirm
 
     # delete one old version, keep the set
     python scripts/expression_sets/delete_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot \
+        --target-org rlm-base__beta \
         --expression-set RLM_MyClone --version RLM_MyClone_V1 --confirm
 """
 
@@ -69,7 +69,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__july4_ctxPilot) — NOT the CCI alias.",
+        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
     )
     parser.add_argument("--expression-set", dest="es_api_name", required=True,
                         help="ExpressionSetDefinition DeveloperName.")

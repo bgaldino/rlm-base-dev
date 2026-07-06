@@ -33,11 +33,11 @@ Usage
 -----
     # preview (no mutation)
     python scripts/expression_sets/import_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot --input-file /tmp/clone.json
+        --target-org rlm-base__beta --input-file /tmp/clone.json
 
     # apply
     python scripts/expression_sets/import_expression_set.py \
-        --target-org rlm-base__july4_ctxPilot --input-file /tmp/clone.json --confirm
+        --target-org rlm-base__beta --input-file /tmp/clone.json --confirm
 """
 
 import argparse
@@ -83,7 +83,7 @@ def main(argv=None) -> int:
     )
     parser.add_argument(
         "--target-org", required=True,
-        help="SF CLI alias/username (e.g. rlm-base__july4_ctxPilot) — NOT the CCI alias.",
+        help="SF CLI alias/username (e.g. rlm-base__beta) — NOT the CCI alias.",
     )
     parser.add_argument("--input-file", required=True,
                         help="Definition JSON (the shape export_expression_set.py writes).")
