@@ -44,7 +44,7 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | ProductSellingModel | `Name;SellingModelType` | Readonly | From qb-pcm |
 | AttributeDefinition | `Code` | Readonly | From qb-pcm |
 | Product2 | `StockKeepingUnit` | Readonly | From qb-pcm |
-| CostBook | `Name;IsDefault` | Upsert | |
+| CostBook | `Name` | Upsert | |
 | Pricebook2 | `Name;IsStandard` | Upsert | |
 | PriceAdjustmentTier | 9-field composite | **Insert** | Bug 3: relationship traversal externalId |
 | PriceAdjustmentSchedule | `Name;CurrencyIsoCode` | Update | |
@@ -53,8 +53,8 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | AttributeBasedAdjustment | 5-field composite | **Insert** | Bug 3 |
 | BundleBasedAdjustment | 8-field composite | **Insert** | Bug 3 |
 | PricebookEntry | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | **Insert** | Bug 3 |
-| PricebookEntryDerivedPrice | 8-field composite | **Insert** | Bug 2+3 |
-| CostBookEntry | 3-field composite | **Insert** | Excluded (0 records) |
+| PricebookEntryDerivedPrice | 7-field composite | **Insert** | Bug 2+3 |
+| CostBookEntry | 3-field composite | **Insert** | 87 records loaded |
 
 ## qb-billing (3 passes)
 

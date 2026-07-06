@@ -129,7 +129,7 @@ Several objects use complex multi-field composite keys:
 | AttributeBasedAdjustment     | 5-field composite | Yes            |
 | BundleBasedAdjustment        | 8-field composite | Yes            |
 | PricebookEntry               | 3-field composite | Yes            |
-| PricebookEntryDerivedPrice   | 8-field composite | Yes            |
+| PricebookEntryDerivedPrice   | 7-field composite | Yes            |
 | CostBookEntry                | 3-field composite | Yes            |
 
 Nested `$$` columns are used for parent lookup resolution (e.g., `PriceAdjustmentSchedule.$$Name$CurrencyIsoCode$Pricebook2.Name`, `ProductSellingModel.$$Name$SellingModelType`).
@@ -286,7 +286,7 @@ All lookup targets are either included in the plan (as Upsert or Readonly) or ex
 | Pricebook2             | This plan   | Upsert     |
 | PriceAdjustmentSchedule| This plan   | Update     |
 | AttributeBasedAdjRule  | This plan   | Upsert     |
-| PricebookEntry         | This plan   | Upsert     |
+| PricebookEntry         | This plan   | Insert     |
 | Contract               | N/A         | Filtered out via WHERE |
 
 ## External ID / Composite Key Analysis (Confirmed via Org Describe)
@@ -303,7 +303,7 @@ No pricing-specific objects have schema-enforced unique fields (`isUnique=true`)
 | AttributeAdjustmentCondition | **Yes**       | `ABR.Name;AttrDef.Code;Product.SKU`                   | ⚠️ Depends on ABR.Name (timestamp) |
 | AttributeBasedAdjustment     | **Yes**       | `ABR.Name;PAS.Name;Product.SKU;PSM.Name;Currency`     | ⚠️ Depends on ABR.Name (timestamp) |
 | BundleBasedAdjustment        | **Yes**       | 8-field composite                                       | ✅ Good — all parent refs |
-| PricebookEntryDerivedPrice   | **Yes**       | 8-field composite                                       | ✅ Good — all parent refs |
+| PricebookEntryDerivedPrice   | **Yes**       | 7-field composite                                       | ✅ Good — all parent refs |
 | CostBookEntry                | **Yes**       | `CostBook.Name;Product.SKU;CurrencyIsoCode`            | ✅ Good — all parent refs |
 
 ### Portability Issue: AttributeBasedAdjRule Name Cascade
@@ -331,7 +331,7 @@ This timestamp Name cascades to 2 dependent objects:
 | AttributeBasedAdjustment     | 5 fields | High | No — multi-dimensional adjustment targeting |
 | BundleBasedAdjustment        | **8** fields | **Very High** | No — bundle hierarchy requires all dimensions |
 | PricebookEntry               | 3 fields | Medium | No — PBE is Product+PSM+Currency |
-| PricebookEntryDerivedPrice   | **8** fields | **Very High** | Possible — contributing product may be enough to narrow |
+| PricebookEntryDerivedPrice   | **7** fields | **Very High** | Possible — contributing product may be enough to narrow |
 | CostBookEntry                | 3 fields | Medium | No |
 
 **PriceAdjustmentTier** has the most complex key (9 fields). Investigate whether `PriceAdjustmentSchedule.Name;LowerBound;TierType;CurrencyIsoCode` would be sufficient as a simpler unique combination.

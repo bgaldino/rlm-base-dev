@@ -50,7 +50,7 @@ createTaxEngine.apex -> Insert/Upsert all   ->   Activate TaxTreatment   activat
 
 **Note:** TaxTreatment and TaxPolicy use `skipExistingRecords: true` to avoid updating records that already exist. Product2 is Update-only (sets `TaxPolicyId`). The `create_tax_engine` Apex script creates TaxEngineProvider and TaxEngine via REST API before this SFDMU pass runs, so the SFDMU upsert of those objects acts as a safety net.
 
-**Note:** `export.json` declares `externalId: Name` for TaxTreatment (both passes). The `TaxTreatment.csv` still carries a `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column that does not match the declared `externalId` — match is by `Name` alone.
+**Note:** `export.json` declares `externalId: Name` for TaxTreatment (both passes). `TaxTreatment.csv` has no `$$` composite column — the header is a plain field list (`Name,Description,IsTaxable,LegalEntity.Name,ProductCode,Status,TaxCode,TaxEngine.TaxEngineName,TaxPolicy.Name`), consistent with matching by `Name` alone.
 
 ### Pass 2 — Activate and Set Defaults
 
@@ -102,7 +102,7 @@ All external IDs use portable fields:
 - `DeveloperName` for TaxEngineProvider
 - `TaxEngineName` for TaxEngine
 - `StockKeepingUnit` for Product2
-- `Name` for TaxTreatment (the CSV carries an unused `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column, but the declared `externalId` is `Name`)
+- `Name` for TaxTreatment (the CSV header is a plain field list, no `$$` composite column; the declared `externalId` is `Name`)
 
 No auto-numbered Name fields are used.
 
@@ -257,13 +257,13 @@ The missing fields fall into three categories:
 | LegalEntity      | `Name`                          | No            | No      | ✅ OK — human-readable, few records |
 | TaxEngineProvider| `DeveloperName`                 | N/A (CMDT-like)| No     | ✅ OK — standard pattern for metadata types |
 | TaxEngine        | `TaxEngineName`                 | N/A           | No      | ✅ OK — idLookup field |
-| TaxTreatment     | `Name`                          | No            | No      | ✅ OK — `export.json` declares `Name` (CSV carries an unused `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column) |
+| TaxTreatment     | `Name`                          | No            | No      | ✅ OK — `export.json` declares `Name`; CSV header has no `$$` composite column |
 | TaxPolicy        | `Name`                          | No            | No      | ✅ OK — human-readable, 1 record |
 | Product2         | `StockKeepingUnit`              | No*           | No*     | ✅ OK — platform-enforced unique when RLM enabled |
 
 ### Composite Key Complexity
 
-All declared externalIds are simple single-field keys. The `TaxTreatment.csv` retains a `$$Name$LegalEntity.Name$TaxPolicy.Name` composite column (intended to keep treatments unique across legal entities/policies), but `export.json` declares `externalId: Name`, so matching is by `Name` alone.
+All declared externalIds are simple single-field keys. `TaxTreatment.csv` has no `$$` composite column — the header is a plain field list, and `export.json` declares `externalId: Name`, so matching is by `Name` alone.
 
 ## Optimization Opportunities
 

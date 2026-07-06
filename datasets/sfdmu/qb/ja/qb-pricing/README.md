@@ -14,15 +14,20 @@
 
 ## Known gaps — DEFERRED to the ja-localization-optimization work
 
-These are surfaced by `python scripts/validate_sfdmu_v5_datasets.py` (which reports
-`qb/ja/qb-pricing` as FAIL) and are **expected** until the localization pass:
+`PriceAdjustmentTier.csv` and `PricebookEntry.csv` now carry the `$$…`
+composite key columns matching their declared `externalId`s (this gap is
+resolved — do not re-flag it). Two real divergences from `qb/en-US/qb-pricing`
+remain, both intentional per `export.json`:
 
-- `PriceAdjustmentTier.csv` — missing the `$$…` composite key column for its
-  composite `externalId` (breaks v5 re-import idempotency).
-- `PricebookEntry.csv` — missing the `$$Name$Product2.StockKeepingUnit$ProductSellingModel.Name$CurrencyIsoCode`
-  composite key column.
+- **`PricebookEntryDerivedPrice` is `excluded: true`** in this plan (en-US
+  loads it via `Insert`). Derived pricing is not yet localized for ja.
+- **`PriceAdjustmentTier` has `skipExistingRecords: true`** in this plan
+  (en-US does not set this flag). Re-runs will not overwrite existing tier
+  records in ja orgs.
 - Other rows/values may not yet mirror the en-US dataset's coverage.
 
 When the ja optimization is scheduled, bring this set to full parity with
-`qb/en-US/qb-pricing` and remove this notice. Until then, **validate against the
-en-US set**; ja failures here are known and tracked.
+`qb/en-US/qb-pricing` (in particular, un-exclude `PricebookEntryDerivedPrice`
+once derived pricing is localized) and remove this notice. Until then,
+**validate against the en-US set**; the two divergences above are known and
+tracked.

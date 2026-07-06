@@ -24,6 +24,11 @@ Run all QB data extract tasks (org → CSV). Use --org to specify source org.
 7. **task** `extract_qb_rates_data`
 8. **task** `extract_qb_transactionprocessingtypes_data`
 9. **task** `extract_qb_guidedselling_products_data`
+10. **task** `extract_qb_tax_data`  `when: project_config.project__custom__tax and project_config.project__custom__qb`
+11. **task** `extract_qb_billing_data`  `when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__qb`
+12. **task** `extract_qb_prm_data`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
+13. **task** `extract_qb_approvals_data`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
+14. **task** `extract_qb_prm_pricing_data`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
 
 ---
 
@@ -60,7 +65,7 @@ Run all QB data idempotency tests (load twice, assert no new records). Use --org
 8. **task** `test_qb_transactionprocessingtypes_idempotency`
 9. **task** `test_qb_guidedselling_products_idempotency`
 10. **task** `test_qb_tax_idempotency`  `when: project_config.project__custom__tax and project_config.project__custom__qb`
-11. **task** `test_qb_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__qb`
+11. **task** `test_qb_billing_idempotency`  `when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__qb`
 12. **task** `test_qb_prm_idempotency`  `when: project_config.project__custom__prm and project_config.project__custom__qb`
 13. **task** `test_qb_approvals_idempotency`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
 14. **task** `test_qb_prm_pricing_idempotency`  `when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb`
@@ -206,7 +211,7 @@ Extract rating and rates data from an org into CSV files
 **Steps:**
 
 1. **task** `deploy_post_billing`  `when: project_config.project__custom__billing`
-2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
+2. **task** `insert_billing_data`  `when: project_config.project__custom__billing and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb`
 3. **task** `insert_q3_billing_data`  `when: project_config.project__custom__billing and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb`
 4. **task** `create_sequence_policies`  `when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb`
 5. **task** `activate_flow`  `when: project_config.project__custom__billing`
