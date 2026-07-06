@@ -182,7 +182,7 @@ class ExpressionSetGraph:
         """A step's full dependency closure with scopes.
 
         Returns ``{consumes: [{name, role, scope, producers}], produces: [names]}``
-        — exactly what ``export_overlay`` needs to pre-classify the three scopes.
+        — exactly what ``export_expression_set_overlay`` needs to pre-classify the three scopes.
         """
         edges = self.step_edges(step_name)
         consumes = []

@@ -50,7 +50,7 @@
 | `delete_expression_set` | DELETE (whole) / sObject DELETE (one version) | Destructive — requires `confirm: true`. |
 | `validate_expression_set` | — (org-less) | Run the pre-flight validator standalone on a definition or overlay JSON. |
 
-The mutation tasks (`import`, `apply_overlay`) run the schema pre-flight (pass
+The mutation tasks (`import`, `apply_expression_set_overlay`) run the schema pre-flight (pass
 `skip_validation: true` to bypass) and HTML-unescape the payload immediately
 before the Connect call (`normalize_html_entities`, default `true`).
 

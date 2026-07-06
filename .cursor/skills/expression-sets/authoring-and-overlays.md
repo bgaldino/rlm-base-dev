@@ -14,8 +14,15 @@ Pinned to Release 262 / API v67.0.
 
 ## Authoring overlays (declarative add/remove/update/reorder)
 
-`apply_expression_set_overlay` (CCI) and `apply_overlay.py` (the standalone
-toolkit) take a small overlay file rather than a full definition. Placement is
+An **expression set overlay** is a small JSON patch describing changes to a
+definition's `steps` and `variables` (`addSteps` / `removeSteps` / `updateSteps` /
+`reorderSteps` / `addVariables` / `removeVariables`) — applied without rewriting
+the whole definition. (Not to be confused with a **procedure-plan overlay** in
+`datasets/procedure_plan_overlays/`, applied by the `apply_procedure_plan_overlay`
+task — a different object and tool.)
+
+`apply_expression_set_overlay` (CCI) and `apply_expression_set_overlay.py` (the standalone
+toolkit) take one of these overlay files rather than a full definition. Placement is
 declared by **anchor**, not numeric sequence:
 
 ```json
@@ -32,11 +39,11 @@ declared by **anchor**, not numeric sequence:
 
 **Don't hand-author overlays — capture them.** GET a real, known-good element
 from an org that already has it, then slice out the step(s). The
-`export_overlay.py` toolkit CLI does exactly this and pre-classifies the three
+`export_expression_set_overlay.py` toolkit CLI does exactly this and pre-classifies the three
 dependency scopes for you:
 
 ```bash
-python scripts/expression_sets/export_overlay.py --target-org <sf_alias> \
+python scripts/expression_sets/export_expression_set_overlay.py --target-org <sf_alias> \
     --developer-name RLM_DefaultPricingProcedure \
     --step "Apply Discount" --after "Get List Price" \
     --out /tmp/apply_discount.overlay.json
@@ -84,7 +91,7 @@ are `addVariables`); of the rest, the `__c`/`__r`/custom-node names are
 
 **`trace_expression_set.py --step "<name>"` does this classification for you**
 and prints the per-scope capture guidance (`→ ship in addVariables`,
-`→ declare in externalDependencies`); `export_overlay.py` bakes the result
+`→ declare in externalDependencies`); `export_expression_set_overlay.py` bakes the result
 straight into the emitted overlay.
 
 The validator emits two complementary warnings:
@@ -144,7 +151,7 @@ surfaces consumed-with-no-producer names left behind. Always do removals on a
 - Authoring paths, mutation lifecycle, verb-specific field rules, GET serializer
   gotchas, Metadata API authoring, create-with-content:
   `.cursor/skills/expression-sets/metadata-vs-connect.md`
-- The standalone toolkit (`export_overlay` / `trace` / `apply_overlay` / …):
+- The standalone toolkit (`export_expression_set_overlay` / `trace` / `apply_expression_set_overlay` / …):
   `scripts/expression_sets/README.md`
 - Exhaustive object/ID model, schema enums, every error + resolution:
   `docs/references/expression-set-connect-api-reference.md`

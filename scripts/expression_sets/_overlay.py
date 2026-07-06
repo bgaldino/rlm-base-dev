@@ -7,8 +7,8 @@ step/variable merge that turns an overlay (``addSteps`` / ``removeSteps`` /
 ``updateSteps`` / ``reorderSteps`` / ``addVariables`` / ``removeVariables``) into
 a modified definition. It mirrors the merge rules the CCI task
 (``tasks/rlm_expression_set_connect.py``, reference-only) applies, so the
-``apply_overlay`` CLI produces the same result the task would — without sharing
-code with it.
+``apply_expression_set_overlay`` CLI produces the same result the task would —
+without sharing code with it.
 
 The single load-bearing rule these functions encode: a step's execution order
 is its ``sequenceNumber`` (scoped per parent — children restart at 1), NEVER the

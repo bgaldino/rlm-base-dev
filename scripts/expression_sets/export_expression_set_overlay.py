@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Slice step(s) from a live Expression Set into a validated addSteps overlay (read-only).
 
-Bridges ``trace`` and ``apply_overlay``: given one or more step names in a live
+Bridges ``trace`` and ``apply_expression_set_overlay``: given one or more step names in a live
 procedure, it emits an ``addSteps`` overlay carrying those steps verbatim, with
 their three dependency scopes pre-classified (via the same ``_graph`` classifier
 ``trace --step`` uses) so you know exactly what else must travel with the step:
@@ -17,7 +17,7 @@ The emitted overlay is HTML-unescaped (so Formula/criteria values are engine-
 ready) and run through the package's own ``validate_overlay`` before it is
 written — a non-clean validation fails the export (``--allow-warnings`` to
 proceed past warnings). The result is ready for
-``apply_overlay.py --overlay <file>`` against a clone.
+``apply_expression_set_overlay.py --overlay <file>`` against a clone.
 
 Auth is delegated to the ``sf`` CLI (see ``_client.py``) — no tokens handled
 here. ``--target-org`` is the *SF CLI* alias, never the CCI alias. Read-only
@@ -26,14 +26,14 @@ here. ``--target-org`` is the *SF CLI* alias, never the CCI alias. Read-only
 Usage
 -----
     # slice one step into an overlay, placed after another step
-    python scripts/expression_sets/export_overlay.py \
+    python scripts/expression_sets/export_expression_set_overlay.py \
         --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure \
         --step "Apply Discount" --after "Get List Price" \
         --out /tmp/apply_discount.overlay.json
 
     # slice several steps, keep source sequence, print to stdout
-    python scripts/expression_sets/export_overlay.py \
+    python scripts/expression_sets/export_expression_set_overlay.py \
         --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure \
         --step "Step A" --step "Step B"

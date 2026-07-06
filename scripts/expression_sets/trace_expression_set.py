@@ -42,7 +42,7 @@ Usage
         --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --variable NetUnitPrice
 
-    # a step's full dependency closure with scopes — what export_overlay uses
+    # a step's full dependency closure with scopes — what export_expression_set_overlay uses
     python scripts/expression_sets/trace_expression_set.py \
         --target-org rlm-base__beta \
         --developer-name RLM_DefaultPricingProcedure --step "Apply Discount"

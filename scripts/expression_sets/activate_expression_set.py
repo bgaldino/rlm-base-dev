@@ -4,7 +4,7 @@
 Standalone activation control: flip an ``ExpressionSetVersion.IsActive`` on or
 off, with the referencing ``ProcedurePlanDefinitionVersion`` cascade (a live
 procedure plan cannot point at a deactivated expression set). Use this to
-re-enable a version left DEACTIVATED by a failed ``apply_overlay`` /
+re-enable a version left DEACTIVATED by a failed ``apply_expression_set_overlay`` /
 ``import_expression_set`` (after inspecting/restoring it), or to take a version
 offline for maintenance.
 

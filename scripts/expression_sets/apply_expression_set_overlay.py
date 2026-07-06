@@ -31,12 +31,12 @@ Release 262 / v67.0.
 Usage
 -----
     # preview the merge (no mutation)
-    python scripts/expression_sets/apply_overlay.py \
+    python scripts/expression_sets/apply_expression_set_overlay.py \
         --target-org rlm-base__beta \
         --expression-set RLM_MyClone --overlay /tmp/add_step.overlay.json
 
     # apply
-    python scripts/expression_sets/apply_overlay.py \
+    python scripts/expression_sets/apply_expression_set_overlay.py \
         --target-org rlm-base__beta \
         --expression-set RLM_MyClone --overlay /tmp/add_step.overlay.json --confirm
 """

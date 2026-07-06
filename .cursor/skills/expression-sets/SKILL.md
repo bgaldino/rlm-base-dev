@@ -171,14 +171,14 @@ python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
     --developer-name RLM_DefaultPricingProcedure --variable NetUnitPrice
 
 # 4. Slice a step into a validated overlay (three scopes pre-classified).
-python scripts/expression_sets/export_overlay.py --target-org $ORG \
+python scripts/expression_sets/export_expression_set_overlay.py --target-org $ORG \
     --developer-name RLM_DefaultPricingProcedure --step "Apply Discount" \
     --out /tmp/apply_discount.overlay.json
 
 # 5. Preview applying it to a clone (no --confirm = no write), then apply.
-python scripts/expression_sets/apply_overlay.py --target-org $ORG \
+python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG \
     --expression-set RLM_MyClone --overlay /tmp/apply_discount.overlay.json
-python scripts/expression_sets/apply_overlay.py --target-org $ORG \
+python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG \
     --expression-set RLM_MyClone --overlay /tmp/apply_discount.overlay.json --confirm
 ```
 
@@ -197,9 +197,9 @@ toolkit mirrors the tasks' live-verified rules. Full toolkit detail:
 | Export a definition to JSON (snapshot, or `--for-import`) | `python scripts/expression_sets/export_expression_set.py --target-org <sf_alias> --developer-name <name> --out <path>` (read-only) |
 | **Trace** who produces/consumes a variable; classify a step's dependency scopes; find orphans | `python scripts/expression_sets/trace_expression_set.py --target-org <sf_alias> --developer-name <name> --variable <v> \| --step <s> \| --field <f> \| --orphans` (read-only) |
 | Diff a procedure org-vs-org or org-vs-JSON | `python scripts/expression_sets/diff_expression_set.py --target-org <sf_alias> --developer-name <name> --right-org <sf_alias2> \| --right-file <path>` (read-only) |
-| Slice step(s) into a validated overlay with scoped deps | `python scripts/expression_sets/export_overlay.py --target-org <sf_alias> --developer-name <name> --step <s> --out <path>` (read-only; writes a local file) |
+| Slice step(s) into a validated overlay with scoped deps | `python scripts/expression_sets/export_expression_set_overlay.py --target-org <sf_alias> --developer-name <name> --step <s> --out <path>` (read-only; writes a local file) |
 | Create/replace a whole ES from JSON | `import_expression_set` (CCI, build) **or** `python scripts/expression_sets/import_expression_set.py --target-org <sf_alias> --input-file <path>` (preview; `--confirm` to write) |
-| Apply a declarative overlay | `apply_expression_set_overlay` (CCI, build) **or** `python scripts/expression_sets/apply_overlay.py --target-org <sf_alias> --expression-set <name> --overlay <path>` (preview; `--confirm`) |
+| Apply a declarative overlay | `apply_expression_set_overlay` (CCI, build) **or** `python scripts/expression_sets/apply_expression_set_overlay.py --target-org <sf_alias> --expression-set <name> --overlay <path>` (preview; `--confirm`) |
 | Activate / deactivate a version (+ procedure-plan cascade) | `python scripts/expression_sets/activate_expression_set.py --target-org <sf_alias> --expression-set <name> --activate \| --deactivate` (preview; `--confirm`) |
 | Delete a whole ES or one version | `delete_expression_set` (CCI) **or** `python scripts/expression_sets/delete_expression_set.py --target-org <sf_alias> --expression-set <name> [--version <v>] --confirm` (destructive) |
 | Pre-flight a JSON file offline (no org) | `python scripts/ai/validate_expression_set.py <path> [--definition\|--overlay]` |
@@ -244,7 +244,7 @@ source-controlled edit.
 
 Overlays declare placement by **anchor** (`afterStep`/`beforeStep`), not numeric
 sequence; capture them from a live GET (don't hand-author) — the toolkit's
-`export_overlay.py` slices a step and pre-classifies its dependencies. Every
+`export_expression_set_overlay.py` slices a step and pre-classifies its dependencies. Every
 referenced name is one of **three scopes**: version variable → `addVariables`;
 custom (`__c`/`__r`) → `externalDependencies` (the overlay can't create it);
 standard context → nothing. Top-level and child steps are sliced differently

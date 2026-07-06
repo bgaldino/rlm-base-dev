@@ -5,7 +5,7 @@ No org, no ``sf`` CLI, no pytest — a plain ``check()`` runner (matching the st
 of ``tests/test_expression_set_schema.py``). Exercises the package's OWN pure
 modules — ``_graph`` (producer/consumer index + scope + orphans), ``_payload``
 (verb-specific field rules + HTML-entity normalization), ``_overlay`` (step /
-variable merge), and ``export_overlay.build_overlay`` (the slice-to-overlay
+variable merge), and ``export_expression_set_overlay.build_overlay`` (the slice-to-overlay
 logic) — plus a parity check that the two shipped overlay fixtures still pass the
 vendored validator.
 
@@ -42,7 +42,7 @@ from scripts.expression_sets._payload import (  # noqa: E402
     unescape_value,
 )
 from scripts.expression_sets._schema import validate_overlay  # noqa: E402
-from scripts.expression_sets.export_overlay import build_overlay  # noqa: E402
+from scripts.expression_sets.export_expression_set_overlay import build_overlay  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -242,7 +242,7 @@ def test_overlay():
 
 
 # --------------------------------------------------------------------------- #
-# export_overlay.build_overlay
+# export_expression_set_overlay.build_overlay
 # --------------------------------------------------------------------------- #
 
 def test_build_overlay():
