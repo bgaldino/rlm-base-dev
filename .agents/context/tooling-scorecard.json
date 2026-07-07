@@ -49,7 +49,7 @@
   "counts": {
     "agents_skill_references": 42,
     "cursor_rules": 11,
-    "errors": 1,
+    "errors": 0,
     "generated_cci_reference_files_present": 3,
     "generated_cci_reference_files_total": 3,
     "missing_agents_skill_references": 0,
@@ -58,9 +58,7 @@
     "skills_markdown_files": 52,
     "warnings": 0
   },
-  "errors": [
-    "analysis-artifacts.mdc has no corresponding skill or stand-alone note"
-  ],
+  "errors": [],
   "generated_cci_reference_files": {
     ".cursor/skills/cci-orchestration/feature-flags.md": true,
     ".cursor/skills/cci-orchestration/flows-reference.md": true,
@@ -138,8 +136,8 @@
   "rule_mappings": [
     {
       "rule": "analysis-artifacts.mdc",
-      "status": "missing",
-      "target": "No row in AGENTS.md File-Specific Rules table"
+      "status": "standalone",
+      "target": "*(stand-alone \u2014 AI-generated analysis artifacts must go to `.agents/artifacts/`, never committed to public repo)*"
     },
     {
       "rule": "apex-classes.mdc",
@@ -259,6 +257,6 @@
     ".cursor/skills/troubleshooting/large-deal-preprocess-reference.md",
     ".cursor/skills/txn-data-harness/SKILL.md"
   ],
-  "status": "fail",
+  "status": "pass",
   "warnings": []
 }
