@@ -134,69 +134,21 @@ CONTAINS({!Payment_Terms.Outputs.approvalDecision}, &quot;Reject&quot;)
         <connector>
             <targetReference>Was_Rejected</targetReference>
         </connector>
-        <exitConditionLogic>1 OR ((2 OR (3 AND 4 AND 8) OR (5 AND 6 AND 8 AND 9) OR (7 AND 8 AND 9 AND 10)) AND (11 OR 12))</exitConditionLogic>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>rejectedQuote</leftValueReference>
-            <operator>EqualTo</operator>
-            <rightValue>
-                <booleanValue>true</booleanValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>EqualTo</operator>
-            <rightValue>
-                <numberValue>0.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>GreaterThanOrEqualTo</operator>
-            <rightValue>
-                <numberValue>1.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>LessThan</operator>
-            <rightValue>
-                <numberValue>2.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>GreaterThanOrEqualTo</operator>
-            <rightValue>
-                <numberValue>2.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>LessThan</operator>
-            <rightValue>
-                <numberValue>3.0</numberValue>
-            </rightValue>
-        </exitConditions>
-        <exitConditions>
-            <conditionType>ExitCondition</conditionType>
-            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
-            <operator>GreaterThanOrEqualTo</operator>
-            <rightValue>
-                <numberValue>3.0</numberValue>
-            </rightValue>
-        </exitConditions>
+        <exitConditionLogic>((1 OR 2) AND (3 OR 4) AND (5 OR 6) AND (7 OR 8) AND 9) OR 10</exitConditionLogic>
         <exitConditions>
             <conditionType>ExitCondition</conditionType>
             <leftValueReference>Manager_Approver.Status</leftValueReference>
             <operator>EqualTo</operator>
             <rightValue>
                 <stringValue>Completed</stringValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
+            <operator>LessThan</operator>
+            <rightValue>
+                <numberValue>1.0</numberValue>
             </rightValue>
         </exitConditions>
         <exitConditions>
@@ -209,7 +161,31 @@ CONTAINS({!Payment_Terms.Outputs.approvalDecision}, &quot;Reject&quot;)
         </exitConditions>
         <exitConditions>
             <conditionType>ExitCondition</conditionType>
+            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
+            <operator>LessThan</operator>
+            <rightValue>
+                <numberValue>2.0</numberValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
             <leftValueReference>VP_Approver.Status</leftValueReference>
+            <operator>EqualTo</operator>
+            <rightValue>
+                <stringValue>Completed</stringValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>QueryApprovalData.Outputs.DiscountApprovalLevel</leftValueReference>
+            <operator>LessThan</operator>
+            <rightValue>
+                <numberValue>3.0</numberValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>Payment_Terms.Status</leftValueReference>
             <operator>EqualTo</operator>
             <rightValue>
                 <stringValue>Completed</stringValue>
@@ -225,10 +201,18 @@ CONTAINS({!Payment_Terms.Outputs.approvalDecision}, &quot;Reject&quot;)
         </exitConditions>
         <exitConditions>
             <conditionType>ExitCondition</conditionType>
-            <leftValueReference>Payment_Terms.Status</leftValueReference>
+            <leftValueReference>Set_Quote_Approval_Status_Pending.Status</leftValueReference>
             <operator>EqualTo</operator>
             <rightValue>
                 <stringValue>Completed</stringValue>
+            </rightValue>
+        </exitConditions>
+        <exitConditions>
+            <conditionType>ExitCondition</conditionType>
+            <leftValueReference>rejectedQuote</leftValueReference>
+            <operator>EqualTo</operator>
+            <rightValue>
+                <booleanValue>true</booleanValue>
             </rightValue>
         </exitConditions>
         <stageSteps>
