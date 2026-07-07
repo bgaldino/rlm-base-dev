@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-07-03T16:01:26.647327Z",
+  "assembled_at": "2026-07-07T16:20:50.786392Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -495,11 +495,6 @@
           "feature": "personas",
           "patch_type": "insert_after_xml",
           "description": "insert XML after <identifier>runtime_sales_pathassistant_pathAssistant</identifier>"
-        },
-        {
-          "feature": "prm_pricing",
-          "patch_type": "add_sales_txn_line_editor_field",
-          "description": "add Sales Transaction Line Editor displayFields: QuoteLineItem.RLM_Distributor_Discount_Percent__c, QuoteLineItem.RLM_Distributor_Unit_Price__c, QuoteLineItem.PartnerDiscountPercent, QuoteLineItem.PartnerUnitPrice, QuoteLineItem.RLM_Partner_Net_Total_Price__c, QuoteLineItem.TotalCost, QuoteLineItem.Margin, QuoteLineItem.MarginAmount"
         }
       ]
     },
