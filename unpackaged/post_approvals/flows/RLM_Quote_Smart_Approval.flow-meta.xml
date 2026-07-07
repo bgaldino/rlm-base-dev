@@ -103,7 +103,8 @@ IF(AND({!Manager_Approver.Outputs.approvalDecision} == &quot;Approve&quot;), TRU
         <expression>OR(
 CONTAINS({!Manager_Approver.Outputs.approvalDecision}, &quot;Reject&quot;),
 CONTAINS({!Director_Approver.Outputs.approvalDecision}, &quot;Reject&quot;),
-CONTAINS({!VP_Approver.Outputs.approvalDecision}, &quot;Reject&quot;)
+CONTAINS({!VP_Approver.Outputs.approvalDecision}, &quot;Reject&quot;),
+CONTAINS({!Payment_Terms.Outputs.approvalDecision}, &quot;Reject&quot;)
 )</expression>
     </formulas>
     <interviewLabel>RLM Quote Smart Approval {!$Flow.CurrentDateTime}</interviewLabel>
