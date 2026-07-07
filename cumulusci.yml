@@ -560,7 +560,6 @@ project:
     quantumbit_pcm_constraints_data_dir: &quantumbit_pcm_constraints_data_dir "datasets/constraints/qb/QuantumBitPCM"  # QuantumBitPCM CML constraint model data (CSVs + blob)
     quantumbit_bundle_constraints_data_dir: &quantumbit_bundle_constraints_data_dir "datasets/constraints/qb/QuantumBitBundle"  # QuantumBitBundle combined CML model (Complete + PCM, LineItem-primary)
     quantumbit_transactionprocessingtypes_dataset: &quantumbit_transactionprocessingtypes_dataset "datasets/sfdmu/qb/en-US/qb-transactionprocessingtypes" # QuantumBit transaction processing types
-    quantumbit_guidedselling_dataset: &quantumbit_guidedselling_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling"   # QuantumBit guided selling data
     quantumbit_guidedselling_products_dataset: &quantumbit_guidedselling_products_dataset "datasets/sfdmu/qb/en-US/qb-guidedselling-products"   # QuantumBit guided selling Product2 field values
     quantumbit_clm_dataset: &quantumbit_clm_dataset "datasets/sfdmu/qb/en-US/qb-clm"                                 # QuantumBit CLM data
     quantumbit_prm_dataset: &quantumbit_prm_dataset "datasets/sfdmu/qb/en-US/qb-prm"                                 # QuantumBit PRM data
@@ -2099,13 +2098,6 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_transactionprocessingtypes_dataset
 
-  insert_qb_guidedselling_data:
-    group: Revenue Lifecycle Management
-    description: Insert QuantumBit Guided Selling Data
-    class_path: tasks.rlm_sfdmu.LoadSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_guidedselling_dataset
-
   insert_qb_guidedselling_products_data:
     group: Revenue Lifecycle Management
     description: Update QuantumBit guided selling Product2 field values
@@ -2602,13 +2594,6 @@ tasks:
     options:
       pathtoexportjson: *quantumbit_transactionprocessingtypes_dataset
 
-  extract_qb_guidedselling_data:
-    group: Data Management - Extract
-    description: "Extract qb-guidedselling from org to CSV. Output in datasets/sfdmu/extractions/qb-guidedselling/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
-    class_path: tasks.rlm_sfdmu.ExtractSFDMUData
-    options:
-      pathtoexportjson: *quantumbit_guidedselling_dataset
-
   extract_qb_guidedselling_products_data:
     group: Data Management - Extract
     description: "Extract qb-guidedselling-products from org to CSV. Output in datasets/sfdmu/extractions/qb-guidedselling-products/<timestamp>. Runs post-process by default; re-import-ready CSVs in <timestamp>/processed/. Use run_post_process false to skip."
@@ -2776,14 +2761,6 @@ tasks:
       pathtoexportjson: *quantumbit_transactionprocessingtypes_dataset
       use_extraction_roundtrip: false
 
-  test_qb_guidedselling_idempotency:
-    group: Data Management - Idempotency
-    description: Idempotency test for qb-guidedselling.
-    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
-    options:
-      pathtoexportjson: *quantumbit_guidedselling_dataset
-      use_extraction_roundtrip: false
-
   test_qb_guidedselling_products_idempotency:
     group: Data Management - Idempotency
     description: Idempotency test for qb-guidedselling-products (Product2 guided selling field updates).
@@ -2944,6 +2921,11 @@ tasks:
     class_path: tasks.rlm_refresh_decision_table.RefreshDecisionTable
     options:
       developerNames: *dt_commerce_decision_tables
+
+  configure_search_index:
+    group: Revenue Lifecycle Management
+    description: Configure PCM search index fields via Connect API from a declarative JSON config (datasets/search_index/). Supports Standard, Custom, and attribute field types. Additive — merges with existing index configuration, auto-resolves types and IDs from metadata.
+    class_path: tasks.rlm_configure_search_index.ConfigureSearchIndex
 
   rebuild_search_index:
     group: Revenue Lifecycle Management
@@ -4471,6 +4453,11 @@ flows:
       4:
         task: insert_qb_guidedselling_products_data
         when: project_config.project__custom__guidedselling and project_config.project__custom__qb
+      5:
+        task: configure_search_index
+        when: project_config.project__custom__guidedselling
+        options:
+          path: datasets/search_index/guidedselling.json
 
   prepare_analytics:
     group: Revenue Lifecycle Management
@@ -4715,8 +4702,6 @@ flows:
       8:
         task: extract_qb_transactionprocessingtypes_data
       9:
-        task: extract_qb_guidedselling_data
-      10:
         task: extract_qb_guidedselling_products_data
 
   run_qb_idempotency_tests:
@@ -4740,8 +4725,6 @@ flows:
       8:
         task: test_qb_transactionprocessingtypes_idempotency
       9:
-        # Intentional exclusion: legacy qb-guidedselling idempotency remains standalone
-        # because that plan is preservation-only until CSVs are regenerated from a canonical org.
         task: test_qb_guidedselling_products_idempotency
       # Steps 10-14: feature-gated module idempotency tests, ordered to match the module
       # load order in prepare_rlm_org so cross-plan dependencies resolve on an org that does
@@ -4775,8 +4758,8 @@ flows:
       # Intentional exclusion: q3-pricing uses plain Insert (no deleteOldData, mirroring
       # qb-pricing), so a two-load idempotency test would add duplicate rows instead of
       # proving rerun safety. q3-pricing rerun safety is provided by delete_q3_pricing_data
-      # before insert_q3_pricing_data in prepare_pricing_data. test_q3_pricing_idempotency
-      # remains standalone (matching the qb-guidedselling exclusion pattern above).
+      # before insert_q3_pricing_data in prepare_pricing_data, so
+      # test_q3_pricing_idempotency remains standalone.
       2:
         task: test_q3_rating_idempotency
       3:

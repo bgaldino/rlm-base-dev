@@ -23,8 +23,7 @@ Run all QB data extract tasks (org → CSV). Use --org to specify source org.
 6. **task** `extract_qb_rating_data`
 7. **task** `extract_qb_rates_data`
 8. **task** `extract_qb_transactionprocessingtypes_data`
-9. **task** `extract_qb_guidedselling_data`
-10. **task** `extract_qb_guidedselling_products_data`
+9. **task** `extract_qb_guidedselling_products_data`
 
 ---
 
@@ -380,6 +379,8 @@ Create Self-Service Billing Portal community and optionally deploy site content.
 3. **task** `assign_permission_sets`  `when: project_config.project__custom__guidedselling`
    - `api_names`: `['RLM_Guided_Selling']`
 4. **task** `insert_qb_guidedselling_products_data`  `when: project_config.project__custom__guidedselling and project_config.project__custom__qb`
+5. **task** `configure_search_index`  `when: project_config.project__custom__guidedselling`
+   - `path`: `datasets/search_index/guidedselling.json`
 
 ---
 

@@ -1,0 +1,108 @@
+# Standalone billing -- Posted-invoice ingest, expanded non-taxable coverage.
+#
+# Same prereq as 15-standalone-billing.yaml: the org must have an active
+# non-taxable `TaxTreatment`. This scenario stresses the non-taxable Posted
+# path across shapes the smoke scenario doesn't cover:
+#
+#   - Multi-line invoices (3 lines and 4 lines per Posted invoice).
+#   - `charge_amount` override on a line (overrides quantity * unit_price).
+#   - Explicit `line_start_date` / `line_end_date` per line.
+#   - Per-line + invoice-level `description`.
+#   - Invoice-level `currency` override (EUR) on a multi-currency org.
+#   - Explicit `invoice_date` / `due_date` / `posted_date` (rendered into
+#     the composite-graph payload, not derived from defaults).
+#
+# Bypasses the PST chain entirely (no Opportunity / Quote / Order / Activate).
+# Each transaction is a single POST to /commerce/invoicing/.../actions/ingest.
+# Discovery picks the oldest active non-taxable TaxTreatment deterministically
+# (ORDER BY CreatedDate ASC LIMIT 1) and stamps it on every InvoiceLine.
+#
+# Tax-on Posted ingestion (lines with `taxable: true` + a `tax:` block) is
+# supported and ships explicit InvoiceLineTax graph records; see the
+# `taxable: true` scenarios in this directory for that shape.
+defaults:
+  kind: invoice_ingestion
+  target_stage: invoice_posted
+  invoice:
+    should_calculate_tax: false
+    tax_calculation_status: Posted
+
+scenarios:
+  # Multi-line, base currency, line-level date ranges + description.
+  - account: "Infinitech"
+    count: 1
+    invoice:
+      description: "Expanded coverage: 3-line USD invoice with line-date ranges"
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 10
+        unit_price: 25
+        taxable: false
+        description: "Q1 API allotment"
+        line_start_date: 2026-01-01
+        line_end_date: 2026-03-31
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 10
+        unit_price: 25
+        taxable: false
+        description: "Q2 API allotment"
+        line_start_date: 2026-04-01
+        line_end_date: 2026-06-30
+      - name: Cloud License
+        sku: QB-LIC-CLOUD
+        quantity: 1
+        unit_price: 1200
+        taxable: false
+        description: "Annual cloud license"
+        line_start_date: 2026-01-01
+        line_end_date: 2026-12-31
+
+  # charge_amount override on one line (overrides qty * unit_price).
+  - account: "Infinitech"
+    count: 1
+    invoice:
+      description: "Expanded coverage: charge_amount override on a discounted line"
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 4
+        unit_price: 25       # implies 100 ...
+        charge_amount: 75    # ... but the line bills at the discounted 75
+        taxable: false
+        description: "Pre-discounted API charge"
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 2
+        unit_price: 25
+        taxable: false
+
+  # Invoice-level currency override on a multi-currency org.
+  - account: "Global Media"
+    count: 1
+    invoice:
+      currency: EUR
+      description: "Expanded coverage: invoice-level EUR override on USD account"
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 5
+        unit_price: 100
+        taxable: false
+
+  # Explicit invoice_date / due_date / posted_date (rendered into payload,
+  # not derived from defaults).
+  - account: "Global Media"
+    count: 1
+    invoice:
+      description: "Expanded coverage: explicit invoice/due/posted dates"
+      invoice_date: 2026-06-01
+      due_date: 2026-07-01
+      posted_date: 2026-06-01
+    invoice_lines:
+      - name: API Flex
+        sku: QB-API-FLEX
+        quantity: 3
+        unit_price: 250
+        taxable: false

@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**42 feature flags**, **86 configuration values**, **37 YAML anchors** under `project.custom`.
+**42 feature flags**, **85 configuration values**, **37 YAML anchors** under `project.custom`.
 
 ---
 
@@ -31,7 +31,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `docgen` | `True` | 10 flow step(s) |
 | `dro` | `True` | 7 flow step(s) |
 | `einstein` | `True` | 3 flow step(s) |
-| `guidedselling` | `True` | 4 flow step(s) |
+| `guidedselling` | `True` | 5 flow step(s) |
 | `inapp` | `False` | 4 flow step(s) |
 | `large_stx` | `False` | 5 flow step(s) |
 | `payments` | `True` | 8 flow step(s) |
@@ -223,6 +223,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_guidedselling` step 2 → `deploy_post_guidedselling`
 - `prepare_guidedselling` step 3 → `assign_permission_sets`
 - `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
+- `prepare_guidedselling` step 5 → `configure_search_index`
 
 ### `inapp` (default: `False`)
 
@@ -565,7 +566,6 @@ Non-boolean scalar values under `project.custom` used as YAML anchors for contex
 | `quantumbit_constraints_data_dir` | `datasets/constraints/qb/QuantumBitComplete` |
 | `quantumbit_constraints_product_dataset` | `datasets/sfdmu/qb/en-US/qb-constraints-product` |
 | `quantumbit_dro_dataset` | `datasets/sfdmu/qb/en-US/qb-dro` |
-| `quantumbit_guidedselling_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling` |
 | `quantumbit_guidedselling_products_dataset` | `datasets/sfdmu/qb/en-US/qb-guidedselling-products` |
 | `quantumbit_pcm_constraints_data_dir` | `datasets/constraints/qb/QuantumBitPCM` |
 | `quantumbit_pricing_dataset` | `datasets/sfdmu/qb/en-US/qb-pricing` |

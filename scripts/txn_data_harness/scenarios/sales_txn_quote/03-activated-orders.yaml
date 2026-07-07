@@ -1,0 +1,19 @@
+# Activated orders — stop at activate (Assets + BillingSchedules, no invoice).
+#
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/03-activated-orders.yaml
+#
+# Drives each transaction through order activation, which auto-generates
+# BillingSchedule(s) and Asset(s) — but stops before invoicing. Useful for asset
+# / installed-base demos and for billing-schedule-ready (but not yet billed) data.
+# Activation does NOT need a BillingAccount, so any account works.
+defaults:
+  kind: sales_txn_quote        # PST chain (Quote -> Order -> Activate)
+  target_stage: order_activated
+
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 2
+    count: 15

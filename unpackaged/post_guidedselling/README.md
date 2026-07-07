@@ -20,4 +20,3 @@ This bundle deploys only `enableGuidedSelling: true` via `settings/ProductDiscov
 
 - The connected org has additional Product Discovery setting values (`prodDiscQualificationOrgValue`, `promoContextMappingNameOrgValue`, `prodDiscDefaultCatalogOrgValue`) that differ from what's currently deployed. These require either Robot-based configuration or a non-hardcoded approach (the default catalog contains an org-specific record Id).
 - Cleanup or replacement of older guided selling artifacts is intentionally deferred.
-- Retrieved OmniStudio SFDMU data was not integrated into `qb-guidedselling`; any data-plan redesign should be handled separately.

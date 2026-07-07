@@ -1,0 +1,25 @@
+# Sales pipeline — opportunities + quotes only (no billing).
+#
+#   python -m scripts.txn_data_harness.generate --org <sf-alias> \
+#       --config scripts/txn_data_harness/scenarios/sales_txn_quote/02-pipeline-quotes.yaml
+#
+# High-volume, cheap demo data for the *pipeline* stages: each transaction gets
+# an Opportunity head and a Quote, and stops there. No order, no billing — so it
+# runs fast and needs no BillingAccount. Good for populating pipeline dashboards.
+defaults:
+  kind: sales_txn_quote        # PST chain (Opportunity -> Quote)
+  target_stage: quote_placed
+  with_opportunity: true         # prepend an Opportunity the quote links to
+
+scenarios:
+  - account: "Infinitech"
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 20
+
+  - account: "Global Media"      # no BillingAccount — fine, we stop at quote anyway
+    products:
+      - sku: "QB-API-FLEX"
+        quantity: 1
+    count: 20

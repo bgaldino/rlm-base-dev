@@ -257,26 +257,28 @@ prepare_rlm_org
 ├── 11. prepare_dro
 ├── 12. prepare_tax
 ├── 13. prepare_billing
-├── 14. prepare_analytics
-├── 15. prepare_clm
-├── 16. prepare_rating (delete, insert, activate for rating+rates)
-├── 17. activate_and_deploy_expression_sets
-├── 18. prepare_tso (TSO-specific PSLs, PSGs, deploy)
-├── 19. prepare_procedureplans
-├── 20. prepare_prm
-├── 21. prepare_agents
-├── 22. prepare_constraints
-├── 23. prepare_guidedselling
-├── 24. prepare_revenue_settings
-├── 25. prepare_pricing_discovery
-├── 26. prepare_ramp_builder
-├── 27. prepare_large_stx (when: large_stx=true)
-├── 28. prepare_personas (when: personas=true)
-├── 29. prepare_ux (when: ux=true)
-├── 30. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
-├── 31. refresh_all_decision_tables
-├── 32. rebuild_search_index (PCM catalog search index, async)
-└── 33. stamp_git_commit
+├── 14. prepare_collections (when: collections=true)
+├── 15. prepare_analytics
+├── 16. prepare_clm
+├── 17. prepare_rating (delete, insert, activate for rating+rates)
+├── 18. activate_and_deploy_expression_sets
+├── 19. prepare_tso (TSO-specific PSLs, PSGs, deploy)
+├── 20. prepare_procedureplans
+├── 21. prepare_prm
+├── 22. prepare_agents
+├── 23. prepare_constraints
+├── 24. prepare_guidedselling
+├── 25. prepare_revenue_settings
+├── 26. prepare_pricing_discovery
+├── 27. prepare_ramp_builder
+├── 28. prepare_large_stx (when: large_stx=true)
+├── 29. prepare_personas (when: personas=true)
+├── 30. prepare_ux (when: ux=true)
+├── 31. prepare_inapp (when: inapp=true)
+├── 32. prepare_scratch (scratch-only Account, Contact, BillingAccount data)
+├── 33. refresh_all_decision_tables
+├── 34. rebuild_search_index (PCM catalog search index, async)
+└── 35. stamp_git_commit
 ```
 
 > For the complete flow listing with all steps and `when:` conditions, read
