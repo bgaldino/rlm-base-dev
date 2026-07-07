@@ -60,40 +60,44 @@ The Discount chain is sequential because Director waits on Manager and VP waits
 on Director. The Finance chain can run in parallel with Discount because it uses
 a different `ApprovalChainName`.
 
+If no approval is required (`DiscountApprovalLevel = 0` AND `PaymentTerms = "Net 30"`),
+the flow takes the `Requires_Approval` decision's default connector directly to
+`Update_Quote_Status_to_Approved`, bypassing the approval stage entirely.
+
 ## Exit Condition Pattern
 
-The approval stage currently enumerates completion scenarios in
-`exitConditionLogic`. That works, but each new step can require rewriting the
-whole expression.
-
-The target pattern is one resolved clause per approval step:
+The approval stage uses a composable exit condition pattern with one resolved
+clause per approval step:
 
 ```text
 ((Manager completed OR Manager did not trigger)
  AND (Director completed OR Director did not trigger)
  AND (VP completed OR VP did not trigger)
- AND (Payment Terms completed OR Payment Terms did not trigger))
+ AND (Payment Terms completed OR Payment Terms did not trigger)
+ AND background step completed)
  OR any step rejected
 ```
 
-In metadata grammar this requires two numbered exit conditions for each
-approval step: one for `Step.Status = Completed` and one inverse trigger
-condition. For the current four approval steps, the expected count is
-`2N + 1` approval-stage exit conditions: eight step-resolution conditions plus
-the rejection shortcut. A background-step completion condition can be added if a
-stage contains a background step whose completion must also gate exit.
+The current implementation uses this pattern with the logic expression:
 
-Do not change the production flow to this pattern until it has been validated in
-a scratch org. The validation must prove:
+```text
+((1 OR 2) AND (3 OR 4) AND (5 OR 6) AND (7 OR 8) AND 9) OR 10
+```
 
-- `exitConditionLogic` accepts grouped OR clauses inside an outer AND expression.
-- A step that never starts can be treated as resolved by its inverse trigger
-  condition.
-- Resubmitted work items remain Smart Approval eligible.
+Where:
+- Conditions 1,3,5,7: `Step.Status = Completed` for Manager, Director, VP, Payment_Terms
+- Conditions 2,4,6,8: Inverse trigger conditions (step not required)
+- Condition 9: Background step `Set_Quote_Approval_Status_Pending.Status = Completed`
+- Condition 10: `rejectedQuote = true` (rejection shortcut)
 
-If grouped clauses are rejected by the platform, use formula-backed
-step-resolved booleans or keep the current scenario-enumeration expression and
-document the extension template.
+This requires two numbered exit conditions for each approval step plus one for
+each background step that gates exit, plus the rejection shortcut. The current
+four approval steps use 10 total conditions: `(4 steps × 2) + 1 background + 1 rejection`.
+
+This pattern has been validated in scratch orgs and proves:
+- ✅ Grouped OR clauses inside an outer AND expression are supported
+- ✅ Steps that never start resolve via their inverse trigger condition
+- ✅ Resubmitted work items remain Smart Approval eligible
 
 ## Adding A New Approval Dimension
 
@@ -142,9 +146,12 @@ Run these checks before treating an approval-flow change as ready:
 - `cci flow run prepare_approvals --org <cci_alias>` succeeds on a scratch org.
 - Re-running `prepare_approvals` is idempotent.
 - Preview Approvals shows the expected chains and steps.
-- Discount-only, terms-only, and discount-plus-terms quotes all complete.
-- Rejecting any active work item routes the quote to `Rejected`.
-- Resubmission after rejection or recall keeps expected work items Smart
+- **No-approval path**: Quotes with `DiscountApprovalLevel = 0` AND `PaymentTerms = "Net 30"` 
+  route directly to `Approved` status without entering the approval stage.
+- **Single-dimension paths**: Discount-only and terms-only quotes complete correctly.
+- **Multi-dimension path**: Quotes requiring both discount and payment term approval complete.
+- **Rejection handling**: Rejecting any active work item routes the quote to `Rejected`.
+- **Resubmission**: Resubmission after rejection or recall keeps expected work items Smart
   Approval eligible.
 - `python scripts/ai/check_plan_readme_consistency.py datasets/sfdmu/qb/en-US/qb-approvals`
   reports zero errors after notification dataset changes.
