@@ -2461,10 +2461,12 @@ tasks:
   delete_quantumbit_prm_pricing_data:
     group: Data Maintenance
     description: >
-      Delete all records from the qb-prm-pricing plan (ChannelProgramMember,
-      ChannelProgramLevel, ChannelProgram, Account) in reverse plan order
-      (children first). Run before insert_quantumbit_prm_pricing_data when
-      resetting PRM pricing overlay data.
+      Deletes any operation:Insert objects in the qb-prm-pricing plan, in
+      reverse plan order (children first). All qb-prm-pricing objects
+      (Account, ChannelProgram, ChannelProgramLevel, ChannelProgramMember)
+      are currently Upsert/Update, so this task is a standing no-op today —
+      it exists as a safety mechanism for if/when an Insert object is added
+      to the plan.
     class_path: tasks.rlm_sfdmu.DeleteSFDMUData
     options:
       pathtoexportjson: *quantumbit_prm_pricing_dataset
@@ -4029,7 +4031,7 @@ flows:
         when: project_config.project__custom__billing
       2:
         task: insert_billing_data
-        when: project_config.project__custom__billing and not project_config.project__custom__refresh and project_config.project__custom__qb
+        when: project_config.project__custom__billing and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__qb
       3:
         task: insert_q3_billing_data
         when: project_config.project__custom__billing and project_config.project__custom__tax and not project_config.project__custom__refresh and project_config.project__custom__q3 and not project_config.project__custom__qb
@@ -4703,6 +4705,24 @@ flows:
         task: extract_qb_transactionprocessingtypes_data
       9:
         task: extract_qb_guidedselling_products_data
+      # Steps 10-14: feature-gated module extracts, in the same order as the
+      # module load order in prepare_rlm_org / run_qb_idempotency_tests (tax
+      # before billing, prm before prm_pricing).
+      10:
+        task: extract_qb_tax_data
+        when: project_config.project__custom__tax and project_config.project__custom__qb
+      11:
+        task: extract_qb_billing_data
+        when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__qb
+      12:
+        task: extract_qb_prm_data
+        when: project_config.project__custom__prm and project_config.project__custom__qb
+      13:
+        task: extract_qb_approvals_data
+        when: project_config.project__custom__qb and project_config.project__custom__approvals
+      14:
+        task: extract_qb_prm_pricing_data
+        when: project_config.project__custom__prm and project_config.project__custom__prm_pricing and project_config.project__custom__qb
 
   run_qb_idempotency_tests:
     group: Data Management - Idempotency
@@ -4711,6 +4731,12 @@ flows:
       1:
         task: test_qb_pcm_idempotency
       2:
+        # Open question re: membership here: qb-pricing uses plain Insert (no
+        # deleteOldData), so its rerun safety comes from delete_quantumbit_pricing_data
+        # before insert_quantumbit_pricing_data, not from this test proving idempotency
+        # via a two-load comparison. q3's analogue (test_q3_pricing_idempotency) was
+        # excluded from run_q3_idempotency_tests for the same reason; qb's has not been
+        # removed unilaterally. See run_q3_idempotency_tests step 1 comment.
         task: test_qb_pricing_idempotency
       3:
         task: test_qb_product_images_idempotency
@@ -4738,7 +4764,7 @@ flows:
         when: project_config.project__custom__tax and project_config.project__custom__qb
       11:
         task: test_qb_billing_idempotency
-        when: project_config.project__custom__billing and project_config.project__custom__qb
+        when: project_config.project__custom__billing and project_config.project__custom__tax and project_config.project__custom__qb
       12:
         task: test_qb_prm_idempotency
         when: project_config.project__custom__prm and project_config.project__custom__qb

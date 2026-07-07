@@ -112,19 +112,27 @@ class SFDMUValidator:
         "ProductUsageGrant",
     }
 
-    # Known excluded objects (from optimization doc)
+    # Known excluded objects (from optimization doc).
+    # NOTE: this list is consulted for ALL dataset families (qb en-US, qb/ja, q3, mfg,
+    # inapp, ...) — an entry only needs to protect ONE plan that still sets
+    # `excluded: true` for that object. Grep every datasets/sfdmu/**/export.json for
+    # the object name and confirm no plan still excludes it before removing an entry.
     KNOWN_EXCLUDED_OBJECTS = {
+        # excluded:true in qb/ja/qb-pricing only (en-US/q3/mfg pricing plans include it)
         "PricebookEntryDerivedPrice",
-        "ProductUsageResourcePolicy",
-        "ProductUsageGrant",
+        # excluded:true in qb-dro and q3-dro
         "ProductDecompEnrichmentRule",
+        # excluded:true in qb-pcm, qb/ja/qb-pcm, and q3-pcm
         "ProductComponentGrpOverride",
         "ProductRelComponentOverride",
-        # CostBookEntry excluded in qb-pricing (no cost book data in base dataset)
-        "CostBookEntry",
     }
 
-    # Objects with known empty CSVs (0 records placeholders)
+    # Objects with known empty CSVs (0 records placeholders).
+    # NOTE: like KNOWN_EXCLUDED_OBJECTS above, this list is consulted across ALL
+    # dataset families — an entry only needs ONE plan with a genuinely empty CSV
+    # (no header row) to justify staying. Re-verify against every datasets/sfdmu/**
+    # plan before removing an entry; qb/q3/ja having populated CSVs for an object
+    # does not mean every family does.
     KNOWN_EMPTY_CSV_OBJECTS = {
         "ValTfrmGrp",
         "ValTfrm",
@@ -133,15 +141,18 @@ class SFDMUValidator:
         "ProductDisqualification",
         "ProductCategoryDisqual",
         "ProductCategoryQualification",
-        "CostBook",
-        "CostBookEntry",
         "GeneralLedgerJrnlEntryRule",
         "ProductRelComponentOverride",
+        # CostBook, CostBookEntry, PriceAdjustmentTier, BundleBasedAdjustment,
+        # PricebookEntryDerivedPrice, ProductRampSegment: populated in qb (en-US/ja)
+        # and q3 pricing/pcm/rating plans, but still genuinely empty (no header row)
+        # in mfg/en-US/mfg-multicurrency — kept for that plan.
+        "CostBook",
+        "CostBookEntry",
         "PriceAdjustmentTier",
         "BundleBasedAdjustment",
         "PricebookEntryDerivedPrice",
         "ProductRampSegment",
-        "UsagePrdGrantBindingPolicy",
     }
 
     def __init__(self, base_dir: str, strict: bool = False, verbose: bool = False,

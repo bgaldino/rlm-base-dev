@@ -330,7 +330,7 @@ cci task run delete_qb_rating_data
 cci task run execute_anon -o path scripts/apex/cleanupRatingRecords.apex
 ```
 
-These scripts delete PUG, PURP, PUR, binding policies, frequency policies, overage policies, and commitment policies in reverse dependency order. They do **not** delete UoM, UoMClass, UsageResource, or UsageResourceBillingPolicy (managed by qb-billing/qb-pcm).
+These scripts delete PUG, PURP, PUR, binding policies, frequency policies, overage policies, and commitment policies in reverse dependency order. They also deactivate and delete UsageResourceBillingPolicy (step 12 of `deleteQbRatingData.apex`). They do **not** delete UoM, UoMClass, or UsageResource (managed by qb-billing/qb-pcm).
 
 ## Dependencies
 

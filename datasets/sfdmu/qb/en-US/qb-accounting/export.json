@@ -24,9 +24,9 @@
           "excluded": false
         },
         {
-          "query": "SELECT BatchCriteriaId, Id, ColumnEnum, BillingBatchFilterCriteriaNumber, CriteriaFieldType, CriteriaSequence, CustomCriteriaFieldName, InvoiceRunMatchingValue, ObjectName, Operation, PaymentRunMatchingValue, StandardCriteriaField, Value FROM BillingBatchFilterCriteria",
+          "query": "SELECT BatchCriteriaId, ColumnEnum, BillingBatchFilterCriteriaNumber, CriteriaFieldType, CriteriaSequence, CustomCriteriaFieldName, InvoiceRunMatchingValue, ObjectName, Operation, PaymentRunMatchingValue, StandardCriteriaField, Value FROM BillingBatchFilterCriteria",
           "operation": "Upsert",
-          "externalId": "JournalEntryRuleName",
+          "externalId": "BillingBatchFilterCriteriaNumber",
           "excluded": false
         }
       ]

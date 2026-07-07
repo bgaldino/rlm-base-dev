@@ -13,7 +13,7 @@ scratch_data (Account, Contact, BillingAccount)
             ├──→ qb-pricing (16 objects)
             │       PriceBook2, PBE, PAS, PAT, adjustments
             │
-            ├──→ qb-billing (18 object entries, 3 passes)
+            ├──→ qb-billing (16 object entries, 3 passes)
             │       BillingPolicy, treatments, PaymentTerm, LegalEntity (Readonly), GL accounts,
             │       PaymentRetryRuleSet/Rule, SequencePolicy, SeqPolicySelectionCondition
             │       │
