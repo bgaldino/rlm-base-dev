@@ -89,9 +89,9 @@ CCI and `sf` CLI use **different alias registries**:
 | Context | Flag | Example |
 |---------|------|---------|
 | CCI task/flow | `--org <cci_alias>` | `cci task run insert_quantumbit_pricing_data --org beta` |
-| SF CLI command | `--target-org <sf_alias_or_username>` | `sf data query -q "..." --target-org rlm-base__beta` |
+| SF CLI command | `--target-org <sf_alias_or_username>` | `sf data query -q "..." --target-org <sf_alias_or_username>` |
 
-CCI alias `beta` → SF CLI alias `rlm-base__beta`. Never mix them.
+CCI alias `beta` maps to an SF CLI alias `rlm-base__beta`. Never mix them.
 
 In Python tasks: use `self.org_config.username` for CLI calls,
 `self.org_config.access_token` + `.instance_url` for REST API only.
@@ -295,6 +295,8 @@ that topic.
 | Author/update enablement exercises per release | `.cursor/skills/release-enablement/SKILL.md` |
 | Generate the QuantumBit demo-script canvas (per-release SE/partner artifact) | `.cursor/skills/qb-demo-script/SKILL.md` |
 | Ground product claims against Salesforce Help (Trailhead, internal docs, SME review) | `.cursor/skills/revenue-cloud-docs/SKILL.md` |
+| Author/debug OmniDataTransform (ODT) data mappers | `.cursor/skills/odt-authoring/SKILL.md` |
+| Create/modify .docx document templates + DocumentTemplate lifecycle | `.cursor/skills/document-generation/SKILL.md` |
 
 Every top-level skill has a **Quick Rules** section, and most have **DO NOT**;
 new and migrated skills should also include **Entry Conditions**, **Examples**,
@@ -330,6 +332,9 @@ Read the sub-file only when you need that specific detail:
 | `release-enablement/resume-enablement-work.md` | Release Enablement | Cross-workstation handoff — read when picking up enablement work in a fresh conversation. 4-step re-orientation + tool grants + restart prompt template |
 | `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
 | `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
+| `document-generation/data-mapper-authoring.md` | Document Generation | Programmatic ODT creation via REST API, cloning patterns, shell escaping pitfalls |
+| `document-generation/dynamic-images.md` | Document Generation | Dynamic image rendering: ContentDocument ID + width/height contract, known issues, RTB alternative |
+| `document-generation/extract-engine-reference.md` | Document Generation | Extract/Transform engine deep-dive: formula catalog, filter mechanics, hierarchy semantics, depth-uniformity rule, redundant join pattern, Preview API |
 | `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
 
 ### File-Specific Rules (Cursor Only)
@@ -370,6 +375,27 @@ python scripts/ai/check_plan_readme_consistency.py          # SFDMU plan README 
 `scripts/ai/pr_review.py` executes the mechanical half of **Responding to Automated PR Reviews** (above); the `/pr-review <pr>` Claude command drives the full protocol with it.
 
 `scripts/ai/skill_manifest.py` is the resolver for the cross-repo skill manifest at `.claude/skill-manifest.yml` — see `.cursor/skills/pmos-integration/SKILL.md` for the integration pattern.
+
+### Document Generation Scripts
+
+Scripts in `scripts/docgen/` drive ODT (OmniDataTransform) and DocumentTemplate workflows. See `.cursor/skills/document-generation/SKILL.md`. Install deps first: `pip install -r scripts/docgen/requirements.txt`.
+
+```bash
+python scripts/docgen/docgen_odt_validate.py <name_or_id> --org <alias>      # Validate ODT items (null fields, duplicates, dot notation)
+python scripts/docgen/docgen_odt_compare.py <source> <target> --org <alias>   # Diff two ODTs item-by-item
+python scripts/docgen/docgen_odt_create.py spec.json --org <alias>             # Create ODT from JSON spec (--example extract|transform for templates)
+python scripts/docgen/docgen_odt_inspect_hierarchy.py <name_or_id> --org <alias>  # Visualize Extract hierarchy tree + validate depth uniformity
+python scripts/docgen/docgen_odt_execute.py <odt_name> --record-id <id> --org <alias>  # Execute Extract via REST API (--json, --count for modes)
+python scripts/docgen/docgen_odt_execute.py <odt_name> --input extract.json --org <alias>  # Execute Transform (pass Extract output as input)
+python scripts/docgen/docgen_template_extract_tokens.py template.docx          # List all {{mustache}} tokens in a .docx
+python scripts/docgen/docgen_template_build.py create layout.json -o out.docx  # Build .docx from JSON layout (requires python-docx)
+python scripts/docgen/docgen_template_generate.py --record-id <id> --template-id <id> --org <alias>  # Full doc generation (DGP): triggers Extract→Transform→render→PDF
+python scripts/docgen/docgen_template_manage.py list --org <alias>             # List all DocumentTemplates (name, status, ODTs, usage type)
+python scripts/docgen/docgen_template_manage.py status <name> --org <alias>    # Show template detail + ContentDocument info
+python scripts/docgen/docgen_template_manage.py replace <name> <file> --org <alias>  # Full lifecycle: deactivate → upload binary → reactivate
+python scripts/docgen/docgen_template_manage.py download --template <name> --org <alias> -o out.docx  # Download template source .docx
+python scripts/docgen/docgen_template_manage.py download --version-id <068id> --org <alias> -o f.pdf  # Download any ContentVersion (DGP output, etc.)
+```
 
 ### Schema Validation Scripts
 
