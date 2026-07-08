@@ -99,7 +99,10 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
    referenced name into one of three scopes (version variable → `addVariables`;
    custom external dep → `externalDependencies`; standard context → nothing).
 7. **Mutations run deactivate → modify → reactivate**, in a guarded `finally`;
-   the tasks enforce this, including the procedure-plan cascade.
+   the tasks enforce this, including the procedure-plan cascade. **Label
+   preservation runs a second deactivate→relabel→reactivate cycle** after the
+   Connect PATCH, adding 30-60s for large procedures (90+ steps). Use
+   `--no-preserve-labels` to skip if speed is critical.
 8. **Test Connect CRUD on a disposable clone** (POST-create a renamed copy),
    never the shipped procedure — except for an intentional, approved change.
 9. **Step `name` ≠ `label`.** `name` is the spaceless API-Name identifier (and the
@@ -134,6 +137,12 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
   is correct — engine validation is **structural, not functional**. Removing a
   producer element can leave its consumers/filters orphaned and **silently
   misbehave** with no error. See `authoring-and-overlays.md` → *Removing steps*.
+- **DO NOT** attempt to clone an Expression Set by changing only the version
+  `apiName` — the script detects create-vs-replace by querying for the
+  **top-level `apiName`**, not the version name. For a POST-create, change
+  all three: top-level `apiName`, top-level `name`, and version `apiName`.
+  Otherwise the script will attempt REPLACE mode and fail with "You can't modify
+  the apiName of an expression set version."
 - **DO NOT** ship an `addSteps` overlay without accounting for **all three**
   dependency scopes (see `authoring-and-overlays.md`). The
   validator warns on an undeclared **custom** (`__c`/`__r`) reference — declare
@@ -199,8 +208,15 @@ python scripts/expression_sets/export_expression_set_overlay.py --target-org $OR
 # 5. Preview applying it to a clone (no --confirm = no write), then apply.
 python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG \
     --expression-set RLM_MyClone --overlay /tmp/apply_discount.overlay.json
+
+# 6. Apply for real. Wait for "Successfully applied overlay" message — label
+#    restoration runs a second cycle, taking 30-60s for large procedures.
 python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG \
     --expression-set RLM_MyClone --overlay /tmp/apply_discount.overlay.json --confirm
+
+# 7. Verify labels were preserved
+python scripts/expression_sets/describe_expression_set.py --target-org $ORG \
+    --developer-name RLM_MyClone --labels
 ```
 
 ## <a name="script-routing"></a>Task + script routing
@@ -275,6 +291,20 @@ not functional** — a `removeSteps` that reactivates can still leave a consumer
 orphaned and silently misbehave. The full slicing table, the three-scope
 classifier, the `externalDependencies` block shape, and safe-removal guidance
 live in **`authoring-and-overlays.md`**.
+
+---
+
+## Performance Expectations
+
+For reference, a 93-step pricing procedure (live-tested 2026-07-08):
+- **Read operations** (list, describe, export, trace, Mermaid): 3-5 seconds
+- **Import (CREATE):** ~45 seconds
+- **Overlay application (with label preservation):** ~60 seconds
+- **Overlay application (--no-preserve-labels):** ~30 seconds
+
+The bulk of time is spent in version activation polling and large payload
+transmission (129KB+ JSON for 93 steps). Use `--no-preserve-labels` if speed is
+critical, then run a manual `relabel_expression_set.py` batch later.
 
 ---
 

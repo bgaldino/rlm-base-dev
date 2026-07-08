@@ -57,7 +57,7 @@ exploration and updates on a **disposable clone**, never a shipped procedure
 
 | Script | Org? | Purpose |
 |--------|------|---------|
-| `import_expression_set.py` | **Mutates** | Create (POST) or replace (PATCH) a whole set from a JSON file; **auto-detects** create-vs-replace; runs the full deactivate→mutate→reactivate lifecycle. On a REPLACE it **auto-preserves step labels** (captures them before the clobbering PATCH, restores the survivors after — `--no-preserve-labels` to skip). |
+| `import_expression_set.py` | **Mutates** | Create (POST) or replace (PATCH) a whole set from a JSON file; **auto-detects** create-vs-replace **by querying the org for an existing top-level `apiName`** (NOT the version name). For a clone/CREATE, change top-level `apiName`, top-level `name`, and version `apiName`. On a REPLACE it **auto-preserves step labels** (captures them before the clobbering PATCH, restores the survivors after — `--no-preserve-labels` to skip). |
 | `apply_expression_set_overlay.py` | **Mutates** | Merge a declarative overlay (`addSteps` / `removeSteps` / `updateSteps` / `reorderSteps` / `addVariables` / `removeVariables`) into a live version; **all local pre-flights run BEFORE any deactivation**. **Auto-preserves step labels** (captures the survivors before the PATCH + honors any labels the overlay carries for its new steps, restores after — `--no-preserve-labels` to skip). |
 | `activate_expression_set.py` | **Mutates** | `--activate` / `--deactivate` a version (+ the procedure-plan cascade), standalone. Use to re-enable a version left off by a failed apply. |
 | `relabel_expression_set.py` | **Mutates** | Set readable step **labels** via the Tooling `Metadata` PATCH (the ONLY place labels live — Connect has no `label` and clobbers it on every PATCH). Label source: `--auto` (lossy derive for drift steps), `--labels-file` (`{name: label}` JSON), `--set NAME=LABEL` (repeatable), or **`--from-metadata <file>`** (read the authoritative `{name: label}` map straight from a `*.expressionSetDefinition-meta.xml` — the source-controlled `force-app/…/expressionSetDefinition/` files, or a target-org retrieve). Runs the same deactivate→PATCH→reactivate lifecycle. The Connect mutators now auto-restore labels, so this is mainly for a manual fix or a bulk relabel from the repo XML. |
@@ -202,8 +202,10 @@ to a leaf-ish step or use the full `deps` view with a renderer that pans/zooms.
 - **Labels are Connect-clobbered — and auto-restored.** Step labels live only in the
   Tooling `Metadata`; every Connect PATCH (`import` / `apply_expression_set_overlay`)
   rebuilds them from the spaceless `name`. Both mutators now **capture** the readable
-  labels before the PATCH and **restore** them after, in a second
-  deactivate→Tooling-PATCH→reactivate cycle (default-on; `--no-preserve-labels` to skip).
+  labels before the PATCH and **restore** them after, in a **second
+  deactivate→Tooling-PATCH→reactivate cycle** (default-on; `--no-preserve-labels` to skip).
+  **This adds 30-60 seconds for large procedures** (90+ steps) due to the second
+  activation cycle.
   This covers two step populations: **survivors** (restored from the pre-PATCH
   target-org snapshot — a renamed/added step simply won't match, which is correct) and
   **new steps** (labeled from the overlay's own `labels` block / per-step `label`, so a

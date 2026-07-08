@@ -173,13 +173,29 @@ def main(argv=None) -> int:
                 es_id, target_org=args.target_org, api_version=args.api_version,
                 logger=eprint,
             )
+            # Guardrail: warn if user intended CREATE but only changed version apiName
+            version_api_name_live = esv.get("ApiName")
+            version_api_name_incoming = payload.get("versions", [{}])[0].get("apiName")
+            if version_api_name_incoming and version_api_name_live != version_api_name_incoming:
+                eprint(
+                    f"\n⚠️  WARNING: REPLACE mode detected (found existing ExpressionSet '{api_name}'), "
+                    f"but version apiName '{version_api_name_incoming}' differs from active version '{version_api_name_live}'."
+                )
+                eprint(
+                    "    If you intended to CREATE a new Expression Set (clone), you must change the TOP-LEVEL apiName."
+                )
+                eprint(
+                    "    For CREATE: change all three name fields (top-level apiName, top-level name, version apiName)."
+                )
+                eprint(
+                    "    Continuing with REPLACE (will attempt to change version apiName, which may fail)...\n"
+                )
             # A replace is a full-graph Connect PATCH — it resets step labels to
             # their spaceless names (Connect has no label field). Capture the
             # readable labels it is about to clobber (best-effort, non-fatal) so
             # they can be re-applied afterwards. (An import definition JSON is
             # Connect-shaped and carries NO labels, so the target-org snapshot is
             # the only source; create/POST starts label-less, so nothing to do.)
-            version_api_name_live = esv.get("ApiName")
             restore_map = (
                 capture_labels(
                     transport, version_api_name_live, eprint,
