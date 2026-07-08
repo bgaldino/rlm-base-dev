@@ -249,8 +249,17 @@ class ContextApplier:
                     # primary builder (``_payload.translate_mapping_rules``)
                     # and the projection helper are the sources of truth; a
                     # flag here means either has drifted from the accept-shape.
+                    # Root-node ids let the validator exempt a root mapping's
+                    # legitimately-null mappedContextNodeId. Only derivable from
+                    # a real detail snapshot; without one, pass None so the check
+                    # is skipped rather than risk the false positive (matches the
+                    # "no detail supplied -> no new guards" contract above).
+                    root_node_ids = (
+                        _payload.collect_root_node_ids(detail) if detail else None
+                    )
                     violations = validate_node_mapping_patch_shape(
                         body, require_node_shell=(verb == "PATCH"),
+                        root_node_ids=root_node_ids,
                     )
                     for v in violations:
                         self.log(
@@ -1128,12 +1137,24 @@ def _project_attribute_mapping_for_patch(row: Dict[str, Any]) -> Dict[str, Any]:
 # {id}/context-node-mappings`` endpoint. Omitting any raises the generic
 # ``INVALID_DEFINITION: "Invalid mapping for given context"`` — which does not
 # name the missing field. Detecting client-side saves a round-trip.
+#
+# These three are required on **every** node mapping (root or child).
 _NODE_MAPPING_PATCH_REQUIRED = frozenset({
     "contextNodeId",
     "contextNodeMappingId",
     "sObjectName",
-    "mappedContextNodeId",
 })
+
+# ``mappedContextNodeId`` is required (non-null) only for a **child** node
+# mapping — it points at the parent node. A **root** node mapping legitimately
+# carries ``mappedContextNodeId: null`` (no parent to point at); flagging that
+# as a violation is a false positive that fatally refuses a valid additive
+# root-node PATCH. Live-verified 2026-07-08 against ``RLM_SalesTransactionContext``:
+# its ``SalesTransaction`` root mapping stores ``mappedContextNodeId: null``.
+# The validator therefore requires it only when told (via ``root_node_ids``)
+# that a node is *not* a root; absent that knowledge it stays silent rather than
+# risk the false positive. See ``docs/references/context-service-patch-shapes.md``.
+_NODE_MAPPING_MAPPED_NODE_FIELD = "mappedContextNodeId"
 
 # Response-only fields — if the caller re-emits them the platform raises
 # ``JSON_PARSER_ERROR: Unrecognized field "<name>"``. Catch them here first.
@@ -1148,6 +1169,7 @@ _ATTR_MAPPING_RESPONSE_ONLY = frozenset({
 
 def validate_node_mapping_patch_shape(
     payload: Dict[str, Any], *, require_node_shell: bool = True,
+    root_node_ids: Optional[set] = None,
 ) -> List[Dict[str, Any]]:
     """Pre-flight validate a payload destined for
     ``PATCH connect/context-mappings/{id}/context-node-mappings``.
@@ -1167,9 +1189,18 @@ def validate_node_mapping_patch_shape(
 
     Rules enforced:
     - Every ``contextNodeMappings`` entry with a ``contextNodeMappingId``
-      (PATCH intent) must carry the four required shell fields
-      (:data:`_NODE_MAPPING_PATCH_REQUIRED`), unless ``require_node_shell``
+      (PATCH intent) must carry the three structural shell fields
+      (:data:`_NODE_MAPPING_PATCH_REQUIRED`: ``contextNodeId``,
+      ``contextNodeMappingId``, ``sObjectName``), unless ``require_node_shell``
       is False.
+    - ``mappedContextNodeId`` is required (non-null) only for a **child** node
+      mapping, not a root one — a root mapping legitimately stores
+      ``mappedContextNodeId: null``. It is enforced only for nodes the caller
+      identifies as non-root via ``root_node_ids`` (the set of root
+      ``contextNodeId`` values, e.g. from
+      :func:`_payload.collect_root_node_ids`). When ``root_node_ids`` is
+      ``None`` the check is skipped entirely to avoid the false positive that
+      would fatally refuse a valid additive root-node PATCH.
     - Every ``contextAttributeMappings`` row must not carry any key in
       :data:`_ATTR_MAPPING_RESPONSE_ONLY` (project via
       :func:`_project_attribute_mapping_for_patch` first).
@@ -1207,6 +1238,20 @@ def validate_node_mapping_patch_shape(
                         "required for PATCH — omitting yields "
                         "INVALID_DEFINITION: 'Invalid mapping for given context'",
                         nm.get(key),
+                    )
+            # mappedContextNodeId: required only for a *child* node mapping.
+            # A root node legitimately has null here, so only enforce it when
+            # the caller has told us this node is non-root.
+            if root_node_ids is not None:
+                node_id = nm.get("contextNodeId")
+                is_root = node_id in root_node_ids if node_id else False
+                if not is_root and not nm.get(_NODE_MAPPING_MAPPED_NODE_FIELD):
+                    flag(
+                        f"{nm_path}.{_NODE_MAPPING_MAPPED_NODE_FIELD}",
+                        "required for a child node-mapping PATCH — omitting yields "
+                        "INVALID_DEFINITION: 'Invalid mapping for given context' "
+                        "(root nodes are exempt; theirs is legitimately null)",
+                        nm.get(_NODE_MAPPING_MAPPED_NODE_FIELD),
                     )
         attr_maps = nm.get("attributeMappings")
         if isinstance(attr_maps, dict):

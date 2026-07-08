@@ -152,7 +152,11 @@ The typical order when standing up context configuration on an org:
   or `mutate_context.py --deactivate-first`). And a plan that PATCHes node-mappings
   with less than the full existing child set is worse than blocked — it silently
   destroys the omitted rows; either send the full children or use the granular
-  `context-attribute-mappings` endpoint.
+  `context-attribute-mappings` endpoint. To add **one** attribute→field binding,
+  `mutate_context.py --add-mapping <Node.Attr> <mapping> <sObjectField>` posts the
+  `ContextAttributeMapping` + `ContextAttrHydrationDetail` pair via SObject REST
+  (runs on active, never touches siblings) — and is the only clean way to bind a
+  **root**-node attribute, whose whole-body PATCH shape can't be expressed.
 - **Deactivation is blocked while an active consumer references the definition**
   — ExpressionSet, ContextRules, PricingActionParameters, or a decision table.
   The deactivate PATCH fails with **`RECORD_UPDATE_FAILED`**; a definition with
@@ -322,7 +326,7 @@ binding using exactly this table — `->` hydrate, `<-` persist, `<->` both.
 | Deactivate fails | An active consumer (ExpressionSet/ContextRules/PricingActionParameters/DecisionTable) references it | Unlink/deactivate consumers first |
 | Pricing procedure breaks | Its context definition was deactivated | Reactivate; don't deactivate a consumed definition |
 | **`RECORD_UPDATE_FAILED` "Cannot modify/delete an active context definition"** on a delete **or an in-place edit** | **The version is active** AND the endpoint enforces the block. Live-probed v67.0: **BLOCKED on active** — Connect PATCH `context-definitions/{id}/context-mappings` (any body, including `isDefault`/`description`), SObject REST PATCH `ContextAttribute` (`IsTransient`), Connect DELETE of any existing artifact. **NOT blocked on active** — Connect POST children (nodes/attrs/tags/mapping shells), SObject REST PATCH `ContextNodeMapping` (`MappedContextDefinition`), SObject REST POST `ContextAttributeMapping`+`ContextAttrHydrationDetail` (traversal), SObject REST DELETE `ContextAttributeMapping/{id}` | **Deactivate first, then edit/delete.** `delete_context.py --deactivate-first` (delete) or `mutate_context.py --deactivate-first --reactivate` (edit) does this in one run; `manage_context_definition -o deactivate_before true` for a plan that edits existing artifacts. See the matrix in *Activation & deactivation* above for the full per-endpoint picture |
-| **Node-mappings PATCH silently wipes sibling `ContextAttributeMapping` rows on an active version** — returns `isSuccess:true` + empty body, no error, but rows not re-emitted in the payload disappear | Connect PATCH `context-mappings/{id}/context-node-mappings` has **whole-body-replace semantics** — an omitted child is interpreted as a delete. Deactivating first does *not* stop this (it's not blocked; it's destructive). Live-verified v67.0 | Re-emit the full existing `contextAttributeMappings` list in the PATCH body, or write via the granular `context-attribute-mappings` (`ATTR_MAPPING_COLLECTION`) endpoint one row at a time |
+| **Node-mappings PATCH silently wipes sibling `ContextAttributeMapping` rows on an active version** — returns `isSuccess:true` + empty body, no error, but rows not re-emitted in the payload disappear | Connect PATCH `context-mappings/{id}/context-node-mappings` has **whole-body-replace semantics** — an omitted child is interpreted as a delete. Deactivating first does *not* stop this (it's not blocked; it's destructive). Live-verified v67.0 | Re-emit the full existing `contextAttributeMappings` list in the PATCH body, or — to add a single binding — use `mutate_context.py --add-mapping` (SObject-REST POST pair, never touches siblings, and the only clean way to bind a root-node attribute) or the granular `context-attribute-mappings` (`ATTR_MAPPING_COLLECTION`) endpoint one row at a time |
 | `TransactionType` mapping change ignored | Inherited from the standard base; the task skips it | Leave it; it comes from the base |
 | Orphan definition after a failed create | Payload-create has **no full rollback** on partial failure | Inspect with `describe_context.py`; delete/clean up the orphan before retrying |
 | Context tag rejected / collides | A tag equals a decision table's label/API name | Rename the tag |

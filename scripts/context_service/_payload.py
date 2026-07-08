@@ -212,6 +212,28 @@ def collect_parent_ids(detail: Dict[str, Any]) -> Dict[str, str]:
     return parent_node_id_by_node_name
 
 
+def collect_root_node_ids(detail: Dict[str, Any]) -> set:
+    """Return the set of ``contextNodeId`` values that are **root** nodes
+    (top-level entries of the ``contextNodes`` tree).
+
+    Companion to :func:`collect_parent_ids` (which maps *child* node name ->
+    parent id). A **root** node mapping legitimately carries
+    ``mappedContextNodeId: null`` — there is no parent node to point at —
+    whereas a **child** node mapping must point at its parent. Callers use this
+    set to tell the two apart (e.g. the node-mapping PATCH shape validator, so a
+    valid root mapping is not mistaken for one missing a required field).
+    Live-verified 2026-07-08 against ``RLM_SalesTransactionContext``: the
+    existing ``SalesTransaction`` root mapping stores ``mappedContextNodeId:
+    null``.
+    """
+    version0 = _version0(detail)
+    roots: set = set()
+    for node in version0.get("contextNodes", []) or []:
+        if isinstance(node, dict) and node.get("contextNodeId"):
+            roots.add(node["contextNodeId"])
+    return roots
+
+
 # --------------------------------------------------------------------------- #
 # Create payload
 # --------------------------------------------------------------------------- #

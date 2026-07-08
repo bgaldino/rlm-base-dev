@@ -290,7 +290,11 @@ hydration** unless you preserve it.
 > **not** change this — the fix is either re-emit the full existing child list
 > in the payload, or write via the granular **`ATTR_MAPPING_COLLECTION`**
 > endpoint (POST/PATCH one row at a time) which does not have whole-body-replace
-> semantics. See `authoring-and-lifecycle.md` → *Activation & deactivation* for
+> semantics. To add a single attribute→field binding, use
+> `mutate_context.py --add-mapping` (it posts the `ContextAttributeMapping` +
+> `ContextAttrHydrationDetail` pair via SObject REST — never touches siblings, and
+> is the only clean way to bind a **root**-node attribute, whose whole-body PATCH
+> shape can't be expressed). See `authoring-and-lifecycle.md` → *Activation & deactivation* for
 > the full per-endpoint matrix (which surfaces block on active, which allow,
 > and which are silently destructive).
 

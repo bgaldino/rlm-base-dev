@@ -2,8 +2,9 @@
 """Mutate one Context Definition artifact in place.
 
 Live-proven, for one-off **granular** edits to an **existing** definition — flip
-an attribute's ``IsTransient``, re-designate the default context mapping, or add
-/ remove a single tag. The org-*build* path for context changes is a plan
+an attribute's ``IsTransient``, re-designate the default context mapping, add /
+remove a single tag, or bind one attribute to an SObject field. The org-*build*
+path for context changes is a plan
 applied by ``cci task run manage_context_definition`` (or
 ``apply_context_plan.py`` for a whole plan); use this when you want to change one
 artifact rather than re-apply a plan. It runs on the ``sf``-CLI transport —
@@ -15,9 +16,10 @@ Safety model (see ``_mutate.py``, all live-verified on v67.0):
   * **Op-specific inheritance guard.** ``set-transient`` and ``remove-tag``
     refuse an inherited (standard-base) artifact; ``set-default-mapping`` and
     ``add-tag`` legitimately target inherited mappings/attributes.
-  * **Op-specific active-state guard (the add/mutate/delete asymmetry).** Only
-    ``remove-tag`` (a delete) is blocked while the version is active and needs
-    ``--deactivate-first``; the in-place mutates apply on an active version.
+  * **Op-specific active-state guard (the add/mutate/delete asymmetry).** The
+    pure inserts (``add-tag``, ``add-mapping``) apply on an active version;
+    ``set-transient`` / ``set-default-mapping`` (modifies) and ``remove-tag``
+    (a delete) are blocked while active and need ``--deactivate-first``.
   * **No-op detection.** Setting a value that already holds is reported and
     skipped, not re-PATCHed.
   * **Preview by default.** Without ``--confirm`` every op prints the planned
@@ -28,6 +30,9 @@ Ops (mutually exclusive):
   --set-default-mapping NAME               Designate the default context mapping.
   --add-tag NODE.ATTR TAGNAME              Add a tag to an attribute (custom __c,
                                            definition-unique name).
+  --add-mapping NODE.ATTR MAPPING FIELD    Bind an attribute to an SObject field
+                                           on an existing node mapping (granular,
+                                           sibling-safe insert; runs while active).
   --remove-tag TAGNAME                     Remove a custom tag (delete; blocked
                                            while active — use --deactivate-first).
 
@@ -52,6 +57,15 @@ Examples
     python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext \
         --add-tag SalesTransactionItem.RampMode__c RampModeAlias__c --confirm
+
+    # bind a header attribute to a Quote field on the SalesTransaction root node
+    # (granular, sibling-safe — the fix for applying an additive mapping to a
+    #  root node; the whole-body PATCH path tripped the shape guard). Runs while
+    #  the definition is active.
+    python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+        --developer-name RLM_SalesTransactionContext \
+        --add-mapping SalesTransaction.TotalCost__c QuoteEntitiesMapping RLM_TotalCost__c \
+        --confirm
 
     # remove a custom tag (a delete — deactivate first, then reactivate)
     python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
@@ -100,6 +114,12 @@ def _describe_plan(change):
     if op == "add-tag":
         return (f"add-tag '{change['tag']}' -> {change['target']}"
                 + ("  (no-op, already present)" if change["noop"] else ""))
+    if op == "add-mapping":
+        return (f"add-mapping {change['target']} -> "
+                f"{change['sObject']}.{change['field']} "
+                f"(mapping '{change['mapping']}')"
+                + (f"  (no-op, already bound: {change['existing_binding']})"
+                   if change["noop"] else ""))
     return op
 
 
@@ -121,6 +141,10 @@ def main(argv=None) -> int:
                     help="Designate NAME as the default context mapping.")
     op.add_argument("--add-tag", nargs=2, metavar=("NODE.ATTR", "TAGNAME"),
                     help="Add a tag to an attribute (custom __c, definition-unique).")
+    op.add_argument("--add-mapping", nargs=3,
+                    metavar=("NODE.ATTR", "MAPPING", "SOBJECT_FIELD"),
+                    help="Bind an attribute to an SObject field on an existing node "
+                         "mapping (granular, sibling-safe insert; runs while active).")
     op.add_argument("--remove-tag", metavar="TAGNAME",
                     help="Remove a custom tag (a delete; blocked while active).")
 
@@ -148,6 +172,8 @@ def main(argv=None) -> int:
         op_name = "set-default-mapping"
     elif args.add_tag:
         op_name = "add-tag"
+    elif args.add_mapping:
+        op_name = "add-mapping"
     else:
         op_name = "remove-tag"
 
@@ -184,6 +210,11 @@ def main(argv=None) -> int:
             change = mut.plan_add_tag(detail, node_attr, tag)
             eprint("\nPlanned change:\n  " + _describe_plan(change))
             eprint("  note: " + change["_note"])
+        elif op_name == "add-mapping":
+            node_attr, mapping_name, sobject_field = args.add_mapping
+            change = mut.plan_add_mapping(detail, node_attr, mapping_name, sobject_field)
+            eprint("\nPlanned change:\n  " + _describe_plan(change))
+            eprint("  note: " + change["_note"])
         else:  # remove-tag
             remove_plan = mut.plan_remove_tag(detail, context_id, args.remove_tag)
             eprint(f"\nPlanned change:\n  remove-tag '{args.remove_tag}' "
@@ -218,6 +249,8 @@ def main(argv=None) -> int:
             summary = mut.execute_set_default_mapping(context_id, detail, change)
         elif op_name == "add-tag":
             summary = mut.execute_add_tag(context_id, change)
+        elif op_name == "add-mapping":
+            summary = mut.execute_add_mapping(change)
         else:  # remove-tag
             summary = mut.execute_remove_tag(remove_plan)
 

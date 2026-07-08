@@ -110,10 +110,25 @@ on active versions.
 }
 ```
 
-**Node-mapping shell required fields (all four):** `contextNodeId`,
-`contextNodeMappingId` (for PATCH), `sObjectName`, `mappedContextNodeId`.
-Omitting any raises `INVALID_DEFINITION: "Invalid mapping for given context"`
-(a generic message that *does not name the missing field*).
+**Node-mapping shell required fields:** `contextNodeId`, `contextNodeMappingId`
+(for PATCH), `sObjectName` are required on **every** node mapping. The fourth,
+`mappedContextNodeId`, is required **only for a child node mapping** — it points
+at the parent node. A **root** node mapping legitimately carries
+`mappedContextNodeId: null` (there is no parent to point at); requiring it there
+is a false positive. Omitting a genuinely-required field raises
+`INVALID_DEFINITION: "Invalid mapping for given context"` (a generic message
+that *does not name the missing field*).
+
+> **Root-node null exception (live-verified 2026-07-08).** On
+> `RLM_SalesTransactionContext`, the `SalesTransaction` root node mapping stores
+> `mappedContextNodeId: null`. The pre-flight shape validator
+> (`validate_node_mapping_patch_shape`) therefore treats `mappedContextNodeId`
+> as required only for nodes the caller identifies as non-root (via
+> `root_node_ids`, from `_payload.collect_root_node_ids`). Before this fix the
+> validator flagged the null unconditionally and **fatally refused** a valid
+> additive root-node PATCH — the whole-body-replace path could never add a
+> mapping to a root node. For additive root-node bindings, prefer the granular
+> SObject-REST path (see below) over the whole-body PATCH.
 
 **Attribute-mapping accept-list** (fields the endpoint accepts; every other
 key raises `JSON_PARSER_ERROR: Unrecognized field`):
@@ -271,6 +286,17 @@ exceptions:
    whole-body-replace semantics turn a partial payload into a silent delete
    of the omitted rows. This is worse than a hard block.
 
+**To add one attribute→field binding, prefer the granular op, not the PATCH.**
+`scripts/context_service/definition/mutate_context.py --add-mapping
+NODE.ATTR MAPPING SOBJECT_FIELD` posts a `ContextAttributeMapping` +
+`ContextAttrHydrationDetail` pair via SObject REST — both on the
+active-version INSERT allow-list, and it never touches sibling rows. This
+is the sanctioned way to bind an attribute on an **active** definition,
+and it is the **only** clean way to add a binding to a **root** node: the
+whole-body Connect PATCH cannot express a root mapping (its
+`mappedContextNodeId` is legitimately null — see the shell-fields section
+above) and the shape guard now refuses that PATCH before the wire.
+
 ---
 
 ## Common rejections and how to resolve them
@@ -284,12 +310,12 @@ Every error below was observed live against the mutation endpoints. `<field>` /
 | `JSON_PARSER_ERROR: Unrecognized field "contextAttributeName"`          | Response-only mirror of `contextInputAttributeName`               | Use `contextInputAttributeName` on writes |
 | `JSON_PARSER_ERROR: Unrecognized field "mappedField"`                   | SObject REST field emitted on Connect PATCH                       | Use nested `hydrationDetails.contextAttrHydrationDetails[{sObjectDomain,queryAttribute}]` on Connect |
 | `JSON_PARSER_ERROR: Unrecognized field "contextNodeName"`               | Response-only field on node-mapping shell                         | Use `contextNodeId` + `sObjectName` |
-| `INVALID_DEFINITION: "Invalid mapping for given context"`               | Node-mapping shell missing required id or the payload references an artifact the definition doesn't know about | Include all four: `contextNodeId`, `contextNodeMappingId`, `sObjectName`, `mappedContextNodeId`. Verify ids against a fresh `fetch_detail`. |
+| `INVALID_DEFINITION: "Invalid mapping for given context"`               | Node-mapping shell missing a required id, or the payload references an artifact the definition doesn't know about | Always include the three structural fields — `contextNodeId`, `contextNodeMappingId`, `sObjectName`. Add `mappedContextNodeId` **only for a child** node-mapping (it points at the parent); a **root** node-mapping's is legitimately null, so omit it there. Verify ids against a fresh `fetch_detail`. For a root binding, skip the PATCH entirely and use the granular `--add-mapping` op. |
 | `INVALID_INPUT: "An Inherited mapping for ContextAttribute: <name> already exists…"` | Re-emitted an inherited (`baseReference` contains `__stdctx/`) attribute mapping row | Filter inherited rows via `_is_inherited_row` before the merge |
 | `INVALID_DEFINITION: "Many-to-one mapping isn't allowed"`               | Two attributes binding to the same SObject field                  | Plan-authoring issue, not a payload issue — pick a different `sObjectField` or repurpose the existing binding |
 | `RECORD_UPDATE_FAILED: "Cannot modify/delete an active context definition"` | Modify/delete of an existing artifact on an active version    | Deactivate first (see A2 shared lifecycle guard); reactivate after |
 | `MAX_LIMIT_EXCEEDED: "Version already exists for this Context Definition"` | Attempted to insert a second `ContextDefinitionVersion`         | The version is a 1:1 singleton — deactivate/reactivate bumps `VersionNumber` in place; do not create a second version |
-| PATCH returns `isSuccess: true` but siblings vanish                     | Whole-body-replace semantics on Connect node-mapping PATCH        | Re-emit ALL existing children (P2 fix) or migrate to `ATTR_MAPPING_COLLECTION` granular writes |
+| PATCH returns `isSuccess: true` but siblings vanish                     | Whole-body-replace semantics on Connect node-mapping PATCH        | Re-emit ALL existing children (P2 fix), or — to add a single binding — use the granular `mutate_context.py --add-mapping` op (SObject-REST POST pair, never touches siblings) instead of the PATCH |
 
 ---
 

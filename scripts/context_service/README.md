@@ -39,7 +39,7 @@ the setup path.
 | `export_context.py` | Read-only | Serialize a live definition back into repo **plan JSON** (round-trips with the validator). |
 | `apply_context_plan.py` | **Mutates** | Apply an additive plan (or create a new definition) — same plan logic as `manage_context_definition`, for one-off updates. |
 | `delete_context.py` | **Destructive** | Deactivate (default) or hard-delete a definition / custom artifacts — `--confirm-delete` required for a hard delete. |
-| `mutate_context.py` | **Mutates** | One granular in-place edit (`--set-transient` / `--set-default-mapping` / `--add-tag` / `--remove-tag`) — `--confirm` required. |
+| `mutate_context.py` | **Mutates** | One granular in-place edit (`--set-transient` / `--set-default-mapping` / `--add-tag` / `--add-mapping` / `--remove-tag`) — `--confirm` required. |
 
 **Runtime (context instances — verify-live, pilot caveats; see
 `runtime-and-persistence.md`):**
@@ -387,7 +387,7 @@ pipes an empty `-b -` body on every non-GET/HEAD request.)
 > a *granular* companion for a one-off edit to an **existing** definition, not a
 > build step; orchestration lives in `_mutate.py` (`ContextMutator`).
 
-Four mutually-exclusive ops; previews unless `--confirm`:
+Five mutually-exclusive ops; previews unless `--confirm`:
 
 ```bash
 # flip a custom attribute's IsTransient (a modify → deactivate first, reactivate after)
@@ -406,6 +406,15 @@ python scripts/context_service/definition/mutate_context.py --target-org rlm-bas
   --developer-name RLM_SalesTransactionContext \
   --add-tag SalesTransactionItem.RampMode__c RampModeAlias__c --confirm
 
+# bind an attribute to an SObject field on an existing node mapping
+# (a granular, sibling-safe insert → runs on the active version). This is the
+# sanctioned way to add a single mapping — especially to a ROOT node, which the
+# whole-body Connect PATCH cannot express (its mappedContextNodeId is null).
+python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
+  --developer-name RLM_SalesTransactionContext \
+  --add-mapping SalesTransaction.TotalCost__c QuoteEntitiesMapping RLM_TotalCost__c \
+  --confirm
+
 # remove a custom tag (a delete → deactivate first)
 python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext \
@@ -416,17 +425,18 @@ Two op-specific guards, both **live-verified** on v67.0:
 
 - **Inheritance guard (per-op).** `--set-transient` and `--remove-tag` refuse an
   inherited (standard-base) artifact — the platform blocks editing/deleting a
-  base artifact in place. `--set-default-mapping` and `--add-tag` **do** target
-  inherited artifacts legitimately (the standard default mapping is inherited; a
-  custom `__c` tag attaches fine to an inherited attribute).
+  base artifact in place. `--set-default-mapping`, `--add-tag`, and
+  `--add-mapping` **do** target inherited artifacts legitimately (the standard
+  default mapping is inherited; a custom `__c` tag or a new field binding attaches
+  fine to an inherited attribute/node mapping).
 - **Active-state guard (per-op) — the insert-vs-modify/delete asymmetry.** The
   platform allows **inserting a new artifact** on an active version but blocks
   **modifying or deleting an existing one** (`RECORD_UPDATE_FAILED` "Cannot
-  modify/delete an active context definition"). So `--add-tag` (a pure insert)
-  runs on an active version, while `--set-transient`, `--set-default-mapping`,
-  and `--remove-tag` require `--deactivate-first` (pair with `--reactivate` to
-  restore active state after). No-op edits (setting a value that already holds)
-  are detected and skipped.
+  modify/delete an active context definition"). So the pure inserts — `--add-tag`
+  and `--add-mapping` — run on an active version, while `--set-transient`,
+  `--set-default-mapping`, and `--remove-tag` require `--deactivate-first` (pair
+  with `--reactivate` to restore active state after). No-op edits (a binding or
+  value that already holds) are detected and skipped.
 
 ## Runtime instance scripts (verify-live, pilot caveats)
 

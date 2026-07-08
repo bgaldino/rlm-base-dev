@@ -29,6 +29,8 @@ sys.path.insert(0, REPO_ROOT)
 import scripts.context_service._apply as _apply  # noqa: E402
 import scripts.context_service._client as _client  # noqa: E402
 import scripts.context_service._model as _model  # noqa: E402
+import scripts.context_service._mutate as _mutate  # noqa: E402
+import scripts.context_service._payload as _payload  # noqa: E402
 import scripts.context_service.definition.diff_context as diff_context  # noqa: E402
 
 RESULTS = []
@@ -698,11 +700,14 @@ def test_validate_shape_accepts_well_formed_patch():
 
 
 def test_validate_shape_flags_missing_node_shell_fields():
+    # The three *structural* shell fields (contextNodeId, contextNodeMappingId,
+    # sObjectName) are required on every PATCH node mapping, root or child.
+    # mappedContextNodeId is conditional (child-only) — covered separately below.
     body = {
         "contextNodeMappings": [
             {
                 "contextNodeMappingId": "11b",
-                # missing contextNodeId, sObjectName, mappedContextNodeId
+                # missing contextNodeId, sObjectName
                 "attributeMappings": {"contextAttributeMappings": []},
             }
         ]
@@ -713,7 +718,68 @@ def test_validate_shape_flags_missing_node_shell_fields():
           "contextNodeMappings[0].contextNodeId" in paths)
     check("missing sObjectName flagged",
           "contextNodeMappings[0].sObjectName" in paths)
-    check("missing mappedContextNodeId flagged",
+
+
+def test_validate_shape_skips_mapped_node_id_without_root_info():
+    # Without root_node_ids the validator cannot tell root from child, so it
+    # must NOT flag a null mappedContextNodeId — that false positive is exactly
+    # the bug that fatally refused a valid additive root-node PATCH (2026-07-08).
+    body = {
+        "contextNodeMappings": [
+            {
+                "contextNodeId":        "11nST",
+                "contextNodeMappingId": "11b",
+                "sObjectName":          "Quote",
+                # mappedContextNodeId omitted (null) — legit for a root node
+                "attributeMappings": {"contextAttributeMappings": []},
+            }
+        ]
+    }
+    violations = _apply.validate_node_mapping_patch_shape(body)
+    paths = {v["path"] for v in violations}
+    check("null mappedContextNodeId not flagged when root/child is unknown",
+          "contextNodeMappings[0].mappedContextNodeId" not in paths)
+
+
+def test_validate_shape_exempts_root_node_null_mapped_node_id():
+    # A ROOT node mapping (its contextNodeId is in root_node_ids) with a null
+    # mappedContextNodeId is valid — the platform stores null there. No flag.
+    body = {
+        "contextNodeMappings": [
+            {
+                "contextNodeId":        "11nST",
+                "contextNodeMappingId": "11b",
+                "sObjectName":          "Quote",
+                "attributeMappings": {"contextAttributeMappings": []},
+            }
+        ]
+    }
+    violations = _apply.validate_node_mapping_patch_shape(
+        body, root_node_ids={"11nST"})
+    paths = {v["path"] for v in violations}
+    check("root node's null mappedContextNodeId is exempt",
+          "contextNodeMappings[0].mappedContextNodeId" not in paths)
+
+
+def test_validate_shape_flags_child_node_missing_mapped_node_id():
+    # A CHILD node mapping (its contextNodeId is NOT in root_node_ids) must
+    # carry a non-null mappedContextNodeId pointing at its parent — omitting it
+    # yields INVALID_DEFINITION, so flag it.
+    body = {
+        "contextNodeMappings": [
+            {
+                "contextNodeId":        "11nQLI",
+                "contextNodeMappingId": "11b",
+                "sObjectName":          "QuoteLineItem",
+                # mappedContextNodeId omitted — invalid for a child node
+                "attributeMappings": {"contextAttributeMappings": []},
+            }
+        ]
+    }
+    violations = _apply.validate_node_mapping_patch_shape(
+        body, root_node_ids={"11nST"})  # QLI id not in the root set → child
+    paths = {v["path"] for v in violations}
+    check("child node's missing mappedContextNodeId flagged",
           "contextNodeMappings[0].mappedContextNodeId" in paths)
 
 
@@ -902,6 +968,201 @@ def test_context_mapping_real_sobject_change_still_detected():
     check("differing CONTEXT ref alone is NOT a change",
           not diff_context._mapping_attr_differs(
               same_but_diff_ref_left, same_but_diff_ref_right))
+
+
+# --------------------------------------------------------------------------- #
+# collect_root_node_ids — root vs child node id set
+# --------------------------------------------------------------------------- #
+
+def _detail_root_and_child():
+    """A definition with a root node (SalesTransaction) and a child node
+    (SalesTransactionItem), plus a matching mapping/node-mapping so the
+    add-mapping op can resolve ids and sObjectName."""
+    return {
+        "contextDefinitionVersionList": [
+            {
+                "isActive": True,
+                "contextNodes": [
+                    {
+                        "name": "SalesTransaction",
+                        "contextNodeId": "11nST",
+                        "attributes": {"contextAttributes": [
+                            {"name": "TotalCost__c", "contextAttributeId": "11aTC"},
+                        ]},
+                        "childNodes": {"contextNodes": [
+                            {
+                                "name": "SalesTransactionItem",
+                                "contextNodeId": "11nSTI",
+                                "attributes": {"contextAttributes": [
+                                    {"name": "Quantity", "contextAttributeId": "11aQ"},
+                                ]},
+                                "childNodes": {"contextNodes": []},
+                            }
+                        ]},
+                    }
+                ],
+                "contextMappings": [
+                    {
+                        "name": "QuoteEntitiesMapping",
+                        "contextMappingId": "11j1",
+                        "intents": ["HYDRATION", "PERSISTENCE"],
+                        "contextNodeMappings": [
+                            {
+                                "contextNodeName": "SalesTransaction",
+                                "contextNodeId": "11nST",
+                                "contextNodeMappingId": "11bST",
+                                "sObjectName": "Quote",
+                                "mappedContextNodeId": None,
+                                "attributeMappings": [],
+                            },
+                            {
+                                "contextNodeName": "SalesTransactionItem",
+                                "contextNodeId": "11nSTI",
+                                "contextNodeMappingId": "11bSTI",
+                                "sObjectName": "QuoteLineItem",
+                                "mappedContextNodeId": "11nST",
+                                "attributeMappings": [
+                                    {"contextAttributeName": "Quantity",
+                                     "contextAttributeId": "11aQ",
+                                     "contextAttrHydrationDetailList": [
+                                         {"sObjectDomain": "QuoteLineItem",
+                                          "queryAttribute": "Quantity"}]},
+                                ],
+                            },
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+
+
+def test_collect_root_node_ids_returns_only_top_level():
+    roots = _payload.collect_root_node_ids(_detail_root_and_child())
+    check("root SalesTransaction id is in the set", "11nST" in roots)
+    check("child SalesTransactionItem id is NOT in the set", "11nSTI" not in roots)
+    check("exactly one root", len(roots) == 1)
+
+
+def test_collect_root_node_ids_empty_detail():
+    check("empty detail → empty root set", _payload.collect_root_node_ids({}) == set())
+
+
+# --------------------------------------------------------------------------- #
+# add-mapping mutator op — granular, sibling-safe, active-allowed
+# --------------------------------------------------------------------------- #
+
+def _mutator(transport):
+    return _mutate.ContextMutator(transport)
+
+
+def test_add_mapping_op_rules_are_pure_insert():
+    rules = _mutate.OP_RULES["add-mapping"]
+    check("add-mapping does not refuse inherited (additive binding)",
+          rules["refuses_inherited"] is False)
+    check("add-mapping runs on an active version (pure insert)",
+          rules["requires_inactive"] is False)
+
+
+def test_add_mapping_plan_resolves_root_node_binding():
+    detail = _detail_root_and_child()
+    change = _mutator(RecordingTransport()).plan_add_mapping(
+        detail, "SalesTransaction.TotalCost__c",
+        "QuoteEntitiesMapping", "RLM_TotalCost__c")
+    check("target resolved to the root attribute",
+          change["target"] == "SalesTransaction.TotalCost__c")
+    check("node mapping id resolved from the snapshot",
+          change["node_mapping_id"] == "11bST")
+    check("sObject taken from the node mapping (Quote), not the caller",
+          change["sObject"] == "Quote")
+    check("field is the caller-supplied SObject field",
+          change["field"] == "RLM_TotalCost__c")
+    check("not a no-op (attribute is unbound on this mapping)",
+          change["noop"] is False)
+
+
+def test_add_mapping_execute_posts_cam_then_hydration():
+    detail = _detail_root_and_child()
+    t = RecordingTransport()
+    mut = _mutator(t)
+    change = mut.plan_add_mapping(
+        detail, "SalesTransaction.TotalCost__c",
+        "QuoteEntitiesMapping", "RLM_TotalCost__c")
+    summary = mut.execute_add_mapping(change)
+    posts = [s for s in t.sobjects if s[0] == "POST"]
+    check("exactly two SObject POSTs (CAM + hydration)", len(posts) == 2)
+    cam = next((s for s in posts if s[1] == "ContextAttributeMapping"), None)
+    hyd = next((s for s in posts if s[1] == "ContextAttrHydrationDetail"), None)
+    check("ContextAttributeMapping POSTed", cam is not None)
+    check("ContextAttrHydrationDetail POSTed", hyd is not None)
+    if cam:
+        body = cam[3]
+        check("CAM carries the resolved node-mapping id",
+              body.get("ContextNodeMappingId") == "11bST")
+        check("CAM carries the attribute id",
+              body.get("ContextAttributeId") == "11aTC")
+        check("CAM ContextInputAttributeName is the bare attr name",
+              body.get("ContextInputAttributeName") == "TotalCost__c")
+    if hyd:
+        body = hyd[3]
+        check("hydration ObjectName is the node-mapping sObject (Quote)",
+              body.get("ObjectName") == "Quote")
+        check("hydration QueryAttribute is the target field",
+              body.get("QueryAttribute") == "RLM_TotalCost__c")
+        check("hydration chained to the created CAM keeper id",
+              body.get("ContextAttributeMappingId") == cam_keeper_id(t))
+    check("summary reports changed=True", summary.get("changed") is True)
+    # No whole-body PATCH — the sibling-loss surface is never touched.
+    check("no node-mapping PATCH issued (sibling-safe)",
+          not any(r[0] == "PATCH" and "context-node-mappings" in r[1]
+                  for r in t.requests))
+
+
+def cam_keeper_id(t):
+    """Fake id the RecordingTransport returned for the ContextAttributeMapping
+    POST (first POST -> 'fake1')."""
+    return "fake1"
+
+
+def test_add_mapping_is_idempotent_when_already_bound():
+    # Binding Quantity (already mapped on the child node mapping) is a no-op.
+    detail = _detail_root_and_child()
+    t = RecordingTransport()
+    mut = _mutator(t)
+    change = mut.plan_add_mapping(
+        detail, "SalesTransactionItem.Quantity",
+        "QuoteEntitiesMapping", "Quantity")
+    check("plan detects the existing binding", change["noop"] is True)
+    check("existing binding is described",
+          "QuoteLineItem.Quantity" in (change["existing_binding"] or ""))
+    summary = mut.execute_add_mapping(change)
+    check("no-op execute reports changed=False", summary.get("changed") is False)
+    check("no-op execute issues zero POSTs",
+          not [s for s in t.sobjects if s[0] == "POST"])
+
+
+def test_add_mapping_unresolved_node_mapping_raises():
+    detail = _detail_root_and_child()
+    raised = False
+    try:
+        _mutator(RecordingTransport()).plan_add_mapping(
+            detail, "SalesTransaction.TotalCost__c",
+            "NoSuchMapping", "RLM_TotalCost__c")
+    except _mutate.MutatePreflightError:
+        raised = True
+    check("unresolved mapping/node pair raises MutatePreflightError", raised)
+
+
+def test_add_mapping_unknown_attribute_raises():
+    detail = _detail_root_and_child()
+    raised = False
+    try:
+        _mutator(RecordingTransport()).plan_add_mapping(
+            detail, "SalesTransaction.NoSuchAttr__c",
+            "QuoteEntitiesMapping", "RLM_Foo__c")
+    except _mutate.MutatePreflightError:
+        raised = True
+    check("unknown attribute raises MutatePreflightError", raised)
 
 
 # --------------------------------------------------------------------------- #
