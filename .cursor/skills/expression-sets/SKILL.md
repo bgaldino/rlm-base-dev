@@ -7,19 +7,73 @@ programmatically — via the **Connect API** (runtime/programmatic CRUD) or the
 overlays that add/remove/update steps and variables. It is consumable by any AI
 agent (Cursor, Claude Code, Copilot, Codex, Windsurf, Aider).
 
-Expression Sets back more than pricing — the `interfaceSourceType` enum covers
-`Constraint`, `DiscoveryProcedure`, `EventOrchestration`,
-`QualificationProcedure`, `RatingProcedure`, and more — so this skill is generic
-to the Expression Set engine. For where Expression Set CRUD fits into the
-**pricing** layering model (recipes, recipe-table mappings, procedure plans,
-context definitions), read `.cursor/skills/pricing-wiring/SKILL.md`.
+Expression Sets back more than pricing — Revenue Cloud uses **six**
+`interfaceSourceType` values (see [Expression Set types](#expression-set-types)),
+so this skill is generic to the Expression Set engine. For where Expression Set
+CRUD fits into the **pricing** layering model (recipes, recipe-table mappings,
+procedure plans, context definitions), read
+`.cursor/skills/pricing-wiring/SKILL.md`.
 
 > **Pinned to Release 262 / API v67.0.** Re-verify enums and behavior on the
-> target release at merge time. The exhaustive detail — object/ID model,
-> OAS-confirmed schema enums, every known error + resolution, and the
-> verification checklist — lives in the detail file
-> **`docs/references/expression-set-connect-api-reference.md`**. This skill is
-> the task-level entry point.
+> target release at merge time. This `SKILL.md` is the task-level entry point;
+> deep detail lives in three companion files (read on demand):
+> - **`authoring-and-overlays.md`** — building/applying overlays, capturing a
+>   step's three dependency scopes, safe step removal.
+> - **`metadata-vs-connect.md`** — the two authoring paths, the Connect mutation
+>   lifecycle, verb-specific field rules, GET serializer gotchas, Metadata API
+>   authoring, create-with-content.
+> - **`docs/references/expression-set-connect-api-reference.md`** — the
+>   exhaustive object/ID model, OAS-confirmed schema enums, every known error +
+>   resolution, and the verification checklist.
+>
+> The standalone helper toolkit lives at **`scripts/expression_sets/`** (see its
+> `README.md` and the [script routing table](#script-routing) below).
+
+## <a name="expression-set-types"></a>Expression Set types (Revenue Cloud)
+
+Every Expression Set carries an `interfaceSourceType` (the consuming-cloud
+discriminator, on the runtime `ExpressionSet` object) paired with a `usageType`.
+The engine enum has 11 members (see the [full enum](#the-full-enum) below), but
+**Revenue Cloud uses six** — grounded against the live org
+(`SELECT InterfaceSourceType, UsageType, COUNT(Id) FROM ExpressionSet …`) and the
+Release 262 dev-guide/Help snapshots:
+
+| `interfaceSourceType` | What it computes / when it runs | Paired `usageType` (live) | Shipped example(s) in this repo | Authoring |
+|---|---|---|---|---|
+| **PricingProcedure** | The pricing waterfall — list price → discounts → derived/rounded net price. Runs on quote/order repricing. | `DefaultPricing` | `RLM_DefaultPricingProcedure`, `RLM_ProductDiscoveryPricingProcedure`, `RLM_PRM_DISTI_Pricing_Procedure`, `RLM_Price_Distribution_Procedure`, `RLM_Revenue_Management_Recalc_Procedure` | Step graph (this skill) |
+| **DiscoveryProcedure** | Product Discovery pricing — computes prices shown while browsing/adding products (pre-quote). | `PricingDiscovery` | `RLM_DefaultPricingDiscoveryProcedure`, `Salesforce_Pricing_Discovery_Procedure` | Step graph (this skill) |
+| **RatingProcedure** | Usage/consumption rating — turns usage into rated amounts. | `DefaultRating` | `RLM_DefaultRatingProcedure`, `Negotiable_Rating_Procedure` | Step graph (this skill) |
+| **RatingDiscoveryProcedure** | Rating discovery — the discovery-phase counterpart for rating. | `RatingDiscovery` | `RLM_DefaultRatingDiscoveryProcedure` | Step graph (this skill) |
+| **QualificationProcedure** | Product qualification/disqualification — eligibility gating in Product Discovery. | `ProductQualification` | `RLM_ProductDiscoveryQualificationProcedure` | Step graph (this skill) |
+| **Constraint** ⚠ | Product Configurator constraint rules — compatibility/recommendation logic (GA 262 "Product Discovery with Constraint Rules"). | `Constraint` | *(shipped as constraint models, not `expressionSetDefinition` step XML)* | **CML** — see note |
+
+> ⚠ **Constraint is CML-based, not a step graph.** Unlike the other five,
+> Constraint expression sets are authored in **CML** (Constraint Modeling
+> Language) via the Configurator Constraint Builder / CML editor, not as a flat
+> `steps[]` graph. The Connect-overlay tooling and `steps[]`/`parentStep` model
+> in this skill **do not apply** to Constraint sets. They surface in the same
+> `ExpressionSet`/`interfaceSourceType` enum, so they
+> are listed here for completeness; deep CML authoring guidance is **deferred to
+> future work** (see the CML docs under `docs/salesforce/262/dev-guide/` —
+> `cml_*` articles — and the Configurator Help suite).
+
+### <a name="the-full-enum"></a>The full enum vs. Revenue Cloud
+
+The `interfaceSourceType` enum (`INTERFACE_SOURCE_TYPES` in
+`tasks/expression_set_schema.py` — **the single source of truth**) has 11 members.
+The five **not** used by Revenue Cloud belong to other clouds/verticals and are
+listed only so an unexpected value isn't mistaken for RC:
+
+- **Not Revenue Cloud:** `EventOrchestration`, `GpaCalculationProcedure`,
+  `IntelligentDecisionStudio`, `ItServiceManagement`.
+- **Doc/test placeholder (not a real RC type):** `Sample` — appears only as the
+  dev-guide's own "Declarative Metadata Sample Definition" example; **0** live
+  instances. Do not author RC procedures with it (`usageType: sample` also keeps
+  the ES from surfacing in the pricing UI).
+
+Ground truth: the code enum (`tasks/expression_set_schema.py`) →
+`validate_expression_set` errors on an out-of-enum value. The
+`docs/references/expression-set-connect-api-reference.md` enum list mirrors it.
 
 ## Quick Rules
 
@@ -40,14 +94,25 @@ context definitions), read `.cursor/skills/pricing-wiring/SKILL.md`.
    execution order — GET returns top-level steps **alphabetically by name**, and
    `sequenceNumber` is **scoped per parent** (children restart at 1).
 5. **Build `addSteps` overlays by capturing from a live GET**, not hand-authoring.
-   Slice top-level steps and child steps differently (see [Authoring overlays](#authoring-overlays)).
+   Slice top-level steps and child steps differently (see `authoring-and-overlays.md`).
 6. **Capture a step's dependencies, not just the step** — classify every
    referenced name into one of three scopes (version variable → `addVariables`;
    custom external dep → `externalDependencies`; standard context → nothing).
 7. **Mutations run deactivate → modify → reactivate**, in a guarded `finally`;
-   the tasks enforce this, including the procedure-plan cascade.
+   the tasks enforce this, including the procedure-plan cascade. **Label
+   preservation runs a second deactivate→relabel→reactivate cycle** after the
+   Connect PATCH, adding 30-60s for large procedures (90+ steps). Use
+   `--no-preserve-labels` to skip if speed is critical.
 8. **Test Connect CRUD on a disposable clone** (POST-create a renamed copy),
    never the shipped procedure — except for an intentional, approved change.
+9. **Step `name` ≠ `label`.** `name` is the spaceless API-Name identifier (and the
+   `parentStep` FK); `label` is the readable UI text. **Connect has no `label`
+   field and clobbers it to `name` on every full-graph PATCH**, so Connect-built
+   steps read as run-on names. Labels live only in the **Metadata XML `<label>`**
+   and the **Tooling `Metadata`** path. Read/write them with
+   `describe_expression_set.py --labels` / `relabel_expression_set.py`, and run
+   any relabel **last** (after all Connect work). See
+   `metadata-vs-connect.md` → *Step names vs. labels*.
 
 ## DO NOT
 
@@ -71,26 +136,111 @@ context definitions), read `.cursor/skills/pricing-wiring/SKILL.md`.
 - **DO NOT** treat a `removeSteps` (or any PATCH) that reactivates as proof it
   is correct — engine validation is **structural, not functional**. Removing a
   producer element can leave its consumers/filters orphaned and **silently
-  misbehave** with no error. See [Removing steps](#removing-steps).
+  misbehave** with no error. See `authoring-and-overlays.md` → *Removing steps*.
+- **DO NOT** attempt to clone an Expression Set by changing only the version
+  `apiName` — the script detects create-vs-replace by querying for the
+  **top-level `apiName`**, not the version name. For a POST-create, change
+  all three: top-level `apiName`, top-level `name`, and version `apiName`.
+  Otherwise the script will attempt REPLACE mode and fail with "You can't modify
+  the apiName of an expression set version."
 - **DO NOT** ship an `addSteps` overlay without accounting for **all three**
-  dependency scopes (see [Capture dependencies](#capture-dependencies)). The
+  dependency scopes (see `authoring-and-overlays.md`). The
   validator warns on an undeclared **custom** (`__c`/`__r`) reference — declare
   it rather than suppressing the signal. Don't put `__std`/standard fields in
   `externalDependencies`; they aren't custom.
 - **DO NOT** append a step to an existing version via a Tooling `Metadata`
   PATCH — it returns `FIELD_INTEGRITY_EXCEPTION`. Use create-with-content or a
   Metadata API deploy.
+- **DO NOT** send a `label` field to Connect (`JSON_PARSER_ERROR: Unrecognized
+  field "label"`) or put spaces in a step `name` (`INVALID_INPUT` — `name` is an
+  API Name). Readable labels are a **Tooling `Metadata`** concern only.
+- **DO NOT** relabel a version and then run a Connect import/overlay on it — the
+  Connect full-graph PATCH resets every `label` to `name`. Relabel is always the
+  **last** step; re-run it after any later Connect mutation. A Tooling `Metadata`
+  PATCH on an **active** version is rejected (`INVALID_ID_FIELD:
+  LatestVersionSnapshotId not found …`) — deactivate first, PATCH, reactivate.
 
 ## Entry Conditions
 
 | Situation | Use |
 |---|---|
-| Export, create, replace, overlay, or delete an Expression Set at runtime | This skill → Connect API tasks |
-| Author/modify a procedure in git (source-controlled) | This skill → [Metadata API authoring](#metadata-api-authoring) |
-| Capture a known-good element from one org and add it to another | This skill → [Authoring overlays](#authoring-overlays) |
+| Export, create, replace, overlay, or delete an Expression Set at runtime | This skill → [script routing](#script-routing) / Connect API tasks |
+| Inspect / trace / diff a live procedure without mutating it | The read-only toolkit CLIs → [script routing](#script-routing) |
+| Author/modify a procedure in git (source-controlled) | `metadata-vs-connect.md` → Metadata API authoring |
+| The Connect mutation lifecycle, verb-specific field rules, GET gotchas | `metadata-vs-connect.md` |
+| Capture a known-good element from one org and add it to another | `authoring-and-overlays.md` |
+| Classify a step's dependency scopes; remove a step safely | `authoring-and-overlays.md` |
 | Where ES CRUD fits in the **pricing** setup order (recipes, plans, context) | `.cursor/skills/pricing-wiring/SKILL.md` |
-| Object/ID model, full schema enums, every error + resolution, verification checklist | Detail file: `docs/references/expression-set-connect-api-reference.md` |
+| Object/ID model, full schema enums, **every error + resolution**, verification checklist | Detail file: `docs/references/expression-set-connect-api-reference.md` |
+| An opaque Connect failure (a code/message you don't recognize) | Reference doc → **Known errors & conditions** section |
 | Writing the Python task class itself | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
+
+## <a name="quick-start"></a>Quick Start
+
+Export → trace → slice a validated overlay → apply to a **disposable clone** —
+using the standalone toolkit (`--target-org` is the *SF CLI* alias, never the CCI
+alias):
+
+```bash
+ORG=rlm-base__beta
+
+# 1. What's in the org, grouped by Revenue Cloud type.
+python scripts/expression_sets/list_expression_sets.py --target-org $ORG
+
+# 2. Export a procedure (import-ready: stripped + HTML-unescaped).
+python scripts/expression_sets/export_expression_set.py --target-org $ORG \
+    --developer-name RLM_DefaultPricingProcedure --for-import --out /tmp/pp.json
+
+# 3. Trace a variable: who produces it, who consumes it (safe-removal view).
+python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
+    --developer-name RLM_DefaultPricingProcedure --variable NetUnitPrice
+
+# 3b. Or draw it — a kind-shaped Mermaid dependency graph (or --mermaid flow).
+#     --labels titles step nodes with their readable Tooling label (Connect has none).
+python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
+    --developer-name RLM_DefaultPricingProcedure --mermaid deps --labels --out /tmp/pp.deps.mmd
+
+# 4. Slice a step into a validated overlay (three scopes pre-classified).
+python scripts/expression_sets/export_expression_set_overlay.py --target-org $ORG \
+    --developer-name RLM_DefaultPricingProcedure --step "Apply Discount" \
+    --out /tmp/apply_discount.overlay.json
+
+# 5. Preview applying it to a clone (no --confirm = no write), then apply.
+python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG \
+    --expression-set RLM_MyClone --overlay /tmp/apply_discount.overlay.json
+
+# 6. Apply for real. Wait for "Successfully applied overlay" message — label
+#    restoration runs a second cycle, taking 30-60s for large procedures.
+python scripts/expression_sets/apply_expression_set_overlay.py --target-org $ORG \
+    --expression-set RLM_MyClone --overlay /tmp/apply_discount.overlay.json --confirm
+
+# 7. Verify labels were preserved
+python scripts/expression_sets/describe_expression_set.py --target-org $ORG \
+    --developer-name RLM_MyClone --labels
+```
+
+## <a name="script-routing"></a>Task + script routing
+
+Two independent surfaces cover Expression Set CRUD — the **CCI tasks** (build
+work) and the standalone **`scripts/expression_sets/` toolkit** (inspection +
+one-off lifecycle, `sf`-CLI transport, no access token). They share no code; the
+toolkit mirrors the tasks' live-verified rules. Full toolkit detail:
+`scripts/expression_sets/README.md`.
+
+| I need to… | Use |
+|---|---|
+| List every ES in an org by type / active version | `python scripts/expression_sets/list_expression_sets.py --target-org <sf_alias>` (read-only) |
+| Pretty-print one procedure's steps in execution order | `python scripts/expression_sets/describe_expression_set.py --target-org <sf_alias> --developer-name <name>` (read-only) |
+| Export a definition to JSON (snapshot, or `--for-import`) | `python scripts/expression_sets/export_expression_set.py --target-org <sf_alias> --developer-name <name> --out <path>` (read-only) |
+| **Trace** who produces/consumes a variable; classify a step's dependency scopes; find orphans | `python scripts/expression_sets/trace_expression_set.py --target-org <sf_alias> --developer-name <name> --variable <v> \| --step <s> \| --field <f> \| --orphans` (read-only) |
+| **Visualize** a procedure as a Mermaid diagram — data-dependency (nodes shaped & colored by kind: step / version constant / version variable / custom / `__std` field / context tag) or execution-flow (top-down; ListGroups drawn as subgraph boxes containing their children in sequence order); `--labels` titles steps with their readable Tooling label | `python scripts/expression_sets/trace_expression_set.py --target-org <sf_alias> --developer-name <name> --mermaid deps\|flow [--step <s>] [--labels] [--out <path.mmd>]` (read-only) |
+| Diff a procedure org-vs-org or org-vs-JSON | `python scripts/expression_sets/diff_expression_set.py --target-org <sf_alias> --developer-name <name> --right-org <sf_alias2> \| --right-file <path>` (read-only) |
+| Slice step(s) into a validated overlay with scoped deps | `python scripts/expression_sets/export_expression_set_overlay.py --target-org <sf_alias> --developer-name <name> --step <s> --out <path>` (read-only; writes a local file) |
+| Create/replace a whole ES from JSON | `import_expression_set` (CCI, build) **or** `python scripts/expression_sets/import_expression_set.py --target-org <sf_alias> --input-file <path>` (preview; `--confirm` to write) |
+| Apply a declarative overlay | `apply_expression_set_overlay` (CCI, build) **or** `python scripts/expression_sets/apply_expression_set_overlay.py --target-org <sf_alias> --expression-set <name> --overlay <path>` (preview; `--confirm`) |
+| Activate / deactivate a version (+ procedure-plan cascade) | `python scripts/expression_sets/activate_expression_set.py --target-org <sf_alias> --expression-set <name> --activate \| --deactivate` (preview; `--confirm`) |
+| Delete a whole ES or one version | `delete_expression_set` (CCI) **or** `python scripts/expression_sets/delete_expression_set.py --target-org <sf_alias> --expression-set <name> [--version <v>] --confirm` (destructive) |
+| Pre-flight a JSON file offline (no org) | `python scripts/ai/validate_expression_set.py <path> [--definition\|--overlay]` |
 
 ---
 
@@ -115,181 +265,46 @@ Common options on the mutation tasks: `dry_run` (log without mutating),
 
 ---
 
-## Mutation lifecycle (the tasks enforce this)
+## Mutation lifecycle & authoring paths (summary)
 
-An **enabled version cannot be modified or deleted**, so every mutation runs
-**deactivate → PATCH/POST → reactivate**, in a guarded `finally`:
+Every Connect mutation runs **deactivate → PATCH/POST → reactivate** in a guarded
+`finally` (an enabled version can't be modified/deleted), including the
+`ProcedurePlanDefinitionVersion` cascade; a failed PATCH is **left deactivated and
+raised** (non-atomic). Verb-specific field rules (version `id` omit-on-create /
+keep-on-replace, `contextDefinitions[].id`, immutable `resourceInitializationType`,
+`usageType`), the GET serializer gotchas (alphabetical top-level order,
+per-parent `sequenceNumber`, HTML-escaped string leaves), and the **Metadata API**
+source-controlled path (nested graphs, no lifecycle, create-with-content) all live
+in **`metadata-vs-connect.md`** — read it before any Connect mutation or
+source-controlled edit.
 
-1. If a `ProcedurePlanDefinitionVersion` references the ES, deactivate it first
-   (the cascade) — an active plan version locks the ES version.
-2. Deactivate the `ExpressionSetVersion`.
-3. HTML-unescape the payload, then PATCH/POST.
-4. On success, reactivate (idempotent — a PATCH body with `enabled:true` already
-   reactivates the version). On failure, **leave it deactivated and raise** —
-   PATCH is non-atomic, so a half-applied mutation must not be re-enabled.
+## Overlays & dependency capture (summary)
 
-Pre-flight ordering is **validate (still-escaped) → strip read-only fields →
-normalize entities → Connect call**. The overlay task runs its
-overlay↔definition cross-check (placement/update/reorder/remove targets must
-exist) **before** any deactivation, so a typo'd target fails while the version
-is still active.
-
-### Verb-specific field handling
-
-| Concern | POST (create new) | PATCH (replace existing) |
-|---|---|---|
-| version-level `id` | **omit** (task strips it on create) | **keep** (matches version in place) |
-| top-level `id`/`error` | strip (output-only) | strip (output-only) |
-| `contextDefinitions[].id` | **keep** — else context-node param data types fail (`Specify a valid data type for the … variable`) | n/a |
-| `resourceInitializationType` | set correctly up front (`Default` common); **immutable after** | must equal stored value (task aligns it once) |
-| `usageType` | set correctly (`DefaultPricing` for pricing, `Bre` for BRE; a wrong value like `sample` means the ES won't surface in UI / be invocable) | unchanged |
-
-### Reading GET output — serializer gotchas
-
-- Top-level steps come back **alphabetically by name**, NOT by `sequenceNumber`.
-  Always read `sequenceNumber` for execution order; never trust the array index.
-- `sequenceNumber` is **scoped per parent** — child steps restart at 1 under
-  each parent.
-- JSON-in-string values (`customElement.parameters[].value`,
-  `advancedCondition.criteria[].value`, formula text) are **HTML-escaped**.
-- Version identity is resolved from the `ExpressionSetVersion` sObject (source of
-  truth), not the GET body — GET can transiently serve a stale version apiName.
+Overlays declare placement by **anchor** (`afterStep`/`beforeStep`), not numeric
+sequence; capture them from a live GET (don't hand-author) — the toolkit's
+`export_expression_set_overlay.py` slices a step and pre-classifies its dependencies. Every
+referenced name is one of **three scopes**: version variable → `addVariables`;
+custom (`__c`/`__r`) → `externalDependencies` (the overlay can't create it);
+standard context → nothing. Top-level and child steps are sliced differently
+(placement vs `parentStep` + `sequenceNumber`). And **validation is structural,
+not functional** — a `removeSteps` that reactivates can still leave a consumer
+orphaned and silently misbehave. The full slicing table, the three-scope
+classifier, the `externalDependencies` block shape, and safe-removal guidance
+live in **`authoring-and-overlays.md`**.
 
 ---
 
-## <a name="authoring-overlays"></a>Authoring overlays (declarative add/remove/update/reorder)
+## Performance Expectations
 
-`apply_expression_set_overlay` takes a small overlay file rather than a full
-definition. Placement is declared by anchor, not numeric sequence:
+For reference, a 93-step pricing procedure (live-tested 2026-07-08):
+- **Read operations** (list, describe, export, trace, Mermaid): 3-5 seconds
+- **Import (CREATE):** ~45 seconds
+- **Overlay application (with label preservation):** ~60 seconds
+- **Overlay application (--no-preserve-labels):** ~30 seconds
 
-```json
-{
-  "expressionSetApiName": "RLM_DefaultPricingProcedure",
-  "versionApiName": "RLM_DefaultPricingProcedure_V1",
-  "addSteps": [
-    { "name": "MyStep", "stepType": "BusinessKnowledgeModel",
-      "placement": { "afterStep": "Mapcontexttagstocommonpricingvariables" },
-      "customElement": { "parameters": [ /* … */ ] } }
-  ]
-}
-```
-
-To capture a real, known-good element: GET it from an org that already has it,
-then slice out the step(s) into an `addSteps` overlay. **A top-level step and a
-child step are sliced differently:**
-
-| | Top-level step | Child step |
-|---|---|---|
-| `sequenceNumber` | **drop it** — the task computes the final slot and renumbers siblings | **keep it** — scoped per parent, children start at 1 |
-| `placement` | **add** (`afterStep` / `beforeStep` / `sequenceNumber`) | **omit** — children ride with their parent, not placed independently |
-| `parentStep` | absent | **keep** (a step **name**) |
-
-Because the step graph is **flat** (one `steps` array linked by `parentStep`,
-not nested `steps` arrays), a nested subtree (e.g. a `ListGroup` parent + its
-`AdvancedListFilter` and `AssignmentElement` children) becomes one `addSteps`
-array: the parent (with `placement`) immediately followed by each child carrying
-`parentStep` + its own `sequenceNumber`. Order the parent before its children in
-the array. Always HTML-unescape captured values and run the validator before
-applying.
-
-### <a name="capture-dependencies"></a>Capture the steps' dependencies, not just the steps
-
-An `addSteps` element references variables/fields by name — in
-`customElement.parameters[]` where `type: Parameter` (the name is the `value`) or
-`type: Formula` (field names appear **inside the expression string**), and in
-`advancedCondition.criteria[].sourceFieldName`. Each reference resolves to one of
-**three** scopes, handled differently:
-
-| Scope | How to tell | Overlay action |
-|---|---|---|
-| **Version-level variable** | the name appears in the source version's `variables[]` (`type: Constant`/`Variable`/`LocalListVariable`/…) | if the **target** lacks it, ship it in `addVariables` |
-| **Custom external dependency** | a custom field/relationship (`__c`/`__r`) or custom `ContextDefinition` node — **not** in `variables[]`, not standard | declare it in `externalDependencies` — the overlay can't create it; the target must already define it and map it into the bound context |
-| **Standard context** | `__std` fields **and no-suffix names** — standard fields shipped with the standard context definitions, supplied by the bound `ContextDefinition` (e.g. `NetUnitPrice`, `ItemDetailListPrice__std`) | nothing — present wherever the standard context is bound |
-
-The trap: the source org *has* the version variable / custom field, so the
-captured element looks self-contained — but applied to a target lacking it, the
-step references something undefined. **To classify:** collect every `Parameter`
-value, `Formula` token, and `sourceFieldName` the extracted steps use; intersect
-with the source version's `variables[]` (→ those, used only by your new steps,
-are `addVariables`); of the rest, the `__c`/`__r`/custom-node names are
-`externalDependencies` and the `__std`/no-suffix names are standard context.
-
-The validator emits two complementary warnings:
-- the overlay↔definition cross-check warns when an added step references a
-  **version-level variable** that is neither in `addVariables` nor in the target;
-- `validate_overlay` warns when an added step consumes a **custom reference**
-  (`__c`/`__r`) not declared in `externalDependencies` — so the requirement gets
-  documented rather than failing only at apply time against a target that lacks
-  the field.
-
-#### The `externalDependencies` block
-
-Declarative metadata for what the overlay does **not** create (in contrast to
-`addVariables`, which it does) — what the target org must already have. All keys
-optional; the apply task ignores the block, the validator checks its shape and
-uses it to silence the custom-reference warning:
-
-```json
-"externalDependencies": {
-  "customFields":  ["SalesTransaction_Hospitals__c (mapped into RLM_SalesTransactionContext)"],
-  "contextNodes":  ["<custom ContextDefinition node>"],
-  "contextFields": ["<custom context field, if any>"],
-  "note": "why these are required and where they're mapped"
-}
-```
-
-(`__std`/standard fields don't belong here — they ship with the standard
-context.)
-
-### <a name="removing-steps"></a>Removing steps — validation is structural, not functional
-
-A `removeSteps` (or any PATCH) that passes validation and reactivates is **not**
-proof it is correct. Connect/engine validation is **structural** (the graph
-shape is legal; every variable still has *a* producer somewhere) — **not
-functional** (the *right* producer feeds a given line subset). Removing a
-producer element while leaving its consumers/filters in place can yield a
-procedure that activates and runs but **silently misbehaves** — for example,
-removing a price-producing element whose output variable is also produced by
-other steps keeps the graph structurally valid, but a `ListGroup`/filter that
-selected that element's target subset is now left with nothing computing its
-result, mispricing that scenario with no error.
-
-Before removing a step: check what consumes its **outputs** and whether any
-**filter/`ListGroup` selecting its target subset** is left orphaned; if so,
-remove or rewire those too. Always do removals on a **disposable clone** first
-and inspect the re-exported graph + a functional test (e.g. a test repricing) —
-never judge a removal by "it reactivated."
-
----
-
-## <a name="metadata-api-authoring"></a>Metadata API authoring (source-controlled path)
-
-To author or modify a procedure in git, edit `expressionSetDefinition` metadata
-and deploy it via the repo's pipeline (`cumulusci.tasks.salesforce.Deploy`, e.g.
-the `deploy_expression_sets` / `deploy_post_prm_pricing_expression_sets` tasks).
-All shipped procedures load this way.
-
-Characteristics:
-
-- **Handles nested step graphs** — shipped metadata contains the full nested
-  graph and deploys.
-- **Validation errors are specific and actionable** — e.g. *"ListGroup can not
-  be empty"*, *"Select list filter as the first element in list group"*,
-  *"Local variables aren't supported when a business element is used in a list
-  group; specify a list variable"*. Each names exactly what to fix.
-- **No activation lifecycle** — no deactivate/reactivate, no version-id juggling,
-  no entity normalization (the XML parser decodes entities), no procedure-plan
-  cascade. Edit source XML and deploy.
-- **Source-controlled and diffable.**
-- **Shape parity with Connect:** the Metadata XML step/param/variable shapes are
-  identical to the Connect JSON shapes (only diffs: XML adds `<label>`, uses the
-  legacy-misspelled `<shouldExposExecPathMsgOnly>`, and omits empty
-  `*MessageTokenMappings`). A step authored once maps cleanly between
-  representations.
-
-For new-version semantics rather than in-place edit, prefer **create-with-content**
-(Tooling-create a new `ExpressionSetDefinitionVersion` from the prior version's
-`Metadata`) over create-then-PATCH — see the detail file.
+The bulk of time is spent in version activation polling and large payload
+transmission (129KB+ JSON for 93 steps). Use `--no-preserve-labels` if speed is
+critical, then run a manual `relabel_expression_set.py` batch later.
 
 ---
 
@@ -365,6 +380,12 @@ Checklist:
 
 ## Related References
 
+- **Sub-files (progressive disclosure):** `authoring-and-overlays.md` (overlays,
+  three-scope dependency capture, safe step removal) and `metadata-vs-connect.md`
+  (authoring paths, mutation lifecycle, verb-specific field rules, GET gotchas,
+  Metadata API authoring).
+- **Standalone toolkit (inspect / trace / diff / export + guarded mutators, no
+  access token):** `scripts/expression_sets/README.md`.
 - **Exhaustive detail (object/ID model, OAS schema enums, every error +
   resolution, Metadata authoring, verification checklist):**
   `docs/references/expression-set-connect-api-reference.md`

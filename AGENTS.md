@@ -41,6 +41,7 @@ scripts/apex/          # Apex activation/deletion scripts
 scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
 scripts/cml/           # CML export/import/validation utilities
 scripts/erd/           # ERD validation, diffing, cleanup, HTML generation, schema_diff/
+scripts/expression_sets/ # Standalone Expression Set lifecycle toolkit (inspect/trace/diff/export + guarded mutators; sf-CLI transport, no CCI). See its README.md
 scripts/soql/          # Reusable SOQL query files
 scripts/build_harness/ # Build harness runner and TUI
 tasks/                 # Custom Python CCI task classes
@@ -332,6 +333,8 @@ Read the sub-file only when you need that specific detail:
 | `release-enablement/resume-enablement-work.md` | Release Enablement | Cross-workstation handoff — read when picking up enablement work in a fresh conversation. 4-step re-orientation + tool grants + restart prompt template |
 | `docs/enablement/master/qb-scenario-reference.md` | Release Enablement | Canonical QB catalog reference (Infinitech, Global Media accounts, products, SKUs) for exercise walkthroughs |
 | `troubleshooting/large-deal-preprocess-reference.md` | Troubleshooting | Large-deal reprice → preprocess → activate signals: `CalculationStatus` enum, `ValidationResult` gate, `PreprocessingStatus` decode, PST async trackers, tax-skip |
+| `expression-sets/authoring-and-overlays.md` | Expression Sets | Building/applying overlays, capturing a step's three dependency scopes (version/custom/standard), safe step removal (structural-not-functional) |
+| `expression-sets/metadata-vs-connect.md` | Expression Sets | The two authoring paths, Connect mutation lifecycle, verb-specific field rules, GET serializer gotchas, Metadata API authoring, create-with-content |
 | `document-generation/data-mapper-authoring.md` | Document Generation | Programmatic ODT creation via REST API, cloning patterns, shell escaping pitfalls |
 | `document-generation/dynamic-images.md` | Document Generation | Dynamic image rendering: ContentDocument ID + width/height contract, known issues, RTB alternative |
 | `document-generation/extract-engine-reference.md` | Document Generation | Extract/Transform engine deep-dive: formula catalog, filter mechanics, hierarchy semantics, depth-uniformity rule, redundant join pattern, Preview API |
