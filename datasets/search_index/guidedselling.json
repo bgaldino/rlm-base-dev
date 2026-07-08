@@ -1,0 +1,7 @@
+{
+  "indexConfigurations": [
+    {"name": "RLM_Primary_Goal__c", "isSearchable": true, "isFacetable": false},
+    {"name": "RLM_Timeline__c", "isSearchable": true, "isFacetable": false},
+    {"name": "RLM_Platform_Control__c", "isSearchable": true, "isFacetable": false}
+  ]
+}

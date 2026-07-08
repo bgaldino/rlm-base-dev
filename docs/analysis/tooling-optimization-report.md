@@ -6,13 +6,13 @@
 
 ## Summary
 
-- Overall status: **FAIL**
+- Overall status: **PASS**
 - Required files: **6/6** present
-- Skills inventoried: **45** Markdown files under `.cursor/skills/`
+- Skills inventoried: **52** Markdown files under `.cursor/skills/`
 - Cursor rules inventoried: **11** `.mdc` files under `.cursor/rules/`
-- AGENTS.md skill references: **35** checked, **0** missing
+- AGENTS.md skill references: **42** checked, **0** missing
 - Generated CCI references: **3/3** present
-- Errors: **1**
+- Errors: **0**
 - Warnings: **0**
 
 ## Required Agent Entry Points
@@ -36,8 +36,14 @@
 - `.cursor/skills/cci-orchestration/flows-reference.md`
 - `.cursor/skills/cci-orchestration/tasks-reference.md`
 - `.cursor/skills/doc-consistency/SKILL.md`
+- `.cursor/skills/document-generation/SKILL.md`
+- `.cursor/skills/document-generation/data-mapper-authoring.md`
+- `.cursor/skills/document-generation/dynamic-images.md`
+- `.cursor/skills/document-generation/extract-engine-reference.md`
 - `.cursor/skills/expression-sets/SKILL.md`
 - `.cursor/skills/inapp-framework/SKILL.md`
+- `.cursor/skills/odt-authoring/SKILL.md`
+- `.cursor/skills/pde-org-build/SKILL.md`
 - `.cursor/skills/pmos-integration/SKILL.md`
 - `.cursor/skills/pricing-wiring/SKILL.md`
 - `.cursor/skills/qb-demo-script/SKILL.md`
@@ -71,6 +77,7 @@
 - `.cursor/skills/skill-authoring/SKILL.md`
 - `.cursor/skills/troubleshooting/SKILL.md`
 - `.cursor/skills/troubleshooting/large-deal-preprocess-reference.md`
+- `.cursor/skills/txn-data-harness/SKILL.md`
 
 ## Cursor Rule Inventory
 
@@ -97,8 +104,14 @@
 - ✅ `.cursor/skills/cci-orchestration/flows-reference.md`
 - ✅ `.cursor/skills/cci-orchestration/tasks-reference.md`
 - ✅ `.cursor/skills/doc-consistency/SKILL.md`
+- ✅ `.cursor/skills/document-generation/SKILL.md`
+- ✅ `.cursor/skills/document-generation/data-mapper-authoring.md`
+- ✅ `.cursor/skills/document-generation/dynamic-images.md`
+- ✅ `.cursor/skills/document-generation/extract-engine-reference.md`
 - ✅ `.cursor/skills/expression-sets/SKILL.md`
 - ✅ `.cursor/skills/inapp-framework/SKILL.md`
+- ✅ `.cursor/skills/odt-authoring/SKILL.md`
+- ✅ `.cursor/skills/pde-org-build/SKILL.md`
 - ✅ `.cursor/skills/pmos-integration/SKILL.md`
 - ✅ `.cursor/skills/pricing-wiring/SKILL.md`
 - ✅ `.cursor/skills/qb-demo-script/SKILL.md`
@@ -123,12 +136,13 @@
 - ✅ `.cursor/skills/skill-authoring/SKILL.md`
 - ✅ `.cursor/skills/troubleshooting/SKILL.md`
 - ✅ `.cursor/skills/troubleshooting/large-deal-preprocess-reference.md`
+- ✅ `.cursor/skills/txn-data-harness/SKILL.md`
 
 ## Cursor Rule Coverage
 
 Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules table for an equivalent skill or an explicit stand-alone note. See `.agents/context/rule-skill-coverage.md` for the full coverage matrix and recommendations.
 
-- ❌ `analysis-artifacts.mdc` — No row in AGENTS.md File-Specific Rules table
+- ✅ `analysis-artifacts.mdc` — explicit stand-alone note
 - ✅ `apex-classes.mdc` — explicit stand-alone note
 - ✅ `apex-scripts.mdc` — mapped to `.cursor/skills/troubleshooting/SKILL.md`
 - ✅ `cci-python-tasks.mdc` — mapped to `.cursor/skills/cci-orchestration/custom-task-authoring.md`
@@ -152,13 +166,16 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
 - Manifest version: `2`
 - Last verified: `2026-05-23`
 - Active Salesforce release: `262`
-- Manifest skill count: **18**
+- Manifest skill count: **22**
   - `apex-security-hardening`
   - `audit-review`
   - `cci-orchestration`
   - `doc-consistency`
+  - `document-generation`
   - `expression-sets`
   - `inapp-framework`
+  - `odt-authoring`
+  - `pde-org-build`
   - `pmos-integration`
   - `qb-demo-script`
   - `release-enablement`
@@ -171,12 +188,11 @@ Each `.cursor/rules/*.mdc` is checked against the AGENTS.md File-Specific Rules 
   - `sfdmu-data-plans`
   - `skill-authoring`
   - `troubleshooting`
+  - `txn-data-harness`
 
 ## Findings
 
-### Errors
-
-- ❌ analysis-artifacts.mdc has no corresponding skill or stand-alone note
+- ✅ No blocking errors found.
 
 ## Notes
 

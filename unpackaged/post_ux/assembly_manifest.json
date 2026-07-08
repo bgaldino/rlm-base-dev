@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-07-02T01:47:34.864195Z",
+  "assembled_at": "2026-07-07T16:20:50.786392Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -13,7 +13,7 @@
     "ramps": true,
     "tso": false,
     "prm": true,
-    "agents": false,
+    "agents": true,
     "docgen": true,
     "payments": true,
     "constraints": true,
@@ -283,13 +283,7 @@
       "name": "RLM_Home_Page_Default.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Home_Page_Default.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/quantumbit/RLM_Home_Page_Default.flexipage-meta.xml",
-      "patches": [
-        {
-          "feature": "utils",
-          "patch_type": "add_component",
-          "description": "add component: rlmExpressionSetManager"
-        }
-      ]
+      "patches": []
     },
     {
       "type": "flexipage",
@@ -512,11 +506,6 @@
           "feature": "personas",
           "patch_type": "insert_after_xml",
           "description": "insert XML after <identifier>runtime_sales_pathassistant_pathAssistant</identifier>"
-        },
-        {
-          "feature": "prm_pricing",
-          "patch_type": "add_sales_txn_line_editor_field",
-          "description": "add Sales Transaction Line Editor displayFields: QuoteLineItem.RLM_Distributor_Discount_Percent__c, QuoteLineItem.RLM_Distributor_Unit_Price__c, QuoteLineItem.PartnerDiscountPercent, QuoteLineItem.PartnerUnitPrice, QuoteLineItem.RLM_Partner_Net_Total_Price__c, QuoteLineItem.TotalCost, QuoteLineItem.Margin, QuoteLineItem.MarginAmount"
         }
       ]
     },
