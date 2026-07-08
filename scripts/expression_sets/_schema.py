@@ -1,11 +1,19 @@
 """
 Schema validation for BRE Expression Set definitions and overlays.
 
+VENDORED COPY — the ``scripts/expression_sets/`` package's OWN validator.
+The canonical original lives at ``tasks/expression_set_schema.py`` and is
+imported by the CCI task (``tasks/rlm_expression_set_connect.py``). This
+standalone CLI toolkit must NOT share an import with a CCI task (the two run as
+independent programs), so the validator is duplicated here rather than imported.
+Both copies are stdlib-only and encode the same live-verified v67.0 schema
+truths; keep them in sync when the enums change, but neither imports the other.
+
 Dependency-free, pure-function validation used as a pre-flight by the
-Expression Set Connect API tasks (``tasks/rlm_expression_set_connect.py``) and
-exposed standalone via ``scripts/ai/validate_expression_set.py``. Catches
-malformed payloads *before* they reach the org, where the Connect PATCH/POST
-handler can swallow real errors into opaque gacks.
+Expression Set toolkit CLIs (and by ``scripts/ai/validate_expression_set.py``,
+which imports the canonical copy). Catches malformed payloads *before* they
+reach the org, where the Connect PATCH/POST handler can swallow real errors into
+opaque gacks.
 
 Two entry points:
   * ``validate_definition(defn)``  — a full ExpressionSet definition (the shape
@@ -665,8 +673,33 @@ def validate_overlay(overlay: dict) -> ValidationResult:
 
     _validate_external_dependencies(overlay.get("externalDependencies"), result)
     _warn_undeclared_external_dependencies(overlay, result)
+    _validate_labels_block(overlay.get("labels"), result)
 
     return result
+
+
+def _validate_labels_block(labels, result: "ValidationResult") -> None:
+    """Validate the optional top-level ``labels`` block: a ``{name: label}`` map.
+
+    Readable step labels the overlay ships for the post-PATCH Tooling relabel
+    (Connect has no label field). Both keys and values must be strings; anything
+    else is an error so a malformed labels block fails the overlay rather than
+    silently dropping a label.
+    """
+    if labels is None:
+        return
+    if not isinstance(labels, dict):
+        result.error("labels", "must be an object of {step name: label}.")
+        return
+    bad = sorted(
+        k for k, v in labels.items()
+        if not isinstance(k, str) or not isinstance(v, str)
+    )
+    if bad:
+        result.error(
+            "labels",
+            f"every entry must be a string name → string label; bad entr(ies): {bad}.",
+        )
 
 
 # Suffixes that mark a reference as a CUSTOM, org-specific external dependency
