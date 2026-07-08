@@ -47,9 +47,18 @@ from typing import Dict, List, Optional, Set
 # (flat steps[] with parentStep-by-name; no id/uniqueIdentifier on steps).
 # ----------------------------------------------------------------------
 
-# ExpressionSetUsageTypeEnumRepresentation (subset we exercise). Unknown values
-# warn (forward-compat) rather than error.
-USAGE_TYPES = {"DefaultPricing", "Bre", "PricingDiscovery", "PricingDiscoveryAction"}
+# ExpressionSetUsageTypeEnumRepresentation (Revenue Cloud subset documented in
+# the expression-sets skill). Unknown values warn (forward-compat) rather than error.
+USAGE_TYPES = {
+    "DefaultPricing",          # PricingProcedure
+    "PricingDiscovery",        # DiscoveryProcedure
+    "DefaultRating",           # RatingProcedure
+    "RatingDiscovery",         # RatingDiscoveryProcedure
+    "ProductQualification",    # QualificationProcedure
+    "Constraint",              # Constraint (CML-based, not step graph)
+    "Bre",                     # Generic BRE
+    "PricingDiscoveryAction",  # Discovery actions
+}
 
 # usageTypes under which AssignmentElement steps are permitted.
 ASSIGNMENT_USAGE_TYPES = {"DefaultPricing", "PricingDiscovery"}
