@@ -92,12 +92,21 @@ ORG=rlm-base__beta
 python scripts/expression_sets/list_expression_sets.py --target-org $ORG
 
 # 2. Export a procedure to a local JSON file (import-ready).
+#    Works for Pricing, Rating, RatingDiscovery, Qualification procedures.
 python scripts/expression_sets/export_expression_set.py --target-org $ORG \
     --developer-name RLM_DefaultPricingProcedure --for-import --out /tmp/pp.json
+
+# 2b. Export a Rating procedure (same toolkit, same flags).
+python scripts/expression_sets/export_expression_set.py --target-org $ORG \
+    --developer-name RLM_DefaultRatingProcedure --for-import --out /tmp/rating.json
 
 # 3. Trace a variable — who produces it, who consumes it (safe-removal view).
 python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
     --developer-name RLM_DefaultPricingProcedure --variable NetUnitPrice
+
+# 3a. Trace orphans (consumed-with-no-producer, candidate for removal).
+python scripts/expression_sets/trace_expression_set.py --target-org $ORG \
+    --developer-name RLM_DefaultRatingProcedure --orphans
 
 # 3b. Draw it — a Mermaid dependency diagram (scope-colored) or execution-flow
 #     chart. --out writes a .mmd file; --step scopes the deps view to one step.
@@ -176,6 +185,30 @@ read-only, offline after the GET, and deterministic (same definition → identic
 output). Highly-coupled steps (those touching hot shared variables like
 `NetUnitPrice`) produce large `deps` neighborhoods — that coupling is real; scope
 to a leaf-ish step or use the full `deps` view with a renderer that pans/zooms.
+
+## Known Limitations
+
+### Constraint (CML) Type Support
+
+Constraint expression sets are authored in **CML** (Constraint Modeling Language) via the
+Configurator Constraint Builder, not as step graphs. The Connect-overlay toolkit in this
+directory works with step-graph-based procedures (Pricing, Rating, RatingDiscovery,
+Qualification). For Constraint sets:
+
+- **list** — shows `interfaceSourceType=Constraint` and basic metadata
+- **describe** — shows "0 step(s), 0 variable(s)" (expected)
+- **trace** — produces empty dependency graph (no orphans, no unused outputs)
+- **export** — captures `contextDefinitions` but empty `steps[]`/`variables[]`
+- **import/apply_overlay** — NOT applicable (CML authoring uses Configurator UI + SFDMU data)
+
+See `docs/salesforce/262/dev-guide/` (cml_* articles) for CML authoring guidance.
+
+### Discovery Procedure "Unused" Outputs
+
+Discovery procedures (RatingDiscovery, PricingDiscovery) will show many "produced but
+unused" outputs in `--orphans` analysis — these are consumed by the paired execution
+procedure (Rating, Pricing) at runtime, not within the discovery graph itself. This is
+expected behavior; the outputs are not dead code.
 
 ## Safety model
 

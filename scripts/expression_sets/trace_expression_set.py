@@ -105,7 +105,10 @@ _REMOVAL_NOTE = (
     "overlay/definition\n  can still leave a consumer with no producer. Before "
     "removing a step, confirm nothing\n  downstream consumes what it produces "
     "(a variable with producers=[] below after removal is\n  a runtime gap the "
-    "validator will NOT catch)."
+    "validator will NOT catch).\n\n  "
+    "Note: Discovery procedures (RatingDiscovery, PricingDiscovery) will show many "
+    "\"produced but\n  unused\" outputs — these are consumed by the paired execution "
+    "procedure (Rating, Pricing),\n  not within the discovery graph itself."
 )
 
 
