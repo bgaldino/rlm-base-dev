@@ -45,11 +45,6 @@ export default class RlmUsageOrchestration extends LightningElement {
         }
     }
 
-    handleMonitorWorkflow() {
-        // Open Setup page in a new tab so users keep their current record context.
-        window.open('/lightning/setup/MonitorWorkflowServices/home', '_blank');
-    }
-
     // ─── Utilities ──────────────────────────────────────────────────────
 
     showToast(title, message, variant) {
