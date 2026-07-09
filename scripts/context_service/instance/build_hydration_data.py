@@ -63,7 +63,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-from scripts.context_service._client import ContextClientError, eprint  # noqa: E402
+from scripts.context_service._client import (  # noqa: E402
+    ContextClientError,
+    DEFAULT_API_VERSION,
+    eprint,
+)
 from scripts.context_service._resolve import (  # noqa: E402
     fetch_detail,
     iter_context_mappings,
@@ -138,7 +142,8 @@ def main(argv=None) -> int:
         "hydration keys on the mapped SObject name, not the node name.",
     )
     parser.add_argument(
-        "--api-version", default="67.0", help="Salesforce API version (default 67.0)."
+        "--api-version", default=DEFAULT_API_VERSION,
+        help=f"Salesforce API version (default {DEFAULT_API_VERSION})."
     )
     parser.add_argument("--out", help="Write the skeleton here. Default: stdout.")
     parser.add_argument(
