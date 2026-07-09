@@ -355,7 +355,12 @@ emits a correctly-shaped skeleton with typed placeholders (empty string / `0` /
 SObject name; you fill in real `id`s and values. Leave `businessObjectType` and
 the child-array names as emitted. `--mapping-name` picks the mapping to shape
 against (default = the definition's default mapping); `--node NAME` (repeatable)
-restricts output to a subtree.
+restricts output to a subtree. If the definition has **no default mapping** (and
+no `--mapping-name` is given), or `--mapping-name` names a mapping that doesn't
+exist, the tool now **errors** (exit 2, "Available mappings: …") rather than
+silently emitting a node-name skeleton that would hydrate zero records — build-time
+selection matches the runtime path (`_resolve.resolve_mapping`) and fails fast on
+the same "#1 gotcha".
 
 **Hydration sourcing.** With only `id` + `businessObjectType` set, the engine
 **queries the org itself** for the mapped fields — and does so **server-side,
