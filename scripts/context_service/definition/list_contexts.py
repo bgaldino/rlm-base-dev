@@ -23,6 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from scripts.context_service._client import (  # noqa: E402
     ContextClientError,
+    DEFAULT_API_VERSION,
     active_version,
     connect_get,
     definition_developer_name,
@@ -52,7 +53,8 @@ def main(argv=None) -> int:
         help="SF CLI alias or username (e.g. rlm-base__beta) — NOT the CCI alias.",
     )
     parser.add_argument(
-        "--api-version", default="67.0", help="Salesforce API version (default 67.0)."
+        "--api-version", default=DEFAULT_API_VERSION,
+        help=f"Salesforce API version (default {DEFAULT_API_VERSION})."
     )
     parser.add_argument(
         "--json", action="store_true", help="Emit machine-readable JSON."

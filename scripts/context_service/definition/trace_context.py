@@ -88,14 +88,16 @@ from typing import Any, Dict, List, Optional, Set
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from scripts.context_service._client import (  # noqa: E402
     ContextClientError,
+    DEFAULT_API_VERSION,
     active_version,
+    attr_tag_list,
     connect_get,
     definition_developer_name,
     eprint,
     iter_nodes,
     node_attributes,
-    normalize_definition_list,
 )
+from scripts.context_service._resolve import resolve_definition_id  # noqa: E402
 
 # fieldType read/write eligibility (Core UDD enum). INPUT is hydration-only,
 # OUTPUT is persist-only, INPUTOUTPUT is both, AGGREGATE is computed (rollup) —
@@ -109,19 +111,15 @@ def _as_bool(value: Any) -> bool:
 
 
 def _resolve_id(developer_name: str, target_org: str, api_version: str) -> Optional[str]:
-    """Resolve a definition id from a developerName via the list endpoint.
+    """Resolve a definition id from a developerName (thin wrapper on _resolve).
 
-    Mirrors describe_context._resolve_id — includeInactive=true so an inactive
-    definition still resolves, and the shared normalizer/name reader so the two
-    tools see the same set of definitions.
+    Delegates to the canonical ``_resolve.resolve_definition_id`` so trace
+    resolves ids exactly as ``describe``/``apply``/``delete`` do — including the
+    ``contextDefinitionId or id`` fallback these inline copies were missing.
     """
-    response = connect_get(
-        "connect/context-definitions?includeInactive=true", target_org, api_version
+    return resolve_definition_id(
+        developer_name, target_org=target_org, api_version=api_version
     )
-    for item in normalize_definition_list(response):
-        if definition_developer_name(item) == developer_name:
-            return item.get("contextDefinitionId")
-    return None
 
 
 def _walk_hydration(detail: Dict[str, Any], node_sobject: Optional[str]) -> List[str]:
@@ -255,10 +253,7 @@ def build_index(defn: Dict[str, Any]) -> Dict[str, Any]:
             if not attr_id:
                 continue
             tags: List[str] = []
-            attr_tags = attr.get("attributeTags")
-            if isinstance(attr_tags, dict):
-                attr_tags = attr_tags.get("attributeTags")
-            for tag in attr_tags or []:
+            for tag in attr_tag_list(attr):  # shared GET-shape unwrap (_client)
                 if isinstance(tag, dict) and tag.get("name"):
                     tags.append(tag["name"])
                     tag_index.setdefault(tag["name"].lower(), []).append(attr_id)
@@ -573,7 +568,8 @@ def main(argv=None) -> int:
                           help="Report tagged-but-unbound / bound-but-untagged / inert attributes.")
 
     parser.add_argument("--mapping", help="Scope the trace to one mapping (lens) by name.")
-    parser.add_argument("--api-version", default="67.0", help="Salesforce API version (default 67.0).")
+    parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
+                        help=f"Salesforce API version (default {DEFAULT_API_VERSION}).")
     parser.add_argument("--verbose", action="store_true", help="List every attribute in --unmapped.")
     parser.add_argument("--json", action="store_true", help="Emit the query result as JSON.")
     args = parser.parse_args(argv)

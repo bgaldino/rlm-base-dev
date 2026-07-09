@@ -257,26 +257,10 @@ def _child_nodes(node: Dict[str, Any]) -> List[Dict[str, Any]]:
     return []
 
 
-def _attr_tag_list(attr: Dict[str, Any]) -> List[Any]:
-    """Attribute tags, unwrapping the ``{"attributeTags": [...]}`` dict wrapper.
-
-    A Connect GET returns an attribute's tags either as a bare list or wrapped in
-    a container dict; iterating the wrapper directly yields its keys (strings),
-    which downstream tag handling silently drops. Unwrap the same way ``_model``,
-    ``_payload``, and ``_mutate`` do before iterating.
-    """
-    tags = attr.get("attributeTags") or attr.get("tags") or []
-    if isinstance(tags, dict):
-        tags = tags.get("attributeTags") or []
-    return tags if isinstance(tags, list) else []
-
-
-def _node_tag_list(node: Dict[str, Any]) -> List[Any]:
-    """Node-level tags, unwrapping the ``{"tags": [...]}`` dict wrapper (rare)."""
-    tags = node.get("tags") or []
-    if isinstance(tags, dict):
-        tags = tags.get("tags") or []
-    return tags if isinstance(tags, list) else []
+# Tag-unwrap is shared with _mutate and _payload via _client (single source of
+# truth for the GET-shape unwrap; preserves the node-vs-attr key asymmetry).
+_attr_tag_list = _client.attr_tag_list
+_node_tag_list = _client.node_tag_list
 
 
 # --------------------------------------------------------------------------- #
@@ -363,11 +347,17 @@ class ContextDeleter:
         first. With ``auto_deactivate=True`` it deactivates in place (subject to
         the ES-reference guard in :meth:`deactivate`) and returns the refreshed
         detail. No-op when already inactive.
+
+        Delete's trigger is *unconditional* (every structural delete is blocked
+        on active); the shared body in :func:`_client.guard_active` handles the
+        refuse-or-deactivate mechanics.
         """
-        if not self.is_active(detail):
-            return detail
-        if not auto_deactivate:
-            raise DeletePreflightError(
+        return _client.guard_active(
+            detail, context_id=context_id, auto_deactivate=auto_deactivate,
+            is_active_fn=self.is_active, deactivate_fn=self.deactivate,
+            fetch_detail_fn=self.fetch_detail, dry_run=self.dry_run, logger=self.log,
+            exception_type=DeletePreflightError,
+            refuse_message=(
                 f"Context definition {context_id} is ACTIVE; the platform blocks "
                 f"deleting an active definition or its structural artifacts. "
                 f"Deactivate it first (soft-disable is the preferred teardown), "
@@ -375,15 +365,12 @@ class ContextDeleter:
                 f"Note: deactivation itself is blocked while an Expression Set "
                 f"(pricing procedure / DocGen template) still references the "
                 f"definition; detach that first."
-            )
-        self.log(f"Definition {context_id} is active; deactivating before delete "
-                 f"(--deactivate-first).")
-        self.deactivate(context_id)
-        # Under dry-run the PATCH was logged, not executed, so the live detail is
-        # still 'active' — re-fetching would loop the guard. Trust the intent.
-        if self.dry_run:
-            return detail
-        return self.fetch_detail(context_id)
+            ),
+            deactivate_message=(
+                f"Definition {context_id} is active; deactivating before delete "
+                f"(--deactivate-first)."
+            ),
+        )
 
     # ---- whole-definition hard delete ------------------------------------ #
 
@@ -413,9 +400,28 @@ class ContextDeleter:
 
         The inverse of an additive apply: leaves the inherited base intact and
         removes only what was added on top of it. No inherited artifact can enter
-        this set by construction, so the pre-flight guard is satisfied trivially.
+        the *delete set* by construction, but a custom artifact can still have an
+        **inherited dependent** (e.g. an inherited attribute on a custom node)
+        that the platform will not remove — a child→parent teardown would then
+        fail mid-``execute()`` with a raw platform error. Refuse up front instead,
+        mirroring the inherited-dependent guard in :meth:`plan_target_deletion`.
         """
         custom, _inherited = partition_by_inheritance(catalog)
+        blockers = []
+        for target in custom:
+            inherited_deps = [
+                d for d in _dependents_of(catalog, target) if d.get("baseReference")
+            ]
+            if inherited_deps:
+                dep_names = ", ".join(sorted(d["name"] for d in inherited_deps))
+                blockers.append(f"'{target['name']}' -> ({dep_names})")
+        if blockers:
+            raise DeletePreflightError(
+                f"Cannot tear down custom artifacts: {len(blockers)} have "
+                f"inherited dependent(s) that the platform will not remove: "
+                f"{'; '.join(sorted(blockers))}. Target a custom artifact "
+                f"instead, or deactivate/extend the whole definition."
+            )
         return order_for_deletion(custom)
 
     def plan_target_deletion(
@@ -477,8 +483,14 @@ class ContextDeleter:
             try:
                 self.t.request("DELETE", art["path"])
             except _client.ContextClientError as exc:
-                raise self._annotate_delete_error(
-                    exc, art["id"], art["kind"], label=art["name"]) from exc
+                # Reverse-order teardown: on a mid-list failure the operator needs
+                # to know what was already removed (the state you don't want to be
+                # blind in). Attach the partial list to the exception before
+                # re-raising so the CLI can surface it.
+                annotated = self._annotate_delete_error(
+                    exc, art["id"], art["kind"], label=art["name"])
+                annotated.partial_deleted = deleted
+                raise annotated from exc
             deleted.append({"kind": art["kind"], "name": art["name"], "id": art["id"]})
         return {"deleted": deleted, "count": len(deleted), "dry_run": self.dry_run}
 

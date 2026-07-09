@@ -50,6 +50,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from scripts.context_service._client import (  # noqa: E402
     ContextClientError,
+    DEFAULT_API_VERSION,
     connect_get,
     definition_developer_name,
     normalize_definition_list,
@@ -395,7 +396,8 @@ def main(argv=None) -> int:
         help="developerName on the TARGET org when it differs from the source's "
         "(org-vs-org only). Pair with --source-dev-name.",
     )
-    parser.add_argument("--api-version", default="67.0", help="API version (default 67.0).")
+    parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
+                        help=f"API version (default {DEFAULT_API_VERSION}).")
     parser.add_argument("--json", action="store_true", help="Emit structured JSON.")
     args = parser.parse_args(argv)
 

@@ -54,6 +54,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from scripts.context_service._apply import Transport  # noqa: E402
 from scripts.context_service._client import ContextClientError, DEFAULT_API_VERSION, eprint  # noqa: E402
+from scripts.context_service._resolve import fetch_detail, resolve_definition_id  # noqa: E402
 from scripts.context_service._runtime import RuntimeContextClient, RuntimeSession  # noqa: E402
 from scripts.context_service._runtime_cli import (  # noqa: E402
     CONTEXT_ID_SCOPE_NOTE,
@@ -98,6 +99,41 @@ def _build_attribute_updates(update_attrs):
 def _build_tag_writes(write_tags):
     order, grouped = _group_by_path(write_tags, ("tagName", "tagValue"))
     return [{"dataPath": _parse_data_path(p), "tagValues": grouped[p]} for p in order]
+
+
+def _fetch_shared_detail(args):
+    """Resolve the definition id and GET its detail **once**, for reuse across
+    both the source (hydrate) and target (persist) mapping resolution.
+
+    Fetching here and passing the result to both ``resolve_mapping_id`` calls
+    collapses up to four GETs (a resolve + fetch per call) into one and
+    guarantees source and target resolve against the **same** definition
+    snapshot. Returns ``None`` when no definition source was supplied — the
+    direct ``--mapping-id`` path needs no detail, and any genuinely missing
+    source is reported by ``resolve_mapping_id`` with its actionable message.
+    Raises ``ValueError`` on an unresolvable definition (→ exit 2);
+    ``ContextClientError`` bubbles (→ exit 1).
+    """
+    context_definition_id = args.context_definition_id
+    if not context_definition_id:
+        if not args.developer_name:
+            return None
+        context_definition_id = resolve_definition_id(
+            args.developer_name, target_org=args.target_org, api_version=args.api_version
+        )
+        if not context_definition_id:
+            raise ValueError(
+                f"No context definition found with developerName '{args.developer_name}' "
+                f"in org '{args.target_org}'."
+            )
+    detail = fetch_detail(
+        context_definition_id, target_org=args.target_org, api_version=args.api_version
+    )
+    if not detail:
+        raise ValueError(
+            f"Empty detail for context definition '{context_definition_id}'."
+        )
+    return detail
 
 
 def main(argv=None) -> int:
@@ -169,6 +205,26 @@ def main(argv=None) -> int:
     client = RuntimeContextClient(transport, logger=eprint)
     session = RuntimeSession(client, logger=eprint)
 
+    # Fetch the definition detail ONCE and reuse it for both the source (hydrate)
+    # and target (persist) mapping resolution — otherwise each resolve_mapping_id
+    # call re-resolves the id and re-GETs the detail (up to 4 GETs on
+    # --developer-name --persist), and source/target could resolve against
+    # different snapshots. Only needed when at least one side resolves by
+    # name/default (a direct --mapping-id / --target-mapping-id needs no detail);
+    # None otherwise leaves resolve_mapping_id to fetch as before.
+    shared_detail = None
+    need_source = (not args.context_id) and not args.mapping_id
+    need_target = args.persist and not args.target_mapping_id
+    if need_source or need_target:
+        try:
+            shared_detail = _fetch_shared_detail(args)
+        except ValueError as exc:
+            eprint(f"Error: {exc}")
+            return 2
+        except ContextClientError as exc:
+            eprint(f"Error: {exc}")
+            return 1
+
     # Build the create spec unless reusing an existing instance.
     create_spec = None
     if not args.context_id:
@@ -183,7 +239,8 @@ def main(argv=None) -> int:
             return 2
         try:
             _def_id, mapping_id = resolve_mapping_id(
-                args, target_org=args.target_org, api_version=args.api_version
+                args, target_org=args.target_org, api_version=args.api_version,
+                detail=shared_detail,
             )
             context_definition_id = args.context_definition_id or _def_id
             if not context_definition_id:
@@ -210,7 +267,8 @@ def main(argv=None) -> int:
     if args.persist:
         try:
             _def_id, persist_target_mapping_id = resolve_mapping_id(
-                args, target_org=args.target_org, api_version=args.api_version, target=True
+                args, target_org=args.target_org, api_version=args.api_version,
+                target=True, detail=shared_detail,
             )
         except ValueError as exc:
             eprint(f"Error: {exc}")

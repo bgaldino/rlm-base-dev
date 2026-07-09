@@ -216,32 +216,37 @@ class ContextMutator:
         """Refuse (or, if opted in, resolve) an op that the platform blocks on an
         *active* version.
 
-        Ops with ``requires_inactive`` — every op except the pure insert
-        ``add-tag`` — are blocked on an active version ("Cannot modify/delete an
-        active context definition", live-verified). ``auto_deactivate``
-        (``--deactivate-first``) deactivates in place; otherwise the op is
-        refused with guidance.
+        Ops with ``requires_inactive`` — every op except the pure inserts
+        (``add-tag``, ``add-mapping``) — are blocked on an active version
+        ("Cannot modify/delete an active context definition", live-verified).
+        ``auto_deactivate`` (``--deactivate-first``) deactivates in place;
+        otherwise the op is refused with guidance.
+
+        Mutate's trigger is *op-gated* (per :data:`OP_RULES`); once that gate
+        passes, the shared body in :func:`_client.guard_active` handles the
+        refuse-or-deactivate mechanics.
         """
         if not OP_RULES.get(op, {}).get("requires_inactive"):
             return detail
-        if not self.is_active(detail):
-            return detail
-        if not auto_deactivate:
-            raise MutatePreflightError(
+        return _client.guard_active(
+            detail, context_id=context_id, auto_deactivate=auto_deactivate,
+            is_active_fn=self.is_active, deactivate_fn=self.deactivate,
+            fetch_detail_fn=self.fetch_detail, dry_run=self.dry_run, logger=self.log,
+            exception_type=MutatePreflightError,
+            refuse_message=(
                 f"Definition {context_id} is ACTIVE, and '{op}' modifies/deletes an "
                 f"existing artifact — the platform blocks that on an active version "
                 f"(\"Cannot modify/delete an active context definition\"). Re-run "
                 f"with --deactivate-first (deactivate, mutate, then --reactivate). "
                 f"Note: deactivation itself is blocked while an Expression Set still "
-                f"references the definition. (Only 'add-tag' runs on an active "
-                f"version, since it inserts a new artifact.)"
-            )
-        self.log(f"Definition {context_id} is active; deactivating first "
-                 f"(--deactivate-first) for '{op}'.")
-        self.deactivate(context_id)
-        if self.dry_run:
-            return detail
-        return self.fetch_detail(context_id)
+                f"references the definition. (Only 'add-tag' / 'add-mapping' run on "
+                f"an active version, since they insert a new artifact.)"
+            ),
+            deactivate_message=(
+                f"Definition {context_id} is active; deactivating first "
+                f"(--deactivate-first) for '{op}'."
+            ),
+        )
 
     # ---- op: set-transient ----------------------------------------------- #
 
@@ -481,12 +486,23 @@ class ContextMutator:
                     f"Failed to create ContextAttributeMapping for {change['target']}."
                 )
         # 2) ContextAttrHydrationDetail — the source-field binding (simple, 1 hop).
-        self.t.sobject(
+        #    Validate the id (mirrors _apply._apply_traversal_hydration): the two
+        #    POSTs are not atomic, so a silent failure here would leave the same
+        #    orphan CAM the repair path exists to fix — surface it instead of
+        #    reporting a phantom `changed: True`.
+        detail_resp = self.t.sobject(
             "POST", ep.SOBJECT_CONTEXT_ATTR_HYDRATION_DETAIL, None,
             {"ContextAttributeMappingId": keeper_id,
              "ObjectName": change["sObject"],
              "QueryAttribute": change["field"]},
         )
+        detail_id = None if self.dry_run else _record_id(detail_resp)
+        if not detail_id and not self.dry_run:
+            raise MutatePreflightError(
+                f"Failed to create ContextAttrHydrationDetail for {change['target']} "
+                f"(ContextAttributeMapping {keeper_id} left without a source field). "
+                f"Re-run --add-mapping to repair the orphan CAM."
+            )
         return {"op": change["op"], "target": change["target"],
                 "mapping": change["mapping"],
                 "binding": f"{change['sObject']}.{change['field']}",
@@ -593,10 +609,6 @@ def _tag_names_on_attribute(detail: Dict[str, Any], attr_id: str) -> set:
                 continue
             if attr.get("contextAttributeId") != attr_id:
                 continue
-            tags = attr.get("attributeTags") or attr.get("tags") or []
-            if isinstance(tags, dict):
-                tags = tags.get("attributeTags") or []
-            if not isinstance(tags, list):
-                continue
-            return {t.get("name") for t in tags if isinstance(t, dict) and t.get("name")}
+            # Shared GET-shape unwrap lives in _client (single source of truth).
+            return _client.attr_tag_names(attr)
     return set()

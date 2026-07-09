@@ -19,6 +19,8 @@ Cited line numbers refer to ``tasks/rlm_context_service.py`` at port time.
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from . import _client  # leaf module (no network at import) — for the shared tag-unwrap
+
 
 # --------------------------------------------------------------------------- #
 # Small helpers (ports of the task's static/inline helpers)
@@ -436,20 +438,10 @@ def resolve_tags_by_name(
                 attr_name = attr.get("name")
                 if attr_id and node_name and attr_name:
                     attr_index[(node_name, attr_name)] = attr_id
-                    tags = attr.get("attributeTags") or attr.get("tags") or []
-                    if isinstance(tags, dict):
-                        tags = tags.get("attributeTags") or []
-                    if isinstance(tags, list):
-                        attr_tag_index[(node_name, attr_name)] = {
-                            t.get("name") for t in tags if isinstance(t, dict) and t.get("name")
-                        }
-            tags = node.get("tags") or []
-            if isinstance(tags, dict):
-                tags = tags.get("tags") or []
-            if isinstance(tags, list) and node_name:
-                node_tag_index[node_name] = {
-                    t.get("name") for t in tags if isinstance(t, dict) and t.get("name")
-                }
+                    # Shared GET-shape unwrap lives in _client (single source of truth).
+                    attr_tag_index[(node_name, attr_name)] = _client.attr_tag_names(attr)
+            if node_name:
+                node_tag_index[node_name] = _client.node_tag_names(node)
             walk(_child_nodes(node))
 
     walk(nodes)
@@ -845,7 +837,7 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
                 attr_name = attr.get("name")
                 if any(a.get("nodeName") == node_name and a.get("name") == attr_name for a in attrs_by_name):
                     found_attrs.append(f"{node_name}.{attr_name}")
-                for tag in attr.get("attributeTags") or attr.get("tags") or []:
+                for tag in _client.attr_tag_list(attr):
                     if isinstance(tag, dict) and any(
                         t.get("nodeName") == node_name and t.get("attributeName") == attr_name and t.get("name") == tag.get("name")
                         for t in tags_by_name

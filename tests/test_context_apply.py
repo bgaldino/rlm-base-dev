@@ -28,6 +28,7 @@ sys.path.insert(0, REPO_ROOT)
 
 import scripts.context_service._apply as _apply  # noqa: E402
 import scripts.context_service._client as _client  # noqa: E402
+import scripts.context_service._delete as _delete  # noqa: E402
 import scripts.context_service._model as _model  # noqa: E402
 import scripts.context_service._mutate as _mutate  # noqa: E402
 import scripts.context_service._payload as _payload  # noqa: E402
@@ -235,6 +236,88 @@ def test_traversal_skips_unresolvable_node_mapping():
     _applier(t)._apply_traversal_hydration([rule], _detail())
     check("unresolvable node mapping → no SOQL, no writes",
           not t.soql_calls and not t.sobjects)
+
+
+class CamDropTransport(RecordingTransport):
+    """A RecordingTransport whose ContextAttributeMapping POST returns **no id**
+    (empty body), simulating the silent CAM-create failure that would otherwise
+    drop the rule's traversal hydration while the run still reported success."""
+
+    def sobject(self, method, sobject, record_id=None, body=None, *, dry_run=None):
+        if method == "POST" and sobject == "ContextAttributeMapping":
+            self.sobjects.append((method, sobject, record_id, body))
+            return {}  # no "id"/"Id" → _record_id returns None
+        return super().sobject(method, sobject, record_id, body, dry_run=dry_run)
+
+
+def test_traversal_raises_when_cam_post_returns_no_id():
+    # A transient CAM-create failure (no id) used to be logged-and-skipped, so the
+    # run reported success with the traversal hydration silently missing. It must
+    # now raise a summarizing ContextClientError (same class as the A2/_mutate fix).
+    t = CamDropTransport()  # all probes empty → create path runs; CAM POST drops id
+    raised = False
+    msg = ""
+    try:
+        _applier(t)._apply_traversal_hydration([_rule()], _detail())
+    except _client.ContextClientError as exc:
+        raised = True
+        msg = str(exc)
+    check("a CAM POST that returns no id raises ContextClientError", raised)
+    if raised:
+        check("the error names the dropped rule's attribute", "RampMode__c" in msg)
+        check("the error points at re-running to repair", "re-run" in msg.lower())
+
+
+def test_traversal_raises_when_hydration_post_returns_no_id():
+    # The child/parent ContextAttrHydrationDetail POST returning no id is the same
+    # silent-drop class — it too must surface, not report success.
+    t = HydrationDropTransport()  # CAM POST gets a real id; hydration POST drops it
+    raised = False
+    msg = ""
+    try:
+        _applier(t)._apply_traversal_hydration([_rule()], _detail())
+    except _client.ContextClientError as exc:
+        raised = True
+        msg = str(exc)
+    check("a hydration-detail POST that returns no id raises ContextClientError",
+          raised)
+    if raised:
+        check("the hydration-drop error names the dropped rule", "RampMode__c" in msg)
+
+
+def test_traversal_reports_all_dropped_rules_together():
+    # Two rules both fail their CAM create → one summarizing error names BOTH, and
+    # the loop did not abort after the first (it kept going per-rule).
+    t = CamDropTransport()
+    detail = _detail()
+    nm = detail["contextDefinitionVersionList"][0]["contextMappings"][0][
+        "contextNodeMappings"][0]
+    nm["attributeMappings"] = [
+        {"contextAttributeName": "A__c", "contextAttributeId": "11n1"},
+        {"contextAttributeName": "B__c", "contextAttributeId": "11n2"},
+    ]
+    msg = ""
+    try:
+        _applier(t)._apply_traversal_hydration([_rule("A__c"), _rule("B__c")], detail)
+    except _client.ContextClientError as exc:
+        msg = str(exc)
+    check("both dropped rules are named in one summary error",
+          "A__c" in msg and "B__c" in msg)
+    posted_cams = [s for s in t.sobjects if s[1] == _apply.ep.SOBJECT_CONTEXT_ATTRIBUTE_MAPPING]
+    check("the loop attempted BOTH CAM POSTs (did not abort on the first drop)",
+          len(posted_cams) == 2)
+
+
+def test_traversal_dry_run_never_raises_on_no_id():
+    # Under dry-run no id is expected (nothing is really POSTed), so the no-id
+    # guard must NOT fire — dry-run only logs.
+    t = CamDropTransport(dry_run=True)
+    raised = False
+    try:
+        _applier(t)._apply_traversal_hydration([_rule()], _detail())
+    except _client.ContextClientError:
+        raised = True
+    check("dry-run does not raise on a no-id POST", not raised)
 
 
 # --------------------------------------------------------------------------- #
@@ -1212,6 +1295,151 @@ def test_add_mapping_unknown_attribute_raises():
     except _mutate.MutatePreflightError:
         raised = True
     check("unknown attribute raises MutatePreflightError", raised)
+
+
+# --------------------------------------------------------------------------- #
+# A2 (Finding 6) — execute_add_mapping validates the hydration-detail POST
+# --------------------------------------------------------------------------- #
+
+class HydrationDropTransport(RecordingTransport):
+    """A RecordingTransport whose ContextAttrHydrationDetail POST returns **no
+    id** (an empty body), simulating the silent second-POST failure that would
+    otherwise leave an orphan CAM and report a phantom ``changed: True``. The
+    CAM POST still returns a real fake id so the code reaches the hydration POST.
+    """
+
+    def sobject(self, method, sobject, record_id=None, body=None, *, dry_run=None):
+        if method == "POST" and sobject == "ContextAttrHydrationDetail":
+            self.sobjects.append((method, sobject, record_id, body))
+            return {}  # no "id"/"Id" → _record_id returns None
+        return super().sobject(method, sobject, record_id, body, dry_run=dry_run)
+
+
+def test_add_mapping_raises_when_hydration_post_returns_no_id():
+    # The CAM POST succeeds (fake id) but the hydration-detail POST returns no id
+    # → the binding is only half-created. execute_add_mapping must raise rather
+    # than report a phantom success (round-1 Fix #7's orphan-CAM scenario).
+    detail = _detail_root_and_child()
+    t = HydrationDropTransport()
+    mut = _mutator(t)
+    change = mut.plan_add_mapping(
+        detail, "SalesTransaction.TotalCost__c",
+        "QuoteEntitiesMapping", "RLM_TotalCost__c")
+    raised = False
+    msg = ""
+    try:
+        mut.execute_add_mapping(change)
+    except _mutate.MutatePreflightError as exc:
+        raised = True
+        msg = str(exc)
+    check("hydration-detail POST with no id raises MutatePreflightError", raised)
+    check("the error names ContextAttrHydrationDetail",
+          "ContextAttrHydrationDetail" in msg)
+    check("the error points at the orphan-CAM repair path",
+          "repair" in msg.lower() or "--add-mapping" in msg)
+    # The CAM was still POSTed (that's the orphan the message warns about).
+    check("a ContextAttributeMapping was POSTed before the failure",
+          any(s[0] == "POST" and s[1] == "ContextAttributeMapping" for s in t.sobjects))
+
+
+def test_add_mapping_dry_run_does_not_raise_on_no_id():
+    # Under dry-run the transport returns {} for every POST by design; the id
+    # validation is gated on ``not self.dry_run`` so a dry-run add-mapping must
+    # still report changed=True without raising.
+    detail = _detail_root_and_child()
+    t = RecordingTransport(dry_run=True)
+    mut = _mutator(t)
+    change = mut.plan_add_mapping(
+        detail, "SalesTransaction.TotalCost__c",
+        "QuoteEntitiesMapping", "RLM_TotalCost__c")
+    summary = mut.execute_add_mapping(change)
+    check("dry-run add-mapping reports changed=True (no id validation)",
+          summary.get("changed") is True)
+    check("dry-run add-mapping flags dry_run=True", summary.get("dry_run") is True)
+
+
+# --------------------------------------------------------------------------- #
+# B1 (Finding 2) — the mutate guard delegates to the shared _client core
+# --------------------------------------------------------------------------- #
+
+def test_mutate_guard_refuses_active_when_not_opted_in():
+    # set-transient is requires_inactive → the op-gate passes → the shared body
+    # refuses an active version with a MutatePreflightError (its own type).
+    t = RecordingTransport()
+    mut = _mutator(t)
+    raised = False
+    msg = ""
+    try:
+        mut.guard_active_state("set-transient", _active_detail(),
+                               context_id="11O1", auto_deactivate=False)
+    except _mutate.MutatePreflightError as exc:
+        raised = True
+        msg = str(exc)
+    check("mutate guard raises MutatePreflightError on active + not opted in", raised)
+    check("mutate refusal keeps its own message (ACTIVE + --deactivate-first)",
+          "ACTIVE" in msg and "--deactivate-first" in msg)
+    check("mutate refusal issues no PATCH (refuse, don't deactivate)",
+          not any(r[0] == "PATCH" for r in t.requests))
+
+
+def test_mutate_guard_is_noop_for_pure_insert_op():
+    # add-mapping is NOT requires_inactive → the op-gate short-circuits before the
+    # shared body, so even an ACTIVE version is returned untouched (adds apply
+    # in place on an active version).
+    t = RecordingTransport()
+    mut = _mutator(t)
+    detail = _active_detail()
+    out = mut.guard_active_state("add-mapping", detail, context_id="11O1")
+    check("add-mapping guard returns the active detail unchanged", out is detail)
+    check("add-mapping guard issues no request", not t.requests)
+
+
+def test_mutate_guard_deactivates_when_opted_in():
+    # requires_inactive op + auto_deactivate → the shared body issues the
+    # isActive:false PATCH and returns the refreshed (inactive) detail.
+    t = RecordingTransport()
+    mut = _mutator(t)
+    mut.fetch_detail = lambda ctx: _inactive_detail()  # type: ignore
+    out = mut.guard_active_state("set-transient", _active_detail(),
+                                 context_id="11O1", auto_deactivate=True)
+    patch = next(
+        (r for r in t.requests if r[0] == "PATCH" and "context-definitions/11O1" in r[1]),
+        None,
+    )
+    check("mutate guard (opted in) issues the isActive:false PATCH",
+          patch is not None and patch[2] == {"isActive": "false"})
+    check("mutate guard returns the post-deactivate detail",
+          out.get("isActive") is False)
+
+
+def test_delete_guard_refuses_active_with_its_own_type():
+    # Delete's trigger is unconditional; on an active version + not opted in it
+    # raises DeletePreflightError (distinct type from mutate/apply — the B1
+    # decision preserved each module's exception type).
+    t = RecordingTransport()
+    deleter = _delete.ContextDeleter(t)
+    raised = False
+    is_delete_type = False
+    try:
+        deleter.guard_active_state(_active_detail(), context_id="11O1",
+                                   auto_deactivate=False)
+    except _delete.DeletePreflightError:
+        raised = True
+        is_delete_type = True
+    except Exception:
+        raised = True
+    check("delete guard raises on active + not opted in", raised)
+    check("delete guard raises DeletePreflightError (its own type)", is_delete_type)
+
+
+def test_delete_guard_is_noop_when_inactive():
+    t = RecordingTransport()
+    deleter = _delete.ContextDeleter(t)
+    out = deleter.guard_active_state(_inactive_detail(), context_id="11O1")
+    check("delete guard is a no-op on an inactive version (no request)",
+          not t.requests)
+    check("delete guard returns the inactive detail unchanged",
+          out.get("isActive") is False)
 
 
 # --------------------------------------------------------------------------- #

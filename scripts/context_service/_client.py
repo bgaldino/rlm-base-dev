@@ -324,6 +324,89 @@ def node_attributes(node: Dict[str, Any]) -> List[Dict[str, Any]]:
     return []
 
 
+def attr_tag_list(attr: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """An attribute's tags, unwrapping the ``{"attributeTags": [...]}`` container.
+
+    A Connect GET returns an attribute's tags either as a bare list or wrapped in
+    a container dict; iterating the wrapper directly yields its keys (strings),
+    which downstream tag handling silently drops. This is the single source of
+    truth for that unwrap — ``_delete``, ``_mutate``, and ``_payload`` all defer
+    here so a GET-shape change is fixed in one place. Note the node-vs-attribute
+    key asymmetry: attributes unwrap under ``attributeTags`` (see
+    :func:`node_tag_list` for nodes).
+    """
+    tags = attr.get("attributeTags") or attr.get("tags") or []
+    if isinstance(tags, dict):
+        tags = tags.get("attributeTags") or []
+    return tags if isinstance(tags, list) else []
+
+
+def node_tag_list(node: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """A node's tags, unwrapping the ``{"tags": [...]}`` container (rare).
+
+    The node key is ``tags`` (attributes use ``attributeTags``); preserve that
+    asymmetry — it is why this is a separate helper from :func:`attr_tag_list`.
+    """
+    tags = node.get("tags") or []
+    if isinstance(tags, dict):
+        tags = tags.get("tags") or []
+    return tags if isinstance(tags, list) else []
+
+
+def attr_tag_names(attr: Dict[str, Any]) -> set:
+    """Set of tag ``name`` values on an attribute (via :func:`attr_tag_list`)."""
+    return {t.get("name") for t in attr_tag_list(attr)
+            if isinstance(t, dict) and t.get("name")}
+
+
+def node_tag_names(node: Dict[str, Any]) -> set:
+    """Set of tag ``name`` values on a node (via :func:`node_tag_list`)."""
+    return {t.get("name") for t in node_tag_list(node)
+            if isinstance(t, dict) and t.get("name")}
+
+
+def guard_active(
+    detail: Dict[str, Any], *, context_id: str, auto_deactivate: bool,
+    is_active_fn: Callable[[Dict[str, Any]], bool],
+    deactivate_fn: Callable[[str], None],
+    fetch_detail_fn: Callable[[str], Dict[str, Any]],
+    dry_run: bool, logger: Callable[..., None],
+    refuse_message: str, exception_type: type,
+    deactivate_message: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Shared "refuse-or-deactivate on an active version" core.
+
+    The platform blocks *modifying or deleting* an existing artifact on an active
+    context definition version. ``_delete``, ``_mutate``, and ``_apply`` each need
+    that behavior but differ in their **trigger** (unconditional / op-gated /
+    flag-gated), **exception type** (``DeletePreflightError`` /
+    ``MutatePreflightError`` / ``ContextClientError``), and how they reach
+    deactivation. Each keeps its own thin wrapper (trigger + message +
+    ``exception_type`` + bound callables); this holds only the common body so the
+    three cannot drift:
+
+      * already inactive -> return ``detail`` unchanged (no-op);
+      * active and not ``auto_deactivate`` -> raise ``exception_type(refuse_message)``;
+      * active and ``auto_deactivate`` -> log, ``deactivate_fn(context_id)``, then
+        (unless ``dry_run``) refetch via ``fetch_detail_fn`` and return it.
+
+    Under ``dry_run`` the deactivate PATCH was logged, not executed, so the live
+    detail is still active — return ``detail`` rather than refetching (which would
+    loop the guard). The caller must apply its own trigger gate *before* calling
+    this (e.g. ``_mutate`` returns early when the op does not require inactive).
+    """
+    if not is_active_fn(detail):
+        return detail
+    if not auto_deactivate:
+        raise exception_type(refuse_message)
+    logger(deactivate_message
+           or f"Definition {context_id} is active; deactivating first.")
+    deactivate_fn(context_id)
+    if dry_run:
+        return detail
+    return fetch_detail_fn(context_id)
+
+
 def eprint(*args, **kwargs):
     """Print to stderr (so --json stdout stays clean)."""
     print(*args, file=sys.stderr, **kwargs)

@@ -43,7 +43,13 @@ This module is import-only (no CLI). Auth/GET is delegated to ``_client.py``.
 
 from typing import Any, Dict, List, Optional
 
-from ._client import active_version, iter_nodes, node_attributes
+from ._client import (
+    active_version,
+    attr_tag_list,
+    iter_nodes,
+    node_attributes,
+    node_tag_list,
+)
 
 
 def _as_bool(value: Any) -> Optional[bool]:
@@ -544,10 +550,7 @@ def _normalize_tags(version: Dict[str, Any]) -> Dict[str, Any]:
             if not isinstance(attr, dict):
                 continue
             attr_name = attr.get("name")
-            attr_tags = attr.get("attributeTags")
-            if isinstance(attr_tags, dict):
-                attr_tags = attr_tags.get("attributeTags")
-            for tag in attr_tags or []:
+            for tag in attr_tag_list(attr):  # shared GET-shape unwrap (_client)
                 if not isinstance(tag, dict):
                     continue
                 tag_name = tag.get("name") or attr_name
@@ -557,10 +560,7 @@ def _normalize_tags(version: Dict[str, Any]) -> Dict[str, Any]:
                 tags[key] = {"attribute": attr_name}
 
         # Node-level identity tags.
-        node_tags = node.get("tags")
-        if isinstance(node_tags, dict):
-            node_tags = node_tags.get("tags")
-        for tag in node_tags or []:
+        for tag in node_tag_list(node):  # shared GET-shape unwrap (_client)
             if not isinstance(tag, dict):
                 continue
             tag_name = tag.get("name")

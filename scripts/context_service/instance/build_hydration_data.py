@@ -68,6 +68,7 @@ from scripts.context_service._resolve import (  # noqa: E402
     fetch_detail,
     iter_context_mappings,
     resolve_definition_id,
+    resolve_mapping,
 )
 from scripts.context_service._runtime import (  # noqa: E402
     build_from_record_skeleton,
@@ -76,28 +77,26 @@ from scripts.context_service._runtime import (  # noqa: E402
 
 
 def _select_mapping(detail, mapping_name):
-    """Pick the context mapping dict to shape businessObjectType against.
+    """Pick the context mapping dict to shape ``businessObjectType`` against.
 
-    With ``mapping_name`` set, match by name; else prefer the ``isDefault``
-    mapping, falling back to the first. Returns ``(mapping_or_None, error_or_None)``.
-    The mapping supplies the node→SObject lookup that hydration requires.
+    Delegates SELECTION to ``_resolve.resolve_mapping`` (the same helper the
+    runtime create/persist path uses) so build-time and runtime pick the same
+    mapping and fail identically: with ``mapping_name`` set it matches by name,
+    else it selects the ``isDefault`` mapping. On no default / unknown name it
+    raises ``ValueError`` with the "Available mappings: …" text — there is **no**
+    silent node-name fallback, since a node-name ``businessObjectType`` hydrates
+    zero records (live-verified). Returns the resolved mapping **dict** (the
+    caller needs it for the node→SObject lookup).
     """
-    mappings = iter_context_mappings(detail)
-    if not mappings:
-        return None, None
-    if mapping_name:
-        for mapping in mappings:
-            if mapping.get("name") == mapping_name:
-                return mapping, None
-        available = ", ".join(sorted(m.get("name") for m in mappings if m.get("name"))) or "(none)"
-        return None, (
-            f"No context mapping named '{mapping_name}' on the active version. "
-            f"Available mappings: {available}."
-        )
-    for mapping in mappings:
-        if mapping.get("isDefault") in (True, "true"):
-            return mapping, None
-    return mappings[0], None
+    _, mapping_id = resolve_mapping(detail, mapping_name)
+    for mapping in iter_context_mappings(detail):
+        if (mapping.get("contextMappingId") or mapping.get("id")) == mapping_id:
+            return mapping
+    # resolve_mapping returned an id off this detail's active version, so the
+    # lookup above always matches; guard defensively rather than return None.
+    raise ValueError(
+        f"Resolved context mapping id '{mapping_id}' is not on the active version."
+    )
 
 
 def main(argv=None) -> int:
@@ -176,16 +175,15 @@ def main(argv=None) -> int:
         eprint("Error: empty or unexpected response for the context definition.")
         return 1
 
-    mapping, mapping_error = _select_mapping(detail, args.mapping_name)
-    if mapping_error:
-        eprint(f"Error: {mapping_error}")
+    try:
+        mapping = _select_mapping(detail, args.mapping_name)
+    except ValueError as exc:
+        # No default mapping / unknown mapping name — fail fast (exit 2) exactly
+        # as the runtime create/persist path does, rather than emit a skeleton
+        # whose 'businessObjectType' falls back to node names and hydrates zero
+        # records silently.
+        eprint(f"Error: {exc}")
         return 2
-    if mapping is None:
-        eprint(
-            "Warning: no context mapping on the active version — "
-            "'businessObjectType' will fall back to node names, which do NOT "
-            "hydrate. Supply a mapping with --mapping-name if one exists."
-        )
 
     if args.from_record:
         if args.nodes and len(args.nodes) > 1:

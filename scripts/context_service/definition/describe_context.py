@@ -25,34 +25,32 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from scripts.context_service import _model  # noqa: E402
 from scripts.context_service._client import (  # noqa: E402
     ContextClientError,
+    DEFAULT_API_VERSION,
     active_version,
     connect_get,
     definition_developer_name,
     eprint,
     iter_nodes,
     node_attributes,
-    normalize_definition_list,
 )
+from scripts.context_service._resolve import resolve_definition_id  # noqa: E402
 
 
 def _resolve_id(developer_name: str, target_org: str, api_version: str):
-    """Resolve a definition id from a developerName via the list endpoint.
+    """Resolve a definition id from a developerName (thin wrapper on _resolve).
 
-    Uses includeInactive=true so an inactive definition is still resolvable, and
-    the shared normalizer/name reader so this matches what list_contexts.py can
-    see (response-shape variants + developerName/DeveloperName casing).
+    Delegates to the canonical ``_resolve.resolve_definition_id`` so describe
+    resolves ids exactly as ``apply``/``delete`` do — includeInactive=true, the
+    shared normalizer/name reader, AND the ``contextDefinitionId or id`` fallback
+    (a list-endpoint variant that returns the id under ``id`` used to make
+    describe report "not found" while apply resolved it fine).
     """
-    response = connect_get(
-        "connect/context-definitions?includeInactive=true",
-        target_org,
-        api_version,
+    return resolve_definition_id(
+        developer_name, target_org=target_org, api_version=api_version
     )
-    for item in normalize_definition_list(response):
-        if definition_developer_name(item) == developer_name:
-            return item.get("contextDefinitionId")
-    return None
 
 
 def _print_human(defn: dict):
@@ -108,15 +106,19 @@ def _print_human(defn: dict):
                 hydration = attr_map.get("contextAttrHydrationDetailList") or []
                 hy = ""
                 if hydration:
+                    # Delegate hop rendering to the canonical flattener: the live
+                    # GET names the source object `sObjectDomain` (not `objectName`),
+                    # and a relationship traversal nests the terminal source field
+                    # under `childDetails` — `_hydration_hops` reads both correctly
+                    # so a traversal renders `QuoteLineItem.Product2 -> Product2.ProductCode`
+                    # instead of `?.ProductCode`.
                     parts = []
                     for h in hydration:
                         if not isinstance(h, dict):
                             continue
-                        # Simple mappings omit objectName (it is the node's sObject);
-                        # traversal mappings carry an explicit objectName per hop.
-                        obj = h.get("objectName") or sobj or "?"
-                        parts.append(f"{obj}.{h.get('queryAttribute')}")
-                    hy = f"  <= {', '.join(parts)}"
+                        parts.extend(_model._hydration_hops(h, sobj))
+                    if parts:
+                        hy = f"  <= {', '.join(parts)}"
                 print(
                     f"          {attr_map.get('contextAttributeName')} "
                     f"(in={attr_map.get('contextInputAttributeName')}){hy}"
@@ -134,7 +136,8 @@ def main(argv=None) -> int:
     group.add_argument("--developer-name", help="DeveloperName of the definition.")
     group.add_argument("--id", dest="context_id", help="ContextDefinitionId.")
     parser.add_argument(
-        "--api-version", default="67.0", help="Salesforce API version (default 67.0)."
+        "--api-version", default=DEFAULT_API_VERSION,
+        help=f"Salesforce API version (default {DEFAULT_API_VERSION})."
     )
     parser.add_argument("--json", action="store_true", help="Emit raw normalized JSON.")
     args = parser.parse_args(argv)

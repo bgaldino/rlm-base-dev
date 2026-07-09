@@ -25,6 +25,7 @@ sys.path.insert(0, REPO_ROOT)
 
 import scripts.context_service._payload as _payload  # noqa: E402
 import scripts.context_service._model as _model  # noqa: E402
+import scripts.context_service._client as _client  # noqa: E402
 
 RESULTS = []
 
@@ -504,6 +505,73 @@ def test_full_extension_export_flags_caveat():
     caveats = plan.get("_caveats") or []
     check("full extension export flags a not-appliable caveat",
           any("not directly appliable" in c for c in caveats))
+
+
+# ----------------------------------------------------------------------
+# _client — shared tag-unwrap helpers (the B2 consolidation)
+#
+# The GET-shape unwrap for attribute/node tags used to be copy-pasted in
+# _delete, _mutate, and _payload; it now lives once in _client. These lock the
+# three shapes a live GET returns (bare list / dict-wrapper / absent) and the
+# node-vs-attribute key asymmetry (nodes: ``tags``; attributes: ``attributeTags``)
+# so a future GET-shape change can't silently drop a tag (which would let add-tag
+# dedup re-POST a duplicate).
+# ----------------------------------------------------------------------
+
+def test_attr_tag_list_unwraps_bare_list():
+    attr = {"attributeTags": [{"name": "LineItemQuantity"}, {"name": "RampMode"}]}
+    names = _client.attr_tag_names(attr)
+    check("attr_tag_names reads a bare attributeTags list",
+          names == {"LineItemQuantity", "RampMode"})
+
+
+def test_attr_tag_list_unwraps_dict_container():
+    # The live GET sometimes wraps the list in a container dict; iterating it
+    # directly would yield the string key "attributeTags", not tag dicts.
+    attr = {"attributeTags": {"attributeTags": [{"name": "LineItemQuantity"}]}}
+    names = _client.attr_tag_names(attr)
+    check("attr_tag_names unwraps the {attributeTags: [...]} container",
+          names == {"LineItemQuantity"})
+
+
+def test_attr_tag_list_falls_back_to_tags_key():
+    # Some shapes carry the attribute tags under the plain ``tags`` key.
+    attr = {"tags": [{"name": "Discount"}]}
+    check("attr_tag_list falls back to the tags key",
+          [t.get("name") for t in _client.attr_tag_list(attr)] == ["Discount"])
+
+
+def test_attr_tag_names_absent_is_empty():
+    check("attr_tag_names on an attribute with no tags is empty",
+          _client.attr_tag_names({"name": "NoTags"}) == set())
+    check("attr_tag_list on an attribute with no tags is empty list",
+          _client.attr_tag_list({"name": "NoTags"}) == [])
+
+
+def test_node_tag_names_key_asymmetry():
+    # Nodes key their tags under ``tags`` (NOT ``attributeTags``) — the asymmetry
+    # that justifies a separate helper. An attributeTags key on a node must be
+    # ignored, and the node's own ``tags`` used.
+    node = {"tags": [{"name": "NodeTagA"}],
+            "attributeTags": [{"name": "WrongKey"}]}
+    names = _client.node_tag_names(node)
+    check("node_tag_names reads the node 'tags' key, not 'attributeTags'",
+          names == {"NodeTagA"})
+
+
+def test_node_tag_list_unwraps_dict_container():
+    node = {"tags": {"tags": [{"name": "NodeTagA"}, {"name": "NodeTagB"}]}}
+    names = _client.node_tag_names(node)
+    check("node_tag_names unwraps the {tags: [...]} container",
+          names == {"NodeTagA", "NodeTagB"})
+
+
+def test_tag_names_ignore_nameless_and_nondict_entries():
+    # Defensive: a nameless tag or a non-dict entry (a stray string key from a
+    # mis-iterated wrapper) must not crash or leak into the name set.
+    attr = {"attributeTags": [{"name": "Real"}, {"noName": "x"}, "stray"]}
+    check("attr_tag_names drops nameless and non-dict tag entries",
+          _client.attr_tag_names(attr) == {"Real"})
 
 
 # ----------------------------------------------------------------------

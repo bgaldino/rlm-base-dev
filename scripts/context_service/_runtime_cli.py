@@ -15,7 +15,7 @@ access token is handled here.
 import json
 import sys
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from ._client import eprint
 from ._resolve import fetch_detail, resolve_definition_id, resolve_mapping
@@ -132,7 +132,12 @@ def load_records(args) -> Any:
 
 
 def resolve_mapping_id(
-    args, *, target_org: str, api_version: str, target: bool = False
+    args,
+    *,
+    target_org: str,
+    api_version: str,
+    target: bool = False,
+    detail: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Optional[str], Optional[str]]:
     """Resolve ``(context_definition_id, mapping_id)`` from the CLI mapping flags.
 
@@ -144,6 +149,14 @@ def resolve_mapping_id(
     definition and selects the mapping (named or default). Raises ``ValueError``
     (→ exit 2) when the definition/mapping can't be resolved; ``ContextClientError``
     bubbles for the caller to turn into exit 1.
+
+    ``detail`` — a pre-fetched definition detail (from ``_resolve.fetch_detail``).
+    When supplied, the named/default resolution path skips the internal
+    ``resolve_definition_id`` + ``fetch_detail`` round-trips and selects the
+    mapping straight off it. ``context_session.py`` uses this to fetch the detail
+    once and reuse it for both the source (hydrate) and target (persist) mapping
+    so the two never resolve against different snapshots. Ignored on the direct
+    ``--mapping-id`` path (no detail is needed there).
     """
     context_definition_id = getattr(args, "context_definition_id", None)
     developer_name = getattr(args, "developer_name", None)
@@ -170,6 +183,14 @@ def resolve_mapping_id(
         return None, direct
 
     mapping_name = getattr(args, "target_mapping_name" if target else "mapping_name", None)
+
+    # A caller-supplied detail short-circuits the resolve+fetch (see docstring):
+    # select the mapping straight off the shared snapshot. resolve_mapping reads
+    # the contextDefinitionId back out of the detail.
+    if detail is not None:
+        if not detail:
+            raise ValueError("Supplied definition detail is empty.")
+        return resolve_mapping(detail, mapping_name)
 
     if not context_definition_id:
         if not developer_name:

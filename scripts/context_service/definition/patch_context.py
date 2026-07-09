@@ -70,7 +70,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
-from scripts.context_service._client import ContextClientError  # noqa: E402
+from scripts.context_service._client import ContextClientError, DEFAULT_API_VERSION  # noqa: E402
 from scripts.context_service._model import model_to_plan  # noqa: E402
 from scripts.context_service.definition.diff_context import (  # noqa: E402
     _definition_index,
@@ -235,7 +235,8 @@ def main(argv=None) -> int:
         "--out",
         help="Write the patch here (per-definition file if multiple). Default: stdout JSON.",
     )
-    parser.add_argument("--api-version", default="67.0", help="API version (default 67.0).")
+    parser.add_argument("--api-version", default=DEFAULT_API_VERSION,
+                        help=f"API version (default {DEFAULT_API_VERSION}).")
     args = parser.parse_args(argv)
 
     if bool(args.source_org) == bool(args.plan_file):

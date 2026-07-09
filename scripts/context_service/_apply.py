@@ -392,6 +392,21 @@ class ContextApplier:
 
         # Resolve a keeper ContextAttributeMapping id for each rule, creating the
         # row when absent (creation is per-record; it can't be batched here).
+        # A POST that should have succeeded but returns NO ID (the CAM create, or
+        # either hydration-detail create below) is a SILENT DROP unless surfaced:
+        # the run would otherwise report success while the traversal hydration is
+        # missing, discoverable only by a later `--verify`. Accumulate those
+        # transient-failure rules and raise a summary at the end (mirrors
+        # _mutate.execute_add_mapping, which raises on the same
+        # ContextAttrHydrationDetail no-id class). We keep going per-rule so one
+        # hiccup does not abort the remaining (recoverable) rules; the summary is
+        # "re-run to repair" precisely because these are retryable.
+        #
+        # An unresolved attr_id is a DIFFERENT class — the plan names an attribute
+        # not in this definition (a deterministic authoring error, not a retryable
+        # POST failure) — so it is logged and skipped as before, NOT added to
+        # `dropped` (a re-run would not fix it, and it must not trip the retry msg).
+        dropped: List[str] = []
         for p in prepared:
             keeper_id = cam_by_key.get((p["attr_name"], p["node_mapping_id"]))
             if not keeper_id:
@@ -411,46 +426,59 @@ class ContextApplier:
                 keeper_id = None if self.dry_run else _record_id(cam_resp)
                 if not keeper_id and not self.dry_run:
                     self.log(f"Failed to create ContextAttributeMapping for {p['attr_name']}")
+                    dropped.append(p["attr_name"])
             p["keeper_id"] = keeper_id
 
         keeper_ids = sorted({p["keeper_id"] for p in prepared if p.get("keeper_id")})
-        if not keeper_ids:
-            return
+        if keeper_ids:
+            # One batched probe for existing hydration details across all keepers.
+            keepers_with_hydration = {
+                row.get("ContextAttributeMappingId")
+                for row in self.t.soql(
+                    f"SELECT Id,ContextAttributeMappingId FROM ContextAttrHydrationDetail "
+                    f"WHERE ContextAttributeMappingId IN ({_soql_in(keeper_ids)})"
+                )
+            }
 
-        # One batched probe for existing hydration details across all keepers.
-        keepers_with_hydration = {
-            row.get("ContextAttributeMappingId")
-            for row in self.t.soql(
-                f"SELECT Id,ContextAttributeMappingId FROM ContextAttrHydrationDetail "
-                f"WHERE ContextAttributeMappingId IN ({_soql_in(keeper_ids)})"
-            )
-        }
+            for p in prepared:
+                keeper_id = p.get("keeper_id")
+                if not keeper_id:
+                    continue  # already recorded in `dropped` above (or dry-run)
+                if keeper_id in keepers_with_hydration:
+                    self.log(f"Traversal hydration already exists for {p['attr_name']}; skipping")
+                    continue
+                self.log(f"Creating traversal hydration for {p['attr_name']}: "
+                         f"{p['s_object']}.{p['s_object_field']} -> "
+                         f"{p['child_s_object']}.{p['child_s_object_field']}")
+                parent_resp = self.t.sobject(
+                    "POST", ep.SOBJECT_CONTEXT_ATTR_HYDRATION_DETAIL, None,
+                    {"ContextAttributeMappingId": keeper_id, "ObjectName": p["s_object"],
+                     "QueryAttribute": p["s_object_field"]},
+                )
+                if self.dry_run:
+                    continue
+                parent_id = _record_id(parent_resp)
+                if not parent_id:
+                    self.log(f"Failed to get parent hydration detail id for {p['attr_name']}")
+                    dropped.append(p["attr_name"])
+                    continue
+                child_resp = self.t.sobject(
+                    "POST", ep.SOBJECT_CONTEXT_ATTR_HYDRATION_DETAIL, None,
+                    {"ContextAttributeMappingId": keeper_id, "ObjectName": p["child_s_object"],
+                     "QueryAttribute": p["child_s_object_field"], "ParentHydrationDetailId": parent_id},
+                )
+                if not _record_id(child_resp):
+                    self.log(f"Failed to create child hydration detail for {p['attr_name']}")
+                    dropped.append(p["attr_name"])
 
-        for p in prepared:
-            keeper_id = p.get("keeper_id")
-            if not keeper_id:
-                continue
-            if keeper_id in keepers_with_hydration:
-                self.log(f"Traversal hydration already exists for {p['attr_name']}; skipping")
-                continue
-            self.log(f"Creating traversal hydration for {p['attr_name']}: "
-                     f"{p['s_object']}.{p['s_object_field']} -> "
-                     f"{p['child_s_object']}.{p['child_s_object_field']}")
-            parent_resp = self.t.sobject(
-                "POST", ep.SOBJECT_CONTEXT_ATTR_HYDRATION_DETAIL, None,
-                {"ContextAttributeMappingId": keeper_id, "ObjectName": p["s_object"],
-                 "QueryAttribute": p["s_object_field"]},
-            )
-            if self.dry_run:
-                continue
-            parent_id = _record_id(parent_resp)
-            if not parent_id:
-                self.log(f"Failed to get parent hydration detail id for {p['attr_name']}")
-                continue
-            self.t.sobject(
-                "POST", ep.SOBJECT_CONTEXT_ATTR_HYDRATION_DETAIL, None,
-                {"ContextAttributeMappingId": keeper_id, "ObjectName": p["child_s_object"],
-                 "QueryAttribute": p["child_s_object_field"], "ParentHydrationDetailId": parent_id},
+        # Surface any silently-dropped rules: the caller must not report success
+        # while traversal hydration is missing. (dry-run never populates `dropped`.)
+        if dropped:
+            names = ", ".join(sorted(set(dropped)))
+            raise _client.ContextClientError(
+                f"Failed to create traversal hydration for {len(set(dropped))} rule(s): "
+                f"{names}. These rules were left without hydration; re-run apply to "
+                f"repair (existing rows are skipped idempotently)."
             )
 
     def _set_active(self, context_id: str, is_active: bool) -> None:
@@ -512,24 +540,30 @@ class ContextApplier:
         If already inactive: no-op, returns ``detail`` unchanged.
         If active and ``deactivate_first`` opted in: deactivates, refetches, logs.
         If active and not opted in: raises with an actionable message.
+
+        Apply's trigger is *flag-gated* (``self._deactivate_first``); the shared
+        body in :func:`_client.guard_active` handles the refuse-or-deactivate
+        mechanics. Deactivation goes through ``_set_active(context_id, False)``.
         """
-        if not self._is_active(detail):
-            return detail
-        if not self._deactivate_first:
-            raise _client.ContextClientError(
+        return _client.guard_active(
+            detail, context_id=context_id, auto_deactivate=self._deactivate_first,
+            is_active_fn=self._is_active,
+            deactivate_fn=lambda cid: self._set_active(cid, False),
+            fetch_detail_fn=self.fetch_detail, dry_run=self.dry_run, logger=self.log,
+            exception_type=_client.ContextClientError,
+            refuse_message=(
                 f"Definition {context_id} is ACTIVE, and '{op_label}' modifies an "
                 f"existing artifact — the platform blocks that on an active version "
                 f"(\"Cannot modify/delete an active context definition\"). Re-apply "
                 f"with deactivate_before=True (CLI: --deactivate-first). Note: "
                 f"deactivation is itself blocked while an Expression Set references "
                 f"this definition; detach the reference first if that happens."
-            )
-        self.log(f"Definition {context_id} is active; deactivating before "
-                 f"'{op_label}' (deactivate_before=True).")
-        self._set_active(context_id, False)
-        if self.dry_run:
-            return detail
-        return self.fetch_detail(context_id)
+            ),
+            deactivate_message=(
+                f"Definition {context_id} is active; deactivating before "
+                f"'{op_label}' (deactivate_before=True)."
+            ),
+        )
 
     def _has_default_mapping(self, detail: Dict[str, Any]) -> bool:
         """True if any contextMapping on the active version is flagged default."""
@@ -719,9 +753,10 @@ class ContextApplier:
                 plan["contextNodes"],
             )
         if plan.get("contextMappings"):
-            filtered = plan["contextMappings"]  # nothing exists yet on a new def
-            if filtered:
-                self._post_mapping_shells(context_id, filtered)
+            # A fresh def has nothing to filter against — post every shell as-is.
+            # (The additive flow filters via _payload.filter_existing_mappings;
+            # the create flow has no existing mappings to exclude.)
+            self._post_mapping_shells(context_id, plan["contextMappings"])
         if self.dry_run:
             return {"context_id": context_id, "created": created, "dry_run": True}
         detail = self.fetch_detail(context_id)
