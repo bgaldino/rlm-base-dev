@@ -770,6 +770,14 @@ class ContextApplier:
                 detail = self.fetch_detail(context_id)
             transient = _payload.transient_updates(plan["contextAttributesByName"], detail)
             if transient:
+                # SObject PATCH IsTransient is BLOCKED on active (P2 matrix).
+                # A fresh create is inactive so this is a no-op on the normal
+                # path, but build_create_payload allow-lists `isActive` and
+                # `sourceDefinitionId` (clone of an active def), so a create can
+                # reach here active — guard exactly as the additive flow does.
+                detail = self._guard_active_for_patch(
+                    context_id, detail, "sync IsTransient on ContextAttribute"
+                )
                 self._sync_transient(transient)
                 detail = self.fetch_detail(context_id)
 

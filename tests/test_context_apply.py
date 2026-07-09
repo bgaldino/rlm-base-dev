@@ -698,6 +698,83 @@ def test_guard_active_is_noop_when_already_inactive():
           out is not None and out.get("isActive") is False)
 
 
+def _active_detail_with_transient_drift():
+    """An ACTIVE definition whose ContextAttribute needs an IsTransient flip.
+
+    build_create_payload allow-lists ``isActive`` and ``sourceDefinitionId``
+    (clone of an active def), so ``_run_create_flow`` can legitimately run
+    against an already-active version. This fixture drives the transient block:
+    the attribute exists (so resolve_attributes_by_name skips the POST) but its
+    IsTransient=False drifts from the plan's isTransient:true, so
+    transient_updates yields one SObject PATCH.
+    """
+    return {
+        "isActive": True,
+        "contextDefinitionVersionList": [{
+            "isActive": True,
+            "contextMappings": [],
+            "contextNodes": [{
+                "name": "SalesTransaction",
+                "contextNodeId": "11q1",
+                "attributes": {"contextAttributes": [
+                    {"name": "RampMode__c", "contextAttributeId": "11n1",
+                     "isTransient": False},
+                ]},
+            }],
+        }],
+    }
+
+
+def test_create_flow_guards_transient_patch_on_active_def():
+    # Regression for the create-vs-additive drift: _run_create_flow's transient
+    # sync was NOT wrapped by _guard_active_for_patch, so a create with
+    # isActive:true (or clone-of-active) would hit a raw RECORD_UPDATE_FAILED
+    # instead of the actionable guard message. With _deactivate_first False the
+    # guard must REFUSE before issuing the (platform-blocked) SObject PATCH.
+    t = RecordingTransport()
+    applier = _applier(t)
+    applier._deactivate_first = False
+    active = _active_detail_with_transient_drift()
+    applier.fetch_detail = lambda ctx: active  # type: ignore
+    plan = {"contextAttributesByName": [
+        {"nodeName": "SalesTransaction", "name": "RampMode__c", "isTransient": True},
+    ]}
+    raised = False
+    try:
+        applier._run_create_flow(
+            "11O1", "RLM_Demo", plan,
+            translate_plan=False, activate=False, verify=False, created=True,
+        )
+    except _client.ContextClientError as exc:
+        raised = "ACTIVE" in str(exc) and "deactivate_before" in str(exc)
+    check("create flow on active def → transient sync is guarded (refuses)", raised)
+    check("create flow guard refusal → no IsTransient SObject PATCH issued",
+          not any(s[1] == "ContextAttribute" for s in t.sobjects))
+
+
+def test_create_flow_transient_patch_unguarded_on_inactive_def():
+    # The guard is a no-op on the normal (inactive, freshly-created) path: the
+    # transient SObject PATCH still goes out exactly as before.
+    t = RecordingTransport()
+    applier = _applier(t)
+    applier._deactivate_first = False
+    detail = _active_detail_with_transient_drift()
+    detail["isActive"] = False
+    detail["contextDefinitionVersionList"][0]["isActive"] = False
+    applier.fetch_detail = lambda ctx: detail  # type: ignore
+    plan = {"contextAttributesByName": [
+        {"nodeName": "SalesTransaction", "name": "RampMode__c", "isTransient": True},
+    ]}
+    applier._run_create_flow(
+        "11O1", "RLM_Demo", plan,
+        translate_plan=False, activate=False, verify=False, created=True,
+    )
+    patch = next((s for s in t.sobjects
+                  if s[0] == "PATCH" and s[1] == "ContextAttribute"), None)
+    check("create flow on inactive def → IsTransient PATCH still issued",
+          patch is not None and patch[3] == {"IsTransient": True})
+
+
 # --------------------------------------------------------------------------- #
 # diff_context._fetch_model — N+1 collection GET fix
 # --------------------------------------------------------------------------- #
