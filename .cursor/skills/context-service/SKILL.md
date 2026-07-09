@@ -207,6 +207,31 @@ single-process driver, and on a GA org `query`/`persist` need `ContextServicePil
 | `delete_context_instance.py` | **Mutates** | Evict one instance (`--context-id`) XOR `--clear-schema-cache --developer-name <name>` (runtime cache — NOT the definition; that is `delete_context.py`) |
 | `list_context_interfaces.py` | Read-only | List context definition interfaces (or `--interface NAME` for one) |
 
+### Helper Script Command Index
+
+```bash
+# Read-only design-time (safe anytime)
+python scripts/context_service/definition/validate_context_plan.py
+python scripts/context_service/definition/list_contexts.py --target-org <sf-alias>
+python scripts/context_service/definition/describe_context.py --target-org <sf-alias> --developer-name <name>
+python scripts/context_service/definition/trace_context.py --target-org <sf-alias> --developer-name <name> --field <field>
+python scripts/context_service/definition/diff_context.py --target-org <sf-alias> --plan-file <manifest>
+python scripts/context_service/definition/patch_context.py --plan-file <manifest> --target-org <sf-alias> --out patch.json
+python scripts/context_service/definition/export_context.py --target-org <sf-alias> --developer-name <name> --custom-only
+python scripts/context_service/definition/list_context_interfaces.py --target-org <sf-alias>
+
+# Design-time mutators — live-proven, for one-off exploration & updates.
+# Org builds use: cci task run manage_context_definition
+python scripts/context_service/definition/apply_context_plan.py --plan-file <manifest> --target-org <sf-alias> --dry-run
+python scripts/context_service/definition/delete_context.py --target-org <sf-alias> --developer-name <name>
+python scripts/context_service/definition/mutate_context.py --target-org <sf-alias> --developer-name <name> --add-tag <Node.Attr> <tag__c> --confirm
+
+# Runtime instance lifecycle — verify-live; see runtime-and-persistence.md.
+python scripts/context_service/instance/build_hydration_data.py --target-org <sf-alias> --developer-name <name> --out records.json
+python scripts/context_service/instance/context_session.py --target-org <sf-alias> --developer-name <name> --data-file records.json --query --persist --target-mapping-name <mapping>
+# Also: create_context_instance.py / query_context_instance.py / persist_context_instance.py / delete_context_instance.py
+```
+
 ## Examples
 
 ```bash

@@ -389,31 +389,18 @@ python scripts/ai/check_plan_readme_consistency.py          # SFDMU plan README 
 
 ### Context Service Scripts
 
-Scripts in `scripts/context_service/` inspect, validate, apply, and (at runtime) execute Context Service — design-time Context Definitions plus the runtime context-instance lifecycle. Auth is delegated to the `sf` CLI (`--target-org` is the SF CLI alias, no access token handled). This is a **command index only** — the object model, endpoint split, lifecycle rules, runtime scoping, and persist mechanics live in the **context-service skill** (`.cursor/skills/context-service/SKILL.md` + its `data-model-and-api.md`, `authoring-and-lifecycle.md`, `runtime-and-persistence.md` sub-files). Read the skill before authoring any mutation or runtime path.
-
-```bash
-# Read-only design-time (safe anytime)
-python scripts/context_service/definition/validate_context_plan.py                     # Offline lint of context plan JSON (enums, limits, __c rule)
-python scripts/context_service/definition/list_contexts.py --target-org <sf-alias>      # List context definitions
-python scripts/context_service/definition/describe_context.py --target-org <sf-alias> --developer-name <name>   # Pretty-print one definition
-python scripts/context_service/definition/trace_context.py --target-org <sf-alias> --developer-name <name> --field <field>   # Trace field↔tag↔attribute (--tag/--attribute/--unmapped)
-python scripts/context_service/definition/diff_context.py --target-org <sf-alias> --plan-file <manifest>         # Drift: plan-vs-org or org-vs-org
-python scripts/context_service/definition/patch_context.py --plan-file <manifest> --target-org <sf-alias> --out patch.json   # Extract drift into an applicable plan-JSON patch
-python scripts/context_service/definition/export_context.py --target-org <sf-alias> --developer-name <name> --custom-only    # Serialize a live definition to repo plan JSON
-
-# Design-time mutators — live-proven, for one-off exploration & updates (org build uses: cci task run manage_context_definition)
-python scripts/context_service/definition/apply_context_plan.py --plan-file <manifest> --target-org <sf-alias> --dry-run     # Apply/create a plan (--dry-run previews)
-python scripts/context_service/definition/delete_context.py --target-org <sf-alias> --developer-name <name>                  # Deactivate (default, reversible); --custom-teardown --deactivate-first --confirm-delete = HARD DELETE __c artifacts
-python scripts/context_service/definition/mutate_context.py --target-org <sf-alias> --developer-name <name> --add-tag <Node.Attr> <tag__c> --confirm   # One granular in-place edit; previews unless --confirm
-
-# Runtime instance lifecycle — verify-live, for debugging/validating hydration (pilot-gated on GA orgs — see runtime-and-persistence.md)
-python scripts/context_service/instance/build_hydration_data.py --target-org <sf-alias> --developer-name <name> --out records.json   # Build the `data` payload (skeleton, or --from-record <id> for a ready-to-run id-only payload)
-python scripts/context_service/instance/context_session.py --target-org <sf-alias> --developer-name <name> --data-file records.json --query --persist --target-mapping-name <mapping>   # create→query→persist→delete in one process (needs ContextServicePilot on GA orgs; Apex is the GA runtime path)
-python scripts/context_service/definition/list_context_interfaces.py --target-org <sf-alias>   # List context definition interfaces (read-only)
-#   also: create_context_instance.py / query_context_instance.py / persist_context_instance.py / delete_context_instance.py (individual verbs — see runtime-and-persistence.md)
-```
+Scripts in `scripts/context_service/` inspect, validate, apply, and (at runtime)
+execute Context Service — design-time Context Definitions plus the runtime
+context-instance lifecycle. Auth is delegated to the `sf` CLI (`--target-org` is
+the SF CLI alias, no access token handled). The command index, object model,
+endpoint split, lifecycle rules, runtime scoping, and persist mechanics live in
+the **context-service skill** (`.cursor/skills/context-service/SKILL.md` + its
+`data-model-and-api.md`, `authoring-and-lifecycle.md`, and
+`runtime-and-persistence.md` sub-files). Read the skill before authoring any
+mutation or runtime path.
 
 Two rules worth pinning at this level (full detail + rationale in the skill):
+
 - **Design-time active-version rule** — the platform lets you *insert* a new artifact (node/attribute/tag) on an active version, but *modifying or deleting* an existing one is blocked (`RECORD_UPDATE_FAILED`) → deactivate first. Add-only edits apply in place.
 - **Runtime `contextId` is request-scoped** — an opaque handle (never prefix-validate it) that does not survive across separate CLI calls on a normal org (create scope defaults to `REQUEST`; cross-call `SESSION` scope and REST `query-record`/`query-tags` are pilot-gated). Drive the whole hydrate→query→persist in **one request** (`context_session.py`, or Apex `Context.IndustriesContext` / one Flow). Persist is **async** — confirm via `AsyncOperationTracker` (`JobType='ContextPersistence'`, `Response` JSON), not the returned `referenceId`.
 
