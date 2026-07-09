@@ -297,6 +297,17 @@ whole-body Connect PATCH cannot express a root mapping (its
 `mappedContextNodeId` is legitimately null — see the shell-fields section
 above) and the shape guard now refuses that PATCH before the wire.
 
+**Partial-failure repair.** The two POSTs are not atomic: a CAM can land while
+its `ContextAttrHydrationDetail` POST fails, leaving an *orphan CAM with no
+source field* (the binding exists structurally but hydrates nothing). Re-running
+`--add-mapping` for the same attribute detects this — it **reuses the existing
+CAM** and POSTs only the missing hydration detail (never a second CAM). A
+complete binding is reported as a no-op; a genuinely incomplete one is reported
+as a *repair*. Note that many standard CAMs are **legitimately** hydration-less
+(identity / translation mappings carry no source field by design), so the
+classifier only ever acts on the one attribute you name — it never mass-repairs
+a definition. See `_existing_attr_binding` / `plan_add_mapping` in `_mutate.py`.
+
 ---
 
 ## Common rejections and how to resolve them
