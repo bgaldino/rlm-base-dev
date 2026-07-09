@@ -47,7 +47,7 @@ the setup path.
 | Script | Org? | Purpose |
 |--------|------|---------|
 | `build_hydration_data.py` | Read-only | Build the nested `data` hydration payload for a definition — fillable **skeleton**, or `--from-record <id>` for a ready-to-run **id-only** payload (parent + children hydrate server-side). |
-| `context_session.py` | **Mutates** | The single-process runtime driver — create → update-attr/write-tag → query → persist → delete in one request. On a GA org `--query`/`--persist` need `ContextServicePilot`; Apex `Context.IndustriesContext` is the GA runtime path (see caveats below). |
+| `context_session.py` | **Mutates** | The single-process runtime driver — create → update-attr/write-tag → query → persist → delete. Each step is still a separate REST call; on a GA org `--query`/`--persist` need `ContextServicePilot`, and Apex `Context.IndustriesContext` is the one-request GA runtime path (see caveats below). |
 | `create_context_instance.py` | **Mutates** | `POST /connect/contexts` — hydrate an instance; returns the Context Info (`--id-only` for `$(...)` capture). |
 | `query_context_instance.py` | Read-only | `query-record` (flatten + decode compound) / `query-tags[-leaner]` against a live `contextId`. |
 | `persist_context_instance.py` | **Mutates** | `persist-records` — write attribute values back to a target mapping's SObjects (FK caveat). |

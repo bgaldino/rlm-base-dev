@@ -27,23 +27,27 @@ artifact. Full guidance: `.cursor/skills/context-service/SKILL.md`
   **no per-artifact delete directive** — do not expect one. Deactivation is
   whole-version (`deactivate_before`), off by default. Teardown (deactivate or
   hard-delete a definition / custom artifacts) is a **separate, out-of-band**
-  step — the experimental `scripts/context_service/definition/delete_context.py`, not the plan
-  format. Deletes are **blocked while the version is active** (deactivate first).
+  step — `scripts/context_service/definition/delete_context.py`, not the plan
+  format. Deactivate before definition teardown; granular leaf-delete behavior is
+  endpoint-specific, so check the active-version matrix in
+  `.cursor/skills/context-service/authoring-and-lifecycle.md` first.
 - The plan format is **design-time only** — it defines a Context *Definition*.
   Runtime *hydration* (loading records into a context instance) and *persistence*
   (writing values back) are **not** expressed in a plan; they are handled at
   runtime by the consuming engines, and can be exercised for
-  debugging/validation by the EXPERIMENTAL runtime scripts
+  debugging/validation by the runtime helper scripts
   (`context_session.py`, `build_hydration_data.py`, …) — see
   `.cursor/skills/context-service/runtime-and-persistence.md`.
 - `deactivate_before` defaults to `false`; **adding new** attributes/tags/nodes
-  applies in place on an active version. But **modifying an existing artifact**
-  (flipping `isTransient`, re-pointing the default mapping) is **blocked while
-  active** (`RECORD_UPDATE_FAILED` "Cannot modify/delete an active context
-  definition", live-verified) — the platform rule is insert-new = OK on active,
-  modify/delete-existing = deactivate first. Set `deactivate_before: true` for a
-  plan that edits existing artifacts, or use `scripts/context_service/definition/mutate_context.py
-  --deactivate-first --reactivate` for a one-off.
+  applies in place on an active version. But many **modify existing** operations
+  (flipping `isTransient`, re-pointing the default mapping) are blocked while
+  active (`RECORD_UPDATE_FAILED` "Cannot modify/delete an active context
+  definition", live-verified), and one Connect PATCH path is silently
+  destructive if it omits siblings. Set `deactivate_before: true` for a plan that
+  edits existing artifacts, or use
+  `scripts/context_service/definition/mutate_context.py --deactivate-first --reactivate`
+  for a one-off. See the skill before assuming any endpoint's active-version
+  behavior.
 
 ## Canonical enums (Core UDD, v67.0)
 

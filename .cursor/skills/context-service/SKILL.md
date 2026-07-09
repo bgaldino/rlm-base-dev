@@ -200,7 +200,7 @@ single-process driver, and on a GA org `query`/`persist` need `ContextServicePil
 | Script | Org? | Purpose |
 |--------|------|---------|
 | `build_hydration_data.py` | Read-only | Build the nested `data` hydration payload (node-name keys + `businessObjectType` = **mapped SObject** name). Default: fillable **skeleton** (child arrays + typed placeholders); `--mapping-name` picks the mapping, `--node` restricts to a subtree. `--from-record <id> [--node NAME]`: ready-to-run **id-only** payload (parent + children hydrate server-side). Feed to create/session |
-| `context_session.py` | **Mutates** | Single-process runtime driver — one request: create (or `--context-id` reuse) → `--update-attr` → `--write-tag` → `--query` → `--persist` → auto-delete (unless `--keep`). Honors the dry-run contract. On a GA org `--query`/`--persist` need `ContextServicePilot` (Apex is the GA path, rule 9) |
+| `context_session.py` | **Mutates** | Single-process runtime driver — create (or `--context-id` reuse) → `--update-attr` → `--write-tag` → `--query` → `--persist` → auto-delete (unless `--keep`). Each step is still a separate REST call; on a GA org `--query`/`--persist` need `ContextServicePilot` and REQUEST-scoped ids do not survive, so Apex/Flow is the one-request GA path (rule 9). Honors the dry-run contract |
 | `create_context_instance.py` | **Mutates** | `POST /connect/contexts` — hydrate an instance from a mapping + records; output modes `default` / `--json` / `--id-only` |
 | `query_context_instance.py` | Read-only | `query-record` (flattens the tree with `depth`, decodes stringified compound values) or `--tags … [--leaner]` → `query-tags[-leaner]`. Pilot-gated on a GA org (`API_DISABLED_FOR_ORG`) |
 | `persist_context_instance.py` | **Mutates** | `persist-records` — write attribute values back to a **target** mapping's SObjects; prints `referenceId`, emits the FK caveat |
@@ -266,7 +266,7 @@ python scripts/context_service/instance/context_session.py --target-org rlm-base
   --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json \
   --query --persist --target-mapping-name QuoteEntitiesMapping
 
-# Dry-run the same session (mutations logged, query still runs against a real id only)
+# Dry-run create logs the mutation and skips dependent steps because no contextId is minted
 python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
   --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json --dry-run
 ```
