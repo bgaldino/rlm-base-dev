@@ -7,8 +7,8 @@ developerName, active version number, isActive, isUpgradeAvailable.
 Auth is delegated to the sf CLI (see _client.py) — no tokens are handled here.
 
 Usage:
-    python scripts/context_service/list_contexts.py --target-org rlm-base__beta
-    python scripts/context_service/list_contexts.py --target-org rlm-base__beta --json
+    python scripts/context_service/definition/list_contexts.py --target-org rlm-base__beta
+    python scripts/context_service/definition/list_contexts.py --target-org rlm-base__beta --json
 
 Note: the exact GET response shape (field names, includeInactive/includeUpgrade
 query params) is pinned to Release 262 / API v67.0 and should be re-verified

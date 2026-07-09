@@ -37,26 +37,26 @@ teardown plan and exits (a dry-run preview) — nothing is mutated.
 Examples
 --------
     # safe default: just deactivate (reversible)
-    python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
         --developer-name RLM_QuoteDocGenContext
 
     # preview what a custom teardown would remove (no mutation)
-    python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --custom-teardown
 
     # actually strip custom artifacts (deactivating first if needed)
-    python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --custom-teardown \
         --deactivate-first --confirm-delete
 
     # delete one custom attribute + its tag/attr-mapping
-    python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext \
         --delete-artifact attribute SalesTransactionItem.RampMode__c \
         --cascade --deactivate-first --confirm-delete
 
     # nuke a create-new definition entirely
-    python scripts/context_service/delete_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/delete_context.py --target-org rlm-base__beta \
         --developer-name RLM_QuoteDocGenContext --delete-definition --confirm-delete
 """
 

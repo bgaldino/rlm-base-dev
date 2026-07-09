@@ -24,9 +24,9 @@ Target mapping: ``--target-mapping-id`` directly, else ``--developer-name`` /
 mapping when the name is omitted).
 
 Usage:
-    python scripts/context_service/persist_context_instance.py --target-org rlm-base__beta \
+    python scripts/context_service/instance/persist_context_instance.py --target-org rlm-base__beta \
         --context-id <uuid> --target-mapping-id 11j...
-    python scripts/context_service/persist_context_instance.py --target-org rlm-base__beta \
+    python scripts/context_service/instance/persist_context_instance.py --target-org rlm-base__beta \
         --context-id <uuid> --developer-name RLM_SalesTransactionContext \
         --target-mapping-name QuoteEntitiesMapping
 """

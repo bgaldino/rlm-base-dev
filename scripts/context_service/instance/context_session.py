@@ -31,18 +31,18 @@ does not mutate the value — node-name paths behave identically).
 
 Usage:
     # SESSION scope on a pilot org: full multi-call lifecycle
-    python scripts/context_service/context_session.py --target-org rlm-base__beta \
+    python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --context-scope SESSION \
         --data-file /tmp/records.json --query --persist \
         --target-mapping-name QuoteEntitiesMapping
 
     # hydrate from a file, query the result, persist to the same mapping
-    python scripts/context_service/context_session.py --target-org rlm-base__beta \
+    python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json \
         --query --persist --target-mapping-name QuoteEntitiesMapping
 
     # operate on an existing (reuse-enabled) instance: set an attr, then query
-    python scripts/context_service/context_session.py --target-org rlm-base__beta \
+    python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
         --context-id <uuid> --update-attr SalesTransactionItem RampMode__c RAMP --query
 """
 

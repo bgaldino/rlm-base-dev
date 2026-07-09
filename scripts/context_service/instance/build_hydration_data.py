@@ -43,16 +43,16 @@ Pinned to Release 262 / v67.0 — the node-tree walk mirrors ``describe_context.
 
 Usage:
     # skeleton for the whole definition -> stdout
-    python scripts/context_service/build_hydration_data.py \
+    python scripts/context_service/instance/build_hydration_data.py \
         --target-org rlm-base__beta --developer-name RLM_SalesTransactionContext
 
     # restrict to one subtree and write a file to fill in
-    python scripts/context_service/build_hydration_data.py \
+    python scripts/context_service/instance/build_hydration_data.py \
         --target-org rlm-base__beta --developer-name RLM_SalesTransactionContext \
         --node SalesTransactionItem --out /tmp/records.json
 
     # id-only payload for a real record, ready to hydrate (parent + children)
-    python scripts/context_service/build_hydration_data.py \
+    python scripts/context_service/instance/build_hydration_data.py \
         --target-org rlm-base__beta --developer-name RLM_SalesTransactionContext \
         --from-record 0Q0O9000005sX7NKAU --out /tmp/records.json
 """

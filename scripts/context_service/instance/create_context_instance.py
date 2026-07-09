@@ -25,7 +25,7 @@ mapping.
 
 Usage:
     # resolve the default mapping by name, hydrate from a file, capture the id
-    CID=$(python scripts/context_service/create_context_instance.py \
+    CID=$(python scripts/context_service/instance/create_context_instance.py \
         --target-org rlm-base__beta --developer-name RLM_SalesTransactionContext \
         --data-file /tmp/records.json --id-only)
 """

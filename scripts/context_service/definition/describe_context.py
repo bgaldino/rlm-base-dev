@@ -8,9 +8,9 @@ node mappings -> hydration.
 Auth is delegated to the sf CLI (see _client.py) — no tokens are handled here.
 
 Usage:
-    python scripts/context_service/describe_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/describe_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext
-    python scripts/context_service/describe_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/describe_context.py --target-org rlm-base__beta \
         --id 0tc... --json
 
 Note: the exact GET response shape is pinned to Release 262 / API v67.0 and

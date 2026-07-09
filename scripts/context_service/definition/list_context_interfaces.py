@@ -13,8 +13,8 @@ Read-only. Auth is delegated to the ``sf`` CLI — no access token is handled.
 alias. Pinned to Release 262 / v67.0 (resource added in 62.0) — verify-live.
 
 Usage:
-    python scripts/context_service/list_context_interfaces.py --target-org rlm-base__beta
-    python scripts/context_service/list_context_interfaces.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/list_context_interfaces.py --target-org rlm-base__beta
+    python scripts/context_service/definition/list_context_interfaces.py --target-org rlm-base__beta \
         --interface <name> --json
 """
 

@@ -58,24 +58,24 @@ granted — it is an FLS effect, not a missing activate/deactivate cycle.
 
 Usage:
     # everything that touches a field (hydration + persistence, every lens)
-    python scripts/context_service/trace_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --field RLM_RampMode__c
 
     # every field a tag reads/writes, across all mappings
-    python scripts/context_service/trace_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --tag RampMode__c
 
     # one attribute (node.attr or bare name); scope to one lens with --mapping
-    python scripts/context_service/trace_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext \
         --attribute SalesTransactionItem.RampMode__c --mapping QuoteEntitiesMapping
 
     # find gaps: tagged-but-unbound, bound-but-untagged, inert attributes
-    python scripts/context_service/trace_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --unmapped
 
     # default: per-mapping binding summary (no selector)
-    python scripts/context_service/trace_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/trace_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext
 """
 

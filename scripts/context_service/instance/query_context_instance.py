@@ -21,9 +21,9 @@ Instance-Reuse setting is on and you are within contextTtl; otherwise use
 ``context_session.py``.
 
 Usage:
-    python scripts/context_service/query_context_instance.py \
+    python scripts/context_service/instance/query_context_instance.py \
         --target-org rlm-base__beta --context-id <uuid>
-    python scripts/context_service/query_context_instance.py \
+    python scripts/context_service/instance/query_context_instance.py \
         --target-org rlm-base__beta --context-id <uuid> --tags Price__c Discount__c --leaner
 """
 
