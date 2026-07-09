@@ -45,8 +45,9 @@ A `manifest.json` points at each plan file:
 
 Current plans: **Billing**, **ConstraintEngineNodeStatus**, **DocGen**
 (`create: true` — a net-new custom definition), **PartnerAccount**,
-**PrmPricing**, **RampMode**. Three extend `RLM_SalesTransactionContext`;
-the rest target their own definitions.
+**PrmPricing**, **RampMode**. Four extend `RLM_SalesTransactionContext`
+(`ConstraintEngineNodeStatus`, `PartnerAccount`, `PrmPricing`, `RampMode`);
+`Billing` and `DocGen` target their own definitions.
 
 ## Schema, enums, limits, `__c` rule — see the skill
 

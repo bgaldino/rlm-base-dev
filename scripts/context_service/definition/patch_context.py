@@ -317,7 +317,7 @@ def main(argv=None) -> int:
     for name in sorted(patches):
         _render_summary(name, patches[name], lines)
     lines.append(
-        "\nNext: lint with `python scripts/context_service/validate_context_plan.py <file>`, "
+        "\nNext: lint with `python scripts/context_service/definition/validate_context_plan.py <file>`, "
         "then apply with `cci task run manage_context_definition` (see the "
         "context-service skill). Candidate deletions require a manual unlink."
     )

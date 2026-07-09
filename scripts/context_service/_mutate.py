@@ -409,6 +409,27 @@ class ContextMutator:
 
         existing = _existing_attr_binding(
             detail, node_mapping_id, target["contextAttributeId"])
+        # Three states the caller must tell apart (a prior run can die between
+        # the CAM POST and the hydration-detail POST, leaving an orphan CAM):
+        #   existing is None           -> nothing bound; full create.
+        #   existing["complete"]       -> CAM + source field present; true no-op.
+        #   CAM present, no hydration  -> incomplete; repair by POSTing only the
+        #                                 ContextAttrHydrationDetail onto the
+        #                                 existing CAM (never a second CAM).
+        complete = bool(existing and existing.get("complete"))
+        repair = bool(existing and not complete)
+        existing_cam_id = existing.get("cam_id") if existing else None
+        if repair and not existing_cam_id:
+            # CAM row is in the snapshot but carries no id we can bind to — we
+            # cannot safely repair (a fresh CAM POST would duplicate it), so
+            # surface it rather than silently no-op'ing an unusable mapping.
+            raise MutatePreflightError(
+                f"{node_name}.{target['name']} on '{mapping_name}' has a "
+                f"ContextAttributeMapping with no source field and no "
+                f"contextAttributeMappingId in the snapshot; cannot auto-repair "
+                f"the missing ContextAttrHydrationDetail. Inspect the mapping "
+                f"with describe_context.py and fix it manually."
+            )
         return {
             "op": "add-mapping",
             "target": f"{node_name}.{target['name']}",
@@ -417,8 +438,10 @@ class ContextMutator:
             "field": sobject_field,
             "attribute_id": target["contextAttributeId"],
             "node_mapping_id": node_mapping_id,
-            "noop": existing is not None,
-            "existing_binding": existing,
+            "noop": complete,
+            "repair": repair,
+            "existing_cam_id": existing_cam_id,
+            "existing_binding": existing.get("hydration") if existing else None,
             "via": "POST ContextAttributeMapping + ContextAttrHydrationDetail (SObject REST)",
             "_target": target,
             "_note": ("Granular insert — sibling-safe (never re-emits existing "
@@ -432,20 +455,31 @@ class ContextMutator:
                      f"(-> {change['existing_binding']}); no change.")
             return {"op": change["op"], "target": change["target"],
                     "mapping": change["mapping"], "changed": False}
-        # 1) ContextAttributeMapping — the binding row on the node mapping.
-        cam_resp = self.t.sobject(
-            "POST", ep.SOBJECT_CONTEXT_ATTRIBUTE_MAPPING, None,
-            {
-                "ContextNodeMappingId": change["node_mapping_id"],
-                "ContextAttributeId": change["attribute_id"],
-                "ContextInputAttributeName": change["target"].split(".", 1)[-1],
-            },
-        )
-        keeper_id = None if self.dry_run else _record_id(cam_resp)
-        if not keeper_id and not self.dry_run:
-            raise MutatePreflightError(
-                f"Failed to create ContextAttributeMapping for {change['target']}."
+        if change.get("repair"):
+            # A prior run left a ContextAttributeMapping with no source field
+            # (it died before the hydration-detail POST). Reuse that CAM —
+            # POSTing a second one would duplicate the binding — and only add
+            # the missing ContextAttrHydrationDetail.
+            keeper_id = change["existing_cam_id"]
+            self.log(f"{change['target']} on '{change['mapping']}' has a "
+                     f"ContextAttributeMapping ({keeper_id}) with no source "
+                     f"field; repairing by adding the missing "
+                     f"ContextAttrHydrationDetail.")
+        else:
+            # 1) ContextAttributeMapping — the binding row on the node mapping.
+            cam_resp = self.t.sobject(
+                "POST", ep.SOBJECT_CONTEXT_ATTRIBUTE_MAPPING, None,
+                {
+                    "ContextNodeMappingId": change["node_mapping_id"],
+                    "ContextAttributeId": change["attribute_id"],
+                    "ContextInputAttributeName": change["target"].split(".", 1)[-1],
+                },
             )
+            keeper_id = None if self.dry_run else _record_id(cam_resp)
+            if not keeper_id and not self.dry_run:
+                raise MutatePreflightError(
+                    f"Failed to create ContextAttributeMapping for {change['target']}."
+                )
         # 2) ContextAttrHydrationDetail — the source-field binding (simple, 1 hop).
         self.t.sobject(
             "POST", ep.SOBJECT_CONTEXT_ATTR_HYDRATION_DETAIL, None,
@@ -456,6 +490,7 @@ class ContextMutator:
         return {"op": change["op"], "target": change["target"],
                 "mapping": change["mapping"],
                 "binding": f"{change['sObject']}.{change['field']}",
+                "repaired": bool(change.get("repair")),
                 "changed": True, "dry_run": self.dry_run}
 
     # ---- op: remove-tag (delegated to the deleter) ----------------------- #
@@ -492,15 +527,26 @@ def _node_mapping_sobject(detail: Dict[str, Any], node_mapping_id: str) -> Optio
 
 
 def _existing_attr_binding(detail: Dict[str, Any], node_mapping_id: str,
-                           attr_id: str) -> Optional[str]:
-    """If the attribute is already bound on this node mapping, return a short
-    description of its source field(s); else ``None``.
+                           attr_id: str) -> Optional[Dict[str, Any]]:
+    """If the attribute already has a ``ContextAttributeMapping`` on this node
+    mapping, return a dict describing it; else ``None``.
 
     Idempotency guard for ``add-mapping`` — re-running must not create a
     duplicate ``ContextAttributeMapping``. Matches on ``contextAttributeId``
     within the target node mapping and reads the flat ``contextAttrHydrationDetailList``
     that a Connect GET returns (SOQL on these objects is unreliable — the
     snapshot is authoritative).
+
+    The returned dict distinguishes a **complete** binding from an **incomplete**
+    one so a retry after a partial failure can finish the job::
+
+        {"cam_id": <ContextAttributeMappingId | None>,
+         "hydration": <"Obj.Field, ..." | None>,   # None => no source field yet
+         "complete":  <bool>}                        # True only when hydration exists
+
+    A CAM created without its ``ContextAttrHydrationDetail`` (e.g. the process
+    died between the two POSTs) reports ``complete=False`` so the caller repairs
+    it rather than reporting a bound-but-unusable mapping as a no-op.
     """
     for mapping in _iter_context_mappings(detail):
         for node_map in mapping.get("contextNodeMappings", []) or []:
@@ -523,7 +569,11 @@ def _existing_attr_binding(detail: Dict[str, Any], node_mapping_id: str,
                     for h in (attr_map.get("contextAttrHydrationDetailList") or [])
                     if isinstance(h, dict) and h.get("queryAttribute")
                 ]
-                return ", ".join(fields) if fields else "(bound, no source field)"
+                return {
+                    "cam_id": attr_map.get("contextAttributeMappingId"),
+                    "hydration": ", ".join(fields) if fields else None,
+                    "complete": bool(fields),
+                }
     return None
 
 

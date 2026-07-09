@@ -19,11 +19,11 @@ never the CCI alias.
 
 Usage:
     # evict one instance
-    python scripts/context_service/delete_context_instance.py \
+    python scripts/context_service/instance/delete_context_instance.py \
         --target-org rlm-base__beta --context-id <uuid>
 
     # clear the cached runtime schema for a definition (all mappings)
-    python scripts/context_service/delete_context_instance.py \
+    python scripts/context_service/instance/delete_context_instance.py \
         --target-org rlm-base__beta --clear-schema-cache \
         --developer-name RLM_SalesTransactionContext
 """

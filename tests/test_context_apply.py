@@ -1141,6 +1141,55 @@ def test_add_mapping_is_idempotent_when_already_bound():
           not [s for s in t.sobjects if s[0] == "POST"])
 
 
+def _detail_with_incomplete_cam():
+    """Root-and-child detail where the root node mapping already carries a
+    ``ContextAttributeMapping`` for TotalCost__c that has an id but **no**
+    ``contextAttrHydrationDetailList`` — the shape left behind when a prior
+    add-mapping run died between the CAM POST and the hydration POST."""
+    detail = _detail_root_and_child()
+    root_nm = detail["contextDefinitionVersionList"][0]["contextMappings"][0][
+        "contextNodeMappings"][0]  # SalesTransaction / Quote / 11bST
+    root_nm["attributeMappings"] = [
+        {"contextAttributeName": "TotalCost__c",
+         "contextAttributeId": "11aTC",
+         "contextAttributeMappingId": "11cTC",
+         "contextAttrHydrationDetailList": []},
+    ]
+    return detail
+
+
+def test_add_mapping_repairs_cam_missing_hydration_detail():
+    # A CAM with no source field is NOT a no-op — a retry must finish the
+    # binding by POSTing only the missing ContextAttrHydrationDetail against
+    # the existing CAM (never a second CAM).
+    detail = _detail_with_incomplete_cam()
+    t = RecordingTransport()
+    mut = _mutator(t)
+    change = mut.plan_add_mapping(
+        detail, "SalesTransaction.TotalCost__c",
+        "QuoteEntitiesMapping", "RLM_TotalCost__c")
+    check("incomplete CAM is not reported as a no-op", change["noop"] is False)
+    check("incomplete CAM flagged for repair", change.get("repair") is True)
+    check("repair carries the existing CAM id", change.get("existing_cam_id") == "11cTC")
+    summary = mut.execute_add_mapping(change)
+    posts = [s for s in t.sobjects if s[0] == "POST"]
+    check("repair POSTs exactly one row (hydration only, no 2nd CAM)", len(posts) == 1)
+    check("repair does not POST a ContextAttributeMapping",
+          not any(s[1] == "ContextAttributeMapping" for s in posts))
+    hyd = next((s for s in posts if s[1] == "ContextAttrHydrationDetail"), None)
+    check("repair POSTs the ContextAttrHydrationDetail", hyd is not None)
+    if hyd:
+        body = hyd[3]
+        check("repair hydration chains to the EXISTING CAM id",
+              body.get("ContextAttributeMappingId") == "11cTC")
+        check("repair hydration ObjectName is the node-mapping sObject (Quote)",
+              body.get("ObjectName") == "Quote")
+        check("repair hydration QueryAttribute is the target field",
+              body.get("QueryAttribute") == "RLM_TotalCost__c")
+    check("repair summary reports changed=True", summary.get("changed") is True)
+    check("repair summary flags repaired=True", summary.get("repaired") is True)
+
+
 def test_add_mapping_unresolved_node_mapping_raises():
     detail = _detail_root_and_child()
     raised = False

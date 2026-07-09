@@ -354,6 +354,44 @@ def test_model_to_plan_round_trips_traversal():
     )
 
 
+def test_normalize_plan_traversal_hydration_matches_org():
+    # Regression: normalize_plan must record the SAME full hop chain the org-side
+    # normalizer (_hydration_hops) produces for a traversal rule, or diff_context
+    # reports a permanent "~ changed" mapping after the plan is already applied.
+    plan = {
+        "developerName": "RLM_TraversalProbeContext",
+        "activate": True,
+        "mappingRules": [
+            {
+                "mappingName": "QuoteLineEntitiesMapping",
+                "contextNode": "SalesTransactionItem",
+                "contextAttribute": "ProductCode__c",
+                "mappingType": "SOBJECT",
+                "sObject": "QuoteLineItem",
+                "sObjectField": "Product2",
+                "childSObject": "Product2",
+                "childSObjectField": "ProductCode",
+            }
+        ],
+    }
+    plan_model = _model.normalize_plan(plan)
+    plan_hydration = (plan_model["mappings"]["QuoteLineEntitiesMapping"]
+                      ["nodes"]["SalesTransactionItem"]
+                      ["attributes"]["ProductCode__c"]["hydration"])
+    org_model = _model.normalize_definition(_traversal_get())
+    org_hydration = (org_model["mappings"]["QuoteLineEntitiesMapping"]
+                     ["nodes"]["SalesTransactionItem"]
+                     ["attributes"]["ProductCode__c"]["hydration"])
+    check(
+        "plan-side traversal hydration records both hops (lookup + terminal)",
+        plan_hydration == ["QuoteLineItem.Product2", "Product2.ProductCode"],
+    )
+    check(
+        "plan-side traversal hydration equals the org-side normalization",
+        plan_hydration == org_hydration,
+    )
+
+
 def test_model_to_plan_output_lints_clean():
     # The delta a patch emits must lint with 0 errors — otherwise patch_context
     # would produce un-appliable plans. This mirrors patch_context: ``include``

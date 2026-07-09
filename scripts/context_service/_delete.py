@@ -93,6 +93,7 @@ def build_artifact_catalog(detail: Dict[str, Any], context_id: str) -> List[Dict
           # linkage keys for cascade grouping:
           "context_attribute_id":    <attr id, on attribute/tag/attr-mapping>,
           "context_node_id":         <node id, on node/attribute/node-mapping>,
+          "parent_context_node_id":  <parent node id, on node (None at root)>,
           "context_mapping_id":      <mapping id, on mapping/node-mapping>,
           "context_node_mapping_id": <node-mapping id, on node-mapping/attr-mapping>,
         }
@@ -108,7 +109,7 @@ def build_artifact_catalog(detail: Dict[str, Any], context_id: str) -> List[Dict
         return artifacts
 
     # ---- Layer 1: nodes -> attributes -> tags ---------------------------- #
-    def walk_nodes(node_list, depth):
+    def walk_nodes(node_list, depth, parent_node_id=None):
         for node in node_list or []:
             if not isinstance(node, dict):
                 continue
@@ -124,9 +125,12 @@ def build_artifact_catalog(detail: Dict[str, Any], context_id: str) -> List[Dict
                         context_definition_id=context_id, context_node_id=node_id),
                     "depth": depth,
                     "context_node_id": node_id,
+                    # Parent linkage lets a cascade delete collect the child
+                    # subtree (see _is_descendant); None for a root node.
+                    "parent_context_node_id": parent_node_id,
                 })
             # node-level tags (rare; most tags live on attributes)
-            for tag in node.get("tags") or []:
+            for tag in _node_tag_list(node):
                 _append_tag(artifacts, tag, context_id, node_id=node_id,
                             owner_label=node_name)
             # attributes on this node
@@ -148,10 +152,10 @@ def build_artifact_catalog(detail: Dict[str, Any], context_id: str) -> List[Dict
                         "context_attribute_id": attr_id,
                         "context_node_id": node_id,
                     })
-                for tag in attr.get("attributeTags") or attr.get("tags") or []:
+                for tag in _attr_tag_list(attr):
                     _append_tag(artifacts, tag, context_id,
                                 attr_id=attr_id, owner_label=label)
-            walk_nodes(_child_nodes(node), depth + 1)
+            walk_nodes(_child_nodes(node), depth + 1, parent_node_id=node_id)
 
     walk_nodes(version.get("contextNodes", []), 0)
 
@@ -251,6 +255,28 @@ def _child_nodes(node: Dict[str, Any]) -> List[Dict[str, Any]]:
     if isinstance(container, dict):
         return container.get("contextNodes", []) or []
     return []
+
+
+def _attr_tag_list(attr: Dict[str, Any]) -> List[Any]:
+    """Attribute tags, unwrapping the ``{"attributeTags": [...]}`` dict wrapper.
+
+    A Connect GET returns an attribute's tags either as a bare list or wrapped in
+    a container dict; iterating the wrapper directly yields its keys (strings),
+    which downstream tag handling silently drops. Unwrap the same way ``_model``,
+    ``_payload``, and ``_mutate`` do before iterating.
+    """
+    tags = attr.get("attributeTags") or attr.get("tags") or []
+    if isinstance(tags, dict):
+        tags = tags.get("attributeTags") or []
+    return tags if isinstance(tags, list) else []
+
+
+def _node_tag_list(node: Dict[str, Any]) -> List[Any]:
+    """Node-level tags, unwrapping the ``{"tags": [...]}`` dict wrapper (rare)."""
+    tags = node.get("tags") or []
+    if isinstance(tags, dict):
+        tags = tags.get("tags") or []
+    return tags if isinstance(tags, list) else []
 
 
 # --------------------------------------------------------------------------- #
@@ -519,25 +545,37 @@ def _dependents_of(catalog, target: Dict[str, Any]) -> List[Dict[str, Any]]:
 
     if kind == "node":
         node_id = target["context_node_id"]
+        # The whole subtree: the target node plus every descendant node. A child
+        # node cannot be deleted while its own attributes/mappings still exist, so
+        # a cascade must sweep the descendants' artifacts too — scope every
+        # dependent by this id set, not just the target node's own id.
+        descendant_nodes = [
+            a for a in catalog
+            if a["kind"] == "node" and a is not target
+            and a.get("depth", 0) > target.get("depth", 0)
+            and _is_descendant(catalog, a, node_id)
+        ]
+        subtree_node_ids = {node_id} | {
+            a["context_node_id"] for a in descendant_nodes if a.get("context_node_id")
+        }
         attr_ids = {
             a["context_attribute_id"] for a in catalog
-            if a["kind"] == "attribute" and a.get("context_node_id") == node_id
+            if a["kind"] == "attribute" and a.get("context_node_id") in subtree_node_ids
         }
         for a in catalog:
             if a is target:
                 continue
-            if a["kind"] == "attribute" and a.get("context_node_id") == node_id:
+            if a["kind"] == "attribute" and a.get("context_node_id") in subtree_node_ids:
                 deps.append(a)
             elif a["kind"] == "tag" and (
-                a.get("context_node_id") == node_id
+                a.get("context_node_id") in subtree_node_ids
                 or a.get("context_attribute_id") in attr_ids):
                 deps.append(a)
-            elif a["kind"] == "node-mapping" and a.get("context_node_id") == node_id:
+            elif a["kind"] == "node-mapping" and a.get("context_node_id") in subtree_node_ids:
                 deps.append(a)
             elif a["kind"] == "attr-mapping" and a.get("context_attribute_id") in attr_ids:
                 deps.append(a)
-            elif a["kind"] == "node" and a.get("depth", 0) > target.get("depth", 0) \
-                    and _is_descendant(catalog, a, node_id):
+            elif a["kind"] == "node" and a in descendant_nodes:
                 deps.append(a)
 
     elif kind == "attribute":
@@ -576,12 +614,27 @@ def _dependents_of(catalog, target: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def _is_descendant(catalog, node_artifact, ancestor_node_id) -> bool:
-    """Best-effort: the GET does not expose a node's parent id directly here, so
-    a deeper node is treated as a descendant only when the caller has already
-    scoped by the ancestor subtree. Conservative: return False (child nodes are
-    handled by whole-definition delete, not granular node delete) so we never
-    silently sweep an unrelated deeper node.
+    """Whether ``node_artifact`` sits under ``ancestor_node_id`` in the node tree.
+
+    ``build_artifact_catalog`` records each node's ``parent_context_node_id`` as it
+    walks the tree, so we can follow the parent chain upward: the artifact is a
+    descendant when any ancestor id on that chain equals ``ancestor_node_id``. A
+    ``by_id`` index keyed on ``context_node_id`` makes the hop O(1); a visited set
+    guards against a malformed cycle in the GET.
     """
+    by_id = {
+        a["context_node_id"]: a
+        for a in catalog
+        if a["kind"] == "node" and a.get("context_node_id")
+    }
+    seen = set()
+    current = node_artifact.get("parent_context_node_id")
+    while current and current not in seen:
+        if current == ancestor_node_id:
+            return True
+        seen.add(current)
+        parent = by_id.get(current)
+        current = parent.get("parent_context_node_id") if parent else None
     return False
 
 

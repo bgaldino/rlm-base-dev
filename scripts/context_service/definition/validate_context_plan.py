@@ -34,13 +34,13 @@ Checks performed
 Usage
 -----
     # canonical: validate the active (non-archive) plans
-    python scripts/context_service/validate_context_plan.py \
+    python scripts/context_service/definition/validate_context_plan.py \
         datasets/context_plans/{Billing,ConstraintEngineNodeStatus,DocGen,PartnerAccount,PrmPricing,RampMode}/manifest.json
 
     # or discover all active manifests (skips archive/ unless --include-archive)
-    python scripts/context_service/validate_context_plan.py
-    python scripts/context_service/validate_context_plan.py --include-archive
-    python scripts/context_service/validate_context_plan.py --strict   # warnings fail too
+    python scripts/context_service/definition/validate_context_plan.py
+    python scripts/context_service/definition/validate_context_plan.py --include-archive
+    python scripts/context_service/definition/validate_context_plan.py --strict   # warnings fail too
 
 Exit code: non-zero if any ERROR is found (or any warning under --strict).
 """

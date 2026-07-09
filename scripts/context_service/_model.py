@@ -262,9 +262,18 @@ def normalize_plan(plan: Dict[str, Any]) -> Dict[str, Any]:
         node_map = mapping["nodes"].setdefault(
             node_name, {"sObject": rule.get("sObject"), "attributes": {}}
         )
-        # Reconstruct the hydration hop the same way the GET side flattens it.
+        # Reconstruct the hydration hop chain the same way the GET side flattens
+        # it (``_hydration_hops``). A traversal rule applies as a parent
+        # hydration detail (``sObject.sObjectField``, e.g. QuoteLineItem.Product2)
+        # with the terminal field nested under ``childDetails``
+        # (``childSObject.childSObjectField``, e.g. Product2.ProductCode), so the
+        # org normalizer records BOTH hops. Emit both here as well — recording
+        # only the terminal hop made ``diff_context`` report a permanent
+        # ``~ changed`` mapping after a traversal plan had already been applied.
         hydration = []
         if rule.get("childSObject") and rule.get("childSObjectField"):
+            if rule.get("sObject") and rule.get("sObjectField"):
+                hydration.append(f"{rule['sObject']}.{rule['sObjectField']}")
             hydration.append(f"{rule['childSObject']}.{rule['childSObjectField']}")
         elif rule.get("sObject") and rule.get("sObjectField"):
             hydration.append(f"{rule['sObject']}.{rule['sObjectField']}")

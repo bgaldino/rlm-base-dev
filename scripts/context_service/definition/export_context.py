@@ -138,7 +138,7 @@ def main(argv=None) -> int:
         print(f"  ! caveat: {cav}", file=sys.stderr)
     print(
         "\nLint before use: "
-        "`python scripts/context_service/validate_context_plan.py <file>`. "
+        "`python scripts/context_service/definition/validate_context_plan.py <file>`. "
         "This is repo tooling, not a Salesforce-native export — verify "
         "CONTEXT-to-CONTEXT / traversal reversals (flagged above).",
         file=sys.stderr,

@@ -136,19 +136,40 @@ def resolve_mapping_id(
 ) -> Tuple[Optional[str], Optional[str]]:
     """Resolve ``(context_definition_id, mapping_id)`` from the CLI mapping flags.
 
-    Returns the direct id (with a ``None`` definition id) when
-    ``--mapping-id``/``--target-mapping-id`` is given; otherwise resolves the
+    With a direct ``--mapping-id``/``--target-mapping-id`` the mapping is taken
+    verbatim; the definition id is still resolved from ``--context-definition-id``
+    or ``--developer-name`` when either is supplied (so create/session get a
+    ``contextDefinitionId`` for the create body), and is ``None`` only when no
+    definition source was given at all. Without a direct id, resolves the
     definition and selects the mapping (named or default). Raises ``ValueError``
-    (→ exit 2) when the mapping can't be resolved; ``ContextClientError`` bubbles
-    for the caller to turn into exit 1.
+    (→ exit 2) when the definition/mapping can't be resolved; ``ContextClientError``
+    bubbles for the caller to turn into exit 1.
     """
+    context_definition_id = getattr(args, "context_definition_id", None)
+    developer_name = getattr(args, "developer_name", None)
+
     direct = getattr(args, "target_mapping_id" if target else "mapping_id", None)
     if direct:
+        # A direct mapping id skips mapping resolution, but a definition source
+        # may still be supplied (create/session need a contextDefinitionId in the
+        # create body). Resolve it when present so callers don't reject a valid
+        # `--mapping-id 11j... --developer-name Foo` invocation; return None only
+        # when no definition source was given at all.
+        if context_definition_id:
+            return context_definition_id, direct
+        if developer_name:
+            resolved = resolve_definition_id(
+                developer_name, target_org=target_org, api_version=api_version
+            )
+            if not resolved:
+                raise ValueError(
+                    f"No context definition found with developerName '{developer_name}' "
+                    f"in org '{target_org}'."
+                )
+            return resolved, direct
         return None, direct
 
     mapping_name = getattr(args, "target_mapping_name" if target else "mapping_name", None)
-    context_definition_id = getattr(args, "context_definition_id", None)
-    developer_name = getattr(args, "developer_name", None)
 
     if not context_definition_id:
         if not developer_name:

@@ -39,22 +39,22 @@ Ops (mutually exclusive):
 Examples
 --------
     # preview flipping a custom attribute to transient (no mutation)
-    python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext \
         --set-transient SalesTransactionItem.RampMode__c true
 
     # actually set it (in place, on the active version)
-    python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext \
         --set-transient SalesTransactionItem.RampMode__c true --confirm
 
     # re-designate the default mapping
-    python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
         --developer-name RLM_QuoteDocGenContext \
         --set-default-mapping QuoteEntitiesMapping --confirm
 
     # add a custom tag alias to an attribute
-    python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext \
         --add-tag SalesTransactionItem.RampMode__c RampModeAlias__c --confirm
 
@@ -62,13 +62,13 @@ Examples
     # (granular, sibling-safe — the fix for applying an additive mapping to a
     #  root node; the whole-body PATCH path tripped the shape guard). Runs while
     #  the definition is active.
-    python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext \
         --add-mapping SalesTransaction.TotalCost__c QuoteEntitiesMapping RLM_TotalCost__c \
         --confirm
 
     # remove a custom tag (a delete — deactivate first, then reactivate)
-    python scripts/context_service/mutate_context.py --target-org rlm-base__beta \
+    python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext \
         --remove-tag RampModeAlias__c --deactivate-first --reactivate --confirm
 """
@@ -115,11 +115,15 @@ def _describe_plan(change):
         return (f"add-tag '{change['tag']}' -> {change['target']}"
                 + ("  (no-op, already present)" if change["noop"] else ""))
     if op == "add-mapping":
+        suffix = ""
+        if change["noop"]:
+            suffix = f"  (no-op, already bound: {change['existing_binding']})"
+        elif change.get("repair"):
+            suffix = ("  (repair: existing mapping missing source field; "
+                      "adding hydration detail only)")
         return (f"add-mapping {change['target']} -> "
                 f"{change['sObject']}.{change['field']} "
-                f"(mapping '{change['mapping']}')"
-                + (f"  (no-op, already bound: {change['existing_binding']})"
-                   if change["noop"] else ""))
+                f"(mapping '{change['mapping']}')" + suffix)
     return op
 
 
