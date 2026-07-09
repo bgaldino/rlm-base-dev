@@ -1,6 +1,12 @@
 /*
 Context Service — full runtime lifecycle in one Apex transaction.
 
+STANDALONE EXAMPLE — not run by any CCI task/flow, not build-critical. Copy,
+fill in the placeholders, and run by hand via `sf apex run`. Co-located with
+the scripts/context_service/ toolkit (rather than scripts/apex/, which holds
+build-time activation/deletion scripts wired into cumulusci.yml) because it
+demonstrates that toolkit's runtime surface, not a build step.
+
 Works on ANY org (no pilot needed): buildContext → leanerQueryTags →
 updateContextAttributes → persistContext, all in one request where the
 contextId never expires.
@@ -26,7 +32,7 @@ dataPath semantics (verified on 262 / v67.0, both pilot and non-pilot):
   Record IDs are REQUIRED for mutations to take effect.
 
 Usage:
-  sf apex run --file scripts/apex/contextServiceLifecycle.apex \
+  sf apex run --file scripts/context_service/examples/contextServiceLifecycle.apex \
     --target-org rlm-base__beta
 */
 
@@ -122,7 +128,7 @@ if (String.isNotBlank(recordId)) {
     System.debug('=== UPDATE: skipped (requires a real recordId in dataPath to actually mutate — empty/node-name dataPath silently no-ops)');
 }
 
-// 5. PERSIST — write dirty values back to the mapped SObjects (async)
+// 4. PERSIST — write dirty values back to the mapped SObjects (async)
 //    Returns a referenceId (16P); confirm via AsyncOperationTracker.
 //    ⚠ Default QuoteEntitiesMapping carries non-updateable fields — a dirty
 //    persist through it will fail (errorNodes). Use a custom mapping with only
@@ -135,7 +141,7 @@ Object persistResult = ctx.persistContext(persistInput);
 System.debug('=== PERSIST: referenceId = ' + persistResult);
 System.debug('=== Check: SELECT Status, Response FROM AsyncOperationTracker WHERE JobType=\'ContextPersistence\' ORDER BY CreatedDate DESC LIMIT 1');
 
-// 6. DELETE — evict the instance
+// 5. DELETE — evict the instance
 ctx.deleteContext(new Map<String,Object>{'contextId' => contextId});
 System.debug('=== DELETE: evicted contextId ' + contextId);
 System.debug('=== DONE — full lifecycle complete');

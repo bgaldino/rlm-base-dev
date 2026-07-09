@@ -162,6 +162,8 @@ foundations:
         - scripts/context_service/instance/query_context_instance.py
         - scripts/context_service/instance/persist_context_instance.py
         - scripts/context_service/instance/delete_context_instance.py
+        # standalone example — not wired into any CCI task/flow, run by hand
+        - scripts/context_service/examples/contextServiceLifecycle.apex
       caveats:
         - "Pinned to Release 262 / API v67.0 — verify edge behavior (versioning, standard-context availability) against a live org"
 

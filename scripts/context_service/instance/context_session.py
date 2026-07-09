@@ -31,7 +31,7 @@ does not mutate the value — node-name paths behave identically).
 
 Usage:
     # SESSION scope on a pilot org: full multi-call lifecycle
-    python scripts/context_service/context_session.py --target-org rlm-base__july4_ctxPilot \
+    python scripts/context_service/context_session.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --context-scope SESSION \
         --data-file /tmp/records.json --query --persist \
         --target-mapping-name QuoteEntitiesMapping

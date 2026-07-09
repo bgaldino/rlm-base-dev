@@ -200,7 +200,7 @@ class ContextApplier:
         ``isSuccess:true`` on an active version but interprets a
         ``contextAttributeMappings`` list that omits sibling rows as a
         **delete** of those siblings — a silent data-loss surface. Live-verified
-        2026-07-04, `RLM_TEMP_ContextProbe` on ``rlm-base__july3_noramps``.
+        against a disposable custom context definition on a scratch org.
 
         Mitigation on the PATCH path: before issuing, look up the existing
         ``contextAttributeMappings`` for each target node mapping from the
@@ -997,8 +997,8 @@ def _merge_existing_attribute_mappings(
         # inherited mapping on the child definition raises
         # ``INVALID_INPUT: "An Inherited mapping for ContextAttribute X
         # already exists. Create custom mappings for attributes that do not
-        # have inherited attribute mappings."`` (live-verified 2026-07-04 on
-        # ``rlm-base__july3_noramps`` against ``RLM_SalesTransactionContext``).
+        # have inherited attribute mappings."`` (live-verified on a scratch org
+        # against an extended standard context definition).
         # The base already carries these; nothing to preserve on the child.
         if _is_inherited_row(sibling):
             skipped_inherited += 1
@@ -1006,7 +1006,7 @@ def _merge_existing_attribute_mappings(
         # Project to fields the PATCH endpoint accepts. The GET shape carries
         # response-only fields (``baseReference``, ``dataType``, ``sourceObject``,
         # …) that the Connect PATCH rejects with JSON_PARSER_ERROR. Live-verified
-        # 2026-07-04 on rlm-base__july3_noramps.
+        # on a scratch org.
         inner.append(_project_attribute_mapping_for_patch(sibling))
         added += 1
     if logger is not None and (added or skipped_inherited):
@@ -1031,8 +1031,7 @@ def _is_inherited_row(row: Dict[str, Any]) -> bool:
     extends). Re-emitting these on the child raises
     ``INVALID_INPUT: "An Inherited mapping for ContextAttribute X already
     exists. Create custom mappings for attributes that do not have inherited
-    attribute mappings."`` — live-verified 2026-07-04 on
-    ``rlm-base__july3_noramps``.
+    attribute mappings."`` — live-verified on a scratch org.
     """
     if not isinstance(row, dict):
         return False
@@ -1045,7 +1044,7 @@ def _is_inherited_row(row: Dict[str, Any]) -> bool:
 # response-only fields (``baseReference``, ``contextAttributeName``,
 # ``parentNodeMappingId``, ``dataType``, ``sourceObject``, ``mappedContextTag``,
 # …) that the same endpoint rejects with ``JSON_PARSER_ERROR: Unrecognized
-# field``. Live-verified 2026-07-04 on ``rlm-base__july3_noramps``.
+# field``. Live-verified on a scratch org.
 #
 # Notably, ``contextAttributeName`` is a response-only mirror of the writable
 # ``contextInputAttributeName`` — the primary builder in

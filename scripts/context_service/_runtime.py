@@ -43,7 +43,7 @@ from . import _endpoints as ep
 
 # ``persist-records`` is asynchronous: the synchronous response returns a
 # ``referenceId`` that is the **Id of an AsyncOperationTracker row** (live-verified
-# 2026-07-05 on rlm-base__july4_ctxPilot — the returned referenceId equalled
+# on a pilot-enabled org — the returned referenceId equalled
 # ``AsyncOperationTracker.Id`` exactly). The real per-node outcome lands on that
 # row's ``Response`` (JSON with ``savedNodes``/``skippedNodes``/``errorNodes`` on
 # success; a plain error string on failure) once ``Status`` reaches a terminal

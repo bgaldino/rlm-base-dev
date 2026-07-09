@@ -104,6 +104,10 @@ The **Flow equivalent** is `buildContext → updateContextAttributes →
 persistContextData` (+ `queryContextTags`) as invocable actions in one Flow — same
 one-request guarantee, zero Apex, only the GA perm. Build it as a reusable subflow.
 
+A ready-to-run, fill-in-the-placeholders version of the snippet above is at
+`scripts/context_service/examples/contextServiceLifecycle.apex` — copy it, fill in
+the 3 placeholders from `describe_context.py`, and run with `sf apex run --file`.
+
 > **One caveat that no path escapes:** a **dirty** persist through the default
 > `QuoteEntitiesMapping` fails on non-updateable fields (see *Persistence* → the
 > `errorNodes` mechanism) — this is a field-updateability limit of the mapping, not

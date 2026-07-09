@@ -458,6 +458,11 @@ Two op-specific guards, both **live-verified** on v67.0:
 > (`attributes`, `write-through-tags`) are best-effort — re-verify
 > on a live org. Full narrative in
 > `.cursor/skills/context-service/runtime-and-persistence.md`.
+>
+> `examples/contextServiceLifecycle.apex` is a standalone, fill-in-the-placeholders
+> Apex script exercising the same lifecycle via `Context.IndustriesContext` — the
+> GA runtime path on orgs without `ContextServicePilot`. Run by hand with
+> `sf apex run --file`; not wired into any CCI task/flow.
 
 The mechanism (request-scope, the pilot gates, the Apex/Flow path, the dirty-persist
 `errorNodes` limit) is documented once in
