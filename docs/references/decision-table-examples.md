@@ -1,5 +1,12 @@
 # Decision Table Management Task Examples
 
+> **See also:** `docs/references/decision-table-api-reference.md` (the setup
+> objects, Metadata/Tooling/Connect authoring paths, enum catalog, and
+> definition-vs-data model), the Decision Tables skill
+> (`.cursor/skills/decision-tables/SKILL.md`), and the standalone read/mutate
+> toolkit (`scripts/decision_tables/`). This file stays **ops/task-centric** —
+> `manage_decision_tables` and refresh examples.
+
 This document provides working examples for the `manage_decision_tables` CumulusCI task and related refresh tasks and flows.
 
 ## Decision Table Management (`manage_decision_tables`)

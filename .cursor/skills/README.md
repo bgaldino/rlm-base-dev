@@ -16,6 +16,7 @@ repo root.
 | Work with CCI tasks, flows, or CLI | CCI Orchestration | `cci-orchestration/SKILL.md` |
 | Wire pricing recipes, procedures, or lookup table mappings | Pricing Wiring | `pricing-wiring/SKILL.md` |
 | Author/CRUD Expression Sets (Connect/Metadata API) and build step overlays | Expression Sets | `expression-sets/SKILL.md` |
+| Inspect/author/manage BRE Decision Tables (definition + data/refresh, 3 authoring APIs) | Decision Tables | `decision-tables/SKILL.md` |
 | Run build harness profiles/resume/report | Build Harness | `build-harness/SKILL.md` |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | PDE Org Build | `pde-org-build/SKILL.md` |
 | Write a Python CCI task class | Custom Task Authoring | `cci-orchestration/custom-task-authoring.md` |

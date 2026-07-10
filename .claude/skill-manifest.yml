@@ -129,6 +129,40 @@ foundations:
       caveats:
         - "Pinned to Release 262 / API v67.0 — re-verify enums and behavior on the target release"
 
+    - id: decision-tables
+      path: .cursor/skills/decision-tables/SKILL.md
+      purpose: "BRE Decision Table inspect/author/manage: the definition-vs-data two-layer model, the 5 Tooling setup objects, three authoring APIs (Metadata/Tooling/Connect Definitions) + field-name divergence, activate/deactivate + deactivate-first active-edit rule, async refresh (isDecisionTableIncremental, 100/hr), recipe-table-mapping trace"
+      consumed_by_pmos: [spec, technical-review]
+      provenance: hand-authored + live probing (read-only on rlm-base__beta; destructive CRUD on scratch orgs) + doc-grounded (meta_decisiontable.htm, dt_setup_objects.htm, lookup_table_resources.htm)
+      sub_skills:
+        - .cursor/skills/decision-tables/authoring-and-data-model.md
+        - .cursor/skills/decision-tables/lifecycle-and-refresh.md
+        - docs/references/decision-table-api-reference.md
+      tooling:
+        # Read-only inspectors (safe anytime, any org incl. beta); sf-CLI
+        # transport only. The CCI tasks (tasks/rlm_manage_decision_tables.py, …)
+        # remain the org-build path; this toolkit is the ad-hoc inspection path.
+        - scripts/decision_tables/list_decision_tables.py
+        - scripts/decision_tables/describe_decision_table.py
+        - scripts/decision_tables/diff_decision_tables.py
+        - scripts/decision_tables/trace_decision_table.py
+        - scripts/decision_tables/dump_decision_table_data.py
+        # Guarded lifecycle mutators: preview-by-default (--confirm to write),
+        # designed after live CRUD probing on scratch orgs only. An update never
+        # lets the spec's status drive the lifecycle (a Tooling PATCH requires
+        # status, so update stamps the live status; Connect drops it) — the
+        # lifecycle engine alone owns activate/deactivate.
+        - scripts/decision_tables/create_decision_table.py
+        - scripts/decision_tables/update_decision_table.py
+        - scripts/decision_tables/activate_decision_table.py
+        - scripts/decision_tables/deactivate_decision_table.py
+        - scripts/decision_tables/refresh_decision_table.py
+        - scripts/decision_tables/delete_decision_table.py
+      caveats:
+        - "Pinned to Release 262 / API v67.0 — re-verify enums and behavior on the target release"
+        - "Toolkit reads are safe; mutators are preview-by-default (--confirm to write); destructive probing runs on disposable scratch orgs only, never beta"
+        - "The CCI tasks remain the org-build path — the toolkit complements, does not duplicate, them"
+
     - id: sfdmu-data-plans
       path: .cursor/skills/sfdmu-data-plans/SKILL.md
       purpose: "SFDMU v5 plan authoring + composite-key patterns"

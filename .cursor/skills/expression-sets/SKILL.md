@@ -12,7 +12,10 @@ Expression Sets back more than pricing — Revenue Cloud uses **six**
 so this skill is generic to the Expression Set engine. For where Expression Set
 CRUD fits into the **pricing** layering model (recipes, recipe-table mappings,
 procedure plans, context definitions), read
-`.cursor/skills/pricing-wiring/SKILL.md`.
+`.cursor/skills/pricing-wiring/SKILL.md`. A procedure can **consume a decision
+table**'s output via a `GetOutputsFromDecisionTable` step (with a `DecisionTable`
+parameter) — to inspect, author, or manage those tables see
+`.cursor/skills/decision-tables/SKILL.md`.
 
 > **Pinned to Release 262 / API v67.0.** Re-verify enums and behavior on the
 > target release at merge time. This `SKILL.md` is the task-level entry point;
@@ -171,6 +174,7 @@ Ground truth: the code enum (`tasks/expression_set_schema.py`) →
 | Capture a known-good element from one org and add it to another | `authoring-and-overlays.md` |
 | Classify a step's dependency scopes; remove a step safely | `authoring-and-overlays.md` |
 | Where ES CRUD fits in the **pricing** setup order (recipes, plans, context) | `.cursor/skills/pricing-wiring/SKILL.md` |
+| The **decision table** a `GetOutputsFromDecisionTable` step consumes (inspect / author / lifecycle) | `.cursor/skills/decision-tables/SKILL.md` |
 | Object/ID model, full schema enums, **every error + resolution**, verification checklist | Detail file: `docs/references/expression-set-connect-api-reference.md` |
 | An opaque Connect failure (a code/message you don't recognize) | Reference doc → **Known errors & conditions** section |
 | Writing the Python task class itself | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
@@ -392,6 +396,9 @@ Checklist:
 - **Pricing layering model (recipes, recipe-table mappings, procedure plans,
   context definitions) — where ES CRUD fits in pricing setup:**
   `.cursor/skills/pricing-wiring/SKILL.md`
+- **Decision tables a procedure consumes (`GetOutputsFromDecisionTable` step) —
+  inspect / author / lifecycle + the async-refresh data layer:**
+  `.cursor/skills/decision-tables/SKILL.md`
 - **Connect CRUD tasks:** `tasks/rlm_expression_set_connect.py`; pre-flight
   validator `tasks/expression_set_schema.py`; tests
   `tests/test_expression_set_schema.py`.
