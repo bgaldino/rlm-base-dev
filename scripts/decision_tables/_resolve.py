@@ -30,8 +30,8 @@ class ResolveError(RuntimeError):
     """A Decision Table (or child record) could not be resolved by the given key."""
 
 
-# Columns pulled for the list / resolve views. Kept in sync with the Tooling
-# describe field set captured in the Phase-1 probe evidence.
+# Columns pulled for the list / resolve views. Kept in sync with the
+# live-verified DecisionTable Tooling describe field set.
 _TABLE_COLUMNS = (
     "Id", "DeveloperName", "MasterLabel", "Status", "UsageType",
     "SourceObject", "LastSyncDate",

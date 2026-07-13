@@ -47,6 +47,9 @@ import scripts.decision_tables.activate_decision_table as activate_cli  # noqa: 
 import scripts.decision_tables.deactivate_decision_table as deactivate_cli  # noqa: E402
 import scripts.decision_tables.refresh_decision_table as refresh_cli  # noqa: E402
 import scripts.decision_tables.delete_decision_table as delete_cli  # noqa: E402
+import scripts.decision_tables.upload_decision_table_data as upload_cli  # noqa: E402
+import scripts.decision_tables.dump_decision_table_data as dump_cli  # noqa: E402
+import scripts.decision_tables._lifecycle as _lifecycle  # noqa: E402
 
 # Shipped source-format table used as the byte-identical round-trip fixture for
 # the Metadata XML serializer.
@@ -120,7 +123,7 @@ class _FakeTransport:
 
     def __init__(self, *, table=None, params=None, links=None, dataset_params=None,
                  criteria=None, mappings=None, source_rows=None, connect_def=None,
-                 dry_run=False):
+                 metadata=None, csv_data=None, upload_statuses=None, dry_run=False):
         self.table = table if table is not None else _table_row()
         self.params = params if params is not None else [
             _param("INPUT", "ProductId"), _param("OUTPUT", "Cost", DataType="Currency")]
@@ -130,6 +133,18 @@ class _FakeTransport:
         self.mappings = mappings or []
         self.source_rows = source_rows if source_rows is not None else [{"Id": "01txx", "Cost": 5}]
         self.connect_def = connect_def
+        # Metadata complexvalue returned by the DecisionTable Tooling GET. None →
+        # the default SingleSobject sample; pass a CsvUpload sample to exercise the
+        # CSV branch.
+        self.metadata = metadata
+        # CsvUpload data-layer GET (.../{id}/data) response. None → an empty table
+        # ({"rows": [], "totalRows": 0}); a dict → returned verbatim; an Exception
+        # → raised (simulates a gated/disabled endpoint).
+        self.csv_data = csv_data
+        # Sequence of Metadata.uploadStatus values returned by successive Tooling
+        # GETs (for the wait_for_upload_status poll). Each GET pops the next; the
+        # last value sticks. None → the GET's metadata has no uploadStatus key.
+        self.upload_statuses = list(upload_statuses) if upload_statuses else None
         self.dry_run = dry_run
         self.api_version = "67.0"
         self.target_org = "fake-org"
@@ -137,6 +152,7 @@ class _FakeTransport:
         self.tooling_queries = []
         self.soql_queries = []
         self.mutations = []  # (method, target, body) for EXECUTED mutating verbs
+        self.csv_data_calls = []  # kwargs of each get_decision_table_data call
 
     def _skip_mutation(self, method, target, body):
         """Mirror the real transport: skip+return True under dry-run; else record."""
@@ -163,7 +179,14 @@ class _FakeTransport:
 
     def tooling_sobject(self, method, sobject, record_id=None, suffix=None, body=None, **kw):
         if method.upper() == "GET" and sobject == "DecisionTable":
-            return dict(self.table, Metadata=_sample_metadata())
+            meta = self.metadata if self.metadata is not None else _sample_metadata()
+            if self.upload_statuses:
+                # Pop the next uploadStatus; the last value sticks (simulates the
+                # async import reaching a terminal state across successive polls).
+                nxt = (self.upload_statuses.pop(0) if len(self.upload_statuses) > 1
+                       else self.upload_statuses[0])
+                meta = dict(meta, uploadStatus=nxt)
+            return dict(self.table, Metadata=meta)
         if self._skip_mutation(method, f"tooling/{sobject}", body):
             return {}
         # Reflect a Status transition so wait_for_status resolves without sleeping.
@@ -195,6 +218,37 @@ class _FakeTransport:
         if "FROM PricingRecipeTableMapping" in query:
             return list(self.mappings)
         return list(self.source_rows)
+
+    # -- CSV Based Decision Table data layer (dataSourceType == CsvUpload) --
+
+    def content_version_insert(self, title, csv_text, *,
+                               path_on_client="decision_table_rows.csv", dry_run=None):
+        # _skip_mutation records the executed mutation (or skips it under dry-run).
+        if self._skip_mutation("POST", "sobjects/ContentVersion",
+                               {"Title": title, "PathOnClient": path_on_client}):
+            return {}
+        return {"id": "068xx0000000001AAA", "success": True}
+
+    def upload_decision_table_csv(self, record_id, file_id, *, delete_all_rows=False,
+                                  version_number=None, dry_run=None):
+        path = f"connect/business-rules/decision-table/{record_id}/file"
+        if version_number is not None:
+            path += f"?versionNumber={int(version_number)}"
+        body = {"fileId": file_id, "deleteAllRows": bool(delete_all_rows)}
+        if self._skip_mutation("POST", path, body):
+            return {}
+        return {"message": "We are uploading and processing the CSV file."}
+
+    def get_decision_table_data(self, record_id, *, version_number=None,
+                                row_filter=None, limit=None):
+        # A read — always executes, even under dry_run.
+        self.csv_data_calls.append({"record_id": record_id, "version_number": version_number,
+                                    "row_filter": row_filter, "limit": limit})
+        if isinstance(self.csv_data, Exception):
+            raise self.csv_data
+        if self.csv_data is not None:
+            return self.csv_data
+        return {"rows": [], "totalRows": 0}
 
 
 class _LifecycleFake:
@@ -326,6 +380,43 @@ def test_validate_spec_duplicate_and_unknown():
           and not any("usageType" in i.location for i in result.errors))
 
 
+def _csv_upload_spec(**over):
+    """A canonical CsvUpload spec (sourceObject is the literal 'CSV')."""
+    spec = {
+        "fullName": "RLM_CsvUploadTable", "setupName": "CSV Upload Table",
+        "dataSourceType": "CsvUpload", "sourceObject": "CSV",
+        "filterResultBy": "FirstMatch", "type": "Advanced",
+        "decisionTableParameters": [
+            {"usage": "INPUT", "fieldName": "Region", "dataType": "String",
+             "operator": "Equals", "sequence": 1},
+            {"usage": "OUTPUT", "fieldName": "DiscountPercent", "dataType": "Percent"},
+        ],
+    }
+    spec.update(over)
+    return spec
+
+
+def test_validate_spec_csv_upload():
+    print("test_validate_spec_csv_upload")
+    # A CsvUpload spec with the literal 'CSV' sourceObject is clean.
+    result = validate_spec(_csv_upload_spec())
+    check("CsvUpload spec with sourceObject='CSV' passes", result.passed, result.format_report())
+    check("CsvUpload spec has no errors", not result.errors, result.format_report())
+    # Regression guard: sourceObject is REQUIRED for CsvUpload too (the old
+    # carve-out let an invalid spec pass). A CsvUpload spec WITHOUT sourceObject
+    # must ERROR, and the error should hint the 'CSV' convention.
+    missing = validate_spec(_csv_upload_spec(sourceObject=None))
+    check("CsvUpload without sourceObject errors",
+          any("sourceObject" in i.location for i in missing.errors), missing.format_report())
+    check("CsvUpload missing-sourceObject error hints the 'CSV' convention",
+          any("sourceObject" in i.location and "CSV" in i.message for i in missing.errors),
+          missing.format_report())
+    # A non-'CSV' sourceObject on a CsvUpload table warns (not errors) — forward-compat.
+    odd = validate_spec(_csv_upload_spec(sourceObject="CostBookEntry"))
+    check("CsvUpload with a non-CSV sourceObject warns (not errors)",
+          odd.passed and any("CSV" in i.message for i in odd.warnings), odd.format_report())
+
+
 # --------------------------------------------------------------------------- #
 # _resolve — query builders + definition assembly (fake transport)
 # --------------------------------------------------------------------------- #
@@ -430,15 +521,57 @@ def test_dump_single_sobject():
     check("projection includes a definition field", "Cost" in q, q)
 
 
-def test_dump_csv_not_applicable():
-    print("test_dump_csv_not_applicable")
-    t = _FakeTransport()
+def test_dump_csv_upload_rows():
+    print("test_dump_csv_upload_rows")
+    # A CsvUpload table with uploaded rows → the data GET returns the rows envelope,
+    # and dump surfaces each row's typed rowData under the synthetic sample key.
+    t = _FakeTransport(
+        table=_table_row(SourceObject="CSV"),
+        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
+        csv_data={"rows": [
+            {"id": "1FIxx01", "rowData": {"Region": "North", "DiscountPercent": 10}},
+            {"id": "1FIxx02", "rowData": {"Region": "South", "DiscountPercent": 5}}],
+            "totalRows": 2})
     defn = _resolve.load_definition(t, "RLM_CostBookEntries")
-    defn["metadata"]["dataSourceType"] = "CsvUpload"
     dump = dump_data(t, defn, limit=5)
-    check("csv branch reports NOT APPLICABLE",
-          any("NOT APPLICABLE" in n for n in dump["notes"]), dump["notes"])
-    check("csv branch samples nothing", not dump["samples"], dump["samples"])
+    check("csv branch samples the uploaded rows",
+          "CSV (uploaded rows)" in dump["samples"], dump["samples"])
+    samples = dump["samples"].get("CSV (uploaded rows)", [])
+    check("csv branch surfaces rowData (id stripped)",
+          samples == [{"Region": "North", "DiscountPercent": 10},
+                      {"Region": "South", "DiscountPercent": 5}], samples)
+    check("csv branch does NOT report NOT APPLICABLE",
+          not any("NOT APPLICABLE" in n for n in dump["notes"]), dump["notes"])
+    check("csv branch passes limit through to the data GET",
+          t.csv_data_calls and t.csv_data_calls[-1]["limit"] == 5, t.csv_data_calls)
+
+
+def test_dump_csv_upload_empty():
+    print("test_dump_csv_upload_empty")
+    # A CsvUpload table with no uploaded rows → a note, no samples.
+    t = _FakeTransport(
+        table=_table_row(SourceObject="CSV"),
+        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"))
+    defn = _resolve.load_definition(t, "RLM_CostBookEntries")
+    dump = dump_data(t, defn, limit=5)
+    check("empty csv table samples nothing", not dump["samples"], dump["samples"])
+    check("empty csv table notes 0 uploaded rows",
+          any("0 uploaded rows" in n for n in dump["notes"]), dump["notes"])
+
+
+def test_dump_csv_upload_gated():
+    print("test_dump_csv_upload_gated")
+    # A disabled/gated data GET degrades to a note (mirrors the SObject fallbacks),
+    # never an unhandled error.
+    t = _FakeTransport(
+        table=_table_row(SourceObject="CSV"),
+        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
+        csv_data=DecisionTableClientError("API_DISABLED_FOR_ORG"))
+    defn = _resolve.load_definition(t, "RLM_CostBookEntries")
+    dump = dump_data(t, defn, limit=5)
+    check("gated csv GET degrades to a note (no raise)",
+          any("failed" in n.lower() for n in dump["notes"]), dump["notes"])
+    check("gated csv GET samples nothing", not dump["samples"], dump["samples"])
 
 
 def test_dump_empty_source_note():
@@ -447,6 +580,120 @@ def test_dump_empty_source_note():
     defn = _resolve.load_definition(t, "RLM_CostBookEntries")
     dump = dump_data(t, defn, limit=5)
     check("empty source noted", any("0 rows" in n for n in dump["notes"]), dump["notes"])
+
+
+def _csv_all_types_data():
+    """A CsvUpload data GET response with one column per dataType (typed rowData)."""
+    return {"rows": [{"id": "1FIxx01", "rowData": {
+        "StringOut": "café ☕", "NumberOut": -3.5, "CurrencyOut": 1234.56,
+        "PercentOut": 0.5, "BoolOut": True, "DateOut": "2026-07-10",
+        "DateTimeOut": "2026-07-10T14:30:00.000Z"}}], "totalRows": 1}
+
+
+def test_dump_csv_upload_filter_drops_limit():
+    print("test_dump_csv_upload_filter_drops_limit")
+    # §7 guard: filter + limit → the platform can throw UNKNOWN_EXCEPTION, so the
+    # tool drops --limit (with a note) and reads the full matched set.
+    t = _FakeTransport(
+        table=_table_row(SourceObject="CSV"),
+        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
+        csv_data=_csv_all_types_data())
+    defn = _resolve.load_definition(t, "RLM_CostBookEntries")
+    dump = dump_data(t, defn, limit=5, row_filter="Region:North")
+    call = t.csv_data_calls[-1]
+    check("filter threads row_filter into the data GET",
+          call["row_filter"] == "Region:North", call)
+    check("filter+limit guard drops limit to None", call["limit"] is None, call)
+    check("filter+limit guard leaves a note",
+          any("--limit" in n and "ignored" in n for n in dump["notes"]), dump["notes"])
+
+
+def test_dump_csv_upload_version_number_threads():
+    print("test_dump_csv_upload_version_number_threads")
+    # --version-number alone (no filter) → threaded through; limit is kept.
+    t = _FakeTransport(
+        table=_table_row(SourceObject="CSV"),
+        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
+        csv_data=_csv_all_types_data())
+    defn = _resolve.load_definition(t, "RLM_CostBookEntries")
+    dump_data(t, defn, limit=5, version_number=1)
+    call = t.csv_data_calls[-1]
+    check("version_number threads into the data GET", call["version_number"] == 1, call)
+    check("version_number alone keeps the limit", call["limit"] == 5, call)
+
+
+def test_dump_filter_version_ignored_on_non_csv():
+    print("test_dump_filter_version_ignored_on_non_csv")
+    # On a SingleSobject table --filter/--version-number are ignored with a note.
+    t = _FakeTransport(source_rows=[{"Id": "01t1", "Cost": 5}])
+    defn = _resolve.load_definition(t, "RLM_CostBookEntries")
+    dump = dump_data(t, defn, limit=5, row_filter="Region:North", version_number=2)
+    check("non-CsvUpload notes that filter/version were ignored",
+          any("only to CsvUpload" in n for n in dump["notes"]), dump["notes"])
+    check("non-CsvUpload made no CSV data GET", t.csv_data_calls == [], t.csv_data_calls)
+
+
+def test_dump_cli_filter_flag(tmp_dummy=None):
+    print("test_dump_cli_filter_flag")
+    # The CLI wires --filter → row_filter; the note surfaces in --json output.
+    t = _FakeTransport(
+        table=_table_row(SourceObject="CSV"),
+        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
+        csv_data=_csv_all_types_data())
+    rc, out = _run_cli_with_fake(
+        dump_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                   "--filter", "StringOut:café ☕", "--json"], t)
+    check("dump --filter exits 0", rc == 0, out[:300])
+    check("dump --filter threads row_filter",
+          t.csv_data_calls and t.csv_data_calls[-1]["row_filter"] == "StringOut:café ☕",
+          t.csv_data_calls)
+    check("dump --filter drops limit (guard)",
+          t.csv_data_calls and t.csv_data_calls[-1]["limit"] is None, t.csv_data_calls)
+    check("dump --filter note in json", "ignored" in out, out[:400])
+
+
+def test_dump_cli_version_flag():
+    print("test_dump_cli_version_flag")
+    t = _FakeTransport(
+        table=_table_row(SourceObject="CSV"),
+        metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"),
+        csv_data=_csv_all_types_data())
+    rc, out = _run_cli_with_fake(
+        dump_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                   "--version-number", "1", "--json"], t)
+    check("dump --version-number exits 0", rc == 0, out[:300])
+    check("dump --version-number threads version_number",
+          t.csv_data_calls and t.csv_data_calls[-1]["version_number"] == 1, t.csv_data_calls)
+
+
+def _all_types_spec(**over):
+    """A CsvUpload spec with one INPUT + one OUTPUT column of each of the 7 dataTypes."""
+    types = ["String", "Number", "Currency", "Percent", "Boolean", "Date", "DateTime"]
+    params = [{"usage": "INPUT", "fieldName": "Key", "dataType": "String",
+               "operator": "Equals", "sequence": 1}]
+    params += [{"usage": "OUTPUT", "fieldName": f"{t}Out", "dataType": t} for t in types]
+    spec = {"fullName": "RLM_AllTypes", "setupName": "All Types",
+            "dataSourceType": "CsvUpload", "sourceObject": "CSV",
+            "filterResultBy": "FirstMatch", "type": "Advanced",
+            "decisionTableParameters": params}
+    spec.update(over)
+    return spec
+
+
+def test_translator_csv_upload_all_types():
+    print("test_translator_csv_upload_all_types")
+    # All 7 column dataTypes survive every translator (Metadata / Tooling / Connect).
+    spec = _all_types_spec()
+    want = {"String", "Number", "Currency", "Percent", "Boolean", "Date", "DateTime"}
+    meta = _payload.to_metadata(spec)
+    meta_types = {p["dataType"] for p in meta["decisionTableParameters"]}
+    check("metadata preserves all 7 output dataTypes", want <= meta_types, meta_types)
+    tool = _payload.to_tooling(spec)
+    tool_types = {p["dataType"] for p in tool["Metadata"]["decisionTableParameters"]}
+    check("tooling preserves all 7 output dataTypes", want <= tool_types, tool_types)
+    conn = _payload.to_connect(spec)
+    conn_types = {p["dataType"] for p in conn["parameters"]}
+    check("connect preserves all 7 output dataTypes", want <= conn_types, conn_types)
 
 
 # --------------------------------------------------------------------------- #
@@ -603,6 +850,27 @@ def test_translator_connect():
     del spec["status"]
     check("connect defaults missing status to Draft",
           _payload.to_connect(spec)["status"] == "Draft")
+
+
+def test_translator_csv_upload():
+    print("test_translator_csv_upload")
+    spec = _csv_upload_spec()
+    # Metadata/Tooling body keeps dataSourceType=CsvUpload + sourceObject="CSV".
+    meta = _payload.to_metadata(spec)
+    check("metadata CsvUpload keeps dataSourceType",
+          meta.get("dataSourceType") == "CsvUpload", meta.get("dataSourceType"))
+    check("metadata CsvUpload carries sourceObject='CSV'",
+          meta.get("sourceObject") == "CSV", meta.get("sourceObject"))
+    check("metadata CsvUpload keeps both columns",
+          len(meta["decisionTableParameters"]) == 2)
+    # Connect renames dataSourceType→sourceType but keeps sourceObject + value.
+    conn = _payload.to_connect(spec)
+    check("connect CsvUpload renames to sourceType=CsvUpload",
+          conn.get("sourceType") == "CsvUpload" and "dataSourceType" not in conn, conn)
+    check("connect CsvUpload keeps sourceObject='CSV'",
+          conn.get("sourceObject") == "CSV", conn.get("sourceObject"))
+    check("connect CsvUpload defaults status to Draft (spec omits it)",
+          conn.get("status") == "Draft", conn.get("status"))
 
 
 def test_metadata_xml_roundtrip():
@@ -926,6 +1194,160 @@ def test_refresh_cli_preview_vs_confirm():
               for m in fake_c.mutations), fake_c.mutations)
 
 
+def _csv_transport(**over):
+    """A fake transport shaped like a CsvUpload table for the upload-CLI tests."""
+    kw = dict(table=_table_row(name="RLM_CsvUploadTable", SourceObject="CSV"),
+              metadata=_sample_metadata(dataSourceType="CsvUpload", sourceObject="CSV"))
+    kw.update(over)
+    return _FakeTransport(**kw)
+
+
+def test_upload_cli_preview_vs_confirm(tmp_csv):
+    print("test_upload_cli_preview_vs_confirm")
+    # Preview (no --confirm): dry-run transport → no ContentVersion / /file mutation.
+    fake_p = _csv_transport(dry_run=True)
+    rc, out = _run_cli_with_fake(
+        upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                     "--csv", tmp_csv, "--json"], fake_p)
+    check("upload preview exits 0", rc == 0, out[:300])
+    check("upload preview performs NO mutation", fake_p.mutations == [], fake_p.mutations)
+    check("upload preview reports dryRun=True", json.loads(out).get("dryRun") is True)
+    # Confirm: non-dry transport → a ContentVersion POST then a /file POST.
+    fake_c = _csv_transport(dry_run=False)
+    rc, out = _run_cli_with_fake(
+        upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                     "--csv", tmp_csv, "--confirm", "--json"], fake_c)
+    check("upload confirm exits 0", rc == 0, out[:300])
+    check("upload confirm inserts a ContentVersion",
+          any(m[0] == "POST" and m[1] == "sobjects/ContentVersion" for m in fake_c.mutations),
+          fake_c.mutations)
+    file_posts = [m for m in fake_c.mutations if m[0] == "POST" and "/file" in m[1]]
+    check("upload confirm POSTs the fileId to the /file sub-resource",
+          len(file_posts) == 1, fake_c.mutations)
+    check("upload confirm appends by default (deleteAllRows=False)",
+          file_posts and file_posts[0][2].get("deleteAllRows") is False, file_posts)
+    check("upload confirm reports dryRun=False", json.loads(out).get("dryRun") is False)
+
+
+def test_upload_cli_overwrite_and_version(tmp_csv):
+    print("test_upload_cli_overwrite_and_version")
+    fake = _csv_transport(dry_run=False)
+    rc, out = _run_cli_with_fake(
+        upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                     "--csv", tmp_csv, "--overwrite", "--version-number", "1",
+                     "--activate-version", "1", "--confirm", "--json"], fake)
+    check("upload overwrite exits 0", rc == 0, out[:300])
+    file_posts = [m for m in fake.mutations if m[0] == "POST" and "/file" in m[1]]
+    check("upload --overwrite sets deleteAllRows=True",
+          file_posts and file_posts[0][2].get("deleteAllRows") is True, file_posts)
+    check("upload --version-number scopes the /file path",
+          file_posts and "versionNumber=1" in file_posts[0][1], file_posts)
+    # --activate-version drives a Connect versions PATCH to Active.
+    vpatch = [m for m in fake.mutations if m[0] == "PATCH" and "/versions/1" in m[1]]
+    check("upload --activate-version PATCHes the version to Active",
+          vpatch and vpatch[0][2].get("versionStatus") == "Active", fake.mutations)
+
+
+def _no_sleep():
+    """Swap _lifecycle.time.sleep for a no-op; returns a restore() callable."""
+    orig = _lifecycle.time.sleep
+    _lifecycle.time.sleep = lambda *a, **k: None
+    return lambda: setattr(_lifecycle.time, "sleep", orig)
+
+
+def test_wait_for_upload_status_terminates():
+    print("test_wait_for_upload_status_terminates")
+    # UploadInProgress → UploadInProgress → Completed: the poll returns the terminal.
+    restore = _no_sleep()
+    try:
+        t = _csv_transport(dry_run=False,
+                           upload_statuses=["UploadInProgress", "UploadInProgress", "Completed"])
+        engine = LifecycleEngine(t, max_wait_seconds=30, poll_interval_seconds=1)
+        final = engine.wait_for_upload_status("0lDxx0000000001AAA")
+    finally:
+        restore()
+    check("wait_for_upload_status returns the terminal Completed", final == "Completed", final)
+
+
+def test_wait_for_upload_status_surfaces_errors():
+    print("test_wait_for_upload_status_surfaces_errors")
+    restore = _no_sleep()
+    try:
+        t = _csv_transport(dry_run=False, upload_statuses=["CompletedWithErrors"])
+        engine = LifecycleEngine(t, max_wait_seconds=5, poll_interval_seconds=1)
+        final = engine.wait_for_upload_status("0lDxx0000000001AAA")
+    finally:
+        restore()
+    check("wait_for_upload_status surfaces CompletedWithErrors", final == "CompletedWithErrors",
+          final)
+    check("CompletedWithErrors is in the error set", "CompletedWithErrors" in _lifecycle._UPLOAD_ERROR)
+
+
+def test_wait_for_upload_status_dry_run_noop():
+    print("test_wait_for_upload_status_dry_run_noop")
+    t = _csv_transport(dry_run=True, upload_statuses=["Completed"])
+    engine = LifecycleEngine(t, max_wait_seconds=5)
+    check("dry-run poll is a no-op (returns None)",
+          engine.wait_for_upload_status("0lDxx0000000001AAA") is None)
+
+
+def test_upload_cli_wait_for_status_flag(tmp_csv):
+    print("test_upload_cli_wait_for_status_flag")
+    # --wait-for-status polls to terminal Completed → exit 0, uploadStatus in json.
+    restore = _no_sleep()
+    try:
+        fake = _csv_transport(dry_run=False,
+                              upload_statuses=["UploadInProgress", "Completed"])
+        rc, out = _run_cli_with_fake(
+            upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                         "--csv", tmp_csv, "--wait-for-status", "--max-wait", "10",
+                         "--confirm", "--json"], fake)
+    finally:
+        restore()
+    check("upload --wait-for-status (Completed) exits 0", rc == 0, out[:300])
+    check("upload --wait-for-status reports uploadStatus=Completed",
+          json.loads(out).get("uploadStatus") == "Completed", out[:400])
+
+
+def test_upload_cli_wait_for_status_failed_exits_nonzero(tmp_csv):
+    print("test_upload_cli_wait_for_status_failed_exits_nonzero")
+    # A terminal CompletedWithErrors/Failed must exit non-zero so a caller can gate.
+    restore = _no_sleep()
+    try:
+        fake = _csv_transport(dry_run=False, upload_statuses=["Failed"])
+        rc, out = _run_cli_with_fake(
+            upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                         "--csv", tmp_csv, "--wait-for-status", "--max-wait", "5",
+                         "--confirm", "--json"], fake)
+    finally:
+        restore()
+    check("upload --wait-for-status (Failed) exits 1", rc == 1, out[:300])
+    check("upload --wait-for-status reports uploadStatus=Failed",
+          json.loads(out).get("uploadStatus") == "Failed", out[:400])
+
+
+def test_upload_cli_no_wait_default(tmp_csv):
+    print("test_upload_cli_no_wait_default")
+    # Without --wait-for-status: no uploadStatus key, no GET-driven poll, exit 0.
+    fake = _csv_transport(dry_run=False)
+    rc, out = _run_cli_with_fake(
+        upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                     "--csv", tmp_csv, "--confirm", "--json"], fake)
+    check("upload without --wait-for-status exits 0", rc == 0, out[:300])
+    check("upload without --wait-for-status omits uploadStatus",
+          "uploadStatus" not in json.loads(out), out[:400])
+
+
+def test_upload_cli_missing_csv_errors():
+    print("test_upload_cli_missing_csv_errors")
+    fake = _csv_transport(dry_run=False)
+    rc, _ = _run_cli_with_fake(
+        upload_cli, ["--target-org", "x", "--developer-name", "RLM_CsvUploadTable",
+                     "--csv", "/nonexistent/path/rows.csv", "--confirm"], fake)
+    check("upload with a missing CSV exits 1", rc == 1, rc)
+    check("upload with a missing CSV performs NO mutation", fake.mutations == [], fake.mutations)
+
+
 def test_delete_cli_requires_confirm():
     print("test_delete_cli_requires_confirm")
     # Preview (no --confirm) → no delete.
@@ -968,17 +1390,30 @@ def main():
     spec_path = _tmp("cost_book_spec.json")
     Path(spec_path).write_text(json.dumps(_cost_book_spec()), encoding="utf-8")
     out_xml = _tmp("out.decisionTable-meta.xml")
+    # A shared CSV file for the CsvUpload upload-CLI tests (headers = column fieldNames).
+    csv_path = _tmp("rows.csv")
+    Path(csv_path).write_text("Region,DiscountPercent\nNorth,10\nSouth,5\n", encoding="utf-8")
 
     simple = (test_schema_catalogs, test_validate_spec_clean, test_validate_spec_errors,
-              test_validate_spec_duplicate_and_unknown, test_resolve_query_builders,
+              test_validate_spec_duplicate_and_unknown, test_validate_spec_csv_upload,
+              test_resolve_query_builders,
               test_resolve_missing_raises, test_load_definition_assembly,
               test_connect_definition_unwrap, test_diff_identical, test_diff_detects_changes,
-              test_dump_single_sobject, test_dump_csv_not_applicable,
-              test_dump_empty_source_note, test_trace_correlation, test_list_cli_json,
+              test_dump_single_sobject, test_dump_csv_upload_rows, test_dump_csv_upload_empty,
+              test_dump_csv_upload_gated,
+              test_dump_empty_source_note,
+              # Phase B — dump --filter / --version-number + all-types translator
+              test_dump_csv_upload_filter_drops_limit, test_dump_csv_upload_version_number_threads,
+              test_dump_filter_version_ignored_on_non_csv, test_dump_cli_filter_flag,
+              test_dump_cli_version_flag, test_translator_csv_upload_all_types,
+              # Phase B — upload --wait-for-status poll (lifecycle + CLI)
+              test_wait_for_upload_status_terminates, test_wait_for_upload_status_surfaces_errors,
+              test_wait_for_upload_status_dry_run_noop,
+              test_trace_correlation, test_list_cli_json,
               test_describe_cli_grouped, test_trace_cli_json,
               # Phase 2 — translators + XML round-trip
               test_translator_metadata, test_translator_tooling, test_translator_connect,
-              test_metadata_xml_roundtrip,
+              test_translator_csv_upload, test_metadata_xml_roundtrip,
               # Phase 2 — lifecycle guards + transitions
               test_assert_editable_guard, test_guarded_update_active_roundtrip,
               test_guarded_update_leave_deactivated,
@@ -988,7 +1423,9 @@ def main():
               # Phase 2 — mutator CLI activate/deactivate/refresh/delete gating
               test_activate_cli_preview_vs_confirm, test_activate_cli_skips_when_already_active,
               test_deactivate_cli_preview_vs_confirm, test_refresh_cli_preview_vs_confirm,
-              test_delete_cli_requires_confirm, test_delete_cli_active_refused_without_flag)
+              test_delete_cli_requires_confirm, test_delete_cli_active_refused_without_flag,
+              # Phase 2 — CsvUpload data-load CLI gating
+              test_upload_cli_missing_csv_errors)
     for fn in simple:
         fn()
 
@@ -1000,6 +1437,12 @@ def main():
     test_create_cli_invalid_spec_blocks(_tmp)
     test_update_cli_active_refused_without_flag(spec_path)
     test_update_cli_deactivate_first_roundtrip(spec_path)
+    # Phase B — CsvUpload upload CLI (needs a CSV fixture).
+    test_upload_cli_preview_vs_confirm(csv_path)
+    test_upload_cli_overwrite_and_version(csv_path)
+    test_upload_cli_wait_for_status_flag(csv_path)
+    test_upload_cli_wait_for_status_failed_exits_nonzero(csv_path)
+    test_upload_cli_no_wait_default(csv_path)
 
     import shutil
     shutil.rmtree(tmpdir, ignore_errors=True)

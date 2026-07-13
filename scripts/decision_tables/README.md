@@ -7,9 +7,10 @@ consults to resolve a value from a set of input conditions. It has **two layers*
 - **Read-only inspectors:** **list / describe / diff / trace / dump-data**. Safe
   anytime, on any org.
 - **Guarded lifecycle mutators:** create / update / activate / deactivate /
-  refresh / delete, **preview-by-default** (`--confirm` to write), designed after
-  live CRUD probing on scratch orgs. Destructive testing runs on **disposable
-  scratch orgs only**, never the shared `beta`.
+  refresh / delete (definition) + **upload** (a `CsvUpload` table's data layer),
+  **preview-by-default** (`--confirm` to write), designed after live CRUD probing
+  on scratch orgs. Destructive testing runs on **disposable scratch orgs only**,
+  never the shared `beta`.
 
 Auth is delegated to the **`sf` CLI** (`sf api request rest --target-org …`), so
 **no access token is ever handled or passed**. `--target-org` is always the
@@ -54,10 +55,11 @@ A Decision Table is **two layers**:
    `describe`/`diff`/`trace` operate on this layer.
 2. **Data** — the actual rows the engine evaluates. For an SObject-backed table
    these are records in the `sourceObject`; for a `CsvUpload` table they are an
-   uploaded CSV; for a `ContextDefinition` table they are hydrated at runtime.
-   Rows are synced into the BRE engine cache by the async `refreshDecisionTable`
-   action (~100 refreshes/hr). `dump_decision_table_data.py` samples this layer,
-   branching on `dataSourceType`.
+   uploaded CSV (loaded by `upload_decision_table_data.py`); for a
+   `ContextDefinition` table they are hydrated at runtime. Rows are synced into
+   the BRE engine cache by the async `refreshDecisionTable` action (~100
+   refreshes/hr). `dump_decision_table_data.py` samples this layer, branching on
+   `dataSourceType`.
 
 ## Scripts
 
@@ -69,7 +71,7 @@ A Decision Table is **two layers**:
 | `describe_decision_table.py` | Read-only | Full definition: the `Metadata` complexvalue (dataSource / execution / hit policy / type) + columns grouped INPUT / OUTPUT / ROWCRITERIA + dataset links & their join params + source criteria. `--connect` also reads the table through the **Connect Definitions** GET and prints its **divergent field vocabulary** (`sourceType` / `decisionResultPolicy` / title-case `usage`) side by side. |
 | `diff_decision_tables.py` | Read-only | Structural diff of two tables — in one org, or the **same table across two orgs** (`--other-org`, e.g. a scratch clone vs beta). Compares table + metadata attributes, columns (added / removed / changed, keyed `usage:fieldName`), dataset links, and source criteria. The comparison core (`diff_definitions`) is a **pure function**, unit-tested with no org. |
 | `trace_decision_table.py` | Read-only | *What pricing recipes use this table?* Resolves the `DecisionTable` via **Tooling**, then queries `PricingRecipeTableMapping` via **normal REST** and matches on **`LookupTableId` == DecisionTable.Id** (SObject-backed) **OR `FileBasedDecisionTableName` == DeveloperName** (file/CSV-backed) — there is **no** `DecisionTableId` field on the mapping. Correlated in Python (no single cross-surface SOQL join). |
-| `dump_decision_table_data.py` | Read-only | Samples the **data layer** (`--limit`), branching on `dataSourceType`: **SingleSobject** → SOQL the `sourceObject` (projecting the definition's fields, Id-only fallback); **MultipleSobjects** → one sample per dataset-link `SourceObject`; **CsvUpload** → marked **"not applicable"** and skipped (Connect CSV data GET is doc-grounded / unverified — no such table existed on the probed orgs); **ContextDefinition** → runtime-hydrated, no static table, reported & skipped. |
+| `dump_decision_table_data.py` | Read-only | Samples the **data layer** (`--limit`), branching on `dataSourceType`: **SingleSobject** → SOQL the `sourceObject` (projecting the definition's fields, Id-only fallback); **MultipleSobjects** → one sample per dataset-link `SourceObject`; **CsvUpload** → the Connect **CSV Based** data GET (`.../{id}/data`, `rowData` per row; an empty or gated table degrades to a note — no offset pager, `totalRows` counts *returned* rows), with **CsvUpload-only** `--filter FIELD:VALUE` (server-side **exact, case-sensitive** equality on one column — a non-existent field returns 0 rows silently; drops `--limit` when combined, since `filter`+`limit` throws `UNKNOWN_EXCEPTION`) and `--version-number N` (read a specific import version); **ContextDefinition** → runtime-hydrated, no static table, reported & skipped. `--filter`/`--version-number` against a non-CsvUpload table degrade to a note. |
 
 **Mutators (preview-by-default; `--confirm` to write):**
 
@@ -80,32 +82,42 @@ A Decision Table is **two layers**:
 | `activate_decision_table.py` | `Status` → Active (Tooling `Metadata.status` PATCH). **Async** — polls past `ActivationInProgress` (raise `--max-wait` for slow orgs). Skips a no-op if already Active. |
 | `deactivate_decision_table.py` | `Status` → Inactive (**synchronous**). Blocked while the table is still referenced by an active Expression Set / Context Rule / recipe. |
 | `refresh_decision_table.py` | `refreshDecisionTable` action (full / `--incremental`). Sends the **live-verified `isDecisionTableIncremental`** flag (the CCI tasks send `isIncremental`, which the action ignores). Async + ~100/hr — watch `LastSyncDate`, not the returned `Queued`. |
+| `upload_decision_table_data.py` | Loads the **data layer** of a `CsvUpload` table (two-phase: insert a `ContentVersion` with the base64 CSV → POST its `068…` id to the Connect `/file` sub-resource). **Append (default) is the only reliable write** — `--overwrite` (`deleteAllRows:true`) **FAILS on 262/v67.0** (`uploadStatus=Failed`, 0 rows, existing rows kept; replace = a fresh version/table + append). `--activate-version N` activates version *N* after the upload. Async — poll `dump_decision_table_data.py` for the rows, or opt into `--wait-for-status` (`--max-wait N`, default 120s) to poll `Metadata.uploadStatus` to a terminal state and surface `CompletedWithErrors` (bad rows drop silently) / `Failed` (non-zero exit). |
 | `delete_decision_table.py` | Tooling / Connect DELETE. Same active-edit guard as update (`--deactivate-first` to deactivate an Active table before deleting). `--confirm` required. |
 
 They mirror the `scripts/expression_sets/` mutator convention (preview-by-default,
-`--confirm`, sf-CLI transport, no token). All six per-path shapes, required
-fields, the active-edit error, and the refresh flag were confirmed by live
+`--confirm`, sf-CLI transport, no token). The six definition-CRUD per-path shapes,
+required fields, the active-edit error, the refresh flag, and the `CsvUpload`
+two-phase data load (ContentVersion → Connect `/file`) were all confirmed by live
 destructive probing on scratch orgs.
 
 **Shared modules (imported by the CLIs, not run directly):**
 
 | Module | Purpose |
 |--------|---------|
-| `_client.py` | The `sf api request rest` wrapper, `DEFAULT_API_VERSION="67.0"`. Exposes **explicit Tooling helpers** (`tooling_query` → `/tooling/query`, `tooling_sobject_request` → `/tooling/sobjects/<Obj>[/<id>][/describe]`) distinct from **normal REST** (`sobjects_request`, `soql_query`) and the **Connect** base (`connect/business-rules/decision-table`, `connect_request`/`connect_get`). SOQL follows `nextRecordsUrl`. The injectable `Transport` seam binds `target_org`/`api_version`/`dry_run`/`logger` and exposes `connect` / `connect_get` / `tooling_query` / `tooling_sobject` / `sobject` / `soql`. `DecisionTableClientError` carries `error_codes`/`body`/`returncode`. |
+| `_client.py` | The `sf api request rest` wrapper, `DEFAULT_API_VERSION="67.0"`. Exposes **explicit Tooling helpers** (`tooling_query` → `/tooling/query`, `tooling_sobject_request` → `/tooling/sobjects/<Obj>[/<id>][/describe]`) distinct from **normal REST** (`sobjects_request`, `soql_query`) and the **Connect** base (`connect/business-rules/decision-table`, `connect_request`/`connect_get`), plus the **CSV data-layer** helpers (`content_version_insert` → base64 CSV `ContentVersion`, `upload_decision_table_csv` → the `/file` POST, `get_decision_table_data` → the `/data` GET). SOQL follows `nextRecordsUrl`. The injectable `Transport` seam binds `target_org`/`api_version`/`dry_run`/`logger` and exposes `connect` / `connect_get` / `tooling_query` / `tooling_sobject` / `sobject` / `soql` / `content_version_insert` / `upload_decision_table_csv` / `get_decision_table_data`. `DecisionTableClientError` carries `error_codes`/`body`/`returncode`. |
 | `_resolve.py` | DeveloperName → `DecisionTable` (`0lD`) summary + child resolution across the 5 Tooling objects. `load_definition()` assembles the whole definition dict (`table` / `metadata` / `parameters` / `datasetLinks` / `datasetParameters` / `sourceCriteria`); `get_connect_definition()` reads + unwraps the Connect `decisionTable` envelope. `ResolveError` on a missing table. |
 | `_schema.py` | Enum + key-prefix catalogs (`DATA_SOURCE_TYPES`, `EXECUTION_TYPES` incl. `DLO`, `FILTER_RESULT_BY`, `PARAM_USAGE`, `SETUP_OBJECT_PREFIXES`, …), the **field-name divergence map** (`FIELD_NAME_MAP`: concept → Metadata/Tooling name vs Connect name), and `validate_spec()` — a **pure** validator over a canonical (Metadata-vocabulary) DT spec. Stdlib-only; reused by the offline tests. |
 | `_payload.py` | **Pure** canonical-spec → per-path translators: `to_metadata` (the shared `Metadata` body), `to_metadata_xml` (byte-identical to the shipped source XML — elements emitted alphabetically), `to_tooling` (`{FullName, Metadata}` for create), `tooling_metadata_only` (`{Metadata}` for a PATCH — drops the spec's `status`, stamping the caller-supplied **live** `status` the required-field PATCH demands, so the lifecycle engine owns transitions), and `to_connect` (flat Connect body: renames `dataSourceType`→`sourceType`, `filterResultBy`→`decisionResultPolicy`, `decisionTableParameters`→`parameters`, title-cases `usage`, adds `columnMapping`, requires `status`). Dependency-free — no `requests`, no CCI, no `sf`. |
 | `_lifecycle.py` | `LifecycleEngine` over a `Transport`: `activate` (async — polls past `ActivationInProgress`) / `deactivate` (sync), the **active-edit guard** (`assert_editable` + `run_guarded_update`: deactivate → mutate → reactivate; leaves the table DEACTIVATED on a failed Connect PATCH, reactivates on a failed atomic Tooling PATCH), `refresh` (`isDecisionTableIncremental`), the temp-SFDX `deploy_metadata_xml`, and Tooling/Connect `delete`. `LifecycleError` on failure. |
 
 **Tests:** `tests/test_decision_tables_toolkit.py` — offline unit tests (no org,
-no `sf`, no pytest) for `_schema` (enums / prefixes / divergence map / validator),
-`_resolve` query builders + definition assembly, `diff_definitions`, `dump_data`
-branch selection, `trace_recipe_mappings` correlation, the three `_payload`
-translators + the XML round-trip, the `_lifecycle` active-edit guard and
-guarded-update transitions (deactivate/reactivate, connect-failure-left-off vs
-tooling-failure-reactivates, the refresh flag), and every CLI's argparse +
-preview-vs-`--confirm` gating via a stubbed transport (no real writes). Run:
-`python tests/test_decision_tables_toolkit.py`.
+no `sf`, no pytest) for `_schema` (enums / prefixes / divergence map / validator,
+incl. the `CsvUpload` `sourceObject="CSV"` convention), `_resolve` query builders
++ definition assembly, `diff_definitions`, `dump_data` branch selection (incl. the
+`CsvUpload` `/data` rows / empty / gated cases), `trace_recipe_mappings`
+correlation, the `_payload` translators + the XML round-trip (incl. a `CsvUpload`
+spec preserving all 7 `dataType`s through `to_metadata`/`to_tooling`/`to_connect`),
+the `_lifecycle` active-edit guard and guarded-update transitions
+(deactivate/reactivate, connect-failure-left-off vs tooling-failure-reactivates,
+the refresh flag) plus the `wait_for_upload_status` poll (terminates on a terminal
+status, surfaces `CompletedWithErrors`/`Failed`, no-ops in dry-run), and every
+CLI's argparse + preview-vs-`--confirm` gating via a stubbed transport (no real
+writes) — including `dump_decision_table_data.py`'s `--filter`
+(drops `--limit`) / `--version-number` threading and its degrade-to-note on a
+non-CsvUpload table, and `upload_decision_table_data.py`'s two-phase upload,
+`--overwrite`, `--activate-version`, and `--wait-for-status` (non-zero exit on a
+terminal `Failed`). Run: `python tests/test_decision_tables_toolkit.py`.
 
 ## Quick start — list → describe → trace → dump
 
@@ -133,7 +145,7 @@ python scripts/decision_tables/trace_decision_table.py --target-org $ORG \
 
 # 4. Structurally diff the same table across two orgs (e.g. a clone vs beta).
 python scripts/decision_tables/diff_decision_tables.py \
-    --target-org rlm-base__july8_esMgr --developer-name RLM_CostBookEntries \
+    --target-org rlm-base__scratch --developer-name RLM_CostBookEntries \
     --other RLM_CostBookEntries --other-org $ORG
 
 # 5. Sample the data layer (branches on dataSourceType).
@@ -148,7 +160,7 @@ logged and skipped). Run destructive round-trips on a **disposable scratch org**
 never `beta`.
 
 ```bash
-ORG=rlm-base__july8_esMgr      # a scratch org, NOT beta
+ORG=rlm-base__scratch      # a scratch org, NOT beta
 
 # Create from a canonical spec (Tooling path). Preview, then confirm.
 python scripts/decision_tables/create_decision_table.py --target-org $ORG \
@@ -169,6 +181,19 @@ python scripts/decision_tables/activate_decision_table.py   --target-org $ORG \
     --developer-name RLM_MyTable --confirm
 python scripts/decision_tables/deactivate_decision_table.py --target-org $ORG \
     --developer-name RLM_MyTable --confirm
+
+# Load a CsvUpload table's rows (two-phase, append), then activate its version. Preview, then confirm.
+# --wait-for-status polls uploadStatus to terminal (surfaces silent per-row drops → CompletedWithErrors).
+python scripts/decision_tables/upload_decision_table_data.py --target-org $ORG \
+    --developer-name RLM_MyCsvTable --csv rows.csv
+python scripts/decision_tables/upload_decision_table_data.py --target-org $ORG \
+    --developer-name RLM_MyCsvTable --csv rows.csv --activate-version 1 --wait-for-status --confirm
+
+# Read the data layer back; --filter is exact/case-sensitive on one column (CsvUpload only).
+python scripts/decision_tables/dump_decision_table_data.py --target-org $ORG \
+    --developer-name RLM_MyCsvTable --filter Region:North
+python scripts/decision_tables/dump_decision_table_data.py --target-org $ORG \
+    --developer-name RLM_MyCsvTable --version-number 1
 
 # Refresh the data layer (async, ~100/hr). Watch LastSyncDate, not the return.
 python scripts/decision_tables/refresh_decision_table.py --target-org $ORG \

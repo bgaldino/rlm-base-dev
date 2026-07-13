@@ -23,7 +23,7 @@ Usage
 
     # the same table across two orgs
     python scripts/decision_tables/diff_decision_tables.py \
-        --target-org rlm-base__july8_esMgr \
+        --target-org rlm-base__scratch \
         --developer-name RLM_CostBookEntries \
         --other RLM_CostBookEntries --other-org rlm-base__beta
 """

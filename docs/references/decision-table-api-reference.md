@@ -14,16 +14,16 @@
 > Decision Tables fit the **pricing** layering model (recipes → table mappings),
 > see `.cursor/skills/pricing-wiring/SKILL.md`.
 >
-> **Verification legend.** Sections marked **✅ live-verified** were probed
-> against `rlm-base__beta` (read-only) and scratch orgs (destructive CRUD) on
-> 2026-07-09/10 — read-only evidence in the uncommitted artifact
-> `decision-table-phase1-probe-evidence.md`, and the create/update/activate/
-> deactivate/refresh/delete lifecycle in `decision-table-phase2-probe-evidence.md`
-> (destructive org `rlm-base__july8_esMgr`, scratch, disposable — never `beta`).
-> A few sections remain **📄 doc-grounded** (from `meta_decisiontable.htm`,
-> `dt_setup_objects.htm`, `lookup_table_resources.htm`) where no org exercised the
-> path — each is called out inline (the `CsvUpload` data GET, the other Connect
-> runtime resources, and the ~100/hr refresh-limit rejection text).
+> **Verification legend.** Sections marked **✅ live-verified** were confirmed
+> against a live Release 262 / v67.0 org — reads on a shared org, and the
+> destructive create/update/activate/deactivate/refresh/delete lifecycle on a
+> disposable scratch org (never a shared one). A few sections remain
+> **📄 doc-grounded** (from `meta_decisiontable.htm`, `dt_setup_objects.htm`,
+> `lookup_table_resources.htm`) where no org exercised the path — each is called
+> out inline (the other Connect runtime resources and the ~100/hr refresh-limit
+> rejection text). The `CsvUpload` data layer — the two-phase `/file` upload and
+> the `/data` GET — is now **✅ live-verified** (see *CSV Based tables*).
+> Re-verify on the target release at merge time.
 
 ## The two-layer model
 
@@ -154,7 +154,7 @@ file `RLM_CostBookEntries`):
 
 | Field | Values |
 |---|---|
-| `dataSourceType` (MD/Tooling) / `sourceType` (Connect) | ContextDefinition, CsvUpload, **MultipleSobjects**, **SingleSobject** |
+| `dataSourceType` (MD/Tooling) / `sourceType` (Connect) | ContextDefinition, **CsvUpload**, **MultipleSobjects**, **SingleSobject** |
 | `executionType` | **DLO** (v67.0+, replaces DMO), **HBASE**/`Hbase`, HBPO, SOLR, SOQL |
 | `conditionType` | **All**, Any, Custom |
 | `filterResultBy` (MD) / `decisionResultPolicy` (Connect) | AnyValue, CollectOperator, FirstMatch, **OutputOrder**, Priority, RuleOrder, UniqueValues |
@@ -162,7 +162,7 @@ file `RLM_CostBookEntries`):
 | `status` | ActivationInProgress, **Active**, Draft, Inactive |
 | `usageType` (ExpsSetProcessType) | Bre (default), **DefaultPricing**, **DefaultRating**, **PricingDiscovery**, **RatingDiscovery**, **RevenueStandardTax**, ProductCategoryQualification, ProductQualification, RecordAlert, … |
 | `DecisionTableParameter.usage` | **INPUT**, **OUTPUT**, ROWCRITERIA |
-| `DecisionTableParameter.dataType` | Boolean, Currency, Date, DateTime, Number, Percent, **String** |
+| `DecisionTableParameter.dataType` | **Boolean**, **Currency**, **Date**, **DateTime**, **Number**, **Percent**, **String** (all 7 round-tripped live through a CsvUpload — per-cell CSV encoding in *CSV Based tables*; DateTime needs `…T…:….sssZ`, Boolean only `true`/`false`) |
 | `DecisionTableParameter.operator` | **Equals**, NotEquals, GreaterThan, **GreaterOrEqual**, LessThan, **LessOrEqual**, ExistsIn, Matches, IsNull, … |
 | `DecisionTableSourceCriteria.valueType` | Formula, **Literal**, Lookup, Parameter, Picklist |
 | `collectOperator` | **None**, … (used when `filterResultBy=CollectOperator`) |
@@ -232,10 +232,131 @@ DEACTIVATED on failure rather than reactivating it).
 
 - Decision Table **Lookup** / **Invocation** / **Execution** — runtime evaluation
   (secondary; not exercised by the setup/admin toolkit).
-- **CSV Based Decision Table** GET — paginated CSV row data (`.../{id}/data`,
-  v62+). ⚠ **Not verified**: no `CsvUpload` table existed on the probed orgs, so
-  `dump_decision_table_data.py` marks the CSV branch "not applicable".
 - **Lookup Tables** GET; **Decision Matrix Lookup** POST; **DMN Export** POST.
+
+---
+
+## CSV Based tables — data upload + read — ✅ live-verified
+
+A `CsvUpload` (CSV Based) table's rows are not on a queryable SObject — they are
+loaded from an uploaded CSV and read back through Connect sub-resources.
+`sourceObject` is the literal string `"CSV"` (no backing object) but is still
+required on create.
+
+### Write — the two-phase upload
+
+`upload_decision_table_data.py` performs both phases (preview by default,
+`--confirm` to write):
+
+1. **Insert a `ContentVersion`** holding the CSV as base64. The CSV's first row
+   must be the column headers, matching the table's INPUT/OUTPUT `fieldName`s.
+   Body `{"Title", "PathOnClient", "VersionData"}` → returns a `068…` id.
+2. **POST the file id** to the table's Connect `/file` sub-resource:
+
+   | Verb | Path | Body |
+   |---|---|---|
+   | **POST** | `connect/business-rules/decision-table/{0lD…}/file[?versionNumber=N]` | `{"fileId":"068…","deleteAllRows":false}` |
+
+   Response: `{"message":"We are uploading and processing the CSV file."}`.
+
+- `deleteAllRows:false` **appends** to existing rows — the **only reliable write**.
+- The import is **asynchronous**. The POST returns immediately; rows become
+  queryable via the data GET within ~5s. `uploadStatus`
+  (`UploadInProgress` → `Completed` / `CompletedWithErrors` / `Failed`) **lags**
+  the data landing (~1 min to go terminal). `upload_decision_table_data.py
+  --wait-for-status` (`--max-wait N`, default 120s) opts into polling
+  `Metadata.uploadStatus` to a terminal state and exits non-zero on
+  `CompletedWithErrors`/`Failed` — the only signal the fire-and-forget POST hides.
+
+> ⚠ **`deleteAllRows:true` (overwrite) is BROKEN on 262 / v67.0 (✅ live-verified).**
+> Every overwrite variant — Active table, Draft table, empty table, with or without
+> `?versionNumber` — returns `uploadStatus = Failed` and loads **0 rows**; the
+> intended delete does not happen and pre-existing rows are **left intact**
+> (safe-fail). The **same CSV appended succeeds**, so `deleteAllRows:true` itself is
+> the culprit (pilot-gated or bugged). **The reliable "replace all rows" path is to
+> create a fresh version/table and append.** `--overwrite` carries this warning.
+
+**Per-column CSV encoding (✅ live-verified — all 7 `dataType`s round-tripped).**
+Each cell is coerced to the column's `dataType`; a cell that fails coercion drops
+that **row silently** (below). Confirmed encodings:
+
+| `dataType` | CSV cell that lands | Returned `rowData` | Notes |
+|---|---|---|---|
+| **String** | any text; `"quoted, comma"`; UTF-8 (`café ☕`) | JSON string | UTF-8 preserved |
+| **Number** | `42`, `-3.5`, `0` | JSON number | decimals + negatives OK |
+| **Currency** | `1234.56`, `0.99` | JSON number | verbatim, no rounding |
+| **Percent** | `0.15`, `50`, `0.5` | JSON number | **stored VERBATIM — no ×100 / ÷100** |
+| **Boolean** | `true`, `false`, `TRUE` | JSON bool | **case-insensitive `true`/`false` ONLY — `1`/`0` REJECTED** (row drops) |
+| **Date** | `2026-07-10` (`YYYY-MM-DD`) | JSON string `YYYY-MM-DD` | date-only ISO |
+| **DateTime** | `2026-07-10T14:30:00.000Z` | JSON string, same form | **milliseconds + `Z` MANDATORY** — no-ms / space-for-`T` / date-only all drop the row |
+
+**Per-row validation — bad rows drop silently → `CompletedWithErrors` (✅ live).**
+A mixed valid/invalid upload loads **only the valid rows** and finishes
+`uploadStatus = CompletedWithErrors`; the dropped rows surface **no per-row error**
+(neither the `/data` GET nor the `Metadata` reports which failed, only the aggregate
+status). This is why `--wait-for-status` is worth the wait.
+
+> ⚠ **The `/data` POST (row-by-row edit) is non-functional** on the probed
+> release — load and replace rows through the `/file` upload, not a data POST.
+
+### Version lifecycle
+
+A create auto-mints a **Draft version 1**. Activate the version before activating
+the table:
+
+| Verb | Path | Body |
+|---|---|---|
+| **PATCH** | `connect/business-rules/decision-table/definitions/{id}/versions/{N}` | `{"versionStatus":"Active"}` |
+
+`upload_decision_table_data.py --activate-version N` does this in the same run.
+
+> **No v2 on re-upload (✅ live-verified).** Create auto-mints Draft version 1;
+> re-uploading (append or overwrite, with or without `--version-number`) does **not**
+> mint a v2 — the version list stays `[{versionNumber:1}]` and every upload targets
+> v1. Uploading to a **non-existent** version (`?versionNumber=2` when only v1 exists)
+> → `INVALID_API_INPUT`.
+
+`refreshDecisionTable` requires an **Active** table, so the order is:
+upload → activate version → activate table → refresh. For a **versioned** CSV
+table the refresh's `VersionNumber` input is **required** (not optional as the
+action-describe implies), and the two version failures differ (live-verified):
+
+| Refresh `VersionNumber` | Error |
+|---|---|
+| **absent** | `INVALID_API_INPUT: Enter a valid versionNumber for versioned CSV-based decision tables.` |
+| **non-existent** (e.g. `99`) | `INVALID_ID_FIELD: The decision table version number is invalid. Specify a valid version number of an active decision table…` |
+
+Pass a real `refresh_decision_table.py --version-number N`.
+
+### Read — the data GET
+
+| Verb | Path | Returns |
+|---|---|---|
+| **GET** | `connect/business-rules/decision-table/{id}/data[?versionNumber=N][&filter=Field:Value][&limit=N]` | `{"rows":[{"id":"1FI…","rowData":{…}}], "totalRows":N}` |
+
+Row ids are `1FI`-prefixed; `rowData` values are typed. `dump_decision_table_data.py`
+reads this branch for a `CsvUpload` table, exposing `--filter FIELD:VALUE` and
+`--version-number N` (both **CsvUpload-only**; against a non-CsvUpload table they
+degrade to a note).
+
+- **`filter=Field:Value`** is an **exact, case-sensitive equality** on the stored
+  value (✅ live): `Region:North` ≠ `Region:north`, and there is **no substring /
+  prefix** match. A **field name that doesn't exist returns 0 rows with no error**
+  (silently empty — the caller must know the column is real).
+- **`versionNumber`** defaults to the current/active version; a **non-existent
+  version** on the read → `INVALID_API_INPUT`.
+
+> ⚠ **`filter` + `limit` throw `UNKNOWN_EXCEPTION` (✅ live).** Combining them errors
+> whenever `limit` is **not strictly greater** than the matched-row count (i.e.
+> whenever `limit` would truncate the filtered set). `dump_decision_table_data.py`
+> therefore **drops `--limit` (with a note) when `--filter` is given** and returns
+> the full matched set.
+
+> ⚠ **Pagination gotcha.** `totalRows` is the count **in the response**, not a
+> grand total, and `offset` is unreliable — do **not** build an offset pager. Use
+> `filter` to narrow and `limit` to cap; read once. A disabled endpoint or a table
+> with no uploaded version degrades to a note (mirroring the SObject-branch
+> fallbacks).
 
 ---
 
@@ -304,7 +425,12 @@ the engine cache. Action describe
 |---|---|---|
 | `DecisionTableApiName` | STRING | **true** |
 | **`isDecisionTableIncremental`** | BOOLEAN | false |
-| `VersionNumber` | INTEGER | false |
+| `VersionNumber` | INTEGER | false * |
+
+> \* `VersionNumber` is action-describe-optional but **required for versioned
+> CSV-based tables** — omitting it there fails `INVALID_API_INPUT: Enter a valid
+> versionNumber for versioned CSV-based decision tables.` (live-verified). See
+> *CSV Based tables → Version lifecycle* above.
 
 > ⚠ **Use `isDecisionTableIncremental`.** ✅ Live-confirmed: both `false` (full)
 > and `true` (incremental) return `isSuccess: true`, `outputValues.Status:
@@ -363,6 +489,12 @@ encodes.
 | Stale `Status = "ActivationInProgress"` after a 204 | Reading status immediately after an activate PATCH | Activate is **async** — poll past `ActivationInProgress` (raise `--max-wait` for slow orgs). |
 | Empty `"parameters": []` in a Connect POST/PATCH response | Trusting the Connect echo for the column set | **GET-back** to confirm; the columns persist despite the empty echo. |
 | Benign `…@DecisionTable` advisory alongside `isSuccess: true` | Connect PATCH that removes a row-level override | Non-fatal — treat any `@`-suffixed message as advisory when `isSuccess` is true. |
+| `uploadStatus = Failed`, 0 rows loaded | CsvUpload `/file` POST with `deleteAllRows:true` (`--overwrite`) | **Broken on 262/v67.0** — overwrite always fails safe (existing rows kept). Replace rows by creating a fresh version/table and appending. |
+| `uploadStatus = CompletedWithErrors` | CsvUpload `/file` POST where some rows fail their column's `dataType` coercion | Only the valid rows land; bad rows drop **silently** (no per-row error). Fix the CSV encoding (DateTime needs `.sssZ`, Boolean only `true`/`false`) and re-append; use `--wait-for-status` to catch it. |
+| `INVALID_API_INPUT` — "Enter a valid versionNumber for versioned CSV-based decision tables." | `refreshDecisionTable` on a versioned CSV table **without** `VersionNumber` | Pass `refresh_decision_table.py --version-number N`. |
+| `INVALID_ID_FIELD` — "The decision table version number is invalid…" | `refreshDecisionTable` with a **non-existent** `VersionNumber` | Pass a real, existing version number (a distinct error from the absent case). |
+| `INVALID_API_INPUT` | CsvUpload `/data` GET or `/file` POST targeting a `versionNumber` that doesn't exist (only v1 is minted) | Re-upload does not mint a v2 — target v1 (or omit `versionNumber` for the current version). |
+| `UNKNOWN_EXCEPTION` | CsvUpload `/data` GET combining `filter` + a `limit` not strictly greater than the match count | The dump CLI drops `--limit` when `--filter` is given; don't combine them by hand. |
 
 ---
 

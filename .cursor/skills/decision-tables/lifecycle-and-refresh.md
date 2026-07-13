@@ -95,7 +95,12 @@ live to the engine.
   |---|---|---|
   | `DecisionTableApiName` | STRING | **true** |
   | **`isDecisionTableIncremental`** | BOOLEAN | false |
-  | `VersionNumber` | INTEGER | false |
+  | `VersionNumber` | INTEGER | false * |
+
+  > \* `VersionNumber` is action-describe-optional but **required for versioned
+  > CSV-based tables** — omitting it there fails `INVALID_API_INPUT: Enter a valid
+  > versionNumber for versioned CSV-based decision tables.` (live-verified). See
+  > *CSV Based tables* below.
 
 > ⚠ **The accepted incremental flag is `isDecisionTableIncremental`.** The
 > existing CCI tasks send **`isIncremental`** instead —
@@ -122,6 +127,68 @@ live to the engine.
 
 Incremental refresh is only meaningful when `isIncrementalSyncEnabled` is true on
 the table (observed `false` on the shipped SObject-backed tables).
+
+## CSV Based tables — upload + version lifecycle (✅ live-verified)
+
+A `CsvUpload` table's data layer is loaded from an uploaded CSV rather than a
+source SObject, so its lifecycle has an extra step between deploy and refresh:
+**upload the rows**. The full sequence:
+
+```
+create (auto-mints Draft version 1)  →  upload CSV (two-phase)  →  activate the version
+  →  activate the table  →  refresh
+```
+
+1. **Create** a `CsvUpload` definition (`sourceObject:"CSV"`); this auto-mints a
+   **Draft version 1**. Re-uploading does **not** mint a v2 (see the version note
+   below) — every upload targets version 1.
+2. **Upload** the rows with `upload_decision_table_data.py` — a two-phase load
+   (insert a `ContentVersion` with the base64 CSV → POST its `068…` id to the
+   table's Connect `/file` sub-resource). **`deleteAllRows:false` (append) is the
+   only reliable write** — `--overwrite` (`deleteAllRows:true`) FAILS on 262/v67.0
+   (`uploadStatus=Failed`, 0 rows, existing rows kept; to replace rows, use a fresh
+   version/table + append). The import is **async** and rows with a cell that
+   doesn't match a column's `dataType` drop silently → `CompletedWithErrors`; opt
+   into `--wait-for-status` to catch that. See the full upload contract in
+   `authoring-and-data-model.md` → *CSV Based tables*.
+3. **Activate the version** before the table:
+   `PATCH connect/business-rules/decision-table/definitions/{id}/versions/{N}`
+   `{"versionStatus":"Active"}`. `upload_decision_table_data.py --activate-version N`
+   does this in the same run.
+4. **Activate the table** (same `Status` mechanism as any other table — the
+   version must be Active first, else activation fails).
+5. **Refresh** — `refreshDecisionTable` requires an **Active** table; run it after
+   activation, with the same `isDecisionTableIncremental` flag as above. For a
+   **versioned** CSV table `VersionNumber` is **required** (not optional as the
+   action-describe implies), and the two version failures differ (live-verified):
+   - **Absent** `VersionNumber` → `INVALID_API_INPUT: Enter a valid versionNumber
+     for versioned CSV-based decision tables.`
+   - **Non-existent** `--version-number 99` → `INVALID_ID_FIELD: The decision table
+     version number is invalid. Specify a valid version number of an active
+     decision table…` (a distinct error code from the absent case).
+
+   So pass a real `refresh_decision_table.py --version-number N`.
+
+> **No v2 on re-upload (✅ live-verified).** Create auto-mints Draft version 1;
+> re-uploading (append or overwrite, with or without `--version-number`) does NOT
+> mint a v2 — the version list stays `[{versionNumber:1}]` and every upload targets
+> v1. There is no scripted multi-version fan-out via this toolkit; uploading to a
+> non-existent version (`?versionNumber=2` when only v1 exists) → `INVALID_API_INPUT`.
+
+> ⚠ **The `/data` POST (row-by-row edit) is non-functional** on the probed
+> release — load and replace rows through the `/file` upload, not the data POST.
+> Read the rows back with `dump_decision_table_data.py` (Connect `/data` GET),
+> optionally `--filter Field:Value` (exact/case-sensitive) or `--version-number N`.
+
+> ⚠ **Teardown order — deactivate the VERSION before the table (✅ live-verified).**
+> `delete_decision_table.py --deactivate-first` deactivates the **table**, but the
+> platform refuses to make a CSV table Inactive while its **version** is still
+> Active: `INVALID_INPUT: "A version cannot be in the Active status when the
+> decision table's status is not active."` Deactivate the version first
+> (`PATCH …/versions/{N}` `{"versionStatus":"Inactive"}`) — this **cascades the
+> table to Inactive** — then delete. (The inverse of the activate order: version
+> Active → table Active on the way up; version Inactive → table Inactive on the way
+> down.)
 
 ## Recipe-table mappings + `validate_lists`
 

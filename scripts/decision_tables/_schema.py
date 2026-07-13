@@ -21,9 +21,8 @@ scratch orgs on 2026-07-09 (Tooling ``Metadata`` complexvalue + describes,
 Connect Definitions GET, ``refreshDecisionTable`` action describe) plus the
 Release 262 docs (``meta_decisiontable.htm``, ``dt_setup_objects.htm``,
 ``lookup_table_resources.htm``). See
-``docs/references/decision-table-api-reference.md`` and the uncommitted probe
-artifact for the full evidence. Unknown enum values **warn** (forward-compat),
-they do not error.
+``docs/references/decision-table-api-reference.md`` for the full evidence.
+Unknown enum values **warn** (forward-compat), they do not error.
 """
 
 from dataclasses import dataclass, field
@@ -203,7 +202,7 @@ class ValidationResult:
 #     "fullName":       "RLM_CostBookEntries",     # api name (required)
 #     "setupName":      "Cost Book Entries",       # label (required)
 #     "dataSourceType": "SingleSobject",           # required
-#     "sourceObject":   "CostBookEntry",           # required for *Sobject types
+#     "sourceObject":   "CostBookEntry",           # required (all types; "CSV" for CsvUpload)
 #     "executionType":  "Hbase",                   # optional
 #     "filterResultBy": "OutputOrder",             # required (hit policy)
 #     "conditionType":  "All",                     # optional
@@ -224,7 +223,13 @@ class ValidationResult:
 
 # The `usage` values that require an operator + sequence (INPUT columns only).
 _INPUT_USAGE = {"INPUT", "Input"}
-_SOBJECT_SOURCE_TYPES = {"SingleSobject", "MultipleSobjects"}
+
+# `sourceObject` is Required-since-58.0 for **every** dataSourceType — all three
+# authoring paths reject a create without it (live-verified 262 / v67.0: Tooling
+# `FIELD_INTEGRITY_EXCEPTION`, Connect `MISSING_ARGUMENT`, Metadata deploy error).
+# For a CsvUpload table the value is the literal string "CSV" (there is no backing
+# SObject); for the SObject types it is the object api-name.
+_CSV_SOURCE_OBJECT = "CSV"
 
 
 def _check_enum(result: ValidationResult, location: str, value: Any,
@@ -291,8 +296,17 @@ def validate_spec(spec: Dict[str, Any]) -> ValidationResult:
                 ROW_LEVEL_OVERRIDE_TYPES)
 
     dst = spec.get("dataSourceType")
-    if dst in _SOBJECT_SOURCE_TYPES and not spec.get("sourceObject"):
-        result.error("sourceObject", f"is required when dataSourceType is {dst!r}.")
+    source_object = spec.get("sourceObject")
+    if not source_object:
+        # Required for every source type (Required-since-58.0). CsvUpload gets a
+        # value-convention hint so the author knows it is not an SObject name.
+        hint = (" (use the literal 'CSV' for a CsvUpload table)"
+                if dst == "CsvUpload" else "")
+        result.error("sourceObject", f"is required (dataSourceType is {dst!r}){hint}.")
+    elif dst == "CsvUpload" and source_object != _CSV_SOURCE_OBJECT:
+        result.warn("sourceObject",
+                    f"a CsvUpload table normally uses sourceObject "
+                    f"{_CSV_SOURCE_OBJECT!r}; got {source_object!r}.")
 
     params = spec.get("decisionTableParameters")
     if not isinstance(params, list) or not params:

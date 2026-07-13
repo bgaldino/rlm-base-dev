@@ -74,6 +74,16 @@ _ACTIVATION_IN_PROGRESS = "ActivationInProgress"
 _STATUS_ACTIVE = "Active"
 _STATUS_INACTIVE = "Inactive"
 
+# CsvUpload ``/file`` import — the ``Metadata.uploadStatus`` values. The import is
+# async: ``UploadInProgress`` → one of the terminal states (live-verified 262/v67.0,
+# and it can lag the rows landing by ~1 min). ``CompletedWithErrors`` (some rows
+# silently dropped) and ``Failed`` (e.g. a ``deleteAllRows`` overwrite) are the
+# states the fire-and-forget POST response hides — the value of waiting.
+_UPLOAD_IN_PROGRESS = "UploadInProgress"
+_UPLOAD_COMPLETED = "Completed"
+_UPLOAD_TERMINAL = {"Completed", "CompletedWithErrors", "Failed"}
+_UPLOAD_ERROR = {"CompletedWithErrors", "Failed"}
+
 
 class LifecycleError(RuntimeError):
     """Raised on a lifecycle failure in the Decision Table toolkit."""
@@ -168,6 +178,48 @@ class LifecycleEngine:
             f"{self.max_wait}s (last seen: {last!r}). Activation is asynchronous; "
             f"re-check with list_decision_tables.py or raise --max-wait."
         )
+
+    def get_upload_status(self, record_id: str) -> Optional[str]:
+        """Current ``Metadata.uploadStatus`` for a CsvUpload table (or ``None``).
+
+        ``uploadStatus`` is **not** a top-level Tooling column — it lives in the
+        ``Metadata`` complexvalue (same GET :meth:`_current_metadata` uses), so it
+        is read there rather than via SOQL.
+        """
+        metadata = self._current_metadata(record_id)
+        return metadata.get("uploadStatus")
+
+    def wait_for_upload_status(self, record_id: str) -> Optional[str]:
+        """Poll ``Metadata.uploadStatus`` until terminal or ``max_wait``.
+
+        Returns the last-seen status: a terminal value (``Completed`` /
+        ``CompletedWithErrors`` / ``Failed``) once reached, else the last
+        non-terminal value on timeout (the caller decides how to report it).
+        No-op returning ``None`` under dry-run. The CsvUpload ``/file`` import is
+        **async and can lag the rows landing by ~1 min**, so this reuses the
+        standard ``max_wait``/``poll`` cadence and never blocks by default — the
+        upload CLI opts in with ``--wait-for-status``.
+        """
+        if self.dry_run:
+            return None
+        waited = 0
+        last: Optional[str] = None
+        while waited <= self.max_wait:
+            last = self.get_upload_status(record_id)
+            if last in _UPLOAD_TERMINAL:
+                self.log(
+                    f"DecisionTable {record_id} uploadStatus={last} after {waited}s."
+                )
+                return last
+            time.sleep(self.poll)
+            waited += self.poll
+        self.log(
+            f"DecisionTable {record_id} uploadStatus did not reach a terminal state "
+            f"within {self.max_wait}s (last seen: {last!r}). The import is async and "
+            f"can lag the rows landing by ~1 min — the rows may still be arriving; "
+            f"re-check with dump_decision_table_data.py or raise --max-wait."
+        )
+        return last
 
     def activate(self, record_id: str) -> None:
         """Set Status → Active and poll past ``ActivationInProgress`` (async)."""

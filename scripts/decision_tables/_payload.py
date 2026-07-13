@@ -29,9 +29,9 @@ Every function operates on plain dicts/lists and returns **new** structures —
 none mutate their input, so a caller can translate the same spec for multiple
 paths or verify against the original.
 
-Provenance — all shapes live-verified on 262 / v67.0 against scratch orgs; see
-``docs/references/decision-table-api-reference.md`` and the (uncommitted) Phase-2
-probe evidence for the create/update/GET-back captures behind each rule.
+Provenance — all shapes live-verified on 262 / v67.0 against scratch orgs (the
+create/update/GET-back captures behind each rule); see
+``docs/references/decision-table-api-reference.md`` for the field-by-field detail.
 """
 
 from typing import Any, Dict, List, Optional

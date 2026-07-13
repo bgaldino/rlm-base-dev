@@ -45,7 +45,8 @@ them:
    `sourceObject` (`SingleSobject` / `MultipleSobjects`), an uploaded CSV
    (`CsvUpload`), or runtime-hydrated rows (`ContextDefinition`). Rows are synced
    into the BRE engine cache by the **async `refreshDecisionTable` action**
-   (~100/hr). `dump` samples this layer.
+   (~100/hr). `dump` samples this layer; for `CsvUpload`, `upload` loads it (a
+   two-phase ContentVersion → Connect `/file` POST — see `lifecycle-and-refresh.md`).
 
 **Editing the definition ≠ refreshing the data.** A definition change is
 deployed; a data change is picked up by a refresh. A definition change is not
@@ -102,7 +103,8 @@ INPUT columns combine. Full enum catalog in `authoring-and-data-model.md`.
 7. **Inspector reads are safe; mutators are preview-by-default.** The inspectors
    (`list` / `describe` / `diff` / `trace` / `dump`) only ever GET/SOQL — safe on
    any org, including `beta`. The mutators (`create` / `update` / `activate` /
-   `deactivate` / `refresh` / `delete`) run dry-run unless `--confirm`, and an
+   `deactivate` / `refresh` / `delete` / `upload`) run dry-run unless `--confirm`,
+   and an
    **update never lets the spec's `status` drive the table's lifecycle** — the
    lifecycle engine alone owns activate/deactivate. (A Tooling `Metadata` PATCH
    *requires* `status`, so the `update` CLI stamps the table's **current live**
@@ -115,6 +117,17 @@ INPUT columns combine. Full enum catalog in `authoring-and-data-model.md`.
    own the build. The toolkit is for **ad-hoc inspection and one-off lifecycle
    outside** the build — it doesn't duplicate the tasks' logic. Route, don't
    rebuild (see [The CCI tasks](#cci-tasks)).
+9. **CsvUpload data layer: append only, and it's async + silent about bad rows.**
+   `deleteAllRows:true` (`upload --overwrite`) is **BROKEN on 262/v67.0** (loads 0
+   rows, `uploadStatus=Failed`, existing rows kept) — to replace rows, create a
+   fresh version/table and append. Re-uploading does **not** mint a v2. Rows whose
+   cell fails the column's `dataType` coercion **drop silently** →
+   `CompletedWithErrors`; encodings are strict (**DateTime** needs
+   `YYYY-MM-DDTHH:MM:SS.sssZ`, **Boolean** only `true`/`false`, **Percent** stored
+   verbatim — no ×100). `upload --wait-for-status` is the only signal rows were
+   dropped. Read back with `dump --filter FIELD:VALUE` (exact/case-sensitive; a
+   bad field name → 0 rows, no error) / `--version-number N`. Detail in
+   `authoring-and-data-model.md` → *CSV Based tables*.
 
 ## DO NOT
 
@@ -186,7 +199,7 @@ python scripts/decision_tables/trace_decision_table.py --target-org $ORG \
 
 # 4. Diff the same table across two orgs (e.g. a scratch clone vs beta).
 python scripts/decision_tables/diff_decision_tables.py \
-    --target-org rlm-base__july8_esMgr --developer-name RLM_CostBookEntries \
+    --target-org rlm-base__scratch --developer-name RLM_CostBookEntries \
     --other RLM_CostBookEntries --other-org $ORG
 
 # 5. Sample the data layer (branches on dataSourceType).
@@ -208,7 +221,8 @@ Full toolkit detail: `scripts/decision_tables/README.md`.
 | Pretty-print one table's full definition | `python scripts/decision_tables/describe_decision_table.py --target-org <sf_alias> --developer-name <name> [--connect]` (read-only) |
 | Structurally diff two tables (or one across two orgs) | `python scripts/decision_tables/diff_decision_tables.py --target-org <sf_alias> --developer-name <a> --other <b> [--other-org <sf_alias2>]` (read-only) |
 | **Trace** which pricing recipes reference a table | `python scripts/decision_tables/trace_decision_table.py --target-org <sf_alias> --developer-name <name>` (read-only) |
-| Sample the **data layer** (branches on dataSourceType) | `python scripts/decision_tables/dump_decision_table_data.py --target-org <sf_alias> --developer-name <name> --limit 5` (read-only) |
+| Sample the **data layer** (branches on dataSourceType) | `python scripts/decision_tables/dump_decision_table_data.py --target-org <sf_alias> --developer-name <name> --limit 5` (read-only); for a `CsvUpload` table also `--filter FIELD:VALUE` (exact/case-sensitive; drops `--limit`) / `--version-number N` |
+| **Upload CSV rows** into a `CsvUpload` table's data layer (two-phase) | `python scripts/decision_tables/upload_decision_table_data.py --target-org <sf_alias> --developer-name <name> --csv rows.csv [--activate-version N] [--wait-for-status]` (preview; `--confirm` to write). **Append is the only reliable write — `--overwrite` FAILS on 262/v67.0**; `--wait-for-status` surfaces silent per-row drops (`CompletedWithErrors`). |
 | Create / update / activate / deactivate / refresh / delete a DT (one-off) | `python scripts/decision_tables/{create,update,activate,deactivate,refresh,delete}_decision_table.py --target-org <sf_alias> …` (preview; `--confirm` to write; **scratch orgs only** for destructive verbs) |
 | List / query / refresh / activate / deactivate / validate mappings **in the build** | The CCI tasks — see [The CCI tasks](#cci-tasks) |
 
@@ -295,8 +309,9 @@ python scripts/ai/skill_manifest.py --list-skills foundations
 Checklist:
 
 - [ ] `--target-org` is the **SF CLI** alias, not the CCI alias.
-- [ ] Read CLIs run clean; `dump` on a `CsvUpload` table is only exercised if one
-      exists (else the CSV branch reports "not applicable").
+- [ ] Read CLIs run clean; `dump` on a `CsvUpload` table reads the Connect
+      `/data` GET (rows land via `upload_decision_table_data.py`; an empty or
+      gated table degrades to a note).
 - [ ] Any destructive probing ran on a **scratch org**, never `beta`.
 - [ ] After `cumulusci.yml` task/option edits:
       `python scripts/ai/generate_cci_reference.py` and commit the regenerated

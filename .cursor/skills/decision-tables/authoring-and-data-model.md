@@ -42,7 +42,7 @@ The rows the engine actually evaluates. **Where** they live is decided by
 |---|---|---|
 | **SingleSobject** | Records in the one `sourceObject` | SOQL the `sourceObject` (normal REST) |
 | **MultipleSobjects** | Records across the dataset-link `SourceObject`s, joined | One SOQL sample per dataset link |
-| **CsvUpload** | An uploaded CSV, held by the platform | Connect `.../{id}/data` (v62+) — 📄 doc-grounded, unverified (no such table on probed orgs) |
+| **CsvUpload** | An uploaded CSV, held by the platform | Connect `.../{id}/data` (v62+) — ✅ live-verified (see **CSV Based tables** below) |
 | **ContextDefinition** | Hydrated at runtime by a Context Definition | No static table — nothing to sample |
 
 **Editing the definition ≠ refreshing the data.** A definition change is
@@ -50,6 +50,94 @@ deployed; row changes are picked up by the **async `refreshDecisionTable`
 action** (rate-limited ~100/hr — see `lifecycle-and-refresh.md`). A definition
 change is not live to the engine until a refresh completes. This is why the
 toolkit separates `describe`/`diff` (definition) from `dump` (data).
+
+### CSV Based tables — the data layer (✅ live-verified)
+
+A `CsvUpload` (a.k.a. **CSV Based**) table's rows do **not** live on a queryable
+SObject — they are loaded from an uploaded CSV and read back through Connect
+sub-resources. `sourceObject` is the literal string `"CSV"` (there is no backing
+object), but it is still **required** on create like every other source type.
+
+**Write — the two-phase upload** (`upload_decision_table_data.py`):
+
+1. Insert a `ContentVersion` holding the CSV as base64 — its first row must be
+   the column headers, matching the table's INPUT/OUTPUT `fieldName`s. Body
+   `{"Title", "PathOnClient", "VersionData"}` → returns a `068…` id.
+2. POST that id to the table's Connect `/file` sub-resource:
+   `POST connect/business-rules/decision-table/{0lD…}/file[?versionNumber=N]`
+   with `{"fileId":"068…","deleteAllRows":false}`. Response:
+   *"We are uploading and processing the CSV file."*
+
+`deleteAllRows:false` **appends** to any existing rows. The import is
+**asynchronous**: the POST returns immediately, the rows become queryable within
+~5s, and `uploadStatus` (`UploadInProgress` → `Completed` / `CompletedWithErrors`
+/ `Failed`) lags the data landing — it can take ~1 min to go terminal. Opt into
+`upload_decision_table_data.py --wait-for-status` to poll `Metadata.uploadStatus`
+to a terminal state; its value is surfacing `CompletedWithErrors`/`Failed` (a
+terminal error exits non-zero), which the fire-and-forget POST response hides.
+
+> ⚠ **`deleteAllRows:true` (overwrite) is BROKEN on 262 / v67.0 (✅ live-verified).**
+> Every overwrite variant — Active table, Draft table, empty table, with or
+> without `?versionNumber` — returns `uploadStatus = Failed` and loads **0 rows**;
+> the intended delete does not happen and any pre-existing rows are **left intact**
+> (safe-fail — nothing is lost). The **same CSV appended succeeds**, so
+> `deleteAllRows:true` itself is the culprit (pilot-gated or bugged), not the
+> CSV/table/version. **The reliable "replace all rows" path is to create a fresh
+> version/table and append.** `--overwrite` carries this warning in its help.
+
+**Per-column CSV encoding (✅ live-verified — all 7 `dataType`s round-tripped).**
+Each row's CSV cell is coerced to the column's `dataType`; a cell that fails
+coercion drops that **row** silently (see below). Confirmed encodings:
+
+| `dataType` | CSV cell that lands | Returned `rowData` | Notes |
+|---|---|---|---|
+| **String** | any text; `"quoted, comma"`; UTF-8 (`café ☕`) | JSON string | UTF-8 preserved end-to-end |
+| **Number** | `42`, `-3.5`, `0` | JSON number | decimals + negatives OK |
+| **Currency** | `1234.56`, `0.99`, `1000000` | JSON number | stored verbatim, no rounding |
+| **Percent** | `0.15`, `50`, `0.5` | JSON number | **stored VERBATIM — no ×100 / ÷100 normalization** |
+| **Boolean** | `true`, `false`, `TRUE` | JSON bool | **case-insensitive `true`/`false` ONLY — `1`/`0` are REJECTED** (row drops) |
+| **Date** | `2026-07-10` (`YYYY-MM-DD`) | JSON string `YYYY-MM-DD` | date-only ISO |
+| **DateTime** | `2026-07-10T14:30:00.000Z` | JSON string, same form | **milliseconds + `Z` MANDATORY** — `…T14:30:00Z` (no ms), a space instead of `T`, and date-only all drop the row |
+
+**Per-row validation — bad rows drop silently → `CompletedWithErrors` (✅ live).**
+An upload with a mix of valid + invalid rows loads **only the valid rows** and
+finishes `uploadStatus = CompletedWithErrors`. The dropped rows surface **no
+per-row error** — neither the `/data` GET nor the `Metadata` reports which rows
+failed, only the aggregate status. This is why `--wait-for-status` is worth the
+wait: it is the only signal that rows were silently dropped.
+
+**Read — the data GET** (`dump_decision_table_data.py`):
+`GET connect/business-rules/decision-table/{id}/data[?versionNumber=N][&filter=Field:Value][&limit=N]`
+→ `{"rows":[{"id":"1FI…","rowData":{…}}], "totalRows":N}`. Row ids are
+`1FI`-prefixed; `rowData` values are typed. Exposed as `--filter` /
+`--version-number` on the dump CLI (both CsvUpload-only).
+
+- **`filter=Field:Value`** is an **exact, case-sensitive equality** on the stored
+  value (✅ live): `Region:North` ≠ `Region:north`, and there is **no substring /
+  prefix** match. A **field name that doesn't exist returns 0 rows with no error**
+  (silently empty — the caller must know the column is real).
+- **`versionNumber`** defaults to the current/active version. A **non-existent
+  version** on the read → `INVALID_API_INPUT`.
+
+> ⚠ **`filter` + `limit` throw `UNKNOWN_EXCEPTION` (✅ live).** Combining them errors
+> whenever `limit` is **not strictly greater** than the matched-row count (i.e.
+> whenever `limit` would truncate the filtered set). The dump CLI therefore
+> **drops `--limit` (with a note) when `--filter` is given** and returns the full
+> matched set. Use `--limit` for an unfiltered peek; use `--filter` alone to narrow.
+
+> ⚠ **Pagination gotcha.** `totalRows` is the count **in the response**, not a
+> grand total, and `offset` is unreliable — do **not** build an offset pager.
+> Use `filter` to narrow and `limit` to cap; read once.
+
+**Versions — no v2 is auto-minted by re-upload (✅ live).** Create auto-mints
+Draft **version 1**; uploading again (append or overwrite, with or without
+`--version-number`) does **not** mint a v2 — every upload targets version 1.
+Uploading to a **non-existent** version (`?versionNumber=2` when only v1 exists)
+→ `INVALID_API_INPUT`.
+
+**Row-level edit is not the `/data` POST.** On the probed release the `/data`
+POST (row edit) is non-functional — load rows through the `/file` upload, not a
+row-by-row POST.
 
 ---
 
@@ -205,7 +293,7 @@ target release at merge time.
 
 | Field (MD/Tooling · Connect) | Values |
 |---|---|
-| `dataSourceType` · `sourceType` | ContextDefinition, CsvUpload, **MultipleSobjects**, **SingleSobject** |
+| `dataSourceType` · `sourceType` | ContextDefinition, **CsvUpload**, **MultipleSobjects**, **SingleSobject** |
 | `executionType` | **DLO** (v67.0+, replaces DMO), **HBASE**/`Hbase`, HBPO, SOLR, SOQL |
 | `conditionType` | **All**, Any, Custom |
 | `filterResultBy` · `decisionResultPolicy` | AnyValue, CollectOperator, FirstMatch, **OutputOrder**, Priority, RuleOrder, UniqueValues |
@@ -213,7 +301,7 @@ target release at merge time.
 | `status` | ActivationInProgress, **Active**, Draft, Inactive |
 | `usageType` (ExpsSetProcessType) | Bre (default), **DefaultPricing**, **DefaultRating**, **PricingDiscovery**, **RatingDiscovery**, **RevenueStandardTax**, ProductCategoryQualification, **ProductQualification**, RecordAlert, … |
 | `DecisionTableParameter.usage` | **INPUT**, **OUTPUT**, ROWCRITERIA |
-| `DecisionTableParameter.dataType` | Boolean, Currency, Date, DateTime, Number, Percent, **String** |
+| `DecisionTableParameter.dataType` | **Boolean**, **Currency**, **Date**, **DateTime**, **Number**, **Percent**, **String** (all 7 round-tripped live through a CsvUpload — per-cell CSV encoding in the **CSV Based tables** section above; DateTime needs `…T…:….sssZ`, Boolean only `true`/`false`) |
 | `DecisionTableParameter.operator` | **Equals**, NotEquals, GreaterThan, GreaterOrEqual, LessThan, LessOrEqual, ExistsIn, Matches, IsNull, … |
 | `DecisionTableSourceCriteria.valueType` | Formula, **Literal**, Lookup, Parameter, Picklist |
 | `collectOperator` | **None**, … (used when `filterResultBy=CollectOperator`) |
