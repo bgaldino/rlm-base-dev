@@ -28,8 +28,8 @@ The plan uses two object sets:
 
 | # | Object                  | Operation | External ID | Records |
 | - | ----------------------- | --------- | ----------- | ------- |
-| 1 | EmailTemplate           | Readonly  | --          | 2       |
-| 2 | ApprovalAlertContentDef | Upsert    | `Name`      | 2       |
+| 1 | EmailTemplate           | Readonly  | --          | 3       |
+| 2 | ApprovalAlertContentDef | Upsert    | `Name`      | 3       |
 
 `ApprovalAlertContentDef` uses a direct-field external ID (`Name`), so it stays
 idempotent with `operation: Upsert`. Do not change this plan to
@@ -43,6 +43,7 @@ Current notifications:
 | ------------------------------------- | -------------------------- | ------------------ | ----------------------------------------- |
 | RLM Quote Discount Approval Alert     | `RLM_Quote_Smart_Approval` | `Manager_Approver` | RLM Quote Discount Approval Template      |
 | RLM Quote Payment Term Approval Alert | `RLM_Quote_Smart_Approval` | `Payment_Terms`    | RLM Quote Payment Terms Approval Template |
+| RLM Quote Margin Approval Alert       | `RLM_Quote_Smart_Approval` | `Margin_Manager`   | RLM Quote Margin Approval Template        |
 
 ## Adding A New Approval Step Family
 

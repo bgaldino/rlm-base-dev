@@ -2530,7 +2530,7 @@
 
 ### `insert_qb_approvals_data`
 
-**Description:** Insert QuantumBit Approvals data. Loads ApprovalAlertContentDef records for discount and payment terms approval notifications. Requires post_approvals metadata (Flows, Fields, PathAssistant, PermissionSet) and create_approval_email_templates to be run first. EmailTemplatePage FlexiPages are excluded from deploy (platform restriction).
+**Description:** Insert QuantumBit Approvals data. Loads ApprovalAlertContentDef records for discount, margin, and payment terms approval notifications. Requires post_approvals metadata (Flows, Fields, PathAssistant, PermissionSet) and create_approval_email_templates to be run first. EmailTemplatePage FlexiPages are excluded from deploy (platform restriction).
 
 **Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
 

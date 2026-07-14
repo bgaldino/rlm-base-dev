@@ -176,6 +176,9 @@
                         <valueListItems>
                             <value>QuoteLineItem.RLM_Approval__c</value>
                         </valueListItems>
+                        <valueListItems>
+                            <value>QuoteLineItem.RLM_Margin_Approval__c</value>
+                        </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
                 <componentInstanceProperties>
@@ -786,6 +789,16 @@
                 </fieldInstanceProperties>
                 <fieldItem>Record.RLM_Approval_Level__c</fieldItem>
                 <identifier>RecordRLM_Approval_Level__cField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldInstanceProperties>
+                    <name>uiBehavior</name>
+                    <value>none</value>
+                </fieldInstanceProperties>
+                <fieldItem>Record.RLM_Margin_Approval_Level__c</fieldItem>
+                <identifier>RecordRLM_Margin_Approval_Level__cField</identifier>
             </fieldInstance>
         </itemInstances>
         <name>Facet-852b10dd-72a2-463a-bd87-90ceaf3fa84a</name>

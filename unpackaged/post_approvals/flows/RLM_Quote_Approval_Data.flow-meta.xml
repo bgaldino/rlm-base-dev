@@ -25,6 +25,7 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
+        <description>Follow-up (deferred build): Mode toggle insertion point — repoint this element's connector to Get_Approval_Config (RLM_Approval_Config__mdt) and add Route_Approval_Mode + Zero_Margin_Level/Zero_Discount_Level after it. See docs/features/composable-quote-approvals.md.</description>
         <name>Get_Quote_Data</name>
         <label>Get Quote Data</label>
         <locationX>0</locationX>
@@ -52,6 +53,10 @@
             <field>RLM_Approval_Level__c</field>
         </outputAssignments>
         <outputAssignments>
+            <assignToReference>MarginApprovalLevel</assignToReference>
+            <field>RLM_Margin_Approval_Level__c</field>
+        </outputAssignments>
+        <outputAssignments>
             <assignToReference>PaymentTerms</assignToReference>
             <field>RLM_Payment_Terms__c</field>
         </outputAssignments>
@@ -66,6 +71,17 @@
     <status>Active</status>
     <variables>
         <name>DiscountApprovalLevel</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+        <scale>0</scale>
+        <value>
+            <numberValue>0.0</numberValue>
+        </value>
+    </variables>
+    <variables>
+        <name>MarginApprovalLevel</name>
         <dataType>Number</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>

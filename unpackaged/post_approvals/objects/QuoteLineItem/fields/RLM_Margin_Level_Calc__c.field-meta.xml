@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>RLM_Margin_Level_Calc__c</fullName>
+    <externalId>false</externalId>
+    <formula>IF( OR( ISBLANK(TotalCost), ISBLANK(Margin) ), 0, IF(Margin &gt;= 0.40, 0, IF(Margin &gt;= 0.30, 1, IF(Margin &gt;= 0.20, 2, 3))))</formula>
+    <formulaTreatBlanksAs>BlankAsBlank</formulaTreatBlanksAs>
+    <label>Margin Level Calc</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackHistory>false</trackHistory>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

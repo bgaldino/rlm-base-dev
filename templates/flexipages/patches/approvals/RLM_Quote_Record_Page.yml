@@ -11,6 +11,9 @@ patches:
   - type: add_display_field
     field: "QuoteLineItem.RLM_Approval__c"
 
+  - type: add_display_field
+    field: "QuoteLineItem.RLM_Margin_Approval__c"
+
   - type: add_facet_field
     facet: "Quote Information"
     after: "Description"
@@ -23,3 +26,9 @@ patches:
     after: "ValidationResult"
     fields:
       - "RLM_Approval_Level__c"
+
+  - type: add_facet_field
+    facet: "System Information"
+    after: "RLM_Approval_Level__c"
+    fields:
+      - "RLM_Margin_Approval_Level__c"

@@ -2109,7 +2109,7 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Insert QuantumBit Approvals data. Loads ApprovalAlertContentDef records for
-      discount and payment terms approval notifications. Requires post_approvals metadata
+      discount, margin, and payment terms approval notifications. Requires post_approvals metadata
       (Flows, Fields, PathAssistant, PermissionSet) and create_approval_email_templates
       to be run first. EmailTemplatePage FlexiPages are excluded from deploy (platform restriction).
     class_path: tasks.rlm_sfdmu.LoadSFDMUData

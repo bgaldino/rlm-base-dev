@@ -21,6 +21,11 @@
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
+        <editable>false</editable>
+        <field>Quote.RLM_Margin_Approval_Level__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>true</editable>
         <field>Quote.RLM_Payment_Terms__c</field>
         <readable>true</readable>
@@ -33,6 +38,16 @@
     <fieldPermissions>
         <editable>false</editable>
         <field>QuoteLineItem.RLM_Approval_Level_Calc__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>QuoteLineItem.RLM_Margin_Approval__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>QuoteLineItem.RLM_Margin_Level_Calc__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <classAccesses>
