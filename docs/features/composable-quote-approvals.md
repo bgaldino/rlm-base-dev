@@ -10,7 +10,9 @@ Implemented in:
 - `unpackaged/post_approvals/flows/RLM_Quote_Approval_Data.flow-meta.xml`
 - `unpackaged/post_approvals/flows/RLM_Quote_Approval_Comments.flow-meta.xml`
 - `unpackaged/post_approvals/classes/RLM_AA_Submit_Approval.cls`
+- `unpackaged/post_approvals/objects/RLM_Approval_Config__mdt/`
 - `tasks/rlm_create_approval_email_templates.py`
+- `tasks/rlm_seed_approval_config.py`
 - `datasets/sfdmu/qb/en-US/qb-approvals/`
 
 ## Responsibility Boundary
@@ -143,7 +145,10 @@ Add dimensions as a recipe, not as a framework rewrite.
    `deploy_post_personas`/`deploy_post_tso`, **separate `Deploy` tasks from
    `deploy_post_approvals`** — a prepared org won't pick up the FLS edit until
    you rerun the matching task. An empty FLS query against correct source XML
-   is the signature of a missed redeploy, not an authoring bug.
+   is the signature of a missed redeploy, not an authoring bug. This step is
+   for sObject fact-source fields only — CMDT fields (e.g. on
+   `RLM_Approval_Config__mdt`) need no permission-set FLS grant, since
+   `visibility=Public` CMDT is readable without one.
 10. Optionally surface the new fields on the Quote record page via
     `templates/flexipages/patches/approvals/RLM_Quote_Record_Page.yml`
     (`add_display_field` / `add_facet_field`), then run
@@ -162,11 +167,47 @@ What should not change for a normal new dimension:
 Threshold and terms policy is still hardcoded in the current formula/flow
 conditions. The Margin dimension (a third approval dimension, added after
 Discount and Finance) shipped with this deviation still open — thresholds are
-hardcoded in `RLM_Margin_Level_Calc__c` rather than externalized. A routing-only
-mode toggle (`RLM_Approval_Config__mdt`, gating which chains run) is scoped as a
-deferred follow-up; full threshold externalization (cutoffs read from
-`$CustomMetadata`) remains a further, still-deferred extension of that same
-type.
+hardcoded in `RLM_Margin_Level_Calc__c` rather than externalized. The
+routing-only mode toggle (`RLM_Approval_Config__mdt`, gating which chains run —
+see [CMDT Routing Toggle](#cmdt-routing-toggle) below) is implemented; full
+threshold externalization (cutoffs read from `$CustomMetadata`, touching the
+QLI formula) remains a separate, still-deferred extension.
+
+## CMDT Routing Toggle
+
+`RLM_Approval_Config__mdt` lets an admin disable an entire chain (Discount,
+Margin, Finance) without redeploying flow XML — for example to turn off Margin
+approvals org-wide during a pricing promotion. It is routing-only: it does not
+touch the 15/25/35% discount-tier or margin-tier thresholds themselves (that
+stays a separate, deferred effort — see above).
+
+- **One record, three Checkbox fields.** The type has exactly one record,
+  `Default`, with `RLM_Discount_Chain_Enabled__c`, `RLM_Margin_Chain_Enabled__c`,
+  and `RLM_Finance_Chain_Enabled__c`. `RLM_Quote_Approval_Data`'s
+  `Get_Approval_Config` lookup filters `DeveloperName = "Default"` — a literal
+  baked into the flow, not admin-configurable. `DeveloperName` is
+  platform-unique per CMDT type, so a second `Default` record can't exist, but
+  an admin *can* deploy an additional, differently-named record (e.g. `Prod`) —
+  it will never be read. The record's label and the flow element's description
+  both call this out.
+- **Fail-open.** All gating lives in `RLM_Quote_Approval_Data`, not the
+  orchestrator: three local Booleans default to `true`, and
+  `Get_Approval_Config` uses `assignNullValuesIfNoRecordsFound=false` (the same
+  pattern `Get_Quote_Data` already uses), so a missing/deleted `Default` record
+  leaves every chain enabled rather than silently suppressing a required
+  approval. `RLM_Quote_Smart_Approval` needs zero changes — it only references
+  `QueryApprovalData.Outputs.*` by name, and the gated values are written back
+  under the same output variable names (`DiscountApprovalLevel`,
+  `MarginApprovalLevel`, `PaymentTerms`).
+- **Seed once, never clobber.** The CMDT *type* deploys via
+  `deploy_post_approvals` like any other metadata. The `Default` *record* is
+  not a static file in that bundle — a plain `Deploy` task upserts a static
+  `customMetadata/*.md-meta.xml` file's values on every run, which would reset
+  an admin's toggle back to all-enabled on every `prepare_approvals` rerun.
+  Instead `tasks/rlm_seed_approval_config.py` (task `seed_approval_config`,
+  step 2 of `prepare_approvals`) creates `Default` only if it doesn't already
+  exist and never updates it otherwise, so admin edits survive every future
+  redeploy.
 
 ## Notification Scaling
 
@@ -195,6 +236,15 @@ Run these checks before treating an approval-flow change as ready:
   step) routes the quote to `Rejected`.
 - **Resubmission**: Resubmission after rejection or recall keeps expected work items Smart
   Approval eligible.
+- **CMDT chain suppression**: Toggling one of the three `RLM_Approval_Config__mdt.Default`
+  Checkbox fields to `false` (via Setup) suppresses only that chain on a quote that would
+  otherwise trigger it; the other chains still fire and the quote still resolves.
+- **CMDT fail-open**: With `Default` already seeded, delete it via Setup, then submit a
+  quote requiring all three dimensions **without rerunning `prepare_approvals`**
+  (rerunning reseeds it via `seed_approval_config`) — confirm every chain still triggers
+  exactly as baseline, then rerun `prepare_approvals` to restore `Default`.
+- **CMDT seed idempotency**: Rerunning `prepare_approvals` against an org where `Default`
+  already exists logs `seed_approval_config` skipping the seed rather than recreating it.
 - `python scripts/ai/check_plan_readme_consistency.py datasets/sfdmu/qb/en-US/qb-approvals`
   reports zero errors after notification dataset changes.
 - `python scripts/validate_sfdmu_v5_datasets.py` passes after dataset changes.

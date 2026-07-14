@@ -194,10 +194,11 @@ Extract rating and rates data from an org into CSV files
 **Steps:**
 
 1. **task** `deploy_post_approvals`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
-2. **task** `create_approval_email_templates`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
-3. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
+2. **task** `seed_approval_config`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
+3. **task** `create_approval_email_templates`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
+4. **task** `assign_permission_sets`  `when: project_config.project__custom__quantumbit and project_config.project__custom__approvals`
    - `api_names`: `['RLM_Approvals']`
-4. **task** `insert_qb_approvals_data`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
+5. **task** `insert_qb_approvals_data`  `when: project_config.project__custom__qb and project_config.project__custom__approvals`
 
 ---
 

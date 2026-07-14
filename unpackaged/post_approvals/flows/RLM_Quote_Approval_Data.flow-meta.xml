@@ -2,7 +2,51 @@
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <name>Apply_Approval_Config</name>
+        <label>Apply Approval Config</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>DiscountApprovalLevel</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>DiscountApprovalLevelGated</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>MarginApprovalLevel</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>MarginApprovalLevelGated</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>PaymentTerms</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>PaymentTermsGated</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
     <environments>Default</environments>
+    <formulas>
+        <name>DiscountApprovalLevelGated</name>
+        <dataType>Number</dataType>
+        <expression>IF({!DiscountChainEnabled} = false, 0, {!DiscountApprovalLevel})</expression>
+        <scale>0</scale>
+    </formulas>
+    <formulas>
+        <name>MarginApprovalLevelGated</name>
+        <dataType>Number</dataType>
+        <expression>IF({!MarginChainEnabled} = false, 0, {!MarginApprovalLevel})</expression>
+        <scale>0</scale>
+    </formulas>
+    <formulas>
+        <name>PaymentTermsGated</name>
+        <dataType>String</dataType>
+        <expression>IF({!FinanceChainEnabled} = false, "Net 30", {!PaymentTerms})</expression>
+    </formulas>
     <interviewLabel>RLM Quote Approval Data {!$Flow.CurrentDateTime}</interviewLabel>
     <label>RLM Quote Approval Data</label>
     <processMetadataValues>
@@ -25,12 +69,47 @@
     </processMetadataValues>
     <processType>AutoLaunchedFlow</processType>
     <recordLookups>
-        <description>Follow-up (deferred build): Mode toggle insertion point — repoint this element's connector to Get_Approval_Config (RLM_Approval_Config__mdt) and add Route_Approval_Mode + Zero_Margin_Level/Zero_Discount_Level after it. See docs/features/composable-quote-approvals.md.</description>
+        <name>Get_Approval_Config</name>
+        <label>Get Approval Config</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <description>Reads RLM_Approval_Config__mdt.Default only — this is the single, hardcoded routing-toggle record; any other record deployed under this CMDT type is never read. Do NOT flip assignNullValuesIfNoRecordsFound to true: a missing/undeployed Default record must fail OPEN (every chain stays enabled via the true defaults on DiscountChainEnabled/MarginChainEnabled/FinanceChainEnabled below), never fail closed.</description>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Apply_Approval_Config</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>DeveloperName</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Default</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>RLM_Approval_Config__mdt</object>
+        <outputAssignments>
+            <assignToReference>DiscountChainEnabled</assignToReference>
+            <field>RLM_Discount_Chain_Enabled__c</field>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>MarginChainEnabled</assignToReference>
+            <field>RLM_Margin_Chain_Enabled__c</field>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>FinanceChainEnabled</assignToReference>
+            <field>RLM_Finance_Chain_Enabled__c</field>
+        </outputAssignments>
+    </recordLookups>
+    <recordLookups>
         <name>Get_Quote_Data</name>
         <label>Get Quote Data</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Get_Approval_Config</targetReference>
+        </connector>
         <filterLogic>and</filterLogic>
         <filters>
             <field>Id</field>
@@ -81,6 +160,26 @@
         </value>
     </variables>
     <variables>
+        <name>DiscountChainEnabled</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>true</booleanValue>
+        </value>
+    </variables>
+    <variables>
+        <name>FinanceChainEnabled</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>true</booleanValue>
+        </value>
+    </variables>
+    <variables>
         <name>MarginApprovalLevel</name>
         <dataType>Number</dataType>
         <isCollection>false</isCollection>
@@ -89,6 +188,16 @@
         <scale>0</scale>
         <value>
             <numberValue>0.0</numberValue>
+        </value>
+    </variables>
+    <variables>
+        <name>MarginChainEnabled</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value>
+            <booleanValue>true</booleanValue>
         </value>
     </variables>
     <variables>

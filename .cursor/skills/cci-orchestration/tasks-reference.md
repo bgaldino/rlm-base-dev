@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**273 tasks** across **10 groups**.
+**274 tasks** across **10 groups**.
 
 ---
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*164 task(s)*
+*165 task(s)*
 
 ### `activate_agents`
 
@@ -3027,6 +3027,14 @@
 **Description:** Restore the placeholder siteAdmin and siteGuestRecordDefaultOwner in Payments_Webhook.site-meta.xml after deploy_post_payments_site so the repo never stores the target org's real username. Run AFTER deploy_post_payments_site.
 
 **Class:** `tasks.rlm_community.RevertPaymentsSiteAfterDeploy`
+
+---
+
+### `seed_approval_config`
+
+**Description:** Seed the RLM_Approval_Config__mdt.Default record (routing toggle for the Discount/Margin/Finance approval chains in RLM_Quote_Smart_Approval) only if it does not already exist. Never updates an existing record, so an admin's chain-enabled toggles survive every future prepare_approvals rerun. The CMDT type/fields deploy via deploy_post_approvals; this task seeds the one Default record separately because a static customMetadata file would be reset to its committed values (all chains enabled) on every deploy.
+
+**Class:** `tasks.rlm_seed_approval_config.SeedApprovalConfig`
 
 ---
 

@@ -15,7 +15,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 |------|---------|------------------------|
 | `agents` | `True` | 11 flow step(s) |
 | `analytics` | `True` | 2 flow step(s) |
-| `approvals` | `True` | 5 flow step(s) |
+| `approvals` | `True` | 6 flow step(s) |
 | `billing` | `True` | 22 flow step(s) |
 | `billing_portal` | `False` | 3 flow step(s) |
 | `billing_portal_deploy` | `True` | 1 flow step(s) |
@@ -45,7 +45,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `q3` | `False` | 13 flow step(s) |
 | `qb` | `True` | 40 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 10 flow step(s) |
+| `quantumbit` | `True` | 11 flow step(s) |
 | `ramps` | `True` | 4 flow step(s) |
 | `rates` | `True` | 6 flow step(s) |
 | `rating` | `True` | 15 flow step(s) |
@@ -82,9 +82,10 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 ### `approvals` (default: `True`)
 
 - `prepare_approvals` step 1 → `deploy_post_approvals`
-- `prepare_approvals` step 2 → `create_approval_email_templates`
-- `prepare_approvals` step 3 → `assign_permission_sets`
-- `prepare_approvals` step 4 → `insert_qb_approvals_data`
+- `prepare_approvals` step 2 → `seed_approval_config`
+- `prepare_approvals` step 3 → `create_approval_email_templates`
+- `prepare_approvals` step 4 → `assign_permission_sets`
+- `prepare_approvals` step 5 → `insert_qb_approvals_data`
 - `run_qb_idempotency_tests` step 13 → `test_qb_approvals_idempotency`
 
 ### `billing` (default: `True`)
@@ -377,7 +378,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_constraints` step 10 → `import_cml`
 - `prepare_constraints` step 11 → `manage_expression_sets`
 - `prepare_constraints` step 12 → `manage_expression_sets`
-- `prepare_approvals` step 4 → `insert_qb_approvals_data`
+- `prepare_approvals` step 5 → `insert_qb_approvals_data`
 - `prepare_guidedselling` step 4 → `insert_qb_guidedselling_products_data`
 - `prepare_pricing_discovery` step 2 → `configure_product_discovery_settings`
 - `run_qb_idempotency_tests` step 10 → `test_qb_tax_idempotency`
@@ -394,8 +395,9 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_quantumbit` step 5 → `assign_permission_sets`
 - `prepare_constraints` step 1 → `insert_qb_transactionprocessingtypes_data`
 - `prepare_approvals` step 1 → `deploy_post_approvals`
-- `prepare_approvals` step 2 → `create_approval_email_templates`
-- `prepare_approvals` step 3 → `assign_permission_sets`
+- `prepare_approvals` step 2 → `seed_approval_config`
+- `prepare_approvals` step 3 → `create_approval_email_templates`
+- `prepare_approvals` step 4 → `assign_permission_sets`
 - `prepare_revenue_settings` step 1 → `configure_revenue_settings`
 - `prepare_revenue_settings` step 2 → `configure_revenue_settings`
 

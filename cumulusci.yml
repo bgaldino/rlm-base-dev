@@ -1286,7 +1286,19 @@ tasks:
       Required before insert_qb_approvals_data. EmailTemplatePage FlexiPages cannot be
       deployed via Metadata API (platform restriction).
     class_path: tasks.rlm_create_approval_email_templates.CreateApprovalEmailTemplates
-  
+
+  seed_approval_config:
+    group: Revenue Lifecycle Management
+    description: >
+      Seed the RLM_Approval_Config__mdt.Default record (routing toggle for the
+      Discount/Margin/Finance approval chains in RLM_Quote_Smart_Approval) only if
+      it does not already exist. Never updates an existing record, so an admin's
+      chain-enabled toggles survive every future prepare_approvals rerun. The CMDT
+      type/fields deploy via deploy_post_approvals; this task seeds the one Default
+      record separately because a static customMetadata file would be reset to its
+      committed values (all chains enabled) on every deploy.
+    class_path: tasks.rlm_seed_approval_config.SeedApprovalConfig
+
   deploy_docgen_seller_fields:
     description: >
       Deploy RLM_Seller_*__c, RLM_Account_Name__c, and RLM_Sales_Rep_Name__c formula fields
@@ -4423,14 +4435,17 @@ flows:
         task: deploy_post_approvals
         when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
       2:
-        task: create_approval_email_templates
+        task: seed_approval_config
         when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
       3:
+        task: create_approval_email_templates
+        when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
+      4:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__approvals
         options:
           api_names: *ps_approvals
-      4:
+      5:
         task: insert_qb_approvals_data
         when: project_config.project__custom__qb and project_config.project__custom__approvals
 
