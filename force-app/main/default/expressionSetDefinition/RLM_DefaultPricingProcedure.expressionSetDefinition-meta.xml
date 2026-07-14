@@ -1300,7 +1300,7 @@
                     <name>formula-section-1-input</name>
                     <output>false</output>
                     <type>Formula</type>
-                    <value>( ItemNetTotalPrice - ( ItemUnitCost__std * LineItemQuantity ) ) / ItemNetTotalPrice</value>
+                    <value>MAX( -9.9999, ( ItemNetTotalPrice - ( ItemUnitCost__std * LineItemQuantity ) ) / ItemNetTotalPrice )</value>
                 </parameters>
                 <parameters>
                     <input>true</input>
