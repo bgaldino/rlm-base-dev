@@ -1,0 +1,4 @@
+AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,DefaultValue,Description,DisplayType,HelpText,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,MaximumCharacterCount,MaximumValue,MinimumCharacterCount,MinimumValue,Name,ProductClassification.Code,Sequence,Status,StepValue,UnitOfMeasure.UnitCode,ValueDescription
+AC-KLD-MATTER,ATTR-KLD-SOURCE-GB,,1000,,,,false,false,false,false,,,,,KLD Pathway Source GB,PC-KLD-PATHWAY,1,Active,,GB,
+AC-KLD-MATTER,ATTR-KLD-ECA-PCT,,70,,,,false,false,false,false,,100,,0,KLD Pathway ECA Percent,PC-KLD-PATHWAY,2,Active,,,
+AC-KLD-MATTER,ATTR-KLD-REVIEW-PCT,,30,,,,false,false,false,false,,100,,0,KLD Pathway Review Percent,PC-KLD-PATHWAY,3,Active,,,

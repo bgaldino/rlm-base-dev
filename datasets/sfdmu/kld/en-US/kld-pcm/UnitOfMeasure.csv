@@ -1,0 +1,12 @@
+ConversionFactor,Description,Name,RoundingMethod,Scale,Sequence,Status,Type,UnitCode,UnitOfMeasureClass.Code
+1,Gigabyte,Gigabyte,,,1,Active,Data,GB,DATAVOL
+1,Gigabyte per month,Gigabyte Month,,,2,Active,Data,GB-MO,DATAVOL
+1,Hour,Hour,,,1,Active,Time,h,TIME
+1,Each,Each,,,1,Active,Count,EACH,KLD-COUNT
+1,Document,Document,,,2,Active,Count,DOC,KLD-COUNT
+1,Document per run,Document Run,,,3,Active,Count,DOC-RUN,KLD-COUNT
+1,Document per quarter,Document Quarter,,,4,Active,Count,DOC-QTR,KLD-COUNT
+1,Page,Page,,,5,Active,Count,PAGE,KLD-COUNT
+1,Million characters,Million Characters,,,6,Active,Count,MCHARS,KLD-COUNT
+1,Transcription hour,Automated Transcription Hour,,,7,Active,Time,ATRANS-HR,TIME
+1,US Dollar pass-through,USD,,,1,Active,Cost,USD,CURRENCY

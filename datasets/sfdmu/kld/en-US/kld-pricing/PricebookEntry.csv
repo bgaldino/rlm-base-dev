@@ -1,0 +1,42 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$CurrencyIsoCode,CurrencyIsoCode,IsActive,IsDerived,Name,Pricebook2.$$Name$IsStandard,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,UnitPrice
+KLD-PATH-NEB-NEB;One-Time;USD,USD,true,false,Nebula ECA to Nebula Review,Standard Price Book;true,KLD-PATH-NEB-NEB,One-Time;OneTime,0
+KLD-PATH-NEB-R1;One-Time;USD,USD,true,false,Nebula ECA to RelOne,Standard Price Book;true,KLD-PATH-NEB-R1,One-Time;OneTime,0
+KLD-PATH-R1-R1;One-Time;USD,USD,true,false,RelOne ECA to RelOne,Standard Price Book;true,KLD-PATH-R1-R1,One-Time;OneTime,0
+KLD-AI-CASEBOT;Evergreen - Quarterly;USD,USD,true,false,eDiscovery AI - Early Case Bot (CaseBot),Standard Price Book;true,KLD-AI-CASEBOT,Evergreen - Quarterly;Evergreen,0.08
+KLD-AI-ECI-CORE;One-Time;USD,USD,true,false,eDiscovery AI - Early Case Insight (Core),Standard Price Book;true,KLD-AI-ECI-CORE,One-Time;OneTime,0.04
+KLD-AI-ECI-ELEMENTS;One-Time;USD,USD,true,false,eDiscovery AI - Early Case Insight (Case Elements),Standard Price Book;true,KLD-AI-ECI-ELEMENTS,One-Time;OneTime,0.04
+KLD-AI-PII-DETECT;One-Time;USD,USD,true,false,eDiscovery AI - PII Detect,Standard Price Book;true,KLD-AI-PII-DETECT,One-Time;OneTime,0.2
+KLD-AI-PII-EXTRACT;One-Time;USD,USD,true,false,eDiscovery AI - PII Extract,Standard Price Book;true,KLD-AI-PII-EXTRACT,One-Time;OneTime,1.05
+KLD-AI-PII-REDACT;One-Time;USD,USD,true,false,eDiscovery AI - PII Redact,Standard Price Book;true,KLD-AI-PII-REDACT,One-Time;OneTime,0.35
+KLD-AI-PRIVILEGE;One-Time;USD,USD,true,false,eDiscovery AI - Privilege,Standard Price Book;true,KLD-AI-PRIVILEGE,One-Time;OneTime,0.3
+KLD-AI-RELEVANCE;One-Time;USD,USD,true,false,eDiscovery AI - Relevance,Standard Price Book;true,KLD-AI-RELEVANCE,One-Time;OneTime,0.3
+KLD-AN-ANALYTICS;One-Time;USD,USD,true,false,KLDiscovery Analytics,Standard Price Book;true,KLD-AN-ANALYTICS,One-Time;OneTime,5.0
+KLD-AN-SUM;One-Time;USD,USD,true,false,Nebula AI Summarization,Standard Price Book;true,KLD-AN-SUM,One-Time;OneTime,25.0
+KLD-AN-SUM-MED;One-Time;USD,USD,true,false,Nebula AI Summarization (Medical),Standard Price Book;true,KLD-AN-SUM-MED,One-Time;OneTime,0.5
+KLD-AN-TRANSCRIBE;One-Time;USD,USD,true,false,KLD Transcription Service,Standard Price Book;true,KLD-AN-TRANSCRIBE,One-Time;OneTime,15.0
+KLD-AN-XLAT;One-Time;USD,USD,true,false,AI Translation,Standard Price Book;true,KLD-AN-XLAT,One-Time;OneTime,40.0
+KLD-FOR-ANALYSIS;One-Time;USD,USD,true,false,Forensic Analysis,Standard Price Book;true,KLD-FOR-ANALYSIS,One-Time;OneTime,450.0
+KLD-FOR-COLL;One-Time;USD,USD,true,false,Forensic Data Collection,Standard Price Book;true,KLD-FOR-COLL,One-Time;OneTime,350.0
+KLD-FOR-DOWNTIME;One-Time;USD,USD,true,false,Forensic Data Collection - Downtime,Standard Price Book;true,KLD-FOR-DOWNTIME,One-Time;OneTime,175.0
+KLD-FOR-RCOLL;One-Time;USD,USD,true,false,Remote Forensic Data Collection,Standard Price Book;true,KLD-FOR-RCOLL,One-Time;OneTime,295.0
+KLD-MED-FREIGHT;One-Time;USD,USD,true,false,Freight,Standard Price Book;true,KLD-MED-FREIGHT,One-Time;OneTime,0.0
+KLD-MED-HDD;One-Time;USD,USD,true,false,Hard Drive,Standard Price Book;true,KLD-MED-HDD,One-Time;OneTime,150.0
+KLD-PS-PM;One-Time;USD,USD,true,false,Project Management,Standard Price Book;true,KLD-PS-PM,One-Time;OneTime,195.0
+KLD-PS-TECH;One-Time;USD,USD,true,false,Technical Support,Standard Price Book;true,KLD-PS-TECH,One-Time;OneTime,175.0
+KLD-RCMGR-DECRYPT;One-Time;USD,USD,true,false,RCMgr Drive Decryption,Standard Price Book;true,KLD-RCMGR-DECRYPT,One-Time;OneTime,200.0
+KLD-RCMGR-PC;One-Time;USD,USD,true,false,RCMgr Self Collection Computer,Standard Price Book;true,KLD-RCMGR-PC,One-Time;OneTime,550.0
+KLD-RCMGR-SRV;One-Time;USD,USD,true,false,RCMgr Self Collection Server,Standard Price Book;true,KLD-RCMGR-SRV,One-Time;OneTime,850.0
+KLD-RMDC-FLAT;One-Time;USD,USD,true,false,RMDC - Remote Mobile Device Collection (Flat),Standard Price Book;true,KLD-RMDC-FLAT,One-Time;OneTime,1250.0
+KLD-RMDC-HR;One-Time;USD,USD,true,false,RMDC - Remote Mobile Device Collection (Hourly),Standard Price Book;true,KLD-RMDC-HR,One-Time;OneTime,295.0
+KLD-SETUP-MATTER-GB;One-Time;USD,USD,true,false,Transactional Matter Set Up Fee,Standard Price Book;true,KLD-SETUP-MATTER-GB,One-Time;OneTime,10.0
+KLD-STAGING;One-Time;USD,USD,true,false,Staging,Standard Price Book;true,KLD-STAGING,One-Time;OneTime,10.0
+KLD-TRAVEL-EXP;One-Time;USD,USD,true,false,Travel Expense,Standard Price Book;true,KLD-TRAVEL-EXP,One-Time;OneTime,0.0
+KLD-TRAVEL-TIME;One-Time;USD,USD,true,false,Travel Time,Standard Price Book;true,KLD-TRAVEL-TIME,One-Time;OneTime,175.0
+KLD-NEB-ECA-HOST;Evergreen Monthly;USD,USD,true,false,Nebula ECA Hosting,Standard Price Book;true,KLD-NEB-ECA-HOST,Evergreen Monthly;Evergreen,2.5
+KLD-NEB-ECA-HOST;Term Monthly;USD,USD,true,false,Nebula ECA Hosting,Standard Price Book;true,KLD-NEB-ECA-HOST,Term Monthly;TermDefined,2.5
+KLD-NEB-REVIEW;Evergreen Monthly;USD,USD,true,false,Nebula Review,Standard Price Book;true,KLD-NEB-REVIEW,Evergreen Monthly;Evergreen,14.0
+KLD-NEB-REVIEW;Term Monthly;USD,USD,true,false,Nebula Review,Standard Price Book;true,KLD-NEB-REVIEW,Term Monthly;TermDefined,14.0
+KLD-R1-ECA-HOST;Evergreen Monthly;USD,USD,true,false,RelOne ECA Hosting,Standard Price Book;true,KLD-R1-ECA-HOST,Evergreen Monthly;Evergreen,2.5
+KLD-R1-ECA-HOST;Term Monthly;USD,USD,true,false,RelOne ECA Hosting,Standard Price Book;true,KLD-R1-ECA-HOST,Term Monthly;TermDefined,2.5
+KLD-R1-REVIEW;Evergreen Monthly;USD,USD,true,false,RelOne Review,Standard Price Book;true,KLD-R1-REVIEW,Evergreen Monthly;Evergreen,14.0
+KLD-R1-REVIEW;Term Monthly;USD,USD,true,false,RelOne Review,Standard Price Book;true,KLD-R1-REVIEW,Term Monthly;TermDefined,14.0

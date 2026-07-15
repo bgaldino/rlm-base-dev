@@ -135,6 +135,7 @@ project:
     # ── Data & UX ──────────────────────────────────────────────────────────────
     qb: true                  # QuantumBit data
     q3: false                 # Q3 data
+    kld: false                # KLDiscovery demo catalog (kld-pcm + kld-pricing; coexists with qb)
     quantumbit: true          # QuantumBit app deployment
     product_dataset: qb       # Default product dataset
     ux: true                  # Assemble and deploy dynamic UX (set false to skip prepare_ux entirely)
@@ -566,6 +567,9 @@ project:
     inapp_dataset: &inapp_dataset "datasets/sfdmu/inapp"                                                            # In-App Learning navigation content (Pages/Sections/Blocks/DynamicLinks)
     quantumbit_prm_pricing_dataset: &quantumbit_prm_pricing_dataset "datasets/sfdmu/qb/en-US/qb-prm-pricing"         # QuantumBit PRM pricing overlay data
     quantumbit_approvals_dataset: &quantumbit_approvals_dataset "datasets/sfdmu/qb/en-US/qb-approvals"               # QuantumBit approvals data
+
+    kld_pcm_dataset: &kld_pcm_dataset "datasets/sfdmu/kld/en-US/kld-pcm"                                         # KLDiscovery product catalog
+    kld_pricing_dataset: &kld_pricing_dataset "datasets/sfdmu/kld/en-US/kld-pricing"                               # KLDiscovery pricing (USD Standard Price Book)
 
     procedure_plans_dataset: &procedure_plans_dataset "datasets/sfdmu/procedure-plans"                                 # Procedure Plan data (sections + options)
     prm_pricing_procedure_plan_overlay: &prm_pricing_procedure_plan_overlay "datasets/procedure_plan_overlays/prm_pricing.json" # PRM pricing Procedure Plan overlay
@@ -1923,6 +1927,26 @@ tasks:
     options:
       pathtoexportjson: *q3_pricing_dataset
 
+  insert_kld_pcm_data:
+    group: Revenue Lifecycle Management
+    description: >
+      Insert KLDiscovery PCM data (37 products: matter pathways, hosting, forensics,
+      eDiscovery AI, analytics, professional services). Requires distinct KLD-* SKUs;
+      can load alongside QuantumBit when both qb and kld flags are enabled.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *kld_pcm_dataset
+
+  insert_kld_pricing_data:
+    group: Revenue Lifecycle Management
+    description: >
+      Insert KLDiscovery pricing into Standard Price Book (USD): pricebook entries,
+      volume tiers for GB/month hosting, cost book entries. Run after insert_kld_pcm_data.
+      Precede with delete_kld_pricing_data for idempotent reloads.
+    class_path: tasks.rlm_sfdmu.LoadSFDMUData
+    options:
+      pathtoexportjson: *kld_pricing_dataset
+
   insert_quantumbit_prm_data:
     group: Revenue Lifecycle Management
     description: >
@@ -2458,6 +2482,16 @@ tasks:
     options:
       pathtoexportjson: *q3_pricing_dataset
 
+  delete_kld_pricing_data:
+    group: Data Maintenance
+    description: >
+      Delete all Insert-operation records from the kld-pricing plan (CostBookEntry,
+      PricebookEntry, PriceAdjustmentTier) in reverse plan order (children first).
+      Shape-agnostic. Run before insert_kld_pricing_data for idempotent reloads.
+    class_path: tasks.rlm_sfdmu.DeleteSFDMUData
+    options:
+      pathtoexportjson: *kld_pricing_dataset
+
   delete_quantumbit_prm_pricing_data:
     group: Data Maintenance
     description: >
@@ -2710,6 +2744,14 @@ tasks:
     class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
     options:
       pathtoexportjson: *quantumbit_pricing_dataset
+      use_extraction_roundtrip: false
+
+  test_kld_pricing_idempotency:
+    group: Data Management - Idempotency
+    description: Idempotency test for kld-pricing (load twice from source, assert no new records).
+    class_path: tasks.rlm_sfdmu.TestSFDMUIdempotency
+    options:
+      pathtoexportjson: *kld_pricing_dataset
       use_extraction_roundtrip: false
 
   test_qb_product_images_idempotency:
@@ -3849,6 +3891,9 @@ flows:
       3:
         task: insert_quantumbit_product_image_data
         when: project_config.project__custom__qb
+      4:
+        task: insert_kld_pcm_data
+        when: project_config.project__custom__kld
 
   prepare_pricing_data:
     group: Revenue Lifecycle Management
@@ -3865,6 +3910,12 @@ flows:
       4:
         task: insert_q3_pricing_data
         when: project_config.project__custom__q3 and not project_config.project__custom__qb
+      5:
+        task: delete_kld_pricing_data
+        when: project_config.project__custom__kld
+      6:
+        task: insert_kld_pricing_data
+        when: project_config.project__custom__kld
 
   prepare_scratch:
     group: Revenue Lifecycle Management

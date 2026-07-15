@@ -3,13 +3,13 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**273 tasks** across **10 groups**.
+**277 tasks** across **10 groups**.
 
 ---
 
 ## Data Maintenance
 
-*8 task(s)*
+*9 task(s)*
 
 ### `delete_draft_billing_records`
 
@@ -20,6 +20,18 @@
 **Options:**
 
 - `path`: `scripts/apex/deleteDraftBillingRecords.apex`
+
+---
+
+### `delete_kld_pricing_data`
+
+**Description:** Delete all Insert-operation records from the kld-pricing plan (CostBookEntry, PricebookEntry, PriceAdjustmentTier) in reverse plan order (children first). Shape-agnostic. Run before insert_kld_pricing_data for idempotent reloads.
+
+**Class:** `tasks.rlm_sfdmu.DeleteSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/kld/en-US/kld-pricing`
 
 ---
 
@@ -422,7 +434,20 @@
 
 ## Data Management - Idempotency
 
-*21 task(s)*
+*22 task(s)*
+
+### `test_kld_pricing_idempotency`
+
+**Description:** Idempotency test for kld-pricing (load twice from source, assert no new records).
+
+**Class:** `tasks.rlm_sfdmu.TestSFDMUIdempotency`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/kld/en-US/kld-pricing`
+- `use_extraction_roundtrip`: `False`
+
+---
 
 ### `test_q3_billing_idempotency`
 
@@ -1050,7 +1075,7 @@
 
 ## Revenue Lifecycle Management
 
-*164 task(s)*
+*166 task(s)*
 
 ### `activate_agents`
 
@@ -2415,6 +2440,30 @@
 **Options:**
 
 - `pathtoexportjson`: `datasets/sfdmu/qb/en-US/qb-clm`
+
+---
+
+### `insert_kld_pcm_data`
+
+**Description:** Insert KLDiscovery PCM data (37 products: matter pathways, hosting, forensics, eDiscovery AI, analytics, professional services). Requires distinct KLD-* SKUs; can load alongside QuantumBit when both qb and kld flags are enabled.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/kld/en-US/kld-pcm`
+
+---
+
+### `insert_kld_pricing_data`
+
+**Description:** Insert KLDiscovery pricing into Standard Price Book (USD): pricebook entries, volume tiers for GB/month hosting, cost book entries. Run after insert_kld_pcm_data. Precede with delete_kld_pricing_data for idempotent reloads.
+
+**Class:** `tasks.rlm_sfdmu.LoadSFDMUData`
+
+**Options:**
+
+- `pathtoexportjson`: `datasets/sfdmu/kld/en-US/kld-pricing`
 
 ---
 

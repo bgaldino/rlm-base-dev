@@ -1,0 +1,4 @@
+Code,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.UnitCode,ValueDescription
+ATTR-KLD-SOURCE-GB,Number,,1000,Estimated source data volume in GB,Source_Data_GB,true,false,Source Data (GB),Source Data GB,,,GB,
+ATTR-KLD-ECA-PCT,Number,,70,Percent of expanded data in ECA hosting,ECA_Data_Pct,true,false,ECA Data %,ECA Data Percent,,,,
+ATTR-KLD-REVIEW-PCT,Number,,30,Percent of ECA data promoted to review,Active_Review_Pct,true,false,Active Review %,Active Review Percent,,,,

@@ -1,0 +1,5 @@
+BaseUnitOfMeasure.UnitCode,Code,DefaultUnitOfMeasure.UnitCode,Description,Name,Status,Type
+EACH,KLD-COUNT,EACH,Count-based units,KLD Count,Active,Usage
+USD,CURRENCY,USD,,Currency,Active,Currency
+GB,DATAVOL,GB,Data volume,Data Volume,Active,Usage
+h,TIME,h,Time-based units,Time,Active,Usage

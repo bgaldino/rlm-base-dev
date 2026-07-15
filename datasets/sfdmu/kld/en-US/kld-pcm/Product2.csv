@@ -1,0 +1,38 @@
+BasedOn.Code,CanRamp,ConfigureDuringSale,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,QuantityUnitOfMeasure,SpecificationType,StockKeepingUnit,Type,UnitOfMeasure.UnitCode
+PC-KLD-PATHWAY,false,Allowed,Matter pathway: Nebula Early Case Assessment through Nebula Review hosting.,,Bundle,true,true,false,Nebula ECA to Nebula Review,KLD-PATH-NEB-NEB,,,KLD-PATH-NEB-NEB,Bundle,
+PC-KLD-PATHWAY,false,Allowed,Matter pathway: Nebula ECA with promotion to RelativityOne Review.,,Bundle,true,true,false,Nebula ECA to RelOne,KLD-PATH-NEB-R1,,,KLD-PATH-NEB-R1,Bundle,
+PC-KLD-PATHWAY,false,Allowed,Matter pathway: RelativityOne ECA through RelOne Review hosting.,,Bundle,true,true,false,RelOne ECA to RelOne,KLD-PATH-R1-R1,,,KLD-PATH-R1-R1,Bundle,
+PC-KLD-SETUP,false,,Per-GB transactional matter setup fee.,,Services,true,true,false,Transactional Matter Set Up Fee,KLD-SETUP-MATTER-GB,GB,,KLD-SETUP-MATTER-GB,,GB
+PC-KLD-HOST,false,,One-time per GB fee for project staging.,,Services,true,true,false,Staging,KLD-STAGING,GB,,KLD-STAGING,,GB
+PC-KLD-HOST,false,,Nebula Processing/ECA repository hosting. Supports up to 10 concurrent users.,,Software,true,true,false,Nebula ECA Hosting,KLD-NEB-ECA-HOST,,,KLD-NEB-ECA-HOST,,GB-MO
+PC-KLD-HOST,false,,"Promotion, hosting, and analytics for data promoted to active Nebula Review.",,Software,true,true,false,Nebula Review,KLD-NEB-REVIEW,,,KLD-NEB-REVIEW,,GB-MO
+PC-KLD-HOST,false,,RelativityOne Early Case Assessment repository hosting.,,Software,true,true,false,RelOne ECA Hosting,KLD-R1-ECA-HOST,,,KLD-R1-ECA-HOST,,GB-MO
+PC-KLD-HOST,false,,RelativityOne review hosting for promoted active review data.,,Software,true,true,false,RelOne Review,KLD-R1-REVIEW,,,KLD-R1-REVIEW,,GB-MO
+PC-KLD-FORENS,false,,"On-site forensic collection of computers, servers, mobile, and external devices.",,Services,true,true,false,Forensic Data Collection,KLD-FOR-COLL,h,,KLD-FOR-COLL,,h
+PC-KLD-FORENS,false,,"Remote/in-lab forensic collection including O365, social media, and webmail sources.",,Services,true,true,false,Remote Forensic Data Collection,KLD-FOR-RCOLL,h,,KLD-FOR-RCOLL,,h
+PC-KLD-FORENS,false,,Onsite downtime caused by the client during forensic collection.,,Services,true,true,false,Forensic Data Collection - Downtime,KLD-FOR-DOWNTIME,h,,KLD-FOR-DOWNTIME,,h
+PC-KLD-FORENS,false,,Remote mobile device collection billed hourly (2-hour minimum).,,Services,true,true,false,RMDC - Remote Mobile Device Collection (Hourly),KLD-RMDC-HR,h,,KLD-RMDC-HR,,h
+PC-KLD-FORENS,false,,"Flat-fee remote mobile device collection including image, media, and shipping.",,Services,true,true,false,RMDC - Remote Mobile Device Collection (Flat),KLD-RMDC-FLAT,,,KLD-RMDC-FLAT,,EACH
+PC-KLD-FORENS,false,,Self-collection kit for computers including drive image and shipping.,,Services,true,true,false,RCMgr Self Collection Computer,KLD-RCMGR-PC,,,KLD-RCMGR-PC,,EACH
+PC-KLD-FORENS,false,,Self-collection kit for servers including drive image and shipping.,,Services,true,true,false,RCMgr Self Collection Server,KLD-RCMGR-SRV,,,KLD-RCMGR-SRV,,EACH
+PC-KLD-FORENS,false,,Decryption fee for native delivery of collected data.,,Services,true,true,false,RCMgr Drive Decryption,KLD-RCMGR-DECRYPT,,,KLD-RCMGR-DECRYPT,,EACH
+PC-KLD-FORENS,false,,"Computer forensic analysis including preservation, listings, and deliverables.",,Services,true,true,false,Forensic Analysis,KLD-FOR-ANALYSIS,h,,KLD-FOR-ANALYSIS,,h
+PC-KLD-FORENS,false,,Travel time billed at 50% of the applicable service hourly rate.,,Services,true,true,false,Travel Time,KLD-TRAVEL-TIME,h,,KLD-TRAVEL-TIME,,h
+PC-KLD-FORENS,false,,Travel-related expenses billed at actual cost.,,Services,true,true,false,Travel Expense,KLD-TRAVEL-EXP,,,KLD-TRAVEL-EXP,,USD
+PC-KLD-AI,false,,ECI Core modeling for early case insight and intelligent data reduction.,,Software,true,true,false,eDiscovery AI - Early Case Insight (Core),KLD-AI-ECI-CORE,,,KLD-AI-ECI-CORE,,DOC-RUN
+PC-KLD-AI,false,,"Identifies Key People, Key Events, and Key Documents. Requires ECI Core.",,Software,true,true,false,eDiscovery AI - Early Case Insight (Case Elements),KLD-AI-ECI-ELEMENTS,,,KLD-AI-ECI-ELEMENTS,,DOC-RUN
+PC-KLD-AI,false,,"Natural-language chatbot against ECI Core data, billed per document every 3 months.",,Software,true,true,false,eDiscovery AI - Early Case Bot (CaseBot),KLD-AI-CASEBOT,,,KLD-AI-CASEBOT,,DOC-QTR
+PC-KLD-AI,false,,AI/GenAI relevancy scoring (up to 15 prompts per run).,,Software,true,true,false,eDiscovery AI - Relevance,KLD-AI-RELEVANCE,,,KLD-AI-RELEVANCE,,DOC-RUN
+PC-KLD-AI,false,,Privilege detection with pre-built and custom privilege identifiers.,,Software,true,true,false,eDiscovery AI - Privilege,KLD-AI-PRIVILEGE,,,KLD-AI-PRIVILEGE,,DOC-RUN
+PC-KLD-AI,false,,Detects common PII and PHI within the target data set.,,Software,true,true,false,eDiscovery AI - PII Detect,KLD-AI-PII-DETECT,,,KLD-AI-PII-DETECT,,DOC
+PC-KLD-AI,false,,Extracts identified PII/PHI from target data sets.,,Software,true,true,false,eDiscovery AI - PII Extract,KLD-AI-PII-EXTRACT,,,KLD-AI-PII-EXTRACT,,DOC
+PC-KLD-AI,false,,AI-driven redaction using PII Detect results.,,Software,true,true,false,eDiscovery AI - PII Redact,KLD-AI-PII-REDACT,,,KLD-AI-PII-REDACT,,PAGE
+PC-KLD-ANALYTICS,false,,"Predictive coding, threading, near-duplicate detection, and workflow analytics.",,Software,true,true,false,KLDiscovery Analytics,KLD-AN-ANALYTICS,GB,,KLD-AN-ANALYTICS,,GB
+PC-KLD-ANALYTICS,false,,LLM summarization of authored content (per million characters).,,Software,true,true,false,Nebula AI Summarization,KLD-AN-SUM,,,KLD-AN-SUM,,MCHARS
+PC-KLD-ANALYTICS,false,,Purpose-built summarization for medical records.,,Software,true,true,false,Nebula AI Summarization (Medical),KLD-AN-SUM-MED,,,KLD-AN-SUM-MED,,PAGE
+PC-KLD-ANALYTICS,false,,Document translation (per million characters).,,Software,true,true,false,AI Translation,KLD-AN-XLAT,,,KLD-AN-XLAT,,MCHARS
+PC-KLD-ANALYTICS,false,,Automated transcription of audio content.,,Software,true,true,false,KLD Transcription Service,KLD-AN-TRANSCRIBE,,,KLD-AN-TRANSCRIBE,,ATRANS-HR
+PC-KLD-PS,false,,"Consultative support for ESI analysis, workflows, and quality control.",,Services,true,true,false,Project Management,KLD-PS-PM,h,,KLD-PS-PM,,h
+PC-KLD-PS,false,,"Processing, load file customization, and review platform technical support.",,Services,true,true,false,Technical Support,KLD-PS-TECH,h,,KLD-PS-TECH,,h
+PC-KLD-MEDIA,false,,Hard drive media for deliverables.,,Services,true,true,false,Hard Drive,KLD-MED-HDD,,,KLD-MED-HDD,,EACH
+PC-KLD-MEDIA,false,,Shipping charges billed as incurred.,,Services,true,true,false,Freight,KLD-MED-FREIGHT,,,KLD-MED-FREIGHT,,USD
