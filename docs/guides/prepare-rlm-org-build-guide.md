@@ -203,6 +203,8 @@ The 35 steps of `prepare_rlm_org` can be understood as eight logical phases. Eac
 
 **Search index rebuild** (Step 34, `rebuild_search_index`) — Initiates a FULL, IMMEDIATE Product Catalog (PCM) search index build via the Connect API (`connect/pcm/index/deploy`), so the catalog loaded during the build is searchable for product browse and guided selling. This is the same operation the **Build Catalog Index** component performs from the UI. The build runs asynchronously on the platform (allow several minutes); the task initiates it and logs the snapshot id. A failed index call warns and continues by default (set `raise_on_failure` to make it fatal) — the index can always be rebuilt later via the component.
 
+If you load PCM/pricing **incrementally** on a connected org (without re-running this full flow), run the same post-load steps manually — see [Post–data-load refresh](post-data-load-refresh.md).
+
 **Git commit stamp** (Step 35) — Records the source git commit (build provenance) onto the org so a provisioned org can be traced back to the exact `prepare_rlm_org` build that produced it.
 
 ---

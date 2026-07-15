@@ -202,3 +202,4 @@ from the troubleshooting skill.
 
 - `.cursor/skills/troubleshooting/SKILL.md` → Environment & Setup Errors
 - `docs/guides/dev-environment-setup.md` (toolchain setup)
+- `docs/guides/post-data-load-refresh.md` (after incremental PCM/pricing loads: DT refresh + search index)

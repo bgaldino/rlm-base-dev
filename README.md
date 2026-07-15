@@ -1115,6 +1115,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | Document | Description |
 |----------|-------------|
 | [Dev Environment Setup](docs/guides/dev-environment-setup.md) | Canonical local toolchain architecture — shell config layout, direnv `.envrc` per-project pinning, major-line update strategy, replication on new workstations |
+| [Post–data-load refresh](docs/guides/post-data-load-refresh.md) | After incremental PCM/pricing loads: refresh default pricing decision tables + rebuild catalog search index (CCI checklist) |
 | [Constraints Utility Guide](datasets/constraints/README.md) | CML constraint model export, import, validate -- architecture, workflows, polymorphic resolution |
 | [Constraints Setup](docs/guides/constraints-setup.md) | `prepare_constraints` flow order, feature flags, deployment phases |
 | [CumulusCI Tasks Reference](.cursor/skills/cci-orchestration/tasks-reference.md) | Generated CCI task reference; flow and feature flag references live alongside it |

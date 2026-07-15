@@ -176,6 +176,12 @@ On `PC-KLD-PATHWAY`:
 - **Standalone** — does not require `qb-pcm`. Uses distinct `KLD-` / `CAT-KLD-` / `PC-KLD-` prefixes. Can load alongside QB when `kld=true` and `qb=true`.
 - **Downstream:** `kld-pricing` (this plan's prices), future `kld-rating` / `kld-billing`.
 
+## After load (connected orgs)
+
+SFDMU alone does not refresh pricing decision tables or the PCM search index. After `insert_kld_pcm_data` (and pricing), follow
+[Post–data-load refresh](../../../../../docs/guides/post-data-load-refresh.md)
+(`refresh_dt_default_pricing` + `rebuild_search_index`) so products show in search and quote pricing picks up new entries.
+
 ## Validation
 
 ```bash

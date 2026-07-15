@@ -112,3 +112,5 @@ cci flow run prepare_price_adjustment_schedules --org <org>   # scratch only
 ```
 
 Or enable `kld: true` in org config and run `prepare_product_data` then `prepare_pricing_data`.
+
+**After loading on a connected org** (not a full `prepare_rlm_org`), refresh pricing decision tables and rebuild the catalog search index so products appear in search and prices resolve — see [Post–data-load refresh](../../../../../docs/guides/post-data-load-refresh.md).
