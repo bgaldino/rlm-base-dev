@@ -166,7 +166,7 @@ def pat_rows() -> list[list]:
         base_price = tiers[0][2]
         for psm_name, psm_type in HOSTING_PSMS:
             for lower, upper, price in tiers:
-                tier_type = "AdjustmentAmount"
+                tier_type = "OverrideAmount"
                 composite = f"{PAS};{sku};{psm_name};{psm_type};{tier_type};{price};{lower};USD;{EFFECTIVE}"
                 psm_combo = f"{psm_name};{psm_type}"
                 rows.append([

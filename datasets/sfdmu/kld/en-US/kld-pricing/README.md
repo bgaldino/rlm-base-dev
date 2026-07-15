@@ -88,7 +88,7 @@ Delete + insert pattern (same as qb-pricing). Insert objects pre-cleared by `del
 
 **Nebula Review + RelOne Review** (mirrored): $14.00 (0–250 GB) down to $11.25 (9001+ GB) — 13 bands (lower tiers extrapolated from estimate example at 562 GB → $13.50).
 
-Implemented via `PriceAdjustmentTier` on **Standard Price Adjustment Tier** with `AdjustmentType = Override` and absolute $/GB per band. Base `PricebookEntry` uses tier-1 rate.
+Implemented via `PriceAdjustmentTier` on **Standard Price Adjustment Tier** with `TierType = OverrideAmount` / `AdjustmentType = Override` (absolute $/GB per band). Base `PricebookEntry` uses tier-1 rate.
 
 ## Dependencies
 
