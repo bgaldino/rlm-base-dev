@@ -440,7 +440,7 @@ def main() -> None:
     write_csv(
         "ProductQualification.csv",
         ["EffectiveFromDate", "EffectiveToDate", "IsQualified", "Name", "ParentProduct.StockKeepingUnit", "Product.StockKeepingUnit"],
-        [["2026-01-01", "", "true", "PQ-KLD-ECI-ELEMENTS-REQUIRES-CORE", "KLD-AI-ECI-CORE", "KLD-AI-ECI-ELEMENTS"]],
+        [],
     )
 
     # Thin attribute infrastructure for pathway estimate drivers

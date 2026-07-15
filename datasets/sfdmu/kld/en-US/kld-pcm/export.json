@@ -122,9 +122,10 @@
       "externalId": "ProductCategory.Code;Product.StockKeepingUnit"
     },
     {
-      "query": "SELECT EffectiveFromDate, EffectiveToDate, Id, IsQualified, Name, ParentProductId, ProductId, RootProductId, ParentProduct.StockKeepingUnit, Product.StockKeepingUnit FROM ProductQualification",
+      "query": "SELECT EffectiveFromDate, EffectiveToDate, Id, IsQualified, Name, ParentProductId, ProductId, ParentProduct.StockKeepingUnit, Product.StockKeepingUnit FROM ProductQualification",
       "operation": "Upsert",
-      "externalId": "Name"
+      "externalId": "Name",
+      "excluded": true
     },
     {
       "query": "SELECT Id, EffectiveFromDate, EffectiveToDate, IsDisqualified, Name, ParentProductId, ProductId, Reason, RootProductId FROM ProductDisqualification",

@@ -47,7 +47,7 @@ Single SFDMU pass; 28 object entries; 6 excluded (empty placeholders).
 | 21 | ProductCatalog                | Upsert    | `Code`                                                                                                | 5       |
 | 22 | ProductCategory               | Upsert    | `Code`                                                                                                | 14      |
 | 23 | ProductCategoryProduct        | Upsert    | `ProductCategory.Code;Product.StockKeepingUnit`                                                       | 37      |
-| 24 | ProductQualification          | Upsert    | `Name`                                                                                                | 1       |
+| 24 | ProductQualification          | Upsert    | `Name`                                                                                                | 0       |
 | 25 | ProductDisqualification       | (default) | `Name`                                                                                                | 0       |
 | 26 | ProductCategoryDisqual        | (default) | `Name`                                                                                                | 0       |
 | 27 | ProductCategoryQualification  | (default) | `Name`                                                                                                | 0       |
@@ -105,7 +105,7 @@ Each pathway bundle includes required components: **Staging**, **ECA Hosting**, 
 | `KLD-AI-PII-EXTRACT` | eDiscovery AI - PII Extract | DOC |
 | `KLD-AI-PII-REDACT` | eDiscovery AI - PII Redact | PAGE |
 
-**Qualification:** `KLD-AI-ECI-ELEMENTS` requires `KLD-AI-ECI-CORE` (`ProductQualification` record `PQ-KLD-ECI-ELEMENTS-REQUIRES-CORE`).
+**Note:** An “ELEMENTS requires CORE” catalog dependency is **not** modelled with `ProductQualification` — that object is for eligibility in a **bundle parent/child** context (CORE and ELEMENTS are siblings under pathways). Enforce ELEMENTS→CORE later via configurator constraints if needed.
 
 ### Analytics a-la-carte
 
