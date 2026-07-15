@@ -191,23 +191,33 @@ stays a separate, deferred effort — see above).
   it will never be read. The record's label and the flow element's description
   both call this out.
 - **Fail-open.** All gating lives in `RLM_Quote_Approval_Data`, not the
-  orchestrator: three local Booleans default to `true`, and
-  `Get_Approval_Config` uses `assignNullValuesIfNoRecordsFound=false` (the same
-  pattern `Get_Quote_Data` already uses), so a missing/deleted `Default` record
-  leaves every chain enabled rather than silently suppressing a required
-  approval. `RLM_Quote_Smart_Approval` needs zero changes — it only references
-  `QueryApprovalData.Outputs.*` by name, and the gated values are written back
-  under the same output variable names (`DiscountApprovalLevel`,
-  `MarginApprovalLevel`, `PaymentTerms`).
+  orchestrator: three local Booleans (`DiscountChainEnabled`,
+  `MarginChainEnabled`, `FinanceChainEnabled`) default to `true` in the flow
+  itself, and `Get_Approval_Config` uses
+  `assignNullValuesIfNoRecordsFound=false` (the same pattern `Get_Quote_Data`
+  already uses), so a missing/deleted `Default` record leaves every chain —
+  including Margin — enabled rather than silently suppressing a required
+  approval. This flow-level fallback is deliberately unconditional and does
+  not follow the seed-time Margin default below: a deleted config record is
+  treated as a config outage, not as "Margin was turned off." `RLM_Quote_Smart_Approval`
+  needs zero changes — it only references `QueryApprovalData.Outputs.*` by
+  name, and the gated values are written back under the same output variable
+  names (`DiscountApprovalLevel`, `MarginApprovalLevel`, `PaymentTerms`).
+- **Margin ships opt-in.** Unlike Discount and Finance, the seeded
+  `RLM_Margin_Chain_Enabled__c` value (both the field's `defaultValue` and
+  the value `seed_approval_config` writes into the `Default` record on a
+  fresh org) is `false`. An admin must explicitly flip the checkbox to turn
+  Margin approvals on. This is a seed-time-only distinction — the flow's
+  fail-open fallback above still applies equally to all three chains.
 - **Seed once, never clobber.** The CMDT *type* deploys via
   `deploy_post_approvals` like any other metadata. The `Default` *record* is
   not a static file in that bundle — a plain `Deploy` task upserts a static
   `customMetadata/*.md-meta.xml` file's values on every run, which would reset
-  an admin's toggle back to all-enabled on every `prepare_approvals` rerun.
-  Instead `tasks/rlm_seed_approval_config.py` (task `seed_approval_config`,
-  step 2 of `prepare_approvals`) creates `Default` only if it doesn't already
-  exist and never updates it otherwise, so admin edits survive every future
-  redeploy.
+  an admin's toggles back to their committed defaults on every
+  `prepare_approvals` rerun. Instead `tasks/rlm_seed_approval_config.py` (task
+  `seed_approval_config`, step 2 of `prepare_approvals`) creates `Default`
+  only if it doesn't already exist and never updates it otherwise, so admin
+  edits survive every future redeploy.
 
 ## Notification Scaling
 

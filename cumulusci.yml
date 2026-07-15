@@ -1296,7 +1296,8 @@ tasks:
       chain-enabled toggles survive every future prepare_approvals rerun. The CMDT
       type/fields deploy via deploy_post_approvals; this task seeds the one Default
       record separately because a static customMetadata file would be reset to its
-      committed values (all chains enabled) on every deploy.
+      committed values on every deploy. Discount and Finance seed enabled; Margin
+      seeds disabled (opt-in only — an admin must explicitly enable it).
     class_path: tasks.rlm_seed_approval_config.SeedApprovalConfig
 
   deploy_docgen_seller_fields:

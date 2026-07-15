@@ -5,8 +5,8 @@ composable approval chains (Discount, Margin, Finance) in
 RLM_Quote_Smart_Approval. The Default record is intentionally NOT a static
 customMetadata/*.md-meta.xml file in unpackaged/post_approvals: a plain
 metadata Deploy upserts any such file's values on every run, which would
-silently reset an admin's runtime toggle back to all-enabled every time
-prepare_approvals is rerun against an already-configured org.
+silently reset an admin's runtime toggle back to its committed defaults
+every time prepare_approvals is rerun against an already-configured org.
 
 Instead this task seeds the Default record once, the first time it is
 missing, and never touches it again if it already exists — mirroring the
@@ -14,7 +14,8 @@ check-before-create idempotency of create_approval_email_templates (the
 next step in the same flow). Record deployment reuses the temp-directory
 + sf CLI mechanism from rlm_stamp_commit.py, inverted from "always
 overwrite" (correct for build provenance) to "create only if absent"
-(correct for an admin-mutable toggle).
+(correct for an admin-mutable toggle). Seeded values are per-chain, not
+uniformly enabled — see CHAIN_ENABLED_FIELDS below.
 """
 
 import json
@@ -42,13 +43,18 @@ DEPLOY_WAIT_MINUTES = max(1, (DEPLOY_TIMEOUT_SECONDS - 30) // 60)  # 4
 
 DEFAULT_RECORD_DEVELOPER_NAME = "Default"
 
-# Chain-enabled fields, all default to true (fail-open: every chain runs
-# unless an admin explicitly disables it after this record is seeded).
-CHAIN_ENABLED_FIELDS = (
-    "RLM_Discount_Chain_Enabled__c",
-    "RLM_Margin_Chain_Enabled__c",
-    "RLM_Finance_Chain_Enabled__c",
-)
+# Chain-enabled fields and their seeded values. Discount and Finance seed
+# true (fail-open: every chain runs unless an admin explicitly disables it).
+# Margin seeds false — it ships opt-in only; an admin must explicitly flip
+# RLM_Margin_Chain_Enabled__c to true to turn it on. This is a seed-time
+# default only: the flow's own fallback (used if the Default record is
+# ever missing/deleted entirely) still fails open for Margin, same as the
+# other two chains — see RLM_Quote_Approval_Data.flow-meta.xml.
+CHAIN_ENABLED_FIELDS = {
+    "RLM_Discount_Chain_Enabled__c": True,
+    "RLM_Margin_Chain_Enabled__c": False,
+    "RLM_Finance_Chain_Enabled__c": True,
+}
 
 
 class SeedApprovalConfig(BaseSalesforceTask):
@@ -81,7 +87,8 @@ class SeedApprovalConfig(BaseSalesforceTask):
             return
 
         self.logger.info(
-            "RLM_Approval_Config__mdt.Default not found; seeding with all chains enabled."
+            "RLM_Approval_Config__mdt.Default not found; seeding "
+            "Discount/Finance enabled, Margin disabled (opt-in)."
         )
         temp_dir = tempfile.mkdtemp(prefix="rlm_seed_approval_config_")
         try:
@@ -148,9 +155,9 @@ class SeedApprovalConfig(BaseSalesforceTask):
         values = "\n".join(
             "    <values>\n"
             f"        <field>{field}</field>\n"
-            '        <value xsi:type="xsd:boolean">true</value>\n'
+            f'        <value xsi:type="xsd:boolean">{str(enabled).lower()}</value>\n'
             "    </values>"
-            for field in CHAIN_ENABLED_FIELDS
+            for field, enabled in CHAIN_ENABLED_FIELDS.items()
         )
 
         xml = (

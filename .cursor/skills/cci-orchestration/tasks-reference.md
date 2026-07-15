@@ -3032,7 +3032,7 @@
 
 ### `seed_approval_config`
 
-**Description:** Seed the RLM_Approval_Config__mdt.Default record (routing toggle for the Discount/Margin/Finance approval chains in RLM_Quote_Smart_Approval) only if it does not already exist. Never updates an existing record, so an admin's chain-enabled toggles survive every future prepare_approvals rerun. The CMDT type/fields deploy via deploy_post_approvals; this task seeds the one Default record separately because a static customMetadata file would be reset to its committed values (all chains enabled) on every deploy.
+**Description:** Seed the RLM_Approval_Config__mdt.Default record (routing toggle for the Discount/Margin/Finance approval chains in RLM_Quote_Smart_Approval) only if it does not already exist. Never updates an existing record, so an admin's chain-enabled toggles survive every future prepare_approvals rerun. The CMDT type/fields deploy via deploy_post_approvals; this task seeds the one Default record separately because a static customMetadata file would be reset to its committed values on every deploy. Discount and Finance seed enabled; Margin seeds disabled (opt-in only — an admin must explicitly enable it).
 
 **Class:** `tasks.rlm_seed_approval_config.SeedApprovalConfig`
 

@@ -3,5 +3,5 @@
     <fullName>RLM_Margin_Chain_Enabled__c</fullName>
     <label>Margin Chain Enabled</label>
     <type>Checkbox</type>
-    <defaultValue>true</defaultValue>
+    <defaultValue>false</defaultValue>
 </CustomField>
