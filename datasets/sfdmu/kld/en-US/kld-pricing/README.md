@@ -54,7 +54,7 @@ Delete + insert pattern (same as qb-pricing). Insert objects pre-cleared by `del
 | 5 | Product2 | Readonly | 37 |
 | 6 | CostBook | Upsert | 1 |
 | 7 | Pricebook2 | Upsert | 1 (Standard Price Book) |
-| 8 | PriceAdjustmentTier | Insert | 95 |
+| 8 | PriceAdjustmentTier | Insert | 96 |
 | 9 | PriceAdjustmentSchedule | Update | 3 |
 | 10 | AttributeBasedAdjRule | Upsert | 0 (excluded) |
 | 11 | AttributeAdjustmentCondition | Insert | 0 (excluded) |

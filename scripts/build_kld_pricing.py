@@ -275,7 +275,7 @@ def main() -> None:
             "Product2.StockKeepingUnit", "ProductSellingModel.$$Name$SellingModelType",
             "ScheduleType", "SellingModelType", "TierType", "TierValue", "UpperBound",
         ],
-        pat_rows()[1:],
+        pat_rows(),
     )
     write_csv(
         "CostBookEntry.csv",
@@ -302,7 +302,7 @@ def main() -> None:
     ):
         write_csv(empty, ["Name"], [])
 
-    print(f"Generated kld-pricing: {len(pbe_rows())} PBE, {len(pat_rows()) - 1} PAT, {len(cbe_rows())} CBE")
+    print(f"Generated kld-pricing: {len(pbe_rows())} PBE, {len(pat_rows())} PAT, {len(cbe_rows())} CBE")
 
 
 if __name__ == "__main__":
