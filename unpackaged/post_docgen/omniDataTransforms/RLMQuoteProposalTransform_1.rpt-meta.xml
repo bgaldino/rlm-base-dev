@@ -103,7 +103,7 @@
   } ],
   &quot;QuoteNumber&quot; : &quot;00000024&quot;,
   &quot;BillingStreet&quot; : &quot;10 Main Rd.&quot;,
-  &quot;ExpirationDate&quot; : &quot;04/11/2026&quot;,
+  &quot;ExpDate&quot; : &quot;04/11/2026&quot;,
   &quot;GrandTotal&quot; : &quot;$98,225.00&quot;,
   &quot;CreatedDate&quot; : &quot;03/12/2026&quot;,
   &quot;BillingPostalCode&quot; : &quot;31349&quot;,
@@ -601,7 +601,7 @@
         <linkedObjectSequence>0.0</linkedObjectSequence>
         <name>RLMQuoteProposalTransform</name>
         <outputCreationSequence>1.0</outputCreationSequence>
-        <outputFieldName>ExpirationDate</outputFieldName>
+        <outputFieldName>ExpDate</outputFieldName>
         <outputObjectName>json</outputObjectName>
         <requiredForUpsert>false</requiredForUpsert>
         <upsertKey>false</upsertKey>
