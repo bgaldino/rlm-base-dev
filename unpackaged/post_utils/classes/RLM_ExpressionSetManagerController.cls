@@ -346,6 +346,22 @@ public with sharing class RLM_ExpressionSetManagerController {
 
             Set<Id> setIds = getExpressionSetIds(definitionIds);
 
+            // Sets that already have an active version only need their junction
+            // created (an unlinked Constraint linked to another context is
+            // submitted for link-only). Do NOT activate one of their inactive
+            // versions — that would promote an inactive draft (or fail against the
+            // already-active version).
+            Set<Id> setsWithActiveVersion = new Set<Id>();
+            for (AggregateResult ar : [
+                SELECT ExpressionSetId setId
+                FROM ExpressionSetVersion
+                WHERE ExpressionSetId IN :setIds
+                AND IsActive = true
+                GROUP BY ExpressionSetId
+            ]) {
+                setsWithActiveVersion.add((Id) ar.get('setId'));
+            }
+
             List<ExpressionSetVersion> allVersions = [
                 SELECT Id, ExpressionSetId, VersionNumber, Rank
                 FROM ExpressionSetVersion
@@ -356,7 +372,8 @@ public with sharing class RLM_ExpressionSetManagerController {
 
             Set<Id> activated = new Set<Id>();
             for (ExpressionSetVersion v : allVersions) {
-                if (!activated.contains(v.ExpressionSetId)) {
+                if (!setsWithActiveVersion.contains(v.ExpressionSetId)
+                        && !activated.contains(v.ExpressionSetId)) {
                     subrequests.add(buildVersionPatch(v.Id, true, v.Rank, refIdx));
                     activated.add(v.ExpressionSetId);
                     refIdx++;
