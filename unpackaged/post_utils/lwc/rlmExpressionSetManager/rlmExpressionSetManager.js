@@ -1,4 +1,5 @@
 import { LightningElement, wire } from 'lwc'
+import { refreshApex } from '@salesforce/apex'
 import { ShowToastEvent } from 'lightning/platformShowToastEvent'
 import getContextDefinitions from '@salesforce/apex/RLM_ExpressionSetManagerController.getContextDefinitions'
 import getLinkedExpressionSets from '@salesforce/apex/RLM_ExpressionSetManagerController.getLinkedExpressionSets'
@@ -73,6 +74,7 @@ export default class RlmExpressionSetManager extends LightningElement {
     isActing = false
     previousError = ''
     _contextData = []
+    _wiredContexts
     _pollTimer
     _delayTimer
     _focusErrorOnRender = false
@@ -80,7 +82,9 @@ export default class RlmExpressionSetManager extends LightningElement {
     _pollRequestId = 0
 
     @wire(getContextDefinitions)
-    wiredContextDefinitions({ data, error }) {
+    wiredContextDefinitions(result) {
+        this._wiredContexts = result
+        const { data, error } = result
         if (data) {
             this._contextData = data
             this.contextOptions = data.map(cd => ({
@@ -240,11 +244,11 @@ export default class RlmExpressionSetManager extends LightningElement {
             })
             this.showToast('Deactivating', `Deactivating ${defIds.length} Expression Set(s)...`, 'info')
             this.pollStatus(jobId, getDeactivateStatus, this.selectedContextId, defIds, 0, ids => {
-                this.expressionSets = this.expressionSets.map(es =>
-                    ids.has(es.definitionId) ? this.decorateExpressionSetRow({ ...es, hasActiveVersion: false }) : es
-                )
-                this.selectedRowIds = this.selectedRowIds.filter(id => !ids.has(id))
                 this.showToast('Deactivated', `${ids.size} Expression Set(s) deactivated.`, 'success')
+                // Reload from Apex: for Constraint sets the queueable deletes the
+                // context junction, so the local rows' isLinked/linked count are now
+                // stale. A reload reflects the removed junction and refreshed counts.
+                this.refreshAfterJunctionChange()
             })
         } catch (error) {
             this.isActing = false
@@ -277,7 +281,10 @@ export default class RlmExpressionSetManager extends LightningElement {
             this.showToast('Activating', `Activating ${defIds.length} Expression Set(s)...`, 'info')
             this.pollStatus(jobId, getActivateStatus, this.selectedContextId, defIds, ACTIVATE_DELAY, () => {
                 this.showToast('Activated', 'Expression Sets activated successfully.', 'success')
-                this.loadExpressionSets()
+                // Activation creates a context junction for unlinked Constraint sets,
+                // so refresh both the row query and the cacheable Context Definition
+                // wire that supplies the "[N linked Expression Sets]" combobox label.
+                this.refreshAfterJunctionChange()
             })
         } catch (error) {
             this.isActing = false
@@ -286,6 +293,16 @@ export default class RlmExpressionSetManager extends LightningElement {
     }
 
     // --- Data Loading ---
+
+    // Re-run both data sources after an activate/deactivate that can add or
+    // remove a Context Definition junction: the row query (isLinked / status)
+    // and the cacheable getContextDefinitions wire (the linked-count label).
+    refreshAfterJunctionChange() {
+        this.loadExpressionSets()
+        if (this._wiredContexts) {
+            refreshApex(this._wiredContexts)
+        }
+    }
 
     async loadExpressionSets() {
         const requestId = ++this._loadRequestId
@@ -313,7 +330,9 @@ export default class RlmExpressionSetManager extends LightningElement {
         return {
             ...es,
             recordUrl: `/lightning/r/ExpressionSet/${es.expressionSetId}/view`,
-            linkStatusText: '',
+            // Text (not icon-only) so the link state reaches screen readers and
+            // unlinked rows are not blank.
+            linkStatusText: es.isLinked ? 'Linked' : 'Unlinked',
             linkSortValue: es.isLinked ? 'Linked' : 'Unlinked',
             linkStatusIcon: es.isLinked ? 'utility:link' : '',
             linkStatusClass: es.isLinked ? 'slds-text-color_success' : '',
