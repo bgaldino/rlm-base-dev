@@ -319,6 +319,12 @@ project:
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
 
+    ps_utils: &ps_utils
+      # Utilities permission set — grants Apex access for the post_utils
+      # components (deployed via deploy_post_utils in the quantumbit and tso
+      # flows). Assign wherever post_utils is deployed.
+      - RLM_UtilitiesPermset
+
     ps_guidedselling: &ps_guidedselling
       # Guided Selling runtime/configuration permission sets available before metadata deploy
       - OmniStudioAdmin
@@ -3849,6 +3855,14 @@ flows:
         options:
           api_names: *ps_quantumbit
       5:
+        # deploy_post_utils (step 1) ships the Expression Set Manager component;
+        # assign its Apex-access permission set here so quantumbit builds (where
+        # tso=false) grant it. The tso flow assigns it via rlm_tso_ps_api_names.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_utils
+      6:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:

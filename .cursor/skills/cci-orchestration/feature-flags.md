@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**41 feature flags**, **85 configuration values**, **36 YAML anchors** under `project.custom`.
+**41 feature flags**, **85 configuration values**, **37 YAML anchors** under `project.custom`.
 
 ---
 
@@ -45,7 +45,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 | `q3` | `False` | 13 flow step(s) |
 | `qb` | `True` | 40 flow step(s) |
 | `qbrix` | `False` | — |
-| `quantumbit` | `True` | 10 flow step(s) |
+| `quantumbit` | `True` | 11 flow step(s) |
 | `rates` | `True` | 6 flow step(s) |
 | `rating` | `True` | 15 flow step(s) |
 | `refresh` | `False` | 13 flow step(s) |
@@ -135,7 +135,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 
 ### `calmdelete` (default: `True`)
 
-- `prepare_quantumbit` step 5 → `assign_permission_sets`
+- `prepare_quantumbit` step 6 → `assign_permission_sets`
 
 ### `clm` (default: `True`)
 
@@ -390,6 +390,7 @@ Boolean flags that gate task/flow execution via `when:` clauses.
 - `prepare_quantumbit` step 3 → `deploy_quantumbit`
 - `prepare_quantumbit` step 4 → `assign_permission_sets`
 - `prepare_quantumbit` step 5 → `assign_permission_sets`
+- `prepare_quantumbit` step 6 → `assign_permission_sets`
 - `prepare_constraints` step 1 → `insert_qb_transactionprocessingtypes_data`
 - `prepare_approvals` step 1 → `deploy_post_approvals`
 - `prepare_approvals` step 2 → `create_approval_email_templates`
@@ -762,6 +763,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_QuantumBit`
+
+### `ps_utils`
+
+*1 items:*
+
+- `RLM_UtilitiesPermset`
 
 ### `psg_tso`
 
