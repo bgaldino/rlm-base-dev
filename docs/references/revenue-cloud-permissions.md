@@ -76,7 +76,7 @@ Assigned at step 8 of `prepare_core` (3 active licenses).
 
 ### TSO PSLs (`rlm_tso_psl_api_names`) -- `tso: true`
 
-Assigned in `prepare_tso` step 1 (23 licenses). These are Trialforce Source Org-specific licenses for Sales Cloud Unlimited, Einstein features, and engagement tools.
+Assigned in `assign_feature_psls` step 4 (23 licenses; `when tso`). These are Trialforce Source Org-specific licenses for Sales Cloud Unlimited, Einstein features, and engagement tools.
 
 | PSL API Name | Capability Area |
 |---|---|
@@ -243,7 +243,7 @@ Placeholder PSG with no permission sets. AI permission sets are assigned separat
 
 ### RLM_TSO -- Trialforce Source Org PSG -- `tso: true`
 
-Assigned in `prepare_tso` step 6 via `assign_permission_set_groups_tolerant`. Contains 50 permission sets spanning Sales Cloud Unlimited, Einstein AI, Tableau, CLM AI, Data Cloud, and engagement features. This is the catch-all PSG for trial/demo orgs that bundles permissions unavailable on Enterprise dev scratch orgs.
+Assigned in `prepare_core` step 13 via `assign_permission_set_groups_tolerant` (preceded by a `recalculate_permission_set_groups` at step 12). Contains 50 permission sets spanning Sales Cloud Unlimited, Einstein AI, Tableau, CLM AI, Data Cloud, and engagement features. This is the catch-all PSG for trial/demo orgs that bundles permissions unavailable on Enterprise dev scratch orgs.
 
 <details>
 <summary>Full list (50 permission sets)</summary>
@@ -257,10 +257,10 @@ These Salesforce-managed PSGs are assigned in two contexts:
 
 | PSG | Assigned When | Flow Step |
 |---|---|---|
-| `CopilotSalesforceUserPSG` | `tso: true` OR `agents: true` | `prepare_tso` step 2 / `prepare_agents` step 1 |
-| `CopilotSalesforceAdminPSG` | `tso: true` OR `agents: true` | `prepare_tso` step 2 / `prepare_agents` step 1 |
-| `UnifiedCatalogAdminPsl` | `tso: true` only | `prepare_tso` step 2 |
-| `UnifiedCatalogDesignerPsl` | `tso: true` only | `prepare_tso` step 2 |
+| `CopilotSalesforceUserPSG` | `tso: true` OR `agents: true` | `prepare_tso` step 1 / `prepare_agents` step 1 |
+| `CopilotSalesforceAdminPSG` | `tso: true` OR `agents: true` | `prepare_tso` step 1 / `prepare_agents` step 1 |
+| `UnifiedCatalogAdminPsl` | `tso: true` only | `prepare_tso` step 1 |
+| `UnifiedCatalogDesignerPsl` | `tso: true` only | `prepare_tso` step 1 |
 
 ---
 
