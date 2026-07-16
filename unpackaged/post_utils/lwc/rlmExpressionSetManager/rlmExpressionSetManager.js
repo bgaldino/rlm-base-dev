@@ -219,21 +219,27 @@ export default class RlmExpressionSetManager extends LightningElement {
     async handleDeactivate() {
         const selectedSet = new Set(this.selectedRowIds)
         const selectedRows = this.expressionSets.filter(es => selectedSet.has(es.definitionId))
-        const active = selectedRows.filter(es => es.hasActiveVersion)
+        // Deactivation targets rows linked to THIS context (the server rejects
+        // unlinked defs). A linked non-Constraint qualifies only when it has an
+        // active version to deactivate; a linked Constraint qualifies regardless
+        // of version state, since deactivation also removes its context junction.
+        const eligible = selectedRows.filter(
+            es => es.isLinked && (es.hasActiveVersion || es.usageType === 'Constraint')
+        )
         if (selectedRows.length === 0) {
             this.showToast('Info', 'No Expression Sets selected.', 'info')
             return
         }
-        if (active.length === 0) {
+        if (eligible.length === 0) {
             this.showToast(
                 'Info',
-                `All ${selectedRows.length} selected Expression Set(s) are already inactive.`,
+                `None of the ${selectedRows.length} selected Expression Set(s) can be deactivated for this Context Definition.`,
                 'info'
             )
             return
         }
 
-        const defIds = active.map(es => es.definitionId)
+        const defIds = eligible.map(es => es.definitionId)
 
         this.isActing = true
         this.previousError = ''
@@ -259,17 +265,23 @@ export default class RlmExpressionSetManager extends LightningElement {
     async handleActivate() {
         const selectedSet = new Set(this.selectedRowIds)
         const selectedRows = this.expressionSets.filter(es => selectedSet.has(es.definitionId))
-        const inactive = selectedRows.filter(es => !es.hasActiveVersion)
+        // Activation targets rows that need a version activated (no active
+        // version) OR an unlinked Constraint that needs its context junction
+        // created — the latter can already be active (linked to another context)
+        // yet still needs linking here.
+        const eligible = selectedRows.filter(
+            es => !es.hasActiveVersion || (es.usageType === 'Constraint' && !es.isLinked)
+        )
         if (selectedRows.length === 0) {
             this.showToast('Info', 'No Expression Sets selected.', 'info')
             return
         }
-        if (inactive.length === 0) {
-            this.showToast('Info', `All ${selectedRows.length} selected Expression Set(s) are already active.`, 'info')
+        if (eligible.length === 0) {
+            this.showToast('Info', `All ${selectedRows.length} selected Expression Set(s) are already active and linked.`, 'info')
             return
         }
 
-        const defIds = inactive.map(es => es.definitionId)
+        const defIds = eligible.map(es => es.definitionId)
 
         this.isActing = true
         this.previousError = ''
