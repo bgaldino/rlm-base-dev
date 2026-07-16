@@ -24,6 +24,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         List<ContextDefinition> defs = [
             SELECT Id, DeveloperName, MasterLabel
             FROM ContextDefinition
+            WITH USER_MODE
             ORDER BY MasterLabel
         ];
 
@@ -32,6 +33,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             SELECT ContextDefinitionId, COUNT_DISTINCT(ExpressionSetDefinitionId) cnt
             FROM ExpressionSetDefinitionContextDefinition
             WHERE ContextDefinitionId IN :defs
+            WITH USER_MODE
             GROUP BY ContextDefinitionId
         ]) {
             countsByContext.put((Id) ar.get('ContextDefinitionId'), (Integer) ar.get('cnt'));
@@ -52,6 +54,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             SELECT ExpressionSetDefinitionId
             FROM ExpressionSetDefinitionContextDefinition
             WHERE ContextDefinitionId = :contextDefinitionId
+            WITH USER_MODE
         ]) {
             linkedDefIds.add(j.ExpressionSetDefinitionId);
         }
@@ -62,6 +65,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             FROM ExpressionSet
             WHERE UsageType = 'Constraint'
             AND ExpressionSetDefinitionId NOT IN :linkedDefIds
+            WITH USER_MODE
         ]) {
             unlinkedConstraintDefIds.add(es.ExpressionSetDefinitionId);
         }
@@ -78,6 +82,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             SELECT Id, DeveloperName, MasterLabel
             FROM ExpressionSetDefinition
             WHERE Id IN :allDefIds
+            WITH USER_MODE
             ORDER BY MasterLabel
         ]);
 
@@ -85,6 +90,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             SELECT Id, ExpressionSetDefinitionId, UsageType
             FROM ExpressionSet
             WHERE ExpressionSetDefinitionId IN :allDefIds
+            WITH USER_MODE
         ];
 
         Map<Id, ExpressionSet> setByDefId = new Map<Id, ExpressionSet>();
@@ -100,6 +106,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             FROM ExpressionSetVersion
             WHERE ExpressionSetId IN :setIds
             AND IsActive = true
+            WITH USER_MODE
             GROUP BY ExpressionSetId
         ]) {
             hasActiveBySetId.put((Id) ar.get('setId'), ((Integer) ar.get('activeCount')) > 0);
@@ -111,6 +118,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             SELECT ExpressionSetId setId, MAX(VersionNumber) latestVersionNumber
             FROM ExpressionSetVersion
             WHERE ExpressionSetId IN :setIds
+            WITH USER_MODE
             GROUP BY ExpressionSetId
         ]) {
             Integer latestVersionNumber = Integer.valueOf(String.valueOf(ar.get('latestVersionNumber')));
@@ -125,6 +133,7 @@ public with sharing class RLM_ExpressionSetManagerController {
                 FROM ExpressionSetVersion
                 WHERE ExpressionSetId IN :setIds
                 AND VersionNumber IN :latestVersionNumbers
+                WITH USER_MODE
             ]) {
                 if (v.VersionNumber == latestVersionNumberBySetId.get(v.ExpressionSetId)) {
                     latestVersionBySetId.put(v.ExpressionSetId, v);
@@ -160,6 +169,11 @@ public with sharing class RLM_ExpressionSetManagerController {
             return new JobStatus('unknown', 'Missing job id.');
         }
 
+        // Intentionally system-mode: AsyncApexJob is a system object whose read
+        // access cannot be granted via permission-set objectPermissions, so
+        // WITH USER_MODE cannot be satisfied by RLM_UtilitiesPermset. The query
+        // is constrained to this controller's own ApexClass and to a specific
+        // job id, and returns only job status (no business-object data).
         List<AsyncApexJob> jobs = [
             SELECT Id, Status, ExtendedStatus, NumberOfErrors
             FROM AsyncApexJob
@@ -211,6 +225,7 @@ public with sharing class RLM_ExpressionSetManagerController {
                 FROM ExpressionSetDefinitionContextDefinition
                 WHERE ContextDefinitionId = :contextDefinitionId
                 AND ExpressionSetDefinitionId IN :constraintDefIds
+                WITH USER_MODE
             ];
             if (remaining > 0) return 'in_progress';
         }
@@ -234,6 +249,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             FROM ExpressionSetDefinitionContextDefinition
             WHERE ContextDefinitionId = :contextDefinitionId
             AND ExpressionSetDefinitionId IN :validatedDefinitionIds
+            WITH USER_MODE
         ]) {
             existingDefIds.add(j.ExpressionSetDefinitionId);
         }
@@ -254,6 +270,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             FROM ExpressionSetDefinitionContextDefinition
             WHERE ContextDefinitionId = :contextDefinitionId
             AND ExpressionSetDefinitionId IN :normalizedDefinitionIds
+            WITH USER_MODE
         ];
         if (junctionCount < normalizedDefinitionIds.size()) return 'in_progress';
 
@@ -284,6 +301,7 @@ public with sharing class RLM_ExpressionSetManagerController {
                 SELECT Id FROM ExpressionSetVersion
                 WHERE ExpressionSetId IN :setIds
                 AND IsActive = true
+                WITH USER_MODE
             ];
 
             if (!activeVersions.isEmpty()) {
@@ -300,6 +318,7 @@ public with sharing class RLM_ExpressionSetManagerController {
                     SELECT Id FROM ExpressionSetDefinitionContextDefinition
                     WHERE ContextDefinitionId = :contextDefinitionId
                     AND ExpressionSetDefinitionId IN :constraintDefIds
+                    WITH USER_MODE
                 ];
                 if (!junctions.isEmpty()) {
                     List<String> ids = new List<String>();
@@ -357,6 +376,7 @@ public with sharing class RLM_ExpressionSetManagerController {
                 FROM ExpressionSetVersion
                 WHERE ExpressionSetId IN :setIds
                 AND IsActive = true
+                WITH USER_MODE
                 GROUP BY ExpressionSetId
             ]) {
                 setsWithActiveVersion.add((Id) ar.get('setId'));
@@ -367,6 +387,7 @@ public with sharing class RLM_ExpressionSetManagerController {
                 FROM ExpressionSetVersion
                 WHERE ExpressionSetId IN :setIds
                 AND IsActive = false
+                WITH USER_MODE
                 ORDER BY ExpressionSetId, VersionNumber DESC
             ];
 
@@ -426,6 +447,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             FROM ExpressionSetDefinitionContextDefinition
             WHERE ContextDefinitionId = :contextDefinitionId
             AND ExpressionSetDefinitionId IN :requestedDefinitionIds
+            WITH USER_MODE
         ]) {
             allowedDefinitionIds.add(junction.ExpressionSetDefinitionId);
         }
@@ -436,6 +458,7 @@ public with sharing class RLM_ExpressionSetManagerController {
                 FROM ExpressionSet
                 WHERE UsageType = 'Constraint'
                 AND ExpressionSetDefinitionId IN :requestedDefinitionIds
+                WITH USER_MODE
             ]) {
                 allowedDefinitionIds.add(expressionSet.ExpressionSetDefinitionId);
             }
@@ -459,6 +482,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             SELECT ExpressionSetDefinitionId FROM ExpressionSet
             WHERE ExpressionSetDefinitionId IN :definitionIds
             AND UsageType = 'Constraint'
+            WITH USER_MODE
         ]) {
             constraintDefIds.add(es.ExpressionSetDefinitionId);
         }
@@ -468,7 +492,7 @@ public with sharing class RLM_ExpressionSetManagerController {
     private static Set<Id> getExpressionSetIds(List<Id> definitionIds) {
         Set<Id> setIds = new Set<Id>();
         for (ExpressionSet es : [
-            SELECT Id FROM ExpressionSet WHERE ExpressionSetDefinitionId IN :definitionIds
+            SELECT Id FROM ExpressionSet WHERE ExpressionSetDefinitionId IN :definitionIds WITH USER_MODE
         ]) {
             setIds.add(es.Id);
         }
@@ -482,6 +506,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             FROM ExpressionSetVersion
             WHERE ExpressionSetId IN :setIds
             AND IsActive = true
+            WITH USER_MODE
         ];
     }
 
