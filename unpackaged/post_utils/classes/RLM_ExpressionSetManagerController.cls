@@ -172,12 +172,15 @@ public with sharing class RLM_ExpressionSetManagerController {
         // Intentionally system-mode: AsyncApexJob is a system object whose read
         // access cannot be granted via permission-set objectPermissions, so
         // WITH USER_MODE cannot be satisfied by RLM_UtilitiesPermset. The query
-        // is constrained to this controller's own ApexClass and to a specific
-        // job id, and returns only job status (no business-object data).
+        // is scoped to the CALLER's own jobs (CreatedById) for this controller's
+        // ApexClass and a specific job id, so the system-mode exception does not
+        // bypass record ownership, and returns only job status (no business data).
+        Id currentUserId = UserInfo.getUserId();
         List<AsyncApexJob> jobs = [
             SELECT Id, Status, ExtendedStatus, NumberOfErrors
             FROM AsyncApexJob
             WHERE Id = :jobId
+            AND CreatedById = :currentUserId
             AND ApexClass.Name = 'RLM_ExpressionSetManagerController'
             LIMIT 1
         ];
@@ -501,13 +504,20 @@ public with sharing class RLM_ExpressionSetManagerController {
 
     private static Integer countActiveVersions(List<Id> definitionIds) {
         Set<Id> setIds = getExpressionSetIds(definitionIds);
-        return [
-            SELECT COUNT()
+        // Count distinct sets that have at least one active version, not the raw
+        // number of active versions: a set can carry multiple active versions
+        // (Rank resolves overlaps), so COUNT() would let extra active versions on
+        // one set mask another requested set that has none — making activation
+        // look complete when it is not (getActivateStatus). >0 still means "any
+        // active version remains" for getDeactivateStatus.
+        AggregateResult ar = [
+            SELECT COUNT_DISTINCT(ExpressionSetId) activeSets
             FROM ExpressionSetVersion
             WHERE ExpressionSetId IN :setIds
             AND IsActive = true
             WITH USER_MODE
         ];
+        return (Integer) ar.get('activeSets');
     }
 
     private static Map<String, Object> buildVersionPatch(Id versionId, Boolean setActive, Integer currentRank, Integer refIdx) {
@@ -540,7 +550,10 @@ public with sharing class RLM_ExpressionSetManagerController {
             Http http = new Http();
             HttpResponse res = http.send(req);
             if (res.getStatusCode() != 200) {
-                throw new CalloutException('Composite delete failed: ' + res.getStatusCode() + ' ' + res.getBody());
+                System.debug(LoggingLevel.ERROR, 'Composite delete HTTP ' + res.getStatusCode() + ' body: ' + res.getBody());
+                String concise = conciseErrorFromBody(res.getBody());
+                throw new CalloutException('Composite delete failed: HTTP ' + res.getStatusCode()
+                    + (concise != null ? ' - ' + concise : ''));
             }
             assertNoCompositeDeleteFailures(res.getBody());
         }
@@ -576,7 +589,10 @@ public with sharing class RLM_ExpressionSetManagerController {
         HttpResponse res = http.send(req);
 
         if (res.getStatusCode() != 200) {
-            throw new CalloutException('Composite request failed: ' + res.getStatusCode() + ' ' + res.getBody());
+            System.debug(LoggingLevel.ERROR, 'Composite HTTP ' + res.getStatusCode() + ' body: ' + res.getBody());
+            String concise = conciseErrorFromBody(res.getBody());
+            throw new CalloutException('Composite request failed: HTTP ' + res.getStatusCode()
+                + (concise != null ? ' - ' + concise : ''));
         }
 
         assertNoCompositeSubrequestFailures(res.getBody());
@@ -591,7 +607,10 @@ public with sharing class RLM_ExpressionSetManagerController {
             Map<String, Object> subResult = (Map<String, Object>) r;
             Integer httpStatusCode = (Integer) subResult.get('httpStatusCode');
             if (httpStatusCode >= 400) {
-                failures.add(JSON.serialize(subResult));
+                // Full detail server-side; concise Salesforce message to the user.
+                System.debug(LoggingLevel.ERROR, 'Composite subrequest failure: ' + JSON.serialize(subResult));
+                String concise = conciseCompositeErrors((List<Object>) subResult.get('body'));
+                failures.add(concise != null ? concise : ('HTTP ' + httpStatusCode));
             }
         }
         if (!failures.isEmpty()) {
@@ -608,12 +627,55 @@ public with sharing class RLM_ExpressionSetManagerController {
             Boolean success = (Boolean) deleteResult.get('success');
             List<Object> errors = (List<Object>) deleteResult.get('errors');
             if (success != true || (errors != null && !errors.isEmpty())) {
-                failures.add(JSON.serialize(deleteResult));
+                // Full detail server-side; concise Salesforce message to the user.
+                System.debug(LoggingLevel.ERROR, 'Composite delete failure: ' + JSON.serialize(deleteResult));
+                String concise = conciseCompositeErrors(errors);
+                failures.add(concise != null ? concise : 'delete failed');
             }
         }
         if (!failures.isEmpty()) {
             throw new CalloutException('Composite delete subrequest(s) failed: ' + String.join(failures, '; '));
         }
+    }
+
+    // Extracts the human-readable Salesforce message(s) from a list of REST error
+    // entries (each a { "message": ..., "errorCode": ... } map), so the surfaced
+    // exception — and the sticky LWC banner it reaches via AsyncApexJob
+    // ExtendedStatus — shows a concise message instead of serialized JSON. Full
+    // response detail is written to the debug log at each call site.
+    @TestVisible
+    private static String conciseCompositeErrors(List<Object> errors) {
+        if (errors == null) return null;
+        List<String> msgs = new List<String>();
+        for (Object e : errors) {
+            if (e instanceof Map<String, Object>) {
+                Object m = ((Map<String, Object>) e).get('message');
+                if (m != null) msgs.add(String.valueOf(m));
+            }
+        }
+        return msgs.isEmpty() ? null : String.join(msgs, '; ');
+    }
+
+    // Best-effort concise message from a raw REST error body (transport-level
+    // composite / composite-delete failures). Returns null on a shape it does not
+    // recognise so the caller falls back to the HTTP status.
+    @TestVisible
+    private static String conciseErrorFromBody(String responseBody) {
+        if (String.isBlank(responseBody)) return null;
+        try {
+            Object parsed = JSON.deserializeUntyped(responseBody);
+            if (parsed instanceof List<Object>) {
+                return conciseCompositeErrors((List<Object>) parsed);
+            }
+            if (parsed instanceof Map<String, Object>) {
+                Map<String, Object> m = (Map<String, Object>) parsed;
+                if (m.get('message') != null) return String.valueOf(m.get('message'));
+                if (m.get('error_description') != null) return String.valueOf(m.get('error_description'));
+            }
+        } catch (Exception ignored) {
+            // Non-JSON body (e.g. HTML) — fall back to the HTTP status.
+        }
+        return null;
     }
 
     @TestVisible

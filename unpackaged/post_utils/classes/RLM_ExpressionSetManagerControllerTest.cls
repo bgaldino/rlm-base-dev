@@ -161,13 +161,30 @@ private class RLM_ExpressionSetManagerControllerTest {
 
     @IsTest
     static void activateQueueable_missingJunction_sendsCompositeCallout() {
-        Test.setMock(HttpCalloutMock.class, new CompositeMock());
+        RecordingHttpMock mock = new RecordingHttpMock();
+        Test.setMock(HttpCalloutMock.class, mock);
         new RLM_ExpressionSetManagerController.ActivateQueueable(
             FAKE_CONTEXT_ID,
             new List<Id>{ FAKE_DEF_ID },
             new Set<Id>{ FAKE_DEF_ID },
             'fake-session-id'
         ).execute(null);
+
+        // Assert the junction POST actually went out and carried the right ids —
+        // otherwise the test would pass even if the callout were removed.
+        System.assertEquals(1, mock.requests.size(),
+            'Expected exactly one composite callout for the junction POST');
+        HttpRequest captured = mock.requests[0];
+        System.assert(captured.getEndpoint().endsWith('/composite'),
+            'Callout should target the Composite REST endpoint: ' + captured.getEndpoint());
+        System.assertEquals('POST', captured.getMethod(), 'Composite request should be a POST');
+        String body = captured.getBody();
+        System.assert(body.contains('ExpressionSetDefinitionContextDefinition'),
+            'Composite body should POST the context-definition junction: ' + body);
+        System.assert(body.contains(String.valueOf(FAKE_DEF_ID)),
+            'Composite body should carry the Expression Set Definition id');
+        System.assert(body.contains(String.valueOf(FAKE_CONTEXT_ID)),
+            'Composite body should carry the Context Definition id');
     }
 
     @IsTest
@@ -283,6 +300,23 @@ private class RLM_ExpressionSetManagerControllerTest {
             res.setHeader('Content-Type', 'application/json');
             res.setStatusCode(200);
             res.setBody('{"compositeResponse":[]}');
+            return res;
+        }
+    }
+
+    /**
+     * Records each HttpRequest so a test can assert a callout occurred and
+     * inspect its method, endpoint, and body. Returns a successful composite
+     * response so the queueable does not throw.
+     */
+    private class RecordingHttpMock implements HttpCalloutMock {
+        public List<HttpRequest> requests = new List<HttpRequest>();
+        public HttpResponse respond(HttpRequest req) {
+            requests.add(req);
+            HttpResponse res = new HttpResponse();
+            res.setHeader('Content-Type', 'application/json');
+            res.setStatusCode(200);
+            res.setBody('{"compositeResponse":[{"httpStatusCode":201,"referenceId":"junction_0"}]}');
             return res;
         }
     }
