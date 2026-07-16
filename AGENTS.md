@@ -29,7 +29,7 @@ force-app/             # Core SFDX metadata (deployed at step 5)
 unpackaged/pre/        # Pre-deploy metadata (fields, settings, PSGs, DTs)
 unpackaged/post_*/     # Feature-specific metadata bundles
 unpackaged/post_ux/    # ⚠ AUTO-GENERATED — never edit directly
-templates/             # Source-of-truth for UX assembly (step 30)
+templates/             # Source-of-truth for UX assembly (step 29)
 datasets/sfdmu/        # SFDMU data plans (export.json + CSVs)
 datasets/context_plans/# Context definition plans
 datasets/constraints/  # Configurator constraint rule data

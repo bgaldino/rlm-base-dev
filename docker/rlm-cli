@@ -140,7 +140,7 @@ ${B}All commands${R}:
   ${B}rlm connect${R}            Alias for 'rlm login' (an existing target org).
   ${B}rlm orgs${R}               List the orgs you're signed in to.
   ${B}rlm build${R} [--lite] [--shape ent|dev] [--days N] [--alias NAME] [-y]
-                          Build a new scratch org (full 35-step flow; --lite skips
+                          Build a new scratch org (full 34-step flow; --lite skips
                           the heavy UI steps). Resumable if it fails.
   ${B}rlm resume${R}             Resume the last build from where it failed.
   ${B}rlm deploy${R} [--org ALIAS]
@@ -455,7 +455,7 @@ cmd_build() {
   printf '  %-14s %s\n' "Org shape"   "$shape"
   printf '  %-14s %s\n' "Lifetime"    "$days days"
   printf '  %-14s %s\n' "Alias"       "$alias"
-  printf '  %-14s %s\n' "Scope"       "$([ "$lite" = 1 ] && echo 'lite (skips UX/docgen/PRM/analytics)' || echo 'full (all 35 steps)')"
+  printf '  %-14s %s\n' "Scope"       "$([ "$lite" = 1 ] && echo 'lite (skips UX/docgen/PRM/analytics)' || echo 'full (all 34 steps)')"
   printf '  %-14s %s\n' "Dev Hub"     "$devhub"
   echo
   [ "$yes" = "1" ] && ASSUME_YES=1   # honor -y/--yes (confirm reads ASSUME_YES)
@@ -468,7 +468,7 @@ cmd_build() {
   local sfile="$STATE_DIR/last_scenario.json"
   write_scenario_file "$alias" "$shape" "$alias" "$days" "$lite" "$sfile"
 
-  hd "Building — this can take a while (the full flow has 35 steps)"
+  hd "Building — this can take a while (the full flow has 34 steps)"
   info "Harness scenario: $alias   (artifacts under .harness/runs/<run_id>/)"
   python3 scripts/build_harness/harness.py run \
       --scenario "$alias" --scenarios-file "$sfile" --keep-orgs
