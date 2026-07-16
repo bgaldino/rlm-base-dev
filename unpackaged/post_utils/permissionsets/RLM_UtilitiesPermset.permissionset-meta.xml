@@ -72,6 +72,14 @@
         <object>ExpressionSetVersion</object>
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
+    <!-- getApiSessionId() renders the RLM_SessionId Visualforce page to obtain a
+         REST session id; a permission-set-only user needs page access or
+         activate/deactivate fails when Apex renders it. Part of the same
+         self-sufficiency work above — confirm in the non-admin persona walk. -->
+    <pageAccesses>
+        <apexPage>RLM_SessionId</apexPage>
+        <enabled>true</enabled>
+    </pageAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Utilities</label>
 </PermissionSet>
