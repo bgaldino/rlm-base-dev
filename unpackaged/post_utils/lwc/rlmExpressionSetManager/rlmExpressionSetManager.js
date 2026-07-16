@@ -160,7 +160,10 @@ export default class RlmExpressionSetManager extends LightningElement {
         this.previousError = ''
     }
 
-    handleRetryError() {
+    // Refreshes the rows from Apex (and clears the error banner). It does NOT
+    // re-run the failed activate/deactivate operation, so it is labelled
+    // "Refresh", not "Retry".
+    handleRefresh() {
         this.previousError = ''
         if (this.selectedContextId) {
             this.loadExpressionSets()
