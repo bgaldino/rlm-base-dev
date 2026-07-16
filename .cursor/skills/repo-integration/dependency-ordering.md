@@ -18,7 +18,7 @@ control order):
 
 The `force-app/` Admin profile is **classAccesses only**:
 - Step 5 (`deploy_full`): profile with no layout assignments
-- Step 30 (`prepare_ux`): full profile from `templates/profiles/base/` + patches
+- Step 29 (`prepare_ux`): full profile from `templates/profiles/base/` + patches
 
 ### Object metadata strip-and-build
 
