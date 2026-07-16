@@ -278,7 +278,6 @@ These are assigned to the running user via `assign_permission_sets` in their res
 | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 5 | SObject access for CALM Delete operations |
 | `RLM_Approvals` | `quantumbit` + `approvals` | `prepare_approvals` step 3 (called from `prepare_quantumbit` step 2) | FLS on approval fields + `RLM_AA_Submit_Approval` Apex class |
 | `RLM_DocGen` | `docgen` | `prepare_docgen` step 10 | FLS on seller/docgen fields (Quote, QuoteLineItem) |
-| `RLM_RampSchedule` | `ramps` | `prepare_ramp_builder` step 3 | FLS on ramp fields + 11 ramp Apex classes + RunFlow |
 | `RLM_Constraints` | `tso` + `constraints` | `prepare_constraints` step 3 | FLS on `RLM_ConstraintEngineNodeStatus__c` (3 objects) |
 | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` | `prepare_prm` step 8 | FLS on partner/channel program fields |
 | `RLM_QuotingAgent` | `agents` | `prepare_agents` step 11 | Agent access to `Revenue_Quote_Management` |
@@ -371,7 +370,6 @@ The following table shows the sequence of all permission-related steps across th
 | 22.3 | `prepare_constraints` | `RLM_Constraints` | `tso` + `constraints` |
 | 23.1 | `prepare_guidedselling` | `OmniStudioAdmin`, `ProductCatalogManagementAdministrator` | `guidedselling` |
 | 23.3 | `prepare_guidedselling` | `RLM_Guided_Selling` | `guidedselling` |
-| 26.3 | `prepare_ramp_builder` | `RLM_RampSchedule` | `ramps` |
 | 27.2 | `prepare_large_stx` | `RLM_LargeSalesTransaction` (running user) | `large_stx` |
 | 28.6 | `prepare_personas` | `RLM_QuantumBit_Sales_Representative` (salesrep user) | `personas` |
 | 28.7 | `prepare_personas` | `RLM_LargeSalesTransaction` (salesrep user) | `personas` + `large_stx` |
@@ -411,7 +409,6 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | `quantumbit` + `calmdelete` | -- | -- | `RLM_CALM_SObject_Access` |
 | `quantumbit` + `approvals` | -- | -- | `RLM_Approvals` |
 | `docgen` | -- | -- | `RLM_DocGen` |
-| `ramps` | -- | -- | `RLM_RampSchedule` |
 | `tso` + `constraints` | -- | -- | `RLM_Constraints` |
 | `prm` + `prm_exp_bundle` + `tso` | -- | -- | `RLM_PRM` |
 | `agents` | -- | Copilot (2) | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` |

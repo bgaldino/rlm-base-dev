@@ -20,7 +20,7 @@ except ImportError:
 #: All feature flags that gate UX metadata assembly / retrieval.
 UX_KNOWN_FLAGS: List[str] = [
     "quantumbit", "billing", "billing_ui", "tax", "rating", "rates", "clm", "dro",
-    "guidedselling", "ramps", "tso", "prm", "agents", "docgen",
+    "guidedselling", "tso", "prm", "agents", "docgen",
     "payments", "constraints", "analytics", "procedureplans", "large_stx",
     "collections", "personas", "prm_pricing",
 ]

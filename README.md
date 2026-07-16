@@ -550,7 +550,6 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 |------|---------|-------------|
 | `rating` | `true` | Insert Rating design-time data |
 | `rates` | `true` | Insert Rates |
-| `ramps` | `true` | Insert and configure ramps |
 | `clm_data` | `false` | Load Contract Lifecycle Management data |
 | `constraints_data` | `true` | Load constraint model data (CML import + activation) |
 
@@ -583,7 +582,7 @@ The project uses custom flags in `cumulusci.yml` under `project.custom` to contr
 | Flag | Default | Description |
 |------|---------|-------------|
 | `personas` | `true` | Deploy persona profiles + permission set groups and create the Sales Rep user via `prepare_personas` at step 28 |
-| `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 30. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
+| `ux` | `true` | Assemble and deploy UX metadata (flexipages, layouts, apps, profiles, object bindings) via `prepare_ux` at step 29. Set `false` to skip all UX assembly — useful when testing feature deploys in isolation or debugging non-UX failures. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md). |
 
 ## Custom Tasks
 
@@ -681,7 +680,7 @@ Currently used by `activate_rating_records` task for the large [activateRatingRe
 | `extend_standard_context` | `rlm_extend_stdctx.py` | Extend standard context definitions with custom attributes | [Context Service Utility](docs/references/context-service-utility.md) |
 | `configure_core_pricing_recipe_table_mappings` | `rlm_configure_pricing_recipe_table_mappings.py` | Ensure core `PricingRecipeTableMapping` records exist for `NGPDefaultRecipe` and `RLM_CostBookEntries` | [PRM Pricing Metadata](unpackaged/post_prm_pricing/README.md) |
 | `configure_pricing_recipe_table_mappings` | `rlm_configure_pricing_recipe_table_mappings.py` | Ensure PRM pricing lookup table mappings exist for `NGPDefaultRecipe` | [PRM Pricing Metadata](unpackaged/post_prm_pricing/README.md) |
-| `assemble_and_deploy_ux` | `rlm_ux_assembly.py` | Assemble UX metadata (flexipages, layouts, applications, profiles, compact layouts, list views, object bindings) from `templates/` into `unpackaged/post_ux/` and optionally deploy. Supports `metadata_type` (specific type or `all`) and `metadata_name` (single file by full source filename). Called by `prepare_ux` at step 30. | [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) |
+| `assemble_and_deploy_ux` | `rlm_ux_assembly.py` | Assemble UX metadata (flexipages, layouts, applications, profiles, compact layouts, list views, object bindings) from `templates/` into `unpackaged/post_ux/` and optionally deploy. Supports `metadata_type` (specific type or `all`) and `metadata_name` (single file by full source filename). Called by `prepare_ux` at step 29. | [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) |
 
 ### Decision Table Refresh Tasks
 
@@ -782,7 +781,7 @@ cci task run robot_order_from_quote --org beta
 
 ### App Launcher
 
-App Launcher ordering is applied **dynamically** by `reorder_app_launcher` (step 2 of `prepare_ux`, step 30 of `prepare_rlm_org`, on all `ux=true` orgs). `assemble_and_deploy_ux` does **not** assemble or deploy appMenus — it only removes any stale `appMenus/` output left by older assembler versions. The task queries `AppMenuItem` via REST SOQL, builds an ordered `ApplicationId` list from its `priority_app_labels` option (a display-label priority list; see the task description for the default), and submits it to `AppLauncherController/saveOrder` via Aura XHR as a **user-level customization** for the automation user. No UI drag, and no Metadata API deploy — which is necessary because Salesforce blocks AppSwitcher Metadata API deployment on orgs whose AppMenu contains managed ConnectedApp or Network entries (the common Trialforce case), and `AppMenuItem.SortOrder` is read-only via all other APIs. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
+App Launcher ordering is applied **dynamically** by `reorder_app_launcher` (step 2 of `prepare_ux`, step 29 of `prepare_rlm_org`, on all `ux=true` orgs). `assemble_and_deploy_ux` does **not** assemble or deploy appMenus — it only removes any stale `appMenus/` output left by older assembler versions. The task queries `AppMenuItem` via REST SOQL, builds an ordered `ApplicationId` list from its `priority_app_labels` option (a display-label priority list; see the task description for the default), and submits it to `AppLauncherController/saveOrder` via Aura XHR as a **user-level customization** for the automation user. No UI drag, and no Metadata API deploy — which is necessary because Salesforce blocks AppSwitcher Metadata API deployment on orgs whose AppMenu contains managed ConnectedApp or Network entries (the common Trialforce case), and `AppMenuItem.SortOrder` is read-only via all other APIs. Users who have already personalized their launcher may need "Reset to default" in the App Launcher.
 
 To capture the running user's current order as a versioned reference snapshot:
 
@@ -872,7 +871,7 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 
 | Flow | Description |
 |------|-------------|
-| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (35 steps). This is the primary flow for full org setup. |
+| `prepare_rlm_org` | **Master flow** -- runs all sub-flows in order (34 steps). This is the primary flow for full org setup. |
 
 #### prepare_rlm_org Step Order
 
@@ -904,17 +903,16 @@ All flows belong to the **Revenue Lifecycle Management** group. The main orchest
 | 24 | `prepare_guidedselling` | Always |
 | 25 | `prepare_revenue_settings` | Always |
 | 26 | `prepare_pricing_discovery` | Always |
-| 27 | `prepare_ramp_builder` | Always |
-| 28 | `prepare_large_stx` | `large_stx` |
-| 29 | `prepare_personas` | `personas` |
-| 30 | `prepare_ux` | `ux` |
-| 31 | `prepare_inapp` | `inapp` |
-| 32 | `prepare_scratch` | Always |
-| 33 | `refresh_all_decision_tables` | Always |
-| 34 | `rebuild_search_index` | Always |
-| 35 | `stamp_git_commit` | Always |
+| 27 | `prepare_large_stx` | `large_stx` |
+| 28 | `prepare_personas` | `personas` |
+| 29 | `prepare_ux` | `ux` |
+| 30 | `prepare_inapp` | `inapp` |
+| 31 | `prepare_scratch` | Always |
+| 32 | `refresh_all_decision_tables` | Always |
+| 33 | `rebuild_search_index` | Always |
+| 34 | `stamp_git_commit` | Always |
 
-> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 30 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 33 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 34 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 35 (`stamp_git_commit`) is always last.
+> **Note:** "Always" means the flow/task runs as a step, but individual tasks inside each sub-flow may be gated by feature flags. Step 29 (`prepare_ux`) is gated by the `ux` flag (default `true`) and assembles all UX metadata — flexipages, layouts, applications, profiles, and object UX bindings — from `templates/` in a single late-stage deployment after all features are in place. Step 32 (`refresh_all_decision_tables`) refreshes all decision table caches. Step 33 (`rebuild_search_index`) rebuilds the Product Catalog (PCM) search index so the catalog is searchable after the build. Step 34 (`stamp_git_commit`) is always last.
 
 ### Data Management flows
 
@@ -960,9 +958,9 @@ See [Data Management Tasks](#data-management-tasks) for per-task details and gro
 
 | Flow | Description | Feature Flag |
 |------|-------------|--------------|
-| `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 30 of `prepare_rlm_org`. | `ux` |
+| `prepare_ux` | Step 1: `assemble_and_deploy_ux` — resolves feature-conditional sources from `templates/`, assembles `unpackaged/post_ux/`, deploys in a single `sf project deploy start`. Step 2: `reorder_app_launcher` — applies App Launcher order via Aura API on all `ux=true` orgs. Runs at step 29 of `prepare_rlm_org`. | `ux` |
 
-**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`) followed by sequential YAML patch application (order: `quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → ramp_builder → collections → prm_pricing`). One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing, rates, and ramps are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
+**Assembly rules:** Flexipages use last-feature-wins source resolution (order: `payments → billing → billing_ui → quantumbit → tso → constraints → utils → docgen → approvals → collections → prm_pricing`) followed by sequential YAML patch application (order: `quantumbit → utils → guidedselling → billing → billing_ui → payments → approvals → docgen → tso → constraints → collections → prm_pricing`). One canonical standalone version per page — pages are not duplicated across feature dirs. `tso/standalone` is intentionally empty; TSO builds inherit from QB via the `tso > qb > base` priority chain. App `actionOverrides` for billing and rates are injected via `templates/applications/patches/{feature}/` on non-TSO builds. See [Dynamic UX Assembly](docs/features/dynamic-ux-assembly.md) for full architecture.
 
 ### Utility Flows and Tasks
 
@@ -1173,14 +1171,14 @@ rlm-base-dev/
 │   │   │   ├── quantumbit/     # QB-core pages (Account, Home, Order, Transaction Journal, Usage Summary)
 │   │   │   ├── billing/        # Billing + usage/rating object pages (assembled when billing=true)
 │   │   │   ├── tso/            # Intentionally empty — TSO inherits QB via tso > qb > base
-│   │   │   └── ...             # constraints, collections, utils, payments, docgen, approvals, ramps
+│   │   │   └── ...             # constraints, collections, utils, payments, docgen, approvals
 │   │   └── patches/            # YAML semantic patch files per feature (additive component changes)
 │   ├── layouts/
 │   │   ├── base/               # 17 base layouts (moved from force-app)
 │   │   ├── billing/            # Billing-specific layouts
 │   │   └── constraints/        # OrderItem + QuoteLineItem overrides
 │   ├── applications/           # RLM_Revenue_Cloud variants (base, quantumbit, tso) + standalones
-│   │   └── patches/            # Feature-conditional actionOverride patches (billing, rates, ramps)
+│   │   └── patches/            # Feature-conditional actionOverride patches (billing, rates)
 │   ├── appMenus/
 │   │   └── base/               # AppSwitcher snapshot (reference only; not assembled/deployed — order applied via reorder_app_launcher)
 │   ├── objects/                # Object-level UX bindings + compact layouts + list views
@@ -1323,7 +1321,7 @@ cci flow run prepare_rlm_org -o ux false
 ### Assemble and Deploy UX Metadata
 
 ```bash
-# Assemble all UX metadata and deploy (same as step 30)
+# Assemble all UX metadata and deploy (same as step 29)
 cci flow run prepare_ux
 
 # Dry-run only — inspect unpackaged/post_ux/ without deploying
