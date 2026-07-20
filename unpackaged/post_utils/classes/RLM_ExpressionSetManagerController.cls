@@ -550,7 +550,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             Http http = new Http();
             HttpResponse res = http.send(req);
             if (res.getStatusCode() != 200) {
-                System.debug(LoggingLevel.ERROR, 'Composite delete HTTP ' + res.getStatusCode() + ' body: ' + res.getBody());
+                System.debug(LoggingLevel.FINE, 'Composite delete HTTP ' + res.getStatusCode() + ' body: ' + res.getBody());
                 String concise = conciseErrorFromBody(res.getBody());
                 throw new CalloutException('Composite delete failed: HTTP ' + res.getStatusCode()
                     + (concise != null ? ' - ' + concise : ''));
@@ -589,7 +589,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         HttpResponse res = http.send(req);
 
         if (res.getStatusCode() != 200) {
-            System.debug(LoggingLevel.ERROR, 'Composite HTTP ' + res.getStatusCode() + ' body: ' + res.getBody());
+            System.debug(LoggingLevel.FINE, 'Composite HTTP ' + res.getStatusCode() + ' body: ' + res.getBody());
             String concise = conciseErrorFromBody(res.getBody());
             throw new CalloutException('Composite request failed: HTTP ' + res.getStatusCode()
                 + (concise != null ? ' - ' + concise : ''));
@@ -608,7 +608,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             Integer httpStatusCode = (Integer) subResult.get('httpStatusCode');
             if (httpStatusCode >= 400) {
                 // Full detail server-side; concise Salesforce message to the user.
-                System.debug(LoggingLevel.ERROR, 'Composite subrequest failure: ' + JSON.serialize(subResult));
+                System.debug(LoggingLevel.FINE, 'Composite subrequest failure: ' + JSON.serialize(subResult));
                 String concise = conciseCompositeErrors((List<Object>) subResult.get('body'));
                 failures.add(concise != null ? concise : ('HTTP ' + httpStatusCode));
             }
@@ -628,7 +628,7 @@ public with sharing class RLM_ExpressionSetManagerController {
             List<Object> errors = (List<Object>) deleteResult.get('errors');
             if (success != true || (errors != null && !errors.isEmpty())) {
                 // Full detail server-side; concise Salesforce message to the user.
-                System.debug(LoggingLevel.ERROR, 'Composite delete failure: ' + JSON.serialize(deleteResult));
+                System.debug(LoggingLevel.FINE, 'Composite delete failure: ' + JSON.serialize(deleteResult));
                 String concise = conciseCompositeErrors(errors);
                 failures.add(concise != null ? concise : 'delete failed');
             }

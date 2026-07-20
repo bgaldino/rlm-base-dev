@@ -283,7 +283,7 @@ These are assigned to the running user via `assign_permission_sets` in their res
 | `RLM_QuotingAgent` | `agents` | `prepare_agents` step 11 | Agent access to `Revenue_Quote_Management` |
 | `RLM_QuotingAssistant` | `agents` | `prepare_agents` step 11 | Agent access to `RLM_Quoting_Assistant` |
 | `RLM_BillingEmployeeAgent` | `agents` | `prepare_agents` step 11 | Agent access to `RLM_Billing_Employee_Assistance` |
-| `RLM_UtilitiesPermset` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 5 | `RLM_AccountUtilities`, `RLM_ExpressionSetManagerController` (Expression Set Manager) Apex class access |
+| `RLM_UtilitiesPermset` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 5 | `RLM_AccountUtilities` + `RLM_ExpressionSetManagerController` (Expression Set Manager) Apex class access; object READ on `ContextDefinition`, `ExpressionSet`, `ExpressionSetDefinition`, `ExpressionSetDefinitionContextDefinition` and READ+EDIT on `ExpressionSetVersion` (controller USER_MODE SOQL); `RLM_SessionId` Visualforce page access. Object/page grants are provisional pending live verification. |
 
 ### Einstein / AI Permission Sets (`rlm_ai_ps_api_names`) -- `einstein: true`
 
