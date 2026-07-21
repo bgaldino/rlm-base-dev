@@ -1,7 +1,7 @@
 /**
  * Sales Transaction (Pricing) procedure-plan posthook that copies QuantumBit
  * "AAP" product-family included-quantity SalesTransactionItemAttribute values
- * onto the matching SalesTrxnItemUseRsrcGrant__std.GrantQuantity__std fields.
+ * onto the matching QuotLineItmUseRsrcGrant.GrantQuantity records.
  *
  * Wiring (manual, in Setup -> Procedure Plan Definitions): add an Apex section
  * after the Pricing section that points to RLM_AAPGrantPostHook. The Apex
@@ -16,7 +16,25 @@
  *   - IncludedBandwidthText     -> UsageResource.Name 'AAP Bandwidth'
  *   - IncludedMillionHitsGBText -> UsageResource.Name 'AAP Requests'
  * Writes:
- *   - SalesTrxnItemUseRsrcGrant__std.GrantQuantity__std (Integer)
+ *   - QuotLineItmUseRsrcGrant.GrantQuantity (Integer) via direct DML
+ *
+ * WHY async DML (Queueable) instead of updateContextAttributes:
+ *   1. Verified 2026-07-01 across four builds (V1.3-V1.6): calling
+ *      updateContextAttributes with a grant node payload returns
+ *      {isSuccess: true} but the transient write is never flushed to
+ *      QuotLineItmUseRsrcGrant when invoked from the interactive
+ *      "Get context price" path. Only SalesTransactionItem-level writes
+ *      appear to persist through the context API's post-hook commit.
+ *   2. Verified 2026-07-01 in V1.7: direct sync DML inside the post-hook
+ *      raises `Too many DML statements: 1` -- procedure plan hooks run
+ *      with a per-transaction DML statements limit of ZERO by design.
+ *   So we read grant metadata through the context (queryTags), then
+ *   enqueue a Queueable that runs in a fresh transaction (normal limits)
+ *   and performs `update as user` on QuotLineItmUseRsrcGrant. Persistence
+ *   is therefore async -- a few seconds after re-price, not synchronous.
+ *   `System.enqueueJob()` counts against the async-job limit (50/txn),
+ *   not the DML statements limit, so the enqueue itself is safe.
+ *   The DmlClient seam keeps the enqueue mockable in tests.
  */
 global with sharing class RLM_AAPGrantPostHook implements RevSignaling.SignalingApexProcessor {
 
@@ -30,17 +48,47 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
     // field suffix — the backing SObjects are standard, e.g. UsageResource).
     private static final String AAP_PRODUCT_FAMILY = 'AAP';
     private static final String ITEM_FAMILY_ATTR = 'ItemProductFamily__c';
-    private static final String GRANT_QUANTITY_ATTR = 'GrantQuantity__std';
+
+    // ======================================================================
+    // Naming layers (from `RLM_SalesTransactionContext.contextDefinition-meta.xml`):
+    //   Layer 1  <contextNodes>/<contextAttributes><title>          semantic name (schema)
+    //   Layer 2  <contextNodeMappings><contextAttribute>            persistence mapping name
+    //   Layer 3  <contextTags><title>                               RUNTIME tag key
+    //
+    // RULE: keys passed to queryTags MUST be Layer 3 (contextTag title). The
+    // Layer 1/2 names are declarative metadata only -- queryTags rejects them.
+    //
+    // Writes are done via direct SObject DML (see class header for the
+    // "why"), NOT via updateContextAttributes, so we do NOT need the Layer 3
+    // name for GrantQuantity here -- the SObject field is simply
+    // `QuotLineItmUseRsrcGrant.GrantQuantity`.
+    //
+    // Verified in `RLM_SalesTransactionContext.contextDefinition-meta.xml`:
+    //   line 23566  AttributeName -> contextTag 'Attribute'
+    //   line 23828  SalesTransactionItem__std (grant->item lookup) -> contextTag 'STI_URGSTIId__std'
+    //   line 23856  UsageResource__std (grant->resource lookup) -> contextTag 'STI_URGSTIURId__std'
+    //   line 24021  SalesTrxnItemUseRsrcGrant__std (node) -> contextTag 'STIUseRsrcGrantTag__std'
+    // Constants for SalesTransactionItem / SalesTransactionItemAttribute /
+    // AttributeValue / SalesTransactionItemAttrParent / ItemProductFamily__c
+    // work because their contextTag title equals their outer title.
+    // ======================================================================
 
     private static final String TAG_STI = 'SalesTransactionItem';
     private static final String TAG_STIA = 'SalesTransactionItemAttribute';
-    private static final String TAG_GRANT = 'SalesTrxnItemUseRsrcGrant__std';
+    // The grant node is queryable as a TOP-LEVEL tag under its contextTag
+    // title. Verified 2026-07-01: queryTags([this]) returns all grants in
+    // the transaction, filterable by GRANT_STI_PARENT.
+    private static final String TAG_GRANT = 'STIUseRsrcGrantTag__std';
 
-    private static final String ATTR_NAME = 'AttributeName';
+    // Attribute (on SalesTransactionItemAttribute) tag keys. 'Attribute' is
+    // the canonical contextTag title; 'AttributeName' is a defensive fallback.
+    private static final List<String> ATTR_NAME_KEYS = new List<String>{ 'Attribute', 'AttributeName' };
     private static final String ATTR_VALUE = 'AttributeValue';
     private static final String ATTR_STIA_PARENT = 'SalesTransactionItemAttrParent';
-    private static final String ATTR_GRANT_PARENT = 'SalesTransactionItem__std';
-    private static final String ATTR_GRANT_RESOURCE = 'UsageResource__std';
+
+    // Grant contextTag keys used for READS via queryTags.
+    private static final String GRANT_STI_PARENT = 'STI_URGSTIId__std';   // grant -> parent item
+    private static final String GRANT_RESOURCE   = 'STI_URGSTIURId__std'; // grant -> UsageResource lookup
 
     private static final Map<String, String> ATTR_NAME_TO_RESOURCE_NAME = new Map<String, String>{
         'IncludedTrafficText'       => 'AAP Traffic',
@@ -53,7 +101,7 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
     // operator can confirm which build is actually running in the org
     // (Apex caches compiled classes; a stale post-deploy can otherwise hide).
     private static final String DEBUG_PREFIX = 'RLM_AAPGrantPostHook';
-    private static final String DEBUG_VERSION = 'V1.0';
+    private static final String DEBUG_VERSION = 'V1.8';
 
     // Recursion guard. updateContextAttributes() can re-trigger a pricing pass,
     // which would re-fire this posthook -> infinite loop (and CPU governor
@@ -66,18 +114,33 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
     // Indirection through the ContextClient interface (see bottom of file) is
     // the only way to test this hook without a live pricing context:
     // Context.IndustriesContext is not stubbable directly. The pricing engine
-    // always invokes the no-arg constructor; the @TestVisible constructor is
-    // used by RLM_AAPGrantPostHookTest to inject a MockContextClient.
+    // always invokes the no-arg constructor; the @TestVisible constructors
+    // are used by RLM_AAPGrantPostHookTest to inject mocks.
     @TestVisible
     private ContextClient industriesContext;
 
+    // Same rationale for the DML seam: hoists the QuotLineItmUseRsrcGrant
+    // update DML into a stubbable collaborator so the mock-based test can
+    // capture the exact records that WOULD be updated without needing a
+    // full Quote + QuoteLineItem + UsageResource fixture. Production wires
+    // this to RealDmlClient (`update as user`).
+    @TestVisible
+    private DmlClient grantDml;
+
     public RLM_AAPGrantPostHook() {
         this.industriesContext = new RealContextClient();
+        this.grantDml = new RealDmlClient();
     }
 
     @TestVisible
     private RLM_AAPGrantPostHook(ContextClient client) {
+        this(client, new RealDmlClient());
+    }
+
+    @TestVisible
+    private RLM_AAPGrantPostHook(ContextClient client, DmlClient dml) {
         this.industriesContext = client;
+        this.grantDml = dml;
     }
 
     global RevSignaling.TransactionResponse execute(RevSignaling.TransactionRequest request) {
@@ -113,10 +176,10 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             // lines without the three included-* attributes) is a normal,
             // non-error case. We only want to fail the procedure plan if an
             // unexpected exception escapes.
-            Set<String> aapItemCtxIds = queryAapItemCtxIds(contextId);
-            logInfo('execute() step 1/4 AAP items found=' + aapItemCtxIds.size()
-                + ' ctxIds=' + aapItemCtxIds);
-            if (aapItemCtxIds.isEmpty()) {
+            Map<String, Map<String, Object>> aapItemsByCtxId = findAapItems(contextId);
+            logInfo('execute() step 1/4 AAP items found=' + aapItemsByCtxId.size()
+                + ' ctxIds=' + aapItemsByCtxId.keySet());
+            if (aapItemsByCtxId.isEmpty()) {
                 logInfo('execute() SKIP: no AAP items; returning SUCCESS no-op');
                 response.status = RevSignaling.TransactionStatus.SUCCESS;
                 response.message = 'No AAP product-family items in context; nothing to do.';
@@ -124,7 +187,7 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             }
 
             Map<String, Map<String, Integer>> qtyByItemByResource =
-                queryQuantitiesByItem(contextId, aapItemCtxIds);
+                queryQuantitiesByItem(contextId, aapItemsByCtxId.keySet());
             logInfo('execute() step 2/4 items with queued quantities=' + qtyByItemByResource.size());
             logFine('execute() step 2/4 qtyByItemByResource=' + qtyByItemByResource);
             if (qtyByItemByResource.isEmpty()) {
@@ -137,28 +200,29 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             Map<Id, String> resourceNameById = loadResourceNameById();
             logInfo('execute() step 3/4 UsageResource records resolved=' + resourceNameById.size());
 
-            List<Object> nodeUpdates =
-                buildGrantUpdates(contextId, aapItemCtxIds, qtyByItemByResource, resourceNameById);
-            logInfo('execute() step 4/4 grant updates built=' + nodeUpdates.size());
+            List<QuotLineItmUseRsrcGrant> grantUpdates =
+                buildGrantUpdates(contextId, aapItemsByCtxId.keySet(), qtyByItemByResource, resourceNameById);
+            logInfo('execute() step 4/4 grant updates built=' + grantUpdates.size());
 
-            // Batched in a single updateContextAttributes call so the engine
-            // sees ONE atomic update event per posthook run, not N events
-            // (which would trip the recursion guard once and stop the rest).
-            if (!nodeUpdates.isEmpty()) {
-                Map<String, Object> updateInput = new Map<String, Object>{
-                    'contextId' => contextId,
-                    'nodePathAndAttributes' => nodeUpdates
-                };
-                logFine('execute() submitting updateContextAttributes input=' + JSON.serializePretty(updateInput));
-                industriesContext.updateContextAttributes(updateInput);
-                logInfo('execute() updateContextAttributes returned OK (' + nodeUpdates.size() + ' updates submitted)');
+            // Enqueue an async Queueable to perform the DML. Procedure plan
+            // hooks disallow sync DML (V1.7 raised "Too many DML statements: 1"),
+            // so the actual update runs in a fresh transaction. Persistence
+            // is therefore visible a few seconds AFTER this hook returns --
+            // check the AsyncApexJob record or the debug log of the async
+            // job for the final commit and post-commit verification.
+            if (!grantUpdates.isEmpty()) {
+                logFine('execute() enqueuing async DML for records='
+                    + JSON.serializePretty(grantUpdates));
+                grantDml.updateGrants(grantUpdates);
+                logInfo('execute() async DML enqueued (' + grantUpdates.size()
+                    + ' QuotLineItmUseRsrcGrant records) -- DB commit happens in a separate transaction');
             } else {
-                logInfo('execute() no updates to submit; skipping updateContextAttributes call');
+                logInfo('execute() no updates to submit; skipping async DML enqueue');
             }
 
             response.status = RevSignaling.TransactionStatus.SUCCESS;
-            response.message = 'AAP grant quantities updated: ' + nodeUpdates.size();
-            logInfo('=== execute() EXIT status=SUCCESS updatesSubmitted=' + nodeUpdates.size() + ' ===');
+            response.message = 'AAP grant quantity updates enqueued: ' + grantUpdates.size();
+            logInfo('=== execute() EXIT status=SUCCESS updatesEnqueued=' + grantUpdates.size() + ' ===');
             return response;
         } catch (Exception e) {
             logError('execute() FAILED: ' + e.getMessage() + ' stack=' + e.getStackTraceString());
@@ -178,28 +242,40 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
     }
 
     /**
-     * The returned ids are CONTEXT ids (the runtime identifiers the engine
-     * assigns to each node), NOT Salesforce record ids. They are the cross-
-     * node join key used by both `SalesTransactionItemAttribute.SalesTransactionItemAttrParent`
-     * and `SalesTrxnItemUseRsrcGrant__std.SalesTransactionItem__std` to point
-     * back at their owning item -- so this set is what later queries match
-     * against. equalsIgnoreCase is defensive: the picklist persists 'AAP' but
-     * we don't want a casing drift to silently disable the hook.
+     * Returns: itemCtxId -> full SalesTransactionItem node (Map<String,Object>
+     * with `tagValue` and `dataPath`). Keeping the full node -- not just the
+     * id -- is essential because the STIUseRsrcGrantTag__std child
+     * nodes are NESTED inside each SalesTransactionItem's tagValue, not
+     * queryable as a top-level tag. The schema-level <contextNodes> block
+     * (line 24024 of RLM_SalesTransactionContext.contextDefinition-meta.xml)
+     * declares the grant's <inheritedFrom> as
+     * `SalesTransaction/SalesTransactionItem/STIUseRsrcGrantTag__std`,
+     * confirming it lives one level below SalesTransactionItem.
+     *
+     * Verified empirically 2026-06-30: queryTags with tags=[STIUseRsrcGrantTag__std]
+     * fails with ContextModificationException "Invalid tag attribute name key".
+     *
+     * The returned key (itemCtxId) is a CONTEXT id (engine-assigned runtime
+     * identifier), NOT a Salesforce record id. It is the cross-node join key
+     * used by `SalesTransactionItemAttribute.SalesTransactionItemAttrParent`.
+     * equalsIgnoreCase is defensive: picklist persists 'AAP' but we don't
+     * want a casing drift to silently disable the hook.
      */
-    private Set<String> queryAapItemCtxIds(String contextId) {
-        logFine('queryAapItemCtxIds() ENTER contextId=' + contextId);
+    private Map<String, Map<String, Object>> findAapItems(String contextId) {
+        logFine('findAapItems() ENTER contextId=' + contextId);
         Map<String, Object> input = new Map<String, Object>{
             'contextId' => contextId,
             'tags' => new List<String>{ TAG_STI }
         };
         Map<String, Object> output = industriesContext.queryTags(input);
         List<Object> items = readNodes(output, TAG_STI);
-        logInfo('queryAapItemCtxIds() queryTags returned ' + items.size() + ' ' + TAG_STI + ' node(s)');
+        logInfo('findAapItems() queryTags returned ' + items.size() + ' ' + TAG_STI + ' node(s)');
 
-        Set<String> ctxIds = new Set<String>();
+        Map<String, Map<String, Object>> byCtxId = new Map<String, Map<String, Object>>();
         Integer skippedNoTagMap = 0;
         Integer skippedNonAap = 0;
         Integer skippedBlankCtxId = 0;
+        Boolean dumpedFirstItemKeys = false;
         for (Object itemObj : items) {
             Map<String, Object> node = (Map<String, Object>) itemObj;
             Map<String, Object> tagMap = (Map<String, Object>) node.get('tagValue');
@@ -210,7 +286,7 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             String family = readTagString(tagMap, ITEM_FAMILY_ATTR);
             if (!AAP_PRODUCT_FAMILY.equalsIgnoreCase(family)) {
                 skippedNonAap++;
-                logFine('queryAapItemCtxIds() skip non-AAP item: family=' + family);
+                logFine('findAapItems() skip non-AAP item: family=' + family);
                 continue;
             }
             // The item's own ctx id is always the leaf of its dataPath;
@@ -221,14 +297,22 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
                 skippedBlankCtxId++;
                 continue;
             }
-            ctxIds.add(itemCtxId);
-            logFine('queryAapItemCtxIds() matched AAP item ctxId=' + itemCtxId);
+            byCtxId.put(itemCtxId, node);
+            logFine('findAapItems() matched AAP item ctxId=' + itemCtxId);
+            // Dump SalesTransactionItem tagMap keys once, on the first AAP
+            // item, so the nested grant child key is visible in the log
+            // (the full map is ~138 entries so we only do it once).
+            if (!dumpedFirstItemKeys) {
+                logFine('findAapItems() SalesTransactionItem tagMap keys for first AAP item ('
+                    + itemCtxId + ')=' + tagMap.keySet());
+                dumpedFirstItemKeys = true;
+            }
         }
-        logInfo('queryAapItemCtxIds() EXIT matched=' + ctxIds.size()
+        logInfo('findAapItems() EXIT matched=' + byCtxId.size()
             + ' skipped_no_tagMap=' + skippedNoTagMap
             + ' skipped_non_aap=' + skippedNonAap
             + ' skipped_blank_ctxid=' + skippedBlankCtxId);
-        return ctxIds;
+        return byCtxId;
     }
 
     /**
@@ -271,7 +355,12 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
                 skippedNonAapParent++;
                 continue;
             }
-            String attrName = readTagString(tagMap, ATTR_NAME);
+            // Diagnostic: dump every tag key on AAP-parented attributes the
+            // first time we walk them. Keeps the log small (only AAP items)
+            // while making any future key-name drift trivial to spot.
+            logFine('queryQuantitiesByItem() attribute on AAP item '
+                + parentItemCtxId + ' has tagMap keys=' + tagMap.keySet());
+            String attrName = readTagStringAny(tagMap, ATTR_NAME_KEYS);
             String resourceName = ATTR_NAME_TO_RESOURCE_NAME.get(attrName);
             if (resourceName == null) {
                 skippedUnmappedAttrName++;
@@ -357,18 +446,22 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
     }
 
     /**
-     * Return type is List<Object> (not List<Map<String, Object>>) because
-     * Apex's generics are invariant: putting the result into the
-     * `nodePathAndAttributes` slot of a Map<String, Object> and reading it
-     * back as List<Object> elsewhere (notably the mock in the test class)
-     * would throw "Illegal assignment" otherwise. The elements are still
-     * Map<String, Object> at runtime; the engine reads them positionally.
+     * Queries `STIUseRsrcGrantTag__std` grants at the top level of the
+     * context (contextTag title), filters each grant by its parent
+     * (STI_URGSTIId__std) against the AAP item ctx-id set and by its
+     * resource lookup (STI_URGSTIURId__std) against our three AAP
+     * UsageResource ids, then builds a `List<QuotLineItmUseRsrcGrant>`
+     * ready for direct DML.
      *
-     * Grants are matched to their parent line via the SalesTransactionItem__std
-     * tag rather than by parsing dataPath positions -- the tag is the contract
-     * the engine guarantees; dataPath depth/layout is not.
+     * The grant's own ctx id (leaf of `dataPath`) IS the underlying
+     * `QuotLineItmUseRsrcGrant.Id` -- verified 2026-07-01: dataPath
+     * segment 3 is an 18-char SObject Id with the QuotLineItmUseRsrcGrant
+     * key prefix. So we can update by Id directly, no extra SOQL needed.
+     * If a future context type changes this invariant, this method is the
+     * one place that needs to change (swap the direct Id write for a
+     * QuoteLineItemId + UsageResourceId lookup query).
      */
-    private List<Object> buildGrantUpdates(
+    private List<QuotLineItmUseRsrcGrant> buildGrantUpdates(
         String contextId,
         Set<String> aapItemCtxIds,
         Map<String, Map<String, Integer>> qtyByItemByResource,
@@ -377,7 +470,8 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         logFine('buildGrantUpdates() ENTER aapItems=' + aapItemCtxIds.size()
             + ' itemsWithQty=' + qtyByItemByResource.size()
             + ' knownResources=' + resourceNameById.size());
-        List<Object> updates = new List<Object>();
+        List<QuotLineItmUseRsrcGrant> updates = new List<QuotLineItmUseRsrcGrant>();
+        Set<Id> updatedGrantIds = new Set<Id>();
 
         Map<String, Object> input = new Map<String, Object>{
             'contextId' => contextId,
@@ -394,7 +488,9 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         Integer skippedInvalidResourceId = 0;
         Integer skippedUnknownResource = 0;
         Integer skippedNoQty = 0;
-        Integer skippedBadPath = 0;
+        Integer skippedBadGrantId = 0;
+        Integer skippedDuplicate = 0;
+        Boolean dumpedFirstGrantKeys = false;
         for (Object grantObj : grants) {
             Map<String, Object> node = (Map<String, Object>) grantObj;
             Map<String, Object> tagMap = (Map<String, Object>) node.get('tagValue');
@@ -402,9 +498,14 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
                 skippedNoTagMap++;
                 continue;
             }
-            String parentItemCtxId = readTagString(tagMap, ATTR_GRANT_PARENT);
+            if (!dumpedFirstGrantKeys) {
+                logFine('buildGrantUpdates() first grant tagMap keys=' + tagMap.keySet());
+                dumpedFirstGrantKeys = true;
+            }
+            String parentItemCtxId = readTagString(tagMap, GRANT_STI_PARENT);
             if (String.isBlank(parentItemCtxId) || !aapItemCtxIds.contains(parentItemCtxId)) {
                 skippedNonAapParent++;
+                logFine('buildGrantUpdates() skip grant: parentItemCtxId=' + parentItemCtxId + ' not in AAP set');
                 continue;
             }
             Map<String, Integer> queuedQtyByResource = qtyByItemByResource.get(parentItemCtxId);
@@ -412,14 +513,13 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
                 skippedNoQueuedQty++;
                 continue;
             }
-            String resourceIdString = readTagString(tagMap, ATTR_GRANT_RESOURCE);
+            String resourceIdString = readTagString(tagMap, GRANT_RESOURCE);
             if (String.isBlank(resourceIdString)) {
                 skippedBlankResourceId++;
                 continue;
             }
             // Id.valueOf inside try/catch per the apex-classes rule: untrusted
-            // string -> Id conversion must never throw out of the loop and
-            // abort processing of the remaining grants.
+            // string -> Id conversion must never throw out of the loop.
             Id resourceId;
             try {
                 resourceId = Id.valueOf(resourceIdString);
@@ -430,9 +530,6 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
                     + '; skipping (' + idEx.getMessage() + ')');
                 continue;
             }
-            // resourceName == null means the grant's resource isn't one of
-            // the three AAP resources (or wasn't returned by the SOQL because
-            // it doesn't exist in the org). Either way: leave the grant alone.
             String resourceName = resourceNameById.get(resourceId);
             if (resourceName == null) {
                 skippedUnknownResource++;
@@ -448,32 +545,37 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
                 continue;
             }
 
-            List<Object> grantPath = cloneDataPathWithoutContextId(node);
-            if (grantPath == null || grantPath.isEmpty()) {
-                skippedBadPath++;
-                logWarn('buildGrantUpdates() grant on item=' + parentItemCtxId
-                    + ' has empty/null dataPath; skipping');
+            // The grant's own ctx id (leaf of dataPath) is its SObject Id.
+            String grantIdStr = lastDataPathSegment(node);
+            Id grantId;
+            try {
+                grantId = Id.valueOf(grantIdStr);
+            } catch (Exception idEx) {
+                skippedBadGrantId++;
+                logWarn('buildGrantUpdates() invalid grant Id "' + grantIdStr
+                    + '" on item ' + parentItemCtxId + '; skipping ('
+                    + idEx.getMessage() + ')');
                 continue;
             }
+            // Same grant should never appear twice in one queryTags response,
+            // but be defensive: an UPDATE-with-duplicate-Ids is a runtime DML
+            // exception that would abort the whole batch.
+            if (updatedGrantIds.contains(grantId)) {
+                skippedDuplicate++;
+                continue;
+            }
+            updatedGrantIds.add(grantId);
 
-            // Payload shape lifted from the prehook/posthook samples in
-            // ind.pricing_customize_pricing_procedures_with_apex_hooks.htm.
-            // Keys are case-sensitive and required by the engine; do not
-            // rename without changing the engine contract.
-            updates.add(new Map<String, Object>{
-                'nodePath' => new Map<String, Object>{ 'dataPath' => grantPath },
-                'attributes' => new List<Object>{
-                    new Map<String, Object>{
-                        'attributeName' => GRANT_QUANTITY_ATTR,
-                        'attributeValue' => qty
-                    }
-                }
-            });
-            logInfo('buildGrantUpdates() queued update item=' + parentItemCtxId
-                + ' resource=' + resourceName + ' ' + GRANT_QUANTITY_ATTR + '=' + qty
-                + ' grantPath=' + grantPath);
+            updates.add(new QuotLineItmUseRsrcGrant(
+                Id = grantId,
+                GrantQuantity = qty
+            ));
+            logInfo('buildGrantUpdates() queued DML update grantId=' + grantId
+                + ' item=' + parentItemCtxId + ' resource=' + resourceName
+                + ' GrantQuantity=' + qty);
         }
         logInfo('buildGrantUpdates() EXIT updates=' + updates.size()
+            + ' total_grants_walked=' + grants.size()
             + ' skipped_no_tagMap=' + skippedNoTagMap
             + ' skipped_non_aap_parent=' + skippedNonAapParent
             + ' skipped_no_queued_qty=' + skippedNoQueuedQty
@@ -481,7 +583,8 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             + ' skipped_invalid_resource_id=' + skippedInvalidResourceId
             + ' skipped_unknown_resource=' + skippedUnknownResource
             + ' skipped_no_qty=' + skippedNoQty
-            + ' skipped_bad_path=' + skippedBadPath);
+            + ' skipped_bad_grant_id=' + skippedBadGrantId
+            + ' skipped_duplicate=' + skippedDuplicate);
         return updates;
     }
 
@@ -521,6 +624,21 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
         return String.valueOf(wrapper);
     }
 
+    /**
+     * Tries each candidate key in order and returns the first non-blank
+     * tagValue. Exists to absorb the AttributeName-vs-Attribute drift between
+     * the context definition and the runtime payload (see ATTR_NAME_KEYS).
+     */
+    private static String readTagStringAny(Map<String, Object> tagMap, List<String> keys) {
+        for (String k : keys) {
+            String v = readTagString(tagMap, k);
+            if (String.isNotBlank(v)) {
+                return v;
+            }
+        }
+        return null;
+    }
+
     private static String lastDataPathSegment(Map<String, Object> node) {
         List<Object> dataPath = (List<Object>) node.get('dataPath');
         if (dataPath == null || dataPath.isEmpty()) {
@@ -531,31 +649,13 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
     }
 
     /**
-     * updateContextAttributes wants dataPath RELATIVE to the context root,
-     * but queryTags returns the FULL path with the contextId as the first
-     * element. Mirror the `dataPath.remove(0); // Remove contextId` step
-     * shown in every Apex-hook sample in the Help docs. We copy first so we
-     * don't mutate the engine's response map (it may be reused).
-     */
-    private static List<Object> cloneDataPathWithoutContextId(Map<String, Object> node) {
-        List<Object> dataPath = (List<Object>) node.get('dataPath');
-        if (dataPath == null || dataPath.isEmpty()) {
-            return null;
-        }
-        List<Object> copy = new List<Object>(dataPath);
-        copy.remove(0);
-        return copy;
-    }
-
-    /**
-     * Narrow wrapper over the two Context.IndustriesContext methods we use.
-     * Exists solely so tests can substitute a MockContextClient. Keep the
-     * surface minimal: every method added here must also be added to every
-     * test mock.
+     * Narrow wrapper over the single Context.IndustriesContext method we
+     * still use (queryTags). Exists solely so tests can substitute a
+     * MockContextClient; Context.IndustriesContext is not stubbable.
+     * Writes go through DmlClient (below), not the context API.
      */
     public interface ContextClient {
         Map<String, Object> queryTags(Map<String, Object> input);
-        Map<String, Object> updateContextAttributes(Map<String, Object> input);
     }
 
     private class RealContextClient implements ContextClient {
@@ -567,12 +667,93 @@ global with sharing class RLM_AAPGrantPostHook implements RevSignaling.Signaling
             logInfo('RealContextClient.queryTags() tags=' + input.get('tags'));
             return delegateCtx.queryTags(input);
         }
+    }
 
-        public Map<String, Object> updateContextAttributes(Map<String, Object> input) {
-            Object nodes = input.get('nodePathAndAttributes');
-            Integer batchSize = (nodes instanceof List<Object>) ? ((List<Object>) nodes).size() : 0;
-            logInfo('RealContextClient.updateContextAttributes() batchSize=' + batchSize);
-            return delegateCtx.updateContextAttributes(input);
+    /**
+     * DML seam so the mock-based test can assert exactly which
+     * QuotLineItmUseRsrcGrant records the hook would update, without
+     * needing a real Quote + QuoteLineItem + UsageResource + Grant
+     * fixture. Production wires this to RealDmlClient, which enqueues
+     * an AAPGrantUpdateQueueable that performs the DML in a separate
+     * transaction (procedure plan hooks disallow sync DML).
+     */
+    public interface DmlClient {
+        void updateGrants(List<QuotLineItmUseRsrcGrant> grants);
+    }
+
+    private class RealDmlClient implements DmlClient {
+        public void updateGrants(List<QuotLineItmUseRsrcGrant> grants) {
+            logInfo('RealDmlClient.updateGrants() enqueue batchSize=' + grants.size());
+            Id jobId = System.enqueueJob(new AAPGrantUpdateQueueable(grants));
+            logInfo('RealDmlClient.updateGrants() enqueued Queueable jobId=' + jobId);
+        }
+    }
+
+    /**
+     * Async DML worker. Runs in its own transaction with normal governor
+     * limits (including standard DML statements allowance), so it can
+     * safely call `update as user` on the grant records the post-hook
+     * queued. Also does a read-back so the debug log records what
+     * actually persisted (or which trigger/workflow rolled it back).
+     *
+     * `update as user` enforces object + FLS permissions on
+     * QuotLineItmUseRsrcGrant / GrantQuantity for the ENQUEUING user
+     * (Queueable inherits their identity); a missing permission raises
+     * NoAccessException, which is logged and re-thrown so Salesforce's
+     * standard async retry / failed-job tracking kicks in.
+     */
+    public class AAPGrantUpdateQueueable implements Queueable {
+        private final List<QuotLineItmUseRsrcGrant> updates;
+
+        public AAPGrantUpdateQueueable(List<QuotLineItmUseRsrcGrant> updates) {
+            this.updates = updates;
+        }
+
+        public void execute(QueueableContext ctx) {
+            if (updates == null || updates.isEmpty()) {
+                logInfo('AAPGrantUpdateQueueable.execute() nothing to do (empty batch)');
+                return;
+            }
+            logInfo('AAPGrantUpdateQueueable.execute() ENTER batchSize=' + updates.size()
+                + ' jobId=' + (ctx != null ? ctx.getJobId() : null));
+            try {
+                update as user updates;
+                logInfo('AAPGrantUpdateQueueable.execute() DML committed (' + updates.size() + ' records)');
+                logPostUpdateVerification(updates);
+            } catch (Exception e) {
+                logError('AAPGrantUpdateQueueable.execute() DML FAILED: '
+                    + e.getMessage() + ' stack=' + e.getStackTraceString());
+                // Re-throw so Salesforce marks the async job as Failed
+                // and the operator sees it in AsyncApexJob.
+                throw e;
+            }
+        }
+
+        /**
+         * Reads the updated grants back and logs their persisted values.
+         * If a trigger/workflow rolls the write back, this line is the
+         * quickest way to spot it.
+         */
+        private void logPostUpdateVerification(List<QuotLineItmUseRsrcGrant> updated) {
+            try {
+                Set<Id> ids = new Set<Id>();
+                for (QuotLineItmUseRsrcGrant g : updated) {
+                    ids.add(g.Id);
+                }
+                for (QuotLineItmUseRsrcGrant g : [
+                    SELECT Id, GrantQuantity, QuoteLineItemId, UsageResourceId
+                    FROM QuotLineItmUseRsrcGrant
+                    WHERE Id IN :ids
+                    WITH USER_MODE
+                ]) {
+                    logInfo('post-DML verification grantId=' + g.Id
+                        + ' QuoteLineItemId=' + g.QuoteLineItemId
+                        + ' UsageResourceId=' + g.UsageResourceId
+                        + ' persisted GrantQuantity=' + g.GrantQuantity);
+                }
+            } catch (Exception readEx) {
+                logWarn('post-DML verification SOQL failed: ' + readEx.getMessage());
+            }
         }
     }
 

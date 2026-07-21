@@ -31,6 +31,11 @@
     </fieldPermissions>
 
     <fieldPermissions>
+        <editable>true</editable>
+        <field>QuotLineItmUseRsrcGrant.GrantQuantity</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
         <editable>false</editable>
         <field>QuoteLineItem.RLM_ProductName__c</field>
         <readable>true</readable>
@@ -50,6 +55,15 @@
         <field>RLM_Partner_Discount__c.RLM_Partner_Tier__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>QuotLineItmUseRsrcGrant</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>true</allowDelete>
