@@ -9,6 +9,31 @@ private class RLM_DeltaTermBuilderControllerTest {
         return a;
     }
 
+    // Account with a full Bill To / Ship To address, mirroring the order-readiness seed source.
+    private static Account insertAccountWithAddress() {
+        Account a = new Account(
+            Name = 'Term Builder Account',
+            BillingStreet = '1 Delta Way', BillingCity = 'Atlanta', BillingState = 'GA',
+            BillingPostalCode = '30320', BillingCountry = 'USA',
+            ShippingStreet = '1 Delta Way', ShippingCity = 'Atlanta', ShippingState = 'GA',
+            ShippingPostalCode = '30320', ShippingCountry = 'USA'
+        );
+        insert a;
+        return a;
+    }
+
+    // Distinct last name / email per contact so an org Contact duplicate rule can't block a second insert.
+    private static Integer contactSeq = 0;
+    private static Contact insertContact(Account a) {
+        contactSeq++;
+        Contact c = new Contact(
+            LastName = 'Rep ' + contactSeq, AccountId = a.Id,
+            Email = 'rep' + contactSeq + '@example.com', Phone = '404-555-010' + contactSeq
+        );
+        insert c;
+        return c;
+    }
+
     private static Quote insertQuoteFor(Account a) {
         Id pbId = Test.getStandardPricebookId();
         Opportunity opp = new Opportunity(
@@ -128,6 +153,66 @@ private class RLM_DeltaTermBuilderControllerTest {
         Map<String, Object> in0 = new Map<String, Object>{ 'accountId' => a.Id, 'quoteName' => 'X'.repeat(120) };
         Map<String, Object> res = parse(RLM_DeltaTermBuilderController.createNegotiation(JSON.serialize(in0)));
         System.assertNotEquals(null, res.get('isSuccess'), 'Long-name create returns a decided result');
+    }
+
+    @IsTest
+    static void testCreate_SeedsBillToContactFromAccountGracefulContract() {
+        // Account with an address + a single contact → the seed resolves the oldest contact as Bill To.
+        // PST is non-deterministic in test context, so assert only the graceful contract.
+        Account a = insertAccountWithAddress();
+        insertContact(a);
+        Map<String, Object> in0 = new Map<String, Object>{ 'accountId' => a.Id };
+        Test.startTest();
+        Map<String, Object> res = parse(RLM_DeltaTermBuilderController.createNegotiation(JSON.serialize(in0)));
+        Test.stopTest();
+        System.assertNotEquals(null, res.get('isSuccess'), 'Seeded create returns a decided result');
+    }
+
+    @IsTest
+    static void testCreate_ExplicitBillToContactOverrideGracefulContract() {
+        // An explicit billToContactId (UI override) is honored over the first-contact fallback.
+        Account a = insertAccountWithAddress();
+        insertContact(a);                       // oldest contact (the fallback)
+        Contact chosen = insertContact(a);      // explicitly selected override
+        Map<String, Object> in0 = new Map<String, Object>{
+            'accountId' => a.Id, 'billToContactId' => chosen.Id
+        };
+        Test.startTest();
+        Map<String, Object> res = parse(RLM_DeltaTermBuilderController.createNegotiation(JSON.serialize(in0)));
+        Test.stopTest();
+        System.assertNotEquals(null, res.get('isSuccess'), 'Override create returns a decided result');
+    }
+
+    @IsTest
+    static void testCreate_InvalidBillToContactIdRejected() {
+        Account a = insertAccountWithAddress();
+        Map<String, Object> in0 = new Map<String, Object>{ 'accountId' => a.Id, 'billToContactId' => 'bad' };
+        System.assertEquals(false,
+            parse(RLM_DeltaTermBuilderController.createNegotiation(JSON.serialize(in0))).get('isSuccess'),
+            'Malformed Bill To contact id rejected');
+    }
+
+    @IsTest
+    static void testCreate_NonexistentBillToContactRejected() {
+        // Well-formed but nonexistent contact id → the explicit-contact access guard fires.
+        Account a = insertAccountWithAddress();
+        Map<String, Object> in0 = new Map<String, Object>{
+            'accountId' => a.Id, 'billToContactId' => '003000000000000AAA'
+        };
+        System.assertEquals(false,
+            parse(RLM_DeltaTermBuilderController.createNegotiation(JSON.serialize(in0))).get('isSuccess'),
+            'Nonexistent Bill To contact rejected');
+    }
+
+    @IsTest
+    static void testCreate_NoContactStillCreatesGracefulContract() {
+        // Account with no contact → Bill To stays unset (order gate flags it later), create still runs.
+        Account a = insertAccountWithAddress();
+        Map<String, Object> in0 = new Map<String, Object>{ 'accountId' => a.Id };
+        Test.startTest();
+        Map<String, Object> res = parse(RLM_DeltaTermBuilderController.createNegotiation(JSON.serialize(in0)));
+        Test.stopTest();
+        System.assertNotEquals(null, res.get('isSuccess'), 'No-contact create returns a decided result');
     }
 
     // ---------- getNegotiationsForAccount ----------

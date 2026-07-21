@@ -78,9 +78,21 @@ public with sharing class RLM_DeltaTermBuilderController {
 
     /**
      * Create a negotiation Quote for an Account via Place Sales Transaction on the Standard Price
-     * Book. Input: { accountId, quoteName? }. The name defaults to
+     * Book. Input: { accountId, quoteName?, billToContactId? }. The name defaults to
      * "<Account Name> – Delta Negotiation – <yyyy-MM-dd>" when blank. Stamps the Account as
-     * QuoteAccountId. Returns { isSuccess, quoteId, quoteName, accountId, errorMessage }.
+     * QuoteAccountId.
+     *
+     * ORDER-READINESS SEED. Also seeds the Bill To contact + Bill To / Ship To addresses so a
+     * contracted negotiation flows straight through to order activation: the standard "Create Orders
+     * From Quote" path (RLM_CreateOrdersFromQuote) gates order creation on the Quote having
+     * BillToContactId AND Bill To/Ship To street+city+country populated. We mirror the standard
+     * RLM_QuickQuote flow — Bill To/Ship To addresses copied from the Account, and the Bill To
+     * contact resolved from an explicit billToContactId (UI override) or the account's oldest Contact.
+     * Blank source data simply leaves a field unset; the readiness gate then flags it, which is the
+     * correct signal (not a silent skip). All seeded fields are standard Quote fields and ride in the
+     * same header POST as QuoteAccountId.
+     *
+     * Returns { isSuccess, quoteId, quoteName, accountId, billToContactId, errorMessage }.
      */
     @AuraEnabled(cacheable=false)
     public static String createNegotiation(String inputJson) {
@@ -88,12 +100,19 @@ public with sharing class RLM_DeltaTermBuilderController {
             Map<String, Object> in0 = parseInput(inputJson);
             Id accountId = parseId(asString(in0.get('accountId')), 'accountId');
 
-            // Load the account (WITH USER_MODE = access guard) for the default name / existence.
-            List<Account> accts = [SELECT Id, Name FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1];
+            // Load the account (WITH USER_MODE = access guard) for the default name / existence and
+            // the Bill To / Ship To address seed.
+            List<Account> accts = [
+                SELECT Id, Name,
+                       BillingStreet, BillingCity, BillingState, BillingPostalCode, BillingCountry,
+                       ShippingStreet, ShippingCity, ShippingState, ShippingPostalCode, ShippingCountry
+                FROM Account WHERE Id = :accountId WITH USER_MODE LIMIT 1
+            ];
             if (accts.isEmpty()) {
                 throw new TermBuilderException('Account not found or not accessible.');
             }
-            String accountName = String.isNotBlank(accts[0].Name) ? accts[0].Name : 'Account';
+            Account acct = accts[0];
+            String accountName = String.isNotBlank(acct.Name) ? acct.Name : 'Account';
 
             String quoteName = asString(in0.get('quoteName'));
             if (String.isBlank(quoteName)) {
@@ -104,17 +123,39 @@ public with sharing class RLM_DeltaTermBuilderController {
                 quoteName = quoteName.substring(0, 80);
             }
 
+            // Resolve the Bill To contact: an explicit billToContactId (UI override) wins; otherwise
+            // fall back to the account's oldest Contact (RLM_QuickQuote's rule).
+            Contact billToContact = resolveBillToContact(accountId, optionalId(in0.get('billToContactId')));
+
             Id pbId = RLM_DeltaCatalogService.resolveStandardPricebook2Id();
 
             // Header-only PST graph. commitConfigured = pricing FORCE + configuration SKIP; there are
             // no lines to price/expand, so SKIP config is correct and pricing FORCE is a no-op.
+            Map<String, Object> headerFields = new Map<String, Object>{
+                'Name' => quoteName,
+                'Pricebook2Id' => pbId,
+                'QuoteAccountId' => accountId,
+                'Status' => 'Draft'
+            };
+            // Seed order-readiness fields — only put a key when we have a value (see method comment).
+            Id billToContactId = (billToContact != null) ? billToContact.Id : null;
+            putSeedField(headerFields, 'BillToContactId', billToContactId);
+            putSeedField(headerFields, 'ContactId', billToContactId);
+            putSeedField(headerFields, 'Email', (billToContact != null) ? billToContact.Email : null);
+            putSeedField(headerFields, 'Phone', (billToContact != null) ? billToContact.Phone : null);
+            putSeedField(headerFields, 'BillingStreet', acct.BillingStreet);
+            putSeedField(headerFields, 'BillingCity', acct.BillingCity);
+            putSeedField(headerFields, 'BillingState', acct.BillingState);
+            putSeedField(headerFields, 'BillingPostalCode', acct.BillingPostalCode);
+            putSeedField(headerFields, 'BillingCountry', acct.BillingCountry);
+            putSeedField(headerFields, 'ShippingStreet', acct.ShippingStreet);
+            putSeedField(headerFields, 'ShippingCity', acct.ShippingCity);
+            putSeedField(headerFields, 'ShippingState', acct.ShippingState);
+            putSeedField(headerFields, 'ShippingPostalCode', acct.ShippingPostalCode);
+            putSeedField(headerFields, 'ShippingCountry', acct.ShippingCountry);
+
             List<RevSalesTrxn.RecordWithReferenceRequest> records = new List<RevSalesTrxn.RecordWithReferenceRequest>{
-                RLM_DeltaPlaceSalesTransaction.post('refHeader', Quote.getSObjectType(), new Map<String, Object>{
-                    'Name' => quoteName,
-                    'Pricebook2Id' => pbId,
-                    'QuoteAccountId' => accountId,
-                    'Status' => 'Draft'
-                })
+                RLM_DeltaPlaceSalesTransaction.post('refHeader', Quote.getSObjectType(), headerFields)
             };
             RLM_DeltaPlaceSalesTransaction.Result res =
                 RLM_DeltaPlaceSalesTransaction.commitConfigured('DeltaTermBuilderCreate', records);
@@ -127,10 +168,42 @@ public with sharing class RLM_DeltaTermBuilderController {
                 'quoteId' => quoteId,
                 'quoteName' => quoteName,
                 'accountId' => accountId,
+                'billToContactId' => billToContactId,
                 'errorMessage' => null
             });
         } catch (Exception e) {
             return errorResult(e.getMessage());
+        }
+    }
+
+    /**
+     * Resolve the Bill To contact for a new negotiation. An explicit billToContactId (from the UI)
+     * wins when it exists and is accessible; otherwise fall back to the account's oldest Contact,
+     * which is what the standard RLM_QuickQuote flow seeds. Returns null when the account has no
+     * contact — the order-readiness gate then flags the missing Bill To (the correct signal, not a
+     * silent skip). Email / Phone are read for the header seed (RLM_QuickQuote copies them too).
+     */
+    private static Contact resolveBillToContact(Id accountId, Id explicitContactId) {
+        if (explicitContactId != null) {
+            List<Contact> chosen = [
+                SELECT Id, Email, Phone FROM Contact WHERE Id = :explicitContactId WITH USER_MODE LIMIT 1
+            ];
+            if (chosen.isEmpty()) {
+                throw new TermBuilderException('The selected Bill To contact was not found or is not accessible.');
+            }
+            return chosen[0];
+        }
+        List<Contact> firsts = [
+            SELECT Id, Email, Phone FROM Contact
+            WHERE AccountId = :accountId WITH USER_MODE ORDER BY CreatedDate ASC, Id ASC LIMIT 1
+        ];
+        return firsts.isEmpty() ? null : firsts[0];
+    }
+
+    /** Put a seed field on the header map only when the value is non-blank (skip null/empty). */
+    private static void putSeedField(Map<String, Object> fields, String key, Object value) {
+        if (value != null && String.isNotBlank(String.valueOf(value))) {
+            fields.put(key, value);
         }
     }
 
