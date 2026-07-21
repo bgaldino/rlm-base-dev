@@ -73,7 +73,10 @@ Map<String,Object> buildInput = new Map<String,Object>{
 Map<String,Object> buildResult = ctx.buildContext(buildInput);
 String contextId = (String) buildResult.get('contextId');
 System.debug('=== BUILD: contextId = ' + contextId);
-System.debug('=== BUILD: isSuccess = ' + buildResult.get('isSuccess'));
+// buildContext returns Context Info (contextId + metadata) — there is NO
+// isSuccess key on this call (query/update return it, build does not). A
+// non-blank contextId is the success signal here.
+System.debug('=== BUILD: contextInfoKeys = ' + buildResult.keySet());
 
 // 2. QUERY TAGS — read values by tag name (not attribute/field name)
 //    Tag names come from describe_context.py (attributeTags[].name on each attribute).

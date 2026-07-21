@@ -161,8 +161,10 @@ The typical order when standing up context configuration on an org:
   — ExpressionSet, ContextRules, PricingActionParameters, or a decision table.
   The deactivate PATCH fails with **`RECORD_UPDATE_FAILED`**; a definition with
   no active consumer deactivates cleanly. **Only *active* consumers block** —
-  deactivating the consumer first unblocks the definition. There is **no API/SOQL
-  that names the blocking record**, so trace consumers by type (below).
+  deactivating (or unlinking) the consumer first unblocks the definition. The
+  platform error never names the blocking record, but the **ExpressionSet** link
+  *is* queryable (see *Debugging a blocked deactivation* below); the other
+  consumer types have no enumerating query, so trace those by type.
   Deactivating a definition a **pricing procedure** uses **breaks that
   procedure** — unlink/deactivate consumers first, in dependency order.
 - **Activation requires a default mapping.** A version will not flip active
@@ -181,17 +183,54 @@ When a deactivate fails, an active consumer still references the definition.
 To find it, look at each consumer type (deep SOQL is out of scope here — start
 with the likely one for your change):
 
-- **ExpressionSet / pricing procedure** — the most common blocker. A pricing
-  procedure binds to the context via its tags; deactivating the definition
-  breaks the procedure. See `.cursor/skills/pricing-wiring/SKILL.md` and
-  `.cursor/skills/expression-sets/SKILL.md` to trace which expression set
-  consumes the context, then deactivate/unlink it first.
+- **ExpressionSet / pricing procedure** — the most common blocker, **and the one
+  consumer link you can enumerate directly.** The join object
+  `ExpressionSetDefinitionContextDefinition` (queryable on the **regular data
+  API** — the Tooling API rejects it with `sObject type … is not supported`)
+  lists every ES wired to a definition:
+
+  ```bash
+  sf data query --query "SELECT Id, ExpressionSetDefinitionId, ContextDefinitionId, ExecutableContextDefinition \
+    FROM ExpressionSetDefinitionContextDefinition WHERE ContextDefinitionId='<11O…>'" --target-org <alias>
+  ```
+
+  A core definition like `RLM_SalesTransactionContext` is typically wired to
+  **many** ES (≈9 on a built org — every pricing/DocGen procedure), so this is
+  the usual reason a whole-definition deactivate is refused. See
+  `.cursor/skills/pricing-wiring/SKILL.md` and
+  `.cursor/skills/expression-sets/SKILL.md` for the procedure side.
 - **ContextRules / decision table** — a decision table whose input maps to a
-  context node, or ContextRules referencing it.
-- **PricingActionParameters** — pricing actions that name the context.
+  context node, or ContextRules referencing it. No enumerating query — trace by
+  type.
+- **PricingActionParameters** — pricing actions that name the context. No
+  enumerating query.
 
 Fix order: unlink/deactivate consumers in dependency order (consumer → context),
 then deactivate the definition. Reactivate the definition before re-linking.
+
+**Reversible ES detach/reattach recipe (live-verified v67.0).** When only an
+`isTransient`/`remove-tag`/default-mapping edit needs a brief deactivation on a
+core definition, detaching the ES links is faster and less disruptive than
+deactivating each pricing procedure. The junction is `createable`/`deletable`
+with two meaningful writable fields (`ExpressionSetDefinitionId`,
+`ContextDefinitionId`; `ExecutableContextDefinition` is usually null), so the
+round-trip fully restores the wiring:
+
+1. **Back up** the links to a file: the query above with `--json > links.json`.
+2. **Detach** — `sf data delete record --sobject ExpressionSetDefinitionContextDefinition --record-id <Id>`
+   for each (count drops to 0 → definition is now deactivatable).
+3. **Edit** — run `mutate_context.py --deactivate-first --reactivate --confirm`
+   (or `delete_context.py`); it now succeeds.
+4. **Reattach** — `sf data create record --sobject ExpressionSetDefinitionContextDefinition
+   --values "ExpressionSetDefinitionId=<9QA…> ContextDefinitionId=<11O…>"` for each backed-up link.
+5. **Verify** — the reattached rows get **new junction Ids** (non-semantic; the
+   ES↔context *mapping* is what matters), so verify by comparing the sorted set
+   of `ExpressionSetDefinitionId`s against the backup, not the junction Ids.
+
+**Test-target caveat:** for a round-trip that needs deactivation to undo (e.g. an
+`--add-tag` you plan to `--remove-tag`), **don't pick a wired core definition**
+like `RLM_SalesTransactionContext` — the remove will strand mid-cycle behind the
+ES block. Use an unwired/clone definition, or plan the detach/reattach up front.
 
 ## Versioning
 
