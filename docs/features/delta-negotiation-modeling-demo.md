@@ -242,7 +242,7 @@ contract documented above.
 ## Engine changes in Round 2 (`dlDemoModel`)
 
 These are **additive and backward-compatible** — the parked Jest suites stay green
-(now 84 across the two variants):
+(now 101 across the two variants):
 
 1. **KPI rename Flights → Passengers.** `seedTermFlown`, `computeTermKpis`, and
    `aggregateKpis` now emit `industryPassengers` / `hostPassengers` (was
@@ -279,3 +279,108 @@ stream can pin real magnitudes without touching the engine's callers. When absen
 wired end-to-end and ready to populate. See `RLM_DeltaTermBuilderController` (the
 `terms[]` builder) and the row builders in
 `unpackaged/post_term_builder/lwc/dlDemoModel/dlDemoModel.js`.
+
+## G3 — new modeling-grid columns (`dlModelingGrid`)
+
+Three columns were added to the modeling grid to round out the per-fare negotiation
+narrative. All three are **additive**; existing magnitudes stay byte-identical because
+the two seeded fields draw from a dedicated `|meta` rng stream (see below).
+
+1. **Prior Disc %** — *read-only, derived.* Renders `priorDiscountPct` (the row's
+   prior-cycle discount, enriched from `getQuoteLines`; see engine change #2 above).
+   Shows one-decimal percent when present, `—` when `null`. Never affects a KPI.
+2. **Discount Name** — *editable text* (`lightning-input`, max 40 chars). Seeded from
+   `DISCOUNT_NAME_POOL` and never used in any calculation — pure labeling for the
+   proposal narrative. Edits call `_scheduleEmit()` (coalesced, one `modelchange` per
+   frame) so the row round-trips through the shell cache like any other edit.
+3. **Alliance** — *editable combobox* over `ALLIANCE_PERMISSIONS`
+   (`Allowed` / `Codeshare only` / `Not allowed`). Seeded via
+   `defaultAlliancePermission(carrier, rng)` — the host carrier defaults to `Allowed`;
+   partner carriers get a mixed default. Partner-carrier cells are visually emphasized
+   (`dl-mg-alliance_partner` — a tinted cell with a Delta-red left rule). Also
+   display-only w.r.t. KPIs.
+
+Both seeded fields (`discountName`, `alliancePermission`) are generated from a **`|meta`
+rng sub-stream** (FNV-1a-seeded LCG, isolated from the magnitude streams) so adding them
+did **not** perturb any previously-seeded discount/spend value. The parked determinism
+tests assert ranges + reproducibility, not golden numbers, and stay green.
+
+## G2 — term scope banner + geography scope attributes
+
+Round 2 surfaces a Term's **geographic scope** as a banner above the KPI band in
+`dlmModelingWorkspace`, and a compact scope line + rank badge on each `dlmTermCard`.
+The scope is expressed through a curated set of **G2 attribute codes** carried on the
+Term's attribute map:
+
+| Code | Meaning |
+|------|---------|
+| `DL_ScopeType` | Airport / City / Country / Region / Super-region / Custom |
+| `DL_ScopeOperator` | Equals / Not equals (→ *Includes* / *Excludes* in labels) |
+| `DL_MarketGroup` | the market/route grouping the scope applies to |
+| `DL_Origin`, `DL_Destination`, `DL_Directionality` | route legs + direction |
+| `DL_Measure`, `DL_TicketingRegion`, `DL_RequirementValue`, `DL_SpecialConditions` | secondary scope facets |
+
+These attribute definitions live in the **org as data** (AttributeDefinition +
+AttributePicklistValue), wired to the Term builder by an **allow-list** —
+`dlmTermWorkspace.DEFAULT_ATTRIBUTE_CODES` — not by repo metadata. Seeding them
+(plus the `DL_Measure` "Share of Flights" value) is a live-rehearsal step, not a deploy.
+
+Pure engine helpers in `dlDemoModel` drive the display and any market→term resolution:
+
+- **`termScopeChips(term)`** → `[{code,label,value}]` for the curated scope codes that
+  are present, emitted in a fixed display order (Scope / Operator / Market / Origin /
+  Destination / Directionality / Measure / Ticketing Region / Requirement). Empty array
+  when the Term carries none.
+- **`scopeLabel(term)`** → a one-line human summary, e.g. `Country · Includes GB, FR ·
+  Between`. Returns `""` when the Term has no `DL_ScopeType`, operator, **or** market
+  group (a plain route term shows no scope line — directionality alone never triggers
+  one).
+- **`scopeTypeRank(scopeType)`** → specificity rank (Airport 5 → Super-region 1,
+  Custom 0, unknown 0, none −1). Drives the `dlmTermCard` rank badge tint.
+- **`resolveTermForMarket(market, terms)`** → the **most specific** Term whose scope
+  matches a market string, or `null`. Filters by `termMatchesMarket` (market tokens
+  split on `[,;/]`, upper-cased, matched under the Includes/Excludes operator, falling
+  back to `DL_Origin` equality), then sorts by `scopeTypeRank` descending with a
+  **stable original-index tiebreak** so equal-rank matches resolve deterministically.
+
+## G3 — proposal CSV exports (`dlProposalSummary` + engine formatters)
+
+The Proposal Summary modal exports the modeled proposal three ways. The formatting is
+**pure and testable** — two engine functions build the CSV text offline; the modal only
+owns the Blob/anchor download and the browser print.
+
+- **`toProposalCsvSummary(proposal)`** — a metadata header (negotiation, account,
+  currency), one row per Term (route / method / status / the KPI columns), a Contract
+  rollup row, and the Projected Host Revenue line. `null` KPIs render as empty cells.
+- **`toProposalCsvDetailed(proposal, modelsByTermId)`** — flat per-fare-row export
+  across **all** Terms, each Term projected at its **own** `finalOfferRoundIndex`.
+  Columns include Discount Name, Alliance, Prior Disc %, and Final Offer Disc %
+  (undiscounted base via `computeUndiscounted`). Tolerates Terms with a missing model
+  (skips them) and an empty proposal.
+
+Both are RFC-4180-safe (`csvCell` quotes/escapes; `num1` renders one-decimal or empty).
+The **`proposal.models`** map (`termId → demo model`) is assembled by the shell in
+`handleOpenProposal` and passed straight through the modal to `toProposalCsvDetailed` —
+the modal never seeds or holds models itself.
+
+The download prepends a UTF-8 BOM (U+FEFF) so Excel renders the em-dash/arrow glyphs.
+**Print / Save as PDF** calls `window.print()`; a scoped `@media print` block widens the
+table and hides the action footer (`.dl-ps-noprint`). Hiding the surrounding Lightning
+app chrome is **not** reachable from the modal's shadow DOM and is
+environment-dependent — confirm in the target org/browser during rehearsal.
+
+## Deferred — Performance tab + CRMA read model
+
+The third tab (`Performance`) is a **static placeholder** in Round 2. The intended
+fill is a CRM Analytics dashboard stream; it is deferred, but the read model the CRMA
+adapter will implement is already the same shape the engine emits:
+
+- **Per-Term KPI object** (from `computeTermKpis`): `sharePts`, `fmsPts`,
+  `projectedSharePts`, `projectedGapPts`, `edrExistingPts`, `edrCurrentPts`,
+  `projectedHostRevenue`.
+- **Contract rollup** (from `aggregateKpis`): the same fields aggregated across Terms.
+
+A CRMA stream should populate these via the `term.modeling` seam (pinning `modeling.flown`
+magnitudes per Term) so the client engine and the dashboard agree by construction, rather
+than introducing a parallel read path. No custom objects and no Apex change are required
+for the placeholder.
