@@ -1,4 +1,5 @@
 import { LightningElement, api } from "lwc";
+import { scopeLabel, scopeTypeRank } from "c/dlDemoModel";
 
 // Route-attribute codes the rail chip summarizes (must match the PC-DL-TERM attribute defs). The
 // card only READS these off the term payload getBuilderState already returns; it never queries.
@@ -7,6 +8,7 @@ const DESTINATION_CODE = "DL_Destination";
 const DIRECTIONALITY_CODE = "DL_Directionality";
 const MEASURE_CODE = "DL_Measure";
 const REQUIREMENT_CODE = "DL_RequirementValue";
+const SCOPE_TYPE_CODE = "DL_ScopeType";
 
 /**
  * Presentational rail chip for one Term in c/dlTermBuilder. Renders the Term's display name, its
@@ -59,6 +61,25 @@ export default class DlmTermCard extends LightningElement {
     return `${origin || "—"}${arrow}${destination || "—"}`;
   }
 
+  // One-line geography summary ("Country · Includes GB, FR · Between"); blank when no scope attrs set.
+  get scopeLabel() {
+    return scopeLabel(this.term);
+  }
+
+  // Specificity rank badge (the scope type doubles as the specificity indicator: a more specific
+  // scope wins when a market fits multiple Terms). Present only when the Term declares a DL_ScopeType.
+  get scopeRankBadge() {
+    const scopeType = this.attrMap[SCOPE_TYPE_CODE];
+    if (!scopeType) {
+      return null;
+    }
+    return {
+      label: scopeType,
+      // 5 = airport (most specific) … 0 = custom; used only to tint the badge by strength.
+      cls: `dl-term-card__rank dl-term-card__rank_${scopeTypeRank(scopeType)}`
+    };
+  }
+
   // "Share Gap 5.0 pts" style summary; blank when no measure captured.
   get requirementLabel() {
     const m = this.attrMap;
@@ -71,7 +92,7 @@ export default class DlmTermCard extends LightningElement {
   }
 
   get hasSummary() {
-    return !!this.routeLabel || !!this.requirementLabel;
+    return !!this.routeLabel || !!this.scopeLabel || !!this.requirementLabel;
   }
 
   get cardClass() {

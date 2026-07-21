@@ -45,3 +45,45 @@
 .dl-term-card__summary {
   color: #514f4d;
 }
+
+.dl-term-card__badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Geography specificity badge. Tinted by DL_ScopeType rank: the more specific the scope, the deeper
+   the navy — so the most specific Terms read strongest at a glance. */
+.dl-term-card__rank {
+  display: inline-block;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 0.1875rem 0.375rem;
+  border-radius: 0.625rem;
+  white-space: nowrap;
+  color: #003268;
+  background: #eef3fa;
+  border: 0.0625rem solid #c9d6e8;
+}
+
+.dl-term-card__rank_5,
+.dl-term-card__rank_4 {
+  color: #ffffff;
+  background: #003268;
+  border-color: #003268;
+}
+
+.dl-term-card__rank_3 {
+  color: #ffffff;
+  background: #1a5fa8;
+  border-color: #1a5fa8;
+}
+
+.dl-term-card__rank_2 {
+  color: #003268;
+  background: #d6e3f4;
+  border-color: #b9cbe6;
+}

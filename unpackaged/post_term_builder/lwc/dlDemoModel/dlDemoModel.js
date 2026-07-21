@@ -202,21 +202,142 @@ export function methodLabel(method) {
   return method === METHOD_FARECLASS ? "Fare Class" : "Product";
 }
 
+// G2 geography scope attribute codes (definitions live in the org as data — AttributeDefinition +
+// AttributePicklistValue — so these are wired by allow-list, not repo metadata).
+const SCOPE_TYPE_CODE = "DL_ScopeType";
+const SCOPE_OPERATOR_CODE = "DL_ScopeOperator";
+const MARKET_GROUP_CODE = "DL_MarketGroup";
+const TICKETING_REGION_CODE = "DL_TicketingRegion";
+
 // Curated geography/scope attribute codes → human labels, in banner display order. The Modeling tab's
 // Term scope banner surfaces the Term-level geography ONCE above the grid (never per-row). Forward-
 // compatible: the G2 geography codes (DL_ScopeType / DL_ScopeOperator / DL_MarketGroup) are listed so
 // they appear automatically once a Term carries them; only codes with a value render.
 const SCOPE_LABELS = [
-  ["DL_ScopeType", "Scope"],
-  ["DL_ScopeOperator", "Operator"],
-  ["DL_MarketGroup", "Market"],
+  [SCOPE_TYPE_CODE, "Scope"],
+  [SCOPE_OPERATOR_CODE, "Operator"],
+  [MARKET_GROUP_CODE, "Market"],
   [ORIGIN_CODE, "Origin"],
   [DESTINATION_CODE, "Destination"],
   [DIRECTIONALITY_CODE, "Directionality"],
   [MEASURE_CODE, "Measure"],
-  ["DL_TicketingRegion", "Ticketing Region"],
+  [TICKETING_REGION_CODE, "Ticketing Region"],
   [REQUIREMENT_CODE, "Requirement"]
 ];
+
+// Geography scope specificity, most specific → least. Drives the tie-break when a concrete market
+// falls inside more than one Term's scope: the most specific Term wins. Matches the DL_ScopeType
+// picklist values (airport / city / country / region / super-region / custom).
+const SCOPE_TYPE_RANK = {
+  Airport: 5,
+  City: 4,
+  Country: 3,
+  Region: 2,
+  "Super-region": 1,
+  Custom: 0
+};
+
+// Numeric specificity for a DL_ScopeType value; -1 when the Term declares no scope type (least
+// specific of all, so an explicitly-scoped Term always outranks an unscoped one).
+export function scopeTypeRank(scopeType) {
+  if (!scopeType) {
+    return -1;
+  }
+  const r = SCOPE_TYPE_RANK[scopeType];
+  return r === undefined ? 0 : r;
+}
+
+// One-line geography summary chip for the rail card, e.g. "Country · Includes GB, FR · Between".
+// Built from the scope attributes the Term carries; "" when none are set (the card falls back to its
+// route/requirement lines). DL_ScopeOperator's Equals/Not-equals values read as Includes/Excludes.
+export function scopeLabel(term) {
+  const m = attrMap(term);
+  const op = m[SCOPE_OPERATOR_CODE];
+  const group = m[MARKET_GROUP_CODE];
+  // Only a genuine geography scope (scope type / operator / market group) produces a chip — a plain
+  // route Term's directionality is already conveyed by the route arrow, so it never triggers this.
+  if (!m[SCOPE_TYPE_CODE] && !op && !group) {
+    return "";
+  }
+  const parts = [];
+  if (m[SCOPE_TYPE_CODE]) {
+    parts.push(m[SCOPE_TYPE_CODE]);
+  }
+  if (op || group) {
+    const opLabel =
+      op === "Not-equals" || op === "Excludes"
+        ? "Excludes"
+        : op === "Equals" || op === "Includes"
+          ? "Includes"
+          : op || "";
+    parts.push([opLabel, group].filter(Boolean).join(" ").trim());
+  }
+  if (m[DIRECTIONALITY_CODE]) {
+    parts.push(m[DIRECTIONALITY_CODE]);
+  }
+  return parts.filter(Boolean).join(" · ");
+}
+
+// Normalize a Term's DL_MarketGroup free-text into an upper-cased token set ("GB, FR" → [GB, FR]).
+function marketTokens(term) {
+  const raw = attrMap(term)[MARKET_GROUP_CODE] || "";
+  return raw
+    .split(/[,;/]/)
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean);
+}
+
+// The market being resolved: either a bare token string ("GB") or an object carrying any of
+// { marketGroup | code | value, origin, destination }. Returns the comparison key (upper-cased).
+function marketKey(market) {
+  if (market === null || market === undefined) {
+    return "";
+  }
+  if (typeof market === "string") {
+    return market.trim().toUpperCase();
+  }
+  return `${market.marketGroup || market.code || market.value || ""}`
+    .trim()
+    .toUpperCase();
+}
+
+// Does this Term's geography scope contain the given market? Demo-grade (display/aggregation only):
+//   - Terms with a DL_MarketGroup match by token membership, honoring the Includes/Excludes operator.
+//   - Terms with no market group but an Origin match the market's origin (lane terms).
+function termMatchesMarket(term, market) {
+  const m = attrMap(term);
+  const tokens = marketTokens(term);
+  const key = marketKey(market);
+  if (tokens.length) {
+    const excludes =
+      m[SCOPE_OPERATOR_CODE] === "Not-equals" ||
+      m[SCOPE_OPERATOR_CODE] === "Excludes";
+    const inGroup = key ? tokens.includes(key) : false;
+    return excludes ? !inGroup : inGroup;
+  }
+  const origin = m[ORIGIN_CODE];
+  if (origin && market && typeof market === "object" && market.origin) {
+    return `${market.origin}`.trim().toUpperCase() === origin.trim().toUpperCase();
+  }
+  return false;
+}
+
+/**
+ * Resolve which Term a concrete market falls into. Pure + client-only (no server engine — Phase 2).
+ * When a market fits more than one Term's scope, the MOST SPECIFIC Term wins (ranked by DL_ScopeType:
+ * airport > city > country > region > super-region > custom). Equal-rank ties keep input order (stable
+ * sort). Returns the winning Term, or null when nothing matches. Display/aggregation only.
+ */
+export function resolveTermForMarket(market, terms) {
+  const candidates = (terms || []).filter((t) => termMatchesMarket(t, market));
+  if (!candidates.length) {
+    return null;
+  }
+  const ranked = candidates
+    .map((t, i) => ({ t, i, rank: scopeTypeRank(attrMap(t)[SCOPE_TYPE_CODE]) }))
+    .sort((a, b) => b.rank - a.rank || a.i - b.i);
+  return ranked[0].t;
+}
 
 // Compact scope chips for the Term scope banner. Returns [{ code, label, value }] for the curated scope
 // attributes that carry a value on this Term, in display order.

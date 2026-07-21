@@ -16,6 +16,9 @@ import {
   aggregateKpis,
   finalOfferLineDiscounts,
   termScopeChips,
+  scopeLabel,
+  scopeTypeRank,
+  resolveTermForMarket,
   currencyCompact,
   int,
   pct1,
@@ -258,6 +261,78 @@ describe("termScopeChips", () => {
   it("returns [] for a term with no attributes", () => {
     expect(termScopeChips({ attributes: [] })).toEqual([]);
     expect(termScopeChips(null)).toEqual([]);
+  });
+});
+
+describe("geography scope (G2)", () => {
+  function scopedTerm(id, scopeType, marketGroup, operator, extra = {}) {
+    const attributes = [{ code: "DL_ScopeType", value: scopeType }];
+    if (marketGroup !== undefined) {
+      attributes.push({ code: "DL_MarketGroup", value: marketGroup });
+    }
+    if (operator !== undefined) {
+      attributes.push({ code: "DL_ScopeOperator", value: operator });
+    }
+    return { id, displayName: id, attributes, ...extra };
+  }
+
+  it("scopeTypeRank orders airport > city > country > region > super-region > custom", () => {
+    expect(scopeTypeRank("Airport")).toBeGreaterThan(scopeTypeRank("City"));
+    expect(scopeTypeRank("City")).toBeGreaterThan(scopeTypeRank("Country"));
+    expect(scopeTypeRank("Country")).toBeGreaterThan(scopeTypeRank("Region"));
+    expect(scopeTypeRank("Region")).toBeGreaterThan(scopeTypeRank("Super-region"));
+    expect(scopeTypeRank("Super-region")).toBeGreaterThan(scopeTypeRank("Custom"));
+    // Unknown value ranks above "no scope type" but below the named tiers.
+    expect(scopeTypeRank("Weird")).toBe(0);
+    expect(scopeTypeRank(undefined)).toBe(-1);
+  });
+
+  it("scopeLabel renders 'Country · Includes GB, FR · Between'", () => {
+    const term = {
+      attributes: [
+        { code: "DL_ScopeType", value: "Country" },
+        { code: "DL_ScopeOperator", value: "Equals" },
+        { code: "DL_MarketGroup", value: "GB, FR" },
+        { code: "DL_Directionality", value: "Between" }
+      ]
+    };
+    expect(scopeLabel(term)).toBe("Country · Includes GB, FR · Between");
+  });
+
+  it("scopeLabel reads Not-equals as Excludes and is blank with no scope attrs", () => {
+    const excl = {
+      attributes: [
+        { code: "DL_ScopeType", value: "Region" },
+        { code: "DL_ScopeOperator", value: "Not-equals" },
+        { code: "DL_MarketGroup", value: "APAC" }
+      ]
+    };
+    expect(scopeLabel(excl)).toBe("Region · Excludes APAC");
+    expect(scopeLabel(makeTerm())).toBe("");
+  });
+
+  it("resolveTermForMarket picks the most specific matching Term", () => {
+    const broad = scopedTerm("broad", "Region", "EMEA");
+    const narrow = scopedTerm("narrow", "Country", "GB, FR");
+    // "GB" falls inside both EMEA (region) and GB,FR (country) — country is more specific.
+    expect(resolveTermForMarket("GB", [broad, narrow]).id).toBe("narrow");
+    // A market only the region covers resolves to the region.
+    expect(resolveTermForMarket("EMEA", [broad, narrow]).id).toBe("broad");
+  });
+
+  it("resolveTermForMarket honors Excludes and returns null when nothing matches", () => {
+    const includes = scopedTerm("inc", "Country", "GB, FR", "Equals");
+    const excludes = scopedTerm("exc", "Region", "GB", "Not-equals");
+    expect(resolveTermForMarket("DE", [includes, excludes]).id).toBe("exc"); // DE not excluded
+    expect(resolveTermForMarket("GB", [excludes])).toBeNull(); // GB is excluded
+    expect(resolveTermForMarket("ZZ", [includes])).toBeNull(); // ZZ not in GB,FR
+  });
+
+  it("resolveTermForMarket keeps input order on equal specificity (stable)", () => {
+    const a = scopedTerm("a", "Country", "GB");
+    const b = scopedTerm("b", "Country", "GB");
+    expect(resolveTermForMarket("GB", [a, b]).id).toBe("a");
+    expect(resolveTermForMarket("GB", [b, a]).id).toBe("b");
   });
 });
 

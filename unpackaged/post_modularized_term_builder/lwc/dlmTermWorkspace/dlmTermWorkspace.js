@@ -9,10 +9,13 @@ import {
 import DLM_CHANNEL from "@salesforce/messageChannel/DLM_TermBuilderChannel__c";
 
 const SOURCE = "dlmTermWorkspace";
-// Route-attribute codes surfaced in the scoped grid's inline attribute picker. Matches the monolith
-// dlTermBuilder default; overridable per placement via the attributeCodes design property.
+// Route + geography scope attribute codes surfaced in the scoped grid's inline attribute picker.
+// Extends the monolith dlTermBuilder default with the G2 geography-scope codes (DL_ScopeType /
+// DL_ScopeOperator / DL_MarketGroup — definitions live in the org as data). Only codes whose
+// AttributeDefinition exists in the org render; overridable per placement via the attributeCodes
+// design property.
 const DEFAULT_ATTRIBUTE_CODES =
-  "DL_Origin,DL_Destination,DL_Directionality,DL_Measure,DL_RequirementValue,DL_SpecialConditions";
+  "DL_ScopeType,DL_Origin,DL_Destination,DL_Directionality,DL_ScopeOperator,DL_MarketGroup,DL_Measure,DL_RequirementValue,DL_SpecialConditions";
 
 /**
  * Modularized Delta Term Builder — the "term workspace" tile.
