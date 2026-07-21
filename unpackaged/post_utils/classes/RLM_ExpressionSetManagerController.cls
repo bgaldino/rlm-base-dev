@@ -10,6 +10,15 @@
  * Composite REST API, authenticated via the RLM_SessionId Visualforce page.
  * Composite subrequest failures throw so the AsyncApexJob is marked Failed
  * and the LWC poll loop terminates with a surfaced error.
+ *
+ * ⚠ Atomicity: a bulk action is NOT one transaction. Each Composite request is
+ * sent with allOrNone=true, and each sObject-Collections delete batch likewise,
+ * so an individual request rolls back on failure — but a selection that
+ * generates more than 25 subrequests is split across several requests, and
+ * chunks that already succeeded stay committed. sendCompositeInChunks reports
+ * how much was applied when it fails past the first chunk, and the LWC's status
+ * poll reloads true per-row state. Capping an operation at a single transaction
+ * (or adding resume/compensation) is tracked in issue #305.
  */
 public with sharing class RLM_ExpressionSetManagerController {
 
@@ -566,7 +575,12 @@ public with sharing class RLM_ExpressionSetManagerController {
                 chunk.add(recordIds[j]);
             }
             HttpRequest req = new HttpRequest();
-            req.setEndpoint(baseUrl + '/services/data/' + API_VERSION + '/composite/sobjects?ids=' + String.join(chunk, ','));
+            // allOrNone=true: the sObject Collections API defaults it to FALSE, so
+            // without it a single undeletable junction would leave the rest of the
+            // batch deleted before assertNoCompositeDeleteFailures throws — a
+            // partially applied operation.
+            req.setEndpoint(baseUrl + '/services/data/' + API_VERSION
+                + '/composite/sobjects?allOrNone=true&ids=' + String.join(chunk, ','));
             req.setMethod('DELETE');
             req.setHeader('Authorization', 'Bearer ' + sessionId);
             req.setTimeout(120000);
@@ -585,13 +599,32 @@ public with sharing class RLM_ExpressionSetManagerController {
 
     @TestVisible
     private static void sendCompositeInChunks(String baseUrl, String sessionId, List<Object> subrequests) {
+        Integer sentSoFar = 0;
         for (Integer i = 0; i < subrequests.size(); i += 25) {
             Integer chunkEnd = Math.min(i + 25, subrequests.size());
             List<Object> chunk = new List<Object>();
             for (Integer j = i; j < chunkEnd; j++) {
                 chunk.add(subrequests[j]);
             }
-            sendComposite(baseUrl, sessionId, chunk);
+            try {
+                sendComposite(baseUrl, sessionId, chunk);
+            } catch (Exception e) {
+                // allOrNone=true rolls back only the composite request that
+                // failed. Chunks already sent are committed, so past the first
+                // chunk the operation is partially applied — say so instead of
+                // implying the bulk action was atomic. Capping an operation at a
+                // single transaction (or adding resume/compensation) is tracked
+                // in issue #305.
+                if (sentSoFar > 0) {
+                    throw new CalloutException(
+                        'Operation partially applied: ' + sentSoFar + ' of ' + subrequests.size()
+                        + ' change(s) were already committed before this failure, and are not rolled back. '
+                        + 'Refresh to see current state. ' + e.getMessage()
+                    );
+                }
+                throw e;
+            }
+            sentSoFar = chunkEnd;
         }
     }
 
