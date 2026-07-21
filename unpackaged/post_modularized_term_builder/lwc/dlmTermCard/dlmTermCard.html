@@ -33,6 +33,34 @@
             {scopeLabel}
           </div>
         </template>
+        <template if:true={showOperatorToggle}>
+          <div
+            class="dl-term-card__ops slds-m-top_xx-small"
+            role="group"
+            aria-label="Scope operator"
+          >
+            <button
+              type="button"
+              class={includesClass}
+              data-op="Includes"
+              aria-pressed={includesActive}
+              onclick={handleOperator}
+              title="Include the market group in this term's scope"
+            >
+              Includes
+            </button>
+            <button
+              type="button"
+              class={excludesClass}
+              data-op="Excludes"
+              aria-pressed={excludesActive}
+              onclick={handleOperator}
+              title="Exclude the market group from this term's scope"
+            >
+              Excludes
+            </button>
+          </div>
+        </template>
         <template if:true={requirementLabel}>
           <div
             class="slds-truncate slds-text-body_small"

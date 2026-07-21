@@ -9,3 +9,9 @@ Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Valu
 ,DL-MEAS-SHAREGAP,Share Gap,false,Share Gap,DL Measure Picklist,1,Active,Share Gap
 ,DL-MEAS-SHAREFLIGHTS,Share of Flights,false,Share of Flights,DL Measure Picklist,2,Active,Share of Flights
 ,DL-MEAS-NONE,No Requirement,true,No Requirement,DL Measure Picklist,3,Active,No Requirement
+,DL-SCOPE-AIRPORT,Airport,false,Airport,DL Scope Type Picklist,1,Active,Airport
+,DL-SCOPE-CITY,City,false,City,DL Scope Type Picklist,2,Active,City
+,DL-SCOPE-COUNTRY,Country,true,Country,DL Scope Type Picklist,3,Active,Country
+,DL-SCOPE-REGION,Region,false,Region,DL Scope Type Picklist,4,Active,Region
+,DL-SCOPE-SUPERREGION,Super-region,false,Super-region,DL Scope Type Picklist,5,Active,Super-region
+,DL-SCOPE-CUSTOM,Custom,false,Custom,DL Scope Type Picklist,6,Active,Custom

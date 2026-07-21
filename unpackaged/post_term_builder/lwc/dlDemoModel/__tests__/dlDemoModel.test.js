@@ -19,6 +19,7 @@ import {
   scopeLabel,
   scopeTypeRank,
   resolveTermForMarket,
+  SCOPE_OPERATORS,
   toProposalCsvSummary,
   toProposalCsvDetailed,
   currencyCompact,
@@ -267,16 +268,20 @@ describe("termScopeChips", () => {
 });
 
 describe("geography scope (G2)", () => {
-  function scopedTerm(id, scopeType, marketGroup, operator, extra = {}) {
+  // The scope operator (Includes/Excludes) is NOT a term attribute — it is a transient, client-only
+  // toggle passed in as a parameter (scopeLabel) or per-term map (resolveTermForMarket). So scoped
+  // terms here carry only scope-type + market-group attributes; the operator is supplied at call time.
+  function scopedTerm(id, scopeType, marketGroup, extra = {}) {
     const attributes = [{ code: "DL_ScopeType", value: scopeType }];
     if (marketGroup !== undefined) {
       attributes.push({ code: "DL_MarketGroup", value: marketGroup });
     }
-    if (operator !== undefined) {
-      attributes.push({ code: "DL_ScopeOperator", value: operator });
-    }
     return { id, displayName: id, attributes, ...extra };
   }
+
+  it("SCOPE_OPERATORS exposes the two toggle options in order", () => {
+    expect(SCOPE_OPERATORS).toEqual(["Includes", "Excludes"]);
+  });
 
   it("scopeTypeRank orders airport > city > country > region > super-region > custom", () => {
     expect(scopeTypeRank("Airport")).toBeGreaterThan(scopeTypeRank("City"));
@@ -289,11 +294,10 @@ describe("geography scope (G2)", () => {
     expect(scopeTypeRank(undefined)).toBe(-1);
   });
 
-  it("scopeLabel renders 'Country · Includes GB, FR · Between'", () => {
+  it("scopeLabel defaults to Includes → 'Country · Includes GB, FR · Between'", () => {
     const term = {
       attributes: [
         { code: "DL_ScopeType", value: "Country" },
-        { code: "DL_ScopeOperator", value: "Equals" },
         { code: "DL_MarketGroup", value: "GB, FR" },
         { code: "DL_Directionality", value: "Between" }
       ]
@@ -301,15 +305,16 @@ describe("geography scope (G2)", () => {
     expect(scopeLabel(term)).toBe("Country · Includes GB, FR · Between");
   });
 
-  it("scopeLabel reads Not-equals as Excludes and is blank with no scope attrs", () => {
+  it("scopeLabel honors an explicit Excludes operator and is blank with no scope attrs", () => {
     const excl = {
       attributes: [
         { code: "DL_ScopeType", value: "Region" },
-        { code: "DL_ScopeOperator", value: "Not-equals" },
         { code: "DL_MarketGroup", value: "APAC" }
       ]
     };
-    expect(scopeLabel(excl)).toBe("Region · Excludes APAC");
+    expect(scopeLabel(excl, "Excludes")).toBe("Region · Excludes APAC");
+    // Same term, default operator → Includes wording.
+    expect(scopeLabel(excl)).toBe("Region · Includes APAC");
     expect(scopeLabel(makeTerm())).toBe("");
   });
 
@@ -322,12 +327,14 @@ describe("geography scope (G2)", () => {
     expect(resolveTermForMarket("EMEA", [broad, narrow]).id).toBe("broad");
   });
 
-  it("resolveTermForMarket honors Excludes and returns null when nothing matches", () => {
-    const includes = scopedTerm("inc", "Country", "GB, FR", "Equals");
-    const excludes = scopedTerm("exc", "Region", "GB", "Not-equals");
-    expect(resolveTermForMarket("DE", [includes, excludes]).id).toBe("exc"); // DE not excluded
-    expect(resolveTermForMarket("GB", [excludes])).toBeNull(); // GB is excluded
-    expect(resolveTermForMarket("ZZ", [includes])).toBeNull(); // ZZ not in GB,FR
+  it("resolveTermForMarket honors a per-term Excludes operator and returns null when nothing matches", () => {
+    const includes = scopedTerm("inc", "Country", "GB, FR");
+    const excludes = scopedTerm("exc", "Region", "GB");
+    // The operator is supplied out-of-band, keyed by term id (unlisted → Includes).
+    const ops = { exc: "Excludes" };
+    expect(resolveTermForMarket("DE", [includes, excludes], ops).id).toBe("exc"); // DE not excluded
+    expect(resolveTermForMarket("GB", [excludes], ops)).toBeNull(); // GB is excluded
+    expect(resolveTermForMarket("ZZ", [includes], ops)).toBeNull(); // ZZ not in GB,FR
   });
 
   it("resolveTermForMarket keeps input order on equal specificity (stable)", () => {

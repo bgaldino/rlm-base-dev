@@ -9,6 +9,7 @@ const DIRECTIONALITY_CODE = "DL_Directionality";
 const MEASURE_CODE = "DL_Measure";
 const REQUIREMENT_CODE = "DL_RequirementValue";
 const SCOPE_TYPE_CODE = "DL_ScopeType";
+const MARKET_GROUP_CODE = "DL_MarketGroup";
 
 /**
  * Presentational rail chip for one Term in c/dlTermBuilder. Renders the Term's display name, its
@@ -22,6 +23,12 @@ const SCOPE_TYPE_CODE = "DL_ScopeType";
 export default class DlmTermCard extends LightningElement {
   @api term;
   @api selected = false;
+
+  // Transient, client-only scope operator (Includes | Excludes). Deliberately NOT a persisted
+  // DL_* attribute (see the dl-termbuilder plan README): it lives on the card, defaults to
+  // "Includes", is lost on reload, and only steers how this card renders its scope label. Changes
+  // are emitted as `operatorchange` so a parent could use it for filtering later.
+  _operator = "Includes";
 
   get displayName() {
     return (this.term && this.term.displayName) || "Untitled Term";
@@ -61,9 +68,36 @@ export default class DlmTermCard extends LightningElement {
     return `${origin || "—"}${arrow}${destination || "—"}`;
   }
 
-  // One-line geography summary ("Country · Includes GB, FR · Between"); blank when no scope attrs set.
+  // One-line geography summary ("Country · Includes GB, FR · Between"); blank when no scope attrs
+  // set. The Includes/Excludes wording is driven by the transient card-local operator, not the term.
   get scopeLabel() {
-    return scopeLabel(this.term);
+    return scopeLabel(this.term, this._operator);
+  }
+
+  // The operator toggle only makes sense when the Term declares a market group to include/exclude;
+  // a route-only or scope-type-only Term has nothing for the operator to act on, so hide it.
+  get showOperatorToggle() {
+    return !!this.attrMap[MARKET_GROUP_CODE];
+  }
+
+  get includesActive() {
+    return this._operator !== "Excludes";
+  }
+
+  get excludesActive() {
+    return this._operator === "Excludes";
+  }
+
+  get includesClass() {
+    return this.includesActive
+      ? "dl-term-card__op dl-term-card__op_active"
+      : "dl-term-card__op";
+  }
+
+  get excludesClass() {
+    return this.excludesActive
+      ? "dl-term-card__op dl-term-card__op_active"
+      : "dl-term-card__op";
   }
 
   // Specificity rank badge (the scope type doubles as the specificity indicator: a more specific
@@ -109,8 +143,35 @@ export default class DlmTermCard extends LightningElement {
     this._emit();
   }
 
+  // Flip the transient operator. Stops propagation so tapping the toggle doesn't also select the
+  // card, and emits `operatorchange` ({ termId, operator }) for any parent that wants to filter.
+  handleOperator(event) {
+    event.stopPropagation();
+    const operator = event.currentTarget.dataset.op;
+    if (!operator || operator === this._operator) {
+      return;
+    }
+    this._operator = operator;
+    const termId = this.term && this.term.id;
+    if (!termId) {
+      return;
+    }
+    this.dispatchEvent(
+      new CustomEvent("operatorchange", {
+        detail: { termId, operator },
+        bubbles: true,
+        composed: true
+      })
+    );
+  }
+
   // Space/Enter activate the chip (it is a role="button" div, so it needs its own key handling).
+  // Ignore keys that originated on an inner control (e.g. the operator buttons) — those handle
+  // their own activation and must not also select the card.
   handleKeydown(event) {
+    if (event.target !== event.currentTarget) {
+      return;
+    }
     if (
       event.key === "Enter" ||
       event.key === " " ||

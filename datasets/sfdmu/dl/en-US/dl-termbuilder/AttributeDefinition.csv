@@ -5,3 +5,5 @@ DL_Directionality,Picklist,,,Between or directional,DL_Directionality,true,false
 DL_Measure,Picklist,,,Share measure basis,DL_Measure,true,false,Measure,Measure,DL Measure Picklist,,,
 DL_RequirementValue,Text,,,Requirement value (e.g. 5.0 pts / 83%),DL_RequirementValue,true,false,Requirement Value,Requirement Value,,,,
 DL_SpecialConditions,Text,,,Free-text special conditions,DL_SpecialConditions,true,false,Special Conditions,Special Conditions,,,,
+DL_ScopeType,Picklist,,,Geographic scope granularity,DL_ScopeType,true,false,Scope Type,Scope Type,DL Scope Type Picklist,,,
+DL_MarketGroup,Text,,,Free-text market/route grouping the scope applies to,DL_MarketGroup,true,false,Market Group,Market Group,,,,

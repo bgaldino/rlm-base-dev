@@ -315,33 +315,44 @@ Term's attribute map:
 | Code | Meaning |
 |------|---------|
 | `DL_ScopeType` | Airport / City / Country / Region / Super-region / Custom |
-| `DL_ScopeOperator` | Equals / Not equals (→ *Includes* / *Excludes* in labels) |
 | `DL_MarketGroup` | the market/route grouping the scope applies to |
 | `DL_Origin`, `DL_Destination`, `DL_Directionality` | route legs + direction |
 | `DL_Measure`, `DL_TicketingRegion`, `DL_RequirementValue`, `DL_SpecialConditions` | secondary scope facets |
 
 These attribute definitions live in the **org as data** (AttributeDefinition +
 AttributePicklistValue), wired to the Term builder by an **allow-list** —
-`dlmTermWorkspace.DEFAULT_ATTRIBUTE_CODES` — not by repo metadata. Seeding them
-(plus the `DL_Measure` "Share of Flights" value) is a live-rehearsal step, not a deploy.
+`dlmTermWorkspace.DEFAULT_ATTRIBUTE_CODES` — not by repo metadata. They are seeded by the
+`dl-termbuilder` SFDMU plan (`DL_ScopeType` + `DL_MarketGroup` were added in Round 2); the
+`DL_Measure` "Share of Flights" value already exists on the org.
+
+> **Includes/Excludes is a UI toggle, not an attribute.** The scope operator is a
+> **transient, client-only** segmented control on each `dlmTermCard` (shown only when the
+> Term declares a `DL_MarketGroup`). It defaults to **Includes**, is **not** persisted as a
+> `DL_*` attribute, does **not** survive reload, and is **not** captured in the Contract
+> geography EAV. The card emits an `operatorchange` event (`{ termId, operator }`) so a
+> parent could drive filtering, but nothing consumes it today. The engine helpers therefore
+> take the operator **as a parameter**, never reading it off the Term.
 
 Pure engine helpers in `dlDemoModel` drive the display and any market→term resolution:
 
+- **`SCOPE_OPERATORS`** → `["Includes", "Excludes"]`, the two toggle options.
 - **`termScopeChips(term)`** → `[{code,label,value}]` for the curated scope codes that
-  are present, emitted in a fixed display order (Scope / Operator / Market / Origin /
-  Destination / Directionality / Measure / Ticketing Region / Requirement). Empty array
-  when the Term carries none.
-- **`scopeLabel(term)`** → a one-line human summary, e.g. `Country · Includes GB, FR ·
-  Between`. Returns `""` when the Term has no `DL_ScopeType`, operator, **or** market
-  group (a plain route term shows no scope line — directionality alone never triggers
-  one).
+  are present, emitted in a fixed display order (Scope / Market / Origin / Destination /
+  Directionality / Measure / Ticketing Region / Requirement). Empty array when the Term
+  carries none. (No operator chip — the operator is not a Term attribute.)
+- **`scopeLabel(term, operator = "Includes")`** → a one-line human summary, e.g.
+  `Country · Includes GB, FR · Between`. The Includes/Excludes wording comes from the
+  `operator` argument (the card passes its transient toggle state). Returns `""` when the
+  Term has no `DL_ScopeType` **or** market group (a plain route term shows no scope line —
+  directionality alone never triggers one).
 - **`scopeTypeRank(scopeType)`** → specificity rank (Airport 5 → Super-region 1,
   Custom 0, unknown 0, none −1). Drives the `dlmTermCard` rank badge tint.
-- **`resolveTermForMarket(market, terms)`** → the **most specific** Term whose scope
-  matches a market string, or `null`. Filters by `termMatchesMarket` (market tokens
-  split on `[,;/]`, upper-cased, matched under the Includes/Excludes operator, falling
-  back to `DL_Origin` equality), then sorts by `scopeTypeRank` descending with a
-  **stable original-index tiebreak** so equal-rank matches resolve deterministically.
+- **`resolveTermForMarket(market, terms, operatorByTermId = {})`** → the **most specific**
+  Term whose scope matches a market string, or `null`. Filters by `termMatchesMarket`
+  (market tokens split on `[,;/]`, upper-cased, matched under each Term's operator — looked
+  up in `operatorByTermId` by Term id, defaulting to Includes — falling back to `DL_Origin`
+  equality), then sorts by `scopeTypeRank` descending with a **stable original-index
+  tiebreak** so equal-rank matches resolve deterministically.
 
 ## G3 — proposal CSV exports (`dlProposalSummary` + engine formatters)
 

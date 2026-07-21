@@ -2,3 +2,4 @@ DataType,Description,Name,Code,Status,UnitOfMeasure.UnitCode
 Text,Shared origin/destination endpoints,DL Route Picklist,DL Route Picklist,Active,
 Text,Between vs directional,DL Directionality Picklist,DL Directionality Picklist,Active,
 Text,Share measure basis,DL Measure Picklist,DL Measure Picklist,Active,
+Text,Geographic scope granularity,DL Scope Type Picklist,DL Scope Type Picklist,Active,

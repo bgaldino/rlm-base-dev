@@ -87,3 +87,43 @@
   background: #d6e3f4;
   border-color: #b9cbe6;
 }
+
+/* Transient scope-operator toggle (Includes | Excludes). A compact segmented control; the active
+   segment fills navy. Purely client-side display state — never persisted to the Term. */
+.dl-term-card__ops {
+  display: inline-flex;
+  border: 0.0625rem solid #c9d6e8;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.dl-term-card__op {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: #1a5fa8;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.1875rem 0.5rem;
+  cursor: pointer;
+}
+
+.dl-term-card__op + .dl-term-card__op {
+  border-left: 0.0625rem solid #c9d6e8;
+}
+
+.dl-term-card__op:hover {
+  background: #eef3fa;
+}
+
+.dl-term-card__op:focus {
+  outline: 2px solid #003268;
+  outline-offset: -2px;
+}
+
+.dl-term-card__op_active,
+.dl-term-card__op_active:hover {
+  background: #003268;
+  color: #ffffff;
+}
