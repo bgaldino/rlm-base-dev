@@ -1,0 +1,54 @@
+<template>
+  <div class="dl-data-context">
+    <div class="dl-data-context__bar slds-grid slds-grid_vertical-align-center slds-wrap">
+      <span class="dl-data-context__badge">
+        <lightning-icon
+          icon-name="utility:database"
+          size="xx-small"
+          variant="inverse"
+          alternative-text="Simulated data"
+          class="slds-m-right_xx-small"
+        ></lightning-icon>
+        Simulated Data
+      </span>
+
+      <ul class="dl-data-context__chips slds-grid slds-wrap slds-grid_vertical-align-center" role="list">
+        <template for:each={summaryChips} for:item="chip">
+          <li key={chip.key} class="dl-data-context__chip" role="listitem">{chip.text}</li>
+        </template>
+      </ul>
+
+      <button
+        type="button"
+        class="dl-data-context__toggle slds-button slds-button_icon slds-button_icon-inverse"
+        aria-expanded={expandedStr}
+        title={toggleTitle}
+        onclick={handleToggle}
+      >
+        <lightning-icon
+          icon-name={toggleIcon}
+          size="xx-small"
+          variant="inverse"
+          alternative-text={toggleTitle}
+        ></lightning-icon>
+      </button>
+    </div>
+
+    <template if:true={expanded}>
+      <div class="dl-data-context__detail slds-p-around_small">
+        <dl class="dl-data-context__grid slds-grid slds-wrap">
+          <template for:each={detailRows} for:item="row">
+            <div key={row.key} class="dl-data-context__pair slds-col slds-size_1-of-2 slds-medium-size_1-of-3">
+              <dt class="dl-data-context__dt">{row.label}</dt>
+              <dd class="dl-data-context__dd">{row.value}</dd>
+            </div>
+          </template>
+        </dl>
+        <p class="dl-data-context__note slds-text-body_small slds-text-color_weak slds-m-top_x-small">
+          Illustrative flown-data context for the demo — distinct from the negotiation/contract default
+          dates above. No ingestion is performed.
+        </p>
+      </div>
+    </template>
+  </div>
+</template>

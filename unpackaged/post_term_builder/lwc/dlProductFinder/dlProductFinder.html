@@ -1,0 +1,83 @@
+<template>
+    <lightning-card title={effectiveCardTitle} icon-name="standard:product_item">
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium">
+            <template if:true={errorMessage}>
+                <div class="slds-text-color_error slds-m-bottom_x-small" role="alert">
+                    {errorMessage}
+                </div>
+            </template>
+
+            <div class="slds-box slds-box_x-small">
+                <div class="slds-grid slds-grid_vertical-align-end slds-gutters_x-small slds-wrap">
+                    <div class="slds-col slds-grow">
+                        <lightning-input
+                            type="search"
+                            label="Search products"
+                            value={searchTerm}
+                            placeholder="Search by name or code…"
+                            onchange={handleSearchTermChange}
+                        ></lightning-input>
+                    </div>
+                    <template if:true={hasCatalogs}>
+                        <div class="slds-col">
+                            <lightning-combobox
+                                label="Catalog"
+                                value={catalogId}
+                                options={catalogOptions}
+                                onchange={handleCatalogChange}
+                            ></lightning-combobox>
+                        </div>
+                    </template>
+                </div>
+
+                <template if:true={loading}>
+                    <div class="slds-m-vertical_small">
+                        <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                    </div>
+                </template>
+
+                <template if:true={hasResults}>
+                    <div class="slds-m-top_small">
+                        <c-dl-catalog-datatable
+                            key-field="rowKey"
+                            columns={columns}
+                            data={results}
+                            selected-rows={selectedRowKeys}
+                            onrowselection={handleRowSelection}
+                            onquantitychange={handleQuantityChange}
+                            onrowaction={handleRowAction}
+                        ></c-dl-catalog-datatable>
+                    </div>
+                    <div class="slds-grid slds-grid_align-spread slds-m-top_x-small">
+                        <lightning-button
+                            label="Load more"
+                            variant="neutral"
+                            disabled={loadMoreDisabled}
+                            onclick={handleLoadMore}
+                        ></lightning-button>
+                        <lightning-button
+                            label="Add selected to quote"
+                            variant="brand"
+                            icon-name="utility:add"
+                            disabled={addSelectedDisabled}
+                            onclick={handleAddSelected}
+                        ></lightning-button>
+                    </div>
+                    <template if:true={adding}>
+                        <div class="slds-m-top_x-small">
+                            <lightning-spinner alternative-text="Adding to quote" size="small"></lightning-spinner>
+                        </div>
+                    </template>
+                </template>
+
+                <template if:false={hasResults}>
+                    <template if:false={loading}>
+                        <div class="slds-text-color_weak slds-p-vertical_small">
+                            No products found. Adjust your search or catalog filter.
+                        </div>
+                    </template>
+                </template>
+            </div>
+        </div>
+    </lightning-card>
+</template>

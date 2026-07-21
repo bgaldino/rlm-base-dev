@@ -1,0 +1,17 @@
+:host {
+  display: block;
+}
+
+/* Fare-class panel below the scoped grid, matching the original app's workspace. */
+.dl-tb-fares {
+  border: 1px solid #dddbda;
+  border-radius: 0.25rem;
+  background: #ffffff;
+}
+
+.dl-tb-fares__heading {
+  font-weight: 700;
+  color: #003268;
+  border-bottom: 1px solid #eef1f6;
+  margin: 0;
+}

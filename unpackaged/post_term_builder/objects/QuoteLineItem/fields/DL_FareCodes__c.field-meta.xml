@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DL_FareCodes__c</fullName>
+    <description>Airline booking / fare-basis class codes negotiated on this fare line (e.g. J, C, D). Seeded from the fare product's Default Fare Codes when the line is added; a rep may adjust the set per deal. Non-price-impacting in the Term Builder demo.</description>
+    <inlineHelpText>Booking-class codes covered by this fare on this Term. Seeded from the product; adjust per deal.</inlineHelpText>
+    <label>Fare Codes</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetName>DL_Fare_Codes</valueSetName>
+    </valueSet>
+    <visibleLines>4</visibleLines>
+</CustomField>

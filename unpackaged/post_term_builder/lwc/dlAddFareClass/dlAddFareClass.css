@@ -1,0 +1,16 @@
+:host {
+  display: block;
+}
+
+.dl-fare-row {
+  padding: 0.5rem 0.75rem;
+}
+
+.dl-fare-row__name {
+  font-weight: 600;
+  color: #003268;
+}
+
+.dl-fare-toolbar {
+  border-bottom: 1px solid #dddbda;
+}

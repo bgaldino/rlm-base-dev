@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta Proposal Summary</masterLabel>
+    <description>Internal component (Delta Term Builder): a LightningModal showing an on-screen rollup of the modeled negotiation — contract KPI tiles plus a per-Term table (route, method, Share/FMS/Gap, existing vs Final Offer EDR) marking the recommended offer.</description>
+</LightningComponentBundle>

@@ -1,0 +1,129 @@
+:host {
+  --dl-navy: #003268;
+  --dl-red: #c8102e;
+  --dl-tint: #eef3fa;
+  --dl-hairline: #dddbda;
+  --dl-muted: #514f4d;
+  --dl-positive: #2e844a;
+}
+
+.dl-ps-head__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--dl-navy, #003268);
+  margin: 0;
+}
+
+.dl-ps-head__sub {
+  font-size: 0.875rem;
+  color: var(--dl-muted, #514f4d);
+  margin: 0;
+}
+
+.dl-ps-section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dl-muted, #514f4d);
+  margin-bottom: 0.375rem;
+}
+
+.dl-ps-tiles {
+  gap: 0.5rem;
+}
+
+.dl-ps-tile-cell {
+  flex: 1 1 9rem;
+  min-width: 8.5rem;
+}
+
+.dl-ps-tile {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  background: #ffffff;
+  border: 1px solid var(--dl-hairline, #dddbda);
+  border-left: 3px solid var(--dl-navy, #003268);
+  border-radius: 0.25rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.dl-ps-tile[data-tone="good"] {
+  border-left-color: var(--dl-positive, #2e844a);
+}
+
+.dl-ps-tile[data-tone="gap"] {
+  border-left-color: var(--dl-red, #c8102e);
+}
+
+.dl-ps-tile__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dl-muted, #514f4d);
+}
+
+.dl-ps-tile__value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--dl-navy, #003268);
+  font-variant-numeric: tabular-nums;
+}
+
+.dl-ps-tile[data-tone="good"] .dl-ps-tile__value {
+  color: var(--dl-positive, #2e844a);
+}
+
+.dl-ps-tile[data-tone="gap"] .dl-ps-tile__value {
+  color: var(--dl-red, #c8102e);
+}
+
+.dl-ps-table {
+  width: 100%;
+}
+
+.dl-ps-table thead th {
+  background: var(--dl-tint, #eef3fa);
+  color: var(--dl-navy, #003268);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.dl-ps-table td,
+.dl-ps-table th {
+  font-variant-numeric: tabular-nums;
+}
+
+.dl-ps-route {
+  font-weight: 600;
+  color: var(--dl-navy, #003268);
+}
+
+.dl-ps-row_recommended {
+  background: #f2f8f4;
+}
+
+.dl-ps-badge {
+  margin-left: 0.5rem;
+  --slds-c-badge-color-background: #d6efdf;
+}
+
+.dl-ps-gap_good {
+  color: var(--dl-positive, #2e844a);
+  font-weight: 700;
+}
+
+.dl-ps-gap_open {
+  color: var(--dl-red, #c8102e);
+  font-weight: 700;
+}
+
+.dl-ps-note {
+  border-top: 1px solid var(--dl-hairline, #dddbda);
+  padding-top: 0.5rem;
+}

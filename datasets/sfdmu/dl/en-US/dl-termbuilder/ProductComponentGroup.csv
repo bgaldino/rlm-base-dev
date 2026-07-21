@@ -1,0 +1,2 @@
+Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentGroup.Code,ParentProduct.StockKeepingUnit,Sequence
+DL-TERM-FARES,Fare classes negotiated under a Term,20,0,Fare Classes,,DL-TERM,1

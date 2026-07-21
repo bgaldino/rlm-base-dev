@@ -1,0 +1,18 @@
+<template>
+    <!-- Plain instance-count field: a native number input (not lightning-input, to avoid the
+         overflow clipping lightning controls get inside datatable cells). The wrapping click handler
+         stops propagation so editing the value doesn't toggle the row's selection checkbox. Emits a
+         composed `quantitychange` that escapes the datatable shadow root and reaches the cart. -->
+    <div class="rlm-qty-field" onclick={stopEvent}>
+        <input
+            type="number"
+            class="slds-input rlm-qty-input"
+            aria-label="Instance count"
+            min="1"
+            max={effectiveMax}
+            step="1"
+            value={current}
+            onchange={handleChange}
+        />
+    </div>
+</template>

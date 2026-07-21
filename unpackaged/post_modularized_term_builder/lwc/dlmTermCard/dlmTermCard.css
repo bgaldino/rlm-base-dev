@@ -1,0 +1,47 @@
+/* Delta-branded rail chip. Navy #003268 / red #C8102E per the app palette; container-level
+   branding only (the grid/finder internals stay unstyled). */
+.dl-term-card {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #dddbda;
+  border-left: 3px solid transparent;
+  border-radius: 0.25rem;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.dl-term-card:hover {
+  background: #f3f6fb;
+  border-color: #c9d6e8;
+}
+
+.dl-term-card:focus {
+  outline: 2px solid #003268;
+  outline-offset: -1px;
+}
+
+/* Selected Term: navy left rail + tinted surface. */
+.dl-term-card_selected {
+  background: #eef3fa;
+  border-left-color: #003268;
+  border-color: #c9d6e8;
+}
+
+.dl-term-card__name {
+  font-weight: 700;
+  color: #003268;
+}
+
+.dl-term-card__count {
+  background: #003268;
+  color: #ffffff;
+  flex: none;
+  margin-left: 0.5rem;
+}
+
+.dl-term-card__summary {
+  color: #514f4d;
+}

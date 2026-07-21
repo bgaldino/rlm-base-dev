@@ -1,0 +1,675 @@
+diff --git a/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.css b/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.css
+index 37d1a5f8..4d0e7c2e 100644
+--- a/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.css
++++ b/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.css
+@@ -1,9 +1,18 @@
+ :host {
+   display: block;
++  /* Delta brand tokens, centralized so the new demo surfaces (KPI band, data-context strip,
++     proposal summary) inherit one palette instead of repeating literals. */
++  --dl-navy: #003268;
++  --dl-red: #c8102e;
++  --dl-tint: #eef3fa;
++  --dl-hairline: #dddbda;
++  --dl-muted: #514f4d;
++  --dl-positive: #2e844a;
++  --dl-page-bg: #f3f3f3;
+ }
+ 
+ .dl-term-builder {
+-  background: #f3f3f3;
++  background: var(--dl-page-bg, #f3f3f3);
+   min-height: 100%;
+ }
+ 
+@@ -83,3 +92,25 @@
+   border-bottom: 1px solid #eef1f6;
+   margin: 0;
+ }
++
++/* Simulated-data strip + contract KPI rollup band, sitting between the navy header and the body. */
++.dl-tb-context {
++  /* The child bands carry their own surfaces; this just governs spacing to the header/body. */
++  margin-top: -0.25rem;
++}
++
++/* A header action rendered as a light button on the navy band. Base lightning-button keeps its own
++   surface, so this only nudges vertical alignment with the adjacent record links. */
++.dl-tb-header__action {
++  --slds-c-button-neutral-color-background: #ffffff;
++}
++
++/* Subtle "session only" disclosure next to the workspace card title. */
++.dl-tb-session-label {
++  font-size: 0.6875rem;
++  font-weight: 600;
++  letter-spacing: 0.04em;
++  text-transform: uppercase;
++  color: var(--dl-muted, #514f4d);
++  font-style: italic;
++}
+diff --git a/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.html b/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.html
+index 8ad53f85..7862f554 100644
+--- a/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.html
++++ b/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.html
+@@ -6,11 +6,7 @@
+         class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_small"
+       >
+         <div class="slds-grid slds-grid_vertical-align-center">
+-          <img
+-            src={emblemUrl}
+-            alt=""
+-            class="dl-tb-header__mark"
+-          />
++          <img src={emblemUrl} alt="" class="dl-tb-header__mark" />
+           <h1 class="dl-tb-header__title slds-m-left_small">Term Builder</h1>
+         </div>
+         <template if:true={hasQuote}>
+@@ -51,6 +47,14 @@
+                 <span>View Contract</span>
+               </a>
+             </template>
++            <lightning-button
++              label="Proposal Summary"
++              variant="neutral"
++              disabled={proposalDisabled}
++              onclick={handleOpenProposal}
++              title="Review the modeled proposal on screen"
++              class="slds-m-right_x-small dl-tb-header__action"
++            ></lightning-button>
+             <template if:false={hasContract}>
+               <lightning-button
+                 label="Create Contract"
+@@ -68,7 +72,9 @@
+         class="dl-tb-header__panel slds-grid slds-gutters slds-wrap slds-grid_vertical-align-end slds-p-around_small"
+       >
+         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+-          <span class="dl-tb-header__field-label" aria-hidden="true">Account</span>
++          <span class="dl-tb-header__field-label" aria-hidden="true"
++            >Account</span
++          >
+           <lightning-record-picker
+             label="Account"
+             variant="label-hidden"
+@@ -81,7 +87,9 @@
+           ></lightning-record-picker>
+         </div>
+         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+-          <span class="dl-tb-header__field-label" aria-hidden="true">Existing Negotiation</span>
++          <span class="dl-tb-header__field-label" aria-hidden="true"
++            >Existing Negotiation</span
++          >
+           <lightning-combobox
+             label="Existing Negotiation"
+             variant="label-hidden"
+@@ -93,7 +101,9 @@
+           ></lightning-combobox>
+         </div>
+         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+-          <span class="dl-tb-header__field-label" aria-hidden="true">Negotiation Name</span>
++          <span class="dl-tb-header__field-label" aria-hidden="true"
++            >Negotiation Name</span
++          >
+           <lightning-input
+             type="text"
+             label="Negotiation Name"
+@@ -105,7 +115,9 @@
+           ></lightning-input>
+         </div>
+         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+-          <span class="dl-tb-header__field-label" aria-hidden="true">Default Start Date</span>
++          <span class="dl-tb-header__field-label" aria-hidden="true"
++            >Default Start Date</span
++          >
+           <lightning-input
+             type="date"
+             label="Default Start Date"
+@@ -117,7 +129,9 @@
+           ></lightning-input>
+         </div>
+         <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+-          <span class="dl-tb-header__field-label" aria-hidden="true">Default End Date</span>
++          <span class="dl-tb-header__field-label" aria-hidden="true"
++            >Default End Date</span
++          >
+           <lightning-input
+             type="date"
+             label="Default End Date"
+@@ -150,6 +164,21 @@
+       </template>
+     </div>
+ 
++    <!-- Simulated flown-data context + contract-wide KPI rollup band. -->
++    <template if:true={hasQuote}>
++      <div class="dl-tb-context slds-p-horizontal_medium slds-p-bottom_small">
++        <c-dl-data-context class="slds-m-bottom_small"></c-dl-data-context>
++        <template if:true={hasContractKpis}>
++          <c-dl-kpi-band
++            variant="contract"
++            heading="Contract KPIs"
++            kpis={contractKpis}
++            currency-code={currencyCode}
++          ></c-dl-kpi-band>
++        </template>
++      </div>
++    </template>
++
+     <template if:true={errorMessage}>
+       <div class="slds-p-around_small">
+         <div class="slds-text-color_error" role="alert">{errorMessage}</div>
+@@ -159,8 +188,8 @@
+     <!-- Body: Terms rail (left) + Term workspace (right) -->
+     <template if:true={hasQuote}>
+       <div class="slds-grid slds-gutters slds-wrap slds-p-around_medium">
+-        <!-- Terms rail -->
+-        <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3">
++        <!-- Terms rail (collapses while the Modeling workspace is expanded) -->
++        <div class={railColumnClass}>
+           <lightning-card title="Terms" icon-name="standard:contract">
+             <div class="slds-p-horizontal_small">
+               <template if:true={loadingState}>
+@@ -235,43 +264,103 @@
+         </div>
+ 
+         <!-- Term workspace -->
+-        <div class="slds-col slds-size_1-of-1 slds-large-size_2-of-3">
++        <div class={workspaceColumnClass}>
+           <template if:true={showWorkspace}>
+             <lightning-card
+               title={selectedTermName}
+               icon-name="standard:product_item"
+             >
+-              <div class="slds-grid slds-grid_vertical slds-gutters_direct-y">
+-                <!-- Scoped line grid: the selected Term + its fares only. -->
+-                <div class="slds-col slds-p-horizontal_small">
+-                  <c-dl-quote-line-grid
+-                    record-id={quoteId}
+-                    scope-root-line-id={selectedTermId}
+-                    attribute-codes={attributeCodes}
+-                    hide-group-column
+-                    onlinesupdated={handleLinesUpdated}
+-                    ontermrenamed={handleLinesUpdated}
+-                  ></c-dl-quote-line-grid>
+-                </div>
++              <!-- Session-only demo-model disclosure + reset (card actions slot). -->
++              <div
++                slot="actions"
++                class="slds-grid slds-grid_vertical-align-center"
++              >
++                <span class="dl-tb-session-label slds-m-right_x-small"
++                  >Demo model — session only</span
++                >
++                <lightning-button-icon
++                  icon-name="utility:refresh"
++                  variant="border-filled"
++                  alternative-text="Reset demo model"
++                  title="Reset demo model (clears modeled rounds for this session)"
++                  onclick={handleResetModel}
++                ></lightning-button-icon>
++              </div>
+ 
+-                <!-- Add fare classes under the selected Term. -->
+-                <div
+-                  class="slds-col slds-p-horizontal_small slds-p-bottom_small"
++              <!-- Slim term-level KPI band (the Share Gap headline moment). -->
++              <div class="slds-p-horizontal_small slds-p-bottom_x-small">
++                <c-dl-kpi-band
++                  variant="term"
++                  kpis={selectedTermKpis}
++                  currency-code={currencyCode}
++                ></c-dl-kpi-band>
++              </div>
++
++              <lightning-tabset variant="scoped" active-tab-value={activeTab}>
++                <!-- Fares: the existing scoped line grid + add-fare-class. -->
++                <lightning-tab
++                  label="Fares"
++                  value="fares"
++                  onactive={handleTabActive}
+                 >
+-                  <div class="dl-tb-fares">
+-                    <h3
+-                      class="dl-tb-fares__heading slds-p-vertical_x-small slds-p-horizontal_small"
++                  <div class="slds-p-horizontal_small">
++                    <c-dl-quote-line-grid
++                      record-id={quoteId}
++                      scope-root-line-id={selectedTermId}
++                      attribute-codes={attributeCodes}
++                      hide-group-column
++                      onlinesupdated={handleLinesUpdated}
++                      ontermrenamed={handleLinesUpdated}
++                    ></c-dl-quote-line-grid>
++                  </div>
++
++                  <div class="slds-p-horizontal_small slds-p-vertical_small">
++                    <div class="dl-tb-fares">
++                      <h3
++                        class="dl-tb-fares__heading slds-p-vertical_x-small slds-p-horizontal_small"
++                      >
++                        Add Fare Class
++                      </h3>
++                      <c-dl-add-fare-class
++                        quote-id={quoteId}
++                        term-line-id={selectedTermId}
++                        onfareadded={handleFareAdded}
++                      ></c-dl-add-fare-class>
++                    </div>
++                  </div>
++                </lightning-tab>
++
++                <!-- Modeling: the client-only negotiation spreadsheet. -->
++                <lightning-tab
++                  label="Modeling"
++                  value="modeling"
++                  onactive={handleTabActive}
++                >
++                  <div class="slds-p-horizontal_small slds-p-bottom_small">
++                    <div
++                      class="slds-grid slds-grid_align-end slds-p-vertical_x-small"
+                     >
+-                      Add Fare Class
+-                    </h3>
+-                    <c-dl-add-fare-class
+-                      quote-id={quoteId}
+-                      term-line-id={selectedTermId}
+-                      onfareadded={handleFareAdded}
+-                    ></c-dl-add-fare-class>
++                      <lightning-button
++                        label="Apply Final Offer to Quote"
++                        variant="brand"
++                        icon-name="utility:apex"
++                        disabled={applyOfferDisabled}
++                        onclick={handleApplyFinalOffer}
++                        title="Write the selected Final Offer discounts to the Quote fare lines"
++                      ></lightning-button>
++                    </div>
++                    <c-dl-modeling-grid
++                      term={selectedTerm}
++                      model={activeModel}
++                      currency-code={currencyCode}
++                      expanded={workspaceExpanded}
++                      onmodelchange={handleModelChange}
++                      onmethodchange={handleMethodChange}
++                      onexpandtoggle={handleExpandToggle}
++                    ></c-dl-modeling-grid>
+                   </div>
+-                </div>
+-              </div>
++                </lightning-tab>
++              </lightning-tabset>
+             </lightning-card>
+           </template>
+ 
+diff --git a/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.js b/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.js
+index d0488f57..c020d5ee 100644
+--- a/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.js
++++ b/unpackaged/post_term_builder/lwc/dlTermBuilder/dlTermBuilder.js
+@@ -3,6 +3,7 @@ import { CurrentPageReference } from "lightning/navigation";
+ import { ShowToastEvent } from "lightning/platformShowToastEvent";
+ import { loadStyle } from "lightning/platformResourceLoader";
+ import DlCreateContractModal from "c/dlCreateContractModal";
++import DlProposalSummary from "c/dlProposalSummary";
+ import noHeader from "@salesforce/resourceUrl/DL_Term_Builder_NoHeader";
+ import DL_TERM_BUILDER_EMBLEM from "@salesforce/resourceUrl/DL_Term_Builder_Emblem";
+ import createNegotiation from "@salesforce/apex/RLM_DeltaTermBuilderController.createNegotiation";
+@@ -10,6 +11,16 @@ import getNegotiationsForAccount from "@salesforce/apex/RLM_DeltaTermBuilderCont
+ import getBuilderState from "@salesforce/apex/RLM_DeltaTermBuilderController.getBuilderState";
+ import addTerm from "@salesforce/apex/RLM_DeltaTermBuilderController.addTerm";
+ import updateNegotiationDates from "@salesforce/apex/RLM_DeltaTermBuilderController.updateNegotiationDates";
++import updateLineDiscountAndDates from "@salesforce/apex/RLM_DeltaLineController.updateLineDiscountAndDates";
++import {
++  METHOD_PRODUCT,
++  seedModel,
++  computeTermKpis,
++  aggregateKpis,
++  finalOfferLineDiscounts,
++  routeLabel,
++  methodLabel
++} from "c/dlDemoModel";
+ 
+ // Route-attribute codes surfaced in the Term workspace's inline attribute picker, in display order.
+ // These are the PC-DL-TERM informational (non-price-impacting) attributes; fares have none.
+@@ -52,6 +63,22 @@ export default class DlTermBuilder extends LightningElement {
+   savingNegotiationDates = false;
+   catalogId;
+   categoryId;
++  // Quote currency, retained from getBuilderState so the KPI bands + proposal format money correctly.
++  currencyCode = "USD";
++
++  // ---------- demo modeling state (client-only) ----------
++  // Which workspace tab is active: "fares" (existing grid) or "modeling" (the demo spreadsheet).
++  activeTab = "fares";
++  // Client-only negotiation models, keyed `${termId}::${method}` so a Term can carry a distinct model
++  // per discounting method. Seeded lazily, cleared on quote switch, pruned when Terms disappear.
++  _modelsByTermId = {};
++  // The discounting method currently selected for the active Term ("product" | "fareclass").
++  selectedMethod = METHOD_PRODUCT;
++  // Reactive mirror of the active Term's model, handed to c/dlModelingGrid.
++  @track activeModel = null;
++  // When Modeling is active the Terms rail can collapse to give the grid room (Expand Workspace).
++  workspaceExpanded = false;
++  applyingOffer = false;
+ 
+   selectedTermId;
+   // When the open negotiation is already related to a Contract, the server returns its id + number;
+@@ -184,6 +211,8 @@ export default class DlTermBuilder extends LightningElement {
+     this.contractId = null;
+     this.contractNumber = "";
+     this.errorMessage = "";
++    // Switching accounts abandons the (client-only) demo models entirely.
++    this._resetDemoModels();
+     if (this.selectedAccountId) {
+       this.loadNegotiations();
+     }
+@@ -335,6 +364,10 @@ export default class DlTermBuilder extends LightningElement {
+   // ---------- builder state ----------
+ 
+   async openQuote(quoteId) {
++    // Opening a different negotiation abandons the prior quote's client-only demo models.
++    if (quoteId !== this.quoteId) {
++      this._resetDemoModels();
++    }
+     this.quoteId = quoteId;
+     await this.refreshState(true);
+   }
+@@ -359,12 +392,16 @@ export default class DlTermBuilder extends LightningElement {
+       this.accountName = quote.accountName || this.accountName;
+       this.negotiationStartDate = quote.negotiationStartDate || "";
+       this.negotiationEndDate = quote.negotiationEndDate || "";
++      this.currencyCode = quote.currencyCode || this.currencyCode || "USD";
+       this.catalogId = res.catalogId;
+       this.categoryId = res.categoryId;
+       this.terms = res.terms || [];
+       this.contractId = res.contractId || null;
+       this.contractNumber = res.contractNumber || "";
+ 
++      // Prune demo models whose Term no longer exists (deleted since the model was seeded).
++      this._pruneDemoModels();
++
+       // Deep-link back-fill: when opened straight into a quote (no account chosen yet), seed the
+       // header's Account picker + negotiation list from the quote's own account.
+       if (quote.accountId && this.selectedAccountId !== quote.accountId) {
+@@ -383,6 +420,8 @@ export default class DlTermBuilder extends LightningElement {
+         this.selectedTermId =
+           res.selectedTermId || (this.terms[0] && this.terms[0].id) || null;
+       }
++      // Reload (or seed) the active Term's model against the freshly-loaded term payload.
++      this._syncActiveModel();
+     } catch (e) {
+       this.errorMessage = this._errMessage(e);
+     } finally {
+@@ -423,6 +462,7 @@ export default class DlTermBuilder extends LightningElement {
+ 
+   handleTermSelect(event) {
+     this.selectedTermId = event.detail.termId;
++    this._syncActiveModel();
+   }
+ 
+   handleAddTermCountChange(event) {
+@@ -479,13 +519,18 @@ export default class DlTermBuilder extends LightningElement {
+     } else if (!this.selectedTermId && this.terms.length) {
+       this.selectedTermId = this.terms[0].id;
+     }
++    this._syncActiveModel();
+     this._refreshGrid();
+   }
+ 
+   // ---------- workspace: grid + fares ----------
+ 
+-  // A fare was added under the selected Term: refresh the rail counts and the scoped grid.
++  // A fare was added under the selected Term: refresh the rail counts and the scoped grid. A new fare
++  // means new backing rows, so re-seed the active Term's demo model(s) from the updated term payload.
+   async handleFareAdded() {
++    if (this.selectedTermId) {
++      this._reseedModelsForTerm(this.selectedTermId);
++    }
+     await this.refreshState(false);
+     this._refreshGrid();
+   }
+@@ -503,6 +548,246 @@ export default class DlTermBuilder extends LightningElement {
+     }
+   }
+ 
++  // ---------- demo modeling: KPIs, tabs, model lifecycle ----------
++
++  // Per-Term KPI objects for every Term (each combining its flown-data baseline with its active-method
++  // model's current-round EDR). Terms without a seeded model still get baseline KPIs (existing model
++  // seeded on demand) so the contract band is populated before the analyst opens the Modeling tab.
++  get _termKpiList() {
++    return this.terms.map((t) => computeTermKpis(t, this._modelFor(t, this.selectedMethod)));
++  }
++
++  // Contract-wide rollup band (metric-specific aggregation).
++  get contractKpis() {
++    return aggregateKpis(this._termKpiList);
++  }
++
++  // Slim KPI band for the selected Term (drives the term-level Share Gap moment).
++  get selectedTermKpis() {
++    const t = this.selectedTerm;
++    return t ? computeTermKpis(t, this._modelFor(t, this.selectedMethod)) : null;
++  }
++
++  get hasContractKpis() {
++    return this.hasTerms;
++  }
++
++  get isModelingTab() {
++    return this.activeTab === "modeling";
++  }
++
++  // The Terms rail hides while Modeling is expanded, to give the wide grid room.
++  get showTermsRail() {
++    return !(this.isModelingTab && this.workspaceExpanded);
++  }
++
++  get railColumnClass() {
++    return this.showTermsRail
++      ? "slds-col slds-size_1-of-1 slds-large-size_1-of-3"
++      : "slds-hide";
++  }
++
++  get workspaceColumnClass() {
++    return this.showTermsRail
++      ? "slds-col slds-size_1-of-1 slds-large-size_2-of-3"
++      : "slds-col slds-size_1-of-1";
++  }
++
++  // Header actions are enabled once there's a quote with Terms.
++  get proposalDisabled() {
++    return !this.quoteId || !this.hasTerms;
++  }
++
++  get applyOfferDisabled() {
++    return !this.quoteId || !this.activeModel || this.applyingOffer;
++  }
++
++  handleTabActive(event) {
++    // lightning-tab fires 'active' with its value; fall back to the label mapping if absent.
++    const value = event.target && event.target.value;
++    this.activeTab = value === "modeling" ? "modeling" : "fares";
++  }
++
++  // The grid recomputed its model after an edit → adopt it, so the KPI getters (and the bands they
++  // feed) recompute and animate. The grid coalesces edits, so this fires at most once per frame.
++  handleModelChange(event) {
++    const { termId, method, model } = event.detail;
++    if (!termId || !model) {
++      return;
++    }
++    this._modelsByTermId[this._modelKey(termId, method)] = model;
++    if (termId === this.selectedTermId && method === this.selectedMethod) {
++      this.activeModel = model;
++    }
++  }
++
++  // The grid's method toggle flipped → swap in (seed if needed) that method's model for the Term.
++  handleMethodChange(event) {
++    const { termId, method } = event.detail;
++    if (!termId || termId !== this.selectedTermId) {
++      return;
++    }
++    this.selectedMethod = method;
++    this._syncActiveModel();
++  }
++
++  // Expand/collapse the modeling workspace (collapses the Terms rail).
++  handleExpandToggle(event) {
++    this.workspaceExpanded = !!event.detail.expanded;
++  }
++
++  // Open the on-screen proposal summary. Projects each Term at its own model's FINAL OFFER round (not
++  // the live current round), so the summary reflects the recommended offer regardless of which round
++  // currently drives the live bands.
++  async handleOpenProposal() {
++    if (this.proposalDisabled) {
++      return;
++    }
++    const perTermForContract = [];
++    const termRows = this.terms.map((t) => {
++      const model = this._modelFor(t, this.selectedMethod);
++      const finalRound = model ? model.finalOfferRoundIndex : undefined;
++      const kpi = computeTermKpis(t, model, finalRound);
++      perTermForContract.push(kpi);
++      return {
++        termId: t.id,
++        route: routeLabel(t),
++        method: model ? model.method : this.selectedMethod,
++        methodLabel: methodLabel(model ? model.method : this.selectedMethod),
++        statusLabel: model
++          ? (model.roundStatuses || [])[model.finalOfferRoundIndex] || "Draft"
++          : "Draft",
++        isRecommended: t.id === this.selectedTermId,
++        sharePts: kpi.sharePts,
++        fmsPts: kpi.fmsPts,
++        projectedSharePts: kpi.projectedSharePts,
++        projectedGapPts: kpi.projectedGapPts,
++        edrExistingPts: kpi.edrExistingPts,
++        edrFinalOfferPts: kpi.edrCurrentPts // computed at the final-offer round above
++      };
++    });
++    const proposal = {
++      negotiationName: this.quoteName,
++      accountName: this.accountName,
++      currencyCode: this.currencyCode,
++      contract: aggregateKpis(perTermForContract),
++      terms: termRows
++    };
++    try {
++      await DlProposalSummary.open({
++        size: "large",
++        label: "Proposal Summary",
++        proposal
++      });
++    } catch (e) {
++      this.errorMessage = this._errMessage(e);
++    }
++  }
++
++  // Apply the active Term's Final Offer discounts to its backing Quote fare lines via the existing
++  // line-update Apex (no new Apex). Product rows map 1:1; Fare-Class rows roll up to the parent fare
++  // line (spend-weighted, handled in the demo model). Then refresh so the Fares grid + KPIs reflect
++  // the now-persisted values, ready for the existing Create Contract handoff.
++  async handleApplyFinalOffer() {
++    if (this.applyOfferDisabled) {
++      return;
++    }
++    const lines = finalOfferLineDiscounts(this.activeModel);
++    if (!lines.length) {
++      this._toast(
++        "Nothing to apply",
++        "The Final Offer has no rows backed by a Quote fare line.",
++        "info"
++      );
++      return;
++    }
++    this.applyingOffer = true;
++    this.errorMessage = "";
++    try {
++      const res = this._parse(
++        await updateLineDiscountAndDates({
++          inputJson: JSON.stringify({ quoteId: this.quoteId, lines })
++        })
++      );
++      if (res.isSuccess === false) {
++        this.errorMessage =
++          res.errorMessage || "Unable to apply the Final Offer to the Quote.";
++        return;
++      }
++      this._toast(
++        "Final Offer applied",
++        `${res.updatedCount || lines.length} fare line(s) updated on the Quote.`,
++        "success"
++      );
++      await this.refreshState(false);
++      this._refreshGrid();
++    } catch (e) {
++      this.errorMessage = this._errMessage(e);
++    } finally {
++      this.applyingOffer = false;
++    }
++  }
++
++  // Reset every client-only demo model for the current quote (re-seeds lazily on next access).
++  handleResetModel() {
++    this._resetDemoModels();
++    this._syncActiveModel();
++    this._toast("Demo model reset", "Modeled rounds were cleared for this session.", "info");
++  }
++
++  // ----- model lifecycle helpers -----
++
++  _modelKey(termId, method) {
++    return `${termId}::${method}`;
++  }
++
++  // Get the model for a (term, method), seeding it on demand. Returns a live reference held in the map.
++  _modelFor(term, method) {
++    if (!term || !term.id) {
++      return null;
++    }
++    const key = this._modelKey(term.id, method);
++    if (!this._modelsByTermId[key]) {
++      this._modelsByTermId[key] = seedModel(term, method);
++    }
++    return this._modelsByTermId[key];
++  }
++
++  // Point activeModel at the selected Term + method's model (seeding if needed) so the grid + bands
++  // stay in sync after a selection, method flip, or refresh.
++  _syncActiveModel() {
++    const t = this.selectedTerm;
++    this.activeModel = t ? this._modelFor(t, this.selectedMethod) : null;
++  }
++
++  // Drop all models for one Term (both methods) so they re-seed from the updated term payload.
++  _reseedModelsForTerm(termId) {
++    Object.keys(this._modelsByTermId).forEach((key) => {
++      if (key.startsWith(`${termId}::`)) {
++        delete this._modelsByTermId[key];
++      }
++    });
++  }
++
++  // Remove models whose Term no longer exists after a state refresh.
++  _pruneDemoModels() {
++    const ids = new Set(this.terms.map((t) => t.id));
++    Object.keys(this._modelsByTermId).forEach((key) => {
++      const termId = key.split("::")[0];
++      if (!ids.has(termId)) {
++        delete this._modelsByTermId[key];
++      }
++    });
++  }
++
++  // Clear all demo models (quote/account switch, or explicit reset).
++  _resetDemoModels() {
++    this._modelsByTermId = {};
++    this.activeModel = null;
++    this.selectedMethod = METHOD_PRODUCT;
++    this.workspaceExpanded = false;
++  }
++
+   // ---------- helpers ----------
+ 
+   _parse(json) {

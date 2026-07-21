@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DL_PriorDiscount__c</fullName>
+    <description>Snapshot of the discount % negotiated on the SOURCE quote/contract line this renewal line was renewed from. Stamped once by RLM_DeltaTermBuilderController.restoreClonedLineFidelity when the renewal is created, from the matched source line's Discount. Frozen (never re-priced or edited) so Term Builder can show the previous value alongside the rep's live, editable Discount for comparison.</description>
+    <inlineHelpText>Read-only. The discount agreed on the previous contract line, for comparison against the renewal's new discount.</inlineHelpText>
+    <label>Prior Discount %</label>
+    <precision>5</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Percent</type>
+</CustomField>

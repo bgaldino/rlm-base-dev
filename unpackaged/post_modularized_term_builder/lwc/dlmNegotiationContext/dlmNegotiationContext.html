@@ -1,0 +1,180 @@
+<template>
+  <!-- Delta-branded negotiation-context header tile -->
+  <div class="dl-tb-header slds-p-around_medium">
+    <div
+      class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-m-bottom_small"
+    >
+      <div class="slds-grid slds-grid_vertical-align-center">
+        <template if:true={brandingVisible}>
+          <img src={emblemUrl} alt="" class="dl-tb-header__mark" />
+        </template>
+        <h1 class="dl-tb-header__title slds-m-left_small">
+          {effectiveHeading}
+        </h1>
+      </div>
+      <div class="slds-grid slds-grid_vertical-align-center">
+        <template if:true={hasQuote}>
+          <a
+            href={quoteRecordUrl}
+            target="_blank"
+            rel="noopener"
+            class="dl-tb-header__quote-link slds-grid slds-grid_vertical-align-center slds-m-right_medium"
+            title="Open the negotiation Quote record in a new tab"
+          >
+            <lightning-icon
+              icon-name="utility:new_window"
+              size="x-small"
+              variant="inverse"
+              alternative-text="Open record"
+              class="slds-m-right_xx-small"
+            ></lightning-icon>
+            <span>Open Record</span>
+          </a>
+          <template if:true={contractActionsVisible}>
+            <!-- A negotiation already related to a Contract can't be contracted again, so offer a
+                 link to view it instead of a Create Contract button that would only fail. -->
+            <template if:true={hasContract}>
+              <a
+                href={contractRecordUrl}
+                target="_blank"
+                rel="noopener"
+                class="dl-tb-header__quote-link slds-grid slds-grid_vertical-align-center slds-m-right_medium"
+                title={viewContractTitle}
+              >
+                <lightning-icon
+                  icon-name="utility:file"
+                  size="x-small"
+                  variant="inverse"
+                  alternative-text="View contract"
+                  class="slds-m-right_xx-small"
+                ></lightning-icon>
+                <span>View Contract</span>
+              </a>
+            </template>
+            <template if:false={hasContract}>
+              <lightning-button
+                label="Create Contract"
+                variant="brand"
+                disabled={contractDisabled}
+                onclick={handleCreateContract}
+                title="Create a Contract from this negotiation"
+                class="slds-m-right_medium"
+              ></lightning-button>
+            </template>
+          </template>
+        </template>
+        <lightning-button
+          label="New Negotiation"
+          variant="brand"
+          disabled={newNegotiationDisabled}
+          onclick={handleNewNegotiation}
+        ></lightning-button>
+      </div>
+    </div>
+
+    <div
+      class="dl-tb-header__panel slds-grid slds-gutters slds-wrap slds-grid_vertical-align-end slds-p-around_small"
+    >
+      <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+        <span class="dl-tb-header__field-label" aria-hidden="true"
+          >Account</span
+        >
+        <lightning-record-picker
+          label="Account"
+          variant="label-hidden"
+          placeholder="Search accounts…"
+          object-api-name="Account"
+          value={selectedAccountId}
+          matching-info={accountMatchingInfo}
+          display-info={accountDisplayInfo}
+          onchange={handleAccountChange}
+        ></lightning-record-picker>
+      </div>
+      <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+        <span class="dl-tb-header__field-label" aria-hidden="true"
+          >Existing Negotiation</span
+        >
+        <lightning-combobox
+          label="Existing Negotiation"
+          variant="label-hidden"
+          placeholder="Select a negotiation…"
+          options={quoteOptions}
+          value={quoteId}
+          disabled={quoteSelectDisabled}
+          onchange={handleQuoteSelect}
+        ></lightning-combobox>
+      </div>
+      <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+        <span class="dl-tb-header__field-label" aria-hidden="true"
+          >Negotiation Name</span
+        >
+        <lightning-input
+          type="text"
+          label="Negotiation Name"
+          variant="label-hidden"
+          value={quoteName}
+          max-length="80"
+          disabled={quoteNameDisabled}
+          onchange={handleQuoteNameInput}
+        ></lightning-input>
+      </div>
+      <template if:true={dateDefaultsVisible}>
+        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+          <span class="dl-tb-header__field-label" aria-hidden="true"
+            >Default Start Date</span
+          >
+          <lightning-input
+            type="date"
+            label="Default Start Date"
+            variant="label-hidden"
+            value={negotiationStartDate}
+            disabled={negotiationDatesDisabled}
+            onchange={handleNegotiationStartDateChange}
+            title="Default Start Date applied to new Term and fare lines as they're added. Existing lines are unaffected."
+          ></lightning-input>
+        </div>
+        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
+          <span class="dl-tb-header__field-label" aria-hidden="true"
+            >Default End Date</span
+          >
+          <lightning-input
+            type="date"
+            label="Default End Date"
+            variant="label-hidden"
+            value={negotiationEndDate}
+            disabled={negotiationDatesDisabled}
+            onchange={handleNegotiationEndDateChange}
+            title="Default End Date applied to new Term lines as they're added. Existing lines are unaffected."
+          ></lightning-input>
+        </div>
+        <div
+          class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-p-bottom_xxx-small"
+        >
+          <lightning-button
+            label="Apply to All Lines"
+            variant="neutral"
+            icon-name="utility:sync"
+            disabled={applyDatesToAllLinesDisabled}
+            onclick={handleApplyDatesToAllLines}
+            class="dl-tb-cta"
+            title="Apply the Default Start/End Date above to every Term and fare line already on this negotiation."
+          ></lightning-button>
+        </div>
+      </template>
+    </div>
+
+    <template if:true={creating}>
+      <div
+        class="slds-m-top_x-small slds-text-body_small slds-text-color_inverse-weak"
+      >
+        Creating negotiation…
+      </div>
+    </template>
+  </div>
+
+  <template if:true={errorMessage}>
+    <div class="slds-p-around_small">
+      <div class="slds-text-color_error" role="alert">{errorMessage}</div>
+    </div>
+  </template>
+</template>

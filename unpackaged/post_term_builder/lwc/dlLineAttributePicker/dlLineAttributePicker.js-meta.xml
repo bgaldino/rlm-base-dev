@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta Line Attribute Picker</masterLabel>
+    <description>Reusable inline picker for a quote line's informational (non-price-impacting) attributes: discovers, renders, and saves them via Place Sales Transaction. Hosted by the product cart and the attribute-picker modal.</description>
+</LightningComponentBundle>

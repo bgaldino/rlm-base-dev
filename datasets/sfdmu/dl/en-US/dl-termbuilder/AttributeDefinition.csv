@@ -1,0 +1,7 @@
+Code,DataType,DefaultHelpText,DefaultValue,Description,DeveloperName,IsActive,IsRequired,Label,Name,Picklist.Name,SourceSystemIdentifier,UnitOfMeasure.UnitCode,ValueDescription
+DL_Origin,Picklist,,,Route origin endpoint,DL_Origin,true,false,Origin,Origin,DL Route Picklist,,,
+DL_Destination,Picklist,,,Route destination endpoint,DL_Destination,true,false,Destination,Destination,DL Route Picklist,,,
+DL_Directionality,Picklist,,,Between or directional,DL_Directionality,true,false,Directionality,Directionality,DL Directionality Picklist,,,
+DL_Measure,Picklist,,,Share measure basis,DL_Measure,true,false,Measure,Measure,DL Measure Picklist,,,
+DL_RequirementValue,Text,,,Requirement value (e.g. 5.0 pts / 83%),DL_RequirementValue,true,false,Requirement Value,Requirement Value,,,,
+DL_SpecialConditions,Text,,,Free-text special conditions,DL_SpecialConditions,true,false,Special Conditions,Special Conditions,,,,

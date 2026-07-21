@@ -1,0 +1,29 @@
+:host {
+    display: block;
+}
+
+/* Narrow, fixed leading column just for the expander toggle. */
+.rlm-col-expander {
+    width: 2.5rem;
+    text-align: center;
+}
+
+/* Narrow, fixed trailing column just for the remove-line action. */
+.rlm-col-actions {
+    width: 2.5rem;
+    text-align: center;
+}
+
+/* The Fare codes column now shows only a compact read-only summary (e.g. "W S J"); the editor
+   itself lives in the row's expandable detail section. A modest fixed width keeps the summary
+   readable without stealing room from the editable columns. */
+.rlm-col-fares {
+    width: 8rem;
+}
+
+/* The inline detail row hosts the attribute picker full-width; drop the default cell padding so the
+   picker's own box controls spacing. */
+.rlm-detail-row td {
+    padding: 0 0.5rem;
+    background-color: #f3f3f3;
+}

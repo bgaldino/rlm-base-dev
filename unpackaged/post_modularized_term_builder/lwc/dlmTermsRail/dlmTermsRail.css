@@ -1,0 +1,8 @@
+:host {
+  display: block;
+}
+
+/* Separator above the inline Add Term bar, matching the original app's rail. */
+.dl-tb-add-term {
+  border-top: 1px solid #e5e5e5;
+}

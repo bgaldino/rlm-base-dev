@@ -1,0 +1,7 @@
+$$AttributeCategory.Code$AttributeDefinition.Code,AttributeCategory.Code,AttributeDefinition.Code
+AC-DL-ROUTE;DL_Origin,AC-DL-ROUTE,DL_Origin
+AC-DL-ROUTE;DL_Destination,AC-DL-ROUTE,DL_Destination
+AC-DL-ROUTE;DL_Directionality,AC-DL-ROUTE,DL_Directionality
+AC-DL-ROUTE;DL_Measure,AC-DL-ROUTE,DL_Measure
+AC-DL-ROUTE;DL_RequirementValue,AC-DL-ROUTE,DL_RequirementValue
+AC-DL-ROUTE;DL_SpecialConditions,AC-DL-ROUTE,DL_SpecialConditions

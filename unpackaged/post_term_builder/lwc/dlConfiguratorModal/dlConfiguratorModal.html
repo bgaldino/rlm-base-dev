@@ -1,0 +1,27 @@
+<template>
+    <!-- No modal-header/footer: the configurator flow renders its own full-page header bar and
+         footer (Cancel / Update Prices / Save & Exit). Adding our own chrome produced a double
+         header/footer, so we host the bare flow and let it own the UI. -->
+    <lightning-modal-body class="slds-is-relative">
+        <template if:true={errorMessage}>
+            <div class="slds-text-color_error slds-var-m-around_small" role="alert">
+                {errorMessage}
+            </div>
+        </template>
+        <template if:true={hasFlow}>
+            <lightning-flow
+                flow-api-name={flowApiName}
+                flow-input-variables={inputVariables}
+                onloading={handleLoading}
+                onproceed={handleCancel}
+                onsave={handleSave}
+                onstatuschange={handleStatusChange}
+            ></lightning-flow>
+        </template>
+        <template if:false={hasFlow}>
+            <div class="slds-var-p-around_medium slds-text-color_error">
+                No product configurator flow is available for this product.
+            </div>
+        </template>
+    </lightning-modal-body>
+</template>

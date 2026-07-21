@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningMessageChannel xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Selection + refresh bus for the modularized Delta Term Builder tiles (negotiation context, terms rail, term workspace). Carries small selection keys and "something changed" pulses; each tile self-loads its own data from Apex.</description>
+    <isExposed>true</isExposed>
+    <lightningMessageFields>
+        <description>Message discriminator: context | termSelected | termsChanged | linesChanged | fareAdded | contractCreated</description>
+        <fieldName>type</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Id of the negotiation Quote currently in scope</description>
+        <fieldName>quoteId</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Id of the Account for the current negotiation</description>
+        <fieldName>accountId</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Id of the Term (root line) selected in the rail</description>
+        <fieldName>selectedTermId</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Default negotiation start date in YYYY-MM-DD format</description>
+        <fieldName>negotiationStartDate</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Default negotiation end date in YYYY-MM-DD format</description>
+        <fieldName>negotiationEndDate</fieldName>
+    </lightningMessageFields>
+    <lightningMessageFields>
+        <description>Name of the tile that published the message, used to suppress self-echo</description>
+        <fieldName>source</fieldName>
+    </lightningMessageFields>
+    <masterLabel>DLM Term Builder Channel</masterLabel>
+</LightningMessageChannel>

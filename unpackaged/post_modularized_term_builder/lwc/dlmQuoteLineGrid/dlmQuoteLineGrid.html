@@ -1,0 +1,245 @@
+<template>
+    <lightning-card>
+        <div class="slds-p-horizontal_medium slds-p-bottom_medium" data-grid-region tabindex="-1">
+            <template if:true={errorMessage}>
+                <div class="slds-text-color_error slds-m-bottom_x-small" role="alert">
+                    {errorMessage}
+                </div>
+            </template>
+
+            <template if:true={hasRows}>
+                <div class="slds-grid slds-grid_align-end slds-m-bottom_x-small">
+                    <lightning-button
+                        label="Cancel"
+                        variant="neutral"
+                        class="slds-m-right_x-small"
+                        disabled={saveDisabled}
+                        onclick={handleCancel}
+                    ></lightning-button>
+                    <lightning-button
+                        label="Save changes"
+                        variant="brand"
+                        icon-name="utility:save"
+                        disabled={saveDisabled}
+                        onclick={handleSave}
+                    ></lightning-button>
+                </div>
+                <template if:true={saving}>
+                    <div class="slds-m-bottom_x-small">
+                        <lightning-spinner alternative-text="Saving" size="small"></lightning-spinner>
+                    </div>
+                </template>
+
+                <table
+                    class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout"
+                    aria-label="Quote lines"
+                >
+                    <thead>
+                        <tr class="slds-line-height_reset">
+                            <th scope="col" class="rlm-col-expander">
+                                <span class="slds-assistive-text">Expand row</span>
+                            </th>
+                            <template if:true={showGroupColumn}>
+                                <th scope="col"><span class="slds-truncate" title="Group">Group</span></th>
+                            </template>
+                            <th scope="col"><span class="slds-truncate" title="Product">Product</span></th>
+                            <th scope="col" class="rlm-col-fares"><span class="slds-truncate" title="Fare codes">Fare codes</span></th>
+                            <th scope="col"><span class="slds-truncate" title="Discount %">Discount %</span></th>
+                            <th scope="col" class="rlm-col-prior"><span class="slds-truncate" title="Prior contract discount %">Prev discount %</span></th>
+                            <th scope="col"><span class="slds-truncate" title="Start date">Start date</span></th>
+                            <th scope="col"><span class="slds-truncate" title="End date">End date</span></th>
+                            <th scope="col" class="rlm-col-actions">
+                                <span class="slds-assistive-text">Actions</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template for:each={displayRows} for:item="row">
+                            <!-- Data row -->
+                            <template if:false={row.isDetail}>
+                                <tr key={row.key} class="slds-hint-parent">
+                                    <td class="rlm-col-expander">
+                                        <template if:true={row.expandable}>
+                                            <lightning-button-icon
+                                                icon-name={row.expanderIcon}
+                                                variant="bare"
+                                                size="small"
+                                                data-id={row.id}
+                                                data-expander={row.id}
+                                                aria-expanded={row.expandedStr}
+                                                aria-controls={row.detailRegionId}
+                                                alternative-text={row.expanderTitle}
+                                                title={row.expanderTitle}
+                                                onclick={handleToggleExpand}
+                                            ></lightning-button-icon>
+                                        </template>
+                                    </td>
+                                    <template if:true={showGroupColumn}>
+                                        <td>
+                                            <span class="slds-truncate" title={row.groupPath}>{row.groupPath}</span>
+                                        </td>
+                                    </template>
+                                    <th scope="row">
+                                        <template if:true={row.isTerm}>
+                                            <div style={row.indentStyle}>
+                                                <lightning-input
+                                                    type="text"
+                                                    variant="label-hidden"
+                                                    label="Term name"
+                                                    max-length="80"
+                                                    value={row.termNameValue}
+                                                    placeholder={row.termNamePlaceholder}
+                                                    data-id={row.id}
+                                                    onchange={handleTermNameChange}
+                                                    onblur={handleTermNameCommit}
+                                                    onkeydown={handleTermNameCommit}
+                                                ></lightning-input>
+                                            </div>
+                                        </template>
+                                        <template if:false={row.isTerm}>
+                                            <span class="slds-truncate" style={row.indentStyle} title={row.productName}>
+                                                {row.productName}
+                                            </span>
+                                        </template>
+                                    </th>
+                                    <td class="rlm-col-fares">
+                                        <template if:true={row.showFareSummary}>
+                                            <span class="slds-truncate" title={row.fareSummary}>{row.fareSummary}</span>
+                                        </template>
+                                    </td>
+                                    <td class={row.discountClass}>
+                                        <lightning-input
+                                            type="number"
+                                            variant="label-hidden"
+                                            label="Discount %"
+                                            step="0.01"
+                                            min="0"
+                                            max="100"
+                                            value={row.discountValue}
+                                            data-id={row.id}
+                                            message-when-range-overflow="Enter 0–100"
+                                            message-when-range-underflow="Enter 0–100"
+                                            onchange={handleDiscountChange}
+                                        ></lightning-input>
+                                        <template if:true={row.discountError}>
+                                            <div class="slds-text-color_error slds-text-body_small">
+                                                {row.discountError}
+                                            </div>
+                                        </template>
+                                    </td>
+                                    <td class="rlm-col-prior">
+                                        <span
+                                            class="slds-text-color_weak"
+                                            title="Discount negotiated on the previous contract"
+                                        >
+                                            {row.priorDiscountDisplay}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <lightning-input
+                                            type="date"
+                                            variant="label-hidden"
+                                            label="Start date"
+                                            value={row.startDateValue}
+                                            data-id={row.id}
+                                            onchange={handleStartDateChange}
+                                        ></lightning-input>
+                                    </td>
+                                    <td class={row.endDateClass}>
+                                        <lightning-input
+                                            type="date"
+                                            variant="label-hidden"
+                                            label="End date"
+                                            value={row.endDateValue}
+                                            data-id={row.id}
+                                            onchange={handleEndDateChange}
+                                        ></lightning-input>
+                                        <template if:true={row.endDateError}>
+                                            <div class="slds-text-color_error slds-text-body_small">
+                                                {row.endDateError}
+                                            </div>
+                                        </template>
+                                    </td>
+                                    <td class="rlm-col-actions">
+                                        <lightning-button-icon
+                                            icon-name="utility:delete"
+                                            variant="bare"
+                                            size="small"
+                                            disabled={saving}
+                                            data-id={row.id}
+                                            alternative-text="Remove line"
+                                            title="Remove line"
+                                            onclick={handleRemoveLine}
+                                        ></lightning-button-icon>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <!-- Inline detail row: fare-code editor on fare rows, attribute picker on Terms -->
+                            <template if:true={row.isDetail}>
+                                <tr key={row.key} class="rlm-detail-row">
+                                    <td colspan={row.colspan}>
+                                        <div
+                                            class="slds-box slds-box_x-small slds-m-vertical_x-small"
+                                            id={row.detailRegionId}
+                                            role="region"
+                                            aria-label={row.detailLabel}
+                                            data-detail={row.id}
+                                            tabindex="-1"
+                                        >
+                                            <template if:true={row.isFareDetail}>
+                                                <lightning-dual-listbox
+                                                    label="Fare codes"
+                                                    source-label="Available"
+                                                    selected-label="Selected"
+                                                    options={fareCodeOptions}
+                                                    value={row.fareCodesValue}
+                                                    data-id={row.id}
+                                                    size="8"
+                                                    onchange={handleFareCodesChange}
+                                                ></lightning-dual-listbox>
+                                            </template>
+                                            <template if:false={row.isFareDetail}>
+                                                <c-dlm-line-attribute-picker
+                                                    quote-line-item-id={row.id}
+                                                    attribute-codes={attributeCodes}
+                                                    onattributessaved={handleAttributesSaved}
+                                                ></c-dlm-line-attribute-picker>
+                                            </template>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </template>
+                    </tbody>
+                </table>
+
+                <!-- Mirror the top action row at the bottom so a rep who scrolls to the end of a long
+                     lines list can save without scrolling back up. Both rows share handleSave/
+                     handleCancel + saveDisabled, so they stay in lockstep. -->
+                <div class="slds-grid slds-grid_align-end slds-m-top_x-small">
+                    <lightning-button
+                        label="Cancel"
+                        variant="neutral"
+                        class="slds-m-right_x-small"
+                        disabled={saveDisabled}
+                        onclick={handleCancel}
+                    ></lightning-button>
+                    <lightning-button
+                        label="Save changes"
+                        variant="brand"
+                        icon-name="utility:save"
+                        disabled={saveDisabled}
+                        onclick={handleSave}
+                    ></lightning-button>
+                </div>
+            </template>
+
+            <template if:false={hasRows}>
+                <div class="slds-text-color_weak slds-p-vertical_small">
+                    No quote lines yet. Add products above to get started.
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

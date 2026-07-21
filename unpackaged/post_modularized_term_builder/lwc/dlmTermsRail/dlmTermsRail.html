@@ -1,0 +1,91 @@
+<template>
+  <!-- Terms rail tile: the term chips for the open negotiation + an inline Add Term bar. Stands
+       alone on the page; it self-loads its terms from getBuilderState when the header publishes a
+       `context` message over the DLM Term Builder channel. -->
+  <lightning-card title={effectiveHeading} icon-name="standard:contract">
+    <div class="slds-p-horizontal_small">
+      <template if:true={loadingState}>
+        <lightning-spinner
+          alternative-text="Loading terms"
+          size="small"
+        ></lightning-spinner>
+      </template>
+
+      <template if:true={hasTerms}>
+        <ul
+          class="slds-grid slds-grid_vertical slds-gutters_direct-y"
+          role="list"
+        >
+          <template for:each={termCards} for:item="term">
+            <li
+              key={term.id}
+              class="slds-col slds-m-bottom_x-small"
+              role="listitem"
+            >
+              <c-dlm-term-card
+                term={term}
+                selected={term.selected}
+                ontermselect={handleTermSelect}
+              ></c-dlm-term-card>
+            </li>
+          </template>
+        </ul>
+      </template>
+
+      <template if:false={hasTerms}>
+        <template if:true={quoteId}>
+          <p
+            class="slds-p-vertical_small slds-text-color_weak slds-text-body_small"
+          >
+            No Terms yet. Add a route-based Term below to begin.
+          </p>
+        </template>
+        <template if:false={quoteId}>
+          <p
+            class="slds-p-vertical_small slds-text-color_weak slds-text-body_small"
+          >
+            Open or create a negotiation to add Terms.
+          </p>
+        </template>
+      </template>
+    </div>
+
+    <!-- Add Term: a bare inline bar. The DL-TERM product is resolved server-side, so no
+         catalog / search / load-more is needed — just how many Terms to add, then Add. -->
+    <template if:true={addTermsAllowed}>
+      <div class="slds-p-around_small slds-m-top_small dl-tb-add-term">
+        <div class="slds-grid slds-gutters_small slds-grid_vertical-align-end">
+          <div class="slds-col slds-grow-none dl-tb-add-term__count">
+            <lightning-input
+              type="number"
+              label="Terms"
+              value={addTermCount}
+              min="1"
+              max={maxAdd}
+              step="1"
+              message-when-range-overflow={maxOverflowMessage}
+              message-when-range-underflow="Add at least 1 Term."
+              onchange={handleAddTermCountChange}
+            ></lightning-input>
+          </div>
+          <div class="slds-col slds-p-bottom_xxx-small">
+            <lightning-button
+              label="Add Term"
+              variant="brand"
+              icon-name="utility:add"
+              disabled={addTermDisabled}
+              onclick={handleAddTerm}
+              class="dl-tb-add-term__cta"
+            ></lightning-button>
+          </div>
+        </div>
+      </div>
+    </template>
+  </lightning-card>
+
+  <template if:true={errorMessage}>
+    <div class="slds-p-around_small">
+      <div class="slds-text-color_error" role="alert">{errorMessage}</div>
+    </div>
+  </template>
+</template>

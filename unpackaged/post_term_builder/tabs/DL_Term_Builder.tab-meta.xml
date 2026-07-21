@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomTab xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Delta Term Builder — start a route-based negotiation and add fare classes under each Term.</description>
+    <!-- Flexipage/AppPage tab. The standard page-header band (a redundant "Term Builder" title +
+         motif icon) is hidden by the DL_Term_Builder_NoHeader stylesheet the LWC loads at runtime,
+         so only the component's own navy Delta header shows. The LWC also exposes a lightning__Tab
+         target, so this can be switched to a Lightning Component Tab later if desired. -->
+    <flexiPage>DL_Term_Builder</flexiPage>
+    <label>Term Builder</label>
+    <motif>Custom4: Hexagon</motif>
+</CustomTab>

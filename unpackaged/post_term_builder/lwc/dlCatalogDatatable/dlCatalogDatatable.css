@@ -1,0 +1,8 @@
+/* Let table cells show content that extends past their box (the brand "Add" button's hover
+   elevation, and the instance-count field). Standard lightning-datatable <td>s clip with
+   overflow:hidden, which cuts off the top of the Add button on hover. Text truncation is
+   unaffected — that's handled by the inner .slds-truncate wrapper, not the <td> overflow. */
+tbody td,
+tbody th {
+    overflow: visible;
+}

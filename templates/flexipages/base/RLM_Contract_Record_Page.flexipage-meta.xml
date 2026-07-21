@@ -10,6 +10,9 @@
                             <value>Activate</value>
                         </valueListItems>
                         <valueListItems>
+                            <value>Contract.DL_Create_Renewal</value>
+                        </valueListItems>
+                        <valueListItems>
                             <value>Edit</value>
                         </valueListItems>
                         <valueListItems>

@@ -1,0 +1,10 @@
+/* The hosted flow is headless (autolaunched, no screens). It renders no visible UI, so collapse its
+   host to keep it out of the layout while it runs; the modal shows its own spinner instead. */
+.dl-cc-flow-host {
+  display: none;
+}
+
+.dl-cc-term__name {
+  font-weight: 600;
+  color: #003268;
+}

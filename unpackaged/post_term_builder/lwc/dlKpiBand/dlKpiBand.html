@@ -1,0 +1,27 @@
+<template>
+  <div class={bandClass} role="group" aria-label="Key performance indicators">
+    <template if:true={hasHeading}>
+      <div class="dl-kpi-band__heading slds-col slds-size_1-of-1">{heading}</div>
+    </template>
+
+    <template if:true={hasKpis}>
+      <template for:each={tiles} for:item="tile">
+        <div key={tile.key} class="dl-kpi-band__cell slds-col">
+          <div class="dl-kpi-tile" data-headline={tile.headline}>
+            <span class="dl-kpi-tile__label">{tile.label}</span>
+            <span class={tile.valueClass}>{tile.value}</span>
+            <template if:true={tile.hasDelta}>
+              <span class={tile.deltaClass}>{tile.deltaText}</span>
+            </template>
+          </div>
+        </div>
+      </template>
+    </template>
+
+    <template if:false={hasKpis}>
+      <div class="dl-kpi-band__empty slds-col slds-size_1-of-1 slds-text-color_weak slds-text-body_small">
+        No KPIs to display yet.
+      </div>
+    </template>
+  </div>
+</template>

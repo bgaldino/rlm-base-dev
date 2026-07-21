@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DL_Contract_Item_Price__c</fullName>
+    <label>Contract Item Price</label>
+    <referenceTo>ContractItemPrice</referenceTo>
+    <relationshipLabel>Contract Item Price Attributes</relationshipLabel>
+    <relationshipName>DL_Contract_Item_Price_Attributes</relationshipName>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <type>MasterDetail</type>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

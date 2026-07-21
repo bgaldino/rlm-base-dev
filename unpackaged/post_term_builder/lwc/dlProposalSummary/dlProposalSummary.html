@@ -1,0 +1,88 @@
+<template>
+  <lightning-modal-header label="Proposal Summary"></lightning-modal-header>
+
+  <lightning-modal-body>
+    <template if:false={hasProposal}>
+      <div class="slds-p-around_medium slds-text-color_weak">
+        No modeled proposal to summarize yet.
+      </div>
+    </template>
+
+    <template if:true={hasProposal}>
+      <div class="dl-ps">
+        <!-- Heading: negotiation + account -->
+        <div class="dl-ps-head slds-m-bottom_small">
+          <h2 class="dl-ps-head__title">{negotiationName}</h2>
+          <template if:true={accountName}>
+            <p class="dl-ps-head__sub">{accountName}</p>
+          </template>
+        </div>
+
+        <!-- Contract KPI rollup -->
+        <div class="dl-ps-section-label">Contract Rollup</div>
+        <div class="dl-ps-tiles slds-grid slds-wrap slds-m-bottom_medium">
+          <template for:each={contractTiles} for:item="tile">
+            <div key={tile.key} class="dl-ps-tile-cell slds-col">
+              <div class={contractTileClass} data-tone={tile.tone}>
+                <span class="dl-ps-tile__label">{tile.label}</span>
+                <span class="dl-ps-tile__value">{tile.value}</span>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Per-term detail -->
+        <div class="dl-ps-section-label">Terms</div>
+        <template if:true={hasTerms}>
+          <table class="dl-ps-table slds-table slds-table_bordered slds-table_cell-buffer">
+            <thead>
+              <tr class="slds-line-height_reset">
+                <th scope="col"><span title="Route">Route</span></th>
+                <th scope="col"><span title="Method">Method</span></th>
+                <th scope="col"><span title="Status">Status</span></th>
+                <th scope="col"><span title="Share">Share</span></th>
+                <th scope="col"><span title="FMS">FMS</span></th>
+                <th scope="col"><span title="Projected Share">Proj. Share</span></th>
+                <th scope="col"><span title="Projected Gap">Proj. Gap</span></th>
+                <th scope="col"><span title="Existing EDR">Existing EDR</span></th>
+                <th scope="col"><span title="Final Offer EDR">Final EDR</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template for:each={termRows} for:item="row">
+                <tr key={row.key} class={row.recommendedClass}>
+                  <th scope="row">
+                    <span class="dl-ps-route">{row.route}</span>
+                    <template if:true={row.isRecommended}>
+                      <lightning-badge label="Recommended" class="dl-ps-badge"></lightning-badge>
+                    </template>
+                  </th>
+                  <td>{row.methodLabel}</td>
+                  <td>{row.statusLabel}</td>
+                  <td>{row.share}</td>
+                  <td>{row.fms}</td>
+                  <td>{row.projectedShare}</td>
+                  <td><span class={row.gapClass}>{row.gap}</span></td>
+                  <td>{row.edrExisting}</td>
+                  <td>{row.edrFinal}</td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </template>
+        <template if:false={hasTerms}>
+          <p class="slds-text-color_weak slds-text-body_small">No Terms modeled yet.</p>
+        </template>
+
+        <p class="dl-ps-note slds-text-body_small slds-text-color_weak slds-m-top_small">
+          Figures are demo-modeled from the simulated flown-data context. Close this summary and use
+          Apply Final Offer to Quote, then Create Contract, to hand the recommended offer off.
+        </p>
+      </div>
+    </template>
+  </lightning-modal-body>
+
+  <lightning-modal-footer>
+    <lightning-button label="Close" onclick={handleClose}></lightning-button>
+  </lightning-modal-footer>
+</template>

@@ -1,0 +1,7 @@
+BasedOn.Code,CanRamp,ConfigureDuringSale,DL_DefaultFareCodes__c,Description,DisplayUrl,Family,IsActive,IsAssetizable,IsSoldOnlyWithOtherProds,Name,ProductCode,QuantityUnitOfMeasure,SpecificationType,StockKeepingUnit,Type,UnitOfMeasure.UnitCode
+PC-DL-TERM,false,Allowed,,Route-based negotiation term bundle,,Delta,true,true,false,Delta Term,DL-TERM,,,DL-TERM,Bundle,
+PC-DL-FARE,false,,J;C;D;I;Z,Delta One / First cabin fare,,Delta,true,true,true,Delta One,DL-FARE-ONE,,,DL-FARE-ONE,,
+PC-DL-FARE,false,,P;A;G,Premium Select cabin fare,,Delta,true,true,true,Premium Select,DL-FARE-PS,,,DL-FARE-PS,,
+PC-DL-FARE,false,,W;S,Comfort cabin fare,,Delta,true,true,true,Comfort,DL-FARE-COMF,,,DL-FARE-COMF,,
+PC-DL-FARE,false,,Y;B;M;H;Q;K;L;U;T;X;V,Main Cabin fare,,Delta,true,true,true,Main,DL-FARE-MAIN,,,DL-FARE-MAIN,,
+PC-DL-FARE,false,,E,Main Basic cabin fare,,Delta,true,true,true,Main Basic,DL-FARE-BASIC,,,DL-FARE-BASIC,,

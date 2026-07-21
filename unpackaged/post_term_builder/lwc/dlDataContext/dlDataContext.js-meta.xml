@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta Data Context</masterLabel>
+    <description>Internal component (Delta Term Builder): a compact read-only "Simulated Data" strip describing the flown-data window (source, period, subsidiaries, carriers) with an expandable detail popover. Presentational only — no ingestion or persistence.</description>
+</LightningComponentBundle>

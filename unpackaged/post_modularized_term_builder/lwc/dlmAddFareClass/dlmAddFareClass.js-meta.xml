@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta Add Fare Class</masterLabel>
+    <description>Internal component (used by Delta Term Builder): lists the fare-class products (PC-DL-FARE) with their booking-class codes and adds a selected fare as a Quantity-1 child of the selected Term via Place Sales Transaction.</description>
+</LightningComponentBundle>

@@ -1,0 +1,26 @@
+<template>
+  <div class="slds-p-around_medium slds-is-relative">
+    <template if:true={loading}>
+      <div class="slds-align_absolute-center slds-p-vertical_medium">
+        <lightning-spinner
+          alternative-text="Creating renewal"
+          size="small"
+        ></lightning-spinner>
+        <span class="slds-m-left_small">Creating renewal and opening Term Builder…</span>
+      </div>
+    </template>
+
+    <template if:true={hasError}>
+      <div
+        class="slds-box slds-box_x-small slds-theme_error slds-m-bottom_small"
+        role="alert"
+        aria-live="assertive"
+      >
+        {errorMessage}
+      </div>
+      <div class="slds-text-align_right">
+        <lightning-button label="Close" onclick={handleClose}></lightning-button>
+      </div>
+    </template>
+  </div>
+</template>

@@ -1,0 +1,17 @@
+/* SLDS empty state, centered in the region with a readable measure. */
+.rlm-configure-empty {
+    max-width: 28rem;
+    margin: 0 auto;
+}
+
+/* slds-text-longform left-aligns by default; center it to match the empty-state layout. */
+.rlm-configure-empty .slds-text-longform {
+    text-align: center;
+}
+
+/* Cap the doodle illustration so it reads as an accent, not a hero image. */
+.rlm-configure-empty .slds-illustration__svg {
+    max-width: 12rem;
+    height: auto;
+    margin: 0 auto;
+}

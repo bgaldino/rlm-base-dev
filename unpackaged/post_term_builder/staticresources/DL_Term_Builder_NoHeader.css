@@ -1,0 +1,16 @@
+/*
+ * Hides the standard Lightning flexipage page-header band (the redundant "Term Builder" title and
+ * tab motif icon) so only the dlTermBuilder component's own navy Delta header shows.
+ *
+ * Loaded via lightning/platformResourceLoader loadStyle in dlTermBuilder.connectedCallback, which
+ * injects the sheet at the document level so it can reach this chrome outside the component's shadow
+ * root. Redundant when the app uses a Lightning Component Tab (that layout omits the band entirely),
+ * but kept as a fallback for placing the component on an AppPage / Home page.
+ */
+/* The band is a div.slds-page-header.header.flexipageHeader (holds the motif avatar + an <h1>
+   "Term Builder"). .flexipageHeader is specific to this flexipage chrome, so hide on that class;
+   !important beats the component's own inline/scoped rules. */
+.flexipageHeader,
+.slds-page-header.flexipageHeader {
+  display: none !important;
+}

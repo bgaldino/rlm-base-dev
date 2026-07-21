@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta Quote Line Grid</masterLabel>
+    <description>Internal component (used by RLM Quote Workspace): an expandable line grid for a Quote with inline Discount %/date editing and an inline (non-modal) attribute picker per line.</description>
+</LightningComponentBundle>

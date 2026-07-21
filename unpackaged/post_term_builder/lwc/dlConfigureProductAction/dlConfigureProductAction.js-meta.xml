@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Delta Configure Product Action</masterLabel>
+    <description>Re-opens the native Product Configurator hydrated with a quote line's existing bundle tree and saves the changes back to the quote via Place Sales Transaction. Usable as a screen quick action (auto-launches) or as a record-page button.</description>
+    <targets>
+        <target>lightning__RecordAction</target>
+        <target>lightning__RecordPage</target>
+    </targets>
+    <targetConfigs>
+        <!--
+          ScreenAction (header quick action): auto-launches the configurator in a modal when the
+          action opens. QuoteLineItem does NOT accept custom quick actions (platform-restricted), so
+          this target is for standard/other objects that do; the RecordPage button below is the
+          QuoteLineItem path, where the configurator renders inline in the region.
+        -->
+        <targetConfig targets="lightning__RecordAction">
+            <actionType>ScreenAction</actionType>
+        </targetConfig>
+        <!--
+          Record-page component (works on QuoteLineItem): renders a Configure button and hosts the
+          configurator INLINE in the region on click. Launching starts a configurator session, so it
+          stays gated behind the button — it never auto-runs on page load.
+        -->
+        <targetConfig targets="lightning__RecordPage">
+            <objects>
+                <object>QuoteLineItem</object>
+            </objects>
+            <property
+                name="buttonLabel"
+                type="String"
+                default="Configure"
+                label="Button Label"
+                description="Label for the Configure button (record-page placement only)."
+            />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

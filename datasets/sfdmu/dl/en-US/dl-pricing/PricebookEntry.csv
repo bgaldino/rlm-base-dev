@@ -1,0 +1,7 @@
+$$Product2.StockKeepingUnit$ProductSellingModel.Name$CurrencyIsoCode,CurrencyIsoCode,IsActive,IsDerived,Name,Pricebook2.$$Name$IsStandard,Product2.StockKeepingUnit,ProductSellingModel.$$Name$SellingModelType,UnitPrice
+DL-TERM;Term Annual;USD,USD,true,false,Delta Term,Standard Price Book;true,DL-TERM,Term Annual;TermDefined,0
+DL-FARE-ONE;Term Annual;USD,USD,true,false,Delta One,Standard Price Book;true,DL-FARE-ONE,Term Annual;TermDefined,0
+DL-FARE-PS;Term Annual;USD,USD,true,false,Premium Select,Standard Price Book;true,DL-FARE-PS,Term Annual;TermDefined,0
+DL-FARE-COMF;Term Annual;USD,USD,true,false,Comfort,Standard Price Book;true,DL-FARE-COMF,Term Annual;TermDefined,0
+DL-FARE-MAIN;Term Annual;USD,USD,true,false,Main,Standard Price Book;true,DL-FARE-MAIN,Term Annual;TermDefined,0
+DL-FARE-BASIC;Term Annual;USD,USD,true,false,Main Basic,Standard Price Book;true,DL-FARE-BASIC,Term Annual;TermDefined,0

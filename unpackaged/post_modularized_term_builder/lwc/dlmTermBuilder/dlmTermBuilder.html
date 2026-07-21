@@ -1,0 +1,22 @@
+<template>
+  <!-- All-in-one composition of the three tiles. Each tile self-syncs over the DLM Term Builder
+       message channel, so this shell only positions them: header full-width on top, then the Terms
+       rail (1/3) beside the Term workspace (2/3). -->
+  <div class="dl-term-builder">
+    <!-- Header / negotiation context -->
+    <c-dlm-negotiation-context
+      account-id={accountId}
+      quote-record-id={quoteRecordId}
+    ></c-dlm-negotiation-context>
+
+    <!-- Body: Terms rail (left) + Term workspace (right) -->
+    <div class="slds-grid slds-gutters slds-wrap slds-p-around_medium">
+      <div class="slds-col slds-size_1-of-1 slds-large-size_1-of-3">
+        <c-dlm-terms-rail></c-dlm-terms-rail>
+      </div>
+      <div class="slds-col slds-size_1-of-1 slds-large-size_2-of-3">
+        <c-dlm-term-workspace></c-dlm-term-workspace>
+      </div>
+    </div>
+  </div>
+</template>

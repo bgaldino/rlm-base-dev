@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StaticResource xmlns="http://soap.sforce.com/2006/04/metadata">
+    <cacheControl>Public</cacheControl>
+    <contentType>image/png</contentType>
+    <description>Delta triangle emblem (transparent PNG, cropped from the connected Delta org's delta_emblem static resource) used in the Term Builder header in place of the CSS triangle mark.</description>
+</StaticResource>

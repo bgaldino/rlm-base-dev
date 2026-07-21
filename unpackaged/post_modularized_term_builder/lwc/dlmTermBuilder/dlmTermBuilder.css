@@ -1,0 +1,9 @@
+:host {
+  display: block;
+}
+
+/* Light grey app canvas behind the tiles, matching the original app. */
+.dl-term-builder {
+  background: #f3f3f3;
+  min-height: 100%;
+}

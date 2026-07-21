@@ -1,0 +1,69 @@
+<template>
+    <div class="slds-p-around_x-small">
+        <template if:true={loading}>
+            <lightning-spinner alternative-text="Loading attributes" size="small"></lightning-spinner>
+        </template>
+
+        <template if:true={errorMessage}>
+            <div class="slds-text-color_error slds-m-bottom_x-small" role="alert">{errorMessage}</div>
+        </template>
+
+        <template if:true={hasAttributes}>
+            <div class="slds-grid slds-wrap slds-gutters_x-small">
+                <template for:each={attributes} for:item="attr">
+                    <div key={attr.key} class="slds-col slds-size_1-of-2 slds-p-bottom_x-small">
+                        <template if:true={attr.isPicklist}>
+                            <lightning-combobox
+                                data-id={attr.attributeDefinitionId}
+                                label={attr.label}
+                                value={attr.value}
+                                options={attr.options}
+                                required={attr.required}
+                                disabled={attr.disabled}
+                                onchange={handlePicklistChange}
+                            ></lightning-combobox>
+                        </template>
+                        <template if:true={attr.isCheckbox}>
+                            <lightning-input
+                                type="checkbox"
+                                data-id={attr.attributeDefinitionId}
+                                label={attr.label}
+                                checked={attr.checked}
+                                disabled={attr.disabled}
+                                onchange={handleCheckboxChange}
+                            ></lightning-input>
+                        </template>
+                        <template if:true={attr.isTextlike}>
+                            <lightning-input
+                                type={attr.inputType}
+                                data-id={attr.attributeDefinitionId}
+                                label={attr.label}
+                                value={attr.value}
+                                required={attr.required}
+                                disabled={attr.disabled}
+                                onchange={handleInputChange}
+                            ></lightning-input>
+                        </template>
+                    </div>
+                </template>
+            </div>
+
+            <template if:true={showOwnSaveButton}>
+                <div class="slds-text-align_right slds-m-top_x-small">
+                    <lightning-button
+                        variant="brand"
+                        label="Save"
+                        onclick={handleSave}
+                        disabled={saveDisabled}
+                    ></lightning-button>
+                </div>
+            </template>
+        </template>
+
+        <template if:true={showEmpty}>
+            <div class="slds-text-color_weak slds-p-vertical_xx-small">
+                No editable attributes for this product.
+            </div>
+        </template>
+    </div>
+</template>

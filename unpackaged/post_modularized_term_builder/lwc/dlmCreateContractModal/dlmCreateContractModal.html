@@ -1,0 +1,105 @@
+<template>
+  <lightning-modal-header label="Create Contract"></lightning-modal-header>
+
+  <lightning-modal-body class="slds-is-relative">
+    <template if:true={errorMessage}>
+      <div class="slds-text-color_error slds-var-m-bottom_small" role="alert">
+        {errorMessage}
+      </div>
+    </template>
+
+    <template if:false={hasQuote}>
+      <div class="slds-var-p-around_medium slds-text-color_error">
+        No negotiation Quote is available to contract.
+      </div>
+    </template>
+
+    <template if:true={hasQuote}>
+      <!-- Summary of what will be contracted: one row per Term (with its discount) and its fares
+           (each with their own discount). The negotiated discounts are saved as contract item prices. -->
+      <template if:true={hasTerms}>
+        <ul class="slds-has-dividers_bottom-space" role="list">
+          <template for:each={terms} for:item="term">
+            <li
+              key={term.id}
+              class="slds-item dl-cc-term slds-var-p-vertical_x-small"
+              role="listitem"
+            >
+              <div
+                class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center"
+              >
+                <span class="dl-cc-term__name slds-truncate" title={term.name}
+                  >{term.name}</span
+                >
+                <lightning-badge
+                  label={term.discountText}
+                  class="slds-badge_lightest"
+                ></lightning-badge>
+              </div>
+              <template if:true={term.hasFares}>
+                <ul class="slds-var-m-left_medium slds-var-m-top_xxx-small">
+                  <template for:each={term.fares} for:item="fare">
+                    <li
+                      key={fare.id}
+                      class="slds-grid slds-grid_align-spread slds-text-body_small slds-text-color_weak"
+                    >
+                      <span class="slds-truncate" title={fare.name}
+                        >{fare.name}</span
+                      >
+                      <span class="slds-var-m-left_small"
+                        >{fare.discountText}</span
+                      >
+                    </li>
+                  </template>
+                </ul>
+              </template>
+            </li>
+          </template>
+        </ul>
+      </template>
+
+      <template if:false={hasTerms}>
+        <p class="slds-text-color_weak slds-text-body_small">
+          This negotiation has no Terms to contract.
+        </p>
+      </template>
+
+      <!-- The headless flow mounts only after Create is pressed; it renders no UI of its own, so we
+           keep it hidden and show a spinner while it runs. -->
+      <template if:true={running}>
+        <div
+          class="slds-align_absolute-center slds-var-p-vertical_medium"
+          aria-live="polite"
+        >
+          <lightning-spinner
+            alternative-text="Creating contract"
+            size="small"
+          ></lightning-spinner>
+          <span class="slds-var-m-left_small">Creating contract…</span>
+        </div>
+        <div class="dl-cc-flow-host">
+          <lightning-flow
+            flow-api-name={flowApiName}
+            flow-input-variables={inputVariables}
+            onstatuschange={handleStatusChange}
+          ></lightning-flow>
+        </div>
+      </template>
+    </template>
+  </lightning-modal-body>
+
+  <lightning-modal-footer>
+    <lightning-button
+      label="Cancel"
+      onclick={handleCancel}
+      disabled={running}
+      class="slds-var-m-right_x-small"
+    ></lightning-button>
+    <lightning-button
+      label="Create Contract"
+      variant="brand"
+      onclick={handleCreate}
+      disabled={createDisabled}
+    ></lightning-button>
+  </lightning-modal-footer>
+</template>

@@ -1,0 +1,96 @@
+:host {
+  display: block;
+}
+
+.dl-term-builder {
+  background: #f3f3f3;
+  min-height: 100%;
+}
+
+/* Delta Navy app header. Rendered as an inset rounded card so its spacing and corners line up with
+   the SLDS cards/panels below, rather than bleeding to the page edges. */
+.dl-tb-header {
+  background: #003268;
+  color: #ffffff;
+  margin: 1rem;
+  border-radius: 0.25rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16);
+}
+
+.dl-tb-header__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+/* Delta triangle emblem (org static resource DL_Term_Builder_Emblem), sized to sit inline with the
+   header title. */
+.dl-tb-header__mark {
+  display: inline-block;
+  height: 1.75rem;
+  width: auto;
+}
+
+/* The form controls sit directly on the navy band (no white card). Base Lightning inputs render
+   their labels in shadow DOM and don't honor --slds-c-input-label-color, so each field's native
+   label is hidden (variant="label-hidden", kept for accessibility) and paired with a light-DOM
+   label span here that we can color for contrast on navy. The inputs themselves keep their normal
+   white surface. */
+.dl-tb-header__panel {
+  row-gap: 0.5rem;
+}
+
+.dl-tb-header__field-label {
+  display: block;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+/* lightning-input type="date" renders an accepted-format hint ("Format: Dec 31, 2024") in its own
+   shadow DOM while focused, which we can't reach or suppress from outside CSS. Without this, that
+   hint grows the field's host height and shoves the whole vertical-align_end row (and everything
+   below it) down while a date is being picked. Pinning the host height keeps the row still; the
+   hint still renders, just overflowing below the field instead of reflowing the layout. */
+.dl-tb-header__panel lightning-input[type="date"] {
+  display: block;
+  height: 2.75rem;
+  overflow: visible;
+}
+
+/* Header link to the open negotiation's Quote record. White on the navy band, underlined on hover. */
+.dl-tb-header__quote-link {
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dl-tb-header__quote-link:hover,
+.dl-tb-header__quote-link:focus {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.dl-tb-cta {
+  width: 100%;
+}
+
+.dl-tb-add-term {
+  border-top: 1px solid #e5e5e5;
+}
+
+.dl-tb-fares {
+  border: 1px solid #dddbda;
+  border-radius: 0.25rem;
+  background: #ffffff;
+}
+
+.dl-tb-fares__heading {
+  font-weight: 700;
+  color: #003268;
+  border-bottom: 1px solid #eef1f6;
+  margin: 0;
+}

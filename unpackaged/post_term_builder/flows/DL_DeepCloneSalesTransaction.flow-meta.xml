@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Deep-clones the full sales-transaction (Quote) object graph — lines, groups, bundle configs, and custom fields — in the current transaction. For a whole-quote clone recordIds and salesTransactionId are both the source Quote id; options is omitted (ramp-segment-only). Returns the new Quote id in newRecordId.</description>
+        <name>DeepClone</name>
+        <label>Deep Clone Sales Transaction</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>deepCloneSalesTransaction</actionName>
+        <actionType>deepCloneSalesTransaction</actionType>
+        <faultConnector>
+            <targetReference>SetError</targetReference>
+        </faultConnector>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>recordIds</name>
+            <value>
+                <elementReference>recordIds</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>salesTransactionId</name>
+            <value>
+                <elementReference>sourceQuoteId</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>deepCloneSalesTransaction</nameSegment>
+        <offset>0</offset>
+        <outputParameters>
+            <assignToReference>newQuoteId</assignToReference>
+            <name>newRecordId</name>
+        </outputParameters>
+        <storeOutputAutomatically>false</storeOutputAutomatically>
+    </actionCalls>
+    <apiVersion>67.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>Wrap the single source Quote id into the recordIds text collection the core action requires (List&lt;String&gt;, single-record only).</description>
+        <name>BuildRecordIds</name>
+        <label>Build Record Ids</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>recordIds</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>sourceQuoteId</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>DeepClone</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Capture the flow fault message so the Apex caller can surface it (and retry the transient config-rules cache error).</description>
+        <name>SetError</name>
+        <label>Set Error</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>errorMessage</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.FaultMessage</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <description>Delta Term Builder: headless flow that runs the standard Deep Clone Sales Transaction core action IN-TRANSACTION (no HTTP callout), cloning a source Quote's full object graph into a new Quote. Invoked synchronously from RLM_DeltaTermBuilderController.createRenewalFromContract via Flow.Interview; the Apex owns the contract/SourceQuoteId guard, rename, and Draft reset. Input: sourceQuoteId. Outputs: newQuoteId, errorMessage.</description>
+    <environments>Default</environments>
+    <interviewLabel>DL_DeepCloneSalesTransaction {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>DL Deep Clone Sales Transaction</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>BuildRecordIds</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+    <variables>
+        <description>Flow fault message when the deep clone fails (e.g. the transient config-rules cache error); null on success.</description>
+        <name>errorMessage</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>ID of the newly cloned Quote (the renewal shell). Output.</description>
+        <name>newQuoteId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>true</isOutput>
+    </variables>
+    <variables>
+        <description>Single-element text collection carrying the source Quote id for the core action's recordIds (List&lt;String&gt;) input.</description>
+        <name>recordIds</name>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <description>Input: the source Quote (Contract.SourceQuoteId) to deep clone.</description>
+        <name>sourceQuoteId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>true</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+</Flow>

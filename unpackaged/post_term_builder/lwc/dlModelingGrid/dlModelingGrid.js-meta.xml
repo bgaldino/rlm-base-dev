@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta Modeling Grid</masterLabel>
+    <description>Internal component (Delta Term Builder): the client-only negotiation modeling spreadsheet. Product vs Fare Class row builders, four rounds, inline-editable cells, sticky Value/Carrier columns + totals/EDR row. Emits modelchange/methodchange/expandtoggle.</description>
+</LightningComponentBundle>

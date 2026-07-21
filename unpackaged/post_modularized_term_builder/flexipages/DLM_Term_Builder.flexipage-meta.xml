@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- Demo composition of the three modularized tiles on one AppPage, proving they sync over the
+         DLM Term Builder message channel without a parent orchestrator. The Negotiation Context
+         header, Terms Rail, and Term Workspace are each dropped independently into the main region;
+         each self-loads from Apex in response to the channel. For the packaged two-column layout as
+         a single block, use the c/dlmTermBuilder orchestrator component instead. -->
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentName>dlmNegotiationContext</componentName>
+                <identifier>dlmNegotiationContext1</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentName>dlmTermsRail</componentName>
+                <identifier>dlmTermsRail1</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentName>dlmTermWorkspace</componentName>
+                <identifier>dlmTermWorkspace1</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>main</name>
+        <type>Region</type>
+    </flexiPageRegions>
+    <masterLabel>Delta Term Builder (Modular)</masterLabel>
+    <template>
+        <name>flexipage:defaultAppHomeTemplate</name>
+    </template>
+    <type>AppPage</type>
+</FlexiPage>

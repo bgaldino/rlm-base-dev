@@ -1,0 +1,27 @@
+{
+  "objects": [
+    {
+      "query": "SELECT StockKeepingUnit FROM Product2 WHERE StockKeepingUnit LIKE 'DL-%' ORDER BY StockKeepingUnit ASC",
+      "operation": "Readonly",
+      "externalId": "StockKeepingUnit"
+    },
+    {
+      "query": "SELECT Name, PricingTerm, PricingTermUnit, SellingModelType, Status FROM ProductSellingModel ORDER BY Name ASC, SellingModelType ASC",
+      "operation": "Readonly",
+      "externalId": "Name;SellingModelType"
+    },
+    {
+      "query": "SELECT Description, IsActive, IsStandard, Name FROM Pricebook2 WHERE IsStandard = true ORDER BY Name ASC",
+      "operation": "Readonly",
+      "externalId": "Name;IsStandard"
+    },
+    {
+      "query": "SELECT CurrencyIsoCode, IsActive, IsDerived, Name, Pricebook2Id, Product2Id, ProductSellingModelId, UnitPrice FROM PricebookEntry WHERE Product2.StockKeepingUnit LIKE 'DL-%' ORDER BY Product2.StockKeepingUnit ASC, ProductSellingModel.Name ASC, CurrencyIsoCode DESC",
+      "operation": "Insert",
+      "externalId": "Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode"
+    }
+  ],
+  "apiVersion": "67.0",
+  "excludeIdsFromCSVFiles": "true",
+  "orgs": []
+}

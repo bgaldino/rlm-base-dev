@@ -1,0 +1,7 @@
+AttributeCategory.Code,AttributeDefinition.Code,AttributeNameOverride,DefaultValue,Description,DisplayType,HelpText,IsHidden,IsPriceImpacting,IsReadOnly,IsRequired,MaximumCharacterCount,MaximumValue,MinimumCharacterCount,MinimumValue,Name,ProductClassification.Code,Sequence,Status,StepValue,UnitOfMeasure.UnitCode,ValueDescription
+AC-DL-ROUTE,DL_Origin,,,,,,false,false,false,false,,,,,Origin,PC-DL-TERM,1,Active,,,
+AC-DL-ROUTE,DL_Destination,,,,,,false,false,false,false,,,,,Destination,PC-DL-TERM,2,Active,,,
+AC-DL-ROUTE,DL_Directionality,,,,,,false,false,false,false,,,,,Directionality,PC-DL-TERM,3,Active,,,
+AC-DL-ROUTE,DL_Measure,,,,,,false,false,false,false,,,,,Measure,PC-DL-TERM,4,Active,,,
+AC-DL-ROUTE,DL_RequirementValue,,,,,,false,false,false,false,,,,,Requirement Value,PC-DL-TERM,5,Active,,,
+AC-DL-ROUTE,DL_SpecialConditions,,,,,,false,false,false,false,,,,,Special Conditions,PC-DL-TERM,6,Active,,,

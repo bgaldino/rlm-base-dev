@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DL_DefaultFareCodes__c</fullName>
+    <description>Canonical airline booking / fare-basis class codes intrinsic to this fare product (e.g. Delta One = J, C, D, I, Z). Copied to QuoteLineItem.DL_FareCodes__c when the fare is added to a Term, where a rep may adjust it per deal.</description>
+    <inlineHelpText>The booking-class codes this fare product covers. Seeds the editable fare codes on each quote line.</inlineHelpText>
+    <label>Default Fare Codes</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetName>DL_Fare_Codes</valueSetName>
+    </valueSet>
+    <visibleLines>4</visibleLines>
+</CustomField>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta Term Card</masterLabel>
+    <description>Internal component (used by Delta Term Builder): a selectable rail chip for one Term, showing its name, fare-line count, and a route/requirement summary read from the builder-state payload.</description>
+</LightningComponentBundle>

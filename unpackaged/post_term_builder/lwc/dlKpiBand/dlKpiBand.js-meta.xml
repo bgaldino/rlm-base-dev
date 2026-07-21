@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta KPI Band</masterLabel>
+    <description>Internal component (Delta Term Builder): a presentational band of KPI tiles (Revenue, Flights, Share, FMS, Share Gap, EDR) from a demo-model KPI object. Animates the Share/Gap/EDR headline tiles; honors prefers-reduced-motion. Contract and Term variants.</description>
+</LightningComponentBundle>

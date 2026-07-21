@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 64" role="img" aria-label="Delta Term Builder">
+  <title>Delta Term Builder</title>
+  <!-- Delta Red triangle mark (#C8102E) -->
+  <polygon points="8,52 30,12 52,52" fill="#C8102E"/>
+  <polygon points="30,20 45,47 15,47" fill="#ffffff" opacity="0.15"/>
+  <!-- Wordmark in Delta Navy (#003268) -->
+  <text x="68" y="34" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#003268">DELTA</text>
+  <text x="68" y="54" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" fill="#514F4D" letter-spacing="0.08em">TERM BUILDER</text>
+</svg>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Delta Terms Rail (Modular)</masterLabel>
+    <description>Modularized Term Builder rail tile: the term chips for the open negotiation plus an inline Add Term bar. Owns term selection and syncs with the Negotiation Context and Term Workspace tiles over the DLM Term Builder message channel.</description>
+    <targets>
+        <target>lightning__Tab</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage,lightning__HomePage">
+            <property
+                name="headingLabel"
+                type="String"
+                default="Terms"
+                label="Heading Label"
+                description="Title shown on the rail card."
+            />
+            <property
+                name="allowAddTerms"
+                type="Boolean"
+                default="true"
+                label="Allow Adding Terms"
+                description="Show the inline Add Term bar. Turn off for a read-only rail that only selects existing Terms."
+            />
+            <property
+                name="maxAddCount"
+                type="Integer"
+                default="10"
+                label="Max Terms Per Add"
+                description="Upper bound on how many Terms can be added in a single Add Term action."
+            />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

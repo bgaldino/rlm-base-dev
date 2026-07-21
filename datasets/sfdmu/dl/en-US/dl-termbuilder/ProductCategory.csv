@@ -1,0 +1,2 @@
+Catalog.Code,Code,Description,IsNavigational,Name,ParentCategory.Code,SortOrder
+DL-CONTRACTS,DL-TERMS,Route-based negotiation terms,true,Terms,,1

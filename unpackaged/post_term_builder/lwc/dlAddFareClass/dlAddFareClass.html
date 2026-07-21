@@ -1,0 +1,93 @@
+<template>
+  <div class="dl-add-fare">
+    <template if:true={loading}>
+      <div class="slds-p-around_small slds-align_absolute-center">
+        <lightning-spinner
+          alternative-text="Loading fare classes"
+          size="small"
+        ></lightning-spinner>
+      </div>
+    </template>
+
+    <template if:true={errorMessage}>
+      <div class="slds-p-around_x-small">
+        <div class="slds-text-color_error slds-text-body_small" role="alert">
+          {errorMessage}
+        </div>
+      </div>
+    </template>
+
+    <template if:true={addBlocked}>
+      <div
+        class="slds-p-horizontal_small slds-p-bottom_x-small slds-text-color_weak slds-text-body_small"
+      >
+        Select a Term to add fare classes.
+      </div>
+    </template>
+
+    <template if:true={showEmpty}>
+      <div
+        class="slds-p-around_small slds-text-color_weak slds-text-body_small"
+      >
+        No fare classes are available on this quote's price book.
+      </div>
+    </template>
+
+    <template if:true={hasFares}>
+      <!-- Top action bar: select-all + a single "Add Selected" for the whole checked set. -->
+      <div
+        class="dl-fare-toolbar slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-p-horizontal_small slds-p-vertical_x-small"
+      >
+        <div class="slds-grid slds-grid_vertical-align-center">
+          <lightning-input
+            type="checkbox"
+            label="Select all fare classes"
+            variant="label-hidden"
+            checked={allSelected}
+            disabled={addBlocked}
+            onchange={handleSelectAll}
+          ></lightning-input>
+          <span
+            class="dl-fare-toolbar__count slds-text-body_small slds-text-color_weak slds-m-left_x-small"
+          >
+            {selectionLabel}
+          </span>
+        </div>
+        <lightning-button
+          label="Add Selected"
+          variant="brand"
+          icon-name="utility:add"
+          disabled={addSelectedDisabled}
+          onclick={handleAddSelected}
+        ></lightning-button>
+      </div>
+
+      <ul class="slds-has-dividers_bottom-space" role="list">
+        <template for:each={rows} for:item="fare">
+          <li key={fare.productId} class="slds-item dl-fare-row">
+            <div class="slds-grid slds-grid_vertical-align-center">
+              <lightning-input
+                type="checkbox"
+                label={fare.productName}
+                variant="label-hidden"
+                data-product-id={fare.productId}
+                checked={fare.selected}
+                disabled={addBlocked}
+                onchange={handleCheckboxChange}
+                class="slds-m-right_small"
+              ></lightning-input>
+              <div class="slds-has-flexi-truncate">
+                <div
+                  class="dl-fare-row__name slds-truncate"
+                  title={fare.productName}
+                >
+                  {fare.productName}
+                </div>
+              </div>
+            </div>
+          </li>
+        </template>
+      </ul>
+    </template>
+  </div>
+</template>

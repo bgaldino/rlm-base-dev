@@ -1,0 +1,13 @@
+/* Plain instance-count field: a narrow native number input sized to sit in the datatable's
+   "Instances" column. The "Add" affordance is a SEPARATE datatable column, not here. */
+.rlm-qty-field {
+    width: 100%;
+}
+
+.rlm-qty-input {
+    width: 100%;
+    max-width: 5rem;
+    min-height: 1.75rem;
+    line-height: 1.75rem;
+    text-align: center;
+}

@@ -1,0 +1,27 @@
+<template>
+    <template if:true={hasChoice}>
+        <!-- A NATIVE <select>, not lightning-combobox, on purpose: lightning-combobox renders its
+             dropdown inline in the DOM, which lightning-datatable's overflow:hidden / slds-truncate
+             cell containers clip (the dropdown opens but is invisible). A native select renders its
+             option list through the browser's own popup layer, so it is immune to that clipping and
+             works inside a datatable cell. .slds-select gives it SLDS styling. stopPropagation keeps
+             the click from also toggling the datatable's row selection. -->
+        <div class="slds-select_container" onclick={stopEvent}>
+            <select
+                class="slds-select"
+                aria-label="Selling model"
+                value={selectedPbeId}
+                onchange={handleChange}
+            >
+                <template for:each={options} for:item="opt">
+                    <option key={opt.value} value={opt.value} selected={opt.selected}>
+                        {opt.label}
+                    </option>
+                </template>
+            </select>
+        </div>
+    </template>
+    <template if:false={hasChoice}>
+        <span>{singleLabel}</span>
+    </template>
+</template>

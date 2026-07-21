@@ -1,0 +1,45 @@
+<template>
+  <!-- Term workspace tile: the scoped line grid for the selected Term + its fares, plus the Add Fare
+       Class bar. Learns quoteId/selectedTermId from the DLM Term Builder channel. -->
+  <template if:true={showWorkspace}>
+    <lightning-card title={effectiveHeading} icon-name="standard:product_item">
+      <div class="slds-grid slds-grid_vertical slds-gutters_direct-y">
+        <!-- Scoped line grid: the selected Term + its fares only. -->
+        <div class="slds-col slds-p-horizontal_small">
+          <c-dlm-quote-line-grid
+            record-id={quoteId}
+            scope-root-line-id={selectedTermId}
+            attribute-codes={effectiveAttributeCodes}
+            hide-group-column={groupColumnHidden}
+            onlinesupdated={handleLinesUpdated}
+            ontermrenamed={handleLinesUpdated}
+          ></c-dlm-quote-line-grid>
+        </div>
+
+        <!-- Add fare classes under the selected Term. -->
+        <template if:true={addFareVisible}>
+          <div class="slds-col slds-p-horizontal_small slds-p-bottom_small">
+            <div class="dl-tb-fares">
+              <h3
+                class="dl-tb-fares__heading slds-p-vertical_x-small slds-p-horizontal_small"
+              >
+                Add Fare Class
+              </h3>
+              <c-dlm-add-fare-class
+                quote-id={quoteId}
+                term-line-id={selectedTermId}
+                onfareadded={handleFareAdded}
+              ></c-dlm-add-fare-class>
+            </div>
+          </div>
+        </template>
+      </div>
+    </lightning-card>
+  </template>
+
+  <template if:false={showWorkspace}>
+    <div class="slds-p-around_medium slds-text-color_weak">
+      Select a Term to edit its route, requirement, and fare classes.
+    </div>
+  </template>
+</template>

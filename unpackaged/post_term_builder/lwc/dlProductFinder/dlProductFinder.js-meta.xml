@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta Product Finder</masterLabel>
+    <description>Internal component (used by RLM Quote Workspace): product discovery for a Quote that persists a selected product to the quote immediately on Add — no staging cart, lines added flat.</description>
+</LightningComponentBundle>

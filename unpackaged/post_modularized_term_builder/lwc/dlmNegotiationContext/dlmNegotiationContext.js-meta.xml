@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Delta Negotiation Context (Modular)</masterLabel>
+    <description>Modularized Term Builder header tile: Account/negotiation picker, editable name, default dates + Apply-to-All, Create/View Contract. Syncs with the Terms Rail and Term Workspace over the DLM Term Builder message channel.</description>
+    <targets>
+        <target>lightning__Tab</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage,lightning__HomePage">
+            <property
+                name="accountId"
+                type="String"
+                label="Preselected Account Id"
+                description="Optional Account Id to preselect on load. Usually left blank; the tile also honors a c__accountId URL parameter for deep links from an Account page."
+            />
+            <property
+                name="quoteRecordId"
+                type="String"
+                label="Preselected Negotiation (Quote) Id"
+                description="Optional Quote Id to open directly on load; its Account is loaded automatically. Usually left blank; the tile also honors a c__quoteId URL parameter for deep links into a specific negotiation."
+            />
+            <property
+                name="headingLabel"
+                type="String"
+                default="Term Builder"
+                label="Heading Label"
+                description="Title shown in the tile's navy header band."
+            />
+            <property
+                name="showBranding"
+                type="Boolean"
+                default="true"
+                label="Show Delta Branding"
+                description="Show the Delta emblem in the header band. Turn off for a plainer heading."
+            />
+            <property
+                name="showContractActions"
+                type="Boolean"
+                default="true"
+                label="Show Contract Actions"
+                description="Show the Create Contract / View Contract action in the header."
+            />
+            <property
+                name="showDateDefaults"
+                type="Boolean"
+                default="true"
+                label="Show Default Dates + Apply to All"
+                description="Show the default Start/End Date fields and the Apply to All Lines button."
+            />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

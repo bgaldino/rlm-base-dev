@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OmniDataTransform xmlns="http://soap.sforce.com/2006/04/metadata">
+    <active>false</active>
+    <assignmentRulesUsed>false</assignmentRulesUsed>
+    <deletedOnSuccess>false</deletedOnSuccess>
+    <errorIgnored>false</errorIgnored>
+    <expectedInputJson>{
+  &quot;ContractNumber&quot; : &quot;00000123&quot;,
+  &quot;ContractStartDate&quot; : &quot;01/01/2026&quot;,
+  &quot;ContractEndDate&quot; : &quot;12/31/2026&quot;,
+  &quot;ContractTerm&quot; : 12,
+  &quot;ContractStatus&quot; : &quot;Activated&quot;,
+  &quot;AccountName&quot; : &quot;Infinitech&quot;,
+  &quot;BillingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;BillingCity&quot; : &quot;Atlanta&quot;,
+  &quot;BillingState&quot; : &quot;GA&quot;,
+  &quot;BillingPostalCode&quot; : &quot;30301&quot;,
+  &quot;Line&quot; : [ {
+    &quot;ProductName&quot; : &quot;ATL to US50&quot;,
+    &quot;ItemName&quot; : &quot;Domestic Term&quot;,
+    &quot;ProductCode&quot; : &quot;DL-TERM-001&quot;,
+    &quot;SellingModel&quot; : &quot;Term Annual&quot;,
+    &quot;StartDate&quot; : &quot;01/01/2026&quot;,
+    &quot;EndDate&quot; : &quot;12/31/2026&quot;,
+    &quot;DiscountPercent&quot; : 15
+  }, {
+    &quot;ProductName&quot; : &quot;ATL to EU100&quot;,
+    &quot;ItemName&quot; : &quot;International Term&quot;,
+    &quot;ProductCode&quot; : &quot;DL-TERM-002&quot;,
+    &quot;SellingModel&quot; : &quot;Term Annual&quot;,
+    &quot;StartDate&quot; : &quot;01/01/2026&quot;,
+    &quot;EndDate&quot; : &quot;12/31/2026&quot;,
+    &quot;DiscountPercent&quot; : 22.5
+  } ]
+}</expectedInputJson>
+    <expectedOutputJson>{
+  &quot;ContractNumber&quot; : &quot;00000123&quot;,
+  &quot;ContractStartDate&quot; : &quot;01/01/2026&quot;,
+  &quot;ContractEndDate&quot; : &quot;12/31/2026&quot;,
+  &quot;ContractTerm&quot; : 12,
+  &quot;ContractStatus&quot; : &quot;Activated&quot;,
+  &quot;AccountName&quot; : &quot;Infinitech&quot;,
+  &quot;BillingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;BillingCity&quot; : &quot;Atlanta&quot;,
+  &quot;BillingState&quot; : &quot;GA&quot;,
+  &quot;BillingPostalCode&quot; : &quot;30301&quot;,
+  &quot;Line&quot; : [ {
+    &quot;ProductName&quot; : &quot;ATL to US50&quot;,
+    &quot;ItemName&quot; : &quot;Domestic Term&quot;,
+    &quot;ProductCode&quot; : &quot;DL-TERM-001&quot;,
+    &quot;SellingModel&quot; : &quot;Term Annual&quot;,
+    &quot;StartDate&quot; : &quot;01/01/2026&quot;,
+    &quot;EndDate&quot; : &quot;12/31/2026&quot;,
+    &quot;DiscountPercent&quot; : 15
+  }, {
+    &quot;ProductName&quot; : &quot;ATL to EU100&quot;,
+    &quot;ItemName&quot; : &quot;International Term&quot;,
+    &quot;ProductCode&quot; : &quot;DL-TERM-002&quot;,
+    &quot;SellingModel&quot; : &quot;Term Annual&quot;,
+    &quot;StartDate&quot; : &quot;01/01/2026&quot;,
+    &quot;EndDate&quot; : &quot;12/31/2026&quot;,
+    &quot;DiscountPercent&quot; : 22.5
+  } ]
+}</expectedOutputJson>
+    <fieldLevelSecurityEnabled>false</fieldLevelSecurityEnabled>
+    <inputType>JSON</inputType>
+    <isManagedUsingStdDesigner>false</isManagedUsingStdDesigner>
+    <name>RLMContractProposalTransform</name>
+    <nullInputsIncludedInOutput>false</nullInputsIncludedInOutput>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2a001-0001-4001-8001-000000000001</globalKey>
+        <inputFieldName>ContractNumber</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>ContractNumber</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2a002-0002-4002-8002-000000000002</globalKey>
+        <inputFieldName>ContractStartDate</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
+        <outputFieldName>ContractStartDate</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2a003-0003-4003-8003-000000000003</globalKey>
+        <inputFieldName>ContractEndDate</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
+        <outputFieldName>ContractEndDate</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2a004-0004-4004-8004-000000000004</globalKey>
+        <inputFieldName>ContractTerm</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Integer</outputFieldFormat>
+        <outputFieldName>ContractTerm</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2a005-0005-4005-8005-000000000005</globalKey>
+        <inputFieldName>ContractStatus</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>ContractStatus</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2a006-0006-4006-8006-000000000006</globalKey>
+        <inputFieldName>AccountName</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>AccountName</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2a007-0007-4007-8007-000000000007</globalKey>
+        <inputFieldName>BillingStreet</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingStreet</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2a008-0008-4008-8008-000000000008</globalKey>
+        <inputFieldName>BillingCity</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingCity</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2a009-0009-4009-8009-000000000009</globalKey>
+        <inputFieldName>BillingState</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingState</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2a010-0010-4010-8010-000000000010</globalKey>
+        <inputFieldName>BillingPostalCode</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>BillingPostalCode</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2b001-1001-4101-9001-000000000101</globalKey>
+        <inputFieldName>Line:ProductName</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:ProductName</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2b002-1002-4102-9002-000000000102</globalKey>
+        <inputFieldName>Line:ItemName</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:ItemName</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2b003-1003-4103-9003-000000000103</globalKey>
+        <inputFieldName>Line:ProductCode</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:ProductCode</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2b004-1004-4104-9004-000000000104</globalKey>
+        <inputFieldName>Line:SellingModel</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldName>Line:SellingModel</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2b005-1005-4105-9005-000000000105</globalKey>
+        <inputFieldName>Line:StartDate</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
+        <outputFieldName>Line:StartDate</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2b006-1006-4106-9006-000000000106</globalKey>
+        <inputFieldName>Line:EndDate</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Date(MM/dd/yyyy)</outputFieldFormat>
+        <outputFieldName>Line:EndDate</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <omniDataTransformItem>
+        <disabled>false</disabled>
+        <filterGroup>0.0</filterGroup>
+        <globalKey>c2b2b007-1007-4107-9007-000000000107</globalKey>
+        <inputFieldName>Line:DiscountPercent</inputFieldName>
+        <inputObjectQuerySequence>0.0</inputObjectQuerySequence>
+        <linkedObjectSequence>0.0</linkedObjectSequence>
+        <name>RLMContractProposalTransform</name>
+        <outputCreationSequence>1.0</outputCreationSequence>
+        <outputFieldFormat>Number</outputFieldFormat>
+        <outputFieldName>Line:DiscountPercent</outputFieldName>
+        <outputObjectName>json</outputObjectName>
+        <requiredForUpsert>false</requiredForUpsert>
+        <upsertKey>false</upsertKey>
+    </omniDataTransformItem>
+    <outputType>JSON</outputType>
+    <previewJsonData>{
+  &quot;ContractNumber&quot; : &quot;00000123&quot;,
+  &quot;ContractStartDate&quot; : &quot;01/01/2026&quot;,
+  &quot;ContractEndDate&quot; : &quot;12/31/2026&quot;,
+  &quot;ContractTerm&quot; : 12,
+  &quot;ContractStatus&quot; : &quot;Activated&quot;,
+  &quot;AccountName&quot; : &quot;Infinitech&quot;,
+  &quot;BillingStreet&quot; : &quot;10 Main Rd.&quot;,
+  &quot;BillingCity&quot; : &quot;Atlanta&quot;,
+  &quot;BillingState&quot; : &quot;GA&quot;,
+  &quot;BillingPostalCode&quot; : &quot;30301&quot;,
+  &quot;Line&quot; : [ {
+    &quot;ProductName&quot; : &quot;ATL to US50&quot;,
+    &quot;ItemName&quot; : &quot;Domestic Term&quot;,
+    &quot;ProductCode&quot; : &quot;DL-TERM-001&quot;,
+    &quot;SellingModel&quot; : &quot;Term Annual&quot;,
+    &quot;StartDate&quot; : &quot;01/01/2026&quot;,
+    &quot;EndDate&quot; : &quot;12/31/2026&quot;,
+    &quot;DiscountPercent&quot; : 15
+  }, {
+    &quot;ProductName&quot; : &quot;ATL to EU100&quot;,
+    &quot;ItemName&quot; : &quot;International Term&quot;,
+    &quot;ProductCode&quot; : &quot;DL-TERM-002&quot;,
+    &quot;SellingModel&quot; : &quot;Term Annual&quot;,
+    &quot;StartDate&quot; : &quot;01/01/2026&quot;,
+    &quot;EndDate&quot; : &quot;12/31/2026&quot;,
+    &quot;DiscountPercent&quot; : 22.5
+  } ]
+}</previewJsonData>
+    <processSuperBulk>false</processSuperBulk>
+    <responseCacheTtlMinutes>0.0</responseCacheTtlMinutes>
+    <rollbackOnError>false</rollbackOnError>
+    <sourceObjectDefault>false</sourceObjectDefault>
+    <synchronousProcessThreshold>0.0</synchronousProcessThreshold>
+    <targetOutputFileName>Contract_Document(Version 1)</targetOutputFileName>
+    <type>Transform</type>
+    <uniqueName>RLMContractProposalTransform_1</uniqueName>
+    <versionNumber>1.0</versionNumber>
+    <xmlDeclarationRemoved>false</xmlDeclarationRemoved>
+</OmniDataTransform>

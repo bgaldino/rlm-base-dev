@@ -1,0 +1,33 @@
+<template>
+  <div
+    class={cardClass}
+    role="button"
+    tabindex="0"
+    aria-pressed={selectedStr}
+    title={displayName}
+    onclick={handleSelect}
+    onkeydown={handleKeydown}
+  >
+    <div class="slds-grid slds-grid_align-spread slds-has-flexi-truncate">
+      <span class="dl-term-card__name slds-truncate" title={displayName}
+        >{displayName}</span
+      >
+      <span class="dl-term-card__count slds-badge">{fareCountLabel}</span>
+    </div>
+    <template if:true={hasSummary}>
+      <div class="dl-term-card__summary slds-m-top_xx-small">
+        <template if:true={routeLabel}>
+          <div class="slds-truncate" title={routeLabel}>{routeLabel}</div>
+        </template>
+        <template if:true={requirementLabel}>
+          <div
+            class="slds-truncate slds-text-body_small"
+            title={requirementLabel}
+          >
+            {requirementLabel}
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+</template>

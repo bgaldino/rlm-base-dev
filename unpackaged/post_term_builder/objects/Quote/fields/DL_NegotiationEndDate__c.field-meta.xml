@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DL_NegotiationEndDate__c</fullName>
+    <description>Header-level default End Date for this negotiation. Seeds EndDate on each new Term / fare-class line as it's added; does not retroactively change lines already on the quote.</description>
+    <inlineHelpText>Default End Date applied to new Term lines as they're added. Existing lines are unaffected.</inlineHelpText>
+    <label>Negotiation End Date</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Date</type>
+</CustomField>
