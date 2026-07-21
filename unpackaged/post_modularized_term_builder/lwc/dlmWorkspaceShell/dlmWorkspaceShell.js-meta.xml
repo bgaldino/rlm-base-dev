@@ -3,7 +3,7 @@
     <apiVersion>67.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Delta Workspace Shell (Modular)</masterLabel>
-    <description>Always-mounted Term Builder shell: a tabset hosting Shell Creation (the modular Term Workspace), a client-only negotiation Modeling workbench, and a Performance placeholder, with an always-visible contract KPI band + Proposal Summary. Owns the per-Term demo model cache. Syncs with the Negotiation Context and Terms Rail tiles over the DLM Term Builder message channel. Modeled numbers are mock and session-only.</description>
+    <description>Term Builder shell: a tabset (Shell Creation / Modeling / Performance) with a contract KPI band + Proposal Summary. Owns the per-Term demo model cache and syncs with the other tiles over the DLM Term Builder channel. Numbers are mock, session-only.</description>
     <targets>
         <target>lightning__AppPage</target>
         <target>lightning__RecordPage</target>

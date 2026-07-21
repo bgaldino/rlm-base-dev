@@ -3,5 +3,5 @@
     <apiVersion>67.0</apiVersion>
     <isExposed>false</isExposed>
     <masterLabel>Delta Modeling Workspace (Modular)</masterLabel>
-    <description>Controlled presentational wrapper for the negotiation Modeling tab: hosts the slim per-Term KPI band, the Apply Final Offer action, and the reused modeling grid. Driven entirely by the Delta Workspace Shell (props down, events up); not independently placeable.</description>
+    <description>Controlled wrapper for the Modeling tab: hosts the per-Term KPI band, the Apply Final Offer action, and the reused modeling grid. Driven entirely by the Delta Workspace Shell (props down, events up); not independently placeable.</description>
 </LightningComponentBundle>
