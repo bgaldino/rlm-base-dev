@@ -147,14 +147,21 @@ public with sharing class RLM_ExpressionSetManagerController {
             if (def == null) continue;
 
             ExpressionSet es = setByDefId.get(defId);
-            Id setId = es != null ? es.Id : null;
-            ExpressionSetVersion latestVersion = setId != null ? latestVersionBySetId.get(setId) : null;
-            Boolean hasActive = setId != null && hasActiveBySetId.containsKey(setId);
+            // Skip definitions with no runtime ExpressionSet. They are not
+            // actionable: there is no version to toggle, the row would render an
+            // /ExpressionSet/null/view link, and activating one enqueues a job
+            // that emits no version PATCH — so getActivateStatus would never reach
+            // 'complete' and the LWC would poll to the domain timeout.
+            if (es == null) continue;
+
+            Id setId = es.Id;
+            ExpressionSetVersion latestVersion = latestVersionBySetId.get(setId);
+            Boolean hasActive = hasActiveBySetId.containsKey(setId);
 
             results.add(new ExpressionSetInfo(
                 def,
                 setId,
-                es != null ? es.UsageType : null,
+                es.UsageType,
                 latestVersion,
                 hasActive,
                 linkedDefIds.contains(defId)
@@ -444,6 +451,21 @@ public with sharing class RLM_ExpressionSetManagerController {
     }
 
     private static Set<Id> getAllowedDefinitionIds(Id contextDefinitionId, List<Id> requestedDefinitionIds, String operationMode) {
+        // Only definitions backed by a runtime ExpressionSet are actionable. A
+        // linked definition without one has no version to toggle, so accepting it
+        // would enqueue a job that does nothing while the status poll waits for an
+        // active version that can never appear (getLinkedExpressionSets already
+        // filters these out; this rejects a stale or hand-built request).
+        Set<Id> definitionIdsWithSet = new Set<Id>();
+        for (ExpressionSet backingSet : [
+            SELECT ExpressionSetDefinitionId
+            FROM ExpressionSet
+            WHERE ExpressionSetDefinitionId IN :requestedDefinitionIds
+            WITH USER_MODE
+        ]) {
+            definitionIdsWithSet.add(backingSet.ExpressionSetDefinitionId);
+        }
+
         Set<Id> allowedDefinitionIds = new Set<Id>();
         for (ExpressionSetDefinitionContextDefinition junction : [
             SELECT ExpressionSetDefinitionId
@@ -452,7 +474,9 @@ public with sharing class RLM_ExpressionSetManagerController {
             AND ExpressionSetDefinitionId IN :requestedDefinitionIds
             WITH USER_MODE
         ]) {
-            allowedDefinitionIds.add(junction.ExpressionSetDefinitionId);
+            if (definitionIdsWithSet.contains(junction.ExpressionSetDefinitionId)) {
+                allowedDefinitionIds.add(junction.ExpressionSetDefinitionId);
+            }
         }
 
         if (operationMode == OPERATION_MAKE_ACTIVE) {
