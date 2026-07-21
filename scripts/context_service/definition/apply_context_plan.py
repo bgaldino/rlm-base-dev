@@ -18,7 +18,10 @@ definitions (``"create": true``). Payload shaping is the pure, parity-checked
 
 Preflight order (mirrors the skill's Quick Rule 6):
   1. offline lint (``validate_context_plan.validate_manifest``)
-  2. ``--validate-only`` (offline lint + org-side node/attr existence check)
+  2. ``--validate-only`` (offline lint ONLY — no org access; returns before any
+     transport is built. For an org-side node/attr existence check, use
+     ``--dry-run`` or ``--verify``, which construct the transport and exercise
+     the ordered call sequence / re-fetch against the org.)
   3. ``--dry-run`` (log the intended call sequence, no mutation)
   4. real apply with ``--verify``
 
@@ -144,7 +147,9 @@ def main(argv=None) -> int:
     parser.add_argument("--deactivate-before", action="store_true",
                         help="Deactivate the definition before applying (default: in-place).")
     parser.add_argument("--validate-only", action="store_true",
-                        help="Offline lint only (no mutation). Combine with --target-org for context.")
+                        help="Offline lint ONLY — no org access (returns before any "
+                             "transport is built; --target-org is unused here). For an "
+                             "org-side check use --dry-run or --verify.")
     parser.add_argument("--verify", action="store_true",
                         help="Re-fetch and log verification after applying.")
     parser.add_argument("--no-translate-plan", action="store_true",

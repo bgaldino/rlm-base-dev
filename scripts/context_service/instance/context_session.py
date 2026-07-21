@@ -36,10 +36,14 @@ Usage:
         --data-file /tmp/records.json --query --persist \
         --target-mapping-name QuoteEntitiesMapping
 
-    # hydrate from a file, query the result, persist to the same mapping
+    # hydrate from a file, query the result, persist to the same mapping.
+    # --context-scope SESSION is REQUIRED whenever query/persist follow create:
+    # each step is a separate `sf api request`, and a REQUEST-scoped contextId
+    # (the default) does not survive across CLI calls (see the note above), so
+    # the downstream query/persist would fail without it.
     python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext --data-file /tmp/records.json \
-        --query --persist --target-mapping-name QuoteEntitiesMapping
+        --context-scope SESSION --query --persist --target-mapping-name QuoteEntitiesMapping
 
     # operate on an existing (reuse-enabled) instance: set an attr, then query
     python scripts/context_service/instance/context_session.py --target-org rlm-base__beta \

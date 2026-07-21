@@ -722,6 +722,110 @@ def test_session_create_isSuccess_false_aborts():
           len(non_get) == 1)
 
 
+def test_session_evicts_created_instance_when_lifecycle_step_raises():
+    # A post-create step (query) raises. The instance THIS session created must
+    # still be evicted (DELETE issued) and the original error must propagate.
+    class BoomClient(_runtime.RuntimeContextClient):
+        def query_record(self, **kwargs):
+            raise _runtime._client.ContextClientError("query blew up")
+
+    t = FakeTransport(
+        dry_run=False,
+        responses={"connect/contexts": {"contextId": "NEW", "isSuccess": True}},
+    )
+    client = BoomClient(t)
+    session = _runtime.RuntimeSession(client)
+    raised = False
+    msg = ""
+    try:
+        session.run(
+            create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                         "data": {"Order": []}},
+            do_query=True,
+        )
+    except _runtime._client.ContextClientError as exc:
+        raised = True
+        msg = str(exc)
+    check("the original lifecycle error propagates", raised and "query blew up" in msg)
+    deletes = [c for c in t.calls if c[0] == "DELETE"]
+    check("the created instance was still evicted (DELETE issued)", len(deletes) == 1)
+
+
+def test_session_does_not_evict_reused_instance_when_step_raises():
+    # On a reused (supplied) id the session did not create, a mid-lifecycle
+    # failure must NOT delete the caller's instance.
+    class BoomClient(_runtime.RuntimeContextClient):
+        def query_record(self, **kwargs):
+            raise _runtime._client.ContextClientError("query blew up")
+
+    t = FakeTransport(dry_run=False)
+    client = BoomClient(t)
+    session = _runtime.RuntimeSession(client)
+    raised = False
+    try:
+        session.run(existing_context_id="REUSED", do_query=True)
+    except _runtime._client.ContextClientError:
+        raised = True
+    check("reused-id lifecycle error still propagates", raised)
+    deletes = [c for c in t.calls if c[0] == "DELETE"]
+    check("reused instance is NOT deleted on failure", not deletes)
+
+
+def test_session_cleanup_failure_does_not_mask_lifecycle_error():
+    # Both the lifecycle step AND the eviction raise. The ORIGINAL lifecycle
+    # error must win; the cleanup failure is recorded, not raised.
+    class BoomClient(_runtime.RuntimeContextClient):
+        def query_record(self, **kwargs):
+            raise _runtime._client.ContextClientError("original failure")
+
+        def delete_instance(self, context_id):
+            raise _runtime._client.ContextClientError("cleanup failure")
+
+    t = FakeTransport(
+        dry_run=False,
+        responses={"connect/contexts": {"contextId": "NEW", "isSuccess": True}},
+    )
+    client = BoomClient(t)
+    session = _runtime.RuntimeSession(client)
+    msg = ""
+    try:
+        session.run(
+            create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                         "data": {"Order": []}},
+            do_query=True,
+        )
+    except _runtime._client.ContextClientError as exc:
+        msg = str(exc)
+    check("the original lifecycle error is preserved (not the cleanup error)",
+          "original failure" in msg)
+
+
+def test_session_keep_instance_skips_eviction_on_failure():
+    # With keep_instance=True, a mid-lifecycle failure must not delete the
+    # instance (the caller asked to keep it).
+    class BoomClient(_runtime.RuntimeContextClient):
+        def query_record(self, **kwargs):
+            raise _runtime._client.ContextClientError("query blew up")
+
+    t = FakeTransport(
+        dry_run=False,
+        responses={"connect/contexts": {"contextId": "NEW", "isSuccess": True}},
+    )
+    client = BoomClient(t)
+    session = _runtime.RuntimeSession(client)
+    try:
+        session.run(
+            create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                         "data": {"Order": []}},
+            do_query=True,
+            keep_instance=True,
+        )
+    except _runtime._client.ContextClientError:
+        pass
+    deletes = [c for c in t.calls if c[0] == "DELETE"]
+    check("keep_instance=True issues no DELETE even on failure", not deletes)
+
+
 # --------------------------------------------------------------------------- #
 # list_context_interfaces — response normalization (_rows, _count_interface_tags)
 # --------------------------------------------------------------------------- #

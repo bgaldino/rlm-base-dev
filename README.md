@@ -1121,6 +1121,7 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Decision Table Examples](docs/references/decision-table-examples.md) | Comprehensive examples for Decision Table management tasks |
 | [Task Examples](docs/references/task-examples.md) | Examples for Flow and Expression Set management tasks |
 | [Context Service Utility](docs/references/context-service-utility.md) | Context Service utility usage and plan examples |
+| [Context Service PATCH Shapes](docs/references/context-service-patch-shapes.md) | Reference for the Context Service Connect/SObject PATCH request shapes (node mapping, attribute, transient, default-mapping) used by the standalone toolkit |
 | [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
 | [Transaction Data Harness](docs/guides/txn-data-harness.md) | Standalone tool that mints high-volume demo data (Quotes → Orders → Posted Invoices) by driving the real transaction lifecycle; usage, verification, cleanup |
 
@@ -1281,6 +1282,7 @@ rlm-base-dev/
 │   │   ├── post-billing-portal.md
 │   │   └── prepare-rlm-org-build-guide.md
 │   ├── references/             # Technical references and task/CLI examples
+│   │   ├── context-service-patch-shapes.md
 │   │   ├── context-service-utility.md
 │   │   ├── decision-table-examples.md
 │   │   ├── sfdmu-composite-key-optimizations.md

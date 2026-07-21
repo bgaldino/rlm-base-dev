@@ -769,60 +769,82 @@ class RuntimeSession:
 
         summary["context_id"] = context_id
 
-        if attribute_updates:
-            summary["attributes_response"] = self.client.update_attributes(
-                context_id, attribute_updates
-            )
-        if tag_writes:
-            summary["write_tags_response"] = self.client.write_through_tags(
-                context_id, tag_writes
-            )
-        if do_query:
-            query_spec = query_spec or {}
-            summary["query"] = self.client.query_record(
-                context_id=context_id, **query_spec
-            )
-        if persist_target_mapping_id:
-            persist_resp = self.client.persist_records(
-                context_id=context_id, target_mapping_id=persist_target_mapping_id
-            )
-            summary["persist"] = persist_resp
-            # persist-records is async — the referenceId is a tracker Id, not a
-            # success signal. Poll AsyncOperationTracker for the real outcome so a
-            # dirty persist (errorNodes / Failure) is not reported as success.
-            # Skipped under dry-run (no real persist ran → no tracker row).
-            if confirm_persist and not self.dry_run:
-                reference_id = (
-                    (persist_resp.get("referenceId") or persist_resp.get("id"))
-                    if isinstance(persist_resp, dict) else None
+        # Evict the instance unless the caller wants to keep it or is operating
+        # on a supplied (reused) id it did not create. The post-create steps run
+        # inside try/finally so that if update/query/persist/confirm raises, an
+        # instance THIS session created is still evicted rather than leaked — a
+        # cleanup failure is recorded but never masks the original error.
+        should_evict = not keep_instance and not reused
+        lifecycle_failed = False
+        try:
+            if attribute_updates:
+                summary["attributes_response"] = self.client.update_attributes(
+                    context_id, attribute_updates
                 )
-                if reference_id:
-                    outcome = self.client.confirm_persist(
-                        reference_id, poll_seconds=persist_poll_seconds
+            if tag_writes:
+                summary["write_tags_response"] = self.client.write_through_tags(
+                    context_id, tag_writes
+                )
+            if do_query:
+                query_spec = query_spec or {}
+                summary["query"] = self.client.query_record(
+                    context_id=context_id, **query_spec
+                )
+            if persist_target_mapping_id:
+                persist_resp = self.client.persist_records(
+                    context_id=context_id, target_mapping_id=persist_target_mapping_id
+                )
+                summary["persist"] = persist_resp
+                # persist-records is async — the referenceId is a tracker Id, not
+                # a success signal. Poll AsyncOperationTracker for the real
+                # outcome so a dirty persist (errorNodes / Failure) is not
+                # reported as success. Skipped under dry-run (no tracker row).
+                if confirm_persist and not self.dry_run:
+                    reference_id = (
+                        (persist_resp.get("referenceId") or persist_resp.get("id"))
+                        if isinstance(persist_resp, dict) else None
                     )
-                    summary["persist_outcome"] = outcome
-                    if outcome.get("is_failure"):
-                        self.log(
-                            "Persist FAILED per AsyncOperationTracker "
-                            f"(status={outcome.get('status')}): "
-                            f"{json.dumps(outcome.get('raw_response'), default=str)}"
+                    if reference_id:
+                        outcome = self.client.confirm_persist(
+                            reference_id, poll_seconds=persist_poll_seconds
                         )
-                    elif outcome.get("timed_out"):
+                        summary["persist_outcome"] = outcome
+                        if outcome.get("is_failure"):
+                            self.log(
+                                "Persist FAILED per AsyncOperationTracker "
+                                f"(status={outcome.get('status')}): "
+                                f"{json.dumps(outcome.get('raw_response'), default=str)}"
+                            )
+                        elif outcome.get("timed_out"):
+                            self.log(
+                                "Persist still running after poll window "
+                                f"(status={outcome.get('status')}); confirm "
+                                f"AsyncOperationTracker Id={reference_id} manually."
+                            )
+                    else:
                         self.log(
-                            "Persist still running after poll window "
-                            f"(status={outcome.get('status')}); confirm "
-                            f"AsyncOperationTracker Id={reference_id} manually."
+                            "Persist returned no referenceId; cannot confirm async "
+                            "outcome via AsyncOperationTracker."
                         )
-                else:
+        except BaseException:
+            lifecycle_failed = True
+            raise
+        finally:
+            if should_evict:
+                try:
+                    self.client.delete_instance(context_id)
+                    summary["deleted"] = not self.dry_run
+                except Exception as cleanup_exc:  # noqa: BLE001
+                    summary["delete_failed"] = str(cleanup_exc)
                     self.log(
-                        "Persist returned no referenceId; cannot confirm async "
-                        "outcome via AsyncOperationTracker."
+                        f"Failed to evict context instance {context_id}: "
+                        f"{cleanup_exc}"
                     )
-
-        # Evict the instance unless the caller wants to keep it or is operating on
-        # a supplied (reused) id it did not create.
-        if not keep_instance and not reused:
-            self.client.delete_instance(context_id)
-            summary["deleted"] = not self.dry_run
+                    # If the lifecycle itself failed, let that original error
+                    # propagate (do not mask it). Otherwise surface the cleanup
+                    # failure, preserving the prior contract where a failed
+                    # eviction is a real error.
+                    if not lifecycle_failed:
+                        raise
 
         return summary

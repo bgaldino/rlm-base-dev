@@ -1520,6 +1520,141 @@ def test_delete_guard_is_noop_when_inactive():
 
 
 # --------------------------------------------------------------------------- #
+# _is_active — normalizes the API's bool-or-"true"/"false"-string isActive
+# --------------------------------------------------------------------------- #
+
+def test_is_active_treats_string_false_as_inactive():
+    # The API can return isActive as the STRING "false"; a raw bool("false") is
+    # True, which would misfire the delete/mutate guards. _is_active must use the
+    # package's bool-or-string coercion.
+    applier = _applier(RecordingTransport())
+    check("top-level isActive:'false' reads as inactive",
+          applier._is_active({"isActive": "false"}) is False)
+    check("top-level isActive:'true' reads as active",
+          applier._is_active({"isActive": "true"}) is True)
+    check("version-list isActive:'false' reads as inactive",
+          applier._is_active(
+              {"contextDefinitionVersionList": [{"isActive": "false"}]}) is False)
+    check("version-list isActive:'true' reads as active",
+          applier._is_active(
+              {"contextDefinitionVersionList": [{"isActive": "true"}]}) is True)
+    check("real-bool isActive still honored (True)",
+          applier._is_active({"isActive": True}) is True)
+    check("'active' alias string is also normalized",
+          applier._is_active({"active": "false"}) is False)
+
+
+# --------------------------------------------------------------------------- #
+# _order_nodes_parent_first / _create_nodes_hierarchical — child-before-parent
+# --------------------------------------------------------------------------- #
+
+def test_order_nodes_parent_first_reorders_child_before_parent():
+    # A child declared BEFORE its parent must be reordered so the parent POSTs
+    # first (and its id is captured before the child links to it).
+    defs = [
+        {"name": "Child", "parentNodeName": "Parent"},
+        {"name": "Parent"},
+    ]
+    ordered = [n["name"] for n in _apply._order_nodes_parent_first(defs)]
+    check("parent is ordered before its child", ordered.index("Parent") < ordered.index("Child"))
+
+
+def test_order_nodes_parent_first_keeps_external_parent_as_root():
+    # A parentNodeName not declared in this batch (e.g. inherited base) is left
+    # in place (created as a root); no reordering error.
+    defs = [{"name": "Leaf", "parentNodeName": "InheritedBase"}]
+    ordered = [n["name"] for n in _apply._order_nodes_parent_first(defs)]
+    check("node with external parent kept as-is", ordered == ["Leaf"])
+
+
+def test_order_nodes_parent_first_detects_cycle():
+    defs = [
+        {"name": "A", "parentNodeName": "B"},
+        {"name": "B", "parentNodeName": "A"},
+    ]
+    raised = False
+    try:
+        _apply._order_nodes_parent_first(defs)
+    except ValueError as exc:
+        raised = "cycle" in str(exc).lower()
+    check("a parent cycle raises ValueError", raised)
+
+
+def test_create_nodes_orders_child_after_parent_and_links():
+    # End-to-end: a child-before-parent plan POSTs the parent first, then links
+    # the child to the captured parent id — no silent root creation.
+    class NodeCreateTransport(RecordingTransport):
+        """Returns a real contextNodeId for each node POST so the parent id is
+        captured before the child POST (mirrors the live create response)."""
+        def request(self, method, path, body=None, *, dry_run=None):
+            self.requests.append((method, path, body))
+            if method == "POST" and "contextNodes" in (body or {}):
+                self._next_id += 1
+                name = body["contextNodes"][0].get("name")
+                return {"contextNodes": [{"name": name,
+                                          "contextNodeId": f"nid{self._next_id}"}]}
+            return {}
+
+    t = NodeCreateTransport()
+    applier = _applier(t)
+    applier._create_nodes_hierarchical("11O1", [
+        {"name": "Child", "parentNodeName": "Parent"},
+        {"name": "Parent"},
+    ])
+    node_posts = [r for r in t.requests
+                  if r[0] == "POST" and "contextNodes" in (r[2] or {})]
+    names = [r[2]["contextNodes"][0]["name"] for r in node_posts]
+    check("parent POSTed before child", names.index("Parent") < names.index("Child"))
+    child_post = next(r for r in node_posts
+                      if r[2]["contextNodes"][0]["name"] == "Child")
+    check("child links to the captured parent id",
+          child_post[2]["contextNodes"][0].get("parentNodeId") is not None)
+
+
+def test_create_nodes_raises_when_in_plan_parent_id_never_resolves():
+    # If the declared in-plan parent's id never resolves on a real apply,
+    # creating the child as a root is silent corruption — must raise instead.
+    class NoIdTransport(RecordingTransport):
+        """Node POSTs never return an id; fetch_detail also finds nothing, so the
+        parent id is never captured."""
+        def request(self, method, path, body=None, *, dry_run=None):
+            self.requests.append((method, path, body))
+            return {}
+
+    t = NoIdTransport()
+    applier = _applier(t)
+    applier.fetch_detail = lambda ctx: {}  # type: ignore  # never resolves ids
+    raised = False
+    msg = ""
+    try:
+        applier._create_nodes_hierarchical("11O1", [
+            {"name": "Parent"},
+            {"name": "Child", "parentNodeName": "Parent"},
+        ])
+    except _client.ContextClientError as exc:
+        raised = True
+        msg = str(exc)
+    check("unresolved in-plan parent raises rather than mis-rooting the child", raised)
+    check("the error names the child and its parent",
+          "Child" in msg and "Parent" in msg)
+
+
+def test_create_nodes_dry_run_never_raises_on_no_id():
+    # Under dry-run, POSTs return no id by design; the fail-loud guard is gated on
+    # not-dry-run, so a child-before-parent plan must not raise (parent link
+    # simply absent, per the dry-run contract).
+    t = RecordingTransport(dry_run=True)
+    applier = _applier(t)
+    applier._create_nodes_hierarchical("11O1", [
+        {"name": "Child", "parentNodeName": "Parent"},
+        {"name": "Parent"},
+    ])
+    node_posts = [r for r in t.requests
+                  if r[0] == "POST" and "contextNodes" in (r[2] or {})]
+    check("dry-run still POSTs both nodes without raising", len(node_posts) == 2)
+
+
+# --------------------------------------------------------------------------- #
 
 def main():
     tests = [v for k, v in sorted(globals().items())

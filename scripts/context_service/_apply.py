@@ -115,12 +115,32 @@ class ContextApplier:
         self, context_id: str, node_defs: List[Dict[str, Any]],
         existing_detail: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """Port of ``_create_context_nodes_hierarchical`` (parent-first, capture ids)."""
+        """Port of ``_create_context_nodes_hierarchical`` (parent-first, capture ids).
+
+        Node POSTs are topologically ordered so an in-plan parent is always
+        created — and its id captured — before any child that references it.
+        Without this, a plan that declared a child *before* its parent (which
+        the offline validator accepts — it only checks the parent name exists
+        somewhere) would POST the child with no ``parentNodeId``, silently
+        creating it as a root. If, in a real apply, an in-plan parent's id is
+        still unresolved after ordering + re-fetch, that is a genuine failure
+        and we raise rather than mis-root the child. A parent *not* declared in
+        this batch (e.g. inherited from a base) legitimately links to no id and
+        is created as a root with a log line. Dry-run POSTs never return ids, so
+        the parent link is expected to be absent there — logged, never raised.
+        """
         node_id_by_name: Dict[str, str] = {}
         if existing_detail and not self.dry_run:
             node_id_by_name.update(_index_node_ids(existing_detail))
         path = ep.NODE_COLLECTION.format(context_definition_id=context_id)
-        for node_def in node_defs:
+        ordered_defs = _order_nodes_parent_first(
+            node_defs, known_parents=set(node_id_by_name)
+        )
+        batch_names = {
+            n.get("name") for n in ordered_defs
+            if isinstance(n, dict) and n.get("name")
+        }
+        for node_def in ordered_defs:
             if not isinstance(node_def, dict):
                 continue
             node_name = node_def.get("name")
@@ -132,9 +152,19 @@ class ContextApplier:
                 parent_id = node_id_by_name.get(parent_name)
                 if parent_id:
                     node_payload["parentNodeId"] = parent_id
+                elif parent_name in batch_names and not self.dry_run:
+                    # Parent is declared in this plan but its id never
+                    # resolved — POSTing now would silently create a root and
+                    # corrupt the hierarchy. Fail loudly instead.
+                    raise _client.ContextClientError(
+                        f"Cannot link node '{node_name}' to its declared parent "
+                        f"'{parent_name}': the parent was not created successfully "
+                        f"(no contextNodeId captured). Aborting to avoid silently "
+                        f"creating '{node_name}' as a root."
+                    )
                 else:
-                    self.log(f"Parent node '{parent_name}' not yet created for "
-                             f"'{node_name}'; skipping parent link.")
+                    self.log(f"Parent node '{parent_name}' not declared in this plan "
+                             f"for '{node_name}'; creating as root (link skipped).")
             self.log(f"Creating context node: {node_name}")
             resp = self.t.request("POST", path, {"contextNodes": [node_payload]})
             if self.dry_run:
@@ -508,13 +538,19 @@ class ContextApplier:
             raise
 
     def _is_active(self, detail: Dict[str, Any]) -> bool:
+        # ``isActive`` comes back from the API as a real bool OR the strings
+        # "true"/"false"; a raw ``bool("false")`` is ``True``, so an inactive
+        # definition would read as active and misfire the delete/mutate guards.
+        # Normalize through ``_payload.as_bool`` (the package's bool-or-string
+        # coercion) at every read.
         if not isinstance(detail, dict):
             return False
         if detail.get("isActive") is not None or detail.get("active") is not None:
-            return bool(detail.get("isActive") or detail.get("active"))
+            return _payload.as_bool(detail.get("isActive")) or \
+                _payload.as_bool(detail.get("active"))
         versions = detail.get("contextDefinitionVersionList", [])
         if versions and isinstance(versions[0], dict):
-            return bool(versions[0].get("isActive"))
+            return _payload.as_bool(versions[0].get("isActive"))
         return False
 
     def _guard_active_for_patch(self, context_id: str, detail: Dict[str, Any],
@@ -923,6 +959,59 @@ def _index_node_ids(detail: Dict[str, Any]) -> Dict[str, str]:
 
     walk(nodes)
     return out
+
+
+def _order_nodes_parent_first(
+    node_defs: List[Dict[str, Any]], known_parents: Optional[set] = None,
+) -> List[Dict[str, Any]]:
+    """Topologically sort node defs so a parent is always POSTed before its child.
+
+    The API's node POST captures ids as it goes and links a child to its parent
+    by the id captured earlier in the loop; a child declared *before* its parent
+    in the plan would otherwise be created as a root (silent hierarchy
+    corruption) even though the validator passed — it only checks the parent
+    name exists *somewhere* in the plan, not that it precedes the child.
+
+    ``known_parents`` are names already resolvable outside this batch (existing
+    org nodes, or a base a plan extends): a node whose ``parentNodeName`` is in
+    that set has no in-batch dependency. Nodes without a name, without a parent,
+    or with a parent not declared in this batch (and not known) keep their
+    original relative position as roots. Raises ``ValueError`` on a parent cycle.
+    """
+    known = known_parents or set()
+    remaining = [n for n in node_defs if isinstance(n, dict)]
+    by_name = {n.get("name"): n for n in remaining if n.get("name")}
+    ordered: List[Dict[str, Any]] = []
+    placed: set = set()
+
+    def deps_satisfied(node: Dict[str, Any]) -> bool:
+        parent = node.get("parentNodeName")
+        # No parent, an unknown/external parent (treated as root), or a parent
+        # already placed in this batch → ready to POST now.
+        return (
+            not parent
+            or (parent not in by_name and parent not in placed)
+            or parent in placed
+            or parent in known
+        )
+
+    while remaining:
+        progressed = False
+        for node in list(remaining):
+            if deps_satisfied(node):
+                ordered.append(node)
+                remaining.remove(node)
+                name = node.get("name")
+                if name:
+                    placed.add(name)
+                progressed = True
+        if not progressed:
+            cyclic = [n.get("name") for n in remaining]
+            raise ValueError(
+                "contextNodeDefinitions contain a parent cycle or unresolvable "
+                f"parent chain among nodes: {cyclic}"
+            )
+    return ordered
 
 
 def _first_created_node_id(resp: Any) -> Optional[str]:

@@ -37,10 +37,17 @@ Usage:
 */
 
 // ─── CONFIGURATION (fill these in) ──────────────────────────────────────────
-String contextDefinitionId = '11OEc000005QeRxMAK';  // from describe_context.py
-String mappingId           = '11jEc0000Bi8TIoIQM';  // QuoteEntitiesMapping (default)
-String recordId            = '';                      // a real Quote Id (0Q0...) — leave empty for synthetic
+// Org-specific — get contextDefinitionId + mappingId from describe_context.py
+// (see BEFORE RUNNING above). Left empty on purpose: shipping IDs from one org
+// would target an unrelated/nonexistent definition on any other org.
+String contextDefinitionId = '';  // 11O... from describe_context.py
+String mappingId           = '';  // 11j... QuoteEntitiesMapping (default) from describe_context.py
+String recordId            = '';  // a real Quote Id (0Q0...) — leave empty for synthetic
 // ─────────────────────────────────────────────────────────────────────────────
+if (String.isBlank(contextDefinitionId) || String.isBlank(mappingId)) {
+    throw new IllegalArgumentException(
+        'Fill in contextDefinitionId and mappingId (from describe_context.py) before running.');
+}
 
 Context.IndustriesContext ctx = new Context.IndustriesContext();
 
