@@ -21,6 +21,7 @@ Output shape (all names are the stable dotted keys the diff compares on):
       "mappings": {
           mappingName: {
               "isDefault": bool,
+              "description": str | None,
               "nodes": {
                   nodeName: {
                       "sObject": str|None,
@@ -47,6 +48,7 @@ from ._client import (
     active_version,
     attr_tag_list,
     iter_nodes,
+    iter_nodes_with_parent,
     node_attributes,
     node_tag_list,
 )
@@ -67,13 +69,52 @@ def _as_bool(value: Any) -> Optional[bool]:
     return bool(value)
 
 
-def _node_parent(node: Dict[str, Any]) -> Optional[str]:
-    """Best-effort parent-node name from a GET node (varies by shape)."""
-    return (
+def _node_id_to_name(node_list: List[Any]) -> Dict[str, str]:
+    """Map every node's id -> name across the nested tree.
+
+    Supports the fallback path in :func:`_resolve_parent_name` for a *flat* GET
+    shape that carries ``parentNodeId`` without ``childNodes`` nesting. Keyed on
+    the several id spellings a Context Node GET has used (``contextNodeId`` is the
+    v67 spelling).
+    """
+    index: Dict[str, str] = {}
+    for node, _depth in iter_nodes(node_list):
+        name = node.get("name")
+        if not name:
+            continue
+        for id_key in ("contextNodeId", "nodeId", "id"):
+            nid = node.get(id_key)
+            if nid:
+                index[nid] = name
+    return index
+
+
+def _resolve_parent_name(
+    node: Dict[str, Any],
+    positional_parent: Optional[str],
+    id_to_name: Dict[str, str],
+) -> Optional[str]:
+    """Best-effort parent-node **name** for a GET node.
+
+    Ancestry precedence (v67 GET identifies a child by ``childNodes`` nesting):
+      1. the positional parent carried down the walk (the authoritative signal
+         for the nested shape the live API returns);
+      2. an explicit ``parentNodeName``-style field, if a shape ever carries one;
+      3. a ``parentNodeId`` resolved through the id->name index (flat shape).
+    """
+    if positional_parent:
+        return positional_parent
+    named = (
         node.get("parentNodeName")
         or node.get("parentContextNodeName")
         or node.get("parentName")
     )
+    if named:
+        return named
+    parent_id = node.get("parentNodeId") or node.get("parentContextNodeId")
+    if parent_id:
+        return id_to_name.get(parent_id)
+    return None
 
 
 def _hydration_hops(detail: Dict[str, Any], node_sobject: Optional[str]) -> List[str]:
@@ -119,11 +160,15 @@ def normalize_definition(defn: Dict[str, Any]) -> Dict[str, Any]:
     attributes: Dict[str, Dict[str, Any]] = {}
 
     node_list = version.get("contextNodes") or []
-    for node, depth in iter_nodes(node_list):
+    id_to_name = _node_id_to_name(node_list)
+    for node, depth, positional_parent in iter_nodes_with_parent(node_list):
         name = node.get("name")
         if not name:
             continue
-        nodes[name] = {"parent": _node_parent(node), "depth": depth}
+        nodes[name] = {
+            "parent": _resolve_parent_name(node, positional_parent, id_to_name),
+            "depth": depth,
+        }
         for attr in node_attributes(node):
             if not isinstance(attr, dict):
                 continue
@@ -194,6 +239,7 @@ def _normalize_mappings(mapping_list: List[Any]) -> Dict[str, Any]:
             node_maps[node_name] = {"sObject": sobj, "attributes": attr_maps}
         out[mname] = {
             "isDefault": _as_bool(mapping.get("isDefault")) or False,
+            "description": mapping.get("description"),
             "nodes": node_maps,
         }
     return out
@@ -243,8 +289,14 @@ def normalize_plan(plan: Dict[str, Any]) -> Dict[str, Any]:
             "isTransient": _as_bool(attr.get("isTransient")) or False,
         }
 
-    # isDefault designations come from contextMappings / contextMappingUpdates.
+    # isDefault designations come from three places: the top-level
+    # ``defaultMapping`` string (what activation uses — see _apply
+    # _ensure_default_mapping), and any ``isDefault`` row in the
+    # contextMappings / contextMappingUpdates shell blocks.
     default_mappings = set()
+    top_default = plan.get("defaultMapping")
+    if isinstance(top_default, str) and top_default:
+        default_mappings.add(top_default)
     for block_key in ("contextMappings", "contextMappingUpdates"):
         block = plan.get(block_key)
         rows = block.get("contextMappings") if isinstance(block, dict) else None
@@ -254,6 +306,22 @@ def normalize_plan(plan: Dict[str, Any]) -> Dict[str, Any]:
                     default_mappings.add(row["name"])
 
     mappings: Dict[str, Any] = {}
+    # Pre-seed shells from the contextMappings / contextMappingUpdates blocks so
+    # a mapping declared with no attribute rules (an empty shell) and its
+    # default designation are still visible to the diff — the shell-level drift
+    # the mapping/node diff compares on. Without this, adding/removing an empty
+    # shell or flipping the default would be invisible on the plan side.
+    for block_key in ("contextMappings", "contextMappingUpdates"):
+        block = plan.get(block_key)
+        rows = block.get("contextMappings") if isinstance(block, dict) else None
+        for row in rows or []:
+            if not isinstance(row, dict) or not row.get("name"):
+                continue
+            mappings.setdefault(
+                row["name"],
+                {"isDefault": row["name"] in default_mappings, "nodes": {}},
+            )
+
     for rule in plan.get("mappingRules") or []:
         if not isinstance(rule, dict):
             continue
@@ -320,9 +388,13 @@ def model_to_plan(
 
     Produces the additive plan format consumed by ``manage_context_definition``
     / ``ExtendStandardContext`` and linted by ``validate_context_plan.py``:
-    ``contextNodeDefinitions`` / ``contextAttributesByName`` / ``mappingRules`` /
-    ``contextTagsByName`` / ``activate``. Shared by ``export_context.py`` (whole
-    definition) and ``patch_context.py`` (a delta subset).
+    ``contextNodeDefinitions`` / ``contextMappings`` / ``contextAttributesByName``
+    / ``mappingRules`` / ``contextTagsByName`` / ``defaultMapping`` / ``activate``.
+    ``contextMappings`` shells and ``defaultMapping`` are emitted only on a
+    whole-definition export (the create flow needs them to mint mapping shells and
+    activate); a patch delta omits them (its shells already exist on the org).
+    Shared by ``export_context.py`` (whole definition) and ``patch_context.py``
+    (a delta subset).
 
     ``include`` optionally restricts the output to a subset of artifacts — the
     patch delta. It is a dict of key sets, any of which may be omitted (meaning
@@ -438,14 +510,31 @@ def model_to_plan(
             f"--custom-only to emit only the custom (__c) layer."
         )
 
+    # --- mapping shells + default designation (whole export only) ----------
+    # The apply/create flow builds ContextMapping shells ONLY from
+    # ``contextMappings`` and picks the activation default from ``defaultMapping``
+    # (see _apply._run_create_flow / _ensure_default_mapping). ``mappingRules``
+    # bind attributes into shells that already exist — they never create the
+    # shell. So a whole export that emits rules without their shells produces a
+    # create:true plan the rules cannot resolve against and that cannot activate.
+    # Emit both so the create plan round-trips. A patch delta (``include`` set)
+    # is additive against a live definition whose shells already exist, so it
+    # never needs them.
+    mapping_shells, default_mapping = _mapping_shells_and_default(
+        model.get("mappings"), whole_export
+    )
     if node_defs:
         plan["contextNodeDefinitions"] = node_defs
+    if mapping_shells:
+        plan["contextMappings"] = mapping_shells
     if attrs_by_name:
         plan["contextAttributesByName"] = attrs_by_name
     if mapping_rules:
         plan["mappingRules"] = mapping_rules
     if tags_by_name:
         plan["contextTagsByName"] = tags_by_name
+    if default_mapping:
+        plan["defaultMapping"] = default_mapping
     plan["activate"] = bool(model.get("isActive"))
     if caveats:
         plan["_caveats"] = caveats
@@ -519,6 +608,45 @@ def _mappings_to_rules(
                             )
                 rules.append(rule)
     return rules
+
+
+def _mapping_shells_and_default(mappings, whole_export):
+    """Build the ``contextMappings`` shell block and pick the ``defaultMapping``.
+
+    Returns ``(shell_block, default_mapping_name)``:
+
+    * ``shell_block`` — the ``{"contextMappings": [{name, description}, ...],
+      "generateInputMappings": true, "generateSObjectMappings": true}`` payload
+      the create flow POSTs to mint one ContextMapping per name (mirrors the
+      reference plan ``datasets/context_plans/archive/contexts/rlm_salestransaction.json``).
+    * ``default_mapping_name`` — the name of the mapping flagged ``isDefault`` in
+      the model (what ``_ensure_default_mapping`` needs to activate a freshly
+      created definition), or ``None`` if none is flagged.
+
+    Emitted only for a whole-definition export (``whole_export``); a patch delta
+    is additive against a live definition whose shells already exist, so returns
+    ``(None, None)`` there.
+    """
+    if not whole_export or not mappings:
+        return None, None
+    shells: List[Dict[str, Any]] = []
+    default_mapping: Optional[str] = None
+    for mname, mapping in sorted(mappings.items()):
+        shell: Dict[str, Any] = {"name": mname}
+        # The Connect POST accepts a description; the reference plan mirrors the
+        # name when the org has none, so fall back to the name to match it.
+        shell["description"] = mapping.get("description") or mname
+        shells.append(shell)
+        if mapping.get("isDefault") and default_mapping is None:
+            default_mapping = mname
+    if not shells:
+        return None, None
+    block = {
+        "contextMappings": shells,
+        "generateInputMappings": True,
+        "generateSObjectMappings": True,
+    }
+    return block, default_mapping
 
 
 def _normalize_tags(version: Dict[str, Any]) -> Dict[str, Any]:

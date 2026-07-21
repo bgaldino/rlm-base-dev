@@ -188,6 +188,78 @@ def _from_scratch_get():
     }
 
 
+def _nested_no_parentname_get():
+    """A from-scratch GET whose child node carries NO ``parentNodeName``.
+
+    The live v67 Context Node GET identifies ancestry by ``childNodes`` nesting
+    and ``parentNodeId`` — it does NOT stamp ``parentNodeName`` on the child. A
+    normalizer that reads only ``parentNodeName`` off the child sees ``None`` and
+    serializes the child as a second root, corrupting the hierarchy on reapply.
+    Contact is nested under Account with only ``parentNodeId`` (plus position),
+    exactly the documented shape.
+    """
+    return {
+        "developerName": "RLM_CtxTest_NestedNoParentName",
+        "isActive": True,
+        "baseReference": None,
+        "label": "RLM CtxTest Nested",
+        "contextDefinitionVersionList": [
+            {
+                "isActive": True,
+                "contextNodes": [
+                    {
+                        "name": "Account",
+                        "contextNodeId": "11oA",
+                        "contextAttributes": [
+                            {"name": "AccountName", "contextAttributeId": "11nA",
+                             "dataType": "STRING", "fieldType": "INPUTOUTPUT"},
+                        ],
+                        "childNodes": {
+                            "contextNodes": [
+                                {
+                                    "name": "Contact",
+                                    "contextNodeId": "11oC",
+                                    # No parentNodeName — only parentNodeId + nesting,
+                                    # the real v67 shape.
+                                    "parentNodeId": "11oA",
+                                    "contextAttributes": [
+                                        {"name": "ContactLastName",
+                                         "contextAttributeId": "11nC",
+                                         "dataType": "STRING",
+                                         "fieldType": "INPUTOUTPUT"},
+                                    ],
+                                    "childNodes": [],
+                                }
+                            ]
+                        },
+                    }
+                ],
+                "contextMappings": [
+                    {
+                        "name": "AccountContactMapping",
+                        "isDefault": True,
+                        "contextNodeMappings": [
+                            {
+                                "contextNodeName": "Account",
+                                "sObjectName": "Account",
+                                "attributeMappings": [
+                                    {
+                                        "contextAttributeName": "AccountName",
+                                        "contextAttrHydrationDetailList": [
+                                            {"sObjectDomain": "Account",
+                                             "queryAttribute": "Name"}
+                                        ],
+                                    }
+                                ],
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+
+
 def _extension_get():
     """A GET for a definition that EXTENDS a standard base (baseReference set)."""
     return {
@@ -505,6 +577,123 @@ def test_full_extension_export_flags_caveat():
     caveats = plan.get("_caveats") or []
     check("full extension export flags a not-appliable caveat",
           any("not directly appliable" in c for c in caveats))
+
+
+# ----------------------------------------------------------------------
+# _model — nested node ancestry (finding: v67 uses parentNodeId + childNodes
+# nesting, NOT parentNodeName; a child must not export as a second root)
+# ----------------------------------------------------------------------
+
+def test_normalize_nested_child_resolves_parent_from_position():
+    # The child carries only parentNodeId + childNodes nesting (no
+    # parentNodeName). The normalizer must still record its parent as "Account".
+    model = _model.normalize_definition(_nested_no_parentname_get())
+    contact = (model.get("nodes") or {}).get("Contact")
+    check("nested child node is captured", contact is not None)
+    check("nested child parent resolved from position (not None)",
+          contact and contact.get("parent") == "Account")
+
+
+def test_model_to_plan_nested_child_carries_parentnodename():
+    # The round trip: a whole export of the nested-no-parentNodeName definition
+    # must emit Contact WITH parentNodeName=Account (not as a second root), so
+    # reapplying the plan preserves the hierarchy.
+    model = _model.normalize_definition(_nested_no_parentname_get())
+    plan = _model.model_to_plan(model)  # whole export
+    node_defs = plan.get("contextNodeDefinitions") or []
+    contact = next((n for n in node_defs if n.get("name") == "Contact"), None)
+    check("export emits the Contact node", contact is not None)
+    check("exported Contact carries parentNodeName=Account (not a second root)",
+          contact and contact.get("parentNodeName") == "Account")
+    account = next((n for n in node_defs if n.get("name") == "Account"), None)
+    check("exported Account root has no parentNodeName",
+          account is not None and "parentNodeName" not in account)
+
+
+def test_normalize_parent_from_flat_parentnodeid_index():
+    # A flat (non-nested) shape that carries parentNodeId but no childNodes
+    # nesting must still resolve the parent via the id->name index.
+    flat = {
+        "developerName": "RLM_FlatParent",
+        "baseReference": None,
+        "contextDefinitionVersionList": [
+            {
+                "isActive": True,
+                "contextNodes": [
+                    {"name": "Account", "contextNodeId": "11oA", "childNodes": []},
+                    {"name": "Contact", "contextNodeId": "11oC",
+                     "parentNodeId": "11oA", "childNodes": []},
+                ],
+            }
+        ],
+    }
+    model = _model.normalize_definition(flat)
+    contact = (model.get("nodes") or {}).get("Contact")
+    check("flat child parent resolved via parentNodeId index",
+          contact and contact.get("parent") == "Account")
+
+
+# ----------------------------------------------------------------------
+# _model — whole export emits mapping shells + defaultMapping (finding: the
+# create flow needs both; rules alone can't resolve or activate)
+# ----------------------------------------------------------------------
+
+def test_from_scratch_export_emits_mapping_shells_and_default():
+    model = _model.normalize_definition(_from_scratch_get())
+    plan = _model.model_to_plan(model)  # whole export
+    shells = plan.get("contextMappings")
+    check("whole export emits a contextMappings shell block",
+          isinstance(shells, dict) and isinstance(shells.get("contextMappings"), list))
+    names = [m.get("name") for m in (shells or {}).get("contextMappings", [])]
+    check("shell block includes AccountContactMapping",
+          "AccountContactMapping" in names)
+    check("shell block sets generate flags",
+          (shells or {}).get("generateInputMappings") is True
+          and (shells or {}).get("generateSObjectMappings") is True)
+    check("whole export emits top-level defaultMapping = the isDefault mapping",
+          plan.get("defaultMapping") == "AccountContactMapping")
+
+
+def test_create_export_round_trips_shells_and_activates():
+    # Reapply readiness: the exported create:true plan must carry a mapping shell
+    # for every mappingRule's mappingName (so rules can resolve) and a
+    # defaultMapping (so activation won't hit DATA_MAPPING_NOT_FOUND).
+    model = _model.normalize_definition(_from_scratch_get())
+    plan = _model.model_to_plan(model)
+    shell_names = {m.get("name")
+                   for m in (plan.get("contextMappings") or {}).get("contextMappings", [])}
+    rule_mappings = {r.get("mappingName") for r in (plan.get("mappingRules") or [])}
+    check("every mappingRule's mapping has a shell to resolve against",
+          rule_mappings and rule_mappings <= shell_names)
+    check("defaultMapping is one of the emitted shells",
+          plan.get("defaultMapping") in shell_names)
+
+
+def test_patch_delta_omits_mapping_shells_and_default():
+    # A patch delta is additive against a live definition whose shells already
+    # exist; it must NOT re-emit shells or defaultMapping.
+    model = _model.normalize_definition(_from_scratch_get())
+    plan = _model.model_to_plan(
+        model,
+        include={"nodes": set(), "attributes": {"Account.AccountName"},
+                 "mappings": set(), "tags": set()},
+    )
+    check("patch delta omits contextMappings shells", "contextMappings" not in plan)
+    check("patch delta omits defaultMapping", "defaultMapping" not in plan)
+
+
+def test_create_export_with_shells_lints_clean():
+    # The full export -> lint round trip must stay clean with the new shell +
+    # defaultMapping keys present.
+    import scripts.context_service.definition.validate_context_plan as V
+
+    model = _model.normalize_definition(_from_scratch_get())
+    plan = _model.model_to_plan(model)
+    plan.pop("_caveats", None)
+    result = V.PlanResult(path="<create-shells>")
+    V._validate_plan_object(plan, result, "create-shells")
+    check("create export with mapping shells + defaultMapping lints clean",
+          not result.errors)
 
 
 # ----------------------------------------------------------------------

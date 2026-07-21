@@ -292,6 +292,19 @@ def active_version(definition: Dict[str, Any]) -> Dict[str, Any]:
     return versions[0]
 
 
+def _child_nodes(node: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """A node's children, unwrapping the ``{"childNodes": {"contextNodes": [...]}}``
+    wrapper (or a bare ``childNodes`` list). Single source of truth for the
+    childNodes descent used by both node walkers below.
+    """
+    child_container = node.get("childNodes", {})
+    return (
+        child_container.get("contextNodes", [])
+        if isinstance(child_container, dict)
+        else (child_container or [])
+    )
+
+
 def iter_nodes(node_list: Optional[List[Dict[str, Any]]]):
     """Yield (node, depth) for a nested contextNodes tree (depth starts at 0).
 
@@ -303,15 +316,31 @@ def iter_nodes(node_list: Optional[List[Dict[str, Any]]]):
             if not isinstance(node, dict):
                 continue
             yield node, depth
-            child_container = node.get("childNodes", {})
-            children = (
-                child_container.get("contextNodes", [])
-                if isinstance(child_container, dict)
-                else (child_container or [])
-            )
-            yield from _walk(children, depth + 1)
+            yield from _walk(_child_nodes(node), depth + 1)
 
     yield from _walk(node_list, 0)
+
+
+def iter_nodes_with_parent(node_list: Optional[List[Dict[str, Any]]]):
+    """Yield ``(node, depth, parent_name)`` for a nested contextNodes tree.
+
+    Same traversal as :func:`iter_nodes`, but carries the **enclosing node's
+    name** so callers can reconstruct ancestry from the ``childNodes`` nesting.
+    The v67 Context Node GET identifies a child's parent by ``childNodes``
+    position (and ``parentNodeId``), **not** by a ``parentNodeName`` field on the
+    child — so a normalizer that reads ``parentNodeName`` off the child sees
+    ``None`` for every real child and would serialize it as a second root. Use
+    this walker (parent from position) instead. ``parent_name`` is ``None`` for
+    root nodes.
+    """
+    def _walk(nodes, depth, parent_name):
+        for node in nodes or []:
+            if not isinstance(node, dict):
+                continue
+            yield node, depth, parent_name
+            yield from _walk(_child_nodes(node), depth + 1, node.get("name"))
+
+    yield from _walk(node_list, 0, None)
 
 
 def node_attributes(node: Dict[str, Any]) -> List[Dict[str, Any]]:

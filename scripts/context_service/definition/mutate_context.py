@@ -43,15 +43,20 @@ Examples
         --developer-name RLM_SalesTransactionContext \
         --set-transient SalesTransactionItem.RampMode__c true
 
-    # actually set it (in place, on the active version)
+    # actually set it — set-transient MODIFIES an existing attribute, which
+    # OP_RULES blocks while the version is active (RECORD_UPDATE_FAILED), so
+    # deactivate first and reactivate after
     python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
         --developer-name RLM_SalesTransactionContext \
-        --set-transient SalesTransactionItem.RampMode__c true --confirm
+        --set-transient SalesTransactionItem.RampMode__c true \
+        --deactivate-first --reactivate --confirm
 
-    # re-designate the default mapping
+    # re-designate the default mapping — a PATCH to an existing mapping, also
+    # blocked while active; deactivate first and reactivate after
     python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \
         --developer-name RLM_QuoteDocGenContext \
-        --set-default-mapping QuoteEntitiesMapping --confirm
+        --set-default-mapping QuoteEntitiesMapping \
+        --deactivate-first --reactivate --confirm
 
     # add a custom tag alias to an attribute
     python scripts/context_service/definition/mutate_context.py --target-org rlm-base__beta \

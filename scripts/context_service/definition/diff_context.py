@@ -163,6 +163,39 @@ def _flatten_mapping_attrs(mappings: dict) -> dict:
     return flat
 
 
+def _flatten_mapping_shells(mappings: dict) -> dict:
+    """Flatten a mappings tree to ``mappingName -> {isDefault}``.
+
+    The mapping *shell* grain: it surfaces two drifts the attribute-row grain
+    (:func:`_flatten_mapping_attrs`) discards —
+
+    * a mapping with **zero** attribute mappings (an empty shell) produces no
+      attribute rows at all, so add/remove of such a shell is otherwise invisible;
+    * two definitions with identical attribute bindings but a **different default
+      mapping** produce identical attribute rows, so the ``isDefault`` flip is
+      otherwise invisible — yet it changes which mapping the runtime uses.
+    """
+    return {
+        mname: {"isDefault": bool(mapping.get("isDefault"))}
+        for mname, mapping in (mappings or {}).items()
+    }
+
+
+def _flatten_node_shells(mappings: dict) -> dict:
+    """Flatten a mappings tree to ``mapping/node -> {sObject}``.
+
+    The node-mapping *shell* grain: it surfaces a node mapping with zero
+    attribute mappings (an empty node shell binds a node to an sObject but maps
+    no fields yet) and any change to the bound ``sObjectName`` — both discarded
+    by the attribute-row grain.
+    """
+    flat = {}
+    for mname, mapping in (mappings or {}).items():
+        for node_name, node_map in (mapping.get("nodes") or {}).items():
+            flat[f"{mname}/{node_name}"] = {"sObject": node_map.get("sObject")}
+    return flat
+
+
 def _mapping_attr_differs(left: dict, right: dict) -> bool:
     """Equality for a flattened attribute-mapping row, excluding the CONTEXT ref.
 
@@ -194,8 +227,31 @@ def _mapping_attr_differs(left: dict, right: dict) -> bool:
     )
 
 
-def diff_models(left: dict, right: dict) -> dict:
-    """Full structured diff of two normalized models (or None for absent side)."""
+def _shell_default_differs(plan_mode: bool):
+    """Return the ``isDefault`` compare fn for the mapping-shell diff.
+
+    * **org-vs-org** — any ``isDefault`` mismatch is real drift (two orgs with
+      the same bindings but a different default is exactly the case a shell diff
+      must catch), so compare directly.
+    * **plan-vs-org** — repo plans are additive and often silent about the
+      default, so a bare ``isDefault=False`` on the plan side against an org's
+      real default is not drift the plan is responsible for. Only flag when the
+      plan **asserts** a mapping is default (left ``isDefault=True``) but the org
+      does not honor it — the real "plan's declared default hasn't taken effect"
+      signal.
+    """
+    if not plan_mode:
+        return lambda l, r: bool((l or {}).get("isDefault")) != bool((r or {}).get("isDefault"))
+    return lambda l, r: bool((l or {}).get("isDefault")) and not bool((r or {}).get("isDefault"))
+
+
+def diff_models(left: dict, right: dict, plan_mode: bool = False) -> dict:
+    """Full structured diff of two normalized models (or None for absent side).
+
+    ``plan_mode`` tunes the directional-only comparisons (currently the
+    mapping-shell ``isDefault`` check) so a sparse, additive plan does not flag
+    an org-only default as drift.
+    """
     if left is None and right is None:
         return {"present": {"left": False, "right": False}}
     left = left or {}
@@ -217,6 +273,18 @@ def diff_models(left: dict, right: dict) -> dict:
         # hydration only) so a CONTEXT mapping no longer reports perpetual drift.
         compare=_mapping_attr_differs,
     )
+    # Shell-level diffs (finding: attribute-row grain alone hides isDefault flips
+    # and empty mapping/node shells). Mapping shells carry isDefault; node shells
+    # carry the bound sObject.
+    ms_added, ms_removed, ms_changed = _diff_dicts(
+        _flatten_mapping_shells(left.get("mappings")),
+        _flatten_mapping_shells(right.get("mappings")),
+        compare=_shell_default_differs(plan_mode),
+    )
+    ns_added, ns_removed, ns_changed = _diff_dicts(
+        _flatten_node_shells(left.get("mappings")),
+        _flatten_node_shells(right.get("mappings")),
+    )
     t_added, t_removed, t_changed = _diff_dicts(left.get("tags"), right.get("tags"))
 
     return {
@@ -225,13 +293,16 @@ def diff_models(left: dict, right: dict) -> dict:
         "isActive": {"left": left.get("isActive"), "right": right.get("isActive")},
         "nodes": {"added": n_added, "removed": n_removed, "changed": n_changed},
         "attributes": {"added": a_added, "removed": a_removed, "changed": a_changed},
+        "mappingShells": {"added": ms_added, "removed": ms_removed, "changed": ms_changed},
+        "nodeShells": {"added": ns_added, "removed": ns_removed, "changed": ns_changed},
         "mappings": {"added": m_added, "removed": m_removed, "changed": m_changed},
         "tags": {"added": t_added, "removed": t_removed, "changed": t_changed},
     }
 
 
 def _has_changes(d: dict) -> bool:
-    for section in ("nodes", "attributes", "mappings", "tags"):
+    for section in ("nodes", "attributes", "mappingShells", "nodeShells",
+                    "mappings", "tags"):
         s = d.get(section) or {}
         if s.get("added") or s.get("removed") or s.get("changed"):
             return True
@@ -345,6 +416,8 @@ def _render_human(diffs: dict, left_label: str, right_label: str,
                          f"{right_label}={act.get('right')}")
         for title, key in (
             ("Nodes", "nodes"), ("Attributes", "attributes"),
+            ("Mapping shells (isDefault)", "mappingShells"),
+            ("Node shells (sObject)", "nodeShells"),
             ("Mappings", "mappings"), ("Tags", "tags"),
         ):
             _render_section(title, d.get(key, {}), left_label, right_label, lines)
@@ -431,7 +504,7 @@ def main(argv=None) -> int:
             for name, plan_model in plan_models.items():
                 org_model = _fetch_model(name, args.target_org, args.api_version,
                                          index=target_index)
-                diffs[name] = diff_models(plan_model, org_model)
+                diffs[name] = diff_models(plan_model, org_model, plan_mode=True)
             left_label, right_label = "plan", f"org:{args.target_org}"
             plan_mode = True
         elif args.source_dev_name:

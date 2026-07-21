@@ -767,14 +767,20 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
 
     Result keys: ``matched_rules`` (list of dicts), ``missing_rules`` (list of
     ``(mapping, node, attr)`` tuples), ``found_attrs`` (sorted names),
-    ``found_tags`` (sorted ``node.attr:tag`` strings), plus ``ok`` (bool: no
-    missing rules and every SOBJECT match carries hydration).
+    ``found_tags`` (sorted ``node.attr:tag`` strings), ``missing_attrs`` /
+    ``missing_tags`` (declared-but-absent, sorted), ``hydration_gaps`` (matched
+    SOBJECT rules with no hydration detail), plus ``ok`` (bool). ``ok`` is True
+    only when the definition fully realizes the plan: **no** missing mapping
+    rules, **no** missing declared attributes/tags, and **no** hydration gaps —
+    matching the contract that a matched SObject rule must carry hydration.
     """
     result: Dict[str, Any] = {
         "matched_rules": [],
         "missing_rules": [],
         "found_attrs": [],
         "found_tags": [],
+        "missing_attrs": [],
+        "missing_tags": [],
         "hydration_gaps": [],
         "ok": False,
     }
@@ -853,10 +859,38 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
         if item.get("sObject") and not item.get("hasHydrationDetail")
     ]
 
+    # Declared-but-absent attributes/tags. Without this, a plan that declares
+    # only attributes or only tags returned ok=true even when NONE of them were
+    # created (found_attrs / found_tags empty) — the expected sets were never
+    # compared. Build the expected set from the plan and subtract what was found.
+    found_attr_set = set(found_attrs)
+    expected_attrs = {
+        f"{a.get('nodeName')}.{a.get('name')}"
+        for a in attrs_by_name
+        if isinstance(a, dict) and a.get("nodeName") and a.get("name")
+    }
+    missing_attrs = sorted(expected_attrs - found_attr_set)
+
+    found_tag_set = set(found_tags)
+    expected_tags = {
+        f"{t.get('nodeName')}.{t.get('attributeName')}:{t.get('name')}"
+        for t in tags_by_name
+        if isinstance(t, dict) and t.get("nodeName") and t.get("attributeName")
+        and t.get("name")
+    }
+    missing_tags = sorted(expected_tags - found_tag_set)
+
     result["matched_rules"] = matched_rules
     result["missing_rules"] = missing_rules
-    result["found_attrs"] = sorted(set(found_attrs))
-    result["found_tags"] = sorted(set(found_tags))
+    result["found_attrs"] = sorted(found_attr_set)
+    result["found_tags"] = sorted(found_tag_set)
+    result["missing_attrs"] = missing_attrs
+    result["missing_tags"] = missing_tags
     result["hydration_gaps"] = hydration_gaps
-    result["ok"] = not missing_rules
+    # ``ok`` must include every failure the result reports (per the contract):
+    # missing mapping rules, missing declared attributes/tags, and hydration
+    # gaps (a matched SObject rule with no hydration detail).
+    result["ok"] = not (
+        missing_rules or missing_attrs or missing_tags or hydration_gaps
+    )
     return result

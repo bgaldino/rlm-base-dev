@@ -414,14 +414,37 @@ class ContextMutator:
 
         existing = _existing_attr_binding(
             detail, node_mapping_id, target["contextAttributeId"])
-        # Three states the caller must tell apart (a prior run can die between
+        # Four states the caller must tell apart (a prior run can die between
         # the CAM POST and the hydration-detail POST, leaving an orphan CAM):
-        #   existing is None           -> nothing bound; full create.
-        #   existing["complete"]       -> CAM + source field present; true no-op.
-        #   CAM present, no hydration  -> incomplete; repair by POSTing only the
-        #                                 ContextAttrHydrationDetail onto the
-        #                                 existing CAM (never a second CAM).
+        #   existing is None                 -> nothing bound; full create.
+        #   complete + binding == requested  -> true no-op (already in this state).
+        #   complete + binding != requested  -> rebind CONFLICT; must not no-op.
+        #   CAM present, no hydration        -> incomplete; repair by POSTing only
+        #                                       the ContextAttrHydrationDetail onto
+        #                                       the existing CAM (never a second CAM).
+        requested_binding = f"{sobject}.{sobject_field}"
         complete = bool(existing and existing.get("complete"))
+        if complete:
+            # ``complete`` only proves *some* hydration row exists — not that it
+            # matches the requested field. No-op ONLY when the canonical existing
+            # binding equals the requested sObject+field; a different field is a
+            # rebind, which this granular pure-insert path does not support
+            # (there is no CAM to update, and POSTing a second detail would leave
+            # two source fields on one attribute). Surface an actionable conflict
+            # rather than exiting 0 while silently leaving the old binding intact.
+            existing_fields = existing.get("fields") or []
+            matches = requested_binding in existing_fields
+            if not matches:
+                current = existing.get("hydration") or "(unknown)"
+                raise MutatePreflightError(
+                    f"{node_name}.{target['name']} on '{mapping_name}' is already "
+                    f"bound to {current}, not the requested {requested_binding}. "
+                    f"Rebinding an existing field is not supported by --add-mapping "
+                    f"(a pure insert). Remove the existing binding first "
+                    f"(deactivate + delete the ContextAttrHydrationDetail via "
+                    f"describe_context.py), then re-run --add-mapping."
+                )
+        noop = complete  # complete AND matching, per the guard above
         repair = bool(existing and not complete)
         existing_cam_id = existing.get("cam_id") if existing else None
         if repair and not existing_cam_id:
@@ -443,7 +466,7 @@ class ContextMutator:
             "field": sobject_field,
             "attribute_id": target["contextAttributeId"],
             "node_mapping_id": node_mapping_id,
-            "noop": complete,
+            "noop": noop,
             "repair": repair,
             "existing_cam_id": existing_cam_id,
             "existing_binding": existing.get("hydration") if existing else None,
@@ -558,11 +581,15 @@ def _existing_attr_binding(detail: Dict[str, Any], node_mapping_id: str,
 
         {"cam_id": <ContextAttributeMappingId | None>,
          "hydration": <"Obj.Field, ..." | None>,   # None => no source field yet
+         "fields":    [<"Obj.Field">, ...],          # structured hops (for match)
          "complete":  <bool>}                        # True only when hydration exists
 
     A CAM created without its ``ContextAttrHydrationDetail`` (e.g. the process
     died between the two POSTs) reports ``complete=False`` so the caller repairs
-    it rather than reporting a bound-but-unusable mapping as a no-op.
+    it rather than reporting a bound-but-unusable mapping as a no-op. ``fields``
+    is the list form of ``hydration`` so a caller can decide whether an existing
+    complete binding actually **matches** the requested sObject+field (a true
+    no-op) versus points at a *different* field (a rebind conflict).
     """
     for mapping in _iter_context_mappings(detail):
         for node_map in mapping.get("contextNodeMappings", []) or []:
@@ -588,6 +615,7 @@ def _existing_attr_binding(detail: Dict[str, Any], node_mapping_id: str,
                 return {
                     "cam_id": attr_map.get("contextAttributeMappingId"),
                     "hydration": ", ".join(fields) if fields else None,
+                    "fields": fields,
                     "complete": bool(fields),
                 }
     return None

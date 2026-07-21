@@ -1655,6 +1655,255 @@ def test_create_nodes_dry_run_never_raises_on_no_id():
 
 
 # --------------------------------------------------------------------------- #
+# Finding 3 — shell-level diff surfaces isDefault flips and empty mapping/node
+# shells that the attribute-row grain (``_flatten_mapping_attrs``) discards.
+# --------------------------------------------------------------------------- #
+
+def _shell_model(mappings, dev="RLM_ShellTest", active=True):
+    """A minimal normalized model carrying only a mappings tree.
+
+    The shell grain reads ``model['mappings']`` →
+    ``{name: {isDefault, nodes: {node: {sObject, attributes}}}}`` — exactly the
+    shape ``_model.normalize_definition`` / ``normalize_plan`` produce — so a
+    hand-built mappings dict exercises ``_flatten_mapping_shells`` /
+    ``_flatten_node_shells`` and the full ``diff_models`` path.
+    """
+    return {
+        "developerName": dev, "isActive": active,
+        "nodes": {}, "attributes": {}, "mappings": mappings, "tags": {},
+    }
+
+
+def test_diff_mapping_shell_isdefault_flip_detected():
+    # Two orgs with identical (empty) attribute bindings but a different default
+    # mapping produce identical attribute rows — only the shell grain catches the
+    # isDefault flip, which changes which mapping the runtime uses.
+    left = _shell_model({
+        "QuoteEntitiesMapping": {"isDefault": True, "nodes": {}},
+        "SecondMapping": {"isDefault": False, "nodes": {}},
+    })
+    right = _shell_model({
+        "QuoteEntitiesMapping": {"isDefault": False, "nodes": {}},
+        "SecondMapping": {"isDefault": True, "nodes": {}},
+    })
+    diff = diff_context.diff_models(left, right)  # org-vs-org
+    changed = {c["key"] for c in diff["mappingShells"]["changed"]}
+    check("isDefault flip on QuoteEntitiesMapping surfaces in mappingShells",
+          "QuoteEntitiesMapping" in changed)
+    check("isDefault flip on SecondMapping surfaces in mappingShells",
+          "SecondMapping" in changed)
+    check("the attribute-row grain sees no change (no attribute rows exist)",
+          not diff["mappings"]["changed"])
+    check("a shell-only isDefault flip counts as a change",
+          diff_context._has_changes(diff))
+
+
+def test_diff_empty_mapping_shell_add_remove_detected():
+    # A mapping with zero attribute mappings (an empty shell) produces no
+    # attribute rows, so its add/remove is invisible at the attribute grain.
+    left = _shell_model({
+        "KeptMapping": {"isDefault": True, "nodes": {}},
+        "EmptyShell": {"isDefault": False, "nodes": {}},
+    })
+    right = _shell_model({
+        "KeptMapping": {"isDefault": True, "nodes": {}},
+    })
+    diff = diff_context.diff_models(left, right)  # org-vs-org
+    check("removed empty shell surfaces in mappingShells.removed",
+          "EmptyShell" in diff["mappingShells"]["removed"])
+    check("no spurious attribute-grain mapping change", not diff["mappings"]["changed"])
+    check("removing an empty shell counts as a change",
+          diff_context._has_changes(diff))
+
+
+def test_diff_node_shell_sobject_change_detected():
+    # A node mapping that binds a node to an sObject but maps no fields (an empty
+    # node shell) — the bound sObject changing is visible only at the node-shell
+    # grain, not the attribute grain.
+    left = _shell_model({
+        "QuoteEntitiesMapping": {"isDefault": True, "nodes": {
+            "SalesTransaction": {"sObject": "Quote", "attributes": {}}}},
+    })
+    right = _shell_model({
+        "QuoteEntitiesMapping": {"isDefault": True, "nodes": {
+            "SalesTransaction": {"sObject": "Order", "attributes": {}}}},
+    })
+    diff = diff_context.diff_models(left, right)  # org-vs-org
+    changed = {c["key"] for c in diff["nodeShells"]["changed"]}
+    check("node-shell sObject change surfaces in nodeShells",
+          "QuoteEntitiesMapping/SalesTransaction" in changed)
+    check("no attribute-grain change (node has zero attributes)",
+          not diff["mappings"]["changed"])
+    check("a node-shell sObject change counts as a change",
+          diff_context._has_changes(diff))
+
+
+def test_diff_plan_mode_default_is_directional():
+    # plan-vs-org: a plan ASSERTING a default the org does not honor is drift; an
+    # org-only default (plan silent) is NOT drift the plan is responsible for.
+    plan_asserts = _shell_model({"M": {"isDefault": True, "nodes": {}}}, dev="RLM_Dir")
+    org_missing = _shell_model({"M": {"isDefault": False, "nodes": {}}}, dev="RLM_Dir")
+    diff = diff_context.diff_models(plan_asserts, org_missing, plan_mode=True)
+    changed = {c["key"] for c in diff["mappingShells"]["changed"]}
+    check("plan asserts default but org doesn't → flagged in plan mode", "M" in changed)
+
+    org_asserts = _shell_model({"M": {"isDefault": True, "nodes": {}}}, dev="RLM_Dir")
+    plan_silent = _shell_model({"M": {"isDefault": False, "nodes": {}}}, dev="RLM_Dir")
+    diff2 = diff_context.diff_models(plan_silent, org_asserts, plan_mode=True)
+    changed2 = {c["key"] for c in diff2["mappingShells"]["changed"]}
+    check("org-only default (plan silent) → NOT flagged in plan mode",
+          "M" not in changed2)
+    # The same mismatch IS flagged org-vs-org — proves the suppression is
+    # plan-mode-only directionality, not a blunted diff.
+    diff3 = diff_context.diff_models(plan_silent, org_asserts, plan_mode=False)
+    changed3 = {c["key"] for c in diff3["mappingShells"]["changed"]}
+    check("same mismatch IS flagged org-vs-org (suppression is plan-only)",
+          "M" in changed3)
+
+
+# --------------------------------------------------------------------------- #
+# Finding 4 — add-mapping rebind conflict: a "complete" existing binding to a
+# DIFFERENT field must raise, not silently no-op (which would leave the old
+# binding intact while exiting 0).
+# --------------------------------------------------------------------------- #
+
+def test_add_mapping_rebind_to_different_field_raises():
+    # SalesTransactionItem.Quantity is already bound to QuoteLineItem.Quantity.
+    # Rebinding it to a different field is neither a no-op nor supported by this
+    # pure-insert path — it must raise rather than exit 0 with the old binding.
+    detail = _detail_root_and_child()
+    raised = False
+    msg = ""
+    try:
+        _mutator(RecordingTransport()).plan_add_mapping(
+            detail, "SalesTransactionItem.Quantity",
+            "QuoteEntitiesMapping", "SomethingElse__c")
+    except _mutate.MutatePreflightError as exc:
+        raised = True
+        msg = str(exc)
+    check("rebinding an existing field to a different field raises", raised)
+    check("the conflict names the current binding (QuoteLineItem.Quantity)",
+          "QuoteLineItem.Quantity" in msg)
+    check("the conflict names the requested binding (QuoteLineItem.SomethingElse__c)",
+          "SomethingElse__c" in msg)
+
+
+def test_add_mapping_exact_match_still_noops():
+    # The narrow counterpart: rebinding to the SAME field is a true no-op — proves
+    # the conflict guard didn't turn every already-bound attribute into an error.
+    detail = _detail_root_and_child()
+    change = _mutator(RecordingTransport()).plan_add_mapping(
+        detail, "SalesTransactionItem.Quantity",
+        "QuoteEntitiesMapping", "Quantity")
+    check("exact-match rebind (same field) is still a no-op", change["noop"] is True)
+    check("no-op reports the existing binding",
+          "QuoteLineItem.Quantity" in (change["existing_binding"] or ""))
+
+
+# --------------------------------------------------------------------------- #
+# Finding 5 — plan_verification.ok reflects declared attrs/tags + hydration, not
+# just mapping rules (a plan declaring only attrs/tags that were never created,
+# or a matched SObject rule with no hydration detail, must report ok=False).
+# --------------------------------------------------------------------------- #
+
+def _verif_detail(hydration=True, tag_name="TotalCostTag__c"):
+    """A definition detail with a SalesTransaction node carrying TotalCost__c
+    (optionally tagged), mapped to Quote on QuoteEntitiesMapping (optionally with
+    a hydration detail). Toggles let each verification failure be isolated."""
+    attr = {"name": "TotalCost__c", "dataType": "STRING",
+            "fieldType": "INPUTOUTPUT", "contextAttributeId": "11aTC"}
+    if tag_name:
+        attr["attributeTags"] = [{"name": tag_name}]
+    hyd = [{"sObjectDomain": "Quote", "queryAttribute": "RLM_TotalCost__c"}] if hydration else []
+    return {
+        "developerName": "RLM_VerifTest",
+        "isActive": True,
+        "contextDefinitionVersionList": [{
+            "isActive": True,
+            "contextNodes": [{
+                "name": "SalesTransaction",
+                "contextNodeId": "11nST",
+                "attributes": {"contextAttributes": [attr]},
+                "childNodes": {"contextNodes": []},
+            }],
+            "contextMappings": [{
+                "name": "QuoteEntitiesMapping",
+                "contextNodeMappings": [{
+                    "contextNodeName": "SalesTransaction",
+                    "sObjectName": "Quote",
+                    "attributeMappings": [{
+                        "contextAttributeName": "TotalCost__c",
+                        "contextAttrHydrationDetailList": hyd,
+                    }],
+                }],
+            }],
+        }],
+    }
+
+
+def test_verification_ok_true_when_fully_realized():
+    detail = _verif_detail(hydration=True, tag_name="TotalCostTag__c")
+    plan = {
+        "mappingRules": [{"mappingName": "QuoteEntitiesMapping",
+                          "contextNode": "SalesTransaction",
+                          "contextAttribute": "TotalCost__c",
+                          "sObject": "Quote", "sObjectField": "RLM_TotalCost__c"}],
+        "contextAttributesByName": [{"nodeName": "SalesTransaction",
+                                     "name": "TotalCost__c"}],
+        "contextTagsByName": [{"nodeName": "SalesTransaction",
+                               "attributeName": "TotalCost__c",
+                               "name": "TotalCostTag__c"}],
+    }
+    result = _payload.plan_verification(detail, plan)
+    check("fully-realized plan verifies ok=True", result["ok"] is True)
+    check("no missing attrs when the declared attr exists", not result["missing_attrs"])
+    check("no missing tags when the declared tag exists", not result["missing_tags"])
+    check("no hydration gaps when the matched rule carries hydration",
+          not result["hydration_gaps"])
+
+
+def test_verification_missing_declared_attr_is_not_ok():
+    # A plan declaring an attribute that was never created must NOT verify ok,
+    # even when it declares no mapping rules (the pre-fix bug: expected attrs
+    # were never compared, so an attrs-only plan reported ok=True).
+    detail = _verif_detail()
+    plan = {"contextAttributesByName": [{"nodeName": "SalesTransaction",
+                                         "name": "Discount__c"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("declared-but-absent attribute is listed in missing_attrs",
+          "SalesTransaction.Discount__c" in result["missing_attrs"])
+    check("a missing declared attribute makes ok=False", result["ok"] is False)
+
+
+def test_verification_missing_declared_tag_is_not_ok():
+    # A plan declaring a tag not present on the attribute must NOT verify ok.
+    detail = _verif_detail(tag_name="TotalCostTag__c")
+    plan = {"contextTagsByName": [{"nodeName": "SalesTransaction",
+                                   "attributeName": "TotalCost__c",
+                                   "name": "MissingTag__c"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("declared-but-absent tag is listed in missing_tags",
+          "SalesTransaction.TotalCost__c:MissingTag__c" in result["missing_tags"])
+    check("a missing declared tag makes ok=False", result["ok"] is False)
+
+
+def test_verification_hydration_gap_is_not_ok():
+    # A matched SObject rule whose attribute mapping has no hydration detail is a
+    # gap (the binding exists but hydrates nothing) → ok=False.
+    detail = _verif_detail(hydration=False)
+    plan = {"mappingRules": [{"mappingName": "QuoteEntitiesMapping",
+                              "contextNode": "SalesTransaction",
+                              "contextAttribute": "TotalCost__c",
+                              "sObject": "Quote", "sObjectField": "RLM_TotalCost__c"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("matched rule with no hydration detail is a hydration gap",
+          any(g[0] == "SalesTransaction" and g[1] == "TotalCost__c"
+              for g in result["hydration_gaps"]))
+    check("the rule still matched (not a missing rule)", not result["missing_rules"])
+    check("a hydration gap makes ok=False", result["ok"] is False)
+
+
+# --------------------------------------------------------------------------- #
 
 def main():
     tests = [v for k, v in sorted(globals().items())

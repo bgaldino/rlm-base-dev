@@ -121,6 +121,11 @@ def _render_verification(verification: dict) -> None:
         eprint("Verification: attributes present: " + ", ".join(verification["found_attrs"]))
     if verification.get("found_tags"):
         eprint("Verification: tags present: " + ", ".join(verification["found_tags"]))
+    if verification.get("missing_attrs"):
+        eprint("Verification: attributes MISSING: " + ", ".join(verification["missing_attrs"]))
+    if verification.get("missing_tags"):
+        eprint("Verification: tags MISSING: " + ", ".join(verification["missing_tags"]))
+    eprint(f"Verification: {'OK' if verification.get('ok') else 'INCOMPLETE'}.")
 
 
 def main(argv=None) -> int:
