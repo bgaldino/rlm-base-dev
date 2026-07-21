@@ -228,8 +228,9 @@ private class RLM_ExpressionSetManagerControllerTest {
     }
 
     @IsTest
-    static void sendCompositeInChunks_successfulResponses_doNotThrow() {
-        Test.setMock(HttpCalloutMock.class, new CompositeMock());
+    static void sendCompositeInChunks_splitsAtCompositeSubrequestLimit() {
+        RecordingHttpMock mock = new RecordingHttpMock();
+        Test.setMock(HttpCalloutMock.class, mock);
         List<Object> subrequests = new List<Object>();
         for (Integer i = 0; i < 26; i++) {
             subrequests.add(new Map<String, Object>{
@@ -245,6 +246,20 @@ private class RLM_ExpressionSetManagerControllerTest {
             'fake-session-id',
             subrequests
         );
+
+        // Assert the actual chunking, not just that nothing threw — otherwise the
+        // test would still pass if the 26th subrequest were silently dropped.
+        System.assertEquals(2, mock.requests.size(),
+            '26 subrequests should split into two composite callouts');
+        System.assertEquals(25, subrequestCount(mock.requests[0]),
+            'First chunk should carry the 25-subrequest Composite API maximum');
+        System.assertEquals(1, subrequestCount(mock.requests[1]),
+            'Second chunk should carry the remaining subrequest');
+    }
+
+    private static Integer subrequestCount(HttpRequest req) {
+        Map<String, Object> body = (Map<String, Object>) JSON.deserializeUntyped(req.getBody());
+        return ((List<Object>) body.get('compositeRequest')).size();
     }
 
     @IsTest
