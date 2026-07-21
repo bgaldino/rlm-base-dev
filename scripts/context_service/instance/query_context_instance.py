@@ -16,9 +16,11 @@ handled. ``--target-org`` is the SF CLI alias (e.g. ``rlm-base__beta``), never t
 CCI alias.
 
 The ``contextId`` is request-scoped (see the note this prints) — an id minted by a
-separate ``create_context_instance.py`` call is only queryable here if the org's
-Instance-Reuse setting is on and you are within contextTtl; otherwise use
-``context_session.py``.
+separate ``create_context_instance.py`` call is only queryable here if that
+instance was created with ``--context-scope SESSION`` (pilot-gated) and you are
+within contextTtl; a default REQUEST-scoped id will not resolve here. For a GA
+single-request lifecycle, drive create→query from Apex
+(``Context.IndustriesContext``) or one Flow.
 
 Usage:
     python scripts/context_service/instance/query_context_instance.py \
@@ -35,7 +37,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from scripts.context_service._apply import Transport  # noqa: E402
 from scripts.context_service._client import ContextClientError, DEFAULT_API_VERSION, eprint  # noqa: E402
-from scripts.context_service._runtime import RuntimeContextClient, decode_compound_fields, flatten_query_records  # noqa: E402
+from scripts.context_service._runtime import RuntimeContextClient, decode_compound_fields, flatten_query_records, response_failure  # noqa: E402
 from scripts.context_service._runtime_cli import CONTEXT_ID_SCOPE_NOTE  # noqa: E402
 
 
@@ -102,6 +104,12 @@ def main(argv=None) -> int:
             # Tag results are a flat name→value shape; JSON is the clear rendering
             # for both modes.
             print(json.dumps(result, indent=2))
+            # A semantic failure (isSuccess:false) is a non-zero exit — the query
+            # succeeded at the HTTP layer but the platform rejected it (F4).
+            failure = response_failure(result)
+            if failure is not None:
+                eprint(f"Error: query-tags returned isSuccess:false — {failure}")
+                return 1
             return 0
 
         result = client.query_record(
@@ -118,8 +126,14 @@ def main(argv=None) -> int:
     result = result if isinstance(result, dict) else {}
     if args.json:
         print(json.dumps(result, indent=2))
-        return 0
-    _print_records_human(result)
+    else:
+        _print_records_human(result)
+    # A semantic failure (isSuccess:false) is a non-zero exit even though the HTTP
+    # call succeeded — do not report a rejected query as success (F4).
+    failure = response_failure(result)
+    if failure is not None:
+        eprint(f"Error: query-record returned isSuccess:false — {failure}")
+        return 1
     return 0
 
 

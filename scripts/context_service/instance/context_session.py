@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """Run a full runtime Context Service lifecycle in one process (EXPERIMENTAL).
 
-**Primary entry point** for exercising the runtime half of Context Service.
-Because a runtime ``contextId`` is a request-scoped cache handle (it may not
-survive across separate ``sf`` invocations), the reliable way to hydrate → use →
-persist a context is to do it back-to-back in one process. This orchestrates:
+**Primary CLI entry point** for exercising the runtime half of Context Service.
+It sequences the lifecycle from one Python process:
 
     create (or reuse --context-id)
       → update-attributes  (--update-attr, repeatable)
@@ -12,6 +10,15 @@ persist a context is to do it back-to-back in one process. This orchestrates:
       → query-record       (--query)
       → persist-records    (--persist)
       → delete/evict        (unless --keep or reusing --context-id)
+
+⚠️  This does **not** work around contextId scoping. Each step above is a
+separate ``sf api request``, so a runtime ``contextId`` created with the default
+REQUEST scope will not survive to the query/persist steps. To chain create →
+use → persist across those calls you must pass ``--context-scope SESSION``
+(pilot-gated; needs the org's "Runtime Context Instance Reuse" setting, within
+contextTtl) or reuse an existing instance via ``--context-id``. For a GA
+single-request lifecycle, drive it from Apex (``Context.IndustriesContext``) or a
+single Flow instead.
 
 ⚠️  **EXPERIMENTAL / verify-live (262 / v67.0).** Not build-critical, not wired
 into any CCI flow. Auth is delegated to the ``sf`` CLI — no access token is
@@ -324,6 +331,13 @@ def main(argv=None) -> int:
     if isinstance(outcome, dict) and outcome.get("is_failure"):
         return 1
     if summary.get("create_failed"):
+        return 1
+    # Any semantic (isSuccess:false) failure on update/tag/query/persist, or a
+    # live persist that returned no referenceId, is a non-zero exit (F4).
+    failures = summary.get("semantic_failures")
+    if failures:
+        for f in failures:
+            eprint(f"Semantic failure in {f.get('step')}: {f.get('message')}")
         return 1
     return 0
 

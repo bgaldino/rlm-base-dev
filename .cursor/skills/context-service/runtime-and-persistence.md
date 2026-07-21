@@ -154,8 +154,11 @@ POST /connect/contexts/persist-records   persist  →  { referenceId }  (→ Con
 DELETE /connect/contexts/{contextId}     evict the instance
 ```
 
-`context_session.py` runs this whole sequence in **one process** (see below);
-the individual scripts each do one step.
+`context_session.py` sequences this whole flow from **one Python process** (see
+below); the individual scripts each do one step. Note "one process" is not the
+same as "one request": each step is still a separate `sf api request`, so a
+REQUEST-scoped `contextId` will not survive from create to query/persist — see the
+next section.
 
 ## `contextId` is request-scoped — the fact that shapes everything
 

@@ -11,9 +11,12 @@ into any CCI flow. Auth is delegated to the ``sf`` CLI — no access token is
 handled. ``--target-org`` is the SF CLI alias (e.g. ``rlm-base__beta``), never
 the CCI alias.
 
-The returned ``contextId`` is a request-scoped cache handle and may not survive
-across separate CLI invocations (see the note this prints). For an end-to-end
-round trip in one process, prefer ``context_session.py``.
+The returned ``contextId`` is a request-scoped cache handle. With the default
+REQUEST scope it will not survive to a separate ``query_context_instance.py`` /
+``persist_context_instance.py`` call (each is its own ``sf api request``; see the
+note this prints). To chain those calls, create with ``--context-scope SESSION``
+(pilot-gated) or reuse the instance by id; for a GA single-request lifecycle, use
+Apex (``Context.IndustriesContext``) or one Flow.
 
 Data payload: the nested ``data`` object keyed by node / ``businessObjectType``
 name (build it with ``build_hydration_data.py``). Supplied via ``--data-file`` /
@@ -38,7 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from scripts.context_service._apply import Transport  # noqa: E402
 from scripts.context_service._client import ContextClientError, DEFAULT_API_VERSION, eprint  # noqa: E402
-from scripts.context_service._runtime import RuntimeContextClient  # noqa: E402
+from scripts.context_service._runtime import RuntimeContextClient, response_failure  # noqa: E402
 from scripts.context_service._runtime_cli import (  # noqa: E402
     CONTEXT_ID_SCOPE_NOTE,
     EXPERIMENTAL_BANNER,
@@ -148,11 +151,13 @@ def main(argv=None) -> int:
     info = info if isinstance(info, dict) else {}
     # A create can return isSuccess:false (or hydrate zero records with a
     # contextId) — surface it and exit non-zero rather than emit a contextId that
-    # points at a failed/empty instance.
-    create_failed = info.get("isSuccess") is False
+    # points at a failed/empty instance. Uses the shared response_failure check so
+    # every runtime CLI classifies a semantic failure the same way (F4).
+    failure = response_failure(info)
+    create_failed = failure is not None
     if create_failed:
         eprint("Error: create returned isSuccess:false — the instance was not "
-               f"hydrated. Response: {json.dumps(info)}")
+               f"hydrated ({failure}). Response: {json.dumps(info)}")
     if args.id_only:
         context_id = info.get("contextId") or info.get("id") or ""
         if create_failed:

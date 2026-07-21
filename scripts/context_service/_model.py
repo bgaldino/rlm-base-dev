@@ -362,6 +362,15 @@ def normalize_plan(plan: Dict[str, Any]) -> Dict[str, Any]:
             "hydration": hydration,
         }
 
+    # A bare top-level ``defaultMapping`` naming a mapping with no shell block or
+    # mappingRule row would otherwise never enter ``mappings`` — the requested
+    # default would silently vanish from the model, so a plan-vs-org diff could
+    # not see (and a patch could not preserve) the default designation. Seed a
+    # shell for any default-only name so the diff surfaces it. ``setdefault``
+    # leaves existing entries (already carrying the right ``isDefault``) intact.
+    for name in default_mappings:
+        mappings.setdefault(name, {"isDefault": True, "nodes": {}})
+
     tags: Dict[str, Any] = {}
     for tag in plan.get("contextTagsByName") or []:
         if not isinstance(tag, dict) or not tag.get("name"):

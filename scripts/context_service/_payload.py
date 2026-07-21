@@ -20,6 +20,7 @@ Cited line numbers refer to ``tasks/rlm_context_service.py`` at port time.
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import _client  # leaf module (no network at import) — for the shared tag-unwrap
+from ._model import _hydration_hops  # canonical GET-hydration flattener (import-only)
 
 
 # --------------------------------------------------------------------------- #
@@ -761,6 +762,82 @@ def translate_mapping_rules(
 # Verification (returns structure; scripts + task both render from it)
 # --------------------------------------------------------------------------- #
 
+def _expected_hydration_hops(rule: Dict[str, Any]) -> List[str]:
+    """Reconstruct the hydration hop chain a SObject mapping rule requests.
+
+    Mirrors ``_model.normalize_plan`` (which builds the same chain for the diff):
+    a simple rule is one hop ``sObject.sObjectField``; a traversal rule prepends
+    the lookup hop and appends the terminal ``childSObject.childSObjectField``.
+    Used for display; the *mismatch* decision compares the terminal source field
+    (see ``_binding_mismatch``), not the whole chain.
+    """
+    hops: List[str] = []
+    s_object, s_field = rule.get("sObject"), rule.get("sObjectField")
+    child_object, child_field = rule.get("childSObject"), rule.get("childSObjectField")
+    if child_object and child_field:
+        if s_object and s_field:
+            hops.append(f"{s_object}.{s_field}")
+        hops.append(f"{child_object}.{child_field}")
+    elif s_object and s_field:
+        hops.append(f"{s_object}.{s_field}")
+    return hops
+
+
+def _ci_eq(a: Optional[str], b: Optional[str]) -> bool:
+    """Case-insensitive equality for SObject / field API names.
+
+    Salesforce SObject and field API names are case-insensitive, so the org GET
+    can echo a field in a different case than the plan authored it. Comparing
+    case-sensitively here would wrongly fail a correctly-bound field.
+    """
+    return (a or "").casefold() == (b or "").casefold()
+
+
+def _terminal_field(hops: List[str]) -> Optional[str]:
+    """The deepest hop's field — the real source field a hydration chain lands on.
+
+    A simple mapping is one hop (``Quote.Amount`` -> ``Amount``); a traversal
+    nests intermediate lookup hops then the terminal field
+    (``QuoteLineItem.Product2`` -> ``Product2.ProductCode`` -> ``ProductCode``).
+    """
+    if not hops:
+        return None
+    return hops[-1].rpartition(".")[2] or None
+
+
+def _binding_mismatch(rule: Dict[str, Any], org_sobject: Optional[str],
+                      actual_hops: List[str]) -> bool:
+    """True when a matched rule's org binding contradicts what the plan requested.
+
+    Grounded in the canonical model (``docs/references/context-service-patch-shapes.md``,
+    ``.cursor/skills/context-service/data-model-and-api.md``): a hydration
+    detail's ``queryAttribute`` **is** the source SObject field API name, and
+    there is ≤1 detail per attribute mapping — so a simple mapping's terminal
+    field must equal the plan's ``sObjectField``. Deliberately lenient to avoid
+    blocking valid configs:
+
+    * comparisons are **case-insensitive** (API names are);
+    * only the **root SObject** and the **terminal source field** are compared —
+      NOT the full hop chain. Multi-hop traversal chains are not fully recoverable
+      from the flattened GET (see ``_model._mappings_to_rules`` caveats), so a
+      valid deeper traversal that still lands on the requested terminal field is
+      NOT a mismatch;
+    * an **empty** actual chain is a hydration *gap* (reported separately), not a
+      mismatch — this only fires when a chain is present and points elsewhere.
+    """
+    if not actual_hops:
+        return False
+    plan_sobject = rule.get("sObject")
+    if plan_sobject and org_sobject and not _ci_eq(plan_sobject, org_sobject):
+        return True
+    # Terminal field the plan requests: childSObjectField for a traversal, else
+    # the simple sObjectField.
+    expected_terminal = rule.get("childSObjectField") or rule.get("sObjectField")
+    if not expected_terminal:
+        return False  # plan requested no specific field — nothing to contradict
+    return not _ci_eq(expected_terminal, _terminal_field(actual_hops))
+
+
 def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str, Any]:
     """Port of ``_log_verification`` (rlm_context_service.py:1538-1643) that
     **returns** the matched/missing/present structure instead of logging it.
@@ -769,10 +846,19 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
     ``(mapping, node, attr)`` tuples), ``found_attrs`` (sorted names),
     ``found_tags`` (sorted ``node.attr:tag`` strings), ``missing_attrs`` /
     ``missing_tags`` (declared-but-absent, sorted), ``hydration_gaps`` (matched
-    SOBJECT rules with no hydration detail), plus ``ok`` (bool). ``ok`` is True
-    only when the definition fully realizes the plan: **no** missing mapping
-    rules, **no** missing declared attributes/tags, and **no** hydration gaps —
-    matching the contract that a matched SObject rule must carry hydration.
+    SOBJECT rules with no hydration detail), ``binding_mismatches`` (matched
+    rules whose org ``sObjectName`` / hydration ``queryAttribute`` chain differs
+    from the plan's requested ``sObject`` / ``sObjectField`` / traversal),
+    ``missing_nodes`` (plan-declared nodes absent from the org),
+    ``missing_mappings`` (plan-declared mapping shells absent from the org),
+    ``default_mapping_gaps`` (mappings the plan requests as default that the org
+    does not flag ``isDefault``), plus ``ok`` (bool). ``ok`` is True only when the
+    definition fully realizes the plan: **no** missing mapping rules, **no**
+    missing declared attributes/tags, **no** hydration gaps, **no** binding
+    mismatches, and **no** missing nodes / mapping shells / default-mapping gaps.
+    A matched attribute rule alone is not enough — the field it binds to and the
+    node/mapping/default it lives in must all match, or ``--verify`` would certify
+    a miswired definition.
     """
     result: Dict[str, Any] = {
         "matched_rules": [],
@@ -782,6 +868,10 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
         "missing_attrs": [],
         "missing_tags": [],
         "hydration_gaps": [],
+        "binding_mismatches": [],
+        "missing_nodes": [],
+        "missing_mappings": [],
+        "default_mapping_gaps": [],
         "ok": False,
     }
     version0 = _version0(detail)
@@ -793,10 +883,18 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
         (r.get("mappingName"), r.get("contextNode"), r.get("contextAttribute"))
         for r in mapping_rules if isinstance(r, dict)
     }
+    # Keep the full rule alongside its key so the matched-rule loop can compare
+    # the actual org binding (sObjectName + hydration chain) against what the
+    # plan requested — the check Finding 1 adds.
+    rule_by_key = {
+        (r.get("mappingName"), r.get("contextNode"), r.get("contextAttribute")): r
+        for r in mapping_rules if isinstance(r, dict)
+    }
     tags_by_name = plan.get("contextTagsByName", []) or []
     attrs_by_name = plan.get("contextAttributesByName", []) or []
 
     matched_rules = []
+    binding_mismatches = []
     for mapping in version0.get("contextMappings", []):
         if not isinstance(mapping, dict):
             continue
@@ -820,6 +918,29 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
                         "contextInputAttribute": attr.get("contextInputAttributeName"),
                         "hasHydrationDetail": bool(attr.get("contextAttrHydrationDetailList")),
                     })
+                    # Finding 1 — a matched rule is not enough: compare the actual
+                    # SObject field binding against the plan's request. CONTEXT
+                    # rules bind a context source (no sObjectField), so skip them.
+                    rule = rule_by_key.get(key) or {}
+                    is_context = (
+                        rule.get("mappingType") == "CONTEXT"
+                        or rule.get("sourceContextNode")
+                    )
+                    if not is_context:
+                        actual_hops: List[str] = []
+                        for h in attr.get("contextAttrHydrationDetailList") or []:
+                            if isinstance(h, dict):
+                                actual_hops.extend(_hydration_hops(h, sobject))
+                        if _binding_mismatch(rule, sobject, actual_hops):
+                            binding_mismatches.append({
+                                "mapping": mapping_name,
+                                "node": node_name,
+                                "contextAttribute": attr_name,
+                                "expected": {"sObject": rule.get("sObject"),
+                                             "hydration": _expected_hydration_hops(rule)},
+                                "actual": {"sObject": sobject,
+                                           "hydration": actual_hops},
+                            })
 
     missing_rules = []
     for key in sorted(rule_keys):
@@ -880,6 +1001,93 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
     }
     missing_tags = sorted(expected_tags - found_tag_set)
 
+    # Finding 2 — the plan can declare structural artifacts (nodes, mapping
+    # shells, a default mapping) that carry no mappingRules / attributes / tags,
+    # so none of the checks above would notice them missing. An empty mapping
+    # shell is a valid create-plan artifact. Collect what the plan declares and
+    # subtract what the org realizes.
+    org_node_names = collect_node_names(detail)
+    missing_nodes = sorted(
+        node["name"]
+        for node in plan.get("contextNodeDefinitions") or []
+        if isinstance(node, dict) and node.get("name")
+        and node["name"] not in org_node_names
+    )
+
+    # Org-side mapping shells: name -> {isDefault, nodeSObjects{node: sObject}}.
+    org_mappings: Dict[str, Dict[str, Any]] = {}
+    for mapping in version0.get("contextMappings", []) or []:
+        if not isinstance(mapping, dict) or not mapping.get("name"):
+            continue
+        node_sobjects = {}
+        for node_map in mapping.get("contextNodeMappings", []) or []:
+            if isinstance(node_map, dict) and node_map.get("contextNodeName"):
+                node_sobjects[node_map["contextNodeName"]] = node_map.get("sObjectName")
+        org_mappings[mapping["name"]] = {
+            "isDefault": as_bool(mapping.get("isDefault")),
+            "nodeSObjects": node_sobjects,
+        }
+
+    # Plan-declared mapping shells come from the contextMappings /
+    # contextMappingUpdates blocks (the create/update shell source). A shell is
+    # "missing" when its name isn't a mapping on the org; a node SObject binding
+    # is a mismatch when the org's shell binds the node to a different sObject
+    # than the plan's mappingRules request for that mapping/node.
+    missing_mappings: List[str] = []
+    for block_key in ("contextMappings", "contextMappingUpdates"):
+        block = plan.get(block_key)
+        rows = block.get("contextMappings") if isinstance(block, dict) else None
+        for row in rows or []:
+            if not isinstance(row, dict) or not row.get("name"):
+                continue
+            if row["name"] not in org_mappings:
+                missing_mappings.append(row["name"])
+    # A mappingRule naming a mapping the org has no shell for is also a missing
+    # shell (rules bind into shells that must already exist).
+    for r in mapping_rules:
+        if isinstance(r, dict) and r.get("mappingName") and r["mappingName"] not in org_mappings:
+            missing_mappings.append(r["mappingName"])
+    missing_mappings = sorted(set(missing_mappings))
+
+    # Node SObject binding mismatches: a plan rule requests mapping/node -> sObject
+    # but the org's shell binds that node to a different sObject.
+    for r in mapping_rules:
+        if not isinstance(r, dict):
+            continue
+        mname, node_name, want_sobject = (
+            r.get("mappingName"), r.get("contextNode"), r.get("sObject"))
+        if not (mname and node_name and want_sobject):
+            continue
+        org_map = org_mappings.get(mname)
+        if not org_map or node_name not in org_map["nodeSObjects"]:
+            continue  # missing shell / node handled elsewhere (missing_mappings / rules)
+        actual_sobject = org_map["nodeSObjects"][node_name]
+        if actual_sobject and not _ci_eq(actual_sobject, want_sobject) and not any(
+            b["mapping"] == mname and b["node"] == node_name for b in binding_mismatches
+        ):
+            binding_mismatches.append({
+                "mapping": mname, "node": node_name, "contextAttribute": None,
+                "expected": {"sObject": want_sobject, "hydration": []},
+                "actual": {"sObject": actual_sobject, "hydration": []},
+            })
+
+    # Requested default mapping (top-level defaultMapping or an isDefault shell
+    # row) that the org does not honor.
+    requested_defaults = set()
+    top_default = plan.get("defaultMapping")
+    if isinstance(top_default, str) and top_default:
+        requested_defaults.add(top_default)
+    for block_key in ("contextMappings", "contextMappingUpdates"):
+        block = plan.get(block_key)
+        rows = block.get("contextMappings") if isinstance(block, dict) else None
+        for row in rows or []:
+            if isinstance(row, dict) and as_bool(row.get("isDefault")) and row.get("name"):
+                requested_defaults.add(row["name"])
+    default_mapping_gaps = sorted(
+        name for name in requested_defaults
+        if not (org_mappings.get(name) or {}).get("isDefault")
+    )
+
     result["matched_rules"] = matched_rules
     result["missing_rules"] = missing_rules
     result["found_attrs"] = sorted(found_attr_set)
@@ -887,10 +1095,18 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
     result["missing_attrs"] = missing_attrs
     result["missing_tags"] = missing_tags
     result["hydration_gaps"] = hydration_gaps
+    result["binding_mismatches"] = binding_mismatches
+    result["missing_nodes"] = missing_nodes
+    result["missing_mappings"] = missing_mappings
+    result["default_mapping_gaps"] = default_mapping_gaps
     # ``ok`` must include every failure the result reports (per the contract):
-    # missing mapping rules, missing declared attributes/tags, and hydration
-    # gaps (a matched SObject rule with no hydration detail).
+    # missing mapping rules, missing declared attributes/tags, hydration gaps (a
+    # matched SObject rule with no hydration detail), field-binding mismatches (a
+    # matched rule bound to the wrong sObject/field — Finding 1), and missing
+    # structural artifacts (nodes / mapping shells / requested default — Finding 2).
     result["ok"] = not (
         missing_rules or missing_attrs or missing_tags or hydration_gaps
+        or binding_mismatches or missing_nodes or missing_mappings
+        or default_mapping_gaps
     )
     return result

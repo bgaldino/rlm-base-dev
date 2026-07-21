@@ -33,6 +33,7 @@ import scripts.context_service._model as _model  # noqa: E402
 import scripts.context_service._mutate as _mutate  # noqa: E402
 import scripts.context_service._payload as _payload  # noqa: E402
 import scripts.context_service.definition.diff_context as diff_context  # noqa: E402
+import scripts.context_service.definition.patch_context as patch_context  # noqa: E402
 
 RESULTS = []
 
@@ -1762,6 +1763,172 @@ def test_diff_plan_mode_default_is_directional():
 
 
 # --------------------------------------------------------------------------- #
+# Finding 3 (patch_context) — the emitted patch must SERIALIZE the additive
+# shell/default drift diff_models now surfaces (a source-only mapping shell, and
+# a default the source asserts), and CAVEAT the non-additive rest (node rebinds,
+# default-unset, bare node shells) rather than silently discarding it. Previously
+# _build_include / _has_delta / _candidate_deletions inspected only the four
+# artifact categories, so all shell drift fell on the floor.
+# --------------------------------------------------------------------------- #
+
+def _patch_shell_model(mappings, dev="RLM_ShellPatch", active=True):
+    """A minimal normalized model carrying only a mappings tree (patch tests)."""
+    return {
+        "developerName": dev, "isActive": active,
+        "nodes": {}, "attributes": {}, "mappings": mappings, "tags": {},
+    }
+
+
+def test_patch_serializes_source_only_mapping_shell():
+    # Source has a mapping shell the target lacks → the patch must emit it as a
+    # contextMappings POST block (mappingRules bind into shells; they never mint
+    # one), so applying the patch creates the shell.
+    source = _patch_shell_model({
+        "KeptMapping": {"isDefault": False, "nodes": {}},
+        "NewShell": {"isDefault": False, "nodes": {}},
+    })
+    target = _patch_shell_model({
+        "KeptMapping": {"isDefault": False, "nodes": {}},
+    })
+    diff = diff_context.diff_models(source, target)  # org-vs-org
+    patch = patch_context._emit_patch(source, diff, custom_only=False,
+                                      source_is_full=True)
+    shells = (patch["plan"].get("contextMappings") or {}).get("contextMappings") or []
+    names = {s["name"] for s in shells}
+    check("source-only mapping shell serialized into contextMappings POST block",
+          "NewShell" in names)
+    check("existing (target) shell NOT re-emitted", "KeptMapping" not in names)
+    check("emitting only a shell counts as a delta", patch["hasDelta"] is True)
+
+
+def test_patch_serializes_asserted_default_mapping():
+    # Source asserts a default the target does not honor → the patch emits
+    # defaultMapping so the apply flow flags it before activation.
+    source = _patch_shell_model({"M": {"isDefault": True, "nodes": {}}})
+    target = _patch_shell_model({"M": {"isDefault": False, "nodes": {}}})
+    diff = diff_context.diff_models(source, target)  # org-vs-org
+    patch = patch_context._emit_patch(source, diff, custom_only=False,
+                                      source_is_full=True)
+    check("asserted default serialized into defaultMapping",
+          patch["plan"].get("defaultMapping") == "M")
+    check("a default designation counts as a delta", patch["hasDelta"] is True)
+
+
+def test_patch_fresh_shell_carries_its_default():
+    # A source-only shell that is itself the source's default → both the shell
+    # POST block AND the defaultMapping designation are emitted (there is no
+    # 'changed' row because the target lacks the shell entirely).
+    source = _patch_shell_model({"FreshDefault": {"isDefault": True, "nodes": {}}})
+    target = _patch_shell_model({})
+    diff = diff_context.diff_models(source, target)
+    patch = patch_context._emit_patch(source, diff, custom_only=False,
+                                      source_is_full=True)
+    shells = (patch["plan"].get("contextMappings") or {}).get("contextMappings") or []
+    check("fresh default shell emitted as POST block",
+          {s["name"] for s in shells} == {"FreshDefault"})
+    check("fresh default shell also flagged as defaultMapping",
+          patch["plan"].get("defaultMapping") == "FreshDefault")
+
+
+def test_patch_caveats_node_sobject_rebind():
+    # Rebinding an existing node mapping to a different sObject is a modification
+    # the additive plan cannot express → caveat, not silent discard.
+    source = _patch_shell_model({
+        "QuoteEntitiesMapping": {"isDefault": False, "nodes": {
+            "SalesTransaction": {"sObject": "Order", "attributes": {}}}},
+    })
+    target = _patch_shell_model({
+        "QuoteEntitiesMapping": {"isDefault": False, "nodes": {
+            "SalesTransaction": {"sObject": "Quote", "attributes": {}}}},
+    })
+    diff = diff_context.diff_models(source, target)  # org-vs-org
+    patch = patch_context._emit_patch(source, diff, custom_only=False,
+                                      source_is_full=True)
+    check("node sObject rebind surfaced as a caveat",
+          any("rebinding" in c.lower() for c in patch["caveats"]))
+    check("rebind names both sObjects",
+          any("Order" in c and "Quote" in c for c in patch["caveats"]))
+
+
+def test_patch_caveats_default_unset():
+    # Target has a default the source unset (only reachable org-vs-org) — a
+    # deactivate-first modification → caveat, never emitted as a plan directive.
+    source = _patch_shell_model({"M": {"isDefault": False, "nodes": {}}})
+    target = _patch_shell_model({"M": {"isDefault": True, "nodes": {}}})
+    diff = diff_context.diff_models(source, target, plan_mode=False)  # org-vs-org
+    patch = patch_context._emit_patch(source, diff, custom_only=False,
+                                      source_is_full=True)
+    check("default-unset surfaced as a caveat",
+          any("unsetting a default" in c for c in patch["caveats"]))
+    check("default-unset NOT emitted as defaultMapping",
+          patch["plan"].get("defaultMapping") is None)
+
+
+def test_patch_caveats_bare_source_node_shell():
+    # An empty node shell (node bound to an sObject, zero attribute mappings) the
+    # source has and target lacks, inside a mapping that already exists on both →
+    # no attribute rows to carry it, and no fresh shell POST → caveat.
+    source = _patch_shell_model({
+        "SharedMapping": {"isDefault": False, "nodes": {
+            "BareNode": {"sObject": "Quote", "attributes": {}}}},
+    })
+    target = _patch_shell_model({
+        "SharedMapping": {"isDefault": False, "nodes": {}},
+    })
+    diff = diff_context.diff_models(source, target)  # org-vs-org
+    patch = patch_context._emit_patch(source, diff, custom_only=False,
+                                      source_is_full=True)
+    check("bare source node shell surfaced as a caveat",
+          any("bare node shell" in c for c in patch["caveats"]))
+
+
+def test_patch_candidate_deletions_include_target_only_shells():
+    # A mapping shell present only on the TARGET is a candidate deletion (v1 never
+    # deletes) — it must be reported, not silently ignored.
+    source = _patch_shell_model({"KeptMapping": {"isDefault": False, "nodes": {}}})
+    target = _patch_shell_model({
+        "KeptMapping": {"isDefault": False, "nodes": {}},
+        "OrgOnlyShell": {"isDefault": False, "nodes": {}},
+    })
+    diff = diff_context.diff_models(source, target)  # org-vs-org, source is full
+    patch = patch_context._emit_patch(source, diff, custom_only=False,
+                                      source_is_full=True)
+    dels = patch["candidateDeletions"]
+    check("target-only mapping shell reported as candidate deletion",
+          "OrgOnlyShell" in (dels.get("mappingShells") or []))
+    check("target-only shell NOT serialized into the plan",
+          "OrgOnlyShell" not in {
+              s["name"] for s in (patch["plan"].get("contextMappings") or {}).get(
+                  "contextMappings") or []})
+
+
+def test_patch_no_shell_drift_no_shell_keys():
+    # When shells match on both sides, the emitted plan carries no contextMappings
+    # / defaultMapping and no shell caveats — no false positives.
+    model = _patch_shell_model({"M": {"isDefault": True, "nodes": {}}})
+    diff = diff_context.diff_models(model, model)
+    patch = patch_context._emit_patch(model, diff, custom_only=False,
+                                      source_is_full=True)
+    check("no shell drift → no contextMappings block",
+          patch["plan"].get("contextMappings") is None)
+    check("no shell drift → no defaultMapping", patch["plan"].get("defaultMapping") is None)
+    check("no shell drift → no delta", patch["hasDelta"] is False)
+
+
+def test_patch_plan_mode_suppresses_org_only_default():
+    # plan-vs-org: an org-only default (plan silent) is NOT the plan's drift, so
+    # the patch emits neither a defaultMapping directive nor a caveat for it.
+    plan_silent = _patch_shell_model({"M": {"isDefault": False, "nodes": {}}})
+    org_asserts = _patch_shell_model({"M": {"isDefault": True, "nodes": {}}})
+    diff = diff_context.diff_models(plan_silent, org_asserts, plan_mode=True)
+    patch = patch_context._emit_patch(plan_silent, diff, custom_only=False,
+                                      source_is_full=False)
+    check("plan-mode: org-only default not emitted", patch["plan"].get("defaultMapping") is None)
+    check("plan-mode: org-only default not caveated",
+          not any("default" in c.lower() for c in patch["caveats"]))
+
+
+# --------------------------------------------------------------------------- #
 # Finding 4 — add-mapping rebind conflict: a "complete" existing binding to a
 # DIFFERENT field must raise, not silently no-op (which would leave the old
 # binding intact while exiting 0).
@@ -1901,6 +2068,189 @@ def test_verification_hydration_gap_is_not_ok():
               for g in result["hydration_gaps"]))
     check("the rule still matched (not a missing rule)", not result["missing_rules"])
     check("a hydration gap makes ok=False", result["ok"] is False)
+
+
+# --------------------------------------------------------------------------- #
+# Finding 1 (PR #301, comment 3622554133) — a matched attribute rule is not
+# enough: the actual SObject field binding (sObjectName + flattened hydration
+# queryAttribute chain) must match the plan's requested sObject / sObjectField /
+# traversal, or --verify would certify a miswired field.
+# --------------------------------------------------------------------------- #
+
+def test_verification_wrong_hydration_field_is_binding_mismatch():
+    # Org hydrates Quote.Wrong__c; the plan requested Quote.RLM_TotalCost__c.
+    # The rule matches by name but the field binding is wrong → ok=False.
+    detail = _verif_detail(hydration=True)  # binds Quote.RLM_TotalCost__c
+    # Rewrite the org-side hydration to the wrong field.
+    (detail["contextDefinitionVersionList"][0]["contextMappings"][0]
+     ["contextNodeMappings"][0]["attributeMappings"][0]
+     ["contextAttrHydrationDetailList"]) = [
+        {"sObjectDomain": "Quote", "queryAttribute": "Wrong__c"}]
+    plan = {"mappingRules": [{"mappingName": "QuoteEntitiesMapping",
+                              "contextNode": "SalesTransaction",
+                              "contextAttribute": "TotalCost__c",
+                              "sObject": "Quote", "sObjectField": "RLM_TotalCost__c"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("wrong hydration field is a binding mismatch",
+          any(b["node"] == "SalesTransaction"
+              and b["contextAttribute"] == "TotalCost__c"
+              and b["actual"]["hydration"] == ["Quote.Wrong__c"]
+              and b["expected"]["hydration"] == ["Quote.RLM_TotalCost__c"]
+              for b in result["binding_mismatches"]))
+    check("the rule still matched (not a missing rule)", not result["missing_rules"])
+    check("a binding mismatch makes ok=False", result["ok"] is False)
+
+
+def test_verification_wrong_sobject_is_binding_mismatch():
+    # Org binds the node to Order; the plan requested Quote → ok=False.
+    detail = _verif_detail(hydration=True)
+    (detail["contextDefinitionVersionList"][0]["contextMappings"][0]
+     ["contextNodeMappings"][0])["sObjectName"] = "Order"
+    plan = {"mappingRules": [{"mappingName": "QuoteEntitiesMapping",
+                              "contextNode": "SalesTransaction",
+                              "contextAttribute": "TotalCost__c",
+                              "sObject": "Quote", "sObjectField": "RLM_TotalCost__c"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("wrong sObject is a binding mismatch",
+          any(b["actual"]["sObject"] == "Order" and b["expected"]["sObject"] == "Quote"
+              for b in result["binding_mismatches"]))
+    check("a wrong-sObject binding makes ok=False", result["ok"] is False)
+
+
+def test_verification_correct_binding_has_no_mismatch():
+    # The fully-realized fixture binds Quote.RLM_TotalCost__c exactly as the plan
+    # requests → no binding mismatch, ok=True.
+    detail = _verif_detail(hydration=True, tag_name=None)
+    plan = {"mappingRules": [{"mappingName": "QuoteEntitiesMapping",
+                              "contextNode": "SalesTransaction",
+                              "contextAttribute": "TotalCost__c",
+                              "sObject": "Quote", "sObjectField": "RLM_TotalCost__c"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("correct binding yields no mismatch", not result["binding_mismatches"])
+    check("correct binding verifies ok=True", result["ok"] is True)
+
+
+def test_verification_binding_compare_is_case_insensitive():
+    # API names are case-insensitive: the org echoing a different case than the
+    # plan authored must NOT be flagged as a mismatch (would block valid configs).
+    detail = _verif_detail(hydration=True, tag_name=None)
+    (detail["contextDefinitionVersionList"][0]["contextMappings"][0]
+     ["contextNodeMappings"][0]["attributeMappings"][0]
+     ["contextAttrHydrationDetailList"]) = [
+        {"sObjectDomain": "quote", "queryAttribute": "rlm_totalcost__C"}]
+    plan = {"mappingRules": [{"mappingName": "QuoteEntitiesMapping",
+                              "contextNode": "SalesTransaction",
+                              "contextAttribute": "TotalCost__c",
+                              "sObject": "Quote", "sObjectField": "RLM_TotalCost__c"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("case-only difference is NOT a binding mismatch",
+          not result["binding_mismatches"])
+    check("case-insensitive binding verifies ok=True", result["ok"] is True)
+
+
+def test_verification_traversal_terminal_field_match_is_ok():
+    # A valid multi-hop traversal that lands on the requested terminal field must
+    # NOT be flagged, even though the org's flattened chain has more/other hops
+    # than the plan's 2-level model expresses (the chain is not fully recoverable
+    # from the GET — comparing the whole chain would block a valid traversal).
+    detail = _verif_detail(hydration=False, tag_name=None)
+    node_map = (detail["contextDefinitionVersionList"][0]["contextMappings"][0]
+                ["contextNodeMappings"][0])
+    node_map["sObjectName"] = "QuoteLineItem"  # a traversal's node binds to its root
+    node_map["attributeMappings"][0]["contextAttrHydrationDetailList"] = [
+        {"sObjectDomain": "QuoteLineItem", "queryAttribute": "Product2Id",
+         "childDetails": [{"sObjectDomain": "Product2", "queryAttribute": "ProductCode"}]}]
+    plan = {"mappingRules": [{"mappingName": "QuoteEntitiesMapping",
+                              "contextNode": "SalesTransaction",
+                              "contextAttribute": "TotalCost__c",
+                              "sObject": "QuoteLineItem", "sObjectField": "Product2",
+                              "childSObject": "Product2", "childSObjectField": "ProductCode"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("traversal landing on requested terminal field is not a mismatch",
+          not result["binding_mismatches"])
+    check("valid traversal verifies ok=True", result["ok"] is True)
+
+
+def test_verification_traversal_wrong_terminal_field_is_mismatch():
+    # A traversal that lands on the WRONG terminal field IS a mismatch.
+    detail = _verif_detail(hydration=False, tag_name=None)
+    node_map = (detail["contextDefinitionVersionList"][0]["contextMappings"][0]
+                ["contextNodeMappings"][0])
+    node_map["sObjectName"] = "QuoteLineItem"
+    node_map["attributeMappings"][0]["contextAttrHydrationDetailList"] = [
+        {"sObjectDomain": "QuoteLineItem", "queryAttribute": "Product2Id",
+         "childDetails": [{"sObjectDomain": "Product2", "queryAttribute": "Name"}]}]
+    plan = {"mappingRules": [{"mappingName": "QuoteEntitiesMapping",
+                              "contextNode": "SalesTransaction",
+                              "contextAttribute": "TotalCost__c",
+                              "sObject": "QuoteLineItem", "sObjectField": "Product2",
+                              "childSObject": "Product2", "childSObjectField": "ProductCode"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("traversal landing on wrong terminal field is a mismatch",
+          any(b["node"] == "SalesTransaction" for b in result["binding_mismatches"]))
+    check("wrong-terminal traversal makes ok=False", result["ok"] is False)
+
+
+# --------------------------------------------------------------------------- #
+# Finding 2 (PR #301, comment 3622554623) — ok must also reflect declared nodes,
+# mapping shells, node SObject bindings, and the requested default mapping. A
+# plan requiring a missing node / mapping shell / default must NOT verify ok.
+# --------------------------------------------------------------------------- #
+
+def test_verification_missing_declared_node_is_not_ok():
+    detail = _verif_detail()  # only SalesTransaction exists
+    plan = {"contextNodeDefinitions": [{"name": "SalesTransaction"},
+                                       {"name": "SalesTransactionItem"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("declared-but-absent node is listed in missing_nodes",
+          result["missing_nodes"] == ["SalesTransactionItem"])
+    check("a missing declared node makes ok=False", result["ok"] is False)
+
+
+def test_verification_missing_mapping_shell_is_not_ok():
+    # An empty mapping shell (valid create-plan artifact) that the org lacks.
+    detail = _verif_detail()  # only QuoteEntitiesMapping exists
+    plan = {"contextMappings": {"contextMappings": [{"name": "AssetEntitiesMapping"}]}}
+    result = _payload.plan_verification(detail, plan)
+    check("declared-but-absent mapping shell is listed in missing_mappings",
+          result["missing_mappings"] == ["AssetEntitiesMapping"])
+    check("a missing mapping shell makes ok=False", result["ok"] is False)
+
+
+def test_verification_requested_default_not_honored_is_not_ok():
+    # The org has the mapping but it is not flagged isDefault; the plan requests
+    # it as default → default_mapping_gaps, ok=False.
+    detail = _verif_detail()  # QuoteEntitiesMapping present, isDefault absent
+    plan = {"defaultMapping": "QuoteEntitiesMapping"}
+    result = _payload.plan_verification(detail, plan)
+    check("requested-but-unhonored default is listed in default_mapping_gaps",
+          result["default_mapping_gaps"] == ["QuoteEntitiesMapping"])
+    check("an unhonored default mapping makes ok=False", result["ok"] is False)
+
+
+def test_verification_honored_default_is_ok():
+    detail = _verif_detail(tag_name=None)
+    (detail["contextDefinitionVersionList"][0]["contextMappings"][0])["isDefault"] = True
+    plan = {"defaultMapping": "QuoteEntitiesMapping"}
+    result = _payload.plan_verification(detail, plan)
+    check("honored default mapping yields no gap", not result["default_mapping_gaps"])
+    check("honored default mapping verifies ok=True", result["ok"] is True)
+
+
+def test_verification_node_sobject_binding_mismatch_is_not_ok():
+    # The org shell binds SalesTransaction to Order but the plan rule requests
+    # Quote → node SObject binding mismatch (surfaced via binding_mismatches).
+    detail = _verif_detail(hydration=False, tag_name=None)
+    (detail["contextDefinitionVersionList"][0]["contextMappings"][0]
+     ["contextNodeMappings"][0])["sObjectName"] = "Order"
+    plan = {"mappingRules": [{"mappingName": "QuoteEntitiesMapping",
+                              "contextNode": "SalesTransaction",
+                              "contextAttribute": "TotalCost__c",
+                              "sObject": "Quote", "sObjectField": "RLM_TotalCost__c"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("node SObject binding mismatch surfaced",
+          any(b["actual"]["sObject"] == "Order" for b in result["binding_mismatches"]))
+    check("node SObject binding mismatch makes ok=False", result["ok"] is False)
 
 
 # --------------------------------------------------------------------------- #

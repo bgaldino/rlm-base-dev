@@ -16,8 +16,10 @@ changes are **not reliably saved** by persist — scalar field updates are the
 supported path. This is emitted to stderr on every run.
 
 The ``contextId`` is request-scoped (see the note this prints) — persisting an id
-minted by a separate call only works with the org's Instance-Reuse setting on and
-within contextTtl; otherwise use ``context_session.py``.
+minted by a separate call only works if that instance was created with
+``--context-scope SESSION`` (pilot-gated) and you are within contextTtl; a default
+REQUEST-scoped id will not resolve here. For a GA single-request lifecycle, drive
+create→persist from Apex (``Context.IndustriesContext``) or one Flow.
 
 Target mapping: ``--target-mapping-id`` directly, else ``--developer-name`` /
 ``--context-definition-id`` [+ ``--target-mapping-name``] resolves it (default
@@ -39,7 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from scripts.context_service._apply import Transport  # noqa: E402
 from scripts.context_service._client import ContextClientError, DEFAULT_API_VERSION, eprint  # noqa: E402
-from scripts.context_service._runtime import RuntimeContextClient  # noqa: E402
+from scripts.context_service._runtime import RuntimeContextClient, response_failure  # noqa: E402
 from scripts.context_service._runtime_cli import (  # noqa: E402
     CONTEXT_ID_SCOPE_NOTE,
     EXPERIMENTAL_BANNER,
@@ -110,6 +112,16 @@ def main(argv=None) -> int:
         return 0
 
     result = result if isinstance(result, dict) else {}
+
+    # A synchronous semantic failure (isSuccess:false) means the persist was
+    # rejected outright — there is no async job to confirm. Fail fast (F4).
+    sync_failure = response_failure(result)
+    if sync_failure is not None:
+        if args.json:
+            print(json.dumps({"persist": result}, indent=2, default=str))
+        eprint(f"Error: persist returned isSuccess:false — {sync_failure}")
+        return 1
+
     reference_id = result.get("referenceId") or result.get("id")
 
     # persist-records is async: the referenceId is an AsyncOperationTracker Id,
@@ -138,6 +150,12 @@ def main(argv=None) -> int:
                    f"AsyncOperationTracker Id={reference_id}.")
 
     if isinstance(outcome, dict) and outcome.get("is_failure"):
+        return 1
+    # A live persist that did not fail synchronously yet returned no referenceId
+    # cannot be confirmed — do not report a success we cannot substantiate (F4).
+    if not reference_id:
+        eprint("Error: persist returned no referenceId; cannot confirm the async "
+               "outcome via AsyncOperationTracker.")
         return 1
     return 0
 

@@ -20,11 +20,15 @@ Transport is the injected ``_apply.Transport`` adapter (or any object exposing
 ``sf`` CLI, no access token is ever handled.
 
 **Runtime identity.** A ``contextId`` is a request-scoped opaque cache handle
-(UUID/hex), NOT an SObject id — never prefix-validate it. It is not guaranteed to
-survive across separate ``sf`` invocations unless the org's "Runtime Context
-Instance Reuse to Improve Response Times" setting is on and the call is within
-``contextTtl``. That is why the primary entry point (``context_session.py``) does
-create→use→persist→delete in one process.
+(UUID/hex), NOT an SObject id — never prefix-validate it. By default (REQUEST
+scope) it does **not** survive across separate ``sf`` invocations, and
+``context_session.py`` does not change that: it, too, shells each lifecycle step
+through its own ``sf api request``. To chain create→use→persist across CLI calls
+you must create the instance with ``--context-scope SESSION`` (pilot-gated;
+requires the org's "Runtime Context Instance Reuse to Improve Response Times"
+setting, within ``contextTtl``) or reuse an existing instance by id. The GA
+one-request path is Apex (``Context.IndustriesContext``) or a single Flow, where
+the whole hydrate→query→persist runs inside one transaction.
 
 **Dry-run contract.** Mutations (create, persist, both PATCHes, DELETEs) only log
 under dry-run. Read-shaped POSTs (``query-record``, ``query-tags[-leaner]``) and
@@ -52,6 +56,35 @@ _PERSIST_TERMINAL_STATUSES = frozenset(
     {"Completed", "CompletedWithFailures", "Failure"}
 )
 _PERSIST_FAILURE_STATUSES = frozenset({"CompletedWithFailures", "Failure"})
+
+
+def response_failure(response: Any) -> Optional[str]:
+    """Return a failure message when a runtime API response reports a *semantic*
+    failure, else ``None``.
+
+    The Context Service runtime endpoints (create, update-attributes,
+    write-through-tags, query-record, persist-records) return HTTP 200 with an
+    ``isSuccess`` flag in the body; a value of ``false`` is a semantic failure the
+    transport layer does not raise on. Centralizing the check here (rather than
+    per-endpoint) keeps every runtime operation held to the same bar — the F4
+    finding was that only create inspected it, so a rejected persist / tag / query
+    slipped through as success.
+
+    Only an explicit ``isSuccess: false`` is a failure. ``isSuccess`` absent (a
+    shape that does not carry the flag) or truthy is treated as success — this is
+    deliberately lenient so a valid response shape without the flag (e.g. some
+    read results) is not spuriously failed. Returns the response ``message`` /
+    ``errorMessage`` when present, else a generic sentence.
+    """
+    if not isinstance(response, dict):
+        return None
+    if response.get("isSuccess") is not False:
+        return None
+    return (
+        response.get("message")
+        or response.get("errorMessage")
+        or "operation returned isSuccess:false"
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -685,15 +718,20 @@ class RuntimeContextClient:
 
 
 # --------------------------------------------------------------------------- #
-# Session orchestrator (create → use → persist → delete, one process)
+# Session orchestrator (create → use → persist → delete, one Python process)
 # --------------------------------------------------------------------------- #
 
 class RuntimeSession:
-    """Round-trip a runtime context instance within a single process.
+    """Sequence the runtime lifecycle steps from a single Python process.
 
-    Because a ``contextId`` is request-scoped, the reliable way to exercise the
-    runtime lifecycle is to create, use, persist, and delete back-to-back. This
-    orchestrator does exactly that and returns a structured summary.
+    Orchestrates create (or reuse) → update → write-tags → query → persist →
+    delete back-to-back and returns a structured summary. Note this is **not** a
+    request-scope workaround: each step is still a separate ``sf api request``, so
+    a REQUEST-scoped (default) ``contextId`` minted by the create step will not be
+    valid for the later steps. To chain the steps across those calls, create with
+    ``--context-scope SESSION`` (pilot-gated) or reuse an existing instance by id;
+    for a true single-request lifecycle, use Apex (``Context.IndustriesContext``)
+    or one Flow.
     """
 
     def __init__(self, client: RuntimeContextClient,
@@ -776,25 +814,40 @@ class RuntimeSession:
         # cleanup failure is recorded but never masks the original error.
         should_evict = not keep_instance and not reused
         lifecycle_failed = False
+        # Collect semantic (isSuccess:false) failures across every runtime op so a
+        # rejected update/tag/query/persist is surfaced and turns the session's
+        # exit non-zero — not just create (the F4 finding). Recorded, not raised,
+        # so the finally-block eviction still runs and every step is attempted.
+        semantic_failures: List[Dict[str, Any]] = []
+
+        def _check(step: str, response: Any) -> None:
+            message = response_failure(response)
+            if message is not None:
+                semantic_failures.append({"step": step, "message": message})
+                self.log(f"{step} returned isSuccess:false: {message}")
+
         try:
             if attribute_updates:
-                summary["attributes_response"] = self.client.update_attributes(
-                    context_id, attribute_updates
-                )
+                resp = self.client.update_attributes(context_id, attribute_updates)
+                summary["attributes_response"] = resp
+                _check("update_attributes", resp)
             if tag_writes:
-                summary["write_tags_response"] = self.client.write_through_tags(
-                    context_id, tag_writes
-                )
+                resp = self.client.write_through_tags(context_id, tag_writes)
+                summary["write_tags_response"] = resp
+                _check("write_through_tags", resp)
             if do_query:
                 query_spec = query_spec or {}
-                summary["query"] = self.client.query_record(
+                query_resp = self.client.query_record(
                     context_id=context_id, **query_spec
                 )
+                summary["query"] = query_resp
+                _check("query_record", query_resp)
             if persist_target_mapping_id:
                 persist_resp = self.client.persist_records(
                     context_id=context_id, target_mapping_id=persist_target_mapping_id
                 )
                 summary["persist"] = persist_resp
+                _check("persist_records", persist_resp)
                 # persist-records is async — the referenceId is a tracker Id, not
                 # a success signal. Poll AsyncOperationTracker for the real
                 # outcome so a dirty persist (errorNodes / Failure) is not
@@ -822,10 +875,19 @@ class RuntimeSession:
                                 f"AsyncOperationTracker Id={reference_id} manually."
                             )
                     else:
-                        self.log(
-                            "Persist returned no referenceId; cannot confirm async "
-                            "outcome via AsyncOperationTracker."
+                        # A live persist that reported no failure yet returned no
+                        # referenceId cannot be confirmed via AsyncOperationTracker
+                        # — treat the missing tracker handle as a failure rather
+                        # than reporting a success we cannot substantiate (F4).
+                        msg = (
+                            "persist returned no referenceId; cannot confirm async "
+                            "outcome via AsyncOperationTracker"
                         )
+                        self.log(msg + ".")
+                        if not response_failure(persist_resp):
+                            semantic_failures.append(
+                                {"step": "persist_records", "message": msg}
+                            )
         except BaseException:
             lifecycle_failed = True
             raise
@@ -846,5 +908,10 @@ class RuntimeSession:
                     # eviction is a real error.
                     if not lifecycle_failed:
                         raise
+
+        # Surface any semantic (isSuccess:false / unconfirmable-persist) failures
+        # so the CLI can turn them into a non-zero exit (F4).
+        if semantic_failures:
+            summary["semantic_failures"] = semantic_failures
 
         return summary

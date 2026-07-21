@@ -827,6 +827,226 @@ def test_session_keep_instance_skips_eviction_on_failure():
 
 
 # --------------------------------------------------------------------------- #
+# _runtime — response_failure (semantic-failure classifier, F4)
+# --------------------------------------------------------------------------- #
+# Grounding: the Context Service runtime Connect endpoints return HTTP 200 with a
+# body-level ``isSuccess`` boolean; a false value is a *semantic* failure the HTTP
+# transport does not raise on (confirmed against the create / query-record /
+# persist-records REST references and live-verified on the pilot org). The helper
+# is deliberately LENIENT — only an explicit ``isSuccess is False`` is a failure,
+# so a valid read shape that omits the flag (or a non-dict body) is never blocked.
+
+def test_response_failure_isSuccess_false_returns_message():
+    msg = _runtime.response_failure({"isSuccess": False, "message": "bad payload"})
+    check("isSuccess:false with a message returns that message", msg == "bad payload")
+
+
+def test_response_failure_prefers_message_then_errorMessage():
+    # message wins over errorMessage when both present …
+    both = _runtime.response_failure(
+        {"isSuccess": False, "message": "m", "errorMessage": "e"}
+    )
+    check("message field is preferred", both == "m")
+    # … and errorMessage is the fallback when message is absent.
+    only_err = _runtime.response_failure({"isSuccess": False, "errorMessage": "e"})
+    check("errorMessage is the fallback", only_err == "e")
+
+
+def test_response_failure_isSuccess_false_no_message_has_default():
+    msg = _runtime.response_failure({"isSuccess": False})
+    check("isSuccess:false with no message yields a non-empty default", bool(msg))
+    check("default message mentions isSuccess:false", "isSuccess:false" in msg)
+
+
+def test_response_failure_absent_flag_is_not_a_failure():
+    # A valid read/response that simply omits the flag must NOT be flagged (lenient
+    # by design — do not block valid shapes).
+    check("absent isSuccess is not a failure",
+          _runtime.response_failure({"queryRecords": []}) is None)
+
+
+def test_response_failure_true_flag_is_not_a_failure():
+    check("isSuccess:true is not a failure",
+          _runtime.response_failure({"isSuccess": True}) is None)
+
+
+def test_response_failure_non_dict_is_not_a_failure():
+    check("None is not a failure", _runtime.response_failure(None) is None)
+    check("a list is not a failure", _runtime.response_failure([1, 2]) is None)
+    check("a string is not a failure", _runtime.response_failure("ok") is None)
+
+
+# --------------------------------------------------------------------------- #
+# _runtime — RuntimeSession semantic-failure collection (F4)
+# --------------------------------------------------------------------------- #
+
+def _live_create_session():
+    """A live (non-dry) session whose create returns a usable contextId."""
+    t = FakeTransport(
+        dry_run=False,
+        responses={"connect/contexts": {"contextId": "NEW", "isSuccess": True}},
+    )
+    return t, _runtime.RuntimeSession(_runtime.RuntimeContextClient(t))
+
+
+def test_session_update_isSuccess_false_is_semantic_failure():
+    t = FakeTransport(
+        dry_run=False,
+        responses={
+            "connect/contexts": {"contextId": "NEW", "isSuccess": True},
+            "attributes": {"isSuccess": False, "message": "attr rejected"},
+        },
+    )
+    session = _runtime.RuntimeSession(_runtime.RuntimeContextClient(t))
+    summary = session.run(
+        create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                     "data": {"Order": []}},
+        attribute_updates=[{"dataPath": [], "attributes": [
+            {"attributeName": "A", "attributeValue": "1"}]}],
+    )
+    failures = summary.get("semantic_failures") or []
+    check("update-attributes isSuccess:false is collected",
+          any(f["step"] == "update_attributes" for f in failures))
+    check("collected update failure carries the message",
+          any(f["message"] == "attr rejected" for f in failures))
+    # The failure is recorded, NOT raised — the created instance is still evicted.
+    check("session still evicted the created instance despite the failure",
+          summary["deleted"] is True)
+
+
+def test_session_query_isSuccess_false_is_semantic_failure():
+    t = FakeTransport(
+        dry_run=False,
+        responses={
+            "connect/contexts": {"contextId": "NEW", "isSuccess": True},
+            "query-record": {"isSuccess": False, "message": "query rejected"},
+        },
+    )
+    session = _runtime.RuntimeSession(_runtime.RuntimeContextClient(t))
+    summary = session.run(
+        create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                     "data": {"Order": []}},
+        do_query=True,
+    )
+    failures = summary.get("semantic_failures") or []
+    check("query-record isSuccess:false is collected",
+          any(f["step"] == "query_record" for f in failures))
+
+
+def test_session_write_tags_isSuccess_false_is_semantic_failure():
+    t = FakeTransport(
+        dry_run=False,
+        responses={
+            "connect/contexts": {"contextId": "NEW", "isSuccess": True},
+            "write-through-tags": {"isSuccess": False, "message": "tag rejected"},
+        },
+    )
+    session = _runtime.RuntimeSession(_runtime.RuntimeContextClient(t))
+    summary = session.run(
+        create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                     "data": {"Order": []}},
+        tag_writes=[{"dataPath": [], "tagValues": [
+            {"tagName": "T", "tagValue": "v"}]}],
+    )
+    failures = summary.get("semantic_failures") or []
+    check("write-through-tags isSuccess:false is collected",
+          any(f["step"] == "write_through_tags" for f in failures))
+
+
+def test_session_persist_isSuccess_false_is_semantic_failure():
+    # A synchronous persist rejection (isSuccess:false, no referenceId) → semantic
+    # failure on the persist step.
+    t = FakeTransport(
+        dry_run=False,
+        responses={
+            "connect/contexts": {"contextId": "NEW", "isSuccess": True},
+            "persist-records": {"isSuccess": False, "message": "persist rejected"},
+        },
+    )
+    session = _runtime.RuntimeSession(_runtime.RuntimeContextClient(t))
+    summary = session.run(
+        create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                     "data": {"Order": []}},
+        persist_target_mapping_id="11j2",
+        persist_poll_seconds=0,
+    )
+    failures = summary.get("semantic_failures") or []
+    check("persist isSuccess:false is collected as a semantic failure",
+          any(f["step"] == "persist_records"
+              and "persist rejected" in f["message"] for f in failures))
+
+
+def test_session_live_persist_missing_reference_id_is_failure():
+    # A live persist that did NOT fail synchronously but returned no referenceId
+    # cannot be confirmed via AsyncOperationTracker → recorded as a failure so the
+    # tool never reports an unconfirmable success (F4).
+    t = FakeTransport(
+        dry_run=False,
+        responses={
+            "connect/contexts": {"contextId": "NEW", "isSuccess": True},
+            # persist returns 200 with no referenceId and no isSuccess:false
+            "persist-records": {"isSuccess": True},
+        },
+    )
+    session = _runtime.RuntimeSession(_runtime.RuntimeContextClient(t))
+    summary = session.run(
+        create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                     "data": {"Order": []}},
+        persist_target_mapping_id="11j2",
+        persist_poll_seconds=0,
+    )
+    failures = summary.get("semantic_failures") or []
+    check("missing referenceId on a live persist is a semantic failure",
+          any(f["step"] == "persist_records"
+              and "referenceId" in f["message"] for f in failures))
+    check("no AsyncOperationTracker SOQL ran without a referenceId", t.soql_calls == 0)
+
+
+def test_session_clean_run_has_no_semantic_failures():
+    # A fully clean lifecycle must not populate semantic_failures at all.
+    t = FakeTransport(
+        dry_run=False,
+        responses={
+            "connect/contexts": {"contextId": "NEW", "isSuccess": True},
+            "attributes": {"isSuccess": True},
+            "query-record": {"isSuccess": True, "queryRecords": []},
+        },
+    )
+    session = _runtime.RuntimeSession(_runtime.RuntimeContextClient(t))
+    summary = session.run(
+        create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                     "data": {"Order": []}},
+        attribute_updates=[{"dataPath": [], "attributes": [
+            {"attributeName": "A", "attributeValue": "1"}]}],
+        do_query=True,
+    )
+    check("clean run records no semantic_failures", "semantic_failures" not in summary)
+
+
+def test_session_missing_reference_id_not_double_counted_on_sync_failure():
+    # When persist ALSO returns isSuccess:false (a sync failure), the missing-
+    # referenceId branch must not add a second, redundant failure for the same step.
+    t = FakeTransport(
+        dry_run=False,
+        responses={
+            "connect/contexts": {"contextId": "NEW", "isSuccess": True},
+            "persist-records": {"isSuccess": False, "message": "persist rejected"},
+        },
+    )
+    session = _runtime.RuntimeSession(_runtime.RuntimeContextClient(t))
+    summary = session.run(
+        create_spec={"context_definition_id": "11O1", "mapping_id": "11j1",
+                     "data": {"Order": []}},
+        persist_target_mapping_id="11j2",
+        persist_poll_seconds=0,
+    )
+    persist_failures = [f for f in (summary.get("semantic_failures") or [])
+                        if f["step"] == "persist_records"]
+    check("a sync-failed persist yields exactly one persist_records failure",
+          len(persist_failures) == 1)
+
+
+# --------------------------------------------------------------------------- #
 # list_context_interfaces — response normalization (_rows, _count_interface_tags)
 # --------------------------------------------------------------------------- #
 

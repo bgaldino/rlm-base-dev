@@ -113,6 +113,19 @@ def _render_verification(verification: dict) -> None:
     for node, attr, mapping, sobject in gaps:
         eprint(f"Verification: missing hydration detail for {node}.{attr} in "
                f"{mapping} (sObject={sobject})")
+    for bm in verification.get("binding_mismatches", []):
+        eprint(f"Verification: binding MISMATCH for {bm['node']}"
+               f"{'.' + bm['contextAttribute'] if bm.get('contextAttribute') else ''} "
+               f"in {bm['mapping']}: expected {json.dumps(bm['expected'])} "
+               f"but org has {json.dumps(bm['actual'])}")
+    if verification.get("missing_nodes"):
+        eprint("Verification: nodes MISSING: " + ", ".join(verification["missing_nodes"]))
+    if verification.get("missing_mappings"):
+        eprint("Verification: mapping shells MISSING: "
+               + ", ".join(verification["missing_mappings"]))
+    if verification.get("default_mapping_gaps"):
+        eprint("Verification: default mapping NOT honored: "
+               + ", ".join(verification["default_mapping_gaps"]))
     if missing:
         eprint(f"Verification: {len(missing)} mapping rule(s) MISSING:")
         for m in missing:

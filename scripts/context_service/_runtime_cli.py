@@ -21,14 +21,23 @@ from ._client import eprint
 from ._resolve import fetch_detail, resolve_definition_id, resolve_mapping
 
 # One-line note printed by the standalone (non-session) scripts. A runtime
-# contextId is a request-scoped cache handle and may not survive across separate
-# `sf` invocations unless the org's Instance-Reuse setting is on.
+# contextId is a request-scoped cache handle. Each of these CLIs is its own `sf`
+# invocation, so a contextId minted by one does NOT reach the next unless the
+# instance was created SESSION-scoped (pilot) with Instance-Reuse on and within
+# contextTtl. ``context_session.py`` does not fix this on its own — it, too,
+# shells each lifecycle step through a separate `sf api request`, so a
+# REQUEST-scoped (default) contextId expires there exactly as it does here. The
+# GA one-request path is Apex (``Context.IndustriesContext``) or a single Flow;
+# the SESSION/reuse path is the pilot-gated cross-call option.
 CONTEXT_ID_SCOPE_NOTE = (
-    "Note: a runtime contextId is request-scoped — per Salesforce docs it may not "
-    "survive across separate CLI invocations unless the org's \"Runtime Context "
-    "Instance Reuse to Improve Response Times\" setting is on (and within "
-    "contextTtl). If a call fails not-found, use context_session.py, which does "
-    "create→use→persist→delete in one process."
+    "Note: a runtime contextId is request-scoped and does NOT survive across "
+    "separate CLI invocations by default — each script (context_session.py "
+    "included) shells each step through its own `sf api request`. To chain "
+    "create→use→persist across calls you must create the instance with "
+    "--context-scope SESSION (pilot: requires ContextServicePilot + the org's "
+    "\"Runtime Context Instance Reuse\" setting, within contextTtl), or reuse an "
+    "existing instance via --context-id. For a GA single-request lifecycle, drive "
+    "it from Apex (Context.IndustriesContext) or one Flow."
 )
 
 EXPERIMENTAL_BANNER = (

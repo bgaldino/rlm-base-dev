@@ -61,6 +61,18 @@ are additive (no per-artifact delete directive), so artifacts present in the
 emitted**. Removing them is a manual unlink/deactivate step — a documented
 followup. Nothing here ever deletes.
 
+Mapping shells & default designation. ``diff_models`` also surfaces two
+shell-grain drifts (``mappingShells`` carry ``isDefault``; ``nodeShells`` carry
+the bound sObject) that the attribute-row grain hides. The cleanly-**additive**
+ones are serialized: a source-only mapping shell becomes a ``contextMappings``
+POST block (``mappingRules`` bind into shells that already exist — they never
+mint one), and a default the source asserts but the target does not honor becomes
+``defaultMapping``. The **non-additive** ones — rebinding an existing node
+mapping's sObject, or unsetting a default — are surfaced as actionable
+``caveats`` (deactivate-first modifications the additive plan cannot express),
+never silently discarded. Plan-vs-org (``--apply-to org``) diffs in
+``plan_mode`` so a sparse plan does not flag an org-only default as drift.
+
 Auth is delegated to the sf CLI (see _client.py) — no tokens handled here.
 """
 
@@ -78,6 +90,16 @@ from scripts.context_service.definition.diff_context import (  # noqa: E402
     _load_plan_models,
     diff_models,
 )
+
+
+# The four artifact categories ``model_to_plan`` serializes directly, plus the
+# two shell-grain categories ``diff_models`` emits (``mappingShells`` carry
+# ``isDefault``; ``nodeShells`` carry the bound sObject). All six must be
+# consulted for delta detection, candidate-deletion reporting, and shell/default
+# serialization — otherwise a shell-only add, node-sObject change, or default
+# flip is a silent no-delta.
+_ARTIFACT_CATEGORIES = ("nodes", "attributes", "mappings", "tags")
+_SHELL_CATEGORIES = ("mappingShells", "nodeShells")
 
 
 def _delta_keys(section: dict) -> set:
@@ -121,9 +143,14 @@ def _filter_custom_keys(category: str, keys: set) -> set:
 
 
 def _build_include(diff: dict, custom_only: bool) -> dict:
-    """Turn a per-definition diff into the ``include`` filter for ``model_to_plan``."""
+    """Turn a per-definition diff into the ``include`` filter for ``model_to_plan``.
+
+    ``model_to_plan``'s ``include`` filter only understands the four artifact
+    categories it serializes directly (``_ARTIFACT_CATEGORIES``); the shell-grain
+    categories are handled separately by :func:`_shell_directives`.
+    """
     include = {}
-    for category in ("nodes", "attributes", "mappings", "tags"):
+    for category in _ARTIFACT_CATEGORIES:
         keys = _delta_keys(diff.get(category, {}))
         if custom_only:
             keys = _filter_custom_keys(category, keys)
@@ -131,20 +158,144 @@ def _build_include(diff: dict, custom_only: bool) -> dict:
     return include
 
 
+def _shell_directives(diff: dict, source_model: dict, custom_only: bool) -> dict:
+    """Serialize the additive shell/default drift and caveat the non-additive rest.
+
+    ``diff_models`` labels ``removed`` = keys only in the *source* (truth) and
+    ``added`` = keys only in the *target*. To bring the target in line:
+
+    * **mappingShells / nodeShells removed** (source-only) — a mapping/node shell
+      the source has and the target lacks. A source-only *mapping* shell is
+      additive: emit it as a ``contextMappings`` POST block so the create/apply
+      flow mints it (``mappingRules`` bind into shells that already exist and
+      never create one). A source-only *node* shell is a node mapping inside a
+      mapping — the attribute-row ``mappingRules`` already carry its sObject when
+      it has attributes; an empty node shell (no fields yet) is caveated, as the
+      additive plan has no directive to bind a bare node.
+    * **mappingShells changed** — an ``isDefault`` flip. When the source asserts a
+      default the target does not honor, emit ``defaultMapping``. Unsetting a
+      default (source False, target True — only reachable in org-vs-org) is a
+      deactivate-first modification: caveat it.
+    * **nodeShells changed** — a node rebound to a different sObject. Non-additive
+      (the mapping already exists bound to the old sObject): caveat it.
+    * **added** (target-only) shells are candidate deletions, handled by
+      :func:`_candidate_deletions`.
+
+    Returns ``{"contextMappings": <POST block or None>, "defaultMapping": <name or
+    None>, "caveats": [...]}``.
+    """
+    caveats: list = []
+
+    # --- mapping shells the source has and the target lacks -> POST block ----
+    ms = diff.get("mappingShells", {})
+    shell_names = set(ms.get("removed") or [])
+    if custom_only:
+        shell_names = {n for n in shell_names if _is_custom(n)}
+    source_mappings = (source_model or {}).get("mappings") or {}
+    shells = []
+    for name in sorted(shell_names):
+        mapping = source_mappings.get(name) or {}
+        shells.append({"name": name, "description": mapping.get("description") or name})
+    context_mappings = None
+    if shells:
+        context_mappings = {
+            "contextMappings": shells,
+            "generateInputMappings": True,
+            "generateSObjectMappings": True,
+        }
+
+    # --- default designation the source asserts but the target does not honor -
+    default_mapping = None
+    for ch in ms.get("changed") or []:
+        left_default = bool((ch.get("left") or {}).get("isDefault"))
+        right_default = bool((ch.get("right") or {}).get("isDefault"))
+        if left_default and not right_default:
+            # Source flags this mapping default; target does not -> emit it.
+            if default_mapping is None:
+                default_mapping = ch["key"]
+        elif right_default and not left_default:
+            # Target has a default the source unset -> deactivate-first modify.
+            caveats.append(
+                f"mapping '{ch['key']}' is default on the target but not the "
+                f"source; unsetting a default is a modification the additive plan "
+                f"cannot express — deactivate and clear isDefault manually."
+            )
+    # A source-only mapping shell that is itself the source's default carries the
+    # designation even though there is no 'changed' row for it (the target lacks
+    # the shell entirely). Fold that in so a fresh default mapping activates.
+    if default_mapping is None:
+        for name in sorted(shell_names):
+            if (source_mappings.get(name) or {}).get("isDefault"):
+                default_mapping = name
+                break
+
+    # --- node rebinds / empty node shells -> non-additive, caveat -----------
+    ns = diff.get("nodeShells", {})
+    for ch in ns.get("changed") or []:
+        left_sobj = (ch.get("left") or {}).get("sObject")
+        right_sobj = (ch.get("right") or {}).get("sObject")
+        caveats.append(
+            f"node mapping '{ch['key']}' is bound to sObject '{right_sobj}' on the "
+            f"target but '{left_sobj}' on the source; rebinding an existing node "
+            f"mapping is a modification the additive plan cannot express — "
+            f"deactivate and re-map manually."
+        )
+    # Empty node shells the source has and the target lacks, whose mapping is NOT
+    # itself being created as a fresh shell (those the create flow handles), have
+    # no attribute rows to carry them — caveat so they are not silently dropped.
+    source_node_shell_keys = set(ns.get("removed") or [])
+    for key in sorted(source_node_shell_keys):
+        mname = key.split("/", 1)[0]
+        if mname in shell_names:
+            continue  # covered by the mapping-shell POST block
+        node_map = ((source_mappings.get(mname) or {}).get("nodes") or {}).get(
+            key.split("/", 1)[1] if "/" in key else key
+        ) or {}
+        if not (node_map.get("attributes")):
+            caveats.append(
+                f"node mapping '{key}' (bound to '{node_map.get('sObject')}') exists "
+                f"on the source with no attribute mappings; the additive plan binds "
+                f"nodes via mappingRules only, so a bare node shell cannot be emitted "
+                f"— add an attribute mapping or bind it manually."
+            )
+
+    return {
+        "contextMappings": context_mappings,
+        "defaultMapping": default_mapping,
+        "caveats": caveats,
+    }
+
+
 def _candidate_deletions(diff: dict, custom_only: bool) -> dict:
-    """Target-only artifacts (``added``) — reported, never emitted (v1)."""
+    """Target-only artifacts (``added``) — reported, never emitted (v1).
+
+    Includes the shell grains (``mappingShells`` / ``nodeShells``) so a target-only
+    mapping or node shell is surfaced as a candidate deletion rather than silently
+    ignored.
+    """
     out = {}
-    for category in ("nodes", "attributes", "mappings", "tags"):
+    for category in _ARTIFACT_CATEGORIES + _SHELL_CATEGORIES:
         keys = set(diff.get(category, {}).get("added") or [])
         if custom_only:
-            keys = _filter_custom_keys(category, keys)
+            # Shell keys are "mapping" or "mapping/node"; the custom filter keys on
+            # the final segment for the artifact categories. For shells, key on the
+            # mapping name (first segment).
+            if category in _SHELL_CATEGORIES:
+                keys = {k for k in keys if _is_custom(k.split("/", 1)[0])}
+            else:
+                keys = _filter_custom_keys(category, keys)
         if keys:
             out[category] = sorted(keys)
     return out
 
 
-def _has_delta(include: dict) -> bool:
-    return any(include.get(cat) for cat in ("nodes", "attributes", "mappings", "tags"))
+def _has_delta(include: dict, shell_directives: dict) -> bool:
+    """True when the patch carries any additive change (artifact rows or shells)."""
+    if any(include.get(cat) for cat in _ARTIFACT_CATEGORIES):
+        return True
+    return bool(
+        shell_directives.get("contextMappings") or shell_directives.get("defaultMapping")
+    )
 
 
 def _emit_patch(source_model: dict, diff: dict, custom_only: bool,
@@ -160,9 +311,19 @@ def _emit_patch(source_model: dict, diff: dict, custom_only: bool,
     include = _build_include(diff, custom_only)
     plan = model_to_plan(source_model, include=include)
     caveats = plan.pop("_caveats", [])
+
+    # Fold the additive shell/default drift into the emitted plan; caveat the
+    # non-additive rest (rebinds, default-unset, bare node shells).
+    shell = _shell_directives(diff, source_model, custom_only)
+    if shell["contextMappings"]:
+        plan["contextMappings"] = shell["contextMappings"]
+    if shell["defaultMapping"]:
+        plan["defaultMapping"] = shell["defaultMapping"]
+    caveats = caveats + shell["caveats"]
+
     return {
         "plan": plan,
-        "hasDelta": _has_delta(include),
+        "hasDelta": _has_delta(include, shell),
         "caveats": caveats,
         "candidateDeletions": (
             _candidate_deletions(diff, custom_only) if source_is_full else {}
@@ -174,13 +335,17 @@ def _emit_patch(source_model: dict, diff: dict, custom_only: bool,
 
 def _render_summary(name: str, patch: dict, lines: list):
     plan = patch["plan"]
+    shell_block = plan.get("contextMappings") or {}
     counts = {
         "nodes": len(plan.get("contextNodeDefinitions") or []),
         "attributes": len(plan.get("contextAttributesByName") or []),
         "mappingRules": len(plan.get("mappingRules") or []),
         "tags": len(plan.get("contextTagsByName") or []),
+        "mappingShells": len(shell_block.get("contextMappings") or []),
     }
     parts = ", ".join(f"{v} {k}" for k, v in counts.items() if v)
+    if plan.get("defaultMapping"):
+        parts = (parts + ", " if parts else "") + f"default={plan['defaultMapping']}"
     lines.append(f"  {name}: {parts or 'no additive delta'}")
     for cav in patch["caveats"]:
         lines.append(f"    ! caveat: {cav}")
@@ -291,9 +456,14 @@ def main(argv=None) -> int:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 
+    # plan-vs-org mode diffs in ``plan_mode`` so a sparse, additive plan does not
+    # flag an org-only default mapping as drift (see diff_context._shell_default_differs);
+    # org-vs-org compares two full definitions, where any default flip is real drift.
+    plan_mode = bool(args.plan_file)
+
     patches = {}
     for name, (source, target, custom_only, source_is_full) in entries.items():
-        diff = diff_models(source, target)
+        diff = diff_models(source, target, plan_mode=plan_mode)
         patch = _emit_patch(source, diff, custom_only, source_is_full)
         # Emit a patch entry only when there is an additive delta OR a caveat /
         # candidate-deletion worth surfacing.
