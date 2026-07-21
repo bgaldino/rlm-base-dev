@@ -19,6 +19,8 @@ import {
   scopeLabel,
   scopeTypeRank,
   resolveTermForMarket,
+  toProposalCsvSummary,
+  toProposalCsvDetailed,
   currencyCompact,
   int,
   pct1,
@@ -333,6 +335,91 @@ describe("geography scope (G2)", () => {
     const b = scopedTerm("b", "Country", "GB");
     expect(resolveTermForMarket("GB", [a, b]).id).toBe("a");
     expect(resolveTermForMarket("GB", [b, a]).id).toBe("b");
+  });
+});
+
+describe("proposal CSV exports (G3)", () => {
+  function makeProposal() {
+    return {
+      negotiationName: "Delta ATL → LHR",
+      accountName: "Acme, Inc.", // comma → must be quoted
+      currencyCode: "USD",
+      contract: {
+        sharePts: 42.1,
+        fmsPts: 55.5,
+        projectedSharePts: 50.2,
+        projectedGapPts: 5.3,
+        edrExistingPts: 12.4,
+        edrCurrentPts: 18.9,
+        projectedHostRevenue: 123456789
+      },
+      terms: [
+        {
+          termId: "0QLterm1",
+          route: "ATL → LHR",
+          methodLabel: "Product",
+          statusLabel: "Recommended",
+          isRecommended: true,
+          sharePts: 42.1,
+          fmsPts: 55.5,
+          projectedSharePts: 50.2,
+          projectedGapPts: 5.3,
+          edrExistingPts: 12.4,
+          edrFinalOfferPts: 18.9
+        }
+      ]
+    };
+  }
+
+  it("toProposalCsvSummary emits metadata, a term row, and a contract rollup row", () => {
+    const csv = toProposalCsvSummary(makeProposal());
+    const lines = csv.split("\n");
+    expect(lines[0]).toBe("Delta Negotiation Proposal — Summary");
+    expect(csv).toContain("Negotiation,Delta ATL → LHR");
+    // Comma-bearing account name is quoted per RFC-4180.
+    expect(csv).toContain('Account,"Acme, Inc."');
+    expect(csv).toContain(
+      "Term / Route,Method,Status,Recommended,Share %,FMS %,Projected Share %,Projected Gap (pts),Existing EDR %,Final Offer EDR %"
+    );
+    expect(csv).toContain("ATL → LHR,Product,Recommended,Yes,42.1,55.5,50.2,5.3,12.4,18.9");
+    expect(csv).toContain("Contract (rollup),,,,42.1,55.5,50.2,5.3,12.4,18.9");
+    expect(csv).toContain("Projected Host Revenue,123456789");
+  });
+
+  it("toProposalCsvSummary renders null KPIs as empty cells (not 0)", () => {
+    const p = makeProposal();
+    p.terms[0].projectedGapPts = null;
+    const csv = toProposalCsvSummary(p);
+    expect(csv).toContain("ATL → LHR,Product,Recommended,Yes,42.1,55.5,50.2,,12.4,18.9");
+  });
+
+  it("toProposalCsvDetailed emits one row per grid line at the final-offer round", () => {
+    const model = seedModel(makeTerm(), METHOD_PRODUCT);
+    const proposal = {
+      negotiationName: "N",
+      accountName: "A",
+      currencyCode: "USD",
+      terms: [{ termId: "t1", route: "ATL → LHR" }]
+    };
+    const csv = toProposalCsvDetailed(proposal, { t1: model });
+    const lines = csv.split("\n");
+    expect(lines[0]).toBe("Delta Negotiation Proposal — Detailed");
+    expect(csv).toContain(
+      "Term / Route,Method,Final Offer Round,Value,Carrier,Partner,Discount Name,Alliance Permission,Current Existing %,Undiscounted %,Projected %,Existing Disc %,Prior Disc %,Final Offer Disc %,Compare Fare,Notes"
+    );
+    // Header (1) + metadata (3) + blank (1) + column header (1) = 6 lines before data.
+    const dataLines = lines.slice(6).filter((l) => l.startsWith("ATL → LHR,"));
+    expect(dataLines.length).toBe(model.rows.length);
+  });
+
+  it("toProposalCsvDetailed skips terms with no model, tolerates empty input", () => {
+    const proposal = { terms: [{ termId: "t1", route: "R1" }, { termId: "t2", route: "R2" }] };
+    const model = seedModel(makeTerm(), METHOD_PRODUCT);
+    const csv = toProposalCsvDetailed(proposal, { t1: model }); // t2 has no model
+    expect(csv).toContain("R1,");
+    expect(csv).not.toContain("R2,");
+    expect(() => toProposalCsvSummary(undefined)).not.toThrow();
+    expect(() => toProposalCsvDetailed(undefined, undefined)).not.toThrow();
   });
 });
 

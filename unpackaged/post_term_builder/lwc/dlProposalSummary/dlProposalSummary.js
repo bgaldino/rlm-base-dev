@@ -1,6 +1,12 @@
 import { api } from "lwc";
 import LightningModal from "lightning/modal";
-import { formatKpi, pct1, pts } from "c/dlDemoModel";
+import {
+  formatKpi,
+  pct1,
+  pts,
+  toProposalCsvSummary,
+  toProposalCsvDetailed
+} from "c/dlDemoModel";
 
 /**
  * dlProposalSummary — an on-screen (LightningModal) rollup of the modeled negotiation.
@@ -15,15 +21,22 @@ import { formatKpi, pct1, pts } from "c/dlDemoModel";
  *             edrExistingPts, edrFinalOfferPts }]
  * }
  *
- * Presentational only — it reads the already-computed demo model and formats it. No export in this
- * phase (CSV/PDF deferred); the analyst reviews the recommended Final Offer here, then closes and uses
- * the header's Apply Final Offer / Create Contract actions to hand it off.
+ * Presentational + client-only exports: the analyst reviews the recommended Final Offer here and can
+ * export it three ways — Summary CSV, Detailed CSV (per-Term grid rows at each Term's final-offer
+ * round), and Print / Save as PDF (browser print of the modal). The header's Apply Final Offer /
+ * Create Contract actions perform the actual write-back. `proposal.models` (termId → demo model) is
+ * passed by the shell and feeds the Detailed CSV.
  */
 export default class DlProposalSummary extends LightningModal {
   @api proposal;
 
   get hasProposal() {
     return !!(this.proposal && this.proposal.contract);
+  }
+
+  // Export buttons are disabled until there's a modeled proposal to export.
+  get hasNoProposal() {
+    return !this.hasProposal;
   }
 
   get negotiationName() {
@@ -93,6 +106,51 @@ export default class DlProposalSummary extends LightningModal {
 
   get contractTileClass() {
     return "dl-ps-tile";
+  }
+
+  // ---------- exports ----------
+
+  handleDownloadSummary() {
+    this._download(this._fileBase("summary"), toProposalCsvSummary(this.proposal));
+  }
+
+  handleDownloadDetailed() {
+    const models = (this.proposal && this.proposal.models) || {};
+    this._download(
+      this._fileBase("detailed"),
+      toProposalCsvDetailed(this.proposal, models)
+    );
+  }
+
+  // Browser print → Save as PDF. The scoped @media print block widens the table and hides the
+  // action buttons; hiding the surrounding Lightning chrome is environment-dependent (verified live).
+  handlePrint() {
+    window.print();
+  }
+
+  // Sanitize the negotiation name into a filename stem, e.g. "Delta ATL-LHR" → delta-atl-lhr-summary.csv
+  _fileBase(kind) {
+    const stem = `${this.negotiationName || "proposal"}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60);
+    return `${stem || "proposal"}-${kind}.csv`;
+  }
+
+  // Trigger a client-side CSV download via Blob + object URL + a transient anchor. Prepend a UTF-8
+  // BOM (U+FEFF) so Excel opens the file as UTF-8 (renders the em-dash and arrow glyphs correctly).
+  _download(filename, csv) {
+    const blob = new Blob(["﻿", csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   handleClose() {

@@ -437,11 +437,17 @@ export default class DlmWorkspaceShell extends LightningElement {
       return;
     }
     const perTermForContract = [];
+    // Per-Term models keyed by termId for the Detailed CSV export (toProposalCsvDetailed reads rows[]
+    // at each Term's own final-offer round).
+    const models = {};
     const termRows = this.terms.map((t) => {
       const model = this._modelFor(t, this.selectedMethod);
       const finalRound = model ? model.finalOfferRoundIndex : undefined;
       const kpi = computeTermKpis(t, model, finalRound);
       perTermForContract.push(kpi);
+      if (model) {
+        models[t.id] = model;
+      }
       return {
         termId: t.id,
         route: routeLabel(t),
@@ -464,7 +470,9 @@ export default class DlmWorkspaceShell extends LightningElement {
       accountName: this.accountName,
       currencyCode: this.currencyCode,
       contract: aggregateKpis(perTermForContract),
-      terms: termRows
+      terms: termRows,
+      // Passed straight through to the modal so its Detailed CSV export can read per-Term grid rows.
+      models
     };
     try {
       await DlProposalSummary.open({

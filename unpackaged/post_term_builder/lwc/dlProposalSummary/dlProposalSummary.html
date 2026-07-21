@@ -82,7 +82,35 @@
     </template>
   </lightning-modal-body>
 
-  <lightning-modal-footer>
-    <lightning-button label="Close" onclick={handleClose}></lightning-button>
+  <lightning-modal-footer class="dl-ps-noprint">
+    <div class="slds-grid slds-grid_align-spread slds-grow">
+      <div class="slds-grid slds-gutters_x-small">
+        <lightning-button
+          label="Download Summary CSV"
+          icon-name="utility:download"
+          disabled={hasNoProposal}
+          onclick={handleDownloadSummary}
+          class="slds-m-right_x-small"
+        ></lightning-button>
+        <lightning-button
+          label="Download Detailed CSV"
+          icon-name="utility:table"
+          disabled={hasNoProposal}
+          onclick={handleDownloadDetailed}
+          class="slds-m-right_x-small"
+        ></lightning-button>
+        <lightning-button
+          label="Print / Save as PDF"
+          icon-name="utility:print"
+          disabled={hasNoProposal}
+          onclick={handlePrint}
+        ></lightning-button>
+      </div>
+      <lightning-button
+        label="Close"
+        variant="brand"
+        onclick={handleClose}
+      ></lightning-button>
+    </div>
   </lightning-modal-footer>
 </template>

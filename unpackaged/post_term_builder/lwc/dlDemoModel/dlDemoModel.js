@@ -339,6 +339,162 @@ export function resolveTermForMarket(market, terms) {
   return ranked[0].t;
 }
 
+// ---------- proposal CSV exports (pure formatters) ----------
+
+// RFC-4180-ish escaping: wrap in quotes and double interior quotes when the cell has a comma, quote,
+// or newline. null/undefined → empty cell.
+function csvCell(v) {
+  if (v === null || v === undefined) {
+    return "";
+  }
+  const s = `${v}`;
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function csvLine(cells) {
+  return cells.map(csvCell).join(",");
+}
+
+// A point value rounded to 1 decimal for CSV; null/undefined → "" (not "0").
+function num1(v) {
+  return v === null || v === undefined ? "" : round1(v);
+}
+
+/**
+ * Summary CSV: negotiation metadata header + one row per Term (recommended Final Offer KPIs) + a
+ * contract rollup row. Pure — returns the CSV text; the caller handles the Blob/anchor download.
+ * `proposal` is the payload dlmWorkspaceShell builds for the Proposal Summary modal.
+ */
+export function toProposalCsvSummary(proposal) {
+  const p = proposal || {};
+  const terms = p.terms || [];
+  const c = p.contract || {};
+  const lines = [];
+  lines.push("Delta Negotiation Proposal — Summary");
+  lines.push(csvLine(["Negotiation", p.negotiationName || ""]));
+  lines.push(csvLine(["Account", p.accountName || ""]));
+  lines.push(csvLine(["Currency", p.currencyCode || "USD"]));
+  lines.push("");
+  lines.push(
+    csvLine([
+      "Term / Route",
+      "Method",
+      "Status",
+      "Recommended",
+      "Share %",
+      "FMS %",
+      "Projected Share %",
+      "Projected Gap (pts)",
+      "Existing EDR %",
+      "Final Offer EDR %"
+    ])
+  );
+  terms.forEach((t) => {
+    lines.push(
+      csvLine([
+        t.route || "",
+        t.methodLabel || "",
+        t.statusLabel || "",
+        t.isRecommended ? "Yes" : "",
+        num1(t.sharePts),
+        num1(t.fmsPts),
+        num1(t.projectedSharePts),
+        num1(t.projectedGapPts),
+        num1(t.edrExistingPts),
+        num1(t.edrFinalOfferPts)
+      ])
+    );
+  });
+  lines.push("");
+  lines.push(
+    csvLine([
+      "Contract (rollup)",
+      "",
+      "",
+      "",
+      num1(c.sharePts),
+      num1(c.fmsPts),
+      num1(c.projectedSharePts),
+      num1(c.projectedGapPts),
+      num1(c.edrExistingPts),
+      num1(c.edrCurrentPts)
+    ])
+  );
+  if (c.projectedHostRevenue !== null && c.projectedHostRevenue !== undefined) {
+    lines.push(csvLine(["Projected Host Revenue", c.projectedHostRevenue]));
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Detailed CSV: one flat row per modeled grid line across all Terms, at each Term's own Final Offer
+ * round. `modelsByTermId` maps termId → the demo model (rows[], roundLabels, finalOfferRoundIndex).
+ * Pure — returns the CSV text; the caller handles the Blob/anchor download.
+ */
+export function toProposalCsvDetailed(proposal, modelsByTermId) {
+  const p = proposal || {};
+  const terms = p.terms || [];
+  const models = modelsByTermId || {};
+  const lines = [];
+  lines.push("Delta Negotiation Proposal — Detailed");
+  lines.push(csvLine(["Negotiation", p.negotiationName || ""]));
+  lines.push(csvLine(["Account", p.accountName || ""]));
+  lines.push(csvLine(["Currency", p.currencyCode || "USD"]));
+  lines.push("");
+  lines.push(
+    csvLine([
+      "Term / Route",
+      "Method",
+      "Final Offer Round",
+      "Value",
+      "Carrier",
+      "Partner",
+      "Discount Name",
+      "Alliance Permission",
+      "Current Existing %",
+      "Undiscounted %",
+      "Projected %",
+      "Existing Disc %",
+      "Prior Disc %",
+      "Final Offer Disc %",
+      "Compare Fare",
+      "Notes"
+    ])
+  );
+  terms.forEach((t) => {
+    const model = models[t.termId];
+    if (!model || !Array.isArray(model.rows)) {
+      return;
+    }
+    const finalRound = model.finalOfferRoundIndex || 0;
+    const finalLabel = (model.roundLabels || [])[finalRound] || `Round ${finalRound + 1}`;
+    const ue = computeUndiscounted(model.rows);
+    model.rows.forEach((r, i) => {
+      lines.push(
+        csvLine([
+          t.route || "",
+          methodLabel(model.method),
+          finalLabel,
+          r.label,
+          r.carrier,
+          r.isPartner ? "Yes" : "",
+          r.discountName,
+          r.alliancePermission,
+          num1(r.currentExistingPct),
+          num1(ue[i]),
+          num1(r.projectedPct),
+          num1(r.existingDiscountPct),
+          num1(r.priorDiscountPct),
+          num1((r.rounds || [])[finalRound]),
+          r.isLaneFare && r.compareFare !== null ? r.compareFare : "",
+          r.notes || ""
+        ])
+      );
+    });
+  });
+  return lines.join("\n");
+}
+
 // Compact scope chips for the Term scope banner. Returns [{ code, label, value }] for the curated scope
 // attributes that carry a value on this Term, in display order.
 export function termScopeChips(term) {
