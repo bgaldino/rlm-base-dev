@@ -115,7 +115,12 @@ export default class RlmExpressionSetManager extends LightningElement {
     }
 
     get bulkActionDisabled() {
-        return this.isActing || this.selectedRowIds.length === 0
+        // isLoading matters as well as isActing: every terminal polling path calls
+        // stopPolling() (clearing isActing) *before* awaiting loadExpressionSets,
+        // and the previous selection survives until that resolves. Without this
+        // the buttons briefly re-enable over stale rows, allowing a duplicate
+        // operation against outdated state.
+        return this.isActing || this.isLoading || this.selectedRowIds.length === 0
     }
 
     get selectedContext() {
