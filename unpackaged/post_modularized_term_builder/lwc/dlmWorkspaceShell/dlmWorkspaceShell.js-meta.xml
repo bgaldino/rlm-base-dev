@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>true</isExposed>
+    <masterLabel>Delta Workspace Shell (Modular)</masterLabel>
+    <description>Always-mounted Term Builder shell: a tabset hosting Shell Creation (the modular Term Workspace), a client-only negotiation Modeling workbench, and a Performance placeholder, with an always-visible contract KPI band + Proposal Summary. Owns the per-Term demo model cache. Syncs with the Negotiation Context and Terms Rail tiles over the DLM Term Builder message channel. Modeled numbers are mock and session-only.</description>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__RecordPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage,lightning__RecordPage,lightning__HomePage">
+            <property
+                name="headingLabel"
+                type="String"
+                label="Heading Label"
+                description="Title shown above the workbench tabs. Leave blank for the default 'Negotiation Workbench'."
+            />
+            <property
+                name="showContractBand"
+                type="Boolean"
+                default="true"
+                label="Show Contract KPI Band"
+                description="Show the always-visible contract-wide KPI band above the tabs."
+            />
+            <property
+                name="showProposalAction"
+                type="Boolean"
+                default="true"
+                label="Show Proposal Summary Action"
+                description="Show the Proposal Summary button in the shell chrome."
+            />
+            <property
+                name="shellCreationLabel"
+                type="String"
+                label="Shell Creation Tab Label"
+                description="Label for the first tab (the Term Workspace). Default 'Shell Creation'."
+            />
+            <property
+                name="modelingLabel"
+                type="String"
+                label="Modeling Tab Label"
+                description="Label for the Modeling tab. Default 'Modeling'."
+            />
+            <property
+                name="performanceLabel"
+                type="String"
+                label="Performance Tab Label"
+                description="Label for the Performance placeholder tab. Default 'Performance'."
+            />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>

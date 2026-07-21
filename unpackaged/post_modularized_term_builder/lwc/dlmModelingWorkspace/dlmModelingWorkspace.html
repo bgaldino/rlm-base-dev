@@ -1,0 +1,43 @@
+<template>
+  <div class="dlm-modeling">
+    <template if:false={hasModel}>
+      <div class="dlm-modeling__empty slds-p-around_medium slds-text-color_weak">
+        Select a Term to model its negotiation rounds.
+      </div>
+    </template>
+
+    <template if:true={hasModel}>
+      <!-- Slim per-Term KPI band (Share / FMS / Share Gap / EDR), driven by the shell. -->
+      <template if:true={hasTermKpis}>
+        <div class="dlm-modeling__band slds-m-bottom_x-small">
+          <c-dl-kpi-band
+            variant="term"
+            kpis={termKpis}
+            currency-code={currencyCode}
+          ></c-dl-kpi-band>
+        </div>
+      </template>
+
+      <!-- Apply Final Offer to Quote: the shell performs the write-back on request. -->
+      <div class="dlm-modeling__actions slds-grid slds-grid_align-end slds-p-bottom_x-small">
+        <lightning-button
+          label="Apply Final Offer to Quote"
+          icon-name="utility:apex_plugin"
+          variant="brand"
+          disabled={applyDisabled}
+          onclick={handleApplyOffer}
+          title="Write the modeled Final Offer discounts back to the Quote fare lines"
+        ></lightning-button>
+      </div>
+
+      <!-- The reused negotiation grid. Its modelchange / methodchange / expandtoggle events bubble
+           (composed) straight through to the shell. -->
+      <c-dl-modeling-grid
+        term={selectedTerm}
+        model={model}
+        currency-code={currencyCode}
+        expanded={expanded}
+      ></c-dl-modeling-grid>
+    </template>
+  </div>
+</template>

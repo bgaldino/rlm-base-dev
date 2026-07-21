@@ -1,0 +1,11 @@
+:host {
+  display: block;
+}
+
+.dlm-modeling__empty {
+  font-style: italic;
+}
+
+.dlm-modeling__actions {
+  gap: 0.5rem;
+}

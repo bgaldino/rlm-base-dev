@@ -1,0 +1,112 @@
+<template>
+  <div class="dlm-shell">
+    <template if:true={errorMessage}>
+      <div class="dlm-shell__error slds-p-around_x-small slds-m-bottom_x-small" role="alert">
+        <lightning-icon
+          icon-name="utility:error"
+          size="xx-small"
+          variant="error"
+          alternative-text="Error"
+          class="slds-m-right_xx-small"
+        ></lightning-icon>
+        {errorMessage}
+      </div>
+    </template>
+
+    <template if:false={hasQuote}>
+      <div class="dlm-shell__empty slds-p-around_medium slds-text-color_weak">
+        Open or create a negotiation to model its terms.
+      </div>
+    </template>
+
+    <template if:true={hasQuote}>
+      <!-- Chrome: heading + Proposal Summary / Reset actions, always visible above the tabs. -->
+      <div
+        class="dlm-shell__chrome slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap slds-p-around_x-small"
+      >
+        <h2 class="dlm-shell__heading slds-text-heading_small">{effectiveHeading}</h2>
+        <div class="slds-grid slds-gutters_x-small slds-grid_vertical-align-center">
+          <template if:true={proposalActionVisible}>
+            <div class="slds-col">
+              <lightning-button
+                label="Proposal Summary"
+                icon-name="utility:summary"
+                variant="neutral"
+                disabled={proposalDisabled}
+                onclick={handleOpenProposal}
+              ></lightning-button>
+            </div>
+          </template>
+          <div class="slds-col">
+            <lightning-button-icon
+              icon-name="utility:refresh"
+              variant="border-filled"
+              alternative-text="Reset demo model"
+              title="Reset the session-only demo model"
+              onclick={handleResetModel}
+            ></lightning-button-icon>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contract-wide KPI band: aggregates across every Term the shell holds. -->
+      <template if:true={contractBandVisible}>
+        <template if:true={hasContractKpis}>
+          <div class="dlm-shell__band slds-p-horizontal_x-small slds-p-bottom_x-small">
+            <c-dl-kpi-band
+              variant="contract"
+              heading="Contract KPIs"
+              kpis={contractKpis}
+              currency-code={currencyCode}
+            ></c-dl-kpi-band>
+          </div>
+        </template>
+      </template>
+
+      <!-- Session-only disclosure for the modeled numbers. -->
+      <div class="dlm-shell__session slds-p-horizontal_x-small">
+        <span class="dlm-shell__session-label">Demo model — session only</span>
+      </div>
+
+      <lightning-tabset variant="scoped" active-tab-value={activeTab} class="dlm-shell__tabs">
+        <lightning-tab label={shellCreationTabLabel} value="creation" onactive={handleTabActive}>
+          <div class="dlm-shell__tab-body">
+            <c-dlm-term-workspace></c-dlm-term-workspace>
+          </div>
+        </lightning-tab>
+
+        <lightning-tab label={modelingTabLabel} value="modeling" onactive={handleTabActive}>
+          <div class="dlm-shell__tab-body">
+            <c-dlm-modeling-workspace
+              selected-term={selectedTerm}
+              model={activeModel}
+              currency-code={currencyCode}
+              expanded={workspaceExpanded}
+              term-kpis={selectedTermKpis}
+              apply-disabled={applyOfferDisabled}
+              onmodelchange={handleModelChange}
+              onmethodchange={handleMethodChange}
+              onexpandtoggle={handleExpandToggle}
+              onapplyofferrequest={handleApplyOfferRequest}
+            ></c-dlm-modeling-workspace>
+          </div>
+        </lightning-tab>
+
+        <lightning-tab label={performanceTabLabel} value="performance" onactive={handleTabActive}>
+          <div class="dlm-shell__tab-body dlm-shell__performance slds-p-around_medium">
+            <lightning-icon
+              icon-name="utility:chart"
+              size="small"
+              class="slds-m-bottom_x-small"
+            ></lightning-icon>
+            <h3 class="slds-text-heading_small slds-m-bottom_xx-small">Performance</h3>
+            <p class="slds-text-color_weak">
+              Post-signature performance dashboards (share capture, EDR realization, market-group
+              rollups) land here in a later round. Model the negotiation in the Modeling tab for now.
+            </p>
+          </div>
+        </lightning-tab>
+      </lightning-tabset>
+    </template>
+  </div>
+</template>

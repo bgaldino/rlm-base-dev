@@ -1,0 +1,56 @@
+:host {
+  /* Delta brand tokens with SLDS-style literal fallbacks (mirrors the monolith orchestrator). */
+  --dl-navy: #0a1d3f;
+  --dl-red: #c8102e;
+  --dl-tint: #f3f6fb;
+  --dl-hairline: #d8dde6;
+  --dl-muted: #5c6b82;
+  display: block;
+}
+
+.dlm-shell {
+  background: var(--dl-page-bg, #fafbfd);
+}
+
+.dlm-shell__error {
+  background: #fef1f0;
+  border: 1px solid var(--dl-red);
+  border-radius: 0.25rem;
+  color: #6b1019;
+  font-size: 0.8125rem;
+}
+
+.dlm-shell__chrome {
+  border-bottom: 1px solid var(--dl-hairline);
+}
+
+.dlm-shell__heading {
+  color: var(--dl-navy);
+  font-weight: 700;
+}
+
+.dlm-shell__session {
+  padding-top: 0.125rem;
+}
+
+.dlm-shell__session-label {
+  color: var(--dl-muted);
+  font-size: 0.6875rem;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dlm-shell__tab-body {
+  padding-top: 0.25rem;
+}
+
+.dlm-shell__performance {
+  text-align: center;
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.dlm-shell__empty {
+  font-style: italic;
+}

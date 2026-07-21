@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta Modeling Workspace (Modular)</masterLabel>
+    <description>Controlled presentational wrapper for the negotiation Modeling tab: hosts the slim per-Term KPI band, the Apply Final Offer action, and the reused modeling grid. Driven entirely by the Delta Workspace Shell (props down, events up); not independently placeable.</description>
+</LightningComponentBundle>
