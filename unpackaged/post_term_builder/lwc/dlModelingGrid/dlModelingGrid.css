@@ -152,6 +152,21 @@
   min-width: 10rem;
 }
 
+.dl-mg-col_discname {
+  min-width: 9rem;
+}
+
+.dl-mg-col_alliance {
+  min-width: 9rem;
+}
+
+/* Alliance Permissions reads as negotiation-relevant on partner rows — tint + a left accent so the
+   eye lands on the partner carriers' permissions during the demo. */
+.dl-mg-alliance_partner {
+  background: #fff5f6;
+  box-shadow: inset 0.1875rem 0 0 0 var(--dl-red, #c8102e);
+}
+
 .dl-mg-value {
   font-weight: 600;
   color: var(--dl-navy, #003268);

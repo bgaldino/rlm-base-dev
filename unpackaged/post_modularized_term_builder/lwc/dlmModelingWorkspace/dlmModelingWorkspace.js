@@ -1,4 +1,5 @@
 import { LightningElement, api } from "lwc";
+import { termScopeChips, routeLabel } from "c/dlDemoModel";
 
 /**
  * Modularized Delta Term Builder — the "modeling workspace" tab body.
@@ -34,6 +35,24 @@ export default class DlmModelingWorkspace extends LightningElement {
 
   get hasTermKpis() {
     return !!this.termKpis;
+  }
+
+  // Term scope banner: the Term-level geography (Origin / Destination / Directionality / Market / …)
+  // surfaced ONCE above the grid, never per-row. Derived from selectedTerm.attributes.
+  get scopeChips() {
+    return this.selectedTerm ? termScopeChips(this.selectedTerm) : [];
+  }
+
+  get hasScope() {
+    return this.scopeChips.length > 0;
+  }
+
+  get scopeRouteLabel() {
+    return this.selectedTerm ? routeLabel(this.selectedTerm) : "";
+  }
+
+  get scopeTermName() {
+    return (this.selectedTerm && this.selectedTerm.displayName) || "Term";
   }
 
   handleApplyOffer() {

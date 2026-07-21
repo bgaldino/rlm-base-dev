@@ -15,6 +15,7 @@ import {
   computeTermKpis,
   aggregateKpis,
   finalOfferLineDiscounts,
+  termScopeChips,
   currencyCompact,
   int,
   pct1,
@@ -23,6 +24,7 @@ import {
   tone,
   CANONICAL_PRODUCTS,
   FARE_CODE_VALUES,
+  ALLIANCE_PERMISSIONS,
   METHOD_PRODUCT,
   METHOD_FARECLASS,
   ROUND_COUNT
@@ -181,6 +183,81 @@ describe("buildRows — Product vs Fare Class", () => {
         expect(r.rounds[i]).toBeGreaterThanOrEqual(r.rounds[i - 1]);
       }
     });
+  });
+
+  it("seeds an editable Discount Name and a valid Alliance Permission per row", () => {
+    const rows = buildRows(makeTerm(), METHOD_PRODUCT);
+    rows.forEach((r) => {
+      expect(typeof r.discountName).toBe("string");
+      expect(r.discountName.length).toBeGreaterThan(0);
+      expect(ALLIANCE_PERMISSIONS).toContain(r.alliancePermission);
+    });
+  });
+
+  it("defaults the host carrier's Alliance Permission to Allowed", () => {
+    const rows = buildRows(makeTerm(), METHOD_PRODUCT);
+    rows
+      .filter((r) => !r.isPartner)
+      .forEach((r) => expect(r.alliancePermission).toBe("Allowed"));
+  });
+
+  it("carries priorDiscountPct: null when the fare wasn't enriched, else the clamped value", () => {
+    const plain = buildRows(makeTerm(), METHOD_FARECLASS);
+    plain.forEach((r) => expect(r.priorDiscountPct).toBeNull());
+
+    const enriched = makeTerm({
+      fares: [
+        { id: "0QLfare1", productName: "Delta One", productCode: "DL-J", fareCodes: ["J"], discount: 15, priorDiscount: 9.25 }
+      ]
+    });
+    const rows = buildRows(enriched, METHOD_FARECLASS);
+    const withPrior = rows.filter((r) => r.priorDiscountPct !== null);
+    expect(withPrior.length).toBeGreaterThan(0);
+    withPrior.forEach((r) => expect(r.priorDiscountPct).toBeCloseTo(9.3, 1));
+  });
+});
+
+describe("termScopeChips", () => {
+  it("returns curated geography chips in display order, only for present values", () => {
+    const chips = termScopeChips(makeTerm());
+    const codes = chips.map((c) => c.code);
+    expect(codes).toEqual([
+      "DL_Origin",
+      "DL_Destination",
+      "DL_Directionality",
+      "DL_Measure",
+      "DL_RequirementValue"
+    ]);
+    const origin = chips.find((c) => c.code === "DL_Origin");
+    expect(origin).toEqual({ code: "DL_Origin", label: "Origin", value: "ATL" });
+  });
+
+  it("surfaces the G2 geography codes when present, ahead of Origin", () => {
+    const term = makeTerm({
+      attributes: [
+        { code: "DL_ScopeType", value: "Market" },
+        { code: "DL_MarketGroup", value: "Transatlantic" },
+        { code: "DL_Origin", value: "ATL" }
+      ]
+    });
+    const codes = termScopeChips(term).map((c) => c.code);
+    expect(codes).toEqual(["DL_ScopeType", "DL_MarketGroup", "DL_Origin"]);
+  });
+
+  it("skips blank / whitespace-only attribute values", () => {
+    const term = makeTerm({
+      attributes: [
+        { code: "DL_Origin", value: "ATL" },
+        { code: "DL_Destination", value: "  " },
+        { code: "DL_Directionality", value: "" }
+      ]
+    });
+    expect(termScopeChips(term).map((c) => c.code)).toEqual(["DL_Origin"]);
+  });
+
+  it("returns [] for a term with no attributes", () => {
+    expect(termScopeChips({ attributes: [] })).toEqual([]);
+    expect(termScopeChips(null)).toEqual([]);
   });
 });
 

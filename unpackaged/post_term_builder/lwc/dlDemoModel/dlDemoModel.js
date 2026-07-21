@@ -45,6 +45,38 @@ export const PARTNER_CARRIERS = ["AF", "KL", "VS"];
 
 export const HOST_CARRIER = "DL";
 
+// Alliance permission for a row's carrier (how the carrier may sell against this fare). The host
+// always sells directly; partners default to codeshare-restricted. Editable in the grid.
+export const ALLIANCE_PERMISSIONS = ["Allowed", "Codeshare only", "Not allowed"];
+
+// Seeded (editable) discount-program names shown in the grid's Discount Name column. Deterministically
+// assigned per row; purely for negotiation storytelling — never affects a KPI.
+export const DISCOUNT_NAME_POOL = [
+  "Corporate Base",
+  "Alliance Program",
+  "Volume Tier",
+  "Market Share Incentive",
+  "Codeshare Rate",
+  "Lane Promotion"
+];
+
+// Default alliance permission for a carrier. Host (DL) sells directly ("Allowed"); partners lean
+// codeshare-only, with a deterministic spread across the other states for demo variety. The rng passed
+// in must be a dedicated stream (not the row's spend/discount rng) so seeded magnitudes stay stable.
+function defaultAlliancePermission(carrier, rng) {
+  if (carrier === HOST_CARRIER) {
+    return "Allowed";
+  }
+  const r = rng();
+  if (r < 0.6) {
+    return "Codeshare only";
+  }
+  if (r < 0.85) {
+    return "Allowed";
+  }
+  return "Not allowed";
+}
+
 // Discounting methods (the Term's modeling method). Product and Fare Class are genuinely different row
 // builders, not two views of one row set — see buildRows().
 export const METHOD_PRODUCT = "product";
@@ -168,6 +200,36 @@ export function routeLabel(term) {
 // Display label for a discounting method value.
 export function methodLabel(method) {
   return method === METHOD_FARECLASS ? "Fare Class" : "Product";
+}
+
+// Curated geography/scope attribute codes → human labels, in banner display order. The Modeling tab's
+// Term scope banner surfaces the Term-level geography ONCE above the grid (never per-row). Forward-
+// compatible: the G2 geography codes (DL_ScopeType / DL_ScopeOperator / DL_MarketGroup) are listed so
+// they appear automatically once a Term carries them; only codes with a value render.
+const SCOPE_LABELS = [
+  ["DL_ScopeType", "Scope"],
+  ["DL_ScopeOperator", "Operator"],
+  ["DL_MarketGroup", "Market"],
+  [ORIGIN_CODE, "Origin"],
+  [DESTINATION_CODE, "Destination"],
+  [DIRECTIONALITY_CODE, "Directionality"],
+  [MEASURE_CODE, "Measure"],
+  ["DL_TicketingRegion", "Ticketing Region"],
+  [REQUIREMENT_CODE, "Requirement"]
+];
+
+// Compact scope chips for the Term scope banner. Returns [{ code, label, value }] for the curated scope
+// attributes that carry a value on this Term, in display order.
+export function termScopeChips(term) {
+  const m = attrMap(term);
+  const chips = [];
+  SCOPE_LABELS.forEach(([code, label]) => {
+    const value = m[code];
+    if (value !== null && value !== undefined && `${value}`.trim() !== "") {
+      chips.push({ code, label, value: `${value}` });
+    }
+  });
+  return chips;
 }
 
 // ---------- flown-data seed (per Term) ----------
@@ -392,12 +454,22 @@ export function buildRows(term, method) {
     const r3 = clamp(round1(r2 + 1 + rng() * 3), 0, 100);
     const r4 = clamp(round1(r3 + 1 + rng() * 4), 0, 100);
 
+    // Editable metadata columns (Discount Name + Alliance Permissions). Seeded from a DEDICATED rng
+    // stream so adding them never perturbs the spend/discount magnitudes seeded from `rng` above.
+    const carrier = e.carrier || HOST_CARRIER;
+    const metaRng = mkRng(`${termId}|${method}|${e.key}|meta`);
+    const discountName = DISCOUNT_NAME_POOL[pickInt(metaRng, 0, DISCOUNT_NAME_POOL.length - 1)];
+    const alliancePermission = defaultAlliancePermission(carrier, metaRng);
+
     return {
       key: e.key,
       label: e.label,
       product: e.product || null,
-      carrier: e.carrier || HOST_CARRIER,
+      carrier,
       isPartner: !!e.isPartner,
+      // Editable, storytelling-only metadata (never feeds a KPI).
+      discountName,
+      alliancePermission,
       isLaneFare: false,
       backingFareId: e.backingFareId || null,
       zeroSpend: !e.hasFlown,

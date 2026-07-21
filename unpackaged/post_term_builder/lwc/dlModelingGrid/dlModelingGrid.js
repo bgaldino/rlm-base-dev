@@ -2,6 +2,7 @@ import { LightningElement, api } from "lwc";
 import {
   METHOD_PRODUCT,
   METHOD_FARECLASS,
+  ALLIANCE_PERMISSIONS,
   computeUndiscounted,
   edrExisting,
   edrByRound,
@@ -19,6 +20,8 @@ const METHOD_OPTIONS = [
 ];
 
 const STATUS_OPTIONS = ["Draft", "Sent", "Countered", "Recommended"];
+
+const ALLIANCE_OPTIONS = ALLIANCE_PERMISSIONS.map((p) => ({ label: p, value: p }));
 
 /**
  * dlModelingGrid — the client-only negotiation modeling spreadsheet (demo stage ③).
@@ -170,6 +173,10 @@ export default class DlModelingGrid extends LightningElement {
     return STATUS_OPTIONS.map((s) => ({ label: s, value: s }));
   }
 
+  get allianceOptions() {
+    return ALLIANCE_OPTIONS;
+  }
+
   get viewRoundStatus() {
     return ((this._working && this._working.roundStatuses) || [])[this._viewRoundIndex] || "Draft";
   }
@@ -255,6 +262,8 @@ export default class DlModelingGrid extends LightningElement {
         "dl-mg-row" +
         (r.zeroSpend ? " dl-mg-row_zero" : "") +
         (r.isPartner ? " dl-mg-row_partner" : "");
+      // Read-only prior-cycle discount context (null unless the fare was enriched from getQuoteLines).
+      const hasPrior = r.priorDiscountPct !== null && r.priorDiscountPct !== undefined;
       return {
         key: r.key,
         label: r.label,
@@ -267,9 +276,16 @@ export default class DlModelingGrid extends LightningElement {
         undiscountedPct: ue[i],
         projectedPct: r.projectedPct,
         existingDiscountPct: r.existingDiscountPct,
+        priorDiscountDisplay: hasPrior ? pct1(r.priorDiscountPct) : "—",
         proposedPct: r.rounds[view],
         compareFare: r.isLaneFare ? r.compareFare : null,
         compareDisplay: r.isLaneFare ? r.compareFare : "—",
+        discountName: r.discountName,
+        alliancePermission: r.alliancePermission,
+        // Emphasize the Alliance cell on partner rows (the negotiation-relevant carriers).
+        allianceCellClass: r.isPartner
+          ? "dl-mg-alliance dl-mg-alliance_partner"
+          : "dl-mg-alliance",
         notes: r.notes
       };
     });
@@ -364,6 +380,23 @@ export default class DlModelingGrid extends LightningElement {
     if (r) {
       r.notes = event.target.value;
       // Notes don't affect KPIs; still emit so the model stays in sync for the proposal/export.
+      this._scheduleEmit();
+    }
+  }
+
+  handleDiscountNameChange(event) {
+    const r = this._row(event.target.dataset.key);
+    if (r) {
+      r.discountName = event.target.value;
+      // Storytelling metadata only — doesn't feed a KPI; still sync for the proposal/export.
+      this._scheduleEmit();
+    }
+  }
+
+  handleAlliancePermissionChange(event) {
+    const r = this._row(event.target.dataset.key);
+    if (r) {
+      r.alliancePermission = event.detail.value;
       this._scheduleEmit();
     }
   }

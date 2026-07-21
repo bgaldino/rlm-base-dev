@@ -123,8 +123,11 @@
               <th scope="col"><span title="Undiscounted Existing spend % (derived)">Undiscounted %</span></th>
               <th scope="col"><span title="Projected spend %">Projected %</span></th>
               <th scope="col"><span title="Existing Discount %">Existing Disc %</span></th>
+              <th scope="col"><span title="Prior-cycle discount % (read-only; from the Quote fare lines)">Prior Disc %</span></th>
               <th scope="col"><span title={proposedColumnLabel}>{proposedColumnLabel}</span></th>
               <th scope="col"><span title="Compare (lane) Fare">Compare Fare</span></th>
+              <th class="dl-mg-col_discname" scope="col"><span title="Discount Name">Discount Name</span></th>
+              <th class="dl-mg-col_alliance" scope="col"><span title="Alliance Permissions">Alliance</span></th>
               <th class="dl-mg-col_notes" scope="col"><span title="Notes">Notes</span></th>
             </tr>
           </thead>
@@ -180,6 +183,7 @@
                     onchange={handleExistingDiscountChange}
                   ></lightning-input>
                 </td>
+                <td class="dl-mg-derived">{row.priorDiscountDisplay}</td>
                 <td>
                   <lightning-input
                     type="number"
@@ -211,6 +215,27 @@
                     <span class="dl-mg-derived">—</span>
                   </template>
                 </td>
+                <td class="dl-mg-col_discname">
+                  <lightning-input
+                    type="text"
+                    label="Discount Name"
+                    variant="label-hidden"
+                    value={row.discountName}
+                    max-length="40"
+                    data-key={row.key}
+                    onchange={handleDiscountNameChange}
+                  ></lightning-input>
+                </td>
+                <td class={row.allianceCellClass}>
+                  <lightning-combobox
+                    label="Alliance Permissions"
+                    variant="label-hidden"
+                    value={row.alliancePermission}
+                    options={allianceOptions}
+                    data-key={row.key}
+                    onchange={handleAlliancePermissionChange}
+                  ></lightning-combobox>
+                </td>
                 <td class="dl-mg-col_notes">
                   <lightning-input
                     type="text"
@@ -232,7 +257,7 @@
               <td class={totals.ceClass}>{totals.ceTotal}</td>
               <td class="dl-mg-total">{totals.ueTotal}</td>
               <td class={totals.projectedClass}>{totals.projectedTotal}</td>
-              <td colspan="4" class="dl-mg-edr-cell">
+              <td colspan="7" class="dl-mg-edr-cell">
                 <span class="dl-mg-edr">Existing EDR {edrSummary.existing}</span>
                 <span class="dl-mg-edr dl-mg-edr_view">{edrSummary.viewLabel} EDR {edrSummary.viewRound}</span>
                 <span class="dl-mg-edr">Final Offer EDR {edrSummary.finalOffer}</span>

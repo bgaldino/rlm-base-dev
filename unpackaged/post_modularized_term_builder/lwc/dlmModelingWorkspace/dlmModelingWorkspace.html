@@ -7,6 +7,26 @@
     </template>
 
     <template if:true={hasModel}>
+      <!-- Term scope banner: the Term-level geography surfaced ONCE above the grid (not per-row). -->
+      <template if:true={hasScope}>
+        <div class="dlm-modeling__scope slds-box slds-box_x-small slds-m-bottom_x-small" role="group" aria-label="Term scope">
+          <div class="dlm-modeling__scope-head slds-grid slds-grid_vertical-align-center slds-wrap">
+            <span class="dlm-modeling__scope-name">{scopeTermName}</span>
+            <template if:true={scopeRouteLabel}>
+              <span class="dlm-modeling__scope-route slds-m-left_x-small">{scopeRouteLabel}</span>
+            </template>
+          </div>
+          <div class="dlm-modeling__scope-chips slds-grid slds-wrap slds-m-top_xx-small">
+            <template for:each={scopeChips} for:item="chip">
+              <span key={chip.code} class="dlm-modeling__scope-chip slds-m-right_x-small slds-m-bottom_xx-small">
+                <span class="dlm-modeling__scope-chip-label">{chip.label}</span>
+                <span class="dlm-modeling__scope-chip-value">{chip.value}</span>
+              </span>
+            </template>
+          </div>
+        </div>
+      </template>
+
       <!-- Slim per-Term KPI band (Share / FMS / Share Gap / EDR), driven by the shell. -->
       <template if:true={hasTermKpis}>
         <div class="dlm-modeling__band slds-m-bottom_x-small">
