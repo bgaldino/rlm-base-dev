@@ -1,85 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+      Account-reset utilities. RLM_AccountUtilities' invocable deletes
+      account-related orders, assets, contracts, invoices, quotes and
+      opportunities, so this set is destructive and stays scoped to the flows
+      that actually need it (tso). The Expression Set Manager has its own
+      least-privilege set: RLM_ExpressionSetManager.
+    -->
     <classAccesses>
         <apexClass>RLM_AccountUtilities</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <classAccesses>
-        <apexClass>RLM_ExpressionSetManagerController</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <!--
-      Object grants for RLM_ExpressionSetManagerController's WITH USER_MODE SOQL
-      (least privilege). The controller only READS these objects from Apex;
-      version toggles and Constraint junction create/delete run through the
-      Composite REST API as the running user, not Apex DML — so no create/delete
-      object perms are granted here. ExpressionSetVersion also gets edit so the
-      controller's isUpdateable() guard passes and the REST version PATCH is
-      authorized. AsyncApexJob (getJobStatus) is a system object not grantable
-      via objectPermissions and stays system-mode (documented in the class).
-
-      PROVISIONAL / needs-live-verification: this grant set was authored without
-      a live org. Per .cursor/skills/apex-security-hardening/SKILL.md it MUST be
-      finalized by the live pass before merge — iterate-deploy to resolve any
-      object-perm dependency chains, read the perm set back to catch silent
-      drops (e.g. if ContextDefinition / the junction are setup entities that
-      reject perm-set grants), add field FLS for any permissionable field a
-      USER_MODE query rejects at runtime (notably ExpressionSetVersion.IsActive
-      edit), and run a non-admin persona / System.runAs walk.
-    -->
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>ContextDefinition</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>ExpressionSet</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>ExpressionSetDefinition</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>ExpressionSetDefinitionContextDefinition</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>true</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>ExpressionSetVersion</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <!-- getApiSessionId() renders the RLM_SessionId Visualforce page to obtain a
-         REST session id; a permission-set-only user needs page access or
-         activate/deactivate fails when Apex renders it. Part of the same
-         self-sufficiency work above — confirm in the non-admin persona walk. -->
-    <pageAccesses>
-        <apexPage>RLM_SessionId</apexPage>
-        <enabled>true</enabled>
-    </pageAccesses>
     <hasActivationRequired>false</hasActivationRequired>
     <label>RLM Utilities</label>
 </PermissionSet>

@@ -715,6 +715,12 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 - `RLM_DocGen`
 
+### `ps_expression_set_manager`
+
+*1 items:*
+
+- `RLM_ExpressionSetManager`
+
 ### `ps_guidedselling`
 
 *2 items:*
@@ -763,12 +769,6 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 *1 items:*
 
 - `RLM_QuantumBit`
-
-### `ps_utils`
-
-*1 items:*
-
-- `RLM_UtilitiesPermset`
 
 ### `psg_tso`
 
@@ -906,10 +906,11 @@ These `project.custom` entries are YAML anchors (lists or maps) reused throughou
 
 ### `rlm_tso_ps_api_names`
 
-*4 items:*
+*5 items:*
 
 - `ERIBasic`
 - `RLM_UtilitiesPermset`
+- `RLM_ExpressionSetManager`
 - `OrchestrationProcessManagerPermissionSet`
 - `EventMonitoringPermSet`
 
