@@ -9,7 +9,7 @@ const ANIM_MS = 650;
  *
  * Renders a row of KPI tiles from a KPI object (as produced by c/dlDemoModel's computeTermKpis or
  * aggregateKpis). Two variants:
- *   - "contract": the full band (Industry/Host Revenue, Industry/Host Flights, Share, FMS, Gap, EDR).
+ *   - "contract": the full band (Industry/Host Revenue, Industry/Host Passengers, Share, FMS, Gap, EDR).
  *   - "term": a slimmer band (Share, FMS, Share Gap, EDR) shown atop the Term workspace.
  *
  * Owns no data and does no I/O. The only behavior it adds is the headline demo moment: when the KPI
@@ -71,8 +71,8 @@ export default class DlKpiBand extends LightningElement {
     if (this.variant !== "term") {
       tiles.push(this._staticTile("ind-rev", "Industry Revenue", k.industryRevenue, "currency"));
       tiles.push(this._staticTile("host-rev", "Host Revenue", k.hostRevenue, "currency"));
-      tiles.push(this._staticTile("ind-flt", "Industry Flights", k.industryFlights, "int"));
-      tiles.push(this._staticTile("host-flt", "Host Flights", k.hostFlights, "int"));
+      tiles.push(this._staticTile("ind-pax", "Industry Passengers", k.industryPassengers, "int"));
+      tiles.push(this._staticTile("host-pax", "Host Passengers", k.hostPassengers, "int"));
     }
     tiles.push(this._shareTile(k));
     tiles.push(this._staticTile("fms", "FMS", k.fmsPts, "pct"));

@@ -10,8 +10,8 @@ function contractKpis(overrides = {}) {
     termCount: 2,
     industryRevenue: 412_600_000,
     hostRevenue: 150_000_000,
-    industryFlights: 30000,
-    hostFlights: 12000,
+    industryPassengers: 30000,
+    hostPassengers: 12000,
     negotiatedSpendUSD: 200_000_000,
     projectedHostRevenue: 160_000_000,
     sharePts: 36.4,
@@ -50,8 +50,8 @@ describe("c-dl-kpi-band", () => {
       expect.arrayContaining([
         "Industry Revenue",
         "Host Revenue",
-        "Industry Flights",
-        "Host Flights",
+        "Industry Passengers",
+        "Host Passengers",
         "Share",
         "FMS",
         "Share Gap",
@@ -60,7 +60,7 @@ describe("c-dl-kpi-band", () => {
     );
   });
 
-  it("renders the slimmer term band without revenue/flight tiles", async () => {
+  it("renders the slimmer term band without revenue/passenger tiles", async () => {
     const el = create({ variant: "term", kpis: contractKpis() });
     await flushPromises();
     const labels = [...el.shadowRoot.querySelectorAll(".dl-kpi-tile__label")].map((n) =>

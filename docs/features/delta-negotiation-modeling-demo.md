@@ -223,3 +223,59 @@ with `finalOfferLineDiscounts(this.activeModel)`, then `refreshState`), `handleR
   still carries the demo bundles from that deploy, they are harmless while the
   deployed orchestrator no longer references them; redeploy the reverted orchestrator
   to fully restore the pre-demo UI (see below).
+
+---
+
+# Round 2 — modularized host + data-provider seam
+
+Round 2 lights the workbench back up, but on the **modularized** Term Builder variant
+(`unpackaged/post_modularized_term_builder/`) instead of the monolith `dlTermBuilder`.
+The five `dl*` bundles above are **reused verbatim in place** at
+`unpackaged/post_term_builder/lwc/` — they are *not* copied into the modularized dir
+(that would create duplicate `c/*` components and a deploy conflict). A new
+always-mounted `dlmWorkspaceShell` hosts a `lightning-tabset` (Shell Creation /
+Modeling / Performance) and owns the per-Term model cache + the always-visible
+contract KPI band; `dlmModelingWorkspace` is a controlled wrapper around
+`c-dl-modeling-grid` (props down, events up), mirroring the monolith orchestrator/grid
+contract documented above.
+
+## Engine changes in Round 2 (`dlDemoModel`)
+
+These are **additive and backward-compatible** — the parked Jest suites stay green
+(now 84 across the two variants):
+
+1. **KPI rename Flights → Passengers.** `seedTermFlown`, `computeTermKpis`, and
+   `aggregateKpis` now emit `industryPassengers` / `hostPassengers` (was
+   `industryFlights` / `hostFlights`); `dlKpiBand` renders "Industry Passengers" /
+   "Host Passengers" tiles (keys `ind-pax` / `host-pax`). **FMS stays flight-capacity
+   based** — it is still `hostPassengers ÷ industryPassengers` (the capacity metric),
+   only the field/label wording changed.
+2. **Read-only prior-discount column.** Each `buildRows` row now carries
+   `priorDiscountPct` — the fare's prior-cycle discount, sourced by enriching
+   `term.fares[*].priorDiscount` (from `RLM_DeltaLineController.getQuoteLines`, keyed
+   by line id) **before** seeding. It is display-only and never affects any KPI;
+   `null` when the fare wasn't enriched (today's `getBuilderState` fares don't carry
+   it, so no Apex change is required).
+
+## Data-provider seam (the `term.modeling` contract)
+
+`dlDemoModel` accepts an **optional** `modeling` blob so a future server-side data
+stream can pin real magnitudes without touching the engine's callers. When absent
+(today), the deterministic seed is used verbatim and behavior is byte-identical.
+
+- `seedTermFlown(term, modeling = term.modeling)` — reads `modeling.flown`, a partial
+  object whose **finite numeric** keys override the seeded baseline. Recognized keys:
+  `industryRevenue`, `hostRevenue`, `industryPassengers`, `hostPassengers`,
+  `negotiatedSpendUSD`, `baseSharePts`, `fmsPts`, `gapPts`, `beta`. Non-numeric or
+  missing keys fall through to the seed. The provider should supply a *consistent*
+  set (e.g. if it pins `baseSharePts` + `fmsPts`, also pin `gapPts`).
+- `seedModel(term, method, modeling = term.modeling)` — honors a `modeling.rows`
+  array (already in row shape) verbatim; otherwise seeds rows deterministically.
+- `computeTermKpis(term, model, roundIndexOverride, modeling = term.modeling)` —
+  threads `modeling` through to `seedTermFlown`.
+
+`term.modeling` is `null`/absent in every current `getBuilderState` payload;
+`getBuilderState` passes a `null` `term.modeling` through explicitly so the seam is
+wired end-to-end and ready to populate. See `RLM_DeltaTermBuilderController` (the
+`terms[]` builder) and the row builders in
+`unpackaged/post_term_builder/lwc/dlDemoModel/dlDemoModel.js`.

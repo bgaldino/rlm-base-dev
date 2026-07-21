@@ -181,8 +181,13 @@ export function methodLabel(method) {
  * Share Gap is positive and closeable — the headline demo moment. When the Term carries an explicit
  * DL_RequirementValue (the "Share Gap: 5.0" the rail chip shows), that value is honored as the target
  * gap so the KPI band matches the chip.
+ *
+ * Data-provider seam: when a Term carries a `modeling` blob (see the data-contract doc,
+ * docs/features/delta-negotiation-modeling-demo.md — populated server-side in a future round), any
+ * finite numeric field on `modeling.flown` overrides the corresponding seeded baseline. Absent
+ * (today's behavior), the deterministic seed is used verbatim — this function stays byte-identical.
  */
-export function seedTermFlown(term) {
+export function seedTermFlown(term, modeling = term && term.modeling) {
   const id = (term && term.id) || "term";
   const m = attrMap(term);
   const seed = `${id}|${routeSignature(term)}|${m[MEASURE_CODE] || ""}|${m[REQUIREMENT_CODE] || ""}`;
@@ -199,9 +204,11 @@ export function seedTermFlown(term) {
       : round1(3 + rng() * 9);
   const fmsPts = clamp(round1(baseSharePts + gapPts), 0, 95);
 
-  const industryFlights = pickInt(rng, 4000, 26000);
+  // "Passengers" carry the flight-capacity metric that FMS is derived from (labelled Passengers in the
+  // KPI band; FMS itself stays flight-capacity based).
+  const industryPassengers = pickInt(rng, 4000, 26000);
   const hostRevenue = Math.round((industryRevenue * baseSharePts) / 100);
-  const hostFlights = Math.round((industryFlights * fmsPts) / 100);
+  const hostPassengers = Math.round((industryPassengers * fmsPts) / 100);
 
   // Elasticity: pts of Share gained per pt of EDR lift. 0.25–0.60 so a realistic ~8–15 pt EDR lift
   // meaningfully — but not always fully — closes the gap.
@@ -211,17 +218,35 @@ export function seedTermFlown(term) {
   // to the contract (spend-weighted, distinct from the revenue-share aggregation).
   const negotiatedSpendUSD = pickInt(rng, 40, 300) * 1_000_000;
 
-  return {
+  const baseline = {
     industryRevenue,
     hostRevenue,
-    industryFlights,
-    hostFlights,
+    industryPassengers,
+    hostPassengers,
     negotiatedSpendUSD,
     baseSharePts,
     fmsPts,
     gapPts: round1(fmsPts - baseSharePts),
     beta
   };
+  return overlayFinite(baseline, modeling && modeling.flown);
+}
+
+// Shallow-overlay only the finite-number own keys of `override` onto a copy of `base`. Used by the
+// data-provider seam so a partial `modeling.flown` blob can pin some magnitudes while the rest stay
+// seeded; when `override` is absent the base object is returned unchanged.
+function overlayFinite(base, override) {
+  if (!override || typeof override !== "object") {
+    return base;
+  }
+  const out = { ...base };
+  Object.keys(override).forEach((k) => {
+    const v = override[k];
+    if (typeof v === "number" && Number.isFinite(v)) {
+      out[k] = v;
+    }
+  });
+  return out;
 }
 
 // ---------- row builders (Product vs Fare Class are genuinely different) ----------
@@ -229,6 +254,15 @@ export function seedTermFlown(term) {
 // Normalize a product name for matching a canonical product to a real fare (case/space-insensitive).
 function normName(name) {
   return String(name || "").trim().toLowerCase();
+}
+
+// A fare's prior-cycle discount, when the caller enriched the fare with it (from getQuoteLines'
+// priorDiscount, keyed by line id). Read-only context in the grid; never affects any KPI. null when
+// absent (today's getBuilderState fares don't carry it).
+function priorOf(fare) {
+  return fare && fare.priorDiscount !== null && fare.priorDiscount !== undefined
+    ? num(fare.priorDiscount)
+    : null;
 }
 
 // Product-mode entries: one per canonical product (matched to a real fare when the Term has one), plus
@@ -250,7 +284,8 @@ function productEntries(term) {
       product: p,
       backingFareId: fare ? fare.id : null,
       hasFlown: !!fare,
-      existingDiscount: fare ? num(fare.discount) : null
+      existingDiscount: fare ? num(fare.discount) : null,
+      priorDiscount: priorOf(fare)
     };
   });
   // Append real fare products not in the canonical list (keeps a hand-built demo catalog honest).
@@ -263,7 +298,8 @@ function productEntries(term) {
         product: f.productName,
         backingFareId: f.id,
         hasFlown: true,
-        existingDiscount: num(f.discount)
+        existingDiscount: num(f.discount),
+        priorDiscount: priorOf(f)
       });
     }
   });
@@ -279,7 +315,12 @@ function fareClassEntries(term) {
   fares.forEach((f) => {
     (f.fareCodes || []).forEach((c) => {
       if (c && !codeInfo[c]) {
-        codeInfo[c] = { fareId: f.id, discount: num(f.discount), product: f.productName };
+        codeInfo[c] = {
+          fareId: f.id,
+          discount: num(f.discount),
+          product: f.productName,
+          priorDiscount: priorOf(f)
+        };
       }
     });
   });
@@ -291,7 +332,8 @@ function fareClassEntries(term) {
       product: info ? info.product : null,
       backingFareId: info ? info.fareId : null,
       hasFlown: !!info,
-      existingDiscount: info ? info.discount : null
+      existingDiscount: info ? info.discount : null,
+      priorDiscount: info ? info.priorDiscount : null
     };
   });
 }
@@ -362,6 +404,11 @@ export function buildRows(term, method) {
       _rawWeight: rawWeight,
       currentExistingPct: 0, // filled after normalization below
       existingDiscountPct,
+      // Read-only prior-cycle discount context (null unless the fare was enriched from getQuoteLines).
+      priorDiscountPct:
+        e.priorDiscount !== null && e.priorDiscount !== undefined
+          ? clamp(round1(e.priorDiscount), 0, 100)
+          : null,
       projectedPct: 0, // starts equal to currentExistingPct
       compareFare: null,
       rounds: [r1, r2, r3, r4],
@@ -421,8 +468,14 @@ function fixTo100(rows, field) {
  * Seed a fresh client-only model for a Term + discounting method. The orchestrator caches one of these
  * per (term, method) in `_modelsByTermId`; the grid mutates its rows/rounds in place across the session.
  */
-export function seedModel(term, method) {
+export function seedModel(term, method, modeling = term && term.modeling) {
   const resolved = method === METHOD_FARECLASS ? METHOD_FARECLASS : METHOD_PRODUCT;
+  // Data-provider seam: a `modeling.rows` array (already in row shape) is honored verbatim; otherwise
+  // rows are seeded deterministically. Absent (today), behavior is byte-identical.
+  const seededRows =
+    modeling && Array.isArray(modeling.rows)
+      ? JSON.parse(JSON.stringify(modeling.rows))
+      : buildRows(term, resolved);
   return {
     termId: (term && term.id) || null,
     method: resolved,
@@ -432,7 +485,7 @@ export function seedModel(term, method) {
     finalOfferRoundIndex: DEFAULT_FINAL_OFFER_ROUND,
     // Optional per-round status chips (Draft / Sent / Countered / Recommended) for storytelling.
     roundStatuses: ROUND_LABELS.map(() => "Draft"),
-    rows: buildRows(term, resolved)
+    rows: seededRows
   };
 }
 
@@ -530,8 +583,8 @@ export function totalsSummary(rows) {
  * Term and Contract bands uniformly. Absolute magnitudes are included so the contract rollup can sum
  * them metric-by-metric.
  */
-export function computeTermKpis(term, model, roundIndexOverride) {
-  const flown = seedTermFlown(term);
+export function computeTermKpis(term, model, roundIndexOverride, modeling = term && term.modeling) {
+  const flown = seedTermFlown(term, modeling);
   const rows = (model && model.rows) || [];
   const round =
     roundIndexOverride === undefined || roundIndexOverride === null
@@ -553,8 +606,8 @@ export function computeTermKpis(term, model, roundIndexOverride) {
     // absolute magnitudes (summed at the contract level)
     industryRevenue: flown.industryRevenue,
     hostRevenue: flown.hostRevenue,
-    industryFlights: flown.industryFlights,
-    hostFlights: flown.hostFlights,
+    industryPassengers: flown.industryPassengers,
+    hostPassengers: flown.hostPassengers,
     negotiatedSpendUSD: flown.negotiatedSpendUSD,
     projectedHostRevenue: Math.round((flown.industryRevenue * projectedSharePts) / 100),
     // percentage KPIs (percentage points)
@@ -594,13 +647,14 @@ export function aggregateKpis(perTerm) {
   const list = perTerm || [];
   const industryRevenue = sum(list.map((t) => t.industryRevenue));
   const hostRevenue = sum(list.map((t) => t.hostRevenue));
-  const industryFlights = sum(list.map((t) => t.industryFlights));
-  const hostFlights = sum(list.map((t) => t.hostFlights));
+  const industryPassengers = sum(list.map((t) => t.industryPassengers));
+  const hostPassengers = sum(list.map((t) => t.hostPassengers));
   const negotiatedSpendUSD = sum(list.map((t) => t.negotiatedSpendUSD));
   const projectedHostRevenue = sum(list.map((t) => t.projectedHostRevenue));
 
   const sharePts = industryRevenue > 0 ? round1((hostRevenue / industryRevenue) * 100) : null;
-  const fmsPts = industryFlights > 0 ? round1((hostFlights / industryFlights) * 100) : null;
+  // FMS stays flight-capacity based: host ÷ industry passengers (the capacity metric).
+  const fmsPts = industryPassengers > 0 ? round1((hostPassengers / industryPassengers) * 100) : null;
   const gapPts = sharePts !== null && fmsPts !== null ? round1(fmsPts - sharePts) : null;
   const projectedSharePts =
     industryRevenue > 0 ? round1((projectedHostRevenue / industryRevenue) * 100) : null;
@@ -617,8 +671,8 @@ export function aggregateKpis(perTerm) {
     termCount: list.length,
     industryRevenue,
     hostRevenue,
-    industryFlights,
-    hostFlights,
+    industryPassengers,
+    hostPassengers,
     negotiatedSpendUSD,
     projectedHostRevenue,
     sharePts,

@@ -925,7 +925,12 @@ public with sharing class RLM_DeltaTermBuilderController {
                     'netUnitPrice' => qli.NetUnitPrice,
                     'attributes' => (attrsByTerm.containsKey(qli.Id)) ? attrsByTerm.get(qli.Id) : new List<Map<String, Object>>(),
                     'fareCount' => (fares != null) ? fares.size() : 0,
-                    'fares' => (fares != null) ? fares : new List<Map<String, Object>>()
+                    'fares' => (fares != null) ? fares : new List<Map<String, Object>>(),
+                    // Data-provider seam for the negotiation-modeling workbench: null today, so
+                    // dlDemoModel falls back to its deterministic seed. A future server-side stream can
+                    // populate this ({ flown: {...}, rows: [...] }) to pin real magnitudes without any
+                    // client change. See docs/features/delta-negotiation-modeling-demo.md (Round 2).
+                    'modeling' => null
                 });
             }
 

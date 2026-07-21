@@ -263,12 +263,12 @@ describe("KPIs", () => {
 
   it("aggregateKpis rolls each metric up by its own meaning", () => {
     const t1 = {
-      industryRevenue: 100, hostRevenue: 40, industryFlights: 1000, hostFlights: 500,
+      industryRevenue: 100, hostRevenue: 40, industryPassengers: 1000, hostPassengers: 500,
       negotiatedSpendUSD: 100, projectedHostRevenue: 45,
       edrExistingPts: 10, edrCurrentPts: 20
     };
     const t2 = {
-      industryRevenue: 300, hostRevenue: 60, industryFlights: 3000, hostFlights: 900,
+      industryRevenue: 300, hostRevenue: 60, industryPassengers: 3000, hostPassengers: 900,
       negotiatedSpendUSD: 300, projectedHostRevenue: 90,
       edrExistingPts: 14, edrCurrentPts: 26
     };
