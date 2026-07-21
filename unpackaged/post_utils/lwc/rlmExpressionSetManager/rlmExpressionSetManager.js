@@ -244,15 +244,22 @@ export default class RlmExpressionSetManager extends LightningElement {
 
         const defIds = eligible.map(es => es.definitionId)
 
+        // Capture the context this action was submitted against. A context switch
+        // while the enqueue promise is pending cancels no timer (polling has not
+        // started), so without this the continuation would read the NEW
+        // selectedContextId and poll the old job/defIds against it.
+        const actionContextId = this.selectedContextId
+
         this.isActing = true
         this.previousError = ''
         try {
             const jobId = await deactivateExpressionSets({
-                contextDefinitionId: this.selectedContextId,
+                contextDefinitionId: actionContextId,
                 definitionIds: defIds
             })
+            if (actionContextId !== this.selectedContextId) return
             this.showToast('Deactivating', `Deactivating ${defIds.length} Expression Set(s)...`, 'info')
-            this.pollStatus(jobId, getDeactivateStatus, this.selectedContextId, defIds, 0, ids => {
+            this.pollStatus(jobId, getDeactivateStatus, actionContextId, defIds, 0, ids => {
                 this.showToast('Deactivated', `${ids.size} Expression Set(s) deactivated.`, 'success')
                 // Reload from Apex: for Constraint sets the queueable deletes the
                 // context junction, so the local rows' isLinked/linked count are now
@@ -260,6 +267,7 @@ export default class RlmExpressionSetManager extends LightningElement {
                 this.refreshAfterJunctionChange()
             })
         } catch (error) {
+            if (actionContextId !== this.selectedContextId) return
             this.isActing = false
             this.showToast('Error', this.reduceErrors(error), 'error')
         }
@@ -286,15 +294,21 @@ export default class RlmExpressionSetManager extends LightningElement {
 
         const defIds = eligible.map(es => es.definitionId)
 
+        // See handleDeactivate — capture the submitted context so a switch during
+        // the pending enqueue promise abandons this continuation instead of
+        // polling the old job against the newly selected context.
+        const actionContextId = this.selectedContextId
+
         this.isActing = true
         this.previousError = ''
         try {
             const jobId = await activateExpressionSets({
-                contextDefinitionId: this.selectedContextId,
+                contextDefinitionId: actionContextId,
                 definitionIds: defIds
             })
+            if (actionContextId !== this.selectedContextId) return
             this.showToast('Activating', `Activating ${defIds.length} Expression Set(s)...`, 'info')
-            this.pollStatus(jobId, getActivateStatus, this.selectedContextId, defIds, ACTIVATE_DELAY, () => {
+            this.pollStatus(jobId, getActivateStatus, actionContextId, defIds, ACTIVATE_DELAY, () => {
                 this.showToast('Activated', 'Expression Sets activated successfully.', 'success')
                 // Activation creates a context junction for unlinked Constraint sets,
                 // so refresh both the row query and the cacheable Context Definition
@@ -302,6 +316,7 @@ export default class RlmExpressionSetManager extends LightningElement {
                 this.refreshAfterJunctionChange()
             })
         } catch (error) {
+            if (actionContextId !== this.selectedContextId) return
             this.isActing = false
             this.showToast('Error', this.reduceErrors(error), 'error')
         }
@@ -417,8 +432,16 @@ export default class RlmExpressionSetManager extends LightningElement {
                     await this.loadExpressionSets()
                 }
             } catch (error) {
+                // Terminal like the branches above: the queueable may have
+                // succeeded even though this status check failed, so reload the
+                // possibly-mutated rows and surface the refreshable inline banner
+                // rather than leaving stale status with no Refresh affordance.
+                // The toast still reports the genuine callout error.
                 this.stopPolling()
-                this.showToast('Error', `Failed to check operation status: ${this.reduceErrors(error)}`, 'error')
+                const message = `Failed to check operation status: ${this.reduceErrors(error)}`
+                this.showToast('Error', message, 'error')
+                this.setPreviousError(message)
+                await this.loadExpressionSets()
             } finally {
                 isChecking = false
             }
