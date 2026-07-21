@@ -107,7 +107,6 @@ project:
     dro: true                 # Dynamic Revenue Orchestration
     rating: true              # Rating design-time data
     rates: true               # Rates
-    ramps: true               # Ramps
 
     # ── Contracts & CLM ────────────────────────────────────────────────────────
     clm: true                 # Contract Lifecycle Management
@@ -347,9 +346,6 @@ project:
       # DocGen permission sets
       - RLM_DocGen
 
-    ps_ramp_builder: &ps_ramp_builder
-      # Ramp Builder (Create Ramp Schedule V4) permission sets
-      - RLM_RampSchedule
 
     ps_prm: &ps_prm
       # PRM-specific permission sets
@@ -723,21 +719,6 @@ tasks:
       defaultMapping: *sales_transaction_context_default_mapping
       activate: true
 
-  apply_context_ramp_mode:
-    group: Revenue Lifecycle Management
-    description: >
-      Adds RampMode__c (SalesTransactionItem) and GroupRampMode__c (SalesTransactionGroup)
-      context attributes to the Sales Transaction context definition and maps them to
-      QuoteLineItem.RLM_RampMode__c and QuoteLineGroup.RLM_RampMode__c (QuoteEntitiesMapping)
-      and OrderItem.RLM_RampMode__c and OrderItemGroup.RLM_RampMode__c (OrderEntitiesMapping).
-    class_path: tasks.rlm_context_service.ManageContextDefinition
-    options:
-      developer_name: *sales_transaction_context_name
-      plan_file: datasets/context_plans/RampMode/manifest.json
-      translate_plan: true
-      deactivate_before: false
-      activate: true
-      verify: true
 
   apply_context_constraint_engine_node_status:
     group: Revenue Lifecycle Management
@@ -1619,26 +1600,6 @@ tasks:
     options:
       path: unpackaged/post_collections_case_flow
 
-  deploy_post_ramp_builder:
-    group: Revenue Lifecycle Management
-    description: >
-      Deploy all Ramp Schedule Builder (Create Ramp Schedule V4) metadata under
-      unpackaged/post_ramp_builder: RLM_RampMode__c (Picklist) on QuoteLineGroup,
-      QuoteLineItem, OrderItemGroup, and OrderItem; RLM_UpliftPercent__c (Percent) on
-      QuoteLineGroup only; Lightning Message Channel (RLM_RampScheduleChannel); Apex classes
-      and test classes (RLM_RampScheduleFlowAction, RLM_RampScheduleService,
-      RLM_RampScheduleValidator, RLM_RampScheduleRequest, RLM_RampScheduleResponse,
-      RLM_RampScheduleFlowException, RLM_RampMigrationQueueable, RLM_RampScheduleStatusController,
-      RLM_QuoteLineItemDiscountUpliftHandler, RLM_QuoteLineItemRampModeHandler,
-      RLM_QuoteLineItemRampHandler, and test classes); RLM_QuoteLineItemRampTrigger trigger; six LWC
-      bundles (rlmRampScheduleFlowModalAction, rlmRampScheduleForm, rlmRampScheduleTrialSection,
-      rlmRampSchedulePreviewTable, rlmRampScheduleStatus, rlmRampRefreshPage); the
-      RLM_Create_Ramp_Schedule_V4 screen flow; the Quote.RLM_Create_Ramp_Schedule_V4 quick
-      action; and the RLM_RampSchedule permission set (grants FLS on all custom fields and class
-      access for all production Apex classes).
-    class_path: cumulusci.tasks.salesforce.Deploy
-    options:
-      path: unpackaged/post_ramp_builder
 
   enable_analytics_replication:
     description: Enable CRM Analytics via browser automation (Robot/Selenium, clicks "Enable CRM Analytics" on InsightsSetupGettingStarted/home; VF iframe approach removed in 262)
@@ -3656,26 +3617,24 @@ flows:
       26:
         flow: prepare_pricing_discovery
       27:
-        flow: prepare_ramp_builder
-      28:
         flow: prepare_large_stx
         when: project_config.project__custom__large_stx
-      29:
+      28:
         flow: prepare_personas
         when: project_config.project__custom__personas
-      30:
+      29:
         flow: prepare_ux
         when: project_config.project__custom__ux
-      31:
+      30:
         flow: prepare_inapp
         when: project_config.project__custom__inapp
-      32:
+      31:
         flow: prepare_scratch
-      33:
+      32:
         flow: refresh_all_decision_tables
-      34:
+      33:
         task: rebuild_search_index
-      35:
+      34:
         flow: stamp_git_commit
 
   prepare_core:
@@ -4522,7 +4481,7 @@ flows:
         when: project_config.project__custom__collections
     # Collections flexipages (RLM_Collections_Home_Page, RLM_Collection_Plan_Record_Page,
     # RLM_Collections_Account_Record_Page) and the standard__CollectionConsole app variant
-    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 30), gated on
+    # are assembled + deployed by assemble_and_deploy_ux (prepare_ux flow, step 29), gated on
     # the same collections flag. The native CollectionsAndRecoveryPsl is always assigned via
     # rlm_psl_api_names in prepare_core.
 
@@ -4550,35 +4509,13 @@ flows:
         task: configure_product_discovery_settings
         when: project_config.project__custom__qb
 
-  prepare_ramp_builder:
-    group: Revenue Lifecycle Management
-    description: >
-      Deploy Create Ramp Schedule V4 feature into the target org. Deploys QuoteLineGroup custom
-      fields, Lightning Message Channel, all Apex classes, six LWC bundles, the
-      RLM_Create_Ramp_Schedule_V4 screen flow, and the Quote quick action in dependency order.
-      Adds RampMode__c/GroupRampMode__c context attributes to the Sales Transaction context
-      definition mapped to QuoteLineItem, QuoteLineGroup, OrderItem, and OrderItemGroup.
-      After this flow runs, add the "Create Ramp Schedule" action to the Quote page layout
-      (or Dynamic Actions highlights panel) and ensure the flow is Active in Setup.
-    steps:
-      1:
-        task: deploy_post_ramp_builder
-        when: project_config.project__custom__ramps
-      2:
-        task: apply_context_ramp_mode
-        when: project_config.project__custom__ramps
-      3:
-        task: assign_permission_sets
-        when: project_config.project__custom__ramps
-        options:
-          api_names: *ps_ramp_builder
 
   prepare_ux:
     group: UX Personalization
     description: >
       Assemble and deploy all project UX personalization metadata (flexipages, layouts,
-      applications, profiles) from feature-conditional templates. Runs at step 30 of
-      prepare_rlm_org, after all feature provisioning (including personas at step 29)
+      applications, profiles) from feature-conditional templates. Runs at step 29 of
+      prepare_rlm_org, after all feature provisioning (including personas at step 28)
       is complete, ensuring all referenced objects, fields, and components exist before
       UX metadata is deployed. Step 2 reorders the App Launcher via browser automation.
     steps:
@@ -4627,9 +4564,9 @@ flows:
     description: >
       Deploy persona metadata (profiles, permission set groups, permission sets) from
       unpackaged/post_personas and create the Sales Rep persona user (scratch and
-      non-scratch orgs). Gated by the personas feature flag. Runs as step 29 of
+      non-scratch orgs). Gated by the personas feature flag. Runs as step 28 of
       prepare_rlm_org, before prepare_ux
-      (step 30), so that persona profile templates are assembled and deployed by
+      (step 29), so that persona profile templates are assembled and deployed by
       the UX assembler in the same pass.
     steps:
       1:
@@ -4665,17 +4602,6 @@ flows:
           api_names: *ps_large_stx
           user_alias: salesrep
       8:
-        # Assign the ramp builder PermissionSet to the salesrep user only when
-        # ramps is also on — RLM_RampSchedule lives in unpackaged/post_ramp_builder
-        # and is only deployed when ramps=true, so assigning it on a
-        # personas=true / ramps=false build would fail referencing a PermissionSet
-        # that wasn't deployed.
-        task: assign_permission_sets
-        when: project_config.project__custom__personas and project_config.project__custom__ramps
-        options:
-          api_names: *ps_ramp_builder
-          user_alias: salesrep
-      9:
         # Verify the persona Org-Wide Defaults actually landed (raises on mismatch).
         # Runs last so it confirms the final sharing state after all persona setup.
         task: verify_personas_org_wide_defaults
