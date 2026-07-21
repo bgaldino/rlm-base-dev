@@ -2070,6 +2070,32 @@ def test_verification_hydration_gap_is_not_ok():
     check("a hydration gap makes ok=False", result["ok"] is False)
 
 
+def test_verification_input_only_mapping_is_not_a_hydration_gap():
+    # An input-only attribute mapping — a matched rule that requests NO SObject
+    # source field (no sObjectField / childSObjectField), so the org stores an
+    # empty contextAttrHydrationDetailList carrying only contextInputAttributeName
+    # — must NOT be flagged as a hydration gap. Live-confirmed: a faithful export
+    # of the standard RLM_SalesTransactionContext has 1114 such input-only
+    # mappings (of 2009), and the pre-fix check reported ok=False on that
+    # round-trip, blocking a valid definition. Canonical grounding: an attribute
+    # mapping with an empty hydration list is a valid state, not an invariant
+    # violation.
+    detail = _verif_detail(hydration=False)
+    plan = {"mappingRules": [{"mappingName": "QuoteEntitiesMapping",
+                              "contextNode": "SalesTransaction",
+                              "contextAttribute": "TotalCost__c",
+                              "sObject": "Quote", "sObjectField": None,
+                              "childSObject": None, "childSObjectField": None,
+                              "mappingType": "SOBJECT"}]}
+    result = _payload.plan_verification(detail, plan)
+    check("input-only rule (no source field) is not a hydration gap",
+          not result["hydration_gaps"])
+    check("the input-only rule still matched", not result["missing_rules"])
+    check("no binding mismatch for an input-only rule",
+          not result["binding_mismatches"])
+    check("an input-only mapping alone verifies ok=True", result["ok"] is True)
+
+
 # --------------------------------------------------------------------------- #
 # Finding 1 (PR #301, comment 3622554133) — a matched attribute rule is not
 # enough: the actual SObject field binding (sObjectName + flattened hydration

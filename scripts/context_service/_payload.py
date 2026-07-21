@@ -910,6 +910,25 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
                 attr_name = attr.get("contextAttributeName")
                 key = (mapping_name, node_name, attr_name)
                 if key in rule_keys:
+                    rule = rule_by_key.get(key) or {}
+                    is_context = (
+                        rule.get("mappingType") == "CONTEXT"
+                        or rule.get("sourceContextNode")
+                    )
+                    # A rule "wants a field" only when it requests an SObject
+                    # source field (a direct ``sObjectField`` or the terminal
+                    # ``childSObjectField`` of a traversal). Input-only attribute
+                    # mappings — a CAM carrying only ``contextInputAttributeName``
+                    # with no source field — and CONTEXT/ctx-source rules
+                    # legitimately hydrate nothing from an SObject, so they are
+                    # NOT hydration gaps. (Live-confirmed on the standard
+                    # RLM_SalesTransactionContext: 1114 of 2009 attribute mappings
+                    # are input-only and carry an empty contextAttrHydrationDetailList;
+                    # canonical grounding: an attribute mapping with an empty
+                    # hydration list is a valid state, not an invariant violation.)
+                    wants_field = (not is_context) and bool(
+                        rule.get("sObjectField") or rule.get("childSObjectField")
+                    )
                     matched_rules.append({
                         "mapping": mapping_name,
                         "node": node_name,
@@ -917,15 +936,11 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
                         "contextAttribute": attr_name,
                         "contextInputAttribute": attr.get("contextInputAttributeName"),
                         "hasHydrationDetail": bool(attr.get("contextAttrHydrationDetailList")),
+                        "wantsField": wants_field,
                     })
                     # Finding 1 — a matched rule is not enough: compare the actual
                     # SObject field binding against the plan's request. CONTEXT
                     # rules bind a context source (no sObjectField), so skip them.
-                    rule = rule_by_key.get(key) or {}
-                    is_context = (
-                        rule.get("mappingType") == "CONTEXT"
-                        or rule.get("sourceContextNode")
-                    )
                     if not is_context:
                         actual_hops: List[str] = []
                         for h in attr.get("contextAttrHydrationDetailList") or []:
@@ -977,7 +992,8 @@ def plan_verification(detail: Dict[str, Any], plan: Dict[str, Any]) -> Dict[str,
     hydration_gaps = [
         (item["node"], item["contextAttribute"], item["mapping"], item["sObject"])
         for item in matched_rules
-        if item.get("sObject") and not item.get("hasHydrationDetail")
+        if item.get("sObject") and item.get("wantsField")
+        and not item.get("hasHydrationDetail")
     ]
 
     # Declared-but-absent attributes/tags. Without this, a plan that declares
