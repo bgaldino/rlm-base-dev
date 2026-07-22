@@ -191,7 +191,11 @@ export default class RlmExpressionSetManager extends LightningElement {
     }
 
     handleContextChange(event) {
-        this.cancelPolling()
+        // stopPolling (not cancelPolling): bump _pollRequestId so an already
+        // in-flight poll() is invalidated too. cancelPolling only clears the
+        // timers, so on an A -> B -> A switch a pending check would find both
+        // requestId and contextId unchanged and could still fire its callback.
+        this.stopPolling()
         this.selectedContextId = event.detail.value
         this.selectedRowIds = []
         this.loadExpressionSets()
