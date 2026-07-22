@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DL_ParticipatingCarriers__c</fullName>
+    <description>Partner carriers participating in this negotiation (Delta's strategic joint-venture partners). Captured before term building and surfaced as chips above the modeling grid; context only, not price-impacting in the Term Builder demo.</description>
+    <inlineHelpText>Partner carriers participating in this negotiation. Surfaced as context above the modeling grid.</inlineHelpText>
+    <label>Participating Carriers</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetName>DL_Carriers</valueSetName>
+    </valueSet>
+    <visibleLines>4</visibleLines>
+</CustomField>

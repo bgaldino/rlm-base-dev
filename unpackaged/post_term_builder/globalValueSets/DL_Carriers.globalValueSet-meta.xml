@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GlobalValueSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Delta's core strategic joint-venture partner carriers, surfaced on the negotiation quote (Quote.DL_ParticipatingCarriers__c) as the participating carriers for a term-building negotiation. Names only; context for the Term Builder demo.</description>
+    <masterLabel>DL Carriers</masterLabel>
+    <sorted>false</sorted>
+    <customValue>
+        <fullName>Air France</fullName>
+        <default>false</default>
+        <label>Air France</label>
+    </customValue>
+    <customValue>
+        <fullName>KLM Royal Dutch Airlines</fullName>
+        <default>false</default>
+        <label>KLM Royal Dutch Airlines</label>
+    </customValue>
+    <customValue>
+        <fullName>Virgin Atlantic</fullName>
+        <default>false</default>
+        <label>Virgin Atlantic</label>
+    </customValue>
+    <customValue>
+        <fullName>Aeromexico</fullName>
+        <default>false</default>
+        <label>Aeromexico</label>
+    </customValue>
+    <customValue>
+        <fullName>Korean Air</fullName>
+        <default>false</default>
+        <label>Korean Air</label>
+    </customValue>
+    <customValue>
+        <fullName>LATAM Airlines</fullName>
+        <default>false</default>
+        <label>LATAM Airlines</label>
+    </customValue>
+    <customValue>
+        <fullName>WestJet</fullName>
+        <default>false</default>
+        <label>WestJet</label>
+    </customValue>
+</GlobalValueSet>
