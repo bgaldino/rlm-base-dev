@@ -2,7 +2,7 @@
   <div class="dlm-modeling">
     <template if:false={hasModel}>
       <div class="dlm-modeling__empty slds-p-around_medium slds-text-color_weak">
-        Select a Term to model its negotiation rounds.
+        Select a Term to model its fares.
       </div>
     </template>
 
@@ -24,6 +24,17 @@
               </span>
             </template>
           </div>
+        </div>
+      </template>
+
+      <!-- Participating (partner) carriers captured pre-term in Configure Data Set. Context chips only,
+           never grid rows. -->
+      <template if:true={hasCarriers}>
+        <div class="dlm-modeling__carriers slds-grid slds-wrap slds-grid_vertical-align-center slds-m-bottom_x-small" role="group" aria-label="Participating carriers">
+          <span class="dlm-modeling__carriers-label slds-m-right_x-small">Participating carriers</span>
+          <template for:each={carrierChips} for:item="carrier">
+            <span key={carrier.key} class="dlm-modeling__carrier-chip slds-m-right_x-small slds-m-bottom_xx-small">{carrier.label}</span>
+          </template>
         </div>
       </template>
 

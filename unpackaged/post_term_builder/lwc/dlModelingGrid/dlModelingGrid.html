@@ -2,12 +2,12 @@
   <div class="dl-mg">
     <template if:false={hasModel}>
       <div class="slds-p-around_medium slds-text-color_weak">
-        Select a Term to model its negotiation rounds.
+        Select a Term to model its fares.
       </div>
     </template>
 
     <template if:true={hasModel}>
-      <!-- Toolbar: method toggle · expand · round actions -->
+      <!-- Toolbar: method toggle · expand -->
       <div class="dl-mg-toolbar slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap slds-p-around_small">
         <div class="slds-grid slds-grid_vertical-align-center slds-gutters_small">
           <div class="slds-col">
@@ -30,242 +30,117 @@
         </div>
       </div>
 
-      <!-- Round selector + per-round actions -->
-      <div class="dl-mg-rounds slds-p-horizontal_small slds-p-bottom_x-small">
-        <div class="slds-grid slds-wrap slds-grid_vertical-align-end slds-gutters_small">
-          <div class="slds-col">
-            <div class="dl-mg-rounds__chips slds-grid slds-wrap" role="group" aria-label="Negotiation rounds">
-              <template for:each={roundChips} for:item="round">
-                <button
-                  key={round.index}
-                  type="button"
-                  class={round.cls}
-                  data-index={round.index}
-                  aria-pressed={round.ariaPressed}
-                  onclick={handleRoundSelect}
-                  title={round.label}
-                >
-                  <span class="dl-mg-round__label">{round.label}</span>
-                  <span class="dl-mg-round__edr">EDR {round.edr}</span>
-                  <template if:true={round.hasBadge}>
-                    <span class="dl-mg-round__badge">{round.badgeText}</span>
-                  </template>
-                </button>
-              </template>
-            </div>
-          </div>
-        </div>
-
-        <div class="slds-grid slds-wrap slds-grid_vertical-align-center slds-gutters_small slds-m-top_x-small">
-          <div class="slds-col slds-grow-none">
-            <lightning-button
-              label="Copy Previous Round"
-              icon-name="utility:copy"
-              variant="neutral"
-              disabled={copyPreviousDisabled}
-              onclick={handleCopyPrevious}
-            ></lightning-button>
-          </div>
-          <div class="slds-col slds-grow-none">
-            <lightning-button
-              label="Set as Current Round"
-              icon-name="utility:pin"
-              variant={setCurrentVariant}
-              disabled={isViewCurrentRound}
-              onclick={handleSetCurrentRound}
-              title="Drive the KPIs from this round"
-            ></lightning-button>
-          </div>
-          <div class="slds-col slds-grow-none">
-            <lightning-button
-              label="Select as Final Offer"
-              icon-name="utility:check"
-              variant="neutral"
-              disabled={isViewFinalOffer}
-              onclick={handleSetFinalOffer}
-              title="Use this round as the proposal's final offer"
-            ></lightning-button>
-          </div>
-          <div class="slds-col slds-grow-none dl-mg-status">
-            <lightning-combobox
-              label="Round status"
-              variant="label-inline"
-              value={viewRoundStatus}
-              options={statusOptions}
-              onchange={handleStatusChange}
-            ></lightning-combobox>
-          </div>
-        </div>
-      </div>
-
-      <!-- Totals validity warning -->
-      <template if:true={showTotalsWarning}>
-        <div class="dl-mg-warn slds-m-horizontal_small slds-m-bottom_x-small" role="alert">
-          <lightning-icon
-            icon-name="utility:warning"
-            size="xx-small"
-            variant="warning"
-            alternative-text="Warning"
-            class="slds-m-right_xx-small"
-          ></lightning-icon>
-          Spend distribution doesn't total 100% — the projected KPI is provisional until it does.
+      <!-- Fare-less Term: empty-state instead of a headerless grid. -->
+      <template if:false={hasRows}>
+        <div class="slds-p-around_medium slds-text-color_weak">
+          This Term has no fares yet — add fares in Shell Creation, then model their discounts here.
         </div>
       </template>
 
-      <!-- The scrollable grid. Value + Carrier columns and the totals row are sticky. -->
-      <div class="dl-mg-scroll">
-        <table class="dl-mg-table slds-table slds-table_bordered slds-table_fixed-layout">
-          <thead>
-            <tr class="slds-line-height_reset">
-              <th class="dl-mg-col_value" scope="col"><span title={valueColumnLabel}>{valueColumnLabel}</span></th>
-              <th class="dl-mg-col_carrier" scope="col"><span title="Carrier">Carrier</span></th>
-              <th scope="col"><span title="Current Existing spend %">Current Existing %</span></th>
-              <th scope="col"><span title="Undiscounted Existing spend % (derived)">Undiscounted %</span></th>
-              <th scope="col"><span title="Projected spend %">Projected %</span></th>
-              <th scope="col"><span title="Existing Discount %">Existing Disc %</span></th>
-              <th scope="col"><span title="Prior-cycle discount % (read-only; from the Quote fare lines)">Prior Disc %</span></th>
-              <th scope="col"><span title={proposedColumnLabel}>{proposedColumnLabel}</span></th>
-              <th scope="col"><span title="Compare (lane) Fare">Compare Fare</span></th>
-              <th class="dl-mg-col_discname" scope="col"><span title="Discount Name">Discount Name</span></th>
-              <th class="dl-mg-col_alliance" scope="col"><span title="Alliance Permissions">Alliance</span></th>
-              <th class="dl-mg-col_notes" scope="col"><span title="Notes">Notes</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            <template for:each={displayRows} for:item="row">
-              <tr key={row.key} class={row.rowClass}>
-                <th class="dl-mg-col_value" scope="row">
-                  <span class="dl-mg-value" title={row.label}>{row.label}</span>
-                  <template if:true={row.isLaneFare}>
-                    <span class="dl-mg-tag">lane</span>
-                  </template>
-                </th>
-                <td class="dl-mg-col_carrier">
-                  <span class="dl-mg-carrier" data-partner={row.isPartner}>{row.carrier}</span>
-                </td>
-                <td>
-                  <lightning-input
-                    type="number"
-                    label="Current Existing %"
-                    variant="label-hidden"
-                    value={row.currentExistingPct}
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    data-key={row.key}
-                    onchange={handleCurrentExistingChange}
-                  ></lightning-input>
-                </td>
-                <td class="dl-mg-derived">{row.undiscountedPct}</td>
-                <td>
-                  <lightning-input
-                    type="number"
-                    label="Projected %"
-                    variant="label-hidden"
-                    value={row.projectedPct}
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    data-key={row.key}
-                    onchange={handleProjectedChange}
-                  ></lightning-input>
-                </td>
-                <td>
-                  <lightning-input
-                    type="number"
-                    label="Existing Discount %"
-                    variant="label-hidden"
-                    value={row.existingDiscountPct}
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    data-key={row.key}
-                    onchange={handleExistingDiscountChange}
-                  ></lightning-input>
-                </td>
-                <td class="dl-mg-derived">{row.priorDiscountDisplay}</td>
-                <td>
-                  <lightning-input
-                    type="number"
-                    label="Proposed %"
-                    variant="label-hidden"
-                    value={row.proposedPct}
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    data-key={row.key}
-                    onchange={handleProposedChange}
-                  ></lightning-input>
-                </td>
-                <td>
-                  <template if:true={row.isLaneFare}>
+      <template if:true={hasRows}>
+        <!-- Totals validity warning -->
+        <template if:true={showTotalsWarning}>
+          <div class="dl-mg-warn slds-m-horizontal_small slds-m-bottom_x-small" role="alert">
+            <lightning-icon
+              icon-name="utility:warning"
+              size="xx-small"
+              variant="warning"
+              alternative-text="Warning"
+              class="slds-m-right_xx-small"
+            ></lightning-icon>
+            Spend distribution doesn't total 100% — the projected KPI is provisional until it does.
+          </div>
+        </template>
+
+        <!-- The scrollable grid. The Value column and the totals row are sticky. -->
+        <div class="dl-mg-scroll">
+          <table class="dl-mg-table slds-table slds-table_bordered slds-table_fixed-layout">
+            <thead>
+              <tr class="slds-line-height_reset">
+                <th class="dl-mg-col_value" scope="col"><span title={valueColumnLabel}>{valueColumnLabel}</span></th>
+                <th scope="col"><span title="Spend % (share of existing spend on this Term)">Spend %</span></th>
+                <th scope="col"><span title="Projected spend %">Projected %</span></th>
+                <th scope="col"><span title="Existing Discount %">Existing Disc %</span></th>
+                <th scope="col"><span title="Prior-cycle discount % (read-only; from the Quote fare lines)">Prior Disc %</span></th>
+                <th scope="col"><span title="Proposed Discount %">Proposed Disc %</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template for:each={displayRows} for:item="row">
+                <tr key={row.key} class="dl-mg-row">
+                  <th class="dl-mg-col_value" scope="row">
+                    <span class="dl-mg-value" title={row.label}>{row.label}</span>
+                  </th>
+                  <td>
                     <lightning-input
                       type="number"
-                      label="Compare Fare"
+                      label="Spend %"
                       variant="label-hidden"
-                      value={row.compareFare}
+                      value={row.currentExistingPct}
                       min="0"
-                      step="1"
-                      formatter="currency"
+                      max="100"
+                      step="0.1"
                       data-key={row.key}
-                      onchange={handleCompareFareChange}
+                      onchange={handleCurrentExistingChange}
                     ></lightning-input>
-                  </template>
-                  <template if:false={row.isLaneFare}>
-                    <span class="dl-mg-derived">—</span>
-                  </template>
-                </td>
-                <td class="dl-mg-col_discname">
-                  <lightning-input
-                    type="text"
-                    label="Discount Name"
-                    variant="label-hidden"
-                    value={row.discountName}
-                    max-length="40"
-                    data-key={row.key}
-                    onchange={handleDiscountNameChange}
-                  ></lightning-input>
-                </td>
-                <td class={row.allianceCellClass}>
-                  <lightning-combobox
-                    label="Alliance Permissions"
-                    variant="label-hidden"
-                    value={row.alliancePermission}
-                    options={allianceOptions}
-                    data-key={row.key}
-                    onchange={handleAlliancePermissionChange}
-                  ></lightning-combobox>
-                </td>
-                <td class="dl-mg-col_notes">
-                  <lightning-input
-                    type="text"
-                    label="Notes"
-                    variant="label-hidden"
-                    value={row.notes}
-                    max-length="60"
-                    data-key={row.key}
-                    onchange={handleNotesChange}
-                  ></lightning-input>
+                  </td>
+                  <td>
+                    <lightning-input
+                      type="number"
+                      label="Projected %"
+                      variant="label-hidden"
+                      value={row.projectedPct}
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      data-key={row.key}
+                      onchange={handleProjectedChange}
+                    ></lightning-input>
+                  </td>
+                  <td>
+                    <lightning-input
+                      type="number"
+                      label="Existing Discount %"
+                      variant="label-hidden"
+                      value={row.existingDiscountPct}
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      data-key={row.key}
+                      onchange={handleExistingDiscountChange}
+                    ></lightning-input>
+                  </td>
+                  <td class="dl-mg-derived">{row.priorDiscountDisplay}</td>
+                  <td>
+                    <lightning-input
+                      type="number"
+                      label="Proposed Discount %"
+                      variant="label-hidden"
+                      value={row.proposedPct}
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      data-key={row.key}
+                      onchange={handleProposedChange}
+                    ></lightning-input>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+            <tfoot>
+              <tr class="dl-mg-totals-row">
+                <th class="dl-mg-col_value" scope="row">Totals</th>
+                <td class={totals.ceClass}>{totals.ceTotal}</td>
+                <td class={totals.projectedClass}>{totals.projectedTotal}</td>
+                <td colspan="3" class="dl-mg-edr-cell">
+                  <span class="dl-mg-edr">Existing EDR {edrSummary.existing}</span>
+                  <span class="dl-mg-edr dl-mg-edr_view">Proposed EDR {edrSummary.proposed}</span>
                 </td>
               </tr>
-            </template>
-          </tbody>
-          <tfoot>
-            <tr class="dl-mg-totals-row">
-              <th class="dl-mg-col_value" scope="row">Totals</th>
-              <td class="dl-mg-col_carrier"></td>
-              <td class={totals.ceClass}>{totals.ceTotal}</td>
-              <td class="dl-mg-total">{totals.ueTotal}</td>
-              <td class={totals.projectedClass}>{totals.projectedTotal}</td>
-              <td colspan="7" class="dl-mg-edr-cell">
-                <span class="dl-mg-edr">Existing EDR {edrSummary.existing}</span>
-                <span class="dl-mg-edr dl-mg-edr_view">{edrSummary.viewLabel} EDR {edrSummary.viewRound}</span>
-                <span class="dl-mg-edr">Final Offer EDR {edrSummary.finalOffer}</span>
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+            </tfoot>
+          </table>
+        </div>
+      </template>
     </template>
   </div>
 </template>

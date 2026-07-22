@@ -19,76 +19,13 @@
  * Apply-Final-Offer handoff does that through existing Apex).
  */
 
-// ---------- canonical demo catalog ----------
-
-// Branded products, in the order the requirements list them. Product mode renders one row per product
-// (including zero-flown-spend products so the analyst can still propose a discount).
-export const CANONICAL_PRODUCTS = [
-  "Delta One",
-  "Premium Select",
-  "Comfort",
-  "Main",
-  "Main Basic"
-];
-
-// Booking / fare classes (mirrors DL_FareCodes__c in dlQuoteLineGrid). Fare Class mode explodes the
-// Term's fares into these rows, adding any not-yet-flown codes as zero-spend rows.
-export const FARE_CODE_VALUES = [
-  "J", "C", "D", "I", "Z", "P", "A", "G", "W", "S", "Y",
-  "B", "M", "H", "Q", "K", "L", "U", "T", "X", "V", "E"
-];
-
-// Joint-venture partner carriers surfaced as extra rows so partner spend shows up in the grid and the
-// proposal. Deterministically chosen per Term; they carry spend but have no backing Quote line, so the
-// Apply-Final-Offer handoff skips them.
-export const PARTNER_CARRIERS = ["AF", "KL", "VS"];
-
-export const HOST_CARRIER = "DL";
-
-// Alliance permission for a row's carrier (how the carrier may sell against this fare). The host
-// always sells directly; partners default to codeshare-restricted. Editable in the grid.
-export const ALLIANCE_PERMISSIONS = ["Allowed", "Codeshare only", "Not allowed"];
-
-// Seeded (editable) discount-program names shown in the grid's Discount Name column. Deterministically
-// assigned per row; purely for negotiation storytelling — never affects a KPI.
-export const DISCOUNT_NAME_POOL = [
-  "Corporate Base",
-  "Alliance Program",
-  "Volume Tier",
-  "Market Share Incentive",
-  "Codeshare Rate",
-  "Lane Promotion"
-];
-
-// Default alliance permission for a carrier. Host (DL) sells directly ("Allowed"); partners lean
-// codeshare-only, with a deterministic spread across the other states for demo variety. The rng passed
-// in must be a dedicated stream (not the row's spend/discount rng) so seeded magnitudes stay stable.
-function defaultAlliancePermission(carrier, rng) {
-  if (carrier === HOST_CARRIER) {
-    return "Allowed";
-  }
-  const r = rng();
-  if (r < 0.6) {
-    return "Codeshare only";
-  }
-  if (r < 0.85) {
-    return "Allowed";
-  }
-  return "Not allowed";
-}
+// ---------- discounting method ----------
 
 // Discounting methods (the Term's modeling method). Product and Fare Class are genuinely different row
-// builders, not two views of one row set — see buildRows().
+// builders, not two views of one row set — see buildRows(). Both render the Term's REAL fares only —
+// there is no canonical-product padding, no unflown fare-class rows, and no injected partner rows.
 export const METHOD_PRODUCT = "product";
 export const METHOD_FARECLASS = "fareclass";
-
-// Four explicit negotiation rounds. The active (current) round drives KPIs; the final-offer round
-// drives the proposal + the Apply-to-Quote handoff. Both are explicit, never inferred from "highest
-// populated" (a stray Round 4 edit must not silently move every KPI).
-export const ROUND_LABELS = ["Round 1", "Round 2", "Round 3", "Final Offer"];
-export const ROUND_COUNT = ROUND_LABELS.length;
-export const DEFAULT_CURRENT_ROUND = 0;
-export const DEFAULT_FINAL_OFFER_ROUND = ROUND_COUNT - 1;
 
 // Route-attribute codes (must match the PC-DL-TERM attribute defs + c/dlTermCard's lookup).
 const ORIGIN_CODE = "DL_Origin";
@@ -124,17 +61,6 @@ export function mkRng(seed) {
 // Integer in [min, max] inclusive from a seeded rng.
 export function pickInt(rng, min, max) {
   return Math.floor(rng() * (max - min + 1)) + min;
-}
-
-// Deterministic subset of `arr` of length `count` (stable order), using the rng as a Fisher-Yates
-// source. Used to pick partner carriers without repeats.
-export function pickSome(rng, arr, count) {
-  const pool = [...arr];
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  return pool.slice(0, Math.max(0, Math.min(count, pool.length)));
 }
 
 // ---------- small numeric helpers ----------
@@ -431,9 +357,9 @@ export function toProposalCsvSummary(proposal) {
 }
 
 /**
- * Detailed CSV: one flat row per modeled grid line across all Terms, at each Term's own Final Offer
- * round. `modelsByTermId` maps termId → the demo model (rows[], roundLabels, finalOfferRoundIndex).
- * Pure — returns the CSV text; the caller handles the Blob/anchor download.
+ * Detailed CSV: one flat row per modeled grid line across all Terms, at its single proposed discount.
+ * `modelsByTermId` maps termId → the demo model (rows[]). Pure — returns the CSV text; the caller
+ * handles the Blob/anchor download.
  */
 export function toProposalCsvDetailed(proposal, modelsByTermId) {
   const p = proposal || {};
@@ -449,20 +375,13 @@ export function toProposalCsvDetailed(proposal, modelsByTermId) {
     csvLine([
       "Term / Route",
       "Method",
-      "Final Offer Round",
       "Value",
-      "Carrier",
-      "Partner",
-      "Discount Name",
-      "Alliance Permission",
-      "Current Existing %",
+      "Spend %",
       "Undiscounted %",
       "Projected %",
       "Existing Disc %",
       "Prior Disc %",
-      "Final Offer Disc %",
-      "Compare Fare",
-      "Notes"
+      "Proposed Disc %"
     ])
   );
   terms.forEach((t) => {
@@ -470,28 +389,19 @@ export function toProposalCsvDetailed(proposal, modelsByTermId) {
     if (!model || !Array.isArray(model.rows)) {
       return;
     }
-    const finalRound = model.finalOfferRoundIndex || 0;
-    const finalLabel = (model.roundLabels || [])[finalRound] || `Round ${finalRound + 1}`;
     const ue = computeUndiscounted(model.rows);
     model.rows.forEach((r, i) => {
       lines.push(
         csvLine([
           t.route || "",
           methodLabel(model.method),
-          finalLabel,
           r.label,
-          r.carrier,
-          r.isPartner ? "Yes" : "",
-          r.discountName,
-          r.alliancePermission,
           num1(r.currentExistingPct),
           num1(ue[i]),
           num1(r.projectedPct),
           num1(r.existingDiscountPct),
           num1(r.priorDiscountPct),
-          num1((r.rounds || [])[finalRound]),
-          r.isLaneFare && r.compareFare !== null ? r.compareFare : "",
-          r.notes || ""
+          num1(r.proposedDiscountPct)
         ])
       );
     });
@@ -528,16 +438,26 @@ export function termScopeChips(term) {
  * Data-provider seam: when a Term carries a `modeling` blob (see the data-contract doc,
  * docs/features/delta-negotiation-modeling-demo.md — populated server-side in a future round), any
  * finite numeric field on `modeling.flown` overrides the corresponding seeded baseline. Absent
- * (today's behavior), the deterministic seed is used verbatim — this function stays byte-identical.
+ * (today's behavior) with a `periodFactor` of 1, the deterministic seed is used verbatim — this
+ * function stays byte-identical.
+ *
+ * Analysis-period scaling: `periodFactor` (days-in-window ÷ 365, computed by the Configure Data Set
+ * panel where `Date` is allowed — this module stays `Date`-free) multiplies the three absolute
+ * magnitudes (industry revenue, industry passengers, negotiated spend) BEFORE the host derivations, so
+ * host revenue / host passengers scale with them. All percentage KPIs (Share, FMS, Gap) are ratios of
+ * co-scaled magnitudes and are therefore invariant under a uniform factor. An invalid/blank factor
+ * coerces to 1 (no scaling), keeping every existing call site back-compatible.
  */
-export function seedTermFlown(term, modeling = term && term.modeling) {
+export function seedTermFlown(term, modeling = term && term.modeling, periodFactor = 1) {
   const id = (term && term.id) || "term";
   const m = attrMap(term);
   const seed = `${id}|${routeSignature(term)}|${m[MEASURE_CODE] || ""}|${m[REQUIREMENT_CODE] || ""}`;
   const rng = mkRng(seed);
 
-  const industryRevenue = pickInt(rng, 80, 520) * 1_000_000; // $80M–$520M addressable
-  const baseSharePts = round1(18 + rng() * 40); // current revenue share 18–58%
+  const pf = Number.isFinite(periodFactor) && periodFactor >= 0 ? periodFactor : 1;
+
+  const industryRevenue = Math.round(pickInt(rng, 80, 520) * 1_000_000 * pf); // $80M–$520M addressable, period-scaled
+  const baseSharePts = round1(18 + rng() * 40); // current revenue share 18–58% (invariant under pf)
 
   // Prefer the Term's stated requirement (gap target) when present & sensible; else a seeded 3–12 pts.
   const requirement = parseFloat(m[REQUIREMENT_CODE]);
@@ -548,8 +468,8 @@ export function seedTermFlown(term, modeling = term && term.modeling) {
   const fmsPts = clamp(round1(baseSharePts + gapPts), 0, 95);
 
   // "Passengers" carry the flight-capacity metric that FMS is derived from (labelled Passengers in the
-  // KPI band; FMS itself stays flight-capacity based).
-  const industryPassengers = pickInt(rng, 4000, 26000);
+  // KPI band; FMS itself stays flight-capacity based). Period-scaled like revenue.
+  const industryPassengers = Math.round(pickInt(rng, 4000, 26000) * pf);
   const hostRevenue = Math.round((industryRevenue * baseSharePts) / 100);
   const hostPassengers = Math.round((industryPassengers * fmsPts) / 100);
 
@@ -558,8 +478,8 @@ export function seedTermFlown(term, modeling = term && term.modeling) {
   const beta = 0.25 + rng() * 0.35;
 
   // Customer's negotiated spend on this Term's routes — the natural weight for rolling per-Term EDR up
-  // to the contract (spend-weighted, distinct from the revenue-share aggregation).
-  const negotiatedSpendUSD = pickInt(rng, 40, 300) * 1_000_000;
+  // to the contract (spend-weighted, distinct from the revenue-share aggregation). Period-scaled.
+  const negotiatedSpendUSD = Math.round(pickInt(rng, 40, 300) * 1_000_000 * pf);
 
   const baseline = {
     industryRevenue,
@@ -608,8 +528,8 @@ function priorOf(fare) {
     : null;
 }
 
-// Product-mode entries: one per canonical product (matched to a real fare when the Term has one), plus
-// any extra real fare products the Term carries that aren't in the canonical list.
+// Product-mode entries: one row per REAL fare product the Term carries (deduped by product name, first
+// fare wins). No canonical-product padding — a Term with no fares yields no rows (grid empty-state).
 function productEntries(term) {
   const fares = (term && term.fares) || [];
   const byName = new Map();
@@ -619,42 +539,28 @@ function productEntries(term) {
       byName.set(key, f);
     }
   });
-  const entries = CANONICAL_PRODUCTS.map((p) => {
-    const fare = byName.get(normName(p));
-    return {
-      key: `P:${p}`,
-      label: p,
-      product: p,
-      backingFareId: fare ? fare.id : null,
-      hasFlown: !!fare,
-      existingDiscount: fare ? num(fare.discount) : null,
+  const entries = [];
+  byName.forEach((fare) => {
+    entries.push({
+      key: `P:${fare.productName}`,
+      label: fare.productName,
+      product: fare.productName,
+      backingFareId: fare.id,
+      hasFlown: true,
+      existingDiscount: num(fare.discount),
       priorDiscount: priorOf(fare)
-    };
-  });
-  // Append real fare products not in the canonical list (keeps a hand-built demo catalog honest).
-  const canonical = new Set(CANONICAL_PRODUCTS.map(normName));
-  fares.forEach((f) => {
-    if (!canonical.has(normName(f.productName)) && f.productName) {
-      entries.push({
-        key: `P:${f.productName}`,
-        label: f.productName,
-        product: f.productName,
-        backingFareId: f.id,
-        hasFlown: true,
-        existingDiscount: num(f.discount),
-        priorDiscount: priorOf(f)
-      });
-    }
+    });
   });
   return entries;
 }
 
 // Fare-Class-mode entries: explode each fare's fareCodes[] into booking-class rows (first fare to use a
-// code owns the backing line + existing discount), then add the remaining canonical codes as zero-spend
-// rows so the analyst can propose on unflown classes.
+// code owns the backing line + existing discount), in first-seen order. Only codes actually present on
+// the Term's fares become rows — no unflown-code padding.
 function fareClassEntries(term) {
   const fares = (term && term.fares) || [];
   const codeInfo = {};
+  const order = [];
   fares.forEach((f) => {
     (f.fareCodes || []).forEach((c) => {
       if (c && !codeInfo[c]) {
@@ -664,96 +570,49 @@ function fareClassEntries(term) {
           product: f.productName,
           priorDiscount: priorOf(f)
         };
+        order.push(c);
       }
     });
   });
-  return FARE_CODE_VALUES.map((c) => {
+  return order.map((c) => {
     const info = codeInfo[c];
     return {
       key: `F:${c}`,
       label: c,
-      product: info ? info.product : null,
-      backingFareId: info ? info.fareId : null,
-      hasFlown: !!info,
-      existingDiscount: info ? info.discount : null,
-      priorDiscount: info ? info.priorDiscount : null
-    };
-  });
-}
-
-// Add 1–2 deterministic partner-carrier rows mirroring flown host rows. Partners carry spend (so they
-// show up in the mix + proposal) but have no backing Quote line, so Apply-Final-Offer skips them.
-function withPartnerRows(term, method, entries) {
-  const flown = entries.filter((e) => e.hasFlown);
-  if (flown.length === 0) {
-    return entries;
-  }
-  const seed = `${term && term.id}|${method}|partners`;
-  const rng = mkRng(seed);
-  const count = 1 + (hash32(seed) % 2); // 1 or 2
-  const carriers = pickSome(rng, PARTNER_CARRIERS, count);
-  const partners = carriers.map((carrier, i) => {
-    const mirror = flown[i % flown.length];
-    return {
-      key: `${carrier}:${mirror.label}`,
-      label: mirror.label,
-      product: mirror.product,
-      carrier,
-      isPartner: true,
-      backingFareId: null,
+      product: info.product,
+      backingFareId: info.fareId,
       hasFlown: true,
-      // Partners negotiate their own discount — seed rather than inherit the host's.
-      existingDiscount: null,
-      notes: "JV partner spend"
+      existingDiscount: info.discount,
+      priorDiscount: info.priorDiscount
     };
   });
-  return [...entries, ...partners];
 }
 
 /**
- * Build the full editable row set for a Term under a discounting method. Each row's seeded values
- * (spend mix, existing discount, per-round proposals) are stable functions of the Term id + method +
- * row key, so rows are independently reproducible.
+ * Build the editable row set for a Term under a discounting method. Each row's seeded spend weight and
+ * existing discount are stable functions of the Term id + method + row key, so rows are independently
+ * reproducible. Rows are the Term's REAL fares only (no partner rows, no canonical/unflown padding), and
+ * each carries a single analyst-editable `proposedDiscountPct` (pre-filled to the existing discount) —
+ * the negotiation collapsed to one proposed set, no per-round history.
  */
 export function buildRows(term, method) {
-  const base = method === METHOD_FARECLASS ? fareClassEntries(term) : productEntries(term);
-  const entries = withPartnerRows(term, method, base);
+  const entries = method === METHOD_FARECLASS ? fareClassEntries(term) : productEntries(term);
   const termId = (term && term.id) || "term";
 
-  // First pass: seed each row's raw spend weight + existing discount + escalating round proposals.
+  // First pass: seed each row's raw spend weight + existing discount.
   const rows = entries.map((e) => {
     const rng = mkRng(`${termId}|${method}|${e.key}`);
-    const rawWeight = e.hasFlown ? 0.15 + rng() * 1.0 : 0; // zero-spend rows carry no weight
+    const rawWeight = e.hasFlown ? 0.15 + rng() * 1.0 : 0;
     const existingDiscountPct =
       e.existingDiscount !== null && e.existingDiscount !== undefined
         ? clamp(round1(e.existingDiscount), 0, 100)
-        : round1(4 + rng() * 18); // 4–22% seeded when no real fare backs the row
-
-    // Proposed discounts escalate round over round; the Final Offer is the deepest.
-    const r1 = clamp(round1(existingDiscountPct + 1 + rng() * 3), 0, 100);
-    const r2 = clamp(round1(r1 + 1 + rng() * 3), 0, 100);
-    const r3 = clamp(round1(r2 + 1 + rng() * 3), 0, 100);
-    const r4 = clamp(round1(r3 + 1 + rng() * 4), 0, 100);
-
-    // Editable metadata columns (Discount Name + Alliance Permissions). Seeded from a DEDICATED rng
-    // stream so adding them never perturbs the spend/discount magnitudes seeded from `rng` above.
-    const carrier = e.carrier || HOST_CARRIER;
-    const metaRng = mkRng(`${termId}|${method}|${e.key}|meta`);
-    const discountName = DISCOUNT_NAME_POOL[pickInt(metaRng, 0, DISCOUNT_NAME_POOL.length - 1)];
-    const alliancePermission = defaultAlliancePermission(carrier, metaRng);
+        : round1(4 + rng() * 18); // 4–22% seeded when the fare carries no discount
 
     return {
       key: e.key,
       label: e.label,
       product: e.product || null,
-      carrier,
-      isPartner: !!e.isPartner,
-      // Editable, storytelling-only metadata (never feeds a KPI).
-      discountName,
-      alliancePermission,
-      isLaneFare: false,
       backingFareId: e.backingFareId || null,
-      zeroSpend: !e.hasFlown,
       _rawWeight: rawWeight,
       currentExistingPct: 0, // filled after normalization below
       existingDiscountPct,
@@ -762,10 +621,10 @@ export function buildRows(term, method) {
         e.priorDiscount !== null && e.priorDiscount !== undefined
           ? clamp(round1(e.priorDiscount), 0, 100)
           : null,
-      projectedPct: 0, // starts equal to currentExistingPct
-      compareFare: null,
-      rounds: [r1, r2, r3, r4],
-      notes: e.notes || ""
+      // Single analyst-editable proposed discount; pre-fills to the existing discount, drives the KPIs,
+      // and is what Apply-Final-Offer writes back to the Quote.
+      proposedDiscountPct: existingDiscountPct,
+      projectedPct: 0 // starts equal to currentExistingPct
     };
   });
 
@@ -782,17 +641,6 @@ export function buildRows(term, method) {
   rows.forEach((r) => {
     r.projectedPct = r.currentExistingPct;
   });
-
-  // One seeded lane-fare row carries an editable Compare Fare benchmark (informational, not in EDR).
-  const laneRow = rows.find((r) => !r.zeroSpend && !r.isPartner) || rows.find((r) => !r.zeroSpend);
-  if (laneRow) {
-    const rng = mkRng(`${termId}|${method}|${laneRow.key}|compare`);
-    laneRow.isLaneFare = true;
-    laneRow.compareFare = pickInt(rng, 800, 3200);
-    if (!laneRow.notes) {
-      laneRow.notes = "Lane fare benchmark";
-    }
-  }
 
   return rows;
 }
@@ -819,7 +667,8 @@ function fixTo100(rows, field) {
 
 /**
  * Seed a fresh client-only model for a Term + discounting method. The orchestrator caches one of these
- * per (term, method) in `_modelsByTermId`; the grid mutates its rows/rounds in place across the session.
+ * per (term, method) in `_modelsByTermId`; the grid mutates its rows in place across the session. The
+ * negotiation is a single proposed set (one `proposedDiscountPct` per row) — no round metadata.
  */
 export function seedModel(term, method, modeling = term && term.modeling) {
   const resolved = method === METHOD_FARECLASS ? METHOD_FARECLASS : METHOD_PRODUCT;
@@ -832,12 +681,6 @@ export function seedModel(term, method, modeling = term && term.modeling) {
   return {
     termId: (term && term.id) || null,
     method: resolved,
-    roundLabels: [...ROUND_LABELS],
-    roundCount: ROUND_COUNT,
-    currentRoundIndex: DEFAULT_CURRENT_ROUND,
-    finalOfferRoundIndex: DEFAULT_FINAL_OFFER_ROUND,
-    // Optional per-round status chips (Draft / Sent / Countered / Recommended) for storytelling.
-    roundStatuses: ROUND_LABELS.map(() => "Draft"),
     rows: seededRows
   };
 }
@@ -879,11 +722,11 @@ export function edrExisting(rows) {
 }
 
 /**
- * Proposed EDR for a given round = projected-spend-weighted average of that round's proposed discounts.
- * Uses a true weighted mean (normalized by total projected weight) so it stays sane even while the
- * projected distribution is temporarily off 100% mid-edit. Returns null when projected spend is zero.
+ * Proposed EDR = projected-spend-weighted average of each row's single proposed discount. Uses a true
+ * weighted mean (normalized by total projected weight) so it stays sane even while the projected
+ * distribution is temporarily off 100% mid-edit. Returns null when projected spend is zero.
  */
-export function edrForRound(rows, roundIndex) {
+export function edrProposed(rows) {
   const list = rows || [];
   const totalWeight = sum(list.map((r) => num(r.projectedPct)));
   if (totalWeight <= 0) {
@@ -891,19 +734,10 @@ export function edrForRound(rows, roundIndex) {
   }
   const weighted = list.reduce((acc, r) => {
     const w = num(r.projectedPct);
-    const proposed = clamp((r.rounds || [])[roundIndex], 0, 100);
+    const proposed = clamp(r.proposedDiscountPct, 0, 100);
     return acc + w * proposed;
   }, 0);
   return round1(weighted / totalWeight);
-}
-
-// EDR for every round (parallel to roundLabels); null entries render as N/A.
-export function edrByRound(rows, roundCount = ROUND_COUNT) {
-  const out = [];
-  for (let i = 0; i < roundCount; i++) {
-    out.push(edrForRound(rows, i));
-  }
-  return out;
 }
 
 // ---------- totals / validation (for the sticky totals row) ----------
@@ -931,23 +765,18 @@ export function totalsSummary(rows) {
 // ---------- KPIs ----------
 
 /**
- * Full KPI object for a Term, combining its flown-data baseline with the model's active-round EDR to
- * project Share and Share Gap. Shape is identical to aggregateKpis()'s output so c/dlKpiBand renders
- * Term and Contract bands uniformly. Absolute magnitudes are included so the contract rollup can sum
- * them metric-by-metric.
+ * Full KPI object for a Term, combining its flown-data baseline with the model's proposed EDR to project
+ * Share and Share Gap. Shape is identical to aggregateKpis()'s output so c/dlKpiBand renders Term and
+ * Contract bands uniformly. Absolute magnitudes are included so the contract rollup can sum them
+ * metric-by-metric. `periodFactor` (analysis-window ÷ 365, default 1) scales those magnitudes via
+ * seedTermFlown; the percentage KPIs stay invariant.
  */
-export function computeTermKpis(term, model, roundIndexOverride, modeling = term && term.modeling) {
-  const flown = seedTermFlown(term, modeling);
+export function computeTermKpis(term, model, periodFactor = 1, modeling = term && term.modeling) {
+  const flown = seedTermFlown(term, modeling, periodFactor);
   const rows = (model && model.rows) || [];
-  const round =
-    roundIndexOverride === undefined || roundIndexOverride === null
-      ? model
-        ? model.currentRoundIndex
-        : DEFAULT_CURRENT_ROUND
-      : roundIndexOverride;
 
   const edrEx = edrExisting(rows);
-  const edrCur = edrForRound(rows, round);
+  const edrCur = edrProposed(rows);
   const edrLift = edrEx === null || edrCur === null ? 0 : round1(edrCur - edrEx);
 
   const projectedSharePts = clamp(round1(flown.baseSharePts + flown.beta * edrLift), 0, flown.fmsPts);
@@ -1042,10 +871,10 @@ export function aggregateKpis(perTerm) {
 // ---------- Apply-Final-Offer roll-up (Fare Class → product line) ----------
 
 /**
- * Reduce a model's Final Offer proposals to per-backing-line discounts for the Apply-to-Quote handoff.
+ * Reduce a model's proposed discounts to per-backing-line discounts for the Apply-to-Quote handoff.
  * Product rows map 1:1 to their backing fare line. Fare Class rows are rolled up to the parent fare
  * line, spend-weighted by projected mix, since the Quote/Contract carry product-level discounts. Rows
- * with no backing line (zero-spend canonical rows, partner rows) are skipped.
+ * with no backing line are skipped.
  *
  * Returns [{ id, discount }] ready for RLM_DeltaLineController.updateLineDiscountAndDates.
  */
@@ -1053,13 +882,12 @@ export function finalOfferLineDiscounts(model) {
   if (!model || !model.rows) {
     return [];
   }
-  const round = model.finalOfferRoundIndex;
   const byLine = new Map(); // lineId → { wSum, wvSum, fallback }
   model.rows.forEach((r) => {
     if (!r.backingFareId) {
       return;
     }
-    const proposed = clamp((r.rounds || [])[round], 0, 100);
+    const proposed = clamp(r.proposedDiscountPct, 0, 100);
     const weight = num(r.projectedPct);
     const entry = byLine.get(r.backingFareId) || { wSum: 0, wvSum: 0, fallback: proposed };
     entry.wSum += weight;

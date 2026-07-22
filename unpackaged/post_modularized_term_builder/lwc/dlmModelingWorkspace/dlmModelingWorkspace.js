@@ -28,9 +28,29 @@ export default class DlmModelingWorkspace extends LightningElement {
   @api termKpis;
   // Latched by the shell while a Final-Offer write-back is in flight (and when there's no model).
   @api applyDisabled = false;
+  // Participating (partner) carriers captured in the Configure Data Set panel and surfaced by the shell.
+  // Context only — chips above the grid, never grid rows. Accepts an array or a ';'-delimited string.
+  @api carriers = [];
 
   get hasModel() {
     return !!this.model;
+  }
+
+  // Participating-carrier chips shown above the grid. Normalizes the multiselect value (array or the
+  // ';'-delimited picklist string) into [{ key, label }]; empty when no carriers were selected.
+  get carrierChips() {
+    const raw = this.carriers;
+    const names = Array.isArray(raw)
+      ? raw
+      : `${raw || ""}`.split(";");
+    return names
+      .map((n) => `${n || ""}`.trim())
+      .filter(Boolean)
+      .map((name, i) => ({ key: `${i}:${name}`, label: name }));
+  }
+
+  get hasCarriers() {
+    return this.carrierChips.length > 0;
   }
 
   get hasTermKpis() {

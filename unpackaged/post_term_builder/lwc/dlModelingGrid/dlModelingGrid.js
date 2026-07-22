@@ -2,15 +2,11 @@ import { LightningElement, api } from "lwc";
 import {
   METHOD_PRODUCT,
   METHOD_FARECLASS,
-  ALLIANCE_PERMISSIONS,
-  computeUndiscounted,
   edrExisting,
-  edrByRound,
+  edrProposed,
   totalsSummary,
   clamp,
   round1,
-  num,
-  formatKpi,
   pct1
 } from "c/dlDemoModel";
 
@@ -19,26 +15,21 @@ const METHOD_OPTIONS = [
   { label: "Fare Class", value: METHOD_FARECLASS }
 ];
 
-const STATUS_OPTIONS = ["Draft", "Sent", "Countered", "Recommended"];
-
-const ALLIANCE_OPTIONS = ALLIANCE_PERMISSIONS.map((p) => ({ label: p, value: p }));
-
 /**
  * dlModelingGrid — the client-only negotiation modeling spreadsheet (demo stage ③).
  *
- * A controlled component: the orchestrator (c/dlTermBuilder) owns the per-(term, method) model cache
- * and hands this grid exactly ONE model to edit via @api model. The grid keeps a private working copy,
- * mutates it as the analyst edits, recomputes the derived columns (Undiscounted Existing spend mix,
- * per-round EDR) synchronously, and emits:
+ * A controlled component: the shell (c/dlmWorkspaceShell) owns the per-(term, method) model cache and
+ * hands this grid exactly ONE model to edit via @api model. The grid keeps a private working copy,
+ * mutates it as the analyst edits, recomputes the derived columns synchronously, and emits:
  *   - `modelchange` { termId, method, model, summary } — after any edit (coalesced to one per frame).
- *   - `methodchange` { termId, method } — when the discounting method toggle flips (the orchestrator
- *     swaps in the cached/seeded model for that method and passes it back down).
- *   - `expandtoggle` { expanded } — Expand-Workspace affordance (the orchestrator collapses the rail).
+ *   - `methodchange` { termId, method } — when the discounting method toggle flips (the shell swaps in
+ *     the cached/seeded model for that method and passes it back down).
+ *   - `expandtoggle` { expanded } — Expand-Workspace affordance (the shell collapses the rail).
  *
  * Editing UX mirrors the proven c/dlQuoteLineGrid pattern (inline lightning-inputs + data-* datasets +
- * clamp). Product and Fare Class are genuinely different row sets (see c/dlDemoModel.buildRows), never
- * a relabel of one set. Rounds are explicit: the *view* round is the one shown/edited in the main grid;
- * the *current* round drives KPIs; the *final offer* round drives the proposal + apply handoff.
+ * clamp). Product and Fare Class are genuinely different row sets over the Term's REAL fares (see
+ * c/dlDemoModel.buildRows), never a relabel of one set. The negotiation is a single proposed set: one
+ * editable Proposed Disc % per fare drives the KPIs and the Apply-Final-Offer handoff — no rounds.
  */
 export default class DlModelingGrid extends LightningElement {
   @api term;
@@ -47,9 +38,6 @@ export default class DlModelingGrid extends LightningElement {
 
   _model = null;
   _working = null;
-  // Which round's Proposed column is shown/edited in the main grid. Distinct from the model's
-  // currentRoundIndex (drives KPIs) and finalOfferRoundIndex (drives the proposal).
-  _viewRoundIndex = 0;
   _emitScheduled = false;
 
   @api
@@ -59,10 +47,6 @@ export default class DlModelingGrid extends LightningElement {
   set model(value) {
     this._model = value || null;
     this._working = value ? this._clone(value) : null;
-    if (this._working) {
-      // Default the view round to whatever currently drives KPIs so the grid opens on the "live" round.
-      this._viewRoundIndex = this._working.currentRoundIndex;
-    }
   }
 
   // ---------- method toggle ----------
@@ -97,133 +81,15 @@ export default class DlModelingGrid extends LightningElement {
     );
   }
 
-  // ---------- rounds ----------
+  // ---------- state ----------
 
   get hasModel() {
     return !!this._working && Array.isArray(this._working.rows);
   }
 
-  // Round selector chips. Marks which round is being viewed, which drives KPIs (current), and which is
-  // the selected final offer.
-  get roundChips() {
-    if (!this._working) {
-      return [];
-    }
-    const labels = this._working.roundLabels || [];
-    const edrs = edrByRound(this._working.rows, labels.length);
-    return labels.map((label, i) => {
-      const isView = i === this._viewRoundIndex;
-      const isCurrent = i === this._working.currentRoundIndex;
-      const isFinal = i === this._working.finalOfferRoundIndex;
-      const badges = [];
-      if (isCurrent) {
-        badges.push("Current");
-      }
-      if (isFinal) {
-        badges.push("Final Offer");
-      }
-      let cls = "dl-mg-round";
-      if (isView) {
-        cls += " dl-mg-round_view";
-      }
-      if (isCurrent) {
-        cls += " dl-mg-round_current";
-      }
-      return {
-        index: i,
-        label,
-        edr: pct1(edrs[i]),
-        badgeText: badges.join(" · "),
-        hasBadge: badges.length > 0,
-        status: (this._working.roundStatuses || [])[i] || "Draft",
-        cls,
-        ariaPressed: isView ? "true" : "false"
-      };
-    });
-  }
-
-  get viewRoundLabel() {
-    const labels = (this._working && this._working.roundLabels) || [];
-    return labels[this._viewRoundIndex] || "Round";
-  }
-
-  get proposedColumnLabel() {
-    return `Proposed · ${this.viewRoundLabel}`;
-  }
-
-  get copyPreviousDisabled() {
-    return this._viewRoundIndex === 0;
-  }
-
-  get isViewCurrentRound() {
-    return this._working && this._viewRoundIndex === this._working.currentRoundIndex;
-  }
-
-  // Emphasize "Set as Current Round" (brand) when the viewed round isn't yet driving KPIs — the demo's
-  // headline action. Once it is current, drop to neutral (also disabled).
-  get setCurrentVariant() {
-    return this.isViewCurrentRound ? "neutral" : "brand";
-  }
-
-  get isViewFinalOffer() {
-    return this._working && this._viewRoundIndex === this._working.finalOfferRoundIndex;
-  }
-
-  get statusOptions() {
-    return STATUS_OPTIONS.map((s) => ({ label: s, value: s }));
-  }
-
-  get allianceOptions() {
-    return ALLIANCE_OPTIONS;
-  }
-
-  get viewRoundStatus() {
-    return ((this._working && this._working.roundStatuses) || [])[this._viewRoundIndex] || "Draft";
-  }
-
-  handleRoundSelect(event) {
-    const index = parseInt(event.currentTarget.dataset.index, 10);
-    if (!Number.isNaN(index)) {
-      this._viewRoundIndex = index;
-    }
-  }
-
-  handleCopyPrevious() {
-    if (this._viewRoundIndex === 0 || !this._working) {
-      return;
-    }
-    const from = this._viewRoundIndex - 1;
-    const to = this._viewRoundIndex;
-    this._working.rows.forEach((r) => {
-      r.rounds[to] = r.rounds[from];
-    });
-    this._recomputeAndEmit();
-  }
-
-  handleSetCurrentRound() {
-    if (!this._working) {
-      return;
-    }
-    this._working.currentRoundIndex = this._viewRoundIndex;
-    this._recomputeAndEmit();
-  }
-
-  handleSetFinalOffer() {
-    if (!this._working) {
-      return;
-    }
-    this._working.finalOfferRoundIndex = this._viewRoundIndex;
-    this._recomputeAndEmit();
-  }
-
-  handleStatusChange(event) {
-    if (!this._working) {
-      return;
-    }
-    const statuses = [...(this._working.roundStatuses || [])];
-    statuses[this._viewRoundIndex] = event.detail.value;
-    this._working.roundStatuses = statuses;
-    this._recomputeAndEmit();
+  // A model with no fares (Term has no lines yet) renders an empty-state instead of a headerless grid.
+  get hasRows() {
+    return this.hasModel && this._working.rows.length > 0;
   }
 
   // ---------- expand affordance ----------
@@ -248,50 +114,29 @@ export default class DlModelingGrid extends LightningElement {
 
   // ---------- rows ----------
 
-  // Build the render rows: each model row plus its derived Undiscounted Existing % and the active view
-  // round's Proposed value. Cell error flags mark out-of-range distribution entries.
+  // Build the render rows: each fare's spend mix + existing/prior/proposed discounts. Prior Disc % is a
+  // read-only reference column; the rest are inline-editable.
   get displayRows() {
     if (!this._working) {
       return [];
     }
     const rows = this._working.rows;
-    const ue = computeUndiscounted(rows);
-    const view = this._viewRoundIndex;
-    return rows.map((r, i) => {
-      const rowClass =
-        "dl-mg-row" +
-        (r.zeroSpend ? " dl-mg-row_zero" : "") +
-        (r.isPartner ? " dl-mg-row_partner" : "");
+    return rows.map((r) => {
       // Read-only prior-cycle discount context (null unless the fare was enriched from getQuoteLines).
       const hasPrior = r.priorDiscountPct !== null && r.priorDiscountPct !== undefined;
       return {
         key: r.key,
         label: r.label,
-        carrier: r.carrier,
-        isPartner: r.isPartner,
-        zeroSpend: r.zeroSpend,
-        isLaneFare: r.isLaneFare,
-        rowClass,
         currentExistingPct: r.currentExistingPct,
-        undiscountedPct: ue[i],
         projectedPct: r.projectedPct,
         existingDiscountPct: r.existingDiscountPct,
         priorDiscountDisplay: hasPrior ? pct1(r.priorDiscountPct) : "—",
-        proposedPct: r.rounds[view],
-        compareFare: r.isLaneFare ? r.compareFare : null,
-        compareDisplay: r.isLaneFare ? r.compareFare : "—",
-        discountName: r.discountName,
-        alliancePermission: r.alliancePermission,
-        // Emphasize the Alliance cell on partner rows (the negotiation-relevant carriers).
-        allianceCellClass: r.isPartner
-          ? "dl-mg-alliance dl-mg-alliance_partner"
-          : "dl-mg-alliance",
-        notes: r.notes
+        proposedPct: r.proposedDiscountPct
       };
     });
   }
 
-  // Sticky totals row: CE / UE / Projected sums + validity flags (per c/dlDemoModel.totalsSummary).
+  // Sticky totals row: Spend % / Projected % sums + validity flags (per c/dlDemoModel.totalsSummary).
   get totals() {
     if (!this._working) {
       return null;
@@ -299,7 +144,6 @@ export default class DlModelingGrid extends LightningElement {
     const t = totalsSummary(this._working.rows);
     return {
       ceTotal: `${round1(t.ceTotal).toFixed(1)}%`,
-      ueTotal: `${round1(t.ueTotal).toFixed(1)}%`,
       projectedTotal: `${round1(t.projectedTotal).toFixed(1)}%`,
       ceValid: t.ceValid,
       projectedValid: t.projectedValid,
@@ -313,19 +157,14 @@ export default class DlModelingGrid extends LightningElement {
     return t && (!t.ceValid || !t.projectedValid);
   }
 
-  // Existing EDR + view-round EDR for the summary line under the grid.
+  // Existing EDR + Proposed EDR for the summary line under the grid.
   get edrSummary() {
     if (!this._working) {
       return null;
     }
-    const existing = edrExisting(this._working.rows);
-    const edrs = edrByRound(this._working.rows, (this._working.roundLabels || []).length);
     return {
-      existing: pct1(existing),
-      viewRound: pct1(edrs[this._viewRoundIndex]),
-      current: pct1(edrs[this._working.currentRoundIndex]),
-      finalOffer: pct1(edrs[this._working.finalOfferRoundIndex]),
-      viewLabel: this.viewRoundLabel
+      existing: pct1(edrExisting(this._working.rows)),
+      proposed: pct1(edrProposed(this._working.rows))
     };
   }
 
@@ -362,42 +201,8 @@ export default class DlModelingGrid extends LightningElement {
   handleProposedChange(event) {
     const r = this._row(event.target.dataset.key);
     if (r) {
-      r.rounds[this._viewRoundIndex] = clamp(event.target.value, 0, 100);
+      r.proposedDiscountPct = clamp(event.target.value, 0, 100);
       this._recomputeAndEmit();
-    }
-  }
-
-  handleCompareFareChange(event) {
-    const r = this._row(event.target.dataset.key);
-    if (r) {
-      r.compareFare = Math.max(0, num(event.target.value));
-      this._recomputeAndEmit();
-    }
-  }
-
-  handleNotesChange(event) {
-    const r = this._row(event.target.dataset.key);
-    if (r) {
-      r.notes = event.target.value;
-      // Notes don't affect KPIs; still emit so the model stays in sync for the proposal/export.
-      this._scheduleEmit();
-    }
-  }
-
-  handleDiscountNameChange(event) {
-    const r = this._row(event.target.dataset.key);
-    if (r) {
-      r.discountName = event.target.value;
-      // Storytelling metadata only — doesn't feed a KPI; still sync for the proposal/export.
-      this._scheduleEmit();
-    }
-  }
-
-  handleAlliancePermissionChange(event) {
-    const r = this._row(event.target.dataset.key);
-    if (r) {
-      r.alliancePermission = event.detail.value;
-      this._scheduleEmit();
     }
   }
 
@@ -426,14 +231,10 @@ export default class DlModelingGrid extends LightningElement {
       return;
     }
     const m = this._working;
-    const edrs = edrByRound(m.rows, (m.roundLabels || []).length);
     const t = totalsSummary(m.rows);
     const summary = {
       edrExisting: edrExisting(m.rows),
-      edrByRound: edrs,
-      edrCurrentRound: edrs[m.currentRoundIndex],
-      currentRoundIndex: m.currentRoundIndex,
-      finalOfferRoundIndex: m.finalOfferRoundIndex,
+      edrProposed: edrProposed(m.rows),
       totalsValid: t.ceValid && t.projectedValid
     };
     this.dispatchEvent(
@@ -443,11 +244,6 @@ export default class DlModelingGrid extends LightningElement {
         composed: true
       })
     );
-  }
-
-  // Formatting passthroughs for the template.
-  formatCurrency(value) {
-    return formatKpi(value, "currency", this.currencyCode);
   }
 
   _clone(obj) {
