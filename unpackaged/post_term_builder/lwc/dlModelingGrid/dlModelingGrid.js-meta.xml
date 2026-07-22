@@ -3,5 +3,5 @@
     <apiVersion>67.0</apiVersion>
     <isExposed>false</isExposed>
     <masterLabel>Delta Modeling Grid</masterLabel>
-    <description>Internal component (Delta Term Builder): the client-only negotiation modeling spreadsheet over a Term's real fares. Product vs Fare Class row builders, six columns (Spend/Projected/Existing/Prior/Proposed disc), one proposed discount per fare, sticky Value column + totals/EDR row. Emits modelchange/methodchange/expandtoggle.</description>
+    <description>Internal component (Delta Term Builder): client-only modeling grid over a Term's real fares. Product/Fare-Class rows, six columns (Spend/Projected/Existing/Prior/Proposed disc), one proposed discount per fare. Emits modelchange/methodchange/expandtoggle.</description>
 </LightningComponentBundle>
