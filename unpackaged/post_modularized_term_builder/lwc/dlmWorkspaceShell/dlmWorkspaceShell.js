@@ -99,25 +99,31 @@ export default class DlmWorkspaceShell extends LightningElement {
   _priorByLineId = {};
 
   _subscription = null;
-  // Guards the one-shot ?c__quoteId= deep-link adoption (renewals land here directly, so the shell must
-  // not depend solely on catching dlmNegotiationContext's one-shot `context` message — it may mount a
-  // beat late, in a tab, and miss it).
-  _pageStateApplied = false;
+  // The ?c__quoteId= we last acted on. Tracked (not a one-shot boolean) so a re-navigation to this app
+  // page with a DIFFERENT quote is honored even when Lightning reuses the cached component instance —
+  // otherwise the shell keeps rendering the previously-opened quote. Renewals land here directly, so
+  // the shell must not depend solely on catching dlmNegotiationContext's one-shot `context` message.
+  _lastUrlQuoteId;
 
   @wire(MessageContext)
   messageContext;
 
-  // Pick up ?c__quoteId= from URL state once. Mirrors c/dlmNegotiationContext + the monolith: a
-  // deep-link/renewal fallback so the shell self-hydrates even if the LMC `context` publish is missed.
-  // Only adopts when we have no quote yet; interactive quote switching still flows through `context`.
+  // Pick up ?c__quoteId= from URL state, re-running when the param CHANGES. A deep-link/renewal
+  // fallback so the shell self-hydrates even if the LMC `context` publish is missed. Adopting only on a
+  // URL-param change (not merely "quoteId differs") means an interactive switch via the header — which
+  // updates our quoteId over LMC without touching the URL — is never clobbered by a stale re-fire.
   @wire(CurrentPageReference)
   applyPageReference(pageRef) {
-    if (pageRef && !this._pageStateApplied) {
-      const quoteFromUrl = pageRef.state && pageRef.state.c__quoteId;
-      if (quoteFromUrl && !this.quoteId) {
-        this._pageStateApplied = true;
+    if (!pageRef) {
+      return;
+    }
+    const quoteFromUrl = (pageRef.state && pageRef.state.c__quoteId) || null;
+    if (quoteFromUrl && quoteFromUrl !== this._lastUrlQuoteId) {
+      this._lastUrlQuoteId = quoteFromUrl;
+      if (quoteFromUrl !== this.quoteId) {
         this.quoteId = quoteFromUrl;
         this.selectedTermId = null;
+        this.accountId = null;
         this._resetDemoModels();
         // accountId is back-filled from the loaded quote payload (renewals carry no c__accountId).
         this.loadState();

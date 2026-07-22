@@ -1,5 +1,6 @@
 import { LightningElement, api, track, wire } from "lwc";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
+import { CurrentPageReference } from "lightning/navigation";
 import {
   publish,
   subscribe,
@@ -43,9 +44,32 @@ export default class DlmTermsRail extends LightningElement {
   errorMessage = "";
 
   _subscription = null;
+  // The ?c__quoteId= we last acted on. Tracked (not a one-shot boolean) so a re-navigation to this app
+  // page with a DIFFERENT quote is honored even when Lightning reuses the cached component instance.
+  _lastUrlQuoteId;
 
   @wire(MessageContext)
   messageContext;
+
+  // Pick up ?c__quoteId= from URL state, re-running when the param CHANGES: a deep-link/renewal
+  // fallback so the rail loads its terms even if the LMC `context` publish is missed (this tile can
+  // mount after the header broadcasts it). Adopting only on a URL-param change never clobbers an
+  // interactive quote switch that flows through `context` without touching the URL.
+  @wire(CurrentPageReference)
+  applyPageReference(pageRef) {
+    if (!pageRef) {
+      return;
+    }
+    const quoteFromUrl = (pageRef.state && pageRef.state.c__quoteId) || null;
+    if (quoteFromUrl && quoteFromUrl !== this._lastUrlQuoteId) {
+      this._lastUrlQuoteId = quoteFromUrl;
+      if (quoteFromUrl !== this.quoteId) {
+        this.quoteId = quoteFromUrl;
+        this.selectedTermId = null;
+        this.loadTerms(true);
+      }
+    }
+  }
 
   connectedCallback() {
     this._subscribe();

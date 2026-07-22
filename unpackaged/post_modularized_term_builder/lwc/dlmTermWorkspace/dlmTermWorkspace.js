@@ -1,4 +1,5 @@
 import { LightningElement, api, wire } from "lwc";
+import { CurrentPageReference } from "lightning/navigation";
 import {
   publish,
   subscribe,
@@ -80,9 +81,31 @@ export default class DlmTermWorkspace extends LightningElement {
   // Set when an inbound message requires the grid to refetch (not just re-scope its cache); acted on
   // in renderedCallback once the grid is guaranteed present.
   _needsGridRefresh = false;
+  // The ?c__quoteId= we last acted on (standalone fallback; see the CurrentPageReference wire below).
+  _lastUrlQuoteId;
 
   @wire(MessageContext)
   messageContext;
+
+  // Pick up ?c__quoteId= from URL state — the standalone-tile fallback for renewals, re-running when
+  // the param CHANGES. When embedded in c/dlmWorkspaceShell the shell hands quoteId down as a prop
+  // (latching _propDriven), so this is a no-op there; only a standalone placement with a missed
+  // `context` message adopts the URL quote. Sets _quoteId directly (not via the prop setter) so a
+  // later shell prop still wins.
+  @wire(CurrentPageReference)
+  applyPageReference(pageRef) {
+    if (!pageRef || this._propDriven) {
+      return;
+    }
+    const quoteFromUrl = (pageRef.state && pageRef.state.c__quoteId) || null;
+    if (quoteFromUrl && quoteFromUrl !== this._lastUrlQuoteId) {
+      this._lastUrlQuoteId = quoteFromUrl;
+      if (quoteFromUrl !== this._quoteId) {
+        this._quoteId = quoteFromUrl;
+        this._selectedTermId = null;
+      }
+    }
+  }
 
   connectedCallback() {
     this._subscribe();

@@ -76,27 +76,35 @@ export default class DlmNegotiationContext extends LightningElement {
   // Delta triangle emblem shown in the header, replacing the CSS triangle stand-in.
   emblemUrl = DL_TERM_BUILDER_EMBLEM;
 
-  _pageStateApplied = false;
+  // The ?c__quoteId= / ?c__accountId= values we last acted on. Tracked (not a one-shot boolean) so a
+  // re-navigation to this app page with a DIFFERENT quote is honored even when Lightning reuses the
+  // cached component instance — otherwise the page keeps rendering the previously-opened quote.
+  _lastUrlQuoteId;
+  _lastUrlAccountId;
   _subscription = null;
 
   @wire(MessageContext)
   messageContext;
 
-  // Pick up ?c__quoteId= / ?c__accountId= from URL state once. A quoteId wins: it opens the quote
-  // directly and back-fills its account. Otherwise an accountId just preselects the account.
+  // Pick up ?c__quoteId= / ?c__accountId= from URL state. A quoteId wins: it opens the quote directly
+  // and back-fills its account. Otherwise an accountId just preselects the account. Re-runs when the
+  // URL param CHANGES (compared against the last value we acted on) so navigating to a new negotiation
+  // on a cached page instance is honored; an unchanged param never clobbers an interactive selection.
   @wire(CurrentPageReference)
   applyPageReference(pageRef) {
-    if (pageRef && !this._pageStateApplied) {
-      const quoteFromUrl = pageRef.state && pageRef.state.c__quoteId;
-      const acctFromUrl = pageRef.state && pageRef.state.c__accountId;
-      if (quoteFromUrl) {
-        this._pageStateApplied = true;
-        this.openQuote(quoteFromUrl);
-      } else if (acctFromUrl) {
-        this._pageStateApplied = true;
-        this.selectedAccountId = acctFromUrl;
-        this.loadNegotiations();
-      }
+    if (!pageRef) {
+      return;
+    }
+    const quoteFromUrl = (pageRef.state && pageRef.state.c__quoteId) || null;
+    const acctFromUrl = (pageRef.state && pageRef.state.c__accountId) || null;
+    if (quoteFromUrl && quoteFromUrl !== this._lastUrlQuoteId) {
+      this._lastUrlQuoteId = quoteFromUrl;
+      this._lastUrlAccountId = null;
+      this.openQuote(quoteFromUrl);
+    } else if (!quoteFromUrl && acctFromUrl && acctFromUrl !== this._lastUrlAccountId) {
+      this._lastUrlAccountId = acctFromUrl;
+      this.selectedAccountId = acctFromUrl;
+      this.loadNegotiations();
     }
   }
 
