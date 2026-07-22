@@ -344,7 +344,23 @@ public with sharing class RLM_ExpressionSetManagerController {
                     for (ExpressionSetDefinitionContextDefinition j : junctions) {
                         ids.add(j.Id);
                     }
-                    deleteRecords(baseUrl, sessionId, ids);
+                    try {
+                        deleteRecords(baseUrl, sessionId, ids);
+                    } catch (Exception e) {
+                        // The version PATCHes above have already committed, so a
+                        // junction-delete failure leaves the operation partially
+                        // applied — report that explicitly rather than surfacing
+                        // only the delete error. Same communicate-not-atomic
+                        // stance as sendCompositeInChunks (cap/compensation → #305).
+                        if (!activeVersions.isEmpty()) {
+                            throw new CalloutException(
+                                'Operation partially applied: the selected Expression Set version(s) were '
+                                + 'deactivated, but removing the Context Definition link did not complete. '
+                                + 'Refresh to see current state. ' + e.getMessage()
+                            );
+                        }
+                        throw e;
+                    }
                 }
             }
         }
