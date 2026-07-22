@@ -9,10 +9,10 @@ import addTermFromTemplate from "@salesforce/apex/RLM_DeltaTermBuilderController
  * pre-defined term templates (getTermLibrary) and lists them with their scope chips + fare classes.
  * Choosing one calls addTermFromTemplate, which creates a real DL-TERM line, stamps the template's
  * scope attributes, and attaches its fare classes. The modal stays open so the rep can add several
- * Terms in one sitting; it reports the running totals to the rail only when the user closes it. Once
- * anything has been added, the built-in ESC/X/backdrop dismissal is disabled so the additions can't be
- * dropped on the floor — the footer Close button is the single deterministic exit. Cancelling before
- * any add closes with no effect.
+ * Terms in one sitting; the footer button ("Done" once anything is added) reports the running totals
+ * to the rail on close. The rep can still dismiss via ESC/X — the rail refreshes after any close, so
+ * added Terms are never left stale even without a totals payload. Cancelling before any add closes
+ * with no effect.
  */
 export default class DlmTermLibraryModal extends LightningModal {
   @api quoteId;
@@ -156,13 +156,12 @@ export default class DlmTermLibraryModal extends LightningModal {
         this.errorMessage = res.errorMessage || "Unable to add the Term.";
         return;
       }
-      // Keep the modal open: tally this add and let the rep keep adding. The rail is refreshed once,
-      // from the totals reported on Close. Disabling the built-in dismissal guarantees those totals
-      // are handed off (an ESC/X close resolves the open() promise with no payload).
+      // Keep the modal open: tally this add and let the rep keep adding. The footer reports these
+      // totals on Close, and the rail refreshes after any close (including ESC/X) so the additions
+      // aren't lost even when the open() promise resolves with no payload.
       this.addedCount += 1;
       this.addedFareCount += res.addedFareCount || 0;
       this.lastTermLineId = res.termLineId || this.lastTermLineId;
-      this.disableClose = true;
     } catch (e) {
       this.errorMessage = this._errMessage(e);
     } finally {

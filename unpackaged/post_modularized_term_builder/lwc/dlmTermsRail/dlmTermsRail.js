@@ -283,22 +283,27 @@ export default class DlmTermsRail extends LightningElement {
         size: "medium",
         label: "Term Library"
       });
-      if (!result || result.status !== "finished") {
+      // The modal stays open across adds and reports its running totals when the rep finishes. A
+      // clean cancel (nothing added) needs no refresh; a finished close carries the totals for the
+      // toast; an ESC/X dismissal resolves with no payload but Terms may still have been created, so
+      // refresh to be safe.
+      if (result && result.status === "cancel") {
         return;
       }
-      // The modal stays open across adds and reports its running totals on close.
-      const count = result.addedCount || 1;
-      const fares = result.addedFareCount || 0;
-      const termText = `${count} Term${count > 1 ? "s" : ""}`;
-      const fareText = fares
-        ? ` with ${fares} fare class${fares > 1 ? "es" : ""}`
-        : "";
-      this._toast(
-        "Terms added from library",
-        `${termText} added${fareText}.`,
-        "success"
-      );
-      await this.handleTermAdded(result.lastTermLineId);
+      if (result && result.status === "finished") {
+        const count = result.addedCount || 1;
+        const fares = result.addedFareCount || 0;
+        const termText = `${count} Term${count > 1 ? "s" : ""}`;
+        const fareText = fares
+          ? ` with ${fares} fare class${fares > 1 ? "es" : ""}`
+          : "";
+        this._toast(
+          "Terms added from library",
+          `${termText} added${fareText}.`,
+          "success"
+        );
+      }
+      await this.handleTermAdded(result && result.lastTermLineId);
     } catch (e) {
       this.errorMessage = this._errMessage(e);
     }
