@@ -9,8 +9,7 @@ import {
   seedModel,
   computeUndiscounted,
   edrExisting,
-  edrForRound,
-  edrByRound,
+  edrProposed,
   totalsSummary,
   computeTermKpis,
   aggregateKpis,
@@ -28,12 +27,8 @@ import {
   pts,
   formatKpi,
   tone,
-  CANONICAL_PRODUCTS,
-  FARE_CODE_VALUES,
-  ALLIANCE_PERMISSIONS,
   METHOD_PRODUCT,
-  METHOD_FARECLASS,
-  ROUND_COUNT
+  METHOD_FARECLASS
 } from "c/dlDemoModel";
 
 // A Term shaped like RLM_DeltaTermBuilderController.getBuilderState() emits.
@@ -128,48 +123,111 @@ describe("seedTermFlown", () => {
   });
 });
 
-describe("buildRows — Product vs Fare Class", () => {
-  it("Product mode renders every canonical product (plus partners)", () => {
+describe("analysis-period scaling (periodFactor)", () => {
+  it("a factor of 1 — or an omitted / invalid factor — is byte-identical to the unscaled baseline", () => {
+    const t = makeTerm();
+    const base = seedTermFlown(t);
+    expect(seedTermFlown(t, undefined, 1)).toEqual(base);
+    expect(seedTermFlown(t, undefined, -3)).toEqual(base); // negative → coerced to 1
+    expect(seedTermFlown(t, undefined, NaN)).toEqual(base); // NaN → coerced to 1
+  });
+
+  it("a factor of 2 doubles every absolute magnitude and leaves the percentage KPIs put", () => {
+    const t = makeTerm();
+    const one = seedTermFlown(t, undefined, 1);
+    const two = seedTermFlown(t, undefined, 2);
+    // Base magnitudes scale exactly; host figures within ±rounding of double.
+    expect(two.industryRevenue).toBe(2 * one.industryRevenue);
+    expect(two.industryPassengers).toBe(2 * one.industryPassengers);
+    expect(two.negotiatedSpendUSD).toBe(2 * one.negotiatedSpendUSD);
+    expect(two.hostRevenue).toBeCloseTo(2 * one.hostRevenue, -1);
+    expect(two.hostPassengers).toBeCloseTo(2 * one.hostPassengers, -1);
+    // Percentage KPIs are ratios of co-scaled magnitudes → invariant.
+    expect(two.baseSharePts).toBe(one.baseSharePts);
+    expect(two.fmsPts).toBe(one.fmsPts);
+    expect(two.gapPts).toBe(one.gapPts);
+    expect(two.beta).toBe(one.beta);
+  });
+
+  it("a factor of 0 zeroes the absolute magnitudes but preserves the percentage KPIs", () => {
+    const t = makeTerm();
+    const zero = seedTermFlown(t, undefined, 0);
+    const base = seedTermFlown(t);
+    expect(zero.industryRevenue).toBe(0);
+    expect(zero.hostRevenue).toBe(0);
+    expect(zero.industryPassengers).toBe(0);
+    expect(zero.hostPassengers).toBe(0);
+    expect(zero.negotiatedSpendUSD).toBe(0);
+    expect(zero.baseSharePts).toBe(base.baseSharePts);
+    expect(zero.fmsPts).toBe(base.fmsPts);
+  });
+
+  it("computeTermKpis threads periodFactor into the magnitudes only", () => {
+    const t = makeTerm();
+    const model = seedModel(t, METHOD_PRODUCT);
+    const one = computeTermKpis(t, model); // default factor 1
+    const two = computeTermKpis(t, model, 2);
+    expect(two.industryRevenue).toBe(2 * one.industryRevenue);
+    expect(two.industryPassengers).toBe(2 * one.industryPassengers);
+    expect(two.negotiatedSpendUSD).toBe(2 * one.negotiatedSpendUSD);
+    expect(two.hostRevenue).toBeCloseTo(2 * one.hostRevenue, -1);
+    expect(two.hostPassengers).toBeCloseTo(2 * one.hostPassengers, -1);
+    expect(two.projectedHostRevenue).toBeCloseTo(2 * one.projectedHostRevenue, -1);
+    // Percentage KPIs unchanged under scaling.
+    expect(two.sharePts).toBe(one.sharePts);
+    expect(two.fmsPts).toBe(one.fmsPts);
+    expect(two.gapPts).toBe(one.gapPts);
+    expect(two.projectedSharePts).toBe(one.projectedSharePts);
+    expect(two.projectedGapPts).toBe(one.projectedGapPts);
+    expect(two.edrExistingPts).toBe(one.edrExistingPts);
+    expect(two.edrCurrentPts).toBe(one.edrCurrentPts);
+  });
+});
+
+describe("buildRows — real fares only (Product vs Fare Class)", () => {
+  it("Product mode yields one row per real fare product, seeded to the fare's discount", () => {
     const rows = buildRows(makeTerm(), METHOD_PRODUCT);
-    CANONICAL_PRODUCTS.forEach((p) => {
-      expect(rows.some((r) => r.label === p && !r.isPartner)).toBe(true);
-    });
-    // Delta One + Main are backed by real fares; the rest are zero-spend canonical rows.
-    const one = rows.find((r) => r.label === "Delta One" && !r.isPartner);
+    expect(rows.map((r) => r.label)).toEqual(["Delta One", "Main"]);
+    const one = rows.find((r) => r.label === "Delta One");
     expect(one.backingFareId).toBe("0QLfare1");
     expect(one.existingDiscountPct).toBe(15);
-    const premium = rows.find((r) => r.label === "Premium Select" && !r.isPartner);
-    expect(premium.backingFareId).toBeNull();
-    expect(premium.zeroSpend).toBe(true);
+    const main = rows.find((r) => r.label === "Main");
+    expect(main.backingFareId).toBe("0QLfare2");
+    expect(main.existingDiscountPct).toBe(8);
   });
 
-  it("Fare Class mode explodes fare codes into every canonical booking class", () => {
+  it("Fare Class mode explodes only the fare codes present on the Term's fares", () => {
     const rows = buildRows(makeTerm(), METHOD_FARECLASS);
-    FARE_CODE_VALUES.forEach((c) => {
-      expect(rows.some((r) => r.label === c && !r.isPartner)).toBe(true);
-    });
-    const j = rows.find((r) => r.label === "J" && !r.isPartner);
+    expect(rows.map((r) => r.label)).toEqual(["J", "C", "D", "M", "H", "Q"]);
+    const j = rows.find((r) => r.label === "J");
     expect(j.backingFareId).toBe("0QLfare1");
-    expect(j.zeroSpend).toBe(false);
-    const y = rows.find((r) => r.label === "Y" && !r.isPartner); // not on any fare
-    expect(y.zeroSpend).toBe(true);
+    expect(j.existingDiscountPct).toBe(15);
+    const q = rows.find((r) => r.label === "Q");
+    expect(q.backingFareId).toBe("0QLfare2");
   });
 
-  it("includes at least one partner-carrier row", () => {
-    const rows = buildRows(makeTerm(), METHOD_PRODUCT);
-    const partners = rows.filter((r) => r.isPartner);
-    expect(partners.length).toBeGreaterThanOrEqual(1);
-    partners.forEach((p) => {
-      expect(["AF", "KL", "VS"]).toContain(p.carrier);
-      expect(p.backingFareId).toBeNull();
+  it("yields no rows for a Term with no fares (grid empty-state)", () => {
+    expect(buildRows(makeTerm({ fares: [] }), METHOD_PRODUCT)).toEqual([]);
+    expect(buildRows({ id: "t", attributes: [] }, METHOD_FARECLASS)).toEqual([]);
+  });
+
+  it("pre-fills proposedDiscountPct to existingDiscountPct on every row", () => {
+    [METHOD_PRODUCT, METHOD_FARECLASS].forEach((method) => {
+      buildRows(makeTerm(), method).forEach((r) => {
+        expect(r.proposedDiscountPct).toBe(r.existingDiscountPct);
+      });
     });
   });
 
-  it("seeds one editable lane-fare Compare Fare row", () => {
-    const rows = buildRows(makeTerm(), METHOD_PRODUCT);
-    const lane = rows.filter((r) => r.isLaneFare);
-    expect(lane.length).toBe(1);
-    expect(lane[0].compareFare).toBeGreaterThan(0);
+  it("carries no round / partner / alliance / compare-fare scaffolding on a row", () => {
+    const r = buildRows(makeTerm(), METHOD_PRODUCT)[0];
+    expect(r.rounds).toBeUndefined();
+    expect(r.isPartner).toBeUndefined();
+    expect(r.carrier).toBeUndefined();
+    expect(r.discountName).toBeUndefined();
+    expect(r.alliancePermission).toBeUndefined();
+    expect(r.compareFare).toBeUndefined();
+    expect(r.isLaneFare).toBeUndefined();
   });
 
   it("Current Existing % sums to exactly 100", () => {
@@ -179,32 +237,6 @@ describe("buildRows — Product vs Fare Class", () => {
 
   it("is fully deterministic", () => {
     expect(buildRows(makeTerm(), METHOD_PRODUCT)).toEqual(buildRows(makeTerm(), METHOD_PRODUCT));
-  });
-
-  it("proposed round discounts escalate to the Final Offer", () => {
-    const rows = buildRows(makeTerm(), METHOD_PRODUCT);
-    rows.forEach((r) => {
-      expect(r.rounds).toHaveLength(ROUND_COUNT);
-      for (let i = 1; i < ROUND_COUNT; i++) {
-        expect(r.rounds[i]).toBeGreaterThanOrEqual(r.rounds[i - 1]);
-      }
-    });
-  });
-
-  it("seeds an editable Discount Name and a valid Alliance Permission per row", () => {
-    const rows = buildRows(makeTerm(), METHOD_PRODUCT);
-    rows.forEach((r) => {
-      expect(typeof r.discountName).toBe("string");
-      expect(r.discountName.length).toBeGreaterThan(0);
-      expect(ALLIANCE_PERMISSIONS).toContain(r.alliancePermission);
-    });
-  });
-
-  it("defaults the host carrier's Alliance Permission to Allowed", () => {
-    const rows = buildRows(makeTerm(), METHOD_PRODUCT);
-    rows
-      .filter((r) => !r.isPartner)
-      .forEach((r) => expect(r.alliancePermission).toBe("Allowed"));
   });
 
   it("carries priorDiscountPct: null when the fare wasn't enriched, else the clamped value", () => {
@@ -365,7 +397,7 @@ describe("proposal CSV exports (G3)", () => {
           termId: "0QLterm1",
           route: "ATL → LHR",
           methodLabel: "Product",
-          statusLabel: "Recommended",
+          statusLabel: "Proposed",
           isRecommended: true,
           sharePts: 42.1,
           fmsPts: 55.5,
@@ -388,7 +420,7 @@ describe("proposal CSV exports (G3)", () => {
     expect(csv).toContain(
       "Term / Route,Method,Status,Recommended,Share %,FMS %,Projected Share %,Projected Gap (pts),Existing EDR %,Final Offer EDR %"
     );
-    expect(csv).toContain("ATL → LHR,Product,Recommended,Yes,42.1,55.5,50.2,5.3,12.4,18.9");
+    expect(csv).toContain("ATL → LHR,Product,Proposed,Yes,42.1,55.5,50.2,5.3,12.4,18.9");
     expect(csv).toContain("Contract (rollup),,,,42.1,55.5,50.2,5.3,12.4,18.9");
     expect(csv).toContain("Projected Host Revenue,123456789");
   });
@@ -397,10 +429,10 @@ describe("proposal CSV exports (G3)", () => {
     const p = makeProposal();
     p.terms[0].projectedGapPts = null;
     const csv = toProposalCsvSummary(p);
-    expect(csv).toContain("ATL → LHR,Product,Recommended,Yes,42.1,55.5,50.2,,12.4,18.9");
+    expect(csv).toContain("ATL → LHR,Product,Proposed,Yes,42.1,55.5,50.2,,12.4,18.9");
   });
 
-  it("toProposalCsvDetailed emits one row per grid line at the final-offer round", () => {
+  it("toProposalCsvDetailed emits one row per grid line at its single proposed discount", () => {
     const model = seedModel(makeTerm(), METHOD_PRODUCT);
     const proposal = {
       negotiationName: "N",
@@ -412,7 +444,7 @@ describe("proposal CSV exports (G3)", () => {
     const lines = csv.split("\n");
     expect(lines[0]).toBe("Delta Negotiation Proposal — Detailed");
     expect(csv).toContain(
-      "Term / Route,Method,Final Offer Round,Value,Carrier,Partner,Discount Name,Alliance Permission,Current Existing %,Undiscounted %,Projected %,Existing Disc %,Prior Disc %,Final Offer Disc %,Compare Fare,Notes"
+      "Term / Route,Method,Value,Spend %,Undiscounted %,Projected %,Existing Disc %,Prior Disc %,Proposed Disc %"
     );
     // Header (1) + metadata (3) + blank (1) + column header (1) = 6 lines before data.
     const dataLines = lines.slice(6).filter((l) => l.startsWith("ATL → LHR,"));
@@ -439,35 +471,30 @@ describe("spend normalization + EDR", () => {
 
   it("guards a 100% existing discount (no Infinity/NaN)", () => {
     const rows = [
-      { currentExistingPct: 50, existingDiscountPct: 100, projectedPct: 50, rounds: [10, 20, 30, 40] },
-      { currentExistingPct: 50, existingDiscountPct: 10, projectedPct: 50, rounds: [12, 22, 32, 42] }
+      { currentExistingPct: 50, existingDiscountPct: 100, projectedPct: 50, proposedDiscountPct: 100 },
+      { currentExistingPct: 50, existingDiscountPct: 10, projectedPct: 50, proposedDiscountPct: 10 }
     ];
     const ue = computeUndiscounted(rows);
     ue.forEach((v) => expect(Number.isFinite(v)).toBe(true));
     expect(Number.isFinite(edrExisting(rows))).toBe(true);
   });
 
-  it("edrExisting returns null (→ N/A) when there is no weighted spend", () => {
+  it("edrExisting / edrProposed return null (→ N/A) when there is no weighted spend", () => {
     const rows = [
-      { currentExistingPct: 0, existingDiscountPct: 10, projectedPct: 0, rounds: [1, 2, 3, 4] },
-      { currentExistingPct: 0, existingDiscountPct: 20, projectedPct: 0, rounds: [1, 2, 3, 4] }
+      { currentExistingPct: 0, existingDiscountPct: 10, projectedPct: 0, proposedDiscountPct: 10 },
+      { currentExistingPct: 0, existingDiscountPct: 20, projectedPct: 0, proposedDiscountPct: 20 }
     ];
     expect(edrExisting(rows)).toBeNull();
-    expect(edrForRound(rows, 0)).toBeNull();
+    expect(edrProposed(rows)).toBeNull();
   });
 
-  it("edrForRound is a projected-weighted mean of proposed discounts", () => {
+  it("edrProposed is a projected-weighted mean of the proposed discounts", () => {
     const rows = [
-      { currentExistingPct: 60, existingDiscountPct: 10, projectedPct: 60, rounds: [20, 25, 30, 40] },
-      { currentExistingPct: 40, existingDiscountPct: 5, projectedPct: 40, rounds: [10, 15, 20, 30] }
+      { currentExistingPct: 60, existingDiscountPct: 10, projectedPct: 60, proposedDiscountPct: 40 },
+      { currentExistingPct: 40, existingDiscountPct: 5, projectedPct: 40, proposedDiscountPct: 30 }
     ];
-    // Final Offer (index 3): (0.6*40 + 0.4*30) = 36
-    expect(edrForRound(rows, 3)).toBeCloseTo(36, 1);
-  });
-
-  it("edrByRound has one entry per round", () => {
-    const rows = buildRows(makeTerm(), METHOD_PRODUCT);
-    expect(edrByRound(rows)).toHaveLength(ROUND_COUNT);
+    // Projected-weighted: (0.6*40 + 0.4*30) = 36.
+    expect(edrProposed(rows)).toBeCloseTo(36, 1);
   });
 });
 
@@ -481,8 +508,8 @@ describe("totalsSummary", () => {
 
   it("flags an off-100 distribution as invalid", () => {
     const rows = [
-      { currentExistingPct: 30, existingDiscountPct: 10, projectedPct: 40, rounds: [1, 2, 3, 4] },
-      { currentExistingPct: 30, existingDiscountPct: 10, projectedPct: 40, rounds: [1, 2, 3, 4] }
+      { currentExistingPct: 30, existingDiscountPct: 10, projectedPct: 40 },
+      { currentExistingPct: 30, existingDiscountPct: 10, projectedPct: 40 }
     ];
     const t = totalsSummary(rows);
     expect(t.ceValid).toBe(false); // 60
@@ -491,18 +518,20 @@ describe("totalsSummary", () => {
 });
 
 describe("KPIs", () => {
-  it("computeTermKpis projects Share up (and Gap down) when the current round lifts EDR", () => {
+  it("computeTermKpis projects Share up (and Gap down) when the proposed discounts lift EDR", () => {
     const term = makeTerm();
     const model = seedModel(term, METHOD_PRODUCT);
-    // Baseline: current round = Round 1 (default).
+    // Baseline: proposed == existing (as seeded).
     const base = computeTermKpis(term, model);
-    // Move the current round to the Final Offer (deeper discounts → higher EDR → higher share).
-    model.currentRoundIndex = ROUND_COUNT - 1;
+    // Deepen every proposed discount → higher proposed EDR → higher projected share, smaller gap.
+    model.rows.forEach((r) => {
+      r.proposedDiscountPct = clamp(r.existingDiscountPct + 20, 0, 100);
+    });
     const projected = computeTermKpis(term, model);
     expect(projected.edrCurrentPts).toBeGreaterThanOrEqual(base.edrCurrentPts);
     expect(projected.projectedSharePts).toBeGreaterThanOrEqual(base.projectedSharePts);
     expect(projected.projectedGapPts).toBeLessThanOrEqual(base.projectedGapPts);
-    // Projected share never exceeds FMS (the clamp ceiling).
+    // Projected share never exceeds FMS (the clamp ceiling); gap never goes negative.
     expect(projected.projectedSharePts).toBeLessThanOrEqual(projected.fmsPts);
     expect(projected.projectedGapPts).toBeGreaterThanOrEqual(0);
   });
@@ -541,13 +570,13 @@ describe("KPIs", () => {
 });
 
 describe("finalOfferLineDiscounts", () => {
-  it("maps Product-mode Final Offer discounts to backing lines, skipping unbacked rows", () => {
+  it("maps Product-mode proposed discounts to backing lines, skipping unbacked rows", () => {
     const model = seedModel(makeTerm(), METHOD_PRODUCT);
     const out = finalOfferLineDiscounts(model);
     const ids = out.map((o) => o.id);
     expect(ids).toContain("0QLfare1");
     expect(ids).toContain("0QLfare2");
-    // No partner / zero-spend canonical rows leak in (they have no backing line).
+    // Every emitted line is a real backing fare id (no unbacked rows leak in).
     expect(out.every((o) => typeof o.id === "string" && o.id.startsWith("0QL"))).toBe(true);
     out.forEach((o) => {
       expect(o.discount).toBeGreaterThanOrEqual(0);

@@ -63,18 +63,49 @@ describe("c-dl-modeling-grid", () => {
     expect(valueHeader.textContent.trim()).toBe("Product");
   });
 
-  it("renders four round chips with EDR labels", async () => {
+  it("renders six columns and an Existing/Proposed EDR footer (no round chips)", async () => {
     const term = makeTerm();
     const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });
     await flushPromises();
-    const chips = el.shadowRoot.querySelectorAll(".dl-mg-round");
-    expect(chips.length).toBe(4);
-    // The current round (default Round 1) carries a "Current" badge; final offer carries "Final Offer".
-    const badges = [
-      ...el.shadowRoot.querySelectorAll(".dl-mg-round__badge")
-    ].map((n) => n.textContent.trim());
-    expect(badges.join(" ")).toContain("Current");
-    expect(badges.join(" ")).toContain("Final Offer");
+    // Round chips are gone post-collapse.
+    expect(el.shadowRoot.querySelector(".dl-mg-round")).toBeNull();
+    const headers = [...el.shadowRoot.querySelectorAll("thead th")].map((n) =>
+      n.textContent.trim()
+    );
+    expect(headers).toEqual([
+      "Product",
+      "Spend %",
+      "Projected %",
+      "Existing Disc %",
+      "Prior Disc %",
+      "Proposed Disc %"
+    ]);
+    const edrLabels = [...el.shadowRoot.querySelectorAll(".dl-mg-edr")].map((n) =>
+      n.textContent.trim()
+    );
+    expect(edrLabels.some((t) => t.startsWith("Existing EDR"))).toBe(true);
+    expect(edrLabels.some((t) => t.startsWith("Proposed EDR"))).toBe(true);
+  });
+
+  it("emits modelchange with an updated proposed discount when the Proposed % cell is edited", async () => {
+    const term = makeTerm();
+    const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });
+    await flushPromises();
+    const handler = jest.fn();
+    el.addEventListener("modelchange", handler);
+
+    // The Proposed Disc % input is the last lightning-input in the first body row.
+    const firstRow = el.shadowRoot.querySelector("tbody tr");
+    const inputs = firstRow.querySelectorAll("lightning-input[data-key]");
+    const proposed = inputs[inputs.length - 1];
+    proposed.value = 25;
+    proposed.dispatchEvent(new CustomEvent("change", { detail: { value: 25 } }));
+    await flushPromises();
+
+    expect(handler).toHaveBeenCalled();
+    const detail = handler.mock.calls[0][0].detail;
+    expect(detail.model.rows[0].proposedDiscountPct).toBe(25);
+    expect("edrProposed" in detail.summary).toBe(true);
   });
 
   it("emits modelchange (coalesced) when a Current Existing % cell is edited", async () => {
