@@ -187,7 +187,7 @@ public with sharing class RLM_ExpressionSetManagerController {
 
         // Intentionally system-mode: AsyncApexJob is a system object whose read
         // access cannot be granted via permission-set objectPermissions, so
-        // WITH USER_MODE cannot be satisfied by RLM_UtilitiesPermset. The query
+        // WITH USER_MODE cannot be satisfied by RLM_ExpressionSetManager. The query
         // is scoped to the CALLER's own jobs (CreatedById) for this controller's
         // ApexClass and a specific job id, so the system-mode exception does not
         // bypass record ownership, and returns only job status (no business data).
@@ -299,7 +299,7 @@ public with sharing class RLM_ExpressionSetManagerController {
 
     // --- Queueables ---
 
-    public class DeactivateQueueable implements Queueable, Database.AllowsCallouts {
+    public with sharing class DeactivateQueueable implements Queueable, Database.AllowsCallouts {
         private Id contextDefinitionId;
         private List<Id> definitionIds;
         private Set<Id> constraintDefIds;
@@ -350,7 +350,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         }
     }
 
-    public class ActivateQueueable implements Queueable, Database.AllowsCallouts {
+    public with sharing class ActivateQueueable implements Queueable, Database.AllowsCallouts {
         private Id contextDefinitionId;
         private List<Id> definitionIds;
         private Set<Id> needsJunction;
@@ -553,6 +553,7 @@ public with sharing class RLM_ExpressionSetManagerController {
         return (Integer) ar.get('activeSets');
     }
 
+    @TestVisible
     private static Map<String, Object> buildVersionPatch(Id versionId, Boolean setActive, Integer currentRank, Integer refIdx) {
         Map<String, Object> sub = new Map<String, Object>();
         sub.put('method', 'PATCH');

@@ -136,6 +136,44 @@ private class RLM_ExpressionSetManagerControllerTest {
     }
 
     @IsTest
+    static void buildVersionPatch_activate_setsIsActiveTrueAndDefaultRank() {
+        Id versionId = '9QM000000000000AAA';
+        Map<String, Object> sub = RLM_ExpressionSetManagerController.buildVersionPatch(
+            versionId, true, null, 3
+        );
+        System.assertEquals('PATCH', sub.get('method'), 'Version toggle should be a PATCH');
+        System.assertEquals('activate_3', sub.get('referenceId'), 'Activate referenceId should be prefixed and indexed');
+        System.assert(String.valueOf(sub.get('url')).endsWith('/sobjects/ExpressionSetVersion/' + versionId),
+            'URL should target the specific ExpressionSetVersion: ' + sub.get('url'));
+        Map<String, Object> body = (Map<String, Object>) sub.get('body');
+        System.assertEquals(true, body.get('IsActive'), 'Activation payload must set IsActive = true');
+        System.assertEquals(1, body.get('Rank'), 'A rankless activation should default Rank to 1');
+    }
+
+    @IsTest
+    static void buildVersionPatch_activate_preservesExistingRank() {
+        Map<String, Object> sub = RLM_ExpressionSetManagerController.buildVersionPatch(
+            '9QM000000000000AAA', true, 5, 0
+        );
+        Map<String, Object> body = (Map<String, Object>) sub.get('body');
+        System.assertEquals(true, body.get('IsActive'), 'Activation payload must set IsActive = true');
+        System.assertEquals(false, body.containsKey('Rank'),
+            'An existing rank should not be overwritten with the default');
+    }
+
+    @IsTest
+    static void buildVersionPatch_deactivate_setsIsActiveFalse() {
+        Map<String, Object> sub = RLM_ExpressionSetManagerController.buildVersionPatch(
+            '9QM000000000000AAA', false, null, 7
+        );
+        System.assertEquals('PATCH', sub.get('method'), 'Version toggle should be a PATCH');
+        System.assertEquals('deactivate_7', sub.get('referenceId'), 'Deactivate referenceId should be prefixed and indexed');
+        Map<String, Object> body = (Map<String, Object>) sub.get('body');
+        System.assertEquals(false, body.get('IsActive'), 'Deactivation payload must set IsActive = false');
+        System.assertEquals(false, body.containsKey('Rank'), 'Deactivation should not send Rank');
+    }
+
+    @IsTest
     static void deactivateQueueable_noData_runsWithoutCallout() {
         Test.setMock(HttpCalloutMock.class, new CompositeMock());
         new RLM_ExpressionSetManagerController.DeactivateQueueable(
