@@ -63,6 +63,9 @@ export default class DlmDataSetConfig extends LightningElement {
   @wire(getRecord, { recordId: "$quoteId", fields: QUOTE_FIELDS })
   wiredQuote({ data, error }) {
     if (data) {
+      // Clear any transient read error (e.g. LDS not-yet-cached miss on a just-created renewal quote):
+      // the record loaded, so a stale banner from an earlier emission must not linger.
+      this.errorMessage = "";
       const start = getFieldValue(data, ANALYSIS_START);
       const end = getFieldValue(data, ANALYSIS_END);
       const carriers = getFieldValue(data, CARRIERS);
