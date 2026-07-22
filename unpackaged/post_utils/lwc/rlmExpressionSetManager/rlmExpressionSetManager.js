@@ -441,6 +441,12 @@ export default class RlmExpressionSetManager extends LightningElement {
                     await this.loadExpressionSets()
                 }
             } catch (error) {
+                // Recheck the stale-request guard first: the try's guards only
+                // run after a successful await, so a reject after a context
+                // switch / disconnect jumps straight here. Without this the
+                // cancelled poll would still toast, set the banner, and reload
+                // the now-current context.
+                if (requestId !== this._pollRequestId || contextId !== this.selectedContextId) return
                 // Terminal like the branches above: the queueable may have
                 // succeeded even though this status check failed, so reload the
                 // possibly-mutated rows and surface the refreshable inline banner
