@@ -38,17 +38,6 @@
         </div>
       </template>
 
-      <!-- Slim per-Term KPI band (Share / FMS / Share Gap / EDR), driven by the shell. -->
-      <template if:true={hasTermKpis}>
-        <div class="dlm-modeling__band slds-m-bottom_x-small">
-          <c-dl-kpi-band
-            variant="term"
-            kpis={termKpis}
-            currency-code={currencyCode}
-          ></c-dl-kpi-band>
-        </div>
-      </template>
-
       <!-- Apply Final Offer to Quote: the shell performs the write-back on request. -->
       <div class="dlm-modeling__actions slds-grid slds-grid_align-end slds-p-bottom_x-small">
         <lightning-button

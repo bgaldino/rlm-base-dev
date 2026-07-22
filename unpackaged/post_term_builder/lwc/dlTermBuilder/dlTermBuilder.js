@@ -10,6 +10,7 @@ import getNegotiationsForAccount from "@salesforce/apex/RLM_DeltaTermBuilderCont
 import getBuilderState from "@salesforce/apex/RLM_DeltaTermBuilderController.getBuilderState";
 import addTerm from "@salesforce/apex/RLM_DeltaTermBuilderController.addTerm";
 import updateNegotiationDates from "@salesforce/apex/RLM_DeltaTermBuilderController.updateNegotiationDates";
+import updateNegotiationName from "@salesforce/apex/RLM_DeltaTermBuilderController.updateNegotiationName";
 import updateLineDiscountAndDates from "@salesforce/apex/RLM_DeltaLineController.updateLineDiscountAndDates";
 
 // Route-attribute codes surfaced in the Term workspace's inline attribute picker, in display order.
@@ -47,6 +48,10 @@ export default class DlTermBuilder extends LightningElement {
   selectedAccountId;
   quoteId;
   quoteName = "";
+  // The negotiation name last persisted to the server. handleQuoteNameCommit diffs against this so a
+  // blur with no edit is a no-op, and reverts to it when a save is rejected or comes back blank.
+  _savedQuoteName = "";
+  savingQuoteName = false;
   accountName = "";
   negotiationStartDate = "";
   negotiationEndDate = "";
@@ -74,6 +79,11 @@ export default class DlTermBuilder extends LightningElement {
   emblemUrl = DL_TERM_BUILDER_EMBLEM;
 
   _pageStateApplied = false;
+
+  // Set when a grid refetch is requested while the grid isn't mounted yet (adding the first Term flips
+  // showWorkspace true, but the grid mounts on the next re-render — not on the synchronous tick that
+  // sets selectedTermId). Consumed in renderedCallback once the grid is present.
+  _needsGridRefresh = false;
 
   // Pick up ?c__quoteId= / ?c__accountId= from URL state once. A quoteId wins: it opens the quote
   // directly and back-fills its account. Otherwise an accountId just preselects the account.
@@ -106,6 +116,18 @@ export default class DlTermBuilder extends LightningElement {
     } else if (this.accountId && !this.selectedAccountId) {
       this.selectedAccountId = this.accountId;
       this.loadNegotiations();
+    }
+  }
+
+  renderedCallback() {
+    // Honor a refresh requested before the grid was mounted (see _refreshGrid): once showWorkspace
+    // flips true and the grid renders, force the round trip so the newly added Term's lines appear.
+    if (this._needsGridRefresh) {
+      const grid = this.template.querySelector("c-dl-quote-line-grid");
+      if (grid) {
+        this._needsGridRefresh = false;
+        grid.refresh();
+      }
     }
   }
 
@@ -142,7 +164,7 @@ export default class DlTermBuilder extends LightningElement {
   }
 
   get quoteNameDisabled() {
-    return !this.quoteId;
+    return !this.quoteId || this.savingQuoteName;
   }
 
   // True once the open negotiation is already related to a Contract. The Quote can then only be
@@ -178,6 +200,7 @@ export default class DlTermBuilder extends LightningElement {
     // Reset the current negotiation when the account changes.
     this.quoteId = null;
     this.quoteName = "";
+    this._savedQuoteName = "";
     this.negotiationStartDate = "";
     this.negotiationEndDate = "";
     this.terms = [];
@@ -258,6 +281,52 @@ export default class DlTermBuilder extends LightningElement {
 
   handleQuoteNameInput(event) {
     this.quoteName = event.target.value;
+  }
+
+  // Autosave the negotiation name on commit (blur / Enter) rather than per keystroke — consistent
+  // with how the header dates persist, but committing on blur avoids a server call per character.
+  // No-ops when there's no open quote, a save is already in flight, or the trimmed value matches
+  // what's already stored. A blank entry is rejected (revert + toast) so the negotiation can't lose
+  // its identity. On success the header adopts the server-stored value (reflecting any trim/cap) and
+  // the existing-negotiation combobox is reloaded so its label matches (it binds value={quoteId}, so
+  // the current selection is preserved).
+  async handleQuoteNameCommit(event) {
+    const next = (event.target.value || "").trim();
+    if (!this.quoteId || this.savingQuoteName || next === this._savedQuoteName) {
+      return;
+    }
+    if (!next) {
+      this.quoteName = this._savedQuoteName;
+      this._toast("Negotiation name is required.", "", "error");
+      return;
+    }
+    this.savingQuoteName = true;
+    this.errorMessage = "";
+    try {
+      const res = this._parse(
+        await updateNegotiationName({
+          inputJson: JSON.stringify({
+            quoteId: this.quoteId,
+            quoteName: next
+          })
+        })
+      );
+      if (res.isSuccess === false) {
+        this.errorMessage =
+          res.errorMessage || "Unable to save the negotiation name.";
+        this.quoteName = this._savedQuoteName;
+        return;
+      }
+      this.quoteName = res.quoteName || next;
+      this._savedQuoteName = this.quoteName;
+      this._toast("Negotiation renamed", this.quoteName, "success");
+      this.loadNegotiations();
+    } catch (e) {
+      this.errorMessage = this._errMessage(e);
+      this.quoteName = this._savedQuoteName;
+    } finally {
+      this.savingQuoteName = false;
+    }
   }
 
   get negotiationDatesDisabled() {
@@ -428,6 +497,7 @@ export default class DlTermBuilder extends LightningElement {
       }
       const quote = res.quote || {};
       this.quoteName = quote.name || this.quoteName;
+      this._savedQuoteName = this.quoteName;
       this.accountName = quote.accountName || this.accountName;
       this.negotiationStartDate = quote.negotiationStartDate || "";
       this.negotiationEndDate = quote.negotiationEndDate || "";
@@ -571,7 +641,14 @@ export default class DlTermBuilder extends LightningElement {
   _refreshGrid() {
     const grid = this.template.querySelector("c-dl-quote-line-grid");
     if (grid) {
+      this._needsGridRefresh = false;
       grid.refresh();
+    } else {
+      // The grid mounts on the re-render triggered by selectedTermId flipping from null (first Term
+      // added) — it isn't in the DOM on this synchronous tick. Latch so renderedCallback forces the
+      // refetch once it appears; otherwise the grid provisions from the stale quoteId-keyed cache and
+      // strands "No quote lines yet" until a full page reload.
+      this._needsGridRefresh = true;
     }
   }
 

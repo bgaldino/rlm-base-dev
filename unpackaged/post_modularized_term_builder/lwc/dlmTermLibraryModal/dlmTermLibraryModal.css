@@ -1,0 +1,17 @@
+.dl-tl-item__name {
+  font-weight: 600;
+}
+
+.dl-tl-item__body {
+  min-width: 0;
+}
+
+/* Keep the per-row CTA column from collapsing while its spinner overlays the button. */
+.dl-tl-item__cta {
+  min-width: 8rem;
+  text-align: right;
+}
+
+.dl-tl-item__chips lightning-badge {
+  margin-bottom: 0.125rem;
+}

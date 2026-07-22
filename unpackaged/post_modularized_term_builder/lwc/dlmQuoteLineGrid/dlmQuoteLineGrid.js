@@ -19,7 +19,8 @@ const FARE_CODE_OPTIONS = FARE_CODE_VALUES.map((c) => ({ label: c, value: c }));
 
 /**
  * Custom expandable line grid for a Quote. Renders the persisted quote lines as an SLDS table with
- * inline Discount % / Start / End date editing, and an expander on each line that reveals the
+ * inline Start / End date editing (the discount is negotiated in the Modeling tab, not here), and an
+ * expander on each line that reveals the
  * reusable c/dlLineAttributePicker inline beneath the row (no modal). Lines are ordered by group
  * then by bundle hierarchy (parent immediately followed by its components, indented by depth).
  *
@@ -60,9 +61,9 @@ export default class DlmQuoteLineGrid extends LightningElement {
 
     // Normalized, hierarchy-ordered lines from the server (the source for _composeRows()).
     _baseRows = [];
-    // Per-line inline-edit drafts: { [lineId]: { discount?, startDate?, endDate? } } (string values).
+    // Per-line inline-edit drafts: { [lineId]: { startDate?, endDate?, fareCodes? } }.
     _drafts = {};
-    // Per-line cell errors: { [lineId]: { discount?, startDate?, endDate? } } (message strings).
+    // Per-line cell errors: { [lineId]: { endDate? } } (message strings).
     _errors = {};
     // Ids of lines whose attribute picker is expanded — preserved across refreshes.
     _expandedIds = new Set();
@@ -73,6 +74,12 @@ export default class DlmQuoteLineGrid extends LightningElement {
     _lastParsed = null;
     // Per-Term inline name drafts: { [lineId]: string } while the rep types a new Term name.
     _nameDrafts = {};
+    // Set when refresh() is called before the wire has provisioned (the host mounts this grid and
+    // asks it to refresh in the same frame — e.g. the first Term added flips the workspace open).
+    // The first delivery then forces one server round trip, so a stale cached getQuoteLines payload
+    // (getQuoteLines is cacheable=true, and a host may have warmed the cache empty before the line
+    // existed) can't strand the grid on pre-add data.
+    _refreshPending = false;
 
     @wire(getQuoteLines, { quoteId: '$recordId' })
     wiredLines(result) {
@@ -83,6 +90,11 @@ export default class DlmQuoteLineGrid extends LightningElement {
             this.errorMessage = '';
         } else if (result.error) {
             this.errorMessage = this._errMessage(result.error);
+        }
+        // Honor a refresh() that arrived before this wire had a result to refresh.
+        if (this._refreshPending && (result.data || result.error)) {
+            this._refreshPending = false;
+            refreshApex(this._wired);
         }
     }
 
@@ -238,9 +250,9 @@ export default class DlmQuoteLineGrid extends LightningElement {
             isTerm: !!line.isTerm,
             indentStyle: depth ? `padding-left:${depth * INDENT_REM}rem` : '',
             productCode: line.productCode,
-            discount: line.discount,
             // Frozen prior-contract discount (renewal lines only; null otherwise). Read-only — shown
-            // next to the editable discount for comparison, never bound to an input or draft.
+            // in its own column for reference, never bound to an input or draft. The live/proposed
+            // discount is edited in the Modeling tab, not in this grid.
             priorDiscount: line.priorDiscount,
             startDate: line.startDate,
             endDate: line.endDate,
@@ -283,10 +295,8 @@ export default class DlmQuoteLineGrid extends LightningElement {
                 termNamePlaceholder: b.catalogProductName,
                 indentStyle: b.indentStyle,
                 productCode: b.productCode,
-                discountValue: 'discount' in draft ? draft.discount : b.discount,
-                // Read-only prior-contract discount shown in its own column beside the editable
-                // discount; independent of drafts so it never changes as the rep edits the live
-                // discount. Em dash when there is no prior value (non-renewal lines).
+                // Read-only prior-contract discount shown in its own column; independent of drafts.
+                // Em dash when there is no prior value (non-renewal lines).
                 priorDiscountDisplay: this._priorDiscountDisplay(b.priorDiscount),
                 startDateValue: 'startDate' in draft ? draft.startDate : b.startDate,
                 endDateValue: 'endDate' in draft ? draft.endDate : b.endDate,
@@ -302,10 +312,8 @@ export default class DlmQuoteLineGrid extends LightningElement {
                 expanderIcon: expanded ? 'utility:chevrondown' : 'utility:chevronright',
                 expanderTitle: this._expanderTitle(b, expanded),
                 detailRegionId: b.detailRegionId,
-                discountError: cellErr.discount,
                 startDateError: cellErr.startDate,
                 endDateError: cellErr.endDate,
-                discountClass: cellErr.discount ? 'slds-has-error' : '',
                 endDateClass: cellErr.endDate ? 'slds-has-error' : ''
             });
             if (expanded) {
@@ -355,9 +363,9 @@ export default class DlmQuoteLineGrid extends LightningElement {
     }
 
     get detailColspan() {
-        // expander + product + fare codes + discount + prior discount + start + end + actions = 8,
+        // expander + product + fare codes + prior discount + start + end + actions = 7,
         // plus the optional group column.
-        return this.hideGroupColumn ? 8 : 9;
+        return this.hideGroupColumn ? 7 : 8;
     }
 
     get showGroupColumn() {
@@ -388,10 +396,6 @@ export default class DlmQuoteLineGrid extends LightningElement {
             this._focusTarget = `[data-detail="${id}"]`;
         }
         this._composeRows();
-    }
-
-    handleDiscountChange(event) {
-        this._setDraft(event.target.dataset.id, 'discount', event.target.value);
     }
 
     handleStartDateChange(event) {
@@ -435,10 +439,6 @@ export default class DlmQuoteLineGrid extends LightningElement {
             const draft = this._drafts[id];
             const payload = { id };
             let changed = false;
-            if ('discount' in draft && !this._eqNum(draft.discount, b.discount)) {
-                payload.discount = this._blank(draft.discount) ? null : Number(draft.discount);
-                changed = true;
-            }
             if ('startDate' in draft && (draft.startDate || '') !== (b.startDate || '')) {
                 payload.startDate = draft.startDate || null;
                 changed = true;
@@ -470,13 +470,9 @@ export default class DlmQuoteLineGrid extends LightningElement {
         dirty.forEach((p) => {
             const b = baseById.get(p.id) || {};
             const draft = this._drafts[p.id] || {};
-            const discount = 'discount' in draft ? (this._blank(draft.discount) ? null : Number(draft.discount)) : this._num(b.discount);
             const startDate = 'startDate' in draft ? draft.startDate || '' : b.startDate || '';
             const endDate = 'endDate' in draft ? draft.endDate || '' : b.endDate || '';
             const cell = {};
-            if (discount !== null && (Number.isNaN(discount) || discount < 0 || discount > 100)) {
-                cell.discount = 'Enter 0–100';
-            }
             if (startDate && endDate && endDate < startDate) {
                 cell.endDate = 'End must be ≥ start';
             }
@@ -628,8 +624,16 @@ export default class DlmQuoteLineGrid extends LightningElement {
 
     @api
     async refresh() {
-        if (this._wired) {
+        // Force a fresh server round trip only once the wire has SETTLED (emitted real data or an
+        // error). On provision an Apex wire first emits {data: undefined, error: undefined}, and
+        // refreshApex against that un-fetched result is unreliable (it can no-op). The host mounts this
+        // grid and calls refresh() in the same frame the first Term flips the workspace open — before
+        // the wire's first real delivery — so latch and let wiredLines force the round trip when data
+        // (even a stale cached empty payload) arrives.
+        if (this._wired && (this._wired.data || this._wired.error)) {
             await refreshApex(this._wired);
+        } else {
+            this._refreshPending = true;
         }
     }
 
@@ -643,25 +647,11 @@ export default class DlmQuoteLineGrid extends LightningElement {
         return next;
     }
 
-    _blank(value) {
-        return value === '' || value === null || value === undefined;
-    }
-
-    _eqNum(draftVal, baseVal) {
-        const dn = this._blank(draftVal) ? null : Number(draftVal);
-        const bn = this._blank(baseVal) ? null : Number(baseVal);
-        return dn === bn;
-    }
-
     // Order-insensitive equality of two fare-code lists (the dual-listbox can reorder selections).
     _eqCodes(a, b) {
         const sa = Array.isArray(a) ? [...a].sort() : [];
         const sb = Array.isArray(b) ? [...b].sort() : [];
         return sa.length === sb.length && sa.every((v, i) => v === sb[i]);
-    }
-
-    _num(value) {
-        return this._blank(value) ? null : Number(value);
     }
 
     _parse(data) {

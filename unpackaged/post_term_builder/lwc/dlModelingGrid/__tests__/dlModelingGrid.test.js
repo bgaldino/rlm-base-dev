@@ -63,7 +63,7 @@ describe("c-dl-modeling-grid", () => {
     expect(valueHeader.textContent.trim()).toBe("Product");
   });
 
-  it("renders six columns and an Existing/Proposed EDR footer (no round chips)", async () => {
+  it("renders five columns and no totals/EDR footer (no round chips)", async () => {
     const term = makeTerm();
     const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });
     await flushPromises();
@@ -76,15 +76,13 @@ describe("c-dl-modeling-grid", () => {
       "Product",
       "Spend %",
       "Projected %",
-      "Existing Disc %",
       "Prior Disc %",
       "Proposed Disc %"
     ]);
-    const edrLabels = [...el.shadowRoot.querySelectorAll(".dl-mg-edr")].map((n) =>
-      n.textContent.trim()
-    );
-    expect(edrLabels.some((t) => t.startsWith("Existing EDR"))).toBe(true);
-    expect(edrLabels.some((t) => t.startsWith("Proposed EDR"))).toBe(true);
+    // The Existing Disc % column and the totals/EDR footer were removed — discount is negotiated
+    // solely via the Proposed Disc % column.
+    expect(el.shadowRoot.querySelector("tfoot")).toBeNull();
+    expect(el.shadowRoot.querySelector(".dl-mg-edr")).toBeNull();
   });
 
   it("emits modelchange with an updated proposed discount when the Proposed % cell is edited", async () => {

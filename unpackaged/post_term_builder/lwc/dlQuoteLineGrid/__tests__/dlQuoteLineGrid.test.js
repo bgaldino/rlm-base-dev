@@ -1,10 +1,21 @@
 /* global require */
 import { createElement } from 'lwc';
+import { refreshApex } from '@salesforce/apex';
 import DlQuoteLineGrid from 'c/dlQuoteLineGrid';
 import getQuoteLines from '@salesforce/apex/RLM_DeltaLineController.getQuoteLines';
 import updateLineDiscountAndDates from '@salesforce/apex/RLM_DeltaLineController.updateLineDiscountAndDates';
 import deleteLines from '@salesforce/apex/RLM_DeltaLineController.deleteLines';
 import updateTermName from '@salesforce/apex/RLM_DeltaLineController.updateTermName';
+
+// refreshApex is a non-spyable stub under the default jest preset (a plain function returning a
+// resolved Promise). Register a virtual spy so the tests can assert the grid forces a server round
+// trip. The grid's own import resolves to this same spy. Save/delete/rename only await it, so a
+// no-op resolving jest.fn() is behaviorally identical for those paths.
+jest.mock(
+    '@salesforce/apex',
+    () => ({ refreshApex: jest.fn(() => Promise.resolve()) }),
+    { virtual: true }
+);
 
 // getQuoteLines is consumed as a @wire — wrap it in an Apex test wire adapter so .emit() feeds the
 // wire. The adapter is require()'d lazily inside the factory because jest.mock() is hoisted above
@@ -477,5 +488,37 @@ describe('c-dl-quote-line-grid', () => {
         expect(summary).not.toBeNull();
         expect(summary.textContent).toBe('W S');
         expect(element.shadowRoot.querySelector('lightning-dual-listbox')).toBeNull();
+    });
+
+    // Regression: a host that mounts this grid and calls refresh() in the same frame — before the
+    // getQuoteLines wire has provisioned — must still get a forced round trip on first delivery, so a
+    // stale cached (pre-add) getQuoteLines payload (cacheable=true) can't strand the grid empty.
+    it('forces a server refresh when refresh() is called before the wire provisions', async () => {
+        const element = createComponent();
+
+        // Wire has not provisioned yet (_wired undefined): refresh() latches instead of round-tripping.
+        await element.refresh();
+        expect(refreshApex).not.toHaveBeenCalled();
+
+        // First delivery honors the pending refresh with exactly one forced round trip.
+        getQuoteLines.emit(makeTermData());
+        await flushPromises();
+        expect(refreshApex).toHaveBeenCalledTimes(1);
+
+        // The latch is one-shot: a later unsolicited delivery does not re-trigger a forced refresh.
+        getQuoteLines.emit(makeTermData());
+        await flushPromises();
+        expect(refreshApex).toHaveBeenCalledTimes(1);
+    });
+
+    it('round-trips immediately when refresh() is called after the wire has provisioned', async () => {
+        const element = createComponent();
+        getQuoteLines.emit(makeTermData());
+        await flushPromises();
+        // First delivery had no pending refresh, so nothing was forced.
+        expect(refreshApex).not.toHaveBeenCalled();
+
+        await element.refresh();
+        expect(refreshApex).toHaveBeenCalledTimes(1);
     });
 });

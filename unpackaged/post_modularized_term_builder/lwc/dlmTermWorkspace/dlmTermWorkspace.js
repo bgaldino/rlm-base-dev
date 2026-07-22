@@ -10,14 +10,16 @@ import {
 import DLM_CHANNEL from "@salesforce/messageChannel/DLM_TermBuilderChannel__c";
 
 const SOURCE = "dlmTermWorkspace";
-// Route + geography scope attribute codes surfaced in the scoped grid's inline attribute picker.
-// Extends the monolith dlTermBuilder default with the G2 geography-scope codes (DL_ScopeType /
-// DL_MarketGroup — definitions live in the org as data). Includes/Excludes is NOT here: it is a
-// transient UI toggle on the Term rail card, never a persisted attribute. Only codes whose
-// AttributeDefinition exists in the org render; overridable per placement via the attributeCodes
-// design property.
+// Route/requirement attribute codes surfaced in the scoped grid's inline attribute picker, in
+// display order. These are the PC-DL-TERM informational (non-price-impacting) attributes; fares
+// have none. The geography-scope codes (DL_ScopeType / DL_MarketGroup) are intentionally NOT
+// listed: those attributes are unassigned from the Term Workspace so they neither render nor
+// persist — matching the monolith dlTermBuilder default and this bundle's attributeCodes meta
+// default. Includes/Excludes is likewise not here: it is a transient UI toggle on the Term rail
+// card, never a persisted attribute. Only codes whose AttributeDefinition exists in the org render;
+// overridable per placement via the attributeCodes design property.
 const DEFAULT_ATTRIBUTE_CODES =
-  "DL_ScopeType,DL_MarketGroup,DL_Origin,DL_Destination,DL_Directionality,DL_Measure,DL_RequirementValue,DL_SpecialConditions";
+  "DL_Origin,DL_Destination,DL_Directionality,DL_Measure,DL_RequirementValue,DL_SpecialConditions";
 
 /**
  * Modularized Delta Term Builder — the "term workspace" tile.
@@ -125,6 +127,23 @@ export default class DlmTermWorkspace extends LightningElement {
     }
   }
 
+  // Refresh the scoped grid now if it's already mounted; otherwise latch so renderedCallback fires it
+  // once the grid appears. This must NOT rely on a re-render to consume the latch: when the first Term
+  // is added, a `termSelected` (published by the rail during Add Term, before `termsChanged`) already
+  // pushed the selection through the shell and mounted the grid, so the later `termsChanged` doesn't
+  // change any prop — no re-render follows, renderedCallback never re-runs, and a latch-only refresh
+  // would be stranded. Refreshing imperatively here closes that gap; the latch still covers the case
+  // where the grid isn't mounted yet (standalone mode, or termsChanged winning the race).
+  _requestGridRefresh() {
+    const grid = this.template.querySelector("c-dlm-quote-line-grid");
+    if (grid) {
+      this._needsGridRefresh = false;
+      grid.refresh();
+    } else {
+      this._needsGridRefresh = true;
+    }
+  }
+
   // ---------- LMC wiring ----------
 
   _subscribe() {
@@ -175,14 +194,14 @@ export default class DlmTermWorkspace extends LightningElement {
           if (!this._propDriven) {
             this._selectedTermId = message.selectedTermId || null;
           }
-          this._needsGridRefresh = true;
+          this._requestGridRefresh();
         }
         break;
       case "linesChanged":
         // Another tile changed line data (e.g. the header's Apply-to-All). Our own edits are
         // suppressed by the source guard above, so this is always someone else's change.
         if (message.quoteId === this._quoteId) {
-          this._needsGridRefresh = true;
+          this._requestGridRefresh();
         }
         break;
       default:
@@ -247,10 +266,7 @@ export default class DlmTermWorkspace extends LightningElement {
   // A fare class was added under the selected Term. Refresh our own scoped grid (its cache predates
   // the new fare line) and broadcast fareAdded so the rail counts and header refresh.
   handleFareAdded() {
-    const grid = this.template.querySelector("c-dlm-quote-line-grid");
-    if (grid) {
-      grid.refresh();
-    }
+    this._requestGridRefresh();
     this._publishFareAdded();
   }
 }

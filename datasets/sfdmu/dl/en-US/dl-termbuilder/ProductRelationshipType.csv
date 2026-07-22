@@ -1,2 +1,3 @@
 AssociatedProductRoleCat,MainProductRoleCat,Name
 ClassificationComponent,Bundle,Bundle to Product Classification Component Relationship
+BundleComponent,Bundle,Bundle to Bundle Component Relationship

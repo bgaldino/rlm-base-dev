@@ -1,2 +1,7 @@
 Code,Description,MaxBundleComponents,MinBundleComponents,Name,ParentGroup.Code,ParentProduct.StockKeepingUnit,Sequence
 DL-TERM-FARES,Fare classes negotiated under a Term,20,0,Fare Classes,,DL-TERM,1
+DL-TMPL-ATLHUB-FARES,Pre-defined fares for the template term,20,0,Fare Classes,,DL-TMPL-ATLHUB,1
+DL-TMPL-EMEAI-FARES,Pre-defined fares for the template term,20,0,Fare Classes,,DL-TMPL-EMEAI,1
+DL-TMPL-JFKLHR-FARES,Pre-defined fares for the template term,20,0,Fare Classes,,DL-TMPL-JFKLHR,1
+DL-TMPL-TATL-FARES,Pre-defined fares for the template term,20,0,Fare Classes,,DL-TMPL-TATL,1
+DL-TMPL-USDOM-FARES,Pre-defined fares for the template term,20,0,Fare Classes,,DL-TMPL-USDOM,1

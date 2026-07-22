@@ -3,7 +3,7 @@
     <apiVersion>67.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Delta Workspace Shell (Modular)</masterLabel>
-    <description>Term Builder shell: tabset (Shell Creation / Modeling) with a contract KPI band + Proposal Summary. Shell Creation carries the Configure Data Set panel. Syncs with other tiles over the DLM Term Builder channel. Session-only modeling.</description>
+    <description>Term Builder shell: tabset (Shell Creation / Modeling) with a Proposal Summary. Shell Creation carries the Configure Data Set panel. Syncs with other tiles over the DLM Term Builder channel. Session-only modeling.</description>
     <targets>
         <target>lightning__AppPage</target>
         <target>lightning__RecordPage</target>
@@ -17,12 +17,15 @@
                 label="Heading Label"
                 description="Title shown above the workbench tabs. Leave blank for the default 'Negotiation Workbench'."
             />
+            <!-- Deprecated / inert: the contract KPI band was removed from the template. This property
+                 is retained only because the platform forbids removing an in-use design property from a
+                 component placed on a live Lightning page (DL_Term_Builder). It no longer does anything. -->
             <property
                 name="showContractBand"
                 type="Boolean"
                 default="true"
-                label="Show Contract KPI Band"
-                description="Show the always-visible contract-wide KPI band above the tabs."
+                label="Show Contract KPI Band (deprecated)"
+                description="Deprecated / no-op. The contract-wide KPI band has been removed."
             />
             <property
                 name="showProposalAction"

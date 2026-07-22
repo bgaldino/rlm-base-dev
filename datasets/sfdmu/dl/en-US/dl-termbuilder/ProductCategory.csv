@@ -1,2 +1,3 @@
 Catalog.Code,Code,Description,IsNavigational,Name,ParentCategory.Code,SortOrder
 DL-CONTRACTS,DL-TERMS,Route-based negotiation terms,true,Terms,,1
+DL-CONTRACTS,DL-TERM-TEMPLATES,Pre-defined term templates for the Term Library,false,Term Templates,,2

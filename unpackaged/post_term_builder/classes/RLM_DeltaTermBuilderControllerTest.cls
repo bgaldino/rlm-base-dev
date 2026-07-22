@@ -1058,4 +1058,180 @@ private class RLM_DeltaTermBuilderControllerTest {
         System.assertEquals(true, results[2].isSuccess, 'The bound-id fallback finalizes: ' + results[2].errorMessage);
         System.assertEquals(minted.Id, results[2].renewalQuoteId, 'The flow-bound id is trusted when the diff finds nothing new');
     }
+
+    // ---------- Term Library (getTermLibrary / addTermFromTemplate) ----------
+
+    // The Term Library category the library reads from — its Code must match
+    // RLM_DeltaTermBuilderController.CATEGORY_TEMPLATES_CODE. Cached so a test can seed >1 template.
+    private static Id templateCategoryId;
+
+    private static Id ensureTemplateCategory() {
+        if (templateCategoryId != null) {
+            return templateCategoryId;
+        }
+        ProductCatalog cat = new ProductCatalog(Name = 'DL Contracts', Code = 'DL-CONTRACTS-T');
+        insert cat;
+        ProductCategory pcat = new ProductCategory(Name = 'Term Templates', Code = 'DL-TERM-TEMPLATES', CatalogId = cat.Id);
+        insert pcat;
+        templateCategoryId = pcat.Id;
+        return templateCategoryId;
+    }
+
+    // Seeds a Term Library template: a Product2 that is a member of the DL-TERM-TEMPLATES category,
+    // carries one picklist scope attribute (a ProductAttributeDefinition with a DefaultValue that
+    // resolves to a picklist display value), and has one fixed fare child (ProductRelatedComponent).
+    // Returns the template product. faresName is the child fare product's Name (asserted by the library).
+    private static Product2 insertTemplate(String sku, String pickValue, String fareName) {
+        // Classification the template is BasedOn — required so a ProductClassificationAttr can parent
+        // the product-specific ProductAttributeDefinition.
+        ProductClassification pc = new ProductClassification(Name = sku + ' Class', Code = sku + '-CLS', Status = 'Active');
+        insert pc;
+
+        // A picklist scope attribute so the template DefaultValue resolves to a display value.
+        AttributePicklist pl = new AttributePicklist(Name = sku + ' Origins', Code = sku + '-PL', DataType = 'Text', Status = 'Active');
+        insert pl;
+        insert new AttributePicklistValue(
+            PicklistId = pl.Id, Name = pickValue, Code = sku + '-' + pickValue,
+            Value = pickValue, DisplayValue = pickValue + ' Display', Status = 'Active'
+        );
+        // Canonical DL_Origin code so the library's display allowlist (LIBRARY_SCOPE_CHIP_CODES) surfaces
+        // it as a chip; DeveloperName stays per-SKU to avoid cross-attribute collisions.
+        AttributeDefinition ad = new AttributeDefinition(
+            Name = 'Origin', DeveloperName = ('Origin_' + sku).replaceAll('[^a-zA-Z0-9]', '_'),
+            Label = 'Origin', Code = 'DL_Origin', DataType = 'Picklist', PicklistId = pl.Id, IsActive = true
+        );
+        insert ad;
+        ProductClassificationAttr pca = new ProductClassificationAttr(
+            ProductClassificationId = pc.Id, AttributeDefinitionId = ad.Id, Name = 'Origin', Status = 'Active'
+        );
+        insert pca;
+
+        // A free-text DL_SpecialConditions attribute — deliberately NOT in the display allowlist, so the
+        // library must stamp it on the line but must NOT surface it as a modal chip.
+        AttributeDefinition adSpecial = new AttributeDefinition(
+            Name = 'Special Conditions', DeveloperName = ('Special_' + sku).replaceAll('[^a-zA-Z0-9]', '_'),
+            Label = 'Special Conditions', Code = 'DL_SpecialConditions', DataType = 'Text', IsActive = true
+        );
+        insert adSpecial;
+        ProductClassificationAttr pcaSpecial = new ProductClassificationAttr(
+            ProductClassificationId = pc.Id, AttributeDefinitionId = adSpecial.Id, Name = 'Special Conditions', Status = 'Active'
+        );
+        insert pcaSpecial;
+
+        Product2 tmpl = new Product2(
+            Name = 'Template ' + sku, StockKeepingUnit = sku, ProductCode = sku, IsActive = true, Type = 'Bundle', BasedOnId = pc.Id
+        );
+        insert tmpl;
+
+        insert new ProductAttributeDefinition(
+            Name = 'Origin', Product2Id = tmpl.Id, AttributeDefinitionId = ad.Id,
+            ProductClassificationAttributeId = pca.Id, DefaultValue = pickValue, Sequence = 1,
+            IsHidden = false, IsPriceImpacting = false, IsReadOnly = false, IsRequired = false, Status = 'Active'
+        );
+        insert new ProductAttributeDefinition(
+            Name = 'Special Conditions', Product2Id = tmpl.Id, AttributeDefinitionId = adSpecial.Id,
+            ProductClassificationAttributeId = pcaSpecial.Id, DefaultValue = 'Peak-season carve-out', Sequence = 2,
+            IsHidden = false, IsPriceImpacting = false, IsReadOnly = false, IsRequired = false, Status = 'Active'
+        );
+
+        // One fixed fare child (not the dynamic classification component the sellable DL-TERM uses).
+        Product2 fare = new Product2(Name = fareName, StockKeepingUnit = 'FARE-' + sku, ProductCode = 'FARE-' + sku, IsActive = true);
+        insert fare;
+        ProductRelationshipType prt = new ProductRelationshipType(
+            Name = 'Bundle Comp ' + sku, MainProductRoleCat = 'Bundle', AssociatedProductRoleCat = 'BundleComponent'
+        );
+        insert prt;
+        insert new ProductRelatedComponent(
+            ParentProductId = tmpl.Id, ChildProductId = fare.Id, ProductRelationshipTypeId = prt.Id,
+            IsDefaultComponent = true, Sequence = 1
+        );
+
+        // Category membership — the library filter.
+        Id catId = ensureTemplateCategory();
+        insert new ProductCategoryProduct(
+            ProductCategoryId = catId, ProductId = tmpl.Id, IsPrimaryCategory = true
+        );
+        return tmpl;
+    }
+
+    @IsTest
+    static void testTermLibrary_EmptyWhenNoTemplates() {
+        Test.startTest();
+        Map<String, Object> res = parse(RLM_DeltaTermBuilderController.getTermLibrary());
+        Test.stopTest();
+        System.assertEquals(true, res.get('isSuccess'), 'Empty library still succeeds');
+        System.assertEquals(0, ((List<Object>) res.get('templates')).size(), 'No templates seeded → empty list');
+    }
+
+    @IsTest
+    static void testTermLibrary_ReturnsSeededTemplateWithScopeAndFares() {
+        Product2 tmpl = insertTemplate('DL-TMPL-TEST', 'US50', 'Main Cabin');
+        Test.startTest();
+        Map<String, Object> res = parse(RLM_DeltaTermBuilderController.getTermLibrary());
+        Test.stopTest();
+
+        System.assertEquals(true, res.get('isSuccess'), 'Library read succeeds: ' + res.get('errorMessage'));
+        List<Object> templates = (List<Object>) res.get('templates');
+        System.assertEquals(1, templates.size(), 'The one seeded template is returned');
+        Map<String, Object> t = (Map<String, Object>) templates[0];
+        System.assertEquals(tmpl.Id, t.get('productId'), 'The template product id is surfaced');
+        System.assertEquals('Template DL-TMPL-TEST', t.get('name'), 'The template name is surfaced');
+
+        // Two scope defaults are seeded (DL_Origin + DL_SpecialConditions), but only the allowlisted
+        // DL_Origin surfaces as a chip — DL_SpecialConditions is excluded so the modal chips match the
+        // Term card's route/scope set.
+        List<Object> chips = (List<Object>) t.get('scopeChips');
+        System.assertEquals(1, chips.size(), 'Only the allowlisted scope default becomes a chip (special conditions filtered)');
+        Map<String, Object> chip = (Map<String, Object>) chips[0];
+        System.assertEquals('DL_Origin', chip.get('code'), 'Chip carries the attribute code');
+        System.assertEquals('Origin', chip.get('label'), 'Chip carries the attribute label');
+        System.assertEquals('US50 Display', chip.get('value'), 'Picklist DefaultValue resolved to its display value');
+
+        List<Object> fareNames = (List<Object>) t.get('fareNames');
+        System.assertEquals(1, fareNames.size(), 'The fixed fare child is listed');
+        System.assertEquals('Main Cabin', fareNames[0], 'The fare product name is surfaced');
+    }
+
+    @IsTest
+    static void testAddTermFromTemplate_MalformedJson() {
+        System.assertEquals(false, parse(RLM_DeltaTermBuilderController.addTermFromTemplate('{bad')).get('isSuccess'), 'Malformed JSON fails gracefully');
+    }
+
+    @IsTest
+    static void testAddTermFromTemplate_InvalidQuoteId() {
+        Map<String, Object> in0 = new Map<String, Object>{ 'quoteId' => 'bad', 'templateProductId' => 'bad' };
+        System.assertEquals(false, parse(RLM_DeltaTermBuilderController.addTermFromTemplate(JSON.serialize(in0))).get('isSuccess'), 'Invalid ids rejected');
+    }
+
+    @IsTest
+    static void testAddTermFromTemplate_NonMemberTemplateRejected() {
+        // A real quote + a real product that is NOT a DL-TERM-TEMPLATES member → the server-authority
+        // membership guard rejects it before any PST work (the client selector is untrusted).
+        Account a = insertAccount();
+        Quote q = insertQuoteFor(a);
+        Product2 stranger = new Product2(Name = 'Not a template', ProductCode = 'NOT-TMPL', IsActive = true);
+        insert stranger;
+        Map<String, Object> in0 = new Map<String, Object>{ 'quoteId' => q.Id, 'templateProductId' => stranger.Id };
+        Test.startTest();
+        Map<String, Object> res = parse(RLM_DeltaTermBuilderController.addTermFromTemplate(JSON.serialize(in0)));
+        Test.stopTest();
+        System.assertEquals(false, res.get('isSuccess'), 'A non-library product is rejected');
+        System.assert(((String) res.get('errorMessage')).contains('Term Library template'), 'The membership-guard message is returned: ' + res.get('errorMessage'));
+    }
+
+    @IsTest
+    static void testAddTermFromTemplate_ValidGracefulContract() {
+        // Real quote + a seeded library template + a DL-TERM product on the standard book → passes every
+        // guard into the PST commit. PST is non-deterministic in test context, so assert only a decided
+        // result (mirrors testAddTerm_ValidGracefulContract).
+        Account a = insertAccount();
+        Quote q = insertQuoteFor(a);
+        insertTermLine(q); // guarantees a DL-TERM product + active standard-book PBE (the created line is DL-TERM)
+        Product2 tmpl = insertTemplate('DL-TMPL-GRACE', 'US50', 'Main Cabin');
+        Map<String, Object> in0 = new Map<String, Object>{ 'quoteId' => q.Id, 'templateProductId' => tmpl.Id };
+        Test.startTest();
+        Map<String, Object> res = parse(RLM_DeltaTermBuilderController.addTermFromTemplate(JSON.serialize(in0)));
+        Test.stopTest();
+        System.assertNotEquals(null, res.get('isSuccess'), 'Add-from-template returns a decided result');
+    }
 }

@@ -17,6 +17,7 @@ import createNegotiation from "@salesforce/apex/RLM_DeltaTermBuilderController.c
 import getNegotiationsForAccount from "@salesforce/apex/RLM_DeltaTermBuilderController.getNegotiationsForAccount";
 import getBuilderState from "@salesforce/apex/RLM_DeltaTermBuilderController.getBuilderState";
 import updateNegotiationDates from "@salesforce/apex/RLM_DeltaTermBuilderController.updateNegotiationDates";
+import updateNegotiationName from "@salesforce/apex/RLM_DeltaTermBuilderController.updateNegotiationName";
 import updateLineDiscountAndDates from "@salesforce/apex/RLM_DeltaLineController.updateLineDiscountAndDates";
 
 // This tile's name, stamped on every published message so the tile can ignore its own echoes.
@@ -58,6 +59,10 @@ export default class DlmNegotiationContext extends LightningElement {
   selectedAccountId;
   quoteId;
   quoteName = "";
+  // The negotiation name last persisted to the server. handleQuoteNameCommit diffs against this so a
+  // blur with no edit is a no-op, and reverts to it when a save is rejected or comes back blank.
+  _savedQuoteName = "";
+  savingQuoteName = false;
   accountName = "";
   negotiationStartDate = "";
   negotiationEndDate = "";
@@ -250,7 +255,7 @@ export default class DlmNegotiationContext extends LightningElement {
   }
 
   get quoteNameDisabled() {
-    return !this.quoteId;
+    return !this.quoteId || this.savingQuoteName;
   }
 
   // True once the open negotiation is already related to a Contract. The Quote can then only be
@@ -284,6 +289,7 @@ export default class DlmNegotiationContext extends LightningElement {
     // Reset the current negotiation when the account changes.
     this.quoteId = null;
     this.quoteName = "";
+    this._savedQuoteName = "";
     this.negotiationStartDate = "";
     this.negotiationEndDate = "";
     this.terms = [];
@@ -368,6 +374,52 @@ export default class DlmNegotiationContext extends LightningElement {
 
   handleQuoteNameInput(event) {
     this.quoteName = event.target.value;
+  }
+
+  // Autosave the negotiation name on commit (blur / Enter) rather than per keystroke — consistent
+  // with how the header dates persist, but committing on blur avoids a server call per character.
+  // No-ops when there's no open quote, a save is already in flight, or the trimmed value matches
+  // what's already stored. A blank entry is rejected (revert + toast) so the negotiation can't lose
+  // its identity. On success the header adopts the server-stored value (reflecting any trim/cap) and
+  // the existing-negotiation combobox is reloaded so its label matches (it binds value={quoteId}, so
+  // the current selection is preserved).
+  async handleQuoteNameCommit(event) {
+    const next = (event.target.value || "").trim();
+    if (!this.quoteId || this.savingQuoteName || next === this._savedQuoteName) {
+      return;
+    }
+    if (!next) {
+      this.quoteName = this._savedQuoteName;
+      this._toast("Negotiation name is required.", "", "error");
+      return;
+    }
+    this.savingQuoteName = true;
+    this.errorMessage = "";
+    try {
+      const res = this._parse(
+        await updateNegotiationName({
+          inputJson: JSON.stringify({
+            quoteId: this.quoteId,
+            quoteName: next
+          })
+        })
+      );
+      if (res.isSuccess === false) {
+        this.errorMessage =
+          res.errorMessage || "Unable to save the negotiation name.";
+        this.quoteName = this._savedQuoteName;
+        return;
+      }
+      this.quoteName = res.quoteName || next;
+      this._savedQuoteName = this.quoteName;
+      this._toast("Negotiation renamed", this.quoteName, "success");
+      this.loadNegotiations();
+    } catch (e) {
+      this.errorMessage = this._errMessage(e);
+      this.quoteName = this._savedQuoteName;
+    } finally {
+      this.savingQuoteName = false;
+    }
   }
 
   get negotiationDatesDisabled() {
@@ -547,6 +599,7 @@ export default class DlmNegotiationContext extends LightningElement {
       }
       const quote = res.quote || {};
       this.quoteName = quote.name || this.quoteName;
+      this._savedQuoteName = this.quoteName;
       this.accountName = quote.accountName || this.accountName;
       this.negotiationStartDate = quote.negotiationStartDate || "";
       this.negotiationEndDate = quote.negotiationEndDate || "";

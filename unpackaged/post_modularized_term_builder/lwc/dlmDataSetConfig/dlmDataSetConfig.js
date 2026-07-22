@@ -20,7 +20,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *
  * Captures Wesley M's "Pre-Term Building Requirements" BEFORE term building begins:
  *   - Analysis Period (Quote.DL_AnalysisPeriodStart__c / DL_AnalysisPeriodEnd__c) — DRIVES the
- *     analytics. Pre-filled today → today + 1yr when unset. Its length yields a `periodFactor`
+ *     analytics. Pre-filled today − 1yr → today when unset. Its length yields a `periodFactor`
  *     (days / 365, clamped ≥ 0) the shell uses to scale the fabricated absolute KPI magnitudes.
  *   - Participating (partner) Carriers (Quote.DL_ParticipatingCarriers__c multiselect) — capture &
  *     surface only; the shell shows them as chips above the Modeling grid, never as grid rows.
@@ -33,7 +33,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * RLM_DeltaTermBuilderController or the LMC. It emits a composed `configchange` on load and on every
  * change/save; the shell consumes it to re-scale the KPI bands and re-pass the carriers.
  *
- * `Date` is used here (allowed in an LWC) ONLY to compute the period factor + the today→+1yr default;
+ * `Date` is used here (allowed in an LWC) ONLY to compute the period factor + the today−1yr→today default;
  * the deterministic c/dlDemoModel engine stays Date-free and receives the factor as a plain number.
  */
 export default class DlmDataSetConfig extends LightningElement {
@@ -161,7 +161,7 @@ export default class DlmDataSetConfig extends LightningElement {
   }
 
   get toggleLabel() {
-    return this.expanded ? "Hide" : "Configure Data Set";
+    return this.expanded ? "Hide" : "Configure Analysis Parameters";
   }
 
   get toggleIcon() {
@@ -262,13 +262,13 @@ export default class DlmDataSetConfig extends LightningElement {
   _prefillPeriod() {
     this._prefilled = true;
     const today = new Date();
-    const plusYear = new Date(
-      today.getFullYear() + 1,
+    const oneYearAgo = new Date(
+      today.getFullYear() - 1,
       today.getMonth(),
       today.getDate()
     );
-    this.startDate = this._toIsoDate(today);
-    this.endDate = this._toIsoDate(plusYear);
+    this.startDate = this._toIsoDate(oneYearAgo);
+    this.endDate = this._toIsoDate(today);
   }
 
   _toIsoDate(d) {

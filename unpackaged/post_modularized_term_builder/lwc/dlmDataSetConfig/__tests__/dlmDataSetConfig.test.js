@@ -19,12 +19,12 @@ function pad(n) {
   return `${n}`.padStart(2, "0");
 }
 
-// Mirror the component's _prefillPeriod / _toIsoDate exactly (today, and same month/day one year out),
+// Mirror the component's _prefillPeriod / _toIsoDate exactly (same month/day one year back → today),
 // computed in-test so the assertion tracks whatever "today" is when the suite runs.
 function expectedPrefill() {
   const d = new Date();
-  const start = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  const end = `${d.getFullYear() + 1}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const start = `${d.getFullYear() - 1}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const end = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   return { start, end };
 }
 
@@ -76,7 +76,7 @@ afterEach(() => {
 });
 
 describe("c-dlm-data-set-config", () => {
-  it("pre-fills a blank analysis period today → +1yr", async () => {
+  it("pre-fills a blank analysis period today − 1yr → today", async () => {
     const el = create({ quoteId: QUOTE_ID, accountId: ACCOUNT_ID });
     getRecord.emit(quoteData());
     await flushPromises();

@@ -12,9 +12,11 @@ products, selling model, and price book those objects establish.
 
 ## Model
 
-- One active `PricebookEntry` per Term-Builder SKU (`DL-TERM` + 5 fares) on the
-  **Standard Price Book**, Term Annual (`TermDefined`, 1-year) selling model,
-  `UnitPrice = 0`, currency `USD`.
+- One active `PricebookEntry` per Term-Builder SKU (`DL-TERM` + 5 fares +
+  5 `DL-TMPL-*` Term Library templates) on the **Standard Price Book**, Term Annual
+  (`TermDefined`, 1-year) selling model, `UnitPrice = 0`, currency `USD`. The
+  template clones get a $0 PBE so they are well-formed catalog products on par with
+  `DL-TERM` (see the sibling `dl-termbuilder` README's Term Library section).
 - `Product2` and `Pricebook2` are **Readonly** — the plan reads them only as
   lookup context to resolve the PBE foreign keys; it never creates or modifies
   them (the Standard Price Book is platform-provisioned). `ProductSellingModel`
@@ -25,10 +27,10 @@ products, selling model, and price book those objects establish.
 
 | # | Object | Operation | External ID | Records |
 |---|--------|-----------|-------------|---------|
-| 1 | Product2 | Readonly | `StockKeepingUnit` | 6 |
+| 1 | Product2 | Readonly | `StockKeepingUnit` | 11 |
 | 2 | ProductSellingModel | Readonly | `Name;SellingModelType` | 1 |
 | 3 | Pricebook2 | Readonly | `Name;IsStandard` | 1 |
-| 4 | PricebookEntry | Insert | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 6 |
+| 4 | PricebookEntry | Insert | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 11 |
 
 `PricebookEntry` uses **`Insert`** (not Upsert): its only logical key is composed
 entirely of relationship traversals, which SFDMU v5 cannot match on Upsert
@@ -42,10 +44,10 @@ clear the whole PricebookEntry object).
 
 ```
 export.json                 # 4-object plan (this dir)
-Product2.csv                # 6 records  (Readonly lookup: DL-TERM + 5 fares)
+Product2.csv                # 11 records  (Readonly lookup: DL-TERM + 5 fares + 5 templates)
 ProductSellingModel.csv     # 1 records  (Readonly lookup: Term Annual)
 Pricebook2.csv              # 1 records  (Readonly lookup: Standard Price Book)
-PricebookEntry.csv          # 6 records  ($0, USD, Standard, Term Annual)
+PricebookEntry.csv          # 11 records  ($0, USD, Standard, Term Annual)
 ```
 
 ## Run

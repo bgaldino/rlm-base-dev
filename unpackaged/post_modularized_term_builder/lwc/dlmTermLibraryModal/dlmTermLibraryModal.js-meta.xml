@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta Term Library Modal</masterLabel>
+    <description>Modal that lists the pre-defined Term Library templates and adds a selected one to the negotiation Quote (a DL-TERM line, fully scoped, with its fare classes attached) via RLM_DeltaTermBuilderController.addTermFromTemplate.</description>
+</LightningComponentBundle>

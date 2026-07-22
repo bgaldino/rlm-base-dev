@@ -73,6 +73,12 @@ export default class DlQuoteLineGrid extends LightningElement {
     _lastParsed = null;
     // Per-Term inline name drafts: { [lineId]: string } while the rep types a new Term name.
     _nameDrafts = {};
+    // Set when refresh() is called before the wire has provisioned (the host mounts this grid and
+    // asks it to refresh in the same frame — e.g. the first Term added flips the workspace open).
+    // The first delivery then forces one server round trip, so a stale cached getQuoteLines payload
+    // (getQuoteLines is cacheable=true, and a host may have warmed the cache empty before the line
+    // existed) can't strand the grid on pre-add data.
+    _refreshPending = false;
 
     @wire(getQuoteLines, { quoteId: '$recordId' })
     wiredLines(result) {
@@ -83,6 +89,11 @@ export default class DlQuoteLineGrid extends LightningElement {
             this.errorMessage = '';
         } else if (result.error) {
             this.errorMessage = this._errMessage(result.error);
+        }
+        // Honor a refresh() that arrived before this wire had a result to refresh.
+        if (this._refreshPending && (result.data || result.error)) {
+            this._refreshPending = false;
+            refreshApex(this._wired);
         }
     }
 
@@ -609,8 +620,16 @@ export default class DlQuoteLineGrid extends LightningElement {
 
     @api
     async refresh() {
-        if (this._wired) {
+        // Force a fresh server round trip only once the wire has SETTLED (emitted real data or an
+        // error). On provision an Apex wire first emits {data: undefined, error: undefined}, and
+        // refreshApex against that un-fetched result is unreliable (it can no-op). The host mounts this
+        // grid and calls refresh() in the same frame the first Term flips the workspace open — before
+        // the wire's first real delivery — so latch and let wiredLines force the round trip when data
+        // (even a stale cached empty payload) arrives.
+        if (this._wired && (this._wired.data || this._wired.error)) {
             await refreshApex(this._wired);
+        } else {
+            this._refreshPending = true;
         }
     }
 

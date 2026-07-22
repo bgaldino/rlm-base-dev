@@ -78,6 +78,16 @@
               class="dl-tb-add-term__cta"
             ></lightning-button>
           </div>
+          <div class="slds-col slds-p-bottom_xxx-small">
+            <lightning-button
+              label="Add from Library"
+              variant="neutral"
+              icon-name="utility:apps"
+              disabled={addTermDisabled}
+              onclick={handleAddFromLibrary}
+              class="dl-tb-add-term__library"
+            ></lightning-button>
+          </div>
         </div>
       </div>
     </template>

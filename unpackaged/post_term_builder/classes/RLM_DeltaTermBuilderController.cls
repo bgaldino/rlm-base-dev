@@ -30,6 +30,19 @@ public with sharing class RLM_DeltaTermBuilderController {
     @TestVisible private static final String FARE_CLASSIFICATION_CODE = 'PC-DL-FARE';
     @TestVisible private static final String CATALOG_CODE = 'DL-CONTRACTS';
     @TestVisible private static final String CATEGORY_CODE = 'DL-TERMS';
+    // The Term Library category: the DL-TMPL-* template clones live here (not the sellable DL-TERMS
+    // category), so getTermLibrary scopes by stable code and the manual Add-Term path never sees them.
+    @TestVisible private static final String CATEGORY_TEMPLATES_CODE = 'DL-TERM-TEMPLATES';
+
+    // Scope attributes surfaced as chips in the Term Library modal — the same route/scope set the Term
+    // card renders (route, market, directionality, measure/requirement). Free-text noise like
+    // DL_SpecialConditions ("Peak-season carve-out", "Excludes Basic Economy") is intentionally omitted
+    // so the modal chips match the card. Scope is still stamped in full on the created line
+    // (loadTemplateScopeForCommit is unfiltered) — this governs display only.
+    @TestVisible
+    private static final Set<String> LIBRARY_SCOPE_CHIP_CODES = new Set<String>{
+        'DL_MarketGroup', 'DL_Origin', 'DL_Destination', 'DL_Directionality', 'DL_Measure', 'DL_RequirementValue'
+    };
 
     // Demo safety cap: at most 20 fare children per Term (matches the ProductComponentGroup Max).
     @TestVisible private static final Integer MAX_FARES_PER_TERM = 20;
@@ -775,6 +788,47 @@ public with sharing class RLM_DeltaTermBuilderController {
     }
 
     /**
+     * Rename the negotiation (Quote.Name). Input: { quoteId, quoteName }. The name is trimmed and
+     * capped at the 80-char Quote.Name limit (same rule as createNegotiation); a blank name is
+     * rejected so the header can't clear the negotiation's identity. Plain field update, not a PST
+     * commit — Name isn't priced/derived. Returns { isSuccess, quoteName, errorMessage }; quoteName is
+     * the value actually stored, so the header can reflect any trim/truncation the server applied.
+     */
+    @AuraEnabled(cacheable=false)
+    public static String updateNegotiationName(String inputJson) {
+        try {
+            Map<String, Object> in0 = parseInput(inputJson);
+            Id qId = parseId(asString(in0.get('quoteId')), 'quoteId');
+            loadQuote(qId); // access + existence
+
+            String quoteName = asString(in0.get('quoteName'));
+            if (quoteName != null) {
+                quoteName = quoteName.trim();
+            }
+            if (String.isBlank(quoteName)) {
+                throw new TermBuilderException('Negotiation name is required.');
+            }
+            if (quoteName.length() > 80) {
+                quoteName = quoteName.substring(0, 80);
+            }
+
+            update as user new Quote(Id = qId, Name = quoteName);
+
+            // Header-field edits go through direct DML like every other mutation here; reprice so the
+            // quote stays validated (best-effort; safe on an empty quote — mirrors updateNegotiationDates).
+            RLM_DeltaPlaceSalesTransaction.revalidate(qId);
+
+            return JSON.serialize(new Map<String, Object>{
+                'isSuccess' => true,
+                'quoteName' => quoteName,
+                'errorMessage' => null
+            });
+        } catch (Exception e) {
+            return errorResult(e.getMessage());
+        }
+    }
+
+    /**
      * Add one or more route-based Terms (DL-TERM bundles) to the quote via Place Sales Transaction.
      * Input: { quoteId, count? }. The Term product is resolved server-side by its stable SKU
      * (DL-TERM) — never client-supplied, so the rail's "Add Term" bar needs no catalog/search. `count`
@@ -1289,6 +1343,361 @@ public with sharing class RLM_DeltaTermBuilderController {
         } catch (Exception e) {
             return errorResult(e.getMessage());
         }
+    }
+
+    // ---------- Term Library (pre-defined templates) ----------
+
+    /**
+     * The Term Library for the "Add from Library" modal: the pre-defined term templates (the
+     * DL-TMPL-* clones grouped under the DL-TERM-TEMPLATES category). Each is read as a *definition*
+     * — its scope (per-product ProductAttributeDefinition DefaultValues) and its fixed fare set
+     * (ProductRelatedComponent children) — never as a line. Cacheable: the library is static seed
+     * data. No input.
+     *
+     * Returns { isSuccess, templates:[{ productId, name, description, scopeChips:[{ code, label,
+     * value }], fareNames:[...] }], errorMessage }.
+     */
+    @AuraEnabled(cacheable=true)
+    public static String getTermLibrary() {
+        try {
+            // Templates = members of the DL-TERM-TEMPLATES category (stable code, not a SKU heuristic).
+            Set<Id> templateIds = new Set<Id>();
+            for (ProductCategoryProduct pcp : [
+                SELECT ProductId FROM ProductCategoryProduct
+                WHERE ProductCategory.Code = :CATEGORY_TEMPLATES_CODE AND ProductId != null
+                WITH USER_MODE
+            ]) {
+                templateIds.add(pcp.ProductId);
+            }
+            if (templateIds.isEmpty()) {
+                return JSON.serialize(new Map<String, Object>{
+                    'isSuccess' => true, 'templates' => new List<Object>(), 'errorMessage' => null
+                });
+            }
+
+            // Ordered list drives output order (a Map<Id,Product2> would not preserve the ORDER BY).
+            List<Product2> prods = [
+                SELECT Id, Name, Description FROM Product2
+                WHERE Id IN :templateIds AND IsActive = true
+                WITH USER_MODE
+                ORDER BY Name ASC
+            ];
+            Set<Id> activeIds = new Set<Id>();
+            for (Product2 p : prods) {
+                activeIds.add(p.Id);
+            }
+
+            Map<Id, List<Map<String, Object>>> scopeByProduct = loadTemplateScopeChips(activeIds);
+            Map<Id, List<String>> faresByProduct = loadTemplateFareNames(activeIds);
+
+            List<Map<String, Object>> templates = new List<Map<String, Object>>();
+            for (Product2 p : prods) {
+                templates.add(new Map<String, Object>{
+                    'productId' => p.Id,
+                    'name' => p.Name,
+                    'description' => p.Description,
+                    'scopeChips' => scopeByProduct.containsKey(p.Id) ? scopeByProduct.get(p.Id) : new List<Map<String, Object>>(),
+                    'fareNames' => faresByProduct.containsKey(p.Id) ? faresByProduct.get(p.Id) : new List<String>()
+                });
+            }
+            return JSON.serialize(new Map<String, Object>{
+                'isSuccess' => true, 'templates' => templates, 'errorMessage' => null
+            });
+        } catch (Exception e) {
+            return errorResult(e.getMessage());
+        }
+    }
+
+    /**
+     * Add a pre-defined library Term to the quote fully scoped, with its fare classes attached.
+     * Input: { quoteId, templateProductId }. The template is read only as a *definition*: the created
+     * line is always the standard DL-TERM product (term recognition + fare-attach are hardcoded to
+     * that SKU), onto which the template's scope + fares are mapped.
+     *
+     * Commit A (atomic): Quote PATCH header + DL-TERM QLI POST + one QuoteLineItemAttribute POST per
+     * template scope value (parented to the new line's graph ref), via commitConfigured. Commit B:
+     * the template's fare products are attached with the existing addFareClassesToTerm (a real
+     * DL-TERM line id + fare product ids). Server authority: templateProductId must be a
+     * DL-TERM-TEMPLATES member (the client selector is untrusted).
+     *
+     * Returns { isSuccess, termLineId, addedFareCount, errorMessage }.
+     */
+    @AuraEnabled(cacheable=false)
+    public static String addTermFromTemplate(String inputJson) {
+        try {
+            Map<String, Object> in0 = parseInput(inputJson);
+            Id qId = parseId(asString(in0.get('quoteId')), 'quoteId');
+            Id templateId = parseId(asString(in0.get('templateProductId')), 'templateProductId');
+            Quote q = loadQuote(qId);
+            Id pbId = (q.Pricebook2Id != null) ? q.Pricebook2Id : RLM_DeltaCatalogService.resolveStandardPricebook2Id();
+
+            // Server authority: the template must belong to the Term Library category. Its Name is
+            // stamped onto the created line as CustomProductName so the line keeps the library
+            // definition's label (e.g. "ATL Hub Volume").
+            List<ProductCategoryProduct> membership = [
+                SELECT Id, Product.Name FROM ProductCategoryProduct
+                WHERE ProductId = :templateId AND ProductCategory.Code = :CATEGORY_TEMPLATES_CODE
+                WITH USER_MODE
+                LIMIT 1
+            ];
+            if (membership.isEmpty()) {
+                throw new TermBuilderException('The selected product is not a Term Library template.');
+            }
+            String templateName = (membership[0].Product != null) ? membership[0].Product.Name : null;
+
+            // The created line is DL-TERM (not the template). Resolve it + its active PBE exactly as addTerm.
+            List<Product2> termProducts = [
+                SELECT Id FROM Product2
+                WHERE (ProductCode = :TERM_SKU OR StockKeepingUnit = :TERM_SKU) AND IsActive = true
+                WITH USER_MODE
+                LIMIT 1
+            ];
+            if (termProducts.isEmpty()) {
+                throw new TermBuilderException('The Term product (' + TERM_SKU + ') is not available.');
+            }
+            Id termProductId = termProducts[0].Id;
+            List<PricebookEntry> pbes = RLM_DeltaCatalogService.queryPBEsByProductIds(new Set<Id>{ termProductId }, pbId);
+            if (pbes.isEmpty()) {
+                throw new TermBuilderException('No active price book entry for the Term product on this quote\'s price book.');
+            }
+            PricebookEntry pbe = pbes[0];
+
+            // Read the template's scope defaults (picklist DefaultValue resolved to its value id) + fare set.
+            List<Map<String, Object>> scopeValues = loadTemplateScopeForCommit(templateId);
+            List<Id> fareProductIds = loadTemplateFareProductIds(templateId);
+
+            // Commit A — DL-TERM line + scope QuoteLineItemAttribute rows, atomic (pricing FORCE + config SKIP).
+            String quoteIdRef = String.valueOf(qId);
+            List<RevSalesTrxn.RecordWithReferenceRequest> records = new List<RevSalesTrxn.RecordWithReferenceRequest>();
+            records.add(RLM_DeltaPlaceSalesTransaction.patch('refHeader', Quote.getSObjectType(), qId, new Map<String, Object>()));
+            records.add(RLM_DeltaPlaceSalesTransaction.post(
+                'refTerm', QuoteLineItem.getSObjectType(),
+                buildTermLineFields(pbe, quoteIdRef, q.DL_NegotiationStartDate__c, q.DL_NegotiationEndDate__c)
+            ));
+            Integer ai = 0;
+            for (Map<String, Object> sv : scopeValues) {
+                Map<String, Object> attrFields = new Map<String, Object>{
+                    'QuoteLineItemId' => RLM_DeltaPlaceSalesTransaction.referenceToken('refTerm'),
+                    'AttributeDefinitionId' => sv.get('defId')
+                };
+                if (sv.get('picklistValueId') != null) {
+                    attrFields.put('AttributePicklistValueId', sv.get('picklistValueId'));
+                } else {
+                    attrFields.put('AttributeValue', sv.get('textValue'));
+                }
+                records.add(RLM_DeltaPlaceSalesTransaction.post('refAttr' + ai, QuoteLineItemAttribute.getSObjectType(), attrFields));
+                ai++;
+            }
+
+            // Snapshot pre-existing lines so the created DL-TERM line can be identified authoritatively
+            // (the PST reference map is best-effort — mirrors addTerm/addFareClassesToTerm).
+            Set<Id> preexisting = new Set<Id>();
+            for (QuoteLineItem existing : [SELECT Id FROM QuoteLineItem WHERE QuoteId = :qId WITH USER_MODE]) {
+                preexisting.add(existing.Id);
+            }
+
+            RLM_DeltaPlaceSalesTransaction.Result res =
+                RLM_DeltaPlaceSalesTransaction.commitConfigured('DeltaTermBuilderAddTermFromTemplate', records);
+            if (!res.isSuccess) {
+                return errorResult(res.errorMessage);
+            }
+
+            Id termLineId = null;
+            for (QuoteLineItem added : [
+                SELECT Id FROM QuoteLineItem
+                WHERE QuoteId = :qId AND Id NOT IN :preexisting AND Product2Id = :termProductId
+                WITH USER_MODE
+                ORDER BY CreatedDate ASC, Id ASC
+                LIMIT 1
+            ]) {
+                termLineId = added.Id;
+            }
+            if (termLineId == null) {
+                throw new TermBuilderException('The Term line was created but could not be resolved.');
+            }
+
+            // Commit B — attach the template's fare classes onto the DL-TERM line (reuses the tested path).
+            Integer addedFareCount = 0;
+            if (!fareProductIds.isEmpty()) {
+                List<Map<String, Object>> fareReq = new List<Map<String, Object>>();
+                for (Id fpId : fareProductIds) {
+                    fareReq.add(new Map<String, Object>{ 'productId' => fpId });
+                }
+                String fareResultJson = addFareClassesToTerm(JSON.serialize(new Map<String, Object>{
+                    'quoteId' => qId, 'termLineId' => termLineId, 'fares' => fareReq
+                }));
+                Map<String, Object> fareResult = (Map<String, Object>) JSON.deserializeUntyped(fareResultJson);
+                if (fareResult.get('isSuccess') == false) {
+                    // The DL-TERM line + scope committed; report the fare failure while surfacing the term id.
+                    return JSON.serialize(new Map<String, Object>{
+                        'isSuccess' => false,
+                        'termLineId' => termLineId,
+                        'errorMessage' => 'Term added, but attaching fare classes failed: ' + fareResult.get('errorMessage')
+                    });
+                }
+                Object cnt = fareResult.get('addedCount');
+                addedFareCount = (cnt != null) ? Integer.valueOf(String.valueOf(cnt)) : fareProductIds.size();
+            }
+
+            // Label the DL-TERM line by its library definition. CustomProductName is a PST-dropped
+            // field, so write it directly on a fresh Id-only shell (mirrors the deep-clone/renewal
+            // re-stamp pattern) after the commits rather than through buildTermLineFields.
+            if (String.isNotBlank(templateName)) {
+                update as user new QuoteLineItem(Id = termLineId, CustomProductName = templateName);
+            }
+
+            return JSON.serialize(new Map<String, Object>{
+                'isSuccess' => true,
+                'termLineId' => termLineId,
+                'addedFareCount' => addedFareCount,
+                'errorMessage' => null
+            });
+        } catch (Exception e) {
+            return errorResult(e.getMessage());
+        }
+    }
+
+    /**
+     * Display chips for the library modal: the template's scope defaults, one per per-product
+     * ProductAttributeDefinition with a DefaultValue. Picklist defaults are resolved to their display
+     * value; free-text defaults pass through. Returns { productId → [{ code, label, value }] }.
+     */
+    private static Map<Id, List<Map<String, Object>>> loadTemplateScopeChips(Set<Id> productIds) {
+        Map<Id, List<Map<String, Object>>> byProduct = new Map<Id, List<Map<String, Object>>>();
+        if (productIds == null || productIds.isEmpty()) {
+            return byProduct;
+        }
+        List<ProductAttributeDefinition> pads = [
+            SELECT Product2Id, DefaultValue, Sequence, AttributeDefinition.Code,
+                   AttributeDefinition.Label, AttributeDefinition.Name, AttributeDefinition.PicklistId
+            FROM ProductAttributeDefinition
+            WHERE Product2Id IN :productIds AND DefaultValue != null
+                  AND AttributeDefinition.Code IN :LIBRARY_SCOPE_CHIP_CODES
+            WITH USER_MODE
+            ORDER BY Product2Id, Sequence
+        ];
+        if (pads.isEmpty()) {
+            return byProduct;
+        }
+        // Bulk-resolve picklist value → display (keyed picklistId|value), mirroring loadTermAttributes.
+        Set<Id> picklistIds = new Set<Id>();
+        for (ProductAttributeDefinition pad : pads) {
+            if (pad.AttributeDefinition != null && pad.AttributeDefinition.PicklistId != null) {
+                picklistIds.add(pad.AttributeDefinition.PicklistId);
+            }
+        }
+        Map<String, String> displayByKey = new Map<String, String>();
+        if (!picklistIds.isEmpty()) {
+            for (AttributePicklistValue pv : [
+                SELECT PicklistId, Value, DisplayValue FROM AttributePicklistValue
+                WHERE PicklistId IN :picklistIds WITH USER_MODE
+            ]) {
+                displayByKey.put(pv.PicklistId + '|' + pv.Value, String.isNotBlank(pv.DisplayValue) ? pv.DisplayValue : pv.Value);
+            }
+        }
+        for (ProductAttributeDefinition pad : pads) {
+            AttributeDefinition d = pad.AttributeDefinition;
+            String display = pad.DefaultValue;
+            Id picklistId = (d != null) ? d.PicklistId : null;
+            if (picklistId != null && displayByKey.containsKey(picklistId + '|' + pad.DefaultValue)) {
+                display = displayByKey.get(picklistId + '|' + pad.DefaultValue);
+            }
+            if (!byProduct.containsKey(pad.Product2Id)) {
+                byProduct.put(pad.Product2Id, new List<Map<String, Object>>());
+            }
+            byProduct.get(pad.Product2Id).add(new Map<String, Object>{
+                'code' => (d != null) ? d.Code : null,
+                'label' => (d != null) ? (String.isNotBlank(d.Label) ? d.Label : d.Name) : null,
+                'value' => display
+            });
+        }
+        return byProduct;
+    }
+
+    /** Fare product Names per template (fixed ProductRelatedComponent children). { productId → [names] }. */
+    private static Map<Id, List<String>> loadTemplateFareNames(Set<Id> productIds) {
+        Map<Id, List<String>> byProduct = new Map<Id, List<String>>();
+        if (productIds == null || productIds.isEmpty()) {
+            return byProduct;
+        }
+        for (ProductRelatedComponent prc : [
+            SELECT ParentProductId, ChildProduct.Name, Sequence FROM ProductRelatedComponent
+            WHERE ParentProductId IN :productIds AND ChildProductId != null
+            WITH USER_MODE
+            ORDER BY ParentProductId, Sequence
+        ]) {
+            if (!byProduct.containsKey(prc.ParentProductId)) {
+                byProduct.put(prc.ParentProductId, new List<String>());
+            }
+            if (prc.ChildProduct != null) {
+                byProduct.get(prc.ParentProductId).add(prc.ChildProduct.Name);
+            }
+        }
+        return byProduct;
+    }
+
+    /**
+     * The template's scope values shaped for the PST attribute POST: [{ defId, picklistValueId? |
+     * textValue? }]. A picklist default is resolved to its AttributePicklistValue id (constrained to
+     * that AttributeDefinition's picklist); an unresolvable picklist default is skipped rather than
+     * posting an invalid value. Free-text defaults become textValue.
+     */
+    private static List<Map<String, Object>> loadTemplateScopeForCommit(Id templateId) {
+        List<Map<String, Object>> out = new List<Map<String, Object>>();
+        List<ProductAttributeDefinition> pads = [
+            SELECT DefaultValue, Sequence, AttributeDefinitionId, AttributeDefinition.PicklistId
+            FROM ProductAttributeDefinition
+            WHERE Product2Id = :templateId AND DefaultValue != null
+            WITH USER_MODE
+            ORDER BY Sequence
+        ];
+        if (pads.isEmpty()) {
+            return out;
+        }
+        Set<Id> picklistIds = new Set<Id>();
+        for (ProductAttributeDefinition pad : pads) {
+            if (pad.AttributeDefinition != null && pad.AttributeDefinition.PicklistId != null) {
+                picklistIds.add(pad.AttributeDefinition.PicklistId);
+            }
+        }
+        Map<String, Id> pickValueIdByKey = new Map<String, Id>();
+        if (!picklistIds.isEmpty()) {
+            for (AttributePicklistValue pv : [
+                SELECT Id, PicklistId, Value FROM AttributePicklistValue
+                WHERE PicklistId IN :picklistIds WITH USER_MODE
+            ]) {
+                pickValueIdByKey.put(pv.PicklistId + '|' + pv.Value, pv.Id);
+            }
+        }
+        for (ProductAttributeDefinition pad : pads) {
+            Id picklistId = (pad.AttributeDefinition != null) ? pad.AttributeDefinition.PicklistId : null;
+            Map<String, Object> entry = new Map<String, Object>{ 'defId' => pad.AttributeDefinitionId };
+            if (picklistId != null) {
+                Id pvId = pickValueIdByKey.get(picklistId + '|' + pad.DefaultValue);
+                if (pvId == null) {
+                    continue; // unresolvable picklist default — skip rather than post an invalid value
+                }
+                entry.put('picklistValueId', pvId);
+            } else {
+                entry.put('textValue', pad.DefaultValue);
+            }
+            out.add(entry);
+        }
+        return out;
+    }
+
+    /** The template's fixed fare product ids (ProductRelatedComponent children), in sequence order. */
+    private static List<Id> loadTemplateFareProductIds(Id templateId) {
+        List<Id> out = new List<Id>();
+        for (ProductRelatedComponent prc : [
+            SELECT ChildProductId FROM ProductRelatedComponent
+            WHERE ParentProductId = :templateId AND ChildProductId != null
+            WITH USER_MODE
+            ORDER BY Sequence
+        ]) {
+            out.add(prc.ChildProductId);
+        }
+        return out;
     }
 
     // ---------- helpers ----------

@@ -1,10 +1,21 @@
 /* global require */
 import { createElement } from 'lwc';
+import { refreshApex } from '@salesforce/apex';
 import DlmQuoteLineGrid from 'c/dlmQuoteLineGrid';
 import getQuoteLines from '@salesforce/apex/RLM_DeltaLineController.getQuoteLines';
 import updateLineDiscountAndDates from '@salesforce/apex/RLM_DeltaLineController.updateLineDiscountAndDates';
 import deleteLines from '@salesforce/apex/RLM_DeltaLineController.deleteLines';
 import updateTermName from '@salesforce/apex/RLM_DeltaLineController.updateTermName';
+
+// refreshApex is a non-spyable stub under the default jest preset (a plain function returning a
+// resolved Promise). Register a virtual spy so the tests can assert the grid forces a server round
+// trip. The grid's own import resolves to this same spy. Save/delete/rename only await it, so a
+// no-op resolving jest.fn() is behaviorally identical for those paths.
+jest.mock(
+    '@salesforce/apex',
+    () => ({ refreshApex: jest.fn(() => Promise.resolve()) }),
+    { virtual: true }
+);
 
 // getQuoteLines is consumed as a @wire — wrap it in an Apex test wire adapter so .emit() feeds the
 // wire. The adapter is require()'d lazily inside the factory because jest.mock() is hoisted above
@@ -237,16 +248,17 @@ describe('c-dlm-quote-line-grid', () => {
         expect(priorCells[1].textContent.trim()).toBe('—');
     });
 
-    it('preserves an in-flight discount draft across an unsolicited refresh', async () => {
+    it('preserves an in-flight date draft across an unsolicited refresh', async () => {
         const element = createComponent();
         getQuoteLines.emit(makeData());
         await flushPromises();
 
-        // Edit line1's discount to 25 without saving. The handler reads event.target.value, so set the
-        // stub input's value then dispatch a change whose target is that input.
-        const discountInput = element.shadowRoot.querySelector('lightning-input[data-id="line1"]');
-        discountInput.value = '25';
-        discountInput.dispatchEvent(new CustomEvent('change'));
+        // Edit line1's start date without saving. The handler reads event.target.value, so set the
+        // stub input's value then dispatch a change whose target is that input. line1 is not a Term,
+        // so its inputs are [startDate, endDate] — the first is the start date.
+        const startInput = element.shadowRoot.querySelector('lightning-input[data-id="line1"]');
+        startInput.value = '2026-03-01';
+        startInput.dispatchEvent(new CustomEvent('change'));
         await flushPromises();
 
         // Unsolicited refresh (finder added a line elsewhere) — same rows re-emitted.
@@ -278,26 +290,6 @@ describe('c-dlm-quote-line-grid', () => {
         expect(expander(element, 'line1').getAttribute('aria-expanded')).toBe('true');
     });
 
-    it('blocks save when discount is out of range and does not call Apex', async () => {
-        const element = createComponent();
-        getQuoteLines.emit(makeData());
-        await flushPromises();
-
-        const discountInput = element.shadowRoot.querySelector('lightning-input[data-id="line1"]');
-        discountInput.value = '150';
-        discountInput.dispatchEvent(new CustomEvent('change'));
-        await flushPromises();
-
-        const saveBtn = Array.from(element.shadowRoot.querySelectorAll('lightning-button')).find(
-            (b) => b.label === 'Save changes'
-        );
-        saveBtn.click();
-        await flushPromises();
-
-        expect(updateLineDiscountAndDates).not.toHaveBeenCalled();
-        expect(element.shadowRoot.querySelector('[role="alert"]')).not.toBeNull();
-    });
-
     it('blocks save when end date precedes start date', async () => {
         const element = createComponent();
         getQuoteLines.emit(makeData());
@@ -305,8 +297,8 @@ describe('c-dlm-quote-line-grid', () => {
 
         // line1 currently has start 2026-01-01 / end 2026-12-31; move end before start.
         const inputs = element.shadowRoot.querySelectorAll('lightning-input[data-id="line1"]');
-        // inputs order in row: [discount, startDate, endDate]
-        const endInput = inputs[2];
+        // inputs order in row: [startDate, endDate] (the discount column is Modeling-tab only)
+        const endInput = inputs[1];
         endInput.value = '2025-01-01';
         endInput.dispatchEvent(new CustomEvent('change'));
         await flushPromises();
@@ -325,9 +317,10 @@ describe('c-dlm-quote-line-grid', () => {
         getQuoteLines.emit(makeData());
         await flushPromises();
 
-        const discountInput = element.shadowRoot.querySelector('lightning-input[data-id="line1"]');
-        discountInput.value = '30';
-        discountInput.dispatchEvent(new CustomEvent('change'));
+        // line1's inputs are [startDate, endDate]; edit only the start date.
+        const startInput = element.shadowRoot.querySelector('lightning-input[data-id="line1"]');
+        startInput.value = '2026-03-01';
+        startInput.dispatchEvent(new CustomEvent('change'));
         await flushPromises();
 
         const saveBtn = Array.from(element.shadowRoot.querySelectorAll('lightning-button')).find(
@@ -341,7 +334,7 @@ describe('c-dlm-quote-line-grid', () => {
         expect(Object.keys(arg)).toEqual(['inputJson']);
         const payload = JSON.parse(arg.inputJson);
         expect(payload.quoteId).toBe(RECORD_ID);
-        expect(payload.lines).toEqual([{ id: 'line1', discount: 30 }]);
+        expect(payload.lines).toEqual([{ id: 'line1', startDate: '2026-03-01' }]);
     });
 
     it('renders a remove action per row and calls deleteLines with the line id on click', async () => {
@@ -502,5 +495,39 @@ describe('c-dlm-quote-line-grid', () => {
         expect(summary).not.toBeNull();
         expect(summary.textContent).toBe('W S');
         expect(element.shadowRoot.querySelector('lightning-dual-listbox')).toBeNull();
+    });
+
+    // Regression: adding the FIRST Term flips the workspace open and mounts this grid, whose host
+    // calls refresh() in the same frame — before the getQuoteLines wire has provisioned. getQuoteLines
+    // is cacheable=true and a host may have warmed the LDS cache with an empty (pre-add) payload, so
+    // the grid must force one round trip on first delivery; otherwise it renders the stale empty cache
+    // and the just-added Term never appears ("No quote lines yet" with the Term selected).
+    it('forces a server refresh when refresh() is called before the wire provisions', async () => {
+        const element = createComponent();
+
+        // Wire has not provisioned yet (_wired undefined): refresh() latches instead of round-tripping.
+        await element.refresh();
+        expect(refreshApex).not.toHaveBeenCalled();
+
+        // First delivery honors the pending refresh with exactly one forced round trip.
+        getQuoteLines.emit(makeTermData());
+        await flushPromises();
+        expect(refreshApex).toHaveBeenCalledTimes(1);
+
+        // The latch is one-shot: a later unsolicited delivery does not re-trigger a forced refresh.
+        getQuoteLines.emit(makeTermData());
+        await flushPromises();
+        expect(refreshApex).toHaveBeenCalledTimes(1);
+    });
+
+    it('round-trips immediately when refresh() is called after the wire has provisioned', async () => {
+        const element = createComponent();
+        getQuoteLines.emit(makeTermData());
+        await flushPromises();
+        // First delivery had no pending refresh, so nothing was forced.
+        expect(refreshApex).not.toHaveBeenCalled();
+
+        await element.refresh();
+        expect(refreshApex).toHaveBeenCalledTimes(1);
     });
 });

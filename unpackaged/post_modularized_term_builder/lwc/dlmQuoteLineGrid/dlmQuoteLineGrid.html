@@ -44,7 +44,6 @@
                             </template>
                             <th scope="col"><span class="slds-truncate" title="Product">Product</span></th>
                             <th scope="col" class="rlm-col-fares"><span class="slds-truncate" title="Fare codes">Fare codes</span></th>
-                            <th scope="col"><span class="slds-truncate" title="Discount %">Discount %</span></th>
                             <th scope="col" class="rlm-col-prior"><span class="slds-truncate" title="Prior contract discount %">Prev discount %</span></th>
                             <th scope="col"><span class="slds-truncate" title="Start date">Start date</span></th>
                             <th scope="col"><span class="slds-truncate" title="End date">End date</span></th>
@@ -105,26 +104,6 @@
                                     <td class="rlm-col-fares">
                                         <template if:true={row.showFareSummary}>
                                             <span class="slds-truncate" title={row.fareSummary}>{row.fareSummary}</span>
-                                        </template>
-                                    </td>
-                                    <td class={row.discountClass}>
-                                        <lightning-input
-                                            type="number"
-                                            variant="label-hidden"
-                                            label="Discount %"
-                                            step="0.01"
-                                            min="0"
-                                            max="100"
-                                            value={row.discountValue}
-                                            data-id={row.id}
-                                            message-when-range-overflow="Enter 0–100"
-                                            message-when-range-underflow="Enter 0–100"
-                                            onchange={handleDiscountChange}
-                                        ></lightning-input>
-                                        <template if:true={row.discountError}>
-                                            <div class="slds-text-color_error slds-text-body_small">
-                                                {row.discountError}
-                                            </div>
                                         </template>
                                     </td>
                                     <td class="rlm-col-prior">

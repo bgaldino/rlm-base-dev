@@ -41,6 +41,11 @@
       "externalId": "StockKeepingUnit"
     },
     {
+      "query": "SELECT AttributeCategoryId, AttributeDefinitionId, AttributeNameOverride, DefaultValue, Description, DisplayType, HelpText, Id, IsHidden, IsPriceImpacting, IsReadOnly, IsRequired, MaximumCharacterCount, MaximumValue, MinimumCharacterCount, MinimumValue, Name, OverriddenProductAttributeDefinitionId, Product2Id, ProductClassificationAttributeId, Sequence, Status, StepValue, UnitOfMeasureId, ValueDescription, AttributeDefinition.Code, Product2.StockKeepingUnit FROM ProductAttributeDefinition WHERE Product2.StockKeepingUnit LIKE 'DL-TMPL-%' ORDER BY Product2.StockKeepingUnit ASC, AttributeCategory.Code ASC, AttributeDefinition.Code ASC, ProductClassificationAttribute.Name ASC",
+      "operation": "Upsert",
+      "externalId": "AttributeDefinition.Code;Product2.StockKeepingUnit"
+    },
+    {
       "query": "SELECT DoesAutoRenewAssetByDefault, Id, Name, PricingTerm, PricingTermUnit, SellingModelType, Status FROM ProductSellingModel ORDER BY Name ASC, SellingModelType ASC",
       "operation": "Upsert",
       "externalId": "Name;SellingModelType"

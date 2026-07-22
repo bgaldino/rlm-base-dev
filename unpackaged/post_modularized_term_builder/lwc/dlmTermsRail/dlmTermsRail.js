@@ -11,6 +11,7 @@ import {
 import DLM_CHANNEL from "@salesforce/messageChannel/DLM_TermBuilderChannel__c";
 import getBuilderState from "@salesforce/apex/RLM_DeltaTermBuilderController.getBuilderState";
 import addTerm from "@salesforce/apex/RLM_DeltaTermBuilderController.addTerm";
+import DlmTermLibraryModal from "c/dlmTermLibraryModal";
 
 const SOURCE = "dlmTermsRail";
 const DEFAULT_MAX_ADD = 10;
@@ -264,6 +265,35 @@ export default class DlmTermsRail extends LightningElement {
       this.errorMessage = this._errMessage(e);
     } finally {
       this.addingTerm = false;
+    }
+  }
+
+  // Open the Term Library modal and, on a finished add, funnel into the same refresh path as a manual
+  // Add Term. The modal owns the getTermLibrary/addTermFromTemplate calls and its own busy state; here
+  // we only react to its result (a real DL-TERM line was created server-side, so handleTermAdded picks
+  // it up as the newest term exactly like the inline add).
+  async handleAddFromLibrary() {
+    if (!this.quoteId || this.addingTerm) {
+      return;
+    }
+    this.errorMessage = "";
+    try {
+      const result = await DlmTermLibraryModal.open({
+        quoteId: this.quoteId,
+        size: "medium",
+        label: "Term Library"
+      });
+      if (!result || result.status !== "finished") {
+        return;
+      }
+      const fares = result.addedFareCount || 0;
+      const fareText = fares
+        ? ` with ${fares} fare class${fares > 1 ? "es" : ""}`
+        : "";
+      this._toast("Term added from library", `Term added${fareText}.`, "success");
+      await this.handleTermAdded();
+    } catch (e) {
+      this.errorMessage = this._errMessage(e);
     }
   }
 

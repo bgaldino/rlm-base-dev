@@ -12,7 +12,8 @@ sibling `dl-pricing` plan — **load `dl-termbuilder` first, then `dl-pricing`.*
 
 ## Catalog model
 
-- **Catalog** `DL-CONTRACTS` → **Category** `DL-TERMS` (contains only `DL-TERM`).
+- **Catalog** `DL-CONTRACTS` → **Category** `DL-TERMS` (the sellable term, `DL-TERM`) plus
+  **Category** `DL-TERM-TEMPLATES` (the non-navigational Term Library — the `DL-TMPL-*` clones).
 - **Classifications:** `PC-DL-TERM` (the Term) and `PC-DL-FARE` (fare classes).
 - **Term bundle** `DL-TERM` — `Type = Bundle`, `BasedOn = PC-DL-TERM`,
   `ConfigureDuringSale = Allowed`.
@@ -25,6 +26,32 @@ sibling `dl-pricing` plan — **load `dl-termbuilder` first, then `dl-pricing`.*
 - **Five fare products** (all `BasedOn = PC-DL-FARE`, `IsSoldOnlyWithOtherProds`):
   Delta One (`DL-FARE-ONE`), Premium Select (`DL-FARE-PS`), Comfort
   (`DL-FARE-COMF`), Main (`DL-FARE-MAIN`), Main Basic (`DL-FARE-BASIC`).
+
+### Term Library templates (`DL-TMPL-*`)
+
+Five pre-defined **Term templates** power the "Add from Library" flow in the modularized
+Term Builder (`RLM_DeltaTermBuilderController.getTermLibrary` / `addTermFromTemplate`). Each is a
+clone of `DL-TERM` — `Type = Bundle`, `BasedOn = PC-DL-TERM`, a **$0 `PricebookEntry`** on the
+Term Annual selling model, and membership in the non-navigational `DL-TERM-TEMPLATES` category — so
+it is a well-formed catalog product on par with `DL-TERM`. **The templates are read as
+*definitions*, never added as the term line:** term recognition and fare-attach are hardcoded to the
+`DL-TERM` SKU, so `addTermFromTemplate` creates a real `DL-TERM` line and maps the template's scope +
+fares onto it.
+
+Each template carries its scope as per-product **`ProductAttributeDefinition`** rows (`DefaultValue`
+on `DL_Origin` / `DL_Destination` / `DL_Directionality` / `DL_Measure` and the free-text
+`DL_MarketGroup` / `DL_RequirementValue` / `DL_SpecialConditions` — **no `DL_ScopeType`**), and its
+pre-defined fare set as **fixed `ProductRelatedComponent` children** (specific `DL-FARE-*` products
+under a per-template `*-FARES` group, via *Bundle to Bundle Component Relationship* — not the dynamic
+`PC-DL-FARE` classification component the sellable `DL-TERM` uses).
+
+| Template | Origin → Destination | Directionality | Measure | Fares |
+|----------|----------------------|----------------|---------|-------|
+| `DL-TMPL-ATLHUB` (ATL Hub Volume) | ATL → US50 | Between | Share of Flights | Main, Comfort, Delta One |
+| `DL-TMPL-EMEAI` (EMEAI Regional) | EMEAI → EMEAI | Between | No Requirement | Premium Select, Main |
+| `DL-TMPL-JFKLHR` (JFK-LHR Directional) | JFK → LHR | Directional | Share Gap | Delta One, Premium Select |
+| `DL-TMPL-TATL` (Transatlantic Premium) | US50 → EMEAI | Between | Share of Flights | Delta One, Premium Select, Comfort, Main |
+| `DL-TMPL-USDOM` (US Domestic Share Gap) | US50 → US50 | Between | Share Gap | Main, Comfort, Main Basic |
 
 ### Fare codes
 
@@ -77,15 +104,16 @@ Annual, so new Term-Builder lines pick up `BillingFrequency = Annual` /
 | 5 | AttributeCategoryAttribute | Upsert | `AttributeCategory.Code;AttributeDefinition.Code` | 8 |
 | 6 | ProductClassification | Upsert | `Code` | 2 |
 | 7 | ProductClassificationAttr | Upsert | `Name` | 8 |
-| 8 | Product2 | Upsert | `StockKeepingUnit` | 6 |
-| 9 | ProductSellingModel | Upsert | `Name;SellingModelType` | 1 |
-| 10 | ProductSellingModelOption | Upsert | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType` | 6 |
-| 11 | ProductRelationshipType | Readonly | `Name` | 1 |
-| 12 | ProductComponentGroup | Upsert | `Code` | 1 |
-| 13 | ProductRelatedComponent | Upsert | `ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name` | 1 |
-| 14 | ProductCatalog | Upsert | `Code` | 1 |
-| 15 | ProductCategory | Upsert | `Code` | 1 |
-| 16 | ProductCategoryProduct | Upsert | `ProductCategory.Code;Product.StockKeepingUnit` | 1 |
+| 8 | Product2 | Upsert | `StockKeepingUnit` | 11 |
+| 9 | ProductAttributeDefinition | Upsert | `AttributeDefinition.Code;Product2.StockKeepingUnit` | 34 |
+| 10 | ProductSellingModel | Upsert | `Name;SellingModelType` | 1 |
+| 11 | ProductSellingModelOption | Upsert | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType` | 11 |
+| 12 | ProductRelationshipType | Readonly | `Name` | 2 |
+| 13 | ProductComponentGroup | Upsert | `Code` | 6 |
+| 14 | ProductRelatedComponent | Upsert | `ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name` | 15 |
+| 15 | ProductCatalog | Upsert | `Code` | 1 |
+| 16 | ProductCategory | Upsert | `Code` | 2 |
+| 17 | ProductCategoryProduct | Upsert | `ProductCategory.Code;Product.StockKeepingUnit` | 6 |
 
 All writable objects use **direct-field or composite Upsert** externalIds, so the
 plan is idempotent — rerunning it matches existing `DL-*` records rather than
@@ -94,7 +122,7 @@ duplicating them. No `deleteOldData`; targets a clean demo org.
 ## Files
 
 ```
-export.json                       # 16-object plan (this dir)
+export.json                       # 17-object plan (this dir)
 AttributePicklist.csv             # 4 records
 AttributePicklistValue.csv        # 16 records
 AttributeDefinition.csv           # 8 records
@@ -102,15 +130,16 @@ AttributeCategory.csv             # 1 records
 AttributeCategoryAttribute.csv    # 8 records
 ProductClassification.csv         # 2 records
 ProductClassificationAttr.csv     # 8 records
-Product2.csv                      # 6 records  (DL-TERM + 5 fares; carries DL_DefaultFareCodes__c)
+Product2.csv                      # 11 records  (DL-TERM + 5 fares + 5 DL-TMPL-* templates; carries DL_DefaultFareCodes__c)
+ProductAttributeDefinition.csv    # 34 records  (per-template scope defaults on the DL-TMPL-* clones)
 ProductSellingModel.csv           # 1 records  (Term Annual)
-ProductSellingModelOption.csv     # 6 records
-ProductRelationshipType.csv       # 1 records  (Readonly: classification-component)
-ProductComponentGroup.csv         # 1 records
-ProductRelatedComponent.csv       # 1 records  (dynamic Term ↔ PC-DL-FARE)
+ProductSellingModelOption.csv     # 11 records  (DL-TERM + 5 fares + 5 templates → Term Annual)
+ProductRelationshipType.csv       # 2 records  (Readonly: classification-component + bundle-component)
+ProductComponentGroup.csv         # 6 records  (DL-TERM + one fare group per template)
+ProductRelatedComponent.csv       # 15 records  (1 dynamic Term ↔ PC-DL-FARE + 14 fixed template fares)
 ProductCatalog.csv                # 1 records
-ProductCategory.csv               # 1 records
-ProductCategoryProduct.csv        # 1 records
+ProductCategory.csv               # 2 records  (DL-TERMS + DL-TERM-TEMPLATES)
+ProductCategoryProduct.csv        # 6 records  (DL-TERM + 5 templates)
 ```
 
 ## Run

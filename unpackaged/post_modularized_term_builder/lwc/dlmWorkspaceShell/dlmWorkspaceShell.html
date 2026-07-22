@@ -49,20 +49,6 @@
         </div>
       </div>
 
-      <!-- Contract-wide KPI band: aggregates across every Term the shell holds. -->
-      <template if:true={contractBandVisible}>
-        <template if:true={hasContractKpis}>
-          <div class="dlm-shell__band slds-p-horizontal_x-small slds-p-bottom_x-small">
-            <c-dl-kpi-band
-              variant="contract"
-              heading="Contract KPIs"
-              kpis={contractKpis}
-              currency-code={currencyCode}
-            ></c-dl-kpi-band>
-          </div>
-        </template>
-      </template>
-
       <lightning-tabset variant="scoped" active-tab-value={activeTab} class="dlm-shell__tabs">
         <lightning-tab label={shellCreationTabLabel} value="creation" onactive={handleTabActive}>
           <div class="dlm-shell__tab-body">
@@ -88,7 +74,6 @@
               selected-term={selectedTerm}
               model={activeModel}
               currency-code={currencyCode}
-              term-kpis={selectedTermKpis}
               carriers={participatingCarriers}
               apply-disabled={applyOfferDisabled}
               onmodelchange={handleModelChange}

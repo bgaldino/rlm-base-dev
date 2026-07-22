@@ -5,3 +5,8 @@ PC-DL-FARE,false,,P;A;G,Premium Select cabin fare,,Delta,true,true,true,Premium 
 PC-DL-FARE,false,,W;S,Comfort cabin fare,,Delta,true,true,true,Comfort,DL-FARE-COMF,,,DL-FARE-COMF,,
 PC-DL-FARE,false,,Y;B;M;H;Q;K;L;U;T;X;V,Main Cabin fare,,Delta,true,true,true,Main,DL-FARE-MAIN,,,DL-FARE-MAIN,,
 PC-DL-FARE,false,,E,Main Basic cabin fare,,Delta,true,true,true,Main Basic,DL-FARE-BASIC,,,DL-FARE-BASIC,,
+PC-DL-TERM,false,Allowed,,Template: ATL hub volume term,,Delta,true,true,false,ATL Hub Volume,DL-TMPL-ATLHUB,,,DL-TMPL-ATLHUB,Bundle,
+PC-DL-TERM,false,Allowed,,Template: EMEAI intra-region term,,Delta,true,true,false,EMEAI Regional,DL-TMPL-EMEAI,,,DL-TMPL-EMEAI,Bundle,
+PC-DL-TERM,false,Allowed,,Template: JFK-LHR directional term,,Delta,true,true,false,JFK-LHR Directional,DL-TMPL-JFKLHR,,,DL-TMPL-JFKLHR,Bundle,
+PC-DL-TERM,false,Allowed,,Template: transatlantic premium term,,Delta,true,true,false,Transatlantic Premium,DL-TMPL-TATL,,,DL-TMPL-TATL,Bundle,
+PC-DL-TERM,false,Allowed,,Template: US domestic share-gap term,,Delta,true,true,false,US Domestic Share Gap,DL-TMPL-USDOM,,,DL-TMPL-USDOM,Bundle,

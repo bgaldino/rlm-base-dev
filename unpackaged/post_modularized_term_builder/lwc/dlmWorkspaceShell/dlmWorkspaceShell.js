@@ -32,18 +32,18 @@ const SOURCE = "dlmWorkspaceShell";
  * This is the modularized home for the parked negotiation-modeling workbench (see
  * docs/features/delta-negotiation-modeling-demo.md → "Round 2"). It hosts a lightning-tabset with two
  * tabs — Shell Creation (the Configure Data Set panel + c/dlmTermWorkspace) and Modeling
- * (c/dlmModelingWorkspace) — and, as always-visible chrome above the tabs, the contract-wide KPI band
- * + a Proposal Summary action. (Post-signature performance dashboards move to the Contract record page,
- * so there is no Performance tab here.)
+ * (c/dlmModelingWorkspace) — plus a Proposal Summary action in the chrome above the tabs.
+ * (Post-signature performance dashboards move to the Contract record page, so there is no
+ * Performance tab here.)
  *
  * Ownership (the decided architecture): the SHELL owns the per-Term demo model cache
  * (`_modelsByTermId`, keyed `${termId}::${method}`) and the contract-level KPI aggregation. It must,
- * because the always-visible contract band aggregates across EVERY Term — including Terms the analyst
- * has never opened in the Modeling tab — which only the always-mounted shell can hold. The
- * c/dlmModelingWorkspace tab is a controlled presentational wrapper (props down, events up): it never
- * holds the cache. This mirrors the monolith c/dlTermBuilder orchestrator/grid relationship.
+ * because the Proposal Summary rolls up EVERY Term — including Terms the analyst has never opened in
+ * the Modeling tab — which only the always-mounted shell can hold. The c/dlmModelingWorkspace tab is a
+ * controlled presentational wrapper (props down, events up): it never holds the cache. This mirrors
+ * the monolith c/dlTermBuilder orchestrator/grid relationship.
  *
- * The five `dl*` bundles it consumes (dlDemoModel, dlKpiBand, dlModelingGrid, dlProposalSummary via
+ * The `dl*` bundles it consumes (dlDemoModel, plus dlKpiBand / dlModelingGrid / dlProposalSummary via
  * the wrapper) live in post_term_builder/lwc and are reused verbatim in place — never copied here
  * (that would create duplicate c/* components and a deploy conflict).
  *
@@ -60,10 +60,13 @@ export default class DlmWorkspaceShell extends LightningElement {
   // Design-time configuration (see .js-meta.xml). Left undefined unless the admin sets them so the
   // getters can treat "unset" as on-by-default without tripping the LWC boolean-default-true lint rule.
   @api headingLabel;
-  @api showContractBand;
   @api showProposalAction;
   @api shellCreationLabel;
   @api modelingLabel;
+  // Retained (no longer read) only because the platform forbids removing a design-time property while
+  // the component is placed on a live Lightning page. The contract KPI band it once toggled has been
+  // removed from the template; this property is inert. Safe to delete once the page no longer uses it.
+  @api showContractBand;
 
   @track terms = [];
 
@@ -309,28 +312,6 @@ export default class DlmWorkspaceShell extends LightningElement {
     });
   }
 
-  // ---------- demo modeling: KPIs ----------
-
-  // Per-Term KPI objects for every Term (baseline flown data + the active-method model's current
-  // round). Terms without a seeded model still get baseline KPIs (seeded on demand), so the contract
-  // band is populated even before the analyst opens the Modeling tab.
-  get _termKpiList() {
-    return this.terms.map((t) =>
-      computeTermKpis(t, this._modelFor(t, this.selectedMethod), this.periodFactor)
-    );
-  }
-
-  get contractKpis() {
-    return aggregateKpis(this._termKpiList);
-  }
-
-  get selectedTermKpis() {
-    const t = this.selectedTerm;
-    return t
-      ? computeTermKpis(t, this._modelFor(t, this.selectedMethod), this.periodFactor)
-      : null;
-  }
-
   // ---------- getters: selection, tabs, visibility ----------
 
   get selectedTerm() {
@@ -349,16 +330,8 @@ export default class DlmWorkspaceShell extends LightningElement {
     return this.headingLabel || "Negotiation Workbench";
   }
 
-  get contractBandVisible() {
-    return this.showContractBand !== false;
-  }
-
   get proposalActionVisible() {
     return this.showProposalAction !== false;
-  }
-
-  get hasContractKpis() {
-    return this.hasTerms;
   }
 
   get shellCreationTabLabel() {

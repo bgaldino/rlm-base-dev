@@ -1,0 +1,127 @@
+<template>
+  <lightning-modal-header label="Term Library"></lightning-modal-header>
+
+  <lightning-modal-body class="slds-is-relative">
+    <template if:true={errorMessage}>
+      <div
+        class="slds-text-color_error slds-var-m-bottom_small"
+        role="alert"
+      >
+        {errorMessage}
+      </div>
+    </template>
+
+    <template if:true={loading}>
+      <div
+        class="slds-align_absolute-center slds-var-p-vertical_large"
+        aria-live="polite"
+      >
+        <lightning-spinner
+          alternative-text="Loading term library"
+          size="small"
+        ></lightning-spinner>
+      </div>
+    </template>
+
+    <template if:true={showEmpty}>
+      <p class="slds-text-color_weak slds-text-body_small">
+        No pre-defined terms are available in the library.
+      </p>
+    </template>
+
+    <template if:true={hasTemplates}>
+      <lightning-input
+        type="search"
+        label="Search term library"
+        variant="label-hidden"
+        placeholder="Search terms…"
+        value={searchKey}
+        onchange={handleSearch}
+        class="slds-var-m-bottom_small dl-tl-search"
+      ></lightning-input>
+
+      <template if:true={showNoMatches}>
+        <p class="slds-text-color_weak slds-text-body_small" role="status">
+          No terms match “{searchKey}”.
+        </p>
+      </template>
+
+      <ul class="slds-has-dividers_bottom-space" role="list">
+        <template for:each={visibleTemplates} for:item="tmpl">
+          <li
+            key={tmpl.productId}
+            class="slds-item dl-tl-item slds-var-p-vertical_x-small"
+            role="listitem"
+          >
+            <div
+              class="slds-grid slds-grid_align-spread slds-grid_vertical-align-start"
+            >
+              <div class="slds-col slds-grow dl-tl-item__body">
+                <span class="dl-tl-item__name slds-text-heading_small">
+                  {tmpl.name}
+                </span>
+                <template if:true={tmpl.description}>
+                  <p
+                    class="slds-text-body_small slds-text-color_weak slds-var-m-top_xxx-small"
+                  >
+                    {tmpl.description}
+                  </p>
+                </template>
+
+                <template if:true={tmpl.hasScope}>
+                  <div
+                    class="slds-var-m-top_xx-small dl-tl-item__chips"
+                    role="group"
+                    aria-label="Scope"
+                  >
+                    <template for:each={tmpl.scopeChips} for:item="chip">
+                      <lightning-badge
+                        key={chip.key}
+                        label={chip.value}
+                        class="slds-badge_lightest slds-var-m-right_xx-small"
+                      ></lightning-badge>
+                    </template>
+                  </div>
+                </template>
+
+                <template if:true={tmpl.hasFares}>
+                  <p
+                    class="slds-text-body_small slds-var-m-top_xx-small dl-tl-item__fares"
+                  >
+                    <span class="slds-text-title">Fares: </span>{tmpl.fareText}
+                  </p>
+                </template>
+              </div>
+
+              <div
+                class="slds-col slds-grow-none slds-var-m-left_small slds-is-relative dl-tl-item__cta"
+              >
+                <template if:true={tmpl.adding}>
+                  <lightning-spinner
+                    alternative-text="Adding term"
+                    size="small"
+                  ></lightning-spinner>
+                </template>
+                <lightning-button
+                  label="Add"
+                  variant="brand"
+                  data-id={tmpl.productId}
+                  disabled={tmpl.disabled}
+                  onclick={handleAdd}
+                ></lightning-button>
+              </div>
+            </div>
+          </li>
+        </template>
+      </ul>
+    </template>
+  </lightning-modal-body>
+
+  <lightning-modal-footer>
+    <lightning-button
+      label="Close"
+      onclick={handleClose}
+      disabled={busy}
+    ></lightning-button>
+  </lightning-modal-footer>
+</template>

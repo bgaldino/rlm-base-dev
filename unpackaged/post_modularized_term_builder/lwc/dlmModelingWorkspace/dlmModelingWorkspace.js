@@ -11,7 +11,6 @@ import { termScopeChips, routeLabel } from "c/dlDemoModel";
  * boundary.
  *
  * It composes:
- *   - a slim per-Term c/dlKpiBand (variant="term") driven by `termKpis`;
  *   - an "Apply Final Offer to Quote" action (the write-back is performed by the shell);
  *   - the reused c/dlModelingGrid, handed `selectedTerm` + `model`.
  *
@@ -24,7 +23,6 @@ export default class DlmModelingWorkspace extends LightningElement {
   @api selectedTerm;
   @api model;
   @api currencyCode = "USD";
-  @api termKpis;
   // Latched by the shell while a Final-Offer write-back is in flight (and when there's no model).
   @api applyDisabled = false;
   // Participating (partner) carriers captured in the Configure Data Set panel and surfaced by the shell.
@@ -50,10 +48,6 @@ export default class DlmModelingWorkspace extends LightningElement {
 
   get hasCarriers() {
     return this.carrierChips.length > 0;
-  }
-
-  get hasTermKpis() {
-    return !!this.termKpis;
   }
 
   // Term scope banner: the Term-level geography (Origin / Destination / Directionality / Market / …)

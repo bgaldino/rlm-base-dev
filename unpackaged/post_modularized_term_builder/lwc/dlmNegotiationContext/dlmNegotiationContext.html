@@ -116,6 +116,7 @@
           max-length="80"
           disabled={quoteNameDisabled}
           onchange={handleQuoteNameInput}
+          oncommit={handleQuoteNameCommit}
         ></lightning-input>
       </div>
       <template if:true={dateDefaultsVisible}>

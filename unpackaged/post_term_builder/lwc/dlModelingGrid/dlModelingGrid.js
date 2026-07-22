@@ -92,7 +92,7 @@ export default class DlModelingGrid extends LightningElement {
 
   // ---------- rows ----------
 
-  // Build the render rows: each fare's spend mix + existing/prior/proposed discounts. Prior Disc % is a
+  // Build the render rows: each fare's spend mix + prior/proposed discounts. Prior Disc % is a
   // read-only reference column; the rest are inline-editable.
   get displayRows() {
     if (!this._working) {
@@ -107,14 +107,14 @@ export default class DlModelingGrid extends LightningElement {
         label: r.label,
         currentExistingPct: r.currentExistingPct,
         projectedPct: r.projectedPct,
-        existingDiscountPct: r.existingDiscountPct,
         priorDiscountDisplay: hasPrior ? pct1(r.priorDiscountPct) : "—",
         proposedPct: r.proposedDiscountPct
       };
     });
   }
 
-  // Sticky totals row: Spend % / Projected % sums + validity flags (per c/dlDemoModel.totalsSummary).
+  // Spend % / Projected % sums + validity flags (per c/dlDemoModel.totalsSummary). Drives the
+  // provisional-KPI warning banner when the spend distribution doesn't total 100%.
   get totals() {
     if (!this._working) {
       return null;
@@ -135,17 +135,6 @@ export default class DlModelingGrid extends LightningElement {
     return t && (!t.ceValid || !t.projectedValid);
   }
 
-  // Existing EDR + Proposed EDR for the summary line under the grid.
-  get edrSummary() {
-    if (!this._working) {
-      return null;
-    }
-    return {
-      existing: pct1(edrExisting(this._working.rows)),
-      proposed: pct1(edrProposed(this._working.rows))
-    };
-  }
-
   // ---------- cell edits ----------
 
   _row(key) {
@@ -164,14 +153,6 @@ export default class DlModelingGrid extends LightningElement {
     const r = this._row(event.target.dataset.key);
     if (r) {
       r.projectedPct = clamp(event.target.value, 0, 100);
-      this._recomputeAndEmit();
-    }
-  }
-
-  handleExistingDiscountChange(event) {
-    const r = this._row(event.target.dataset.key);
-    if (r) {
-      r.existingDiscountPct = clamp(event.target.value, 0, 100);
       this._recomputeAndEmit();
     }
   }
