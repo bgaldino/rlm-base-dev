@@ -13,7 +13,7 @@ const ANIM_MS = 650;
  *   - "term": a slimmer band (Share, FMS, Share Gap, EDR) shown atop the Term workspace.
  *
  * Owns no data and does no I/O. The only behavior it adds is the headline demo moment: when the KPI
- * object changes, the Share, Share Gap, and current-round EDR values count up/down to their new
+ * object changes, the Share, Share Gap, and proposed EDR values count up/down to their new
  * targets (the other tiles update instantly, to avoid visual noise). Motion is suppressed under
  * prefers-reduced-motion and in environments without requestAnimationFrame.
  */
@@ -143,7 +143,7 @@ export default class DlKpiBand extends LightningElement {
     const lift = k.edrLiftPts;
     return {
       key: "edr",
-      label: "EDR · Current Round",
+      label: "Proposed EDR",
       value: formatKpi(disp, "pct"),
       hasDelta: lift !== null && lift !== undefined && Math.abs(lift) > 0.05,
       ...this._delta(lift, "lift"),

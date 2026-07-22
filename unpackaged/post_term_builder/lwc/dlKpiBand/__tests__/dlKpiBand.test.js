@@ -55,7 +55,7 @@ describe("c-dl-kpi-band", () => {
         "Share",
         "FMS",
         "Share Gap",
-        "EDR · Current Round"
+        "Proposed EDR"
       ])
     );
   });
@@ -66,7 +66,7 @@ describe("c-dl-kpi-band", () => {
     const labels = [...el.shadowRoot.querySelectorAll(".dl-kpi-tile__label")].map((n) =>
       n.textContent.trim()
     );
-    expect(labels).toEqual(["Share", "FMS", "Share Gap", "EDR · Current Round"]);
+    expect(labels).toEqual(["Share", "FMS", "Share Gap", "Proposed EDR"]);
   });
 
   it("formats headline values and snaps (no rAF in jsdom)", async () => {
