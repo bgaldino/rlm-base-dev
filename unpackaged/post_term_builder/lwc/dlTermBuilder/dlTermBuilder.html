@@ -213,10 +213,8 @@
             <!-- Add Term: a bare inline bar. The DL-TERM product is resolved server-side, so no
                  catalog / search / load-more is needed — just how many Terms to add, then Add. -->
             <div class="slds-p-around_small slds-m-top_small dl-tb-add-term">
-              <div
-                class="slds-grid slds-gutters_small slds-grid_vertical-align-end"
-              >
-                <div class="slds-col slds-grow-none dl-tb-add-term__count">
+              <div class="dl-tb-add-term__bar">
+                <div class="dl-tb-add-term__count">
                   <lightning-input
                     type="number"
                     label="Terms"
@@ -229,15 +227,21 @@
                     onchange={handleAddTermCountChange}
                   ></lightning-input>
                 </div>
-                <div class="slds-col slds-p-bottom_xxx-small">
-                  <lightning-button
-                    label="Add Term"
-                    variant="brand"
-                    icon-name="utility:add"
+                <div class="dl-tb-add-term__actions">
+                  <button
+                    type="button"
+                    class="slds-button slds-button_brand dl-tb-add-term__btn"
                     disabled={addTermDisabled}
                     onclick={handleAddTerm}
-                    class="dl-tb-add-term__cta"
-                  ></lightning-button>
+                  >
+                    <lightning-icon
+                      icon-name="utility:add"
+                      size="x-small"
+                      variant="inverse"
+                      class="slds-m-right_x-small"
+                    ></lightning-icon>
+                    Add Term
+                  </button>
                 </div>
               </div>
             </div>

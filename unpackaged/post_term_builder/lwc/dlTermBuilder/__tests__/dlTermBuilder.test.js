@@ -71,9 +71,7 @@ function grid(element) {
 }
 
 function addTermButton(element) {
-    return Array.from(element.shadowRoot.querySelectorAll('lightning-button')).find(
-        (b) => b.label === 'Add Term'
-    );
+    return element.shadowRoot.querySelector('.dl-tb-add-term__btn');
 }
 
 describe('c-dl-term-builder — add the first Term refreshes the newly mounted grid', () => {

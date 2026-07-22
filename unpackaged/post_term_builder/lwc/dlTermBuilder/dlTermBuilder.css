@@ -82,6 +82,32 @@
   border-top: 1px solid #e5e5e5;
 }
 
+/* Footer action bar: compact quantity field on the left, action button on the
+   right, aligned on the control baseline. */
+.dl-tb-add-term__bar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.dl-tb-add-term__count {
+  flex: 0 0 4.5rem;
+}
+
+.dl-tb-add-term__actions {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.5rem;
+}
+
+/* Plain SLDS button (not lightning-button) for consistent sizing with the
+   modularized rail; a lightning-button's inner <button> can't be sized here. */
+.dl-tb-add-term__btn {
+  min-width: 9rem;
+  justify-content: center;
+}
+
 .dl-tb-fares {
   border: 1px solid #dddbda;
   border-radius: 0.25rem;

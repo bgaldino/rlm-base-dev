@@ -43,7 +43,9 @@ function sendMessage(message) {
 }
 
 function libraryButton(element) {
-  return element.shadowRoot.querySelector(".dl-tb-add-term__library");
+  return element.shadowRoot.querySelector(
+    ".dl-tb-add-term__btn.slds-button_neutral"
+  );
 }
 
 function publishesOfType(type) {
