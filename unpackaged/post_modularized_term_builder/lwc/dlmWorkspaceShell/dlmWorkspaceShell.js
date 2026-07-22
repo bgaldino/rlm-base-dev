@@ -392,12 +392,6 @@ export default class DlmWorkspaceShell extends LightningElement {
     this._syncActiveModel();
   }
 
-  handleResetModel() {
-    this._resetDemoModels();
-    this._syncActiveModel();
-    this._toast("Model reset", "Modeled discounts were cleared for this session.", "info");
-  }
-
   // The Modeling workspace's "Apply Final Offer to Quote" button. Applies the active Term's Final
   // Offer discounts to its backing Quote fare lines via the reused line-update Apex (no new Apex).
   // Product rows map 1:1; Fare-Class rows roll up to the parent fare line (spend-weighted, in the

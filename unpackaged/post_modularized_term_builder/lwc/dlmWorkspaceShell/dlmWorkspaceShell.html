@@ -20,13 +20,13 @@
     </template>
 
     <template if:true={hasQuote}>
-      <!-- Chrome: heading + Proposal Summary / Reset actions, always visible above the tabs. -->
+      <!-- Chrome: heading + Proposal Summary action, always visible above the tabs. -->
       <div
         class="dlm-shell__chrome slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap slds-p-around_x-small"
       >
         <h2 class="dlm-shell__heading slds-text-heading_small">{effectiveHeading}</h2>
-        <div class="slds-grid slds-gutters_x-small slds-grid_vertical-align-center">
-          <template if:true={proposalActionVisible}>
+        <template if:true={proposalActionVisible}>
+          <div class="slds-grid slds-gutters_x-small slds-grid_vertical-align-center">
             <div class="slds-col">
               <lightning-button
                 label="Proposal Summary"
@@ -36,17 +36,8 @@
                 onclick={handleOpenProposal}
               ></lightning-button>
             </div>
-          </template>
-          <div class="slds-col">
-            <lightning-button-icon
-              icon-name="utility:refresh"
-              variant="border-filled"
-              alternative-text="Reset model"
-              title="Clear modeled discounts for this session"
-              onclick={handleResetModel}
-            ></lightning-button-icon>
           </div>
-        </div>
+        </template>
       </div>
 
       <lightning-tabset variant="scoped" active-tab-value={activeTab} class="dlm-shell__tabs">
