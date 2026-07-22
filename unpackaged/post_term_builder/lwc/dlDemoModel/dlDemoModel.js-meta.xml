@@ -2,6 +2,6 @@
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>67.0</apiVersion>
     <isExposed>false</isExposed>
-    <masterLabel>Delta Demo Model</masterLabel>
-    <description>Internal service module (Delta Term Builder): pure, deterministic mock-data + KPI/EDR/aggregation functions for the negotiation demo. No template — shared by dlTermBuilder, dlModelingGrid, and dlProposalSummary so the math lives in one place.</description>
+    <masterLabel>Delta Model Engine</masterLabel>
+    <description>Internal service module (Delta Term Builder): pure, deterministic modeling-data + KPI/EDR/aggregation functions for the negotiation workbench. No template — shared by dlTermBuilder, dlModelingGrid, and dlProposalSummary so the math lives in one place.</description>
 </LightningComponentBundle>

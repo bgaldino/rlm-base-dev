@@ -3,5 +3,5 @@
     <apiVersion>67.0</apiVersion>
     <isExposed>false</isExposed>
     <masterLabel>Delta Data Context</masterLabel>
-    <description>Internal component (Delta Term Builder): a compact read-only "Simulated Data" strip describing the flown-data window (source, period, subsidiaries, carriers) with an expandable detail popover. Presentational only — no ingestion or persistence.</description>
+    <description>Internal component (Delta Term Builder): a compact read-only "Flown Data" strip describing the flown-data window (source, period, subsidiaries, carriers) with an expandable detail popover. Presentational only — no ingestion or persistence.</description>
 </LightningComponentBundle>

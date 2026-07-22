@@ -41,8 +41,8 @@
             <lightning-button-icon
               icon-name="utility:refresh"
               variant="border-filled"
-              alternative-text="Reset demo model"
-              title="Reset the session-only demo model"
+              alternative-text="Reset model"
+              title="Clear modeled discounts for this session"
               onclick={handleResetModel}
             ></lightning-button-icon>
           </div>
@@ -65,7 +65,7 @@
 
       <!-- Session-only disclosure for the modeled numbers. -->
       <div class="dlm-shell__session slds-p-horizontal_x-small">
-        <span class="dlm-shell__session-label">Demo model — session only</span>
+        <span class="dlm-shell__session-label">Modeled figures — session only</span>
       </div>
 
       <lightning-tabset variant="scoped" active-tab-value={activeTab} class="dlm-shell__tabs">

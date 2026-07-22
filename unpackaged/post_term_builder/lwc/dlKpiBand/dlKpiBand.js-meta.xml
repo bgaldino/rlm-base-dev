@@ -3,5 +3,5 @@
     <apiVersion>67.0</apiVersion>
     <isExposed>false</isExposed>
     <masterLabel>Delta KPI Band</masterLabel>
-    <description>Internal component (Delta Term Builder): a presentational band of KPI tiles (Revenue, Flights, Share, FMS, Share Gap, EDR) from a demo-model KPI object. Animates the Share/Gap/EDR headline tiles; honors prefers-reduced-motion. Contract and Term variants.</description>
+    <description>Internal component (Delta Term Builder): a presentational band of KPI tiles (Revenue, Flights, Share, FMS, Share Gap, EDR) from a computed KPI object. Animates the Share/Gap/EDR headline tiles; honors prefers-reduced-motion. Contract and Term variants.</description>
 </LightningComponentBundle>

@@ -1,12 +1,12 @@
 import { LightningElement, api } from "lwc";
 
 /**
- * dlDataContext — the compact read-only "SIMULATED DATA" strip for the Delta Term Builder demo.
+ * dlDataContext — the compact read-only "Flown Data" strip for the Delta Term Builder.
  *
- * Tells the stage-one flown-data story ("12 months of ARC flown data for the customer + subsidiaries,
- * DL + JV partners") without implementing any ingestion. It is deliberately distinct from the
- * negotiation/contract default dates in the header — those seed new line dates; this describes the
- * analysis window the mock KPIs are "derived" from.
+ * Tells the flown-data story ("12 months of ARC flown data for the customer + subsidiaries,
+ * DL + JV partners"). It is deliberately distinct from the negotiation/contract default dates in
+ * the header — those seed new line dates; this describes the analysis window the KPIs are derived
+ * from.
  *
  * Purely presentational: it holds a small, sensible default context and lets the presenter toggle a
  * read-only detail popover. No backend, no persistence. A host may override any field via @api.
@@ -84,7 +84,7 @@ export default class DlDataContext extends LightningElement {
   }
 
   get toggleTitle() {
-    return this._expanded ? "Hide simulated data detail" : "Show simulated data detail";
+    return this._expanded ? "Hide flown-data detail" : "Show flown-data detail";
   }
 
   handleToggle() {

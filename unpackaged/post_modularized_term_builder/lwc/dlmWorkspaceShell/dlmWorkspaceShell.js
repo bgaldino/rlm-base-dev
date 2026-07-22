@@ -399,7 +399,7 @@ export default class DlmWorkspaceShell extends LightningElement {
   handleResetModel() {
     this._resetDemoModels();
     this._syncActiveModel();
-    this._toast("Demo model reset", "Modeled discounts were cleared for this session.", "info");
+    this._toast("Model reset", "Modeled discounts were cleared for this session.", "info");
   }
 
   // The Modeling workspace's "Apply Final Offer to Quote" button. Applies the active Term's Final
