@@ -8,8 +8,11 @@ import addTermFromTemplate from "@salesforce/apex/RLM_DeltaTermBuilderController
  * DlmTermLibraryModal.open({ quoteId, size: 'medium', label: 'Term Library' }). On open it loads the
  * pre-defined term templates (getTermLibrary) and lists them with their scope chips + fare classes.
  * Choosing one calls addTermFromTemplate, which creates a real DL-TERM line, stamps the template's
- * scope attributes, and attaches its fare classes — then the modal closes with a structured payload so
- * the rail can toast and refresh via its existing add-term path. Cancel closes with no effect.
+ * scope attributes, and attaches its fare classes. The modal stays open so the rep can add several
+ * Terms in one sitting; it reports the running totals to the rail only when the user closes it. Once
+ * anything has been added, the built-in ESC/X/backdrop dismissal is disabled so the additions can't be
+ * dropped on the floor — the footer Close button is the single deterministic exit. Cancelling before
+ * any add closes with no effect.
  */
 export default class DlmTermLibraryModal extends LightningModal {
   @api quoteId;
@@ -19,6 +22,11 @@ export default class DlmTermLibraryModal extends LightningModal {
   addingId = null; // productId currently being added (drives per-row spinner + disable)
   errorMessage = "";
   searchKey = ""; // lower-cased, trimmed search filter (name / fares / scope values)
+
+  // Running totals across this modal session; reported to the rail on Close.
+  addedCount = 0;
+  addedFareCount = 0;
+  lastTermLineId = null;
 
   connectedCallback() {
     this.loadLibrary();
@@ -50,6 +58,26 @@ export default class DlmTermLibraryModal extends LightningModal {
 
   get busy() {
     return !!this.addingId;
+  }
+
+  get hasAdds() {
+    return this.addedCount > 0;
+  }
+
+  // Running confirmation shown while the modal stays open across multiple adds.
+  get addedSummary() {
+    const word = this.addedCount === 1 ? "Term" : "Terms";
+    return `${this.addedCount} ${word} added to this negotiation.`;
+  }
+
+  // Once the rep has added something, the footer button reads "Done" — it both closes the modal and
+  // hands the rail the running totals.
+  get closeLabel() {
+    return this.hasAdds ? "Done" : "Close";
+  }
+
+  get closeVariant() {
+    return this.hasAdds ? "brand" : "neutral";
   }
 
   get showEmpty() {
@@ -128,11 +156,13 @@ export default class DlmTermLibraryModal extends LightningModal {
         this.errorMessage = res.errorMessage || "Unable to add the Term.";
         return;
       }
-      this.close({
-        status: "finished",
-        termLineId: res.termLineId || null,
-        addedFareCount: res.addedFareCount || 0
-      });
+      // Keep the modal open: tally this add and let the rep keep adding. The rail is refreshed once,
+      // from the totals reported on Close. Disabling the built-in dismissal guarantees those totals
+      // are handed off (an ESC/X close resolves the open() promise with no payload).
+      this.addedCount += 1;
+      this.addedFareCount += res.addedFareCount || 0;
+      this.lastTermLineId = res.termLineId || this.lastTermLineId;
+      this.disableClose = true;
     } catch (e) {
       this.errorMessage = this._errMessage(e);
     } finally {
@@ -146,6 +176,15 @@ export default class DlmTermLibraryModal extends LightningModal {
   }
 
   handleClose() {
+    if (this.addedCount > 0) {
+      this.close({
+        status: "finished",
+        addedCount: this.addedCount,
+        addedFareCount: this.addedFareCount,
+        lastTermLineId: this.lastTermLineId
+      });
+      return;
+    }
     this.close({ status: "cancel" });
   }
 

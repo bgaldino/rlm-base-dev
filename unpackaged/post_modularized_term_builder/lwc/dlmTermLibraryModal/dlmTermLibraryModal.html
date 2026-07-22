@@ -11,6 +11,16 @@
       </div>
     </template>
 
+    <template if:true={hasAdds}>
+      <div
+        class="slds-text-color_success slds-text-body_small slds-var-m-bottom_small"
+        role="status"
+        aria-live="polite"
+      >
+        {addedSummary}
+      </div>
+    </template>
+
     <template if:true={loading}>
       <div
         class="slds-align_absolute-center slds-var-p-vertical_large"
@@ -50,7 +60,7 @@
         <template for:each={visibleTemplates} for:item="tmpl">
           <li
             key={tmpl.productId}
-            class="slds-item dl-tl-item slds-var-p-vertical_x-small"
+            class="slds-item dl-tl-item slds-var-p-vertical_x-small slds-is-relative"
             role="listitem"
           >
             <div
@@ -94,14 +104,8 @@
               </div>
 
               <div
-                class="slds-col slds-grow-none slds-var-m-left_small slds-is-relative dl-tl-item__cta"
+                class="slds-col slds-grow-none slds-var-m-left_small dl-tl-item__cta"
               >
-                <template if:true={tmpl.adding}>
-                  <lightning-spinner
-                    alternative-text="Adding term"
-                    size="small"
-                  ></lightning-spinner>
-                </template>
                 <lightning-button
                   label="Add"
                   variant="brand"
@@ -111,6 +115,13 @@
                 ></lightning-button>
               </div>
             </div>
+
+            <template if:true={tmpl.adding}>
+              <lightning-spinner
+                alternative-text="Adding term"
+                size="small"
+              ></lightning-spinner>
+            </template>
           </li>
         </template>
       </ul>
@@ -119,7 +130,8 @@
 
   <lightning-modal-footer>
     <lightning-button
-      label="Close"
+      label={closeLabel}
+      variant={closeVariant}
       onclick={handleClose}
       disabled={busy}
     ></lightning-button>

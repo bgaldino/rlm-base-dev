@@ -135,7 +135,7 @@ describe("c-dlm-term-library-modal", () => {
     ).toContain("No terms match");
   });
 
-  it("adds the chosen template and closes with the finished payload", async () => {
+  it("stays open across adds and reports the running totals on close", async () => {
     getTermLibrary.mockResolvedValue(
       JSON.stringify({ isSuccess: true, templates: TEMPLATES })
     );
@@ -157,11 +157,43 @@ describe("c-dlm-term-library-modal", () => {
         templateProductId: PRODUCT_ID
       })
     });
+    // The modal stays open after an add and shows a running tally.
+    expect(mockClose).not.toHaveBeenCalled();
+    expect(
+      element.shadowRoot.querySelector('[role="status"]').textContent
+    ).toContain("1 Term added");
+
+    // Adding again climbs the tally instead of closing.
+    addButton(element, PRODUCT_ID).dispatchEvent(new CustomEvent("click"));
+    await flushPromises();
+    expect(addTermFromTemplate).toHaveBeenCalledTimes(2);
+    expect(
+      element.shadowRoot.querySelector('[role="status"]').textContent
+    ).toContain("2 Terms added");
+
+    // The footer button (now "Done") reports the accumulated totals to the rail.
+    element.shadowRoot
+      .querySelector("lightning-modal-footer lightning-button")
+      .dispatchEvent(new CustomEvent("click"));
     expect(mockClose).toHaveBeenCalledWith({
       status: "finished",
-      termLineId: TERM_LINE_ID,
-      addedFareCount: 3
+      addedCount: 2,
+      addedFareCount: 6,
+      lastTermLineId: TERM_LINE_ID
     });
+  });
+
+  it("closes with a cancel payload when nothing was added", async () => {
+    getTermLibrary.mockResolvedValue(
+      JSON.stringify({ isSuccess: true, templates: TEMPLATES })
+    );
+    const element = await createModal();
+
+    element.shadowRoot
+      .querySelector("lightning-modal-footer lightning-button")
+      .dispatchEvent(new CustomEvent("click"));
+
+    expect(mockClose).toHaveBeenCalledWith({ status: "cancel" });
   });
 
   it("surfaces a library-load failure and renders no rows", async () => {

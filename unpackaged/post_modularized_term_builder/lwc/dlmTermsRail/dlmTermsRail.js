@@ -286,12 +286,19 @@ export default class DlmTermsRail extends LightningElement {
       if (!result || result.status !== "finished") {
         return;
       }
+      // The modal stays open across adds and reports its running totals on close.
+      const count = result.addedCount || 1;
       const fares = result.addedFareCount || 0;
+      const termText = `${count} Term${count > 1 ? "s" : ""}`;
       const fareText = fares
         ? ` with ${fares} fare class${fares > 1 ? "es" : ""}`
         : "";
-      this._toast("Term added from library", `Term added${fareText}.`, "success");
-      await this.handleTermAdded();
+      this._toast(
+        "Terms added from library",
+        `${termText} added${fareText}.`,
+        "success"
+      );
+      await this.handleTermAdded(result.lastTermLineId);
     } catch (e) {
       this.errorMessage = this._errMessage(e);
     }
@@ -301,13 +308,17 @@ export default class DlmTermsRail extends LightningElement {
   // termsChanged so the workspace re-fetches its scoped grid (its getQuoteLines wire is keyed on
   // quoteId, which doesn't change here, so it must be told explicitly) and the header refreshes its
   // Apply-to-All / Create Contract state.
-  async handleTermAdded() {
+  async handleTermAdded(preferredId) {
     const before = new Set(this.terms.map((t) => t.id));
     // Reload without auto-selecting the server default; we pick the newest term explicitly below.
     await this.loadTerms(false);
-    const added = this.terms.find((t) => !before.has(t.id));
-    if (added) {
-      this.selectedTermId = added.id;
+    // Prefer an explicit target (e.g. the last Term added from the library across several adds);
+    // otherwise fall back to whichever Term wasn't present before this reload.
+    const target =
+      (preferredId && this.terms.find((t) => t.id === preferredId)) ||
+      this.terms.find((t) => !before.has(t.id));
+    if (target) {
+      this.selectedTermId = target.id;
     } else if (!this.selectedTermId && this.terms.length) {
       this.selectedTermId = this.terms[0].id;
     }

@@ -6,7 +6,8 @@
   min-width: 0;
 }
 
-/* Keep the per-row CTA column from collapsing while its spinner overlays the button. */
+/* Keep the per-row CTA column from collapsing so the row height is stable
+   while the "adding" spinner overlays the whole row. */
 .dl-tl-item__cta {
   min-width: 8rem;
   text-align: right;
