@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DL_Parent_Geography__c</fullName>
+    <deleteConstraint>SetNull</deleteConstraint>
+    <description>The next-higher geography in the rollup hierarchy — e.g. an Airport's parent City, a City's parent Country, a Country's parent Region. Self-lookup; a geography has at most one parent. Custom Groups that overlap the normal hierarchy are a future many-to-many concern, not modeled by this single-parent lookup.</description>
+    <inlineHelpText>The next-higher geography this one rolls up into (e.g. LHR → GB → Europe → EMEAI).</inlineHelpText>
+    <label>Parent Geography</label>
+    <referenceTo>DL_Geography__c</referenceTo>
+    <relationshipLabel>Child Geographies</relationshipLabel>
+    <relationshipName>DL_Child_Geographies</relationshipName>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Lookup</type>
+</CustomField>

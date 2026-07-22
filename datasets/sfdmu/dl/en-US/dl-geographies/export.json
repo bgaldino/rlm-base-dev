@@ -1,0 +1,12 @@
+{
+  "objects": [
+    {
+      "query": "SELECT DL_Code__c, Name, DL_Geography_Type__c, DL_Active__c, DL_Description__c, DL_Parent_Geography__c, DL_Parent_Geography__r.DL_Code__c FROM DL_Geography__c ORDER BY DL_Code__c ASC",
+      "operation": "Upsert",
+      "externalId": "DL_Code__c"
+    }
+  ],
+  "apiVersion": "67.0",
+  "excludeIdsFromCSVFiles": "true",
+  "orgs": []
+}

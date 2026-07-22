@@ -13,6 +13,10 @@
         <tab>DL_Term_Builder</tab>
         <visibility>Visible</visibility>
     </tabSettings>
+    <tabSettings>
+        <tab>DL_Geography__c</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
 
     <classAccesses>
         <apexClass>RLM_DeltaTermBuilderController</apexClass>
@@ -135,6 +139,28 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>DL_Contract_Item_Price_Attribute__c.DL_Attribute_Value__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>DL_Geography__c.DL_Code__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- DL_Geography_Type__c is a required field: FLS is implicit (always readable/editable),
+         and the platform rejects an explicit fieldPermissions entry for it. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>DL_Geography__c.DL_Parent_Geography__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>DL_Geography__c.DL_Active__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>DL_Geography__c.DL_Description__c</field>
         <readable>true</readable>
     </fieldPermissions>
 
@@ -288,6 +314,15 @@
         <allowEdit>false</allowEdit>
         <allowRead>true</allowRead>
         <object>DL_Contract_Item_Price_Attribute__c</object>
+        <modifyAllRecords>false</modifyAllRecords>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <object>DL_Geography__c</object>
         <modifyAllRecords>false</modifyAllRecords>
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DL_Active__c</fullName>
+    <defaultValue>true</defaultValue>
+    <description>Whether this geography is active/available for use. Lets an admin retire an entry without deleting it (preserving referential history).</description>
+    <inlineHelpText>Uncheck to retire this geography without deleting it.</inlineHelpText>
+    <label>Active</label>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

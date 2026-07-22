@@ -14,5 +14,6 @@
     <navType>Standard</navType>
     <setupExperience>all</setupExperience>
     <tabs>DL_Term_Builder</tabs>
+    <tabs>DL_Geography__c</tabs>
     <uiType>Lightning</uiType>
 </CustomApplication>

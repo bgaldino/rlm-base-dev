@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DL_Geography_Type__c</fullName>
+    <description>Geographic scope granularity. Mirrors the Term Builder engine's SCOPE_TYPE_RANK taxonomy (Airport most-specific through Super-region, plus Custom Group) so this reference data can be wired into term-scope resolution later.</description>
+    <inlineHelpText>Scope granularity: Airport, City, Country, Region (Entity), Super-region (Entity), or Custom Group.</inlineHelpText>
+    <label>Type</label>
+    <required>true</required>
+    <trackHistory>false</trackHistory>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Airport</fullName>
+                <default>false</default>
+                <label>Airport</label>
+            </value>
+            <value>
+                <fullName>City</fullName>
+                <default>false</default>
+                <label>City</label>
+            </value>
+            <value>
+                <fullName>Country</fullName>
+                <default>true</default>
+                <label>Country</label>
+            </value>
+            <value>
+                <fullName>Region</fullName>
+                <default>false</default>
+                <label>Region (Entity)</label>
+            </value>
+            <value>
+                <fullName>Super-region</fullName>
+                <default>false</default>
+                <label>Super-region (Entity)</label>
+            </value>
+            <value>
+                <fullName>Custom Group</fullName>
+                <default>false</default>
+                <label>Custom Group</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

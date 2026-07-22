@@ -1,0 +1,13 @@
+DL_Code__c,Name,DL_Geography_Type__c,DL_Parent_Geography__r.DL_Code__c,DL_Active__c,DL_Description__c
+EMEAI,EMEAI,Super-region,,true,"Europe, Middle East, Africa, India"
+NORTHAM,North America,Super-region,,true,"North America super-region"
+EUROPE,Europe,Region,EMEAI,true,"Europe entity/region"
+US50,United States (50 States),Region,NORTHAM,true,"Continental United States 50-state entity"
+GB,United Kingdom,Country,EUROPE,true,"United Kingdom"
+USA,United States,Country,US50,true,"United States of America"
+LON,London,City,GB,true,"London city grouping"
+NYC,New York City,City,USA,true,"New York City grouping"
+ATL-CITY,Atlanta,City,USA,true,"Atlanta city grouping"
+LHR,London Heathrow,Airport,LON,true,"London Heathrow Airport"
+JFK,New York JFK,Airport,NYC,true,"John F. Kennedy International Airport"
+ATL,Atlanta Hartsfield-Jackson,Airport,ATL-CITY,true,"Hartsfield-Jackson Atlanta International Airport"
