@@ -4,6 +4,7 @@ Abbreviation,Code,DisplayValue,IsDefault,Name,Picklist.Name,Sequence,Status,Valu
 ,DL-LHR,LHR — Airport,false,LHR — Airport,DL Route Picklist,3,Active,LHR
 ,DL-US50,US50 — Region,false,US50 — Region,DL Route Picklist,4,Active,US50
 ,DL-EMEAI,EMEAI — Global Region,false,EMEAI — Global Region,DL Route Picklist,5,Active,EMEAI
+,DL-APAC,APAC — Region,false,APAC — Region,DL Route Picklist,6,Active,APAC
 ,DL-DIR-BETWEEN,Between,true,Between,DL Directionality Picklist,1,Active,Between
 ,DL-DIR-DIRECTIONAL,Directional,false,Directional,DL Directionality Picklist,2,Active,Directional
 ,DL-MEAS-SHAREGAP,Share Gap,false,Share Gap,DL Measure Picklist,1,Active,Share Gap

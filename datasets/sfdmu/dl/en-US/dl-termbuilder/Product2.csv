@@ -10,3 +10,4 @@ PC-DL-TERM,false,Allowed,,Template: EMEAI intra-region term,,Delta,true,true,fal
 PC-DL-TERM,false,Allowed,,Template: JFK-LHR directional term,,Delta,true,true,false,JFK-LHR Directional,DL-TMPL-JFKLHR,,,DL-TMPL-JFKLHR,Bundle,
 PC-DL-TERM,false,Allowed,,Template: transatlantic premium term,,Delta,true,true,false,Transatlantic Premium,DL-TMPL-TATL,,,DL-TMPL-TATL,Bundle,
 PC-DL-TERM,false,Allowed,,Template: US domestic share-gap term,,Delta,true,true,false,US Domestic Share Gap,DL-TMPL-USDOM,,,DL-TMPL-USDOM,Bundle,
+PC-DL-TERM,false,Allowed,,Template: US50-APAC growth term,,Delta,true,true,false,US50-APAC Growth,DL-TMPL-USAPAC,,,DL-TMPL-USAPAC,Bundle,

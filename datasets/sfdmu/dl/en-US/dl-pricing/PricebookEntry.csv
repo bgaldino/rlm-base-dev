@@ -10,3 +10,4 @@ DL-TMPL-EMEAI;Term Annual;USD,USD,true,false,EMEAI Regional,Standard Price Book;
 DL-TMPL-JFKLHR;Term Annual;USD,USD,true,false,JFK-LHR Directional,Standard Price Book;true,DL-TMPL-JFKLHR,Term Annual;TermDefined,0
 DL-TMPL-TATL;Term Annual;USD,USD,true,false,Transatlantic Premium,Standard Price Book;true,DL-TMPL-TATL,Term Annual;TermDefined,0
 DL-TMPL-USDOM;Term Annual;USD,USD,true,false,US Domestic Share Gap,Standard Price Book;true,DL-TMPL-USDOM,Term Annual;TermDefined,0
+DL-TMPL-USAPAC;Term Annual;USD,USD,true,false,US50-APAC Growth,Standard Price Book;true,DL-TMPL-USAPAC,Term Annual;TermDefined,0

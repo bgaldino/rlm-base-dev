@@ -29,7 +29,7 @@ sibling `dl-pricing` plan — **load `dl-termbuilder` first, then `dl-pricing`.*
 
 ### Term Library templates (`DL-TMPL-*`)
 
-Five pre-defined **Term templates** power the "Add from Library" flow in the modularized
+Six pre-defined **Term templates** power the "Add from Library" flow in the modularized
 Term Builder (`RLM_DeltaTermBuilderController.getTermLibrary` / `addTermFromTemplate`). Each is a
 clone of `DL-TERM` — `Type = Bundle`, `BasedOn = PC-DL-TERM`, a **$0 `PricebookEntry`** on the
 Term Annual selling model, and membership in the non-navigational `DL-TERM-TEMPLATES` category — so
@@ -52,6 +52,7 @@ under a per-template `*-FARES` group, via *Bundle to Bundle Component Relationsh
 | `DL-TMPL-JFKLHR` (JFK-LHR Directional) | JFK → LHR | Directional | Share Gap | Delta One, Premium Select |
 | `DL-TMPL-TATL` (Transatlantic Premium) | US50 → EMEAI | Between | Share of Flights | Delta One, Premium Select, Comfort, Main |
 | `DL-TMPL-USDOM` (US Domestic Share Gap) | US50 → US50 | Between | Share Gap | Main, Comfort, Main Basic |
+| `DL-TMPL-USAPAC` (US50-APAC Growth) | US50 → APAC | Between | Share of Flights | Premium Select, Delta One |
 
 ### Fare codes
 
@@ -73,7 +74,7 @@ plan):
 `DL_ScopeType` sets scope granularity (`Airport`, `City`, `Country`, `Region`,
 `Super-region`, `Custom`); `DL_MarketGroup` is the free-text market/route grouping
 the scope applies to. `DL_Origin` / `DL_Destination` share one curated endpoint
-picklist (`ATL`, `JFK`, `LHR`, `US50`, `EMEAI`); `DL_Directionality` (Between /
+picklist (`ATL`, `JFK`, `LHR`, `US50`, `EMEAI`, `APAC`); `DL_Directionality` (Between /
 Directional); `DL_Measure` (Share Gap / Share of Flights / No Requirement);
 `DL_RequirementValue` and `DL_SpecialConditions` are free text. Fare lines carry
 no attributes.
@@ -98,22 +99,22 @@ Annual, so new Term-Builder lines pick up `BillingFrequency = Annual` /
 | # | Object | Operation | External ID | Records |
 |---|--------|-----------|-------------|---------|
 | 1 | AttributePicklist | Upsert | `Name` | 4 |
-| 2 | AttributePicklistValue | Upsert | `Code` | 16 |
+| 2 | AttributePicklistValue | Upsert | `Code` | 17 |
 | 3 | AttributeDefinition | Upsert | `Code` | 8 |
 | 4 | AttributeCategory | Upsert | `Code` | 1 |
 | 5 | AttributeCategoryAttribute | Upsert | `AttributeCategory.Code;AttributeDefinition.Code` | 8 |
 | 6 | ProductClassification | Upsert | `Code` | 2 |
 | 7 | ProductClassificationAttr | Upsert | `Name` | 8 |
-| 8 | Product2 | Upsert | `StockKeepingUnit` | 11 |
-| 9 | ProductAttributeDefinition | Upsert | `AttributeDefinition.Code;Product2.StockKeepingUnit` | 34 |
+| 8 | Product2 | Upsert | `StockKeepingUnit` | 12 |
+| 9 | ProductAttributeDefinition | Upsert | `AttributeDefinition.Code;Product2.StockKeepingUnit` | 41 |
 | 10 | ProductSellingModel | Upsert | `Name;SellingModelType` | 1 |
-| 11 | ProductSellingModelOption | Upsert | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType` | 11 |
+| 11 | ProductSellingModelOption | Upsert | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType` | 12 |
 | 12 | ProductRelationshipType | Readonly | `Name` | 2 |
-| 13 | ProductComponentGroup | Upsert | `Code` | 6 |
-| 14 | ProductRelatedComponent | Upsert | `ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name` | 15 |
+| 13 | ProductComponentGroup | Upsert | `Code` | 7 |
+| 14 | ProductRelatedComponent | Upsert | `ChildProductClassification.Code;ChildProduct.StockKeepingUnit;ParentProduct.StockKeepingUnit;ProductComponentGroup.Code;ProductRelationshipType.Name` | 17 |
 | 15 | ProductCatalog | Upsert | `Code` | 1 |
 | 16 | ProductCategory | Upsert | `Code` | 2 |
-| 17 | ProductCategoryProduct | Upsert | `ProductCategory.Code;Product.StockKeepingUnit` | 6 |
+| 17 | ProductCategoryProduct | Upsert | `ProductCategory.Code;Product.StockKeepingUnit` | 7 |
 
 All writable objects use **direct-field or composite Upsert** externalIds, so the
 plan is idempotent — rerunning it matches existing `DL-*` records rather than
@@ -124,22 +125,22 @@ duplicating them. No `deleteOldData`; targets a clean demo org.
 ```
 export.json                       # 17-object plan (this dir)
 AttributePicklist.csv             # 4 records
-AttributePicklistValue.csv        # 16 records
+AttributePicklistValue.csv        # 17 records
 AttributeDefinition.csv           # 8 records
 AttributeCategory.csv             # 1 records
 AttributeCategoryAttribute.csv    # 8 records
 ProductClassification.csv         # 2 records
 ProductClassificationAttr.csv     # 8 records
-Product2.csv                      # 11 records  (DL-TERM + 5 fares + 5 DL-TMPL-* templates; carries DL_DefaultFareCodes__c)
-ProductAttributeDefinition.csv    # 34 records  (per-template scope defaults on the DL-TMPL-* clones)
+Product2.csv                      # 12 records  (DL-TERM + 5 fares + 6 DL-TMPL-* templates; carries DL_DefaultFareCodes__c)
+ProductAttributeDefinition.csv    # 41 records  (per-template scope defaults on the DL-TMPL-* clones)
 ProductSellingModel.csv           # 1 records  (Term Annual)
-ProductSellingModelOption.csv     # 11 records  (DL-TERM + 5 fares + 5 templates → Term Annual)
+ProductSellingModelOption.csv     # 12 records  (DL-TERM + 5 fares + 6 templates → Term Annual)
 ProductRelationshipType.csv       # 2 records  (Readonly: classification-component + bundle-component)
-ProductComponentGroup.csv         # 6 records  (DL-TERM + one fare group per template)
-ProductRelatedComponent.csv       # 15 records  (1 dynamic Term ↔ PC-DL-FARE + 14 fixed template fares)
+ProductComponentGroup.csv         # 7 records  (DL-TERM + one fare group per template)
+ProductRelatedComponent.csv       # 17 records  (1 dynamic Term ↔ PC-DL-FARE + 16 fixed template fares)
 ProductCatalog.csv                # 1 records
 ProductCategory.csv               # 2 records  (DL-TERMS + DL-TERM-TEMPLATES)
-ProductCategoryProduct.csv        # 6 records  (DL-TERM + 5 templates)
+ProductCategoryProduct.csv        # 7 records  (DL-TERM + 6 templates)
 ```
 
 ## Run

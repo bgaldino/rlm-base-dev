@@ -13,7 +13,7 @@ products, selling model, and price book those objects establish.
 ## Model
 
 - One active `PricebookEntry` per Term-Builder SKU (`DL-TERM` + 5 fares +
-  5 `DL-TMPL-*` Term Library templates) on the **Standard Price Book**, Term Annual
+  6 `DL-TMPL-*` Term Library templates) on the **Standard Price Book**, Term Annual
   (`TermDefined`, 1-year) selling model, `UnitPrice = 0`, currency `USD`. The
   template clones get a $0 PBE so they are well-formed catalog products on par with
   `DL-TERM` (see the sibling `dl-termbuilder` README's Term Library section).
@@ -27,10 +27,10 @@ products, selling model, and price book those objects establish.
 
 | # | Object | Operation | External ID | Records |
 |---|--------|-----------|-------------|---------|
-| 1 | Product2 | Readonly | `StockKeepingUnit` | 11 |
+| 1 | Product2 | Readonly | `StockKeepingUnit` | 12 |
 | 2 | ProductSellingModel | Readonly | `Name;SellingModelType` | 1 |
 | 3 | Pricebook2 | Readonly | `Name;IsStandard` | 1 |
-| 4 | PricebookEntry | Insert | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 11 |
+| 4 | PricebookEntry | Insert | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 12 |
 
 `PricebookEntry` uses **`Insert`** (not Upsert): its only logical key is composed
 entirely of relationship traversals, which SFDMU v5 cannot match on Upsert
@@ -44,10 +44,10 @@ clear the whole PricebookEntry object).
 
 ```
 export.json                 # 4-object plan (this dir)
-Product2.csv                # 11 records  (Readonly lookup: DL-TERM + 5 fares + 5 templates)
+Product2.csv                # 12 records  (Readonly lookup: DL-TERM + 5 fares + 6 templates)
 ProductSellingModel.csv     # 1 records  (Readonly lookup: Term Annual)
 Pricebook2.csv              # 1 records  (Readonly lookup: Standard Price Book)
-PricebookEntry.csv          # 11 records  ($0, USD, Standard, Term Annual)
+PricebookEntry.csv          # 12 records  ($0, USD, Standard, Term Annual)
 ```
 
 ## Run
