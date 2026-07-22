@@ -1,6 +1,5 @@
 import { LightningElement, api, track, wire } from "lwc";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
-import { CurrentPageReference } from "lightning/navigation";
 import {
   publish,
   subscribe,
@@ -44,28 +43,9 @@ export default class DlmTermsRail extends LightningElement {
   errorMessage = "";
 
   _subscription = null;
-  // Guards the one-shot ?c__quoteId= deep-link adoption (see the CurrentPageReference wire below).
-  _pageStateApplied = false;
 
   @wire(MessageContext)
   messageContext;
-
-  // Pick up ?c__quoteId= from URL state once. Mirrors c/dlmNegotiationContext + the monolith: a
-  // deep-link/renewal fallback so the rail loads its terms even if the LMC `context` publish is missed
-  // (this tile can mount after the header broadcasts it). Only adopts when we have no quote yet;
-  // interactive quote switching still flows through `context`.
-  @wire(CurrentPageReference)
-  applyPageReference(pageRef) {
-    if (pageRef && !this._pageStateApplied) {
-      const quoteFromUrl = pageRef.state && pageRef.state.c__quoteId;
-      if (quoteFromUrl && !this.quoteId) {
-        this._pageStateApplied = true;
-        this.quoteId = quoteFromUrl;
-        this.selectedTermId = null;
-        this.loadTerms(true);
-      }
-    }
-  }
 
   connectedCallback() {
     this._subscribe();
