@@ -8,22 +8,10 @@
             </template>
 
             <template if:true={hasRows}>
-                <div class="slds-grid slds-grid_align-end slds-m-bottom_x-small">
-                    <lightning-button
-                        label="Cancel"
-                        variant="neutral"
-                        class="slds-m-right_x-small"
-                        disabled={saveDisabled}
-                        onclick={handleCancel}
-                    ></lightning-button>
-                    <lightning-button
-                        label="Save changes"
-                        variant="brand"
-                        icon-name="utility:save"
-                        disabled={saveDisabled}
-                        onclick={handleSave}
-                    ></lightning-button>
-                </div>
+                <!-- The primary Save / Cancel controls are hoisted into the host card header
+                     (c/dlmTermWorkspace) via the statechange event + save()/cancel() so they sit on the
+                     "Term Workspace" title row. The mirror row at the bottom of the table stays for reps
+                     who scroll a long lines list. -->
                 <template if:true={saving}>
                     <div class="slds-m-bottom_x-small">
                         <lightning-spinner alternative-text="Saving" size="small"></lightning-spinner>

@@ -530,4 +530,58 @@ describe('c-dlm-quote-line-grid', () => {
         await element.refresh();
         expect(refreshApex).toHaveBeenCalledTimes(1);
     });
+
+    // The host (c/dlmTermWorkspace) renders its own Save/Cancel on the card title row and needs the
+    // grid's action state to keep them in lockstep — emitted as `statechange`.
+    it('emits statechange with hasRows + saveDisabled as rows build and a draft goes dirty', async () => {
+        const element = createComponent();
+        const states = [];
+        element.addEventListener('statechange', (e) => states.push(e.detail));
+
+        getQuoteLines.emit(makeData());
+        await flushPromises();
+
+        // After data: rows present but nothing edited yet → save disabled.
+        const settled = states[states.length - 1];
+        expect(settled.hasRows).toBe(true);
+        expect(settled.saveDisabled).toBe(true);
+
+        // Editing a date makes the grid dirty → the next emission reports save enabled.
+        const startInput = element.shadowRoot.querySelector('lightning-input[data-id="line1"]');
+        startInput.value = '2026-03-01';
+        startInput.dispatchEvent(new CustomEvent('change'));
+        await flushPromises();
+        expect(states[states.length - 1].saveDisabled).toBe(false);
+    });
+
+    it('exposes save()/cancel() that drive the same save path and draft reset as the in-grid buttons', async () => {
+        const element = createComponent();
+        getQuoteLines.emit(makeData());
+        await flushPromises();
+
+        // Dirty line1, then cancel() via the public API → draft dropped, bottom Save disabled again.
+        let startInput = element.shadowRoot.querySelector('lightning-input[data-id="line1"]');
+        startInput.value = '2026-03-01';
+        startInput.dispatchEvent(new CustomEvent('change'));
+        await flushPromises();
+
+        element.cancel();
+        await flushPromises();
+        const saveBtn = Array.from(element.shadowRoot.querySelectorAll('lightning-button')).find(
+            (b) => b.label === 'Save changes'
+        );
+        expect(saveBtn.disabled).toBe(true);
+
+        // Re-dirty and save() via the public API → the update Apex is invoked once.
+        startInput = element.shadowRoot.querySelector('lightning-input[data-id="line1"]');
+        startInput.value = '2026-04-01';
+        startInput.dispatchEvent(new CustomEvent('change'));
+        await flushPromises();
+
+        await element.save();
+        await flushPromises();
+        expect(updateLineDiscountAndDates).toHaveBeenCalledTimes(1);
+        const payload = JSON.parse(updateLineDiscountAndDates.mock.calls[0][0].inputJson);
+        expect(payload.lines).toEqual([{ id: 'line1', startDate: '2026-04-01' }]);
+    });
 });

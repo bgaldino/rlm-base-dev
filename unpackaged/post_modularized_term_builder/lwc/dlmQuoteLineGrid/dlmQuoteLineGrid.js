@@ -57,7 +57,7 @@ export default class DlmQuoteLineGrid extends LightningElement {
 
     displayRows = [];
     errorMessage = '';
-    saving = false;
+    _saving = false;
 
     // Normalized, hierarchy-ordered lines from the server (the source for _composeRows()).
     _baseRows = [];
@@ -114,6 +114,7 @@ export default class DlmQuoteLineGrid extends LightningElement {
             this.errorMessage = parsed.errorMessage || 'Unable to load quote lines.';
             this._baseRows = [];
             this.displayRows = [];
+            this._emitState();
             return;
         }
         // Collect { line, groupPath } across groups + ungrouped, then order each bucket by bundle
@@ -332,6 +333,7 @@ export default class DlmQuoteLineGrid extends LightningElement {
             }
         });
         this.displayRows = rows;
+        this._emitState();
     }
 
     // A row is expandable when it has a section to reveal: a Term with editable route attributes, or
@@ -380,8 +382,46 @@ export default class DlmQuoteLineGrid extends LightningElement {
         return this._dirtyLines().length > 0;
     }
 
+    // `saving` is a getter over a private field so every mutation also re-emits grid state to the host
+    // (which renders the header-level Cancel/Save buttons — see _emitState). All internal writes go
+    // through the setter (`this.saving = …`); the template binds the getter.
+    get saving() {
+        return this._saving;
+    }
+    set saving(value) {
+        this._saving = value;
+        this._emitState();
+    }
+
     get saveDisabled() {
         return this.saving || !this.isDirty;
+    }
+
+    // Notify the host of the grid's action state so it can render Save/Cancel controls aligned with its
+    // own card title (c/dlmTermWorkspace). Fired whenever rows rebuild (dirty state may change) and
+    // whenever a save/delete/rename toggles `saving`.
+    _emitState() {
+        this.dispatchEvent(new CustomEvent('statechange', {
+            detail: {
+                hasRows: this.hasRows,
+                saveDisabled: this.saveDisabled,
+                saving: this._saving
+            },
+            bubbles: true,
+            composed: true
+        }));
+    }
+
+    // Host-facing controls so a parent can drive Save/Cancel from buttons it renders in its own card
+    // header. They delegate to the same handlers the in-grid buttons use.
+    @api
+    save() {
+        return this.handleSave();
+    }
+
+    @api
+    cancel() {
+        this.handleCancel();
     }
 
     // Toggle a row's inline attribute picker. On expand, move focus into the detail region; on

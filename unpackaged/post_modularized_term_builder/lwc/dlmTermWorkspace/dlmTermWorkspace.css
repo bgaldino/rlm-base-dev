@@ -9,9 +9,14 @@
   background: #ffffff;
 }
 
+/* Disclosure toggle styled like the original section heading. slds-button_reset strips native button
+   chrome; we restore the heading look and make it a full-width, left-aligned click target. */
 .dl-tb-fares__heading {
+  width: 100%;
   font-weight: 700;
   color: #003268;
   border-bottom: 1px solid #eef1f6;
   margin: 0;
+  cursor: pointer;
+  text-align: left;
 }

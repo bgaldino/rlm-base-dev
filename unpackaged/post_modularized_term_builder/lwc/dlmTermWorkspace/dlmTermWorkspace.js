@@ -79,6 +79,13 @@ export default class DlmTermWorkspace extends LightningElement {
     this._selectedTermId = value || null;
   }
 
+  // Latest action state reported by the scoped grid (drives the header Save/Cancel controls hoisted
+  // onto the card title row). Defaults keep the buttons hidden/disabled until the grid emits.
+  _gridHasRows = false;
+  _gridSaveDisabled = true;
+  // The Add Fare Class panel starts open (its prior always-shown behavior); the header toggles it.
+  faresExpanded = true;
+
   _subscription = null;
   // Set when an inbound message requires the grid to refetch (not just re-scope its cache); acted on
   // in renderedCallback once the grid is guaranteed present.
@@ -255,12 +262,59 @@ export default class DlmTermWorkspace extends LightningElement {
     return !!this.quoteId && !!this.selectedTermId;
   }
 
+  // Header Save/Cancel controls (aligned with the card title) render only once the scoped grid has
+  // rows, and follow the grid's own dirty/saving gate.
+  get showGridActions() {
+    return this._gridHasRows;
+  }
+
+  get gridSaveDisabled() {
+    return this._gridSaveDisabled;
+  }
+
+  // Collapsible Add Fare Class panel state for the disclosure button.
+  get faresExpandedStr() {
+    return this.faresExpanded ? "true" : "false";
+  }
+
+  get faresChevron() {
+    return this.faresExpanded ? "utility:chevrondown" : "utility:chevronright";
+  }
+
+  toggleFares() {
+    this.faresExpanded = !this.faresExpanded;
+  }
+
   // ---------- child events → LMC pulses ----------
 
   // The grid edited/removed a line or renamed the Term. The grid manages its own refreshApex, so we
   // just broadcast linesChanged for the rail (counts/name) and header (Apply-to-All / summary).
   handleLinesUpdated() {
     this._publishLinesChanged();
+  }
+
+  // The grid reports its action state (row count + save gate) so the hoisted header buttons stay in
+  // lockstep with its dirty/saving state.
+  handleGridState(event) {
+    const detail = event.detail || {};
+    this._gridHasRows = !!detail.hasRows;
+    // Default to disabled unless the grid explicitly reports it can save.
+    this._gridSaveDisabled = detail.saveDisabled !== false;
+  }
+
+  // Header Save/Cancel delegate to the scoped grid's public controls.
+  handleGridSave() {
+    const grid = this.template.querySelector("c-dlm-quote-line-grid");
+    if (grid) {
+      grid.save();
+    }
+  }
+
+  handleGridCancel() {
+    const grid = this.template.querySelector("c-dlm-quote-line-grid");
+    if (grid) {
+      grid.cancel();
+    }
   }
 
   // A fare class was added under the selected Term. Refresh our own scoped grid (its cache predates

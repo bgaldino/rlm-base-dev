@@ -1,6 +1,7 @@
 /* global require */
 import { createElement } from 'lwc';
 import { subscribe } from 'lightning/messageService';
+import getQuoteLines from '@salesforce/apex/RLM_DeltaLineController.getQuoteLines';
 import DlmTermWorkspace from 'c/dlmTermWorkspace';
 
 // The workspace hosts a real c/dlmQuoteLineGrid and c/dlmAddFareClass. Those children pull in Apex
@@ -68,6 +69,35 @@ async function createPropDriven({ selectedTermId = TERM_ID } = {}) {
 
 function grid(element) {
     return element.shadowRoot.querySelector('c-dlm-quote-line-grid');
+}
+
+// Only the workspace's OWN lightning-buttons (the header actions) live in its shadow root; the grid's
+// bottom Save/Cancel are behind the grid's separate shadow boundary, so this never sees them.
+function headerButton(element, label) {
+    return Array.from(element.shadowRoot.querySelectorAll('lightning-button')).find(
+        (b) => b.label === label
+    );
+}
+
+// Feed the scoped grid a single Term line whose id is the selected term, so it scopes to a non-empty
+// grid and emits statechange(hasRows: true) up to the workspace.
+function emitTermLine(termId = TERM_ID) {
+    getQuoteLines.emit(
+        JSON.stringify({
+            isSuccess: true,
+            groups: [],
+            ungrouped: [
+                {
+                    id: termId,
+                    productName: 'Route',
+                    isTerm: true,
+                    productCode: 'DL-TERM',
+                    hasEditableAttributes: false,
+                    parentLineId: null
+                }
+            ]
+        })
+    );
 }
 
 describe('c-dlm-term-workspace LMC → grid refresh', () => {
@@ -143,5 +173,59 @@ describe('c-dlm-term-workspace LMC → grid refresh', () => {
         await flushPromises();
 
         expect(grid(element).refresh).not.toHaveBeenCalled();
+    });
+});
+
+describe('c-dlm-term-workspace header actions + collapsible fares', () => {
+    afterEach(() => {
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+        jest.clearAllMocks();
+    });
+
+    it('hoists Save/Cancel onto the card header once the grid reports rows, and Save drives the grid', async () => {
+        const { element } = await createPropDriven();
+        // No grid rows yet → no header actions.
+        expect(headerButton(element, 'Save changes')).toBeUndefined();
+
+        emitTermLine();
+        await flushPromises();
+
+        const save = headerButton(element, 'Save changes');
+        const cancel = headerButton(element, 'Cancel');
+        expect(save).toBeDefined();
+        expect(cancel).toBeDefined();
+        // Nothing edited yet → disabled, mirroring the grid's own gate.
+        expect(save.disabled).toBe(true);
+
+        // Clicking the header Save delegates to the grid's public save().
+        grid(element).save = jest.fn();
+        save.click();
+        expect(grid(element).save).toHaveBeenCalledTimes(1);
+    });
+
+    it('collapses and expands the Add Fare Class panel', async () => {
+        const { element } = await createPropDriven();
+        emitTermLine();
+        await flushPromises();
+
+        // Panel open by default.
+        expect(element.shadowRoot.querySelector('c-dlm-add-fare-class')).not.toBeNull();
+        const toggle = element.shadowRoot.querySelector('.dl-tb-fares__heading');
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+
+        // Collapse hides the fare bar.
+        toggle.click();
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('c-dlm-add-fare-class')).toBeNull();
+        expect(
+            element.shadowRoot.querySelector('.dl-tb-fares__heading').getAttribute('aria-expanded')
+        ).toBe('false');
+
+        // Expand brings it back.
+        element.shadowRoot.querySelector('.dl-tb-fares__heading').click();
+        await flushPromises();
+        expect(element.shadowRoot.querySelector('c-dlm-add-fare-class')).not.toBeNull();
     });
 });

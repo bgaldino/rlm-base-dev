@@ -3,6 +3,27 @@
        Class bar. Learns quoteId/selectedTermId from the DLM Term Builder channel. -->
   <template if:true={showWorkspace}>
     <lightning-card title={effectiveHeading} icon-name="standard:product_item">
+      <!-- Save / Cancel hoisted onto the title row (from the scoped grid via statechange) to save
+           vertical height; they drive the grid's save()/cancel(). Shown only once the grid has rows. -->
+      <template if:true={showGridActions}>
+        <div slot="actions" class="slds-grid slds-grid_vertical-align-center">
+          <lightning-button
+            label="Cancel"
+            variant="neutral"
+            class="slds-m-right_x-small"
+            disabled={gridSaveDisabled}
+            onclick={handleGridCancel}
+          ></lightning-button>
+          <lightning-button
+            label="Save changes"
+            variant="brand"
+            icon-name="utility:save"
+            disabled={gridSaveDisabled}
+            onclick={handleGridSave}
+          ></lightning-button>
+        </div>
+      </template>
+
       <div class="slds-grid slds-grid_vertical slds-gutters_direct-y">
         <!-- Scoped line grid: the selected Term + its fares only. -->
         <div class="slds-col slds-p-horizontal_small">
@@ -11,25 +32,39 @@
             scope-root-line-id={selectedTermId}
             attribute-codes={effectiveAttributeCodes}
             hide-group-column={groupColumnHidden}
+            onstatechange={handleGridState}
             onlinesupdated={handleLinesUpdated}
             ontermrenamed={handleLinesUpdated}
           ></c-dlm-quote-line-grid>
         </div>
 
-        <!-- Add fare classes under the selected Term. -->
+        <!-- Add fare classes under the selected Term — a collapsible panel so it can be tucked away. -->
         <template if:true={addFareVisible}>
           <div class="slds-col slds-p-horizontal_small slds-p-bottom_small">
             <div class="dl-tb-fares">
-              <h3
-                class="dl-tb-fares__heading slds-p-vertical_x-small slds-p-horizontal_small"
+              <button
+                type="button"
+                class="dl-tb-fares__heading slds-button_reset slds-grid slds-grid_vertical-align-center slds-p-vertical_x-small slds-p-horizontal_small"
+                aria-expanded={faresExpandedStr}
+                aria-controls="dl-tb-fares-body"
+                onclick={toggleFares}
               >
-                Add Fare Class
-              </h3>
-              <c-dlm-add-fare-class
-                quote-id={quoteId}
-                term-line-id={selectedTermId}
-                onfareadded={handleFareAdded}
-              ></c-dlm-add-fare-class>
+                <lightning-icon
+                  icon-name={faresChevron}
+                  size="x-small"
+                  class="slds-m-right_x-small"
+                ></lightning-icon>
+                <span>Add Fare Class</span>
+              </button>
+              <template if:true={faresExpanded}>
+                <div id="dl-tb-fares-body">
+                  <c-dlm-add-fare-class
+                    quote-id={quoteId}
+                    term-line-id={selectedTermId}
+                    onfareadded={handleFareAdded}
+                  ></c-dlm-add-fare-class>
+                </div>
+              </template>
             </div>
           </div>
         </template>
