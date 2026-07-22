@@ -366,7 +366,7 @@ The following table shows the sequence of all permission-related steps across th
 | 7.6 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
 | 10.10 | `prepare_docgen` | `RLM_DocGen` | `docgen` |
 | 18.1 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
-| 18.4 | `prepare_tso` | TSO permission sets (4) | `tso` |
+| 18.4 | `prepare_tso` | TSO permission sets (5) | `tso` |
 | 20.7 | `prepare_prm` | `RLM_PRM` | `prm` + `prm_exp_bundle` + `tso` |
 | 21.1 | `prepare_agents` | Copilot PSGs (2) | `agents` |
 | 21.11 | `prepare_agents` | `RLM_QuotingAgent`, `RLM_QuotingAssistant`, `RLM_BillingEmployeeAgent` | `agents` |
