@@ -18,11 +18,6 @@
       ></lightning-button>
     </div>
 
-    <p class="dlm-dsc__subtitle slds-text-body_small slds-text-color_weak slds-m-top_xxx-small">
-      Pre-term inputs. The analysis period drives the analytics; participating carriers and subsidiary
-      accounts scope the negotiation.
-    </p>
-
     <template if:true={errorMessage}>
       <div class="dlm-dsc__error slds-m-top_x-small slds-p-around_x-small" role="alert">
         <lightning-icon
@@ -85,9 +80,6 @@
               disabled={subsidiaryPickerDisabled}
               onchange={handleSubsidiarySelect}
             ></lightning-record-picker>
-            <p class="dlm-dsc__hint slds-text-body_small slds-text-color_weak slds-m-top_xxx-small">
-              Client-only — surfaced as scope, not saved to the negotiation.
-            </p>
 
             <template if:true={hasSubsidiaries}>
               <div class="dlm-dsc__chips slds-grid slds-wrap slds-m-top_x-small">

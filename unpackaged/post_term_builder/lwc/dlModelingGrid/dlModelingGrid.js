@@ -16,7 +16,7 @@ const METHOD_OPTIONS = [
 ];
 
 /**
- * dlModelingGrid — the client-only negotiation modeling spreadsheet (demo stage ③).
+ * dlModelingGrid — the client-only negotiation modeling spreadsheet.
  *
  * A controlled component: the shell (c/dlmWorkspaceShell) owns the per-(term, method) model cache and
  * hands this grid exactly ONE model to edit via @api model. The grid keeps a private working copy,
@@ -24,7 +24,6 @@ const METHOD_OPTIONS = [
  *   - `modelchange` { termId, method, model, summary } — after any edit (coalesced to one per frame).
  *   - `methodchange` { termId, method } — when the discounting method toggle flips (the shell swaps in
  *     the cached/seeded model for that method and passes it back down).
- *   - `expandtoggle` { expanded } — Expand-Workspace affordance (the shell collapses the rail).
  *
  * Editing UX mirrors the proven c/dlQuoteLineGrid pattern (inline lightning-inputs + data-* datasets +
  * clamp). Product and Fare Class are genuinely different row sets over the Term's REAL fares (see
@@ -34,7 +33,6 @@ const METHOD_OPTIONS = [
 export default class DlModelingGrid extends LightningElement {
   @api term;
   @api currencyCode = "USD";
-  @api expanded = false;
 
   _model = null;
   _working = null;
@@ -90,26 +88,6 @@ export default class DlModelingGrid extends LightningElement {
   // A model with no fares (Term has no lines yet) renders an empty-state instead of a headerless grid.
   get hasRows() {
     return this.hasModel && this._working.rows.length > 0;
-  }
-
-  // ---------- expand affordance ----------
-
-  get expandLabel() {
-    return this.expanded ? "Collapse Workspace" : "Expand Workspace";
-  }
-
-  get expandIcon() {
-    return this.expanded ? "utility:contract_alt" : "utility:expand_alt";
-  }
-
-  handleToggleExpand() {
-    this.dispatchEvent(
-      new CustomEvent("expandtoggle", {
-        detail: { expanded: !this.expanded },
-        bubbles: true,
-        composed: true
-      })
-    );
   }
 
   // ---------- rows ----------

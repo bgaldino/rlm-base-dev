@@ -123,11 +123,6 @@
   font-weight: 700;
 }
 
-.dl-ps-note {
-  border-top: 1px solid var(--dl-hairline, #dddbda);
-  padding-top: 0.5rem;
-}
-
 /* Print / Save as PDF. Scoped to this component's shadow DOM: hides the footer action bar and lets
    the Terms table print full-width without the modal's inner scroll. Hiding the surrounding Lightning
    app chrome is environment-dependent and verified live in the target org/browser. */
@@ -138,9 +133,5 @@
 
   .dl-ps-table {
     width: 100%;
-  }
-
-  .dl-ps-note {
-    color: #514f4d !important;
   }
 }

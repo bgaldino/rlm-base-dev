@@ -29,18 +29,6 @@
   font-weight: 700;
 }
 
-.dlm-shell__session {
-  padding-top: 0.125rem;
-}
-
-.dlm-shell__session-label {
-  color: var(--dl-muted);
-  font-size: 0.6875rem;
-  font-style: italic;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
 .dlm-shell__tab-body {
   padding-top: 0.25rem;
 }

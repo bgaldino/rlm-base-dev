@@ -80,8 +80,3 @@
   color: var(--dl-navy, #003268);
   margin: 0;
 }
-
-.dl-data-context__note {
-  border-top: 1px solid var(--dl-hairline, #dddbda);
-  padding-top: 0.5rem;
-}

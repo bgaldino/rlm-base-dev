@@ -172,26 +172,6 @@ describe("c-dl-modeling-grid", () => {
     expect(handler.mock.calls[0][0].detail.method).toBe(METHOD_FARECLASS);
   });
 
-  it("emits expandtoggle from the Expand Workspace button", async () => {
-    const term = makeTerm();
-    const el = create({
-      term,
-      model: seedModel(term, METHOD_PRODUCT),
-      expanded: false
-    });
-    await flushPromises();
-    const handler = jest.fn();
-    el.addEventListener("expandtoggle", handler);
-
-    // The expand button is the toolbar's lightning-button.
-    const btn = el.shadowRoot.querySelector(".dl-mg-toolbar lightning-button");
-    btn.dispatchEvent(new CustomEvent("click"));
-    await flushPromises();
-
-    expect(handler).toHaveBeenCalled();
-    expect(handler.mock.calls[0][0].detail.expanded).toBe(true);
-  });
-
   it("shows a totals warning when a distribution is edited off 100%", async () => {
     const term = makeTerm();
     const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });

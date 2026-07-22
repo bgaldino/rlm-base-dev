@@ -7,26 +7,15 @@
     </template>
 
     <template if:true={hasModel}>
-      <!-- Toolbar: method toggle · expand -->
-      <div class="dl-mg-toolbar slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-wrap slds-p-around_small">
-        <div class="slds-grid slds-grid_vertical-align-center slds-gutters_small">
-          <div class="slds-col">
-            <lightning-combobox
-              label="Discounting method"
-              variant="label-inline"
-              value={method}
-              options={methodOptions}
-              onchange={handleMethodChange}
-            ></lightning-combobox>
-          </div>
-        </div>
-        <div class="slds-col slds-grid slds-grid_vertical-align-center slds-gutters_small">
-          <lightning-button
-            label={expandLabel}
-            icon-name={expandIcon}
-            variant="neutral"
-            onclick={handleToggleExpand}
-          ></lightning-button>
+      <!-- Toolbar: method toggle -->
+      <div class="dl-mg-toolbar slds-p-around_small">
+        <div class="dl-mg-method">
+          <lightning-combobox
+            label="Discounting method"
+            value={method}
+            options={methodOptions}
+            onchange={handleMethodChange}
+          ></lightning-combobox>
         </div>
       </div>
 

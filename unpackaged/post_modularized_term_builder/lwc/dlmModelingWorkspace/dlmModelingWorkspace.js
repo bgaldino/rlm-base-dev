@@ -15,16 +15,15 @@ import { termScopeChips, routeLabel } from "c/dlDemoModel";
  *   - an "Apply Final Offer to Quote" action (the write-back is performed by the shell);
  *   - the reused c/dlModelingGrid, handed `selectedTerm` + `model`.
  *
- * Events up: c/dlModelingGrid dispatches `modelchange` / `methodchange` / `expandtoggle` as
- * composed + bubbling events, so they propagate through this wrapper to the shell's listeners with no
- * re-dispatch here. This wrapper ORIGINATES `applyofferrequest` from its own Apply button; the shell
+ * Events up: c/dlModelingGrid dispatches `modelchange` / `methodchange` as composed + bubbling
+ * events, so they propagate through this wrapper to the shell's listeners with no re-dispatch
+ * here. This wrapper ORIGINATES `applyofferrequest` from its own Apply button; the shell
  * runs the actual updateLineDiscountAndDates write-back and broadcasts linesChanged.
  */
 export default class DlmModelingWorkspace extends LightningElement {
   @api selectedTerm;
   @api model;
   @api currencyCode = "USD";
-  @api expanded = false;
   @api termKpis;
   // Latched by the shell while a Final-Offer write-back is in flight (and when there's no model).
   @api applyDisabled = false;

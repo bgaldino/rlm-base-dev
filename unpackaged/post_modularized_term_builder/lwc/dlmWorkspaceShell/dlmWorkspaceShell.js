@@ -88,8 +88,6 @@ export default class DlmWorkspaceShell extends LightningElement {
   selectedMethod = METHOD_PRODUCT;
   // Reactive mirror of the selected Term + method's model, handed to the Modeling workspace.
   @track activeModel = null;
-  // When the Modeling tab requests it, the workspace expands (the host page can react via the event).
-  workspaceExpanded = false;
   applyingOffer = false;
   loadingState = false;
   errorMessage = "";
@@ -392,10 +390,6 @@ export default class DlmWorkspaceShell extends LightningElement {
     this._syncActiveModel();
   }
 
-  handleExpandToggle(event) {
-    this.workspaceExpanded = !!event.detail.expanded;
-  }
-
   handleResetModel() {
     this._resetDemoModels();
     this._syncActiveModel();
@@ -552,7 +546,6 @@ export default class DlmWorkspaceShell extends LightningElement {
     this._modelsByTermId = {};
     this.activeModel = null;
     this.selectedMethod = METHOD_PRODUCT;
-    this.workspaceExpanded = false;
   }
 
   // ---------- helpers ----------

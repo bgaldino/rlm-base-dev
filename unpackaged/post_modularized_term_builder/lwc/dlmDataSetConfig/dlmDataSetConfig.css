@@ -17,10 +17,6 @@
   font-weight: 700;
 }
 
-.dlm-dsc__subtitle {
-  margin-bottom: 0;
-}
-
 .dlm-dsc__error {
   background: #fef1f0;
   border: 1px solid var(--dl-red, #c8102e);
@@ -41,8 +37,4 @@
 .dlm-dsc__chip-label {
   color: var(--dl-navy, #0a1d3f);
   font-weight: 600;
-}
-
-.dlm-dsc__hint {
-  font-style: italic;
 }

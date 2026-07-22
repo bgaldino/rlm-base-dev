@@ -18,6 +18,11 @@
   border-bottom: 1px solid var(--dl-hairline, #dddbda);
 }
 
+/* Constrain the method picker so its stacked label + dropdown read cleanly and don't stretch. */
+.dl-mg-method {
+  max-width: 16rem;
+}
+
 /* ---------- validity warning ---------- */
 
 .dl-mg-warn {
