@@ -1,0 +1,44 @@
+{
+  "clientShardsUrl": "/services/data/v67.0/wave/datasets/0Fbaj000002UGz3CAG/shards",
+  "createdBy": {
+    "id": "005aj00000YrjmbAAB",
+    "name": "Samuel Check",
+    "profilePhotoUrl": "/img/userprofile/default_profile_45_v2.png"
+  },
+  "createdDate": "2026-07-21T15:41:43.000Z",
+  "currentVersionId": "0Fcaj00000H3ZaXCAV",
+  "currentVersionTotalRowCount": 40,
+  "currentVersionUrl": "/services/data/v67.0/wave/datasets/0Fbaj000002UGz3CAG/versions/0Fcaj00000H3ZaXCAV",
+  "dataRefreshDate": "2026-07-21T15:41:55.000Z",
+  "datasetType": "default",
+  "folder": {
+    "id": "00laj00000NAJ2XAAX",
+    "label": "Delta Contract Adherence Analytics",
+    "name": "Delta_Contract_Adherence_Analytics",
+    "url": "/services/data/v67.0/wave/folders/00laj00000NAJ2XAAX"
+  },
+  "id": "0Fbaj000002UGz3CAG",
+  "label": "Contract Fact",
+  "lastAccessedDate": "2026-07-22T16:36:41.000Z",
+  "lastModifiedBy": {
+    "id": "005aj00000Yr9hXAAR",
+    "name": "Integration User",
+    "profilePhotoUrl": "/img/userprofile/default_profile_45_v2.png"
+  },
+  "lastModifiedDate": "2026-07-21T15:41:55.000Z",
+  "lastQueriedDate": "2026-07-22T16:06:54.000Z",
+  "licenseAttributes": {
+    "type": "einsteinanalytics"
+  },
+  "name": "Contract_Fact",
+  "permissions": {
+    "create": true,
+    "manage": true,
+    "modify": true,
+    "view": true
+  },
+  "type": "dataset",
+  "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGz3CAG",
+  "versionsUrl": "/services/data/v67.0/wave/datasets/0Fbaj000002UGz3CAG/versions",
+  "visibility": "All"
+}

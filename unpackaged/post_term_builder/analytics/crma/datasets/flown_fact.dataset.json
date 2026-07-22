@@ -1,0 +1,44 @@
+{
+  "clientShardsUrl": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG/shards",
+  "createdBy": {
+    "id": "005aj00000YrjmbAAB",
+    "name": "Samuel Check",
+    "profilePhotoUrl": "/img/userprofile/default_profile_45_v2.png"
+  },
+  "createdDate": "2026-07-21T15:28:45.000Z",
+  "currentVersionId": "0Fcaj00000H3YPxCAN",
+  "currentVersionTotalRowCount": 40,
+  "currentVersionUrl": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG/versions/0Fcaj00000H3YPxCAN",
+  "dataRefreshDate": "2026-07-21T15:28:54.000Z",
+  "datasetType": "default",
+  "folder": {
+    "id": "00laj00000NAHrxAAH",
+    "label": "Delta Contract Building Analytics",
+    "name": "Delta_Contract_Building_Analytics",
+    "url": "/services/data/v67.0/wave/folders/00laj00000NAHrxAAH"
+  },
+  "id": "0Fbaj000002UGqzCAG",
+  "label": "Flown Fact",
+  "lastAccessedDate": "2026-07-22T16:38:22.000Z",
+  "lastModifiedBy": {
+    "id": "005aj00000Yr9hXAAR",
+    "name": "Integration User",
+    "profilePhotoUrl": "/img/userprofile/default_profile_45_v2.png"
+  },
+  "lastModifiedDate": "2026-07-21T15:28:55.000Z",
+  "lastQueriedDate": "2026-07-22T15:54:33.000Z",
+  "licenseAttributes": {
+    "type": "einsteinanalytics"
+  },
+  "name": "Flown_Fact",
+  "permissions": {
+    "create": true,
+    "manage": true,
+    "modify": true,
+    "view": true
+  },
+  "type": "dataset",
+  "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG",
+  "versionsUrl": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG/versions",
+  "visibility": "All"
+}

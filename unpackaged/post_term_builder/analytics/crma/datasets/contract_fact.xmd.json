@@ -1,0 +1,158 @@
+{
+  "createdBy": {
+    "id": "005aj00000Yr9hXAAR",
+    "name": "Integration User",
+    "profilePhotoUrl": "/img/userprofile/default_profile_45_v2.png"
+  },
+  "createdDate": "2026-07-21T15:41:52.000Z",
+  "dataset": {
+    "connector": "CSV",
+    "fullyQualifiedName": "Contract_Fact"
+  },
+  "dates": [],
+  "derivedDimensions": [],
+  "derivedMeasures": [],
+  "dimensions": [
+    {
+      "conditionalFormatting": {},
+      "customActions": [],
+      "customActionsEnabled": true,
+      "field": "term_name",
+      "fullyQualifiedName": "term_name",
+      "isMultiValue": false,
+      "label": "Term Name",
+      "linkTemplateEnabled": true,
+      "members": [],
+      "origin": "term_name",
+      "recordDisplayFields": [],
+      "salesforceActions": [],
+      "salesforceActionsEnabled": true,
+      "showInExplorer": true
+    },
+    {
+      "conditionalFormatting": {},
+      "customActions": [],
+      "customActionsEnabled": true,
+      "field": "fare_class",
+      "fullyQualifiedName": "fare_class",
+      "isMultiValue": false,
+      "label": "Fare Class",
+      "linkTemplateEnabled": true,
+      "members": [],
+      "origin": "fare_class",
+      "recordDisplayFields": [],
+      "salesforceActions": [],
+      "salesforceActionsEnabled": true,
+      "showInExplorer": true
+    },
+    {
+      "conditionalFormatting": {},
+      "customActions": [],
+      "customActionsEnabled": true,
+      "field": "term_id",
+      "fullyQualifiedName": "term_id",
+      "isMultiValue": false,
+      "label": "Term ID",
+      "linkTemplateEnabled": true,
+      "members": [],
+      "origin": "term_id",
+      "recordDisplayFields": [],
+      "salesforceActions": [],
+      "salesforceActionsEnabled": true,
+      "showInExplorer": true
+    },
+    {
+      "conditionalFormatting": {},
+      "customActions": [],
+      "customActionsEnabled": true,
+      "field": "carrier_role",
+      "fullyQualifiedName": "carrier_role",
+      "isMultiValue": false,
+      "label": "Carrier Role",
+      "linkTemplateEnabled": true,
+      "members": [],
+      "origin": "carrier_role",
+      "recordDisplayFields": [],
+      "salesforceActions": [],
+      "salesforceActionsEnabled": true,
+      "showInExplorer": true
+    },
+    {
+      "conditionalFormatting": {},
+      "customActions": [],
+      "customActionsEnabled": true,
+      "field": "region",
+      "fullyQualifiedName": "region",
+      "isMultiValue": false,
+      "label": "Region",
+      "linkTemplateEnabled": true,
+      "members": [],
+      "origin": "region",
+      "recordDisplayFields": [],
+      "salesforceActions": [],
+      "salesforceActionsEnabled": true,
+      "showInExplorer": true
+    }
+  ],
+  "language": "en_US",
+  "lastModifiedBy": {
+    "id": "005aj00000Yr9hXAAR",
+    "name": "Integration User",
+    "profilePhotoUrl": "/img/userprofile/default_profile_45_v2.png"
+  },
+  "lastModifiedDate": "2026-07-21T15:41:52.000Z",
+  "measures": [
+    {
+      "conditionalFormatting": {},
+      "field": "revenue",
+      "format": {
+        "decimalDigits": 2,
+        "delimiters": {}
+      },
+      "fullyQualifiedName": "revenue",
+      "label": "Revenue",
+      "origin": "revenue",
+      "showInExplorer": true
+    },
+    {
+      "conditionalFormatting": {},
+      "field": "discount_pct",
+      "format": {
+        "decimalDigits": 2,
+        "delimiters": {}
+      },
+      "fullyQualifiedName": "discount_pct",
+      "label": "Discount %",
+      "origin": "discount_pct",
+      "showInExplorer": true
+    },
+    {
+      "conditionalFormatting": {},
+      "field": "committed_share_pct",
+      "format": {
+        "decimalDigits": 4,
+        "delimiters": {}
+      },
+      "fullyQualifiedName": "committed_share_pct",
+      "label": "Committed Share %",
+      "origin": "committed_share_pct",
+      "showInExplorer": true
+    },
+    {
+      "conditionalFormatting": {},
+      "field": "sort_order",
+      "format": {
+        "decimalDigits": 0,
+        "delimiters": {}
+      },
+      "fullyQualifiedName": "sort_order",
+      "label": "Sort Order",
+      "origin": "sort_order",
+      "showInExplorer": true
+    }
+  ],
+  "organizations": [],
+  "showDetailsDefaultFields": [],
+  "type": "main",
+  "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGz3CAG/versions/0Fcaj00000H3ZaXCAV/xmds/main"
+}

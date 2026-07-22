@@ -1,0 +1,1408 @@
+{
+  "allowPreview": true,
+  "assetSharingUrl": "https://trailsignup-c79803691fdea3.my.salesforce.com/analytics/wave/dashboard?assetId=0FKaj000001dWvVGAU&orgId=00Daj00000y6125&loginHost=usa838.sfdc-8tgtt5.salesforce.com&urlType=sharing",
+  "createdBy": {
+    "id": "005aj00000YrjmbAAB",
+    "name": "Samuel Check",
+    "profilePhotoUrl": "/img/userprofile/default_profile_45_v2.png"
+  },
+  "createdDate": "2026-07-21T15:30:07.000Z",
+  "datasets": [
+    {
+      "id": "0Fbaj000002UGqzCAG",
+      "label": "Flown Fact",
+      "name": "Flown_Fact",
+      "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG"
+    }
+  ],
+  "dateVersion": 1,
+  "description": "Infinitech term analysis: Industry/Host Revenue, Share, FMS, Share Gap by geography",
+  "files": [
+    {
+      "contentType": "image/png",
+      "fileLength": 41240,
+      "fileName": "assetPreviewThumb",
+      "id": "0FJaj000000Qe6fGAC",
+      "lastModifiedDate": "2026-07-22T17:08:06.000Z",
+      "url": "/services/data/v67.0/wave/lenses/0FKaj000001dWvVGAU/files/0FJaj000000Qe6fGAC"
+    }
+  ],
+  "folder": {
+    "id": "00laj00000NAHrxAAH",
+    "label": "Delta Contract Building Analytics",
+    "name": "Delta_Contract_Building_Analytics",
+    "url": "/services/data/v67.0/wave/folders/00laj00000NAHrxAAH"
+  },
+  "historiesUrl": "/services/data/v67.0/wave/dashboards/0FKaj000001dWvVGAU/histories",
+  "id": "0FKaj000001dWvVGAU",
+  "label": "Delta UC1 — Contract Term Analysis",
+  "lastAccessedDate": "2026-07-22T17:11:41.000Z",
+  "lastModifiedBy": {
+    "id": "005aj00000YrjmbAAB",
+    "name": "Samuel Check",
+    "profilePhotoUrl": "/img/userprofile/default_profile_45_v2.png"
+  },
+  "lastModifiedDate": "2026-07-22T17:11:17.000Z",
+  "layoutAutoSync": "true",
+  "mobileDisabled": false,
+  "name": "Delta_UC1_Contract_Term_Analysis",
+  "permissions": {
+    "create": true,
+    "manage": true,
+    "modify": true,
+    "view": true
+  },
+  "refreshDate": "2026-07-21T15:28:49.000Z",
+  "state": {
+    "dataSourceLinksInfo": {
+      "enableAutomaticLinking": true,
+      "excludeRelationships": [],
+      "links": []
+    },
+    "filters": [],
+    "gridLayouts": [
+      {
+        "maxWidth": 1280,
+        "name": "default",
+        "numColumns": 10,
+        "pages": [
+          {
+            "label": "Proposal Summary",
+            "name": "8c157184-d031-49fc-b047-c27cf23507a2",
+            "navigationHidden": false,
+            "widgets": [
+              {
+                "colspan": 6,
+                "column": 0,
+                "name": "w_title",
+                "row": 0,
+                "rowspan": 3,
+                "widgetStyle": {
+                  "borderEdges": []
+                }
+              },
+              {
+                "colspan": 2,
+                "column": 0,
+                "name": "kpi_ind_rev",
+                "row": 3,
+                "rowspan": 6,
+                "widgetStyle": {
+                  "borderEdges": []
+                }
+              },
+              {
+                "colspan": 2,
+                "column": 2,
+                "name": "kpi_host_rev",
+                "row": 3,
+                "rowspan": 6,
+                "widgetStyle": {
+                  "borderEdges": []
+                }
+              },
+              {
+                "colspan": 2,
+                "column": 4,
+                "name": "kpi_share",
+                "row": 3,
+                "rowspan": 6,
+                "widgetStyle": {
+                  "borderEdges": []
+                }
+              },
+              {
+                "colspan": 2,
+                "column": 6,
+                "name": "kpi_fms",
+                "row": 3,
+                "rowspan": 6,
+                "widgetStyle": {
+                  "borderEdges": []
+                }
+              },
+              {
+                "colspan": 2,
+                "column": 8,
+                "name": "kpi_gap",
+                "row": 3,
+                "rowspan": 6,
+                "widgetStyle": {
+                  "borderEdges": []
+                }
+              },
+              {
+                "colspan": 10,
+                "column": 0,
+                "name": "chart_tbl",
+                "row": 9,
+                "rowspan": 18,
+                "widgetStyle": {
+                  "borderEdges": []
+                }
+              },
+              {
+                "colspan": 2,
+                "column": 6,
+                "name": "nav_p0_to_p1",
+                "row": 0,
+                "rowspan": 3,
+                "widgetStyle": {
+                  "backgroundColor": "#F3F6F9",
+                  "borderColor": "#C9D2DB",
+                  "borderEdges": [
+                    "all"
+                  ],
+                  "borderRadius": 4
+                }
+              },
+              {
+                "colspan": 2,
+                "column": 8,
+                "name": "nav_p0_to_p2",
+                "row": 0,
+                "rowspan": 3,
+                "widgetStyle": {
+                  "backgroundColor": "#F3F6F9",
+                  "borderColor": "#C9D2DB",
+                  "borderEdges": [
+                    "all"
+                  ],
+                  "borderRadius": 4
+                }
+              }
+            ]
+          },
+          {
+            "label": "Opportunity by Geography",
+            "name": "1fbd6570-fa96-4544-bf12-eaab4da43123",
+            "navigationHidden": false,
+            "widgets": [
+              {
+                "colspan": 10,
+                "column": 0,
+                "name": "chart_share_fms",
+                "row": 3,
+                "rowspan": 16,
+                "widgetStyle": {
+                  "borderEdges": []
+                }
+              },
+              {
+                "colspan": 10,
+                "column": 0,
+                "name": "chart_gap",
+                "row": 19,
+                "rowspan": 14,
+                "widgetStyle": {
+                  "borderEdges": []
+                }
+              },
+              {
+                "colspan": 6,
+                "column": 0,
+                "name": "w_title_p1",
+                "row": 0,
+                "rowspan": 3
+              },
+              {
+                "colspan": 2,
+                "column": 6,
+                "name": "nav_p1_to_p0",
+                "row": 0,
+                "rowspan": 3,
+                "widgetStyle": {
+                  "backgroundColor": "#F3F6F9",
+                  "borderColor": "#C9D2DB",
+                  "borderEdges": [
+                    "all"
+                  ],
+                  "borderRadius": 4
+                }
+              },
+              {
+                "colspan": 2,
+                "column": 8,
+                "name": "nav_p1_to_p2",
+                "row": 0,
+                "rowspan": 3,
+                "widgetStyle": {
+                  "backgroundColor": "#F3F6F9",
+                  "borderColor": "#C9D2DB",
+                  "borderEdges": [
+                    "all"
+                  ],
+                  "borderRadius": 4
+                }
+              }
+            ]
+          },
+          {
+            "label": "Spend by Fare Class",
+            "name": "73eb2a6f-8634-4d4e-bf82-54a428867b7e",
+            "navigationHidden": false,
+            "widgets": [
+              {
+                "colspan": 4,
+                "column": 0,
+                "name": "chart_fare_donut",
+                "row": 3,
+                "rowspan": 16,
+                "widgetStyle": {
+                  "borderEdges": []
+                }
+              },
+              {
+                "colspan": 6,
+                "column": 4,
+                "name": "chart_fare_term",
+                "row": 3,
+                "rowspan": 16,
+                "widgetStyle": {
+                  "borderEdges": []
+                }
+              },
+              {
+                "colspan": 6,
+                "column": 0,
+                "name": "w_title_p2",
+                "row": 0,
+                "rowspan": 3
+              },
+              {
+                "colspan": 2,
+                "column": 6,
+                "name": "nav_p2_to_p0",
+                "row": 0,
+                "rowspan": 3,
+                "widgetStyle": {
+                  "backgroundColor": "#F3F6F9",
+                  "borderColor": "#C9D2DB",
+                  "borderEdges": [
+                    "all"
+                  ],
+                  "borderRadius": 4
+                }
+              },
+              {
+                "colspan": 2,
+                "column": 8,
+                "name": "nav_p2_to_p1",
+                "row": 0,
+                "rowspan": 3,
+                "widgetStyle": {
+                  "backgroundColor": "#F3F6F9",
+                  "borderColor": "#C9D2DB",
+                  "borderEdges": [
+                    "all"
+                  ],
+                  "borderRadius": 4
+                }
+              }
+            ]
+          }
+        ],
+        "rowHeight": "fine",
+        "selectors": [],
+        "style": {
+          "alignmentX": "left",
+          "alignmentY": "top",
+          "backgroundColor": "#E8EDF5",
+          "cellSpacingX": 8,
+          "cellSpacingY": 8,
+          "fit": "original",
+          "gutterColor": "#E8EDF5"
+        },
+        "version": 1
+      }
+    ],
+    "layouts": [],
+    "steps": {
+      "bar_gap": {
+        "broadcastFacet": true,
+        "datasets": [
+          {
+            "id": "0Fbaj000002UGqzCAG",
+            "label": "Flown Fact",
+            "name": "Flown_Fact",
+            "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG"
+          }
+        ],
+        "isGlobal": false,
+        "label": "Share Gap by Term",
+        "query": {
+          "query": "{&quot;measures&quot;:[[&quot;avg&quot;,&quot;share_gap&quot;],[&quot;sum&quot;,&quot;revenue&quot;]],&quot;groups&quot;:[[&quot;term_name&quot;]],&quot;filters&quot;:[[&quot;carrier_role&quot;,[&quot;Host&quot;],&quot;in&quot;]]}",
+          "version": -1
+        },
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "selectMode": "single",
+        "sortable": true,
+        "type": "aggregateflex",
+        "useExternalFilters": true,
+        "useGlobal": true,
+        "visualizationParameters": {}
+      },
+      "kpi_ind_rev": {
+        "broadcastFacet": false,
+        "datasets": [
+          {
+            "id": "0Fbaj000002UGqzCAG",
+            "label": "Flown Fact",
+            "name": "Flown_Fact",
+            "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG"
+          }
+        ],
+        "isGlobal": false,
+        "label": "Industry Revenue",
+        "query": {
+          "query": "{&quot;measures&quot;:[[&quot;sum&quot;,&quot;revenue&quot;]],&quot;groups&quot;:[],&quot;filters&quot;:[]}",
+          "version": -1
+        },
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "selectMode": "none",
+        "sortable": true,
+        "type": "aggregateflex",
+        "useExternalFilters": true,
+        "useGlobal": true,
+        "visualizationParameters": {}
+      },
+      "tbl_terms": {
+        "broadcastFacet": true,
+        "datasets": [
+          {
+            "id": "0Fbaj000002UGqzCAG",
+            "label": "Flown Fact",
+            "name": "Flown_Fact",
+            "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG"
+          }
+        ],
+        "isGlobal": false,
+        "label": "Term Summary",
+        "query": {
+          "query": "{&quot;measures&quot;:[[&quot;sum&quot;,&quot;revenue&quot;],[&quot;avg&quot;,&quot;share_pct&quot;],[&quot;avg&quot;,&quot;fms_pct&quot;],[&quot;avg&quot;,&quot;share_gap&quot;]],&quot;groups&quot;:[[&quot;term_name&quot;]],&quot;filters&quot;:[]}",
+          "version": -1
+        },
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "selectMode": "single",
+        "sortable": true,
+        "type": "aggregateflex",
+        "useExternalFilters": true,
+        "useGlobal": true,
+        "visualizationParameters": {}
+      },
+      "kpi_gap": {
+        "broadcastFacet": false,
+        "datasets": [
+          {
+            "id": "0Fbaj000002UGqzCAG",
+            "label": "Flown Fact",
+            "name": "Flown_Fact",
+            "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG"
+          }
+        ],
+        "isGlobal": false,
+        "label": "Share Gap",
+        "query": {
+          "query": "{&quot;measures&quot;:[[&quot;avg&quot;,&quot;share_gap&quot;]],&quot;groups&quot;:[],&quot;filters&quot;:[[&quot;carrier_role&quot;,[&quot;Host&quot;],&quot;in&quot;]]}",
+          "version": -1
+        },
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "selectMode": "none",
+        "sortable": true,
+        "type": "aggregateflex",
+        "useExternalFilters": true,
+        "useGlobal": true,
+        "visualizationParameters": {}
+      },
+      "bar_fare_term": {
+        "broadcastFacet": true,
+        "datasets": [
+          {
+            "id": "0Fbaj000002UGqzCAG",
+            "label": "Flown Fact",
+            "name": "Flown_Fact",
+            "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG"
+          }
+        ],
+        "isGlobal": false,
+        "label": "Fare Mix by Term",
+        "query": {
+          "query": "{&quot;measures&quot;:[[&quot;sum&quot;,&quot;revenue&quot;]],&quot;groups&quot;:[[&quot;term_name&quot;],[&quot;fare_class&quot;]],&quot;filters&quot;:[[&quot;carrier_role&quot;,[&quot;Host&quot;],&quot;in&quot;]]}",
+          "version": -1
+        },
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "selectMode": "single",
+        "sortable": true,
+        "type": "aggregateflex",
+        "useExternalFilters": true,
+        "useGlobal": true,
+        "visualizationParameters": {}
+      },
+      "donut_fare": {
+        "broadcastFacet": true,
+        "datasets": [
+          {
+            "id": "0Fbaj000002UGqzCAG",
+            "label": "Flown Fact",
+            "name": "Flown_Fact",
+            "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG"
+          }
+        ],
+        "isGlobal": false,
+        "label": "Revenue by Fare Class",
+        "query": {
+          "query": "{&quot;measures&quot;:[[&quot;sum&quot;,&quot;revenue&quot;]],&quot;groups&quot;:[[&quot;fare_class&quot;]],&quot;filters&quot;:[]}",
+          "version": -1
+        },
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "selectMode": "single",
+        "sortable": true,
+        "type": "aggregateflex",
+        "useExternalFilters": true,
+        "useGlobal": true,
+        "visualizationParameters": {}
+      },
+      "bar_share_fms": {
+        "broadcastFacet": true,
+        "datasets": [
+          {
+            "id": "0Fbaj000002UGqzCAG",
+            "label": "Flown Fact",
+            "name": "Flown_Fact",
+            "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG"
+          }
+        ],
+        "isGlobal": false,
+        "label": "Share vs FMS by Term",
+        "query": {
+          "query": "{&quot;measures&quot;:[[&quot;avg&quot;,&quot;share_pct&quot;],[&quot;avg&quot;,&quot;fms_pct&quot;],[&quot;avg&quot;,&quot;share_gap&quot;]],&quot;groups&quot;:[[&quot;term_name&quot;]],&quot;filters&quot;:[[&quot;carrier_role&quot;,[&quot;Host&quot;],&quot;in&quot;]]}",
+          "version": -1
+        },
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "selectMode": "single",
+        "sortable": true,
+        "type": "aggregateflex",
+        "useExternalFilters": true,
+        "useGlobal": true,
+        "visualizationParameters": {}
+      },
+      "kpi_host_rev": {
+        "broadcastFacet": false,
+        "datasets": [
+          {
+            "id": "0Fbaj000002UGqzCAG",
+            "label": "Flown Fact",
+            "name": "Flown_Fact",
+            "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG"
+          }
+        ],
+        "isGlobal": false,
+        "label": "Host Revenue",
+        "query": {
+          "query": "{&quot;measures&quot;:[[&quot;sum&quot;,&quot;revenue&quot;]],&quot;groups&quot;:[],&quot;filters&quot;:[[&quot;carrier_role&quot;,[&quot;Host&quot;],&quot;in&quot;]]}",
+          "version": -1
+        },
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "selectMode": "none",
+        "sortable": true,
+        "type": "aggregateflex",
+        "useExternalFilters": true,
+        "useGlobal": true,
+        "visualizationParameters": {}
+      },
+      "kpi_share": {
+        "broadcastFacet": false,
+        "datasets": [
+          {
+            "id": "0Fbaj000002UGqzCAG",
+            "label": "Flown Fact",
+            "name": "Flown_Fact",
+            "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG"
+          }
+        ],
+        "isGlobal": false,
+        "label": "Share %",
+        "query": {
+          "query": "{&quot;measures&quot;:[[&quot;avg&quot;,&quot;share_pct&quot;]],&quot;groups&quot;:[],&quot;filters&quot;:[[&quot;carrier_role&quot;,[&quot;Host&quot;],&quot;in&quot;]]}",
+          "version": -1
+        },
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "selectMode": "none",
+        "sortable": true,
+        "type": "aggregateflex",
+        "useExternalFilters": true,
+        "useGlobal": true,
+        "visualizationParameters": {}
+      },
+      "kpi_fms": {
+        "broadcastFacet": false,
+        "datasets": [
+          {
+            "id": "0Fbaj000002UGqzCAG",
+            "label": "Flown Fact",
+            "name": "Flown_Fact",
+            "url": "/services/data/v67.0/wave/datasets/0Fbaj000002UGqzCAG"
+          }
+        ],
+        "isGlobal": false,
+        "label": "FMS %",
+        "query": {
+          "query": "{&quot;measures&quot;:[[&quot;avg&quot;,&quot;fms_pct&quot;]],&quot;groups&quot;:[],&quot;filters&quot;:[[&quot;carrier_role&quot;,[&quot;Host&quot;],&quot;in&quot;]]}",
+          "version": -1
+        },
+        "receiveFacetSource": {
+          "mode": "all",
+          "steps": []
+        },
+        "selectMode": "none",
+        "sortable": true,
+        "type": "aggregateflex",
+        "useExternalFilters": true,
+        "useGlobal": true,
+        "visualizationParameters": {}
+      }
+    },
+    "widgetStyle": {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#C8D4E3",
+      "borderEdges": [],
+      "borderRadius": 4,
+      "borderWidth": 1,
+      "tooltipStyle": {
+        "backgroundColor": "#16325c",
+        "labelColor": "#9faab5",
+        "valueColor": "#ffffff"
+      }
+    },
+    "widgets": {
+      "nav_p1_to_p2": {
+        "parameters": {
+          "destinationLink": {
+            "name": "73eb2a6f-8634-4d4e-bf82-54a428867b7e"
+          },
+          "destinationType": "page",
+          "fontSize": 12,
+          "text": "Spend by Fare Class  ›",
+          "textAlignment": "center",
+          "textColor": "#0176D3"
+        },
+        "type": "link"
+      },
+      "kpi_ind_rev": {
+        "parameters": {
+          "compact": false,
+          "exploreLink": true,
+          "interactions": [],
+          "measureField": "A",
+          "numberBold": false,
+          "numberColor": "#2E2E2E",
+          "numberItalic": false,
+          "numberSize": 28,
+          "showActionMenu": true,
+          "step": "kpi_ind_rev",
+          "textAlignment": "center",
+          "title": "Industry Revenue",
+          "titleBold": false,
+          "titleColor": "#2E2E2E",
+          "titleItalic": false,
+          "titleSize": 13
+        },
+        "type": "number"
+      },
+      "chart_fare_term": {
+        "parameters": {
+          "autoFitMode": "keepLabels",
+          "bins": {
+            "breakpoints": {
+              "high": 100,
+              "low": 0
+            },
+            "bands": {
+              "high": {
+                "color": "#008000",
+                "label": ""
+              },
+              "low": {
+                "color": "#B22222",
+                "label": ""
+              },
+              "medium": {
+                "color": "#ffa500",
+                "label": ""
+              }
+            }
+          },
+          "legend": {
+            "descOrder": false,
+            "showHeader": false,
+            "show": true,
+            "customSize": "auto",
+            "position": "bottom-center",
+            "inside": false
+          },
+          "axisMode": "sync",
+          "tooltip": {
+            "content": {
+              "legend": {
+                "showBinLabel": true,
+                "measures": [],
+                "showNullValues": true,
+                "customizeLegend": false,
+                "showPercentage": true,
+                "showDimensions": true,
+                "showMeasures": true,
+                "dimensions": []
+              }
+            }
+          },
+          "visualizationType": "hbar",
+          "exploreLink": true,
+          "title": {
+            "fontSize": 13,
+            "subtitleFontSize": 11,
+            "label": "Host Revenue Fare Mix by Term",
+            "align": "center",
+            "subtitleLabel": ""
+          },
+          "binValues": false,
+          "trellis": {
+            "flipLabels": false,
+            "showGridLines": true,
+            "size": [
+              100,
+              100
+            ],
+            "enable": false,
+            "type": "x",
+            "chartsPerLine": 4
+          },
+          "showActionMenu": true,
+          "measureAxis2": {
+            "sqrtScale": false,
+            "showTitle": true,
+            "showAxis": true,
+            "title": "",
+            "customDomain": {
+              "showDomain": false
+            }
+          },
+          "valueType": "compactNumber",
+          "measureAxis1": {
+            "sqrtScale": false,
+            "showTitle": true,
+            "showAxis": true,
+            "title": "",
+            "customDomain": {
+              "showDomain": false
+            }
+          },
+          "step": "bar_fare_term",
+          "theme": "wave",
+          "compactDecimalDigits": -1,
+          "applyConditionalFormatting": false,
+          "dimensionAxis": {
+            "showTitle": true,
+            "customSize": "auto",
+            "showAxis": true,
+            "title": "",
+            "icons": {
+              "useIcons": false,
+              "iconProps": {
+                "fit": "cover",
+                "column": "",
+                "type": "round"
+              }
+            }
+          }
+        },
+        "type": "chart"
+      },
+      "w_title_p1": {
+        "parameters": {
+          "content": {
+            "richTextContent": [
+              {
+                "attributes": {
+                  "color": "#003268",
+                  "size": "18px",
+                  "bold": true
+                },
+                "insert": "Opportunity by Geography"
+              },
+              {
+                "attributes": {
+                  "align": "left"
+                },
+                "insert": "\n"
+              }
+            ]
+          },
+          "interactions": [],
+          "showActionMenu": false
+        },
+        "type": "text"
+      },
+      "w_title_p2": {
+        "parameters": {
+          "content": {
+            "richTextContent": [
+              {
+                "attributes": {
+                  "color": "#003268",
+                  "size": "18px",
+                  "bold": true
+                },
+                "insert": "Spend by Fare Class"
+              },
+              {
+                "attributes": {
+                  "align": "left"
+                },
+                "insert": "\n"
+              }
+            ]
+          },
+          "interactions": [],
+          "showActionMenu": false
+        },
+        "type": "text"
+      },
+      "w_title": {
+        "parameters": {
+          "content": {
+            "richTextContent": [
+              {
+                "attributes": {
+                  "color": "#003268",
+                  "size": "18px",
+                  "bold": true
+                },
+                "insert": "Contract Term Analysis"
+              },
+              {
+                "attributes": {
+                  "align": "left"
+                },
+                "insert": "\n"
+              }
+            ]
+          },
+          "interactions": [],
+          "showActionMenu": false
+        },
+        "type": "text"
+      },
+      "nav_p1_to_p0": {
+        "parameters": {
+          "destinationLink": {
+            "name": "8c157184-d031-49fc-b047-c27cf23507a2"
+          },
+          "destinationType": "page",
+          "fontSize": 12,
+          "text": "‹  Proposal Summary",
+          "textAlignment": "center",
+          "textColor": "#0176D3"
+        },
+        "type": "link"
+      },
+      "nav_p2_to_p0": {
+        "parameters": {
+          "destinationLink": {
+            "name": "8c157184-d031-49fc-b047-c27cf23507a2"
+          },
+          "destinationType": "page",
+          "fontSize": 12,
+          "text": "‹  Proposal Summary",
+          "textAlignment": "center",
+          "textColor": "#0176D3"
+        },
+        "type": "link"
+      },
+      "kpi_host_rev": {
+        "parameters": {
+          "compact": false,
+          "exploreLink": true,
+          "interactions": [],
+          "measureField": "A",
+          "numberBold": false,
+          "numberColor": "#003268",
+          "numberItalic": false,
+          "numberSize": 28,
+          "showActionMenu": true,
+          "step": "kpi_host_rev",
+          "textAlignment": "center",
+          "title": "Host Revenue",
+          "titleBold": false,
+          "titleColor": "#003268",
+          "titleItalic": false,
+          "titleSize": 13
+        },
+        "type": "number"
+      },
+      "kpi_share": {
+        "parameters": {
+          "compact": false,
+          "exploreLink": true,
+          "interactions": [],
+          "measureField": "A",
+          "numberBold": false,
+          "numberColor": "#003268",
+          "numberItalic": false,
+          "numberSize": 28,
+          "showActionMenu": true,
+          "step": "kpi_share",
+          "textAlignment": "center",
+          "title": "Share %",
+          "titleBold": false,
+          "titleColor": "#003268",
+          "titleItalic": false,
+          "titleSize": 13
+        },
+        "type": "number"
+      },
+      "nav_p2_to_p1": {
+        "parameters": {
+          "destinationLink": {
+            "name": "1fbd6570-fa96-4544-bf12-eaab4da43123"
+          },
+          "destinationType": "page",
+          "fontSize": 12,
+          "text": "‹  Opportunity by Geography",
+          "textAlignment": "center",
+          "textColor": "#0176D3"
+        },
+        "type": "link"
+      },
+      "chart_gap": {
+        "parameters": {
+          "autoFitMode": "keepLabels",
+          "bins": {
+            "breakpoints": {
+              "high": 100,
+              "low": 0
+            },
+            "bands": {
+              "high": {
+                "color": "#008000",
+                "label": ""
+              },
+              "low": {
+                "color": "#B22222",
+                "label": ""
+              },
+              "medium": {
+                "color": "#ffa500",
+                "label": ""
+              }
+            }
+          },
+          "legend": {
+            "descOrder": false,
+            "showHeader": false,
+            "show": true,
+            "customSize": "auto",
+            "position": "bottom-center",
+            "inside": false
+          },
+          "axisMode": "sync",
+          "tooltip": {
+            "content": {
+              "legend": {
+                "showBinLabel": true,
+                "measures": [],
+                "showNullValues": true,
+                "customizeLegend": false,
+                "showPercentage": true,
+                "showDimensions": true,
+                "showMeasures": true,
+                "dimensions": []
+              }
+            }
+          },
+          "visualizationType": "hbar",
+          "exploreLink": true,
+          "title": {
+            "fontSize": 13,
+            "subtitleFontSize": 11,
+            "label": "Share Gap by Term",
+            "align": "center",
+            "subtitleLabel": ""
+          },
+          "binValues": false,
+          "trellis": {
+            "flipLabels": false,
+            "showGridLines": true,
+            "size": [
+              100,
+              100
+            ],
+            "enable": false,
+            "type": "x",
+            "chartsPerLine": 4
+          },
+          "showActionMenu": true,
+          "measureAxis2": {
+            "sqrtScale": false,
+            "showTitle": true,
+            "showAxis": true,
+            "title": "",
+            "customDomain": {
+              "showDomain": false
+            }
+          },
+          "valueType": "compactNumber",
+          "measureAxis1": {
+            "sqrtScale": false,
+            "showTitle": true,
+            "showAxis": true,
+            "title": "",
+            "customDomain": {
+              "showDomain": false
+            }
+          },
+          "step": "bar_gap",
+          "theme": "wave",
+          "compactDecimalDigits": -1,
+          "applyConditionalFormatting": false,
+          "dimensionAxis": {
+            "showTitle": true,
+            "customSize": "auto",
+            "showAxis": true,
+            "title": "",
+            "icons": {
+              "useIcons": false,
+              "iconProps": {
+                "fit": "cover",
+                "column": "",
+                "type": "round"
+              }
+            }
+          }
+        },
+        "type": "chart"
+      },
+      "kpi_gap": {
+        "parameters": {
+          "compact": false,
+          "exploreLink": true,
+          "interactions": [],
+          "measureField": "A",
+          "numberBold": false,
+          "numberColor": "#E3132C",
+          "numberItalic": false,
+          "numberSize": 28,
+          "showActionMenu": true,
+          "step": "kpi_gap",
+          "textAlignment": "center",
+          "title": "Share Gap",
+          "titleBold": false,
+          "titleColor": "#E3132C",
+          "titleItalic": false,
+          "titleSize": 13
+        },
+        "type": "number"
+      },
+      "chart_tbl": {
+        "parameters": {
+          "autoFitMode": "keepLabels",
+          "bins": {
+            "breakpoints": {
+              "high": 100,
+              "low": 0
+            },
+            "bands": {
+              "high": {
+                "color": "#008000",
+                "label": ""
+              },
+              "low": {
+                "color": "#B22222",
+                "label": ""
+              },
+              "medium": {
+                "color": "#ffa500",
+                "label": ""
+              }
+            }
+          },
+          "legend": {
+            "descOrder": false,
+            "showHeader": false,
+            "show": true,
+            "customSize": "auto",
+            "position": "bottom-center",
+            "inside": false
+          },
+          "axisMode": "sync",
+          "tooltip": {
+            "content": {
+              "legend": {
+                "showBinLabel": true,
+                "measures": [],
+                "showNullValues": true,
+                "customizeLegend": false,
+                "showPercentage": true,
+                "showDimensions": true,
+                "showMeasures": true,
+                "dimensions": []
+              }
+            }
+          },
+          "visualizationType": "hbar",
+          "exploreLink": true,
+          "title": {
+            "fontSize": 14,
+            "subtitleFontSize": 11,
+            "label": "Revenue &amp;amp; Share by Term",
+            "align": "center",
+            "subtitleLabel": ""
+          },
+          "binValues": false,
+          "trellis": {
+            "flipLabels": false,
+            "showGridLines": true,
+            "size": [
+              100,
+              100
+            ],
+            "enable": false,
+            "type": "x",
+            "chartsPerLine": 4
+          },
+          "showActionMenu": true,
+          "measureAxis2": {
+            "sqrtScale": false,
+            "showTitle": true,
+            "showAxis": true,
+            "title": "",
+            "customDomain": {
+              "showDomain": false
+            }
+          },
+          "valueType": "compactNumber",
+          "measureAxis1": {
+            "sqrtScale": false,
+            "showTitle": true,
+            "showAxis": true,
+            "title": "",
+            "customDomain": {
+              "showDomain": false
+            }
+          },
+          "step": "tbl_terms",
+          "theme": "wave",
+          "compactDecimalDigits": -1,
+          "applyConditionalFormatting": false,
+          "dimensionAxis": {
+            "showTitle": true,
+            "customSize": "auto",
+            "showAxis": true,
+            "title": "",
+            "icons": {
+              "useIcons": false,
+              "iconProps": {
+                "fit": "cover",
+                "column": "",
+                "type": "round"
+              }
+            }
+          }
+        },
+        "type": "chart"
+      },
+      "chart_share_fms": {
+        "parameters": {
+          "autoFitMode": "keepLabels",
+          "bins": {
+            "breakpoints": {
+              "high": 100,
+              "low": 0
+            },
+            "bands": {
+              "high": {
+                "color": "#008000",
+                "label": ""
+              },
+              "low": {
+                "color": "#B22222",
+                "label": ""
+              },
+              "medium": {
+                "color": "#ffa500",
+                "label": ""
+              }
+            }
+          },
+          "legend": {
+            "descOrder": false,
+            "showHeader": false,
+            "show": true,
+            "customSize": "auto",
+            "position": "bottom-center",
+            "inside": false
+          },
+          "axisMode": "sync",
+          "tooltip": {
+            "content": {
+              "legend": {
+                "showBinLabel": true,
+                "measures": [],
+                "showNullValues": true,
+                "customizeLegend": false,
+                "showPercentage": true,
+                "showDimensions": true,
+                "showMeasures": true,
+                "dimensions": []
+              }
+            }
+          },
+          "visualizationType": "hbar",
+          "exploreLink": true,
+          "title": {
+            "fontSize": 13,
+            "subtitleFontSize": 11,
+            "label": "Share vs FMS by Term (Gap = Opportunity)",
+            "align": "center",
+            "subtitleLabel": ""
+          },
+          "binValues": false,
+          "trellis": {
+            "flipLabels": false,
+            "showGridLines": true,
+            "size": [
+              100,
+              100
+            ],
+            "enable": false,
+            "type": "x",
+            "chartsPerLine": 4
+          },
+          "showActionMenu": true,
+          "measureAxis2": {
+            "sqrtScale": false,
+            "showTitle": true,
+            "showAxis": true,
+            "title": "",
+            "customDomain": {
+              "showDomain": false
+            }
+          },
+          "valueType": "compactNumber",
+          "measureAxis1": {
+            "sqrtScale": false,
+            "showTitle": true,
+            "showAxis": true,
+            "title": "",
+            "customDomain": {
+              "showDomain": false
+            }
+          },
+          "step": "bar_share_fms",
+          "theme": "wave",
+          "compactDecimalDigits": -1,
+          "applyConditionalFormatting": false,
+          "dimensionAxis": {
+            "showTitle": true,
+            "customSize": "auto",
+            "showAxis": true,
+            "title": "",
+            "icons": {
+              "useIcons": false,
+              "iconProps": {
+                "fit": "cover",
+                "column": "",
+                "type": "round"
+              }
+            }
+          }
+        },
+        "type": "chart"
+      },
+      "chart_fare_donut": {
+        "parameters": {
+          "autoFitMode": "keepLabels",
+          "bins": {
+            "breakpoints": {
+              "high": 100,
+              "low": 0
+            },
+            "bands": {
+              "high": {
+                "color": "#008000",
+                "label": ""
+              },
+              "low": {
+                "color": "#B22222",
+                "label": ""
+              },
+              "medium": {
+                "color": "#ffa500",
+                "label": ""
+              }
+            }
+          },
+          "legend": {
+            "descOrder": false,
+            "showHeader": false,
+            "show": true,
+            "customSize": "auto",
+            "position": "bottom-center",
+            "inside": false
+          },
+          "axisMode": "sync",
+          "tooltip": {
+            "content": {
+              "legend": {
+                "showBinLabel": true,
+                "measures": [],
+                "showNullValues": true,
+                "customizeLegend": false,
+                "showPercentage": true,
+                "showDimensions": true,
+                "showMeasures": true,
+                "dimensions": []
+              }
+            }
+          },
+          "visualizationType": "hbar",
+          "exploreLink": true,
+          "title": {
+            "fontSize": 13,
+            "subtitleFontSize": 11,
+            "label": "Revenue by Fare Class (All Carriers)",
+            "align": "center",
+            "subtitleLabel": ""
+          },
+          "binValues": false,
+          "trellis": {
+            "flipLabels": false,
+            "showGridLines": true,
+            "size": [
+              100,
+              100
+            ],
+            "enable": false,
+            "type": "x",
+            "chartsPerLine": 4
+          },
+          "showActionMenu": true,
+          "measureAxis2": {
+            "sqrtScale": false,
+            "showTitle": true,
+            "showAxis": true,
+            "title": "",
+            "customDomain": {
+              "showDomain": false
+            }
+          },
+          "valueType": "compactNumber",
+          "measureAxis1": {
+            "sqrtScale": false,
+            "showTitle": true,
+            "showAxis": true,
+            "title": "",
+            "customDomain": {
+              "showDomain": false
+            }
+          },
+          "step": "donut_fare",
+          "theme": "wave",
+          "compactDecimalDigits": -1,
+          "applyConditionalFormatting": false,
+          "dimensionAxis": {
+            "showTitle": true,
+            "customSize": "auto",
+            "showAxis": true,
+            "title": "",
+            "icons": {
+              "useIcons": false,
+              "iconProps": {
+                "fit": "cover",
+                "column": "",
+                "type": "round"
+              }
+            }
+          }
+        },
+        "type": "chart"
+      },
+      "kpi_fms": {
+        "parameters": {
+          "compact": false,
+          "exploreLink": true,
+          "interactions": [],
+          "measureField": "A",
+          "numberBold": false,
+          "numberColor": "#555555",
+          "numberItalic": false,
+          "numberSize": 28,
+          "showActionMenu": true,
+          "step": "kpi_fms",
+          "textAlignment": "center",
+          "title": "FMS %",
+          "titleBold": false,
+          "titleColor": "#555555",
+          "titleItalic": false,
+          "titleSize": 13
+        },
+        "type": "number"
+      },
+      "nav_p0_to_p2": {
+        "parameters": {
+          "destinationLink": {
+            "name": "73eb2a6f-8634-4d4e-bf82-54a428867b7e"
+          },
+          "destinationType": "page",
+          "fontSize": 12,
+          "text": "Spend by Fare Class  ›",
+          "textAlignment": "center",
+          "textColor": "#0176D3"
+        },
+        "type": "link"
+      },
+      "nav_p0_to_p1": {
+        "parameters": {
+          "destinationLink": {
+            "name": "1fbd6570-fa96-4544-bf12-eaab4da43123"
+          },
+          "destinationType": "page",
+          "fontSize": 12,
+          "text": "Opportunity by Geography  ›",
+          "textAlignment": "center",
+          "textColor": "#0176D3"
+        },
+        "type": "link"
+      }
+    }
+  },
+  "type": "dashboard",
+  "url": "/services/data/v67.0/wave/dashboards/0FKaj000001dWvVGAU",
+  "visibility": "All"
+}
