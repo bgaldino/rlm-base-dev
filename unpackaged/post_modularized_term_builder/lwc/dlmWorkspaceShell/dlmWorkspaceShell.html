@@ -71,7 +71,19 @@
       <lightning-tabset variant="scoped" active-tab-value={activeTab} class="dlm-shell__tabs">
         <lightning-tab label={shellCreationTabLabel} value="creation" onactive={handleTabActive}>
           <div class="dlm-shell__tab-body">
-            <c-dlm-term-workspace></c-dlm-term-workspace>
+            <!-- Pre-term inputs: analysis period (drives analytics), participating carriers, and a
+                 client-only subsidiary picker. Emits configchange up to the shell. -->
+            <c-dlm-data-set-config
+              quote-id={quoteId}
+              account-id={accountId}
+              onconfigchange={handleConfigChange}
+            ></c-dlm-data-set-config>
+            <!-- Props-down fix: the embedded term workspace mounts after the LMC `context` was
+                 published, so hand it quoteId / selectedTermId directly rather than relying on LMC. -->
+            <c-dlm-term-workspace
+              quote-id={quoteId}
+              selected-term-id={selectedTermId}
+            ></c-dlm-term-workspace>
           </div>
         </lightning-tab>
 
@@ -83,27 +95,13 @@
               currency-code={currencyCode}
               expanded={workspaceExpanded}
               term-kpis={selectedTermKpis}
+              carriers={participatingCarriers}
               apply-disabled={applyOfferDisabled}
               onmodelchange={handleModelChange}
               onmethodchange={handleMethodChange}
               onexpandtoggle={handleExpandToggle}
               onapplyofferrequest={handleApplyOfferRequest}
             ></c-dlm-modeling-workspace>
-          </div>
-        </lightning-tab>
-
-        <lightning-tab label={performanceTabLabel} value="performance" onactive={handleTabActive}>
-          <div class="dlm-shell__tab-body dlm-shell__performance slds-p-around_medium">
-            <lightning-icon
-              icon-name="utility:chart"
-              size="small"
-              class="slds-m-bottom_x-small"
-            ></lightning-icon>
-            <h3 class="slds-text-heading_small slds-m-bottom_xx-small">Performance</h3>
-            <p class="slds-text-color_weak">
-              Post-signature performance dashboards (share capture, EDR realization, market-group
-              rollups) land here in a later round. Model the negotiation in the Modeling tab for now.
-            </p>
           </div>
         </lightning-tab>
       </lightning-tabset>

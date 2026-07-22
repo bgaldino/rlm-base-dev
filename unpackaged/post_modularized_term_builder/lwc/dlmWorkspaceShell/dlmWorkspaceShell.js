@@ -29,10 +29,11 @@ const SOURCE = "dlmWorkspaceShell";
  * Modularized Delta Term Builder — the always-mounted "workspace shell" tile.
  *
  * This is the modularized home for the parked negotiation-modeling workbench (see
- * docs/features/delta-negotiation-modeling-demo.md → "Round 2"). It hosts a lightning-tabset with
- * three tabs — Shell Creation (the existing c/dlmTermWorkspace), Modeling (c/dlmModelingWorkspace),
- * and a Performance placeholder — and, as always-visible chrome above the tabs, the contract-wide KPI
- * band + a Proposal Summary action.
+ * docs/features/delta-negotiation-modeling-demo.md → "Round 2"). It hosts a lightning-tabset with two
+ * tabs — Shell Creation (the Configure Data Set panel + c/dlmTermWorkspace) and Modeling
+ * (c/dlmModelingWorkspace) — and, as always-visible chrome above the tabs, the contract-wide KPI band
+ * + a Proposal Summary action. (Post-signature performance dashboards move to the Contract record page,
+ * so there is no Performance tab here.)
  *
  * Ownership (the decided architecture): the SHELL owns the per-Term demo model cache
  * (`_modelsByTermId`, keyed `${termId}::${method}`) and the contract-level KPI aggregation. It must,
@@ -62,17 +63,23 @@ export default class DlmWorkspaceShell extends LightningElement {
   @api showProposalAction;
   @api shellCreationLabel;
   @api modelingLabel;
-  @api performanceLabel;
 
   @track terms = [];
 
   quoteId;
+  accountId;
   selectedTermId;
   quoteName = "";
   accountName = "";
   currencyCode = "USD";
 
-  // Which tab is active ("creation" | "modeling" | "performance"). Shell Creation is the default.
+  // Pre-term inputs from the Configure Data Set panel (Shell Creation tab). The analysis-period factor
+  // (days / 365, clamped >= 0, default 1 = no scaling) scales the fabricated absolute KPI magnitudes;
+  // the participating carriers are surfaced as context chips above the Modeling grid (never grid rows).
+  @track periodFactor = 1;
+  @track participatingCarriers = [];
+
+  // Which tab is active ("creation" | "modeling"). Shell Creation is the default.
   activeTab = "creation";
 
   // Per-(term, method) client-only demo model cache, keyed `${termId}::${method}`; seeded lazily,
@@ -136,6 +143,7 @@ export default class DlmWorkspaceShell extends LightningElement {
         // demo models, and reload. A repeat of the current quote (e.g. a header date edit) is ignored.
         if (message.quoteId && message.quoteId !== this.quoteId) {
           this.quoteId = message.quoteId;
+          this.accountId = message.accountId || null;
           this.selectedTermId = null;
           this._resetDemoModels();
           this.loadState();
@@ -202,6 +210,7 @@ export default class DlmWorkspaceShell extends LightningElement {
       }
       const quote = stateRes.quote || {};
       this.quoteName = quote.name || this.quoteName;
+      this.accountId = quote.accountId || this.accountId;
       this.accountName = quote.accountName || this.accountName;
       this.currencyCode =
         stateRes.currencyCode || quote.currencyCode || this.currencyCode || "USD";
@@ -279,7 +288,9 @@ export default class DlmWorkspaceShell extends LightningElement {
   // round). Terms without a seeded model still get baseline KPIs (seeded on demand), so the contract
   // band is populated even before the analyst opens the Modeling tab.
   get _termKpiList() {
-    return this.terms.map((t) => computeTermKpis(t, this._modelFor(t, this.selectedMethod)));
+    return this.terms.map((t) =>
+      computeTermKpis(t, this._modelFor(t, this.selectedMethod), this.periodFactor)
+    );
   }
 
   get contractKpis() {
@@ -288,7 +299,9 @@ export default class DlmWorkspaceShell extends LightningElement {
 
   get selectedTermKpis() {
     const t = this.selectedTerm;
-    return t ? computeTermKpis(t, this._modelFor(t, this.selectedMethod)) : null;
+    return t
+      ? computeTermKpis(t, this._modelFor(t, this.selectedMethod), this.periodFactor)
+      : null;
   }
 
   // ---------- getters: selection, tabs, visibility ----------
@@ -329,10 +342,6 @@ export default class DlmWorkspaceShell extends LightningElement {
     return this.modelingLabel || "Modeling";
   }
 
-  get performanceTabLabel() {
-    return this.performanceLabel || "Performance";
-  }
-
   get proposalDisabled() {
     return !this.quoteId || !this.hasTerms;
   }
@@ -344,6 +353,18 @@ export default class DlmWorkspaceShell extends LightningElement {
   handleTabActive(event) {
     const value = event.target && event.target.value;
     this.activeTab = value || "creation";
+  }
+
+  // ---------- events up from the Configure Data Set panel (Shell Creation tab) ----------
+
+  // The pre-term panel saved/changed its inputs. Adopt the analysis-period factor (scales the
+  // fabricated KPI magnitudes) and the participating carriers (surfaced as chips over the grid).
+  // Both are @track, so the KPI getters recompute (bands re-animate) and the carriers re-pass down.
+  handleConfigChange(event) {
+    const detail = (event && event.detail) || {};
+    const pf = Number(detail.periodFactor);
+    this.periodFactor = Number.isFinite(pf) && pf >= 0 ? pf : 1;
+    this.participatingCarriers = Array.isArray(detail.carriers) ? detail.carriers : [];
   }
 
   // ---------- events up from the Modeling workspace ----------
@@ -378,7 +399,7 @@ export default class DlmWorkspaceShell extends LightningElement {
   handleResetModel() {
     this._resetDemoModels();
     this._syncActiveModel();
-    this._toast("Demo model reset", "Modeled rounds were cleared for this session.", "info");
+    this._toast("Demo model reset", "Modeled discounts were cleared for this session.", "info");
   }
 
   // The Modeling workspace's "Apply Final Offer to Quote" button. Applies the active Term's Final
@@ -429,21 +450,19 @@ export default class DlmWorkspaceShell extends LightningElement {
 
   // ---------- proposal summary ----------
 
-  // Open the on-screen proposal summary. Projects each Term at its own model's FINAL OFFER round (not
-  // the live current round), so the summary reflects the recommended offer regardless of which round
-  // currently drives the live bands.
+  // Open the on-screen proposal summary. Each Term is projected at its single proposed-discount set
+  // (post round-collapse there is one proposed offer per fare), scaled by the analysis-period factor,
+  // so the summary matches the live bands.
   async handleOpenProposal() {
     if (this.proposalDisabled) {
       return;
     }
     const perTermForContract = [];
-    // Per-Term models keyed by termId for the Detailed CSV export (toProposalCsvDetailed reads rows[]
-    // at each Term's own final-offer round).
+    // Per-Term models keyed by termId for the Detailed CSV export (toProposalCsvDetailed reads rows[]).
     const models = {};
     const termRows = this.terms.map((t) => {
       const model = this._modelFor(t, this.selectedMethod);
-      const finalRound = model ? model.finalOfferRoundIndex : undefined;
-      const kpi = computeTermKpis(t, model, finalRound);
+      const kpi = computeTermKpis(t, model, this.periodFactor);
       perTermForContract.push(kpi);
       if (model) {
         models[t.id] = model;
@@ -453,16 +472,14 @@ export default class DlmWorkspaceShell extends LightningElement {
         route: routeLabel(t),
         method: model ? model.method : this.selectedMethod,
         methodLabel: methodLabel(model ? model.method : this.selectedMethod),
-        statusLabel: model
-          ? (model.roundStatuses || [])[model.finalOfferRoundIndex] || "Draft"
-          : "Draft",
+        statusLabel: "Proposed",
         isRecommended: t.id === this.selectedTermId,
         sharePts: kpi.sharePts,
         fmsPts: kpi.fmsPts,
         projectedSharePts: kpi.projectedSharePts,
         projectedGapPts: kpi.projectedGapPts,
         edrExistingPts: kpi.edrExistingPts,
-        edrFinalOfferPts: kpi.edrCurrentPts // computed at the final-offer round above
+        edrFinalOfferPts: kpi.edrCurrentPts // the single proposed offer
       };
     });
     const proposal = {

@@ -1,0 +1,48 @@
+:host {
+  --dl-navy: #0a1d3f;
+  --dl-red: #c8102e;
+  --dl-tint: #f3f6fb;
+  --dl-hairline: #d8dde6;
+  --dl-muted: #5c6b82;
+  display: block;
+}
+
+.dlm-dsc {
+  border-left: 0.1875rem solid var(--dl-navy, #0a1d3f);
+  background: #ffffff;
+}
+
+.dlm-dsc__title {
+  color: var(--dl-navy, #0a1d3f);
+  font-weight: 700;
+}
+
+.dlm-dsc__subtitle {
+  margin-bottom: 0;
+}
+
+.dlm-dsc__error {
+  background: #fef1f0;
+  border: 1px solid var(--dl-red, #c8102e);
+  border-radius: 0.25rem;
+  color: #6b1019;
+  font-size: 0.8125rem;
+}
+
+/* Client-only subsidiary chips. */
+.dlm-dsc__chip {
+  padding: 0.0625rem 0.25rem 0.0625rem 0.5rem;
+  border-radius: 0.75rem;
+  background: var(--dl-tint, #f3f6fb);
+  border: 0.0625rem solid var(--dl-hairline, #d8dde6);
+  font-size: 0.75rem;
+}
+
+.dlm-dsc__chip-label {
+  color: var(--dl-navy, #0a1d3f);
+  font-weight: 600;
+}
+
+.dlm-dsc__hint {
+  font-style: italic;
+}

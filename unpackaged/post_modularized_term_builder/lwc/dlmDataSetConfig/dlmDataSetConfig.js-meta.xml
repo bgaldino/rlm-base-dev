@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <isExposed>false</isExposed>
+    <masterLabel>Delta Configure Data Set (Modular)</masterLabel>
+    <description>Internal component (Delta Term Builder): pre-term Configure Data Set panel. Reads/writes the Quote analysis period + participating carriers via uiRecordApi, plus a client-only subsidiary picker. Emits configchange to scale the KPI bands.</description>
+</LightningComponentBundle>

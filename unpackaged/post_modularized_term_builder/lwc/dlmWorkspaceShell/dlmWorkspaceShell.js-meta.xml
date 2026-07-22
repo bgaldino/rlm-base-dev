@@ -3,7 +3,7 @@
     <apiVersion>67.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Delta Workspace Shell (Modular)</masterLabel>
-    <description>Term Builder shell: a tabset (Shell Creation / Modeling / Performance) with a contract KPI band + Proposal Summary. Owns the per-Term demo model cache and syncs with the other tiles over the DLM Term Builder channel. Numbers are mock, session-only.</description>
+    <description>Term Builder shell: a tabset (Shell Creation / Modeling) with a contract KPI band + Proposal Summary. Shell Creation carries the Configure Data Set panel. Owns the per-Term demo model cache and syncs with the other tiles over the DLM Term Builder channel. Numbers are mock, session-only.</description>
     <targets>
         <target>lightning__AppPage</target>
         <target>lightning__RecordPage</target>
@@ -42,12 +42,6 @@
                 type="String"
                 label="Modeling Tab Label"
                 description="Label for the Modeling tab. Default 'Modeling'."
-            />
-            <property
-                name="performanceLabel"
-                type="String"
-                label="Performance Tab Label"
-                description="Label for the Performance placeholder tab. Default 'Performance'."
             />
         </targetConfig>
     </targetConfigs>

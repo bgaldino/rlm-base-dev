@@ -1,0 +1,125 @@
+<template>
+  <div class="dlm-dsc slds-box slds-box_x-small slds-m-bottom_small">
+    <!-- Header: title + collapse toggle. -->
+    <div class="dlm-dsc__head slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+      <div class="slds-grid slds-grid_vertical-align-center">
+        <lightning-icon
+          icon-name="utility:settings"
+          size="x-small"
+          class="slds-m-right_x-small"
+        ></lightning-icon>
+        <h3 class="dlm-dsc__title slds-text-heading_small">Configure Data Set</h3>
+      </div>
+      <lightning-button
+        label={toggleLabel}
+        icon-name={toggleIcon}
+        variant="base"
+        onclick={handleToggle}
+      ></lightning-button>
+    </div>
+
+    <p class="dlm-dsc__subtitle slds-text-body_small slds-text-color_weak slds-m-top_xxx-small">
+      Pre-term inputs. The analysis period drives the analytics; participating carriers and subsidiary
+      accounts scope the negotiation.
+    </p>
+
+    <template if:true={errorMessage}>
+      <div class="dlm-dsc__error slds-m-top_x-small slds-p-around_x-small" role="alert">
+        <lightning-icon
+          icon-name="utility:error"
+          size="xx-small"
+          variant="error"
+          alternative-text="Error"
+          class="slds-m-right_xx-small"
+        ></lightning-icon>
+        {errorMessage}
+      </div>
+    </template>
+
+    <template if:true={expanded}>
+      <div class="dlm-dsc__body slds-m-top_small">
+        <div class="slds-grid slds-wrap slds-gutters_small">
+          <!-- Analysis Period — drives the KPI scaling. -->
+          <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+            <lightning-input
+              type="date"
+              label="Analysis Period Start"
+              value={startDate}
+              onchange={handleStartChange}
+            ></lightning-input>
+          </div>
+          <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+            <lightning-input
+              type="date"
+              label="Analysis Period End"
+              value={endDate}
+              onchange={handleEndChange}
+            ></lightning-input>
+          </div>
+
+          <!-- Participating (partner) carriers — capture & surface only. -->
+          <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top_x-small">
+            <template if:true={hasCarrierOptions}>
+              <lightning-checkbox-group
+                label="Participating Carriers"
+                options={carrierOptions}
+                value={selectedCarriers}
+                onchange={handleCarrierChange}
+              ></lightning-checkbox-group>
+            </template>
+            <template if:false={hasCarrierOptions}>
+              <span class="slds-text-body_small slds-text-color_weak">Loading carriers…</span>
+            </template>
+          </div>
+
+          <!-- Subsidiary accounts — client-only scope from the native hierarchy (direct children). -->
+          <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2 slds-m-top_x-small">
+            <lightning-record-picker
+              lwc:ref="subsidiaryPicker"
+              label="Subsidiary Accounts"
+              placeholder="Search subsidiary accounts…"
+              object-api-name="Account"
+              matching-info={accountMatchingInfo}
+              display-info={accountDisplayInfo}
+              filter={subsidiaryFilter}
+              disabled={subsidiaryPickerDisabled}
+              onchange={handleSubsidiarySelect}
+            ></lightning-record-picker>
+            <p class="dlm-dsc__hint slds-text-body_small slds-text-color_weak slds-m-top_xxx-small">
+              Client-only — surfaced as scope, not saved to the negotiation.
+            </p>
+
+            <template if:true={hasSubsidiaries}>
+              <div class="dlm-dsc__chips slds-grid slds-wrap slds-m-top_x-small">
+                <template for:each={subsidiaryChips} for:item="sub">
+                  <span key={sub.id} class="dlm-dsc__chip slds-grid slds-grid_vertical-align-center slds-m-right_x-small slds-m-bottom_xx-small">
+                    <span class="dlm-dsc__chip-label">{sub.label}</span>
+                    <lightning-button-icon
+                      icon-name="utility:close"
+                      size="xx-small"
+                      variant="bare"
+                      alternative-text="Remove"
+                      title="Remove subsidiary"
+                      data-id={sub.id}
+                      onclick={handleRemoveSubsidiary}
+                      class="slds-m-left_xx-small"
+                    ></lightning-button-icon>
+                  </span>
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <div class="dlm-dsc__actions slds-grid slds-grid_align-end slds-m-top_small">
+          <lightning-button
+            label="Save"
+            variant="brand"
+            disabled={saveDisabled}
+            onclick={handleSave}
+          ></lightning-button>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>

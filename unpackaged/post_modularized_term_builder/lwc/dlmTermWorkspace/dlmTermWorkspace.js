@@ -40,8 +40,41 @@ export default class DlmTermWorkspace extends LightningElement {
   @api hideGroupColumn;
   @api showAddFareClass;
 
-  quoteId;
-  selectedTermId;
+  // quoteId + selectedTermId are BOTH an inbound prop AND LMC-derived. When embedded in
+  // c/dlmWorkspaceShell they are handed down as props (the props-down fix: this tile mounts inside a
+  // tab AFTER the header published its one-shot `context` message, so it can never learn the quote
+  // from LMC alone). The first prop write latches `_propDriven`, after which the LMC context /
+  // termSelected / termsChanged handlers no longer clobber the selection — they still pulse grid
+  // refetches. Standalone (props never set), LMC drives selection exactly as before.
+  _quoteId;
+  _selectedTermId;
+  _propDriven = false;
+
+  @api
+  get quoteId() {
+    return this._quoteId;
+  }
+  set quoteId(value) {
+    // The template binds this before the shell resolves the quote; ignore the undefined pre-write so
+    // we don't latch prop-driven for a standalone tile that never gets a real value.
+    if (value === undefined) {
+      return;
+    }
+    this._propDriven = true;
+    this._quoteId = value || null;
+  }
+
+  @api
+  get selectedTermId() {
+    return this._selectedTermId;
+  }
+  set selectedTermId(value) {
+    if (value === undefined) {
+      return;
+    }
+    this._propDriven = true;
+    this._selectedTermId = value || null;
+  }
 
   _subscription = null;
   // Set when an inbound message requires the grid to refetch (not just re-scope its cache); acted on
@@ -97,31 +130,35 @@ export default class DlmTermWorkspace extends LightningElement {
     switch (message.type) {
       case "context":
         // A different negotiation was opened/created: adopt it and drop any prior Term selection so
-        // the workspace shows its empty prompt until the rail broadcasts a selection.
-        if (message.quoteId !== this.quoteId) {
-          this.quoteId = message.quoteId;
-          this.selectedTermId = null;
+        // the workspace shows its empty prompt until the rail broadcasts a selection. Skipped when
+        // prop-driven — the shell owns the selection there.
+        if (!this._propDriven && message.quoteId !== this._quoteId) {
+          this._quoteId = message.quoteId;
+          this._selectedTermId = null;
         }
         break;
       case "termSelected":
         // Plain chip selection: the term already exists in the grid's cache, so the grid's
         // scopeRootLineId setter re-scopes without a server round trip.
-        if (message.quoteId === this.quoteId) {
-          this.selectedTermId = message.selectedTermId || null;
+        if (!this._propDriven && message.quoteId === this._quoteId) {
+          this._selectedTermId = message.selectedTermId || null;
         }
         break;
       case "termsChanged":
-        // A Term was just added: adopt the newest selection AND refetch, because the grid's
-        // getQuoteLines cache is keyed on quoteId (unchanged) and doesn't include the new line yet.
-        if (message.quoteId === this.quoteId) {
-          this.selectedTermId = message.selectedTermId || null;
+        // A Term was just added: adopt the newest selection (unless prop-driven) AND refetch, because
+        // the grid's getQuoteLines cache is keyed on quoteId (unchanged) and doesn't include the new
+        // line yet. The refetch pulse fires in both modes.
+        if (message.quoteId === this._quoteId) {
+          if (!this._propDriven) {
+            this._selectedTermId = message.selectedTermId || null;
+          }
           this._needsGridRefresh = true;
         }
         break;
       case "linesChanged":
         // Another tile changed line data (e.g. the header's Apply-to-All). Our own edits are
         // suppressed by the source guard above, so this is always someone else's change.
-        if (message.quoteId === this.quoteId) {
+        if (message.quoteId === this._quoteId) {
           this._needsGridRefresh = true;
         }
         break;
