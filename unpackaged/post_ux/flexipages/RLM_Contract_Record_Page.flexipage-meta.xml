@@ -747,6 +747,9 @@
                         <valueListItems>
                             <value>EndDate</value>
                         </valueListItems>
+                        <valueListItems>
+                            <value>DL_Parent_Contract_Item_Price__c</value>
+                        </valueListItems>
                     </valueList>
                 </componentInstanceProperties>
                 <componentInstanceProperties>

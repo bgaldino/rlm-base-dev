@@ -133,6 +133,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>ContractItemPrice.DL_Parent_Contract_Item_Price__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>DL_Contract_Item_Price_Attribute__c.DL_Attribute_Definition__c</field>
         <readable>true</readable>
     </fieldPermissions>

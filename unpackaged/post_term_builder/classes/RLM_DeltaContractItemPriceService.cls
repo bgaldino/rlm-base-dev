@@ -116,12 +116,82 @@ public with sharing class RLM_DeltaContractItemPriceService {
             if (!childRows.isEmpty()) {
                 insert as user childRows;
             }
+
+            // Second pass: mirror the source Quote's bundle structure onto the CIPs. The
+            // self-lookup needs the inserted parent's Id, so it cannot be set before insert.
+            List<ContractItemPrice> reparented = linkBundleParents(cips, lines);
+            if (!reparented.isEmpty()) {
+                update as user reparented;
+            }
         } catch (Exception e) {
             Database.rollback(sp);
             throw e;
         }
 
         return cips.size();
+    }
+
+    /**
+     * Stamps DL_Parent_Contract_Item_Price__c on each CIP whose source QuoteLineItem is a bundle
+     * child, mirroring the Quote's Term→fare structure. Parent resolution matches
+     * RLM_DeltaTermBuilderController.getBuilderState: ParentQuoteLineItemId first, then the
+     * QuoteLineRelationship root fallback for children the platform left unstamped. Returns only
+     * the CIPs that were changed (so the caller can skip a no-op DML).
+     */
+    private static List<ContractItemPrice> linkBundleParents(List<ContractItemPrice> cips, List<QuoteLineItem> lines) {
+        // Map each generated CIP back to its source QuoteLineItem.
+        Map<Id, ContractItemPrice> cipBySourceQli = new Map<Id, ContractItemPrice>();
+        for (ContractItemPrice cip : cips) {
+            if (cip.DL_Source_Quote_Line_Item__c != null) {
+                cipBySourceQli.put(cip.DL_Source_Quote_Line_Item__c, cip);
+            }
+        }
+
+        // Fallback child→root map for lines whose ParentQuoteLineItemId was never stamped.
+        Set<Id> lineIds = new Set<Id>();
+        for (QuoteLineItem line : lines) {
+            lineIds.add(line.Id);
+        }
+        Map<Id, Id> rootByChild = queryRootByChild(lineIds);
+
+        List<ContractItemPrice> reparented = new List<ContractItemPrice>();
+        for (QuoteLineItem line : lines) {
+            Id parentQliId = (line.ParentQuoteLineItemId != null)
+                ? line.ParentQuoteLineItemId
+                : rootByChild.get(line.Id);
+            if (parentQliId == null) {
+                continue;
+            }
+            // Guard: only link when the parent line also produced a CIP (in practice always true,
+            // since every bundle member — including 0%-discount lines — is eligible).
+            ContractItemPrice parentCip = cipBySourceQli.get(parentQliId);
+            ContractItemPrice childCip = cipBySourceQli.get(line.Id);
+            if (parentCip == null || childCip == null || parentCip.Id == childCip.Id) {
+                continue;
+            }
+            childCip.DL_Parent_Contract_Item_Price__c = parentCip.Id;
+            reparented.add(childCip);
+        }
+        return reparented;
+    }
+
+    private static Map<Id, Id> queryRootByChild(Set<Id> lineIds) {
+        Map<Id, Id> rootByChild = new Map<Id, Id>();
+        if (lineIds.isEmpty()) {
+            return rootByChild;
+        }
+        for (QuoteLineRelationship r : [
+            SELECT AssociatedQuoteLineId, RootQuoteLineId
+            FROM QuoteLineRelationship
+            WHERE AssociatedQuoteLineId IN :lineIds AND RootQuoteLineId != null
+            WITH USER_MODE
+        ]) {
+            if (r.AssociatedQuoteLineId != null && r.RootQuoteLineId != null
+                && r.AssociatedQuoteLineId != r.RootQuoteLineId) {
+                rootByChild.put(r.AssociatedQuoteLineId, r.RootQuoteLineId);
+            }
+        }
+        return rootByChild;
     }
 
     private static void assignChildRowParents(
@@ -145,7 +215,7 @@ public with sharing class RLM_DeltaContractItemPriceService {
             : 'Discount != null OR DiscountAmount != null';
 
         return Database.query(
-            'SELECT Id, Product2Id, ProductSellingModelId, CustomProductName, NetUnitPrice, Discount, DiscountAmount, StartDate, EndDate ' +
+            'SELECT Id, ParentQuoteLineItemId, Product2Id, ProductSellingModelId, CustomProductName, NetUnitPrice, Discount, DiscountAmount, StartDate, EndDate ' +
             'FROM QuoteLineItem ' +
             'WHERE QuoteId = :quoteId AND (' + whereClause + ') ' +
             'WITH USER_MODE'

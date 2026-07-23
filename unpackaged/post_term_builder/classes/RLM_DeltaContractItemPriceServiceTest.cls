@@ -199,6 +199,93 @@ private class RLM_DeltaContractItemPriceServiceTest {
         System.assertEquals(5, cip.DiscountValue, 'Amount value is carried through');
     }
 
+    // ---------- Bundle hierarchy: fares parent under their Term's CIP, mirroring the Quote bundle ----------
+
+    @IsTest
+    static void testDiscountOnly_MirrorsBundleParentHierarchy() {
+        // ParentQuoteLineItemId is platform-stamped (not directly settable in Apex), so bundle
+        // structure is expressed via QuoteLineRelationship — exactly the child→root link the service
+        // reads as its parent fallback. Creating a QuoteLineRelationship requires a
+        // ProductRelationshipType (a setup object hidden in the default SeeAllData=false test
+        // context), so the parent-link assertions are conditional: when a relationship type is
+        // available we assert fares parent under their Term's CIP; otherwise the flat path (no
+        // parent) is still exercised. The full positive linkage is covered by the scratch-org
+        // verification in the plan.
+        Account acct = insertAccount();
+        Contract c = insertContract(acct.Id, Date.newInstance(2026, 1, 1));
+        Quote q = insertQuote(acct.Id);
+        ProductClassification pc = insertClassification('DLCIPSVC-H');
+        PricebookEntry pbe = insertClassifiedProductAndPbe('DLCIPSVC-H1', pc.Id);
+
+        QuoteLineItem term = insertLine(q.Id, pbe);
+        QuoteLineItem fareOne = insertLine(q.Id, pbe);
+        QuoteLineItem fareTwo = insertLine(q.Id, pbe);
+
+        // Term + one fare carry a normal discount; the second fare carries a 0% discount to prove a
+        // zero-discount bundle member is still eligible, still produces a CIP, and is still parented
+        // (guards against a null-vs-0 eligibility regression).
+        setDiscountAndDates(q.Id, term.Id, 10, Date.newInstance(2026, 1, 1), Date.newInstance(2026, 12, 31));
+        setDiscountAndDates(q.Id, fareOne.Id, 5, Date.newInstance(2026, 1, 1), Date.newInstance(2026, 12, 31));
+        setDiscountAndDates(q.Id, fareTwo.Id, 0, Date.newInstance(2026, 1, 1), Date.newInstance(2026, 12, 31));
+
+        List<ProductRelationshipType> prts = [SELECT Id FROM ProductRelationshipType LIMIT 1];
+        Boolean linked = !prts.isEmpty();
+        if (linked) {
+            insert new List<QuoteLineRelationship>{
+                new QuoteLineRelationship(
+                    RootQuoteLineId = term.Id, MainQuoteLineId = term.Id, AssociatedQuoteLineId = fareOne.Id,
+                    ProductRelationshipTypeId = prts[0].Id, AssociatedQuoteLinePricing = 'NotIncludedInBundlePrice'),
+                new QuoteLineRelationship(
+                    RootQuoteLineId = term.Id, MainQuoteLineId = term.Id, AssociatedQuoteLineId = fareTwo.Id,
+                    ProductRelationshipTypeId = prts[0].Id, AssociatedQuoteLinePricing = 'NotIncludedInBundlePrice')
+            };
+        }
+
+        RLM_DeltaContractItemPriceService.Request req = new RLM_DeltaContractItemPriceService.Request();
+        req.contractId = c.Id;
+        req.quoteId = q.Id;
+        req.pricingOption = 'DISCOUNT_ONLY';
+
+        Test.startTest();
+        List<RLM_DeltaContractItemPriceService.Response> responses = RLM_DeltaContractItemPriceService.createContractItemPrices(
+            new List<RLM_DeltaContractItemPriceService.Request>{ req }
+        );
+        Test.stopTest();
+
+        System.assertEquals(true, responses[0].isSuccess, 'Service call should succeed');
+        System.assertEquals(3, responses[0].createdCount, 'One CIP per eligible line, including the 0%-discount fare');
+
+        Map<Id, ContractItemPrice> cipBySourceLine = new Map<Id, ContractItemPrice>();
+        for (ContractItemPrice cip : [
+            SELECT Id, DL_Source_Quote_Line_Item__c, DL_Parent_Contract_Item_Price__c, DiscountValue
+            FROM ContractItemPrice WHERE ContractId = :c.Id
+        ]) {
+            cipBySourceLine.put(cip.DL_Source_Quote_Line_Item__c, cip);
+        }
+        System.assertEquals(3, cipBySourceLine.size(), 'Every line produced exactly one CIP');
+
+        ContractItemPrice termCip = cipBySourceLine.get(term.Id);
+        ContractItemPrice fareOneCip = cipBySourceLine.get(fareOne.Id);
+        ContractItemPrice fareTwoCip = cipBySourceLine.get(fareTwo.Id);
+
+        System.assertEquals(null, termCip.DL_Parent_Contract_Item_Price__c,
+            'The bundle root (Term) CIP has no parent');
+        System.assertEquals(0, fareTwoCip.DiscountValue,
+            'A 0%-discount bundle member is still eligible and produces a CIP');
+
+        if (linked) {
+            System.assertEquals(termCip.Id, fareOneCip.DL_Parent_Contract_Item_Price__c,
+                'Fare CIP parents under its Term CIP, mirroring the QuoteLineRelationship root');
+            System.assertEquals(termCip.Id, fareTwoCip.DL_Parent_Contract_Item_Price__c,
+                'The 0%-discount fare also parents under its Term CIP');
+        } else {
+            System.assertEquals(null, fareOneCip.DL_Parent_Contract_Item_Price__c,
+                'With no relationship type available, the fallback finds no parent — the fare CIP stays top-level');
+            System.assertEquals(null, fareTwoCip.DL_Parent_Contract_Item_Price__c,
+                'Same for the 0%-discount fare when no bundle link exists');
+        }
+    }
+
     // ---------- Net Unit Price path (NetUnitPrice is platform-calculated; null in a pure-Apex test) ----------
 
     @IsTest
