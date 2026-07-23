@@ -1,0 +1,2 @@
+$$Name$RebateProgram.Name,AccrualRate,AggregateObjectName,BenefitQualifierField,CalcObject.DeveloperName,CalculationBasis,CalculationMethod,CalculationType,CurrencyIsoCode,FilterAction,FilterLogic,IsIntegratable,MeasureField,Name,RebateMeasureType,RebateProgram.Name,Status,UnitOfMeasure.Name
+Vol Qty;Global Incentive Program,10,RebateMemberProductAggregate,TotalQuantity,Aggregate_by_Member_Rebates,PayoutAndAccrual,Retrospective,AggregateBased,USD,,,true,TotalQuantity,Vol Qty,AmountperUnit,Global Incentive Program,Active,

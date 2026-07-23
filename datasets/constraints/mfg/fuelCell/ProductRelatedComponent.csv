@@ -1,0 +1,15 @@
+Id,Name,ParentProductId,ParentProduct.Name,ChildProductId,ChildProduct.Name,ChildProductClassificationId,ChildProductClassification.Name,ProductRelationshipTypeId,ProductRelationshipType.Name,Sequence
+0dSWs000000jfBuMAI,PRC-000000291,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxMIAR,Radiator + Fan Assembly,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,1
+0dSWs000000jfBvMAI,PRC-000000292,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxNIAR,Coolant Circulation System,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,2
+0dSWs000000jfBwMAI,PRC-000000286,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxHIAR,Hydrogen Storage Tank - 350 bar,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,1
+0dSWs000000jfBxMAI,PRC-000000293,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxOIAR,Coolant Preheater,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,3
+0dSWs000000jfByMAI,PRC-000000287,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxIIAR,Hydrogen Storage Tank - 700 bar,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,2
+0dSWs000000jfBzMAI,PRC-000000288,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxJIAR,Natural Gas Reformer,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,3
+0dSWs000000jfC0MAI,PRC-000000294,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxPIAR,DC-DC Converter,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,1
+0dSWs000000jfC1MAI,PRC-000000289,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxKIAR,Fuel Quality Filtration Kit,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,4
+0dSWs000000jfC2MAI,PRC-000000299,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxQIAR,Startup Battery,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,6
+0dSWs000000jfC3MAI,PRC-000000295,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxRIAR,DC-AC Inverter,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,2
+0dSWs000000jfC4MAI,PRC-000000290,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxLIAR,Automatic Purge Valves,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,5
+0dSWs000000jfC5MAI,PRC-000000296,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxSIAR,Power Management System,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,3
+0dSWs000000jfC6MAI,PRC-000000297,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxTIAR,Remote Monitoring Module,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,4
+0dSWs000000jfC7MAI,PRC-000000298,01tWs00000C0wwbIAB,Fuel Cell Power Module 700,01tWs00000C0wxUIAR,Data Logging Unit,,,0yoWs000001B9qbIAC,Bundle to Bundle Component Relationship,5
