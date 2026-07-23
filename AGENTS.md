@@ -281,6 +281,7 @@ that topic.
 | Work with CCI tasks, flows, CLI | `.cursor/skills/cci-orchestration/SKILL.md` |
 | Wire pricing recipes/procedures/plans | `.cursor/skills/pricing-wiring/SKILL.md` |
 | Author/CRUD Expression Sets (pricing procedures, etc.) via Connect/Metadata API; build step overlays | `.cursor/skills/expression-sets/SKILL.md` |
+| Read/extend/apply/deploy/upgrade Context Definitions (Context Service); inspect/validate context plans | `.cursor/skills/context-service/SKILL.md` |
 | Run build harness workflows | `.cursor/skills/build-harness/SKILL.md` |
 | Build a PDE (or other org type) via runtime-only feature-flag overrides | `.cursor/skills/pde-org-build/SKILL.md` |
 | Write a Python CCI task class | `.cursor/skills/cci-orchestration/custom-task-authoring.md` |
@@ -344,6 +345,11 @@ Read the sub-file only when you need that specific detail:
 | `document-generation/dynamic-images.md` | Document Generation | Dynamic image rendering: ContentDocument ID + width/height contract, known issues, RTB alternative |
 | `document-generation/extract-engine-reference.md` | Document Generation | Extract/Transform engine deep-dive: formula catalog, filter mechanics, hierarchy semantics, depth-uniformity rule, redundant join pattern, Preview API |
 | `docs/references/expression-set-connect-api-reference.md` | Expression Sets | Object/ID model, OAS-confirmed schema enums, every Connect/Metadata error + resolution, Metadata API authoring path, verification checklist |
+| `.cursor/skills/context-service/data-model-and-api.md` | Context Service | Version-centric object model, canonical enums, Connect-vs-SObject-REST endpoint split, three mapping types, plan-file format, guardrail limits, MDAPI |
+| `.cursor/skills/context-service/authoring-and-lifecycle.md` | Context Service | Three definition types, extend-vs-clone, activation/deactivation, versioning, upgrade/Sync, standard-context inventory, gotchas table |
+| `.cursor/skills/context-service/runtime-and-persistence.md` | Context Service | Runtime context-instance lifecycle (hydrate → query → persist → delete), request-scoped `contextId`/TTL/reuse, `data` payload shape + builder, compound fields, persist FK caveat, definition interfaces, dry-run contract, runtime helper scripts |
+| `docs/references/context-service-patch-shapes.md` | Context Service | Live-verified accept-shapes for Connect + SObject REST mutation endpoints: GET-vs-PATCH shape gap, per-endpoint required fields + response-only fields, hydration nesting, active-version behavior matrix, error → resolution table |
+| `docs/references/context-service-utility.md` | Context Service | `manage_context_definition` CCI-task option reference + plan-file format (create-vs-update, mapping rules, activation/deactivation defaults) — the org-build authoring path |
 
 ### File-Specific Rules (Cursor Only)
 
@@ -364,6 +370,7 @@ same guidance, or use the parent skill which covers the same content:
 | `.cursor/rules/ux-templates.mdc` | `templates/**` | `repo-integration/SKILL.md` |
 | `.cursor/rules/robot-tests.mdc` | `robot/**/*.robot` | `robot-testing/SKILL.md` |
 | `.cursor/rules/doc-review.mdc` | `cumulusci.yml`, `tasks/**/*.py`, `datasets/sfdmu/**/export.json`, `datasets/sfdmu/**/*.csv`, `robot/**/*.robot`, `.cursor/skills/**/*.md` | `doc-consistency/SKILL.md` |
+| `.cursor/rules/context-plans.mdc` | `datasets/context_plans/**/*.json` | `context-service/SKILL.md` |
 
 ### AI Utility Scripts
 
@@ -385,6 +392,23 @@ python scripts/ai/check_plan_readme_consistency.py          # SFDMU plan README 
 
 `scripts/ai/skill_manifest.py` is the resolver for the cross-repo skill manifest at `.claude/skill-manifest.yml` — see `.cursor/skills/pmos-integration/SKILL.md` for the integration pattern.
 
+### Context Service Scripts
+
+Scripts in `scripts/context_service/` inspect, validate, apply, and (at runtime)
+execute Context Service — design-time Context Definitions plus the runtime
+context-instance lifecycle. Auth is delegated to the `sf` CLI (`--target-org` is
+the SF CLI alias, no access token handled). The command index, object model,
+endpoint split, lifecycle rules, runtime scoping, and persist mechanics live in
+the **context-service skill** (`.cursor/skills/context-service/SKILL.md` + its
+`data-model-and-api.md`, `authoring-and-lifecycle.md`, and
+`runtime-and-persistence.md` sub-files). Read the skill before authoring any
+mutation or runtime path.
+
+Two rules worth pinning at this level (full detail + rationale in the skill):
+
+- **Design-time active-version rule** — the platform lets you *insert* a new artifact (node/attribute/tag) on an active version, but *modifying or deleting* an existing one is blocked (`RECORD_UPDATE_FAILED`) → deactivate first. Add-only edits apply in place.
+- **Runtime `contextId` is request-scoped** — an opaque handle (never prefix-validate it) that does not survive across separate CLI calls on a normal org (create scope defaults to `REQUEST`; cross-call `SESSION` scope and REST `query-record`/`query-tags` are pilot-gated). `context_session.py` is **not** a fix for this — it still shells each lifecycle step through its own `sf api request`, so a REQUEST-scoped id expires there too; to chain create→query→persist across those calls it needs `--context-scope SESSION` (pilot) or a reused `--context-id`. The GA single-request path is Apex (`Context.IndustriesContext`) or one Flow, where the whole hydrate→query→persist runs in one transaction. Persist is **async** — confirm via `AsyncOperationTracker` (`JobType='ContextPersistence'`, `Response` JSON), not the returned `referenceId`.
+
 ### Document Generation Scripts
 
 Scripts in `scripts/docgen/` drive ODT (OmniDataTransform) and DocumentTemplate workflows. See `.cursor/skills/document-generation/SKILL.md`. Install deps first: `pip install -r scripts/docgen/requirements.txt`.
@@ -405,7 +429,6 @@ python scripts/docgen/docgen_template_manage.py replace <name> <file> --org <ali
 python scripts/docgen/docgen_template_manage.py download --template <name> --org <alias> -o out.docx  # Download template source .docx
 python scripts/docgen/docgen_template_manage.py download --version-id <068id> --org <alias> -o f.pdf  # Download any ContentVersion (DGP output, etc.)
 ```
-
 ### Schema Validation Scripts
 
 Scripts for keeping `docs/erds/erd-data.json` aligned with canonical Revenue Cloud platform schema. See `.cursor/skills/schema-validation/SKILL.md` for the full workflow.
