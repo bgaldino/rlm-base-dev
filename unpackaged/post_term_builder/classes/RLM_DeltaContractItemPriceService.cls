@@ -169,8 +169,14 @@ public with sharing class RLM_DeltaContractItemPriceService {
             if (parentCip == null || childCip == null || parentCip.Id == childCip.Id) {
                 continue;
             }
-            childCip.DL_Parent_Contract_Item_Price__c = parentCip.Id;
-            reparented.add(childCip);
+            // Update via a minimal Id-only shell carrying ONLY the parent field. Re-updating the
+            // fully-populated inserted CIP would make `update as user` enforce update-access on
+            // every dirty field, including ContractId (createable but NOT updateable) — which
+            // throws "fields being inaccessible on Sobject ContractItemPrice" in USER_MODE.
+            reparented.add(new ContractItemPrice(
+                Id = childCip.Id,
+                DL_Parent_Contract_Item_Price__c = parentCip.Id
+            ));
         }
         return reparented;
     }
