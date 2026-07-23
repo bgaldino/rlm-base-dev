@@ -119,49 +119,6 @@
           oncommit={handleQuoteNameCommit}
         ></lightning-input>
       </div>
-      <template if:true={dateDefaultsVisible}>
-        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
-          <span class="dl-tb-header__field-label" aria-hidden="true"
-            >Default Start Date</span
-          >
-          <lightning-input
-            type="date"
-            label="Default Start Date"
-            variant="label-hidden"
-            value={negotiationStartDate}
-            disabled={negotiationDatesDisabled}
-            onchange={handleNegotiationStartDateChange}
-            title="Default Start Date applied to new Term and fare lines as they're added. Existing lines are unaffected."
-          ></lightning-input>
-        </div>
-        <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3">
-          <span class="dl-tb-header__field-label" aria-hidden="true"
-            >Default End Date</span
-          >
-          <lightning-input
-            type="date"
-            label="Default End Date"
-            variant="label-hidden"
-            value={negotiationEndDate}
-            disabled={negotiationDatesDisabled}
-            onchange={handleNegotiationEndDateChange}
-            title="Default End Date applied to new Term lines as they're added. Existing lines are unaffected."
-          ></lightning-input>
-        </div>
-        <div
-          class="slds-col slds-size_1-of-1 slds-medium-size_1-of-3 slds-p-bottom_xxx-small"
-        >
-          <lightning-button
-            label="Apply to All Lines"
-            variant="neutral"
-            icon-name="utility:sync"
-            disabled={applyDatesToAllLinesDisabled}
-            onclick={handleApplyDatesToAllLines}
-            class="dl-tb-cta"
-            title="Apply the Default Start/End Date above to every Term and fare line already on this negotiation."
-          ></lightning-button>
-        </div>
-      </template>
     </div>
 
     <template if:true={creating}>

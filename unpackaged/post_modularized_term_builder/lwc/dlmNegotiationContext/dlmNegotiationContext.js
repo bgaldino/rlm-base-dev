@@ -18,7 +18,6 @@ import getNegotiationsForAccount from "@salesforce/apex/RLM_DeltaTermBuilderCont
 import getBuilderState from "@salesforce/apex/RLM_DeltaTermBuilderController.getBuilderState";
 import updateNegotiationDates from "@salesforce/apex/RLM_DeltaTermBuilderController.updateNegotiationDates";
 import updateNegotiationName from "@salesforce/apex/RLM_DeltaTermBuilderController.updateNegotiationName";
-import updateLineDiscountAndDates from "@salesforce/apex/RLM_DeltaLineController.updateLineDiscountAndDates";
 
 // This tile's name, stamped on every published message so the tile can ignore its own echoes.
 const SOURCE = "dlmNegotiationContext";
@@ -27,13 +26,15 @@ const SOURCE = "dlmNegotiationContext";
  * Modularized Delta Term Builder — the "negotiation context" header tile.
  *
  * Owns Account selection, New Negotiation, the existing-negotiation combobox, the editable
- * negotiation name, the default Start/End Date + Apply-to-All, and the Create/View Contract action.
+ * negotiation name, and the Create/View Contract action. The default negotiation Start/End Date are
+ * still tracked and published (New Negotiation seeds a 1-year default), but no longer have header
+ * inputs — they seed newly added Term/fare lines server-side.
  * It is a page-composable sibling of c/dlmTermsRail and c/dlmTermWorkspace; the three stay in sync
  * over the DLM_TermBuilderChannel LMC rather than through a parent's @api props.
  *
- * Publishes: `context` (quote/account/dates — on open, create, or date change) and `contractCreated`.
+ * Publishes: `context` (quote/account/dates — on open or create) and `contractCreated`.
  * Subscribes: `termsChanged` / `linesChanged` / `fareAdded` — to re-fetch the term list it needs for
- * Apply-to-All (collects every line id) and Create Contract (enablement + summary).
+ * Create Contract (enablement + summary).
  *
  * Server contract is unchanged from the monolith: RLM_DeltaTermBuilderController /
  * RLM_DeltaLineController JSON-in/JSON-out methods, shared with the original post_term_builder app.
@@ -51,6 +52,9 @@ export default class DlmNegotiationContext extends LightningElement {
   @api headingLabel;
   @api showBranding;
   @api showContractActions;
+  // Retained only because existing Lightning pages bind it (the platform blocks dropping an in-use
+  // design property). The default date fields + Apply-to-All were removed from the layout, so this
+  // is no longer read anywhere and has no effect.
   @api showDateDefaults;
 
   @track terms = [];
@@ -64,10 +68,12 @@ export default class DlmNegotiationContext extends LightningElement {
   _savedQuoteName = "";
   savingQuoteName = false;
   accountName = "";
+  // Default negotiation Start/End Date. No longer surfaced in the header UI, but still loaded from
+  // the quote, defaulted on New Negotiation, and published on the context channel so newly added
+  // Term/fare lines are seeded with them server-side (buildTermLineFields/buildFareLineFields).
   negotiationStartDate = "";
   negotiationEndDate = "";
   savingNegotiationDates = false;
-  applyingDatesToAllLines = false;
 
   // When the open negotiation is already related to a Contract, the server returns its id + number;
   // the header then offers "View Contract" instead of a "Create Contract" that would only fail.
@@ -192,14 +198,6 @@ export default class DlmNegotiationContext extends LightningElement {
     });
   }
 
-  _publishLinesChanged() {
-    publish(this.messageContext, DLM_CHANNEL, {
-      type: "linesChanged",
-      quoteId: this.quoteId,
-      source: SOURCE
-    });
-  }
-
   // ---------- design-time visibility ----------
 
   get effectiveHeading() {
@@ -212,10 +210,6 @@ export default class DlmNegotiationContext extends LightningElement {
 
   get contractActionsVisible() {
     return this.showContractActions !== false;
-  }
-
-  get dateDefaultsVisible() {
-    return this.showDateDefaults !== false;
   }
 
   // ---------- header: account + quote selection ----------
@@ -422,21 +416,10 @@ export default class DlmNegotiationContext extends LightningElement {
     }
   }
 
-  get negotiationDatesDisabled() {
-    return !this.quoteId || this.savingNegotiationDates;
-  }
-
-  // Header default Start/End Date: persisted on change via updateNegotiationDates. These only seed
-  // NEW Term/fare lines as they're added (see buildTermLineFields/buildFareLineFields server-side) —
-  // changing them never rewrites dates already on existing lines.
-  handleNegotiationStartDateChange(event) {
-    this._saveNegotiationDates(event.target.value, this.negotiationEndDate);
-  }
-
-  handleNegotiationEndDateChange(event) {
-    this._saveNegotiationDates(this.negotiationStartDate, event.target.value);
-  }
-
+  // Persist the default negotiation Start/End Date to the quote. No longer driven by header inputs
+  // (those were removed from the layout); still invoked by New Negotiation to seed a clean 1-year
+  // default term. These dates only seed NEW Term/fare lines as they're added
+  // (see buildTermLineFields/buildFareLineFields server-side); they never rewrite existing lines.
   async _saveNegotiationDates(startDate, endDate) {
     if (!this.quoteId) {
       return;
@@ -460,7 +443,7 @@ export default class DlmNegotiationContext extends LightningElement {
       }
       this.negotiationStartDate = startDate || "";
       this.negotiationEndDate = endDate || "";
-      // A standalone date edit updates the shared context. During New Negotiation the flow publishes
+      // A standalone date save updates the shared context. During New Negotiation the flow publishes
       // context once at the end (this.creating latched), so skip the redundant broadcast here.
       if (!this.creating) {
         this._publishContext();
@@ -469,69 +452,6 @@ export default class DlmNegotiationContext extends LightningElement {
       this.errorMessage = this._errMessage(e);
     } finally {
       this.savingNegotiationDates = false;
-    }
-  }
-
-  // "Apply to All Lines" needs an open negotiation with at least one Term line to touch, and is
-  // latched off while a save is already in flight (including the per-field negotiation-date save,
-  // since both write the same underlying dates).
-  get applyDatesToAllLinesDisabled() {
-    return (
-      !this.quoteId ||
-      !this.hasTerms ||
-      this.savingNegotiationDates ||
-      this.applyingDatesToAllLines
-    );
-  }
-
-  // Mass-apply the header's Default Start/End Date to every Term and fare line already on the
-  // negotiation (the per-field onchange handlers above only ever seed NEW lines as they're added).
-  // Applies immediately — no confirmation — then reports how many lines were touched via toast.
-  async handleApplyDatesToAllLines() {
-    if (this.applyDatesToAllLinesDisabled) {
-      return;
-    }
-    const lineIds = [];
-    this.terms.forEach((term) => {
-      lineIds.push(term.id);
-      (term.fares || []).forEach((fare) => lineIds.push(fare.id));
-    });
-    if (!lineIds.length) {
-      return;
-    }
-    this.applyingDatesToAllLines = true;
-    this.errorMessage = "";
-    try {
-      const res = this._parse(
-        await updateLineDiscountAndDates({
-          inputJson: JSON.stringify({
-            quoteId: this.quoteId,
-            lines: lineIds.map((id) => ({
-              id,
-              startDate: this.negotiationStartDate || null,
-              endDate: this.negotiationEndDate || null
-            }))
-          })
-        })
-      );
-      if (res.isSuccess === false) {
-        this.errorMessage =
-          res.errorMessage || "Unable to apply the dates to all lines.";
-        return;
-      }
-      const updatedCount = res.updatedCount || lineIds.length;
-      this._toast(
-        "Dates applied",
-        `Updated ${updatedCount} line${updatedCount === 1 ? "" : "s"}.`,
-        "success"
-      );
-      await this.refreshState(false);
-      // Tell the workspace grid (and rail) that line data changed so they re-fetch the new dates.
-      this._publishLinesChanged();
-    } catch (e) {
-      this.errorMessage = this._errMessage(e);
-    } finally {
-      this.applyingDatesToAllLines = false;
     }
   }
 

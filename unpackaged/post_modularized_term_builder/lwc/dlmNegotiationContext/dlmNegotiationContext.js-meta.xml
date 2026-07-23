@@ -3,7 +3,7 @@
     <apiVersion>67.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Delta Negotiation Context (Modular)</masterLabel>
-    <description>Modularized Term Builder header tile: Account/negotiation picker, editable name, default dates + Apply-to-All, Create/View Contract. Syncs with the Terms Rail and Term Workspace over the DLM Term Builder message channel.</description>
+    <description>Modularized Term Builder header tile: Account/negotiation picker, editable name, Create/View Contract. Syncs with the Terms Rail and Term Workspace over the DLM Term Builder message channel.</description>
     <targets>
         <target>lightning__Tab</target>
         <target>lightning__AppPage</target>
@@ -44,12 +44,16 @@
                 label="Show Contract Actions"
                 description="Show the Create Contract / View Contract action in the header."
             />
+            <!-- Retained for compatibility only: this component is placed on existing Lightning pages
+                 that bind this property, so it cannot be dropped without editing those pages. The
+                 default Start/End Date + Apply-to-All controls have been removed from the layout, so
+                 toggling this no longer has any effect. -->
             <property
                 name="showDateDefaults"
                 type="Boolean"
                 default="true"
-                label="Show Default Dates + Apply to All"
-                description="Show the default Start/End Date fields and the Apply to All Lines button."
+                label="Show Default Dates + Apply to All (no effect)"
+                description="Deprecated. The default date fields and Apply-to-All button were removed from the header layout; this property is retained only because existing Lightning pages reference it and has no effect."
             />
         </targetConfig>
     </targetConfigs>
