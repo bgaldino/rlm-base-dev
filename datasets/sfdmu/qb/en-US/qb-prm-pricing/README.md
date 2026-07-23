@@ -1,5 +1,13 @@
 # qb-prm-pricing Data Plan
 
+> **SFDMU 5.6.4 floor — operation-choice note.** This plan's `Insert` /
+> `deleteOldData: true` choices for relationship-traversal or all-relationship
+> composite externalIds were **pre-5.6.4 workarounds** (Bugs 2/3/5), which are
+> **fixed on the enforced 5.6.4+ floor** — Upsert now matches on those externalIds.
+> The plan still ships with the old operations; migrating them to Upsert is the
+> gated `sfdmu-v5-optimization` initiative, not an ad-hoc change. Only Bug 4
+> (`$$` in lookup reference columns) remains live.
+
 SFDMU data plan for QuantumBit PRM pricing overlay data. Runs after baseline
 `qb-prm` so PRM pricing records can be deployed without duplicating or
 replacing the original PRM dataset.

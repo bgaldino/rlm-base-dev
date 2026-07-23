@@ -70,14 +70,14 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 - **FulfillmentStepDefinition**: externalId simplified to `Name`; `$$` column removed; 2 duplicate-Name pairs disambiguated with group-name suffix
 - **FulfillmentStepDependencyDef**: externalId simplified to `Name`; `$$` column removed; parent references updated to use renamed FSD Names
 - **ProductFulfillmentScenario**: externalId simplified to `Name`; `$$` column removed
-- **FulfillmentWorkspaceItem**: `deleteOldData: true` added (auto-number Names make direct-field matching impossible); `$$` column removed
+- **FulfillmentWorkspaceItem**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Names make direct-field matching impossible); `$$` column removed
 - **ProductDecompEnrichmentRule**: excluded (0 records)
 - **Single plan for scratch and TSO:** The qb-dro plan uses the placeholder `__DRO_ASSIGNED_TO_USER__` in `FulfillmentStepDefinition.csv` (AssignedTo.Name), `User.csv`, and `UserAndGroup.csv` (Name). The task `insert_qb_dro_data` runs with `dynamic_assigned_to_user: true`, which queries the target org for the default user's Name and replaces the placeholder before running SFDMU.
 
 #### qb-rates
-- **PriceBookRateCard**: `deleteOldData: true` added (auto-number Name, all-relationship externalId `PriceBook.Name;RateCard.Name;RateCardType`)
-- **RateCardEntry**: `deleteOldData: true` added (auto-number Name, all-relationship externalId)
-- **RateAdjustmentByTier**: `deleteOldData: true` added (auto-number Name, all-relationship externalId)
+- **PriceBookRateCard**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Name, all-relationship externalId `PriceBook.Name;RateCard.Name;RateCardType`)
+- **RateCardEntry**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Name, all-relationship externalId)
+- **RateAdjustmentByTier**: `deleteOldData: true` added — pre-5.6.4 record; fixed on floor (auto-number Name, all-relationship externalId)
 
 #### qb-tax
 - **TaxPolicy**: `DefaultTaxTreatmentId` removed from Pass 2 query — SFDMU v5 cannot resolve the circular `DefaultTaxTreatment.Name` reference. The `activateTaxRecords.apex` script now sets `DefaultTaxTreatmentId` before activating.

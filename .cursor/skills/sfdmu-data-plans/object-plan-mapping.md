@@ -53,14 +53,14 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | Product2 | `StockKeepingUnit` | Readonly | From qb-pcm |
 | CostBook | `Name;IsDefault` | Upsert | |
 | Pricebook2 | `Name;IsStandard` | Upsert | |
-| PriceAdjustmentTier | 9-field composite | **Insert** | Bug 3: relationship traversal externalId |
+| PriceAdjustmentTier | 9-field composite | **Insert** | Bug 3: relationship traversal externalId — pre-5.6.4 record; fixed on floor |
 | PriceAdjustmentSchedule | `Name;CurrencyIsoCode` | Update | |
 | AttributeBasedAdjRule | `Name` | Upsert | |
-| AttributeAdjustmentCondition | 3-field composite | **Insert** | Bug 3 |
-| AttributeBasedAdjustment | 5-field composite | **Insert** | Bug 3 |
-| BundleBasedAdjustment | 8-field composite | **Insert** | Bug 3 |
-| PricebookEntry | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | **Insert** | Bug 3 |
-| PricebookEntryDerivedPrice | 8-field composite | **Insert** | Bug 2+3 |
+| AttributeAdjustmentCondition | 3-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
+| AttributeBasedAdjustment | 5-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
+| BundleBasedAdjustment | 8-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
+| PricebookEntry | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
+| PricebookEntryDerivedPrice | 8-field composite | **Insert** | Bug 2+3 — pre-5.6.4 record; fixed on floor |
 | CostBookEntry | 3-field composite | **Insert** | Excluded (0 records) |
 
 ## qb-billing (3 passes)
@@ -112,11 +112,11 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | UsageGrantRolloverPolicy | `Code` | Upsert | 1 | |
 | UsageOveragePolicy | `Name` | Upsert | 1 | |
 | UsageCommitmentPolicy | `Name` | Upsert | 1 | |
-| ProductUsageResource (PUR) | `Product.StockKeepingUnit;UsageResource.Code` | **Insert** + deleteOldData | 1 | Bug 3 |
+| ProductUsageResource (PUR) | `Product.StockKeepingUnit;UsageResource.Code` | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor |
 | UsagePrdGrantBindingPolicy | `Name;Product2.StockKeepingUnit` | Upsert | 1 | |
 | RatingFrequencyPolicy | `RatingPeriod` | Upsert | 1 | |
-| ProductUsageResourcePolicy (PURP) | `ProductUsageResourceId` | **Insert** + deleteOldData | 1 | Bug 3 |
-| ProductUsageGrant (PUG) | 3-field composite | **Insert** + deleteOldData | 1 | Bug 3 |
+| ProductUsageResourcePolicy (PURP) | `ProductUsageResourceId` | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor |
+| ProductUsageGrant (PUG) | 3-field composite | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor |
 | UnitOfMeasureClass | — | Update | 2 | Activate |
 | UsageResource | — | Update | 2 | Activate |
 
@@ -127,8 +127,8 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | Product2 | `StockKeepingUnit` | Update | Sets UsageModelType |
 | RateCard | `Name;Type` | Upsert | |
 | PriceBookRateCard | `PriceBook.Name;RateCard.Name;RateCardType` | Upsert + deleteOldData | Auto-number Name |
-| RateCardEntry | 4-field composite | **Insert** + deleteOldData | Bug 3 |
-| RateAdjustmentByTier | 6-field composite | **Insert** + deleteOldData | Bug 3 |
+| RateCardEntry | 4-field composite | **Insert** + deleteOldData | Bug 3 — pre-5.6.4 record; fixed on floor |
+| RateAdjustmentByTier | 6-field composite | **Insert** + deleteOldData | Bug 3 — pre-5.6.4 record; fixed on floor |
 
 ## qb-dro (17 objects)
 
