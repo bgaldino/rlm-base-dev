@@ -49,24 +49,3 @@
   color: var(--dl-navy, #003268);
   font-weight: 600;
 }
-
-/* Participating (partner) carriers — context chips above the grid, mirroring the scope chips. */
-.dlm-modeling__carriers-label {
-  color: var(--dl-muted, #514f4d);
-  text-transform: uppercase;
-  font-size: 0.625rem;
-  letter-spacing: 0.02em;
-  font-weight: 700;
-}
-
-.dlm-modeling__carrier-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.0625rem 0.5rem;
-  border-radius: 0.75rem;
-  background: var(--dl-tint, #eef3fa);
-  border: 0.0625rem solid #d8e0ea;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--dl-navy, #003268);
-}

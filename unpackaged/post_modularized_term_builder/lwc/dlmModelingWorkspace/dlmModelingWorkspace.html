@@ -27,17 +27,6 @@
         </div>
       </template>
 
-      <!-- Participating (partner) carriers captured pre-term in Configure Data Set. Context chips only,
-           never grid rows. -->
-      <template if:true={hasCarriers}>
-        <div class="dlm-modeling__carriers slds-grid slds-wrap slds-grid_vertical-align-center slds-m-bottom_x-small" role="group" aria-label="Participating carriers">
-          <span class="dlm-modeling__carriers-label slds-m-right_x-small">Participating carriers</span>
-          <template for:each={carrierChips} for:item="carrier">
-            <span key={carrier.key} class="dlm-modeling__carrier-chip slds-m-right_x-small slds-m-bottom_xx-small">{carrier.label}</span>
-          </template>
-        </div>
-      </template>
-
       <!-- Apply Final Offer to Quote: the shell performs the write-back on request. -->
       <div class="dlm-modeling__actions slds-grid slds-grid_align-end slds-p-bottom_x-small">
         <lightning-button

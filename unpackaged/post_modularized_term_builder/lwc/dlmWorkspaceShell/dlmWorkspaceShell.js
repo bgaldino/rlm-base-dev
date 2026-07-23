@@ -77,11 +77,9 @@ export default class DlmWorkspaceShell extends LightningElement {
   accountName = "";
   currencyCode = "USD";
 
-  // Pre-term inputs from the Configure Data Set panel (Shell Creation tab). The analysis-period factor
-  // (days / 365, clamped >= 0, default 1 = no scaling) scales the fabricated absolute KPI magnitudes;
-  // the participating carriers are surfaced as context chips above the Modeling grid (never grid rows).
+  // Pre-term input from the Configure Data Set panel (Shell Creation tab). The analysis-period factor
+  // (days / 365, clamped >= 0, default 1 = no scaling) scales the fabricated absolute KPI magnitudes.
   @track periodFactor = 1;
-  @track participatingCarriers = [];
 
   // Which tab is active ("creation" | "modeling"). Shell Creation is the default.
   activeTab = "creation";
@@ -358,13 +356,11 @@ export default class DlmWorkspaceShell extends LightningElement {
   // ---------- events up from the Configure Data Set panel (Shell Creation tab) ----------
 
   // The pre-term panel saved/changed its inputs. Adopt the analysis-period factor (scales the
-  // fabricated KPI magnitudes) and the participating carriers (surfaced as chips over the grid).
-  // Both are @track, so the KPI getters recompute (bands re-animate) and the carriers re-pass down.
+  // fabricated KPI magnitudes). It's @track, so the KPI getters recompute (bands re-animate).
   handleConfigChange(event) {
     const detail = (event && event.detail) || {};
     const pf = Number(detail.periodFactor);
     this.periodFactor = Number.isFinite(pf) && pf >= 0 ? pf : 1;
-    this.participatingCarriers = Array.isArray(detail.carriers) ? detail.carriers : [];
   }
 
   // ---------- events up from the Modeling workspace ----------
