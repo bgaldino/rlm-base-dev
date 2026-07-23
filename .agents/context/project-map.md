@@ -71,7 +71,7 @@ Tracked generated references currently recorded in project memory:
 ## External Systems
 
 - **CumulusCI (CCI):** task and flow orchestration. Use `cci ... --org <cci_alias>`.
-- **SFDMU v5:** data import/export through `sf sfdmu run`; v5.0.0+ is required.
+- **SFDMU v5:** data import/export through `sf sfdmu run`; **v5.6.4+ is required** (5.6.4 fixed Upsert matching for relationship-traversal externalIds; enforced by `validate_setup`, the Docker build, and CI).
 - **Salesforce CLI:** metadata/data/org commands. Use `sf ... --target-org <sf_alias_or_username>`.
 - **Robot Framework:** setup and E2E test automation in `robot/rlm-base/`.
 - **PMOS manifest:** cross-repo skill manifest at `.claude/skill-manifest.yml`; validate with `python scripts/ai/skill_manifest.py --check` when using PMOS integration.

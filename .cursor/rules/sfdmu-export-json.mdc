@@ -18,16 +18,15 @@ alwaysApply: false
 - Relationship traversals: `Parent.Field` (1-hop), `GrandParent.Parent.Field` (2-hop)
 
 ## Operation Selection
-- **Upsert**: Only when externalId uses direct fields (no relationship traversals)
-- **Insert + deleteOldData: true**: Required when externalId contains ANY relationship traversal (Bug 3)
+- **Upsert**: the default — works for direct fields AND relationship-traversal externalIds on the **5.6.4+ floor** (Bugs 3/5 fixed)
+- **Insert + deleteOldData: true**: NOT required for traversal externalIds on 5.6.4+ (that was the pre-5.6.4 workaround). Existing plans still carrying it migrate under the gated `sfdmu-v5-optimization` initiative, not ad hoc.
 - **Update**: Modifying existing records only
 - **Readonly**: Reference objects loaded by another plan
-- Never change Upsert → Insert+deleteOldData without explaining which bug applies and getting user approval
+- Never change Upsert → Insert+deleteOldData without a concrete current reason (Bugs 1/2/3/5 are fixed on 5.6.4+ — not valid reasons) and explicit user approval
 
-## v5 Bugs to Watch
-- Bug 1: All-multi-hop externalId fails validation — include at least one direct field
-- Bug 2: 2-hop traversals cause SOQL injection in Upsert — use Insert+deleteOldData
-- Bug 3: Relationship-traversal externalId never matches on Upsert — use Insert+deleteOldData
+## v5 Bugs — one live on the 5.6.4 floor
+- Bug 4 (LIVE): `$$` composite notation fails in lookup reference columns (self-referential and cross-object) — use simple single-field references (non-destructive)
+- Bugs 1/2/3/5: FIXED at/below 5.6.4 (the floor). Do not apply their old Insert+deleteOldData/direct-field workarounds — Upsert matches on relationship traversals.
 
 ## Object Ordering
 - Parent objects before child objects in the `objects` array

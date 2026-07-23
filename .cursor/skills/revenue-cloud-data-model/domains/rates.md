@@ -49,6 +49,6 @@ BindingObjectCustomExt ← BindingObjectRateCardEntry (BindingObjectId)
 
 5 objects in 1 pass. **Must load after** `qb-rating` (RateCardEntry references UsageResource and PUR).
 
-All junction objects use `Insert` + `deleteOldData: true` due to composite relationship-traversal externalIds.
+In the **shipped** plan, RateCardEntry and RateAdjustmentByTier use `Insert` + `deleteOldData: true` and PriceBookRateCard uses `Upsert` + `deleteOldData: true`, due to composite relationship-traversal externalIds — a **pre-5.6.4 workaround** (fixed on the 5.6.4+ floor; new plans use `Upsert`, shipped-plan migration is the gated `sfdmu-v5-optimization` initiative).
 
 **Deletion constraint**: `delete_qb_rates_data` must run before `delete_qb_rating_data` — rates FK to PURs.
