@@ -90,7 +90,7 @@ RUN set -eux; \
 # lives under ~/.local/share/sf, *outside* the persisted state dirs) is baked
 # into the image and survives a fresh state volume. The final step asserts the
 # baked plugin meets the repo floor of 5.6.4 (upsert-matching fix for
-# relationship externalIds, upstream #781; matches validate_setup's
+# relationship externalIds landed in the 5.6.4 release, commit 50be987; matches validate_setup's
 # required_sfdmu_version) — `sort -V -C` exits non-zero, failing the build,
 # if the installed version sorts below 5.6.4.
 # ---------------------------------------------------------------------------

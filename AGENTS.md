@@ -122,11 +122,12 @@ is the separate, gated `sfdmu-v5-optimization` initiative (needs live
 verification + explicit per-operation approval — do not flip operations ad hoc;
 see the CRITICAL rule below).
 
-**Bug 4 — `$$` composite key self-references fail on import (STILL PRESENT, incl. 5.8.0)**
-When a CSV uses `$$` composite notation for a self-referential lookup
-(e.g. `ParentGroup.$$Code$ParentProduct.StockKeepingUnit`), SFDMU
-cannot resolve the parent record.
-**Fix:** Use simple single-field references for self-referential lookups
+**Bug 4 — `$$` composite notation fails for lookup reference columns (STILL PRESENT, incl. 5.8.0)**
+When a CSV uses `$$` composite notation for a **lookup reference** — self-referential
+(e.g. `ParentGroup.$$Code$ParentProduct.StockKeepingUnit`) *or cross-object* — SFDMU
+cannot decompose the composite value to resolve the referenced record. (The primary
+`$$` externalId-matching column is unaffected.)
+**Fix:** Use simple single-field references for lookup columns
 (e.g. `ParentGroup.Code`). Non-destructive — no `deleteOldData`.
 
 <details>
@@ -134,8 +135,8 @@ cannot resolve the parent record.
 
 - **Bug 1 — all-multi-hop externalId fails validation** (`{Object} has no mandatory external Id field definition`). **Fixed in 5.3.1.** *Was:* use at least one direct field in the `externalId`.
 - **Bug 2 — 2-hop traversal columns produce malformed SOQL in Upsert.** **Fixed in 5.6.3.** *Was:* `operation: Insert` + `deleteOldData: true`. *Residue by design:* dotted composite segments are still dropped from child `__r` relationship queries on **extract** — the root cause of the `#N/A` blanking that `post_process_extraction.py` backfills (5.6.3 also set `#N/A` = null marker, bare `N/A` = literal).
-- **Bug 3 — Upsert with relationship-traversal externalId never matches** (duplicates on every run). **Fixed in 5.6.4** ([SFDX-Data-Move-Utility#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781), closed). *Was:* `operation: Insert` + `deleteOldData: true`.
-- **Bug 5 — composite externalId of all relationship traversals fails upsert matching** (e.g. `Parent.Name;OtherParent.Name`). **Fixed in 5.6.4** (same `#781` fix). *Was:* `operation: Insert` + `deleteOldData: true` for objects whose only logical key is a composite of parent lookups.
+- **Bug 3 — Upsert with relationship-traversal externalId never matches** (duplicates on every run). **Fixed in the 5.6.4 release** (commit `50be987`, `_getNestedRecordFieldValue`; source-verified). *Was:* `operation: Insert` + `deleteOldData: true`.
+- **Bug 5 — composite externalId of all relationship traversals fails upsert matching** (e.g. `Parent.Name;OtherParent.Name`). **Fixed in 5.6.4** (same relationship-path matching fix). *Was:* `operation: Insert` + `deleteOldData: true` for objects whose only logical key is a composite of parent lookups.
 
 </details>
 

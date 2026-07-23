@@ -24,7 +24,7 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 | v4 Behavior | v5 Change | Impact |
 |-------------|-----------|--------|
 | Nested relationship paths in parent `externalId` (e.g. `Pricebook2.Name`) resolved correctly when a child references that parent | v5 flattens the parent's externalId fields into the child's SOQL query, causing `Didn't understand relationship` errors when the field path is not valid on the child object | Parent externalIds with nested relationship paths must be simplified to fields valid on the parent itself, or the child's reference must not trigger flattening |
-| `$$` composite key columns in CSVs used for source-to-target record matching | pre-5.6.4: v5 could not reliably match target records when `externalId` contained only relationship paths (e.g. `Parent.Name;OtherParent.Code`) — **fixed in 5.6.4 (#781)** | pre-5.6.4 these objects used `deleteOldData: true`; on the 5.6.4+ floor use `Upsert` (matching works). Shipped plans still carry the old operation pending the gated migration |
+| `$$` composite key columns in CSVs used for source-to-target record matching | pre-5.6.4: v5 could not reliably match target records when `externalId` contained only relationship paths (e.g. `Parent.Name;OtherParent.Code`) — **fixed in the 5.6.4 release (commit `50be987`)** | pre-5.6.4 these objects used `deleteOldData: true`; on the 5.6.4+ floor use `Upsert` (matching works). Shipped plans still carry the old operation pending the gated migration |
 | `$$` notation in `externalId` definitions (e.g. `$$Field1$Field2`) recognized as composite keys | v5 does not recognize `$$` in externalId definitions; requires `;`-delimited format | All `externalId` definitions use `Field1;Field2` format |
 
 ### Changes by dataset
@@ -101,7 +101,7 @@ All 10 QB data tasks have been verified as idempotent with SFDMU v5 on a fresh 2
 
 ### Bug 5 — Composite `externalId` with traversal fields failed for upsert matching (discovered 2026-04-02; FIXED in 5.6.4)
 
-> **Fixed on the enforced 5.6.4+ floor** (upstream [#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781), closed). Upsert now matches on all-traversal composite externalIds. The section below is the **pre-5.6.4 behavior** and the workaround the shipped plans still carry until the gated `sfdmu-v5-optimization` migration. **For new plans on 5.6.4+, use `Upsert` — do not add `deleteOldData: true` for this reason.**
+> **Fixed on the enforced 5.6.4+ floor** (the 5.6.4 release, commit `50be987`, `_getNestedRecordFieldValue`; source-verified). Upsert now matches on all-traversal composite externalIds. The section below is the **pre-5.6.4 behavior** and the workaround the shipped plans still carry until the gated `sfdmu-v5-optimization` migration. **For new plans on 5.6.4+, use `Upsert` — do not add `deleteOldData: true` for this reason.**
 
 **Problem (pre-5.6.4):** When `externalId` used `;`-delimited traversal fields (e.g. `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`), SFDMU could not match source CSV rows to existing target records for upsert. Each run inserted new records instead of updating existing ones, even when:
 - The traversal fields were included in the SOQL query
@@ -110,7 +110,7 @@ All 10 QB data tasks have been verified as idempotent with SFDMU v5 on a fresh 2
 
 **Discovered on:** `FulfillmentWorkspaceItem` — externalId `FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`. Pre-5.6.4 SFDMU inserted 7 new records on every run instead of matching the 7 existing (record count grew 7 → 14 → 21 → 28 across runs).
 
-**Root cause (pre-5.6.4):** SFDMU's upsert matching engine could not resolve composite keys composed entirely of relationship-traversal fields against target org data. 5.6.4's `_getNestedRecordFieldValue` fix (#781) resolves this.
+**Root cause (pre-5.6.4):** SFDMU's upsert matching engine could not resolve composite keys composed entirely of relationship-traversal fields against target org data. 5.6.4's `_getNestedRecordFieldValue` fix (commit `50be987`) resolves this.
 
 **Pre-5.6.4 workaround — still on the shipped plans (records; pending migration):** `deleteOldData: true` for objects whose only logical key is a composite of parent lookups with an auto-number `Name`. The objects still carrying it:
 - `FulfillmentWorkspaceItem` (qb-dro) — 7 records

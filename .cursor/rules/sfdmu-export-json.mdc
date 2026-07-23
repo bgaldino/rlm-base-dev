@@ -25,7 +25,7 @@ alwaysApply: false
 - Never change Upsert → Insert+deleteOldData without a concrete current reason (Bugs 1/2/3/5 are fixed on 5.6.4+ — not valid reasons) and explicit user approval
 
 ## v5 Bugs — one live on the 5.6.4 floor
-- Bug 4 (LIVE): `$$` composite self-references fail on import — use simple single-field references (non-destructive)
+- Bug 4 (LIVE): `$$` composite notation fails in lookup reference columns (self-referential and cross-object) — use simple single-field references (non-destructive)
 - Bugs 1/2/3/5: FIXED at/below 5.6.4 (the floor). Do not apply their old Insert+deleteOldData/direct-field workarounds — Upsert matches on relationship traversals.
 
 ## Object Ordering

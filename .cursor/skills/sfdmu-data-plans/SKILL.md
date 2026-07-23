@@ -14,7 +14,7 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 ## Quick Rules
 
 1. externalId delimiter is `;` — NOT `$$` (that's v4).
-2. Relationship-traversal externalId matches under `Upsert` on the 5.6.4+ floor (Bugs 2/3/5 fixed) — the old `Insert` + `deleteOldData: true` workaround is pre-5.6.4. Only Bug 4 (`$$` self-ref) is still live.
+2. Relationship-traversal externalId matches under `Upsert` on the 5.6.4+ floor (Bugs 2/3/5 fixed) — the old `Insert` + `deleteOldData: true` workaround is pre-5.6.4. Only Bug 4 (`$$` in lookup reference columns — self-referential *and* cross-object) is still live.
 3. Never change Upsert → Insert+deleteOldData without explicit user approval.
 4. Empty CSV → set `excluded: true` (prevents destructive wipe).
 5. Parent → child order in `objects` array (deletion runs reverse).
@@ -69,11 +69,11 @@ SFDMU v5.6.4+ is required (5.6.4 fixed Upsert matching for relationship-traversa
 | Updating existing records (set fields) | `Update` | `false` | Only modifies matched records |
 | Empty CSV (no records yet) | mark `excluded: true` | — | Prevents destructive delete-on-load |
 
-## Bug 4 — `$$` Composite Key Self-References Fail on Import
+## Bug 4 — `$$` Composite Notation Fails for Lookup Reference Columns (self-referential and cross-object)
 
 **Problem:** When an object has a self-referential lookup (e.g., `ProductComponentGroup.ParentGroupId` → `ProductComponentGroup`) and the CSV uses `$$` composite key notation for that reference (e.g., `ParentGroup.$$Code$ParentProduct.StockKeepingUnit`), SFDMU cannot resolve the parent record. The MissingParentRecordsReport shows anonymized hashes instead of matched records, and the lookup fields are left null after import — even though the parent records exist and SFDMU runs multiple passes.
 
-**Root cause:** SFDMU's `$$` composite notation works for the *primary* record's externalId matching (source↔target), but fails when used as a *lookup reference column* for self-referential relationships. SFDMU cannot decompose a composite `$$` value back into individual fields to find the referenced parent record.
+**Root cause:** SFDMU's `$$` composite notation works for the *primary* record's externalId matching (source↔target), but fails when used as a *lookup reference column* — for **self-referential and cross-object** relationships alike. SFDMU cannot decompose a composite `$$` value back into individual fields to find the referenced record.
 
 **Fix:** Use simple single-field references for self-referential lookups:
 - Change `ParentGroup.$$Code$ParentProduct.StockKeepingUnit` → `ParentGroup.Code`
@@ -109,8 +109,8 @@ case; existing plans still carrying Insert+deleteOldData migrate under the gated
 
 - **Bug 1 — all-multi-hop externalId fails validation** (`{Object} has no mandatory external Id field definition`). **Fixed in 5.3.1.** *Was:* include at least one direct field in externalId.
 - **Bug 2 — 2-hop traversal columns produce malformed SOQL in the Upsert TARGET SELECT.** **Fixed in 5.6.3.** *Was:* `Insert` + `deleteOldData: true`. *Residue by design:* dotted composite segments are still dropped from child `__r` queries on **extract** (the `#N/A` blanking that `post_process_extraction.py` backfills; 5.6.3 also set `#N/A` = null marker, bare `N/A` = literal).
-- **Bug 3 — Upsert with relationship-traversal externalId never matches** (duplicates every run, even 1-hop). **Fixed in 5.6.4** ([#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781), closed). *Was:* `Insert` + `deleteOldData: true`.
-- **Bug 5 — composite externalId of all relationship traversals fails upsert matching.** **Fixed in 5.6.4** (same `#781` fix). *Was:* prefer a direct-field externalId, else `Insert` + `deleteOldData: true` after approval.
+- **Bug 3 — Upsert with relationship-traversal externalId never matches** (duplicates every run, even 1-hop). **Fixed in the 5.6.4 release** (commit `50be987`, `_getNestedRecordFieldValue`; source-verified). *Was:* `Insert` + `deleteOldData: true`.
+- **Bug 5 — composite externalId of all relationship traversals fails upsert matching.** **Fixed in 5.6.4** (same relationship-path matching fix). *Was:* prefer a direct-field externalId, else `Insert` + `deleteOldData: true` after approval.
 
 </details>
 
