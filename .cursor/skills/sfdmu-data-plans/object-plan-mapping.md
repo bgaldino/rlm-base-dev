@@ -2,6 +2,13 @@
 
 Which SObject lives in which data plan, its externalId, operation, and upstream dependencies.
 
+> **`Insert` + "Bug 3" rows below record the *current shipped plans*, not new-plan guidance.**
+> Those `Insert`/`deleteOldData` entries were pre-5.6.4 workarounds for the
+> relationship-traversal Upsert bugs (Bugs 2/3/5), which are **fixed on the enforced
+> 5.6.4+ floor** — Upsert now matches on traversal externalIds. The plans still carry the
+> old operation until the gated `sfdmu-v5-optimization` migration. When authoring a *new*
+> plan on 5.6.4+, use `Upsert` for traversal externalIds; only Bug 4 (`$$` self-ref) is live.
+
 ## qb-pcm (Product Catalog Management — 28 objects)
 
 | SObject | externalId | Operation | Notes |

@@ -10,6 +10,15 @@ SFDMU v5 introduced breaking changes that affect how composite `externalId` defi
 interact with data plans. The following adjustments were made to ensure all QB data plans
 work correctly with v5 and remain **idempotent** (safe to re-run without creating duplicates).
 
+> **Historical record, not current authoring guidance.** The `deleteOldData: true`
+> adjustments below were **pre-5.6.4 workarounds** for the relationship-traversal
+> Upsert bugs (Bugs 2/3/5), which are **fixed on the enforced 5.6.4+ floor** — Upsert
+> now matches on traversal externalIds. These objects still carry the workaround in the
+> shipped plans; migrating them back to Upsert is the separate, gated
+> `sfdmu-v5-optimization` initiative (needs live verification + approval). Do **not**
+> apply the patterns below when authoring *new* plans on 5.6.4+; author them as `Upsert`.
+> Only the Bug 4 (`$$` self-reference) simplifications remain live guidance.
+
 ### Key v5 behavioral changes
 
 | v4 Behavior | v5 Change | Impact |
