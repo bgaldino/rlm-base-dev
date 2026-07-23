@@ -93,7 +93,7 @@ Value:  Cooling,...,Computing
 externalId: "Code"
 ```
 
-**Audit required:** All data plans with `$$` composite columns used as *lookup references* (not just primary keys) should be reviewed. Cross-object `$$` references (e.g., `ProductComponentGroup.$$Code$...` referenced from `ProductRelatedComponent`) may also be affected — test each case.
+**Audit required:** Review all data plans that use `$$` composite columns as *lookup references* (not just primary keys). Cross-object `$$` references (e.g., `ProductComponentGroup.$$Code$...` referenced from `ProductRelatedComponent`) fail the same way as self-references — SFDMU cannot decompose a composite `$$` value in **any** lookup-reference column. **Fix (both cases):** use a simple single-field reference for the lookup column.
 
 ## v5 Bugs — one live on the 5.6.4 floor, four fixed upstream
 
