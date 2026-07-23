@@ -2,6 +2,8 @@
 
 SFDMU data plan for QuantumBit (QB) pricing configuration. Creates pricebook entries, price adjustment schedules/tiers, attribute-based adjustments, bundle-based adjustments, derived prices, cost books, and currency types.
 
+> **SFDMU 5.6.4+ floor.** Seven objects (PriceAdjustmentTier, AttributeAdjustmentCondition, AttributeBasedAdjustment, BundleBasedAdjustment, PricebookEntry, PricebookEntryDerivedPrice, CostBookEntry) use `Insert` — a pre-5.6.4 workaround for relationship-traversal externalId matching, **fixed at/below the 5.6.4 floor**. Idempotency comes from the separate `delete_quantumbit_pricing_data` step that runs first (reverse plan order), **not** `deleteOldData`. Migrating these to `Upsert` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval.
+
 ## CCI Integration
 
 ### Flow: `prepare_pricing_data`

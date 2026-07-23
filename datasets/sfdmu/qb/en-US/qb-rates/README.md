@@ -2,6 +2,8 @@
 
 SFDMU data plan for QuantumBit (QB) rate cards, rate card entries, and tiered rate adjustments. Defines the pricing rates used by the usage rating engine to calculate charges for QB products.
 
+> **SFDMU 5.6.4+ floor.** RateCardEntry and RateAdjustmentByTier use `Insert` + `deleteOldData: true`, and PriceBookRateCard uses `Upsert` + `deleteOldData: true` — pre-5.6.4 workarounds for relationship-traversal externalId matching (multi-hop traversal keys produced invalid Upsert SOQL; all-traversal composite keys never matched target records). Those bugs are **fixed at/below the 5.6.4 floor**; the shipped plan keeps the workarounds deliberately. Restoring plain `Upsert` / dropping `deleteOldData` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval.
+
 ## CCI Integration
 
 ### Flow: `prepare_rating`

@@ -127,8 +127,8 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | Product2 | `StockKeepingUnit` | Update | Sets UsageModelType |
 | RateCard | `Name;Type` | Upsert | |
 | PriceBookRateCard | `PriceBook.Name;RateCard.Name;RateCardType` | Upsert + deleteOldData | Auto-number Name |
-| RateCardEntry | 4-field composite | **Insert** + deleteOldData | Bug 3 — pre-5.6.4 record; fixed on floor |
-| RateAdjustmentByTier | 6-field composite | **Insert** + deleteOldData | Bug 3 — pre-5.6.4 record; fixed on floor |
+| RateCardEntry | 4-field composite | **Insert** + deleteOldData | Bug 2 (multi-hop traversal) — pre-5.6.4 record; fixed on floor |
+| RateAdjustmentByTier | 6-field composite | **Insert** + deleteOldData | Bug 2 (multi-hop traversal) — pre-5.6.4 record; fixed on floor |
 
 ## qb-dro (17 objects)
 

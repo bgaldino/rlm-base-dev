@@ -2,6 +2,8 @@
 
 SFDMU data plan for QuantumBit (QB) usage rating design-time configuration. Creates and activates all objects required for usage-based rating on QB products, including usage resources, product-to-resource associations, grants, and policies.
 
+> **SFDMU 5.6.4+ floor.** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant use `Insert` + `deleteOldData: true` — a pre-5.6.4 workaround for relationship-traversal externalId matching (traversal-keyed Upsert failed to match target records, so re-runs duplicated). Those bugs are **fixed at/below the 5.6.4 floor**; the shipped plan keeps the workaround deliberately. Migrating these back to `Upsert` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval.
+
 ## CCI Integration
 
 ### Flow: `prepare_rating`
