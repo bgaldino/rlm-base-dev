@@ -116,7 +116,7 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | UsagePrdGrantBindingPolicy | `Name;Product2.StockKeepingUnit` | Upsert | 1 | |
 | RatingFrequencyPolicy | `RatingPeriod` | Upsert | 1 | |
 | ProductUsageResourcePolicy (PURP) | `ProductUsageResourceId` | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor |
-| ProductUsageGrant (PUG) | 3-field composite | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor |
+| ProductUsageGrant (PUG) | 3-field composite | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor. Upsert migration is not operation-only: the 3-field key is intentionally non-unique across parent PURs, so it must first add a PUR component (e.g. `ProductUsageResourceId`) |
 | UnitOfMeasureClass | — | Update | 2 | Activate |
 | UsageResource | — | Update | 2 | Activate |
 

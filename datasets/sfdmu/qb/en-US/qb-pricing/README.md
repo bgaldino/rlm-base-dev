@@ -69,7 +69,7 @@ Delete all Insert-operation records   ->    Upsert/Update/Insert/Readonly       
 | 15 | PricebookEntryDerivedPrice   | Insert    | ✓            | `Pricebook.Name;PricebookEntry.Product2.StockKeepingUnit;PricebookEntry.ProductSellingModel.Name;Product.StockKeepingUnit;ContributingProduct.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | 2 |
 | 16 | CostBookEntry                | Insert    | ✓            | `CostBook.Name;Product.StockKeepingUnit;CurrencyIsoCode`                                               | 87      |
 
-¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CBE → PEDP → PBE → BBA → ABA → AAC → PAT). Workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components always inserts instead of matching existing records ([forcedotcom/SFDX-Data-Move-Utility #781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)).
+¹ **Pre-Deleted:** `delete_quantumbit_pricing_data` deletes all records of these types before each load (reverse plan order: CBE → PEDP → PBE → BBA → ABA → AAC → PAT). Pre-5.6.4 workaround for SFDMU v5 Bug 3 — Upsert with relationship-traversal externalId components inserted instead of matching existing records; **fixed in the 5.6.4 release (commit `50be987`)**, retained pending the gated `sfdmu-v5-optimization` migration. (Issue [#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781) reported the symptom; the relationship-path fix landed in 5.6.4, not that issue.)
 
 **Other notes:**
 - `ProrationPolicy`: `Update` (not Upsert) — records are always pre-provisioned by the platform; SFDMU v5 TARGET SELECT fails for this managed object
