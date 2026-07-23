@@ -15,6 +15,8 @@
       ".cursor/skills/document-generation/dynamic-images.md",
       ".cursor/skills/document-generation/extract-engine-reference.md",
       ".cursor/skills/expression-sets/SKILL.md",
+      ".cursor/skills/expression-sets/authoring-and-overlays.md",
+      ".cursor/skills/expression-sets/metadata-vs-connect.md",
       ".cursor/skills/inapp-framework/SKILL.md",
       ".cursor/skills/odt-authoring/SKILL.md",
       ".cursor/skills/pde-org-build/SKILL.md",
@@ -47,7 +49,7 @@
     "missing": []
   },
   "counts": {
-    "agents_skill_references": 42,
+    "agents_skill_references": 44,
     "cursor_rules": 11,
     "errors": 0,
     "generated_cci_reference_files_present": 3,
@@ -55,7 +57,7 @@
     "missing_agents_skill_references": 0,
     "required_files_present": 6,
     "required_files_total": 6,
-    "skills_markdown_files": 52,
+    "skills_markdown_files": 54,
     "warnings": 0
   },
   "errors": [],
@@ -219,6 +221,8 @@
     ".cursor/skills/document-generation/dynamic-images.md",
     ".cursor/skills/document-generation/extract-engine-reference.md",
     ".cursor/skills/expression-sets/SKILL.md",
+    ".cursor/skills/expression-sets/authoring-and-overlays.md",
+    ".cursor/skills/expression-sets/metadata-vs-connect.md",
     ".cursor/skills/inapp-framework/SKILL.md",
     ".cursor/skills/odt-authoring/SKILL.md",
     ".cursor/skills/pde-org-build/SKILL.md",
