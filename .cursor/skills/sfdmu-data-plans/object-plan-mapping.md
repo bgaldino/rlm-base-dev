@@ -61,7 +61,7 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | BundleBasedAdjustment | 8-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
 | PricebookEntry | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
 | PricebookEntryDerivedPrice | 8-field composite | **Insert** | Bug 2+3 — pre-5.6.4 record; fixed on floor |
-| CostBookEntry | 3-field composite | **Insert** | Excluded (0 records) |
+| CostBookEntry | 3-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
 
 ## qb-billing (3 passes)
 
