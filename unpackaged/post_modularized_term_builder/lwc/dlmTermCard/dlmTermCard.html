@@ -13,13 +13,6 @@
         >{displayName}</span
       >
       <span class="dl-term-card__badges slds-shrink-none">
-        <template if:true={scopeRankBadge}>
-          <span
-            class={scopeRankBadge.cls}
-            title="Geography scope specificity — a more specific scope wins when a market fits multiple Terms"
-            >{scopeRankBadge.label}</span
-          >
-        </template>
         <span class="dl-term-card__count slds-badge">{fareCountLabel}</span>
       </span>
     </div>
@@ -27,39 +20,6 @@
       <div class="dl-term-card__summary slds-m-top_xx-small">
         <template if:true={routeLabel}>
           <div class="slds-truncate" title={routeLabel}>{routeLabel}</div>
-        </template>
-        <template if:true={scopeLabel}>
-          <div class="slds-truncate slds-text-body_small" title={scopeLabel}>
-            {scopeLabel}
-          </div>
-        </template>
-        <template if:true={showOperatorToggle}>
-          <div
-            class="dl-term-card__ops slds-m-top_xx-small"
-            role="group"
-            aria-label="Scope operator"
-          >
-            <button
-              type="button"
-              class={includesClass}
-              data-op="Includes"
-              aria-pressed={includesActive}
-              onclick={handleOperator}
-              title="Include the market group in this term's scope"
-            >
-              Includes
-            </button>
-            <button
-              type="button"
-              class={excludesClass}
-              data-op="Excludes"
-              aria-pressed={excludesActive}
-              onclick={handleOperator}
-              title="Exclude the market group from this term's scope"
-            >
-              Excludes
-            </button>
-          </div>
         </template>
         <template if:true={requirementLabel}>
           <div
