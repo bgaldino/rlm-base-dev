@@ -15,7 +15,10 @@ Salesforce Release 262 (Summer '26, API v67.0), now on the `main` branch
 
 Key technology stack:
 - **CumulusCI (CCI)** — orchestration engine for tasks and flows
-- **SFDMU v5** — data import/export (`sf sfdmu run`). **v5.0.0+ required.**
+- **SFDMU v5** — data import/export (`sf sfdmu run`). **v5.6.4+ required**
+  (5.6.4 fixed upsert matching for relationship-traversal externalIds —
+  older 5.x duplicates records on rerun for Upsert plans like qb-prm;
+  enforced by `validate_setup`, the Docker image build, and CI)
 - **Salesforce DX / `sf` CLI** — metadata deployment and org management
 - **Python** — custom CCI task classes in `tasks/`
 - **Apex** — post-load activation scripts in `scripts/apex/`
@@ -108,38 +111,40 @@ changes from v4.
 - Use `;` delimiters: `Field1;Field2` (NOT `$$Field1$Field2`)
 - `$$` columns in CSVs are valid for Upsert target-record matching
 
-### The Five Confirmed v5 Bugs
+### v5 Bugs — one live on the 5.6.4 floor, four fixed upstream
 
-**Bug 1 — All-multi-hop externalId fails validation**
-`{Object} has no mandatory external Id field definition`
-**Fix:** Use at least one direct field in the `externalId`.
+Because **v5.6.4 is the enforced floor** (see the tech-stack note above), the
+historical Upsert-matching bugs are fixed upstream and **only Bug 4 is still
+live**. On a 5.6.4+ plugin, **do not** introduce `operation: Insert` +
+`deleteOldData: true` citing Bugs 1/2/3/5 — Upsert works. Existing plans that
+still carry that pattern are pre-5.6.4 workarounds; migrating them back to Upsert
+is the separate, gated `sfdmu-v5-optimization` initiative (needs live
+verification + explicit per-operation approval — do not flip operations ad hoc;
+see the CRITICAL rule below).
 
-**Bug 2 — 2-hop traversal columns cause SOQL injection in Upsert**
-**Fix:** Use `operation: Insert` + `deleteOldData: true`.
+**Bug 4 — `$$` composite notation fails for lookup reference columns (STILL PRESENT, incl. 5.8.0)**
+When a CSV uses `$$` composite notation for a **lookup reference** — self-referential
+(e.g. `ParentGroup.$$Code$ParentProduct.StockKeepingUnit`) *or cross-object* — SFDMU
+cannot decompose the composite value to resolve the referenced record. (The primary
+`$$` externalId-matching column is unaffected.)
+**Fix:** Use simple single-field references for lookup columns
+(e.g. `ParentGroup.Code`). Non-destructive — no `deleteOldData`.
 
-**Bug 3 — Upsert with relationship-traversal externalId never matches**
-Creates duplicates on every run.
-**Fix:** Use `operation: Insert` + `deleteOldData: true`.
-*Upstream: [SFDX-Data-Move-Utility#781](https://github.com/forcedotcom/SFDX-Data-Move-Utility/issues/781)*
+<details>
+<summary>Bugs 1/2/3/5 — fixed at or below the 5.6.4 floor (kept for history; do NOT apply their Insert+deleteOldData workarounds on 5.6.4+)</summary>
 
-**Bug 4 — `$$` composite key self-references fail on import**
-When a CSV uses `$$` composite notation for a self-referential lookup
-(e.g. `ParentGroup.$$Code$ParentProduct.StockKeepingUnit`), SFDMU
-cannot resolve the parent record.
-**Fix:** Use simple single-field references for self-referential lookups
-(e.g. `ParentGroup.Code`).
+- **Bug 1 — all-multi-hop externalId fails validation** (`{Object} has no mandatory external Id field definition`). **Fixed in 5.3.1.** *Was:* use at least one direct field in the `externalId`.
+- **Bug 2 — 2-hop traversal columns produce malformed SOQL in Upsert.** **Fixed in 5.6.3.** *Was:* `operation: Insert` + `deleteOldData: true`. *Residue by design:* dotted composite segments are still dropped from child `__r` relationship queries on **extract** — the root cause of the `#N/A` blanking that `post_process_extraction.py` backfills (5.6.3 also set `#N/A` = null marker, bare `N/A` = literal).
+- **Bug 3 — Upsert with relationship-traversal externalId never matches** (duplicates on every run). **Fixed in the 5.6.4 release** (commit `50be987`, `_getNestedRecordFieldValue`; source-verified). *Was:* `operation: Insert` + `deleteOldData: true`.
+- **Bug 5 — composite externalId of all relationship traversals fails upsert matching** (e.g. `Parent.Name;OtherParent.Name`). **Fixed in 5.6.4** (same relationship-path matching fix). *Was:* `operation: Insert` + `deleteOldData: true` for objects whose only logical key is a composite of parent lookups.
 
-**Bug 5 — Composite externalId with all-traversal fields fails upsert matching**
-When `externalId` is composed entirely of relationship traversals
-(e.g. `Parent.Name;OtherParent.Name`), SFDMU inserts duplicates on
-every run instead of matching existing records.
-**Fix:** Use `operation: Insert` + `deleteOldData: true` for objects
-whose only logical key is a composite of parent lookups.
+</details>
 
 ### CRITICAL — Insert + deleteOldData requires explicit approval
 
 **Never propose changing `Upsert` to `Insert` + `deleteOldData: true` without:**
-1. Explaining *why* Upsert cannot work (which Bug applies)
+1. Explaining *why* Upsert cannot work (on the 5.6.4+ floor Bugs 1/2/3/5 are
+   fixed — cite a concrete, current reason, not those historical bugs)
 2. Confirming no direct-field externalId alternative exists
 3. Getting **explicit user approval**
 
