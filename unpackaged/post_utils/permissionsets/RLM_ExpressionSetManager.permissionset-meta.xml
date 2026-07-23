@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+      Everything the rlmExpressionSetManager component needs, and nothing else.
+
+      Deliberately separate from RLM_UtilitiesPermset: that set also grants
+      RLM_AccountUtilities, whose invocable deletes account-related orders,
+      assets, contracts, invoices, quotes and opportunities. Assigning it just to
+      enable this component would hand every build destructive Apex access, so
+      the Expression Set Manager gets its own least-privilege set.
+    -->
+    <classAccesses>
+        <apexClass>RLM_ExpressionSetManagerController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <!--
+      Object grants for RLM_ExpressionSetManagerController's WITH USER_MODE SOQL
+      (least privilege). The controller only READS these objects from Apex;
+      version toggles and Constraint junction create/delete run through the
+      Composite REST API as the running user, not Apex DML — so no create/delete
+      object perms are granted here. ExpressionSetVersion also gets edit so the
+      controller's isUpdateable() guard passes and the REST version PATCH is
+      authorized.
+
+      Only ExpressionSet and ExpressionSetVersion are grantable here. Verified on
+      a live org (2026-07-22, org rlm-base__pr281): the other objects the
+      controller reads — ContextDefinition, ExpressionSetDefinition, and the
+      ExpressionSetDefinitionContextDefinition junction — are IsCustomizable=false
+      platform entities, so object permissions on them are silently dropped on
+      deploy (0 ObjectPermissions rows persist, org-wide) and their read is
+      governed by RLM platform/feature access, not perm-set object perms
+      (analogous to the AsyncApexJob exception documented in the controller). No
+      fieldPermissions are declared because every field the USER_MODE queries
+      select (ExpressionSetVersion.IsActive/VersionNumber/Rank,
+      ExpressionSet.UsageType, ...) is permissionable=false — covered by object
+      access.
+    -->
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>ExpressionSet</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>ExpressionSetVersion</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <!-- getApiSessionId() renders the RLM_SessionId Visualforce page to obtain a
+         REST session id; a permission-set-only user needs page access or
+         activate/deactivate fails when Apex renders it. -->
+    <pageAccesses>
+        <apexPage>RLM_SessionId</apexPage>
+        <enabled>true</enabled>
+    </pageAccesses>
+    <!--
+      ApiEnabled is required for the $Api.Session_ID loopback: page access alone
+      does not make that session usable against the REST API, so without it the
+      Composite activate/deactivate callouts fail with a non-API session.
+
+      ⚠ This is a BROAD system permission (it enables all API access for the
+      assignee), granted here only because the component's session-id loopback
+      depends on it. The scoped alternative is to replace the loopback with a
+      Named Credential (+ External Credential) for the Composite callouts and
+      drop both this permission and the RLM_SessionId page grant — a possible
+      future hardening, tracked in #305.
+    -->
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ApiEnabled</name>
+    </userPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>RLM Expression Set Manager</label>
+</PermissionSet>
