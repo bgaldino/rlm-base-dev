@@ -17,7 +17,7 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 > shipped plans; migrating them back to Upsert is the separate, gated
 > `sfdmu-v5-optimization` initiative (needs live verification + approval). Do **not**
 > apply the patterns below when authoring *new* plans on 5.6.4+; author them as `Upsert`.
-> Only the Bug 4 (`$$` self-reference) simplifications remain live guidance.
+> Only the Bug 4 (`$$` lookup references — self-referential and cross-object) simplifications remain live guidance.
 
 ### Key v5 behavioral changes
 
