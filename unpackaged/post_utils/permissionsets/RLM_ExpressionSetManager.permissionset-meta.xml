@@ -20,17 +20,20 @@
       Composite REST API as the running user, not Apex DML — so no create/delete
       object perms are granted here. ExpressionSetVersion also gets edit so the
       controller's isUpdateable() guard passes and the REST version PATCH is
-      authorized. AsyncApexJob (getJobStatus) is a system object not grantable
-      via objectPermissions and stays system-mode (documented in the class).
+      authorized.
 
-      PROVISIONAL / needs-live-verification: this grant set was authored without
-      a live org. Per .cursor/skills/apex-security-hardening/SKILL.md it MUST be
-      finalized by the live pass before merge — iterate-deploy to resolve any
-      object-perm dependency chains, read the perm set back to catch silent
-      drops (e.g. if ContextDefinition / the junction are setup entities that
-      reject perm-set grants), add field FLS for any permissionable field a
-      USER_MODE query rejects at runtime (notably ExpressionSetVersion.IsActive
-      edit), and run a non-admin persona / System.runAs walk.
+      Only ExpressionSet and ExpressionSetVersion are grantable here. Verified on
+      a live org (2026-07-22, org rlm-base__pr281): the other objects the
+      controller reads — ContextDefinition, ExpressionSetDefinition, and the
+      ExpressionSetDefinitionContextDefinition junction — are IsCustomizable=false
+      platform entities, so object permissions on them are silently dropped on
+      deploy (0 ObjectPermissions rows persist, org-wide) and their read is
+      governed by RLM platform/feature access, not perm-set object perms
+      (analogous to the AsyncApexJob exception documented in the controller). No
+      fieldPermissions are declared because every field the USER_MODE queries
+      select (ExpressionSetVersion.IsActive/VersionNumber/Rank,
+      ExpressionSet.UsageType, ...) is permissionable=false — covered by object
+      access.
     -->
     <objectPermissions>
         <allowCreate>false</allowCreate>
@@ -38,34 +41,7 @@
         <allowEdit>false</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
-        <object>ContextDefinition</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
         <object>ExpressionSet</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>ExpressionSetDefinition</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
-    <objectPermissions>
-        <allowCreate>false</allowCreate>
-        <allowDelete>false</allowDelete>
-        <allowEdit>false</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>ExpressionSetDefinitionContextDefinition</object>
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
     <objectPermissions>
@@ -93,8 +69,8 @@
       assignee), granted here only because the component's session-id loopback
       depends on it. The scoped alternative is to replace the loopback with a
       Named Credential (+ External Credential) for the Composite callouts and
-      drop both this permission and the RLM_SessionId page grant — evaluate that
-      during the live-verification pass.
+      drop both this permission and the RLM_SessionId page grant — a possible
+      future hardening, tracked in #305.
     -->
     <userPermissions>
         <enabled>true</enabled>
