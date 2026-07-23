@@ -86,6 +86,25 @@ describe("c-dl-modeling-grid", () => {
     expect(el.shadowRoot.querySelector(".dl-mg-edr")).toBeNull();
   });
 
+  it("renders the Prior Disc % column as a read-only lightning-input (aligned with Proposed), not editable text", async () => {
+    const term = makeTerm();
+    const model = seedModel(term, METHOD_PRODUCT);
+    // Enrich the first row with a prior-cycle discount (as getQuoteLines would).
+    model.rows[0].priorDiscountPct = 5;
+    const el = create({ term, model });
+    await flushPromises();
+
+    const firstRow = el.shadowRoot.querySelector("tbody tr");
+    // The prior cell is read-only (no data-key handler); the editable cells all carry data-key.
+    const readOnly = firstRow.querySelector("lightning-input:not([data-key])");
+    expect(readOnly).not.toBeNull();
+    expect(readOnly.readOnly).toBe(true);
+    expect(Number(readOnly.value)).toBe(5);
+    // The editable inputs (Spend %, Projected %, Proposed %) are unaffected — still three, none read-only.
+    const editable = firstRow.querySelectorAll("lightning-input[data-key]");
+    expect(editable.length).toBe(3);
+  });
+
   it("emits modelchange with an updated proposed discount when the Proposed % cell is edited", async () => {
     const term = makeTerm();
     const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });

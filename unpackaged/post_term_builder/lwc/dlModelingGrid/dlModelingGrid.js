@@ -4,8 +4,7 @@ import {
   edrProposed,
   totalsSummary,
   clamp,
-  round1,
-  pct1
+  round1
 } from "c/dlDemoModel";
 
 // Alliance Partner options — the DL_Carriers global value set (value == label, restricted picklist).
@@ -113,7 +112,9 @@ export default class DlModelingGrid extends LightningElement {
         label: fareCodes.length ? `${r.label} (${fareCodes.join(" ")})` : r.label,
         currentExistingPct: r.currentExistingPct,
         projectedPct: r.projectedPct,
-        priorDiscountDisplay: hasPrior ? pct1(r.priorDiscountPct) : "—",
+        // Read-only Prior Disc % renders as a standard field when present; a plain em dash otherwise.
+        hasPrior,
+        priorDiscountPct: hasPrior ? round1(r.priorDiscountPct) : null,
         proposedPct: r.proposedDiscountPct,
         // Alliance Partner per-row editor. The backing QuoteLineItem id drives independent persistence;
         // a row without one (no backing fare) can't be persisted, so it isn't expandable.

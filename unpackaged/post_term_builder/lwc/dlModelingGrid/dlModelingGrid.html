@@ -96,7 +96,23 @@
                       onchange={handleProjectedChange}
                     ></lightning-input>
                   </td>
-                  <td class="dl-mg-derived">{row.priorDiscountDisplay}</td>
+                  <td>
+                    <!-- Prior-cycle discount: a read-only standard field so it aligns with the
+                         editable Proposed Disc % input beside it (em dash when there's no prior). -->
+                    <template if:true={row.hasPrior}>
+                      <lightning-input
+                        type="number"
+                        label="Prior Disc %"
+                        variant="label-hidden"
+                        value={row.priorDiscountPct}
+                        step="0.1"
+                        read-only
+                      ></lightning-input>
+                    </template>
+                    <template if:false={row.hasPrior}>
+                      <span class="dl-mg-derived">—</span>
+                    </template>
+                  </td>
                   <td>
                     <lightning-input
                       type="number"
