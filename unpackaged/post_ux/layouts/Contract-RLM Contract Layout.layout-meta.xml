@@ -43,7 +43,7 @@
                 <field>EndDate</field>
             </layoutItems>
             <layoutItems>
-                <behavior>Required</behavior>
+                <behavior>Edit</behavior>
                 <field>ContractTerm</field>
             </layoutItems>
             <layoutItems>
