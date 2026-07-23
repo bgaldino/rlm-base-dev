@@ -185,17 +185,16 @@ Example: `qb-billing` uses 3 passes: draft insert → activate treatment items �
 ## Review Checklist
 
 - [ ] externalId uses `;` delimiters (not `$$`)
-- [ ] No relationship-traversal externalId with `operation: Upsert` (use Insert + deleteOldData)
+- [ ] Relationship-traversal externalId uses `operation: Upsert` (matches on the 5.6.4+ floor — do NOT add Insert+deleteOldData citing Bugs 2/3/5)
 - [ ] ORDER BY fields present in SELECT clause
 - [ ] Relationship traversal columns in SOQL match CSV headers
 - [ ] Empty CSVs have `excluded: true`
 - [ ] Objects ordered parent → child
 - [ ] `$$` composite key CSV headers match externalId fields exactly
-- [ ] deleteOldData only used where justified (Bug 2/3)
+- [ ] `deleteOldData: true` only where a concrete *current* reason applies + user approval (Bugs 1/2/3/5 are fixed on 5.6.4+ — not justifications)
 - [ ] No `$$` composite notation used for lookup reference columns (Bug 4 — use simple field references instead)
 - [ ] Self-referential lookups use simple field references (e.g., `ParentGroup.Code` not `ParentGroup.$$Code$...`)
-- [ ] All-traversal externalIds have a documented direct-field alternative or
-      explicit approval for `Insert` + `deleteOldData: true`
+- [ ] All-traversal externalIds use `Upsert` on the 5.6.4+ floor (Bugs 3/5 fixed); any residual `Insert` + `deleteOldData: true` is a pre-5.6.4 plan awaiting the gated `sfdmu-v5-optimization` migration
 
 ## Developer-Local Scratch Directory
 
