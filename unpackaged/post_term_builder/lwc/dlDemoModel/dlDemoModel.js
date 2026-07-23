@@ -128,25 +128,14 @@ export function methodLabel(method) {
   return method === METHOD_FARECLASS ? "Fare Class" : "Product";
 }
 
-// G2 geography scope attribute codes (definitions live in the org as data — AttributeDefinition +
-// AttributePicklistValue — so these are wired by allow-list, not repo metadata). Note DL_ScopeOperator
-// is deliberately absent: Includes/Excludes is a transient client-only UI toggle (see SCOPE_OPERATORS),
-// never a persisted Term attribute, so scopeLabel / termMatchesMarket / resolveTermForMarket take it as
-// a parameter instead of reading it off the Term.
-const SCOPE_TYPE_CODE = "DL_ScopeType";
-const MARKET_GROUP_CODE = "DL_MarketGroup";
+// Geography scope attribute codes (definitions live in the org as data — AttributeDefinition +
+// AttributePicklistValue — so these are wired by allow-list, not repo metadata).
 const TICKETING_REGION_CODE = "DL_TicketingRegion";
-
-// The scope-operator toggle values. Not persisted; held as UI state on the Term rail card and passed
-// into the pure scope helpers. "Includes" is the default when a caller supplies none.
-export const SCOPE_OPERATORS = ["Includes", "Excludes"];
 
 // Curated geography/scope attribute codes → human labels, in banner display order. The Modeling tab's
 // Term scope banner surfaces the Term-level geography ONCE above the grid (never per-row). Only codes
-// with a value render. DL_ScopeOperator is not here — it is a UI toggle, not a persisted attribute.
+// with a value render.
 const SCOPE_LABELS = [
-  [SCOPE_TYPE_CODE, "Scope"],
-  [MARKET_GROUP_CODE, "Market"],
   [ORIGIN_CODE, "Origin"],
   [DESTINATION_CODE, "Destination"],
   [DIRECTIONALITY_CODE, "Directionality"],
@@ -154,120 +143,6 @@ const SCOPE_LABELS = [
   [TICKETING_REGION_CODE, "Ticketing Region"],
   [REQUIREMENT_CODE, "Requirement"]
 ];
-
-// Geography scope specificity, most specific → least. Drives the tie-break when a concrete market
-// falls inside more than one Term's scope: the most specific Term wins. Matches the DL_ScopeType
-// picklist values (airport / city / country / region / super-region / custom).
-const SCOPE_TYPE_RANK = {
-  Airport: 5,
-  City: 4,
-  Country: 3,
-  Region: 2,
-  "Super-region": 1,
-  Custom: 0
-};
-
-// Numeric specificity for a DL_ScopeType value; -1 when the Term declares no scope type (least
-// specific of all, so an explicitly-scoped Term always outranks an unscoped one).
-export function scopeTypeRank(scopeType) {
-  if (!scopeType) {
-    return -1;
-  }
-  const r = SCOPE_TYPE_RANK[scopeType];
-  return r === undefined ? 0 : r;
-}
-
-// One-line geography summary chip for the rail card, e.g. "Country · Includes GB, FR · Between".
-// Built from the scope attributes the Term carries; "" when none are set (the card falls back to its
-// route/requirement lines). `operator` is the card's transient Includes/Excludes toggle (not a Term
-// attribute) — it only affects the wording when the Term has a market group; defaults to "Includes".
-export function scopeLabel(term, operator = "Includes") {
-  const m = attrMap(term);
-  const group = m[MARKET_GROUP_CODE];
-  const scopeType = m[SCOPE_TYPE_CODE];
-  // Only a genuine geography scope (scope type or market group) produces a chip — a plain route Term's
-  // directionality is already conveyed by the route arrow, so it never triggers this on its own.
-  if (!scopeType && !group) {
-    return "";
-  }
-  const parts = [];
-  if (scopeType) {
-    parts.push(scopeType);
-  }
-  if (group) {
-    const opLabel = operator === "Excludes" ? "Excludes" : "Includes";
-    parts.push(`${opLabel} ${group}`.trim());
-  }
-  if (m[DIRECTIONALITY_CODE]) {
-    parts.push(m[DIRECTIONALITY_CODE]);
-  }
-  return parts.filter(Boolean).join(" · ");
-}
-
-// Normalize a Term's DL_MarketGroup free-text into an upper-cased token set ("GB, FR" → [GB, FR]).
-function marketTokens(term) {
-  const raw = attrMap(term)[MARKET_GROUP_CODE] || "";
-  return raw
-    .split(/[,;/]/)
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean);
-}
-
-// The market being resolved: either a bare token string ("GB") or an object carrying any of
-// { marketGroup | code | value, origin, destination }. Returns the comparison key (upper-cased).
-function marketKey(market) {
-  if (market === null || market === undefined) {
-    return "";
-  }
-  if (typeof market === "string") {
-    return market.trim().toUpperCase();
-  }
-  return `${market.marketGroup || market.code || market.value || ""}`
-    .trim()
-    .toUpperCase();
-}
-
-// Does this Term's geography scope contain the given market? Demo-grade (display/aggregation only):
-//   - Terms with a DL_MarketGroup match by token membership, honoring the Includes/Excludes toggle
-//     (`operator`, a UI value passed in — not a Term attribute; defaults to "Includes").
-//   - Terms with no market group but an Origin match the market's origin (lane terms).
-function termMatchesMarket(term, market, operator = "Includes") {
-  const m = attrMap(term);
-  const tokens = marketTokens(term);
-  const key = marketKey(market);
-  if (tokens.length) {
-    const excludes = operator === "Excludes";
-    const inGroup = key ? tokens.includes(key) : false;
-    return excludes ? !inGroup : inGroup;
-  }
-  const origin = m[ORIGIN_CODE];
-  if (origin && market && typeof market === "object" && market.origin) {
-    return `${market.origin}`.trim().toUpperCase() === origin.trim().toUpperCase();
-  }
-  return false;
-}
-
-/**
- * Resolve which Term a concrete market falls into. Pure + client-only (no server engine — Phase 2).
- * When a market fits more than one Term's scope, the MOST SPECIFIC Term wins (ranked by DL_ScopeType:
- * airport > city > country > region > super-region > custom). Equal-rank ties keep input order (stable
- * sort). Returns the winning Term, or null when nothing matches. Display/aggregation only.
- *
- * The Includes/Excludes toggle is UI state, not a Term attribute, so pass `operatorByTermId` — a
- * { [term.id]: "Includes" | "Excludes" } map. Terms absent from the map default to "Includes".
- */
-export function resolveTermForMarket(market, terms, operatorByTermId = {}) {
-  const candidates = (terms || []).filter((t) =>
-    termMatchesMarket(t, market, (t && operatorByTermId[t.id]) || "Includes")
-  );
-  if (!candidates.length) {
-    return null;
-  }
-  const ranked = candidates
-    .map((t, i) => ({ t, i, rank: scopeTypeRank(attrMap(t)[SCOPE_TYPE_CODE]) }))
-    .sort((a, b) => b.rank - a.rank || a.i - b.i);
-  return ranked[0].t;
-}
 
 // ---------- proposal CSV exports (pure formatters) ----------
 
@@ -548,7 +423,11 @@ function productEntries(term) {
       backingFareId: fare.id,
       hasFlown: true,
       existingDiscount: num(fare.discount),
-      priorDiscount: priorOf(fare)
+      priorDiscount: priorOf(fare),
+      // Per-fare context forwarded to the row so the grid can label with fare codes and edit the
+      // per-line Alliance Partner multiselect. Source lists come from getBuilderState's fareDto.
+      fareCodes: Array.isArray(fare.fareCodes) ? fare.fareCodes : [],
+      alliancePartners: Array.isArray(fare.alliancePartners) ? fare.alliancePartners : []
     });
   });
   return entries;
@@ -613,6 +492,10 @@ export function buildRows(term, method) {
       label: e.label,
       product: e.product || null,
       backingFareId: e.backingFareId || null,
+      // Per-fare context carried onto the row: fare codes decorate the row label; alliance partners
+      // are edited per row in the modeling grid. Both default to [] for non-product row sets.
+      fareCodes: Array.isArray(e.fareCodes) ? e.fareCodes : [],
+      alliancePartners: Array.isArray(e.alliancePartners) ? e.alliancePartners : [],
       _rawWeight: rawWeight,
       currentExistingPct: 0, // filled after normalization below
       existingDiscountPct,

@@ -15,10 +15,6 @@ import {
   aggregateKpis,
   finalOfferLineDiscounts,
   termScopeChips,
-  scopeLabel,
-  scopeTypeRank,
-  resolveTermForMarket,
-  SCOPE_OPERATORS,
   toProposalCsvSummary,
   toProposalCsvDetailed,
   currencyCompact,
@@ -270,18 +266,6 @@ describe("termScopeChips", () => {
     expect(origin).toEqual({ code: "DL_Origin", label: "Origin", value: "ATL" });
   });
 
-  it("surfaces the G2 geography codes when present, ahead of Origin", () => {
-    const term = makeTerm({
-      attributes: [
-        { code: "DL_ScopeType", value: "Market" },
-        { code: "DL_MarketGroup", value: "Transatlantic" },
-        { code: "DL_Origin", value: "ATL" }
-      ]
-    });
-    const codes = termScopeChips(term).map((c) => c.code);
-    expect(codes).toEqual(["DL_ScopeType", "DL_MarketGroup", "DL_Origin"]);
-  });
-
   it("skips blank / whitespace-only attribute values", () => {
     const term = makeTerm({
       attributes: [
@@ -296,84 +280,6 @@ describe("termScopeChips", () => {
   it("returns [] for a term with no attributes", () => {
     expect(termScopeChips({ attributes: [] })).toEqual([]);
     expect(termScopeChips(null)).toEqual([]);
-  });
-});
-
-describe("geography scope (G2)", () => {
-  // The scope operator (Includes/Excludes) is NOT a term attribute — it is a transient, client-only
-  // toggle passed in as a parameter (scopeLabel) or per-term map (resolveTermForMarket). So scoped
-  // terms here carry only scope-type + market-group attributes; the operator is supplied at call time.
-  function scopedTerm(id, scopeType, marketGroup, extra = {}) {
-    const attributes = [{ code: "DL_ScopeType", value: scopeType }];
-    if (marketGroup !== undefined) {
-      attributes.push({ code: "DL_MarketGroup", value: marketGroup });
-    }
-    return { id, displayName: id, attributes, ...extra };
-  }
-
-  it("SCOPE_OPERATORS exposes the two toggle options in order", () => {
-    expect(SCOPE_OPERATORS).toEqual(["Includes", "Excludes"]);
-  });
-
-  it("scopeTypeRank orders airport > city > country > region > super-region > custom", () => {
-    expect(scopeTypeRank("Airport")).toBeGreaterThan(scopeTypeRank("City"));
-    expect(scopeTypeRank("City")).toBeGreaterThan(scopeTypeRank("Country"));
-    expect(scopeTypeRank("Country")).toBeGreaterThan(scopeTypeRank("Region"));
-    expect(scopeTypeRank("Region")).toBeGreaterThan(scopeTypeRank("Super-region"));
-    expect(scopeTypeRank("Super-region")).toBeGreaterThan(scopeTypeRank("Custom"));
-    // Unknown value ranks above "no scope type" but below the named tiers.
-    expect(scopeTypeRank("Weird")).toBe(0);
-    expect(scopeTypeRank(undefined)).toBe(-1);
-  });
-
-  it("scopeLabel defaults to Includes → 'Country · Includes GB, FR · Between'", () => {
-    const term = {
-      attributes: [
-        { code: "DL_ScopeType", value: "Country" },
-        { code: "DL_MarketGroup", value: "GB, FR" },
-        { code: "DL_Directionality", value: "Between" }
-      ]
-    };
-    expect(scopeLabel(term)).toBe("Country · Includes GB, FR · Between");
-  });
-
-  it("scopeLabel honors an explicit Excludes operator and is blank with no scope attrs", () => {
-    const excl = {
-      attributes: [
-        { code: "DL_ScopeType", value: "Region" },
-        { code: "DL_MarketGroup", value: "APAC" }
-      ]
-    };
-    expect(scopeLabel(excl, "Excludes")).toBe("Region · Excludes APAC");
-    // Same term, default operator → Includes wording.
-    expect(scopeLabel(excl)).toBe("Region · Includes APAC");
-    expect(scopeLabel(makeTerm())).toBe("");
-  });
-
-  it("resolveTermForMarket picks the most specific matching Term", () => {
-    const broad = scopedTerm("broad", "Region", "EMEA");
-    const narrow = scopedTerm("narrow", "Country", "GB, FR");
-    // "GB" falls inside both EMEA (region) and GB,FR (country) — country is more specific.
-    expect(resolveTermForMarket("GB", [broad, narrow]).id).toBe("narrow");
-    // A market only the region covers resolves to the region.
-    expect(resolveTermForMarket("EMEA", [broad, narrow]).id).toBe("broad");
-  });
-
-  it("resolveTermForMarket honors a per-term Excludes operator and returns null when nothing matches", () => {
-    const includes = scopedTerm("inc", "Country", "GB, FR");
-    const excludes = scopedTerm("exc", "Region", "GB");
-    // The operator is supplied out-of-band, keyed by term id (unlisted → Includes).
-    const ops = { exc: "Excludes" };
-    expect(resolveTermForMarket("DE", [includes, excludes], ops).id).toBe("exc"); // DE not excluded
-    expect(resolveTermForMarket("GB", [excludes], ops)).toBeNull(); // GB is excluded
-    expect(resolveTermForMarket("ZZ", [includes], ops)).toBeNull(); // ZZ not in GB,FR
-  });
-
-  it("resolveTermForMarket keeps input order on equal specificity (stable)", () => {
-    const a = scopedTerm("a", "Country", "GB");
-    const b = scopedTerm("b", "Country", "GB");
-    expect(resolveTermForMarket("GB", [a, b]).id).toBe("a");
-    expect(resolveTermForMarket("GB", [b, a]).id).toBe("b");
   });
 });
 

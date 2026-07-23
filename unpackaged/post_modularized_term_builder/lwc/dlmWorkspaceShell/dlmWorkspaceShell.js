@@ -382,14 +382,58 @@ export default class DlmWorkspaceShell extends LightningElement {
     }
   }
 
-  // The grid's method toggle flipped → swap in (seed if needed) that method's model for the Term.
-  handleMethodChange(event) {
-    const { termId, method } = event.detail;
-    if (!termId || termId !== this.selectedTermId) {
+  // A row's Alliance Partner multiselect changed → persist it to the backing QuoteLineItem immediately
+  // (each row independently, no draft/Save), then keep the cached model + term fare in sync so a later
+  // re-seed / selection change doesn't revert it. Alliance partners don't affect KPIs, so no reseed and
+  // no loadState (a refetch would revert the just-made in-grid selection mid-interaction).
+  async handleAllianceChange(event) {
+    const { backingFareId, alliancePartners } = event.detail || {};
+    if (!this.quoteId || !backingFareId) {
       return;
     }
-    this.selectedMethod = method;
-    this._syncActiveModel();
+    const partners = Array.isArray(alliancePartners) ? alliancePartners : [];
+    this.errorMessage = "";
+    try {
+      const res = this._parse(
+        await updateLineDiscountAndDates({
+          inputJson: JSON.stringify({
+            quoteId: this.quoteId,
+            lines: [{ id: backingFareId, alliancePartners: partners }]
+          })
+        })
+      );
+      if (res.isSuccess === false) {
+        this.errorMessage = res.errorMessage || "Unable to update alliance partners.";
+        return;
+      }
+      this._syncAlliancePartners(backingFareId, partners);
+      // Tell sibling tiles this line changed (our own echo is ignored via SOURCE) so any grid showing
+      // it refetches.
+      this._publishLinesChanged();
+    } catch (e) {
+      this.errorMessage = this._errMessage(e);
+    }
+  }
+
+  // Mirror a persisted alliance-partner change into the cached term fare + every cached model row that
+  // backs this line, so activeModel stays correct across selection changes without a server refetch.
+  _syncAlliancePartners(backingFareId, partners) {
+    this.terms = this.terms.map((t) => {
+      const fares = (t.fares || []).map((f) => {
+        return f.id === backingFareId ? { ...f, alliancePartners: [...partners] } : f;
+      });
+      return { ...t, fares };
+    });
+    Object.keys(this._modelsByTermId).forEach((key) => {
+      const model = this._modelsByTermId[key];
+      if (model && Array.isArray(model.rows)) {
+        model.rows.forEach((r) => {
+          if (r.backingFareId === backingFareId) {
+            r.alliancePartners = [...partners];
+          }
+        });
+      }
+    });
   }
 
   // The Modeling workspace's "Apply Final Offer to Quote" button. Applies the active Term's Final

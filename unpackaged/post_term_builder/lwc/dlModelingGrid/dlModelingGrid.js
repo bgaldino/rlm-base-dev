@@ -1,7 +1,5 @@
 import { LightningElement, api } from "lwc";
 import {
-  METHOD_PRODUCT,
-  METHOD_FARECLASS,
   edrExisting,
   edrProposed,
   totalsSummary,
@@ -10,25 +8,37 @@ import {
   pct1
 } from "c/dlDemoModel";
 
-const METHOD_OPTIONS = [
-  { label: "Product", value: METHOD_PRODUCT },
-  { label: "Fare Class", value: METHOD_FARECLASS }
+// Alliance Partner options — the DL_Carriers global value set (value == label, restricted picklist).
+// Stable catalog, so hardcoded rather than fetched (matches the c/dlmQuoteLineGrid fare-code pattern).
+const ALLIANCE_PARTNER_VALUES = [
+  "Air France",
+  "KLM Royal Dutch Airlines",
+  "Virgin Atlantic",
+  "Aeromexico",
+  "Korean Air",
+  "LATAM Airlines",
+  "WestJet"
 ];
+const ALLIANCE_PARTNER_OPTIONS = ALLIANCE_PARTNER_VALUES.map((c) => ({ label: c, value: c }));
 
 /**
  * dlModelingGrid — the client-only negotiation modeling spreadsheet.
  *
- * A controlled component: the shell (c/dlmWorkspaceShell) owns the per-(term, method) model cache and
- * hands this grid exactly ONE model to edit via @api model. The grid keeps a private working copy,
- * mutates it as the analyst edits, recomputes the derived columns synchronously, and emits:
- *   - `modelchange` { termId, method, model, summary } — after any edit (coalesced to one per frame).
- *   - `methodchange` { termId, method } — when the discounting method toggle flips (the shell swaps in
- *     the cached/seeded model for that method and passes it back down).
+ * A controlled component: the shell (c/dlmWorkspaceShell) owns the per-term model cache and hands this
+ * grid exactly ONE model to edit via @api model. The grid keeps a private working copy, mutates it as
+ * the analyst edits, recomputes the derived columns synchronously, and emits:
+ *   - `modelchange` { termId, method, model, summary } — after any spend/discount edit (coalesced to
+ *     one per frame).
+ *   - `alliancechange` { backingFareId, alliancePartners } — when a row's Alliance Partner multiselect
+ *     changes; the shell persists it to the backing QuoteLineItem immediately (each row independently).
  *
- * Editing UX mirrors the proven c/dlQuoteLineGrid pattern (inline lightning-inputs + data-* datasets +
- * clamp). Product and Fare Class are genuinely different row sets over the Term's REAL fares (see
- * c/dlDemoModel.buildRows), never a relabel of one set. The negotiation is a single proposed set: one
- * editable Proposed Disc % per fare drives the KPIs and the Apply-Final-Offer handoff — no rounds.
+ * The grid is locked to the Product row set (one row per REAL fare, 1:1 with a QuoteLineItem via
+ * `backingFareId`; see c/dlDemoModel.buildRows), with each row labeled by its product and fare codes,
+ * e.g. `Delta One (J C)`. The negotiation is a single proposed set: one editable Proposed Disc % per
+ * fare drives the KPIs and the Apply-Final-Offer handoff — no rounds, no method toggle.
+ *
+ * Editing UX mirrors the proven c/dlmQuoteLineGrid pattern (inline lightning-inputs + data-* datasets +
+ * clamp; an expander per row reveals the Alliance Partner dual-listbox inline beneath it).
  */
 export default class DlModelingGrid extends LightningElement {
   @api term;
@@ -37,6 +47,10 @@ export default class DlModelingGrid extends LightningElement {
   _model = null;
   _working = null;
   _emitScheduled = false;
+  // Row keys whose Alliance Partner editor is expanded.
+  _expandedKeys = new Set();
+  // A querySelector run once after the next render to place focus (expander ↔ detail region).
+  _focusTarget = null;
 
   @api
   get model() {
@@ -47,36 +61,21 @@ export default class DlModelingGrid extends LightningElement {
     this._working = value ? this._clone(value) : null;
   }
 
-  // ---------- method toggle ----------
-
-  get methodOptions() {
-    return METHOD_OPTIONS;
-  }
-
-  get method() {
-    return this._working ? this._working.method : METHOD_PRODUCT;
-  }
-
-  get isProductMethod() {
-    return this.method === METHOD_PRODUCT;
-  }
-
-  get valueColumnLabel() {
-    return this.isProductMethod ? "Product" : "Fare Class";
-  }
-
-  handleMethodChange(event) {
-    const method = event.detail.value;
-    if (!this._working || method === this._working.method) {
-      return;
+  renderedCallback() {
+    if (this._focusTarget) {
+      const selector = this._focusTarget;
+      this._focusTarget = null;
+      const el = this.template.querySelector(selector);
+      if (el) {
+        el.focus();
+      }
     }
-    this.dispatchEvent(
-      new CustomEvent("methodchange", {
-        detail: { termId: this._working.termId, method },
-        bubbles: true,
-        composed: true
-      })
-    );
+  }
+
+  // ---------- alliance partner options ----------
+
+  get alliancePartnerOptions() {
+    return ALLIANCE_PARTNER_OPTIONS;
   }
 
   // ---------- state ----------
@@ -92,25 +91,61 @@ export default class DlModelingGrid extends LightningElement {
 
   // ---------- rows ----------
 
-  // Build the render rows: each fare's spend mix + prior/proposed discounts. Prior Disc % is a
-  // read-only reference column; the rest are inline-editable.
+  // Build the flat render list: each fare emits a base data row (spend mix + prior/proposed discounts,
+  // labeled with its fare codes), and each expanded row additionally emits a detail row hosting the
+  // Alliance Partner dual-listbox. Prior Disc % is a read-only reference column; the spend/discount
+  // cells are inline-editable.
   get displayRows() {
     if (!this._working) {
       return [];
     }
-    const rows = this._working.rows;
-    return rows.map((r) => {
+    const out = [];
+    this._working.rows.forEach((r) => {
       // Read-only prior-cycle discount context (null unless the fare was enriched from getQuoteLines).
       const hasPrior = r.priorDiscountPct !== null && r.priorDiscountPct !== undefined;
-      return {
+      const fareCodes = Array.isArray(r.fareCodes) ? r.fareCodes : [];
+      const alliancePartners = Array.isArray(r.alliancePartners) ? r.alliancePartners : [];
+      const expanded = this._expandedKeys.has(r.key);
+      out.push({
         key: r.key,
-        label: r.label,
+        isDetail: false,
+        // Label the row as the product with its fare codes in parentheses, e.g. "Delta One (J C)".
+        label: fareCodes.length ? `${r.label} (${fareCodes.join(" ")})` : r.label,
         currentExistingPct: r.currentExistingPct,
         projectedPct: r.projectedPct,
         priorDiscountDisplay: hasPrior ? pct1(r.priorDiscountPct) : "—",
-        proposedPct: r.proposedDiscountPct
-      };
+        proposedPct: r.proposedDiscountPct,
+        // Alliance Partner per-row editor. The backing QuoteLineItem id drives independent persistence;
+        // a row without one (no backing fare) can't be persisted, so it isn't expandable.
+        backingFareId: r.backingFareId || null,
+        allianceSummary: alliancePartners.length ? alliancePartners.join(" · ") : "—",
+        expandable: !!r.backingFareId,
+        expanded,
+        expandedStr: expanded ? "true" : "false",
+        expanderIcon: expanded ? "utility:chevrondown" : "utility:chevronright",
+        expanderTitle: expanded ? "Collapse alliance partners" : "Expand alliance partners",
+        detailRegionId: this._detailRegionId(r.key)
+      });
+      if (expanded) {
+        out.push({
+          key: `${r.key}-detail`,
+          isDetail: true,
+          rowKey: r.key,
+          backingFareId: r.backingFareId || null,
+          detailRegionId: this._detailRegionId(r.key),
+          detailLabel: `Alliance partners for ${r.label}`,
+          alliancePartnersValue: alliancePartners,
+          // value + Spend % + Projected % + Prior Disc % + Proposed Disc % (the expander shares the
+          // value column, so the detail row spans all five columns).
+          colspan: 5
+        });
+      }
     });
+    return out;
+  }
+
+  _detailRegionId(key) {
+    return `dl-mg-detail-${String(key).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
   }
 
   // Spend % / Projected % sums + validity flags (per c/dlDemoModel.totalsSummary). Drives the
@@ -163,6 +198,43 @@ export default class DlModelingGrid extends LightningElement {
       r.proposedDiscountPct = clamp(event.target.value, 0, 100);
       this._recomputeAndEmit();
     }
+  }
+
+  // ---------- alliance partner (per-row) ----------
+
+  // Toggle a row's Alliance Partner editor. On expand, move focus into the detail region; on collapse,
+  // return focus to the triggering expander. (Native <button> gives Enter/Space for free.)
+  handleToggleExpand(event) {
+    const key = event.currentTarget.dataset.key;
+    if (this._expandedKeys.has(key)) {
+      this._expandedKeys.delete(key);
+      this._focusTarget = `[data-expander="${key}"]`;
+    } else {
+      this._expandedKeys.add(key);
+      this._focusTarget = `[data-detail="${key}"]`;
+    }
+    // The Set mutation isn't reactive on its own; reassigning _working re-renders displayRows.
+    this._working = { ...this._working };
+  }
+
+  // Alliance Partner multiselect (dual-listbox) → array of selected partners. Updates the working row
+  // and emits `alliancechange` up to the shell, which persists it to the backing QuoteLineItem
+  // independently (no draft/Save — each row changes on its own, mirroring the header carriers concept).
+  handleAllianceChange(event) {
+    const r = this._row(event.target.dataset.key);
+    if (!r) {
+      return;
+    }
+    const selected = Array.isArray(event.detail.value) ? [...event.detail.value] : [];
+    r.alliancePartners = selected;
+    this._working = { ...this._working };
+    this.dispatchEvent(
+      new CustomEvent("alliancechange", {
+        detail: { backingFareId: r.backingFareId || null, alliancePartners: selected },
+        bubbles: true,
+        composed: true
+      })
+    );
   }
 
   // ---------- recompute + emit ----------

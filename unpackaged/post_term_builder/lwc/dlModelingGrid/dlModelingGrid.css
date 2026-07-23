@@ -14,15 +14,6 @@
   border-radius: 0.25rem;
 }
 
-.dl-mg-toolbar {
-  border-bottom: 1px solid var(--dl-hairline, #dddbda);
-}
-
-/* Constrain the method picker so its stacked label + dropdown read cleanly and don't stretch. */
-.dl-mg-method {
-  max-width: 16rem;
-}
-
 /* ---------- validity warning ---------- */
 
 .dl-mg-warn {
@@ -97,4 +88,42 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
   display: block;
+}
+
+/* ---------- value cell: expander + product label + alliance summary ---------- */
+
+.dl-mg-value-cell {
+  display: flex;
+  align-items: flex-start;
+}
+
+.dl-mg-expander {
+  flex: 0 0 auto;
+  --slds-c-icon-color-foreground-default: var(--dl-navy, #003268);
+  color: var(--dl-navy, #003268);
+}
+
+.dl-mg-value-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Compact, always-visible summary of the row's selected alliance partners (mirrors the collapsed
+   fare-code cell in the quote-line grid). Em dash when nothing is selected. */
+.dl-mg-alliance {
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: var(--dl-muted, #514f4d);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 10rem;
+}
+
+/* ---------- expanded detail row (Alliance Partner editor) ---------- */
+
+.dl-mg-detail {
+  background: var(--dl-tint, #eef3fa);
+  padding: 0.5rem 0.75rem;
 }

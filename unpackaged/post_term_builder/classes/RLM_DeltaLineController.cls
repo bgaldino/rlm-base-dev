@@ -48,7 +48,7 @@ public with sharing class RLM_DeltaLineController {
                 SELECT Id, QuoteLineGroupId, ParentQuoteLineItemId, Product2Id, Product2.Name,
                        Product2.ProductCode, Product2.StockKeepingUnit, Product2.BasedOnId,
                        CustomProductName, PricingContractId, Discount, DL_PriorDiscount__c,
-                       StartDate, EndDate, NetUnitPrice, DL_FareCodes__c
+                       StartDate, EndDate, NetUnitPrice, DL_FareCodes__c, DL_AlliancePartners__c
                 FROM QuoteLineItem
                 WHERE QuoteId = :qId
                 WITH USER_MODE
@@ -179,6 +179,13 @@ public with sharing class RLM_DeltaLineController {
                     if (owned != null && !isTermSku(owned)) {
                         qli.CustomProductName = buildFareDisplayName(owned, codes);
                     }
+                }
+                if (edit.containsKey('alliancePartners')) {
+                    // Alliance partners arrive as a list; store as the ';'-delimited multipicklist value
+                    // (empty list ⇒ null). Independent per-row edit — no CustomProductName side effect
+                    // (that decoration is fare-code-specific).
+                    List<String> partners = normalizeFareCodes(edit.get('alliancePartners'));
+                    qli.DL_AlliancePartners__c = partners.isEmpty() ? null : String.join(partners, ';');
                 }
                 toUpdate.add(qli);
             }
@@ -378,6 +385,9 @@ public with sharing class RLM_DeltaLineController {
             // Per-line fare codes (multipicklist, ';'-delimited on the record) as a list; edited only
             // on fare (non-Term) rows via the grid's dual-listbox.
             'fareCodes' => splitFareCodes(qli.DL_FareCodes__c),
+            // Per-line alliance partners (multipicklist, ';'-delimited) as a list; edited per row in
+            // the modeling grid, independently of other lines.
+            'alliancePartners' => splitFareCodes(qli.DL_AlliancePartners__c),
             'hasEditableAttributes' => (hasEditableAttributes == true)
         };
     }

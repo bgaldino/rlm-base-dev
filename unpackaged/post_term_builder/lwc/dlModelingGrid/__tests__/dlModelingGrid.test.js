@@ -1,6 +1,6 @@
 import { createElement } from "lwc";
 import DlModelingGrid from "c/dlModelingGrid";
-import { seedModel, METHOD_PRODUCT, METHOD_FARECLASS } from "c/dlDemoModel";
+import { seedModel, METHOD_PRODUCT } from "c/dlDemoModel";
 
 // eslint-disable-next-line @lwc/lwc/no-async-operation
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -22,6 +22,7 @@ function makeTerm() {
         productName: "Delta One",
         productCode: "DL-J",
         fareCodes: ["J", "C"],
+        alliancePartners: ["Air France", "KLM Royal Dutch Airlines"],
         discount: 15
       },
       {
@@ -153,21 +154,81 @@ describe("c-dl-modeling-grid", () => {
     expect(handler).toHaveBeenCalledTimes(1);
   });
 
-  it("emits methodchange when the method toggle flips", async () => {
+  it("has no method toggle (grid is locked to the Product view)", async () => {
+    const term = makeTerm();
+    const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });
+    await flushPromises();
+    expect(el.shadowRoot.querySelector("lightning-combobox")).toBeNull();
+    expect(el.shadowRoot.querySelector(".dl-mg-toolbar")).toBeNull();
+  });
+
+  it("labels each product row with its fare codes in parentheses", async () => {
+    const term = makeTerm();
+    const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });
+    await flushPromises();
+    const labels = [...el.shadowRoot.querySelectorAll("tbody .dl-mg-value")].map(
+      (n) => n.textContent.trim()
+    );
+    expect(labels).toContain("Delta One (J C)");
+    expect(labels).toContain("Main (M H)");
+  });
+
+  it("shows a collapsed alliance-partner summary for a fare that has partners", async () => {
+    const term = makeTerm();
+    const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });
+    await flushPromises();
+    const summaries = [
+      ...el.shadowRoot.querySelectorAll("tbody .dl-mg-alliance")
+    ].map((n) => n.textContent.trim());
+    // Delta One carries two partners; Main carries none (em dash).
+    expect(summaries).toContain("Air France · KLM Royal Dutch Airlines");
+    expect(summaries).toContain("—");
+  });
+
+  it("expands a row to reveal the alliance-partner dual-listbox, then collapses it", async () => {
+    const term = makeTerm();
+    const model = seedModel(term, METHOD_PRODUCT);
+    const el = create({ term, model });
+    await flushPromises();
+    // Collapsed: no detail editor yet.
+    expect(el.shadowRoot.querySelector("lightning-dual-listbox")).toBeNull();
+    const baseRows = el.shadowRoot.querySelectorAll("tbody tr").length;
+
+    const expander = el.shadowRoot.querySelector(".dl-mg-expander");
+    expander.click();
+    await flushPromises();
+    expect(el.shadowRoot.querySelector("lightning-dual-listbox")).not.toBeNull();
+    // A detail row was inserted beneath the base row.
+    expect(el.shadowRoot.querySelectorAll("tbody tr").length).toBe(baseRows + 1);
+
+    // Collapse again.
+    el.shadowRoot.querySelector(".dl-mg-expander").click();
+    await flushPromises();
+    expect(el.shadowRoot.querySelector("lightning-dual-listbox")).toBeNull();
+    expect(el.shadowRoot.querySelectorAll("tbody tr").length).toBe(baseRows);
+  });
+
+  it("emits alliancechange with { backingFareId, alliancePartners } when a row's dual-listbox changes", async () => {
     const term = makeTerm();
     const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });
     await flushPromises();
     const handler = jest.fn();
-    el.addEventListener("methodchange", handler);
+    el.addEventListener("alliancechange", handler);
 
-    const combo = el.shadowRoot.querySelector("lightning-combobox");
-    combo.dispatchEvent(
-      new CustomEvent("change", { detail: { value: METHOD_FARECLASS } })
+    // Expand the first row (Delta One, backingFareId 0QLfare1).
+    el.shadowRoot.querySelector(".dl-mg-expander").click();
+    await flushPromises();
+
+    const dual = el.shadowRoot.querySelector("lightning-dual-listbox");
+    dual.dispatchEvent(
+      new CustomEvent("change", { detail: { value: ["Virgin Atlantic"] } })
     );
     await flushPromises();
 
     expect(handler).toHaveBeenCalled();
-    expect(handler.mock.calls[0][0].detail.method).toBe(METHOD_FARECLASS);
+    const detail = handler.mock.calls[0][0].detail;
+    expect(detail.backingFareId).toBe("0QLfare1");
+    expect(detail.alliancePartners).toEqual(["Virgin Atlantic"]);
   });
 
   it("shows a totals warning when a distribution is edited off 100%", async () => {

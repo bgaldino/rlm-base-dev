@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>DL_AlliancePartners__c</fullName>
+    <description>Alliance / joint-venture partner carriers covered by this fare line (Delta's strategic partners; reuses the DL_Carriers value set shared with the header-level Participating Carriers). Edited per row in the modeling grid, independently of other lines. Non-price-impacting in the Term Builder demo.</description>
+    <inlineHelpText>Alliance partner carriers covered by this fare on this Term. Set per row in the modeling grid.</inlineHelpText>
+    <label>Alliance Partners</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>MultiselectPicklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetName>DL_Carriers</valueSetName>
+    </valueSet>
+    <visibleLines>4</visibleLines>
+</CustomField>

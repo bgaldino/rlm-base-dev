@@ -7,18 +7,6 @@
     </template>
 
     <template if:true={hasModel}>
-      <!-- Toolbar: method toggle -->
-      <div class="dl-mg-toolbar slds-p-around_small">
-        <div class="dl-mg-method">
-          <lightning-combobox
-            label="Discounting method"
-            value={method}
-            options={methodOptions}
-            onchange={handleMethodChange}
-          ></lightning-combobox>
-        </div>
-      </div>
-
       <!-- Fare-less Term: empty-state instead of a headerless grid. -->
       <template if:false={hasRows}>
         <div class="slds-p-around_medium slds-text-color_weak">
@@ -46,7 +34,7 @@
           <table class="dl-mg-table slds-table slds-table_bordered slds-table_fixed-layout">
             <thead>
               <tr class="slds-line-height_reset">
-                <th class="dl-mg-col_value" scope="col"><span title={valueColumnLabel}>{valueColumnLabel}</span></th>
+                <th class="dl-mg-col_value" scope="col"><span title="Product">Product</span></th>
                 <th scope="col"><span title="Spend % (share of existing spend on this Term)">Spend %</span></th>
                 <th scope="col"><span title="Projected spend %">Projected %</span></th>
                 <th scope="col"><span title="Prior-cycle discount % (read-only; from the Quote fare lines)">Prior Disc %</span></th>
@@ -55,9 +43,32 @@
             </thead>
             <tbody>
               <template for:each={displayRows} for:item="row">
-                <tr key={row.key} class="dl-mg-row">
+                <!-- Base data row -->
+                <tr key={row.key} if:false={row.isDetail} class="dl-mg-row">
                   <th class="dl-mg-col_value" scope="row">
-                    <span class="dl-mg-value" title={row.label}>{row.label}</span>
+                    <div class="dl-mg-value-cell">
+                      <button
+                        if:true={row.expandable}
+                        type="button"
+                        class="dl-mg-expander slds-button slds-button_icon slds-m-right_xx-small"
+                        title={row.expanderTitle}
+                        aria-expanded={row.expandedStr}
+                        aria-controls={row.detailRegionId}
+                        data-key={row.key}
+                        data-expander={row.key}
+                        onclick={handleToggleExpand}
+                      >
+                        <lightning-icon
+                          icon-name={row.expanderIcon}
+                          size="xx-small"
+                          alternative-text={row.expanderTitle}
+                        ></lightning-icon>
+                      </button>
+                      <span class="dl-mg-value-text">
+                        <span class="dl-mg-value" title={row.label}>{row.label}</span>
+                        <span class="dl-mg-alliance" title={row.allianceSummary}>{row.allianceSummary}</span>
+                      </span>
+                    </div>
                   </th>
                   <td>
                     <lightning-input
@@ -98,6 +109,24 @@
                       data-key={row.key}
                       onchange={handleProposedChange}
                     ></lightning-input>
+                  </td>
+                </tr>
+
+                <!-- Expanded detail row: per-row Alliance Partner multiselect. -->
+                <tr key={row.key} if:true={row.isDetail} class="dl-mg-detail-row">
+                  <td class="dl-mg-detail" colspan={row.colspan} id={row.detailRegionId}>
+                    <lightning-dual-listbox
+                      name="alliancePartners"
+                      label={row.detailLabel}
+                      variant="label-hidden"
+                      source-label="Available"
+                      selected-label="Alliance partners"
+                      options={alliancePartnerOptions}
+                      value={row.alliancePartnersValue}
+                      data-key={row.rowKey}
+                      data-detail={row.rowKey}
+                      onchange={handleAllianceChange}
+                    ></lightning-dual-listbox>
                   </td>
                 </tr>
               </template>

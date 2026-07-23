@@ -398,6 +398,90 @@ private class RLM_DeltaLineControllerTest {
         System.assertEquals(null, after.CustomProductName, 'Auto-name cleared with the codes');
     }
 
+    // Save alliance partners on a line through the controller (same `update as user` path fare codes
+    // use; a raw system-mode DML of a multipicklist hits FLS in this org's test context).
+    private static Map<String, Object> saveAlliancePartners(Quote q, Id lineId, List<Object> partners) {
+        Map<String, Object> in0 = new Map<String, Object>{
+            'quoteId' => q.Id,
+            'lines' => new List<Object>{ new Map<String, Object>{ 'id' => lineId, 'alliancePartners' => partners } }
+        };
+        return parse(RLM_DeltaLineController.updateLineDiscountAndDates(JSON.serialize(in0)));
+    }
+
+    @IsTest
+    static void testUpdate_AlliancePartnersPersistIndependently() {
+        // Saving alliance partners stores the ';'-delimited multipicklist and — unlike fare codes —
+        // leaves CustomProductName untouched (no auto-name side effect).
+        Quote q = insertTestQuote();
+        PricebookEntry pbe = insertPbe('FARE-AP');
+        QuoteLineItem fare = insertLine(q, pbe, null);
+
+        Test.startTest();
+        Map<String, Object> res = saveAlliancePartners(
+            q,
+            fare.Id,
+            new List<Object>{ 'Air France', 'Virgin Atlantic' }
+        );
+        Test.stopTest();
+
+        System.assertEquals(true, res.get('isSuccess'), 'Alliance-partner save succeeds');
+        QuoteLineItem after = [
+            SELECT DL_AlliancePartners__c, CustomProductName FROM QuoteLineItem WHERE Id = :fare.Id
+        ];
+        System.assertEquals(
+            new Set<String>{ 'Air France', 'Virgin Atlantic' },
+            new Set<String>(after.DL_AlliancePartners__c.split(';')),
+            'Both partners persisted'
+        );
+        System.assertEquals(null, after.CustomProductName, 'Alliance-partner save must NOT auto-name the line');
+    }
+
+    @IsTest
+    static void testUpdate_AlliancePartnersClearedToNull() {
+        // An empty list clears the field to null (mirrors the fare-code clear behavior).
+        Quote q = insertTestQuote();
+        PricebookEntry pbe = insertPbe('FARE-AP2');
+        QuoteLineItem fare = insertLine(q, pbe, null);
+
+        saveAlliancePartners(q, fare.Id, new List<Object>{ 'Korean Air' });
+        QuoteLineItem seeded = [SELECT DL_AlliancePartners__c FROM QuoteLineItem WHERE Id = :fare.Id];
+        System.assertNotEquals(null, seeded.DL_AlliancePartners__c, 'Precondition: partners seeded');
+
+        Map<String, Object> res = saveAlliancePartners(q, fare.Id, new List<Object>());
+        System.assertEquals(true, res.get('isSuccess'), 'Clearing partners succeeds');
+        QuoteLineItem after = [SELECT DL_AlliancePartners__c FROM QuoteLineItem WHERE Id = :fare.Id];
+        System.assertEquals(null, after.DL_AlliancePartners__c, 'Partners cleared to null');
+    }
+
+    @IsTest
+    static void testGetQuoteLines_ExposesAlliancePartners() {
+        // The read DTO surfaces alliance partners as a list so the modeling grid can seed its editor.
+        Quote q = insertTestQuote();
+        PricebookEntry pbe = insertPbe('FARE-AP3');
+        QuoteLineItem fare = insertLine(q, pbe, null);
+        saveAlliancePartners(q, fare.Id, new List<Object>{ 'Aeromexico', 'WestJet' });
+
+        Test.startTest();
+        Map<String, Object> res = parse(RLM_DeltaLineController.getQuoteLines(q.Id));
+        Test.stopTest();
+
+        System.assertEquals(true, res.get('isSuccess'), 'getQuoteLines succeeds');
+        List<Object> ungrouped = (List<Object>) res.get('ungrouped');
+        Map<String, Object> dto = null;
+        for (Object o : ungrouped) {
+            Map<String, Object> line = (Map<String, Object>) o;
+            if (fare.Id == (Id) line.get('id')) {
+                dto = line;
+            }
+        }
+        System.assertNotEquals(null, dto, 'Fare line present in the DTO');
+        System.assertEquals(
+            new Set<Object>{ 'Aeromexico', 'WestJet' },
+            new Set<Object>((List<Object>) dto.get('alliancePartners')),
+            'DTO exposes both alliance partners'
+        );
+    }
+
     @IsTest
     static void testUpdate_FareCodesOnTermLeavesNameUntouched() {
         // A DL-TERM line is not a fare; a fare-code save must not clobber its separately-managed name.

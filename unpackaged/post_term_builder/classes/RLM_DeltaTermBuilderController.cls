@@ -35,13 +35,13 @@ public with sharing class RLM_DeltaTermBuilderController {
     @TestVisible private static final String CATEGORY_TEMPLATES_CODE = 'DL-TERM-TEMPLATES';
 
     // Scope attributes surfaced as chips in the Term Library modal — the same route/scope set the Term
-    // card renders (route, market, directionality, measure/requirement). Free-text noise like
+    // card renders (route, directionality, measure/requirement). Free-text noise like
     // DL_SpecialConditions ("Peak-season carve-out", "Excludes Basic Economy") is intentionally omitted
     // so the modal chips match the card. Scope is still stamped in full on the created line
     // (loadTemplateScopeForCommit is unfiltered) — this governs display only.
     @TestVisible
     private static final Set<String> LIBRARY_SCOPE_CHIP_CODES = new Set<String>{
-        'DL_MarketGroup', 'DL_Origin', 'DL_Destination', 'DL_Directionality', 'DL_Measure', 'DL_RequirementValue'
+        'DL_Origin', 'DL_Destination', 'DL_Directionality', 'DL_Measure', 'DL_RequirementValue'
     };
 
     // Demo safety cap: at most 20 fare children per Term (matches the ProductComponentGroup Max).
@@ -619,6 +619,12 @@ public with sharing class RLM_DeltaTermBuilderController {
                     patch.DL_FareCodes__c = src.DL_FareCodes__c;
                     changed = true;
                 }
+                // Alliance partners are unmapped by the clone context (same as fare codes), so restore
+                // them from the source line too.
+                if (cl.DL_AlliancePartners__c != src.DL_AlliancePartners__c) {
+                    patch.DL_AlliancePartners__c = src.DL_AlliancePartners__c;
+                    changed = true;
+                }
                 if (cl.Discount != src.Discount) {
                     patch.Discount = src.Discount;
                     changed = true;
@@ -650,7 +656,7 @@ public with sharing class RLM_DeltaTermBuilderController {
         List<QuoteLineItem> lines = [
             SELECT Id, Product2Id, Product2.ProductCode, Product2.StockKeepingUnit,
                    CustomProductName, ParentQuoteLineItemId, Discount, DL_FareCodes__c,
-                   DL_PriorDiscount__c
+                   DL_AlliancePartners__c, DL_PriorDiscount__c
             FROM QuoteLineItem WHERE QuoteId = :quoteId WITH USER_MODE ORDER BY LineNumber
         ];
 
@@ -909,7 +915,7 @@ public with sharing class RLM_DeltaTermBuilderController {
                 SELECT Id, ParentQuoteLineItemId, CustomProductName, Discount, StartDate, EndDate,
                        NetUnitPrice, UnitPrice, Quantity, Product2Id, Product2.Name,
                        Product2.ProductCode, Product2.StockKeepingUnit, Product2.BasedOnId,
-                       DL_FareCodes__c
+                       DL_FareCodes__c, DL_AlliancePartners__c
                 FROM QuoteLineItem
                 WHERE QuoteId = :qId
                 WITH USER_MODE
@@ -1717,6 +1723,9 @@ public with sharing class RLM_DeltaTermBuilderController {
             'productName' => (qli.Product2 != null) ? qli.Product2.Name : null,
             'productCode' => (qli.Product2 != null) ? qli.Product2.ProductCode : null,
             'fareCodes' => fareCodeList(qli.DL_FareCodes__c),
+            // Per-line alliance partners (multiselect, ';'-delimited) → list; edited per row in the
+            // modeling grid. Forwarded onto the model row so the grid can seed its dual-listbox.
+            'alliancePartners' => fareCodeList(qli.DL_AlliancePartners__c),
             'discount' => qli.Discount,
             'netUnitPrice' => qli.NetUnitPrice
         };

@@ -110,6 +110,16 @@ private class RLM_DeltaTermBuilderControllerTest {
         RLM_DeltaLineController.updateLineDiscountAndDates(JSON.serialize(in0));
     }
 
+    // Set a fare line's alliance partners through the same update-as-user controller path (a raw
+    // system-mode DML of the multipicklist hits FLS in this test context).
+    private static void saveAlliancePartners(Quote q, Id lineId, List<Object> partners) {
+        Map<String, Object> in0 = new Map<String, Object>{
+            'quoteId' => q.Id,
+            'lines' => new List<Object>{ new Map<String, Object>{ 'id' => lineId, 'alliancePartners' => partners } }
+        };
+        RLM_DeltaLineController.updateLineDiscountAndDates(JSON.serialize(in0));
+    }
+
     private static Map<String, Object> parse(String body) {
         return (Map<String, Object>) JSON.deserializeUntyped(body);
     }
@@ -821,6 +831,10 @@ private class RLM_DeltaTermBuilderControllerTest {
         // saveFareCodes stamps codes AND the auto-name ("<base> (codes)") through the controller.
         saveFareCodes(src, srcA.Id, new List<Object>{ 'J', 'C' });
         saveFareCodes(src, srcB.Id, new List<Object>{ 'J', 'C', 'I' });
+        // Alliance partners are also unmapped by the clone context, so seed distinct sets to prove the
+        // restore carries each line's own partners across (same treatment as fare codes).
+        saveAlliancePartners(src, srcA.Id, new List<Object>{ 'Air France' });
+        saveAlliancePartners(src, srcB.Id, new List<Object>{ 'Korean Air', 'WestJet' });
         // Distinct discounts prove the discount rides along with the correct line, not just the codes.
         update new List<QuoteLineItem>{
             new QuoteLineItem(Id = srcA.Id, Discount = 5),
@@ -847,7 +861,7 @@ private class RLM_DeltaTermBuilderControllerTest {
         // Each clone fare must now carry ITS OWN name-mate's codes + discount from the source.
         Map<String, QuoteLineItem> cloneByName = new Map<String, QuoteLineItem>();
         for (QuoteLineItem cl : [
-            SELECT CustomProductName, DL_FareCodes__c, Discount, DL_PriorDiscount__c
+            SELECT CustomProductName, DL_FareCodes__c, DL_AlliancePartners__c, Discount, DL_PriorDiscount__c
             FROM QuoteLineItem WHERE QuoteId = :clone.Id
         ]) {
             cloneByName.put(cl.CustomProductName, cl);
@@ -872,6 +886,17 @@ private class RLM_DeltaTermBuilderControllerTest {
             new Set<String>{ 'J', 'C', 'I' },
             new Set<String>(cloneByName.get(nameB).DL_FareCodes__c.split(';')),
             'The "(J C I)" fare kept the 3-code set (not its peer\'s codes)'
+        );
+        // Alliance partners restored per name-mate, same as fare codes.
+        System.assertEquals(
+            new Set<String>{ 'Air France' },
+            new Set<String>(cloneByName.get(nameA).DL_AlliancePartners__c.split(';')),
+            'The "(J C)" fare kept its own alliance partner'
+        );
+        System.assertEquals(
+            new Set<String>{ 'Korean Air', 'WestJet' },
+            new Set<String>(cloneByName.get(nameB).DL_AlliancePartners__c.split(';')),
+            'The "(J C I)" fare kept its own two alliance partners'
         );
     }
 
