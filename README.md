@@ -273,14 +273,14 @@ cd rlm-base-dev
 
 > Replace `<repository-url>` with the actual repo URL from GitHub (use `gh repo clone <org>/<repo>` if you used `gh auth login` above).
 
-### Step 9 — Install SFDMU plugin (v5+)
+### Step 9 — Install SFDMU plugin (v5.6.4+)
 
-SFDMU is a Salesforce CLI plugin for bulk data loading. **Version 5.0.0 or later is required.**
+SFDMU is a Salesforce CLI plugin for bulk data loading. **Version 5.6.4 or later is required** (5.6.4 fixed upsert matching for relationship-traversal externalIds; older 5.x releases duplicate records on rerun).
 
 ```bash
 sf plugins install sfdmu
 
-# Verify (should show 5.x)
+# Verify (should show 5.6.4 or later)
 sf plugins list
 ```
 
@@ -372,10 +372,10 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - Verify: `cci version`
 
 6. **SFDMU (Salesforce Data Move Utility)**
-   - **Version 5.0.0 or later required** (v4.x is no longer supported)
+   - **Version 5.6.4 or later required** (v4.x is no longer supported; pre-5.6.4 5.x breaks Upsert matching on relationship externalIds)
    - Required for data loading tasks
    - Installation: `sf plugins install sfdmu`
-   - Verify: `sf plugins list` (should show sfdmu 5.x)
+   - Verify: `sf plugins list` (should show sfdmu 5.6.4 or later)
    - The `validate_setup` task checks and auto-updates the SFDMU version
    - Documentation: https://help.sfdmu.com/
 
@@ -432,7 +432,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
 
    5. **Verify** — Run `cci task run validate_setup` (no org required) to check all dependencies including Chrome/Chromium and ChromeDriver.
 
-3. **Install SFDMU (v5+):**
+3. **Install SFDMU (v5.6.4+):**
    ```bash
    sf plugins install sfdmu
    ```
@@ -975,7 +975,7 @@ Data plans provide the reference data loaded during org setup. This project uses
 
 ### SFDMU Data Plans
 
-> **Requires SFDMU v5.0.0+.** All data plans have been migrated for SFDMU v5 compatibility
+> **Requires SFDMU v5.6.4+.** All data plans have been migrated for SFDMU v5 compatibility
 > and idempotency. See [Composite Key Optimizations](docs/references/sfdmu-composite-key-optimizations.md)
 > for the full migration details and known limitations.
 
@@ -1477,10 +1477,10 @@ cci version
 ### SFDMU Not Found or Outdated
 
 ```bash
-# Install or update SFDMU (v5+ required)
+# Install or update SFDMU (v5.6.4+ required)
 sf plugins install sfdmu
 
-# Verify installation (should show 5.x)
+# Verify installation (should show 5.6.4 or later)
 sf plugins list
 ```
 

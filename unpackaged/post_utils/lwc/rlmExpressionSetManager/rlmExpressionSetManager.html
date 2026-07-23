@@ -1,0 +1,109 @@
+<template>
+    <lightning-card title="Expression Set Manager" icon-name="standard:activations">
+        <section class="slds-p-around_medium" aria-label="Expression Set Manager">
+
+            <template lwc:if={hasPreviousError}>
+                <div
+                    class="slds-notify slds-notify_alert slds-alert_warning slds-m-bottom_small"
+                    role="alert"
+                    tabindex="-1"
+                    data-error-alert>
+                    <lightning-icon icon-name="utility:warning" size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                    <span class="slds-col slds-grow">{previousError}</span>
+                    <lightning-button
+                        label="Refresh"
+                        variant="neutral"
+                        class="slds-m-left_small"
+                        onclick={handleRefresh}>
+                    </lightning-button>
+                    <lightning-button-icon
+                        icon-name="utility:close"
+                        alternative-text="Dismiss"
+                        variant="bare-inverse"
+                        class="slds-m-left_x-small"
+                        onclick={handleDismissError}>
+                    </lightning-button-icon>
+                </div>
+            </template>
+
+            <lightning-combobox
+                label="Context Definition"
+                placeholder="Select a Context Definition..."
+                options={contextOptions}
+                value={selectedContextId}
+                onchange={handleContextChange}>
+            </lightning-combobox>
+
+            <template lwc:if={hasContext}>
+                <div class="slds-m-top_small">
+                    <a href={contextDefUrl} target="_blank" class="slds-text-link">
+                        Open Context Definition in Setup
+                    </a>
+                </div>
+
+                <template lwc:if={isLoading}>
+                    <div class="slds-is-relative slds-p-vertical_x-large">
+                        <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+                    </div>
+                </template>
+
+                <template lwc:if={hasExpressionSets}>
+                    <div class="slds-m-vertical_medium">
+                        <div class={statusAlertClass} role="status">
+                            <lightning-icon icon-name={statusIcon} size="x-small" class="slds-m-right_x-small"></lightning-icon>
+                            <span>{statusMessage}</span>
+                        </div>
+                    </div>
+
+                    <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
+                        <h2 class="slds-col slds-grow slds-text-heading_small">Expression Sets</h2>
+                        <div class="slds-col slds-grow-none slds-grid slds-grid_vertical-align-center">
+                            <template lwc:if={isActing}>
+                                <lightning-spinner alternative-text="Processing" size="small" class="slds-m-right_small"></lightning-spinner>
+                                <span class="slds-text-body_small slds-text-color_weak slds-m-right_medium">Processing...</span>
+                            </template>
+                            <lightning-button-group>
+                                <lightning-button
+                                    variant="destructive"
+                                    label="Deactivate"
+                                    onclick={handleDeactivate}
+                                    disabled={bulkActionDisabled}
+                                    icon-name="utility:ban">
+                                </lightning-button>
+                                <lightning-button
+                                    variant="success"
+                                    label="Activate"
+                                    onclick={handleActivate}
+                                    disabled={bulkActionDisabled}
+                                    icon-name="utility:check">
+                                </lightning-button>
+                            </lightning-button-group>
+                        </div>
+                    </div>
+
+                    <lightning-datatable
+                        key-field="definitionId"
+                        data={expressionSets}
+                        columns={columns}
+                        selected-rows={selectedRowIds}
+                        onrowselection={handleRowSelection}
+                        sorted-by={sortedByColumn}
+                        sorted-direction={sortDirection}
+                        onsort={handleSort}
+                        resize-column-disabled>
+                    </lightning-datatable>
+                </template>
+
+                <template lwc:if={showNoResults}>
+                    <div class="slds-m-top_medium slds-align_absolute-center slds-text-align_center">
+                        <p class="slds-text-body_regular slds-text-color_weak">
+                            No Expression Sets found for this Context Definition.<br/>
+                            Link Expression Sets via the Context Definition setup page, then return here to activate them.
+                        </p>
+                    </div>
+                </template>
+            </template>
+
+        </section>
+    </lightning-card>
+</template>

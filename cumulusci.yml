@@ -254,6 +254,7 @@ project:
       # Territory Sales Operations permission sets
       - ERIBasic
       - RLM_UtilitiesPermset
+      - RLM_ExpressionSetManager
       - OrchestrationProcessManagerPermissionSet
       - EventMonitoringPermSet
   
@@ -318,6 +319,14 @@ project:
     ps_quantumbit: &ps_quantumbit
       # QuantumBit-specific permission sets
       - RLM_QuantumBit
+
+    ps_expression_set_manager: &ps_expression_set_manager
+      # Expression Set Manager component (post_utils, deployed via
+      # deploy_post_utils in the quantumbit and tso flows). Deliberately NOT
+      # RLM_UtilitiesPermset: that set grants RLM_AccountUtilities, whose
+      # invocable deletes account-related orders/assets/contracts/invoices —
+      # destructive access this component does not need.
+      - RLM_ExpressionSetManager
 
     ps_guidedselling: &ps_guidedselling
       # Guided Selling runtime/configuration permission sets available before metadata deploy
@@ -2234,7 +2243,7 @@ tasks:
     group: Revenue Lifecycle Management
     description: >
       Validate the local developer setup for rlm-base-dev. Checks Python,
-      CumulusCI, Salesforce CLI, SFDMU plugin version (v5+ required), Node.js,
+      CumulusCI, Salesforce CLI, SFDMU plugin version (v5.6.4+ required), Node.js,
       Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium,
       ChromeDriver, and urllib3. When
       auto_fix=true the SFDMU plugin is automatically installed or updated to
@@ -2242,7 +2251,7 @@ tasks:
     class_path: tasks.rlm_validate_setup.ValidateSetup
     options:
       auto_fix: true
-      required_sfdmu_version: "5.0.0"
+      required_sfdmu_version: "5.6.4"
       fail_on_error: true
 
   configure_revenue_settings:
@@ -3849,6 +3858,15 @@ flows:
         options:
           api_names: *ps_quantumbit
       5:
+        # deploy_post_utils (step 1) ships the Expression Set Manager component;
+        # assign its dedicated least-privilege permission set here so quantumbit
+        # builds (where tso=false) grant it. The tso flow assigns it via
+        # rlm_tso_ps_api_names.
+        task: assign_permission_sets
+        when: project_config.project__custom__quantumbit
+        options:
+          api_names: *ps_expression_set_manager
+      6:
         task: assign_permission_sets
         when: project_config.project__custom__quantumbit and project_config.project__custom__calmdelete
         options:

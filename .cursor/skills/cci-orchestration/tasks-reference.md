@@ -3141,14 +3141,14 @@
 
 ### `validate_setup`
 
-**Description:** Validate the local developer setup for rlm-base-dev. Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version (v5+ required), Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, and urllib3. When auto_fix=true the SFDMU plugin is automatically installed or updated to the required version. Run without an org: cci task run validate_setup
+**Description:** Validate the local developer setup for rlm-base-dev. Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version (v5.6.4+ required), Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, and urllib3. When auto_fix=true the SFDMU plugin is automatically installed or updated to the required version. Run without an org: cci task run validate_setup
 
 **Class:** `tasks.rlm_validate_setup.ValidateSetup`
 
 **Options:**
 
 - `auto_fix`: `True`
-- `required_sfdmu_version`: `5.0.0`
+- `required_sfdmu_version`: `5.6.4`
 - `fail_on_error`: `True`
 
 ---

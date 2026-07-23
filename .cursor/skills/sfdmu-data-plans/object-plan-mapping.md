@@ -2,6 +2,13 @@
 
 Which SObject lives in which data plan, its externalId, operation, and upstream dependencies.
 
+> **`Insert` + "Bug 3" rows below record the *current shipped plans*, not new-plan guidance.**
+> Those `Insert`/`deleteOldData` entries were pre-5.6.4 workarounds for the
+> relationship-traversal Upsert bugs (Bugs 2/3/5), which are **fixed on the enforced
+> 5.6.4+ floor** — Upsert now matches on traversal externalIds. The plans still carry the
+> old operation until the gated `sfdmu-v5-optimization` migration. When authoring a *new*
+> plan on 5.6.4+, use `Upsert` for traversal externalIds; only Bug 4 (`$$` in lookup reference columns — self-referential and cross-object) is live.
+
 ## qb-pcm (Product Catalog Management — 28 objects)
 
 | SObject | externalId | Operation | Notes |
@@ -46,15 +53,15 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | Product2 | `StockKeepingUnit` | Readonly | From qb-pcm |
 | CostBook | `Name;IsDefault` | Upsert | |
 | Pricebook2 | `Name;IsStandard` | Upsert | |
-| PriceAdjustmentTier | 9-field composite | **Insert** | Bug 3: relationship traversal externalId |
+| PriceAdjustmentTier | 9-field composite | **Insert** | Bug 3: relationship traversal externalId — pre-5.6.4 record; fixed on floor |
 | PriceAdjustmentSchedule | `Name;CurrencyIsoCode` | Update | |
 | AttributeBasedAdjRule | `Name` | Upsert | |
-| AttributeAdjustmentCondition | 3-field composite | **Insert** | Bug 3 |
-| AttributeBasedAdjustment | 5-field composite | **Insert** | Bug 3 |
-| BundleBasedAdjustment | 8-field composite | **Insert** | Bug 3 |
-| PricebookEntry | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | **Insert** | Bug 3 |
-| PricebookEntryDerivedPrice | 8-field composite | **Insert** | Bug 2+3 |
-| CostBookEntry | 3-field composite | **Insert** | Excluded (0 records) |
+| AttributeAdjustmentCondition | 3-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
+| AttributeBasedAdjustment | 5-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
+| BundleBasedAdjustment | 8-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
+| PricebookEntry | `Product2.StockKeepingUnit;ProductSellingModel.Name;CurrencyIsoCode` | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
+| PricebookEntryDerivedPrice | 8-field composite | **Insert** | Bug 2+3 — pre-5.6.4 record; fixed on floor |
+| CostBookEntry | 3-field composite | **Insert** | Bug 3 — pre-5.6.4 record; fixed on floor |
 
 ## qb-billing (3 passes)
 
@@ -105,11 +112,11 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | UsageGrantRolloverPolicy | `Code` | Upsert | 1 | |
 | UsageOveragePolicy | `Name` | Upsert | 1 | |
 | UsageCommitmentPolicy | `Name` | Upsert | 1 | |
-| ProductUsageResource (PUR) | `Product.StockKeepingUnit;UsageResource.Code` | **Insert** + deleteOldData | 1 | Bug 3 |
+| ProductUsageResource (PUR) | `Product.StockKeepingUnit;UsageResource.Code` | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor |
 | UsagePrdGrantBindingPolicy | `Name;Product2.StockKeepingUnit` | Upsert | 1 | |
 | RatingFrequencyPolicy | `RatingPeriod` | Upsert | 1 | |
-| ProductUsageResourcePolicy (PURP) | `ProductUsageResourceId` | **Insert** + deleteOldData | 1 | Bug 3 |
-| ProductUsageGrant (PUG) | 3-field composite | **Insert** + deleteOldData | 1 | Bug 3 |
+| ProductUsageResourcePolicy (PURP) | `ProductUsageResourceId` | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor |
+| ProductUsageGrant (PUG) | 3-field composite | **Insert** + deleteOldData | 1 | Bug 3 — pre-5.6.4 record; fixed on floor. Upsert migration is not operation-only: the 3-field key is intentionally non-unique across parent PURs, so it must first add a PUR component (e.g. `ProductUsageResourceId`) |
 | UnitOfMeasureClass | — | Update | 2 | Activate |
 | UsageResource | — | Update | 2 | Activate |
 
@@ -120,8 +127,8 @@ Which SObject lives in which data plan, its externalId, operation, and upstream 
 | Product2 | `StockKeepingUnit` | Update | Sets UsageModelType |
 | RateCard | `Name;Type` | Upsert | |
 | PriceBookRateCard | `PriceBook.Name;RateCard.Name;RateCardType` | Upsert + deleteOldData | Auto-number Name |
-| RateCardEntry | 4-field composite | **Insert** + deleteOldData | Bug 3 |
-| RateAdjustmentByTier | 6-field composite | **Insert** + deleteOldData | Bug 3 |
+| RateCardEntry | 4-field composite | **Insert** + deleteOldData | Bug 2 (multi-hop traversal) — pre-5.6.4 record; fixed on floor |
+| RateAdjustmentByTier | 6-field composite | **Insert** + deleteOldData | Bug 2 (multi-hop traversal) — pre-5.6.4 record; fixed on floor |
 
 ## qb-dro (17 objects)
 
