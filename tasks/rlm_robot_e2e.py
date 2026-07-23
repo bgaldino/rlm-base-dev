@@ -26,7 +26,7 @@ DEFAULT_OUTPUT_DIR = "robot/rlm-base/results"
 # Feature flags to pass from project__custom to Robot variables
 FEATURE_FLAGS = [
     "qb", "billing", "constraints", "dro", "clm", "rating", "rates",
-    "ramps", "payments", "approvals", "docgen", "prm", "commerce",
+    "payments", "approvals", "docgen", "prm", "commerce",
     "guidedselling", "tso", "ux",
 ]
 

@@ -25,6 +25,7 @@ repo root.
 | Validate / refresh / certify the ERD against orgs and Core source | Schema Validation | `schema-validation/SKILL.md` |
 | Cross-repo skill manifest (PMOS ↔ Foundations) | PMOS Integration | `pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | Business APIs | `rlm-business-apis/SKILL.md` |
+| Generate, inspect, continue, or verify transaction demo data | Transaction Data Harness | `txn-data-harness/SKILL.md` |
 | Write Robot Framework tests | Robot Testing | `robot-testing/SKILL.md` |
 | Capture/apply UX drift from org | UX Assembly & Retrieve | `repo-integration/ux-assembly-retrieve.md` |
 | Review docs before merge | Doc Consistency | `doc-consistency/SKILL.md` |
@@ -35,6 +36,8 @@ repo root.
 | Author/update enablement exercises | Release Enablement | `release-enablement/SKILL.md` |
 | Generate the QuantumBit demo-script canvas (per-release) | QB Demo Script Generator | `qb-demo-script/SKILL.md` |
 | Ground claims against Salesforce Help | Revenue Cloud Docs | `revenue-cloud-docs/SKILL.md` |
+| Author, debug, and validate OmniDataTransform (ODT) mappers | ODT Authoring | `odt-authoring/SKILL.md` |
+| Create/modify `.docx` templates + DocumentTemplate lifecycle | Document Generation | `document-generation/SKILL.md` |
 
 ## How Skills Are Structured
 

@@ -391,7 +391,7 @@ Source: `datasets/sfdmu/qb/en-US/qb-clm/`
 | `qb-product-images` | ContentVersion + ContentDocumentLink for product images (`/resource/RLM_quantumBit_logo_sq` + per-product images) |
 | `qb-transactionprocessingtypes` | TransactionProcessingType records (loaded before `deploy_post_constraints`) |
 | `qb-accounting` | GL Accounts, Journal Entry templates |
-| `qb-guidedselling` | Guided selling configuration |
+| `qb-guidedselling-products` | Guided selling Product2 attribute values |
 | `qb-rates` | RateCard + RateCardEntry records |
 
 ---
@@ -418,7 +418,7 @@ Source: `datasets/sfdmu/scratch_data/Account.csv` + `Contact.csv` + `BillingAcco
 
 ## 16. `prepare_rlm_org` Build Flow Summary
 
-The full 35-step build process is documented at `docs/guides/prepare-rlm-org-build-guide.md`. Phases:
+The full 34-step build process is documented at `docs/guides/prepare-rlm-org-build-guide.md`. Phases:
 
 1. **Foundation (1–3):** PSL/PSG assignment, context definition extension, decision tables, expression sets (deactivate)
 2. **Metadata Deployment (4–7):** Payments site, deploy_full, price adjustment schedule activation, QuantumBit metadata

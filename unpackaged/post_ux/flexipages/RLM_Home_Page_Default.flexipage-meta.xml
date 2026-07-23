@@ -7,6 +7,12 @@
                 <identifier>home_heroChart</identifier>
             </componentInstance>
         </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentName>rlmExpressionSetManager</componentName>
+                <identifier>c_rlmExpressionSetManager</identifier>
+            </componentInstance>
+        </itemInstances>
         <mode>Replace</mode>
         <name>top</name>
         <type>Region</type>

@@ -1,0 +1,59 @@
+# Transaction Data Harness — example config (all fields OPTIONAL).
+#
+#   python -m scripts.txn_data_harness.generate --org <your-sf-alias> --config scripts/txn_data_harness/config.example.yaml
+#
+# Anything omitted is auto-discovered from the target org (billing-ready
+# account, preferred QB product, standard pricebook, legal entity, open
+# opportunity stage). CLI flags override the `defaults` block below; an
+# explicit per-scenario value is the most specific intent and wins over both.
+#
+# `--org` takes an sf CLI alias / username ONLY (e.g. `rlm-base__beta`), NOT a
+# CCI alias. The CCI alias `beta` maps to sf alias `rlm-base__beta` — pass the
+# sf one (see CLAUDE.md "Org Identity").
+#
+# The account names and SKUs below (`Infinitech`, `Global Media`,
+# `QB-API-FLEX`) are from the bundled QB demo dataset and are illustrative
+# only. Substitute any account on your org for `account:` (it just needs a
+# `BillingAccount` to reach `order_activated`/`invoice_draft`/`invoice_posted`;
+# without one the scenario auto-caps at `order_draft`) and any SKU on the
+# standard pricebook for `sku:`.
+
+# Broad defaults applied to every scenario unless the scenario overrides them.
+defaults:
+  target_stage: invoice_posted  # opportunity_created | quote_placed | order_draft | order_activated | usage_upload | invoice_draft | invoice_posted
+  with_opportunity: false     # prepend an Opportunity the quote links to
+  # opportunity_stage: Prospecting   # else first open stage is auto-discovered
+
+# When there is NO `scenarios:` block, a single spec is run and `volume.scenarios`
+# sets its count (CLI --count still overrides). Ignored when `scenarios:` is set.
+volume:
+  scenarios: 5
+
+# Optional explicit scenario mix. Each entry is one shape run `count` times.
+# Remove this block to let `defaults` + `volume` + discovery drive everything.
+scenarios:
+  # Billable account -> full chain to a Posted invoice.
+  - account: "Infinitech"
+    target_stage: invoice_posted
+    with_opportunity: true
+    products:
+      - sku: "QB-API-FLEX"     # one-entry product pool; add more SKUs for multi-line quotes
+        quantity: 1
+    count: 10
+
+  # Pipeline account (no BillingAccount): quote -> order works, but activation
+  # needs billing setup, so a higher target_stage auto-caps at `order_draft`.
+  # Set `target_stage: order_draft` to leave behind Orders (not just Quotes)
+  # for this account.
+  - account: "Global Media"
+    target_stage: order_draft
+    count: 15
+
+# Spreading quotes over time — set `start_date` (scenario-level; one date is
+# drawn per transaction and applied to all of that quote's lines, anchoring the
+# term EndDate too). Omit it to default each line StartDate to today. Forms:
+#   start_date: "2026-03-15"                  # exact
+#   start_date: "+30"                         # relative: today + 30 days (also -15, +30d)
+#   start_date: ["2026-01-01", "2026-03-31"]  # range: drawn uniformly per quote
+#   start_date: {from: "2026-01-01", to: "+90"}            # range (map form)
+#   start_date: {around: "2026-06-01", plus_or_minus: 14}  # +/- N days around an anchor
