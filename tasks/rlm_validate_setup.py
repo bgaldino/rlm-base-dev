@@ -42,8 +42,8 @@ MIN_PYTHON: Tuple[int, ...] = (3, 10)
 MIN_CCI: Tuple[int, ...] = (4, 0, 0)
 MIN_SF_MAJOR: int = 2
 # 5.6.4 is the floor (not just 5.x): 5.6.4 fixed upsert matching for
-# relationship externalIds (upstream #781) — qb-prm/qb-prm-pricing upsert
-# ChannelProgramMember on Partner.Name;Program.Name and duplicate on every
+# relationship externalIds (upstream #781) — qb-prm/qb-prm-pricing upserts
+# ChannelProgramMember on Partner.Name;Program.Name and duplicates it on every
 # rerun with older plugins — and 5.6.3 fixed the #N/A/N/A null-token
 # semantics the extraction post-processing relies on.
 MIN_SFDMU_DEFAULT: str = "5.6.4"

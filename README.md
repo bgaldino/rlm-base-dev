@@ -375,7 +375,7 @@ For the full architecture — shell config responsibilities, the per-project `.e
    - **Version 5.6.4 or later required** (v4.x is no longer supported; pre-5.6.4 5.x breaks Upsert matching on relationship externalIds)
    - Required for data loading tasks
    - Installation: `sf plugins install sfdmu`
-   - Verify: `sf plugins list` (should show sfdmu 5.x)
+   - Verify: `sf plugins list` (should show sfdmu 5.6.4 or later)
    - The `validate_setup` task checks and auto-updates the SFDMU version
    - Documentation: https://help.sfdmu.com/
 
@@ -1478,7 +1478,7 @@ cci version
 # Install or update SFDMU (v5.6.4+ required)
 sf plugins install sfdmu
 
-# Verify installation (should show 5.x)
+# Verify installation (should show 5.6.4 or later)
 sf plugins list
 ```
 

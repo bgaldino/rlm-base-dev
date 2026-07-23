@@ -206,8 +206,8 @@
       "id": "EXT-SFDMU-V5",
       "name": "SFDMU v5",
       "purpose": "Salesforce data import/export via sf sfdmu run",
-      "minimum_version": "5.0.0",
-      "notes": "Use semicolon-delimited externalId values and validate known v5 bug workarounds."
+      "minimum_version": "5.6.4",
+      "notes": "5.6.4 is the floor (fixed Upsert matching for relationship-traversal externalIds, upstream #781; enforced by validate_setup, the Docker build, and CI). Use semicolon-delimited externalId values and validate known v5 bug workarounds."
     },
     {
       "id": "EXT-SF-CLI",

@@ -98,7 +98,7 @@ RUN set -eux; \
     useradd --create-home --uid 1000 --shell /bin/bash rlm; \
     su -s /bin/bash rlm -c 'mkdir -p ~/.config/sf && printf "%s" "[\"sfdmu\"]" > ~/.config/sf/unsignedPluginAllowList.json'; \
     su -s /bin/bash rlm -c 'sf plugins install sfdmu'; \
-    su -s /bin/bash rlm -c 'v=$(sf plugins | grep -i sfdmu | awk "{print \$2}"); echo "sfdmu $v"; printf "5.6.4\n%s\n" "$v" | sort -V -C'
+    su -s /bin/bash rlm -c 'v=$(sf plugins | grep -i sfdmu | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1); echo "sfdmu $v"; printf "5.6.4\n%s\n" "$v" | sort -V -C'
 
 # ---------------------------------------------------------------------------
 # Baked repo snapshot + wrapper CLI, entrypoint, and interactive banner.
