@@ -10,7 +10,10 @@ SFDMU v5 introduced breaking changes that affect how composite `externalId` defi
 interact with data plans. The following adjustments were made to ensure all QB data plans
 work correctly with v5 and remain **idempotent** (safe to re-run without creating duplicates).
 
-> **Historical record, not current authoring guidance.** The `deleteOldData: true`
+> **Historical record of pre-floor operation choices, not current authoring guidance.**
+> Both the behavioral-change table and the per-dataset adjustments below describe
+> pre-floor SFDMU behavior; the specific version each was fixed in is noted inline.
+> The `deleteOldData: true`
 > adjustments below were **pre-5.6.4 workarounds** for the relationship-traversal
 > Upsert bugs (Bugs 2/3/5), which are **fixed on the enforced 5.6.4+ floor** — Upsert
 > now matches on traversal externalIds. These objects still carry the workaround in the
@@ -23,7 +26,7 @@ work correctly with v5 and remain **idempotent** (safe to re-run without creatin
 
 | v4 Behavior | v5 Change | Impact |
 |-------------|-----------|--------|
-| Nested relationship paths in parent `externalId` (e.g. `Pricebook2.Name`) resolved correctly when a child references that parent | v5 flattens the parent's externalId fields into the child's SOQL query, causing `Didn't understand relationship` errors when the field path is not valid on the child object | Parent externalIds with nested relationship paths must be simplified to fields valid on the parent itself, or the child's reference must not trigger flattening |
+| Nested relationship paths in parent `externalId` (e.g. `Pricebook2.Name`) resolved correctly when a child references that parent | pre-5.6.3: v5 flattened the parent's externalId fields into the child's SOQL query, causing `Didn't understand relationship` errors when the field path is not valid on the child object — **the SOQL-flattening error was fixed in 5.6.3** (a related extract-side residue remains; see Bug 2) | pre-5.6.3 the parent externalIds were simplified to fields valid on the parent itself; on the 5.6.4+ floor this is no longer required for the flattening error |
 | `$$` composite key columns in CSVs used for source-to-target record matching | pre-5.6.4: v5 could not reliably match target records when `externalId` contained only relationship paths (e.g. `Parent.Name;OtherParent.Code`) — **fixed in the 5.6.4 release (commit `50be987`)** | pre-5.6.4 these objects used `deleteOldData: true`; on the 5.6.4+ floor use `Upsert` (matching works). Shipped plans still carry the old operation pending the gated migration |
 | `$$` notation in `externalId` definitions (e.g. `$$Field1$Field2`) recognized as composite keys | v5 does not recognize `$$` in externalId definitions; requires `;`-delimited format | All `externalId` definitions use `Field1;Field2` format |
 

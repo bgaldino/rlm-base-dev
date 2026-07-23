@@ -68,6 +68,6 @@ ProrationPolicy ← ProcedurePlanCriterion (ProrationPolicyId)
 
 16 objects across 1 pass with objectSets. Upstream: `qb-pcm` (Product2, PSM, ProrationPolicy, AttributeDefinition).
 
-Key pattern: Most junction/adjustment objects use `Insert` + `deleteOldData: true` due to composite relationship-traversal externalIds (SFDMU v5 Bug 3).
+Key pattern: Most junction/adjustment objects in the **shipped** plans use `Insert` + `deleteOldData: true` due to composite relationship-traversal externalIds — a **pre-5.6.4 workaround** (Bug 3 is fixed on the 5.6.4+ floor; new plans use `Upsert`, and migrating the shipped plans is the gated `sfdmu-v5-optimization` initiative).
 
 Read-only references: ProductSellingModel, AttributeDefinition, Product2 (loaded by qb-pcm).

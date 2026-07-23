@@ -81,4 +81,4 @@ Rating objects require careful activation ordering:
 
 16 objects across 2 passes. Upstream: `qb-pcm` (Product2, UoM, UoMClass), `qb-billing` (UsageResourceBillingPolicy).
 
-PUR, PURP, and PUG use `Insert` + `deleteOldData: true` due to SFDMU v5 Bug 3 (relationship-traversal externalIds never match on Upsert).
+PUR, PURP, and PUG in the **shipped** plans use `Insert` + `deleteOldData: true` — a **pre-5.6.4 workaround** for Bug 3, which is **fixed on the 5.6.4+ floor** (Upsert matches on traversal externalIds; new plans use `Upsert`, shipped-plan migration is the gated `sfdmu-v5-optimization` initiative).

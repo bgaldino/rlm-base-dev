@@ -143,9 +143,9 @@ Check the SFDMU stdout for the specific object and error. Common causes:
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `has no mandatory external Id field definition` | All-multi-hop externalId (SFDMU v5 Bug 1) | Add a direct field to `externalId` |
-| Invalid SOQL generated | 2-hop traversal column in Upsert (v5 Bug 2) | Switch to `Insert` + `deleteOldData: true` |
-| Duplicates on every run | Relationship-traversal externalId in Upsert (v5 Bug 3) | Switch to `Insert` + `deleteOldData: true` |
+| `has no mandatory external Id field definition` | All-multi-hop externalId (v5 Bug 1) | **Fixed at the 5.6.4+ floor** — should not occur; if it does, verify the plugin is ≥5.6.4 (`validate_setup`) |
+| Invalid SOQL generated | 2-hop traversal column in Upsert (v5 Bug 2) | **Fixed in 5.6.3** — should not occur on the 5.6.4+ floor; verify the plugin version |
+| Duplicates on every run | Relationship-traversal externalId in Upsert (v5 Bug 3) | **Fixed in 5.6.4** — Upsert matches on the floor; verify the plugin version. (Do NOT switch to `Insert`+`deleteOldData` citing this bug.) |
 | `REQUIRED_FIELD_MISSING` | Parent records not loaded yet | Check plan dependency order (PCM before pricing/billing) |
 | `DUPLICATE_VALUE` | Composite key mismatch | Verify `$$` column in CSV matches `externalId` fields |
 
