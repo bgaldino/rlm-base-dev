@@ -1,11 +1,5 @@
 import { LightningElement, api } from "lwc";
-import {
-  edrExisting,
-  edrProposed,
-  totalsSummary,
-  clamp,
-  round1
-} from "c/dlDemoModel";
+import { edrExisting, edrProposed, clamp, round1 } from "c/dlDemoModel";
 
 // Alliance Partner options — the DL_Carriers global value set (value == label, restricted picklist).
 // Stable catalog, so hardcoded rather than fetched (matches the c/dlmQuoteLineGrid fare-code pattern).
@@ -32,9 +26,11 @@ const ALLIANCE_PARTNER_OPTIONS = ALLIANCE_PARTNER_VALUES.map((c) => ({ label: c,
  *     changes; the shell persists it to the backing QuoteLineItem immediately (each row independently).
  *
  * The grid is locked to the Product row set (one row per REAL fare, 1:1 with a QuoteLineItem via
- * `backingFareId`; see c/dlDemoModel.buildRows), with each row labeled by its product and fare codes,
- * e.g. `Delta One (J C)`. The negotiation is a single proposed set: one editable Proposed Disc % per
- * fare drives the KPIs and the Apply-Final-Offer handoff — no rounds, no method toggle.
+ * `backingFareId`; see c/dlDemoModel.buildRows). Each row shows its discount name, its fare codes in a
+ * dedicated Fare Codes column, and two per-line share columns (Historic Projected Share % / Projected
+ * Share %, seeded ~20–35% and NOT normalized to 100%). Historic Projected Share % is a read-only display;
+ * Projected Share % is analyst-editable. The negotiation is a single proposed set: one editable Proposed
+ * Disc % per fare drives the KPIs and the Apply-Final-Offer handoff — no rounds, no method toggle.
  *
  * Editing UX mirrors the proven c/dlmQuoteLineGrid pattern (inline lightning-inputs + data-* datasets +
  * clamp; an expander per row reveals the Alliance Partner dual-listbox inline beneath it).
@@ -90,10 +86,10 @@ export default class DlModelingGrid extends LightningElement {
 
   // ---------- rows ----------
 
-  // Build the flat render list: each fare emits a base data row (spend mix + prior/proposed discounts,
-  // labeled with its fare codes), and each expanded row additionally emits a detail row hosting the
-  // Alliance Partner dual-listbox. Prior Disc % is a read-only reference column; the spend/discount
-  // cells are inline-editable.
+  // Build the flat render list: each fare emits a base data row (fare codes + the two share columns +
+  // prior/proposed discounts), and each expanded row additionally emits a detail row hosting the
+  // Alliance Partner dual-listbox. Fare Codes, Historic Projected Share %, and Prior Disc % are
+  // read-only reference columns; only Projected Share % and Proposed Disc % are inline-editable.
   get displayRows() {
     if (!this._working) {
       return [];
@@ -108,8 +104,10 @@ export default class DlModelingGrid extends LightningElement {
       out.push({
         key: r.key,
         isDetail: false,
-        // Label the row as the product with its fare codes in parentheses, e.g. "Delta One (J C)".
-        label: fareCodes.length ? `${r.label} (${fareCodes.join(" ")})` : r.label,
+        // Product name only — fare codes render in their own column (fareCodesLabel below).
+        label: r.label,
+        // Fare codes for the dedicated Fare Codes column, e.g. "J C"; em dash when the line has none.
+        fareCodesLabel: fareCodes.length ? fareCodes.join(" ") : "—",
         currentExistingPct: r.currentExistingPct,
         projectedPct: r.projectedPct,
         // Read-only Prior Disc % renders as a standard field when present; a plain em dash otherwise.
@@ -136,9 +134,9 @@ export default class DlModelingGrid extends LightningElement {
           detailRegionId: this._detailRegionId(r.key),
           detailLabel: `Alliance partners for ${r.label}`,
           alliancePartnersValue: alliancePartners,
-          // value + Spend % + Projected % + Prior Disc % + Proposed Disc % (the expander shares the
-          // value column, so the detail row spans all five columns).
-          colspan: 5
+          // Product + Fare Codes + Historic Projected Share % + Projected Share % + Prior Disc % +
+          // Proposed Disc % — the detail row spans all six columns.
+          colspan: 6
         });
       }
     });
@@ -149,40 +147,10 @@ export default class DlModelingGrid extends LightningElement {
     return `dl-mg-detail-${String(key).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
   }
 
-  // Spend % / Projected % sums + validity flags (per c/dlDemoModel.totalsSummary). Drives the
-  // provisional-KPI warning banner when the spend distribution doesn't total 100%.
-  get totals() {
-    if (!this._working) {
-      return null;
-    }
-    const t = totalsSummary(this._working.rows);
-    return {
-      ceTotal: `${round1(t.ceTotal).toFixed(1)}%`,
-      projectedTotal: `${round1(t.projectedTotal).toFixed(1)}%`,
-      ceValid: t.ceValid,
-      projectedValid: t.projectedValid,
-      ceClass: t.ceValid ? "dl-mg-total" : "dl-mg-total dl-mg-total_bad",
-      projectedClass: t.projectedValid ? "dl-mg-total" : "dl-mg-total dl-mg-total_bad"
-    };
-  }
-
-  get showTotalsWarning() {
-    const t = this.totals;
-    return t && (!t.ceValid || !t.projectedValid);
-  }
-
   // ---------- cell edits ----------
 
   _row(key) {
     return this._working && this._working.rows.find((r) => r.key === key);
-  }
-
-  handleCurrentExistingChange(event) {
-    const r = this._row(event.target.dataset.key);
-    if (r) {
-      r.currentExistingPct = clamp(event.target.value, 0, 100);
-      this._recomputeAndEmit();
-    }
   }
 
   handleProjectedChange(event) {
@@ -263,11 +231,9 @@ export default class DlModelingGrid extends LightningElement {
       return;
     }
     const m = this._working;
-    const t = totalsSummary(m.rows);
     const summary = {
       edrExisting: edrExisting(m.rows),
-      edrProposed: edrProposed(m.rows),
-      totalsValid: t.ceValid && t.projectedValid
+      edrProposed: edrProposed(m.rows)
     };
     this.dispatchEvent(
       new CustomEvent("modelchange", {

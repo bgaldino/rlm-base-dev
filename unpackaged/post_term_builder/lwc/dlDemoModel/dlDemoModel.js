@@ -468,20 +468,26 @@ function fareClassEntries(term) {
 }
 
 /**
- * Build the editable row set for a Term under a discounting method. Each row's seeded spend weight and
- * existing discount are stable functions of the Term id + method + row key, so rows are independently
- * reproducible. Rows are the Term's REAL fares only (no partner rows, no canonical/unflown padding), and
- * each carries a single analyst-editable `proposedDiscountPct` (pre-filled to the existing discount) —
- * the negotiation collapsed to one proposed set, no per-round history.
+ * Build the editable row set for a Term under a discounting method. Each row's seeded shares and existing
+ * discount are stable functions of the Term id + method + row key, so rows are independently reproducible.
+ * Rows are the Term's REAL fares only (no partner rows, no canonical/unflown padding), and each carries a
+ * single analyst-editable `proposedDiscountPct` (pre-filled to the existing discount) — the negotiation
+ * collapsed to one proposed set, no per-round history.
+ *
+ * Historic Projected Share % (`currentExistingPct`) and Projected Share % (`projectedPct`) are each an
+ * INDEPENDENT seeded draw in the ~20–35% band. They are per-line share metrics — not slices of a whole —
+ * so the columns intentionally do NOT sum to 100% (no normalization).
  */
 export function buildRows(term, method) {
   const entries = method === METHOD_FARECLASS ? fareClassEntries(term) : productEntries(term);
   const termId = (term && term.id) || "term";
 
-  // First pass: seed each row's raw spend weight + existing discount.
-  const rows = entries.map((e) => {
+  return entries.map((e) => {
     const rng = mkRng(`${termId}|${method}|${e.key}`);
-    const rawWeight = e.hasFlown ? 0.15 + rng() * 1.0 : 0;
+    // Two independent seeded draws in ~20–35%. Stable across refreshes (deterministic), never summed to
+    // 100 — each is a standalone share metric. Zero for a row with no flown data.
+    const historicSharePct = e.hasFlown ? round1(20 + rng() * 15) : 0;
+    const projectedSharePct = e.hasFlown ? round1(20 + rng() * 15) : 0;
     const existingDiscountPct =
       e.existingDiscount !== null && e.existingDiscount !== undefined
         ? clamp(round1(e.existingDiscount), 0, 100)
@@ -492,12 +498,12 @@ export function buildRows(term, method) {
       label: e.label,
       product: e.product || null,
       backingFareId: e.backingFareId || null,
-      // Per-fare context carried onto the row: fare codes decorate the row label; alliance partners
-      // are edited per row in the modeling grid. Both default to [] for non-product row sets.
+      // Per-fare context carried onto the row: fare codes render in their own grid column; alliance
+      // partners are edited per row in the modeling grid. Both default to [] for non-product row sets.
       fareCodes: Array.isArray(e.fareCodes) ? e.fareCodes : [],
       alliancePartners: Array.isArray(e.alliancePartners) ? e.alliancePartners : [],
-      _rawWeight: rawWeight,
-      currentExistingPct: 0, // filled after normalization below
+      // Historic Projected Share % — seeded ~20–35%, not normalized.
+      currentExistingPct: historicSharePct,
       existingDiscountPct,
       // Read-only prior-cycle discount context (null unless the fare was enriched from getQuoteLines).
       priorDiscountPct:
@@ -507,43 +513,10 @@ export function buildRows(term, method) {
       // Single analyst-editable proposed discount; pre-fills to the existing discount, drives the KPIs,
       // and is what Apply-Final-Offer writes back to the Quote.
       proposedDiscountPct: existingDiscountPct,
-      projectedPct: 0 // starts equal to currentExistingPct
+      // Projected Share % — an independent seeded ~20–35% draw, analyst-editable from there.
+      projectedPct: projectedSharePct
     };
   });
-
-  // Second pass: normalize raw weights → Current Existing % summing to ~100 (rounded), then fix the
-  // rounding residual on the largest row so the seeded distribution sums to exactly 100.
-  const totalRaw = sum(rows.map((r) => r._rawWeight));
-  rows.forEach((r) => {
-    r.currentExistingPct = totalRaw > 0 ? round1((r._rawWeight / totalRaw) * 100) : 0;
-    r.projectedPct = r.currentExistingPct; // projected starts at the current mix
-    delete r._rawWeight;
-  });
-  fixTo100(rows, "currentExistingPct");
-  // Keep projected in lockstep with the corrected current mix.
-  rows.forEach((r) => {
-    r.projectedPct = r.currentExistingPct;
-  });
-
-  return rows;
-}
-
-// Nudge the largest row so a one-decimal distribution sums to exactly 100 (only when the column has any
-// weight at all — an all-zero-spend set legitimately sums to 0).
-function fixTo100(rows, field) {
-  const total = round1(sum(rows.map((r) => r[field])));
-  if (total <= 0 || total === 100) {
-    return;
-  }
-  let largest = null;
-  rows.forEach((r) => {
-    if (!largest || r[field] > largest[field]) {
-      largest = r;
-    }
-  });
-  if (largest) {
-    largest[field] = round1(largest[field] + (100 - total));
-  }
 }
 
 // ---------- model assembly ----------
@@ -621,28 +594,6 @@ export function edrProposed(rows) {
     return acc + w * proposed;
   }, 0);
   return round1(weighted / totalWeight);
-}
-
-// ---------- totals / validation (for the sticky totals row) ----------
-
-/**
- * Totals + validity for the grid's sticky totals row. CE and Projected must each sum to ~100 (a small
- * tolerance absorbs one-decimal rounding); temporarily-invalid totals are allowed while editing but the
- * caller should not present the KPI as final until valid.
- */
-export function totalsSummary(rows) {
-  const list = rows || [];
-  const ceTotal = round1(sum(list.map((r) => r.currentExistingPct)));
-  const projectedTotal = round1(sum(list.map((r) => r.projectedPct)));
-  const ueTotal = round1(sum(computeUndiscounted(list)));
-  const near100 = (v) => Math.abs(v - 100) <= 0.2;
-  return {
-    ceTotal,
-    ueTotal,
-    projectedTotal,
-    ceValid: near100(ceTotal),
-    projectedValid: near100(projectedTotal)
-  };
 }
 
 // ---------- KPIs ----------

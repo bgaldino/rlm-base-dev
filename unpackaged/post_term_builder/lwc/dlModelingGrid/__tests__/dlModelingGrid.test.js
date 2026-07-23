@@ -61,10 +61,10 @@ describe("c-dl-modeling-grid", () => {
     const valueHeader = el.shadowRoot.querySelector(
       "thead .dl-mg-col_value span"
     );
-    expect(valueHeader.textContent.trim()).toBe("Product");
+    expect(valueHeader.textContent.trim()).toBe("Discount Name");
   });
 
-  it("renders five columns and no totals/EDR footer (no round chips)", async () => {
+  it("renders six columns and no totals/EDR footer (no round chips)", async () => {
     const term = makeTerm();
     const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });
     await flushPromises();
@@ -74,9 +74,10 @@ describe("c-dl-modeling-grid", () => {
       n.textContent.trim()
     );
     expect(headers).toEqual([
-      "Product",
-      "Spend %",
-      "Projected %",
+      "Discount Name",
+      "Fare Codes",
+      "Historic Projected Share %",
+      "Projected Share %",
       "Prior Disc %",
       "Proposed Disc %"
     ]);
@@ -100,9 +101,10 @@ describe("c-dl-modeling-grid", () => {
     expect(readOnly).not.toBeNull();
     expect(readOnly.readOnly).toBe(true);
     expect(Number(readOnly.value)).toBe(5);
-    // The editable inputs (Spend %, Projected %, Proposed %) are unaffected — still three, none read-only.
+    // The editable inputs (Projected Share %, Proposed Disc %) are unaffected — two, none read-only.
+    // Historic Projected Share % is a read-only display and Fare Codes is plain text — neither is an input.
     const editable = firstRow.querySelectorAll("lightning-input[data-key]");
-    expect(editable.length).toBe(3);
+    expect(editable.length).toBe(2);
   });
 
   it("emits modelchange with an updated proposed discount when the Proposed % cell is edited", async () => {
@@ -126,13 +128,15 @@ describe("c-dl-modeling-grid", () => {
     expect("edrProposed" in detail.summary).toBe(true);
   });
 
-  it("emits modelchange (coalesced) when a Current Existing % cell is edited", async () => {
+  it("emits modelchange (coalesced) when the Projected Share % cell is edited", async () => {
     const term = makeTerm();
     const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });
     await flushPromises();
     const handler = jest.fn();
     el.addEventListener("modelchange", handler);
 
+    // Historic Projected Share % is read-only display, so the first editable input in a row is
+    // Projected Share %.
     const input = el.shadowRoot.querySelector(
       "tbody lightning-input[data-key]"
     );
@@ -147,6 +151,8 @@ describe("c-dl-modeling-grid", () => {
     expect(detail.model).toBeDefined();
     expect(detail.summary).toBeDefined();
     expect("edrExisting" in detail.summary).toBe(true);
+    // The edited value landed on the row's Projected Share % (projectedPct), not the read-only historic.
+    expect(detail.model.rows[0].projectedPct).toBe(42);
   });
 
   it("coalesces multiple rapid edits into a single emit per frame", async () => {
@@ -181,15 +187,22 @@ describe("c-dl-modeling-grid", () => {
     expect(el.shadowRoot.querySelector(".dl-mg-toolbar")).toBeNull();
   });
 
-  it("labels each product row with its fare codes in parentheses", async () => {
+  it("labels each product row with its bare product name and its fare codes in the Fare Codes column", async () => {
     const term = makeTerm();
     const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });
     await flushPromises();
     const labels = [...el.shadowRoot.querySelectorAll("tbody .dl-mg-value")].map(
       (n) => n.textContent.trim()
     );
-    expect(labels).toContain("Delta One (J C)");
-    expect(labels).toContain("Main (M H)");
+    // Product name only — no parenthesized fare codes.
+    expect(labels).toContain("Delta One");
+    expect(labels).toContain("Main");
+    // Fare codes render in the dedicated Fare Codes column, space-separated.
+    const fareCodes = [
+      ...el.shadowRoot.querySelectorAll("tbody .dl-mg-fare-codes")
+    ].map((n) => n.textContent.trim());
+    expect(fareCodes).toContain("J C");
+    expect(fareCodes).toContain("M H");
   });
 
   it("shows a collapsed alliance-partner summary for a fare that has partners", async () => {
@@ -248,27 +261,6 @@ describe("c-dl-modeling-grid", () => {
     const detail = handler.mock.calls[0][0].detail;
     expect(detail.backingFareId).toBe("0QLfare1");
     expect(detail.alliancePartners).toEqual(["Virgin Atlantic"]);
-  });
-
-  it("shows a totals warning when a distribution is edited off 100%", async () => {
-    const term = makeTerm();
-    const el = create({ term, model: seedModel(term, METHOD_PRODUCT) });
-    await flushPromises();
-    // No warning at the seeded (valid) baseline.
-    expect(el.shadowRoot.querySelector(".dl-mg-warn")).toBeNull();
-    // Zero out EVERY row's Current Existing % (the first lightning-input in each body row) so the
-    // CE total is deterministically 0 — never 100 — regardless of the seeded per-row weights.
-    const bodyRows = el.shadowRoot.querySelectorAll("tbody tr");
-    bodyRows.forEach((tr) => {
-      const ceInput = tr.querySelector("lightning-input");
-      ceInput.value = 0;
-      ceInput.dispatchEvent(new CustomEvent("change"));
-    });
-    await flushPromises();
-    await flushPromises();
-    const warn = el.shadowRoot.querySelector(".dl-mg-warn");
-    expect(warn).not.toBeNull();
-    expect(warn.textContent).toContain("100%");
   });
 
   it("renders an empty prompt with no model", async () => {

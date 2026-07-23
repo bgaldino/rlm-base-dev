@@ -10,7 +10,6 @@ import {
   computeUndiscounted,
   edrExisting,
   edrProposed,
-  totalsSummary,
   computeTermKpis,
   aggregateKpis,
   finalOfferLineDiscounts,
@@ -226,9 +225,18 @@ describe("buildRows — real fares only (Product vs Fare Class)", () => {
     expect(r.isLaneFare).toBeUndefined();
   });
 
-  it("Current Existing % sums to exactly 100", () => {
+  it("seeds Historic Projected Share % and Projected Share % as independent per-line draws in ~20–35% (not normalized to 100)", () => {
     const rows = buildRows(makeTerm(), METHOD_PRODUCT);
-    expect(round1(rows.reduce((a, r) => a + r.currentExistingPct, 0))).toBe(100);
+    rows.forEach((r) => {
+      // Each flown row's two share metrics sit in the seeded 20–35% band, independently.
+      expect(r.currentExistingPct).toBeGreaterThanOrEqual(20);
+      expect(r.currentExistingPct).toBeLessThanOrEqual(35);
+      expect(r.projectedPct).toBeGreaterThanOrEqual(20);
+      expect(r.projectedPct).toBeLessThanOrEqual(35);
+    });
+    // They are per-line share metrics, not slices of a whole — the column does NOT sum to 100.
+    const ceTotal = round1(rows.reduce((a, r) => a + r.currentExistingPct, 0));
+    expect(ceTotal).not.toBe(100);
   });
 
   it("is fully deterministic", () => {
@@ -401,25 +409,6 @@ describe("spend normalization + EDR", () => {
     ];
     // Projected-weighted: (0.6*40 + 0.4*30) = 36.
     expect(edrProposed(rows)).toBeCloseTo(36, 1);
-  });
-});
-
-describe("totalsSummary", () => {
-  it("flags a valid seeded distribution as valid", () => {
-    const rows = buildRows(makeTerm(), METHOD_PRODUCT);
-    const t = totalsSummary(rows);
-    expect(t.ceValid).toBe(true);
-    expect(t.projectedValid).toBe(true);
-  });
-
-  it("flags an off-100 distribution as invalid", () => {
-    const rows = [
-      { currentExistingPct: 30, existingDiscountPct: 10, projectedPct: 40 },
-      { currentExistingPct: 30, existingDiscountPct: 10, projectedPct: 40 }
-    ];
-    const t = totalsSummary(rows);
-    expect(t.ceValid).toBe(false); // 60
-    expect(t.projectedValid).toBe(false); // 80
   });
 });
 

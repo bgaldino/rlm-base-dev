@@ -15,28 +15,15 @@
       </template>
 
       <template if:true={hasRows}>
-        <!-- Totals validity warning -->
-        <template if:true={showTotalsWarning}>
-          <div class="dl-mg-warn slds-m-horizontal_small slds-m-bottom_x-small" role="alert">
-            <lightning-icon
-              icon-name="utility:warning"
-              size="xx-small"
-              variant="warning"
-              alternative-text="Warning"
-              class="slds-m-right_xx-small"
-            ></lightning-icon>
-            Spend distribution doesn't total 100% — the projected KPI is provisional until it does.
-          </div>
-        </template>
-
         <!-- The scrollable grid. The Value column and the totals row are sticky. -->
         <div class="dl-mg-scroll">
           <table class="dl-mg-table slds-table slds-table_bordered slds-table_fixed-layout">
             <thead>
               <tr class="slds-line-height_reset">
-                <th class="dl-mg-col_value" scope="col"><span title="Product">Product</span></th>
-                <th scope="col"><span title="Spend % (share of existing spend on this Term)">Spend %</span></th>
-                <th scope="col"><span title="Projected spend %">Projected %</span></th>
+                <th class="dl-mg-col_value" scope="col"><span title="Discount Name">Discount Name</span></th>
+                <th scope="col"><span title="Fare codes on this line">Fare Codes</span></th>
+                <th scope="col"><span title="Historic Projected Share % (per-line; read-only; not normalized to 100%)">Historic Projected Share %</span></th>
+                <th scope="col"><span title="Projected Share % (per-line; not normalized to 100%)">Projected Share %</span></th>
                 <th scope="col"><span title="Prior-cycle discount % (read-only; from the Quote fare lines)">Prior Disc %</span></th>
                 <th scope="col"><span title="Proposed Discount %">Proposed Disc %</span></th>
               </tr>
@@ -71,22 +58,22 @@
                     </div>
                   </th>
                   <td>
-                    <lightning-input
-                      type="number"
-                      label="Spend %"
-                      variant="label-hidden"
-                      value={row.currentExistingPct}
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      data-key={row.key}
-                      onchange={handleCurrentExistingChange}
-                    ></lightning-input>
+                    <span class="dl-mg-fare-codes" title={row.fareCodesLabel}>{row.fareCodesLabel}</span>
+                  </td>
+                  <td>
+                    <!-- Historic Projected Share %: seeded reference metric, read-only display (not an
+                         editable input) — only Projected Share % and Proposed Disc % are analyst-editable. -->
+                    <span class="dl-mg-derived">
+                      <lightning-formatted-number
+                        value={row.currentExistingPct}
+                        maximum-fraction-digits="1"
+                      ></lightning-formatted-number>
+                    </span>
                   </td>
                   <td>
                     <lightning-input
                       type="number"
-                      label="Projected %"
+                      label="Projected Share %"
                       variant="label-hidden"
                       value={row.projectedPct}
                       min="0"
