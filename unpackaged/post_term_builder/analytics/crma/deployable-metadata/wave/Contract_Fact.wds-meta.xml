@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WaveDataset xmlns="http://soap.sforce.com/2006/04/metadata">
+    <application>Delta_Contract_Adherence_Analytics</application>
+    <masterLabel>Contract Fact</masterLabel>
+    <type>default</type>
+</WaveDataset>

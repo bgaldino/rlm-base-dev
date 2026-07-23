@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WaveApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <folder>Delta_Contract_Adherence_Analytics</folder>
+    <masterLabel>Delta Contract Adherence Analytics</masterLabel>
+    <shares>
+        <accessLevel>Manage</accessLevel>
+        <sharedTo>scheck@deltarevcloud.demo</sharedTo>
+        <sharedToType>User</sharedToType>
+    </shares>
+</WaveApplication>

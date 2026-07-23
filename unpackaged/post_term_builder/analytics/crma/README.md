@@ -3,11 +3,24 @@
 Backup copies of the two CRM Analytics (CRMA / Tableau CRM) dashboards built
 for the **Delta Term Builder** demo, plus the datasets they read from.
 
-> **These are REST API exports, not deployable source metadata.** They are
-> kept here as a copy/backup of live org assets. Do **not** expect
-> `cci`/`sf` metadata deploys to pick them up — the `.json` files sit in a
-> non-metadata-type folder (`analytics/`) so source deploys ignore them.
-> Restore is manual, via the Wave REST API (see **Restore** below).
+This folder holds the backup in **two formats**:
+
+1. **`deployable-metadata/`** — source-format Wave metadata (`.wdash`,
+   `.wapp-meta.xml`, `.wds-meta.xml`) + a `package.xml`. Redeployable in one
+   `sf project deploy` command (see **Deploy** below). This is the fastest way
+   to restore the apps + dashboards into a target org.
+2. **REST JSON exports** at this folder's root and under `datasets/`
+   (`*.dashboard.json`, `*.dataset.json`, `*.xmd.json`, `*.rows.json`) — full
+   Wave REST GET payloads. Not deployable metadata; these are the authoritative
+   record of dashboard `state` and the static dataset **rows** (which the
+   Metadata API does not capture), and support the manual REST restore.
+
+> **Nothing here is deployed to fresh orgs by `prepare_rlm_org`.** Both the
+> source-format files and the `.json` exports reference hardcoded dataset/app
+> IDs from the Delta demo org, so the whole `analytics/` subtree is excluded
+> from the term builder deploy via a `.forceignore` rule
+> (`unpackaged/post_term_builder/analytics/**`). Restore is a deliberate,
+> manual step against the Delta org — never part of an org build.
 
 ## Source org
 
@@ -51,10 +64,36 @@ These backups reflect the demo-hardening edits applied on 2026-07-22:
    (`destinationType: page`). CRMA pages are authoring tabs only and don't render
    as runtime tabs, so these buttons are how a viewer moves between them.
 
-## Restore
+## Deploy (source-format restore)
 
-The Wave REST API has no single "import dashboard" call; recreate in order —
-dataset first (a dashboard's steps reference it by Id), then the dashboard.
+`deployable-metadata/` is a normal source-format bundle. To push it to a target
+org (the Delta demo org, or a clone) in one command — from the repo root:
+
+```bash
+sf project deploy start \
+  -x unpackaged/post_term_builder/analytics/crma/deployable-metadata/package.xml \
+  --target-org Delta
+```
+
+`package.xml` deploys the 2 `WaveApplication`s, 7 `WaveDashboard`s, and 2
+`WaveDataset` **definitions**. Notes:
+
+- **Datasets deploy as definitions only — no rows.** The Metadata API never
+  carries dataset rows. If the datasets are empty/missing on the target, load
+  the static demo rows from `datasets/*.rows.json` (Wave external-data upload
+  API) so the dashboards render.
+- The `.forceignore` rule keeps these files out of the normal term builder
+  deploy, so deploying them is always an explicit, manifest-scoped action like
+  the one above — it will not happen during `prepare_rlm_org`.
+- If a dashboard's steps point at a dataset Id/version that differs on the
+  target org, fix the refs per the **Restore** steps below before/after deploy.
+
+## Restore (manual, via Wave REST)
+
+Use this path when you need the full `state` payload (e.g. to re-point step
+dataset refs) rather than a straight metadata redeploy. The Wave REST API has no
+single "import dashboard" call; recreate in order — dataset first (a dashboard's
+steps reference it by Id), then the dashboard.
 
 1. **Dataset** — if `Contract_Fact` / `Flown_Fact` no longer exist, recreate the
    dataset and load `*.rows.json` (external-data upload API, or rebuild from the

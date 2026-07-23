@@ -52,6 +52,12 @@ unpackaged/post_utils/flows/RLM_Event_Trigger.flow-meta.xml
 # prepare_tso deploys this separately when tso=true.
 unpackaged/pre/3_permissionsetgroups/RLM_TSO.permissionsetgroup-meta.xml
 
+# Delta Term Builder CRMA backup — reference/restore copies of live-org CRM Analytics
+# assets (source-format Wave metadata + REST JSON exports). These reference hardcoded
+# dataset/app IDs and are restored manually to the Delta demo org, NOT deployed to fresh
+# orgs by prepare_rlm_org — excluded so the term builder deploy never tries to push them.
+unpackaged/post_term_builder/analytics/**
+
 unpackaged/post_constraints/classes
 unpackaged/post_docgen/omniDataTransforms/GetInvoiceDetails_1.rpt-meta.xml
 unpackaged/post_docgen/omniDataTransforms/BillingDocumentGenerationGetInvoiceDetails_1.rpt-meta.xml
