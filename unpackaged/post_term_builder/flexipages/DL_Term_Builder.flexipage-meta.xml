@@ -1,18 +1,167 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- CANONICAL layout — mirrors the live "Delta Term Builder" AppPage in the Delta org
+         (retrieved 2026-07-22). This is the source of truth; edit the page in the org's Lightning
+         App Builder and re-retrieve rather than hand-authoring here. Two-column header template:
+           region1  dlmNegotiationContext  (header — branding, contract actions, date defaults)
+           region2  dlmWorkspaceShell      (tabbed workbench: Shell Creation / Modeling)
+                    + insights accordion hosting the Delta_UC1_Contract_Term_Analysis wave dashboard
+           region3  dlmTermsRail           (Terms rail — add up to 10)
+         NOTE the wave dashboard (Delta_UC1_Contract_Term_Analysis) is a deploy-time dependency. -->
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentName>dlTermBuilder</componentName>
-                <identifier>dlTermBuilder1</identifier>
+                <componentInstanceProperties>
+                    <name>headingLabel</name>
+                    <value>Term Builder</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showBranding</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showContractActions</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showDateDefaults</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentName>dlmNegotiationContext</componentName>
+                <identifier>c_dlmNegotiationContext</identifier>
             </componentInstance>
         </itemInstances>
-        <name>main</name>
+        <name>region1</name>
+        <type>Region</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>dashboard</name>
+                    <value>Delta_UC1_Contract_Term_Analysis</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>enableNotifications</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>enableSubscriptions</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>height</name>
+                    <value>500</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>openLocation</name>
+                    <value>OPEN_IN_STUDIO</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showHeader</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showPostToSlack</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showSharing</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showTitle</name>
+                    <value>false</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>state</name>
+                </componentInstanceProperties>
+                <componentName>wave:waveDashboardLwc</componentName>
+                <identifier>wave_waveDashboardLwc</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-dcaa9b4f-c98e-43d5-b7d8-0dae8d2b140c</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>body</name>
+                    <value>Facet-dcaa9b4f-c98e-43d5-b7d8-0dae8d2b140c</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>label</name>
+                    <value>Standard.Tab.insights</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>name</name>
+                    <value>accordionSection1</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:accordionSection</componentName>
+                <identifier>flexipage_accordionSection</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>Facet-cd8775b1-ac70-4558-b618-2706b947ecea</name>
+        <type>Facet</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>showContractBand</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>showProposalAction</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentName>dlmWorkspaceShell</componentName>
+                <identifier>c_dlmWorkspaceShell</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>accordionSections</name>
+                    <value>Facet-cd8775b1-ac70-4558-b618-2706b947ecea</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>allowMultipleSectionsOpen</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentName>flexipage:accordion</componentName>
+                <identifier>flexipage_accordion</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>region2</name>
+        <type>Region</type>
+    </flexiPageRegions>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentInstanceProperties>
+                    <name>allowAddTerms</name>
+                    <value>true</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>headingLabel</name>
+                    <value>Terms</value>
+                </componentInstanceProperties>
+                <componentInstanceProperties>
+                    <name>maxAddCount</name>
+                    <value>10</value>
+                </componentInstanceProperties>
+                <componentName>dlmTermsRail</componentName>
+                <identifier>c_dlmTermsRail</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>region3</name>
         <type>Region</type>
     </flexiPageRegions>
     <masterLabel>Delta Term Builder</masterLabel>
     <template>
-        <name>flexipage:defaultAppHomeTemplate</name>
+        <name>flexipage:appHomeTemplateHeaderTwoColumns</name>
     </template>
     <type>AppPage</type>
 </FlexiPage>
