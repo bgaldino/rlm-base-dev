@@ -1,7 +1,7 @@
 {
   "$schema": "../schemas/project-memory.schema.json",
   "schema_version": "1.0.0",
-  "last_updated_utc": "2026-06-05T23:38:58Z",
+  "last_updated_utc": "2026-07-23T05:04:33Z",
   "repository": {
     "name": "rlm-base-dev",
     "project_name": "rlm-base",
@@ -171,25 +171,25 @@
     }
   ],
   "generated_reference_freshness": {
-    "last_checked_utc": "2026-06-05T23:38:58Z",
+    "last_checked_utc": "2026-07-23T05:04:33Z",
     "source_of_truth": "cumulusci.yml",
     "regeneration_command": "python scripts/ai/generate_cci_reference.py",
     "files": [
       {
         "path": ".cursor/skills/cci-orchestration/tasks-reference.md",
-        "last_modified_utc": "2026-06-05T23:38:58Z",
+        "last_modified_utc": "2026-07-23T04:32:15Z",
         "freshness_source": "filesystem_mtime",
         "regenerator": "python scripts/ai/generate_cci_reference.py"
       },
       {
         "path": ".cursor/skills/cci-orchestration/flows-reference.md",
-        "last_modified_utc": "2026-06-05T23:38:58Z",
+        "last_modified_utc": "2026-07-21T17:55:52Z",
         "freshness_source": "filesystem_mtime",
         "regenerator": "python scripts/ai/generate_cci_reference.py"
       },
       {
         "path": ".cursor/skills/cci-orchestration/feature-flags.md",
-        "last_modified_utc": "2026-06-05T23:38:58Z",
+        "last_modified_utc": "2026-07-21T17:55:52Z",
         "freshness_source": "filesystem_mtime",
         "regenerator": "python scripts/ai/generate_cci_reference.py"
       }
