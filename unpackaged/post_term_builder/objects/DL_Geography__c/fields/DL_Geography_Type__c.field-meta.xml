@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>DL_Geography_Type__c</fullName>
-    <description>Geographic scope granularity. Mirrors the Term Builder engine's SCOPE_TYPE_RANK taxonomy (Airport most-specific through Super-region, plus Custom Group) so this reference data can be wired into term-scope resolution later.</description>
+    <description>Geographic scope granularity, ordered most-specific to least (Airport through Super-region, plus Custom Group), so this reference data can be wired into term-scope resolution later.</description>
     <inlineHelpText>Scope granularity: Airport, City, Country, Region (Entity), Super-region (Entity), or Custom Group.</inlineHelpText>
     <label>Type</label>
     <required>true</required>

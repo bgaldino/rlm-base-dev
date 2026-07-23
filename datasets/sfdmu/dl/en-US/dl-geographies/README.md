@@ -8,10 +8,10 @@ table behind term scoping (single airport, city grouping, country, entity/region
 super-region).
 
 This object is **standalone master data**: it is independent of the Term Builder
-LWC engine today, but its `DL_Geography_Type__c` taxonomy mirrors the engine's
-`SCOPE_TYPE_RANK` (`dlDemoModel.js`) and its codes align with the existing scope
-picklist strings (`ATL`, `LHR`, `JFK`, `US50`, `EMEAI`) so it can be wired into
-term-scope resolution later.
+LWC engine today, but its `DL_Geography_Type__c` taxonomy (Airport → Super-region,
+plus Custom Group) and its codes align with the route endpoint picklist strings
+(`ATL`, `LHR`, `JFK`, `US50`, `EMEAI`) so it can be wired into term-scope resolution
+later.
 
 ## Hierarchy model
 

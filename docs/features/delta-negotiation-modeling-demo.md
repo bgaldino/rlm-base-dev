@@ -305,54 +305,33 @@ rng sub-stream** (FNV-1a-seeded LCG, isolated from the magnitude streams) so add
 did **not** perturb any previously-seeded discount/spend value. The parked determinism
 tests assert ranges + reproducibility, not golden numbers, and stay green.
 
-## G2 — term scope banner + geography scope attributes
+## G2 — term route banner + route attributes
 
-Round 2 surfaces a Term's **geographic scope** as a banner above the KPI band in
-`dlmModelingWorkspace`, and a compact scope line + rank badge on each `dlmTermCard`.
-The scope is expressed through a curated set of **G2 attribute codes** carried on the
+Round 2 surfaces a Term's **route** as a banner above the KPI band in
+`dlmModelingWorkspace`, and a compact route line on each `dlmTermCard`.
+The route is expressed through a curated set of **attribute codes** carried on the
 Term's attribute map:
 
 | Code | Meaning |
 |------|---------|
-| `DL_ScopeType` | Airport / City / Country / Region / Super-region / Custom |
-| `DL_MarketGroup` | the market/route grouping the scope applies to |
 | `DL_Origin`, `DL_Destination`, `DL_Directionality` | route legs + direction |
-| `DL_Measure`, `DL_TicketingRegion`, `DL_RequirementValue`, `DL_SpecialConditions` | secondary scope facets |
+| `DL_Measure`, `DL_TicketingRegion`, `DL_RequirementValue`, `DL_SpecialConditions` | secondary route facets |
 
 These attribute definitions live in the **org as data** (AttributeDefinition +
 AttributePicklistValue), wired to the Term builder by an **allow-list** —
 `dlmTermWorkspace.DEFAULT_ATTRIBUTE_CODES` — not by repo metadata. They are seeded by the
-`dl-termbuilder` SFDMU plan (`DL_ScopeType` + `DL_MarketGroup` were added in Round 2); the
-`DL_Measure` "Share of Flights" value already exists on the org.
+`dl-termbuilder` SFDMU plan; the `DL_Measure` "Share of Flights" value already exists on
+the org.
 
-> **Includes/Excludes is a UI toggle, not an attribute.** The scope operator is a
-> **transient, client-only** segmented control on each `dlmTermCard` (shown only when the
-> Term declares a `DL_MarketGroup`). It defaults to **Includes**, is **not** persisted as a
-> `DL_*` attribute, does **not** survive reload, and is **not** captured in the Contract
-> geography EAV. The card emits an `operatorchange` event (`{ termId, operator }`) so a
-> parent could drive filtering, but nothing consumes it today. The engine helpers therefore
-> take the operator **as a parameter**, never reading it off the Term.
+Pure engine helpers in `dlDemoModel` drive the display:
 
-Pure engine helpers in `dlDemoModel` drive the display and any market→term resolution:
+- **`termScopeChips(term)`** → `[{code,label,value}]` for the curated route codes that
+  are present, emitted in a fixed display order (Origin / Destination / Directionality /
+  Measure / Ticketing Region / Requirement). Empty array when the Term carries none.
 
-- **`SCOPE_OPERATORS`** → `["Includes", "Excludes"]`, the two toggle options.
-- **`termScopeChips(term)`** → `[{code,label,value}]` for the curated scope codes that
-  are present, emitted in a fixed display order (Scope / Market / Origin / Destination /
-  Directionality / Measure / Ticketing Region / Requirement). Empty array when the Term
-  carries none. (No operator chip — the operator is not a Term attribute.)
-- **`scopeLabel(term, operator = "Includes")`** → a one-line human summary, e.g.
-  `Country · Includes GB, FR · Between`. The Includes/Excludes wording comes from the
-  `operator` argument (the card passes its transient toggle state). Returns `""` when the
-  Term has no `DL_ScopeType` **or** market group (a plain route term shows no scope line —
-  directionality alone never triggers one).
-- **`scopeTypeRank(scopeType)`** → specificity rank (Airport 5 → Super-region 1,
-  Custom 0, unknown 0, none −1). Drives the `dlmTermCard` rank badge tint.
-- **`resolveTermForMarket(market, terms, operatorByTermId = {})`** → the **most specific**
-  Term whose scope matches a market string, or `null`. Filters by `termMatchesMarket`
-  (market tokens split on `[,;/]`, upper-cased, matched under each Term's operator — looked
-  up in `operatorByTermId` by Term id, defaulting to Includes — falling back to `DL_Origin`
-  equality), then sorts by `scopeTypeRank` descending with a **stable original-index
-  tiebreak** so equal-rank matches resolve deterministically.
+The `dlmTermCard` renders its own one-line summary from the same attribute map:
+`routeLabel` (e.g. `ATL ↔ LHR`, arrow reflecting directionality) and `requirementLabel`
+(e.g. `Share of Flights: 5.0`); both blank until the underlying attributes are set.
 
 ## G3 — proposal CSV exports (`dlProposalSummary` + engine formatters)
 

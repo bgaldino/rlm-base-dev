@@ -40,7 +40,7 @@ fares onto it.
 
 Each template carries its scope as per-product **`ProductAttributeDefinition`** rows (`DefaultValue`
 on `DL_Origin` / `DL_Destination` / `DL_Directionality` / `DL_Measure` and the free-text
-`DL_MarketGroup` / `DL_RequirementValue` / `DL_SpecialConditions` — **no `DL_ScopeType`**), and its
+`DL_RequirementValue` / `DL_SpecialConditions`), and its
 pre-defined fare set as **fixed `ProductRelatedComponent` children** (specific `DL-FARE-*` products
 under a per-template `*-FARES` group, via *Bundle to Bundle Component Relationship* — not the dynamic
 `PC-DL-FARE` classification component the sellable `DL-TERM` uses).
@@ -69,21 +69,13 @@ plan):
   `RLM_DeltaTermBuilderController.buildFareLineFields`). A rep may adjust the set
   per deal. Non-price-impacting; persisted inline via Place Sales Transaction.
 
-### Route + geography attributes (on `PC-DL-TERM`, all `IsPriceImpacting = false`)
+### Route attributes (on `PC-DL-TERM`, all `IsPriceImpacting = false`)
 
-`DL_ScopeType` sets scope granularity (`Airport`, `City`, `Country`, `Region`,
-`Super-region`, `Custom`); `DL_MarketGroup` is the free-text market/route grouping
-the scope applies to. `DL_Origin` / `DL_Destination` share one curated endpoint
+`DL_Origin` / `DL_Destination` share one curated endpoint
 picklist (`ATL`, `JFK`, `LHR`, `US50`, `EMEAI`, `APAC`); `DL_Directionality` (Between /
 Directional); `DL_Measure` (Share Gap / Share of Flights / No Requirement);
 `DL_RequirementValue` and `DL_SpecialConditions` are free text. Fare lines carry
 no attributes.
-
-> **Includes/Excludes is not an attribute.** The scope operator (Includes vs
-> Excludes) is a **transient, client-only UI toggle** on the Term rail card — it is
-> deliberately *not* seeded here and not a `DL_*` attribute, so it never persists on
-> the Term. `dlDemoModel`'s `scopeLabel` / `resolveTermForMarket` take the operator
-> as a parameter (default `Includes`).
 
 ## Load order & operations
 
@@ -98,15 +90,15 @@ Annual, so new Term-Builder lines pick up `BillingFrequency = Annual` /
 
 | # | Object | Operation | External ID | Records |
 |---|--------|-----------|-------------|---------|
-| 1 | AttributePicklist | Upsert | `Name` | 4 |
-| 2 | AttributePicklistValue | Upsert | `Code` | 17 |
-| 3 | AttributeDefinition | Upsert | `Code` | 8 |
+| 1 | AttributePicklist | Upsert | `Name` | 3 |
+| 2 | AttributePicklistValue | Upsert | `Code` | 11 |
+| 3 | AttributeDefinition | Upsert | `Code` | 6 |
 | 4 | AttributeCategory | Upsert | `Code` | 1 |
-| 5 | AttributeCategoryAttribute | Upsert | `AttributeCategory.Code;AttributeDefinition.Code` | 8 |
+| 5 | AttributeCategoryAttribute | Upsert | `AttributeCategory.Code;AttributeDefinition.Code` | 6 |
 | 6 | ProductClassification | Upsert | `Code` | 2 |
-| 7 | ProductClassificationAttr | Upsert | `Name` | 8 |
+| 7 | ProductClassificationAttr | Upsert | `Name` | 6 |
 | 8 | Product2 | Upsert | `StockKeepingUnit` | 12 |
-| 9 | ProductAttributeDefinition | Upsert | `AttributeDefinition.Code;Product2.StockKeepingUnit` | 41 |
+| 9 | ProductAttributeDefinition | Upsert | `AttributeDefinition.Code;Product2.StockKeepingUnit` | 35 |
 | 10 | ProductSellingModel | Upsert | `Name;SellingModelType` | 1 |
 | 11 | ProductSellingModelOption | Upsert | `Product2.StockKeepingUnit;ProductSellingModel.Name;ProductSellingModel.SellingModelType` | 12 |
 | 12 | ProductRelationshipType | Readonly | `Name` | 2 |
@@ -124,15 +116,15 @@ duplicating them. No `deleteOldData`; targets a clean demo org.
 
 ```
 export.json                       # 17-object plan (this dir)
-AttributePicklist.csv             # 4 records
-AttributePicklistValue.csv        # 17 records
-AttributeDefinition.csv           # 8 records
+AttributePicklist.csv             # 3 records
+AttributePicklistValue.csv        # 11 records
+AttributeDefinition.csv           # 6 records
 AttributeCategory.csv             # 1 records
-AttributeCategoryAttribute.csv    # 8 records
+AttributeCategoryAttribute.csv    # 6 records
 ProductClassification.csv         # 2 records
-ProductClassificationAttr.csv     # 8 records
+ProductClassificationAttr.csv     # 6 records
 Product2.csv                      # 12 records  (DL-TERM + 5 fares + 6 DL-TMPL-* templates; carries DL_DefaultFareCodes__c)
-ProductAttributeDefinition.csv    # 41 records  (per-template scope defaults on the DL-TMPL-* clones)
+ProductAttributeDefinition.csv    # 35 records  (per-template scope defaults on the DL-TMPL-* clones)
 ProductSellingModel.csv           # 1 records  (Term Annual)
 ProductSellingModelOption.csv     # 12 records  (DL-TERM + 5 fares + 6 templates → Term Annual)
 ProductRelationshipType.csv       # 2 records  (Readonly: classification-component + bundle-component)

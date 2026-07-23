@@ -22,9 +22,10 @@ Before any stage:
 
 1. **Org + access.** Logged into `scheck@deltarevcloud.demo`; the running user has
    `RLM_TermBuilderPermset` (already assigned — verified via SOQL).
-2. **Data seeded.** `dl-termbuilder` (PCM + geography attributes) and `dl-pricing`
-   (`PricebookEntry` at `UnitPrice = 0`) are loaded. Round 2 added `DL_ScopeType` +
-   `DL_MarketGroup` (both confirmed in the org) and the 6 scope-type picklist values.
+2. **Data seeded.** `dl-termbuilder` (PCM + route attributes) and `dl-pricing`
+   (`PricebookEntry` at `UnitPrice = 0`) are loaded. The Term's route attributes
+   (`DL_Origin` / `DL_Destination` / `DL_Directionality` / `DL_Measure` /
+   `DL_RequirementValue` / `DL_SpecialConditions`) are confirmed in the org.
 3. **Compose the modeling page (you own this).** The `DLM_Term_Builder` Lightning page
    currently hosts only three tiles — `dlmNegotiationContext`, `dlmTermsRail`,
    `dlmTermWorkspace`. **Add the shell tile `dlmWorkspaceShell`** (the always-mounted
@@ -75,38 +76,23 @@ renewal negotiation and inspect its fare lines.
 
 ---
 
-## Stage 2 — Geography scope on a Term · DEEP
+## Stage 2 — Route attributes on a Term · DEEP
 
 **Do:** Select a Term in the rail. In `dlmTermWorkspace`'s inline attribute picker, set:
-- **Scope Type** (`DL_ScopeType`) — e.g. `Country`,
-- **Market Group** (`DL_MarketGroup`) — e.g. `GB, FR`,
+- **Origin** (`DL_Origin`) — e.g. `ATL`,
+- **Destination** (`DL_Destination`) — e.g. `LHR`,
 - **Directionality** (`DL_Directionality`) — e.g. `Between`,
 - **Measure** (`DL_Measure`) — `Share of Flights`,
 - **Requirement Value** (`DL_RequirementValue`) — e.g. `5.0`.
 
-Then, on the Term's **rail card**, use the **Includes / Excludes toggle** (it appears
-only once the Term has a Market Group).
-
 **Expect:**
 - The attribute values **persist** on the Term (survive reload) — these are real
   `DL_*` attributes.
-- The rail card shows a one-line **scope label** (`Country · Includes GB, FR · Between`)
-  and a **specificity rank badge** (`Country`) tinted by scope granularity.
-- Flipping the toggle to **Excludes** rewords the label live (`Country · Excludes GB,
-  FR · Between`). **This toggle is transient/UI-only** — it does **not** persist; after a
-  reload the card is back to **Includes**.
-- With two Terms whose scopes overlap (e.g. a `Region: EMEA` Term and a `Country: GB, FR`
-  Term), a market that fits both (e.g. `GB`) resolves to the **more specific** (Country)
-  Term.
+- The rail card shows a one-line **route label** (`ATL ↔ LHR`, arrow reflecting
+  directionality) and a **requirement summary** (`Share of Flights: 5.0`).
 
-**✓ Pass:** Attributes persist across reload; scope label + rank badge render; the
-Includes/Excludes toggle rewords the label but is gone after reload; overlap resolves to
-the most specific Term.
-
-> **Why the operator doesn't persist:** by design, Includes/Excludes is a client-only
-> display/filter toggle — it is not a `DL_*` attribute, not in the Contract geography
-> EAV, and not read by the engine after reload. If the demo needs persisted
-> include/exclude semantics, that's a future change (add a `DL_ScopeOperator` attribute).
+**✓ Pass:** Attributes persist across reload; the route label + requirement summary
+render on the rail card.
 
 ---
 
@@ -240,8 +226,8 @@ round…"). The **CRMA dashboards are a separate stream** and are not wired this
 
 - [ ] 0 — `dlmWorkspaceShell` added to `DLM_Term_Builder` page; page activated
 - [ ] 1 — Renewal re-stamps Discount + `DL_FareCodes__c` + `DL_PriorDiscount__c`
-- [ ] 2 — Geography attributes persist; scope label + rank badge; Includes/Excludes
-      toggle rewords live but is transient (gone on reload); overlap → most specific
+- [ ] 2 — Route attributes persist across reload; route label + requirement summary
+      render on the rail card
 - [ ] 3a — Tab switching: no blank/stale tab; edits persist; Performance placeholder
 - [ ] 3b — Grid: 5 products + fare-class toggle; AF/KL/VS; editable Discount Name +
       Alliance; Prior Discount read-only + survives geography move
@@ -262,9 +248,7 @@ When every non-deferred box is checked, the branch is clear to push + open the P
 
 | Symptom | Likely cause / fix |
 |---------|-------------------|
-| Scope attributes don't appear in the picker | The `DL_*` AttributeDefinition isn't in the org, or not in `dlmTermWorkspace.DEFAULT_ATTRIBUTE_CODES`. Re-run the `dl-termbuilder` SFDMU load; confirm `DL_ScopeType` / `DL_MarketGroup` exist. |
-| Includes/Excludes toggle missing on a card | It only shows when the Term has a **Market Group** — set `DL_MarketGroup` first. |
-| Toggle resets to Includes after reload | Expected — it's a transient UI toggle, not persisted. |
+| Route attributes don't appear in the picker | The `DL_*` AttributeDefinition isn't in the org, or not in `dlmTermWorkspace.DEFAULT_ATTRIBUTE_CODES`. Re-run the `dl-termbuilder` SFDMU load; confirm `DL_Origin` / `DL_Destination` / `DL_Directionality` / `DL_Measure` exist. |
 | Tiles don't react to each other | They sync over `DLM_TermBuilderChannel__c`; make sure all four tiles are on the **same** Lightning page and it's activated. |
 | KPI band blank | No Term selected, or the shell tile isn't on the page (§0.3). |
 | Fare line dropped `DL_FareCodes__c` on load | The loading user needs FLS on the field — assign `RLM_TermBuilderPermset` before the SFDMU run. |

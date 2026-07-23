@@ -5,6 +5,19 @@
 > (contract data gathering + contract shell creation) of the modularized 2-tab Term Builder
 > (`dlmWorkspaceShell`), measured against the current data-gathering / contract-shell requirements.
 
+> **⚠ Removed since this doc was written (2026-07-22).** The `DL_ScopeType` ("Scope Type")
+> and `DL_MarketGroup` ("Market Group") product attributes — and the `dlDemoModel` engine
+> helpers built around them (`SCOPE_TYPE_RANK`, `scopeTypeRank`, `scopeLabel`, `SCOPE_OPERATORS`,
+> `marketTokens` / `termMatchesMarket` / `resolveTermForMarket`, and the `dlmTermCard` rank
+> badge + Includes/Excludes toggle) — have been **deleted** from the org, the datasets, and the
+> LWC/Apex. The scope model is now just the route attributes (`DL_Origin` / `DL_Destination` /
+> `DL_Directionality` / `DL_Measure`) plus `DL_RequirementValue` / `DL_SpecialConditions`; the
+> retained read-side helpers are `termScopeChips` / `routeLabel`. **The gap-analysis and Part D
+> design prose below still references the removed model** — treat those mentions as the
+> pre-removal state and the specificity-rank / market-token / includes-excludes ideas as design
+> options to be **re-derived** (e.g. from `DL_Geography_Type__c` directly) if that work is
+> picked up, not as descriptions of code that exists today.
+
 ## Why this doc exists
 
 Tab 1 is the *start* of the analyst workflow: gather a set of flown data for an account, then construct
@@ -361,8 +374,8 @@ D.5's deferred approach decision before build.
 |---|---|
 | `unpackaged/post_modularized_term_builder/lwc/dlmWorkspaceShell/dlmWorkspaceShell.{js,html}` | The 2-tab host; `periodFactor` consumer; per-Term model cache + contract KPI band. |
 | `unpackaged/post_modularized_term_builder/lwc/dlmDataSetConfig/dlmDataSetConfig.js` | The Tab 1 data-gathering panel (analysis period, subsidiaries, carriers). |
-| `unpackaged/post_term_builder/lwc/dlDemoModel/dlDemoModel.js` | The engine: `term.modeling` seam, `seedTermFlown`/`seedModel`, `resolveTermForMarket`, `SCOPE_TYPE_RANK`, `termScopeChips`/`scopeLabel`. |
-| `unpackaged/post_term_builder/lwc/dlmTermCard`, `dlmTermsRail` | Scope chips, Includes/Excludes toggle, rank badge. |
+| `unpackaged/post_term_builder/lwc/dlDemoModel/dlDemoModel.js` | The engine: `term.modeling` seam, `seedTermFlown`/`seedModel`, `termScopeChips`, `routeLabel`. (The removed scope-model helpers `resolveTermForMarket` / `SCOPE_TYPE_RANK` / `scopeLabel` are noted in the callout above.) |
+| `unpackaged/post_term_builder/lwc/dlmTermCard`, `dlmTermsRail` | Route/requirement chips + route label. (The former Includes/Excludes toggle and rank badge were removed — see callout.) |
 | `unpackaged/post_term_builder/classes/RLM_DeltaTermBuilderController.cls` | `getBuilderState`, `addTerm`, `addFareClassesToTerm`, renewal helpers (`restoreClonedLineFidelity`); host for a future `addTermsFromTemplate` (D.5). |
 | `unpackaged/post_term_builder/classes/RLM_DeltaCatalogController.cls` | `saveLineAttributes` — the scope-attribute writer (`QuoteLineItemAttribute` values); reused by the D.5 template-instantiation path. |
 | `unpackaged/post_term_builder/objects/DL_Geography__c/` | The geography master-data object (self-lookup hierarchy: `DL_Code__c`, `DL_Geography_Type__c`, `DL_Parent_Geography__c`). Resolver backbone — see Part D. Currently unwired. |

@@ -5,5 +5,3 @@ AC-DL-ROUTE;DL_Directionality,AC-DL-ROUTE,DL_Directionality
 AC-DL-ROUTE;DL_Measure,AC-DL-ROUTE,DL_Measure
 AC-DL-ROUTE;DL_RequirementValue,AC-DL-ROUTE,DL_RequirementValue
 AC-DL-ROUTE;DL_SpecialConditions,AC-DL-ROUTE,DL_SpecialConditions
-AC-DL-ROUTE;DL_ScopeType,AC-DL-ROUTE,DL_ScopeType
-AC-DL-ROUTE;DL_MarketGroup,AC-DL-ROUTE,DL_MarketGroup

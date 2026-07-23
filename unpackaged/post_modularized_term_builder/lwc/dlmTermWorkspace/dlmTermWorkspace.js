@@ -12,12 +12,8 @@ import DLM_CHANNEL from "@salesforce/messageChannel/DLM_TermBuilderChannel__c";
 const SOURCE = "dlmTermWorkspace";
 // Route/requirement attribute codes surfaced in the scoped grid's inline attribute picker, in
 // display order. These are the PC-DL-TERM informational (non-price-impacting) attributes; fares
-// have none. The geography-scope codes (DL_ScopeType / DL_MarketGroup) are intentionally NOT
-// listed: those attributes are unassigned from the Term Workspace so they neither render nor
-// persist — matching the monolith dlTermBuilder default and this bundle's attributeCodes meta
-// default. Includes/Excludes is likewise not here: it is a transient UI toggle on the Term rail
-// card, never a persisted attribute. Only codes whose AttributeDefinition exists in the org render;
-// overridable per placement via the attributeCodes design property.
+// have none. Only codes whose AttributeDefinition exists in the org render; overridable per
+// placement via the attributeCodes design property.
 const DEFAULT_ATTRIBUTE_CODES =
   "DL_Origin,DL_Destination,DL_Directionality,DL_Measure,DL_RequirementValue,DL_SpecialConditions";
 
