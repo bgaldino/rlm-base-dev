@@ -254,6 +254,13 @@ export default class DlmWorkspaceShell extends LightningElement {
       if (reseedTermId) {
         this._reseedModelsForTerm(reseedTermId);
       }
+      // A fare-code edit in Shell Creation refetches here without a reseed (linesChanged, not
+      // fareAdded), so refresh the per-fare display context on any surviving cached model rows —
+      // otherwise the Modeling grid keeps the stale (empty) Fare Codes it was seeded with. Merges by
+      // backingFareId and yields fresh model/row references so the grid re-renders, while preserving
+      // the analyst's in-session Projected Share % / Proposed Disc % edits (a full reseed would lose
+      // them).
+      this._syncFareCodesFromTerms();
 
       // Resolve the selection: keep the current Term if still present, else fall back to the server
       // default / first. (The rail owns selection, but the shell needs a resolved id for activeModel.)
@@ -564,6 +571,61 @@ export default class DlmWorkspaceShell extends LightningElement {
         delete this._modelsByTermId[key];
       }
     });
+  }
+
+  // Refresh the per-fare display context (Fare Codes) on already-cached model rows from the freshly
+  // refetched terms, keyed by backingFareId. Only rewrites rows whose codes actually changed, and only
+  // then swaps in new model + rows references (so the Modeling grid's @api model setter fires and it
+  // re-renders). Every other row field — including the analyst's Projected Share % / Proposed Disc %
+  // edits — is carried over verbatim. Alliance partners are intentionally left to _syncAlliancePartners
+  // (edited in the grid itself), so a refetch never clobbers an in-progress in-grid selection.
+  _syncFareCodesFromTerms() {
+    const faresById = new Map();
+    this.terms.forEach((t) => {
+      (t.fares || []).forEach((f) => {
+        if (f && f.id) {
+          faresById.set(f.id, f);
+        }
+      });
+    });
+    let mapChanged = false;
+    const next = {};
+    Object.keys(this._modelsByTermId).forEach((key) => {
+      const model = this._modelsByTermId[key];
+      if (!model || !Array.isArray(model.rows)) {
+        next[key] = model;
+        return;
+      }
+      let rowsChanged = false;
+      const rows = model.rows.map((r) => {
+        const fare = r.backingFareId ? faresById.get(r.backingFareId) : null;
+        if (!fare) {
+          return r;
+        }
+        const fresh = Array.isArray(fare.fareCodes) ? fare.fareCodes : [];
+        if (this._sameCodes(r.fareCodes, fresh)) {
+          return r;
+        }
+        rowsChanged = true;
+        return { ...r, fareCodes: [...fresh] };
+      });
+      if (rowsChanged) {
+        mapChanged = true;
+        next[key] = { ...model, rows };
+      } else {
+        next[key] = model;
+      }
+    });
+    if (mapChanged) {
+      this._modelsByTermId = next;
+    }
+  }
+
+  // Order-sensitive equality for two fare-code lists (the grid stores them in selection order).
+  _sameCodes(a, b) {
+    const x = Array.isArray(a) ? a : [];
+    const y = Array.isArray(b) ? b : [];
+    return x.length === y.length && x.every((v, i) => v === y[i]);
   }
 
   // Remove models whose Term no longer exists after a state refresh.
