@@ -2,6 +2,8 @@
 
 SFDMU data plan for QuantumBit (QB) usage rating design-time configuration. Creates and activates all objects required for usage-based rating on QB products, including usage resources, product-to-resource associations, grants, and policies.
 
+> **SFDMU 5.6.4+ floor.** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant use `Insert` + `deleteOldData: true` — a pre-5.6.4 workaround for relationship-traversal externalId matching (traversal-keyed Upsert failed to match target records, so re-runs duplicated). Those bugs are **fixed at/below the 5.6.4 floor**; the shipped plan keeps the workaround deliberately. Migrating these back to `Upsert` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval. **PUG is not operation-only**: its externalId triplet is intentionally non-unique across parent PURs (8 of this dataset's 9 PUG rows share 3 triplets), so it must first gain a PUR component (e.g. `ProductUsageResourceId`) before it can move to `Upsert`.
+
 ## CCI Integration
 
 ### Flow: `prepare_rating`
@@ -35,7 +37,7 @@ Insert+deleteOldData (PUR/PURP/PUG); Upsert others  Activate UoMClass  -> activa
                                             and UsageResource       (7-step PUR/PUG activation)
 ```
 
-**PUR, PURP, and PUG idempotency (Insert+deleteOldData):** All three use `operation: Insert` with `deleteOldData: true` and **no WHERE clause** — SFDMU v5 cannot match records by relationship-traversal externalId components (even 1-hop like `Product.StockKeepingUnit`) and always inserts instead of updating, causing duplicates on re-run. The fix is Insert+deleteOldData: SFDMU processes deleteOldData in **reverse array order** (PUG → PURP → PUR), satisfying FK constraints (children deleted before parent). No WHERE clause means the plan is fully portable — extraction captures drift for any product in the org. PURP uses `externalId: ProductUsageResourceId` (direct FK, avoids SFDMU v5 validation error for all-multi-hop externalIds). The PURP and PUG CSVs provide `ProductUsageResource.Product.StockKeepingUnit` and `ProductUsageResource.UsageResource.Code` as two separate columns (no `$$` composite) so SFDMU can resolve `ProductUsageResourceId` without triggering the SOQL injection bug.
+**PUR, PURP, and PUG idempotency (Insert+deleteOldData):** All three use `operation: Insert` with `deleteOldData: true` and **no WHERE clause**. Before the 5.6.4 floor, SFDMU v5 could not match records by relationship-traversal externalId components (even 1-hop like `Product.StockKeepingUnit`) and always inserted instead of updating, causing duplicates on re-run — the reason the shipped plan uses Insert+deleteOldData. Those traversal-match bugs are **fixed on the 5.6.4+ floor**; the workaround is retained pending the gated `sfdmu-v5-optimization` migration (see the floor note above). **PUG migration is not operation-only**: its externalId triplet is intentionally non-unique across parent PURs, so an `Upsert` move must first add a PUR component (e.g. `ProductUsageResourceId`) to the key. Mechanically, SFDMU processes deleteOldData in **reverse array order** (PUG → PURP → PUR), satisfying FK constraints (children deleted before parent). No WHERE clause means the plan is fully portable — extraction captures drift for any product in the org. PURP uses `externalId: ProductUsageResourceId` (direct FK, avoids SFDMU v5 validation error for all-multi-hop externalIds). The PURP and PUG CSVs provide `ProductUsageResource.Product.StockKeepingUnit` and `ProductUsageResource.UsageResource.Code` as two separate columns (no `$$` composite) so SFDMU can resolve `ProductUsageResourceId` without triggering the SOQL injection bug.
 
 ### Pass 1 — Insert/Upsert with Draft Status
 
@@ -58,7 +60,7 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 19      |
 | 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 9       |
 
-¹ Insert+deleteOldData (no WHERE). SFDMU v5 cannot match by relationship-traversal externalId — Upsert always inserts duplicates. deleteOldData runs in reverse array order (PUG→PURP→PUR) to satisfy FK constraints.
+¹ Insert+deleteOldData (no WHERE). Pre-5.6.4, SFDMU v5 could not match by relationship-traversal externalId (Upsert inserted duplicates); **fixed on the 5.6.4+ floor**, retained pending the gated migration. PUG additionally needs a PUR component added to its (intentionally non-unique) externalId before any Upsert move — not operation-only. deleteOldData runs in reverse array order (PUG→PURP→PUR) to satisfy FK constraints.
 
 **Full delete+insert cycle:** PUR, PURP, and PUG all use `deleteOldData: true` with no WHERE clause. Every run deletes ALL records of each type and re-inserts from CSV — no duplicate risk, fully portable. The PURP and PUG CSVs use two separate traversal columns (`ProductUsageResource.Product.StockKeepingUnit` + `ProductUsageResource.UsageResource.Code`) for FK resolution; no `$$` composite column (which caused a SOQL injection bug in the deleteOldData DELETE phase).
 
