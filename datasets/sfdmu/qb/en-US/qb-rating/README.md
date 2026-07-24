@@ -45,7 +45,7 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 
 | # | Object                       | Operation | External ID                                          | Records |
 |---|------------------------------|-----------|------------------------------------------------------|---------|
-| 1 | UnitOfMeasure                | Upsert    | `UnitCode`                                           | 12      |
+| 1 | UnitOfMeasure                | Upsert    | `UnitCode`                                           | 18      |
 | 2 | UnitOfMeasureClass           | Upsert    | `Code`                                               | 5       |
 | 3 | UsageResourceBillingPolicy   | Upsert    | `Code`                                               | 3       |
 | 4 | UsageResource                | Upsert    | `Code`                                               | 9       |
@@ -61,6 +61,8 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 11      |
 
 ¹ Insert+deleteOldData (no WHERE). Pre-5.6.4, SFDMU v5 could not match by relationship-traversal externalId (Upsert inserted duplicates); **fixed on the 5.6.4+ floor**, retained pending the gated migration. PUG additionally needs a PUR component added to its (intentionally non-unique) externalId before any Upsert move — not operation-only. deleteOldData runs in reverse array order (PUG→PURP→PUR) to satisfy FK constraints.
+
+**Currency units feed multicurrency rating (2026-07-24):** `UnitOfMeasure` carries **7 `CURRENCY`-class units** — `USD`, `GBP`, `EUR`, `AUD`, `CAD`, `CHF`, `JPY`. These are what denominate a rate: no rate object has a `CurrencyIsoCode`, so a `RateCardEntry` expresses its currency through its `RateUnitOfMeasure`, and a non-USD quote cannot rate without the matching unit here. Add a currency unit **before** expanding `qb-rates` — `scripts/expand_currency_rates_data.py` refuses to run if one is missing. `JPY` is the only unit with `RoundingMethod=Nearest` / `Scale=1` (whole-yen amounts); the other six are plain 2-decimal units. Note the units' own `CurrencyIsoCode` is `USD` throughout — that field is not the mechanism, `UnitCode` is. See the qb-rates README for the expansion rules.
 
 **Full delete+insert cycle:** PUR, PURP, and PUG all use `deleteOldData: true` with no WHERE clause. Every run deletes ALL records of each type and re-inserts from CSV — no duplicate risk, fully portable. The PURP and PUG CSVs use two separate traversal columns (`ProductUsageResource.Product.StockKeepingUnit` + `ProductUsageResource.UsageResource.Code`) for FK resolution; no `$$` composite column (which caused a SOQL injection bug in the deleteOldData DELETE phase).
 
@@ -217,7 +219,7 @@ qb-rating/
 ├── README.md                            # This file
 │
 │  Source CSVs (Pass 1 - Draft status)
-├── UnitOfMeasure.csv                    # 12 records
+├── UnitOfMeasure.csv                    # 18 records
 ├── UnitOfMeasureClass.csv               # 5 records
 ├── UsageResourceBillingPolicy.csv       # 3 records
 ├── UsageResource.csv                    # 9 records
