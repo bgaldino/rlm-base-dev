@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <name>Set_Currency_From_Asset</name>
+        <label>Set Currency From Asset</label>
+        <locationX>176</locationX>
+        <locationY>350</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.CurrencyIsoCode</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Asset.CurrencyIsoCode</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <decisions>
+        <name>Currency_Differs_From_Asset</name>
+        <label>Currency Differs From Asset</label>
+        <locationX>176</locationX>
+        <locationY>242</locationY>
+        <defaultConnectorLabel>No Change</defaultConnectorLabel>
+        <rules>
+            <name>Differs</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.CurrencyIsoCode</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.Asset.CurrencyIsoCode</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Currency_From_Asset</targetReference>
+            </connector>
+            <label>Differs</label>
+        </rules>
+    </decisions>
+    <description>Before-save: stamps a new AssetRateCardEntry's CurrencyIsoCode with its parent Asset's currency. The platform defaults this restricted picklist to USD and does not inherit the asset currency at entitlement creation (Salesforce 262, no config remedy), leaving non-USD assets' usage rate entries stamped USD. Data-integrity fix for the read-only Usage Rates tab and any currency-keyed custom logic; does not change invoiced amounts (usage billing denominates in the account currency).</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM Default Asset Rate Card Currency {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Default Asset Rate Card Currency</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>176</locationX>
+        <locationY>134</locationY>
+        <connector>
+            <targetReference>Currency_Differs_From_Asset</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>AssetId</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <object>AssetRateCardEntry</object>
+        <recordTriggerType>Create</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

@@ -1,10 +1,16 @@
 Name,BillingPolicy.Name,CanChangeBillingFrequency,CurrencyIsoCode,Description,ExcludeFromBilling,IsMilestoneBilling,LegalEntity.Name,Status
 Billing Treatment - USA - Advance,Billing Policy - Advance,false,USD,,No,false,Default Legal Entity - US,Draft
 Billing Treatment - USA - Arrears,Billing Policy - Arrears,false,USD,,No,false,Default Legal Entity - US,Draft
-Billing Treatment - Advance - Canada,Billing Policy - Advance,false,USD,,No,false,Default Legal Entity - Canada,Draft
-Billing Treatment - Canada - Arrears,Billing Policy - Arrears,false,USD,,No,false,Default Legal Entity - Canada,Draft
+Billing Treatment - Advance - Canada,Billing Policy - Advance,false,CAD,,No,false,Default Legal Entity - Canada,Draft
+Billing Treatment - Canada - Arrears,Billing Policy - Arrears,false,CAD,,No,false,Default Legal Entity - Canada,Draft
 Billing Treatment - EU - Advance,Billing Policy - Advance,false,EUR,,No,false,Default Legal Entity - EU,Draft
 Billing Treatment - EU - Arrears,Billing Policy - Arrears,false,EUR,,No,false,Default Legal Entity - EU,Draft
 Billing Treatment - UK - Advance,Billing Policy - Advance,false,GBP,,No,false,Default Legal Entity - UK,Draft
 Billing Treatment - UK - Arrears,Billing Policy - Arrears,false,GBP,,No,false,Default Legal Entity - UK,Draft
 Milestone Billing Treatment,Milestone Billing Policy - Software,false,USD,,No,true,,Draft
+Billing Treatment - Australia - Advance,Billing Policy - Advance,false,AUD,,No,false,Default Legal Entity - Australia,Draft
+Billing Treatment - Australia - Arrears,Billing Policy - Arrears,false,AUD,,No,false,Default Legal Entity - Australia,Draft
+Billing Treatment - Switzerland - Advance,Billing Policy - Advance,false,CHF,,No,false,Default Legal Entity - Switzerland,Draft
+Billing Treatment - Switzerland - Arrears,Billing Policy - Arrears,false,CHF,,No,false,Default Legal Entity - Switzerland,Draft
+Billing Treatment - Japan - Advance,Billing Policy - Advance,false,JPY,,No,false,Default Legal Entity - Japan,Draft
+Billing Treatment - Japan - Arrears,Billing Policy - Arrears,false,JPY,,No,false,Default Legal Entity - Japan,Draft

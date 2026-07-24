@@ -56,13 +56,15 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 9 | UsageCommitmentPolicy        | Upsert    | `Name`                                               | 2       |
 | 10| ProductUsageResource         | Insert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 21      |
 | 11| UsagePrdGrantBindingPolicy   | Upsert    | `Name;Product2.StockKeepingUnit`                     | 1       |
-| 12| RatingFrequencyPolicy        | Upsert    | `RatingPeriod`                                       | 1       |
-| 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 19      |
-| 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 9       |
+| 12| RatingFrequencyPolicy        | Upsert    | `RatingPeriod`                                       | 2       |
+| 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 21      |
+| 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 11      |
 
 ¹ Insert+deleteOldData (no WHERE). Pre-5.6.4, SFDMU v5 could not match by relationship-traversal externalId (Upsert inserted duplicates); **fixed on the 5.6.4+ floor**, retained pending the gated migration. PUG additionally needs a PUR component added to its (intentionally non-unique) externalId before any Upsert move — not operation-only. deleteOldData runs in reverse array order (PUG→PURP→PUR) to satisfy FK constraints.
 
 **Full delete+insert cycle:** PUR, PURP, and PUG all use `deleteOldData: true` with no WHERE clause. Every run deletes ALL records of each type and re-inserts from CSV — no duplicate risk, fully portable. The PURP and PUG CSVs use two separate traversal columns (`ProductUsageResource.Product.StockKeepingUnit` + `ProductUsageResource.UsageResource.Code`) for FK resolution; no `$$` composite column (which caused a SOQL injection bug in the deleteOldData DELETE phase).
+
+**Pack add-on products (2026-07-23):** `QB-TOKENS-PACK` (QuantumBit Tokens Pack) and `QB-DAT-THPT` (Additional Data Throughput) are `UsageModelType=Pack` add-ons that top up an anchor product's usage bucket. They now carry a `ProductUsageGrant` (500 tokens; 5 GB), a `ProductUsageResourcePolicy` (tokens: Monthly / monthlytotal; throughput: **Daily / monthlytotal**), and — for QB-DAT-THPT — a Base Rate Card entry (in `qb-rates`). ⚠️ **Placeholders to confirm:** QB-DAT-THPT's overage rate (**0.10 USD/GB**) and its `UsageDefinitionProduct` (reuses `QB-DATA-STORAGE-BLNG`, the closest DATAVOL definition — a dedicated data-throughput definition product may be warranted). Both packs have never been sold (0 assets); wire-up needs a live sell→consume→rate pass to verify before relying on it.
 
 ### Pass 2 — Activate UnitOfMeasureClass and UsageResource
 
@@ -219,9 +221,9 @@ qb-rating/
 ├── UsageCommitmentPolicy.csv            # 2 records
 ├── ProductUsageResource.csv             # 21 records
 ├── UsagePrdGrantBindingPolicy.csv       # 1 record
-├── RatingFrequencyPolicy.csv            # 1 record
-├── ProductUsageResourcePolicy.csv       # 19 records
-├── ProductUsageGrant.csv                # 9 records
+├── RatingFrequencyPolicy.csv            # 2 records (Monthly, Daily)
+├── ProductUsageResourcePolicy.csv       # 21 records
+├── ProductUsageGrant.csv                # 11 records
 │
 │  Source CSVs (Pass 2 - Activate)
 ├── objectset_source/
@@ -441,7 +443,7 @@ All schema-unique fields are already correctly used as externalIds.
 
 `RatingFrequencyPolicy.RatingPeriod` is a **picklist** used as the sole externalId. This only works if there is exactly one policy per rating period value. Currently there is 1 record (RatingPeriod = some value), so it works. But if multiple policies per period are needed in the future, a composite key would be required (e.g., `RatingPeriod;Product.StockKeepingUnit;UsageResource.Code`).
 
-**Note:** RatingFrequencyPolicy has auto-numbered Name (`autoNum=true`), so Name cannot be used as a portable alternative.
+**Required `Name` (2026-07-23 fix):** `RatingFrequencyPolicy.Name` is a **required `Text(255)`** field (`nillable=false`, **not** auto-numbered — org describe confirmed). The CSV must supply it; it is `Monthly Rating Frequency`. Omitting `Name` makes the `RatingFrequencyPolicy` insert fail with *"Required fields are missing: [Name]"*, which then **silently cascades**: `ProductUsageResourcePolicy` (PURP) rows that reference `RatingFrequencyPolicy.RatingPeriod=Monthly` resolve to `#N/A`, and **Anchor** usage-model products (`QB-DB`, `QB-DB-TOKEN`) *require* `RatingFrequencyPolicyId` — so their PURP inserts are rejected with *"Complete this field when the product… is of Anchor usage model type."* Non-Anchor products (Commit/CommitmentSpend/CommitmentQuantity) leave RFP blank and are unaffected. `Name` is data-only; `RatingPeriod` remains the externalId.
 
 ### Auto-Numbered Name Fields
 

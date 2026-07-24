@@ -1,2 +1,3 @@
-Product.StockKeepingUnit,RatingDelayDuration,RatingPeriod,UsageResource.Code
-,,Monthly,
+Name,Product.StockKeepingUnit,RatingDelayDuration,RatingPeriod,UsageResource.Code
+Monthly Rating Frequency,,,Monthly,
+Daily Rating Frequency,,,Daily,

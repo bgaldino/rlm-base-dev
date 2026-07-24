@@ -51,13 +51,13 @@ to Product2
 | #  | Object                       | Operation | External ID                                | Records |
 |----|------------------------------|-----------|--------------------------------------------|---------|
 | 1  | AccountingPeriod             | Upsert    | `Name;FinancialYear`                       | 84      |
-| 2  | LegalEntity                  | Readonly  | `Name`                                     | 4       |
+| 2  | LegalEntity                  | Readonly  | `Name`                                     | 7       |
 | 3  | LegalEntyAccountingPeriod    | Upsert    | `Name`                                     | 336     |
 | 4  | PaymentTerm                  | Upsert    | `Name`                                     | 2       |
 | 5  | PaymentTermItem              | Upsert    | `PaymentTerm.Name;Type`                    | 2       |
 | 6  | BillingPolicy                | Upsert    | `Name`                                     | 3       |
-| 7  | BillingTreatment             | Upsert    | `Name`                                     | 9       |
-| 8  | BillingTreatmentItem         | Upsert    | `Name;BillingTreatment.Name`               | 12      |
+| 7  | BillingTreatment             | Upsert    | `Name`                                     | 15      |
+| 8  | BillingTreatmentItem         | Upsert    | `Name;BillingTreatment.Name`               | 18      |
 | 9  | Product2                     | Update    | `StockKeepingUnit`                         | 315     |
 | 10 | GeneralLedgerAccount         | Upsert    | `AccountingCode`                           | 51      |
 | 11 | GeneralLedgerAcctAsgntRule   | Upsert    | `Name`                                     | 8       |
@@ -67,6 +67,8 @@ to Product2
 **Note:** `SequencePolicy` and `SeqPolicySelectionCondition` are **not** SFDMU objects in this plan. They are created by the `create_sequence_policies` Connect-API task (`prepare_billing` step 4), because standard DML cannot create these SObjects. See [Sequence Policies](#sequence-policies-connect-api) below.
 
 **Note:** PaymentTerm, PaymentTermItem, BillingPolicy, BillingTreatment, and BillingTreatmentItem all use `skipExistingRecords: true` to avoid overwriting existing records. Product2 is Update-only (sets `BillingPolicyId`). LegalEntity uses `Readonly` — records are created by qb-tax (which runs first at step 12); qb-billing only resolves their IDs for FK relationships. See [Optimization Opportunities](#optimization-opportunities) for known issues with `skipExistingRecords`.
+
+**Multicurrency billing (regional):** BillingTreatment/BillingTreatmentItem now provide Advance + Arrears treatments for all seven currency regions (USD, CAD, EUR, GBP, AUD, CHF, JPY), each bound to its `LegalEntity` and the shared, LegalEntity-selecting `Billing Policy - Advance` / `Billing Policy - Arrears` (no new billing policies required). The Canada treatments/items were corrected from USD to CAD. The `Milestone Billing Treatment` stays USD/region-less. ⚠️ Two live-org caveats: (1) because these objects use `skipExistingRecords: true`, the Canada USD→CAD correction applies only on a **fresh** org build — an org that already loaded the USD Canada records retains them; (2) `GeneralLedgerAccount` records remain US-only (as they already were for EU/UK), so end-to-end invoice posting for the new regions needs regional GL accounts added separately. Verify on a live scratch org.
 
 **FK ID pattern:** All parent-lookup fields include both the FK ID field (e.g. `PaymentTermId`, `BillingTreatmentId`, `BillingPolicyId`, `LegalEntityId`) in the SOQL SELECT and the traversal column (e.g. `PaymentTerm.Name`, `BillingTreatment.Name`) in the CSV header. SFDMU v5 requires the FK ID in the SELECT to know which field to write; the traversal column in the CSV provides the lookup value. Omitting the FK ID results in null FKs even when the traversal column resolves correctly.
 

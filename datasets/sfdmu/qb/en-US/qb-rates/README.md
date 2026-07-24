@@ -46,8 +46,8 @@ PriceBookRateCard, RateAdjustmentByTier      (RateCardEntry -> Active)
 | 1 | Product2             | Update    | `StockKeepingUnit`                                                                   | 9       |
 | 2 | RateCard             | Upsert    | `Name;Type`                                                                          | 3       |
 | 3 | PriceBookRateCard    | Upsert (+deleteOldData) | `PriceBook.Name;RateCard.Name;RateCardType`                                          | 2       |
-| 4 | RateCardEntry        | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 20     |
-| 5 | RateAdjustmentByTier | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCardEntry.RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 22 |
+| 4 | RateCardEntry        | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 23     |
+| 5 | RateAdjustmentByTier | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCardEntry.RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 26 |
 
 **Note:** Product2 is an `Update` operation — it only sets `UsageModelType` on existing products (created by qb-pcm). RateCardEntry records are inserted in `Draft` status. RateAdjustmentByTier keys on `RateCardEntry.RateCard.Name` (traversing the parent RateCardEntry to its RateCard's portable `Name`) instead of `RateCardEntry.Name` (auto-numbered), with a separate `RateCardEntry.$$...` column in the CSV for parent RCE lookup resolution.
 
@@ -118,14 +118,16 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 | QB-CMT-TKN-EACH | QB-TOKEN        | TOKEN-UOM | Term Annual   |
 | QB-CMT-TKN-EACH | UR-CPUTIME      | TOKEN-UOM | Term Annual   |
 | QB-CMT-TKN-EACH | UR-DATASTORAGE  | TOKEN-UOM | Term Annual   |
-| QB-CMT-TKN-FLAT | (no resource)   | TOKEN-UOM | Term Annual   |
+| QB-CMT-TKN-FLAT | QB-TOKEN        | TOKEN-UOM | Term Annual   |
 | QB-CMT-TKN-FLAT | QB-TOKEN        | USD       | Term Annual   |
-| QB-CMT-TKN-TIER | (no resource)   | TOKEN-UOM | Term Annual   |
+| QB-CMT-TKN-TIER | QB-TOKEN        | TOKEN-UOM | Term Annual   |
 | QB-CMT-TKN-TIER | QB-TOKEN        | USD       | Term Annual   |
 | QB-MTY-CMT       | UR-CPUTIME      | USD       | Term Annual   |
 | QB-MTY-CMT       | UR-DATASTORAGE  | USD       | Term Annual   |
 | QB-QTY-CMT       | UR-CPUTIME      | USD       | Term Annual   |
 | QB-QTY-CMT       | UR-DATASTORAGE  | USD       | Term Annual   |
+
+> **`UsageResource` is required for rating (2026-07-23 fix).** The QB-CMT-TKN-FLAT / QB-CMT-TKN-TIER `TOKEN-UOM` rows previously had a blank `UsageResource`. `RateCardEntry.UsageResourceId` is non-nillable and every rate/adjustment lookup in the rating procedures (`RLM_DefaultRatingProcedure`, `Negotiable_Rating_Procedure`) keys on `UsageResource`, so a blank-resource entry is never selected — those two products' commit discounts (flat 10% / 10-20-30% tiers) applied to nothing. Since the tiers are token-denominated, the resource is set to the aggregate **`QB-TOKEN`** (mirroring QB-CMT-TKN-EACH's `QB-TOKEN;TOKEN-UOM` row); `RateAdjustmentByTier` rows were updated to match. Requires a live rating run to confirm the discount applies before merge.
 
 ## Rate Adjustments by Tier (22 records)
 
@@ -159,17 +161,22 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 
 | Resource   | Adjustment |
 |------------|------------|
-| (flat)     | 10%        |
+| QB-TOKEN   | 10%        |
 | QB-TOKEN   | 0%         |
 
-### QB-CMT-TKN-TIER (Volume tiers, tokens)
+### QB-CMT-TKN-TIER (Volume tiers on the token-backed **usage** resources)
 
-| Lower Bound | Upper Bound | Adjustment |
-|-------------|-------------|------------|
-| 0           | 1000        | 10%        |
-| 1000        | 5000        | 20%        |
-| 5000        | (unlimited) | 30%        |
-| QB-TOKEN    | —           | 0%         |
+The 3 volume tiers apply per usage resource (`UR-CPUTIME-TKN`, `UR-DATASTORAGE-TKN`), **not** the token resource — the platform allows only **one** RateAdjustmentByTier per `Category=Token` resource (`QB-TOKEN`), so `QB-TOKEN` carries a single 0% tier and the tiering lives on the Usage-category resources (which is where the token-commit model applies per-resource discounts).
+
+| Resource (TOKEN-UOM) | Lower Bound | Upper Bound | Adjustment |
+|----------------------|-------------|-------------|------------|
+| UR-CPUTIME-TKN       | 0           | 1000        | 10%        |
+| UR-CPUTIME-TKN       | 1000        | 5000        | 20%        |
+| UR-CPUTIME-TKN       | 5000        | (unlimited) | 30%        |
+| UR-DATASTORAGE-TKN   | 0           | 1000        | 10%        |
+| UR-DATASTORAGE-TKN   | 1000        | 5000        | 20%        |
+| UR-DATASTORAGE-TKN   | 5000        | (unlimited) | 30%        |
+| QB-TOKEN             | 0           | —           | 0%         |
 
 ### Commitment Products (Percentage tiers)
 
@@ -233,8 +240,8 @@ qb-rates/
 ├── Product2.csv               # 9 records (Update UsageModelType only)
 ├── RateCard.csv               # 3 records
 ├── PriceBookRateCard.csv      # 2 records
-├── RateCardEntry.csv          # 20 records (Draft status)
-├── RateAdjustmentByTier.csv   # 22 records
+├── RateCardEntry.csv          # 23 records (Draft status)
+├── RateAdjustmentByTier.csv   # 26 records
 │
 │  Lookup Reference CSVs (for SFDMU resolution)
 ├── Pricebook2.csv             # Standard Price Book

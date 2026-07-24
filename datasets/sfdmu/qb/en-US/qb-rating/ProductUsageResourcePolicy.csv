@@ -18,3 +18,5 @@ QB-CMT-TKN-EACH,QB-TOKEN,,,Lowest Rate,
 QB-MTY-CMT,UR-USD,,,Lowest Rate,
 QB-MTY-CMT,UR-CPUTIME-MTY,,,Lowest Rate,
 QB-MTY-CMT,UR-DATASTORAGE-MTY,,,Lowest Rate,
+QB-DAT-THPT,UR-DATAXFR,Daily,monthlytotal,,Default Usage Overage Policy
+QB-TOKENS-PACK,QB-TOKEN,Monthly,monthlytotal,,Default Usage Overage Policy
