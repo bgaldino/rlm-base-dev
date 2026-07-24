@@ -46,7 +46,7 @@ PriceBookRateCard, RateAdjustmentByTier      (RateCardEntry -> Active)
 | 1 | Product2             | Update    | `StockKeepingUnit`                                                                   | 9       |
 | 2 | RateCard             | Upsert    | `Name;Type`                                                                          | 3       |
 | 3 | PriceBookRateCard    | Upsert (+deleteOldData) | `PriceBook.Name;RateCard.Name;RateCardType`                                          | 2       |
-| 4 | RateCardEntry        | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 23     |
+| 4 | RateCardEntry        | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCard.Name;UsageResource.Code;RateUnitOfMeasure.UnitCode` | 24     |
 | 5 | RateAdjustmentByTier | Insert (+deleteOldData) | `Product.StockKeepingUnit;RateCardEntry.RateCard.Name;RateUnitOfMeasure.UnitCode;UsageResource.Code;LowerBound;UpperBound` | 26 |
 
 **Note:** Product2 is an `Update` operation — it only sets `UsageModelType` on existing products (created by qb-pcm). RateCardEntry records are inserted in `Draft` status. RateAdjustmentByTier keys on `RateCardEntry.RateCard.Name` (traversing the parent RateCardEntry to its RateCard's portable `Name`) instead of `RateCardEntry.Name` (auto-numbered), with a separate `RateCardEntry.$$...` column in the CSV for parent RCE lookup resolution.
@@ -96,7 +96,7 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 | Standard Price Book  | Base Rate Card  | —    |
 | Standard Price Book  | Tier Rate Card  | —    |
 
-## Rate Card Entries (23 records)
+## Rate Card Entries (24 records)
 
 ### Base Rate Card Entries (flat per-unit rates)
 
@@ -104,6 +104,7 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 |------------------|-----------------|----------|----------|
 | QB-DB            | UR-CPUTIME      | USD      | $0.004   |
 | QB-DB            | UR-DATASTORAGE  | USD      | $10.00   |
+| QB-DB            | UR-DATAXFR      | USD      | $0.10    |
 | QB-DB-TOKEN      | QB-TOKEN        | USD      | $0.50    |
 | QB-DB-TOKEN      | UR-CPUTIME      | TOKEN-UOM| 5 tokens |
 | QB-DB-TOKEN      | UR-DATASTORAGE  | TOKEN-UOM| 10 tokens|
@@ -243,7 +244,7 @@ qb-rates/
 ├── Product2.csv               # 9 records (Update UsageModelType only)
 ├── RateCard.csv               # 3 records
 ├── PriceBookRateCard.csv      # 2 records
-├── RateCardEntry.csv          # 23 records (Draft status)
+├── RateCardEntry.csv          # 24 records (Draft status)
 ├── RateAdjustmentByTier.csv   # 26 records
 │
 │  Lookup Reference CSVs (for SFDMU resolution)

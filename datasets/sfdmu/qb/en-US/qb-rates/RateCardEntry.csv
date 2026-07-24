@@ -9,6 +9,7 @@ QB-CMT-TKN-TIER;Tier Rate Card;QB-TOKEN;TOKEN-UOM,Tokens,Tokens UoM Class,2023-0
 QB-CMT-TKN-TIER;Tier Rate Card;QB-TOKEN;USD,Tokens,Tokens UoM Class,2023-01-01T20:00:00.000+0000,,QB-CMT-TKN-TIER,Term Annual,,Tier Rate Card;Tier,Negotiable,USD,USD,Currency,Draft,QB-TOKEN,Quantum Tokens
 QB-DB;Base Rate Card;UR-CPUTIME;USD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.004,Base Rate Card;Base,Negotiable,USD,USD,Currency,Draft,UR-CPUTIME,Compute Time
 QB-DB;Base Rate Card;UR-DATASTORAGE;USD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,10,Base Rate Card;Base,Negotiable,USD,USD,Currency,Draft,UR-DATASTORAGE,Data Storage
+QB-DB;Base Rate Card;UR-DATAXFR;USD,Gigabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,0.10,Base Rate Card;Base,Negotiable,USD,USD,Currency,Draft,UR-DATAXFR,Data Throughput
 QB-DB;Tier Rate Card;UR-CPUTIME;USD,Minutes,Time,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,,Tier Rate Card;Tier,Negotiable,USD,USD,Currency,Draft,UR-CPUTIME,Compute Time
 QB-DB;Tier Rate Card;UR-DATASTORAGE;USD,Terabyte,Data Volume,2023-01-01T20:00:00.000+0000,,QB-DB,Term Annual,,Tier Rate Card;Tier,Negotiable,USD,USD,Currency,Draft,UR-DATASTORAGE,Data Storage
 QB-DB-TOKEN;Base Rate Card;QB-TOKEN;USD,Tokens,Tokens UoM Class,2023-01-01T20:00:00.000+0000,,QB-DB-TOKEN,Term Annual,0.5,Base Rate Card;Base,Negotiable,USD,USD,Currency,Draft,QB-TOKEN,Quantum Tokens

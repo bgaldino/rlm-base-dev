@@ -54,17 +54,21 @@ All records are created in `Draft` status. SFDMU resolves lookups across objects
 | 7 | UsageGrantRolloverPolicy     | Upsert    | `Code`                                               | 1       |
 | 8 | UsageOveragePolicy           | Upsert    | `Name`                                               | 2       |
 | 9 | UsageCommitmentPolicy        | Upsert    | `Name`                                               | 2       |
-| 10| ProductUsageResource         | Insert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 21      |
+| 10| ProductUsageResource         | Insert¹   | `Product.StockKeepingUnit;UsageResource.Code`        | 22      |
 | 11| UsagePrdGrantBindingPolicy   | Upsert    | `Name;Product2.StockKeepingUnit`                     | 1       |
 | 12| RatingFrequencyPolicy        | Upsert    | `RatingPeriod`                                       | 2       |
-| 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 21      |
+| 13| ProductUsageResourcePolicy   | Insert¹   | `ProductUsageResourceId`                             | 20      |
 | 14| ProductUsageGrant            | Insert¹   | `UsageDefinitionProduct.StockKeepingUnit;UnitOfMeasureClass.Code;UnitOfMeasure.UnitCode` | 11      |
 
 ¹ Insert+deleteOldData (no WHERE). Pre-5.6.4, SFDMU v5 could not match by relationship-traversal externalId (Upsert inserted duplicates); **fixed on the 5.6.4+ floor**, retained pending the gated migration. PUG additionally needs a PUR component added to its (intentionally non-unique) externalId before any Upsert move — not operation-only. deleteOldData runs in reverse array order (PUG→PURP→PUR) to satisfy FK constraints.
 
 **Full delete+insert cycle:** PUR, PURP, and PUG all use `deleteOldData: true` with no WHERE clause. Every run deletes ALL records of each type and re-inserts from CSV — no duplicate risk, fully portable. The PURP and PUG CSVs use two separate traversal columns (`ProductUsageResource.Product.StockKeepingUnit` + `ProductUsageResource.UsageResource.Code`) for FK resolution; no `$$` composite column (which caused a SOQL injection bug in the deleteOldData DELETE phase).
 
-**Pack add-on products (2026-07-23):** `QB-TOKENS-PACK` (QuantumBit Tokens Pack) and `QB-DAT-THPT` (Additional Data Throughput) are `UsageModelType=Pack` add-ons that top up an anchor product's usage bucket. They now carry a `ProductUsageGrant` (500 tokens; 5 GB), a `ProductUsageResourcePolicy` (tokens: Monthly / monthlytotal; throughput: **Daily / monthlytotal**), and — for QB-DAT-THPT — a Base Rate Card entry (in `qb-rates`). QB-DAT-THPT's `UsageDefinitionProduct` is the dedicated `QB-DATA-THPT-BLNG` throughput definition (matching `UR-DATAXFR`), so throughput usage draws down the correct bucket. ⚠️ **Placeholder to confirm:** QB-DAT-THPT's overage rate (**0.10 USD/GB**). Both packs have never been sold (0 assets); wire-up needs a live sell→consume→rate pass to verify before relying on it.
+**Pack add-on products (2026-07-24):** `QB-TOKENS-PACK` (QuantumBit Tokens Pack) and `QB-DAT-THPT` (Additional Data Throughput) are `UsageModelType=Pack` add-ons that top up an anchor product's usage bucket. Each carries a `ProductUsageResource` and a `ProductUsageGrant` (500 tokens; 5 GB), and QB-DAT-THPT also has a Base Rate Card entry (in `qb-rates`). QB-DAT-THPT's `UsageDefinitionProduct` is the dedicated `QB-DATA-THPT-BLNG` throughput definition (matching `UR-DATAXFR`), so throughput usage draws down the correct bucket.
+
+> ⛔ **A Pack product cannot have a `ProductUsageResourcePolicy` — platform-enforced.** Inserting one fails with `INVALID_INPUT: "We can't save the pack usage model type record. Change the product usage model type from Pack to another valid option and try again."` (live-verified 2026-07-24 on a fresh build; the two Pack PURP rows this plan previously carried were silently dropped on every load, leaving PURP at 19/21). **The policy belongs on the non-Pack product that consumes the resource, not on the pack.** So the throughput policy (**Daily** rating / **monthlytotal** aggregation) now lives on the anchor **`QB-DB` + `UR-DATAXFR`** PURP, alongside QB-DB's existing UR-CPUTIME and UR-DATASTORAGE policies; QB-DB also gains the matching Base Rate Card entry. The token pack needs no PURP of its own — `QB-TOKEN` already has policies on the non-Pack products (`QB-DB-TOKEN`, `QB-CMT-TKN-*`).
+
+⚠️ **Placeholder to confirm:** the throughput rate (**0.10 USD/GB**, used by both the QB-DB and QB-DAT-THPT Base entries). Both packs have never been sold (0 assets); wire-up needs a live sell→consume→rate pass to verify before relying on it. QB-DB intentionally has **no** base `ProductUsageGrant` for `UR-DATAXFR` — the anchor includes 0 GB and the pack funds all throughput.
 
 ### Pass 2 — Activate UnitOfMeasureClass and UsageResource
 
@@ -131,13 +135,14 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 
 ## ProductUsageResource (PUR) Mapping
 
-21 records mapping products to their usage resources:
+22 records mapping products to their usage resources:
 
 | Product          | Resource            | Notes                                       |
 |------------------|---------------------|---------------------------------------------|
 | QB-DB            | UR-DATASTORAGE      | Usage PUR (TokenResourceId auto-populated)  |
 | QB-DB            | UR-CPUTIME          | Usage PUR (TokenResourceId auto-populated)  |
-| QB-DAT-THPT      | UR-DATAXFR          | Standalone usage (no token)                 |
+| QB-DB            | UR-DATAXFR          | Usage PUR — carries the throughput policy (see Pack note) |
+| QB-DAT-THPT      | UR-DATAXFR          | Pack PUR — grant only, no policy (Pack cannot hold a PURP) |
 | QB-TOKENS-PACK   | QB-TOKEN            | Token pack                                  |
 | QB-DB-TOKEN      | QB-TOKEN            | Token PUR                                    |
 | QB-DB-TOKEN      | UR-DATASTORAGE-TKN  | Usage PUR — dedicated token resource        |
@@ -221,10 +226,10 @@ qb-rating/
 ├── UsageGrantRolloverPolicy.csv         # 1 record
 ├── UsageOveragePolicy.csv               # 2 records
 ├── UsageCommitmentPolicy.csv            # 2 records
-├── ProductUsageResource.csv             # 21 records
+├── ProductUsageResource.csv             # 22 records
 ├── UsagePrdGrantBindingPolicy.csv       # 1 record
 ├── RatingFrequencyPolicy.csv            # 2 records (Monthly, Daily)
-├── ProductUsageResourcePolicy.csv       # 21 records
+├── ProductUsageResourcePolicy.csv       # 20 records
 ├── ProductUsageGrant.csv                # 11 records
 │
 │  Source CSVs (Pass 2 - Activate)
@@ -291,7 +296,7 @@ The SOQL queries in `export.json` include both raw ID fields (e.g., `ProductId`)
 
 ## Idempotency
 
-The plan is **fully idempotent**: every run deletes ALL PUR, PURP, and PUG records (deleteOldData, no WHERE) and re-inserts from CSV. Consecutive runs always produce PUR=21, PURP=21, PUG=11. No duplicate risk.
+The plan is **fully idempotent**: every run deletes ALL PUR, PURP, and PUG records (deleteOldData, no WHERE) and re-inserts from CSV. Consecutive runs always produce PUR=22, PURP=20, PUG=11. No duplicate risk.
 
 The idempotency test (`test_qb_rating_idempotency`) uses **extraction roundtrip** (`use_extraction_roundtrip: true`): loads from source CSVs → extracts from org → post-processes → re-imports from the processed dir, confirming no record count increase. Extraction output is persisted to `datasets/sfdmu/extractions/qb-rating/<timestamp>/`.
 
