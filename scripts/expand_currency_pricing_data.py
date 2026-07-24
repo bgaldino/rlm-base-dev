@@ -27,7 +27,9 @@ Conversion rules
 ----------------
 * **Monetary** fields (``PricebookEntry.UnitPrice``, ``CostBookEntry.Cost``, and
   ``Override``/``Amount``-type ``AttributeBasedAdjustment.AdjustmentValue`` /
-  ``BundleBasedAdjustment.AdjustmentValue``) = ``USD * ConversionRate``, rounded
+  ``BundleBasedAdjustment.AdjustmentValue``) = ``base_amount * ConversionRate[target]
+  / ConversionRate[base]`` (a USD base reduces to ``USD * ConversionRate`` since
+  ``ConversionRate[USD] == 1``), rounded
   to the nearest ``--round`` step (default ``0.50``). Currencies whose
   ``CurrencyType.DecimalPlaces == 0`` (e.g. JPY) round to a whole number.
 * **Percentage / formula / bound** values (BundleBasedAdjustment %,
@@ -97,9 +99,12 @@ def load_currency_table(plan):
     return rates, whole
 
 
-def round_amount(usd_val, ccy, rates, whole, step):
+def round_amount(base_val, ccy, base, rates, whole, step):
     step_q = Decimal("1") if ccy in whole else step
-    converted = usd_val * rates[ccy]
+    # base_val is denominated in `base`; ConversionRates are corporate-relative,
+    # so the base->target cross-rate is rates[ccy] / rates[base] (rates[USD]=1.0,
+    # so a USD base reduces to base_val * rates[ccy]).
+    converted = base_val * rates[ccy] / rates[base]
     n = (converted / step_q).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     return n * step_q
 
@@ -147,7 +152,7 @@ def serialize(rowdict, fieldnames):
     return buf.getvalue()
 
 
-def make_variant(row, ccy, fieldnames, money_col, pred, rates, whole, step):
+def make_variant(row, ccy, base, fieldnames, money_col, pred, rates, whole, step):
     src = row["CurrencyIsoCode"]
     v = {fn: set_currency(fn, row[fn], ccy, src) for fn in fieldnames}
     if money_col:
@@ -155,7 +160,7 @@ def make_variant(row, ccy, fieldnames, money_col, pred, rates, whole, step):
         if raw and pred(row):
             d = Decimal(raw)
             if d != 0:
-                v[money_col] = fmt(round_amount(d, ccy, rates, whole, step))
+                v[money_col] = fmt(round_amount(d, ccy, base, rates, whole, step))
     return v
 
 
@@ -182,7 +187,7 @@ def process(plan, fname, money_col, pred, base, targets, rates, whole, step, app
         if ccy == base:
             base_count += 1
             for t in targets:
-                v = make_variant(row, t, fieldnames, money_col, pred, rates, whole, step)
+                v = make_variant(row, t, base, fieldnames, money_col, pred, rates, whole, step)
                 out.append(serialize(v, fieldnames))
                 if money_col and len(sample) < 2 and t in ("GBP", "JPY"):
                     sample.append((row.get(money_col), t, v[money_col]))
@@ -218,6 +223,9 @@ def main(argv=None):
     if dupes:
         sys.exit(f"error: duplicate target currencies in --currencies: {dupes}")
     rates, whole = load_currency_table(args.plan)
+    if base not in rates:
+        sys.exit(f"error: base currency {base} has no ConversionRate in {args.plan}/CurrencyType.csv "
+                 f"(the base must be present so its cross-rate can be resolved)")
     missing = [c for c in targets if c not in rates]
     if missing:
         sys.exit(f"error: no ConversionRate for {missing} in {args.plan}/CurrencyType.csv")

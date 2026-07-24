@@ -159,7 +159,7 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 
 ## ProductUsageGrant (PUG) Summary
 
-11 grant records across 4 usage definition products:
+11 grant records across 5 usage definition products:
 
 | Usage Definition Product | Type   | Resource          | Quantity | Validity       |
 |--------------------------|--------|-------------------|----------|----------------|
@@ -167,7 +167,7 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 | QB-CPU-BLNG              | Commit | QB-QTY-CMT;UR-CPUTIME       | 1000  | 1 Month |
 | QB-DATA-STORAGE-BLNG     | Grant  | QB-DB;UR-DATASTORAGE        | 5     | 1 Month |
 | QB-DATA-STORAGE-BLNG     | Commit | QB-QTY-CMT;UR-DATASTORAGE   | 1000  | 1 Month |
-| QB-DATA-STORAGE-BLNG     | Grant  | QB-DAT-THPT;UR-DATAXFR      | 5     | 1 Month |
+| QB-DATA-THPT-BLNG        | Grant  | QB-DAT-THPT;UR-DATAXFR      | 5     | 1 Month |
 | QB-TOKEN-DEF             | Commit | QB-CMT-TKN-FLAT;QB-TOKEN    | 1000  | 1 Month |
 | QB-TOKEN-DEF             | Grant  | QB-DB-TOKEN;QB-TOKEN        | 100000| None    |
 | QB-TOKEN-DEF             | Commit | QB-CMT-TKN-TIER;QB-TOKEN    | 1000  | 1 Month |
@@ -443,9 +443,9 @@ All schema-unique fields are already correctly used as externalIds.
 
 ### Portability Concern: RatingFrequencyPolicy
 
-`RatingFrequencyPolicy.RatingPeriod` is a **picklist** used as the sole externalId. This only works if there is exactly one policy per rating period value. Currently there is 1 record (RatingPeriod = some value), so it works. But if multiple policies per period are needed in the future, a composite key would be required (e.g., `RatingPeriod;Product.StockKeepingUnit;UsageResource.Code`).
+`RatingFrequencyPolicy.RatingPeriod` is a **picklist** used as the sole externalId. This only works if there is exactly one policy per rating period value. Currently there are 2 records (RatingPeriod = `Monthly` and `Daily`, each period unique), so it works. But if multiple policies per period are needed in the future, a composite key would be required (e.g., `RatingPeriod;Product.StockKeepingUnit;UsageResource.Code`).
 
-**Required `Name` (2026-07-23 fix):** `RatingFrequencyPolicy.Name` is a **required `Text(255)`** field (`nillable=false`, **not** auto-numbered — org describe confirmed). The CSV must supply it; it is `Monthly Rating Frequency`. Omitting `Name` makes the `RatingFrequencyPolicy` insert fail with *"Required fields are missing: [Name]"*, which then **silently cascades**: `ProductUsageResourcePolicy` (PURP) rows that reference `RatingFrequencyPolicy.RatingPeriod=Monthly` resolve to `#N/A`, and **Anchor** usage-model products (`QB-DB`, `QB-DB-TOKEN`) *require* `RatingFrequencyPolicyId` — so their PURP inserts are rejected with *"Complete this field when the product… is of Anchor usage model type."* Non-Anchor products (Commit/CommitmentSpend/CommitmentQuantity) leave RFP blank and are unaffected. `Name` is data-only; `RatingPeriod` remains the externalId.
+**Required `Name` (2026-07-23 fix):** `RatingFrequencyPolicy.Name` is a **required `Text(255)`** field (`nillable=false`, **not** auto-numbered — org describe confirmed). The CSV must supply it; the two rows are `Monthly Rating Frequency` and `Daily Rating Frequency` (the latter added for the QB-DAT-THPT throughput pack). Omitting `Name` makes the `RatingFrequencyPolicy` insert fail with *"Required fields are missing: [Name]"*, which then **silently cascades**: `ProductUsageResourcePolicy` (PURP) rows that reference `RatingFrequencyPolicy.RatingPeriod=Monthly` resolve to `#N/A`, and **Anchor** usage-model products (`QB-DB`, `QB-DB-TOKEN`) *require* `RatingFrequencyPolicyId` — so their PURP inserts are rejected with *"Complete this field when the product… is of Anchor usage model type."* Non-Anchor products (Commit/CommitmentSpend/CommitmentQuantity) leave RFP blank and are unaffected. `Name` is data-only; `RatingPeriod` remains the externalId.
 
 ### Auto-Numbered Name Fields
 
