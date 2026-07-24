@@ -59,7 +59,7 @@ public with sharing class RLM_DocumentGenerationCreate {
             process.ReferenceObject = request.CurrentRecordId;
             process.DocumentTemplateId = request.DocTemplateId;
             process.RequestText = JSON.serialize(
-                new Map<String, Object>{ 'keepIntermediate' => true, 'title' => request.DocTitle }
+                new Map<String, Object>{ 'keepIntermediate' => false, 'title' => request.DocTitle }
             );
             process.DocGenApiVersionType = 'Advanced';
             process.DocumentInputType = 'DocumentTemplate';

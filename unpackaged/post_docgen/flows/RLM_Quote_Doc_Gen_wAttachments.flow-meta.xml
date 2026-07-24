@@ -100,6 +100,66 @@
             <name>MergedRecordId</name>
         </outputParameters>
     </actionCalls>
+    <actionCalls>
+        <name>Save_Single_As_QuotePdf</name>
+        <label>Save Single As Quote PDF</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>RLM_SaveQuoteDocument</actionName>
+        <actionType>apex</actionType>
+        <connector>
+            <targetReference>View_Output_Document</targetReference>
+        </connector>
+        <flowTransactionModel>Automatic</flowTransactionModel>
+        <inputParameters>
+            <name>QuoteId</name>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>ContentVersionId</name>
+            <value>
+                <elementReference>varT_SingleDocContentVersionId</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>RLM_SaveQuoteDocument</nameSegment>
+        <offset>0</offset>
+        <outputParameters>
+            <assignToReference>varT_SingleDocContentDocId</assignToReference>
+            <name>NewContentDocumentId</name>
+        </outputParameters>
+    </actionCalls>
+    <actionCalls>
+        <name>Save_Merged_As_QuotePdf</name>
+        <label>Save Merged As Quote PDF</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>RLM_SaveQuoteDocument</actionName>
+        <actionType>apex</actionType>
+        <connector>
+            <targetReference>View_Multi_Documents</targetReference>
+        </connector>
+        <flowTransactionModel>Automatic</flowTransactionModel>
+        <inputParameters>
+            <name>QuoteId</name>
+            <value>
+                <elementReference>recordId</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>ContentVersionId</name>
+            <value>
+                <elementReference>Get_New_Merge_PDF_Content_Version_ID.ResponseText</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>RLM_SaveQuoteDocument</nameSegment>
+        <offset>0</offset>
+        <outputParameters>
+            <assignToReference>varT_MultiDocContentDocId</assignToReference>
+            <name>NewContentDocumentId</name>
+        </outputParameters>
+    </actionCalls>
     <apiVersion>67.0</apiVersion>
     <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
@@ -215,7 +275,7 @@
                 </rightValue>
             </conditions>
             <connector>
-                <targetReference>View_Output_Document</targetReference>
+                <targetReference>Save_Single_As_QuotePdf</targetReference>
             </connector>
             <label>No Attachments</label>
         </rules>
@@ -367,7 +427,7 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <connector>
-            <targetReference>View_Multi_Documents</targetReference>
+            <targetReference>Save_Merged_As_QuotePdf</targetReference>
         </connector>
         <filterLogic>and</filterLogic>
         <filters>
