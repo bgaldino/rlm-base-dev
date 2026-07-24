@@ -1,0 +1,221 @@
+{
+  "_comment": "Layout spec for RLM_QB_Contract_Document — QuantumBit-branded CLM template using core ContractItemPrice fields only",
+  "page": {"margin_inches": 0.75},
+  "elements": [
+    {
+      "type": "heading",
+      "text": "QuantumBit",
+      "level": 1,
+      "alignment": "left",
+      "bold": true
+    },
+    {
+      "type": "paragraph",
+      "text": "[ QuantumBit logo placeholder — swap logo image via PatchDocumentTemplateLogos ]",
+      "size_pt": 9,
+      "italic": true,
+      "color": "#888888"
+    },
+    {"type": "spacer"},
+    {
+      "type": "heading",
+      "text": "CONTRACTED PRICING AGREEMENT",
+      "level": 1,
+      "alignment": "center",
+      "bold": true
+    },
+    {"type": "spacer"},
+    {
+      "_comment": "Contract summary — key/value pairs",
+      "type": "table",
+      "columns": 2,
+      "style": "Table Grid",
+      "rows": [
+        ["Contract Number", "{{ContractNumber}}"],
+        ["Account", "{{AccountName}}"],
+        ["Term", "{{ContractStartDate}} – {{ContractEndDate}} ({{ContractTerm}} months)"],
+        ["Status", "{{ContractStatus}}"],
+        ["Billing Address", "{{BillingStreet}}, {{BillingCity}}, {{BillingState}} {{BillingPostalCode}}"]
+      ]
+    },
+    {"type": "spacer"},
+    {
+      "type": "heading",
+      "text": "CONTRACTED PRICE ITEMS",
+      "level": 2,
+      "bold": true
+    },
+    {"type": "spacer"},
+    {
+      "_comment": "Line item table — repeating section using core CIP fields only",
+      "type": "table",
+      "columns": 8,
+      "style": "Table Grid",
+      "header": ["Product", "Product Code", "Selling Model", "List Price", "Unit Price", "Discount (%)", "Start", "End"],
+      "rows": [
+        ["{{#Line}}{{ProductName}}", "{{ProductCode}}", "{{SellingModel}}", "{{ListPrice}}", "{{UnitPrice}}", "{{DiscountPercent}}%", "{{StartDate}}", "{{EndDate}}{{/Line}}"]
+      ]
+    },
+    {"type": "spacer"},
+    {"type": "spacer"},
+    {
+      "type": "heading",
+      "text": "TERMS AND CONDITIONS",
+      "level": 2,
+      "bold": true
+    },
+    {"type": "spacer"},
+    {
+      "type": "paragraph",
+      "text": "1. Pricing",
+      "bold": true,
+      "size_pt": 11
+    },
+    {
+      "type": "paragraph",
+      "text": "The discounts set forth in the Contracted Price Items table above apply to the corresponding products and selling models for the duration of this Agreement. Prices are exclusive of applicable taxes unless otherwise stated. QuantumBit reserves the right to adjust list prices upon renewal; contracted discount percentages remain fixed for the initial term.",
+      "size_pt": 10
+    },
+    {"type": "spacer"},
+    {
+      "type": "paragraph",
+      "text": "2. Term & Renewal",
+      "bold": true,
+      "size_pt": 11
+    },
+    {
+      "type": "paragraph",
+      "text": "This Agreement is effective as of the contract start date and remains in force through the contract end date identified above. Unless either party provides written notice of non-renewal at least sixty (60) days prior to the end of the then-current term, this Agreement shall automatically renew for successive twelve (12) month periods at the then-current list prices less the contracted discount percentages.",
+      "size_pt": 10
+    },
+    {"type": "spacer"},
+    {
+      "type": "paragraph",
+      "text": "3. License Grant",
+      "bold": true,
+      "size_pt": 11
+    },
+    {
+      "type": "paragraph",
+      "text": "Subject to the terms of this Agreement and timely payment of all applicable fees, QuantumBit grants Customer a non-exclusive, non-transferable, worldwide right to access and use the contracted products in accordance with the applicable Product Documentation and Usage Limits. All rights not expressly granted herein are reserved by QuantumBit.",
+      "size_pt": 10
+    },
+    {"type": "spacer"},
+    {
+      "type": "paragraph",
+      "text": "4. Service Level Agreement",
+      "bold": true,
+      "size_pt": 11
+    },
+    {
+      "type": "paragraph",
+      "text": "QuantumBit commits to a monthly service availability of ninety-nine point nine percent (99.9%) for all production instances, measured as total available minutes less unplanned downtime divided by total available minutes in the calendar month. Scheduled maintenance windows are excluded from availability calculations. In the event QuantumBit fails to meet the availability commitment, Customer is entitled to service credits as set forth in the Service Level Agreement addendum.",
+      "size_pt": 10
+    },
+    {"type": "spacer"},
+    {
+      "type": "paragraph",
+      "text": "5. Support & Account Management",
+      "bold": true,
+      "size_pt": 11
+    },
+    {
+      "type": "paragraph",
+      "text": "QuantumBit will assign a dedicated Customer Success Manager as Customer's primary point of contact for the duration of this Agreement. QuantumBit and Customer will conduct Quarterly Business Reviews (QBRs) to evaluate product adoption, contract utilization, and renewal planning. Standard support is available 24/7 via the QuantumBit Support Portal for Severity 1 issues and during business hours for all other severities.",
+      "size_pt": 10
+    },
+    {"type": "spacer"},
+    {
+      "type": "paragraph",
+      "text": "6. Confidentiality",
+      "bold": true,
+      "size_pt": 11
+    },
+    {
+      "type": "paragraph",
+      "text": "Both parties agree to treat the terms of this Agreement, including all pricing, discounts, and rate schedules, as confidential information. Neither party shall disclose such terms to any third party without the prior written consent of the other party, except as required by law or regulation, or to advisors bound by confidentiality obligations no less protective than those herein.",
+      "size_pt": 10
+    },
+    {"type": "spacer"},
+    {
+      "type": "paragraph",
+      "text": "7. Payment Terms",
+      "bold": true,
+      "size_pt": 11
+    },
+    {
+      "type": "paragraph",
+      "text": "QuantumBit will invoice Customer on an annual basis in advance for subscription products and monthly in arrears for usage-based products. Payment is due net thirty (30) days from the invoice date. Amounts not paid when due are subject to a finance charge of one and one-half percent (1.5%) per month, or the maximum rate permitted by applicable law, whichever is lower.",
+      "size_pt": 10
+    },
+    {"type": "spacer"},
+    {
+      "type": "paragraph",
+      "text": "8. Termination for Cause",
+      "bold": true,
+      "size_pt": 11
+    },
+    {
+      "type": "paragraph",
+      "text": "Either party may terminate this Agreement upon thirty (30) days' prior written notice if the other party materially breaches any provision of this Agreement and fails to cure such breach within the notice period. Upon termination, Customer's access to contracted products will be suspended, and any outstanding fees for services rendered shall become immediately due and payable.",
+      "size_pt": 10
+    },
+    {"type": "spacer"},
+    {
+      "type": "paragraph",
+      "text": "9. Limitation of Liability",
+      "bold": true,
+      "size_pt": 11
+    },
+    {
+      "type": "paragraph",
+      "text": "IN NO EVENT SHALL EITHER PARTY'S AGGREGATE LIABILITY UNDER THIS AGREEMENT EXCEED THE TOTAL FEES PAID OR PAYABLE BY CUSTOMER DURING THE TWELVE (12) MONTH PERIOD IMMEDIATELY PRECEDING THE EVENT GIVING RISE TO THE CLAIM. NEITHER PARTY SHALL BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, REGARDLESS OF THE CAUSE OF ACTION OR THE THEORY OF LIABILITY.",
+      "size_pt": 10
+    },
+    {"type": "spacer"},
+    {
+      "type": "paragraph",
+      "text": "10. Governing Law",
+      "bold": true,
+      "size_pt": 11
+    },
+    {
+      "type": "paragraph",
+      "text": "This Agreement shall be governed by and construed in accordance with the laws of the State of California, without regard to its conflict of laws principles. Any disputes arising under this Agreement shall be subject to the exclusive jurisdiction of the state and federal courts located in San Francisco County, California.",
+      "size_pt": 10
+    },
+    {"type": "spacer"},
+    {
+      "type": "paragraph",
+      "text": "11. Entire Agreement",
+      "bold": true,
+      "size_pt": 11
+    },
+    {
+      "type": "paragraph",
+      "text": "This document constitutes the entire agreement between the parties with respect to the subject matter hereof and supersedes all prior and contemporaneous agreements, proposals, and representations, written or oral, concerning its subject matter. No modification of this Agreement shall be binding unless executed in writing by both parties.",
+      "size_pt": 10
+    },
+    {"type": "spacer"},
+    {"type": "spacer"},
+    {
+      "type": "heading",
+      "text": "SIGNATURES",
+      "level": 2,
+      "bold": true
+    },
+    {"type": "spacer"},
+    {
+      "type": "table",
+      "columns": 2,
+      "style": "Table Grid",
+      "rows": [
+        ["QuantumBit Representative", "Customer"],
+        ["Signature: _________________________", "Signature: _________________________"],
+        ["Name: _________________________", "Name: _________________________"],
+        ["Title: _________________________", "Title: _________________________"],
+        ["Date: _________________________", "Date: _________________________"]
+      ]
+    }
+  ]
+}
