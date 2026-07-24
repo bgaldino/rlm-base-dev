@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**272 tasks** across **10 groups**.
+**271 tasks** across **10 groups**.
 
 ---
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*163 task(s)*
+*162 task(s)*
 
 ### `activate_agents`
 
@@ -1283,23 +1283,6 @@
 
 ---
 
-### `apply_context_ramp_mode`
-
-**Description:** Adds RampMode__c (SalesTransactionItem) and GroupRampMode__c (SalesTransactionGroup) context attributes to the Sales Transaction context definition and maps them to QuoteLineItem.RLM_RampMode__c and QuoteLineGroup.RLM_RampMode__c (QuoteEntitiesMapping) and OrderItem.RLM_RampMode__c and OrderItemGroup.RLM_RampMode__c (OrderEntitiesMapping).
-
-**Class:** `tasks.rlm_context_service.ManageContextDefinition`
-
-**Options:**
-
-- `developer_name`: `RLM_SalesTransactionContext`
-- `plan_file`: `datasets/context_plans/RampMode/manifest.json`
-- `translate_plan`: `True`
-- `deactivate_before`: `False`
-- `activate`: `True`
-- `verify`: `True`
-
----
-
 ### `apply_expression_set_overlay`
 
 **Description:** Apply a declarative overlay (add/remove/update/reorder steps and variables) to an expression set via BRE Connect API with deactivate/modify/reactivate lifecycle.
@@ -1447,6 +1430,14 @@
 - `pricing_procedure`: `RLM Revenue Management Default Pricing Procedure`
 - `usage_rating_procedure`: `RLM Default Rating Discovery Procedure`
 - `create_orders_flow`: `RLM_CreateOrdersFromQuote`
+
+---
+
+### `configure_search_index`
+
+**Description:** Configure PCM search index fields via Connect API from a declarative JSON config (datasets/search_index/). Supports Standard, Custom, and attribute field types. Additive — merges with existing index configuration, auto-resolves types and IDs from metadata.
+
+**Class:** `tasks.rlm_configure_search_index.ConfigureSearchIndex`
 
 ---
 
@@ -1993,18 +1984,6 @@
 **Options:**
 
 - `path`: `unpackaged/post_prm_pricing/permissionsets`
-
----
-
-### `deploy_post_ramp_builder`
-
-**Description:** Deploy all Ramp Schedule Builder (Create Ramp Schedule V4) metadata under unpackaged/post_ramp_builder: RLM_RampMode__c (Picklist) on QuoteLineGroup, QuoteLineItem, OrderItemGroup, and OrderItem; RLM_UpliftPercent__c (Percent) on QuoteLineGroup only; Lightning Message Channel (RLM_RampScheduleChannel); Apex classes and test classes (RLM_RampScheduleFlowAction, RLM_RampScheduleService, RLM_RampScheduleValidator, RLM_RampScheduleRequest, RLM_RampScheduleResponse, RLM_RampScheduleFlowException, RLM_RampMigrationQueueable, RLM_RampScheduleStatusController, RLM_QuoteLineItemDiscountUpliftHandler, RLM_QuoteLineItemRampModeHandler, RLM_QuoteLineItemRampHandler, and test classes); RLM_QuoteLineItemRampTrigger trigger; six LWC bundles (rlmRampScheduleFlowModalAction, rlmRampScheduleForm, rlmRampScheduleTrialSection, rlmRampSchedulePreviewTable, rlmRampScheduleStatus, rlmRampRefreshPage); the RLM_Create_Ramp_Schedule_V4 screen flow; the Quote.RLM_Create_Ramp_Schedule_V4 quick action; and the RLM_RampSchedule permission set (grants FLS on all custom fields and class access for all production Apex classes).
-
-**Class:** `cumulusci.tasks.salesforce.Deploy`
-
-**Options:**
-
-- `path`: `unpackaged/post_ramp_builder`
 
 ---
 
@@ -3162,14 +3141,14 @@
 
 ### `validate_setup`
 
-**Description:** Validate the local developer setup for rlm-base-dev. Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version (v5+ required), Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, and urllib3. When auto_fix=true the SFDMU plugin is automatically installed or updated to the required version. Run without an org: cci task run validate_setup
+**Description:** Validate the local developer setup for rlm-base-dev. Checks Python, CumulusCI, Salesforce CLI, SFDMU plugin version (v5.6.4+ required), Node.js, Robot Framework, SeleniumLibrary, webdriver-manager, Chrome/Chromium, ChromeDriver, and urllib3. When auto_fix=true the SFDMU plugin is automatically installed or updated to the required version. Run without an org: cci task run validate_setup
 
 **Class:** `tasks.rlm_validate_setup.ValidateSetup`
 
 **Options:**
 
 - `auto_fix`: `True`
-- `required_sfdmu_version`: `5.0.0`
+- `required_sfdmu_version`: `5.6.4`
 - `fail_on_error`: `True`
 
 ---

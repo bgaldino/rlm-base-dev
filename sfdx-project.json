@@ -29,7 +29,6 @@
     { "path": "unpackaged/post_prm" },
     { "path": "unpackaged/post_procedureplans" },
     { "path": "unpackaged/post_quantumbit" },
-    { "path": "unpackaged/post_ramp_builder" },
     { "path": "unpackaged/post_tso" },
     { "path": "unpackaged/post_utils" },
     { "path": "unpackaged/post_ux" },
