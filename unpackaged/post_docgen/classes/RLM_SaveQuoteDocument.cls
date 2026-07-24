@@ -1,4 +1,7 @@
 public class RLM_SaveQuoteDocument {
+    private static final Integer MAX_RETRIES = 3;
+    private static final Integer RETRY_DELAY_MS = 1000;
+
     @InvocableMethod(label='Save as Quote PDF' description='Copies PDF bytes into a QuoteDocument and deletes the source ContentDocument.' category='Document Generation')
     public static List<OutputVariable> saveAsQuotePdf(List<InputVariable> requests) {
         if (requests == null || requests.isEmpty()) {
@@ -12,11 +15,7 @@ public class RLM_SaveQuoteDocument {
             }
         }
 
-        Map<Id, ContentVersion> cvMap = new Map<Id, ContentVersion>([
-            SELECT Id, VersionData, ContentDocumentId
-            FROM ContentVersion
-            WHERE Id IN :cvIds
-        ]);
+        Map<Id, ContentVersion> cvMap = queryContentVersionsWithRetry(cvIds);
 
         List<QuoteDocument> qDocs = new List<QuoteDocument>();
         List<Integer> validIndices = new List<Integer>();
@@ -24,7 +23,10 @@ public class RLM_SaveQuoteDocument {
             InputVariable req = requests[i];
             ContentVersion cv = cvMap.get(req.ContentVersionId);
             if (cv == null || req.QuoteId == null) {
-                continue;
+                throw new InvocableActionException(
+                    'RLM_SaveQuoteDocument: ContentVersion ' + req.ContentVersionId +
+                    ' not found after ' + MAX_RETRIES + ' attempts. The PDF may not have finished generating.'
+                );
             }
             QuoteDocument qd = new QuoteDocument();
             qd.QuoteId = req.QuoteId;
@@ -97,6 +99,27 @@ public class RLM_SaveQuoteDocument {
         return outputs;
     }
 
+    private static Map<Id, ContentVersion> queryContentVersionsWithRetry(Set<Id> cvIds) {
+        Map<Id, ContentVersion> cvMap;
+        for (Integer attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            cvMap = new Map<Id, ContentVersion>([
+                SELECT Id, VersionData, ContentDocumentId
+                FROM ContentVersion
+                WHERE Id IN :cvIds
+            ]);
+            if (cvMap.size() == cvIds.size()) {
+                return cvMap;
+            }
+            if (attempt < MAX_RETRIES - 1) {
+                Long start = System.currentTimeMillis();
+                while (System.currentTimeMillis() - start < RETRY_DELAY_MS) {
+                    // spin-wait
+                }
+            }
+        }
+        return cvMap;
+    }
+
     public class InputVariable {
         @InvocableVariable(required=true)
         public Id QuoteId;
@@ -112,4 +135,6 @@ public class RLM_SaveQuoteDocument {
         @InvocableVariable(required=false)
         public Id NewContentDocumentId;
     }
+
+    public class InvocableActionException extends Exception {}
 }

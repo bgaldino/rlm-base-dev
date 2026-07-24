@@ -110,6 +110,9 @@
         <connector>
             <targetReference>View_Output_Document</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>View_Output_Document</targetReference>
+        </faultConnector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>QuoteId</name>
@@ -140,6 +143,9 @@
         <connector>
             <targetReference>View_Multi_Documents</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>View_Multi_Documents</targetReference>
+        </faultConnector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>QuoteId</name>
