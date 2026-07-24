@@ -1,0 +1,10 @@
+feature: utils
+feature_flag: quantumbit
+# Adds the Expression Set Manager utility below the Revenue Cloud home performance card.
+patches:
+  - type: add_component
+    region: top
+    component: rlmExpressionSetManager
+    identifier: c_rlmExpressionSetManager
+    after_identifier: home_heroChart
+    properties: {}

@@ -1621,31 +1621,31 @@ subagent ProductConfiguration:
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__textType"
-                "unitPrice": number
+                "unitPrice": object
                     description: "Updated unit price after configuration and pricing ran."
                     label: "unitPrice"
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__currencyType"
-                "totalPrice": number
+                "totalPrice": object
                     description: "Updated total price (unit price x quantity, after discounts)."
                     label: "totalPrice"
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__currencyType"
-                "listPrice": number
+                "listPrice": object
                     description: "Catalog list price before discounts."
                     label: "listPrice"
                     is_displayable: False
                     filter_from_agent: False
                     complex_data_type_name: "lightning__currencyType"
-                "grandTotal": number
+                "grandTotal": object
                     description: "Grand total of the entire quote including all expanded lines, discounts, and taxes."
                     label: "grandTotal"
                     is_displayable: True
                     filter_from_agent: False
                     complex_data_type_name: "lightning__currencyType"
-                "quoteSubtotal": number
+                "quoteSubtotal": object
                     description: "Quote subtotal before discounts and taxes."
                     label: "quoteSubtotal"
                     is_displayable: False

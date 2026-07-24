@@ -14,7 +14,7 @@
 
 | Rule file path | Glob pattern | Equivalent skill path | Has DO NOT section | Appears in AGENTS.md | Listed in skill README | Recommended owner/domain |
 |---|---|---|---|---|---|---|
-| `.cursor/rules/analysis-artifacts.mdc` | — | — | No | No | No | Repository Integration |
+| `.cursor/rules/analysis-artifacts.mdc` | — | (stand-alone) | No | Yes | No | Repository Integration |
 | `.cursor/rules/apex-classes.mdc` | `unpackaged/**/*.cls`<br>`force-app/**/*.cls` | (stand-alone) | Yes | Yes | No | Apex |
 | `.cursor/rules/apex-scripts.mdc` | `scripts/apex/**/*.apex` | `troubleshooting/SKILL.md` | Yes | Yes | Yes | Apex |
 | `.cursor/rules/cci-python-tasks.mdc` | `tasks/**/*.py` | `cci-orchestration/custom-task-authoring.md` | Yes | Yes | Yes | CCI Orchestration |

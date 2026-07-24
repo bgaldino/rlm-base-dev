@@ -2,6 +2,8 @@
 
 SFDMU data plan for QuantumBit (QB) Dynamic Revenue Orchestrator (DRO) configuration. Creates fulfillment step definitions, groups, dependencies, decomposition rules, fulfillment scenarios, workspaces, fallout rules, jeopardy rules, and updates products with DRO-specific fields. Uses dynamic user resolution at runtime.
 
+> **SFDMU 5.6.4+ floor.** The plan is `Upsert` throughout; only FulfillmentWorkspaceItem adds `deleteOldData: true`, because its externalId is a composite of two relationship traversals (`FulfillmentWorkspace.Name;FulfillmentStepDefinitionGroup.Name`) that pre-5.6.4 Upsert could not match — **fixed at/below the 5.6.4 floor**. The shipped plan keeps the workaround deliberately; dropping `deleteOldData` is the gated `sfdmu-v5-optimization` initiative (live verification + explicit approval required).
+
 ## CCI Integration
 
 ### Flow: `prepare_dro`
