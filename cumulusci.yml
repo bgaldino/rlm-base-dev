@@ -2358,6 +2358,20 @@ tasks:
     options:
       path: scripts/apex/query_billing_state.apex
 
+  validate_multicurrency_rates:
+    group: Revenue Lifecycle Management
+    description: >
+      Validate the multicurrency usage-rating configuration. Design-time checks
+      (every Tier RateCardEntry has a tier adjustment, no Pack product carries a
+      ProductUsageResourcePolicy, every ProductUsageResource is rated, every
+      currency-denominated entry covers all currencies) plus runtime checks
+      (AssetRateCardEntry currency alignment, TransactionUsageEntitlement shape
+      identical per currency) which self-skip when no assets exist. Offline
+      equivalent: python tests/test_qb_multicurrency_data.py
+    class_path: cumulusci.tasks.apex.anon.AnonymousApexTask
+    options:
+      path: scripts/apex/validateMulticurrencyRates.apex
+
   validate_billing_structure:
     group: Revenue Lifecycle Management
     description: Validate that every BillingTreatment has BillingPolicyId set. Run after data load to verify structure before activation.
