@@ -10,6 +10,9 @@
         <connector>
             <targetReference>Document_Generation_Processing</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>DocGen_Error</targetReference>
+        </faultConnector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>CurrentRecordId</name>
@@ -74,6 +77,9 @@
         <connector>
             <targetReference>Document_Merge_Processing</targetReference>
         </connector>
+        <faultConnector>
+            <targetReference>DocGen_Error</targetReference>
+        </faultConnector>
         <flowTransactionModel>Automatic</flowTransactionModel>
         <inputParameters>
             <name>CurrentRecordId</name>
@@ -969,6 +975,30 @@
             <fieldType>ComponentInstance</fieldType>
             <inputsOnNextNavToAssocScrn>UseStoredValues</inputsOnNextNavToAssocScrn>
             <isRequired>true</isRequired>
+            <styleProperties>
+                <verticalAlignment>
+                    <stringValue>top</stringValue>
+                </verticalAlignment>
+                <width>
+                    <stringValue>12</stringValue>
+                </width>
+            </styleProperties>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>false</showHeader>
+    </screens>
+    <screens>
+        <name>DocGen_Error</name>
+        <label>Document Generation Error</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>dspDocGenError</name>
+            <fieldText>&lt;p style=&quot;text-align: center;&quot;&gt;&lt;strong style=&quot;font-size: 14px; color: rgb(194, 57, 52);&quot;&gt;Document Generation Failed&lt;/strong&gt;&lt;/p&gt;&lt;p style=&quot;text-align: center;&quot;&gt;An error occurred while generating the document. Please try again or contact your administrator.&lt;/p&gt;&lt;p style=&quot;text-align: center;&quot;&gt;Error: {!$Flow.FaultMessage}&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
             <styleProperties>
                 <verticalAlignment>
                     <stringValue>top</stringValue>
