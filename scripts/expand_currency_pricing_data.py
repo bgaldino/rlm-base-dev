@@ -51,7 +51,7 @@ import csv
 import io
 import os
 import sys
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 
 DEFAULT_PLAN = "datasets/sfdmu/qb/en-US/qb-pricing"
 DEFAULT_BASE = "USD"
@@ -212,7 +212,15 @@ def main(argv=None):
 
     base = args.base.strip().upper()
     targets = [c.strip().upper() for c in args.currencies.split(",") if c.strip()]
-    step = Decimal(args.step)
+    # --round must be a positive, finite number: round_amount divides by the step,
+    # so 0 (or a non-numeric / non-finite value) would raise DivisionByZero / corrupt
+    # output on the first monetary row. Fail fast with a clear message instead.
+    try:
+        step = Decimal(args.step)
+    except (InvalidOperation, ValueError):
+        sys.exit(f"error: --round {args.step!r} is not a valid number")
+    if not step.is_finite() or step <= 0:
+        sys.exit(f"error: --round must be a positive, finite number (got {args.step!r})")
     # Fail fast on inputs that would silently corrupt the CSVs under --apply:
     # a target equal to the base drops every base row (see process(): `if ccy in
     # targets: continue`) before it can generate variants, and duplicate targets
