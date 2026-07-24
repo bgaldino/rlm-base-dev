@@ -96,7 +96,7 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 | Standard Price Book  | Base Rate Card  | —    |
 | Standard Price Book  | Tier Rate Card  | —    |
 
-## Rate Card Entries (20 records)
+## Rate Card Entries (23 records)
 
 ### Base Rate Card Entries (flat per-unit rates)
 
@@ -108,6 +108,7 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 | QB-DB-TOKEN      | UR-CPUTIME      | TOKEN-UOM| 5 tokens |
 | QB-DB-TOKEN      | UR-DATASTORAGE  | TOKEN-UOM| 10 tokens|
 | QB-TOKENS-PACK   | QB-TOKEN        | USD      | $0.33    |
+| QB-DAT-THPT      | UR-DATAXFR      | USD      | $0.10    |
 
 ### Tier Rate Card Entries (rate determined by RateAdjustmentByTier)
 
@@ -122,6 +123,8 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 | QB-CMT-TKN-FLAT | QB-TOKEN        | USD       | Term Annual   |
 | QB-CMT-TKN-TIER | QB-TOKEN        | TOKEN-UOM | Term Annual   |
 | QB-CMT-TKN-TIER | QB-TOKEN        | USD       | Term Annual   |
+| QB-CMT-TKN-TIER | UR-CPUTIME-TKN     | TOKEN-UOM | Term Annual   |
+| QB-CMT-TKN-TIER | UR-DATASTORAGE-TKN | TOKEN-UOM | Term Annual   |
 | QB-MTY-CMT       | UR-CPUTIME      | USD       | Term Annual   |
 | QB-MTY-CMT       | UR-DATASTORAGE  | USD       | Term Annual   |
 | QB-QTY-CMT       | UR-CPUTIME      | USD       | Term Annual   |
@@ -129,7 +132,7 @@ The script is **idempotent** — re-running on already-activated entries is a sa
 
 > **`UsageResource` is required for rating (2026-07-23 fix).** The QB-CMT-TKN-FLAT / QB-CMT-TKN-TIER `TOKEN-UOM` rows previously had a blank `UsageResource`. `RateCardEntry.UsageResourceId` is non-nillable and every rate/adjustment lookup in the rating procedures (`RLM_DefaultRatingProcedure`, `Negotiable_Rating_Procedure`) keys on `UsageResource`, so a blank-resource entry is never selected — those two products' commit discounts (flat 10% / 10-20-30% tiers) applied to nothing. Since the tiers are token-denominated, the resource is set to the aggregate **`QB-TOKEN`** (mirroring QB-CMT-TKN-EACH's `QB-TOKEN;TOKEN-UOM` row); `RateAdjustmentByTier` rows were updated to match. Requires a live rating run to confirm the discount applies before merge.
 
-## Rate Adjustments by Tier (22 records)
+## Rate Adjustments by Tier (26 records)
 
 ### QB-DB — Compute Time (Override tiers, USD/minute)
 

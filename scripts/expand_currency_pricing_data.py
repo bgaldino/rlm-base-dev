@@ -205,8 +205,18 @@ def main(argv=None):
     ap.add_argument("--apply", action="store_true", help="Write changes (default: dry-run)")
     args = ap.parse_args(argv)
 
+    base = args.base.strip().upper()
     targets = [c.strip().upper() for c in args.currencies.split(",") if c.strip()]
     step = Decimal(args.step)
+    # Fail fast on inputs that would silently corrupt the CSVs under --apply:
+    # a target equal to the base drops every base row (see process(): `if ccy in
+    # targets: continue`) before it can generate variants, and duplicate targets
+    # emit duplicate SFDMU external-id keys.
+    if base in targets:
+        sys.exit(f"error: base currency {base} must not appear in --currencies targets ({targets})")
+    dupes = sorted({c for c in targets if targets.count(c) > 1})
+    if dupes:
+        sys.exit(f"error: duplicate target currencies in --currencies: {dupes}")
     rates, whole = load_currency_table(args.plan)
     missing = [c for c in targets if c not in rates]
     if missing:
@@ -214,9 +224,9 @@ def main(argv=None):
 
     print(f"Plan: {args.plan}")
     print("Rates: " + ", ".join(f"{c}={rates[c]}{' [whole]' if c in whole else ''}" for c in targets))
-    print(f"{'APPLYING' if args.apply else 'DRY-RUN'} (base={args.base}, round={step}):")
+    print(f"{'APPLYING' if args.apply else 'DRY-RUN'} (base={base}, round={step}):")
     total = sum(
-        process(args.plan, fname, mc, pr, args.base, targets, rates, whole, step, args.apply)
+        process(args.plan, fname, mc, pr, base, targets, rates, whole, step, args.apply)
         for fname, (mc, pr) in CONFIG.items()
     )
     print(f"Total generated rows: {total}")

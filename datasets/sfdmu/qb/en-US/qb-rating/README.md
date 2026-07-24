@@ -2,7 +2,7 @@
 
 SFDMU data plan for QuantumBit (QB) usage rating design-time configuration. Creates and activates all objects required for usage-based rating on QB products, including usage resources, product-to-resource associations, grants, and policies.
 
-> **SFDMU 5.6.4+ floor.** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant use `Insert` + `deleteOldData: true` — a pre-5.6.4 workaround for relationship-traversal externalId matching (traversal-keyed Upsert failed to match target records, so re-runs duplicated). Those bugs are **fixed at/below the 5.6.4 floor**; the shipped plan keeps the workaround deliberately. Migrating these back to `Upsert` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval. **PUG is not operation-only**: its externalId triplet is intentionally non-unique across parent PURs (8 of this dataset's 9 PUG rows share 3 triplets), so it must first gain a PUR component (e.g. `ProductUsageResourceId`) before it can move to `Upsert`.
+> **SFDMU 5.6.4+ floor.** ProductUsageResource, ProductUsageResourcePolicy, and ProductUsageGrant use `Insert` + `deleteOldData: true` — a pre-5.6.4 workaround for relationship-traversal externalId matching (traversal-keyed Upsert failed to match target records, so re-runs duplicated). Those bugs are **fixed at/below the 5.6.4 floor**; the shipped plan keeps the workaround deliberately. Migrating these back to `Upsert` is the gated `sfdmu-v5-optimization` initiative — do not flip operations without live verification and explicit approval. **PUG is not operation-only**: its externalId triplet is intentionally non-unique across parent PURs (9 of this dataset's 11 PUG rows share 3 triplets), so it must first gain a PUR component (e.g. `ProductUsageResourceId`) before it can move to `Upsert`.
 
 ## CCI Integration
 
@@ -159,7 +159,7 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 
 ## ProductUsageGrant (PUG) Summary
 
-9 grant records across 4 usage definition products:
+11 grant records across 4 usage definition products:
 
 | Usage Definition Product | Type   | Resource          | Quantity | Validity       |
 |--------------------------|--------|-------------------|----------|----------------|
@@ -167,10 +167,12 @@ The script is **idempotent** — all activation steps filter on `Status != 'Acti
 | QB-CPU-BLNG              | Commit | QB-QTY-CMT;UR-CPUTIME       | 1000  | 1 Month |
 | QB-DATA-STORAGE-BLNG     | Grant  | QB-DB;UR-DATASTORAGE        | 5     | 1 Month |
 | QB-DATA-STORAGE-BLNG     | Commit | QB-QTY-CMT;UR-DATASTORAGE   | 1000  | 1 Month |
+| QB-DATA-STORAGE-BLNG     | Grant  | QB-DAT-THPT;UR-DATAXFR      | 5     | 1 Month |
 | QB-TOKEN-DEF             | Commit | QB-CMT-TKN-FLAT;QB-TOKEN    | 1000  | 1 Month |
 | QB-TOKEN-DEF             | Grant  | QB-DB-TOKEN;QB-TOKEN        | 100000| None    |
 | QB-TOKEN-DEF             | Commit | QB-CMT-TKN-TIER;QB-TOKEN    | 1000  | 1 Month |
 | QB-TOKEN-DEF             | Commit | QB-CMT-TKN-EACH;QB-TOKEN    | 1000  | 1 Month |
+| QB-TOKEN-DEF             | Grant  | QB-TOKENS-PACK;QB-TOKEN     | 500   | 1 Month |
 | RES-USD-DEF              | Commit | QB-MTY-CMT;UR-USD           | 5000  | 1 Month |
 
 ## API 260 Known Issues
@@ -289,7 +291,7 @@ The SOQL queries in `export.json` include both raw ID fields (e.g., `ProductId`)
 
 ## Idempotency
 
-The plan is **fully idempotent**: every run deletes ALL PUR, PURP, and PUG records (deleteOldData, no WHERE) and re-inserts from CSV. Consecutive runs always produce PUR=21, PURP=19, PUG=9. No duplicate risk.
+The plan is **fully idempotent**: every run deletes ALL PUR, PURP, and PUG records (deleteOldData, no WHERE) and re-inserts from CSV. Consecutive runs always produce PUR=21, PURP=21, PUG=11. No duplicate risk.
 
 The idempotency test (`test_qb_rating_idempotency`) uses **extraction roundtrip** (`use_extraction_roundtrip: true`): loads from source CSVs → extracts from org → post-processes → re-imports from the processed dir, confirming no record count increase. Extraction output is persisted to `datasets/sfdmu/extractions/qb-rating/<timestamp>/`.
 

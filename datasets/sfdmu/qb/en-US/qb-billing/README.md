@@ -52,7 +52,7 @@ to Product2
 |----|------------------------------|-----------|--------------------------------------------|---------|
 | 1  | AccountingPeriod             | Upsert    | `Name;FinancialYear`                       | 84      |
 | 2  | LegalEntity                  | Readonly  | `Name`                                     | 7       |
-| 3  | LegalEntyAccountingPeriod    | Upsert    | `Name`                                     | 336     |
+| 3  | LegalEntyAccountingPeriod    | Upsert    | `Name`                                     | 588     |
 | 4  | PaymentTerm                  | Upsert    | `Name`                                     | 2       |
 | 5  | PaymentTermItem              | Upsert    | `PaymentTerm.Name;Type`                    | 2       |
 | 6  | BillingPolicy                | Upsert    | `Name`                                     | 3       |
@@ -126,7 +126,7 @@ Both scripts are idempotent — all queries filter on non-Active status.
 
 ### Financial Infrastructure (Objects 1-3)
 
-AccountingPeriod (84 monthly periods for 2024-2030), LegalEntity (4 entities: US, Canada, EU/France, UK/London — resolved as Readonly from qb-tax), and their mapping via LegalEntyAccountingPeriod (336 records = 84 periods × 4 entities).
+AccountingPeriod (84 monthly periods for 2024-2030), LegalEntity (7 entities: US, Canada, EU/France, UK/London, Australia, Switzerland, Japan — resolved as Readonly from qb-tax), and their mapping via LegalEntyAccountingPeriod (588 records = 84 periods × 7 entities).
 
 ### Payment Terms (Objects 4-5)
 
@@ -142,7 +142,7 @@ Chart of accounts (51 GL accounts) with 8 assignment rules mapping transaction t
 
 ### Sequence Policies (Connect-API task, not SFDMU)
 
-8 `SequencePolicy` records (US/CA/EU/UK × Invoice/CreditMemo) controlling invoice and credit memo number sequences, each with one `SeqPolicySelectionCondition` routing by LegalEntity. These are created by the `create_sequence_policies` Connect-API task (`prepare_billing` step 4) from `SequencePolicies.json`, **not** by this SFDMU plan — see [Sequence Policies (Connect API)](#sequence-policies-connect-api).
+14 `SequencePolicy` records (7 regions US/CA/EU/UK/AU/CH/JP × Invoice/CreditMemo) controlling invoice and credit memo number sequences, each with one `SeqPolicySelectionCondition` routing by LegalEntity. These are created by the `create_sequence_policies` Connect-API task (`prepare_billing` step 4) from `SequencePolicies.json`, **not** by this SFDMU plan — see [Sequence Policies (Connect API)](#sequence-policies-connect-api).
 
 ## Composite External IDs
 
@@ -197,19 +197,19 @@ qb-billing/
 │
 │  Source CSVs (Pass 1 - Draft status)
 ├── AccountingPeriod.csv                 # 84 records (2024–2030)
-├── LegalEntity.csv                      # 4 names (Readonly — resolved from qb-tax)
-├── LegalEntyAccountingPeriod.csv        # 336 records (84 periods × 4 entities)
+├── LegalEntity.csv                      # 7 names (Readonly — resolved from qb-tax)
+├── LegalEntyAccountingPeriod.csv        # 588 records (84 periods × 7 entities)
 ├── PaymentTerm.csv                      # 2 records
 ├── PaymentTermItem.csv                  # 2 records
 ├── BillingPolicy.csv                    # 3 records
-├── BillingTreatment.csv                 # 9 records (US/CA/EU/UK × Advance/Arrears + Milestone)
-├── BillingTreatmentItem.csv             # 12 records (one per treatment, EU=EUR, UK=GBP)
+├── BillingTreatment.csv                 # 15 records (7 regions × Advance/Arrears + Milestone)
+├── BillingTreatmentItem.csv             # 18 records (one per treatment)
 ├── Product2.csv                         # 315 records (Update only)
 ├── GeneralLedgerAccount.csv             # 51 records
 ├── GeneralLedgerAcctAsgntRule.csv       # 8 records
 ├── PaymentRetryRuleSet.csv
 ├── PaymentRetryRule.csv
-├── SequencePolicies.json                # 8 policies (US/CA/EU/UK × Invoice/CreditMemo) with inline selection conditions
+├── SequencePolicies.json                # 14 policies (7 regions × Invoice/CreditMemo) with inline selection conditions
 │
 │  Source CSVs (Pass 2 - Activate BTI)
 ├── objectset_source/
