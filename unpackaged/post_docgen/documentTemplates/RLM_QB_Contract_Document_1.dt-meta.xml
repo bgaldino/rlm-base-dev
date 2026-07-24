@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DocumentTemplate xmlns="http://soap.sforce.com/2006/04/metadata">
+    <documentGenerationMechanism>ServerSide</documentGenerationMechanism>
+    <extractOmniDataTransformName>RLMQBContractExtract</extractOmniDataTransformName>
+    <fileExtension>docx</fileExtension>
+    <hasBatchableSection>false</hasBatchableSection>
+    <isActive>true</isActive>
+    <isSectionProcessed>false</isSectionProcessed>
+    <mapperOmniDataTransformName>RLMQBContractTransform</mapperOmniDataTransformName>
+    <name>RLM_QB_Contract_Document</name>
+    <shouldDisplayUnmappedToken>false</shouldDisplayUnmappedToken>
+    <shouldExtractEmbeddedTmplToken>false</shouldExtractEmbeddedTmplToken>
+    <status>Active</status>
+    <tokenList>ContractNumber,ContractStartDate,ContractEndDate,ContractTerm,ContractStatus,AccountName,BillingStreet,BillingCity,BillingState,BillingPostalCode,Line:ProductName,Line:ProductCode,Line:SellingModel,Line:ListPrice,Line:UnitPrice,Line:DiscountPercent,Line:StartDate,Line:EndDate</tokenList>
+    <tokenMappingMethodType>OmniDataTransform</tokenMappingMethodType>
+    <tokenMappingType>JSON</tokenMappingType>
+    <type>MicrosoftWord</type>
+    <uniqueName>RLM_QB_Contract_Document_1</uniqueName>
+    <usageType>Contract_Lifecycle_Management</usageType>
+    <versionNumber>1</versionNumber>
+</DocumentTemplate>
