@@ -229,7 +229,6 @@ class WriteBackUXTemplates(BaseTask):
             ("docgen", "docgen"),
             ("tso", "tso"),
             ("constraints", "constraints"),
-            ("ramps", "ramp_builder"),
             ("large_stx", "large_stx"),
             ("collections", "collections"),
             ("personas", "personas"),

@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!--
+      Account-reset utilities. RLM_AccountUtilities' invocable deletes
+      account-related orders, assets, contracts, invoices, quotes and
+      opportunities, so this set is destructive and stays scoped to the flows
+      that actually need it (tso). The Expression Set Manager has its own
+      least-privilege set: RLM_ExpressionSetManager.
+    -->
     <classAccesses>
         <apexClass>RLM_AccountUtilities</apexClass>
         <enabled>true</enabled>
