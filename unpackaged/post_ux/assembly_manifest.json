@@ -1,5 +1,5 @@
 {
-  "assembled_at": "2026-06-25T06:05:12.498262Z",
+  "assembled_at": "2026-07-08T17:29:25.811495Z",
   "feature_flags": {
     "quantumbit": true,
     "billing": true,
@@ -10,10 +10,9 @@
     "clm": true,
     "dro": true,
     "guidedselling": true,
-    "ramps": true,
     "tso": false,
     "prm": true,
-    "agents": false,
+    "agents": true,
     "docgen": true,
     "payments": true,
     "constraints": true,
@@ -283,7 +282,13 @@
       "name": "RLM_Home_Page_Default.flexipage-meta.xml",
       "dest": "unpackaged/post_ux/flexipages/RLM_Home_Page_Default.flexipage-meta.xml",
       "source": "templates/flexipages/standalone/quantumbit/RLM_Home_Page_Default.flexipage-meta.xml",
-      "patches": []
+      "patches": [
+        {
+          "feature": "utils",
+          "patch_type": "add_component",
+          "description": "add component: rlmExpressionSetManager"
+        }
+      ]
     },
     {
       "type": "flexipage",
@@ -493,24 +498,9 @@
           "description": "add fields to System Information: RLM_Approval_Level__c"
         },
         {
-          "feature": "ramp_builder",
-          "patch_type": "remove_action",
-          "description": "remove action: Quote.RLM_Create_Proposal"
-        },
-        {
-          "feature": "ramp_builder",
-          "patch_type": "insert_action",
-          "description": "insert actions: Quote.RLM_Create_Proposal"
-        },
-        {
           "feature": "personas",
           "patch_type": "insert_after_xml",
           "description": "insert XML after <identifier>runtime_sales_pathassistant_pathAssistant</identifier>"
-        },
-        {
-          "feature": "prm_pricing",
-          "patch_type": "add_sales_txn_line_editor_field",
-          "description": "add Sales Transaction Line Editor displayFields: QuoteLineItem.RLM_Distributor_Discount_Percent__c, QuoteLineItem.RLM_Distributor_Unit_Price__c, QuoteLineItem.PartnerDiscountPercent, QuoteLineItem.PartnerUnitPrice, QuoteLineItem.RLM_Partner_Net_Total_Price__c, QuoteLineItem.TotalCost, QuoteLineItem.Margin, QuoteLineItem.MarginAmount"
         }
       ]
     },
