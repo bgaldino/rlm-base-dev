@@ -247,19 +247,35 @@ public class RLM_AccountUtilities {
         Boolean deleteBilling = request.get(0).DeleteBilling;
 
             // Start a savepoint for transaction control
+        // ------------------------------------------------------------------
+        // The usage-graph teardown runs BEFORE the savepoint, deliberately.
+        //
+        // It is idempotent and convergent -- a rerun simply finds fewer rows --
+        // and its partial progress MUST survive a later failure. Inside the
+        // savepoint, a single exception anywhere in the order/asset/quote
+        // cleanup below would roll back every usage row removed here, so the
+        // reset could never converge across reruns: each attempt would start
+        // from the same untouched graph and surface the same blocker. That is
+        // exactly what made the original failure so hard to diagnose, and it
+        // would defeat the DML-budget clamp in deleteQuietly(), whose whole
+        // point is that a partial teardown is real progress to build on.
+        //
+        // Nothing here is coupled to the transactional deletes below, so there
+        // is no atomicity to preserve -- only progress to lose.
+        deleteUsageResourcePoliciesForAccount(accountId); // BindingObjUsageRsrcPlcy
+        deleteBindingObjRateCardEntriesForAccount(accountId); // BindingObjectRateCardEntry
+
+        // The summary graph must go FIRST. A UsageEntitlementEntry holds its
+        // UsageSummary, and a bucket cannot be deleted while entitlement entries
+        // still reference it -- so tearing down buckets before the summaries
+        // (the previous order) fails on any account whose usage was ever rated.
+        deleteUsageSummaryGraph(accountId);
+        deleteAssetRateCardEntries(accountId);
+
         Savepoint sp = Database.setSavepoint();
         try {
             // Get Order data once
             OrderData orderData = new OrderData(accountId);
-            deleteUsageResourcePoliciesForAccount(accountId); // BindingObjUsageRsrcPlcy
-            deleteBindingObjRateCardEntriesForAccount(accountId); // BindingObjectRateCardEntry
-            
-            // The summary graph must go FIRST. A UsageEntitlementEntry holds its
-            // UsageSummary, and a bucket cannot be deleted while entitlement entries
-            // still reference it -- so tearing down buckets before the summaries
-            // (the previous order) fails on any account whose usage was ever rated.
-            deleteUsageSummaryGraph(accountId);
-            deleteAssetRateCardEntries(accountId);
 
             // Then the entitlements and their buckets.
             deleteTransactionUsageEntitlement(accountId);

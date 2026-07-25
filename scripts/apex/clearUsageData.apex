@@ -1,13 +1,21 @@
 // Clear the high-volume usage records for an org (or one account).
 //
-// WHY THIS EXISTS: RLM_AccountUtilities.delAccountRelatedObjects is structurally
-// over the 100-SOQL governor limit -- it fails with "Too many SOQL queries: 101"
-// on ANY account that has assets, not merely on ones with a long history. Until
-// that is refactored, run this first; it drains the usage graph in a fixed, small
-// number of queries so the reset utility has far less to walk.
+// WHEN TO USE THIS vs RLM_AccountUtilities:
+//   * This script  -- ORG-WIDE, usage-only. Drains the whole usage graph across
+//     every account in a fixed, small number of queries. The right tool for
+//     resetting a scratch org between demo runs, and for clearing usage without
+//     touching orders, quotes, assets or opportunities.
+//   * RLM_AccountUtilities.delAccountRelatedObjects -- PER-ACCOUNT, full reset.
+//     Removes the account's usage graph *and* its transactional records. That is
+//     the in-org utility demo users run.
 //
-// It is also the only way to remove two objects the reset utility does not touch
-// at all:
+// The two now share the same teardown design: a convergent loop with a DML-row
+// budget clamp. RLM_AccountUtilities also deletes UsageEntitlementEntry and
+// AssetRateCardEntry, so this script is no longer required as a prerequisite for
+// a per-account reset -- prefer it when the job is org-wide or usage-only.
+//
+// Two objects worth knowing about, because leaving them behind has non-obvious
+// consequences:
 //   * UsageEntitlementEntry -- holds a rated UsageSummary ("associated with the
 //     following usage entitlement entries"), so any account whose usage reached
 //     LiableSummaryComplete cannot be reset without deleting these first.
@@ -124,11 +132,30 @@ if (take > 0) {
 System.debug('CLEAR: entitlementEntries=' + uee + ' billingPeriodItems=' + ubpi
     + ' summaries=' + us + ' ratable=' + urs + ' assetRateCardEntries=' + arce
     + ' journals=' + tj);
-System.debug('CLEAR: remaining -- entries=' + [SELECT COUNT() FROM UsageEntitlementEntry]
-    + ' summaries=' + [SELECT COUNT() FROM UsageSummary]
-    + ' ratable=' + [SELECT COUNT() FROM UsageRatableSummary]
-    + ' arce=' + [SELECT COUNT() FROM AssetRateCardEntry]
-    + ' journals=' + [SELECT COUNT() FROM TransactionJournal]);
+// The remaining counts MUST use the same scope as the deletes. Reported org-wide
+// after a per-account run, other accounts' rows make a complete cleanup look
+// unfinished -- and the rerun-until-zero guidance below would then never be
+// satisfiable.
+Integer remEntries, remSummaries, remRatable, remArce, remJournals;
+if (scoped) {
+    remEntries   = [SELECT COUNT() FROM UsageEntitlementEntry
+                    WHERE TransactionUsageEntitlement.Account.Id = :accountId];
+    remSummaries = [SELECT COUNT() FROM UsageSummary
+                    WHERE AccountId = :accountId OR AssetId IN :assetIds];
+    remRatable   = [SELECT COUNT() FROM UsageRatableSummary
+                    WHERE AccountId = :accountId OR AssetId IN :assetIds];
+    remArce      = [SELECT COUNT() FROM AssetRateCardEntry WHERE Asset.AccountId = :accountId];
+    remJournals  = [SELECT COUNT() FROM TransactionJournal WHERE AccountId = :accountId];
+} else {
+    remEntries   = [SELECT COUNT() FROM UsageEntitlementEntry];
+    remSummaries = [SELECT COUNT() FROM UsageSummary];
+    remRatable   = [SELECT COUNT() FROM UsageRatableSummary];
+    remArce      = [SELECT COUNT() FROM AssetRateCardEntry];
+    remJournals  = [SELECT COUNT() FROM TransactionJournal];
+}
+System.debug('CLEAR: remaining (' + (scoped ? 'account ' + ACCOUNT_NAME : 'org-wide')
+    + ') -- entries=' + remEntries + ' summaries=' + remSummaries
+    + ' ratable=' + remRatable + ' arce=' + remArce + ' journals=' + remJournals);
 System.debug('CLEAR: SOQL used = ' + (Limits.getQueries() - q0) + ' of 100'
     + ', DML rows used = ' + Limits.getDmlRows() + ' of ' + Limits.getLimitDmlRows());
 if (budgetSpent) {

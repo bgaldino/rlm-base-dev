@@ -122,13 +122,24 @@ sf apex run --file scripts/apex/validateRatedUsage.apex --target-org <alias>
 ### 5. Reset
 
 ```bash
-sf apex run --file scripts/apex/clearUsageData.apex --target-org <alias>   # org-wide
+sf apex run --file scripts/apex/clearUsageData.apex --target-org <alias>   # org-wide, usage only
 ```
 
 Per-account, the in-org utility is `RLM_AccountUtilities.delAccountRelatedObjects`
-(permission set `RLM_UtilitiesPermset`, `tso` only — it is destructive and also
-clears the account's usage graph). Both use a **convergent loop**: attempt every
-object each round, stop when a round makes no progress.
+(permission set `RLM_UtilitiesPermset`, `tso` only — destructive: it clears the
+account's transactional records **and** its usage graph).
+
+Both use a **convergent loop** — attempt every object each round, stop when a round
+makes no progress — and both clamp each delete to the transaction's remaining DML
+row budget, reporting a partial teardown rather than throwing. Two consequences
+worth knowing:
+
+- **Re-run until the remaining counts read zero.** A partial teardown is expected on
+  a large graph and is real progress, not a failure.
+- **Usage teardown must sit outside any rollback boundary.** In
+  `RLM_AccountUtilities` it deliberately runs *before* the savepoint: inside it, one
+  later exception would roll back every usage row removed and the reset could never
+  converge across reruns.
 
 ---
 
