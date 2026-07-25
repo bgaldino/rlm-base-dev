@@ -264,6 +264,9 @@ public class RLM_AccountUtilities {
             deleteUsageEntitlements(accountId);
 
             // Then handle other usage and billing related records
+            // Final sweep. The convergent teardown above already drains journals as
+            // their summaries release them; anything still here refused to delete
+            // and will block asset deletion, so say so rather than failing later.
             deleteTransactionJournal(accountId);
 
             // Delete Billing information
@@ -1474,51 +1477,60 @@ public class RLM_AccountUtilities {
             assetIds.add(a.Id);
         }
 
-        Integer uee = 0, ubpi = 0, us = 0, urs = 0;
+        // ONE convergent loop over the WHOLE usage graph. The delete constraints
+        // are circular, so no fixed order can work:
+        //   UsageSummary <-> UsageRatableSummary   (each can hold the other)
+        //   UsageEntitlementEntry -> UsageSummary  (an entry holds its summary)
+        //   TransactionJournal    -> UsageSummary  (a rated journal is held)
+        //   UsageEntitlementBucket parent <-> child (3 levels)
+        //   TransactionUsageEntitlement <- bucket
+        //   UsageEntitlementAccount     <- TUE
+        //   UsageCmtAssetRelatedObj     -> Asset   (the commitment junction)
+        // Alternate them and stop when a full round makes no progress. Fixed, small
+        // SOQL cost per round rather than one that grows with the org's history.
+        Integer removed = 0;
         for (Integer round = 1; round <= MAX_TEARDOWN_ROUNDS; round++) {
             Integer progress = 0;
 
-            // Must precede UsageSummary -- an entry holds its summary.
-            List<UsageEntitlementEntry> entries = [
+            progress += deleteQuietly([
                 SELECT Id FROM UsageEntitlementEntry
-                WHERE TransactionUsageEntitlement.Account.Id = :accountId
-                LIMIT :TEARDOWN_BATCH
-            ];
-            progress += deleteQuietly(entries);
-            uee += progress;
-
-            // Blocked by its summaries too, so it belongs inside the loop --
-            // deleting it once up front strands rows behind summaries that only
-            // become deletable on a later round.
-            Integer before = progress;
+                WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :TEARDOWN_BATCH]);
             progress += deleteQuietly([
                 SELECT Id FROM UsageBillingPeriodItem
-                WHERE AccountId = :accountId OR AssetId IN :assetIds
-                LIMIT :TEARDOWN_BATCH
-            ]);
-            ubpi += progress - before;
-
-            before = progress;
+                WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH]);
             progress += deleteQuietly([
                 SELECT Id FROM UsageSummary
-                WHERE AccountId = :accountId OR AssetId IN :assetIds
-                LIMIT :TEARDOWN_BATCH
-            ]);
-            us += progress - before;
-
-            before = progress;
+                WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH]);
             progress += deleteQuietly([
                 SELECT Id FROM UsageRatableSummary
-                WHERE AccountId = :accountId OR AssetId IN :assetIds
-                LIMIT :TEARDOWN_BATCH
-            ]);
-            urs += progress - before;
+                WHERE AccountId = :accountId OR AssetId IN :assetIds LIMIT :TEARDOWN_BATCH]);
+            progress += deleteQuietly([
+                SELECT Id FROM TransactionJournal
+                WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH]);
+            progress += deleteQuietly([
+                SELECT Id FROM UsageEntitlementBucket
+                WHERE TransactionUsageEntitlement.Account.Id = :accountId LIMIT :TEARDOWN_BATCH]);
+            progress += deleteQuietly([
+                SELECT Id FROM TransactionUsageEntitlement
+                WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH]);
+            progress += deleteQuietly([
+                SELECT Id FROM UsageEntitlementAccount
+                WHERE AccountId = :accountId LIMIT :TEARDOWN_BATCH]);
+            // The commitment junction. Linking a commitment to its anchor is a
+            // post-262 selling step this utility predates, and an anchor asset
+            // cannot be deleted while its junction row survives.
+            if (!assetIds.isEmpty()) {
+                progress += deleteQuietly([
+                    SELECT Id FROM UsageCmtAssetRelatedObj
+                    WHERE AssetId IN :assetIds OR RelatedObjectId IN :assetIds
+                    LIMIT :TEARDOWN_BATCH]);
+            }
 
+            removed += progress;
             System.debug('deleteUsageSummaryGraph: round ' + round + ' removed ' + progress);
             if (progress == 0) { break; }
         }
-        System.debug('deleteUsageSummaryGraph: entries=' + uee + ' billingPeriodItems=' + ubpi
-            + ' summaries=' + us + ' ratable=' + urs);
+        System.debug('deleteUsageSummaryGraph: removed ' + removed + ' usage record(s)');
         return true;
     }
 
@@ -1555,7 +1567,9 @@ public class RLM_AccountUtilities {
                 removed++;
             } else {
                 for (Database.Error err : r.getErrors()) {
-                    System.debug(LoggingLevel.FINE, 'deleteQuietly: ' + err.getMessage());
+                    // Not FINE: a row that refuses to delete is the thing that later
+                    // blocks the asset, so it must be visible at the default level.
+                    System.debug('deleteQuietly blocked: ' + err.getMessage());
                 }
             }
         }
