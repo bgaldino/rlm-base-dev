@@ -307,6 +307,18 @@ Three rules fall out, and each one breaks a demo if assumed away:
 > a second product this is a "flip one field between demos" story that breaks the
 > moment two people demo in the same org.
 >
+> Live-verified as a real catalog product (not a policy flip): sold through
+> quote → order → asset, linked to a `QB-DB-TOKEN` anchor, and rated at
+> **19,361.111111 USD** on the 76,500-token spike — matching the policy-flip result
+> to the last decimal, with both buckets exhausted identically.
+>
+> ⚠️ The **total** overage is deterministic; the **per-resource split is not**. Two
+> bounded runs of the same spike attributed the anchor grant differently — one
+> debited storage's 1,500 and put 38,722.22 of compute into overage, the other gave
+> compute the whole grant (25,000 ÷ 0.9 + 10,000 = 37,777.78) and pushed all 1,500 of
+> storage to overage. Same 38,722.22 total, same bill. Do not write a demo script
+> that asserts a particular per-resource debit.
+>
 > Both sit in the **Consumption** component group (`QB-PCG-USAGE`) of the QuantumBit
 > Complete Solution bundle — FLAT at sequence 20, BND at 25.
 
