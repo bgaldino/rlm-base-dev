@@ -2395,10 +2395,22 @@ public class RLM_AccountUtilities {
      * @return Boolean indicating success
      */
     private static Boolean deleteInvoices(String accountId) {
-        Invoice[] invoicesToDelete = 
-            [SELECT Id FROM Invoice WHERE BillingAccountId = :accountId AND Status = 'Draft'];
+        List<Invoice> invoicesToDelete = new List<Invoice>();
+        Integer retained = 0;
+        for (Invoice inv : [SELECT Id, Status FROM Invoice WHERE BillingAccountId = :accountId]) {
+            if (inv.Status == 'Draft') { invoicesToDelete.add(inv); } else { retained++; }
+        }
         if (!invoicesToDelete.isEmpty()) {
             Database.delete(invoicesToDelete);
+        }
+        // Posted invoices cannot be deleted, so a reset legitimately leaves them behind. Saying
+        // nothing, though, makes a partial clear read as a full one -- the account looks reset
+        // while records remain. Report it rather than only filtering it out.
+        if (retained > 0) {
+            System.debug(LoggingLevel.WARN, 'deleteInvoices: RETAINED ' + retained + ' non-Draft '
+                + 'invoice(s) -- posted invoices cannot be deleted. Their Billing '
+                + 'TransactionJournal rows carry no AccountId, so they are likewise out of reach '
+                + 'of an account-scoped reset. This account is NOT fully cleared.');
         }
         return true;
     }
