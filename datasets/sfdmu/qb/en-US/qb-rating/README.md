@@ -247,6 +247,50 @@ Products with `UsageModelType='Anchor'` (e.g., QB-DB) require a Token PUR (`QB-D
 
 CommitmentSpend products (QB-MTY-CMT) require their Currency-category PUR (`QB-MTY-CMT;UR-USD`) to be Active before any Usage-category PURs can be activated.
 
+### Drawdown order and bases: commitment first (discounted), then grant (raw), then overage
+
+Live-verified 2026-07-25 on `pr308`, reconciled to the last decimal. A spike month
+of 3× the standard profile — 15,000 CPU min + 150 TB = **76,500 raw tokens** —
+against a `QB-DB-TOKEN` anchor (10,000-token grant) with a linked
+`QB-CMT-TKN-FLAT` commitment (25,000 tokens, flat 10%):
+
+| | |
+|---|---|
+| commitment bucket | drawn in **discounted** tokens — 27,777.78 raw × 0.90 = exactly 25,000 |
+| anchor grant | drawn in **raw** tokens — 8,500 compute + 1,500 storage = exactly 10,000 |
+| overage | 75,000 − 36,277.78 = 38,722.22 raw, × 0.90 = **34,850** tokens @ 0.5 = **17,425 USD** |
+
+Three rules fall out, and each one breaks a demo if assumed away:
+
+1. **The commitment drains before the anchor grant.** The grant is the *last* line
+   of defence, not the first — with a commitment in force and balance remaining, the
+   grant is untouched (Infinitech: commitment −17,850, grant 10,000 intact).
+2. **The two buckets use different bases.** The commitment decrements by the
+   *discounted* quantity; the grant decrements by the *raw* quantity. A grant is an
+   included allowance, not a discount — usage it absorbs is never discounted at all,
+   which is why the storage line above shows `OverageUnits = 0` and no discount.
+3. **The commitment discount survives into overage.** Every QB commit product uses
+   `UsageCommitmentPolicy = 'Lowest Rate'` (`CommitmentRate = Lowest Commitment
+   Rate`), so the excess past the commitment still rates at the discounted price.
+   The dataset also ships **`Bounded Object Rate`**, which no product references —
+   that is the contrasting behaviour (revert to the standard anchor rate on
+   overage) and is currently unexercised.
+
+Read `UsageSummary.ConsumptionUnits` / `DebitedUnits` / `OverageUnits` to decompose a
+period; `UsageEntitlementBucket.ConsumedEntitlement` gives the per-bucket totals.
+Note `UsageRatableSummary.OverageQuantity` mirrors `TierQuantity` on ordinary rows —
+it means "quantity charged beyond the included allowance", not "beyond the
+commitment", so it is not on its own evidence that a commitment was exceeded.
+
+### The drawdown lands only when a period COMPLETES
+
+The current billing period stays open, so a spike booked into it sits at
+`InProgress` with buckets untouched and no final rating — it looks like a
+full-discount, no-drawdown result. Book demo usage into a **past** period. Combined
+with the rule below, a backdated demo gets exactly one attempt per account:
+**build → consume into the target past period → orchestrate**, because the first
+orchestration pass on an account closes every past period empty.
+
 ### Record usage BEFORE orchestrating that period — a closed summary never reopens
 
 Live-verified 2026-07-24 on `pr308`, and the single most common way a usage demo
