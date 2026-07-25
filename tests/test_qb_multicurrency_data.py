@@ -625,10 +625,36 @@ def check_counts_match_readme(d):
           else f"all {checked} plan README file-tree counts match the CSVs")
 
 
+def check_docs_state_the_real_count(_d, registered=0):
+    """The docs advertise how many invariants exist; that number must be true.
+
+    Hand-maintained and self-referential, so it drifts the moment an invariant is
+    added -- it silently did on the 17th, in two files at once, and nothing failed.
+    """
+    import re
+    problems = []
+    for rel, pattern in (
+            (".cursor/skills/usage-consumption/verification.md", r"(\d+) checks, no org needed"),
+            ("AGENTS.md", r"the (\d+) offline invariants")):
+        name = os.path.basename(rel)
+        try:
+            with open(os.path.join(REPO_ROOT, rel), encoding="utf-8") as fh:
+                m = re.search(pattern, fh.read())
+        except OSError as exc:
+            problems.append(f"{name}: unreadable ({exc})")
+            continue
+        if not m:
+            problems.append(f"{name}: count sentence not found — did the wording change?")
+        elif int(m.group(1)) != registered:
+            problems.append(f"{name}: says {m.group(1)}, actual {registered}")
+    check("docs_state_the_real_count", not problems, "; ".join(problems) if problems
+          else f"verification.md and AGENTS.md both say {registered}")
+
+
 # ----------------------------------------------------------------------
 def main():
     d = load()
-    for fn in (check_currency_uom_prerequisite,
+    checks = (check_currency_uom_prerequisite,
                check_tier_rce_has_adjustment,
                check_no_orphan_rabt,
                check_pack_products_have_no_purp,
@@ -644,7 +670,10 @@ def main():
                check_overrides_derived_from_base,
                check_period_ordering_descending,
                check_accumulation_refs_aligned,
-               check_counts_match_readme):
+               check_counts_match_readme,
+               # Counts itself: the docs advertise the total including this check.
+               lambda d: check_docs_state_the_real_count(d, registered=len(checks)))
+    for fn in checks:
         try:
             fn(d)
         except Exception as exc:  # a check that blows up is a failure, not a crash

@@ -335,7 +335,7 @@ Read the sub-file only when you need that specific detail:
 | `cci-orchestration/feature-flags.md` | CCI Orchestration | Auto-generated feature flag index |
 | `revenue-cloud-data-model/domains/*.md` | Data Model | Per-domain object/field/relationship details |
 | `usage-consumption/building-usage-assets.md` | Usage & Consumption | Backdated Quote→Order→Asset chains, live v67.0 endpoint contracts (and which are gone), selling-model field rules, commitment/Pack binding |
-| `usage-consumption/verification.md` | Usage & Consumption | The three verification layers, the 16 offline invariants, how to add one, reading a suspicious result |
+| `usage-consumption/verification.md` | Usage & Consumption | The three verification layers, the 18 offline invariants, how to add one, reading a suspicious result |
 | `revenue-cloud-data-model/cross-domain-relationships.md` | Data Model | Cross-domain FK mapping |
 | `sfdmu-data-plans/plan-dependency-graph.md` | SFDMU Data Plans | Load/deletion order across plans |
 | `sfdmu-data-plans/object-plan-mapping.md` | SFDMU Data Plans | Which objects belong to which plan |
