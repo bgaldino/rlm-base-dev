@@ -530,6 +530,20 @@ The CML constraint model source files are located in `scripts/cml/`:
 | `GeneratorSet258.cml` | Generator Set 258 constraint model |
 | `GeneratorSet256.cml` | Generator Set 256 constraint model |
 
-These `.cml` files define the constraint model types, relations, attributes, and rules. They are compiled into binary blobs and uploaded to `ExpressionSetDefinitionVersion.ConstraintModel` via the import task.
+These `.cml` files define the constraint model types, relations, attributes, and rules.
+
+> **⚠ The `.cml` files are REFERENCE COPIES. The `.ffxblob` is the artifact that ships.**
+>
+> `blobs/ESDV_<Model>_V<n>.ffxblob` is **plain text — it is the CML source itself**, not a
+> compiled binary, and `import_cml` uploads it verbatim to
+> `ExpressionSetDefinitionVersion.ConstraintModel`. There is no compile step. `import_cml`
+> never reads a `.cml` file; only `validate_cml` does, via its `cml_dir` option.
+>
+> **To change a constraint model, edit the `.ffxblob`** and keep the sibling
+> `scripts/cml/<Model>.cml` in sync (they are maintained byte-identical, so a `cp` from the
+> blob is the safe way to sync). Editing only the `.cml` changes nothing in any org.
+>
+> Note `QuantumBitPCM` has a blob with **no** reference `.cml`, which is why the blob — not
+> the `.cml` set — is the authoritative inventory of shipped models.
 
 The `validate_cml` task checks these files for structural correctness and cross-references them against the ESC association data in the constraint data plans.
