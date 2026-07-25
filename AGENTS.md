@@ -229,10 +229,21 @@ indexes, and more.
 
 ## Responding to Automated PR Reviews
 
+> **How review is *conducted* — what to look for, the severity rubric, the defect classes
+> this repo actually produces, and push discipline — lives in [`REVIEW.md`](REVIEW.md) at
+> the repo root.** It is read automatically alongside this file, by Claude and by Copilot.
+> This section covers only the *protocol*: what to do with a review comment once it exists.
+
 Automated reviewers (GitHub Copilot, the Codex / `chatgpt-codex-connector` bot, and
 similar) post inline comments on PRs. **Policy — every agent, every PR:** each review
 comment is handled to completion, and **every review round ends with zero unresolved
 threads.**
+
+**Batch fixes into one push per review round.** Every push to an open PR triggers a fresh
+automated review; re-reviews are not incremental (a hosted reviewer may repeat comments
+already dismissed or resolved), and a push mid-review lands against a superseded commit,
+spending a whole round on findings that no longer apply. Fix everything from a round,
+verify locally, then push once. See `REVIEW.md` → *Push discipline*.
 
 **Tooling — `python scripts/ai/pr_review.py`** (or the `/pr-review <pr>` command in Claude
 Code) automates the mechanical steps so a round can't be left half-finished:
@@ -481,8 +492,12 @@ This repository provides multiple entry points for different AI tools:
 | `AGENTS.md` | Any agent | Canonical source of truth (this file) |
 | `CLAUDE.md` | Claude Code, Cursor | Symlink to `AGENTS.md` |
 | `.github/copilot-instructions.md` | GitHub Copilot | Pointer to `AGENTS.md` |
+| `REVIEW.md` | Any agent + Copilot | **How pull requests get reviewed** — severity rubric, what to look for, this repo's recurring defect classes, push discipline. Distinct content, not a duplicate of this file. |
 | `.agents/README.md` | Any agent | Tool-agnostic routing layer: instruction-stack overview, per-tool adapters (`.agents/adapters/`), model routing, and project context. Defers to `AGENTS.md`. |
 
 `AGENTS.md`, `CLAUDE.md`, and `.github/copilot-instructions.md` resolve to the
-same content — edit `AGENTS.md` only. The `.agents/` tree is a separate routing
-and context layer that points back to `AGENTS.md` and never overrides it.
+same content — edit `AGENTS.md` only. `REVIEW.md` is a **separate** document with its
+own content: this file governs *what the code must do*, `REVIEW.md` governs *how review
+is conducted*. Keep them non-overlapping — do not restate `AGENTS.md` rules in
+`REVIEW.md`. The `.agents/` tree is a separate routing and context layer that points
+back to `AGENTS.md` and never overrides it.
