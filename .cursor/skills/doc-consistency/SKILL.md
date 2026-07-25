@@ -42,8 +42,27 @@ The core lookup: **when X changes, verify Y**.
 | `scripts/apex/*.apex` | `troubleshooting/SKILL.md` if it references the script |
 | `.forceignore` | No doc update, but verify retrieve/deploy intent is consistent |
 | `scripts/ai/*.py` | `AGENTS.md` AI Utility Scripts section |
+| **New** `scripts/*.py` (top level) | `AGENTS.md` Repository Layout — top-level utilities are easy to add and never document |
+| **New** `scripts/apex/*.apex` | `troubleshooting/SKILL.md` (if it diagnoses a failure) and `.cursor/rules/apex-scripts.mdc` (if it establishes a pattern) |
+| **New** `docs/guides/*.md` | `README.md` **Primary Guides** table — an unindexed guide is invisible |
+| `unpackaged/**/classes/*.cls` behavior change | `docs/references/revenue-cloud-permissions.md` if the class is permission-gated — especially when its **destructive scope** grows |
+| A **product/SKU added** to any dataset | *Every* plan CSV that carries that SKU, and each of their READMEs — see below |
 | `scripts/build_harness/harness/` or `harness.py` | `.cursor/skills/build-harness/SKILL.md`, `docs/guides/build-harness.md` |
 | `scripts/build_harness/tui/` or `tui-cci` | `scripts/build_harness/tui/README.md`, `.cursor/skills/build-harness/SKILL.md` |
+
+### Adding one product touches many plans
+
+A single new SKU fans out across every plan that carries it — catalog, pricing,
+images, rating, rates, tax. Each of those plans has a README with record counts.
+Missing one is silent until the consistency check runs, so **always run it repo-wide
+rather than on the plan you were editing**:
+
+```bash
+python scripts/ai/check_plan_readme_consistency.py    # no argument = all plans
+```
+
+⚠ The checker validates **object tables and file-tree listings only** — it does
+**not** read counts written in prose or headings. Those you must update by hand.
 
 ---
 

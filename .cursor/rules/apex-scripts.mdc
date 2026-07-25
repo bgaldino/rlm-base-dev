@@ -12,6 +12,9 @@ alwaysApply: false
 - Use single-record DML in loops (`update record;`) — use `update records;`
 - Delete PUR/PUG/RateCardEntry without deactivating first
 - Delete rating data before deleting rates data (FK constraint)
+- Semi-join against a **polymorphic** lookup — it silently matches nothing
+- Discard `Database.DeleteResult`s — a refused row resurfaces later as an unexplained `DELETE_FAILED` on its parent
+- Log failures at `LoggingLevel.FINE` — the default log level hides them
 
 ## Bulk Safety
 - No SOQL inside loops — query once, iterate over results
@@ -33,6 +36,40 @@ alwaysApply: false
 - Rates must be deleted before rating data (FK constraints)
 - Use `Database.delete(records)` — `delete records;` also works in anonymous Apex
 
+## Circular Graphs Need a Convergent Loop
+Some graphs (notably **usage**: summaries ↔ ratable summaries, entries/journals
+holding summaries, self-nesting buckets) have **circular** delete constraints — no
+fixed order works. Loop over every object and stop when a round makes no progress:
+
+```apex
+for (Integer round = 1; round <= MAX_ROUNDS; round++) {
+    Integer progress = 0;
+    progress += deleteQuietly([SELECT Id FROM ChildA ... LIMIT :BATCH]);
+    progress += deleteQuietly([SELECT Id FROM ChildB ... LIMIT :BATCH]);
+    if (progress == 0) { break; }
+}
+```
+
+⚠ Do **not** wrap this in a savepoint that rolls back on failure — the rollback
+undoes every successful delete, so only the first-surfacing blocker is ever visible
+and each rerun shows a different error.
+
+## Polymorphic Lookups
+A semi-join against a polymorphic field (`BindingObjectId`, `RelatedObjectId`, …)
+does not resolve — it matches nothing **and reports success**. Materialise and bind:
+
+```apex
+Set<Id> assetIds = new Map<Id, Asset>([SELECT Id FROM Asset WHERE ...]).keySet();
+[SELECT Id FROM X WHERE BindingObjectId IN :assetIds]
+```
+
+## Apex Gotchas in Anonymous Scripts
+- `IllegalStateException` **does not exist**; the built-in `Exception` is abstract —
+  declare `public class MyException extends Exception {}` to throw
+- `System.IllegalArgumentException` and `System.NoDataFoundException` are valid
+
 ## Naming Convention
 - Activation: `activate{Feature}Records.apex`
 - Deletion: `delete{Plan}Data.apex` (e.g., `deleteQbRatingData.apex`)
+- Validation: `validate{Subject}.apex` (e.g., `validateRatedUsage.apex`)
+- Data generation: `consume{Subject}.apex` / `clear{Subject}Data.apex`

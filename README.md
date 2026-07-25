@@ -1122,6 +1122,11 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Context Service PATCH Shapes](docs/references/context-service-patch-shapes.md) | Reference for the Context Service Connect/SObject PATCH request shapes (node mapping, attribute, transient, default-mapping) used by the standalone toolkit |
 | [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
 | [Transaction Data Harness](docs/guides/txn-data-harness.md) | Standalone tool that mints high-volume demo data (Quotes → Orders → Posted Invoices) by driving the real transaction lifecycle; usage, verification, cleanup |
+| [QB Consumption Demo Scenarios](docs/guides/qb-consumption-demo-scenarios.md) | Nine verified usage/consumption demo scenarios with worked arithmetic — commitments, grants, drawdown order, overage; plus the ordering rules that silently produce zeros |
+| [Post-Billing Portal](docs/guides/post-billing-portal.md) | Billing portal module setup and deployment |
+| [Prepare RLM Org Build Guide](docs/guides/prepare-rlm-org-build-guide.md) | Walkthrough of the `prepare_rlm_org` flow steps |
+| [CCI / SF CLI Token Workaround](docs/guides/cci-sf-cli-token-workaround.md) | `INVALID_AUTH_HEADER` on a healthy scratch org — cause and workaround |
+| [Build Harness](docs/guides/build-harness.md) | Build harness profiles, resume, and reporting |
 
 ### Analysis & Planning
 

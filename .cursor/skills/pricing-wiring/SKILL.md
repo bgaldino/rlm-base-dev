@@ -317,6 +317,25 @@ Check in order:
 3. recipe-to-table mapping row exists for target recipe
 4. mapping component type is correct
 
+### Wrong-currency price returned (multicurrency orgs)
+
+A lookup step that does **not** pass `CurrencyIsoCode` matches the first row for the
+product regardless of currency — so every currency silently prices at whichever row
+the table returns first. The symptom is a *plausible* price, not an error.
+
+**Fix:** add `CurrencyIsoCode` as an input on **every** lookup step that resolves a
+currency-denominated value — list price, adjustment schedule, and adjustment tier
+lookups alike. Missing it on the tier step alone still yields wrong discounts.
+
+Currency must also *reach* the record for the step to filter on it. Records created
+by quick actions and flows default to the **running user's** currency, not the
+account's, so wire currency inheritance explicitly — see
+`RLM_Default_Opportunity_Currency` and `RLM_Default_AssetRateCard_Currency`
+(`force-app/main/default/flows/`) for the pattern.
+
+Offline guard: `python tests/test_qb_multicurrency_data.py`.
+Live guard: `cci task run validate_multicurrency_rates`.
+
 ### active version update failures
 
 Confirm deactivate step runs before deploy and targets correct versions.

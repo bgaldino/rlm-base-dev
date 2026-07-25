@@ -40,15 +40,19 @@ datasets/tooling/      # Tooling API metadata exports
 # Runtime-only output dirs (created by extract_* tasks; not tracked):
 #   datasets/bre/        — Business Rule Engine exports (extract_bre)
 #   datasets/dx/         — DX-format metadata snapshots (extract_dx_*)
-scripts/apex/          # Apex activation/deletion scripts
+scripts/apex/          # Apex activation/deletion/validation scripts
 scripts/ai/            # AI agent tooling (query_erd, generate_cci_reference)
 scripts/cml/           # CML export/import/validation utilities
 scripts/erd/           # ERD validation, diffing, cleanup, HTML generation, schema_diff/
 scripts/expression_sets/ # Standalone Expression Set lifecycle toolkit (inspect/trace/diff/export + guarded mutators; sf-CLI transport, no CCI). See its README.md
 scripts/soql/          # Reusable SOQL query files
 scripts/build_harness/ # Build harness runner and TUI
+scripts/*.py           # Top-level utilities: dataset validation/generation and demo
+                       #   drivers (validate_sfdmu_v5_datasets, expand_currency_*,
+                       #   qb_usage, build_quote_to_asset, post_process_extraction)
 tasks/                 # Custom Python CCI task classes
-tests/                 # Shell-based integration test scripts
+tests/                 # Offline test suites — mostly Python (`python tests/<name>.py`,
+                       #   no org needed), plus two shell integration scripts
 robot/rlm-base/        # Robot Framework tests (setup + E2E)
 orgs/                  # Scratch org definition JSON files (TFID template shapes: orgs/tfid/README.md)
 postman/               # Postman collections for RLM APIs
