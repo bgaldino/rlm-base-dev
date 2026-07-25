@@ -3,7 +3,7 @@
 > **Auto-generated** by `scripts/ai/generate_cci_reference.py` from `cumulusci.yml`.  
 > Do not edit manually — re-run the script after changing `cumulusci.yml`.
 
-**271 tasks** across **10 groups**.
+**272 tasks** across **10 groups**.
 
 ---
 
@@ -1050,7 +1050,7 @@
 
 ## Revenue Lifecycle Management
 
-*162 task(s)*
+*163 task(s)*
 
 ### `activate_agents`
 
@@ -3136,6 +3136,18 @@
 - `file`: `None`
 - `kind`: `None`
 - `strict`: `False`
+
+---
+
+### `validate_multicurrency_rates`
+
+**Description:** Validate the multicurrency usage-rating configuration, scoped to the QuantumBit usage SKUs. Design-time checks (all 7 expected CURRENCY units exist, every RateCardEntry has a RateUnitOfMeasure, every Tier RateCardEntry has a tier adjustment, no Pack product carries a ProductUsageResourcePolicy, every ProductUsageResource is rated, every currency-denominated entry covers all 7 currencies) plus runtime checks (AssetRateCardEntry currency alignment, and per-asset entitlement shape compared across assets of the same product) which self-skip when no assets exist. Offline equivalent: python tests/test_qb_multicurrency_data.py
+
+**Class:** `tasks.rlm_apex_file.FileBasedAnonymousApexTask`
+
+**Options:**
+
+- `path`: `scripts/apex/validateMulticurrencyRates.apex`
 
 ---
 

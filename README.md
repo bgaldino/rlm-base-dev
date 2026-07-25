@@ -1122,6 +1122,12 @@ For details on exporting new models, importing into target orgs, polymorphic ID 
 | [Context Service PATCH Shapes](docs/references/context-service-patch-shapes.md) | Reference for the Context Service Connect/SObject PATCH request shapes (node mapping, attribute, transient, default-mapping) used by the standalone toolkit |
 | [DocGen Setup](docs/guides/docgen-setup.md) | Document Generation architecture, deployment flow, Metadata API binary bug, seller token implementation |
 | [Transaction Data Harness](docs/guides/txn-data-harness.md) | Standalone tool that mints high-volume demo data (Quotes → Orders → Posted Invoices) by driving the real transaction lifecycle; usage, verification, cleanup |
+| [Usage & Consumption Runbook](docs/guides/usage-consumption-runbook.md) | Step-by-step: build a backdated asset, record usage, orchestrate, verify, reset — plus a symptom→cause table for when a consumption demo misbehaves |
+| [QB Consumption Demo Scenarios](docs/guides/qb-consumption-demo-scenarios.md) | Nine usage/consumption demo scenarios (1–8 verified live; 6 pending re-verification, 9 platform-blocked) with worked arithmetic — commitments, grants, drawdown order, overage; plus the ordering rules that silently produce zeros |
+| [Post-Billing Portal](docs/guides/post-billing-portal.md) | Billing portal module setup and deployment |
+| [Prepare RLM Org Build Guide](docs/guides/prepare-rlm-org-build-guide.md) | Walkthrough of the `prepare_rlm_org` flow steps |
+| [CCI / SF CLI Token Workaround](docs/guides/cci-sf-cli-token-workaround.md) | `INVALID_AUTH_HEADER` on a healthy scratch org — cause and workaround |
+| [Build Harness](docs/guides/build-harness.md) | Build harness profiles, resume, and reporting |
 
 ### Analysis & Planning
 
@@ -1272,13 +1278,23 @@ rlm-base-dev/
 │   ├── bash/                   # Bash scripts
 │   ├── sync_appmenu_from_user.py  # Retrieve running user's App Launcher order into templates/appMenus/base/ (no deploy)
 │   ├── post_process_extraction.py # Add $$ composite key columns after SFDMU extract
+│   ├── expand_currency_pricing_data.py # Regenerate per-currency qb-pricing rows
+│   ├── expand_currency_rates_data.py   # Regenerate per-currency qb-rates rows
+│   ├── build_quote_to_asset.py    # Build a backdated Quote -> Order -> Asset chain for usage rating
+│   ├── qb_usage.py                # Audit / report / orchestrate the usage-rating pipeline
 │   └── validate_sfdmu_v5_datasets.py # Validate/fix SFDMU v5 compliance
 ├── docs/                       # Documentation
 │   ├── guides/                 # How-to setup and build process docs
+│   │   ├── build-harness.md
+│   │   ├── cci-sf-cli-token-workaround.md
 │   │   ├── constraints-setup.md
+│   │   ├── dev-environment-setup.md
 │   │   ├── docgen-setup.md
 │   │   ├── post-billing-portal.md
-│   │   └── prepare-rlm-org-build-guide.md
+│   │   ├── prepare-rlm-org-build-guide.md
+│   │   ├── qb-consumption-demo-scenarios.md
+│   │   ├── txn-data-harness.md
+│   │   └── usage-consumption-runbook.md
 │   ├── references/             # Technical references and task/CLI examples
 │   │   ├── context-service-patch-shapes.md
 │   │   ├── context-service-utility.md

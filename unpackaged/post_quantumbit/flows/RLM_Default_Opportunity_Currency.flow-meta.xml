@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <name>Set_Currency_From_Account</name>
+        <label>Set Currency From Account</label>
+        <locationX>176</locationX>
+        <locationY>350</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.CurrencyIsoCode</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Account.CurrencyIsoCode</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <decisions>
+        <name>Currency_Differs_From_Account</name>
+        <label>Currency Differs From Account</label>
+        <locationX>176</locationX>
+        <locationY>242</locationY>
+        <defaultConnectorLabel>No Change</defaultConnectorLabel>
+        <rules>
+            <name>Differs</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.CurrencyIsoCode</leftValueReference>
+                <operator>NotEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.Account.CurrencyIsoCode</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Currency_From_Account</targetReference>
+            </connector>
+            <label>Differs</label>
+        </rules>
+    </decisions>
+    <description>Before-save (Create): ENFORCES the Account's currency on every new Opportunity whose currency differs from it. This is an overwrite, not a default -- CurrencyIsoCode is never empty on create (the platform stamps the user/corporate currency first), and Flow conditions cannot see the running user's default currency ($User.DefaultCurrencyIsoCode and $User.CurrencyIsoCode are both rejected as unknown elements), so there is no signal to distinguish an untouched default from a deliberate choice without a Get Records on User. CONSEQUENCE: a deliberately cross-currency Opportunity cannot be created while this flow is active. That is why this flow lives in unpackaged/post_quantumbit/ and is gated behind the quantumbit feature flag rather than force-app/, which deploys unconditionally: the restriction is acceptable for the QuantumBit demo (where quick actions would otherwise stamp the running user's currency instead of the account's) but must not be imposed on builds that do not include QuantumBit. Deactivate it if a QB org needs cross-currency opportunities. Covers RLM_New_Opportunity and every other opportunity-creation path in a multicurrency org.</description>
+    <environments>Default</environments>
+    <interviewLabel>RLM Default Opportunity Currency {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>RLM Default Opportunity Currency</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>176</locationX>
+        <locationY>134</locationY>
+        <connector>
+            <targetReference>Currency_Differs_From_Account</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>AccountId</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <object>Opportunity</object>
+        <recordTriggerType>Create</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

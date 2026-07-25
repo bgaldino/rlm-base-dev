@@ -157,17 +157,22 @@ The standing pricing data wires each Salesforce Pricing **adjustment type** to s
 
 7 active currencies:
 
-| ISO Code | Conversion to USD | Decimal Places | Corporate |
+| ISO Code | Units per 1 USD | Decimal Places | Corporate |
 |---|---|---|---|
 | **USD** | 1 | 2 | ✅ Yes |
-| EUR | 0.862388 | 2 | |
-| GBP | 0.751313 | 2 | |
-| CAD | 1.388244 | 2 | |
-| AUD | 1.442894 | 2 | |
-| CHF | 0.793889 | 2 | |
-| JPY | 158.650911 | 0 | |
+| EUR | 0.876364 | 2 |  |
+| GBP | 0.74772 | 2 |  |
+| CAD | 1.408989 | 2 |  |
+| AUD | 1.430143 | 2 |  |
+| CHF | 0.813755 | 2 |  |
+| JPY | 163.08664 | 0 |  |
+
+Direction matters: these are **foreign units per 1 USD**, and the generators
+*multiply* a USD amount by them — USD 10,000 → EUR 8,763.64. Reading the column as
+"conversion **to** USD" inverts every future rate.
 
 Source: `datasets/sfdmu/qb/en-US/qb-pricing/CurrencyType.csv`
+(`ConversionRate`; refresh with `cci task run update_currency_rates_csv`).
 
 ---
 

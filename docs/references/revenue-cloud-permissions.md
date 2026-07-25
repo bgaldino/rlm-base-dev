@@ -275,7 +275,7 @@ These are assigned to the running user via `assign_permission_sets` in their res
 | Permission Set | Feature Flag(s) | Flow / Step | What It Grants |
 |---|---|---|---|
 | `RLM_QuantumBit` | `quantumbit` | `prepare_quantumbit` step 4 | FLS on custom QB fields (Order, Quote, etc.) |
-| `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 6 | SObject access for CALM Delete operations |
+| `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` | `prepare_quantumbit` step 7 | SObject access for CALM Delete operations |
 | `RLM_Approvals` | `quantumbit` + `approvals` | `prepare_approvals` step 3 (called from `prepare_quantumbit` step 2) | FLS on approval fields + `RLM_AA_Submit_Approval` Apex class |
 | `RLM_DocGen` | `docgen` | `prepare_docgen` step 10 | FLS on seller/docgen fields (Quote, QuoteLineItem) |
 | `RLM_Constraints` | `tso` + `constraints` | `prepare_constraints` step 3 | FLS on `RLM_ConstraintEngineNodeStatus__c` (3 objects) |
@@ -283,7 +283,7 @@ These are assigned to the running user via `assign_permission_sets` in their res
 | `RLM_QuotingAgent` | `agents` | `prepare_agents` step 11 | Agent access to `Revenue_Quote_Management` |
 | `RLM_QuotingAssistant` | `agents` | `prepare_agents` step 11 | Agent access to `RLM_Quoting_Assistant` |
 | `RLM_BillingEmployeeAgent` | `agents` | `prepare_agents` step 11 | Agent access to `RLM_Billing_Employee_Assistance` |
-| `RLM_UtilitiesPermset` | `tso` | `prepare_tso` step 4 | `RLM_AccountUtilities` Apex class access. **Destructive** — that invocable deletes account-related orders, assets, contracts, invoices, quotes and opportunities, so it stays scoped to `tso` and is deliberately not assigned for `quantumbit`. |
+| `RLM_UtilitiesPermset` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 6 | `RLM_AccountUtilities` Apex class access. **Destructive** — that invocable deletes account-related orders, assets, contracts, invoices, quotes and opportunities, **plus the account's entire usage graph** (usage summaries, ratable summaries, entitlements, entitlement buckets, rated transaction journals, commitment junctions, and asset rate card entries). Assigned on both flows because `deploy_post_utils` ships the whole surface — class, `Account.RLM_Reset_Account` quick action and its flows — to both, so gating only the assignment left a visible reset button that no non-admin could invoke. |
 | `RLM_ExpressionSetManager` | `tso`, `quantumbit` | `prepare_tso` step 4 / `prepare_quantumbit` step 5 | `RLM_ExpressionSetManagerController` Apex class access; object READ on `ExpressionSet` and READ+EDIT on `ExpressionSetVersion` (controller USER_MODE SOQL; no FLS — the selected fields are `permissionable=false`); `RLM_SessionId` Visualforce page access; **`ApiEnabled`** (broad — required for the `$Api.Session_ID` loopback to work against REST; a Named Credential is the scoped alternative). The controller also reads `ContextDefinition`, `ExpressionSetDefinition`, and the junction, but those are `IsCustomizable=false` platform entities — object perms on them are silently dropped and their read is platform/feature-governed (like `AsyncApexJob`). Grant set verified on a live scratch org (2026-07-22): deploys clean, file==org, all fields non-permissionable. |
 
 ### Einstein / AI Permission Sets (`rlm_ai_ps_api_names`) -- `einstein: true`
@@ -302,7 +302,7 @@ Assigned in `prepare_tso` step 4.
 | Permission Set | Purpose |
 |---|---|
 | `ERIBasic` | ERI platform |
-| `RLM_UtilitiesPermset` | Account-reset utilities (`RLM_AccountUtilities` Apex class access) -- destructive |
+| `RLM_UtilitiesPermset` | Account-reset utilities (`RLM_AccountUtilities` Apex class access) -- destructive; also clears the account's usage graph |
 | `RLM_ExpressionSetManager` | Expression Set Manager component (Apex class, object reads, `RLM_SessionId` page, `ApiEnabled`) |
 | `OrchestrationProcessManagerPermissionSet` | Orchestration process manager |
 | `EventMonitoringPermSet` | Event monitoring |
@@ -363,7 +363,8 @@ The following table shows the sequence of all permission-related steps across th
 | 7.2.3 | `prepare_quantumbit` > `prepare_approvals` | `RLM_Approvals` | `quantumbit` + `approvals` |
 | 7.4 | `prepare_quantumbit` | `RLM_QuantumBit` | `quantumbit` |
 | 7.5 | `prepare_quantumbit` | `RLM_ExpressionSetManager` | `quantumbit` |
-| 7.6 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
+| 7.6 | `prepare_quantumbit` | `RLM_UtilitiesPermset` | `quantumbit` |
+| 7.7 | `prepare_quantumbit` | `RLM_CALM_SObject_Access` | `quantumbit` + `calmdelete` |
 | 10.10 | `prepare_docgen` | `RLM_DocGen` | `docgen` |
 | 18.1 | `prepare_tso` | Copilot + Catalog PSGs (4) | `tso` |
 | 18.4 | `prepare_tso` | TSO permission sets (5) | `tso` |
@@ -408,7 +409,7 @@ Persona PSGs provide role-based permission groupings for end users. They are dep
 | `clm` | CLM (11) | -- | -- |
 | `einstein` | AI (3) | -- | `EinsteinGPTPromptTemplateManager`, `SalesCloudEinsteinAll` |
 | `tso` | TSO (23) | `RLM_TSO`, Copilot (2), Catalog (2) | `ERIBasic`, `RLM_UtilitiesPermset`, `RLM_ExpressionSetManager`, `OrchestrationProcessManagerPermissionSet`, `EventMonitoringPermSet` |
-| `quantumbit` | -- | -- | `RLM_QuantumBit`, `RLM_ExpressionSetManager` |
+| `quantumbit` | -- | -- | `RLM_QuantumBit`, `RLM_ExpressionSetManager`, `RLM_UtilitiesPermset` |
 | `quantumbit` + `calmdelete` | -- | -- | `RLM_CALM_SObject_Access` |
 | `quantumbit` + `approvals` | -- | -- | `RLM_Approvals` |
 | `docgen` | -- | -- | `RLM_DocGen` |
