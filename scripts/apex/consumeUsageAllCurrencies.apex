@@ -57,6 +57,21 @@ if (!missingCurrencies.isEmpty()) {
 Integer uploaded = 0;
 List<String> failures = new List<String>();
 
+// Resolve the code -> resource mapping ONCE. It is the same QB-DB resource set for
+// every asset, so querying it inside the loop burned a SOQL call per asset on top
+// of the two getUsageResourcesForAsset calls each iteration already makes
+// (directly, and again inside bulkUploadUsage) -- enough QB-DB assets and the run
+// dies on the 100-query governor limit.
+Map<String, Id> resourceIdByCode = new Map<String, Id>();
+for (ProductUsageResource pur : [
+        SELECT UsageResourceId, UsageResource.Code
+        FROM ProductUsageResource
+        WHERE Product.StockKeepingUnit = 'QB-DB'
+          AND UsageResource.Code IN :qtyByResource.keySet()
+          AND Status = 'Active']) {
+    resourceIdByCode.put(pur.UsageResource.Code, pur.UsageResourceId);
+}
+
 for (Asset a : assets) {
     // Resolve this asset's usage resources through the same controller the UI uses,
     // so an unrated or mis-mapped resource surfaces here rather than silently.
@@ -81,17 +96,13 @@ for (Asset a : assets) {
     }
 
     if (entries.isEmpty()) {
-        // Resource labels did not match the codes above -- resolve by code directly.
-        for (ProductUsageResource pur : [
-                SELECT UsageResourceId, UsageResource.Code
-                FROM ProductUsageResource
-                WHERE Product.StockKeepingUnit = 'QB-DB'
-                  AND UsageResource.Code IN :qtyByResource.keySet()
-                  AND Status = 'Active']) {
+        // Resource labels did not match the codes above -- fall back to the
+        // pre-resolved code mapping (no query inside the loop).
+        for (String code : resourceIdByCode.keySet()) {
             RLM_UsageUploaderController.UsageEntry e = new RLM_UsageUploaderController.UsageEntry();
-            e.usageResourceId = pur.UsageResourceId;
-            e.usageResourceName = pur.UsageResource.Code;
-            e.quantity = qtyByResource.get(pur.UsageResource.Code);
+            e.usageResourceId = resourceIdByCode.get(code);
+            e.usageResourceName = code;
+            e.quantity = qtyByResource.get(code);
             e.transactionDate = Date.today();
             entries.add(e);
         }
@@ -117,8 +128,15 @@ for (Asset a : assets) {
 System.debug('CONSUME: uploaded ' + uploaded + ' journal(s) across '
     + foundCurrencies.size() + ' currenc' + (foundCurrencies.size() == 1 ? 'y' : 'ies')
     + ' (' + foundCurrencies + ') over ' + assets.size() + ' asset(s).');
+// Fail BEFORE orchestration. Rating incomplete data and exiting successfully would
+// send the user to validateRatedUsage.apex against a partial consume, where the
+// missing currency looks like a rating defect rather than a consume that never ran.
 if (!failures.isEmpty()) {
-    System.debug('CONSUME: WARNINGS -- ' + String.join(failures, ' | '));
+    throw new IllegalStateException(
+        'consumeUsageAllCurrencies: ' + failures.size() + ' asset(s) failed to record usage -- '
+        + String.join(failures, ' | ')
+        + '. Orchestration NOT started; fix these and re-run, otherwise the rating '
+        + 'results would be validated against an incomplete consume.');
 }
 
 // Kick off the rating/drawdown orchestration. Asynchronous: give it time to

@@ -175,7 +175,7 @@ placeholders that previously mirrored USD were corrected. `tests/test_qb_multicu
 `ALLOWED_RATE_DEVIATIONS`, so reintroducing a hand-tuned rate fails the suite until it is added to
 that allowlist as a conscious, documented choice.
 
-## Rate Card Entries (116 records)
+## Rate Card Entries (126 records)
 
 > The tables below list the **USD** rows. Every currency-denominated entry also exists in
 > GBP, EUR, AUD, CAD, CHF and JPY; only the `TOKEN-UOM` rows are single-currency.
@@ -219,7 +219,7 @@ that allowlist as a conscious, documented choice.
 >
 > **Superseded 2026-07-24 — discounts moved to the `Category=Usage` resources.** A `Category=Token` resource accepts only **one** tier adjustment, so TIER's volume bands could not live on `QB-TOKEN`; and the fresh-build **Usage Product Validator** then flagged QB-CMT-TKN-FLAT with *"No effective rate card entry available for the product usage resource"* because its `UR-CPUTIME-TKN` / `UR-DATASTORAGE-TKN` PURs had no rate card entry at all (its two RCEs both sat on `QB-TOKEN`). Both FLAT and TIER now follow one rule: **the discount sits on the `Category=Usage` resources where consumption is rated, and the `Category=Token` aggregate is held neutral at 0%.** FLAT = one unbounded 10% tier per usage resource; TIER = 10/20/30% volume bands. QB-CMT-TKN-EACH predates this and still carries non-zero adjustments on all three resources. Requires a live rating run to confirm the discount applies before merge.
 
-## Rate Adjustments by Tier (118 records)
+## Rate Adjustments by Tier (128 records)
 
 ### QB-DB — Compute Time (Override tiers, USD/minute)
 

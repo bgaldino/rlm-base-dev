@@ -101,7 +101,7 @@ Currency types (7 currencies: USD, GBP, EUR, AUD, CAD, CHF, JPY) and proration p
 
 ### Pricebooks and Entries (Objects 6, 14)
 
-One non-standard pricebook with 1,855 pricebook entries (265 product/selling-model combinations × 7 currencies) mapping products to selling models with unit prices and currency.
+One non-standard pricebook with 1,862 pricebook entries (266 product/selling-model combinations × 7 currencies) mapping products to selling models with unit prices and currency.
 
 ### Price Adjustments (Objects 8-9, 10-12, 13)
 
@@ -222,23 +222,23 @@ qb-pricing/
 **Org-backed idempotency validated (USD baseline)** — consecutive runs of
 `delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data` were verified
 to produce identical record counts on the prior single-currency plan (367 records:
-3 PAT, 4 AAC, 4 ABA, 2 BBA, 265 PBE, 2 PEDP, 87 CBE). The delete-then-insert
+3 PAT, 4 AAC, 4 ABA, 2 BBA, 266 PBE, 2 PEDP, 88 CBE). The delete-then-insert
 mechanism is currency-agnostic — it clears all records of each type regardless of
 `CurrencyIsoCode` — so the multicurrency expansion keeps the same idempotency
 guarantee; the expected steady-state count is now **2,545 records** (21 PAT,
-4 AAC, 28 ABA, 14 BBA, 1,855 PBE, 14 PEDP, 609 CBE). ✅ **Live-verified 2026-07-23**
+4 AAC, 28 ABA, 14 BBA, 1,862 PBE, 14 PEDP, 616 CBE). ✅ **Live-verified 2026-07-23**
 on a scratch org: `delete_quantumbit_pricing_data` + `insert_quantumbit_pricing_data`
 ran to `SUCCESS` (exit 0) with **0 failed rows** across every object — including the
 single-per-type `PriceAdjustmentSchedule` (3 rows, `Upsert` on `Name`, ordered before
 the child adjustments; see *Currency and Proration*), `PriceAdjustmentTier` (21),
 `AttributeBasedAdjustment` (28), `BundleBasedAdjustment` (14), `PricebookEntry`
-(1,855), and `CostBookEntry` (609). The static SFDMU validator may still
+(1,862), and `CostBookEntry` (616). The static SFDMU validator may still
 flag extraction-safety issues for relationship traversal fields in this plan;
 treat those as follow-up items before relying on extraction round-trips.
 
 The `CostBookEntry` rows are part of the delete-then-insert set. The CSV resolves
 the parent CostBook through `CostBook.Name`; this preserves the idempotent load
-behavior (now 609 rows across 7 currencies) while avoiding an unnecessary
+behavior (now 616 rows across 7 currencies) while avoiding an unnecessary
 composite lookup reference to the single seeded CostBook.
 
 The delete-then-insert pattern replaces the previous Upsert approach. `Readonly` objects ensure parent lookup resolution without modification. `Upsert` objects (`CurrencyType`, `CostBook`, `Pricebook2`, `PriceAdjustmentSchedule`, `AttributeBasedAdjRule`) are naturally idempotent via their direct-field externalIds.

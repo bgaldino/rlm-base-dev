@@ -35,14 +35,19 @@ List<RateCardEntry> rces = [
 
 // 1. Every currency used as a rate UoM must exist as a CURRENCY-class unit.
 Set<String> usedCurrencies = new Set<String>();
+// NB: test the RELATIONSHIP for null before dereferencing UnitCode. An entry with
+// no RateUnitOfMeasure -- the exact defect this validator reports -- has a null
+// relationship, so r.RateUnitOfMeasure.UnitCode would throw and abort the run
+// instead of recording the problem.
 for (RateCardEntry r : rces) {
-    if (r.RateUnitOfMeasure.UnitCode != null && currencyUnits.contains(r.RateUnitOfMeasure.UnitCode)) {
+    if (r.RateUnitOfMeasure != null && r.RateUnitOfMeasure.UnitCode != null
+            && currencyUnits.contains(r.RateUnitOfMeasure.UnitCode)) {
         usedCurrencies.add(r.RateUnitOfMeasure.UnitCode);
     }
 }
 Set<String> missingUnits = new Set<String>();
 for (RateCardEntry r : rces) {
-    String uom = r.RateUnitOfMeasure.UnitCode;
+    String uom = (r.RateUnitOfMeasure == null) ? null : r.RateUnitOfMeasure.UnitCode;
     // A rate UoM that is neither a known currency unit nor a token unit is suspect only
     // if no UnitOfMeasure backs it; token units legitimately sit outside CURRENCY.
     if (uom == null) { missingUnits.add('(null rate UoM) ' + r.Product.StockKeepingUnit); }
@@ -64,7 +69,8 @@ for (AggregateResult ar : [SELECT RateCardEntryId FROM RateAdjustmentByTier
 List<String> tierless = new List<String>();
 for (RateCardEntry r : rces) {
     if (r.RateCard.Type == 'Tier' && !rceWithTier.contains(r.Id)) {
-        tierless.add(r.Product.StockKeepingUnit + '/' + r.UsageResource.Code + '/' + r.RateUnitOfMeasure.UnitCode);
+        tierless.add(r.Product.StockKeepingUnit + '/' + r.UsageResource.Code + '/'
+            + (r.RateUnitOfMeasure == null ? '(no UoM)' : r.RateUnitOfMeasure.UnitCode));
     }
 }
 if (!tierless.isEmpty()) {
@@ -118,6 +124,8 @@ if (!unrated.isEmpty()) {
 //    one means that currency simply cannot rate (no fallback to USD).
 Map<String, Set<String>> coverage = new Map<String, Set<String>>();
 for (RateCardEntry r : rces) {
+    // A null relationship is already reported by check 1; skip rather than NPE here.
+    if (r.RateUnitOfMeasure == null) continue;
     if (!currencyUnits.contains(r.RateUnitOfMeasure.UnitCode)) continue;  // token-denominated
     String key = r.Product.StockKeepingUnit + '|' + r.RateCard.Name + '|' + r.UsageResource.Code;
     if (!coverage.containsKey(key)) coverage.put(key, new Set<String>());
@@ -154,9 +162,19 @@ if (arces.isEmpty()) {
     Map<String, Integer> arceByCurrency = new Map<String, Integer>();
     for (AssetRateCardEntry a : arces) {
         String ac = a.Asset.CurrencyIsoCode;
-        String rc = a.RateUnitOfMeasure.UnitCode;
-        String pc = a.RateCardEntry.RateUnitOfMeasure.UnitCode;
-        if (ac != a.CurrencyIsoCode || ac != rc || ac != pc) {
+        String rc = (a.RateUnitOfMeasure == null) ? null : a.RateUnitOfMeasure.UnitCode;
+        String pc = (a.RateCardEntry == null || a.RateCardEntry.RateUnitOfMeasure == null)
+                    ? null : a.RateCardEntry.RateUnitOfMeasure.UnitCode;
+        // Token-denominated rates are currency-NEUTRAL by design: the rate is
+        // expressed in TOKEN-UOM and the token->currency conversion happens at the
+        // second rating step. Requiring rateUoM == asset currency would flag every
+        // token product on every account. Only the ARCE's own CurrencyIsoCode has
+        // to track the asset.
+        Boolean tokenDenominated = (rc == 'TOKEN-UOM' || pc == 'TOKEN-UOM');
+        Boolean bad = tokenDenominated
+            ? (ac != a.CurrencyIsoCode || rc != pc)
+            : (ac != a.CurrencyIsoCode || ac != rc || ac != pc);
+        if (bad) {
             misaligned.add(a.Asset.Account.Name + '/' + a.UsageResource.Code
                 + ' asset=' + ac + ' arce=' + a.CurrencyIsoCode + ' rateUoM=' + rc + ' entryUoM=' + pc);
         }
