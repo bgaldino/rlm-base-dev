@@ -799,9 +799,12 @@ def build_one(org, account, args):
                         + ", ".join(f"{k}={v}" for k, v in counts.items() if not v))
 
     # Backdating is the whole point — fail loudly if the platform overrode it.
-    # A OneTime line has no lifecycle, so there is nothing to backdate.
+    # A OneTime line has no lifecycle, so there is nothing to backdate. The key is
+    # SKU0_SELLING_MODEL, not SELLING_MODEL: the Apex emits it per index. Read bare
+    # it was always None, so the exemption never fired and only the per-asset
+    # LifecycleStartDate check below was doing any work.
     for a in assets:
-        if ids.get("SELLING_MODEL") == "OneTime" or not a["LifecycleStartDate"]:
+        if ids.get("SKU0_SELLING_MODEL") == "OneTime" or not a["LifecycleStartDate"]:
             continue
         actual = str(a["LifecycleStartDate"])[:10]
         if actual != args.start:
