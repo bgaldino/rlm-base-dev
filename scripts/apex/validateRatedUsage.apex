@@ -293,6 +293,15 @@ for (UsageCmtAssetRelatedObj link : [
 
 // Aggregate per ASSET -- an asset can have several buckets, so accumulate
 // rather than overwrite.
+//
+// SCOPE LIMIT: unlike the journal and summary queries above, this is NOT bounded by
+// the declared window. UsageEntitlementBucket does carry EffectiveStartDateTime /
+// EffectiveEndDateTime, so it could be -- but a bucket's effective period is not
+// necessarily the rating period, and choosing the predicate blind is how the summary
+// query above ended up selecting the WRONG period. So: consume into ONE period per
+// asset. Re-consuming the same asset into a second period sums both periods' buckets
+// here and the draw-order assertion below is then evaluated against cross-period
+// totals, which is not what it claims to check.
 Map<Id, Decimal> anchorConsumedByAsset = new Map<Id, Decimal>();
 Map<Id, Decimal> commitBalanceByAsset = new Map<Id, Decimal>();
 Map<Id, Decimal> commitConsumedByAsset = new Map<Id, Decimal>();
