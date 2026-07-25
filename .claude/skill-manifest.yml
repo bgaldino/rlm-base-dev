@@ -61,6 +61,25 @@ foundations:
       provenance: hand-curated + erd-data.json
       caveats: []  # 213-vs-263 discrepancy resolved (refresh in feat/262-erd-refresh-and-schema-diff-tooling — both report 263); v67.0 baseline aligned
 
+    - id: usage-consumption
+      path: .cursor/skills/usage-consumption/SKILL.md
+      purpose: "Build, rate, verify, and reset metered consumption demos — commitments, grants, drawdown, overage"
+      consumed_by_pmos: [demo-script, demo-flow, sales-enablement]
+      sub_skills:
+        - .cursor/skills/usage-consumption/building-usage-assets.md
+        - .cursor/skills/usage-consumption/verification.md
+      tooling:
+        - scripts/qb_usage.py
+        - scripts/build_quote_to_asset.py
+        - scripts/apex/consumeUsageProfile.apex
+        - scripts/apex/validateRatedUsage.apex
+        - scripts/apex/clearUsageData.apex
+        - tests/test_qb_multicurrency_data.py
+      provenance: live-verified on scratch org 2026-07
+      caveats:
+        - "Runtime commitment behaviour is documented in neither the dev-guide nor help snapshot; rules here came from live verification"
+        - "CommitmentQuantity/CommitmentSpend entitlements stay PENDING in 262 (platform issue); Commit works"
+
     - id: rlm-business-apis
       path: .cursor/skills/rlm-business-apis/SKILL.md
       purpose: "204 RC business API endpoints across 9 domains"

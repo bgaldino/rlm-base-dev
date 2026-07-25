@@ -90,9 +90,15 @@ UnitOfMeasure ← UnitOfMeasureClass (BaseUnitOfMeasureId, DefaultUnitOfMeasureI
 
 ## Runtime: Recording and Rating Usage
 
-Source of truth for these rules is `docs/salesforce/262/help/` plus live verification
-on a scratch org — **the 262 dev guide documents none of the commitment behaviour**.
-Full worked arithmetic: `docs/guides/qb-consumption-demo-scenarios.md`.
+This section is the **object-level** reference. For the procedure — building assets,
+recording, orchestrating, verifying, resetting — use
+`.cursor/skills/usage-consumption/SKILL.md`. Worked arithmetic:
+`docs/guides/qb-consumption-demo-scenarios.md`. End-user runbook:
+`docs/guides/usage-consumption-runbook.md`.
+
+These rules came from **live verification**, not the doc snapshots: the dev guide
+gives object/field shape and Help gives one-line value definitions, but neither
+documents drawdown ordering or interaction.
 
 ### Usage is always recorded against the ANCHOR
 

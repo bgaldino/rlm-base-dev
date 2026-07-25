@@ -328,8 +328,9 @@ RateAdjustmentByTier → RateCardEntry → PriceBookRateCard → RateCard.
 
 ## Usage & Consumption Errors
 
-Rules and worked arithmetic: `.cursor/skills/revenue-cloud-data-model/domains/usage.md`
-and `docs/guides/qb-consumption-demo-scenarios.md`.
+Procedure and rules: `.cursor/skills/usage-consumption/SKILL.md`. Object reference:
+`.cursor/skills/revenue-cloud-data-model/domains/usage.md`. Worked arithmetic:
+`docs/guides/qb-consumption-demo-scenarios.md`.
 
 ### Rated usage reads ZERO and nothing reported an error
 

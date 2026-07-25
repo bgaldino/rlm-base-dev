@@ -94,8 +94,8 @@ copy-paste recipes live in `scripts/txn_data_harness/AI_TOOLS.md` and
 | Change skill guidance itself | Maybe | Also read `skill-authoring/SKILL.md`. |
 | Create SFDMU data plans | No | Use `sfdmu-data-plans/SKILL.md`. |
 | Use general Revenue Cloud REST APIs | Maybe | Use `rlm-business-apis/SKILL.md` for API reference. |
-| Build a **backdated** Quote→Order→**Asset** chain for usage rating | No | This harness stops at invoices. Use `scripts/build_quote_to_asset.py` — see below. |
-| Record or rate usage against assets | No | See `.cursor/skills/revenue-cloud-data-model/domains/usage.md`. |
+| Build a **backdated** Quote→Order→**Asset** chain for usage rating | No | This harness stops at invoices. Use `usage-consumption/building-usage-assets.md`. |
+| Record or rate usage against assets | No | Use `.cursor/skills/usage-consumption/SKILL.md`. |
 
 ### Adjacent tool: `scripts/build_quote_to_asset.py`
 

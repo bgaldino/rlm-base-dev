@@ -292,6 +292,7 @@ that topic.
 | Create/modify SFDMU data plans | `.cursor/skills/sfdmu-data-plans/SKILL.md` |
 | Maintain the In-App Learning framework (`inapp` integration) | `.cursor/skills/inapp-framework/SKILL.md` |
 | Understand RLM objects/relationships | `.cursor/skills/revenue-cloud-data-model/SKILL.md` |
+| Build/rate/verify metered consumption demos (usage, commitments, drawdown) | `.cursor/skills/usage-consumption/SKILL.md` |
 | Validate / refresh / certify the ERD against orgs and Core source | `.cursor/skills/schema-validation/SKILL.md` |
 | Consume PMOS content from Foundations (or vice versa) via cross-repo skill manifest | `.cursor/skills/pmos-integration/SKILL.md` |
 | Use Revenue Cloud REST APIs | `.cursor/skills/rlm-business-apis/SKILL.md` |
@@ -333,6 +334,8 @@ Read the sub-file only when you need that specific detail:
 | `cci-orchestration/flows-reference.md` | CCI Orchestration | Auto-generated flow listing |
 | `cci-orchestration/feature-flags.md` | CCI Orchestration | Auto-generated feature flag index |
 | `revenue-cloud-data-model/domains/*.md` | Data Model | Per-domain object/field/relationship details |
+| `usage-consumption/building-usage-assets.md` | Usage & Consumption | Backdated Quote→Order→Asset chains, live v67.0 endpoint contracts (and which are gone), selling-model field rules, commitment/Pack binding |
+| `usage-consumption/verification.md` | Usage & Consumption | The three verification layers, the 15 offline invariants, how to add one, reading a suspicious result |
 | `revenue-cloud-data-model/cross-domain-relationships.md` | Data Model | Cross-domain FK mapping |
 | `sfdmu-data-plans/plan-dependency-graph.md` | SFDMU Data Plans | Load/deletion order across plans |
 | `sfdmu-data-plans/object-plan-mapping.md` | SFDMU Data Plans | Which objects belong to which plan |

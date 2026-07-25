@@ -111,4 +111,5 @@ git add .cursor/skills/cci-orchestration/tasks-reference.md \
 - **Release Enablement** — `.cursor/skills/release-enablement/SKILL.md`
 - **Revenue Cloud Docs** — `.cursor/skills/revenue-cloud-docs/SKILL.md`
 - **Revenue Cloud Data Model** — `.cursor/skills/revenue-cloud-data-model/SKILL.md`
+- **Usage & Consumption** — `.cursor/skills/usage-consumption/SKILL.md`
 - **Troubleshooting** — `.cursor/skills/troubleshooting/SKILL.md`
