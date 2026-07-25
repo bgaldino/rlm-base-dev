@@ -138,6 +138,16 @@ def _run(args, timeout=300):
     return p.returncode, p.stdout, p.stderr
 
 
+def soql_str(value):
+    """Quote a value as a SOQL string literal, escaping backslash then quote.
+
+    Account names legitimately contain apostrophes (O'Brien), which would
+    otherwise break the query -- and sf_query returns [] on failure, so the
+    breakage surfaces as "no records" rather than an error.
+    """
+    return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
 def sf_query(org, soql):
     rc, out, err = _run(["sf", "data", "query", "-q", soql,
                          "--target-org", org, "--json"])
@@ -261,22 +271,43 @@ for (Integer i = 0; i < SKUS.size(); i++) {{
     }}
     PricebookEntry pbe = pbes[0];
     if (wanted != '') {{
+        // Match on selling model NAME first, then TYPE. Type alone is not unique --
+        // QB-DAT-THPT exposes 'Term Monthly' and 'Term Annual', BOTH TermDefined --
+        // so matching type would silently take whichever sorts first and could pair
+        // a monthly billing frequency with the annual entry. An ambiguous type is
+        // rejected rather than guessed.
         Boolean matched = false;
         for (PricebookEntry e : pbes) {{
-            if (e.ProductSellingModel != null
-                && e.ProductSellingModel.SellingModelType == wanted) {{
+            if (e.ProductSellingModel != null && e.ProductSellingModel.Name == wanted) {{
                 pbe = e; matched = true; break;
             }}
+        }}
+        if (!matched) {{
+            List<PricebookEntry> byType = new List<PricebookEntry>();
+            for (PricebookEntry e : pbes) {{
+                if (e.ProductSellingModel != null
+                    && e.ProductSellingModel.SellingModelType == wanted) {{ byType.add(e); }}
+            }}
+            if (byType.size() > 1) {{
+                List<String> names = new List<String>();
+                for (PricebookEntry e : byType) {{ names.add(e.ProductSellingModel.Name); }}
+                throw new QuoteBuildException('Selling model type ' + wanted + ' is AMBIGUOUS for '
+                    + sku + ' -- it matches ' + byType.size() + ' entries: ' + String.join(names, ', ')
+                    + '. Pass one of those names to --selling-model instead of the type.');
+            }}
+            if (byType.size() == 1) {{ pbe = byType[0]; matched = true; }}
         }}
         // Fail loudly. Falling back to pbes[0] would silently build the quote on a
         // DIFFERENT selling model than the caller asked for, and the selling model
         // dictates which line fields are legal -- so the eventual error surfaces as
         // an unrelated field validation much later.
         if (!matched) {{
+            // List NAME (type) so the message is directly actionable -- the name is
+            // what has to be passed back in when a type is ambiguous.
             List<String> available = new List<String>();
             for (PricebookEntry e : pbes) {{
-                available.add(e.ProductSellingModel == null
-                    ? 'unknown' : e.ProductSellingModel.SellingModelType);
+                available.add(e.ProductSellingModel == null ? 'unknown'
+                    : e.ProductSellingModel.Name + ' (' + e.ProductSellingModel.SellingModelType + ')');
             }}
             throw new QuoteBuildException('No active ' + acct.CurrencyIsoCode
                 + ' PricebookEntry for ' + sku + ' with selling model ' + wanted
@@ -304,9 +335,18 @@ if (treatments.isEmpty()) {{
     throw new QuoteBuildException('No active BillingTreatment for '
         + acct.CurrencyIsoCode + ' — qb-billing may not cover this currency.');
 }}
-BillingTreatment treatment = treatments[0];
+// Same rule as --selling-model: a requested timing that matches nothing is a
+// mistake, not a filter. Silently keeping treatments[0] meant `--billing-timing
+// Arrear` (a typo for Arrears) produced an Advance quote that looked successful.
+BillingTreatment treatment = null;
 for (BillingTreatment t : treatments) {{
     if (t.Name.containsIgnoreCase('{billing_timing}')) {{ treatment = t; break; }}
+}}
+if (treatment == null) {{
+    List<String> names = new List<String>();
+    for (BillingTreatment t : treatments) {{ names.add(t.Name); }}
+    throw new QuoteBuildException('No BillingTreatment name contains "{billing_timing}" for '
+        + acct.CurrencyIsoCode + '. Available: ' + String.join(names, ', '));
 }}
 
 // StageName/Name/Pricebook mirror RLM_QuickQuote's Create_New_Opportunity.
@@ -640,20 +680,21 @@ if (!existing.isEmpty()) {{
     raise StepError("commitment link was not created")
 
 
-def wait_for_assets(org, account_id, sku, timeout, interval):
-    """Assetization is async — poll until the asset appears.
+def wait_for_assets(org, account_id, sku, timeout, interval, exclude_ids=frozenset()):
+    """Assetization is async — poll until the NEW asset appears.
 
     Asset carries no lookup back to Order or OrderItem (the describe exposes no
-    Order/Quote reference field), so the asset is matched on account + product
-    rather than on the order. Safe here because the caller resets the account
-    before building, so a matching asset can only be the one just created.
+    Order/Quote reference field), so the asset can only be matched on account +
+    product. `exclude_ids` carries the ids that existed BEFORE this run, so a
+    pre-existing asset cannot satisfy the poll immediately and be mistaken for the
+    one just created — the caller's reset is no longer an unenforced assumption.
     """
     deadline = time.time() + timeout
     soql = ("SELECT Id, Name, CurrencyIsoCode, LifecycleStartDate, LifecycleEndDate "
-            f"FROM Asset WHERE AccountId = '{account_id}' "
-            f"AND Product2.StockKeepingUnit = '{sku}'")
+            f"FROM Asset WHERE AccountId = {soql_str(account_id)} "
+            f"AND Product2.StockKeepingUnit = {soql_str(sku)}")
     while time.time() < deadline:
-        rows = sf_query(org, soql)
+        rows = [r for r in sf_query(org, soql) if r["Id"] not in exclude_ids]
         if rows:
             return rows
         time.sleep(interval)
@@ -692,6 +733,23 @@ def verify_usage_buckets(org, asset_ids):
 def build_one(org, account, args):
     print(f"\n{'=' * 74}\n{account}\n{'=' * 74}")
 
+    # Preflight: record the account's EXISTING assets for this SKU. Asset carries no
+    # lookup back to the Order or Quote it came from, so the post-activation poll can
+    # only match on account + product -- and a pre-existing asset satisfies that poll
+    # immediately, before the new order assetizes. The script would then verify (and
+    # link a commitment to) the OLD asset while reporting the new chain as successful.
+    preexisting = {r["Id"] for r in sf_query(
+        org,
+        "SELECT Id FROM Asset WHERE Account.Name = "
+        f"{soql_str(account)} AND Product2.StockKeepingUnit = {soql_str(args.sku)}")}
+    if preexisting and not args.allow_existing_asset:
+        raise StepError(
+            f"{account} already has {len(preexisting)} asset(s) for {args.sku}. "
+            "The post-activation poll matches on account+product, so an existing "
+            "asset would be mistaken for the new one. Reset the account first "
+            "(Account Utilities / RLM_AccountUtilities), or pass "
+            "--allow-existing-asset to require a NEW asset id instead.")
+
     skus = [args.sku] + list(args.with_sku or [])
     ids = create_opportunity(org, account, skus, args.start,
                              args.end, args.billing_timing, args.selling_model,
@@ -717,9 +775,9 @@ def build_one(org, account, args):
     print(f"  activation   Status={act.get('STATUS')} Sbms={act.get('SBMS')}")
 
     assets = wait_for_assets(org, ids['ACCOUNT_ID'], args.sku,
-                             args.timeout, args.interval)
+                             args.timeout, args.interval, exclude_ids=preexisting)
     if not assets:
-        raise StepError(f"no asset created within {args.timeout}s of activation")
+        raise StepError(f"no NEW asset created within {args.timeout}s of activation")
     for a in assets:
         print(f"  asset        {a['Name']} ({a['CurrencyIsoCode']}) "
               f"{str(a['LifecycleStartDate'])[:10]} -> {str(a['LifecycleEndDate'])[:10]}")
@@ -778,10 +836,19 @@ def main():
                     help="bind the line to this product's existing asset on the "
                          "account (required for Pack products, which draw down "
                          "against an anchor and cannot stand alone)")
-    ap.add_argument("--selling-model", default="",
-                    choices=["", "TermDefined", "Evergreen", "OneTime"],
-                    help="pick the PricebookEntry for this selling model when a "
-                         "product exposes several (default: first by model name)")
+    # Deliberately NOT restricted to the three type values: a type is not unique
+    # (QB-DAT-THPT has 'Term Monthly' and 'Term Annual', both TermDefined), so the
+    # model NAME must be passable to disambiguate. Matching tries name first, then
+    # type, and rejects an ambiguous type rather than guessing.
+    ap.add_argument("--allow-existing-asset", action="store_true",
+                    help="proceed when the account already has an asset for this SKU; "
+                         "the post-activation poll then requires a NEW asset id "
+                         "rather than accepting the pre-existing one")
+    ap.add_argument("--selling-model", default="", metavar="NAME_OR_TYPE",
+                    help="pick the PricebookEntry by selling model NAME (e.g. "
+                         "'Term Monthly') or TYPE (TermDefined/Evergreen/OneTime). "
+                         "A type matching several entries is rejected as ambiguous. "
+                         "Default: first by model name")
     ap.add_argument("--billing-timing", default="Advance",
                     help="substring used to pick among a currency's BillingTreatments "
                          "(default: Advance)")

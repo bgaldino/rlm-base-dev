@@ -132,6 +132,33 @@ List<UsageRatableSummary> inScope = new List<UsageRatableSummary>();
 for (UsageRatableSummary r : rated) {
     if (journalKeys.contains(r.AccountId + '|' + r.UsageResourceId)) inScope.add(r);
 }
+// Per-KEY coverage, not merely "some summary exists". Checking only
+// inScope.isEmpty() means one account/resource stream (say one of seven
+// currencies) can produce no summary at all while the others do, and the missing
+// one passes unnoticed -- which is exactly the multicurrency failure mode.
+Set<String> representedKeys = new Set<String>();
+for (UsageRatableSummary r : inScope) {
+    representedKeys.add(r.AccountId + '|' + r.UsageResourceId);
+}
+Set<String> uncoveredKeys = new Set<String>(journalKeys);
+uncoveredKeys.removeAll(representedKeys);
+if (!uncoveredKeys.isEmpty()) {
+    // Resolve the ids to something readable.
+    Map<String, String> labelByKey = new Map<String, String>();
+    for (TransactionJournal j : journals) {
+        labelByKey.put(j.AccountId + '|' + j.UsageResourceId,
+                       j.Account.Name + '/' + j.UsageResource.Code);
+    }
+    List<String> uncovered = new List<String>();
+    for (String k : uncoveredKeys) {
+        uncovered.add(labelByKey.containsKey(k) ? labelByKey.get(k) : k);
+    }
+    problems.add(uncoveredKeys.size() + ' of ' + journalKeys.size() + ' recorded usage '
+        + 'stream(s) produced NO UsageRatableSummary in this period: '
+        + String.join(uncovered, ', ')
+        + ' -- that usage was recorded but never rated.');
+}
+
 if (inScope.isEmpty()) {
     problems.add('No UsageRatableSummary covers the account/resource/period this run recorded. '
         + 'Either the orchestration has not finished (re-run it and wait), or every journal '
@@ -177,10 +204,33 @@ if (inScope.isEmpty()) {
     for (UsageRatableSummary r : settled) {
         if (r.OverageQuantity != null && r.OverageQuantity > 0) withQty.add(r);
     }
-    if (withQty.isEmpty() && unsettled.isEmpty() && failedRating.isEmpty()) {
-        problems.add('No settled UsageRatableSummary carries an overage quantity for this run. '
-            + 'If the usage was fully absorbed by a grant or commitment this is expected; '
-            + 'otherwise the orchestration has not produced rated amounts.');
+    // Zero overage is a LEGITIMATE settled result, not a failure: a grant or
+    // commitment can absorb the usage entirely (scenario 6 records 50 GB against
+    // the shipped 100 GB pack grant). Previously this was reported as a problem
+    // while the message itself conceded it was expected -- so the validator could
+    // not pass on every documented scenario.
+    //
+    // What must still be true is that the usage went SOMEWHERE: a settled summary
+    // with no overage and no bucket consumption means nothing drew down at all.
+    if (withQty.isEmpty() && !settled.isEmpty()) {
+        Decimal totalConsumed = 0;
+        for (AggregateResult ar : [SELECT SUM(ConsumedEntitlement) c
+                                   FROM UsageEntitlementBucket
+                                   WHERE TransactionUsageEntitlement.AssetId IN :qbAssetIds]) {
+            Decimal c = (Decimal) ar.get('c');
+            if (c != null) totalConsumed += c;
+        }
+        if (totalConsumed > 0) {
+            passed.add(settled.size() + ' settled summar(ies) with zero overage -- usage was '
+                + 'fully absorbed by a grant/commitment (' + totalConsumed + ' drawn down)');
+        } else {
+            problems.add('Settled summaries carry no overage AND no bucket was drawn down -- '
+                + 'the usage reached a summary but nothing consumed it. Expected either an '
+                + 'overage amount or grant/commitment drawdown.');
+        }
+    } else if (withQty.isEmpty() && unsettled.isEmpty() && failedRating.isEmpty()) {
+        problems.add('No settled UsageRatableSummary exists for this run at all -- the '
+            + 'orchestration has not produced rated amounts.');
     }
     List<String> mismatched = new List<String>();
     Integer checkedRows = 0;

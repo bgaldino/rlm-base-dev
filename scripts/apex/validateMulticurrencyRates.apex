@@ -39,6 +39,45 @@ Set<String> EXPECTED_CURRENCIES = new Set<String>{
 };
 
 // ---------------------------------------------------------------- design-time
+// 0. COMPLETENESS FIRST. Every other check scopes its queries to QB_USAGE_SKUS,
+//    so a product that never loaded is absent from every result set and produces
+//    no rows to complain about -- the validator would pass over a build missing
+//    QB-CMT-TKN-BND entirely. Assert the catalog is whole before validating it.
+Set<String> loadedSkus = new Set<String>();
+for (Product2 p : [SELECT StockKeepingUnit FROM Product2
+                   WHERE StockKeepingUnit IN :QB_USAGE_SKUS]) {
+    loadedSkus.add(p.StockKeepingUnit);
+}
+Set<String> missingProducts = new Set<String>(QB_USAGE_SKUS);
+missingProducts.removeAll(loadedSkus);
+if (!missingProducts.isEmpty()) {
+    problems.add('Expected QuantumBit usage product(s) missing from the org: '
+        + missingProducts + ' -- every check below scopes to these SKUs, so their '
+        + 'absence would otherwise produce no findings at all. Load the catalog '
+        + '(qb-pcm / qb-pricing / qb-rating) before validating.');
+} else {
+    passed.add('all ' + QB_USAGE_SKUS.size() + ' expected usage products exist');
+}
+
+// Same trap one level down: a product can exist with no ProductUsageResource, in
+// which case it contributes no PUR/rate rows and every later check is silent.
+Set<String> skusWithPur = new Set<String>();
+for (ProductUsageResource pur : [SELECT Product.StockKeepingUnit
+                                 FROM ProductUsageResource
+                                 WHERE Product.StockKeepingUnit IN :QB_USAGE_SKUS
+                                   AND Status = 'Active']) {
+    skusWithPur.add(pur.Product.StockKeepingUnit);
+}
+Set<String> withoutPur = new Set<String>(loadedSkus);
+withoutPur.removeAll(skusWithPur);
+if (!withoutPur.isEmpty()) {
+    problems.add('QuantumBit usage product(s) with NO Active ProductUsageResource: '
+        + withoutPur + ' -- they contribute no rows, so the rate and coverage checks '
+        + 'below say nothing about them.');
+} else if (missingProducts.isEmpty()) {
+    passed.add('every expected usage product has at least one Active ProductUsageResource');
+}
+
 // Currency units available to denominate a rate. Used to CLASSIFY an entry as
 // currency- vs token-denominated; coverage is asserted against EXPECTED_CURRENCIES.
 Set<String> currencyUnits = new Set<String>();

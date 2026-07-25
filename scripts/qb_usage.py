@@ -59,6 +59,16 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # ----------------------------------------------------------------------
 # sf CLI plumbing
 # ----------------------------------------------------------------------
+def soql_str(value):
+    """Quote a value as a SOQL string literal, escaping backslash then quote.
+
+    Account names legitimately contain apostrophes (O'Brien). Unescaped, the query
+    fails, sf_query returns [], and the report shows "no buckets" instead of an
+    error -- a silent wrong answer rather than a loud one.
+    """
+    return "'" + str(value).replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
 def sf_query(org, soql):
     """Run SOQL and return records, or [] with a message on failure."""
     proc = subprocess.run(
@@ -124,15 +134,21 @@ def nested(record, *path):
 # ----------------------------------------------------------------------
 def cmd_audit(args):
     org = args.org
+    # Scoped to QB_USAGE_SKUS. Unscoped this pulled every usage product in the org,
+    # so on a build that also carries q3/mfg data the loop evaluated those against
+    # QuantumBit assumptions and could return a nonzero result for unrelated rows.
+    sku_list = ", ".join(soql_str(s) for s in QB_USAGE_SKUS)
     products = sf_query(org, "SELECT StockKeepingUnit, Name, UsageModelType FROM Product2 "
-                             "WHERE UsageModelType != null ORDER BY StockKeepingUnit")
+                             f"WHERE UsageModelType != null AND StockKeepingUnit IN ({sku_list}) "
+                             "ORDER BY StockKeepingUnit")
     if not products:
         print("No usage products found — is qb-rating loaded?")
         return 1
 
     pur_active, pur_draft = defaultdict(set), defaultdict(set)
     for r in sf_query(org, "SELECT Product.StockKeepingUnit, UsageResource.Code, Status "
-                           "FROM ProductUsageResource"):
+                           "FROM ProductUsageResource "
+                           f"WHERE Product.StockKeepingUnit IN ({sku_list})"):
         sku = nested(r, "Product", "StockKeepingUnit")
         code = nested(r, "UsageResource", "Code")
         (pur_active if r["Status"] == "Active" else pur_draft)[sku].add(code)
@@ -144,7 +160,8 @@ def cmd_audit(args):
             "RatingFrequencyPolicy.RatingPeriod, UsageAggregationPolicy.Code, "
             "UsageAggregationPolicy.UsageAccumulationPeriod, "
             "UsageCommitmentPolicy.Name, UsageOveragePolicy.Name "
-            "FROM ProductUsageResourcePolicy"):
+            "FROM ProductUsageResourcePolicy "
+            f"WHERE ProductUsageResource.Product.StockKeepingUnit IN ({sku_list})"):
         purp_by[nested(r, "ProductUsageResource", "Product", "StockKeepingUnit")].append({
             "res": nested(r, "ProductUsageResource", "UsageResource", "Code"),
             "purStatus": nested(r, "ProductUsageResource", "Status"),
@@ -157,7 +174,8 @@ def cmd_audit(args):
 
     grant_by = defaultdict(list)
     for r in sf_query(org, "SELECT Product.StockKeepingUnit, UsageRsrc.Code, Status, Quantity "
-                           "FROM ProductUsageGrant"):
+                           "FROM ProductUsageGrant "
+                           f"WHERE Product.StockKeepingUnit IN ({sku_list})"):
         grant_by[nested(r, "Product", "StockKeepingUnit")].append(
             f"{nested(r, 'UsageRsrc', 'Code')}={r['Quantity']:g}({r['Status']})")
 
@@ -165,7 +183,8 @@ def cmd_audit(args):
     rce_ids = defaultdict(list)
     for r in sf_query(org, "SELECT Id, Product.StockKeepingUnit, UsageResource.Code, "
                            "RateCard.Name, RateCard.Type, RateUnitOfMeasure.UnitCode, Status "
-                           "FROM RateCardEntry"):
+                           "FROM RateCardEntry "
+                           f"WHERE Product.StockKeepingUnit IN ({sku_list})"):
         if r["Status"] != "Active":
             continue
         sku = nested(r, "Product", "StockKeepingUnit")
@@ -274,7 +293,8 @@ def cmd_report(args):
         where_bucket = ("WHERE TransactionUsageEntitlement.Product.StockKeepingUnit IN "
                         f"({', '.join(repr(s) for s in QB_USAGE_SKUS)})")
         if acct:
-            where_bucket += f" AND TransactionUsageEntitlement.Account.Name = '{acct}'"
+            where_bucket += (" AND TransactionUsageEntitlement.Account.Name = "
+                             + soql_str(acct))
             print(f"\n{'=' * 90}\n{acct}\n{'=' * 90}")
         else:
             print(f"\n{'=' * 90}\nALL ACCOUNTS\n{'=' * 90}")
@@ -310,7 +330,7 @@ def cmd_report(args):
         where_rated = ("WHERE Asset.Product2.StockKeepingUnit IN "
                        f"({', '.join(repr(s) for s in QB_USAGE_SKUS)})")
         if acct:
-            where_rated += f" AND Account.Name = '{acct}'"
+            where_rated += " AND Account.Name = " + soql_str(acct)
         rated = [r for r in sf_query(org,
             "SELECT Account.Name, UsageResource.Code, StartDateTime, TierQuantity, "
             "OverageQuantity, NetUnitRate, TotalAmount, Status "
